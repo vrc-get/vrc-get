@@ -7,7 +7,7 @@ type Rest = indexmap::IndexMap<String, Value>;
 pub mod manifest {
     use super::*;
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Default)]
     pub struct VpmManifest {
         #[serde(default)]
         dependencies: indexmap::IndexMap<String, VpmDependency>,
