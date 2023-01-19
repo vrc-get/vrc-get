@@ -54,7 +54,7 @@ pub mod package {
 
 pub mod setting {
     use super::*;
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Default)]
     pub struct SettingsJson {
         #[serde(rename = "userRepos")]
         #[serde(default)]
