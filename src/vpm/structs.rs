@@ -1,4 +1,3 @@
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -86,10 +85,10 @@ pub mod repository {
         repo: Option<RemoteRepository>,
         #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
         cache: indexmap::IndexMap<String, PackageVersions>,
-        #[serde(rename="CreationInfo")]
+        #[serde(rename = "CreationInfo")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         creation_info: Option<CreationInfo>,
-        #[serde(rename="Description")]
+        #[serde(rename = "Description")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         description: Option<Description>,
         #[serde(flatten)]
@@ -120,7 +119,7 @@ pub mod repository {
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreationInfo {
-        #[serde(rename="localPath")]
+        #[serde(rename = "localPath")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         local_path: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
