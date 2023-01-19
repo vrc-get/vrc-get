@@ -130,14 +130,6 @@ impl UnityProject {
             }
         }
     }
-
-    fn load_manifest(manifest_path: &Path) -> io::Result<structs::manifest::VpmManifest> {
-        match fs::File::open(manifest_path) {
-            Ok(file) => Ok(serde_json::from_reader::<_, structs::manifest::VpmManifest>(file)?),
-            Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
-            Err(e) => Err(e),
-        }
-    }
 }
 
 fn load_json_optional<T>(manifest_path: &Path) -> io::Result<T>
