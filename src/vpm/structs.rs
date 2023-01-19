@@ -10,9 +10,9 @@ pub mod manifest {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct VpmManifest {
         #[serde(default)]
-        dependencies: Option<indexmap::IndexMap<String, VpmDependency>>,
+        dependencies: indexmap::IndexMap<String, VpmDependency>,
         #[serde(default)]
-        locked: Option<indexmap::IndexMap<String, VpmLockedDependency>>,
+        locked: indexmap::IndexMap<String, VpmLockedDependency>,
         #[serde(flatten)]
         rest: Rest,
     }
