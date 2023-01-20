@@ -2,7 +2,7 @@
 //!
 //! This module might be a separated crate.
 
-use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
+use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency, VpmManifest};
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::repository::{LocalCachedRepository, RemoteRepository};
 use crate::vpm::structs::setting::UserRepoSetting;
@@ -102,6 +102,21 @@ impl Environment {
 
     fn get_official_path(&self) -> PathBuf {
         self.get_repos_dir().joined("vrc-official.json")
+    }
+
+    pub async fn find_package_by_name<'a>(
+        &mut self,
+        package: &str,
+        version: VersionSelector<'a>,
+    ) -> io::Result<Option<Rc<PackageJson>>> {
+        let mut versions = self.find_packages(package).await?;
+
+        versions.sort_by(|a, b| a.version.cmp(&b.version));
+
+        Ok(versions
+            .into_iter()
+            .filter(|x| version.satisfies(&x.version))
+            .next())
     }
 
     pub(crate) async fn find_packages(
@@ -383,7 +398,7 @@ pub struct UnityProject {
     /// path to `Packages` folder.
     packages_dir: PathBuf,
     /// manifest.json
-    manifest: structs::manifest::VpmManifest,
+    manifest: VpmManifest,
     changed: bool,
 }
 
@@ -440,22 +455,6 @@ impl UnityProject {
                 ));
             }
         }
-    }
-
-    pub async fn find_package_by_name<'a>(
-        &self,
-        env: &mut Environment,
-        package: &str,
-        version: VersionSelector<'a>,
-    ) -> io::Result<Option<Rc<PackageJson>>> {
-        let mut versions = env.find_packages(package).await?;
-
-        versions.sort_by(|a, b| a.version.cmp(&b.version));
-
-        Ok(versions
-            .into_iter()
-            .filter(|x| version.satisfies(&x.version))
-            .next())
     }
 
     /// Add specified package to self project.
@@ -574,8 +573,8 @@ impl UnityProject {
                     .map(|x| range.matches(&x.version))
                     .unwrap_or(false)
                 {
-                    let found = self
-                        .find_package_by_name(env, dep, VersionSelector::Range(range))
+                    let found = env
+                        .find_package_by_name(dep, VersionSelector::Range(range))
                         .await?;
                     adding_deps.push(found.ok_or_else(|| AddPackageErr::DependencyNotFound {
                         dependency_name: dep.clone(),
@@ -607,6 +606,17 @@ impl UnityProject {
         let mut file = File::create(self.packages_dir.join("vpm-manifest.json")).await?;
         file.write_all(&to_json_vec(&self.manifest)?).await?;
         file.flush().await?;
+        Ok(())
+    }
+
+    pub async fn resolve(&self, env: &mut Environment) -> io::Result<()> {
+        for (pkg, dep) in &self.manifest.locked {
+            let pkg = env
+                .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
+                .await?
+                .expect("some package in manifest.json not found");
+            env.add_package(&pkg, &self.packages_dir).await?;
+        }
         Ok(())
     }
 }

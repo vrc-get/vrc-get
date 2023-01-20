@@ -26,7 +26,7 @@ pub struct Package {
 
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<String>,
+    project: Option<PathBuf>,
 }
 
 impl Package {
@@ -35,17 +35,16 @@ impl Package {
         let mut env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
-        let mut unity =
-            crate::vpm::UnityProject::find_unity_project(self.project.map(PathBuf::from))
-                .await
-                .expect("unity project not found");
+        let mut unity = crate::vpm::UnityProject::find_unity_project(self.project)
+            .await
+            .expect("unity project not found");
 
         let version_selector = match self.version {
             None => VersionSelector::Latest,
             Some(ref version) => VersionSelector::Specific(version),
         };
-        let package = unity
-            .find_package_by_name(&mut env, &self.name, version_selector)
+        let package = env
+            .find_package_by_name(&self.name, version_selector)
             .await
             .expect("finding package")
             .expect("no matching package not found");
