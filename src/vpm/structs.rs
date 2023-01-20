@@ -1,142 +1,188 @@
+pub use crate::vpm::version::VersionRange;
+use indexmap::IndexMap;
+use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::path::PathBuf;
 
-type Rest = indexmap::IndexMap<String, Value>;
+pub type Rest = IndexMap<String, Value>;
 
 pub mod manifest {
     use super::*;
 
-    #[derive(Serialize, Deserialize, Debug, Default)]
+    #[derive(Serialize, Deserialize, Debug, Clone, Default)]
     pub struct VpmManifest {
         #[serde(default)]
-        dependencies: indexmap::IndexMap<String, VpmDependency>,
+        pub dependencies: IndexMap<String, VpmDependency>,
         #[serde(default)]
-        locked: indexmap::IndexMap<String, VpmLockedDependency>,
+        pub locked: IndexMap<String, VpmLockedDependency>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct VpmDependency {
-        version: String,
+        pub version: Version,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    impl VpmDependency {
+        pub fn dummy() -> Self {
+            Self {
+                version: Version::new(0, 0, 0),
+                rest: Rest::new(),
+            }
+        }
+    }
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct VpmLockedDependency {
-        version: String,
+        pub version: Version,
         #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
-        dependencies: indexmap::IndexMap<String, String>,
+        pub dependencies: IndexMap<String, VersionRange>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
+    }
+
+    impl VpmLockedDependency {
+        pub fn dummy() -> Self {
+            Self {
+                version: Version::new(0, 0, 0),
+                dependencies: IndexMap::new(),
+                rest: Rest::new(),
+            }
+        }
     }
 }
 
 pub mod package {
     use super::*;
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct PackageJson {
-        name: String,
+        pub name: String,
         #[serde(rename = "displayName")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        display_name: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        version: Option<String>,
+        pub display_name: Option<String>,
+        pub version: Version,
         #[serde(rename = "vpmDependencies")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        vpm_dependencies: Option<indexmap::IndexMap<String, String>>,
+        pub vpm_dependencies: Option<IndexMap<String, VersionRange>>,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        pub url: String,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 }
 
 pub mod setting {
     use super::*;
-    #[derive(Serialize, Deserialize, Debug, Default)]
+    #[derive(Serialize, Deserialize, Debug, Clone, Default)]
     pub struct SettingsJson {
         #[serde(rename = "userRepos")]
         #[serde(default)]
-        user_repos: Vec<UserRepoSetting>,
+        pub user_repos: Vec<UserRepoSetting>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct UserRepoSetting {
         #[serde(rename = "localPath")]
-        local_path: String,
+        pub local_path: PathBuf,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        name: Option<String>,
+        pub name: Option<String>,
         // must be non-relative url.
-        #[serde(default)]
-        url: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub url: Option<String>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 }
 
 pub mod repository {
     use super::*;
+    use std::rc::Rc;
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct LocalCachedRepository {
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        repo: Option<RemoteRepository>,
+        pub repo: Option<RemoteRepository>,
         #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
-        cache: indexmap::IndexMap<String, PackageVersions>,
+        pub cache: IndexMap<String, PackageVersions>,
         #[serde(rename = "CreationInfo")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        creation_info: Option<CreationInfo>,
+        pub creation_info: Option<CreationInfo>,
         #[serde(rename = "Description")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        description: Option<Description>,
+        pub description: Option<Description>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    impl LocalCachedRepository {
+        pub fn new(path: PathBuf, name: Option<String>, url: Option<String>) -> Self {
+            Self {
+                repo: None,
+                cache: IndexMap::new(),
+                creation_info: Some(CreationInfo {
+                    local_path: Some(path),
+                    url,
+                    name: name.clone(),
+                    rest: Rest::new(),
+                }),
+                description: Some(Description {
+                    name,
+                    r#type: Some("JsonRepo".to_owned()),
+                    rest: Rest::new(),
+                }),
+                rest: Rest::new(),
+            }
+        }
+    }
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct RemoteRepository {
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        name: Option<String>,
+        pub name: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        author: Option<String>,
+        pub author: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        url: Option<String>,
+        pub url: Option<String>,
         #[serde(default)]
-        packages: indexmap::IndexMap<String, PackageVersions>,
+        pub packages: IndexMap<String, PackageVersions>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct PackageVersions {
         #[serde(default)]
-        versions: indexmap::IndexMap<String, package::PackageJson>,
+        pub versions: IndexMap<String, Rc<package::PackageJson>>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct CreationInfo {
         #[serde(rename = "localPath")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        local_path: Option<String>,
+        pub local_path: Option<PathBuf>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        url: Option<String>,
+        pub url: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        name: Option<String>,
+        pub name: Option<String>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct Description {
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        name: Option<String>,
+        pub name: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        r#type: Option<String>,
+        pub r#type: Option<String>,
         #[serde(flatten)]
-        rest: Rest,
+        pub(crate) rest: Rest,
     }
 }
