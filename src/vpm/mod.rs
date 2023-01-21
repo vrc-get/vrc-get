@@ -294,6 +294,13 @@ impl RepoHolder {
             local_cache.cache = remote_repo.packages.clone();
             local_cache.repo = Some(remote_repo);
 
+            match write_repo(path, &local_cache).await {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("writing local repo '{}': {}", path.display(), e);
+                }
+            }
+
             Ok(local_cache)
         })
         .await
