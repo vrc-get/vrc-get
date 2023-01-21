@@ -1,17 +1,20 @@
 use crate::vpm::VersionSelector;
 use clap::{Parser, Subcommand};
+use reqwest::Url;
 use semver::Version;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Subcommand)]
 pub enum Command {
     Package(Package),
+    Repo(Repo),
 }
 
 impl Command {
     pub async fn run(self) {
         match self {
             Command::Package(cmd) => cmd.run().await,
+            Command::Repo(cmd) => cmd.run().await,
         }
     }
 }
@@ -54,5 +57,31 @@ impl Package {
             .expect("adding package");
 
         unity.save().await.expect("saving manifest file");
+    }
+}
+
+#[derive(Parser)]
+pub struct Repo {
+    /// Name of Package
+    #[arg()]
+    path_or_url: String,
+}
+
+impl Repo {
+    pub async fn run(self) {
+        let client = crate::create_client();
+        let mut env = crate::vpm::Environment::load_default(client)
+            .await
+            .expect("loading global config");
+
+        if let Ok(url) = Url::parse(&self.path_or_url) {
+            env.add_remote_repo(url).await.expect("adding repository")
+        } else {
+            env.add_local_repo(Path::new(&self.path_or_url))
+                .await
+                .expect("adding repository")
+        }
+
+        env.save().await.expect("saving settings file");
     }
 }

@@ -2,7 +2,7 @@ use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser)]
-pub(crate) struct Command {
+pub struct Command {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,

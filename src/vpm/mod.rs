@@ -10,7 +10,7 @@ use crate::vpm::structs::VersionRange;
 use crate::vpm::utils::{MapResultExt, PathBufExt};
 use futures::future::join_all;
 use indexmap::IndexMap;
-use reqwest::Client;
+use reqwest::{Client, IntoUrl, Url};
 use semver::Version;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
@@ -44,6 +44,7 @@ pub struct Environment {
     settings: SettingsJson,
     /// Cache
     repo_cache: RepoHolder,
+    settings_changed: bool,
 }
 
 impl Environment {
@@ -57,6 +58,7 @@ impl Environment {
             settings: load_json_or_default(&folder.join("settings.json")).await?,
             global_dir: folder,
             repo_cache: RepoHolder::new(http),
+            settings_changed: false,
         })
     }
 
@@ -258,6 +260,93 @@ impl Environment {
 
         Ok(())
     }
+
+    pub async fn add_remote_repo(&mut self, url: Url) -> Result<(), AddRepositoryErr> {
+        if self
+            .settings
+            .user_repos
+            .iter()
+            .any(|x| x.url.as_deref() == Some(url.as_ref()))
+        {
+            return Err(AddRepositoryErr::AlreadyAdded);
+        }
+        let remote_repo = download_remote_repository(&self.http, url.clone()).await?;
+        let local_path = self
+            .get_repos_dir()
+            .joined(format!("{}.json", uuid::Uuid::new_v4()));
+
+        let repo_name = remote_repo.name.clone();
+
+        let mut local_cache = LocalCachedRepository::new(
+            local_path.clone(),
+            repo_name.clone(),
+            Some(url.to_string()),
+        );
+        local_cache.cache = remote_repo.packages.clone();
+        local_cache.repo = Some(remote_repo);
+
+        write_repo(&local_path, &local_cache).await?;
+
+        self.settings.user_repos.push(UserRepoSetting::new(
+            local_path.clone(),
+            repo_name,
+            Some(url.to_string()),
+        ));
+        self.settings_changed = true;
+        Ok(())
+    }
+
+    pub async fn add_local_repo(&mut self, path: &Path) -> Result<(), AddRepositoryErr> {
+        if self
+            .settings
+            .user_repos
+            .iter()
+            .any(|x| x.local_path.as_path() == path)
+        {
+            return Err(AddRepositoryErr::AlreadyAdded);
+        }
+
+        self.settings
+            .user_repos
+            .push(UserRepoSetting::new(path.to_owned(), None, None));
+        self.settings_changed = true;
+        Ok(())
+    }
+
+    pub async fn save(&mut self) -> io::Result<()> {
+        if !self.settings_changed {
+            return Ok(());
+        }
+
+        let mut file = File::create(self.global_dir.join("settings.json")).await?;
+        file.write_all(&to_json_vec(&self.settings)?).await?;
+        file.flush().await?;
+        self.settings_changed = false;
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub enum AddRepositoryErr {
+    Io(io::Error),
+    AlreadyAdded,
+}
+
+impl fmt::Display for AddRepositoryErr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AddRepositoryErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
+            AddRepositoryErr::AlreadyAdded => f.write_str("already newer package installed"),
+        }
+    }
+}
+
+impl std::error::Error for AddRepositoryErr {}
+
+impl From<io::Error> for AddRepositoryErr {
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
+    }
 }
 
 #[derive(Debug)]
@@ -284,7 +373,7 @@ impl RepoHolder {
         let client = self.http.clone();
         self.get_repo(path, || async {
             // if local repository not found: try downloading remote one
-            let remote_repo = download_remote_repository(client, remote_url).await?;
+            let remote_repo = download_remote_repository(&client, remote_url).await?;
 
             let mut local_cache = LocalCachedRepository::new(
                 path.to_owned(),
@@ -332,7 +421,7 @@ impl RepoHolder {
                         ))
                     }
                 };
-                update_from_remote(self.http.clone(), entry.key(), &mut loaded).await;
+                update_from_remote(&self.http, entry.key(), &mut loaded).await;
                 Ok(entry.insert(loaded))
             }
         }
@@ -354,12 +443,12 @@ impl RepoHolder {
     }
 }
 
-async fn update_from_remote(client: Client, path: &Path, repo: &mut LocalCachedRepository) {
+async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCachedRepository) {
     let Some(remote_url) = repo.creation_info.as_ref().and_then(|x| x.url.as_ref()) else {
         return
     };
 
-    match download_remote_repository(client, remote_url).await {
+    match download_remote_repository(&client, remote_url).await {
         Ok(remote_repo) => {
             repo.cache = remote_repo.packages.clone();
             repo.repo = Some(remote_repo);
@@ -384,7 +473,10 @@ async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()>
     Ok(())
 }
 
-async fn download_remote_repository(client: Client, url: &str) -> io::Result<RemoteRepository> {
+async fn download_remote_repository(
+    client: &Client,
+    url: impl IntoUrl,
+) -> io::Result<RemoteRepository> {
     fn map_err(err: reqwest::Error) -> io::Error {
         io::Error::new(io::ErrorKind::NotFound, err)
     }

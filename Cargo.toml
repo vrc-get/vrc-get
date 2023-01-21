@@ -17,3 +17,4 @@ semver = { version = "1.0.16", features = ["serde"] }
 serde = { version = "1.0.152", features = ["derive", "rc"] }
 serde_json = { version = "1.0.91", features = ["preserve_order"] }
 tokio = { version = "1.24.2", features = ["rt", "macros", "fs"] }
+uuid = { version = "1.2.2", features = ["v4"] }

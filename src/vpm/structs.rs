@@ -98,6 +98,17 @@ pub mod setting {
         #[serde(flatten)]
         pub(crate) rest: Rest,
     }
+
+    impl UserRepoSetting {
+        pub fn new(local_path: PathBuf, name: Option<String>, url: Option<String>) -> Self {
+            Self {
+                local_path,
+                name,
+                url,
+                rest: Rest::new(),
+            }
+        }
+    }
 }
 
 pub mod repository {
