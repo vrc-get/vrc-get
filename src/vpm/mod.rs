@@ -3,29 +3,30 @@
 //! This module might be a separated crate.
 
 use crate::version::{Version, VersionRange};
-use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency, VpmManifest};
+use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::vpm::structs::package::PackageJson;
-use crate::vpm::structs::repository::{LocalCachedRepository, RemoteRepository};
+use crate::vpm::structs::remote_repo::PackageVersions;
+use crate::vpm::structs::repository::LocalCachedRepository;
 use crate::vpm::structs::setting::UserRepoSetting;
-use crate::vpm::utils::{MapResultExt, PathBufExt};
+use crate::vpm::utils::{JsonMapExt, MapResultExt, PathBufExt};
 use futures::future::join_all;
 use indexmap::IndexMap;
 use reqwest::{Client, IntoUrl, Url};
+use serde_json::{from_value, to_value, Map, Value};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::future::Future;
 use std::io::SeekFrom;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 use std::{env, fmt, io};
-use structs::setting::SettingsJson;
 use tokio::fs::{create_dir_all, read_dir, File, OpenOptions};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 pub mod structs;
 mod utils;
+
+type JsonMap = Map<String, Value>;
 
 static VRC_OFFICIAL_URL: &'static str = "https://packages.vrchat.com/official?download";
 static VRC_CURATED_URL: &'static str = "https://packages.vrchat.com/curated?download";
@@ -39,7 +40,7 @@ pub struct Environment {
     /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
     global_dir: PathBuf,
     /// parsed settings
-    settings: SettingsJson,
+    settings: Map<String, Value>,
     /// Cache
     repo_cache: RepoHolder,
     settings_changed: bool,
@@ -108,7 +109,7 @@ impl Environment {
         &mut self,
         package: &str,
         version: VersionSelector<'a>,
-    ) -> io::Result<Option<Rc<PackageJson>>> {
+    ) -> io::Result<Option<PackageJson>> {
         let mut versions = self.find_packages(package).await?;
 
         versions.sort_by(|a, b| a.version.cmp(&b.version));
@@ -119,19 +120,21 @@ impl Environment {
             .next())
     }
 
-    pub(crate) async fn find_packages(
-        &mut self,
-        package: &str,
-    ) -> io::Result<Vec<Rc<PackageJson>>> {
+    pub(crate) async fn find_packages(&mut self, package: &str) -> io::Result<Vec<PackageJson>> {
         let mut list = Vec::new();
 
         fn append<'a>(
-            list: &mut Vec<Rc<PackageJson>>,
+            list: &mut Vec<PackageJson>,
             package: &str,
             repo: &'a LocalCachedRepository,
         ) -> io::Result<()> {
             if let Some(version) = repo.cache.get(package) {
-                list.extend(version.versions.values().cloned());
+                list.extend(
+                    from_value::<PackageVersions>(version.clone())?
+                        .versions
+                        .values()
+                        .cloned(),
+                );
             }
             Ok(())
         }
@@ -158,7 +161,13 @@ impl Environment {
         let mut uesr_repo_file_names = HashSet::new();
         let repos_base = self.get_repos_dir();
 
-        for x in &self.settings.user_repos {
+        let user_repos = from_value::<Vec<UserRepoSetting>>(
+            self.settings
+                .get("user_repos")
+                .cloned()
+                .unwrap_or(Value::Array(vec![])),
+        )?;
+        for x in &user_repos {
             append(&mut list, package, self.repo_cache.get_user_repo(x).await?)?;
 
             if let Ok(relative) = x.local_path.strip_prefix(&repos_base) {
@@ -259,10 +268,28 @@ impl Environment {
         Ok(())
     }
 
+    fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
+        from_value::<Vec<UserRepoSetting>>(
+            self.settings
+                .get("user_repos")
+                .cloned()
+                .unwrap_or(Value::Array(vec![])),
+        )
+    }
+
+    fn add_user_repo(&mut self, repo: &UserRepoSetting) -> serde_json::Result<()> {
+        self.settings
+            .get_or_put_mut("user_repos", || Vec::<Value>::new())
+            .as_array_mut()
+            .expect("user_repos must be array")
+            .push(to_value(repo)?);
+        self.settings_changed = true;
+        Ok(())
+    }
+
     pub async fn add_remote_repo(&mut self, url: Url) -> Result<(), AddRepositoryErr> {
-        if self
-            .settings
-            .user_repos
+        let user_repos = self.get_user_repos()?;
+        if user_repos
             .iter()
             .any(|x| x.url.as_deref() == Some(url.as_ref()))
         {
@@ -273,41 +300,40 @@ impl Environment {
             .get_repos_dir()
             .joined(format!("{}.json", uuid::Uuid::new_v4()));
 
-        let repo_name = remote_repo.name.clone();
+        let repo_name = remote_repo
+            .get("name")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
 
         let mut local_cache = LocalCachedRepository::new(
             local_path.clone(),
             repo_name.clone(),
             Some(url.to_string()),
         );
-        local_cache.cache = remote_repo.packages.clone();
+        local_cache.cache = remote_repo
+            .get("packages")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or(JsonMap::new());
         local_cache.repo = Some(remote_repo);
 
         write_repo(&local_path, &local_cache).await?;
 
-        self.settings.user_repos.push(UserRepoSetting::new(
+        self.add_user_repo(&UserRepoSetting::new(
             local_path.clone(),
             repo_name,
             Some(url.to_string()),
-        ));
-        self.settings_changed = true;
+        ))?;
         Ok(())
     }
 
     pub async fn add_local_repo(&mut self, path: &Path) -> Result<(), AddRepositoryErr> {
-        if self
-            .settings
-            .user_repos
-            .iter()
-            .any(|x| x.local_path.as_path() == path)
-        {
+        let user_repos = self.get_user_repos()?;
+        if user_repos.iter().any(|x| x.local_path.as_path() == path) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
 
-        self.settings
-            .user_repos
-            .push(UserRepoSetting::new(path.to_owned(), None, None));
-        self.settings_changed = true;
+        self.add_user_repo(&UserRepoSetting::new(path.to_owned(), None, None))?;
         Ok(())
     }
 
@@ -347,6 +373,12 @@ impl From<io::Error> for AddRepositoryErr {
     }
 }
 
+impl From<serde_json::Error> for AddRepositoryErr {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Io(value.into())
+    }
+}
+
 #[derive(Debug)]
 struct RepoHolder {
     http: Client,
@@ -378,7 +410,11 @@ impl RepoHolder {
                 name.map(str::to_owned),
                 Some(remote_url.to_owned()),
             );
-            local_cache.cache = remote_repo.packages.clone();
+            local_cache.cache = remote_repo
+                .get("packages")
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or(JsonMap::new());
             local_cache.repo = Some(remote_repo);
 
             match write_repo(path, &local_cache).await {
@@ -448,7 +484,11 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
 
     match download_remote_repository(&client, remote_url).await {
         Ok(remote_repo) => {
-            repo.cache = remote_repo.packages.clone();
+            repo.cache = remote_repo
+                .get("packages")
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or(JsonMap::new());
             repo.repo = Some(remote_repo);
         }
         Err(e) => {
@@ -471,10 +511,7 @@ async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()>
     Ok(())
 }
 
-async fn download_remote_repository(
-    client: &Client,
-    url: impl IntoUrl,
-) -> io::Result<RemoteRepository> {
+async fn download_remote_repository(client: &Client, url: impl IntoUrl) -> io::Result<JsonMap> {
     fn map_err(err: reqwest::Error) -> io::Error {
         io::Error::new(io::ErrorKind::NotFound, err)
     }
@@ -490,13 +527,89 @@ async fn download_remote_repository(
         .err_mapped()
 }
 
+use vpm_manifest::VpmManifest;
+mod vpm_manifest {
+    use super::*;
+    use serde::Serialize;
+    use serde_json::json;
+
+    #[derive(Debug)]
+    pub(super) struct VpmManifest {
+        json: JsonMap,
+        dependencies: IndexMap<String, VpmDependency>,
+        locked: IndexMap<String, VpmLockedDependency>,
+        changed: bool,
+    }
+
+    impl VpmManifest {
+        pub(super) fn new(json: JsonMap) -> serde_json::Result<Self> {
+            Ok(Self {
+                dependencies: from_value(
+                    json.get("dependencies")
+                        .cloned()
+                        .unwrap_or(Value::Object(JsonMap::new())),
+                )?,
+                locked: from_value(
+                    json.get("locked")
+                        .cloned()
+                        .unwrap_or(Value::Object(JsonMap::new())),
+                )?,
+                json,
+                changed: false,
+            })
+        }
+
+        pub(super) fn dependencies(&self) -> &IndexMap<String, VpmDependency> {
+            &self.dependencies
+        }
+
+        pub(super) fn locked(&self) -> &IndexMap<String, VpmLockedDependency> {
+            &self.locked
+        }
+
+        pub(super) fn add_dependency(&mut self, name: &str, dependency: VpmDependency) {
+            // update both parsed and non-parsed
+            self.add_value("dependencies", name, &dependency);
+            self.dependencies.insert(name.to_string(), dependency);
+        }
+
+        pub(super) fn add_locked(&mut self, name: &str, dependency: VpmLockedDependency) {
+            // update both parsed and non-parsed
+            self.add_value("locked", name, &dependency);
+            self.locked.insert(name.to_string(), dependency);
+        }
+
+        fn add_value(&mut self, key0: &str, key1: &str, value: &impl Serialize) {
+            let serialized = to_value(value).expect("serialize err");
+            match self.json.get_mut(key0) {
+                Some(Value::Object(obj)) => {
+                    obj.insert(key1.to_string(), serialized);
+                }
+                _ => {
+                    self.json.insert(key0.into(), json!({ key1: serialized }));
+                }
+            }
+            self.changed = true;
+        }
+
+        pub(super) async fn save_to(&self, file: &Path) -> io::Result<()> {
+            if !self.changed {
+                return Ok(());
+            }
+            let mut file = File::create(file).await?;
+            file.write_all(&to_json_vec(&self.json)?).await?;
+            file.flush().await?;
+            Ok(())
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct UnityProject {
     /// path to `Packages` folder.
     packages_dir: PathBuf,
     /// manifest.json
     manifest: VpmManifest,
-    changed: bool,
 }
 
 impl UnityProject {
@@ -510,8 +623,7 @@ impl UnityProject {
 
         Ok(UnityProject {
             packages_dir: unity_found,
-            manifest: load_json_or_default(&manifest).await?,
-            changed: false,
+            manifest: VpmManifest::new(load_json_or_default(&manifest).await?)?,
         })
     }
 
@@ -568,7 +680,7 @@ impl UnityProject {
     ) -> Result<(), AddPackageErr> {
         use crate::vpm::AddPackageErr::*;
         // if same or newer requested package is in dependencies, do nothing
-        if let Some(dep) = self.manifest.dependencies.get(&request.name) {
+        if let Some(dep) = self.manifest.dependencies().get(&request.name) {
             if dep.version >= request.version {
                 return Err(AlreadyNewerPackageInstalled);
             }
@@ -576,14 +688,10 @@ impl UnityProject {
 
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
-        if let Some(locked) = self.manifest.locked.get(&request.name) {
+        if let Some(locked) = self.manifest.locked().get(&request.name) {
             if locked.version >= request.version {
-                self.changed = true;
                 self.manifest
-                    .dependencies
-                    .entry(request.name.to_string())
-                    .or_insert_with(VpmDependency::dummy)
-                    .version = request.version.clone();
+                    .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
                 return Ok(());
             }
         }
@@ -598,30 +706,25 @@ impl UnityProject {
             self.check_conflict(&x.name, &x.version)?;
         }
 
-        let mut packages = adding_deps.iter().map(|x| x.deref()).collect::<Vec<_>>();
+        let mut packages = adding_deps.iter().collect::<Vec<_>>();
         packages.push(request);
         let packages = packages;
 
         // there's no errors to add package. adding to dependencies
 
-        self.changed = true;
-
         // first, add to dependencies
         self.manifest
-            .dependencies
-            .entry(request.name.to_string())
-            .or_insert_with(VpmDependency::dummy)
-            .version = request.version.clone();
+            .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
 
         // then, lock all dependencies
         for pkg in packages.iter() {
-            let dependency = self
-                .manifest
-                .locked
-                .entry(request.name.to_string())
-                .or_insert_with(VpmLockedDependency::dummy);
-            dependency.version = pkg.version.clone();
-            dependency.dependencies = pkg.vpm_dependencies.clone().unwrap_or_else(IndexMap::new);
+            self.manifest.add_locked(
+                &request.name,
+                VpmLockedDependency::new(
+                    pkg.version.clone(),
+                    pkg.vpm_dependencies.clone().unwrap_or_else(IndexMap::new),
+                ),
+            );
         }
 
         // resolve all packages
@@ -640,7 +743,7 @@ impl UnityProject {
         &mut self,
         env: &mut Environment,
         pkg: &PackageJson,
-    ) -> Result<Vec<Rc<PackageJson>>, AddPackageErr> {
+    ) -> Result<Vec<PackageJson>, AddPackageErr> {
         let mut all_deps = Vec::new();
         let mut adding_deps = Vec::new();
         self.collect_adding_packages_internal(&mut all_deps, env, pkg)
@@ -657,7 +760,7 @@ impl UnityProject {
 
     async fn collect_adding_packages_internal(
         &mut self,
-        adding_deps: &mut Vec<Rc<PackageJson>>,
+        adding_deps: &mut Vec<PackageJson>,
         env: &mut Environment,
         pkg: &PackageJson,
     ) -> Result<(), AddPackageErr> {
@@ -665,7 +768,7 @@ impl UnityProject {
             for (dep, range) in dependencies {
                 if self
                     .manifest
-                    .locked
+                    .locked()
                     .get(dep)
                     .map(|x| range.matches(&x.version))
                     .unwrap_or(false)
@@ -683,7 +786,7 @@ impl UnityProject {
     }
 
     fn check_conflict(&self, name: &str, version: &Version) -> Result<(), AddPackageErr> {
-        for (pkg_name, locked) in &self.manifest.locked {
+        for (pkg_name, locked) in self.manifest.locked() {
             if let Some(dep) = locked.dependencies.get(name) {
                 if dep.matches(&version) {
                     return Err(AddPackageErr::ConflictWithDependencies {
@@ -697,17 +800,13 @@ impl UnityProject {
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
-        if !self.changed {
-            return Ok(());
-        }
-        let mut file = File::create(self.packages_dir.join("vpm-manifest.json")).await?;
-        file.write_all(&to_json_vec(&self.manifest)?).await?;
-        file.flush().await?;
-        Ok(())
+        self.manifest
+            .save_to(&self.packages_dir.join("vpm-manifest.json"))
+            .await
     }
 
     pub async fn resolve(&self, env: &mut Environment) -> io::Result<()> {
-        for (pkg, dep) in &self.manifest.locked {
+        for (pkg, dep) in self.manifest.locked() {
             let pkg = env
                 .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
                 .await?

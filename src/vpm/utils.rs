@@ -1,4 +1,5 @@
 use async_zip::error::ZipError;
+use serde_json::{Map, Value};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -52,5 +53,22 @@ impl<T> MapResultExt<T> for Result<T, ZipError> {
 
             io::Error::new(kind, err)
         })
+    }
+}
+
+pub(crate) trait JsonMapExt {
+    fn get_or_put_mut<Q, V>(&mut self, key: Q, value: impl FnOnce() -> V) -> &mut Value
+    where
+        Q: Into<String>,
+        V: Into<Value>;
+}
+
+impl JsonMapExt for Map<String, Value> {
+    fn get_or_put_mut<Q, V>(&mut self, key: Q, value: impl FnOnce() -> V) -> &mut Value
+    where
+        Q: Into<String>,
+        V: Into<Value>,
+    {
+        self.entry(key.into()).or_insert_with(|| value().into())
     }
 }
