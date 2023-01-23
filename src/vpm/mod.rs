@@ -263,7 +263,7 @@ impl Environment {
         };
 
         // remove dest folder before extract if exists
-        remove_dir_all(dest_folder).await.ok();
+        remove_dir_all(&dest_folder).await.ok();
 
         // extract zip file
         // TODO: sanitize to prevent directory traversal
