@@ -1,6 +1,12 @@
 pub use range::VersionRange;
+use std::fmt::{Display, Formatter};
 
 mod range;
+
+trait FromParsingBuf: Sized {
+    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError>;
+}
+
 struct ParsingBuf<'a> {
     buf: &'a str,
 }

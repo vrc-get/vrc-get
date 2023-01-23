@@ -1,4 +1,4 @@
-use crate::vpm::version::{ParseRangeError, ParsingBuf};
+use crate::vpm::version::{FromParsingBuf, ParseRangeError, ParsingBuf};
 use semver::{BuildMetadata, Prerelease, Version};
 use serde::de;
 use serde::de::Error;
@@ -103,11 +103,21 @@ impl FromStr for ComparatorSet {
     type Err = ParseRangeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut result = Vec::<Comparator>::new();
         let mut buffer = ParsingBuf::new(s);
+        let result = FromParsingBuf::parse(&mut buffer)?;
+        if buffer.first().is_some() {
+            return Err(ParseRangeError::invalid_char(buffer.first_char()));
+        }
+        Ok(result)
+    }
+}
+
+impl FromParsingBuf for ComparatorSet {
+    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
+        let mut result = Vec::<Comparator>::new();
 
         while !buffer.is_empty() {
-            result.push(Comparator::parse(&mut buffer)?);
+            result.push(Comparator::parse(buffer)?);
         }
 
         Ok(Self(result))
@@ -259,7 +269,9 @@ impl Comparator {
             }
         }
     }
+}
 
+impl FromParsingBuf for Comparator {
     fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
         bytes.slip_ws();
         match bytes.first() {
@@ -430,19 +442,21 @@ impl PartialVersion {
     fn patch_or(&self, default: Segment) -> Segment {
         Self::segment_or(self.patch, default)
     }
+}
 
-    pub(super) fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
+impl FromParsingBuf for PartialVersion {
+    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
         bytes.slip_ws();
-        let major = Self::parse_segment(bytes)?;
+        let major = parse_segment(bytes)?;
         let minor = if let Some(b'.') = bytes.first() {
             bytes.skip();
-            Self::parse_segment(bytes)?
+            parse_segment(bytes)?
         } else {
             NOT_EXISTS
         };
         let (patch, pre, build) = if let Some(b'.') = bytes.first() {
             bytes.skip();
-            let patch = Self::parse_segment(bytes)?;
+            let patch = parse_segment(bytes)?;
 
             let prerelease = if let Some(b'-') = bytes.first() {
                 bytes.skip();
@@ -461,54 +475,56 @@ impl PartialVersion {
             (NOT_EXISTS, Prerelease::EMPTY, BuildMetadata::EMPTY)
         };
 
-        Ok(PartialVersion {
+        return Ok(PartialVersion {
             major,
             minor,
             patch,
             pre,
             build,
-        })
-    }
+        });
 
-    fn parse_segment(bytes: &mut ParsingBuf) -> Result<Segment, ParseRangeError> {
-        match bytes.first() {
-            Some(b'x') => {
-                bytes.skip();
-                Ok(LOWER_X)
-            }
-            Some(b'X') => {
-                bytes.skip();
-                Ok(UPPER_X)
-            }
-            Some(b'*') => {
-                bytes.skip();
-                Ok(STAR)
-            }
-            Some(b'1'..=b'9') => {
-                let mut i = 1;
-                while let Some(b'0'..=b'9') = bytes.get(i) {
-                    i += 1;
+        fn parse_segment(bytes: &mut ParsingBuf) -> Result<Segment, ParseRangeError> {
+            match bytes.first() {
+                Some(b'x') => {
+                    bytes.skip();
+                    Ok(LOWER_X)
                 }
-                let str = bytes.take(i);
-                let value = Segment::from_str(str).map_err(|_| ParseRangeError::too_big())?;
-                if value > VERSION_SEGMENT_MAX {
-                    return Err(ParseRangeError::too_big());
+                Some(b'X') => {
+                    bytes.skip();
+                    Ok(UPPER_X)
                 }
-                Ok(value)
-            }
-            Some(b'0') => {
-                bytes.skip();
-                // if 0\d, 0 is invalid char
-                if let Some(b'0'..=b'9') = bytes.first() {
-                    return Err(ParseRangeError::invalid_char(bytes.first_char()));
+                Some(b'*') => {
+                    bytes.skip();
+                    Ok(STAR)
                 }
-                Ok(0)
+                Some(b'1'..=b'9') => {
+                    let mut i = 1;
+                    while let Some(b'0'..=b'9') = bytes.get(i) {
+                        i += 1;
+                    }
+                    let str = bytes.take(i);
+                    let value = Segment::from_str(str).map_err(|_| ParseRangeError::too_big())?;
+                    if value > VERSION_SEGMENT_MAX {
+                        return Err(ParseRangeError::too_big());
+                    }
+                    Ok(value)
+                }
+                Some(b'0') => {
+                    bytes.skip();
+                    // if 0\d, 0 is invalid char
+                    if let Some(b'0'..=b'9') = bytes.first() {
+                        return Err(ParseRangeError::invalid_char(bytes.first_char()));
+                    }
+                    Ok(0)
+                }
+                Some(_) => Err(ParseRangeError::invalid_char(bytes.first_char())),
+                None => Err(ParseRangeError::unexpected_end()),
             }
-            Some(_) => Err(ParseRangeError::invalid_char(bytes.first_char())),
-            None => Err(ParseRangeError::unexpected_end()),
         }
     }
+}
 
+impl PartialVersion {
     fn parse_id<'a>(
         bytes: &mut ParsingBuf<'a>,
         allow_loading_zero: bool,
