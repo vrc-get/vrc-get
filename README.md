@@ -17,16 +17,16 @@ Ports
   - [x] `vpm add repo`
   - [x] `vpm add package`
 - [ ] `vpm install`
-  - [ ] `vpm install hub`
-  - [ ] `vpm install unity`
-  - [ ] `vpm install vcc`
-  - [ ] `vpm install templates`
+  - [ ] `vpm install hub` (Not to be implemented early)
+  - [ ] `vpm install unity` (Not to be implemented early)
+  - [ ] `vpm install vcc` (Not to be implemented early)
+  - [ ] `vpm install templates` (I don't know how can I implement this)
 - [ ] `vpm list`
-  - [ ] `vpm list unity`
+  - [ ] `vpm list unity` (Not to be implemented early)
   - [x] `vpm list repos`
   - [x] `vpm list repo`
-  - [ ] `vpm list templates`
-- [ ] `vpm check`
+  - [ ] `vpm list templates` (Not to be implemented early)
+- [ ] `vpm check` (Not to be implemented early)
   - [ ] `vpm check package`
   - [ ] `vpm check unity`
   - [ ] `vpm check hub`
