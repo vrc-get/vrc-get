@@ -161,12 +161,7 @@ impl Environment {
         let mut uesr_repo_file_names = HashSet::new();
         let repos_base = self.get_repos_dir();
 
-        let user_repos = from_value::<Vec<UserRepoSetting>>(
-            self.settings
-                .get("user_repos")
-                .cloned()
-                .unwrap_or(Value::Array(vec![])),
-        )?;
+        let user_repos = self.get_user_repos()?;
         for x in &user_repos {
             append(&mut list, package, self.repo_cache.get_user_repo(x).await?)?;
 
@@ -195,6 +190,17 @@ impl Environment {
                     .get_repo(&path, || async { unreachable!() })
                     .await?;
                 append(&mut list, package, repo)?;
+            }
+        }
+
+        // user package folders
+        for x in self.get_user_package_folders()? {
+            if let Some(package_json) =
+                load_json_or_default::<Option<PackageJson>>(&x.joined("package.json")).await?
+            {
+                if package_json.name == package {
+                    list.push(package_json);
+                }
             }
         }
 
@@ -271,7 +277,16 @@ impl Environment {
     fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
         from_value::<Vec<UserRepoSetting>>(
             self.settings
-                .get("user_repos")
+                .get("userRepos")
+                .cloned()
+                .unwrap_or(Value::Array(vec![])),
+        )
+    }
+
+    fn get_user_package_folders(&self) -> serde_json::Result<Vec<PathBuf>> {
+        from_value(
+            self.settings
+                .get("userPackageFolders")
                 .cloned()
                 .unwrap_or(Value::Array(vec![])),
         )
