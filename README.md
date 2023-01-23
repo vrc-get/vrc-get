@@ -5,8 +5,8 @@ Opensource reimplementation of vpm command.
 
 ## Goals
 
-- Provide OSS version of vpm command
-- Provide more functionality than official vpm
+- Provide OSS version of vpm command especially around package manager
+- Provide more functionality than official vpm around package manager
 
 ## Progress
 
