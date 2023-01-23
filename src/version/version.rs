@@ -38,7 +38,7 @@ impl Display for Version {
 
 impl FromParsingBuf for Version {
     fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
-        bytes.slip_ws();
+        bytes.skip_ws();
         let major = parse_segment(bytes)?;
         bytes.read('.')?;
         let minor = parse_segment(bytes)?;

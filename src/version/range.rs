@@ -74,6 +74,7 @@ impl FromParsingBuf for ComparatorSet {
 
         while !buffer.is_empty() {
             result.push(Comparator::parse(buffer)?);
+            buffer.skip_ws();
         }
 
         Ok(Self(result))
@@ -131,6 +132,10 @@ impl Comparator {
         }
         return match self {
             Comparator::Tilde(v) => {
+                require!(version >= &v.to_zeros());
+                if !version.pre.is_empty() {
+                    return prerelease_check(v, version);
+                }
                 require!(version.major == v.major_or(0));
                 if let Some(minor) = v.minor() {
                     require!(version.minor == minor);
@@ -138,14 +143,13 @@ impl Comparator {
                 true
             }
             Comparator::Caret(v) => {
+                require!(version >= &v.to_zeros());
                 if !version.pre.is_empty() {
-                    // allow x.y.z-prerelease for ^x.y.z
-                    if version.major == v.major_or(0)
-                        || version.minor == v.minor_or(0)
-                        || version.patch == v.patch_or(0)
-                    {
-                        return true;
-                    }
+                    return prerelease_check(v, version);
+                }
+                // ^* is always true
+                if let None = v.major() {
+                    return true;
                 }
                 require!(version.major == v.major_or(0));
                 if v.major_or(0) == 0 {
@@ -166,7 +170,12 @@ impl Comparator {
             }
             Comparator::Star(v) | Comparator::Exact(v) => match full_or_next(v) {
                 Ok(full) => &full == version,
-                Err(next) => &v.to_zeros() <= version && version < &next,
+                Err(next) => {
+                    if !version.pre.is_empty() {
+                        return prerelease_check(v, version);
+                    }
+                    &v.to_zeros() <= version && version < &next
+                }
             },
             Comparator::GreaterThan(v) => greater_than(version, v),
             Comparator::GreaterThanOrEqual(v) => greater_than_or_equal(version, v),
@@ -176,6 +185,14 @@ impl Comparator {
                 greater_than_or_equal(version, lower) && less_than_or_equal(version, upper)
             }
         };
+
+        fn prerelease_check(v: &PartialVersion, version: &Version) -> bool {
+            // allow x.y.z-prerelease for ^x.y.z-prerelease
+            !v.pre.is_empty()
+                && version.major == v.major_or(0)
+                && version.minor == v.minor_or(0)
+                && version.patch == v.patch_or(0)
+        }
 
         fn full_or_next(v: &PartialVersion) -> Result<Version, Version> {
             if let Some(major) = v.major() {
@@ -201,28 +218,27 @@ impl Comparator {
         }
         fn greater_than_or_equal(version: &Version, v: &PartialVersion) -> bool {
             match v.to_full() {
-                Some(v) => version >= &v,
+                Some(v) => version.pre.is_empty() && version >= &v || version.cmp(&v).is_eq(),
                 None => {
                     let zeros = v.to_zeros();
-                    version >= &zeros || !version.pre.is_empty() && version.base_version() == zeros
+                    version.pre.is_empty() && version >= &zeros || version.cmp(&zeros).is_eq()
                 }
             }
         }
         fn less_than(version: &Version, v: &PartialVersion) -> bool {
             return match v.to_full() {
-                Some(v) => version >= &v,
+                Some(v) => version.pre.is_empty() && version < &v,
                 None => {
                     let zeros = v.to_zeros();
-                    version < &zeros
-                        || !(!version.pre.is_empty() && version.base_version() == zeros)
+                    version.pre.is_empty() && version < &zeros
                 }
             };
         }
 
         fn less_than_or_equal(version: &Version, v: &PartialVersion) -> bool {
             match full_or_next(v) {
-                Ok(full) => version <= &full,
-                Err(next) => version < &next,
+                Ok(full) => version.pre.is_empty() && version <= &full,
+                Err(next) => version.pre.is_empty() && version < &next,
             }
         }
     }
@@ -230,7 +246,7 @@ impl Comparator {
 
 impl FromParsingBuf for Comparator {
     fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
-        bytes.slip_ws();
+        bytes.skip_ws();
         match bytes.first() {
             Some(b'~') => Ok(Self::Tilde(PartialVersion::parse(bytes.skip())?)),
             Some(b'^') => Ok(Self::Caret(PartialVersion::parse(bytes.skip())?)),
@@ -239,10 +255,10 @@ impl FromParsingBuf for Comparator {
                 bytes.skip();
                 if matches!(bytes.first(), Some(b'=')) {
                     bytes.skip();
-                    bytes.slip_ws();
+                    bytes.skip_ws();
                     Ok(Self::GreaterThanOrEqual(PartialVersion::parse(bytes)?))
                 } else {
-                    bytes.slip_ws();
+                    bytes.skip_ws();
                     Ok(Self::GreaterThan(PartialVersion::parse(bytes)?))
                 }
             }
@@ -250,21 +266,21 @@ impl FromParsingBuf for Comparator {
                 bytes.skip();
                 if matches!(bytes.first(), Some(b'=')) {
                     bytes.skip();
-                    bytes.slip_ws();
+                    bytes.skip_ws();
                     Ok(Self::LessThanOrEqual(PartialVersion::parse(bytes)?))
                 } else {
-                    bytes.slip_ws();
+                    bytes.skip_ws();
                     Ok(Self::LessThan(PartialVersion::parse(bytes)?))
                 }
             }
             Some(_) => {
                 let first = PartialVersion::parse(bytes)?;
 
-                bytes.slip_ws();
+                bytes.skip_ws();
                 if matches!(bytes.first(), Some(b'-')) {
                     // x.y.z - x.y.z
 
-                    bytes.slip_ws();
+                    bytes.skip_ws();
                     let second = PartialVersion::parse(bytes.skip())?;
                     Ok(Self::Hyphen(first, second))
                 } else {
@@ -340,8 +356,8 @@ impl PartialVersion {
 
     fn to_zeros(&self) -> Version {
         Version {
-            major: self.patch_or(0),
-            minor: self.patch_or(0),
+            major: self.major_or(0),
+            minor: self.minor_or(0),
             patch: self.patch_or(0),
             pre: self.pre.clone(),
             build: self.build.clone(),
@@ -391,7 +407,11 @@ impl PartialVersion {
 
 impl FromParsingBuf for PartialVersion {
     fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
-        bytes.slip_ws();
+        bytes.skip_ws();
+        // allow v1.2.3
+        if let Some(b'v') = bytes.first() {
+            bytes.skip();
+        }
         let major = parse_segment(bytes)?;
         let minor = if let Some(b'.') = bytes.first() {
             bytes.skip();
@@ -530,5 +550,275 @@ impl PartialVersion {
             let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;
             Ok(&buf[..len])
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_match_positive() {
+        fn test(range: &str, version: &str) {
+            let range = VersionRange::from_str(range).expect(range);
+            let version = Version::from_str(version).expect(version);
+            assert!(range.matches(&version), "{} matches {}", range, version);
+        }
+        // test set are from node-semver
+        // Copyright (c) Isaac Z. Schlueter and Contributors
+        // Originally under The ISC License
+        // https://github.com/npm/node-semver/blob/3a8a4309ae986c1967b3073ba88c9e69433d44cb/test/fixtures/range-include.js
+
+        test("1.0.0 - 2.0.0", "1.2.3");
+        test("^1.2.3+build", "1.2.3");
+        test("^1.2.3+build", "1.3.0");
+        test("1.2.3-pre+asdf - 2.4.3-pre+asdf", "1.2.3");
+        //test("1.2.3pre+asdf - 2.4.3-pre+asdf", "1.2.3", true);
+        //test("1.2.3-pre+asdf - 2.4.3pre+asdf", "1.2.3", true);
+        //test("1.2.3pre+asdf - 2.4.3pre+asdf", "1.2.3", true);
+        //test("1.2.3-pre+asdf - 2.4.3-pre+asdf", "1.2.3-pre.2");
+        //test("1.2.3-pre+asdf - 2.4.3-pre+asdf", "2.4.3-alpha");
+        test("1.2.3+asdf - 2.4.3+asdf", "1.2.3");
+        test("1.0.0", "1.0.0");
+        test(">=*", "0.2.4");
+        test("", "1.0.0");
+        //test("*", "1.2.3", {});
+        //test("*", "v1.2.3", { loose: 123 });
+        //test(">=1.0.0", "1.0.0", /asdf/);
+        //test(">=1.0.0", "1.0.1", { loose: null });
+        //test(">=1.0.0", "1.1.0", { loose: 0 });
+        //test(">1.0.0", "1.0.1", { loose: undefined });
+        test(">1.0.0", "1.1.0");
+        test("<=2.0.0", "2.0.0");
+        test("<=2.0.0", "1.9999.9999");
+        test("<=2.0.0", "0.2.9");
+        test("<2.0.0", "1.9999.9999");
+        test("<2.0.0", "0.2.9");
+        test(">= 1.0.0", "1.0.0");
+        test(">=  1.0.0", "1.0.1");
+        test(">=   1.0.0", "1.1.0");
+        test("> 1.0.0", "1.0.1");
+        test(">  1.0.0", "1.1.0");
+        test("<=   2.0.0", "2.0.0");
+        test("<= 2.0.0", "1.9999.9999");
+        test("<=  2.0.0", "0.2.9");
+        test("<    2.0.0", "1.9999.9999");
+        test("<\t2.0.0", "0.2.9");
+        //test(">=0.1.97", "v0.1.97", true);
+        test(">=0.1.97", "0.1.97");
+        test("0.1.20 || 1.2.4", "1.2.4");
+        test(">=0.2.3 || <0.0.1", "0.0.0");
+        test(">=0.2.3 || <0.0.1", "0.2.3");
+        test(">=0.2.3 || <0.0.1", "0.2.4");
+        test("||", "1.3.4");
+        test("2.x.x", "2.1.3");
+        test("1.2.x", "1.2.3");
+        test("1.2.x || 2.x", "2.1.3");
+        test("1.2.x || 2.x", "1.2.3");
+        test("x", "1.2.3");
+        test("2.*.*", "2.1.3");
+        test("1.2.*", "1.2.3");
+        test("1.2.* || 2.*", "2.1.3");
+        test("1.2.* || 2.*", "1.2.3");
+        test("*", "1.2.3");
+        test("2", "2.1.2");
+        test("2.3", "2.3.1");
+        test("~0.0.1", "0.0.1");
+        test("~0.0.1", "0.0.2");
+        test("~x", "0.0.9");
+        // >=2.4.0 <2.5.0
+        test("~2", "2.0.9");
+        // >=2.4.0 <2.5.0
+        test("~2.4", "2.4.0");
+        // >=2.4.0 <2.5.0
+        test("~2.4", "2.4.5");
+        //~> not supported test("~>3.2.1", "3.2.2");
+        // >=3.2.1 <3.3.0,
+        test("~1", "1.2.3");
+        // >=.0.0 <2.0.0
+        //~> not supported test("~>1", "1.2.3");
+        //~> not supported test("~> 1", "1.2.3");
+        test("~1.0", "1.0.2");
+        // >=.0.0 <1.1.0,
+        test("~ 1.0", "1.0.2");
+        test("~ 1.0.3", "1.0.12");
+        //test("~ 1.0.3alpha", "1.0.12", { loose: true });
+        test(">=1", "1.0.0");
+        test(">= 1", "1.0.0");
+        test("<1.2", "1.1.1");
+        test("< 1.2", "1.1.1");
+        test("~v0.5.4-pre", "0.5.5");
+        test("~v0.5.4-pre", "0.5.4");
+        test("=0.7.x", "0.7.2");
+        test("<=0.7.x", "0.7.2");
+        test(">=0.7.x", "0.7.2");
+        test("<=0.7.x", "0.6.2");
+        test("~1.2.1 >=1.2.3", "1.2.3");
+        test("~1.2.1 =1.2.3", "1.2.3");
+        test("~1.2.1 1.2.3", "1.2.3");
+        test("~1.2.1 >=1.2.3 1.2.3", "1.2.3");
+        test("~1.2.1 1.2.3 >=1.2.3", "1.2.3");
+        test(">=1.2.1 1.2.3", "1.2.3");
+        test("1.2.3 >=1.2.1", "1.2.3");
+        test(">=1.2.3 >=1.2.1", "1.2.3");
+        test(">=1.2.1 >=1.2.3", "1.2.3");
+        test(">=1.2", "1.2.8");
+        test("^1.2.3", "1.8.1");
+        test("^0.1.2", "0.1.2");
+        test("^0.1", "0.1.2");
+        test("^0.0.1", "0.0.1");
+        test("^1.2", "1.4.2");
+        test("^1.2 ^1", "1.4.2");
+        test("^1.2.3-alpha", "1.2.3-pre");
+        test("^1.2.0-alpha", "1.2.0-pre");
+        test("^0.0.1-alpha", "0.0.1-beta");
+        test("^0.0.1-alpha", "0.0.1");
+        test("^0.1.1-alpha", "0.1.1-beta");
+        test("^x", "1.2.3");
+        test("x - 1.0.0", "0.9.7");
+        test("x - 1.x", "0.9.7");
+        test("1.0.0 - x", "1.9.7");
+        test("1.x - x", "1.9.7");
+        test("<=7.x", "7.9.9");
+        //test("2.x", "2.0.0-pre.0", { includePrerelease: true });
+        //test("2.x", "2.1.0-pre.0", { includePrerelease: true });
+        //test("1.1.x", "1.1.0-a", { includePrerelease: true });
+        //test("1.1.x", "1.1.1-a", { includePrerelease: true });
+        //test("*", "1.0.0-rc1", { includePrerelease: true });
+        //test("^1.0.0-0", "1.0.1-rc1", { includePrerelease: true });
+        //test("^1.0.0-rc2", "1.0.1-rc1", { includePrerelease: true });
+        //test("^1.0.0", "1.0.1-rc1", { includePrerelease: true });
+        //test("^1.0.0", "1.1.0-rc1", { includePrerelease: true });
+        //test("1 - 2", "2.0.0-pre", { includePrerelease: true });
+        //test("1 - 2", "1.0.0-pre", { includePrerelease: true });
+        //test("1.0 - 2", "1.0.0-pre", { includePrerelease: true });
+
+        //test("=0.7.x", "0.7.0-asdf", { includePrerelease: true });
+        //test(">=0.7.x", "0.7.0-asdf", { includePrerelease: true });
+        //test("<=0.7.x", "0.7.0-asdf", { includePrerelease: true });
+
+        //test(">=1.0.0 <=1.1.0", "1.1.0-pre", { includePrerelease: true });
+    }
+
+    #[test]
+    fn test_match_negative() {
+        fn test(range: &str, version: &str) {
+            let range = VersionRange::from_str(range).expect(range);
+            let version = Version::from_str(version).expect(version);
+            assert!(
+                !range.matches(&version),
+                "{} should not matches {}",
+                range,
+                version
+            );
+        }
+        // test set are from node-semver
+        // Copyright (c) Isaac Z. Schlueter and Contributors
+        // Originally under The ISC License
+        // https://github.com/npm/node-semver/blob/3a8a4309ae986c1967b3073ba88c9e69433d44cb/test/fixtures/range-exclude.js
+
+        test("1.0.0 - 2.0.0", "2.2.3");
+        test("1.2.3+asdf - 2.4.3+asdf", "1.2.3-pre.2");
+        test("1.2.3+asdf - 2.4.3+asdf", "2.4.3-alpha");
+        test("^1.2.3+build", "2.0.0");
+        test("^1.2.3+build", "1.2.0");
+        test("^1.2.3", "1.2.3-pre");
+        test("^1.2", "1.2.0-pre");
+        test(">1.2", "1.3.0-beta");
+        test("<=1.2.3", "1.2.3-beta");
+        test("^1.2.3", "1.2.3-beta");
+        test("=0.7.x", "0.7.0-asdf");
+        test(">=0.7.x", "0.7.0-asdf");
+        test("<=0.7.x", "0.7.0-asdf");
+        //test("1", "1.0.0beta", { loose: 420 });
+        //test("<1", "1.0.0beta", true);
+        //test("< 1", "1.0.0beta", true);
+        test("1.0.0", "1.0.1");
+        test(">=1.0.0", "0.0.0");
+        test(">=1.0.0", "0.0.1");
+        test(">=1.0.0", "0.1.0");
+        test(">1.0.0", "0.0.1");
+        test(">1.0.0", "0.1.0");
+        test("<=2.0.0", "3.0.0");
+        test("<=2.0.0", "2.9999.9999");
+        test("<=2.0.0", "2.2.9");
+        test("<2.0.0", "2.9999.9999");
+        test("<2.0.0", "2.2.9");
+        //test(">=0.1.97", "v0.1.93", true);
+        test(">=0.1.97", "0.1.93");
+        test("0.1.20 || 1.2.4", "1.2.3");
+        test(">=0.2.3 || <0.0.1", "0.0.3");
+        test(">=0.2.3 || <0.0.1", "0.2.2");
+        //test("2.x.x", "1.1.3", { loose: NaN });
+        test("2.x.x", "3.1.3");
+        test("1.2.x", "1.3.3");
+        test("1.2.x || 2.x", "3.1.3");
+        test("1.2.x || 2.x", "1.1.3");
+        test("2.*.*", "1.1.3");
+        test("2.*.*", "3.1.3");
+        test("1.2.*", "1.3.3");
+        test("1.2.* || 2.*", "3.1.3");
+        test("1.2.* || 2.*", "1.1.3");
+        test("2", "1.1.2");
+        test("2.3", "2.4.1");
+        test("~0.0.1", "0.1.0-alpha");
+        test("~0.0.1", "0.1.0");
+        test("~2.4", "2.5.0");
+        // >=2.4.0 <2.5.0
+        test("~2.4", "2.3.9");
+        //test("~>3.2.1", "3.3.2");
+        // >=3.2.1 <3.3.0
+        //test("~>3.2.1", "3.2.0");
+        // >=3.2.1 <3.3.0
+        test("~1", "0.2.3");
+        // >=1.0.0 <2.0.0
+        //test("~>1", "2.2.3");
+        test("~1.0", "1.1.0");
+        // >=1.0.0 <1.1.0
+        test("<1", "1.0.0");
+        test(">=1.2", "1.1.1");
+        //test("1", "2.0.0beta", true);
+        test("~v0.5.4-beta", "0.5.4-alpha");
+        test("=0.7.x", "0.8.2");
+        test(">=0.7.x", "0.6.2");
+        test("<0.7.x", "0.7.2");
+        test("<1.2.3", "1.2.3-beta");
+        test("=1.2.3", "1.2.3-beta");
+        test(">1.2", "1.2.8");
+        test("^0.0.1", "0.0.2-alpha");
+        test("^0.0.1", "0.0.2");
+        test("^1.2.3", "2.0.0-alpha");
+        test("^1.2.3", "1.2.2");
+        test("^1.2", "1.1.9");
+        //test("*", "v1.2.3-foo", true);
+
+        // rust: parse logic is separated
+        // invalid versions never satisfy, but shouldn't throw
+        //test("*", "not a version");
+        //test(">=2", "glorp");
+        //test(">=2", false);
+        //test("2.x", "3.0.0-pre.0", { includePrerelease: true });
+        //test("^1.0.0", "1.0.0-rc1", { includePrerelease: true });
+        //test("^1.0.0", "2.0.0-rc1", { includePrerelease: true });
+        //test("^1.2.3-rc2", "2.0.0", { includePrerelease: true });
+        test("^1.0.0", "2.0.0-rc1");
+        //test("1 - 2", "3.0.0-pre", { includePrerelease: true });
+        test("1 - 2", "2.0.0-pre");
+        test("1 - 2", "1.0.0-pre");
+        test("1.0 - 2", "1.0.0-pre");
+        test("1.1.x", "1.0.0-a");
+        test("1.1.x", "1.1.0-a");
+        test("1.1.x", "1.2.0-a");
+        //test("1.1.x", "1.2.0-a", { includePrerelease: true });
+        //test("1.1.x", "1.0.0-a", { includePrerelease: true });
+        test("1.x", "1.0.0-a");
+        test("1.x", "1.1.0-a");
+        test("1.x", "1.2.0-a");
+        //test("1.x", "0.0.0-a", { includePrerelease: true });
+        //test("1.x", "2.0.0-a", { includePrerelease: true });
+        test(">=1.0.0 <1.1.0", "1.1.0");
+        //test(">=1.0.0 <1.1.0", "1.1.0", { includePrerelease: true });
+        test(">=1.0.0 <1.1.0", "1.1.0-pre");
+        test(">=1.0.0 <1.1.0-pre", "1.1.0-pre");
     }
 }
