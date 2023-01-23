@@ -1,7 +1,7 @@
+use crate::version::Version;
 use crate::vpm::VersionSelector;
 use clap::{Parser, Subcommand};
 use reqwest::Url;
-use semver::Version;
 use std::path::{Path, PathBuf};
 
 #[derive(Subcommand)]

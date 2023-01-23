@@ -1,8 +1,5 @@
-use crate::vpm::version::{FromParsingBuf, ParseRangeError, ParsingBuf};
-use semver::{BuildMetadata, Prerelease, Version};
-use serde::de;
-use serde::de::Error;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use crate::version::*;
+use semver::{BuildMetadata, Prerelease};
 use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 
@@ -20,38 +17,8 @@ impl VersionRange {
     }
 }
 
-impl Serialize for VersionRange {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
-    }
-}
-
-impl<'de> Deserialize<'de> for VersionRange {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct Visitor;
-        impl<'de> de::Visitor<'de> for Visitor {
-            type Value = VersionRange;
-
-            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-                formatter.write_str("version range")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                VersionRange::from_str(v).map_err(E::custom)
-            }
-        }
-        deserializer.deserialize_str(Visitor)
-    }
-}
+serialize_to_string!(VersionRange);
+deserialize_from_str!(VersionRange, "version range");
 
 impl Display for VersionRange {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -99,18 +66,7 @@ impl Display for ComparatorSet {
     }
 }
 
-impl FromStr for ComparatorSet {
-    type Err = ParseRangeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut buffer = ParsingBuf::new(s);
-        let result = FromParsingBuf::parse(&mut buffer)?;
-        if buffer.first().is_some() {
-            return Err(ParseRangeError::invalid_char(buffer.first_char()));
-        }
-        Ok(result)
-    }
-}
+from_str_impl!(ComparatorSet);
 
 impl FromParsingBuf for ComparatorSet {
     fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
@@ -248,7 +204,7 @@ impl Comparator {
                 Some(v) => version >= &v,
                 None => {
                     let zeros = v.to_zeros();
-                    version >= &zeros || !version.pre.is_empty() && base_version(version) == zeros
+                    version >= &zeros || !version.pre.is_empty() && version.base_version() == zeros
                 }
             }
         }
@@ -257,7 +213,8 @@ impl Comparator {
                 Some(v) => version >= &v,
                 None => {
                     let zeros = v.to_zeros();
-                    version < &zeros || !(!version.pre.is_empty() && base_version(version) == zeros)
+                    version < &zeros
+                        || !(!version.pre.is_empty() && version.base_version() == zeros)
                 }
             };
         }
@@ -320,14 +277,6 @@ impl FromParsingBuf for Comparator {
     }
 }
 
-type Segment = u64;
-
-const NOT_EXISTS: Segment = Segment::MAX;
-const STAR: Segment = NOT_EXISTS - 1;
-const UPPER_X: Segment = STAR - 1;
-const LOWER_X: Segment = UPPER_X - 1;
-const VERSION_SEGMENT_MAX: Segment = LOWER_X - 1;
-
 #[derive(Debug, Clone)]
 struct PartialVersion {
     // MAX_VALUE for not exists
@@ -371,10 +320,6 @@ impl Display for PartialVersion {
 
         Ok(())
     }
-}
-
-fn base_version(version: &Version) -> Version {
-    Version::new(version.major, version.minor, version.patch)
 }
 
 impl PartialVersion {

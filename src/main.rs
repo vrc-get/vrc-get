@@ -2,6 +2,7 @@ use clap::Parser;
 use reqwest::Client;
 
 mod commands;
+mod version;
 mod vpm;
 
 #[tokio::main]

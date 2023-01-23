@@ -2,16 +2,15 @@
 //!
 //! This module might be a separated crate.
 
+use crate::version::{Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency, VpmManifest};
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::repository::{LocalCachedRepository, RemoteRepository};
 use crate::vpm::structs::setting::UserRepoSetting;
-use crate::vpm::structs::VersionRange;
 use crate::vpm::utils::{MapResultExt, PathBufExt};
 use futures::future::join_all;
 use indexmap::IndexMap;
 use reqwest::{Client, IntoUrl, Url};
-use semver::Version;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
@@ -27,7 +26,6 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 pub mod structs;
 mod utils;
-mod version;
 
 static VRC_OFFICIAL_URL: &'static str = "https://packages.vrchat.com/official?download";
 static VRC_CURATED_URL: &'static str = "https://packages.vrchat.com/curated?download";

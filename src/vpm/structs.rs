@@ -1,6 +1,5 @@
-pub use crate::vpm::version::VersionRange;
+use crate::version::{Version, VersionRange};
 use indexmap::IndexMap;
-use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
