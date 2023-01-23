@@ -13,7 +13,7 @@ async fn main() {
 
 pub(crate) fn create_client() -> Client {
     Client::builder()
-        .user_agent("curl/7.84.0")
+        .user_agent(concat!("vrc-get/", env!("CARGO_PKG_VERSION")))
         .build()
         .expect("building client")
 }
