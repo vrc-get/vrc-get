@@ -820,7 +820,7 @@ impl UnityProject {
     fn check_conflict(&self, name: &str, version: &Version) -> Result<(), AddPackageErr> {
         for (pkg_name, locked) in self.manifest.locked() {
             if let Some(dep) = locked.dependencies.get(name) {
-                if dep.matches(&version) {
+                if !dep.matches(&version) {
                     return Err(AddPackageErr::ConflictWithDependencies {
                         conflict: name.to_owned(),
                         dependency_name: pkg_name.clone(),
