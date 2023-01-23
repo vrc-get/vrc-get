@@ -48,6 +48,7 @@ pub mod package {
         #[serde(rename = "displayName")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub display_name: Option<String>,
+        pub description: Option<String>,
         pub version: Version,
         #[serde(rename = "vpmDependencies")]
         #[serde(default, skip_serializing_if = "Option::is_none")]

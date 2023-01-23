@@ -24,7 +24,7 @@ Ports
 - [ ] `vpm list`
   - [ ] `vpm list unity`
   - [x] `vpm list repos`
-  - [ ] `vpm list repo`
+  - [x] `vpm list repo`
   - [ ] `vpm list templates`
 - [ ] `vpm check`
   - [ ] `vpm check package`

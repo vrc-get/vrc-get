@@ -1,7 +1,9 @@
 use crate::version::Version;
-use crate::vpm::VersionSelector;
+use crate::vpm::structs::remote_repo::PackageVersions;
+use crate::vpm::{download_remote_repository, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
+use serde_json::{from_value, Map, Value};
 use std::path::{Path, PathBuf};
 
 #[derive(Subcommand)]
@@ -58,24 +60,39 @@ impl Repos {
 pub struct Repo {
     /// Name of Package
     #[arg()]
-    path_or_url: String,
+    url: String,
 }
 
 impl Repo {
     pub async fn run(self) {
         let client = crate::create_client();
-        let mut env = crate::vpm::Environment::load_default(client)
+
+        let repo = download_remote_repository(&client, self.url)
             .await
-            .expect("loading global config");
+            .expect("downloading repository");
 
-        if let Ok(url) = Url::parse(&self.path_or_url) {
-            env.add_remote_repo(url).await.expect("adding repository")
-        } else {
-            env.add_local_repo(Path::new(&self.path_or_url))
-                .await
-                .expect("adding repository")
+        let cache = repo
+            .get("packages")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or(Map::<String, Value>::new());
+
+        for (package, value) in cache {
+            let versions = from_value::<PackageVersions>(value).expect("loading package data");
+            if let Some((_, pkg)) = versions.versions.first() {
+                if let Some(display_name) = &pkg.display_name {
+                    println!("{} | {}", display_name, package);
+                } else {
+                    println!("{}", package);
+                }
+                if let Some(description) = &pkg.description {
+                    println!("{}", description);
+                }
+                for (version, pkg) in &versions.versions {
+                    println!("{}: {}", version, pkg.url);
+                }
+                println!();
+            }
         }
-
-        env.save().await.expect("saving settings file");
     }
 }

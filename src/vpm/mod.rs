@@ -537,7 +537,10 @@ async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()>
     Ok(())
 }
 
-async fn download_remote_repository(client: &Client, url: impl IntoUrl) -> io::Result<JsonMap> {
+pub(crate) async fn download_remote_repository(
+    client: &Client,
+    url: impl IntoUrl,
+) -> io::Result<JsonMap> {
     fn map_err(err: reqwest::Error) -> io::Error {
         io::Error::new(io::ErrorKind::NotFound, err)
     }
