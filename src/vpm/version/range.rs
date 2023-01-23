@@ -565,7 +565,7 @@ impl PartialVersion {
         if bytes.buf.len() == 0 {
             Ok(buf)
         } else {
-            let len = buf.as_ptr() as usize - bytes.buf.as_ptr() as usize;
+            let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;
             Ok(&buf[..len])
         }
     }
