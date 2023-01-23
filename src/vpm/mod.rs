@@ -20,7 +20,7 @@ use std::future::Future;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
-use tokio::fs::{create_dir_all, read_dir, File, OpenOptions};
+use tokio::fs::{create_dir_all, read_dir, remove_dir_all, File, OpenOptions};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 pub mod structs;
@@ -261,6 +261,9 @@ impl Environment {
             cache_file.seek(SeekFrom::Start(0)).await?;
             cache_file
         };
+
+        // remove dest folder before extract if exists
+        remove_dir_all(dest_folder).await.ok();
 
         // extract zip file
         // TODO: sanitize to prevent directory traversal
