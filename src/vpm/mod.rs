@@ -120,54 +120,40 @@ impl Environment {
             .next())
     }
 
-    pub(crate) async fn find_packages(&mut self, package: &str) -> io::Result<Vec<PackageJson>> {
-        let mut list = Vec::new();
+    pub async fn get_repos(
+        &mut self,
+        mut callback: impl FnMut(&LocalCachedRepository) -> io::Result<()>,
+    ) -> io::Result<()> {
+        let official = self
+            .repo_cache
+            .get_or_create_repo(
+                &self.get_official_path(),
+                VRC_OFFICIAL_URL,
+                Some("Official"),
+            )
+            .await?;
+        callback(official)?;
 
-        fn append<'a>(
-            list: &mut Vec<PackageJson>,
-            package: &str,
-            repo: &'a LocalCachedRepository,
-        ) -> io::Result<()> {
-            if let Some(version) = repo.cache.get(package) {
-                list.extend(
-                    from_value::<PackageVersions>(version.clone())?
-                        .versions
-                        .values()
-                        .cloned(),
-                );
-            }
-            Ok(())
-        }
-
-        append(
-            &mut list,
-            package,
-            self.repo_cache
-                .get_or_create_repo(
-                    &self.get_official_path(),
-                    VRC_OFFICIAL_URL,
-                    Some("Official"),
-                )
-                .await?,
-        )?;
-        append(
-            &mut list,
-            package,
-            self.repo_cache
-                .get_or_create_repo(&self.get_curated_path(), VRC_CURATED_URL, Some("Curated"))
-                .await?,
-        )?;
+        let curated = self
+            .repo_cache
+            .get_or_create_repo(&self.get_curated_path(), VRC_CURATED_URL, Some("Curated"))
+            .await?;
+        callback(curated)?;
 
         let mut uesr_repo_file_names = HashSet::new();
         let repos_base = self.get_repos_dir();
 
         let user_repos = self.get_user_repos()?;
         for x in &user_repos {
-            append(&mut list, package, self.repo_cache.get_user_repo(x).await?)?;
+            callback(self.repo_cache.get_user_repo(x).await?)?;
 
             if let Ok(relative) = x.local_path.strip_prefix(&repos_base) {
                 if let Some(file_name) = relative.file_name() {
-                    if relative.parent().is_none() {
+                    if relative
+                        .parent()
+                        .map(|x| x.as_os_str().is_empty())
+                        .unwrap_or(true)
+                    {
                         // the file must be in direct child of
                         uesr_repo_file_names.insert(file_name.to_owned());
                     }
@@ -189,9 +175,34 @@ impl Environment {
                     .repo_cache
                     .get_repo(&path, || async { unreachable!() })
                     .await?;
-                append(&mut list, package, repo)?;
+                callback(repo)?;
             }
         }
+
+        Ok(())
+    }
+
+    pub(crate) async fn find_packages(&mut self, package: &str) -> io::Result<Vec<PackageJson>> {
+        let mut list = Vec::new();
+
+        fn append<'a>(
+            list: &mut Vec<PackageJson>,
+            package: &str,
+            repo: &'a LocalCachedRepository,
+        ) -> io::Result<()> {
+            if let Some(version) = repo.cache.get(package) {
+                list.extend(
+                    from_value::<PackageVersions>(version.clone())?
+                        .versions
+                        .values()
+                        .cloned(),
+                );
+            }
+            Ok(())
+        }
+
+        self.get_repos(|repo| append(&mut list, package, repo))
+            .await?;
 
         // user package folders
         for x in self.get_user_package_folders()? {

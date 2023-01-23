@@ -23,7 +23,7 @@ Ports
   - [ ] `vpm install templates`
 - [ ] `vpm list`
   - [ ] `vpm list unity`
-  - [ ] `vpm list repos`
+  - [x] `vpm list repos`
   - [ ] `vpm list repo`
   - [ ] `vpm list templates`
 - [ ] `vpm check`
