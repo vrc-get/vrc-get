@@ -1,4 +1,4 @@
-use crate::vpm::version::ParsingBuf;
+use crate::vpm::version::{ParseRangeError, ParsingBuf};
 use semver::{BuildMetadata, Prerelease, Version};
 use serde::de;
 use serde::de::Error;
@@ -568,46 +568,6 @@ impl PartialVersion {
         } else {
             let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;
             Ok(&buf[..len])
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ParseRangeError {
-    inner: Inner,
-}
-
-impl Display for ParseRangeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self.inner {
-            Inner::VersionSegmentTooBig => f.write_str("version segment too big"),
-            Inner::UnexpectedEnd => f.write_str("unexpected end"),
-            Inner::InvalidChar(c) => write!(f, "invalid char: {:?}", c),
-        }
-    }
-}
-
-#[derive(Debug)]
-enum Inner {
-    VersionSegmentTooBig,
-    UnexpectedEnd,
-    InvalidChar(char),
-}
-
-impl ParseRangeError {
-    fn too_big() -> Self {
-        Self {
-            inner: Inner::VersionSegmentTooBig,
-        }
-    }
-    fn invalid_char(c: char) -> Self {
-        Self {
-            inner: Inner::InvalidChar(c),
-        }
-    }
-    fn unexpected_end() -> ParseRangeError {
-        Self {
-            inner: Inner::UnexpectedEnd,
         }
     }
 }
