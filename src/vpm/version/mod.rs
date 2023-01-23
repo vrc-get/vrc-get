@@ -1,3 +1,3 @@
-use range::VersionRange;
+pub use range::VersionRange;
 
 mod range;
