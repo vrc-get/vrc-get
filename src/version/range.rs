@@ -188,10 +188,7 @@ impl Comparator {
 
         fn prerelease_check(v: &PartialVersion, version: &Version) -> bool {
             // allow x.y.z-prerelease for ^x.y.z-prerelease
-            !v.pre.is_empty()
-                && version.major == v.major_or(0)
-                && version.minor == v.minor_or(0)
-                && version.patch == v.patch_or(0)
+            !v.pre.is_empty() && version.base_version() == v.to_zeros().base_version()
         }
 
         fn full_or_next(v: &PartialVersion) -> Result<Version, Version> {
