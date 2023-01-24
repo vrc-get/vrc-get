@@ -130,12 +130,12 @@ impl RepoList {
 /// Add remote or local repository
 #[derive(Parser)]
 pub struct RepoAdd {
-    /// Name of Package
-    #[arg()]
-    name: Option<String>,
     /// URL of Package
     #[arg()]
     path_or_url: String,
+    /// Name of Package
+    #[arg()]
+    name: Option<String>,
 }
 
 impl RepoAdd {
