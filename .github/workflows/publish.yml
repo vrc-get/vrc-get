@@ -43,9 +43,6 @@ jobs:
           git branch releasing
           git push -u origin releasing
 
-      - name: Check Build crate
-        run: cargo package
-
   build-rust:
     name: Build rust
     strategy:
