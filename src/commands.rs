@@ -6,6 +6,7 @@ use reqwest::Url;
 use serde_json::{from_value, Map, Value};
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
+use std::process::exit;
 use tokio::fs::{read_dir, remove_file};
 
 macro_rules! multi_command {
@@ -293,12 +294,20 @@ impl RepoPackages {
                 .await
                 .expect("loading global config");
             let some_name = Some(self.name_or_url.as_str());
+            let mut found = false;
+
             for repo in env.get_repos().await.expect("listing packages") {
                 if repo.creation_info.as_ref().and_then(|x| x.name.as_deref()) == some_name
                     || repo.description.as_ref().and_then(|x| x.name.as_deref()) == some_name
                 {
                     print_repo(repo.cache.clone());
+                    found = true;
                 }
+            }
+
+            if !found {
+                eprintln!("no repository named {} found!", self.name_or_url);
+                exit(1);
             }
         }
     }
