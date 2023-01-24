@@ -10,9 +10,9 @@ Open Source command line interface of VRChat Package Manager.
 
 ## Commands
 
-- [ ] `vrc-get install [pkg] [version]`
-- [ ] `vrc-get repo list`
-- [ ] `vrc-get repo add [NAME] <url>`
-- [ ] `vrc-get repo remove <name>`
-- [ ] `vrc-get repo cleanup`
-- [ ] `vrc-get repo get-list [NAME|url]`
+- [x] `vrc-get install [pkg] [version]`
+- [x] `vrc-get repo list`
+- [x] `vrc-get repo add [NAME] <url>`
+- [x] `vrc-get repo remove <name or url>`
+- [x] `vrc-get repo cleanup`
+- [x] `vrc-get repo packages <NAME|url>`

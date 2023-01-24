@@ -20,7 +20,7 @@ use std::future::Future;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
-use tokio::fs::{create_dir_all, read_dir, remove_dir_all, File, OpenOptions};
+use tokio::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, File, OpenOptions};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 pub mod structs;
@@ -93,7 +93,7 @@ impl Environment {
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 
-    fn get_repos_dir(&self) -> PathBuf {
+    pub(crate) fn get_repos_dir(&self) -> PathBuf {
         self.global_dir.join("Repos")
     }
 
@@ -288,7 +288,7 @@ impl Environment {
         Ok(())
     }
 
-    fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
+    pub(crate) fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
         from_value::<Vec<UserRepoSetting>>(
             self.settings
                 .get("userRepos")
@@ -316,7 +316,11 @@ impl Environment {
         Ok(())
     }
 
-    pub async fn add_remote_repo(&mut self, url: Url) -> Result<(), AddRepositoryErr> {
+    pub async fn add_remote_repo(
+        &mut self,
+        url: Url,
+        name: Option<&str>,
+    ) -> Result<(), AddRepositoryErr> {
         let user_repos = self.get_user_repos()?;
         if user_repos
             .iter()
@@ -329,10 +333,12 @@ impl Environment {
             .get_repos_dir()
             .joined(format!("{}.json", uuid::Uuid::new_v4()));
 
-        let repo_name = remote_repo
-            .get("name")
-            .and_then(Value::as_str)
-            .map(str::to_owned);
+        let repo_name = name.map(str::to_owned).or_else(|| {
+            remote_repo
+                .get("name")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        });
 
         let mut local_cache = LocalCachedRepository::new(
             local_path.clone(),
@@ -356,14 +362,52 @@ impl Environment {
         Ok(())
     }
 
-    pub async fn add_local_repo(&mut self, path: &Path) -> Result<(), AddRepositoryErr> {
+    pub async fn add_local_repo(
+        &mut self,
+        path: &Path,
+        name: Option<&str>,
+    ) -> Result<(), AddRepositoryErr> {
         let user_repos = self.get_user_repos()?;
         if user_repos.iter().any(|x| x.local_path.as_path() == path) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
 
-        self.add_user_repo(&UserRepoSetting::new(path.to_owned(), None, None))?;
+        self.add_user_repo(&UserRepoSetting::new(
+            path.to_owned(),
+            name.map(str::to_owned),
+            None,
+        ))?;
         Ok(())
+    }
+
+    pub async fn remove_repo(
+        &mut self,
+        condition: impl Fn(&UserRepoSetting) -> bool,
+    ) -> io::Result<bool> {
+        let user_repos = self.get_user_repos()?;
+        let mut indices = user_repos
+            .iter()
+            .enumerate()
+            .filter(|(_, x)| condition(x))
+            .collect::<Vec<_>>();
+        indices.reverse();
+        if indices.len() == 0 {
+            return Ok(false);
+        }
+
+        let repos_json = self
+            .settings
+            .get_mut("userRepos")
+            .and_then(Value::as_array_mut)
+            .expect("userRepos");
+
+        for (i, _) in &indices {
+            repos_json.remove(*i);
+        }
+
+        join_all(indices.iter().map(|(_, x)| remove_file(&x.local_path))).await;
+        self.settings_changed = true;
+        Ok(true)
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
