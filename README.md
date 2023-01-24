@@ -10,6 +10,8 @@ Open Source command line client of VRChat Package Manager.
 
 ## Commands
 
+For more details, please see --help
+
 - [x] `vrc-get install [pkg] [version]`
 - [ ] `vrc-get remove [pkg]`
 - [x] `vrc-get repo list`
