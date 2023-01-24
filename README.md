@@ -1,12 +1,12 @@
 `vrc-get`
 ====
 
-Open Source command line interface of VRChat Package Manager. 
+Open Source command line client of VRChat Package Manager. 
 
 ## Goals
 
-- Provide Open Source command line interface of VRChat Package Manager.
-- Provide more functionality than official vpm command around package manager.
+- Provide Open Source command line client of VRChat Package Manager.
+- Provide more functionality than official vpm command.
 
 ## Commands
 
