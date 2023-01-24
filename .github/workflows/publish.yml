@@ -18,6 +18,7 @@ jobs:
       - uses: snow-actions/git-config-user@v1.0.0
       - uses: actions-rs/toolchain@v1
         with:
+          toolchain: stable
           profile: minimal
           override: true
 
