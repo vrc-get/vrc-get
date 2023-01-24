@@ -8,18 +8,21 @@ use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
 use crate::vpm::structs::repository::LocalCachedRepository;
 use crate::vpm::structs::setting::UserRepoSetting;
-use crate::vpm::utils::{JsonMapExt, MapResultExt, PathBufExt};
-use futures::future::join_all;
+use futures::future::{join_all, try_join_all};
+use futures::prelude::*;
 use indexmap::IndexMap;
+use itertools::Itertools as _;
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
 use std::collections::HashSet;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
+use std::future::ready;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use tokio::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, File, OpenOptions};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+use utils::*;
 
 mod repo_holder;
 pub mod structs;
@@ -28,9 +31,6 @@ mod utils;
 use repo_holder::RepoHolder;
 
 type JsonMap = Map<String, Value>;
-
-static VRC_OFFICIAL_URL: &'static str = "https://packages.vrchat.com/official?download";
-static VRC_CURATED_URL: &'static str = "https://packages.vrchat.com/curated?download";
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
@@ -98,14 +98,6 @@ impl Environment {
         self.global_dir.join("Repos")
     }
 
-    fn get_curated_path(&self) -> PathBuf {
-        self.get_repos_dir().joined("vrc-curated.json")
-    }
-
-    fn get_official_path(&self) -> PathBuf {
-        self.get_repos_dir().joined("vrc-official.json")
-    }
-
     pub async fn find_package_by_name<'a>(
         &self,
         package: &str,
@@ -121,89 +113,131 @@ impl Environment {
             .next())
     }
 
-    pub async fn get_repos(
-        &self,
-        mut callback: impl FnMut(&LocalCachedRepository) -> io::Result<()>,
-    ) -> io::Result<()> {
-        let official = self
-            .repo_cache
-            .get_or_create_repo(
-                &self.get_official_path(),
-                VRC_OFFICIAL_URL,
-                Some("Official"),
-            )
-            .await?;
-        callback(official)?;
-
-        let curated = self
-            .repo_cache
-            .get_or_create_repo(&self.get_curated_path(), VRC_CURATED_URL, Some("Curated"))
-            .await?;
-        callback(curated)?;
-
-        let mut uesr_repo_file_names = HashSet::new();
+    pub async fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
+        // collect user repositories for get_repos_dir
         let repos_base = self.get_repos_dir();
-
         let user_repos = self.get_user_repos()?;
-        for x in &user_repos {
-            callback(self.repo_cache.get_user_repo(x).await?)?;
 
-            if let Ok(relative) = x.local_path.strip_prefix(&repos_base) {
-                if let Some(file_name) = relative.file_name() {
-                    if relative
-                        .parent()
-                        .map(|x| x.as_os_str().is_empty())
-                        .unwrap_or(true)
-                    {
-                        // the file must be in direct child of
-                        uesr_repo_file_names.insert(file_name.to_owned());
-                    }
-                }
-            }
+        let mut user_repo_file_names = HashSet::new();
+        user_repo_file_names.insert(OsStr::new("vrc-curated.json"));
+        user_repo_file_names.insert(OsStr::new("vrc-official.json"));
+
+        fn relative_file_name<'a>(path: &'a Path, base: &Path) -> Option<&'a OsStr> {
+            path.strip_prefix(&base)
+                .ok()
+                .filter(|x| x.parent().map(|x| x.as_os_str().is_empty()).unwrap_or(true))
+                .and_then(|x| x.file_name())
         }
 
-        uesr_repo_file_names.insert(OsString::from("vrc-curated.json"));
-        uesr_repo_file_names.insert(OsString::from("vrc-official.json"));
+        user_repo_file_names.extend(
+            user_repos
+                .iter()
+                .filter_map(|x| relative_file_name(&x.local_path, &repos_base)),
+        );
 
         let mut entry = read_dir(self.get_repos_dir()).await?;
-        while let Some(entry) = entry.next_entry().await? {
-            let path = entry.path();
-            if tokio::fs::metadata(&path).await?.is_file()
-                && path.extension() == Some(OsStr::new("json"))
-                && !uesr_repo_file_names.contains(&entry.file_name())
-            {
-                let repo = self
-                    .repo_cache
-                    .get_repo(&path, || async { unreachable!() })
-                    .await?;
-                callback(repo)?;
+        let streams = stream::poll_fn(|cx| {
+            entry.poll_next_entry(cx).map(|x| match x {
+                Ok(Some(v)) => Some(Ok(v)),
+                Ok(None) => None,
+                Err(e) => Some(Err(e)),
+            })
+        });
+
+        let undefined_repos = streams
+            .map_ok(|x| x.path())
+            .try_filter(|x| ready(!user_repo_file_names.contains(x.file_name().unwrap())))
+            .try_filter(|x| ready(x.extension() == Some(OsStr::new("json"))))
+            .try_filter(|x| {
+                tokio::fs::metadata(x.clone()).map(|x| x.map(|x| x.is_file()).unwrap_or(false))
+            })
+            .map_ok(RepoSource::Undefined);
+
+        let defined_sources = DEFINED_REPO_SOURCES
+            .into_iter()
+            .copied()
+            .map(RepoSource::PreDefined);
+        let user_repo_sources = self.get_user_repos()?.into_iter().map(RepoSource::UserRepo);
+
+        stream::iter(defined_sources.chain(user_repo_sources).map(Ok))
+            .chain(undefined_repos)
+            .try_collect::<Vec<_>>()
+            .await
+    }
+
+    pub async fn get_repos(&self) -> io::Result<Vec<&LocalCachedRepository>> {
+        try_join_all(
+            error_flatten(self.get_repo_sources().await)
+                .map_ok(|x| self.get_repo(x))
+                .map(|x| async move {
+                    match x {
+                        Ok(f) => f.await,
+                        Err(e) => Err(e),
+                    }
+                }),
+        )
+        .await
+    }
+
+    async fn get_repo(&self, source: RepoSource) -> io::Result<&LocalCachedRepository> {
+        match source {
+            RepoSource::PreDefined(source) => {
+                self.repo_cache
+                    .get_or_create_repo(
+                        &self.get_repos_dir().joined(source.file_name),
+                        source.url,
+                        Some(source.name),
+                    )
+                    .await
+            }
+            RepoSource::UserRepo(user_repo) => self.repo_cache.get_user_repo(&user_repo).await,
+            RepoSource::Undefined(repo_json) => {
+                self.repo_cache
+                    .get_repo(&repo_json, || async { unreachable!() })
+                    .await
             }
         }
-
-        Ok(())
     }
 
     pub(crate) async fn find_packages(&self, package: &str) -> io::Result<Vec<PackageJson>> {
         let mut list = Vec::new();
 
+        fn packages<'a>(
+            package: &str,
+            repo: &'a LocalCachedRepository,
+        ) -> impl Iterator<Item = serde_json::Result<PackageJson>> + 'a {
+            repo.cache
+                .get(package)
+                .into_iter()
+                .map(|x| from_value::<PackageVersions>(x.clone()))
+                .map_ok(|x| x.versions.into_values())
+                .flatten_ok()
+        }
+
         fn append<'a>(
             list: &mut Vec<PackageJson>,
             package: &str,
-            repo: &'a LocalCachedRepository,
+            repo: LocalCachedRepository,
         ) -> io::Result<()> {
             if let Some(version) = repo.cache.get(package) {
                 list.extend(
                     from_value::<PackageVersions>(version.clone())?
                         .versions
-                        .values()
-                        .cloned(),
+                        .into_values(),
                 );
             }
             Ok(())
         }
 
-        self.get_repos(|repo| append(&mut list, package, repo))
-            .await?;
+        self.get_repos()
+            .await?
+            .into_iter()
+            .map(|repo| repo.cache.get(package).map(Clone::clone))
+            .flatten()
+            .map(|x| from_value::<PackageVersions>(x).map_err(io::Error::from))
+            .map_ok(|x| x.versions.into_values())
+            .flatten_ok()
+            .fold_ok((), |_, pkg| list.push(pkg))?;
 
         // user package folders
         for x in self.get_user_package_folders()? {
@@ -423,6 +457,35 @@ impl Environment {
         Ok(())
     }
 }
+
+#[derive(Copy, Clone)]
+pub struct PreDefinedRepoSource {
+    file_name: &'static str,
+    url: &'static str,
+    name: &'static str,
+}
+
+#[derive(Clone)]
+#[non_exhaustive]
+pub enum RepoSource {
+    PreDefined(PreDefinedRepoSource),
+    UserRepo(UserRepoSetting),
+    Undefined(PathBuf),
+}
+
+static OFFICIAL_REPO_SOURCE: PreDefinedRepoSource = PreDefinedRepoSource {
+    file_name: "vrc-official.json",
+    url: "https://packages.vrchat.com/official?download",
+    name: "Official",
+};
+
+static CURATED_REPO_SOURCE: PreDefinedRepoSource = PreDefinedRepoSource {
+    file_name: "vrc-curated.json",
+    url: "https://packages.vrchat.com/curated?download",
+    name: "Curated",
+};
+
+static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[OFFICIAL_REPO_SOURCE, CURATED_REPO_SOURCE];
 
 #[derive(Debug)]
 pub enum AddRepositoryErr {

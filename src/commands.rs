@@ -102,7 +102,7 @@ impl RepoList {
             .await
             .expect("loading global config");
 
-        env.get_repos(|repo| {
+        for repo in env.get_repos().await.expect("getting repo list") {
             let mut name = None;
             let mut r#type = None;
             let mut local_path = None;
@@ -120,10 +120,7 @@ impl RepoList {
                 r#type.unwrap_or("(unknown type)"),
                 local_path.unwrap_or(Path::new("(unknown)")).display(),
             );
-            Ok(())
-        })
-        .await
-        .expect("error listing repo");
+        }
     }
 }
 
@@ -296,16 +293,13 @@ impl RepoPackages {
                 .await
                 .expect("loading global config");
             let some_name = Some(self.name_or_url.as_str());
-            env.get_repos(|repo| {
+            for repo in env.get_repos().await.expect("listing packages") {
                 if repo.creation_info.as_ref().and_then(|x| x.name.as_deref()) == some_name
                     || repo.description.as_ref().and_then(|x| x.name.as_deref()) == some_name
                 {
                     print_repo(repo.cache.clone());
                 }
-                Ok(())
-            })
-            .await
-            .expect("listing packages");
+            }
         }
     }
 }
