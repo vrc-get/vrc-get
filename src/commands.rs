@@ -81,6 +81,7 @@ impl Install {
     }
 }
 
+/// Commands around repositories
 #[derive(Subcommand)]
 pub enum Repo {
     List(RepoList),
@@ -244,10 +245,7 @@ impl RepoCleanup {
     }
 }
 
-/// Cleanup repositories in Repos directory
-///
-/// The official VPM CLI will add <uuid>.json in the Repos directory even if error occurs.
-/// So this command will cleanup Repos directory.
+/// Remove repository from user repositories.
 #[derive(Parser)]
 pub struct RepoPackages {
     name_or_url: String,
