@@ -96,7 +96,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.triple }}
-          path: target/${{ matrix.triple }}/release/vrc-get
+          path: target/${{ matrix.triple }}/release/vrc-get*
 
   publish:
     name: Publish
@@ -144,10 +144,12 @@ jobs:
           mkdir assets
 
           pushd outputs
-            for f in *; do
-              pushd "$f"
-                name="$(echo vrc-get*)"
-                mv $name "../../assets/$f-$name"
+            for d in *; do
+              pushd "$d"
+                ls
+                for f in vrc-get*; do
+                  mv $f "../../assets/$d-$f"
+                done
               popd
             done
           popd
