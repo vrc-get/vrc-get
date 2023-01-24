@@ -95,7 +95,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.target }}
+          name: ${{ matrix.triple }}
           path: target/${{ matrix.triple }}/release/vrc-get
 
   publish:
