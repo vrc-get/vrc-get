@@ -156,7 +156,7 @@ jobs:
           popd
 
           sleep 1
-          gh release crete "$VERSION" assets/*
+          gh release create "$VERSION" assets/*
 
           rm -rf outputs assets
 
