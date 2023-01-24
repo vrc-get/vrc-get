@@ -81,6 +81,7 @@ jobs:
           ref: 'releasing'
       - uses: actions-rs/toolchain@v1
         with:
+          toolchain: stable
           profile: minimal
           override: true
           target: ${{ matrix.triple }}
