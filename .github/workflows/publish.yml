@@ -140,6 +140,7 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ needs.pre-build.outputs.version }}
+          GH_TOKEN: ${{ secrets.MASTER_GITHUB_PAT }}
         run: |-
           mkdir assets
 
