@@ -8,7 +8,11 @@ Open Source command line interface of VRChat Package Manager.
 - Provide Open Source command line interface of VRChat Package Manager.
 - Provide more functionality than official vpm command around package manager.
 
-## Features
+## Commands
 
-- Install command with specific version number
-- Resolve command to reinstall dependencies
+- [ ] `vrc-get install [pkg] [version]`
+- [ ] `vrc-get repo list`
+- [ ] `vrc-get repo add [NAME] <url>`
+- [ ] `vrc-get repo remove <name>`
+- [ ] `vrc-get repo cleanup`
+- [ ] `vrc-get repo get-list [NAME|url]`
