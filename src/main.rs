@@ -1,3 +1,5 @@
+extern crate core;
+
 use clap::Parser;
 use reqwest::Client;
 

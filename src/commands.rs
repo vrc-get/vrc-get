@@ -25,12 +25,15 @@ macro_rules! multi_command {
 #[derive(Parser)]
 pub enum Command {
     Install(Install),
+    #[command(alias = "rm")]
+    Remove(Remove),
     #[command(subcommand)]
     Repo(Repo),
 }
 
-multi_command!(Command is Install, Repo);
+multi_command!(Command is Install, Remove, Repo);
 
+/// Adds package to unity project
 #[derive(Parser)]
 pub struct Install {
     /// Name of Package
@@ -76,6 +79,33 @@ impl Install {
         } else {
             unity.resolve(&env).await.expect("resolving");
         }
+
+        unity.save().await.expect("saving manifest file");
+    }
+}
+
+/// Remove package from Unity project.
+#[derive(Parser)]
+pub struct Remove {
+    /// Name of Packages to remove
+    #[arg()]
+    names: Vec<String>,
+
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<PathBuf>,
+}
+
+impl Remove {
+    pub async fn run(self) {
+        let mut unity = crate::vpm::UnityProject::find_unity_project(self.project)
+            .await
+            .expect("unity project not found");
+
+        unity
+            .remove(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
+            .await
+            .expect("removing package");
 
         unity.save().await.expect("saving manifest file");
     }
