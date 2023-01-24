@@ -14,7 +14,7 @@ indexmap = { version = "1.9.2", features = ["serde"] }
 itertools = "0.10.5"
 log = "0.4.17"
 pin-project-lite = "0.2.9"
-reqwest = { version = "0.11.14", features = ["blocking", "serde_json", "json"] }
+reqwest = { version = "0.11.14", features = ["blocking", "serde_json", "json", "native-tls-vendored"] }
 semver = { version = "1.0.16", features = ["serde"] }
 serde = { version = "1.0.152", features = ["derive", "rc"] }
 serde_json = { version = "1.0.91", features = ["preserve_order"] }

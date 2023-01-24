@@ -1,0 +1,170 @@
+name: Publish
+
+on:
+  workflow_dispatch: {}
+
+env:
+  RELEASER_CHANGER: 'regex-pattern:version = "$1"@Cargo.toml'
+
+jobs:
+  pre-build:
+    name: Update version name
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.update.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: anatawa12/something-releaser@v2
+      - uses: snow-actions/git-config-user@v1.0.0
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          override: true
+
+      - name: update version name
+        id: update
+        run: |-
+          # update version name
+          VERSION="$(get-version)"
+          if ! [[ "$VERSION" = *-SNAPSHOT ]]; then
+            echo 'VERSION IS NOT SNAPSHOT' >&2
+            exit 1
+          fi
+          VERSION="$(version-unsnapshot "$VERSION")"
+          echo "::set-output name=version::$VERSION"
+          set-version "$VERSION"
+          cargo metadata --format-version=1 > /dev/null
+          # commit & tag
+          git add .
+          git commit -m "v$VERSION"
+          git branch releasing
+          git push -u origin releasing
+
+      - name: Check Build crate
+        run: cargo package
+
+  build-rust:
+    name: Build rust
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # for linux, use cross on ubuntu-latest
+          - triple: x86_64-unknown-linux-musl
+            on: ubuntu-latest
+            cross: true
+          - triple: aarch64-unknown-linux-musl
+            on: ubuntu-latest
+            cross: true
+          # for windows, use cross on ubuntu-latest
+          - triple: x86_64-pc-windows-msvc
+            on: windows-latest
+            cross: false
+          #- triple: aarch64-pc-windows-msvc
+          #  on: macos-latest
+          #  cross: false
+          # for macOS, on macOS without cross
+          - triple: x86_64-apple-darwin
+            on: macos-latest
+            cross: false
+          - triple: aarch64-apple-darwin
+            on: macos-latest
+            cross: false
+    runs-on: ${{ matrix.on }}
+    needs: [pre-build]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: 'releasing'
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          override: true
+          target: ${{ matrix.triple }}
+      - uses: Swatinem/rust-cache@v1
+        with:
+          target-dir: target
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: ${{ matrix.cross }}
+          command: build
+          args: --target ${{ matrix.triple }} --release
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.target }}
+          path: target/${{ matrix.triple }}/release/vrc-get
+
+  publish:
+    name: Publish
+    environment: master branch
+    runs-on: ubuntu-latest
+    needs: [pre-build, build-rust]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: 'releasing'
+          fetch-depth: 2
+          token: ${{ secrets.MASTER_GITHUB_PAT }}
+
+      # tools
+      - uses: anatawa12/something-releaser@v2
+      - uses: snow-actions/git-config-user@v1.0.0
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Login to GitHub Container Registry
+
+      - uses: actions/download-artifact@v3
+        with:
+          path: outputs
+
+      - name: Push tag
+        env:
+          VERSION: ${{ needs.pre-build.outputs.version }}
+        run: |-
+          # set tag and publish current version
+          git tag "v$VERSION"
+          git push && git push --tags
+          # create master and push
+          git switch -c master
+          git fetch origin master --depth=1
+          git log --all --graph
+          git push -u origin master
+
+      - name: create release
+        shell: bash
+        env:
+          VERSION: ${{ needs.pre-build.outputs.version }}
+        run: |-
+          mkdir assets
+
+          pushd outputs
+            for f in *; do
+              pushd "$f"
+                name="$(echo vrc-get*)"
+                mv $name "../../assets/$f-$name"
+              popd "$f"
+            done
+          popd
+
+          sleep 1
+          gh release crete "$VERSION" assets/*
+
+          rm -rf outputs assets
+
+      - name: Update To Next Version
+        run: |
+          VERSION="$(get-version)"
+          VERSION="$(version-next "$VERSION")"
+          set-version "$(version-snapshot "$VERSION")"
+          cargo metadata --format-version=1 > /dev/null
+          git add .
+          git commit -m "prepare for next version: $VERSION"
+          git push
+          git push --delete origin releasing
