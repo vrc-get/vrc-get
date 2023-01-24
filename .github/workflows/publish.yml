@@ -118,8 +118,6 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Login to GitHub Container Registry
-
       - uses: actions/download-artifact@v3
         with:
           path: outputs
