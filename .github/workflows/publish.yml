@@ -34,7 +34,7 @@ jobs:
             exit 1
           fi
           VERSION="$(version-unsnapshot "$VERSION")"
-          gh-set-output version $VERSION"
+          gh-set-output version "$VERSION"
           set-version "$VERSION"
           cargo metadata --format-version=1 > /dev/null
           # commit & tag
