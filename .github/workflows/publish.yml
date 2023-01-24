@@ -148,7 +148,7 @@ jobs:
               pushd "$f"
                 name="$(echo vrc-get*)"
                 mv $name "../../assets/$f-$name"
-              popd "$f"
+              popd
             done
           popd
 
