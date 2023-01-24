@@ -13,18 +13,19 @@ use futures::future::join_all;
 use indexmap::IndexMap;
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
-use std::future::Future;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use tokio::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, File, OpenOptions};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
+mod repo_holder;
 pub mod structs;
 mod utils;
+
+use repo_holder::RepoHolder;
 
 type JsonMap = Map<String, Value>;
 
@@ -106,7 +107,7 @@ impl Environment {
     }
 
     pub async fn find_package_by_name<'a>(
-        &mut self,
+        &self,
         package: &str,
         version: VersionSelector<'a>,
     ) -> io::Result<Option<PackageJson>> {
@@ -121,7 +122,7 @@ impl Environment {
     }
 
     pub async fn get_repos(
-        &mut self,
+        &self,
         mut callback: impl FnMut(&LocalCachedRepository) -> io::Result<()>,
     ) -> io::Result<()> {
         let official = self
@@ -182,7 +183,7 @@ impl Environment {
         Ok(())
     }
 
-    pub(crate) async fn find_packages(&mut self, package: &str) -> io::Result<Vec<PackageJson>> {
+    pub(crate) async fn find_packages(&self, package: &str) -> io::Result<Vec<PackageJson>> {
         let mut list = Vec::new();
 
         fn append<'a>(
@@ -452,104 +453,6 @@ impl From<serde_json::Error> for AddRepositoryErr {
     }
 }
 
-#[derive(Debug)]
-struct RepoHolder {
-    http: Client,
-    cached_repos: HashMap<PathBuf, LocalCachedRepository>,
-}
-
-impl RepoHolder {
-    pub(crate) fn new(http: Client) -> Self {
-        RepoHolder {
-            http,
-            cached_repos: HashMap::new(),
-        }
-    }
-
-    /// Get OR create and update repository
-    pub(crate) async fn get_or_create_repo(
-        &mut self,
-        path: &Path,
-        remote_url: &str,
-        name: Option<&str>,
-    ) -> io::Result<&LocalCachedRepository> {
-        let client = self.http.clone();
-        self.get_repo(path, || async {
-            // if local repository not found: try downloading remote one
-            let remote_repo = download_remote_repository(&client, remote_url).await?;
-
-            let mut local_cache = LocalCachedRepository::new(
-                path.to_owned(),
-                name.map(str::to_owned),
-                Some(remote_url.to_owned()),
-            );
-            local_cache.cache = remote_repo
-                .get("packages")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or(JsonMap::new());
-            local_cache.repo = Some(remote_repo);
-
-            match write_repo(path, &local_cache).await {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("writing local repo '{}': {}", path.display(), e);
-                }
-            }
-
-            Ok(local_cache)
-        })
-        .await
-    }
-
-    pub(crate) async fn get_repo<F, T>(
-        &mut self,
-        path: &Path,
-        if_not_found: F,
-    ) -> io::Result<&LocalCachedRepository>
-    where
-        F: FnOnce() -> T,
-        T: Future<Output = io::Result<LocalCachedRepository>>,
-    {
-        let entry = self.cached_repos.entry(path.into());
-        match entry {
-            Entry::Occupied(entry) => Ok(entry.into_mut()),
-            Entry::Vacant(entry) => {
-                let Some(json_file) = try_open_file(entry.key()).await? else {
-                    let loaded = if_not_found().await?;
-                    return Ok(entry.insert(loaded))
-                };
-                let mut loaded = match serde_json::from_slice(&read_to_vec(json_file).await?) {
-                    Ok(loaded) => loaded,
-                    Err(e) => {
-                        return Err(io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            format!("loading {}: {}", entry.key().display(), e),
-                        ))
-                    }
-                };
-                update_from_remote(&self.http, entry.key(), &mut loaded).await;
-                Ok(entry.insert(loaded))
-            }
-        }
-    }
-
-    pub(crate) async fn get_user_repo(
-        &mut self,
-        repo: &UserRepoSetting,
-    ) -> io::Result<&LocalCachedRepository> {
-        if let Some(url) = &repo.url {
-            self.get_or_create_repo(&repo.local_path, &url, repo.name.as_deref())
-                .await
-        } else {
-            self.get_repo(&repo.local_path, || async {
-                Err(io::Error::new(io::ErrorKind::NotFound, "repo not found"))
-            })
-            .await
-        }
-    }
-}
-
 async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCachedRepository) {
     let Some(remote_url) = repo.creation_info.as_ref().and_then(|x| x.url.as_ref()) else {
         return
@@ -751,7 +654,7 @@ impl UnityProject {
     /// this adds specified (not locked) version to dependencies
     pub async fn add_package(
         &mut self,
-        env: &mut Environment,
+        env: &Environment,
         request: &PackageJson,
     ) -> Result<(), AddPackageErr> {
         use crate::vpm::AddPackageErr::*;
@@ -817,7 +720,7 @@ impl UnityProject {
 
     async fn collect_adding_packages(
         &mut self,
-        env: &mut Environment,
+        env: &Environment,
         pkg: &PackageJson,
     ) -> Result<Vec<PackageJson>, AddPackageErr> {
         let mut all_deps = Vec::new();
@@ -837,7 +740,7 @@ impl UnityProject {
     async fn collect_adding_packages_internal(
         &mut self,
         adding_deps: &mut Vec<PackageJson>,
-        env: &mut Environment,
+        env: &Environment,
         pkg: &PackageJson,
     ) -> Result<(), AddPackageErr> {
         if let Some(dependencies) = &pkg.vpm_dependencies {
@@ -881,7 +784,7 @@ impl UnityProject {
             .await
     }
 
-    pub async fn resolve(&self, env: &mut Environment) -> io::Result<()> {
+    pub async fn resolve(&self, env: &Environment) -> io::Result<()> {
         for (pkg, dep) in self.manifest.locked() {
             let pkg = env
                 .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))

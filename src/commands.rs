@@ -50,7 +50,7 @@ pub struct Install {
 impl Install {
     pub async fn run(self) {
         let client = crate::create_client();
-        let mut env = crate::vpm::Environment::load_default(client)
+        let env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
         let mut unity = crate::vpm::UnityProject::find_unity_project(self.project)
@@ -69,11 +69,11 @@ impl Install {
                 .expect("finding package")
                 .expect("no matching package not found");
             unity
-                .add_package(&mut env, &package)
+                .add_package(&env, &package)
                 .await
                 .expect("adding package");
         } else {
-            unity.resolve(&mut env).await.expect("resolving");
+            unity.resolve(&env).await.expect("resolving");
         }
 
         unity.save().await.expect("saving manifest file");
@@ -98,7 +98,7 @@ pub struct RepoList {}
 impl RepoList {
     pub async fn run(self) {
         let client = crate::create_client();
-        let mut env = crate::vpm::Environment::load_default(client)
+        let env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
 
@@ -292,7 +292,7 @@ impl RepoPackages {
 
             print_repo(cache);
         } else {
-            let mut env = crate::vpm::Environment::load_default(client)
+            let env = crate::vpm::Environment::load_default(client)
                 .await
                 .expect("loading global config");
             let some_name = Some(self.name_or_url.as_str());
