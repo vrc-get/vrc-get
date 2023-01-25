@@ -704,9 +704,21 @@ mod vpm_manifest {
         }
 
         pub(crate) fn remove_packages(&mut self, names: &[&str]) {
-            for name in names {
-                self.locked.remove(*name);
-                self.dependencies.remove(*name);
+            for name in names.into_iter().copied() {
+                self.locked.remove(name);
+                self.json
+                    .get_mut("locked")
+                    .unwrap()
+                    .as_object_mut()
+                    .unwrap()
+                    .remove(name);
+                self.dependencies.remove(name);
+                self.json
+                    .get_mut("dependencies")
+                    .unwrap()
+                    .as_object_mut()
+                    .unwrap()
+                    .remove(name);
             }
             self.changed = true;
         }
@@ -911,6 +923,14 @@ impl UnityProject {
         // there's no conflicts. So do remove
 
         self.manifest.remove_packages(names);
+        try_join_all(names.into_iter().map(|name| {
+            remove_dir_all(self.packages_dir.join(name)).map(|x| match x {
+                Ok(()) => Ok(()),
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+                Err(e) => Err(e),
+            })
+        }))
+        .await?;
 
         Ok(())
     }
