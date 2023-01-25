@@ -24,6 +24,7 @@ macro_rules! multi_command {
 /// Open Source command line interface of VRChat Package Manager.
 #[derive(Parser)]
 pub enum Command {
+    #[command(alias = "i")]
     Install(Install),
     #[command(alias = "rm")]
     Remove(Remove),
