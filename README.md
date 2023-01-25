@@ -50,9 +50,9 @@ which are macOS-builtin dylibs, are dynamically linked.
 To use this tool to resolve(install) vpm dependencies, you can use 
 [`anatawa12/sh-actions/resolve-vpm-packages@master`][resolve-vpm-packages].
 
-TODO: add example
-
 To use other commands, you can install `vpm-get` via [`anatawa12/sh-actions/setup-vrc-get@master`][setup-vrc-get].
+
+For more details, please see README for each action.
 
 [cargo]: https://github.com/rust-lang/cargo/
 [release]: https://github.com/anatawa12/vrc-get/releases/latest
