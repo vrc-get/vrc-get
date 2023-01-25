@@ -445,7 +445,9 @@ impl Environment {
         {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
-        let remote_repo = download_remote_repository(&self.http, url.clone()).await?;
+        let (remote_repo, etag) = download_remote_repository(&self.http, url.clone(), None)
+            .await?
+            .expect("logic failure: no etag");
         let local_path = self
             .get_repos_dir()
             .joined(format!("{}.json", uuid::Uuid::new_v4()));
@@ -468,6 +470,14 @@ impl Environment {
             .cloned()
             .unwrap_or(JsonMap::new());
         local_cache.repo = Some(remote_repo);
+
+        // set etag
+        if let Some(etag) = etag {
+            local_cache
+                .vrc_get
+                .get_or_insert_with(Default::default)
+                .etag = etag;
+        }
 
         write_repo(&local_path, &local_cache).await?;
 
@@ -603,13 +613,21 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
         return;
     };
 
-    match download_remote_repository(&client, remote_url).await {
-        Ok(remote_repo) => {
+    let etag = repo.vrc_get.as_ref().map(|x| x.etag.as_str());
+    match download_remote_repository(&client, remote_url, etag).await {
+        Ok(None) => log::debug!("cache matched downloading {}", remote_url),
+        Ok(Some((remote_repo, etag))) => {
             repo.cache = remote_repo
                 .get("packages")
                 .and_then(Value::as_object)
                 .cloned()
                 .unwrap_or(JsonMap::new());
+            // set etag
+            if let Some(etag) = etag {
+                repo.vrc_get.get_or_insert_with(Default::default).etag = etag;
+            } else {
+                repo.vrc_get.as_mut().map(|x| x.etag.clear());
+            }
             repo.repo = Some(remote_repo);
         }
         Err(e) => {
@@ -632,23 +650,33 @@ async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()>
     Ok(())
 }
 
+// returns None if etag matches
 pub(crate) async fn download_remote_repository(
     client: &Client,
     url: impl IntoUrl,
-) -> io::Result<JsonMap> {
+    etag: Option<&str>,
+) -> io::Result<Option<(JsonMap, Option<String>)>> {
     fn map_err(err: reqwest::Error) -> io::Error {
         io::Error::new(io::ErrorKind::NotFound, err)
     }
-    client
-        .get(url)
-        .send()
-        .await
-        .err_mapped()?
-        .error_for_status()
-        .err_mapped()?
-        .json()
-        .await
-        .err_mapped()
+    let mut request = client.get(url);
+    if let Some(etag) = &etag {
+        request = request.header("If-None-Match", etag.to_owned())
+    }
+    let response = request.send().await.err_mapped()?;
+    let response = response.error_for_status().err_mapped()?;
+
+    if etag.is_some() && response.status() == 304 {
+        return Ok(None);
+    }
+
+    let etag = response
+        .headers()
+        .get("Etag")
+        .and_then(|x| x.to_str().ok())
+        .map(str::to_owned);
+
+    Ok(Some((response.json().await.err_mapped()?, etag)))
 }
 
 mod vpm_manifest {

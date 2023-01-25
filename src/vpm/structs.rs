@@ -97,6 +97,9 @@ pub mod repository {
         #[serde(rename = "Description")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub description: Option<Description>,
+        #[serde(rename = "vrc-get")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub vrc_get: Option<VrcGetMeta>,
     }
 
     impl LocalCachedRepository {
@@ -113,6 +116,7 @@ pub mod repository {
                     name,
                     r#type: Some("JsonRepo".to_owned()),
                 }),
+                vrc_get: None,
             }
         }
     }
@@ -134,6 +138,12 @@ pub mod repository {
         pub name: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub r#type: Option<String>,
+    }
+
+    #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+    pub struct VrcGetMeta {
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        pub etag: String,
     }
 }
 

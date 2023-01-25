@@ -28,7 +28,9 @@ impl RepoHolder {
         let client = self.http.clone();
         self.get_repo(path, || async {
             // if local repository not found: try downloading remote one
-            let remote_repo = download_remote_repository(&client, remote_url).await?;
+            let (remote_repo, etag) = download_remote_repository(&client, remote_url, None)
+                .await?
+                .expect("logic failure: no etag");
 
             let mut local_cache = LocalCachedRepository::new(
                 path.to_owned(),
@@ -41,6 +43,12 @@ impl RepoHolder {
                 .cloned()
                 .unwrap_or(JsonMap::new());
             local_cache.repo = Some(remote_repo);
+            if let Some(etag) = etag {
+                local_cache
+                    .vrc_get
+                    .get_or_insert_with(Default::default)
+                    .etag = etag;
+            }
 
             match write_repo(path, &local_cache).await {
                 Ok(_) => {}

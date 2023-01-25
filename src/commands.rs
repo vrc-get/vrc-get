@@ -307,9 +307,11 @@ impl RepoPackages {
         let client = crate::create_client();
 
         if let Some(url) = Url::parse(&self.name_or_url).ok() {
-            let repo = download_remote_repository(&client, url)
+            let repo = download_remote_repository(&client, url, None)
                 .await
-                .expect("downloading repository");
+                .expect("downloading repository")
+                .expect("logic failure: no etag")
+                .0;
 
             let cache = repo
                 .get("packages")
