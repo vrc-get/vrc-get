@@ -541,6 +541,7 @@ impl Environment {
             return Ok(());
         }
 
+        create_dir_all(&self.global_dir).await?;
         let mut file = File::create(self.global_dir.join("settings.json")).await?;
         file.write_all(&to_json_vec(&self.settings)?).await?;
         file.flush().await?;
