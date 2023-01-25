@@ -109,12 +109,11 @@ impl Environment {
     ) -> io::Result<Option<PackageJson>> {
         let mut versions = self.find_packages(package).await?;
 
-        versions.sort_by(|a, b| a.version.cmp(&b.version));
+        versions.retain(|x| version.satisfies(&x.version));
 
-        Ok(versions
-            .into_iter()
-            .filter(|x| version.satisfies(&x.version))
-            .next())
+        versions.sort_by(|a, b| a.version.cmp(&b.version).reverse());
+
+        Ok(versions.into_iter().next())
     }
 
     pub async fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
