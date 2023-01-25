@@ -45,5 +45,16 @@ and `crypt32.dll`, which is builtin dlls, are dynamically linked.
 For macOS, only `Security.framework`, `CoreFoundation.framework`, `libiconv.2.dylibs`, and `libSystem.B.dylibs`, 
 which are macOS-builtin dylibs, are dynamically linked.
 
+## For GitHub Actions
+
+To use this tool to resolve(install) vpm dependencies, you can use 
+[`anatawa12/sh-actions/resolve-vpm-packages@master`][resolve-vpm-packages].
+
+TODO: add example
+
+To use other commands, you can install `vpm-get` via [`anatawa12/sh-actions/setup-vrc-get@master`][setup-vrc-get].
+
 [cargo]: https://github.com/rust-lang/cargo/
 [release]: https://github.com/anatawa12/vrc-get/releases/latest
+[resolve-vpm-packages]: https://github.com/anatawa12/sh-actions/tree/master/resolve-vpm-packages
+[setup-vrc-get]: https://github.com/anatawa12/sh-actions/tree/master/setup-vrc-get
