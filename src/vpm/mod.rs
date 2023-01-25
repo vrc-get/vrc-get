@@ -1040,13 +1040,20 @@ impl UnityProject {
     }
 
     pub async fn resolve(&self, env: &Environment) -> io::Result<()> {
-        for (pkg, dep) in self.manifest.locked() {
-            let pkg = env
-                .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
-                .await?
-                .expect("some package in manifest.json not found");
-            env.add_package(&pkg, &self.packages_dir).await?;
-        }
+        try_join_all(
+            self.manifest
+                .locked()
+                .into_iter()
+                .map(|(pkg, dep)| async move {
+                    let pkg = env
+                        .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
+                        .await?
+                        .expect("some package in manifest.json not found");
+                    env.add_package(&pkg, &self.packages_dir).await?;
+                    io::Result::Ok(())
+                }),
+        )
+        .await?;
         Ok(())
     }
 }
