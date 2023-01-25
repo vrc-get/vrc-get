@@ -890,7 +890,7 @@ impl UnityProject {
         // then, lock all dependencies
         for pkg in packages.iter() {
             self.manifest.add_locked(
-                &request.name,
+                &pkg.name,
                 VpmLockedDependency::new(
                     pkg.version.clone(),
                     pkg.vpm_dependencies.clone().unwrap_or_else(IndexMap::new),
@@ -994,7 +994,7 @@ impl UnityProject {
                     .locked()
                     .get(dep)
                     .map(|x| range.matches(&x.version))
-                    .unwrap_or(false)
+                    .unwrap_or(true)
                 {
                     let found = env
                         .find_package_by_name(dep, VersionSelector::Range(range))
