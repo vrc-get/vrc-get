@@ -7,6 +7,8 @@ use std::ffi::OsStr;
 use std::future::ready;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
+use std::task::ready;
+use std::task::Poll::Ready;
 use std::{env, fmt, io};
 
 use futures::future::{join_all, try_join_all};
@@ -138,12 +140,19 @@ impl Environment {
                 .filter_map(|x| relative_file_name(&x.local_path, &repos_base)),
         );
 
-        let mut entry = read_dir(self.get_repos_dir()).await?;
+        let mut entry = match read_dir(self.get_repos_dir()).await {
+            Ok(entry) => Some(entry),
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => None,
+            Err(e) => return Err(e),
+        };
         let streams = stream::poll_fn(|cx| {
-            entry.poll_next_entry(cx).map(|x| match x {
-                Ok(Some(v)) => Some(Ok(v)),
-                Ok(None) => None,
-                Err(e) => Some(Err(e)),
+            Ready(match entry {
+                Some(ref mut entry) => match ready!(entry.poll_next_entry(cx)) {
+                    Ok(Some(v)) => Some(Ok(v)),
+                    Ok(None) => None,
+                    Err(e) => Some(Err(e)),
+                },
+                None => None,
             })
         });
 
@@ -644,6 +653,7 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
 }
 
 async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()> {
+    create_dir_all(path.parent().unwrap()).await?;
     let mut file = File::create(path).await?;
     file.write_all(&to_json_vec(repo)?).await?;
     file.flush().await?;
