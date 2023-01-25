@@ -23,6 +23,7 @@ macro_rules! multi_command {
 
 /// Open Source command line interface of VRChat Package Manager.
 #[derive(Parser)]
+#[command(author, version, about)]
 pub enum Command {
     #[command(alias = "i")]
     Install(Install),
@@ -36,12 +37,13 @@ multi_command!(Command is Install, Remove, Repo);
 
 /// Adds package to unity project
 #[derive(Parser)]
+#[command(author, version)]
 pub struct Install {
     /// Name of Package
     #[arg()]
     name: Option<String>,
     /// Version of package. if not specified, latest version will be used
-    #[arg()]
+    #[arg(id = "VERSION")]
     version: Option<Version>,
     /// Include prerelease
     #[arg(long = "prerelease")]
@@ -87,6 +89,7 @@ impl Install {
 
 /// Remove package from Unity project.
 #[derive(Parser)]
+#[command(author, version)]
 pub struct Remove {
     /// Name of Packages to remove
     #[arg()]
@@ -114,6 +117,7 @@ impl Remove {
 
 /// Commands around repositories
 #[derive(Subcommand)]
+#[command(author, version)]
 pub enum Repo {
     List(RepoList),
     Add(RepoAdd),
@@ -126,6 +130,7 @@ multi_command!(Repo is List, Add, Remove, Cleanup, Packages);
 
 /// List all repositories
 #[derive(Parser)]
+#[command(author, version)]
 pub struct RepoList {}
 
 impl RepoList {
@@ -159,6 +164,7 @@ impl RepoList {
 
 /// Add remote or local repository
 #[derive(Parser)]
+#[command(author, version)]
 pub struct RepoAdd {
     /// URL of Package
     #[arg()]
@@ -191,6 +197,7 @@ impl RepoAdd {
 
 /// Remove repository with specified url, path or name
 #[derive(Parser)]
+#[command(author, version)]
 pub struct RepoRemove {
     /// URL of Package
     #[arg()]
@@ -230,6 +237,7 @@ impl RepoRemove {
 /// The official VPM CLI will add <uuid>.json in the Repos directory even if error occurs.
 /// So this command will cleanup Repos directory.
 #[derive(Parser)]
+#[command(author, version)]
 pub struct RepoCleanup {}
 
 impl RepoCleanup {
@@ -278,6 +286,7 @@ impl RepoCleanup {
 
 /// Remove repository from user repositories.
 #[derive(Parser)]
+#[command(author, version)]
 pub struct RepoPackages {
     name_or_url: String,
 }

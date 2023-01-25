@@ -3,6 +3,10 @@ name = "vrc-get"
 version = "0.1.2-SNAPSHOT"
 edition = "2021"
 
+license = "MIT"
+authors = ["anatawa12 <anatawa12@icloud.com>"]
+description = "Open Source command line client of VRChat Package Manager."
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
