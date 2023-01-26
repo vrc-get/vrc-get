@@ -358,8 +358,9 @@ impl Environment {
                 .open(&zip_path)
                 .await?;
 
-            // TODO: streaming
-            let got_data = self
+            let mut sha256 = Sha256::default();
+
+            let mut stream = self
                 .http
                 .get(&package.url)
                 .send()
@@ -367,17 +368,18 @@ impl Environment {
                 .err_mapped()?
                 .error_for_status()
                 .err_mapped()?
-                .bytes()
-                .await
-                .err_mapped()?;
-            cache_file.write_all(&got_data).await?;
+                .bytes_stream();
+
+            while let Some(data) = stream.try_next().await.err_mapped()? {
+                sha256.update(&data);
+                cache_file.write_all(&data).await?;
+            }
+
             cache_file.flush().await?;
             cache_file.seek(SeekFrom::Start(0)).await?;
 
             // write sha file
             let mut sha_file = File::create(&sha_path).await?;
-            let mut sha256 = Sha256::default();
-            sha256.update(&got_data);
             let hash_hex = to_hex(&sha256.finalize()[..]);
             let sha_file_content = format!("{} {}\n", hash_hex, zip_file_name);
             sha_file.write_all(sha_file_content.as_bytes()).await?;
