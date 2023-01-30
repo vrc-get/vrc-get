@@ -880,19 +880,13 @@ impl UnityProject {
             }
         }
 
-        // check for version conflict
-        self.check_conflict(&request.name, &request.version)?;
-
         let adding_deps = self.collect_adding_packages(env, request).await?;
-
-        // check for version conflict for all deps
-        for x in &adding_deps {
-            self.check_conflict(&x.name, &x.version)?;
-        }
-
         let mut packages = adding_deps.iter().collect::<Vec<_>>();
         packages.push(request);
         let packages = packages;
+
+        // check for version conflict for all deps
+        self.check_adding_package(&packages)?;
 
         // there's no errors to add package. adding to dependencies
 
@@ -900,6 +894,22 @@ impl UnityProject {
         self.manifest
             .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
 
+        self.do_add_packages_to_locked(env, &packages).await
+    }
+
+    fn check_adding_package(&mut self, packages: &[&PackageJson]) -> Result<(), AddPackageErr> {
+        for x in packages {
+            self.check_conflict(&x.name, &x.version)?;
+        }
+
+        return Ok(());
+    }
+
+    async fn do_add_packages_to_locked(
+        &mut self,
+        env: &Environment,
+        packages: &[&PackageJson],
+    ) -> Result<(), AddPackageErr> {
         // then, lock all dependencies
         for pkg in packages.iter() {
             self.manifest.add_locked(
@@ -921,6 +931,51 @@ impl UnityProject {
         }
 
         Ok(())
+    }
+
+    /// Add specified package to self project.
+    ///
+    /// If the package or newer one is already installed in dependencies, this does nothing
+    /// and returns AlreadyNewerPackageInstalled err.
+    ///
+    /// If the package or newer one is already installed in locked list,
+    /// this adds specified (not locked) version to dependencies
+    pub async fn upgrade_package(
+        &mut self,
+        env: &Environment,
+        request: &PackageJson,
+    ) -> Result<(), AddPackageErr> {
+        use crate::vpm::AddPackageErr::*;
+        // if same or newer requested package is in dependencies, do nothing
+        if let Some(dep) = self.manifest.dependencies().get(&request.name) {
+            if dep.version >= request.version {
+                return Err(AlreadyNewerPackageInstalled);
+            }
+        }
+
+        // if same or newer requested package is in locked dependencies,
+        // Do nothing
+        if let Some(locked) = self.manifest.locked().get(&request.name) {
+            if locked.version >= request.version {
+                return Err(AlreadyNewerPackageInstalled);
+            }
+        }
+
+        let adding_deps = self.collect_adding_packages(env, request).await?;
+        let mut packages = adding_deps.iter().collect::<Vec<_>>();
+        packages.push(request);
+        let packages = packages;
+
+        // check for version conflict for all deps
+        self.check_adding_package(&packages)?;
+
+        // there's no errors to add package. adding to dependencies
+
+        // first, add to dependencies
+        self.manifest
+            .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
+
+        self.do_add_packages_to_locked(env, &packages).await
     }
 
     /// Remove specified package from self project.
@@ -1064,6 +1119,7 @@ impl UnityProject {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum VersionSelector<'a> {
     Latest,
     LatestIncluidingPrerelease,

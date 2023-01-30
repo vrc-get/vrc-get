@@ -1,6 +1,6 @@
 use crate::version::Version;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::{download_remote_repository, VersionSelector};
+use crate::vpm::{download_remote_repository, AddPackageErr, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde_json::{from_value, Map, Value};
@@ -31,13 +31,17 @@ pub enum Command {
     #[command(alias = "rm")]
     Remove(Remove),
     Outdated(Outdated),
+    Upgrade(Upgrade),
     #[command(subcommand)]
     Repo(Repo),
 }
 
-multi_command!(Command is Install, Remove, Outdated, Repo);
+multi_command!(Command is Install, Remove, Outdated, Upgrade, Repo);
 
 /// Adds package to unity project
+///
+/// With install command, you'll add to dependencies. With upgrade command,
+/// you'll upgrade dependencies or locked dependencies but not add to dependencies.
 #[derive(Parser)]
 #[command(author, version)]
 pub struct Install {
@@ -169,6 +173,103 @@ impl Outdated {
                 name, installed, &found.version
             );
         }
+    }
+}
+
+/// Upgrade specified package or all packages to latest or specified version.
+///
+/// With install command, you'll add to dependencies. With upgrade command,
+/// you'll upgrade dependencies or locked dependencies but not add to dependencies.
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Upgrade {
+    /// Name of Package
+    #[arg()]
+    name: Option<String>,
+    /// Version of package. if not specified, latest version will be used
+    #[arg(id = "VERSION")]
+    version: Option<Version>,
+    /// Include prerelease
+    #[arg(long = "prerelease")]
+    prerelease: bool,
+
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<PathBuf>,
+}
+
+impl Upgrade {
+    pub async fn run(self) {
+        let client = crate::create_client();
+        let env = crate::vpm::Environment::load_default(client)
+            .await
+            .expect("loading global config");
+        let mut unity = crate::vpm::UnityProject::find_unity_project(self.project)
+            .await
+            .expect("unity project not found");
+
+        if let Some(name) = self.name {
+            let version_selector = match self.version {
+                None if self.prerelease => VersionSelector::LatestIncluidingPrerelease,
+                None => VersionSelector::Latest,
+                Some(ref version) => VersionSelector::Specific(version),
+            };
+            let package = env
+                .find_package_by_name(&name, version_selector)
+                .await
+                .expect("finding package")
+                .expect("no matching package not found");
+
+            unity
+                .upgrade_package(&env, &package)
+                .await
+                .expect("upgrading package");
+
+            println!("upgraded {} to {}", name, package.version);
+        } else {
+            let version_selector = match self.prerelease {
+                true => VersionSelector::LatestIncluidingPrerelease,
+                false => VersionSelector::Latest,
+            };
+            let package_names = unity.locked_packages().keys().cloned().collect::<Vec<_>>();
+            for name in package_names {
+                let package = env
+                    .find_package_by_name(&name, version_selector)
+                    .await
+                    .expect("finding package")
+                    .expect("no matching package not found");
+
+                match unity.upgrade_package(&env, &package).await {
+                    Ok(_) => {
+                        println!("upgraded {} to {}", name, package.version);
+                    }
+                    Err(AddPackageErr::Io(e)) => log::error!("upgrading package: {}", e),
+                    Err(AddPackageErr::AlreadyNewerPackageInstalled) => {}
+                    Err(AddPackageErr::ConflictWithDependencies {
+                        dependency_name, ..
+                    }) => {
+                        log::warn!(
+                            "upgrading {} to {}: conflicts with {}",
+                            name,
+                            package.version,
+                            dependency_name
+                        );
+                    }
+                    Err(AddPackageErr::DependencyNotFound {
+                        dependency_name, ..
+                    }) => {
+                        log::error!(
+                            "upgrading {} to {}: dependencies of it {} not found",
+                            name,
+                            package.version,
+                            dependency_name
+                        );
+                    }
+                }
+            }
+        }
+
+        unity.save().await.expect("saving manifest file");
     }
 }
 
