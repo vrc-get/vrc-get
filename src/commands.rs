@@ -3,9 +3,11 @@ use crate::vpm::structs::remote_repo::PackageVersions;
 use crate::vpm::{download_remote_repository, AddPackageErr, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
+use serde::Serialize;
 use serde_json::{from_value, Map, Value};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
+use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use tokio::fs::{read_dir, remove_file};
@@ -128,6 +130,10 @@ pub struct Outdated {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
+
+    /// With this option, output is printed in json format
+    #[arg(long = "json-format")]
+    json_format: Option<NonZeroU32>,
 }
 
 impl Outdated {
@@ -167,11 +173,36 @@ impl Outdated {
             }
         }
 
-        for (name, (found, installed)) in &outdated_packages {
-            println!(
-                "{}: installed: {}, found: {}",
-                name, installed, &found.version
-            );
+        match self.json_format.map(|x| x.get()).unwrap_or(0) {
+            0 => {
+                for (name, (found, installed)) in &outdated_packages {
+                    println!(
+                        "{}: installed: {}, found: {}",
+                        name, installed, &found.version
+                    );
+                }
+            }
+            1 => {
+                #[derive(Serialize)]
+                struct OutdatedInfo {
+                    package_name: String,
+                    installed_version: Version,
+                    newer_version: Version,
+                }
+                let info = outdated_packages
+                    .into_iter()
+                    .map(|(package_name, (found, installed))| OutdatedInfo {
+                        package_name,
+                        installed_version: installed.clone(),
+                        newer_version: found.version,
+                    })
+                    .collect::<Vec<_>>();
+                println!("{}", serde_json::to_string(&info).unwrap());
+            }
+            v => {
+                log::error!("unsupported version: {v}");
+                exit(1);
+            }
         }
     }
 }
