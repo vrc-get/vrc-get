@@ -1058,6 +1058,10 @@ impl UnityProject {
         .await?;
         Ok(())
     }
+
+    pub(crate) fn locked_packages(&self) -> &IndexMap<String, VpmLockedDependency> {
+        return self.manifest.locked();
+    }
 }
 
 pub enum VersionSelector<'a> {

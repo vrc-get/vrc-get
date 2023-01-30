@@ -4,6 +4,7 @@ use crate::vpm::{download_remote_repository, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde_json::{from_value, Map, Value};
+use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -29,11 +30,12 @@ pub enum Command {
     Install(Install),
     #[command(alias = "rm")]
     Remove(Remove),
+    Outdated(Outdated),
     #[command(subcommand)]
     Repo(Repo),
 }
 
-multi_command!(Command is Install, Remove, Repo);
+multi_command!(Command is Install, Remove, Outdated, Repo);
 
 /// Adds package to unity project
 #[derive(Parser)]
@@ -112,6 +114,61 @@ impl Remove {
             .expect("removing package");
 
         unity.save().await.expect("saving manifest file");
+    }
+}
+
+/// Show list of outdated packages
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Outdated {
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<PathBuf>,
+}
+
+impl Outdated {
+    pub async fn run(self) {
+        let client = crate::create_client();
+        let env = crate::vpm::Environment::load_default(client)
+            .await
+            .expect("loading global config");
+        let unity = crate::vpm::UnityProject::find_unity_project(self.project)
+            .await
+            .expect("unity project not found");
+
+        let mut outdated_packages = HashMap::new();
+
+        for (name, dep) in unity.locked_packages() {
+            match env
+                .find_package_by_name(name, VersionSelector::Latest)
+                .await
+            {
+                Err(e) => log::error!("error loading package {}: {}", name, e),
+                Ok(None) => log::error!("package {} not found.", name),
+                // if found version is newer: add to outdated
+                Ok(Some(pkg)) if dep.version < pkg.version => {
+                    outdated_packages.insert(pkg.name.clone(), (pkg, &dep.version));
+                }
+                Ok(Some(_)) => (),
+            }
+        }
+
+        for dep in unity.locked_packages().values() {
+            for (name, range) in &dep.dependencies {
+                if let Some((outdated, _)) = outdated_packages.get(name) {
+                    if !range.matches(&outdated.version) {
+                        outdated_packages.remove(name);
+                    }
+                }
+            }
+        }
+
+        for (name, (found, installed)) in &outdated_packages {
+            println!(
+                "{}: installed: {}, found: {}",
+                name, installed, &found.version
+            );
+        }
     }
 }
 
