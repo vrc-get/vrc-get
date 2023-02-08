@@ -11,7 +11,7 @@ description = "Open Source command line client of VRChat Package Manager."
 
 [dependencies]
 async_zip = { version = "0.0.11", features = ["deflate"] }
-clap = { version = "4.1.3", features = ["derive"] }
+clap = { version = "4.1.4", features = ["derive"] }
 env_logger = "0.10.0"
 futures = "0.3.25"
 indexmap = { version = "1.9.2", features = ["serde"] }
