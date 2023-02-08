@@ -3,6 +3,8 @@
 
 Open Source command line client of VRChat Package Manager. 
 
+<sub>This project is developed by community, not by VRChat.</sub>
+
 ## Goals
 
 - Provide Open Source command line client of VRChat Package Manager.
