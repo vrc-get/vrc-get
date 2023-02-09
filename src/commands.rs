@@ -1,4 +1,5 @@
 use crate::version::Version;
+use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
 use crate::vpm::{download_remote_repository, AddPackageErr, VersionSelector};
 use clap::{Parser, Subcommand};
@@ -34,11 +35,12 @@ pub enum Command {
     Remove(Remove),
     Outdated(Outdated),
     Upgrade(Upgrade),
+    Search(Search),
     #[command(subcommand)]
     Repo(Repo),
 }
 
-multi_command!(Command is Install, Remove, Outdated, Upgrade, Repo);
+multi_command!(Command is Install, Remove, Outdated, Upgrade, Search, Repo);
 
 /// Adds package to unity project
 ///
@@ -325,6 +327,70 @@ impl Upgrade {
         }
 
         unity.save().await.expect("saving manifest file");
+    }
+}
+
+/// Search package by the query
+///
+/// Search for packages that includes query in either name, displayName, or description.
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Search {
+    /// Name of Package
+    #[arg(required = true, name = "QUERY")]
+    queries: Vec<String>,
+}
+
+impl Search {
+    pub async fn run(self) {
+        let client = crate::create_client();
+        let env = crate::vpm::Environment::load_default(client)
+            .await
+            .expect("loading global config");
+
+        let mut queries = self.queries;
+        for query in &mut queries {
+            query.make_ascii_lowercase();
+        }
+
+        fn search_targets(pkg: &PackageJson) -> Vec<String> {
+            let mut sources = Vec::with_capacity(3);
+
+            sources.push(pkg.name.as_str().to_ascii_lowercase());
+            sources.extend(pkg.display_name.as_deref().map(|x| x.to_ascii_lowercase()));
+            sources.extend(pkg.description.as_deref().map(|x| x.to_ascii_lowercase()));
+
+            sources
+        }
+
+        let found_packages = env
+            .find_whole_all_packages(|pkg| {
+                // filtering
+                let search_targets = search_targets(pkg);
+
+                queries
+                    .iter()
+                    .all(|query| search_targets.iter().any(|x| x.contains(query)))
+            })
+            .await
+            .expect("finding package");
+
+        if found_packages.is_empty() {
+            println!("No matching package found!")
+        } else {
+            for x in found_packages {
+                if let Some(name) = x.display_name {
+                    println!("{} version {}", name, x.version);
+                    println!("({})", x.name);
+                } else {
+                    println!("{} version {}", x.name, x.version);
+                }
+                if let Some(description) = x.description {
+                    println!("{}", description);
+                }
+                println!();
+            }
+        }
     }
 }
 
