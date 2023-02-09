@@ -2,6 +2,7 @@
 //!
 //! This module might be a separated crate.
 
+use std::cmp::Reverse;
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::future::ready;
@@ -214,33 +215,6 @@ impl Environment {
     pub(crate) async fn find_packages(&self, package: &str) -> io::Result<Vec<PackageJson>> {
         let mut list = Vec::new();
 
-        fn packages<'a>(
-            package: &str,
-            repo: &'a LocalCachedRepository,
-        ) -> impl Iterator<Item = serde_json::Result<PackageJson>> + 'a {
-            repo.cache
-                .get(package)
-                .into_iter()
-                .map(|x| from_value::<PackageVersions>(x.clone()))
-                .map_ok(|x| x.versions.into_values())
-                .flatten_ok()
-        }
-
-        fn append<'a>(
-            list: &mut Vec<PackageJson>,
-            package: &str,
-            repo: LocalCachedRepository,
-        ) -> io::Result<()> {
-            if let Some(version) = repo.cache.get(package) {
-                list.extend(
-                    from_value::<PackageVersions>(version.clone())?
-                        .versions
-                        .into_values(),
-                );
-            }
-            Ok(())
-        }
-
         self.get_repos()
             .await?
             .into_iter()
@@ -263,6 +237,48 @@ impl Environment {
         }
 
         Ok(list)
+    }
+
+    pub(crate) async fn find_whole_all_packages(
+        &self,
+        filter: impl Fn(&PackageJson) -> bool,
+    ) -> io::Result<Vec<PackageJson>> {
+        let mut list = Vec::new();
+
+        fn get_latest(versions: PackageVersions) -> Option<PackageJson> {
+            versions
+                .versions
+                .into_values()
+                .filter(|x| x.version.pre.is_empty())
+                .max_by_key(|x| x.version.clone())
+        }
+
+        self.get_repos()
+            .await?
+            .into_iter()
+            .flat_map(|repo| repo.cache.values().cloned())
+            .map(|x| from_value::<PackageVersions>(x).map_err(io::Error::from))
+            .filter_map_ok(get_latest)
+            .filter_ok(|x| filter(x))
+            .fold_ok((), |_, pkg| list.push(pkg))?;
+
+        // user package folders
+        for x in self.get_user_package_folders()? {
+            if let Some(package_json) =
+                load_json_or_default::<Option<PackageJson>>(&x.joined("package.json")).await?
+            {
+                if !package_json.version.pre.is_empty() && filter(&package_json) {
+                    list.push(package_json);
+                }
+            }
+        }
+
+        list.sort_by_key(|x| Reverse(x.version.clone()));
+
+        Ok(list
+            .into_iter()
+            .unique_by(|x| (x.name.clone(), x.version.clone()))
+            .collect())
     }
 
     pub async fn add_package(

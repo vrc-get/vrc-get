@@ -2,10 +2,11 @@ use super::*;
 use semver::{BuildMetadata, Prerelease};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Write};
+use std::hash::Hash;
 use std::str::FromStr;
 
 /// custom version implementation to avoid compare build meta
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Version {
     pub major: Segment,
     pub minor: Segment,
