@@ -19,10 +19,11 @@ Open Source command line client of VRChat Package Manager.
 
 For more details, please see --help
 
-- [x] `vrc-get install [pkg] [version]` (with alias `vrc-get i [pkg] [version]`)
+- [x] `vrc-get install [pkg] [version]` (with alias `vrc-get i [pkg] [version]` and `vrc-get resolve`)
 - [x] `vrc-get remove [pkg]` (with alias `vrc-get rm [pkg]`)
 - [x] `vrc-get outdated`
 - [x] `vrc-get upgrade [pkg] [version]`
+- [x] `vrc-get search <query...>`
 - [x] `vrc-get repo list`
 - [x] `vrc-get repo add <url> [NAME]`
 - [x] `vrc-get repo remove <name or url>`
