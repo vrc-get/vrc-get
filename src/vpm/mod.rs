@@ -785,6 +785,52 @@ mod vpm_manifest {
             file.flush().await?;
             Ok(())
         }
+
+        pub(crate) fn mark_and_sweep_packages(&mut self) -> HashSet<String> {
+            // mark
+            let mut required_packages = HashSet::<&str>::new();
+            for x in self.dependencies.keys() {
+                required_packages.insert(x);
+            }
+
+            let mut added_prev = required_packages.iter().copied().collect_vec();
+
+            while !added_prev.is_empty() {
+                let mut added = Vec::<&str>::new();
+
+                for dep_name in added_prev
+                    .into_iter()
+                    .map_while(|name| self.locked.get(name))
+                    .flat_map(|dep| dep.dependencies.keys())
+                {
+                    if required_packages.insert(dep_name) {
+                        added.push(dep_name);
+                    }
+                }
+
+                added_prev = added;
+            }
+
+            // sweep
+            let removing_packages = self
+                .locked
+                .keys()
+                .map(|x| x.clone())
+                .filter(|x| !required_packages.contains(x.as_str()))
+                .collect::<HashSet<_>>();
+
+            for name in &removing_packages {
+                self.locked.remove(name);
+                self.json
+                    .get_mut("locked")
+                    .unwrap()
+                    .as_object_mut()
+                    .unwrap()
+                    .remove(name);
+            }
+
+            removing_packages
+        }
     }
 }
 
@@ -1028,6 +1074,24 @@ impl UnityProject {
         .await?;
 
         Ok(())
+    }
+
+    /// Remove specified package from self project.
+    ///
+    /// This doesn't look packages not listed in vpm-maniefst.json.
+    pub async fn mark_and_sweep(&mut self) -> io::Result<HashSet<String>> {
+        let removed_packages = self.manifest.mark_and_sweep_packages();
+
+        try_join_all(removed_packages.iter().map(|name| {
+            remove_dir_all(self.packages_dir.join(name)).map(|x| match x {
+                Ok(()) => Ok(()),
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+                Err(e) => Err(e),
+            })
+        }))
+        .await?;
+
+        Ok(removed_packages)
     }
 
     async fn collect_adding_packages(

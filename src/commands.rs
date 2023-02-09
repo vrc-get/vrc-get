@@ -87,6 +87,14 @@ impl Install {
                 .add_package(&env, &package)
                 .await
                 .expect("adding package");
+
+            for x in unity
+                .mark_and_sweep()
+                .await
+                .expect("sweeping unused packages")
+            {
+                println!("removed {x} which is unused");
+            }
         } else {
             unity.resolve(&env).await.expect("resolving");
         }
@@ -118,6 +126,14 @@ impl Remove {
             .remove(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
             .await
             .expect("removing package");
+
+        for x in unity
+            .mark_and_sweep()
+            .await
+            .expect("sweeping unused packages")
+        {
+            println!("removed {x} which is unused");
+        }
 
         unity.save().await.expect("saving manifest file");
     }
@@ -298,6 +314,14 @@ impl Upgrade {
                     }
                 }
             }
+        }
+
+        for x in unity
+            .mark_and_sweep()
+            .await
+            .expect("sweeping unused packages")
+        {
+            println!("removed {x} which is unused");
         }
 
         unity.save().await.expect("saving manifest file");
