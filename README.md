@@ -1,6 +1,11 @@
 `vrc-get`
 ====
 
+[![GitHub deployments][shields-github-deploy]][release]
+[![crates.io deployments][shields-crates-io-deploy]][crates-io]
+[![Github latest][shields-github-version]][release]
+[![crates.io latest][shields-crates-io-version]][crates-io]
+
 Open Source command line client of VRChat Package Manager. 
 
 <sub>This project is developed by community, not by VRChat.</sub>
@@ -31,7 +36,7 @@ For more details, please see --help
 If you have [`cargo`][cargo], installing using cargo is the easiest way to install vrc-get.
 
 ```bash
-cargo install --locked --git https://github.com/anatawa12/vrc-get.git --tag <version>
+cargo install vrc-get
 ```
 
 ## Prebuilt binaries
@@ -58,7 +63,13 @@ To use other commands, you can install `vpm-get` via [`anatawa12/sh-actions/setu
 
 For more details, please see README for each action.
 
+[shields-github-deploy]: https://img.shields.io/github/deployments/anatawa12/vrc-get/master%20branch?label=github%20deployment
+[shields-crates-io-deploy]: https://img.shields.io/github/deployments/anatawa12/vrc-get/crates.io?label=crates.io%20deployment
+[shields-github-version]: https://img.shields.io/github/v/release/anatawa12/vrc-get
+[shields-crates-io-version]: https://img.shields.io/crates/v/vrc-get
+
 [cargo]: https://github.com/rust-lang/cargo/
 [release]: https://github.com/anatawa12/vrc-get/releases/latest
 [resolve-vpm-packages]: https://github.com/anatawa12/sh-actions/tree/master/resolve-vpm-packages
 [setup-vrc-get]: https://github.com/anatawa12/sh-actions/tree/master/setup-vrc-get
+[crates-io]: https://crates.io/crates/vrc-get
