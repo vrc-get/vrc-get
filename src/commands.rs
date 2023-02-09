@@ -29,7 +29,7 @@ macro_rules! multi_command {
 #[derive(Parser)]
 #[command(author, version, about)]
 pub enum Command {
-    #[command(alias = "i")]
+    #[command(alias = "i", alias = "resolve")]
     Install(Install),
     #[command(alias = "rm")]
     Remove(Remove),
