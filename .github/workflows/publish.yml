@@ -85,6 +85,7 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           target-dir: target
+          key: ${{ matrix.triple }}
 
       - name: Build
         uses: actions-rs/cargo@v1
