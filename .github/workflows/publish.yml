@@ -98,6 +98,22 @@ jobs:
           name: ${{ matrix.triple }}
           path: target/${{ matrix.triple }}/release/vrc-get*
 
+  publish-crates-io:
+    name: Publish
+    environment: crates.io
+    runs-on: ubuntu-latest
+    needs: [pre-build, build-rust]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: 'releasing'
+          fetch-depth: 1
+
+      - name: Publish CARGO
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish --no-verify
+
   publish:
     name: Publish
     environment: master branch
