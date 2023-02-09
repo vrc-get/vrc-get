@@ -31,7 +31,7 @@ For more details, please see --help
 If you have [`cargo`][cargo], installing using cargo is the easiest way to install vrc-get.
 
 ```bash
-cargo install --locked --git https://github.com/anatawa12/vrc-get.git --tag <version>
+cargo install vrc-get
 ```
 
 ## Prebuilt binaries
