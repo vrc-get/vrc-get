@@ -1,13 +1,16 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::{download_remote_repository, AddPackageErr, VersionSelector};
+use crate::vpm::{
+    download_remote_repository, AddPackageErr, Environment, UnityProject, VersionSelector,
+};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::{from_value, Map, Value};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
+use std::fmt::Display;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -23,6 +26,74 @@ macro_rules! multi_command {
             }
         }
     };
+}
+
+// small wrapper utilities
+
+macro_rules! exit_with {
+    ($($tt:tt)*) => {{
+        eprintln!($($tt)*);
+        exit(1)
+    }};
+}
+
+async fn load_env(client: Option<reqwest::Client>) -> Environment {
+    Environment::load_default(client)
+        .await
+        .exit_context("loading global config")
+}
+
+async fn load_unity(path: Option<PathBuf>) -> UnityProject {
+    UnityProject::find_unity_project(path)
+        .await
+        .exit_context("loading unity project")
+}
+
+async fn get_package<'a>(
+    env: &'a Environment,
+    name: &str,
+    version_selector: VersionSelector<'a>,
+) -> PackageJson {
+    env.find_package_by_name(&name, version_selector)
+        .await
+        .exit_context("finding package")
+        .unwrap_or_else(|| exit_with!("no matching package not found"))
+}
+
+async fn mark_and_sweep(unity: &mut UnityProject) {
+    for x in unity
+        .mark_and_sweep()
+        .await
+        .exit_context("sweeping unused packages")
+    {
+        eprintln!("removed {x} which is unused");
+    }
+}
+
+async fn save_unity(unity: &mut UnityProject) {
+    unity.save().await.exit_context("saving manifest file");
+}
+
+async fn save_env(env: &mut Environment) {
+    env.save().await.exit_context("saving global config");
+}
+
+trait ResultExt<T, E>: Sized {
+    fn exit_context(self, context: &str) -> T
+    where
+        E: Display;
+}
+
+impl<T, E> ResultExt<T, E> for Result<T, E> {
+    fn exit_context(self, context: &str) -> T
+    where
+        E: Display,
+    {
+        match self {
+            Ok(value) => value,
+            Err(err) => exit_with!("error {context}: {err}"),
+        }
+    }
 }
 
 /// Open Source command line interface of VRChat Package Manager.
@@ -70,12 +141,8 @@ pub struct Install {
 impl Install {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = crate::vpm::Environment::load_default(client)
-            .await
-            .expect("loading global config");
-        let mut unity = crate::vpm::UnityProject::find_unity_project(self.project)
-            .await
-            .expect("unity project not found");
+        let env = load_env(client).await;
+        let mut unity = load_unity(self.project).await;
 
         if let Some(name) = self.name {
             let version_selector = match self.version {
@@ -83,28 +150,18 @@ impl Install {
                 None => VersionSelector::Latest,
                 Some(ref version) => VersionSelector::Specific(version),
             };
-            let package = env
-                .find_package_by_name(&name, version_selector)
-                .await
-                .expect("finding package")
-                .expect("no matching package not found");
+            let package = get_package(&env, &name, version_selector).await;
             unity
                 .add_package(&env, &package)
                 .await
-                .expect("adding package");
+                .exit_context("adding package");
 
-            for x in unity
-                .mark_and_sweep()
-                .await
-                .expect("sweeping unused packages")
-            {
-                println!("removed {x} which is unused");
-            }
+            mark_and_sweep(&mut unity).await;
         } else {
-            unity.resolve(&env).await.expect("resolving");
+            unity.resolve(&env).await.exit_context("resolving packages");
         }
 
-        unity.save().await.expect("saving manifest file");
+        unity.save().await.exit_context("saving manifest file");
     }
 }
 
@@ -123,24 +180,16 @@ pub struct Remove {
 
 impl Remove {
     pub async fn run(self) {
-        let mut unity = crate::vpm::UnityProject::find_unity_project(self.project)
-            .await
-            .expect("unity project not found");
+        let mut unity = load_unity(self.project).await;
 
         unity
             .remove(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
             .await
-            .expect("removing package");
+            .exit_context("removing package");
 
-        for x in unity
-            .mark_and_sweep()
-            .await
-            .expect("sweeping unused packages")
-        {
-            println!("removed {x} which is unused");
-        }
+        mark_and_sweep(&mut unity).await;
 
-        unity.save().await.expect("saving manifest file");
+        save_unity(&mut unity).await;
     }
 }
 
@@ -164,12 +213,8 @@ pub struct Outdated {
 impl Outdated {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = crate::vpm::Environment::load_default(client)
-            .await
-            .expect("loading global config");
-        let unity = crate::vpm::UnityProject::find_unity_project(self.project)
-            .await
-            .expect("unity project not found");
+        let env = load_env(client).await;
+        let unity = load_unity(self.project).await;
 
         let mut outdated_packages = HashMap::new();
 
@@ -224,10 +269,7 @@ impl Outdated {
                     .collect::<Vec<_>>();
                 println!("{}", serde_json::to_string(&info).unwrap());
             }
-            v => {
-                log::error!("unsupported version: {v}");
-                exit(1);
-            }
+            v => exit_with!("unsupported json version: {v}"),
         }
     }
 }
@@ -260,12 +302,8 @@ pub struct Upgrade {
 impl Upgrade {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = crate::vpm::Environment::load_default(client)
-            .await
-            .expect("loading global config");
-        let mut unity = crate::vpm::UnityProject::find_unity_project(self.project)
-            .await
-            .expect("unity project not found");
+        let env = load_env(client).await;
+        let mut unity = load_unity(self.project).await;
 
         if let Some(name) = self.name {
             let version_selector = match self.version {
@@ -273,16 +311,12 @@ impl Upgrade {
                 None => VersionSelector::Latest,
                 Some(ref version) => VersionSelector::Specific(version),
             };
-            let package = env
-                .find_package_by_name(&name, version_selector)
-                .await
-                .expect("finding package")
-                .expect("no matching package not found");
+            let package = get_package(&env, &name, version_selector).await;
 
             unity
                 .upgrade_package(&env, &package)
                 .await
-                .expect("upgrading package");
+                .exit_context("upgrading package");
 
             println!("upgraded {} to {}", name, package.version);
         } else {
@@ -292,11 +326,7 @@ impl Upgrade {
             };
             let package_names = unity.locked_packages().keys().cloned().collect::<Vec<_>>();
             for name in package_names {
-                let package = env
-                    .find_package_by_name(&name, version_selector)
-                    .await
-                    .expect("finding package")
-                    .expect("no matching package not found");
+                let package = get_package(&env, &name, version_selector).await;
 
                 match unity.upgrade_package(&env, &package).await {
                     Ok(_) => {
@@ -304,46 +334,19 @@ impl Upgrade {
                     }
                     Err(AddPackageErr::Io(e)) => log::error!("upgrading package: {}", e),
                     Err(AddPackageErr::AlreadyNewerPackageInstalled) => {}
-                    Err(AddPackageErr::ConflictWithDependencies {
-                        dependency_name, ..
-                    }) => {
-                        log::warn!(
-                            "upgrading {} to {}: conflicts with {}",
-                            name,
-                            package.version,
-                            dependency_name
-                        );
-                    }
-                    Err(AddPackageErr::DependencyNotFound {
-                        dependency_name, ..
-                    }) => {
-                        log::error!(
-                            "upgrading {} to {}: dependencies of it {} not found",
-                            name,
-                            package.version,
-                            dependency_name
-                        );
-                    }
-                    Err(AddPackageErr::OfflineMode) => {
-                        log::warn!(
-                            "upgrading {} to {}: cache missing but offline mode",
-                            name,
-                            package.version
-                        );
+                    Err(
+                        e @ (AddPackageErr::ConflictWithDependencies { .. }
+                        | AddPackageErr::DependencyNotFound { .. }
+                        | AddPackageErr::OfflineMode),
+                    ) => {
+                        log::warn!("upgrading {} to {}: {}", name, package.version, e);
                     }
                 }
             }
         }
 
-        for x in unity
-            .mark_and_sweep()
-            .await
-            .expect("sweeping unused packages")
-        {
-            println!("removed {x} which is unused");
-        }
-
-        unity.save().await.expect("saving manifest file");
+        mark_and_sweep(&mut unity).await;
+        save_unity(&mut unity).await;
     }
 }
 
@@ -365,9 +368,7 @@ pub struct Search {
 impl Search {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = crate::vpm::Environment::load_default(client)
-            .await
-            .expect("loading global config");
+        let env = load_env(client).await;
 
         let mut queries = self.queries;
         for query in &mut queries {
@@ -394,7 +395,7 @@ impl Search {
                     .all(|query| search_targets.iter().any(|x| x.contains(query)))
             })
             .await
-            .expect("finding package");
+            .exit_context("searching whole repositories");
 
         if found_packages.is_empty() {
             println!("No matching package found!")
@@ -440,11 +441,9 @@ pub struct RepoList {
 impl RepoList {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = crate::vpm::Environment::load_default(client)
-            .await
-            .expect("loading global config");
+        let env = load_env(client).await;
 
-        for repo in env.get_repos().await.expect("getting repo list") {
+        for repo in env.get_repos().await.exit_context("getting all repos") {
             let mut name = None;
             let mut r#type = None;
             let mut local_path = None;
@@ -485,24 +484,21 @@ pub struct RepoAdd {
 impl RepoAdd {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let mut env = crate::vpm::Environment::load_default(client)
-            .await
-            .expect("loading global config");
+        let mut env = load_env(client).await;
 
         if let Ok(url) = Url::parse(&self.path_or_url) {
             env.add_remote_repo(url, self.name.as_deref())
                 .await
-                .expect("adding repository")
+                .exit_context("adding repository")
         } else {
             env.add_local_repo(Path::new(&self.path_or_url), self.name.as_deref())
                 .await
-                .expect("adding repository")
+                .exit_context("adding repository")
         }
 
-        env.save().await.expect("saving settings file");
+        save_env(&mut env).await;
     }
 }
-
 /// Remove repository with specified url, path or name
 #[derive(Parser)]
 #[command(author, version)]
@@ -519,28 +515,26 @@ pub struct RepoRemove {
 impl RepoRemove {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let mut env = crate::vpm::Environment::load_default(client)
-            .await
-            .expect("loading global config");
+        let mut env = load_env(client).await;
 
         let removed = if let Ok(url) = Url::parse(&self.name_or_url) {
             env.remove_repo(|x| x.url.as_deref() == Some(url.as_str()))
                 .await
-                .expect("removing based on url")
+                .exit_context("removing based on url")
         } else {
             let path = Path::new(&self.name_or_url);
             env.remove_repo(|x| x.local_path.as_path() == path)
                 .await
-                .expect("removing based on path")
+                .exit_context("removing based on path")
         };
 
         if !removed {
             env.remove_repo(|x| x.name.as_deref() == Some(self.name_or_url.as_str()))
                 .await
-                .expect("removing based on name");
+                .exit_context("removing based on name");
         }
 
-        env.save().await.expect("saving settings file");
+        save_env(&mut env).await;
     }
 }
 
@@ -559,9 +553,7 @@ pub struct RepoCleanup {
 impl RepoCleanup {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = crate::vpm::Environment::load_default(client)
-            .await
-            .expect("loading global config");
+        let env = load_env(client).await;
 
         let mut uesr_repo_file_names = vec![
             OsString::from("vrc-official.json"),
@@ -569,7 +561,7 @@ impl RepoCleanup {
         ];
         let repos_base = env.get_repos_dir();
 
-        for x in env.get_user_repos().expect("userRepos") {
+        for x in env.get_user_repos().exit_context("reading user repos") {
             if let Ok(relative) = x.local_path.strip_prefix(&repos_base) {
                 if let Some(file_name) = relative.file_name() {
                     if relative
@@ -584,17 +576,19 @@ impl RepoCleanup {
             }
         }
 
-        let mut entry = read_dir(repos_base).await.expect("reading dir");
-        while let Some(entry) = entry.next_entry().await.expect("reading dir") {
+        let mut entry = read_dir(repos_base).await.exit_context("reading dir");
+        while let Some(entry) = entry.next_entry().await.exit_context("reading dir") {
             let path = entry.path();
             if tokio::fs::metadata(&path)
                 .await
-                .expect("metadata")
-                .is_file()
+                .map(|x| x.is_file())
+                .unwrap_or(false)
                 && path.extension() == Some(OsStr::new("json"))
                 && !uesr_repo_file_names.contains(&entry.file_name())
             {
-                remove_file(path).await.expect("reading dir");
+                remove_file(path)
+                    .await
+                    .exit_context("removing unused files");
             }
         }
     }
@@ -615,7 +609,8 @@ impl RepoPackages {
     pub async fn run(self) {
         fn print_repo(cache: Map<String, Value>) {
             for (package, value) in cache {
-                let versions = from_value::<PackageVersions>(value).expect("loading package data");
+                let versions =
+                    from_value::<PackageVersions>(value).exit_context("loading package data");
                 if let Some((_, pkg)) = versions.versions.first() {
                     if let Some(display_name) = &pkg.display_name {
                         println!("{} | {}", display_name, package);
@@ -637,13 +632,12 @@ impl RepoPackages {
 
         if let Some(url) = Url::parse(&self.name_or_url).ok() {
             let Some(client) = client else {
-                eprintln!("remote repository specified but offline mode.");
-                exit(1);
+                exit_with!("remote repository specified but offline mode.");
             };
             let repo = download_remote_repository(&client, url, None)
                 .await
-                .expect("downloading repository")
-                .expect("logic failure: no etag")
+                .exit_context("downloading repository")
+                .unwrap()
                 .0;
 
             let cache = repo
@@ -654,13 +648,11 @@ impl RepoPackages {
 
             print_repo(cache);
         } else {
-            let env = crate::vpm::Environment::load_default(client)
-                .await
-                .expect("loading global config");
+            let env = load_env(client).await;
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
 
-            for repo in env.get_repos().await.expect("listing packages") {
+            for repo in env.get_repos().await.exit_context("loading repos") {
                 if repo.creation_info.as_ref().and_then(|x| x.name.as_deref()) == some_name
                     || repo.description.as_ref().and_then(|x| x.name.as_deref()) == some_name
                 {
@@ -670,8 +662,7 @@ impl RepoPackages {
             }
 
             if !found {
-                eprintln!("no repository named {} found!", self.name_or_url);
-                exit(1);
+                exit_with!("no repository named {} found!", self.name_or_url);
             }
         }
     }
