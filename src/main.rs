@@ -13,9 +13,15 @@ async fn main() {
     commands::Command::parse().run().await;
 }
 
-pub(crate) fn create_client() -> Client {
-    Client::builder()
-        .user_agent(concat!("vrc-get/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .expect("building client")
+pub(crate) fn create_client(offline: bool) -> Option<Client> {
+    if offline {
+        None
+    } else {
+        Some(
+            Client::builder()
+                .user_agent(concat!("vrc-get/", env!("CARGO_PKG_VERSION")))
+                .build()
+                .expect("building client"),
+        )
+    }
 }

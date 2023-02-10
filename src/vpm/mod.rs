@@ -42,7 +42,7 @@ type JsonMap = Map<String, Value>;
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
 pub struct Environment {
-    http: Client,
+    http: Option<Client>,
     /// config folder.
     /// On windows, `%APPDATA%\\VRChatCreatorCompanion`.
     /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
@@ -55,7 +55,7 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub async fn load_default(http: Client) -> io::Result<Environment> {
+    pub async fn load_default(http: Option<Client>) -> io::Result<Environment> {
         let mut folder = Environment::get_local_config_folder();
         folder.push("VRChatCreatorCompanion");
         let folder = folder;
@@ -285,7 +285,7 @@ impl Environment {
         &self,
         package: &PackageJson,
         target_packages_folder: &Path,
-    ) -> io::Result<()> {
+    ) -> Result<(), AddPackageErr> {
         let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name, &package.version);
         let zip_path = {
             let mut building = self.global_dir.clone();
@@ -376,8 +376,11 @@ impl Environment {
 
             let mut sha256 = Sha256::default();
 
-            let mut stream = self
-                .http
+            let Some(http) = &self.http else {
+                return Err(AddPackageErr::OfflineMode)
+            };
+
+            let mut stream = http
                 .get(&package.url)
                 .send()
                 .await
@@ -471,7 +474,10 @@ impl Environment {
         {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
-        let (remote_repo, etag) = download_remote_repository(&self.http, url.clone(), None)
+        let Some(http) = &self.http else {
+            return Err(AddRepositoryErr::OfflineMode);
+        };
+        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), None)
             .await?
             .expect("logic failure: no etag");
         let local_path = self
@@ -610,6 +616,7 @@ static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[OFFICIAL_REPO_SOURCE, C
 pub enum AddRepositoryErr {
     Io(io::Error),
     AlreadyAdded,
+    OfflineMode,
 }
 
 impl fmt::Display for AddRepositoryErr {
@@ -617,6 +624,9 @@ impl fmt::Display for AddRepositoryErr {
         match self {
             AddRepositoryErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
             AddRepositoryErr::AlreadyAdded => f.write_str("already newer package installed"),
+            AddRepositoryErr::OfflineMode => {
+                f.write_str("you can't add remote repo in offline mode")
+            }
         }
     }
 }
@@ -988,9 +998,7 @@ impl UnityProject {
             .iter()
             .map(|x| env.add_package(x, &self.packages_dir))
             .collect::<Vec<_>>();
-        for x in join_all(futures).await {
-            x?;
-        }
+        try_join_all(futures).await?;
 
         Ok(())
     }
@@ -1176,7 +1184,7 @@ impl UnityProject {
             .await
     }
 
-    pub async fn resolve(&self, env: &Environment) -> io::Result<()> {
+    pub async fn resolve(&self, env: &Environment) -> Result<(), AddPackageErr> {
         try_join_all(
             self.manifest
                 .locked()
@@ -1187,7 +1195,7 @@ impl UnityProject {
                         .await?
                         .expect("some package in manifest.json not found");
                     env.add_package(&pkg, &self.packages_dir).await?;
-                    io::Result::Ok(())
+                    Result::<_, AddPackageErr>::Ok(())
                 }),
         )
         .await?;
@@ -1231,6 +1239,7 @@ pub enum AddPackageErr {
     DependencyNotFound {
         dependency_name: String,
     },
+    OfflineMode,
 }
 
 impl fmt::Display for AddPackageErr {
@@ -1248,6 +1257,7 @@ impl fmt::Display for AddPackageErr {
                 f,
                 "Package {dependency_name} (maybe dependencies of the package) not found"
             ),
+            AddPackageErr::OfflineMode => f.write_str("offline mode but some cache missing"),
         }
     }
 }

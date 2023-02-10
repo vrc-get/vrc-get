@@ -5,13 +5,13 @@ use std::future::Future;
 
 #[derive(Debug)]
 pub(super) struct RepoHolder {
-    http: Client,
+    http: Option<Client>,
     // the pointer of LocalCachedRepository will never be changed
     cached_repos: UnsafeCell<HashMap<PathBuf, Box<LocalCachedRepository>>>,
 }
 
 impl RepoHolder {
-    pub(crate) fn new(http: Client) -> Self {
+    pub(crate) fn new(http: Option<Client>) -> Self {
         RepoHolder {
             http,
             cached_repos: UnsafeCell::new(HashMap::new()),
@@ -28,6 +28,9 @@ impl RepoHolder {
         let client = self.http.clone();
         self.get_repo(path, || async {
             // if local repository not found: try downloading remote one
+            let Some(client) = client else {
+                return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "offline mode"))
+            };
             let (remote_repo, etag) = download_remote_repository(&client, remote_url, None)
                 .await?
                 .expect("logic failure: no etag");
@@ -89,7 +92,9 @@ impl RepoHolder {
                 ))
             }
         };
-        update_from_remote(&self.http, path.into(), &mut loaded).await;
+        if let Some(http) = &self.http {
+            update_from_remote(http, path.into(), &mut loaded).await;
+        }
         Ok(unsafe { (*self.cached_repos.get()).entry(path.into()) }.or_insert(Box::new(loaded)))
     }
 

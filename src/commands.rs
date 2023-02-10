@@ -62,11 +62,14 @@ pub struct Install {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
 }
 
 impl Install {
     pub async fn run(self) {
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
         let env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
@@ -152,11 +155,15 @@ pub struct Outdated {
     /// With this option, output is printed in json format
     #[arg(long = "json-format")]
     json_format: Option<NonZeroU32>,
+
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
 }
 
 impl Outdated {
     pub async fn run(self) {
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
         let env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
@@ -245,11 +252,14 @@ pub struct Upgrade {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
 }
 
 impl Upgrade {
     pub async fn run(self) {
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
         let env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
@@ -314,6 +324,13 @@ impl Upgrade {
                             dependency_name
                         );
                     }
+                    Err(AddPackageErr::OfflineMode) => {
+                        log::warn!(
+                            "upgrading {} to {}: cache missing but offline mode",
+                            name,
+                            package.version
+                        );
+                    }
                 }
             }
         }
@@ -339,11 +356,15 @@ pub struct Search {
     /// Name of Package
     #[arg(required = true, name = "QUERY")]
     queries: Vec<String>,
+
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
 }
 
 impl Search {
     pub async fn run(self) {
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
         let env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
@@ -410,11 +431,15 @@ multi_command!(Repo is List, Add, Remove, Cleanup, Packages);
 /// List all repositories
 #[derive(Parser)]
 #[command(author, version)]
-pub struct RepoList {}
+pub struct RepoList {
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
+}
 
 impl RepoList {
     pub async fn run(self) {
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
         let env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
@@ -451,11 +476,15 @@ pub struct RepoAdd {
     /// Name of Package
     #[arg()]
     name: Option<String>,
+
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
 }
 
 impl RepoAdd {
     pub async fn run(self) {
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
         let mut env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
@@ -481,11 +510,15 @@ pub struct RepoRemove {
     /// URL of Package
     #[arg()]
     name_or_url: String,
+
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
 }
 
 impl RepoRemove {
     pub async fn run(self) {
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
         let mut env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
@@ -517,11 +550,15 @@ impl RepoRemove {
 /// So this command will cleanup Repos directory.
 #[derive(Parser)]
 #[command(author, version)]
-pub struct RepoCleanup {}
+pub struct RepoCleanup {
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
+}
 
 impl RepoCleanup {
     pub async fn run(self) {
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
         let env = crate::vpm::Environment::load_default(client)
             .await
             .expect("loading global config");
@@ -568,6 +605,10 @@ impl RepoCleanup {
 #[command(author, version)]
 pub struct RepoPackages {
     name_or_url: String,
+
+    /// do not connect to remote servers, use local caches only
+    #[arg(long)]
+    offline: bool,
 }
 
 impl RepoPackages {
@@ -592,9 +633,13 @@ impl RepoPackages {
             }
         }
 
-        let client = crate::create_client();
+        let client = crate::create_client(self.offline);
 
         if let Some(url) = Url::parse(&self.name_or_url).ok() {
+            let Some(client) = client else {
+                eprintln!("remote repository specified but offline mode.");
+                exit(1);
+            };
             let repo = download_remote_repository(&client, url, None)
                 .await
                 .expect("downloading repository")
