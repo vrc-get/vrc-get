@@ -32,6 +32,15 @@ For more details, please see --help
 
 # Installation
 
+## Using homebrew
+
+If you're using homebrew, you can install vrc-get from my tap via `brew install anatawa12/core/vrc-get`.
+
+Due to lack of star, fork, or watches, I couldn't publish to homebrew core. 
+([Homebrew/homebrew-core#122922]) Please star this repository!
+
+[Homebrew/homebrew-core#122922]: https://github.com/Homebrew/homebrew-core/pull/122922
+
 ## Using `cargo`
 
 If you have [`cargo`][cargo], installing using cargo is the easiest way to install vrc-get.
