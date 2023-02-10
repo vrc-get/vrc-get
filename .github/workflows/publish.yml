@@ -187,3 +187,29 @@ jobs:
           git commit -m "prepare for next version: $VERSION"
           git push
           git push --delete origin releasing
+
+  update-brew-repo:
+    name: Publish
+    environment: 
+      name: homebrew-core
+      url: https://github.com/anatawa12/homebrew-core
+    runs-on: macos-latest
+    needs: [pre-build, publish]
+    steps:
+      - uses: snow-actions/git-config-user@v1.0.0
+
+      - name: update brew
+        run: brew update && brew update
+      
+      - name: tap anatawa12/core
+        run: brew tap anatawa12/core
+
+      - name: Create update pr for anatawa12/homebrew-core 
+        env:
+          VERSION: ${{ needs.pre-build.outputs.version }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
+        run: |-
+          brew bump-formula-pr \
+            anatawa12/core/vrc-get \
+            --no-fork \
+            --url "https://github.com/anatawa12/vrc-get/archive/${VERSION}.tar.gz"
