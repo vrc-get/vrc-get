@@ -6,9 +6,10 @@
 [![Github latest][shields-github-version]][release]
 [![crates.io latest][shields-crates-io-version]][crates-io]
 
-Open Source command line client of VRChat Package Manager. 
+Open Source command line client of VRChat Package Manager, 
+the main feature of VRChat Creator Companion (VCC), that supports Windows, Linux, and macOS.
 
-<sub>This project is developed by community, not by VRChat.</sub>
+<small>This project is developed by community, not by VRChat.</small>
 
 ## Goals
 
