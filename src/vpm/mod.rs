@@ -1331,7 +1331,12 @@ where
     T: serde::de::DeserializeOwned,
 {
     match try_open_file(manifest_path).await? {
-        Some(file) => Ok(serde_json::from_slice(&read_to_vec(file).await?)?),
+        Some(file) => {
+            let vec = read_to_vec(file).await?;
+            let mut slice = vec.as_slice();
+            slice = slice.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(slice);
+            Ok(serde_json::from_slice(slice)?)
+        }
         None => default(),
     }
 }
