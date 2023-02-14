@@ -914,7 +914,7 @@ impl UnityProject {
             .ok()
             .flatten();
         if let Some(parsed) = &parsed {
-            if vpm_manifest.locked().contains_key(&parsed.name) {
+            if parsed.name == name && vpm_manifest.locked().contains_key(&parsed.name) {
                 return None;
             }
         }
