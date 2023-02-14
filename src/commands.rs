@@ -334,11 +334,7 @@ impl Upgrade {
                     }
                     Err(AddPackageErr::Io(e)) => log::error!("upgrading package: {}", e),
                     Err(AddPackageErr::AlreadyNewerPackageInstalled) => {}
-                    Err(
-                        e @ (AddPackageErr::ConflictWithDependencies { .. }
-                        | AddPackageErr::DependencyNotFound { .. }
-                        | AddPackageErr::OfflineMode),
-                    ) => {
+                    Err(e) => {
                         log::warn!("upgrading {} to {}: {}", name, package.version, e);
                     }
                 }
