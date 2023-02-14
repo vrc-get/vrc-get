@@ -233,8 +233,8 @@ impl Outdated {
             }
         }
 
-        for dep in unity.locked_packages().values() {
-            for (name, range) in &dep.dependencies {
+        for (_, dependencies) in unity.all_dependencies() {
+            for (name, range) in dependencies {
                 if let Some((outdated, _)) = outdated_packages.get(name) {
                     if !range.matches(&outdated.version) {
                         outdated_packages.remove(name);

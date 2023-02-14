@@ -1111,11 +1111,9 @@ impl UnityProject {
         // check for conflicts: if some package requires some packages to be removed, it's conflict.
 
         let conflicts = self
-            .manifest
-            .locked()
-            .into_iter()
+            .all_dependencies()
             .filter(|(name, _)| !names.contains(&name.as_str()))
-            .filter(|(_, dep)| names.into_iter().any(|x| dep.dependencies.contains_key(*x)))
+            .filter(|(_, dep)| names.into_iter().any(|x| dep.contains_key(*x)))
             .map(|(name, _)| String::from(name))
             .collect::<Vec<_>>();
 
@@ -1203,8 +1201,8 @@ impl UnityProject {
     }
 
     fn check_conflict(&self, name: &str, version: &Version) -> Result<(), AddPackageErr> {
-        for (pkg_name, locked) in self.manifest.locked() {
-            if let Some(dep) = locked.dependencies.get(name) {
+        for (pkg_name, dependencies) in self.all_dependencies() {
+            if let Some(dep) = dependencies.get(name) {
                 if !dep.matches(&version) {
                     return Err(AddPackageErr::ConflictWithDependencies {
                         conflict: name.to_owned(),
@@ -1222,16 +1220,6 @@ impl UnityProject {
 
             if package_json.name == name {
                 return Err(AddPackageErr::ConflictWithUnlocked);
-            }
-
-            let Some(vpm_dependencies) = &package_json.vpm_dependencies else { continue };
-            let Some(dep) = vpm_dependencies.get(name) else { continue };
-
-            if !dep.matches(&version) {
-                return Err(AddPackageErr::ConflictWithDependencies {
-                    conflict: name.to_owned(),
-                    dependency_name: package_json.name.clone(),
-                });
             }
         }
         Ok(())
@@ -1263,6 +1251,23 @@ impl UnityProject {
 
     pub(crate) fn locked_packages(&self) -> &IndexMap<String, VpmLockedDependency> {
         return self.manifest.locked();
+    }
+
+    pub(crate) fn all_dependencies(&self) -> impl Iterator<Item = (&String, &IndexMap<String, VersionRange>)> {
+        let dependencies_locked = self
+            .manifest
+            .locked()
+            .into_iter()
+            .map(|(name, dep)| (name, &dep.dependencies));
+
+        let dependencies_unlocked = self
+            .unlocked_packages
+            .iter()
+            .filter_map(|(_, json)| json.as_ref())
+            .filter_map(|x| x.vpm_dependencies.as_ref().map(|y| (&x.name, y)))
+            .map(|x| x);
+
+        return dependencies_locked.chain(dependencies_unlocked);
     }
 }
 
