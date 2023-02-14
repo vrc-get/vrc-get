@@ -1213,17 +1213,25 @@ impl UnityProject {
                 }
             }
         }
-        for (pkg_name, package_json) in &self.unlocked_packages {
-            if let Some(dep) = &(package_json.as_ref())
-                .and_then(|x| x.vpm_dependencies.as_ref())
-                .and_then(|x| x.get(name))
-            {
-                if !dep.matches(&version) {
-                    return Err(AddPackageErr::ConflictWithDependencies {
-                        conflict: name.to_owned(),
-                        dependency_name: pkg_name.clone(),
-                    });
-                }
+        for (dir_name, package_json) in &self.unlocked_packages {
+            if dir_name == name {
+                return Err(AddPackageErr::ConflictWithUnlocked);
+            }
+
+            let Some(package_json) = package_json else { continue };
+
+            if package_json.name == name {
+                return Err(AddPackageErr::ConflictWithUnlocked);
+            }
+
+            let Some(vpm_dependencies) = &package_json.vpm_dependencies else { continue };
+            let Some(dep) = vpm_dependencies.get(name) else { continue };
+
+            if !dep.matches(&version) {
+                return Err(AddPackageErr::ConflictWithDependencies {
+                    conflict: name.to_owned(),
+                    dependency_name: package_json.name.clone(),
+                });
             }
         }
         Ok(())
@@ -1291,6 +1299,7 @@ pub enum AddPackageErr {
         dependency_name: String,
     },
     OfflineMode,
+    ConflictWithUnlocked,
 }
 
 impl fmt::Display for AddPackageErr {
@@ -1309,6 +1318,7 @@ impl fmt::Display for AddPackageErr {
                 "Package {dependency_name} (maybe dependencies of the package) not found"
             ),
             AddPackageErr::OfflineMode => f.write_str("offline mode but some cache missing"),
+            AddPackageErr::ConflictWithUnlocked => f.write_str("conflicts with unlocked packages"),
         }
     }
 }
