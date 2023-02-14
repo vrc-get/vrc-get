@@ -18,7 +18,9 @@ use indexmap::IndexMap;
 use itertools::Itertools as _;
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
-use tokio::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, File, OpenOptions};
+use tokio::fs::{
+    create_dir_all, read_dir, remove_dir_all, remove_file, DirEntry, File, OpenOptions,
+};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use repo_holder::RepoHolder;
@@ -866,6 +868,8 @@ pub struct UnityProject {
     packages_dir: PathBuf,
     /// manifest.json
     manifest: VpmManifest,
+    /// packages installed in the directory but not locked in vpm-manifest.json
+    unlocked_packages: Vec<(String, Option<PackageJson>)>,
 }
 
 impl UnityProject {
@@ -876,11 +880,45 @@ impl UnityProject {
         unity_found.push("Packages");
 
         let manifest = unity_found.join("vpm-manifest.json");
+        let vpm_manifest = VpmManifest::new(load_json_or_default(&manifest).await?)?;
+
+        let mut unlocked_packages = vec![];
+
+        let mut dir_reading = read_dir(&unity_found).await?;
+        while let Some(dir_entry) = dir_reading.next_entry().await? {
+            if let Some(read) = Self::try_read_unlocked_package(dir_entry, &vpm_manifest).await {
+                unlocked_packages.push(read);
+            }
+        }
 
         Ok(UnityProject {
             packages_dir: unity_found,
             manifest: VpmManifest::new(load_json_or_default(&manifest).await?)?,
+            unlocked_packages,
         })
+    }
+
+    async fn try_read_unlocked_package(
+        dir_entry: DirEntry,
+        vpm_manifest: &VpmManifest,
+    ) -> Option<(String, Option<PackageJson>)> {
+        let package_path = dir_entry.path();
+        let name = package_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        let package_json_path = package_path.join("package.json");
+        let parsed = load_json_or_default::<Option<PackageJson>>(&package_json_path)
+            .await
+            .ok()
+            .flatten();
+        if let Some(parsed) = &parsed {
+            if parsed.name == name && vpm_manifest.locked().contains_key(&parsed.name) {
+                return None;
+            }
+        }
+        Some((name, parsed))
     }
 
     fn find_unity_project_path() -> io::Result<PathBuf> {
@@ -1175,6 +1213,27 @@ impl UnityProject {
                 }
             }
         }
+        for (dir_name, package_json) in &self.unlocked_packages {
+            if dir_name == name {
+                return Err(AddPackageErr::ConflictWithUnlocked);
+            }
+
+            let Some(package_json) = package_json else { continue };
+
+            if package_json.name == name {
+                return Err(AddPackageErr::ConflictWithUnlocked);
+            }
+
+            let Some(vpm_dependencies) = &package_json.vpm_dependencies else { continue };
+            let Some(dep) = vpm_dependencies.get(name) else { continue };
+
+            if !dep.matches(&version) {
+                return Err(AddPackageErr::ConflictWithDependencies {
+                    conflict: name.to_owned(),
+                    dependency_name: package_json.name.clone(),
+                });
+            }
+        }
         Ok(())
     }
 
@@ -1240,6 +1299,7 @@ pub enum AddPackageErr {
         dependency_name: String,
     },
     OfflineMode,
+    ConflictWithUnlocked,
 }
 
 impl fmt::Display for AddPackageErr {
@@ -1258,6 +1318,7 @@ impl fmt::Display for AddPackageErr {
                 "Package {dependency_name} (maybe dependencies of the package) not found"
             ),
             AddPackageErr::OfflineMode => f.write_str("offline mode but some cache missing"),
+            AddPackageErr::ConflictWithUnlocked => f.write_str("conflicts with unlocked packages"),
         }
     }
 }
