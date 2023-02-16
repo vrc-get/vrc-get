@@ -28,7 +28,7 @@ For more details, please see --help
 - [x] `vrc-get search <query...>` search package in installed repositories in your PC
 - [x] `vrc-get repo list` list installed repositories in your PC
 - [x] `vrc-get repo add <url> [NAME]` add repository into your PC
-- [x] `vrc-get repo remove <name or url>` repository from your PC
+- [x] `vrc-get repo remove <name or url>` remove repository from your PC
 - [x] `vrc-get repo cleanup` cleanup repo cache
 - [x] `vrc-get repo packages <NAME|url>` list packages in specified repository
 
