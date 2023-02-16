@@ -17,8 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: anatawa12/something-releaser@v2
-      - run: git config --global user.name "github-actions[bot]" && 
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - uses: snow-actions/git-config-user@v1.0.0
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -197,7 +196,8 @@ jobs:
     runs-on: macos-latest
     needs: [pre-build, publish]
     steps:
-      - uses: snow-actions/git-config-user@v1.0.0
+      - run: git config --global user.name "github-actions[bot]" &&
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: update brew
         run: brew update && brew update
