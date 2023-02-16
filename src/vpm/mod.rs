@@ -1080,8 +1080,10 @@ impl UnityProject {
         // there's no errors to add package. adding to dependencies
 
         // first, add to dependencies
-        self.manifest
-            .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
+        if self.manifest.dependencies().contains_key(&request.name) {
+            self.manifest
+                .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
+        }
 
         self.do_add_packages_to_locked(env, &packages).await
     }
@@ -1231,9 +1233,11 @@ impl UnityProject {
             .await
     }
 
-    pub async fn resolve(&self, env: &Environment) -> Result<(), AddPackageErr> {
+    pub async fn resolve(&mut self, env: &Environment) -> Result<(), AddPackageErr> {
+        // first, process locked dependencies
+        let this = self as &Self;
         try_join_all(
-            self.manifest
+            this.manifest
                 .locked()
                 .into_iter()
                 .map(|(pkg, dep)| async move {
@@ -1241,11 +1245,28 @@ impl UnityProject {
                         .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
                         .await?
                         .expect("some package in manifest.json not found");
-                    env.add_package(&pkg, &self.packages_dir).await?;
+                    env.add_package(&pkg, &this.packages_dir).await?;
                     Result::<_, AddPackageErr>::Ok(())
                 }),
         )
         .await?;
+        // then, process dependencies of unlocked packages.
+        let unlocked_dependencies = self.unlocked_packages
+            .iter()
+            .filter_map(|(_, pkg)| pkg.as_ref())
+            .filter_map(|pkg| pkg.vpm_dependencies.as_ref())
+            .flatten()
+            .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .into_group_map();
+        for (pkg_name, ranges) in unlocked_dependencies {
+            let ranges = Vec::from_iter(&ranges);
+            let pkg = env
+                .find_package_by_name(&pkg_name, VersionSelector::Ranges(&ranges))
+                .await?
+                .expect("some dependencies of unlocked package not found");
+            self.upgrade_package(env, &pkg).await?;
+        }
         Ok(())
     }
 
@@ -1277,6 +1298,7 @@ pub enum VersionSelector<'a> {
     LatestIncluidingPrerelease,
     Specific(&'a Version),
     Range(&'a VersionRange),
+    Ranges(&'a [&'a VersionRange]),
 }
 
 impl<'a> VersionSelector<'a> {
@@ -1286,6 +1308,7 @@ impl<'a> VersionSelector<'a> {
             VersionSelector::LatestIncluidingPrerelease => true,
             VersionSelector::Specific(finding) => &version == finding,
             VersionSelector::Range(range) => range.matches(version),
+            VersionSelector::Ranges(ranges) => ranges.into_iter().all(|x| x.matches(version)),
         }
     }
 }
