@@ -1080,8 +1080,10 @@ impl UnityProject {
         // there's no errors to add package. adding to dependencies
 
         // first, add to dependencies
-        self.manifest
-            .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
+        if self.manifest.dependencies().contains_key(&request.name) {
+            self.manifest
+                .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
+        }
 
         self.do_add_packages_to_locked(env, &packages).await
     }
