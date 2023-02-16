@@ -590,7 +590,7 @@ impl RepoCleanup {
     }
 }
 
-/// Remove repository from user repositories.
+/// List packages in specified repository
 #[derive(Parser)]
 #[command(author, version)]
 pub struct RepoPackages {
