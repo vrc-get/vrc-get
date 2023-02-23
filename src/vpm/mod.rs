@@ -4,7 +4,7 @@
 
 use std::cmp::Reverse;
 use std::collections::HashSet;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::future::ready;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
@@ -62,7 +62,10 @@ impl Environment {
         folder.push("VRChatCreatorCompanion");
         let folder = folder;
 
-        log::debug!("initializing Environment with config folder {}", folder.display());
+        log::debug!(
+            "initializing Environment with config folder {}",
+            folder.display()
+        );
 
         Ok(Environment {
             http: http.clone(),
@@ -75,20 +78,39 @@ impl Environment {
 
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
-        // use CLSID?
-        if let Some(local_appdata) = env::var_os("CSIDL_LOCAL_APPDATA") {
-            log::debug!("CSIDL_LOCAL_APPDATA found {:?}", local_appdata);
-            return local_appdata.into();
-        }
-        // fallback: use HOME
-        if let Some(home_folder) = env::var_os("HOMEPATH") {
-            log::debug!("HOMEPATH found {:?}", home_folder);
-            let mut path = PathBuf::from(home_folder);
-            path.push("AppData\\Local");
-            return path;
+        use std::ffi::c_void;
+        use std::os::windows::ffi::OsStringExt;
+        use windows::core::{GUID, PWSTR};
+        use windows::Win32::Foundation::HANDLE;
+        use windows::Win32::UI::Shell::KNOWN_FOLDER_FLAG;
+
+        // due to intellij rust bug, windows::Win32::UI::Shell::SHGetKnownFolderPath is not shown
+        // so I write wrapper here
+        #[allow(non_snake_case)]
+        pub unsafe fn SHGetKnownFolderPath<P0>(
+            rfid: *const GUID,
+            dwflags: KNOWN_FOLDER_FLAG,
+            htoken: P0,
+        ) -> windows::core::Result<PWSTR>
+        where
+            P0: Into<HANDLE>,
+        {
+            windows::Win32::UI::Shell::SHGetKnownFolderPath(rfid, dwflags, htoken)
         }
 
-        panic!("no CSIDL_LOCAL_APPDATA nor HOMEPATH are set!")
+        let path = unsafe {
+            let path = SHGetKnownFolderPath(
+                &windows::Win32::UI::Shell::FOLDERID_LocalAppData,
+                KNOWN_FOLDER_FLAG(0),
+                HANDLE::default(),
+            )
+            .expect("cannot get Local AppData folder");
+            let os_string = OsString::from_wide(path.as_wide());
+            windows::Win32::System::Com::CoTaskMemFree(Some(path.as_ptr().cast::<c_void>()));
+            os_string
+        };
+
+        return PathBuf::from(path);
     }
 
     #[cfg(not(windows))]
@@ -885,7 +907,10 @@ impl UnityProject {
             .or_else(|_| UnityProject::find_unity_project_path())?;
         unity_found.push("Packages");
 
-        log::debug!("initializing UnityProject with Packages folder {}", unity_found.display());
+        log::debug!(
+            "initializing UnityProject with Packages folder {}",
+            unity_found.display()
+        );
 
         let manifest = unity_found.join("vpm-manifest.json");
         let vpm_manifest = VpmManifest::new(load_json_or_default(&manifest).await?)?;
@@ -1263,7 +1288,8 @@ impl UnityProject {
         )
         .await?;
         // then, process dependencies of unlocked packages.
-        let unlocked_dependencies = self.unlocked_packages
+        let unlocked_dependencies = self
+            .unlocked_packages
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .filter_map(|pkg| pkg.vpm_dependencies.as_ref())
@@ -1286,7 +1312,9 @@ impl UnityProject {
         return self.manifest.locked();
     }
 
-    pub(crate) fn all_dependencies(&self) -> impl Iterator<Item = (&String, &IndexMap<String, VersionRange>)> {
+    pub(crate) fn all_dependencies(
+        &self,
+    ) -> impl Iterator<Item = (&String, &IndexMap<String, VersionRange>)> {
         let dependencies_locked = self
             .manifest
             .locked()
