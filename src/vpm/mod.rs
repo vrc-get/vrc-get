@@ -4,7 +4,7 @@
 
 use std::cmp::Reverse;
 use std::collections::HashSet;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::future::ready;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
@@ -62,7 +62,10 @@ impl Environment {
         folder.push("VRChatCreatorCompanion");
         let folder = folder;
 
-        log::debug!("initializing Environment with config folder {}", folder.display());
+        log::debug!(
+            "initializing Environment with config folder {}",
+            folder.display()
+        );
 
         Ok(Environment {
             http: http.clone(),
@@ -107,7 +110,7 @@ impl Environment {
             os_string
         };
 
-        panic!("no CSIDL_LOCAL_APPDATA nor HOMEPATH are set!")
+        return PathBuf::from(path);
     }
 
     #[cfg(not(windows))]
@@ -904,7 +907,10 @@ impl UnityProject {
             .or_else(|_| UnityProject::find_unity_project_path())?;
         unity_found.push("Packages");
 
-        log::debug!("initializing UnityProject with Packages folder {}", unity_found.display());
+        log::debug!(
+            "initializing UnityProject with Packages folder {}",
+            unity_found.display()
+        );
 
         let manifest = unity_found.join("vpm-manifest.json");
         let vpm_manifest = VpmManifest::new(load_json_or_default(&manifest).await?)?;
@@ -1282,7 +1288,8 @@ impl UnityProject {
         )
         .await?;
         // then, process dependencies of unlocked packages.
-        let unlocked_dependencies = self.unlocked_packages
+        let unlocked_dependencies = self
+            .unlocked_packages
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .filter_map(|pkg| pkg.vpm_dependencies.as_ref())
@@ -1305,7 +1312,9 @@ impl UnityProject {
         return self.manifest.locked();
     }
 
-    pub(crate) fn all_dependencies(&self) -> impl Iterator<Item = (&String, &IndexMap<String, VersionRange>)> {
+    pub(crate) fn all_dependencies(
+        &self,
+    ) -> impl Iterator<Item = (&String, &IndexMap<String, VersionRange>)> {
         let dependencies_locked = self
             .manifest
             .locked()
