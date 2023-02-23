@@ -75,18 +75,37 @@ impl Environment {
 
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
-        // use CLSID?
-        if let Some(local_appdata) = env::var_os("CSIDL_LOCAL_APPDATA") {
-            log::debug!("CSIDL_LOCAL_APPDATA found {:?}", local_appdata);
-            return local_appdata.into();
+        use std::ffi::c_void;
+        use std::os::windows::ffi::OsStringExt;
+        use windows::core::{GUID, PWSTR};
+        use windows::Win32::Foundation::HANDLE;
+        use windows::Win32::UI::Shell::KNOWN_FOLDER_FLAG;
+
+        // due to intellij rust bug, windows::Win32::UI::Shell::SHGetKnownFolderPath is not shown
+        // so I write wrapper here
+        #[allow(non_snake_case)]
+        pub unsafe fn SHGetKnownFolderPath<P0>(
+            rfid: *const GUID,
+            dwflags: KNOWN_FOLDER_FLAG,
+            htoken: P0,
+        ) -> windows::core::Result<PWSTR>
+        where
+            P0: Into<HANDLE>,
+        {
+            windows::Win32::UI::Shell::SHGetKnownFolderPath(rfid, dwflags, htoken)
         }
-        // fallback: use HOME
-        if let Some(home_folder) = env::var_os("HOMEPATH") {
-            log::debug!("HOMEPATH found {:?}", home_folder);
-            let mut path = PathBuf::from(home_folder);
-            path.push("AppData\\Local");
-            return path;
-        }
+
+        let path = unsafe {
+            let path = SHGetKnownFolderPath(
+                &windows::Win32::UI::Shell::FOLDERID_LocalAppData,
+                KNOWN_FOLDER_FLAG(0),
+                HANDLE::default(),
+            )
+            .expect("cannot get Local AppData folder");
+            let os_string = OsString::from_wide(path.as_wide());
+            windows::Win32::System::Com::CoTaskMemFree(Some(path.as_ptr().cast::<c_void>()));
+            os_string
+        };
 
         panic!("no CSIDL_LOCAL_APPDATA nor HOMEPATH are set!")
     }
