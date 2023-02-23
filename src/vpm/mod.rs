@@ -62,6 +62,8 @@ impl Environment {
         folder.push("VRChatCreatorCompanion");
         let folder = folder;
 
+        log::debug!("initializing Environment with config folder {}", folder.display());
+
         Ok(Environment {
             http: http.clone(),
             settings: load_json_or_default(&folder.join("settings.json")).await?,
@@ -75,10 +77,12 @@ impl Environment {
     fn get_local_config_folder() -> PathBuf {
         // use CLSID?
         if let Some(local_appdata) = env::var_os("CSIDL_LOCAL_APPDATA") {
+            log::debug!("CSIDL_LOCAL_APPDATA found {:?}", local_appdata);
             return local_appdata.into();
         }
         // fallback: use HOME
         if let Some(home_folder) = env::var_os("HOMEPATH") {
+            log::debug!("HOMEPATH found {:?}", home_folder);
             let mut path = PathBuf::from(home_folder);
             path.push("AppData\\Local");
             return path;
@@ -90,11 +94,13 @@ impl Environment {
     #[cfg(not(windows))]
     fn get_local_config_folder() -> PathBuf {
         if let Some(data_home) = env::var_os("XDG_DATA_HOME") {
+            log::debug!("XDG_DATA_HOME found {:?}", data_home);
             return data_home.into();
         }
 
         // fallback: use HOME
         if let Some(home_folder) = env::var_os("HOME") {
+            log::debug!("HOME found {:?}", home_folder);
             let mut path = PathBuf::from(home_folder);
             path.push(".local/share");
             return path;
@@ -879,6 +885,8 @@ impl UnityProject {
             .or_else(|_| UnityProject::find_unity_project_path())?;
         unity_found.push("Packages");
 
+        log::debug!("initializing UnityProject with Packages folder {}", unity_found.display());
+
         let manifest = unity_found.join("vpm-manifest.json");
         let vpm_manifest = VpmManifest::new(load_json_or_default(&manifest).await?)?;
 
@@ -929,6 +937,7 @@ impl UnityProject {
             candidate.push("vpm-manifest.json");
 
             if candidate.exists() {
+                log::debug!("vpm-manifest.json found at {}", candidate.display());
                 // if there's vpm-manifest.json, it's project path
                 candidate.pop();
                 candidate.pop();
@@ -940,6 +949,7 @@ impl UnityProject {
             candidate.push("manifest.json");
 
             if candidate.exists() {
+                log::debug!("manifest.json found at {}", candidate.display());
                 // if there's manifest.json (which is manifest.json), it's project path
                 candidate.pop();
                 candidate.pop();
@@ -949,6 +959,8 @@ impl UnityProject {
             // remove Packages/manifest.json
             candidate.pop();
             candidate.pop();
+
+            log::debug!("Unity Project not found on {}", candidate.display());
 
             // go to parent dir
             if !candidate.pop() {
