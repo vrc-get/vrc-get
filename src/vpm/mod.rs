@@ -484,9 +484,9 @@ impl Environment {
 
     fn add_user_repo(&mut self, repo: &UserRepoSetting) -> serde_json::Result<()> {
         self.settings
-            .get_or_put_mut("user_repos", || Vec::<Value>::new())
+            .get_or_put_mut("userRepos", || Vec::<Value>::new())
             .as_array_mut()
-            .expect("user_repos must be array")
+            .expect("userRepos must be array")
             .push(to_value(repo)?);
         self.settings_changed = true;
         Ok(())
