@@ -209,7 +209,7 @@ jobs:
         env:
           TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
         run: |-
-          PLACEHOLDER="AUTHORIZATION: basic ***"
+          PLACEHOLDER="AUTHORIZATION: basic github_token_placeholder_fd4b604d63e043949549caa3475c6f89"
           CREDENTIAL="$(echo "x-access-token:$TOKEN" | base64 | tr -d '\n')"
 
           cd "$(brew --repository anatawa12/core)"
