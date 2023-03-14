@@ -440,15 +440,23 @@ impl Environment {
 
         // remove dest folder before extract if exists
         remove_dir_all(&dest_folder).await.ok();
+        let dest_folder = dest_folder.canonicalize()?;
 
         // extract zip file
-        // TODO: sanitize to prevent directory traversal
         let mut zip_reader = async_zip::read::seek::ZipFileReader::new(zip_file)
             .await
             .err_mapped()?;
         for i in 0..zip_reader.file().entries().len() {
             let entry = zip_reader.file().entries()[i].entry();
             let path = dest_folder.join(entry.filename());
+            let path = path.canonicalize()?;
+            if !path.starts_with(&dest_folder) {
+                return Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    "directory traversal detected",
+                )
+                .into());
+            }
             if entry.dir() {
                 // if it's directory, just create directory
                 create_dir_all(path).await?;
