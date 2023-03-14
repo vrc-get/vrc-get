@@ -1204,6 +1204,7 @@ impl UnityProject {
             .await?;
         let mut i = 0;
         while i < all_deps.len() {
+            adding_deps.clear();
             self.collect_adding_packages_internal(&mut adding_deps, env, &all_deps[i])
                 .await?;
             all_deps.append(&mut adding_deps);
