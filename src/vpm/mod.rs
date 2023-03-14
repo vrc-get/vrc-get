@@ -443,7 +443,6 @@ impl Environment {
         let dest_folder = dest_folder.canonicalize()?;
 
         // extract zip file
-        // TODO: sanitize to prevent directory traversal
         let mut zip_reader = async_zip::read::seek::ZipFileReader::new(zip_file)
             .await
             .err_mapped()?;
