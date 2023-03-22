@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 use std::future::ready;
 use std::io::SeekFrom;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::task::ready;
 use std::task::Poll::Ready;
 use std::{env, fmt, io};
@@ -316,6 +316,7 @@ impl Environment {
         package: &PackageJson,
         target_packages_folder: &Path,
     ) -> Result<(), AddPackageErr> {
+        log::debug!("adding package {}", package.name);
         let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name, &package.version);
         let zip_path = {
             let mut building = self.global_dir.clone();
@@ -440,7 +441,6 @@ impl Environment {
 
         // remove dest folder before extract if exists
         remove_dir_all(&dest_folder).await.ok();
-        let dest_folder = dest_folder.canonicalize()?;
 
         // extract zip file
         let mut zip_reader = async_zip::read::seek::ZipFileReader::new(zip_file)
@@ -450,7 +450,7 @@ impl Environment {
             let entry = zip_reader.file().entries()[i].entry();
             let path = dest_folder.join(entry.filename());
             let path = path.canonicalize()?;
-            if !path.starts_with(&dest_folder) {
+            if !Self::check_path(&path) {
                 return Err(io::Error::new(
                     io::ErrorKind::PermissionDenied,
                     "directory traversal detected",
@@ -470,6 +470,19 @@ impl Environment {
         }
 
         Ok(())
+    }
+
+    fn check_path(path: &Path) -> bool {
+        for x in path.components() {
+            match x {
+                Component::Prefix(_) => return false,
+                Component::RootDir => return false,
+                Component::ParentDir => return false,
+                Component::CurDir => {}
+                Component::Normal(_) => {}
+            }
+        }
+        true
     }
 
     pub(crate) fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
@@ -1290,7 +1303,7 @@ impl UnityProject {
                     let pkg = env
                         .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
                         .await?
-                        .expect("some package in manifest.json not found");
+                        .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
                     env.add_package(&pkg, &this.packages_dir).await?;
                     Result::<_, AddPackageErr>::Ok(())
                 }),
