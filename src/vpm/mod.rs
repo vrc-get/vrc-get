@@ -449,11 +449,10 @@ impl Environment {
         for i in 0..zip_reader.file().entries().len() {
             let entry = zip_reader.file().entries()[i].entry();
             let path = dest_folder.join(entry.filename());
-            let path = path.canonicalize()?;
-            if !Self::check_path(&path) {
+            if !Self::check_path(Path::new(entry.filename())) {
                 return Err(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    "directory traversal detected",
+                    format!("directory traversal detected: {}", path.display()),
                 )
                 .into());
             }
