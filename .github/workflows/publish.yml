@@ -213,7 +213,7 @@ jobs:
           CREDENTIAL="$(echo "x-access-token:$TOKEN" | base64 | tr -d '\n')"
 
           cd "$(brew --repository anatawa12/core)"
-          git config --local http."https://github.com".extraheader "$PLACEHOLDER"
+          git config --local http."https://github.com/".extraheader "$PLACEHOLDER"
           mv .git/config .git/config.bak
           sed "s/$PLACEHOLDER/AUTHORIZATION: basic $CREDENTIAL/" <.git/config.bak >.git/config
 
