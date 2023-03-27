@@ -87,13 +87,12 @@ impl Environment {
         // due to intellij rust bug, windows::Win32::UI::Shell::SHGetKnownFolderPath is not shown
         // so I write wrapper here
         #[allow(non_snake_case)]
-        pub unsafe fn SHGetKnownFolderPath<P0>(
+        #[inline(always)]
+        pub unsafe fn SHGetKnownFolderPath(
             rfid: *const GUID,
             dwflags: KNOWN_FOLDER_FLAG,
-            htoken: P0,
+            htoken: HANDLE,
         ) -> windows::core::Result<PWSTR>
-        where
-            P0: Into<HANDLE>,
         {
             windows::Win32::UI::Shell::SHGetKnownFolderPath(rfid, dwflags, htoken)
         }
@@ -104,7 +103,7 @@ impl Environment {
                 KNOWN_FOLDER_FLAG(0),
                 HANDLE::default(),
             )
-            .expect("cannot get Local AppData folder");
+                .expect("cannot get Local AppData folder");
             let os_string = OsString::from_wide(path.as_wide());
             windows::Win32::System::Com::CoTaskMemFree(Some(path.as_ptr().cast::<c_void>()));
             os_string
