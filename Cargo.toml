@@ -24,7 +24,7 @@ async_zip = { version = "0.0.13", features = ["deflate", "tokio"] }
 clap = { version = "4.1.13", features = ["derive"] }
 env_logger = "0.10.0"
 futures = "0.3.27"
-indexmap = { version = "1.9.2", features = ["serde"] }
+indexmap = { version = "1.9.3", features = ["serde"] }
 itertools = "0.10.5"
 log = "0.4.17"
 pin-project-lite = "0.2.9"
