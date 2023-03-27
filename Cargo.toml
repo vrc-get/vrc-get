@@ -20,7 +20,7 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async_zip = { version = "0.0.13", features = ["deflate"] }
+async_zip = { version = "0.0.13", features = ["deflate", "tokio"] }
 clap = { version = "4.1.13", features = ["derive"] }
 env_logger = "0.10.0"
 futures = "0.3.26"

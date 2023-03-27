@@ -443,7 +443,7 @@ impl Environment {
         remove_dir_all(&dest_folder).await.ok();
 
         // extract zip file
-        let mut zip_reader = async_zip::read::seek::ZipFileReader::new(zip_file)
+        let mut zip_reader = async_zip::tokio::read::seek::ZipFileReader::new(zip_file)
             .await
             .err_mapped()?;
         for i in 0..zip_reader.file().entries().len() {
