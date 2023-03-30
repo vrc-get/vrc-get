@@ -540,6 +540,17 @@ impl Environment {
                 .map(str::to_owned)
         });
 
+        let repo_id = remote_repo.get("id").and_then(Value::as_str).map(str::to_owned);
+
+        if let Some(repo_id) = repo_id.as_deref() {
+            if user_repos
+                .iter()
+                .any(|x| x.id.as_deref() == Some(repo_id))
+            {
+                return Err(AddRepositoryErr::AlreadyAdded);
+            }
+        }
+
         let mut local_cache = LocalCachedRepository::new(
             local_path.clone(),
             repo_name.clone(),
@@ -566,6 +577,7 @@ impl Environment {
             local_path.clone(),
             repo_name,
             Some(url.to_string()),
+            repo_id,
         ))?;
         Ok(())
     }
@@ -583,6 +595,7 @@ impl Environment {
         self.add_user_repo(&UserRepoSetting::new(
             path.to_owned(),
             name.map(str::to_owned),
+            None,
             None,
         ))?;
         Ok(())

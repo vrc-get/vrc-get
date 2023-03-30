@@ -69,14 +69,18 @@ pub mod setting {
         // must be non-relative url.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub url: Option<String>,
+        // TODO: check property name when VCC 2.1.0 is released
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub id: Option<String>,
     }
 
     impl UserRepoSetting {
-        pub fn new(local_path: PathBuf, name: Option<String>, url: Option<String>) -> Self {
+        pub fn new(local_path: PathBuf, name: Option<String>, url: Option<String>, id: Option<String>) -> Self {
             Self {
                 local_path,
                 name,
                 url,
+                id,
             }
         }
     }
