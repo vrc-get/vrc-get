@@ -79,6 +79,7 @@ impl Environment {
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
         use std::ffi::c_void;
+        use std::ffi::OsString;
         use std::os::windows::ffi::OsStringExt;
         use windows::core::{GUID, PWSTR};
         use windows::Win32::Foundation::HANDLE;
