@@ -314,7 +314,7 @@ impl Environment {
         &self,
         package: &PackageJson,
         target_packages_folder: &Path,
-    ) -> Result<(), AddPackageErr> {
+    ) -> io::Result<()> {
         log::debug!("adding package {}", package.name);
         let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name, &package.version);
         let zip_path = {
@@ -407,7 +407,7 @@ impl Environment {
             let mut sha256 = Sha256::default();
 
             let Some(http) = &self.http else {
-                return Err(AddPackageErr::OfflineMode)
+                return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"))
             };
 
             let mut stream = http
@@ -1015,7 +1015,14 @@ impl UnityProject {
             }
         }
     }
+}
 
+pub struct AddPackageRequest {
+    dependencies: Vec<(String, VpmDependency)>,
+    locked: Vec<PackageJson>,
+}
+
+impl UnityProject {
     /// Add specified package to self project.
     ///
     /// If the package or newer one is already installed in dependencies, this does nothing
@@ -1028,42 +1035,70 @@ impl UnityProject {
         env: &Environment,
         request: &PackageJson,
     ) -> Result<(), AddPackageErr> {
+        let req = self.add_package_request(env, vec![request.clone()], true).await?;
+        Ok(self.do_add_package_request(env, req).await?)
+    }
+
+    pub async fn upgrade_package(
+        &mut self,
+        env: &Environment,
+        request: &PackageJson,
+    ) -> Result<(), AddPackageErr> {
+        let req = self.add_package_request(env, vec![request.clone()], false).await?;
+        Ok(self.do_add_package_request(env, req).await?)
+    }
+
+    pub async fn add_package_request(
+        &self,
+        env: &Environment,
+        mut packages: Vec<PackageJson>,
+        to_dependencies: bool,
+    ) -> Result<AddPackageRequest, AddPackageErr> {
         use crate::vpm::AddPackageErr::*;
-        // if same or newer requested package is in dependencies, do nothing
-        if let Some(dep) = self.manifest.dependencies().get(&request.name) {
-            if dep.version >= request.version {
-                return Err(AlreadyNewerPackageInstalled);
-            }
+        packages.retain(|pkg| {
+            self.manifest.dependencies().get(&pkg.name).map(|dep| dep.version < pkg.version).unwrap_or(true)
+        });
+
+        if packages.len() == 0 {
+            return Err(AlreadyNewerPackageInstalled);
         }
 
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
-        if let Some(locked) = self.manifest.locked().get(&request.name) {
-            if locked.version >= request.version {
-                self.manifest
-                    .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
-                return Ok(());
+        let mut dependencies = vec![];
+        let mut locked = Vec::with_capacity(packages.len());
+
+        for request in packages {
+            let update = self.manifest.locked().get(&request.name).map(|dep| dep.version < request.version).unwrap_or(true);
+            if update {
+                dependencies.push((request.name, VpmDependency::new(request.version.clone())));
+            } else {
+                locked.push(request);
             }
         }
 
-        let adding_deps = self.collect_adding_packages(env, request).await?;
-        let mut packages = adding_deps.iter().collect::<Vec<_>>();
-        packages.push(request);
-        let packages = packages;
+        if locked.len() == 0 {
+            if to_dependencies {
+                return Ok(AddPackageRequest {
+                    dependencies,
+                    locked: vec![],
+                });
+            } else {
+                return Err(AlreadyNewerPackageInstalled);
+            }
+        }
+
+        let packages = self.collect_adding_packages(env, locked).await?;
 
         // check for version conflict for all deps
         self.check_adding_package(&packages)?;
 
-        // there's no errors to add package. adding to dependencies
+        // TODO: find for legacyFolders/Files here
 
-        // first, add to dependencies
-        self.manifest
-            .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
-
-        self.do_add_packages_to_locked(env, &packages).await
+        return Ok(AddPackageRequest { dependencies, locked: packages });
     }
 
-    fn check_adding_package(&mut self, packages: &[&PackageJson]) -> Result<(), AddPackageErr> {
+    fn check_adding_package(&self, packages: &[PackageJson]) -> Result<(), AddPackageErr> {
         for x in packages {
             self.check_conflict(&x.name, &x.version)?;
         }
@@ -1071,11 +1106,25 @@ impl UnityProject {
         return Ok(());
     }
 
+    pub async fn do_add_package_request(
+        &mut self,
+        env: &Environment,
+        request: AddPackageRequest,
+    ) -> io::Result<()> {
+
+        // first, add to dependencies
+        for x in request.dependencies {
+            self.manifest.add_dependency(&x.0, x.1);
+        }
+
+        self.do_add_packages_to_locked(env, &request.locked).await
+    }
+
     async fn do_add_packages_to_locked(
         &mut self,
         env: &Environment,
-        packages: &[&PackageJson],
-    ) -> Result<(), AddPackageErr> {
+        packages: &[PackageJson],
+    ) -> io::Result<()> {
         // then, lock all dependencies
         for pkg in packages.iter() {
             self.manifest.add_locked(
@@ -1095,53 +1144,6 @@ impl UnityProject {
         try_join_all(futures).await?;
 
         Ok(())
-    }
-
-    /// Add specified package to self project.
-    ///
-    /// If the package or newer one is already installed in dependencies, this does nothing
-    /// and returns AlreadyNewerPackageInstalled err.
-    ///
-    /// If the package or newer one is already installed in locked list,
-    /// this adds specified (not locked) version to dependencies
-    pub async fn upgrade_package(
-        &mut self,
-        env: &Environment,
-        request: &PackageJson,
-    ) -> Result<(), AddPackageErr> {
-        use crate::vpm::AddPackageErr::*;
-        // if same or newer requested package is in dependencies, do nothing
-        if let Some(dep) = self.manifest.dependencies().get(&request.name) {
-            if dep.version >= request.version {
-                return Err(AlreadyNewerPackageInstalled);
-            }
-        }
-
-        // if same or newer requested package is in locked dependencies,
-        // Do nothing
-        if let Some(locked) = self.manifest.locked().get(&request.name) {
-            if locked.version >= request.version {
-                return Err(AlreadyNewerPackageInstalled);
-            }
-        }
-
-        let adding_deps = self.collect_adding_packages(env, request).await?;
-        let mut packages = adding_deps.iter().collect::<Vec<_>>();
-        packages.push(request);
-        let packages = packages;
-
-        // check for version conflict for all deps
-        self.check_adding_package(&packages)?;
-
-        // there's no errors to add package. adding to dependencies
-
-        // first, add to dependencies
-        if self.manifest.dependencies().contains_key(&request.name) {
-            self.manifest
-                .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
-        }
-
-        self.do_add_packages_to_locked(env, &packages).await
     }
 
     /// Remove specified package from self project.
@@ -1212,15 +1214,15 @@ impl UnityProject {
         Ok(removed_packages)
     }
 
+    // TODO: fix infinity loop with recursive dependencies
     async fn collect_adding_packages(
-        &mut self,
+        &self,
         env: &Environment,
-        pkg: &PackageJson,
+        pkg: Vec<PackageJson>,
     ) -> Result<Vec<PackageJson>, AddPackageErr> {
-        let mut all_deps = Vec::new();
+        let mut all_deps = pkg;
+        // to reduce allocation, 
         let mut adding_deps = Vec::new();
-        self.collect_adding_packages_internal(&mut all_deps, env, pkg)
-            .await?;
         let mut i = 0;
         while i < all_deps.len() {
             adding_deps.clear();
@@ -1233,7 +1235,7 @@ impl UnityProject {
     }
 
     async fn collect_adding_packages_internal(
-        &mut self,
+        &self,
         adding_deps: &mut Vec<PackageJson>,
         env: &Environment,
         pkg: &PackageJson,
@@ -1386,7 +1388,6 @@ pub enum AddPackageErr {
     DependencyNotFound {
         dependency_name: String,
     },
-    OfflineMode,
     ConflictWithUnlocked,
 }
 
@@ -1405,7 +1406,6 @@ impl fmt::Display for AddPackageErr {
                 f,
                 "Package {dependency_name} (maybe dependencies of the package) not found"
             ),
-            AddPackageErr::OfflineMode => f.write_str("offline mode but some cache missing"),
             AddPackageErr::ConflictWithUnlocked => f.write_str("conflicts with unlocked packages"),
         }
     }
