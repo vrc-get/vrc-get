@@ -1278,6 +1278,7 @@ impl UnityProject {
         let mut packages = std::collections::VecDeque::from_iter(packages);
 
         while let Some(x) = packages.pop_front() {
+            log::debug!("processing package {} version {}", x.name, x.version);
             let name = x.name.clone();
             let vpm_dependencies = x.vpm_dependencies.clone();
             let entry = dependencies.entry(x.name.clone()).or_default();
@@ -1290,16 +1291,19 @@ impl UnityProject {
 
             // add new dependencies
             for (dependency, range) in vpm_dependencies.iter().flatten() {
+                log::debug!("processing package {name}: dependency {dependency} version {range}");
                 let entry = dependencies.entry(dependency.clone()).or_default();
                 let mut install = true;
 
                 if packages.iter().any(|x| &x.name == dependency && range.matches(&x.version)) {
                     // if installing version is good, no need to reinstall
                     install = false;
+                    log::debug!("processing package {name}: dependency {dependency} version {range}: pending matches");
                 } else {
                     // if already installed version is good, no need to reinstall
                     if let Some(version) = &entry.current {
                         if range.matches(version) {
+                            log::debug!("processing package {name}: dependency {dependency} version {range}: existing matches");
                             install = false;
                         }
                     }
