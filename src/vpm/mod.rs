@@ -3,8 +3,8 @@
 //! This module might be a separated crate.
 
 use std::cmp::Reverse;
-use std::collections::HashSet;
-use std::ffi::{OsStr, OsString};
+use std::collections::{HashMap, HashSet};
+use std::ffi::{OsStr};
 use std::future::ready;
 use std::io::SeekFrom;
 use std::path::{Component, Path, PathBuf};
@@ -15,7 +15,7 @@ use std::{env, fmt, io};
 use futures::future::{join_all, try_join_all};
 use futures::prelude::*;
 use indexmap::IndexMap;
-use itertools::Itertools as _;
+use itertools::{Itertools as _};
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
 use tokio::fs::{
@@ -79,6 +79,7 @@ impl Environment {
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
         use std::ffi::c_void;
+        use std::ffi::OsString;
         use std::os::windows::ffi::OsStringExt;
         use windows::core::{GUID, PWSTR};
         use windows::Win32::Foundation::HANDLE;
@@ -314,7 +315,7 @@ impl Environment {
         &self,
         package: &PackageJson,
         target_packages_folder: &Path,
-    ) -> Result<(), AddPackageErr> {
+    ) -> io::Result<()> {
         log::debug!("adding package {}", package.name);
         let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name, &package.version);
         let zip_path = {
@@ -407,7 +408,7 @@ impl Environment {
             let mut sha256 = Sha256::default();
 
             let Some(http) = &self.http else {
-                return Err(AddPackageErr::OfflineMode)
+                return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"))
             };
 
             let mut stream = http
@@ -806,10 +807,10 @@ mod vpm_manifest {
             &self.locked
         }
 
-        pub(super) fn add_dependency(&mut self, name: &str, dependency: VpmDependency) {
+        pub(super) fn add_dependency(&mut self, name: String, dependency: VpmDependency) {
             // update both parsed and non-parsed
-            self.add_value("dependencies", name, &dependency);
-            self.dependencies.insert(name.to_string(), dependency);
+            self.add_value("dependencies", &name, &dependency);
+            self.dependencies.insert(name, dependency);
         }
 
         pub(super) fn add_locked(&mut self, name: &str, dependency: VpmLockedDependency) {
@@ -875,7 +876,7 @@ mod vpm_manifest {
 
                 for dep_name in added_prev
                     .into_iter()
-                    .map_while(|name| self.locked.get(name))
+                    .filter_map(|name| self.locked.get(name))
                     .flat_map(|dep| dep.dependencies.keys())
                 {
                     if required_packages.insert(dep_name) {
@@ -893,6 +894,8 @@ mod vpm_manifest {
                 .map(|x| x.clone())
                 .filter(|x| !required_packages.contains(x.as_str()))
                 .collect::<HashSet<_>>();
+
+            //log::debug!("removing: {removing_packages:?}");
 
             for name in &removing_packages {
                 self.locked.remove(name);
@@ -1015,67 +1018,89 @@ impl UnityProject {
             }
         }
     }
+}
 
-    /// Add specified package to self project.
-    ///
-    /// If the package or newer one is already installed in dependencies, this does nothing
-    /// and returns AlreadyNewerPackageInstalled err.
-    ///
-    /// If the package or newer one is already installed in locked list,
-    /// this adds specified (not locked) version to dependencies
-    pub async fn add_package(
-        &mut self,
+pub struct AddPackageRequest {
+    dependencies: Vec<(String, VpmDependency)>,
+    locked: Vec<PackageJson>,
+}
+
+impl AddPackageRequest {
+    pub fn locked(&self) -> &[PackageJson] {
+        &self.locked
+    }
+}
+
+impl UnityProject {
+    pub async fn add_package_request(
+        &self,
         env: &Environment,
-        request: &PackageJson,
-    ) -> Result<(), AddPackageErr> {
+        mut packages: Vec<PackageJson>,
+        to_dependencies: bool,
+    ) -> Result<AddPackageRequest, AddPackageErr> {
         use crate::vpm::AddPackageErr::*;
-        // if same or newer requested package is in dependencies, do nothing
-        if let Some(dep) = self.manifest.dependencies().get(&request.name) {
-            if dep.version >= request.version {
-                return Err(AlreadyNewerPackageInstalled);
-            }
+        packages.retain(|pkg| {
+            self.manifest.dependencies().get(&pkg.name).map(|dep| dep.version < pkg.version).unwrap_or(true)
+        });
+
+        if packages.len() == 0 {
+            return Err(AlreadyNewerPackageInstalled);
         }
 
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
-        if let Some(locked) = self.manifest.locked().get(&request.name) {
-            if locked.version >= request.version {
-                self.manifest
-                    .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
-                return Ok(());
+        let mut dependencies = vec![];
+        let mut locked = Vec::with_capacity(packages.len());
+
+        for request in packages {
+            let update = self.manifest.locked().get(&request.name).map(|dep| dep.version < request.version).unwrap_or(true);
+
+            if to_dependencies {
+                dependencies.push((request.name.clone(), VpmDependency::new(request.version.clone())));
+            }
+
+            if update {
+                locked.push(request);
             }
         }
 
-        let adding_deps = self.collect_adding_packages(env, request).await?;
-        let mut packages = adding_deps.iter().collect::<Vec<_>>();
-        packages.push(request);
-        let packages = packages;
-
-        // check for version conflict for all deps
-        self.check_adding_package(&packages)?;
-
-        // there's no errors to add package. adding to dependencies
-
-        // first, add to dependencies
-        self.manifest
-            .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
-
-        self.do_add_packages_to_locked(env, &packages).await
-    }
-
-    fn check_adding_package(&mut self, packages: &[&PackageJson]) -> Result<(), AddPackageErr> {
-        for x in packages {
-            self.check_conflict(&x.name, &x.version)?;
+        if locked.len() == 0 {
+            if to_dependencies {
+                return Ok(AddPackageRequest {
+                    dependencies,
+                    locked: vec![],
+                });
+            } else {
+                return Err(AlreadyNewerPackageInstalled);
+            }
         }
 
-        return Ok(());
+        let packages = self.collect_adding_packages(env, locked).await?;
+
+        // TODO: find for legacyFolders/Files here
+
+        return Ok(AddPackageRequest { dependencies, locked: packages });
+    }
+
+    pub async fn do_add_package_request(
+        &mut self,
+        env: &Environment,
+        request: AddPackageRequest,
+    ) -> io::Result<()> {
+
+        // first, add to dependencies
+        for x in request.dependencies {
+            self.manifest.add_dependency(x.0, x.1);
+        }
+
+        self.do_add_packages_to_locked(env, &request.locked).await
     }
 
     async fn do_add_packages_to_locked(
         &mut self,
         env: &Environment,
-        packages: &[&PackageJson],
-    ) -> Result<(), AddPackageErr> {
+        packages: &[PackageJson],
+    ) -> io::Result<()> {
         // then, lock all dependencies
         for pkg in packages.iter() {
             self.manifest.add_locked(
@@ -1095,53 +1120,6 @@ impl UnityProject {
         try_join_all(futures).await?;
 
         Ok(())
-    }
-
-    /// Add specified package to self project.
-    ///
-    /// If the package or newer one is already installed in dependencies, this does nothing
-    /// and returns AlreadyNewerPackageInstalled err.
-    ///
-    /// If the package or newer one is already installed in locked list,
-    /// this adds specified (not locked) version to dependencies
-    pub async fn upgrade_package(
-        &mut self,
-        env: &Environment,
-        request: &PackageJson,
-    ) -> Result<(), AddPackageErr> {
-        use crate::vpm::AddPackageErr::*;
-        // if same or newer requested package is in dependencies, do nothing
-        if let Some(dep) = self.manifest.dependencies().get(&request.name) {
-            if dep.version >= request.version {
-                return Err(AlreadyNewerPackageInstalled);
-            }
-        }
-
-        // if same or newer requested package is in locked dependencies,
-        // Do nothing
-        if let Some(locked) = self.manifest.locked().get(&request.name) {
-            if locked.version >= request.version {
-                return Err(AlreadyNewerPackageInstalled);
-            }
-        }
-
-        let adding_deps = self.collect_adding_packages(env, request).await?;
-        let mut packages = adding_deps.iter().collect::<Vec<_>>();
-        packages.push(request);
-        let packages = packages;
-
-        // check for version conflict for all deps
-        self.check_adding_package(&packages)?;
-
-        // there's no errors to add package. adding to dependencies
-
-        // first, add to dependencies
-        if self.manifest.dependencies().contains_key(&request.name) {
-            self.manifest
-                .add_dependency(&request.name, VpmDependency::new(request.version.clone()));
-        }
-
-        self.do_add_packages_to_locked(env, &packages).await
     }
 
     /// Remove specified package from self project.
@@ -1213,75 +1191,146 @@ impl UnityProject {
     }
 
     async fn collect_adding_packages(
-        &mut self,
+        &self,
         env: &Environment,
-        pkg: &PackageJson,
+        packages: Vec<PackageJson>,
     ) -> Result<Vec<PackageJson>, AddPackageErr> {
-        let mut all_deps = Vec::new();
-        let mut adding_deps = Vec::new();
-        self.collect_adding_packages_internal(&mut all_deps, env, pkg)
-            .await?;
-        let mut i = 0;
-        while i < all_deps.len() {
-            adding_deps.clear();
-            self.collect_adding_packages_internal(&mut adding_deps, env, &all_deps[i])
-                .await?;
-            all_deps.append(&mut adding_deps);
-            i += 1;
+        #[derive(Default)]
+        struct DependencyInfo {
+            using: Option<PackageJson>,
+            current: Option<Version>,
+            // "" key for root dependencies
+            requirements: HashMap<String, VersionRange>,
+            dependencies: HashSet<String>,
         }
-        Ok(all_deps)
-    }
 
-    async fn collect_adding_packages_internal(
-        &mut self,
-        adding_deps: &mut Vec<PackageJson>,
-        env: &Environment,
-        pkg: &PackageJson,
-    ) -> Result<(), AddPackageErr> {
-        if let Some(dependencies) = &pkg.vpm_dependencies {
-            for (dep, range) in dependencies {
-                if self
-                    .manifest
-                    .locked()
-                    .get(dep)
-                    .map(|x| range.matches(&x.version))
-                    .unwrap_or(true)
-                {
+        impl DependencyInfo {
+            fn new_dependency(version: Version) -> Self {
+                let mut requirements = HashMap::new();
+                requirements.insert(String::new(), VersionRange::same_or_later(version));
+                DependencyInfo { 
+                    using: None, 
+                    current: None,
+                    requirements, 
+                    dependencies: HashSet::new(),
+                }
+            }
+
+            fn add_range(&mut self, source: String, range: VersionRange) {
+                self.requirements.insert(source, range);
+            }
+
+            fn remove_range(&mut self, source: &str) {
+                self.requirements.remove(source);
+            }
+
+            pub(crate) fn set_using_info(&mut self, version: Version, dependencies: HashSet<String>) {
+                self.current = Some(version);
+                self.dependencies = dependencies;
+            }
+
+            pub(crate) fn set_package(&mut self, new_pkg: PackageJson) -> HashSet<String> {
+                let mut dependencies = new_pkg.vpm_dependencies
+                    .as_ref()
+                    .map(|x| x.keys().cloned().collect())
+                    .unwrap_or_default();
+                
+                self.current = Some(new_pkg.version.clone());
+                std::mem::swap(&mut self.dependencies, &mut dependencies);
+                self.using = Some(new_pkg);
+
+                // using is save
+                return dependencies
+            }
+        }
+
+        let mut dependencies = HashMap::new();
+
+        // first, add dependencies
+        for (name, dep) in self.manifest.dependencies() {
+            dependencies.insert(name.clone(), DependencyInfo::new_dependency(dep.version.clone()));
+        }
+
+        // then, add locked dependencies info
+        for (source, locked) in self.manifest.locked() {
+            dependencies.entry(source.clone()).or_default()
+                .set_using_info(locked.version.clone(), locked.dependencies.keys().cloned().collect());
+
+            for (dependency, range) in &locked.dependencies {
+                dependencies.entry(dependency.clone()).or_default()
+                    .add_range(source.clone(), range.clone())
+            }
+        }
+
+        let mut packages = std::collections::VecDeque::from_iter(packages);
+
+        while let Some(x) = packages.pop_front() {
+            log::debug!("processing package {} version {}", x.name, x.version);
+            let name = x.name.clone();
+            let vpm_dependencies = x.vpm_dependencies.clone();
+            let entry = dependencies.entry(x.name.clone()).or_default();
+            let old_dependencies = entry.set_package(x);
+
+            // remove previous dependencies if exists
+            for dep in &old_dependencies {
+                dependencies.get_mut(dep).unwrap().remove_range(dep);
+            }
+
+            // add new dependencies
+            for (dependency, range) in vpm_dependencies.iter().flatten() {
+                log::debug!("processing package {name}: dependency {dependency} version {range}");
+                let entry = dependencies.entry(dependency.clone()).or_default();
+                let mut install = true;
+
+                if packages.iter().any(|x| &x.name == dependency && range.matches(&x.version)) {
+                    // if installing version is good, no need to reinstall
+                    install = false;
+                    log::debug!("processing package {name}: dependency {dependency} version {range}: pending matches");
+                } else {
+                    // if already installed version is good, no need to reinstall
+                    if let Some(version) = &entry.current {
+                        if range.matches(version) {
+                            log::debug!("processing package {name}: dependency {dependency} version {range}: existing matches");
+                            install = false;
+                        }
+                    }
+                }
+
+                entry.add_range(name.clone(), range.clone());
+
+                if install {
                     let found = env
-                        .find_package_by_name(dep, VersionSelector::Range(range))
-                        .await?;
-                    adding_deps.push(found.ok_or_else(|| AddPackageErr::DependencyNotFound {
-                        dependency_name: dep.clone(),
-                    })?);
+                        .find_package_by_name(dependency, VersionSelector::Range(range))
+                        .await?
+                        .ok_or_else(|| AddPackageErr::DependencyNotFound {
+                            dependency_name: dependency.clone(),
+                        })?;
+
+                    // remove existing if existing
+                    packages.retain(|x| &x.name != dependency);
+                    packages.push_back(found);
                 }
             }
         }
-        Ok(())
-    }
 
-    fn check_conflict(&self, name: &str, version: &Version) -> Result<(), AddPackageErr> {
-        for (pkg_name, dependencies) in self.all_dependencies() {
-            if let Some(dep) = dependencies.get(name) {
-                if !dep.matches(&version) {
-                    return Err(AddPackageErr::ConflictWithDependencies {
-                        conflict: name.to_owned(),
-                        dependency_name: pkg_name.clone(),
-                    });
+        // finally, check for conflict.
+        for (name, info) in &dependencies {
+            if let Some(version) = &info.current {
+                for (source, range) in &info.requirements {
+                    if !range.matches(version) {
+                        return Err(AddPackageErr::ConflictWithDependencies {
+                            conflict: name.to_owned(),
+                            dependency_name: source.clone(),
+                        });
+                    }
                 }
             }
         }
-        for (dir_name, package_json) in &self.unlocked_packages {
-            if dir_name == name {
-                return Err(AddPackageErr::ConflictWithUnlocked);
-            }
 
-            let Some(package_json) = package_json else { continue };
-
-            if package_json.name == name {
-                return Err(AddPackageErr::ConflictWithUnlocked);
-            }
-        }
-        Ok(())
+        Ok(dependencies
+            .into_values()
+            .filter_map(|x| x.using)
+            .collect())
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
@@ -1316,15 +1365,20 @@ impl UnityProject {
             .flatten()
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
-            .into_group_map();
-        for (pkg_name, ranges) in unlocked_dependencies {
-            let ranges = Vec::from_iter(&ranges);
-            let pkg = env
-                .find_package_by_name(&pkg_name, VersionSelector::Ranges(&ranges))
-                .await?
-                .expect("some dependencies of unlocked package not found");
-            self.upgrade_package(env, &pkg).await?;
-        }
+            .into_group_map()
+            .into_iter()
+            .map(|(pkg_name, ranges)| async move {
+                let ranges = Vec::from_iter(&ranges);
+                io::Result::Ok(env.find_package_by_name(&pkg_name, VersionSelector::Ranges(&ranges))
+                    .await?
+                    .expect("some dependencies of unlocked package not found"))
+            });
+        let unlocked_dependencies = try_join_all(unlocked_dependencies).await?;
+
+        let req = self.add_package_request(&env, unlocked_dependencies, false).await?;
+
+        self.do_add_package_request(&env, req).await?;
+
         Ok(())
     }
 
@@ -1386,7 +1440,6 @@ pub enum AddPackageErr {
     DependencyNotFound {
         dependency_name: String,
     },
-    OfflineMode,
     ConflictWithUnlocked,
 }
 
@@ -1405,7 +1458,6 @@ impl fmt::Display for AddPackageErr {
                 f,
                 "Package {dependency_name} (maybe dependencies of the package) not found"
             ),
-            AddPackageErr::OfflineMode => f.write_str("offline mode but some cache missing"),
             AddPackageErr::ConflictWithUnlocked => f.write_str("conflicts with unlocked packages"),
         }
     }
