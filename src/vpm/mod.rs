@@ -875,7 +875,7 @@ mod vpm_manifest {
 
                 for dep_name in added_prev
                     .into_iter()
-                    .map_while(|name| self.locked.get(name))
+                    .filter_map(|name| self.locked.get(name))
                     .flat_map(|dep| dep.dependencies.keys())
                 {
                     if required_packages.insert(dep_name) {
@@ -893,6 +893,8 @@ mod vpm_manifest {
                 .map(|x| x.clone())
                 .filter(|x| !required_packages.contains(x.as_str()))
                 .collect::<HashSet<_>>();
+
+            //log::debug!("removing: {removing_packages:?}");
 
             for name in &removing_packages {
                 self.locked.remove(name);
