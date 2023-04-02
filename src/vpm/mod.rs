@@ -1071,9 +1071,9 @@ impl UnityProject {
         for request in packages {
             let update = self.manifest.locked().get(&request.name).map(|dep| dep.version < request.version).unwrap_or(true);
             if update {
-                dependencies.push((request.name, VpmDependency::new(request.version.clone())));
-            } else {
                 locked.push(request);
+            } else {
+                dependencies.push((request.name, VpmDependency::new(request.version.clone())));
             }
         }
 
