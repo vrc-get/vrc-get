@@ -12,6 +12,16 @@ pub struct VersionRange {
 }
 
 impl VersionRange {
+    pub fn same_or_later(version: Version) -> Self {
+        Self {
+            comparators: vec![
+                ComparatorSet(vec![
+                    Comparator::GreaterThanOrEqual(PartialVersion::from(version))
+                ])
+            ]
+        }
+    }
+
     pub(crate) fn matches(&self, version: &Version) -> bool {
         self.comparators.iter().any(|x| x.matches(version))
     }
@@ -546,6 +556,18 @@ impl PartialVersion {
         } else {
             let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;
             Ok(&buf[..len])
+        }
+    }
+}
+
+impl From<Version> for PartialVersion {
+    fn from(value: Version) -> Self {
+        Self {
+            major: value.major,
+            minor: value.minor,
+            patch: value.patch,
+            pre: value.pre,
+            build: value.build,
         }
     }
 }

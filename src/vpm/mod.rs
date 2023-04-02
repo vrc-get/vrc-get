@@ -3,7 +3,7 @@
 //! This module might be a separated crate.
 
 use std::cmp::Reverse;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::future::ready;
 use std::io::SeekFrom;
@@ -15,7 +15,7 @@ use std::{env, fmt, io};
 use futures::future::{join_all, try_join_all};
 use futures::prelude::*;
 use indexmap::IndexMap;
-use itertools::Itertools as _;
+use itertools::{Itertools as _, sorted};
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
 use tokio::fs::{
@@ -1090,20 +1090,9 @@ impl UnityProject {
 
         let packages = self.collect_adding_packages(env, locked).await?;
 
-        // check for version conflict for all deps
-        self.check_adding_package(&packages)?;
-
         // TODO: find for legacyFolders/Files here
 
         return Ok(AddPackageRequest { dependencies, locked: packages });
-    }
-
-    fn check_adding_package(&self, packages: &[PackageJson]) -> Result<(), AddPackageErr> {
-        for x in packages {
-            self.check_conflict(&x.name, &x.version)?;
-        }
-
-        return Ok(());
     }
 
     pub async fn do_add_package_request(
@@ -1214,76 +1203,143 @@ impl UnityProject {
         Ok(removed_packages)
     }
 
-    // TODO: fix infinity loop with recursive dependencies
     async fn collect_adding_packages(
         &self,
         env: &Environment,
-        pkg: Vec<PackageJson>,
+        packages: Vec<PackageJson>,
     ) -> Result<Vec<PackageJson>, AddPackageErr> {
-        let mut all_deps = pkg;
-        // to reduce allocation, 
-        let mut adding_deps = Vec::new();
-        let mut i = 0;
-        while i < all_deps.len() {
-            adding_deps.clear();
-            self.collect_adding_packages_internal(&mut adding_deps, env, &all_deps[i])
-                .await?;
-            all_deps.append(&mut adding_deps);
-            i += 1;
+        #[derive(Default)]
+        struct DependencyInfo {
+            using: Option<PackageJson>,
+            current: Option<Version>,
+            // "" key for root dependencies
+            requirements: HashMap<String, VersionRange>,
+            dependencies: HashSet<String>,
         }
-        Ok(all_deps)
-    }
 
-    async fn collect_adding_packages_internal(
-        &self,
-        adding_deps: &mut Vec<PackageJson>,
-        env: &Environment,
-        pkg: &PackageJson,
-    ) -> Result<(), AddPackageErr> {
-        if let Some(dependencies) = &pkg.vpm_dependencies {
-            for (dep, range) in dependencies {
-                if self
-                    .manifest
-                    .locked()
-                    .get(dep)
-                    .map(|x| range.matches(&x.version))
-                    .unwrap_or(true)
-                {
+        impl DependencyInfo {
+            fn new_dependency(version: Version) -> Self {
+                let mut requirements = HashMap::new();
+                requirements.insert(String::new(), VersionRange::same_or_later(version));
+                DependencyInfo { 
+                    using: None, 
+                    current: None,
+                    requirements, 
+                    dependencies: HashSet::new(),
+                }
+            }
+
+            fn add_range(&mut self, source: String, range: VersionRange) {
+                self.requirements.insert(source, range);
+            }
+
+            fn remove_range(&mut self, source: &str) {
+                self.requirements.remove(source);
+            }
+
+            pub(crate) fn set_using_info(&mut self, version: Version, dependencies: HashSet<String>) {
+                self.current = Some(version);
+                self.dependencies = dependencies;
+            }
+
+            pub(crate) fn set_package(&mut self, new_pkg: PackageJson) -> HashSet<String> {
+                let mut dependencies = new_pkg.vpm_dependencies
+                    .as_ref()
+                    .map(|x| x.keys().cloned().collect())
+                    .unwrap_or_default();
+                
+                self.current = Some(new_pkg.version.clone());
+                std::mem::swap(&mut self.dependencies, &mut dependencies);
+                self.using = Some(new_pkg);
+
+                // using is save
+                return dependencies
+            }
+        }
+
+        let mut dependencies = HashMap::new();
+
+        // first, add dependencies
+        for (name, dep) in self.manifest.dependencies() {
+            dependencies.insert(name.clone(), DependencyInfo::new_dependency(dep.version.clone()));
+        }
+
+        // then, add locked dependencies info
+        for (source, locked) in self.manifest.locked() {
+            dependencies.entry(source.clone()).or_default()
+                .set_using_info(locked.version.clone(), locked.dependencies.keys().cloned().collect());
+
+            for (dependency, range) in &locked.dependencies {
+                dependencies.entry(dependency.clone()).or_default()
+                    .add_range(source.clone(), range.clone())
+            }
+        }
+
+        let mut packages = std::collections::VecDeque::from_iter(packages);
+
+        while let Some(x) = packages.pop_front() {
+            let name = x.name.clone();
+            let vpm_dependencies = x.vpm_dependencies.clone();
+            let entry = dependencies.entry(x.name.clone()).or_default();
+            let old_dependencies = entry.set_package(x);
+
+            // remove previous dependencies if exists
+            for dep in &old_dependencies {
+                dependencies.get_mut(dep).unwrap().remove_range(dep);
+            }
+
+            // add new dependencies
+            for (dependency, range) in vpm_dependencies.iter().flatten() {
+                let entry = dependencies.entry(dependency.clone()).or_default();
+                let mut install = true;
+
+                if packages.iter().any(|x| &x.name == dependency && range.matches(&x.version)) {
+                    // if installing version is good, no need to reinstall
+                    install = false;
+                } else {
+                    // if already installed version is good, no need to reinstall
+                    if let Some(version) = &entry.current {
+                        if range.matches(version) {
+                            install = false;
+                        }
+                    }
+                }
+
+                entry.add_range(name.clone(), range.clone());
+
+                if install {
                     let found = env
-                        .find_package_by_name(dep, VersionSelector::Range(range))
-                        .await?;
-                    adding_deps.push(found.ok_or_else(|| AddPackageErr::DependencyNotFound {
-                        dependency_name: dep.clone(),
-                    })?);
+                        .find_package_by_name(dependency, VersionSelector::Range(range))
+                        .await?
+                        .ok_or_else(|| AddPackageErr::DependencyNotFound {
+                            dependency_name: dependency.clone(),
+                        })?;
+
+                    // remove existing if existing
+                    packages.retain(|x| &x.name != dependency);
+                    packages.push_back(found);
                 }
             }
         }
-        Ok(())
-    }
 
-    fn check_conflict(&self, name: &str, version: &Version) -> Result<(), AddPackageErr> {
-        for (pkg_name, dependencies) in self.all_dependencies() {
-            if let Some(dep) = dependencies.get(name) {
-                if !dep.matches(&version) {
-                    return Err(AddPackageErr::ConflictWithDependencies {
-                        conflict: name.to_owned(),
-                        dependency_name: pkg_name.clone(),
-                    });
+        // finally, check for conflict.
+        for (name, info) in &dependencies {
+            if let Some(version) = &info.current {
+                for (source, range) in &info.requirements {
+                    if !range.matches(version) {
+                        return Err(AddPackageErr::ConflictWithDependencies {
+                            conflict: name.to_owned(),
+                            dependency_name: source.clone(),
+                        });
+                    }
                 }
             }
         }
-        for (dir_name, package_json) in &self.unlocked_packages {
-            if dir_name == name {
-                return Err(AddPackageErr::ConflictWithUnlocked);
-            }
 
-            let Some(package_json) = package_json else { continue };
-
-            if package_json.name == name {
-                return Err(AddPackageErr::ConflictWithUnlocked);
-            }
-        }
-        Ok(())
+        Ok(dependencies
+            .into_values()
+            .filter_map(|x| x.using)
+            .collect())
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
