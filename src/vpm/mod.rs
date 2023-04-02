@@ -4,7 +4,7 @@
 
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
-use std::ffi::{OsStr, OsString};
+use std::ffi::{OsStr};
 use std::future::ready;
 use std::io::SeekFrom;
 use std::path::{Component, Path, PathBuf};
@@ -15,7 +15,7 @@ use std::{env, fmt, io};
 use futures::future::{join_all, try_join_all};
 use futures::prelude::*;
 use indexmap::IndexMap;
-use itertools::{Itertools as _, sorted};
+use itertools::{Itertools as _};
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
 use tokio::fs::{
@@ -806,10 +806,10 @@ mod vpm_manifest {
             &self.locked
         }
 
-        pub(super) fn add_dependency(&mut self, name: &str, dependency: VpmDependency) {
+        pub(super) fn add_dependency(&mut self, name: String, dependency: VpmDependency) {
             // update both parsed and non-parsed
-            self.add_value("dependencies", name, &dependency);
-            self.dependencies.insert(name.to_string(), dependency);
+            self.add_value("dependencies", &name, &dependency);
+            self.dependencies.insert(name, dependency);
         }
 
         pub(super) fn add_locked(&mut self, name: &str, dependency: VpmLockedDependency) {
@@ -1022,32 +1022,13 @@ pub struct AddPackageRequest {
     locked: Vec<PackageJson>,
 }
 
+impl AddPackageRequest {
+    pub fn locked(&self) -> &[PackageJson] {
+        &self.locked
+    }
+}
+
 impl UnityProject {
-    /// Add specified package to self project.
-    ///
-    /// If the package or newer one is already installed in dependencies, this does nothing
-    /// and returns AlreadyNewerPackageInstalled err.
-    ///
-    /// If the package or newer one is already installed in locked list,
-    /// this adds specified (not locked) version to dependencies
-    pub async fn add_package(
-        &mut self,
-        env: &Environment,
-        request: &PackageJson,
-    ) -> Result<(), AddPackageErr> {
-        let req = self.add_package_request(env, vec![request.clone()], true).await?;
-        Ok(self.do_add_package_request(env, req).await?)
-    }
-
-    pub async fn upgrade_package(
-        &mut self,
-        env: &Environment,
-        request: &PackageJson,
-    ) -> Result<(), AddPackageErr> {
-        let req = self.add_package_request(env, vec![request.clone()], false).await?;
-        Ok(self.do_add_package_request(env, req).await?)
-    }
-
     pub async fn add_package_request(
         &self,
         env: &Environment,
@@ -1106,7 +1087,7 @@ impl UnityProject {
 
         // first, add to dependencies
         for x in request.dependencies {
-            self.manifest.add_dependency(&x.0, x.1);
+            self.manifest.add_dependency(x.0, x.1);
         }
 
         self.do_add_packages_to_locked(env, &request.locked).await
@@ -1381,15 +1362,20 @@ impl UnityProject {
             .flatten()
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
-            .into_group_map();
-        for (pkg_name, ranges) in unlocked_dependencies {
-            let ranges = Vec::from_iter(&ranges);
-            let pkg = env
-                .find_package_by_name(&pkg_name, VersionSelector::Ranges(&ranges))
-                .await?
-                .expect("some dependencies of unlocked package not found");
-            self.upgrade_package(env, &pkg).await?;
-        }
+            .into_group_map()
+            .into_iter()
+            .map(|(pkg_name, ranges)| async move {
+                let ranges = Vec::from_iter(&ranges);
+                io::Result::Ok(env.find_package_by_name(&pkg_name, VersionSelector::Ranges(&ranges))
+                    .await?
+                    .expect("some dependencies of unlocked package not found"))
+            });
+        let unlocked_dependencies = try_join_all(unlocked_dependencies).await?;
+
+        let req = self.add_package_request(&env, unlocked_dependencies, false).await?;
+
+        self.do_add_package_request(&env, req).await?;
+
         Ok(())
     }
 

@@ -2,7 +2,7 @@ use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
 use crate::vpm::{
-    download_remote_repository, AddPackageErr, Environment, UnityProject, VersionSelector,
+    download_remote_repository, Environment, UnityProject, VersionSelector,
 };
 use clap::{Parser, Subcommand};
 use reqwest::Url;
@@ -14,6 +14,7 @@ use std::fmt::Display;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use futures::future::join_all;
 use tokio::fs::{read_dir, remove_file};
 
 macro_rules! multi_command {
@@ -151,10 +152,11 @@ impl Install {
                 Some(ref version) => VersionSelector::Specific(version),
             };
             let package = get_package(&env, &name, version_selector).await;
-            unity
-                .add_package(&env, &package)
-                .await
-                .exit_context("adding package");
+
+            let request = unity.add_package_request(&env, vec![package], true).await
+                .exit_context("collecting packages to be installed");
+
+            unity.do_add_package_request(&env, request).await.exit_context("adding package");
 
             mark_and_sweep(&mut unity).await;
         } else {
@@ -305,7 +307,7 @@ impl Upgrade {
         let env = load_env(client).await;
         let mut unity = load_unity(self.project).await;
 
-        if let Some(name) = self.name {
+        let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
                 None if self.prerelease => VersionSelector::LatestIncluidingPrerelease,
                 None => VersionSelector::Latest,
@@ -313,32 +315,27 @@ impl Upgrade {
             };
             let package = get_package(&env, &name, version_selector).await;
 
-            unity
-                .upgrade_package(&env, &package)
-                .await
-                .exit_context("upgrading package");
-
-            println!("upgraded {} to {}", name, package.version);
+            vec![package]
         } else {
             let version_selector = match self.prerelease {
                 true => VersionSelector::LatestIncluidingPrerelease,
                 false => VersionSelector::Latest,
             };
-            let package_names = unity.locked_packages().keys().cloned().collect::<Vec<_>>();
-            for name in package_names {
-                let package = get_package(&env, &name, version_selector).await;
 
-                match unity.upgrade_package(&env, &package).await {
-                    Ok(_) => {
-                        println!("upgraded {} to {}", name, package.version);
-                    }
-                    Err(AddPackageErr::Io(e)) => log::error!("upgrading package: {}", e),
-                    Err(AddPackageErr::AlreadyNewerPackageInstalled) => {}
-                    Err(e) => {
-                        log::warn!("upgrading {} to {}: {}", name, package.version, e);
-                    }
-                }
-            }
+            join_all(unity.locked_packages()
+                .keys()
+                .map(|name| get_package(&env, &name, version_selector))).await
+        };
+
+        let req = unity.add_package_request(&env, updates, false).await
+            .exit_context("collecting packages to be upgraded");
+
+        let updates = req.locked().iter().map(|x| (x.name.clone(), x.version.clone())).collect::<Vec<_>>();
+
+        unity.do_add_package_request(&env, req).await.exit_context("upgrading packages");
+
+        for (name, version) in updates {
+            println!("upgraded {} to {}", name, version);
         }
 
         mark_and_sweep(&mut unity).await;
