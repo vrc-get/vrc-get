@@ -1,9 +1,7 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::{
-    download_remote_repository, Environment, UnityProject, VersionSelector,
-};
+use crate::vpm::{download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
@@ -55,7 +53,7 @@ fn get_package<'env>(
     env: &'env Environment,
     name: &str,
     version_selector: VersionSelector,
-) -> &'env PackageJson {
+) -> PackageInfo<'env> {
     env.find_package_by_name(&name, version_selector)
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
@@ -228,8 +226,8 @@ impl Outdated {
             {
                 None => log::error!("package {} not found.", name),
                 // if found version is newer: add to outdated
-                Some(pkg) if dep.version < pkg.version => {
-                    outdated_packages.insert(pkg.name.clone(), (pkg, &dep.version));
+                Some(pkg) if dep.version < *pkg.version() => {
+                    outdated_packages.insert(pkg.name(), (pkg, &dep.version));
                 }
                 Some(_) => (),
             }
@@ -237,9 +235,9 @@ impl Outdated {
 
         for (_, dependencies) in unity.all_dependencies() {
             for (name, range) in dependencies {
-                if let Some((outdated, _)) = outdated_packages.get(name) {
-                    if !range.matches(&outdated.version) {
-                        outdated_packages.remove(name);
+                if let Some((outdated, _)) = outdated_packages.get(name.as_str()) {
+                    if !range.matches(&outdated.version()) {
+                        outdated_packages.remove(name.as_str());
                     }
                 }
             }
@@ -250,23 +248,23 @@ impl Outdated {
                 for (name, (found, installed)) in &outdated_packages {
                     println!(
                         "{}: installed: {}, found: {}",
-                        name, installed, &found.version
+                        name, installed, &found.version()
                     );
                 }
             }
             1 => {
                 #[derive(Serialize)]
-                struct OutdatedInfo {
-                    package_name: String,
-                    installed_version: Version,
-                    newer_version: Version,
+                struct OutdatedInfo<'a> {
+                    package_name: &'a str,
+                    installed_version: &'a Version,
+                    newer_version: &'a Version,
                 }
                 let info = outdated_packages
                     .into_iter()
                     .map(|(package_name, (found, installed))| OutdatedInfo {
                         package_name,
-                        installed_version: installed.clone(),
-                        newer_version: found.version.clone(),
+                        installed_version: installed,
+                        newer_version: found.version(),
                     })
                     .collect::<Vec<_>>();
                 println!("{}", serde_json::to_string(&info).unwrap());
@@ -333,7 +331,7 @@ impl Upgrade {
         let req = unity.add_package_request(&env, updates, false)
             .exit_context("collecting packages to be upgraded");
 
-        let updates = req.locked().iter().map(|x| (x.name.clone(), x.version.clone())).collect::<Vec<_>>();
+        let updates = req.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
 
         unity.do_add_package_request(&env, req).await.exit_context("upgrading packages");
 
