@@ -199,7 +199,7 @@ impl Environment {
         let defined_sources = DEFINED_REPO_SOURCES
             .into_iter()
             .copied()
-            .map(RepoSource::PreDefined);
+            .map(|x| RepoSource::PreDefined(x, self.get_repos_dir().join(x.file_name)));
         let user_repo_sources = self.get_user_repos()?.into_iter().map(RepoSource::UserRepo);
 
         stream::iter(defined_sources.chain(user_repo_sources).map(Ok))
@@ -224,10 +224,10 @@ impl Environment {
 
     async fn get_repo(&self, source: RepoSource) -> io::Result<&LocalCachedRepository> {
         match source {
-            RepoSource::PreDefined(source) => {
+            RepoSource::PreDefined(source, path) => {
                 self.repo_cache
                     .get_or_create_repo(
-                        &self.get_repos_dir().joined(source.file_name),
+                        &path,
                         source.url,
                         Some(source.name),
                     )
@@ -643,7 +643,7 @@ pub struct PreDefinedRepoSource {
 #[derive(Clone)]
 #[non_exhaustive]
 pub enum RepoSource {
-    PreDefined(PreDefinedRepoSource),
+    PreDefined(PreDefinedRepoSource, PathBuf),
     UserRepo(UserRepoSetting),
     Undefined(PathBuf),
 }
