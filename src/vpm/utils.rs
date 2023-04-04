@@ -2,7 +2,6 @@ use async_zip::error::ZipError;
 use futures::{Stream, TryStream};
 use pin_project_lite::pin_project;
 use serde_json::{Map, Value};
-use std::hint::unreachable_unchecked;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
@@ -75,48 +74,6 @@ impl JsonMapExt for Map<String, Value> {
         V: Into<Value>,
     {
         self.entry(key.into()).or_insert_with(|| value().into())
-    }
-}
-
-pub(crate) fn error_flatten<I, E>(r: Result<I, E>) -> ErrorFlatten<I::IntoIter, E>
-where
-    I: IntoIterator,
-{
-    ErrorFlatten {
-        inner: match r {
-            Ok(i) => ErrorFlattenInner::Iter(i.into_iter()),
-            Err(e) => ErrorFlattenInner::Err(e),
-        },
-    }
-}
-
-pub(crate) struct ErrorFlatten<I, E> {
-    inner: ErrorFlattenInner<I, E>,
-}
-
-enum ErrorFlattenInner<I, E> {
-    Err(E),
-    Iter(I),
-    End,
-}
-
-impl<I, E> Iterator for ErrorFlatten<I, E>
-where
-    I: Iterator,
-{
-    type Item = Result<I::Item, E>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.inner {
-            ErrorFlattenInner::Err(_) => {
-                match std::mem::replace(&mut self.inner, ErrorFlattenInner::End) {
-                    ErrorFlattenInner::Err(e) => Some(Err(e)),
-                    _ => unsafe { unreachable_unchecked() },
-                }
-            }
-            ErrorFlattenInner::Iter(ref mut i) => i.next().map(Ok),
-            ErrorFlattenInner::End => None,
-        }
     }
 }
 

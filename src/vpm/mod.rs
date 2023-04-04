@@ -31,7 +31,7 @@ use crate::version::{Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::structs::repository::LocalCachedRepository;
+use crate::vpm::structs::repository::{LocalCachedRepository, RepositoryCache};
 use crate::vpm::structs::setting::UserRepoSetting;
 use sha2::{Digest, Sha256};
 
@@ -53,6 +53,8 @@ pub struct Environment {
     settings: Map<String, Value>,
     /// Cache
     repo_cache: RepoHolder,
+    // TODO: change type for user package info
+    user_packages: Vec<PackageJson>,
     settings_changed: bool,
 }
 
@@ -72,6 +74,7 @@ impl Environment {
             settings: load_json_or_default(&folder.join("settings.json")).await?,
             global_dir: folder,
             repo_cache: RepoHolder::new(http),
+            user_packages: Vec::new(),
             settings_changed: false,
         })
     }
@@ -131,22 +134,40 @@ impl Environment {
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 
+    pub async fn load_package_infos(&mut self) -> io::Result<()> {
+        self.repo_cache.load_repos(self.get_repo_sources().await?).await?;
+        self.load_user_package_infos().await?;
+        Ok(())
+    }
+
+    async fn load_user_package_infos(&mut self) -> io::Result<()> {
+        self.user_packages.clear();
+        for x in self.get_user_package_folders()? {
+            if let Some(package_json) =
+                load_json_or_default::<Option<PackageJson>>(&x.joined("package.json")).await?
+            {
+                self.user_packages.push(package_json);
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) fn get_repos_dir(&self) -> PathBuf {
         self.global_dir.join("Repos")
     }
 
-    pub async fn find_package_by_name<'a>(
+    pub fn find_package_by_name(
         &self,
         package: &str,
-        version: VersionSelector<'a>,
-    ) -> io::Result<Option<PackageJson>> {
-        let mut versions = self.find_packages(package).await?;
+        version: VersionSelector,
+    ) -> Option<&PackageJson> {
+        let mut versions = self.find_packages(package);
 
         versions.retain(|x| version.satisfies(&x.version));
 
         versions.sort_by(|a, b| a.version.cmp(&b.version).reverse());
 
-        Ok(versions.into_iter().next())
+        versions.into_iter().next()
     }
 
     pub async fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
@@ -199,7 +220,7 @@ impl Environment {
         let defined_sources = DEFINED_REPO_SOURCES
             .into_iter()
             .copied()
-            .map(RepoSource::PreDefined);
+            .map(|x| RepoSource::PreDefined(x, self.get_repos_dir().join(x.file_name)));
         let user_repo_sources = self.get_user_repos()?.into_iter().map(RepoSource::UserRepo);
 
         stream::iter(defined_sources.chain(user_repo_sources).map(Ok))
@@ -208,107 +229,63 @@ impl Environment {
             .await
     }
 
-    pub async fn get_repos(&self) -> io::Result<Vec<&LocalCachedRepository>> {
-        try_join_all(
-            error_flatten(self.get_repo_sources().await)
-                .map_ok(|x| self.get_repo(x))
-                .map(|x| async move {
-                    match x {
-                        Ok(f) => f.await,
-                        Err(e) => Err(e),
-                    }
-                }),
-        )
-        .await
+    pub fn get_repos(&self) -> Vec<&LocalCachedRepository> {
+        self.repo_cache.get_repos()
     }
 
-    async fn get_repo(&self, source: RepoSource) -> io::Result<&LocalCachedRepository> {
-        match source {
-            RepoSource::PreDefined(source) => {
-                self.repo_cache
-                    .get_or_create_repo(
-                        &self.get_repos_dir().joined(source.file_name),
-                        source.url,
-                        Some(source.name),
-                    )
-                    .await
-            }
-            RepoSource::UserRepo(user_repo) => self.repo_cache.get_user_repo(&user_repo).await,
-            RepoSource::Undefined(repo_json) => {
-                self.repo_cache
-                    .get_repo(&repo_json, || async { unreachable!() })
-                    .await
-            }
-        }
-    }
-
-    pub(crate) async fn find_packages(&self, package: &str) -> io::Result<Vec<PackageJson>> {
+    pub(crate) fn find_packages(&self, package: &str) -> Vec<&PackageJson> {
         let mut list = Vec::new();
 
         self.get_repos()
-            .await?
             .into_iter()
-            .map(|repo| repo.cache.get(package).map(Clone::clone))
-            .flatten()
-            .map(|x| from_value::<PackageVersions>(x).map_err(io::Error::from))
-            .map_ok(|x| x.versions.into_values())
-            .flatten_ok()
-            .fold_ok((), |_, pkg| list.push(pkg))?;
+            .flat_map(|repo| repo.cache.get(package))
+            .flat_map(|x| x.versions.values())
+            .fold((), |_, pkg| list.push(pkg));
 
         // user package folders
-        for x in self.get_user_package_folders()? {
-            if let Some(package_json) =
-                load_json_or_default::<Option<PackageJson>>(&x.joined("package.json")).await?
-            {
-                if package_json.name == package {
-                    list.push(package_json);
-                }
+        for package_json in &self.user_packages {
+            if package_json.name == package {
+                list.push(package_json);
             }
         }
 
-        Ok(list)
+        list
     }
 
-    pub(crate) async fn find_whole_all_packages(
+    pub(crate) fn find_whole_all_packages(
         &self,
         filter: impl Fn(&PackageJson) -> bool,
-    ) -> io::Result<Vec<PackageJson>> {
+    ) -> Vec<&PackageJson> {
         let mut list = Vec::new();
 
-        fn get_latest(versions: PackageVersions) -> Option<PackageJson> {
+        fn get_latest(versions: &PackageVersions) -> Option<&PackageJson> {
             versions
                 .versions
-                .into_values()
+                .values()
                 .filter(|x| x.version.pre.is_empty())
-                .max_by_key(|x| x.version.clone())
+                .max_by_key(|x| &x.version)
         }
 
         self.get_repos()
-            .await?
             .into_iter()
-            .flat_map(|repo| repo.cache.values().cloned())
-            .map(|x| from_value::<PackageVersions>(x).map_err(io::Error::from))
-            .filter_map_ok(get_latest)
-            .filter_ok(|x| filter(x))
-            .fold_ok((), |_, pkg| list.push(pkg))?;
+            .flat_map(|repo| repo.cache.values())
+            .filter_map(get_latest)
+            .filter(|x| filter(x))
+            .fold((), |_, pkg| list.push(pkg));
 
         // user package folders
-        for x in self.get_user_package_folders()? {
-            if let Some(package_json) =
-                load_json_or_default::<Option<PackageJson>>(&x.joined("package.json")).await?
-            {
-                if !package_json.version.pre.is_empty() && filter(&package_json) {
-                    list.push(package_json);
-                }
+        for package_json in &self.user_packages {
+            if !package_json.version.pre.is_empty() && filter(package_json) {
+                list.push(package_json);
             }
         }
 
-        list.sort_by_key(|x| Reverse(x.version.clone()));
+        list.sort_by_key(|x| Reverse(&x.version));
 
-        Ok(list
+        list
             .into_iter()
-            .unique_by(|x| (x.name.clone(), x.version.clone()))
-            .collect())
+            .unique_by(|x| (&x.name, &x.version))
+            .collect()
     }
 
     pub async fn add_package(
@@ -546,11 +523,11 @@ impl Environment {
             repo_name.clone(),
             Some(url.to_string()),
         );
-        local_cache.cache = remote_repo
+        local_cache.cache = RepositoryCache::new(remote_repo
             .get("packages")
             .and_then(Value::as_object)
             .cloned()
-            .unwrap_or(JsonMap::new());
+            .unwrap_or(JsonMap::new()))?;
         local_cache.repo = Some(remote_repo);
 
         // set etag
@@ -571,7 +548,7 @@ impl Environment {
         Ok(())
     }
 
-    pub async fn add_local_repo(
+    pub fn add_local_repo(
         &mut self,
         path: &Path,
         name: Option<&str>,
@@ -643,7 +620,7 @@ pub struct PreDefinedRepoSource {
 #[derive(Clone)]
 #[non_exhaustive]
 pub enum RepoSource {
-    PreDefined(PreDefinedRepoSource),
+    PreDefined(PreDefinedRepoSource, PathBuf),
     UserRepo(UserRepoSetting),
     Undefined(PathBuf),
 }
@@ -704,11 +681,15 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
     match download_remote_repository(&client, remote_url, etag).await {
         Ok(None) => log::debug!("cache matched downloading {}", remote_url),
         Ok(Some((remote_repo, etag))) => {
-            repo.cache = remote_repo
+            match RepositoryCache::new(remote_repo
                 .get("packages")
                 .and_then(Value::as_object)
                 .cloned()
-                .unwrap_or(JsonMap::new());
+                .unwrap_or(JsonMap::new())) {
+                Ok(cache) => repo.cache = cache,
+                Err(e) => log::error!("parsing remote repo '{}': {}", remote_url, e),
+            }
+
             // set etag
             if let Some(etag) = etag {
                 repo.vrc_get.get_or_insert_with(Default::default).etag = etag;
@@ -1020,24 +1001,24 @@ impl UnityProject {
     }
 }
 
-pub struct AddPackageRequest {
-    dependencies: Vec<(String, VpmDependency)>,
-    locked: Vec<PackageJson>,
+pub struct AddPackageRequest<'env> {
+    dependencies: Vec<(&'env String, VpmDependency)>,
+    locked: Vec<&'env PackageJson>,
 }
 
-impl AddPackageRequest {
-    pub fn locked(&self) -> &[PackageJson] {
+impl <'env> AddPackageRequest<'env> {
+    pub fn locked(&self) -> &[&'env PackageJson] {
         &self.locked
     }
 }
 
 impl UnityProject {
-    pub async fn add_package_request(
+    pub fn add_package_request<'env>(
         &self,
-        env: &Environment,
-        mut packages: Vec<PackageJson>,
+        env: &'env Environment,
+        mut packages: Vec<&'env PackageJson>,
         to_dependencies: bool,
-    ) -> Result<AddPackageRequest, AddPackageErr> {
+    ) -> Result<AddPackageRequest<'env>, AddPackageErr> {
         use crate::vpm::AddPackageErr::*;
         packages.retain(|pkg| {
             self.manifest.dependencies().get(&pkg.name).map(|dep| dep.version < pkg.version).unwrap_or(true)
@@ -1056,7 +1037,7 @@ impl UnityProject {
             let update = self.manifest.locked().get(&request.name).map(|dep| dep.version < request.version).unwrap_or(true);
 
             if to_dependencies {
-                dependencies.push((request.name.clone(), VpmDependency::new(request.version.clone())));
+                dependencies.push((&request.name, VpmDependency::new(request.version.clone())));
             }
 
             if update {
@@ -1075,22 +1056,22 @@ impl UnityProject {
             }
         }
 
-        let packages = self.collect_adding_packages(env, locked).await?;
+        let packages = self.collect_adding_packages(env, locked)?;
 
         // TODO: find for legacyFolders/Files here
 
         return Ok(AddPackageRequest { dependencies, locked: packages });
     }
 
-    pub async fn do_add_package_request(
+    pub async fn do_add_package_request<'env>(
         &mut self,
-        env: &Environment,
-        request: AddPackageRequest,
+        env: &'env Environment,
+        request: AddPackageRequest<'env>,
     ) -> io::Result<()> {
 
         // first, add to dependencies
         for x in request.dependencies {
-            self.manifest.add_dependency(x.0, x.1);
+            self.manifest.add_dependency(x.0.clone(), x.1);
         }
 
         self.do_add_packages_to_locked(env, &request.locked).await
@@ -1099,7 +1080,7 @@ impl UnityProject {
     async fn do_add_packages_to_locked(
         &mut self,
         env: &Environment,
-        packages: &[PackageJson],
+        packages: &[&PackageJson],
     ) -> io::Result<()> {
         // then, lock all dependencies
         for pkg in packages.iter() {
@@ -1190,24 +1171,24 @@ impl UnityProject {
         Ok(removed_packages)
     }
 
-    async fn collect_adding_packages(
+    fn collect_adding_packages<'env>(
         &self,
-        env: &Environment,
-        packages: Vec<PackageJson>,
-    ) -> Result<Vec<PackageJson>, AddPackageErr> {
+        env: &'env Environment,
+        packages: Vec<&'env PackageJson>,
+    ) -> Result<Vec<&'env PackageJson>, AddPackageErr> {
         #[derive(Default)]
-        struct DependencyInfo {
-            using: Option<PackageJson>,
-            current: Option<Version>,
+        struct DependencyInfo<'env, 'a> {
+            using: Option<&'env PackageJson>,
+            current: Option<&'a Version>,
             // "" key for root dependencies
-            requirements: HashMap<String, VersionRange>,
-            dependencies: HashSet<String>,
+            requirements: HashMap<&'a str, &'a VersionRange>,
+            dependencies: HashSet<&'a str>,
         }
 
-        impl DependencyInfo {
-            fn new_dependency(version: Version) -> Self {
+        impl <'env, 'a> DependencyInfo<'env, 'a> where 'env: 'a {
+            fn new_dependency(version_range: &'a VersionRange) -> Self {
                 let mut requirements = HashMap::new();
-                requirements.insert(String::new(), VersionRange::same_or_later(version));
+                requirements.insert("", version_range);
                 DependencyInfo { 
                     using: None, 
                     current: None,
@@ -1216,7 +1197,7 @@ impl UnityProject {
                 }
             }
 
-            fn add_range(&mut self, source: String, range: VersionRange) {
+            fn add_range(&mut self, source: &'a str, range: &'a VersionRange) {
                 self.requirements.insert(source, range);
             }
 
@@ -1224,18 +1205,18 @@ impl UnityProject {
                 self.requirements.remove(source);
             }
 
-            pub(crate) fn set_using_info(&mut self, version: Version, dependencies: HashSet<String>) {
+            pub(crate) fn set_using_info(&mut self, version: &'a Version, dependencies: HashSet<&'a str>) {
                 self.current = Some(version);
                 self.dependencies = dependencies;
             }
 
-            pub(crate) fn set_package(&mut self, new_pkg: PackageJson) -> HashSet<String> {
+            pub(crate) fn set_package(&mut self, new_pkg: &'env PackageJson) -> HashSet<&'a str> {
                 let mut dependencies = new_pkg.vpm_dependencies
                     .as_ref()
-                    .map(|x| x.keys().cloned().collect())
+                    .map(|x| x.keys().map(|x| x.as_str()).collect())
                     .unwrap_or_default();
                 
-                self.current = Some(new_pkg.version.clone());
+                self.current = Some(&new_pkg.version);
                 std::mem::swap(&mut self.dependencies, &mut dependencies);
                 self.using = Some(new_pkg);
 
@@ -1244,21 +1225,25 @@ impl UnityProject {
             }
         }
 
-        let mut dependencies = HashMap::new();
+        let mut dependencies = HashMap::<&str, _>::new();
 
         // first, add dependencies
-        for (name, dep) in self.manifest.dependencies() {
-            dependencies.insert(name.clone(), DependencyInfo::new_dependency(dep.version.clone()));
+        let root_dependencies = self.manifest.dependencies()
+            .into_iter()
+            .map(|(name, dep)| (name, VersionRange::same_or_later(dep.version.clone())))
+            .collect_vec();
+        for (name, range) in &root_dependencies {
+            dependencies.insert(name, DependencyInfo::new_dependency(range));
         }
 
         // then, add locked dependencies info
         for (source, locked) in self.manifest.locked() {
-            dependencies.entry(source.clone()).or_default()
-                .set_using_info(locked.version.clone(), locked.dependencies.keys().cloned().collect());
+            dependencies.entry(source).or_default()
+                .set_using_info(&locked.version, locked.dependencies.keys().map(|x| x.as_str()).collect());
 
             for (dependency, range) in &locked.dependencies {
-                dependencies.entry(dependency.clone()).or_default()
-                    .add_range(source.clone(), range.clone())
+                dependencies.entry(dependency).or_default()
+                    .add_range(source, range)
             }
         }
 
@@ -1266,20 +1251,20 @@ impl UnityProject {
 
         while let Some(x) = packages.pop_front() {
             log::debug!("processing package {} version {}", x.name, x.version);
-            let name = x.name.clone();
-            let vpm_dependencies = x.vpm_dependencies.clone();
-            let entry = dependencies.entry(x.name.clone()).or_default();
+            let name = x.name.as_str();
+            let vpm_dependencies = &x.vpm_dependencies;
+            let entry = dependencies.entry(&x.name).or_default();
             let old_dependencies = entry.set_package(x);
 
             // remove previous dependencies if exists
             for dep in &old_dependencies {
-                dependencies.get_mut(dep).unwrap().remove_range(dep);
+                dependencies.get_mut(*dep).unwrap().remove_range(dep);
             }
 
             // add new dependencies
             for (dependency, range) in vpm_dependencies.iter().flatten() {
                 log::debug!("processing package {name}: dependency {dependency} version {range}");
-                let entry = dependencies.entry(dependency.clone()).or_default();
+                let entry = dependencies.entry(dependency).or_default();
                 let mut install = true;
 
                 if packages.iter().any(|x| &x.name == dependency && range.matches(&x.version)) {
@@ -1296,12 +1281,11 @@ impl UnityProject {
                     }
                 }
 
-                entry.add_range(name.clone(), range.clone());
+                entry.add_range(name, range);
 
                 if install {
                     let found = env
                         .find_package_by_name(dependency, VersionSelector::Range(range))
-                        .await?
                         .ok_or_else(|| AddPackageErr::DependencyNotFound {
                             dependency_name: dependency.clone(),
                         })?;
@@ -1319,8 +1303,8 @@ impl UnityProject {
                 for (source, range) in &info.requirements {
                     if !range.matches(version) {
                         return Err(AddPackageErr::ConflictWithDependencies {
-                            conflict: name.to_owned(),
-                            dependency_name: source.clone(),
+                            conflict: (*name).to_owned(),
+                            dependency_name: (*source).to_owned(),
                         });
                     }
                 }
@@ -1349,7 +1333,6 @@ impl UnityProject {
                 .map(|(pkg, dep)| async move {
                     let pkg = env
                         .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
-                        .await?
                         .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
                     env.add_package(&pkg, &this.packages_dir).await?;
                     Result::<_, AddPackageErr>::Ok(())
@@ -1364,20 +1347,22 @@ impl UnityProject {
             .filter_map(|pkg| pkg.vpm_dependencies.as_ref())
             .flatten()
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
-            .map(|(k, v)| (k.clone(), v.clone()))
+            .map(|(k, v)| (k, v))
             .into_group_map()
             .into_iter()
-            .map(|(pkg_name, ranges)| async move {
-                let ranges = Vec::from_iter(&ranges);
-                io::Result::Ok(env.find_package_by_name(&pkg_name, VersionSelector::Ranges(&ranges))
-                    .await?
-                    .expect("some dependencies of unlocked package not found"))
-            });
-        let unlocked_dependencies = try_join_all(unlocked_dependencies).await?;
+            .map(|(pkg_name, ranges)| {
+                env.find_package_by_name(pkg_name, VersionSelector::Ranges(&ranges))
+                    .expect("some dependencies of unlocked package not found")
+            })
+            .collect::<Vec<_>>();
 
-        let req = self.add_package_request(&env, unlocked_dependencies, false).await?;
-
-        self.do_add_package_request(&env, req).await?;
+        match self.add_package_request(&env, unlocked_dependencies, false) {
+            Ok(req) => {
+                self.do_add_package_request(&env, req).await?;
+            }
+            Err(AddPackageErr::AlreadyNewerPackageInstalled) => (),
+            Err(e) => return Err(e),
+        }
 
         Ok(())
     }
