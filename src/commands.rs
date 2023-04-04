@@ -14,7 +14,6 @@ use std::fmt::Display;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use futures::future::join_all;
 use indexmap::IndexMap;
 use tokio::fs::{read_dir, remove_file};
 use crate::vpm::structs::repository::RepositoryCache;
@@ -52,14 +51,12 @@ async fn load_unity(path: Option<PathBuf>) -> UnityProject {
         .exit_context("loading unity project")
 }
 
-async fn get_package<'a>(
-    env: &'a Environment,
+fn get_package<'env>(
+    env: &'env Environment,
     name: &str,
-    version_selector: VersionSelector<'a>,
-) -> PackageJson {
+    version_selector: VersionSelector,
+) -> &'env PackageJson {
     env.find_package_by_name(&name, version_selector)
-        .await
-        .exit_context("finding package")
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
 
@@ -155,9 +152,9 @@ impl Install {
                 None => VersionSelector::Latest,
                 Some(ref version) => VersionSelector::Specific(version),
             };
-            let package = get_package(&env, &name, version_selector).await;
+            let package = get_package(&env, &name, version_selector);
 
-            let request = unity.add_package_request(&env, vec![package], true).await
+            let request = unity.add_package_request(&env, vec![package], true)
                 .exit_context("collecting packages to be installed");
 
             unity.do_add_package_request(&env, request).await.exit_context("adding package");
@@ -227,17 +224,14 @@ impl Outdated {
         let mut outdated_packages = HashMap::new();
 
         for (name, dep) in unity.locked_packages() {
-            match env
-                .find_package_by_name(name, VersionSelector::Latest)
-                .await
+            match env.find_package_by_name(name, VersionSelector::Latest)
             {
-                Err(e) => log::error!("error loading package {}: {}", name, e),
-                Ok(None) => log::error!("package {} not found.", name),
+                None => log::error!("package {} not found.", name),
                 // if found version is newer: add to outdated
-                Ok(Some(pkg)) if dep.version < pkg.version => {
+                Some(pkg) if dep.version < pkg.version => {
                     outdated_packages.insert(pkg.name.clone(), (pkg, &dep.version));
                 }
-                Ok(Some(_)) => (),
+                Some(_) => (),
             }
         }
 
@@ -272,7 +266,7 @@ impl Outdated {
                     .map(|(package_name, (found, installed))| OutdatedInfo {
                         package_name,
                         installed_version: installed.clone(),
-                        newer_version: found.version,
+                        newer_version: found.version.clone(),
                     })
                     .collect::<Vec<_>>();
                 println!("{}", serde_json::to_string(&info).unwrap());
@@ -321,7 +315,7 @@ impl Upgrade {
                 None => VersionSelector::Latest,
                 Some(ref version) => VersionSelector::Specific(version),
             };
-            let package = get_package(&env, &name, version_selector).await;
+            let package = get_package(&env, &name, version_selector);
 
             vec![package]
         } else {
@@ -330,12 +324,13 @@ impl Upgrade {
                 false => VersionSelector::Latest,
             };
 
-            join_all(unity.locked_packages()
+            unity.locked_packages()
                 .keys()
-                .map(|name| get_package(&env, &name, version_selector))).await
+                .map(|name| get_package(&env, &name, version_selector))
+                .collect()
         };
 
-        let req = unity.add_package_request(&env, updates, false).await
+        let req = unity.add_package_request(&env, updates, false)
             .exit_context("collecting packages to be upgraded");
 
         let updates = req.locked().iter().map(|x| (x.name.clone(), x.version.clone())).collect::<Vec<_>>();
@@ -396,8 +391,7 @@ impl Search {
                 queries
                     .iter()
                     .all(|query| search_targets.iter().any(|x| x.contains(query)))
-            })
-            .exit_context("searching whole repositories");
+            });
 
         if found_packages.is_empty() {
             println!("No matching package found!")
@@ -496,7 +490,6 @@ impl RepoAdd {
                 .exit_context("adding repository")
         } else {
             env.add_local_repo(Path::new(&self.path_or_url), self.name.as_deref())
-                .await
                 .exit_context("adding repository")
         }
 
