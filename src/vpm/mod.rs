@@ -131,6 +131,10 @@ impl Environment {
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 
+    pub async fn load_all_repos(&mut self) -> io::Result<()> {
+        self.repo_cache.load_repos(self.get_repo_sources().await?).await
+    }
+
     pub(crate) fn get_repos_dir(&self) -> PathBuf {
         self.global_dir.join("Repos")
     }
