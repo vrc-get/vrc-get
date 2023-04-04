@@ -53,6 +53,8 @@ pub struct Environment {
     settings: Map<String, Value>,
     /// Cache
     repo_cache: RepoHolder,
+    // TODO: change type for user package info
+    user_packages: Vec<PackageJson>,
     settings_changed: bool,
 }
 
@@ -72,6 +74,7 @@ impl Environment {
             settings: load_json_or_default(&folder.join("settings.json")).await?,
             global_dir: folder,
             repo_cache: RepoHolder::new(http),
+            user_packages: Vec::new(),
             settings_changed: false,
         })
     }
@@ -131,8 +134,22 @@ impl Environment {
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 
-    pub async fn load_all_repos(&mut self) -> io::Result<()> {
-        self.repo_cache.load_repos(self.get_repo_sources().await?).await
+    pub async fn load_package_infos(&mut self) -> io::Result<()> {
+        self.repo_cache.load_repos(self.get_repo_sources().await?).await?;
+        self.load_user_package_infos().await?;
+        Ok(())
+    }
+
+    async fn load_user_package_infos(&mut self) -> io::Result<()> {
+        self.user_packages.clear();
+        for x in self.get_user_package_folders()? {
+            if let Some(package_json) =
+                load_json_or_default::<Option<PackageJson>>(&x.joined("package.json")).await?
+            {
+                self.user_packages.push(package_json);
+            }
+        }
+        Ok(())
     }
 
     pub(crate) fn get_repos_dir(&self) -> PathBuf {
@@ -144,7 +161,7 @@ impl Environment {
         package: &str,
         version: VersionSelector<'a>,
     ) -> io::Result<Option<PackageJson>> {
-        let mut versions = self.find_packages(package).await?;
+        let mut versions = self.find_packages(package)?;
 
         versions.retain(|x| version.satisfies(&x.version));
 
@@ -216,7 +233,7 @@ impl Environment {
         self.repo_cache.get_repos()
     }
 
-    pub(crate) async fn find_packages(&self, package: &str) -> io::Result<Vec<PackageJson>> {
+    pub(crate) fn find_packages(&self, package: &str) -> io::Result<Vec<PackageJson>> {
         let mut list = Vec::new();
 
         self.get_repos()
@@ -229,20 +246,16 @@ impl Environment {
             .fold_ok((), |_, pkg| list.push(pkg))?;
 
         // user package folders
-        for x in self.get_user_package_folders()? {
-            if let Some(package_json) =
-                load_json_or_default::<Option<PackageJson>>(&x.joined("package.json")).await?
-            {
-                if package_json.name == package {
-                    list.push(package_json);
-                }
+        for package_json in &self.user_packages {
+            if package_json.name == package {
+                list.push(package_json.clone());
             }
         }
 
         Ok(list)
     }
 
-    pub(crate) async fn find_whole_all_packages(
+    pub(crate) fn find_whole_all_packages(
         &self,
         filter: impl Fn(&PackageJson) -> bool,
     ) -> io::Result<Vec<PackageJson>> {
@@ -265,13 +278,9 @@ impl Environment {
             .fold_ok((), |_, pkg| list.push(pkg))?;
 
         // user package folders
-        for x in self.get_user_package_folders()? {
-            if let Some(package_json) =
-                load_json_or_default::<Option<PackageJson>>(&x.joined("package.json")).await?
-            {
-                if !package_json.version.pre.is_empty() && filter(&package_json) {
-                    list.push(package_json);
-                }
+        for package_json in &self.user_packages {
+            if !package_json.version.pre.is_empty() && filter(package_json) {
+                list.push(package_json.clone());
             }
         }
 

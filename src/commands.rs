@@ -145,7 +145,7 @@ impl Install {
         let mut env = load_env(client).await;
         let mut unity = load_unity(self.project).await;
 
-        env.load_all_repos().await.exit_context("loading repositories");
+        env.load_package_infos().await.exit_context("loading repositories");
 
         if let Some(name) = self.name {
             let version_selector = match self.version {
@@ -220,7 +220,7 @@ impl Outdated {
         let mut env = load_env(client).await;
         let unity = load_unity(self.project).await;
 
-        env.load_all_repos().await.exit_context("loading repositories");
+        env.load_package_infos().await.exit_context("loading repositories");
 
         let mut outdated_packages = HashMap::new();
 
@@ -311,7 +311,7 @@ impl Upgrade {
         let mut env = load_env(client).await;
         let mut unity = load_unity(self.project).await;
 
-        env.load_all_repos().await.exit_context("loading repositories");
+        env.load_package_infos().await.exit_context("loading repositories");
 
         let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
@@ -369,7 +369,7 @@ impl Search {
         let client = crate::create_client(self.offline);
         let mut env = load_env(client).await;
 
-        env.load_all_repos().await.exit_context("loading repositories");
+        env.load_package_infos().await.exit_context("loading repositories");
 
         let mut queries = self.queries;
         for query in &mut queries {
@@ -395,7 +395,6 @@ impl Search {
                     .iter()
                     .all(|query| search_targets.iter().any(|x| x.contains(query)))
             })
-            .await
             .exit_context("searching whole repositories");
 
         if found_packages.is_empty() {
@@ -444,7 +443,7 @@ impl RepoList {
         let client = crate::create_client(self.offline);
         let mut env = load_env(client).await;
 
-        env.load_all_repos().await.exit_context("loading repositories");
+        env.load_package_infos().await.exit_context("loading repositories");
 
         for repo in env.get_repos() {
             let mut name = None;
@@ -653,7 +652,7 @@ impl RepoPackages {
         } else {
             let mut env = load_env(client).await;
 
-            env.load_all_repos().await.exit_context("loading repositories");
+            env.load_package_infos().await.exit_context("loading repositories");
 
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
