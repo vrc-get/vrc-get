@@ -212,45 +212,14 @@ impl Environment {
             .await
     }
 
-    pub async fn get_repos(&self) -> io::Result<Vec<&LocalCachedRepository>> {
-        try_join_all(
-            error_flatten(self.get_repo_sources().await)
-                .map_ok(|x| self.get_repo(x))
-                .map(|x| async move {
-                    match x {
-                        Ok(f) => f.await,
-                        Err(e) => Err(e),
-                    }
-                }),
-        )
-        .await
-    }
-
-    async fn get_repo(&self, source: RepoSource) -> io::Result<&LocalCachedRepository> {
-        match source {
-            RepoSource::PreDefined(source, path) => {
-                self.repo_cache
-                    .get_or_create_repo(
-                        &path,
-                        source.url,
-                        Some(source.name),
-                    )
-                    .await
-            }
-            RepoSource::UserRepo(user_repo) => self.repo_cache.get_user_repo(&user_repo).await,
-            RepoSource::Undefined(repo_json) => {
-                self.repo_cache
-                    .get_repo(&repo_json, || async { unreachable!() })
-                    .await
-            }
-        }
+    pub fn get_repos(&self) -> Vec<&LocalCachedRepository> {
+        self.repo_cache.get_repos()
     }
 
     pub(crate) async fn find_packages(&self, package: &str) -> io::Result<Vec<PackageJson>> {
         let mut list = Vec::new();
 
         self.get_repos()
-            .await?
             .into_iter()
             .map(|repo| repo.cache.get(package).map(Clone::clone))
             .flatten()
@@ -288,7 +257,6 @@ impl Environment {
         }
 
         self.get_repos()
-            .await?
             .into_iter()
             .flat_map(|repo| repo.cache.values().cloned())
             .map(|x| from_value::<PackageVersions>(x).map_err(io::Error::from))

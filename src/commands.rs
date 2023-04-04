@@ -446,7 +446,7 @@ impl RepoList {
 
         env.load_all_repos().await.exit_context("loading repositories");
 
-        for repo in env.get_repos().await.exit_context("getting all repos") {
+        for repo in env.get_repos() {
             let mut name = None;
             let mut r#type = None;
             let mut local_path = None;
@@ -658,7 +658,7 @@ impl RepoPackages {
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
 
-            for repo in env.get_repos().await.exit_context("loading repos") {
+            for repo in env.get_repos() {
                 if repo.creation_info.as_ref().and_then(|x| x.name.as_deref()) == some_name
                     || repo.description.as_ref().and_then(|x| x.name.as_deref()) == some_name
                 {

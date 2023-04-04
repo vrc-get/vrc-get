@@ -22,89 +22,6 @@ impl RepoHolder {
             cached_repos_new: HashMap::new(),
         }
     }
-
-    /// Get OR create and update repository
-    pub(crate) async fn get_or_create_repo(
-        &self,
-        path: &Path,
-        remote_url: &str,
-        name: Option<&str>,
-    ) -> io::Result<&LocalCachedRepository> {
-        let client = self.http.clone();
-        self.get_repo(path, || async {
-            // if local repository not found: try downloading remote one
-            let Some(client) = client else {
-                return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "offline mode"))
-            };
-            let (remote_repo, etag) = download_remote_repository(&client, remote_url, None)
-                .await?
-                .expect("logic failure: no etag");
-
-            let mut local_cache = LocalCachedRepository::new(
-                path.to_owned(),
-                name.map(str::to_owned),
-                Some(remote_url.to_owned()),
-            );
-            local_cache.cache = remote_repo
-                .get("packages")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or(JsonMap::new());
-            local_cache.repo = Some(remote_repo);
-            if let Some(etag) = etag {
-                local_cache
-                    .vrc_get
-                    .get_or_insert_with(Default::default)
-                    .etag = etag;
-            }
-
-            match write_repo(path, &local_cache).await {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("writing local repo '{}': {}", path.display(), e);
-                }
-            }
-
-            Ok(local_cache)
-        })
-        .await
-    }
-
-    fn get_repo_holder(&self, path: PathBuf) -> &RepositoryHolder {
-        // SAFETY: 
-        // 1) the RepositoryHolder instance is pinned 
-        // 2) Also, value of cached_repos is never updated
-        //
-        // so RepositoryHolder reference is live if self is live
-        unsafe { (*self.cached_repos.get()).entry(path).or_insert_with(|| Box::pin(RepositoryHolder::new())) }
-    }
-
-    pub(crate) async fn get_repo<F, T>(
-        &self,
-        path: &Path,
-        if_not_found: F,
-    ) -> io::Result<&LocalCachedRepository>
-    where
-        F: FnOnce() -> T,
-        T: Future<Output = io::Result<LocalCachedRepository>>,
-    {
-        self.get_repo_holder(path.into()).get_repo(path, self.http.as_ref(), if_not_found).await
-    }
-
-    pub(crate) async fn get_user_repo(
-        &self,
-        repo: &UserRepoSetting,
-    ) -> io::Result<&LocalCachedRepository> {
-        if let Some(url) = &repo.url {
-            self.get_or_create_repo(&repo.local_path, &url, repo.name.as_deref())
-                .await
-        } else {
-            self.get_repo(&repo.local_path, || async {
-                Err(io::Error::new(io::ErrorKind::NotFound, "repo not found"))
-            })
-            .await
-        }
-    }
 }
 
 // new system
@@ -236,6 +153,14 @@ impl RepoHolder {
             update_from_remote(http, path.into(), &mut loaded).await;
         }
         return Ok(loaded);
+    }
+
+    pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
+        self.cached_repos_new.get(path)
+    }
+
+    pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
+        self.cached_repos_new.values().collect()
     }
 }
 
