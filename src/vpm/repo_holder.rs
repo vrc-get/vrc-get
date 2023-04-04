@@ -9,8 +9,6 @@ use tokio::sync::Semaphore;
 #[derive(Debug)]
 pub(super) struct RepoHolder {
     http: Option<Client>,
-    // the pointer of LocalCachedRepository will never be changed
-    cached_repos: UnsafeCell<HashMap<PathBuf, Pin<Box<RepositoryHolder>>>>,
     cached_repos_new: HashMap<PathBuf, LocalCachedRepository>,
 }
 
@@ -18,7 +16,6 @@ impl RepoHolder {
     pub(crate) fn new(http: Option<Client>) -> Self {
         RepoHolder {
             http,
-            cached_repos: UnsafeCell::new(HashMap::new()),
             cached_repos_new: HashMap::new(),
         }
     }
@@ -161,69 +158,5 @@ impl RepoHolder {
 
     pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
         self.cached_repos_new.values().collect()
-    }
-}
-
-struct RepositoryHolder {
-    // used as lock. write lock only
-    semaphore: Semaphore,
-    value: UnsafeCell<Option<LocalCachedRepository>>,
-    // pinned, non-sync/send
-    _phantom: PhantomData<PhantomPinned>,
-}
-
-impl RepositoryHolder {
-    pub(super) fn new() -> Self {
-        Self {
-            semaphore: Semaphore::new(1),
-            value: UnsafeCell::new(None),
-            _phantom: PhantomData
-        }
-    }
-
-    pub(super) async fn get_repo<F, T>(
-        &self,
-        path: &Path,
-        http: Option<&Client>,
-        if_not_found: F,
-    ) -> io::Result<&LocalCachedRepository>
-        where
-            F: FnOnce() -> T,
-            T: Future<Output = io::Result<LocalCachedRepository>>,
-    {
-        if let Some(ref found) = unsafe { &*self.value.get() } {
-            return Ok(found);
-        }
-
-        let guard = self.semaphore.acquire().await.unwrap();
-
-        if let Some(ref found) = unsafe { &*self.value.get() } {
-            return Ok(found);
-        }
-
-        let Some(json_file) = try_open_file(path).await? else {
-            return Ok(self.set_value(if_not_found().await?));
-        };
-
-        let mut loaded = match serde_json::from_slice(&read_to_vec(json_file).await?) {
-            Ok(loaded) => loaded,
-            Err(e) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("loading {}: {}", path.display(), e),
-                ))
-            }
-        };
-        if let Some(http) = http {
-            update_from_remote(http, path.into(), &mut loaded).await;
-        }
-        return Ok(self.set_value(loaded));
-    }
-
-    fn set_value(&self, value: LocalCachedRepository) -> &LocalCachedRepository {
-        assert!(self.semaphore.available_permits() == 0, "semaphore lock is not owned");
-
-        unsafe { *self.value.get() = Some(value); }
-        return unsafe { (*self.value.get()).as_ref().unwrap_unchecked() };
     }
 }
