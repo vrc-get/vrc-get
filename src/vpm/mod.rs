@@ -263,7 +263,7 @@ impl Environment {
                 .versions
                 .values()
                 .filter(|x| x.version.pre.is_empty())
-                .max_by_key(|x| x.version.clone())
+                .max_by_key(|x| &x.version)
         }
 
         self.get_repos()
@@ -280,11 +280,11 @@ impl Environment {
             }
         }
 
-        list.sort_by_key(|x| Reverse(x.version.clone()));
+        list.sort_by_key(|x| Reverse(&x.version));
 
         list
             .into_iter()
-            .unique_by(|x| (x.name.clone(), x.version.clone()))
+            .unique_by(|x| (&x.name, &x.version))
             .collect()
     }
 
@@ -1002,7 +1002,7 @@ impl UnityProject {
 }
 
 pub struct AddPackageRequest<'env> {
-    dependencies: Vec<(String, VpmDependency)>,
+    dependencies: Vec<(&'env String, VpmDependency)>,
     locked: Vec<&'env PackageJson>,
 }
 
@@ -1037,7 +1037,7 @@ impl UnityProject {
             let update = self.manifest.locked().get(&request.name).map(|dep| dep.version < request.version).unwrap_or(true);
 
             if to_dependencies {
-                dependencies.push((request.name.clone(), VpmDependency::new(request.version.clone())));
+                dependencies.push((&request.name, VpmDependency::new(request.version.clone())));
             }
 
             if update {
@@ -1071,7 +1071,7 @@ impl UnityProject {
 
         // first, add to dependencies
         for x in request.dependencies {
-            self.manifest.add_dependency(x.0, x.1);
+            self.manifest.add_dependency(x.0.clone(), x.1);
         }
 
         self.do_add_packages_to_locked(env, &request.locked).await
@@ -1177,18 +1177,18 @@ impl UnityProject {
         packages: Vec<&'env PackageJson>,
     ) -> Result<Vec<&'env PackageJson>, AddPackageErr> {
         #[derive(Default)]
-        struct DependencyInfo<'env> {
+        struct DependencyInfo<'env, 'a> {
             using: Option<&'env PackageJson>,
-            current: Option<Version>,
+            current: Option<&'a Version>,
             // "" key for root dependencies
-            requirements: HashMap<String, VersionRange>,
-            dependencies: HashSet<String>,
+            requirements: HashMap<&'a str, &'a VersionRange>,
+            dependencies: HashSet<&'a str>,
         }
 
-        impl <'env> DependencyInfo<'env> {
-            fn new_dependency(version: Version) -> Self {
+        impl <'env, 'a> DependencyInfo<'env, 'a> where 'env: 'a {
+            fn new_dependency(version_range: &'a VersionRange) -> Self {
                 let mut requirements = HashMap::new();
-                requirements.insert(String::new(), VersionRange::same_or_later(version));
+                requirements.insert("", version_range);
                 DependencyInfo { 
                     using: None, 
                     current: None,
@@ -1197,7 +1197,7 @@ impl UnityProject {
                 }
             }
 
-            fn add_range(&mut self, source: String, range: VersionRange) {
+            fn add_range(&mut self, source: &'a str, range: &'a VersionRange) {
                 self.requirements.insert(source, range);
             }
 
@@ -1205,18 +1205,18 @@ impl UnityProject {
                 self.requirements.remove(source);
             }
 
-            pub(crate) fn set_using_info(&mut self, version: Version, dependencies: HashSet<String>) {
+            pub(crate) fn set_using_info(&mut self, version: &'a Version, dependencies: HashSet<&'a str>) {
                 self.current = Some(version);
                 self.dependencies = dependencies;
             }
 
-            pub(crate) fn set_package(&mut self, new_pkg: &'env PackageJson) -> HashSet<String> {
+            pub(crate) fn set_package(&mut self, new_pkg: &'env PackageJson) -> HashSet<&'a str> {
                 let mut dependencies = new_pkg.vpm_dependencies
                     .as_ref()
-                    .map(|x| x.keys().cloned().collect())
+                    .map(|x| x.keys().map(|x| x.as_str()).collect())
                     .unwrap_or_default();
                 
-                self.current = Some(new_pkg.version.clone());
+                self.current = Some(&new_pkg.version);
                 std::mem::swap(&mut self.dependencies, &mut dependencies);
                 self.using = Some(new_pkg);
 
@@ -1225,21 +1225,25 @@ impl UnityProject {
             }
         }
 
-        let mut dependencies = HashMap::new();
+        let mut dependencies = HashMap::<&str, _>::new();
 
         // first, add dependencies
-        for (name, dep) in self.manifest.dependencies() {
-            dependencies.insert(name.clone(), DependencyInfo::new_dependency(dep.version.clone()));
+        let root_dependencies = self.manifest.dependencies()
+            .into_iter()
+            .map(|(name, dep)| (name, VersionRange::same_or_later(dep.version.clone())))
+            .collect_vec();
+        for (name, range) in &root_dependencies {
+            dependencies.insert(name, DependencyInfo::new_dependency(range));
         }
 
         // then, add locked dependencies info
         for (source, locked) in self.manifest.locked() {
-            dependencies.entry(source.clone()).or_default()
-                .set_using_info(locked.version.clone(), locked.dependencies.keys().cloned().collect());
+            dependencies.entry(source).or_default()
+                .set_using_info(&locked.version, locked.dependencies.keys().map(|x| x.as_str()).collect());
 
             for (dependency, range) in &locked.dependencies {
-                dependencies.entry(dependency.clone()).or_default()
-                    .add_range(source.clone(), range.clone())
+                dependencies.entry(dependency).or_default()
+                    .add_range(source, range)
             }
         }
 
@@ -1247,20 +1251,20 @@ impl UnityProject {
 
         while let Some(x) = packages.pop_front() {
             log::debug!("processing package {} version {}", x.name, x.version);
-            let name = x.name.clone();
-            let vpm_dependencies = x.vpm_dependencies.clone();
-            let entry = dependencies.entry(x.name.clone()).or_default();
+            let name = x.name.as_str();
+            let vpm_dependencies = &x.vpm_dependencies;
+            let entry = dependencies.entry(&x.name).or_default();
             let old_dependencies = entry.set_package(x);
 
             // remove previous dependencies if exists
             for dep in &old_dependencies {
-                dependencies.get_mut(dep).unwrap().remove_range(dep);
+                dependencies.get_mut(*dep).unwrap().remove_range(dep);
             }
 
             // add new dependencies
             for (dependency, range) in vpm_dependencies.iter().flatten() {
                 log::debug!("processing package {name}: dependency {dependency} version {range}");
-                let entry = dependencies.entry(dependency.clone()).or_default();
+                let entry = dependencies.entry(dependency).or_default();
                 let mut install = true;
 
                 if packages.iter().any(|x| &x.name == dependency && range.matches(&x.version)) {
@@ -1277,7 +1281,7 @@ impl UnityProject {
                     }
                 }
 
-                entry.add_range(name.clone(), range.clone());
+                entry.add_range(name, range);
 
                 if install {
                     let found = env
@@ -1299,8 +1303,8 @@ impl UnityProject {
                 for (source, range) in &info.requirements {
                     if !range.matches(version) {
                         return Err(AddPackageErr::ConflictWithDependencies {
-                            conflict: name.to_owned(),
-                            dependency_name: source.clone(),
+                            conflict: (*name).to_owned(),
+                            dependency_name: (*source).to_owned(),
                         });
                     }
                 }
@@ -1343,12 +1347,11 @@ impl UnityProject {
             .filter_map(|pkg| pkg.vpm_dependencies.as_ref())
             .flatten()
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
-            .map(|(k, v)| (k.clone(), v.clone()))
+            .map(|(k, v)| (k, v))
             .into_group_map()
             .into_iter()
             .map(|(pkg_name, ranges)| {
-                let ranges = Vec::from_iter(&ranges);
-                env.find_package_by_name(&pkg_name, VersionSelector::Ranges(&ranges))
+                env.find_package_by_name(pkg_name, VersionSelector::Ranges(&ranges))
                     .expect("some dependencies of unlocked package not found")
             })
             .collect::<Vec<_>>();
