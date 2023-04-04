@@ -31,7 +31,7 @@ use crate::version::{Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::structs::repository::LocalCachedRepository;
+use crate::vpm::structs::repository::{LocalCachedRepository, RepositoryCache};
 use crate::vpm::structs::setting::UserRepoSetting;
 use sha2::{Digest, Sha256};
 
@@ -167,7 +167,7 @@ impl Environment {
 
         versions.sort_by(|a, b| a.version.cmp(&b.version).reverse());
 
-        Ok(versions.into_iter().next())
+        Ok(versions.into_iter().next().cloned())
     }
 
     pub async fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
@@ -233,22 +233,19 @@ impl Environment {
         self.repo_cache.get_repos()
     }
 
-    pub(crate) fn find_packages(&self, package: &str) -> io::Result<Vec<PackageJson>> {
+    pub(crate) fn find_packages(&self, package: &str) -> io::Result<Vec<&PackageJson>> {
         let mut list = Vec::new();
 
         self.get_repos()
             .into_iter()
-            .map(|repo| repo.cache.get(package).map(Clone::clone))
-            .flatten()
-            .map(|x| from_value::<PackageVersions>(x).map_err(io::Error::from))
-            .map_ok(|x| x.versions.into_values())
-            .flatten_ok()
-            .fold_ok((), |_, pkg| list.push(pkg))?;
+            .flat_map(|repo| repo.cache.get(package))
+            .flat_map(|x| x.versions.values())
+            .fold((), |_, pkg| list.push(pkg));
 
         // user package folders
         for package_json in &self.user_packages {
             if package_json.name == package {
-                list.push(package_json.clone());
+                list.push(package_json);
             }
         }
 
@@ -258,29 +255,28 @@ impl Environment {
     pub(crate) fn find_whole_all_packages(
         &self,
         filter: impl Fn(&PackageJson) -> bool,
-    ) -> io::Result<Vec<PackageJson>> {
+    ) -> io::Result<Vec<&PackageJson>> {
         let mut list = Vec::new();
 
-        fn get_latest(versions: PackageVersions) -> Option<PackageJson> {
+        fn get_latest(versions: &PackageVersions) -> Option<&PackageJson> {
             versions
                 .versions
-                .into_values()
+                .values()
                 .filter(|x| x.version.pre.is_empty())
                 .max_by_key(|x| x.version.clone())
         }
 
         self.get_repos()
             .into_iter()
-            .flat_map(|repo| repo.cache.values().cloned())
-            .map(|x| from_value::<PackageVersions>(x).map_err(io::Error::from))
-            .filter_map_ok(get_latest)
-            .filter_ok(|x| filter(x))
-            .fold_ok((), |_, pkg| list.push(pkg))?;
+            .flat_map(|repo| repo.cache.values())
+            .filter_map(get_latest)
+            .filter(|x| filter(x))
+            .fold((), |_, pkg| list.push(pkg));
 
         // user package folders
         for package_json in &self.user_packages {
             if !package_json.version.pre.is_empty() && filter(package_json) {
-                list.push(package_json.clone());
+                list.push(package_json);
             }
         }
 
@@ -527,11 +523,11 @@ impl Environment {
             repo_name.clone(),
             Some(url.to_string()),
         );
-        local_cache.cache = remote_repo
+        local_cache.cache = RepositoryCache::new(remote_repo
             .get("packages")
             .and_then(Value::as_object)
             .cloned()
-            .unwrap_or(JsonMap::new());
+            .unwrap_or(JsonMap::new()))?;
         local_cache.repo = Some(remote_repo);
 
         // set etag
@@ -685,11 +681,15 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
     match download_remote_repository(&client, remote_url, etag).await {
         Ok(None) => log::debug!("cache matched downloading {}", remote_url),
         Ok(Some((remote_repo, etag))) => {
-            repo.cache = remote_repo
+            match RepositoryCache::new(remote_repo
                 .get("packages")
                 .and_then(Value::as_object)
                 .cloned()
-                .unwrap_or(JsonMap::new());
+                .unwrap_or(JsonMap::new())) {
+                Ok(cache) => repo.cache = cache,
+                Err(e) => log::error!("parsing remote repo '{}': {}", remote_url, e),
+            }
+
             // set etag
             if let Some(etag) = etag {
                 repo.vrc_get.get_or_insert_with(Default::default).etag = etag;

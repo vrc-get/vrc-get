@@ -7,7 +7,7 @@ use crate::vpm::{
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
-use serde_json::{from_value, Map, Value};
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
@@ -15,7 +15,9 @@ use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use futures::future::join_all;
+use indexmap::IndexMap;
 use tokio::fs::{read_dir, remove_file};
+use crate::vpm::structs::repository::RepositoryCache;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -401,13 +403,13 @@ impl Search {
             println!("No matching package found!")
         } else {
             for x in found_packages {
-                if let Some(name) = x.display_name {
+                if let Some(name) = &x.display_name {
                     println!("{} version {}", name, x.version);
                     println!("({})", x.name);
                 } else {
                     println!("{} version {}", x.name, x.version);
                 }
-                if let Some(description) = x.description {
+                if let Some(description) = &x.description {
                     println!("{}", description);
                 }
                 println!();
@@ -609,10 +611,8 @@ pub struct RepoPackages {
 
 impl RepoPackages {
     pub async fn run(self) {
-        fn print_repo(cache: Map<String, Value>) {
-            for (package, value) in cache {
-                let versions =
-                    from_value::<PackageVersions>(value).exit_context("loading package data");
+        fn print_repo(cache: &IndexMap<String, PackageVersions>) {
+            for (package, versions) in cache {
                 if let Some((_, pkg)) = versions.versions.first() {
                     if let Some(display_name) = &pkg.display_name {
                         println!("{} | {}", display_name, package);
@@ -648,7 +648,9 @@ impl RepoPackages {
                 .cloned()
                 .unwrap_or(Map::<String, Value>::new());
 
-            print_repo(cache);
+            let cache = RepositoryCache::new(cache).exit_context("loading package data");
+
+            print_repo(cache.parsed());
         } else {
             let mut env = load_env(client).await;
 
@@ -661,7 +663,7 @@ impl RepoPackages {
                 if repo.creation_info.as_ref().and_then(|x| x.name.as_deref()) == some_name
                     || repo.description.as_ref().and_then(|x| x.name.as_deref()) == some_name
                 {
-                    print_repo(repo.cache.clone());
+                    print_repo(repo.cache.parsed());
                     found = true;
                 }
             }

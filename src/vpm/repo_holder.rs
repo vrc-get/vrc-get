@@ -95,11 +95,11 @@ impl RepoHolder {
                 name.map(str::to_owned),
                 Some(remote_url.to_owned()),
             );
-            local_cache.cache = remote_repo
+            local_cache.cache = RepositoryCache::new(remote_repo
                 .get("packages")
                 .and_then(Value::as_object)
                 .cloned()
-                .unwrap_or(JsonMap::new());
+                .unwrap_or(JsonMap::new()))?;
             local_cache.repo = Some(remote_repo);
             if let Some(etag) = etag {
                 local_cache

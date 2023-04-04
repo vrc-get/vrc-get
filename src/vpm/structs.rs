@@ -83,14 +83,16 @@ pub mod setting {
 }
 
 pub mod repository {
+    use serde::{Deserializer, Serializer};
+    use crate::vpm::structs::remote_repo::PackageVersions;
     use super::*;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct LocalCachedRepository {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub repo: Option<JsonMap>,
-        #[serde(default, skip_serializing_if = "JsonMap::is_empty")]
-        pub cache: JsonMap,
+        #[serde(default, skip_serializing_if = "RepositoryCache::is_empty")]
+        pub cache: RepositoryCache,
         #[serde(rename = "CreationInfo")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub creation_info: Option<CreationInfo>,
@@ -106,7 +108,7 @@ pub mod repository {
         pub fn new(path: PathBuf, name: Option<String>, url: Option<String>) -> Self {
             Self {
                 repo: None,
-                cache: JsonMap::new(),
+                cache: RepositoryCache::default(),
                 creation_info: Some(CreationInfo {
                     local_path: Some(path),
                     url,
@@ -118,6 +120,51 @@ pub mod repository {
                 }),
                 vrc_get: None,
             }
+        }
+    }
+
+    #[derive(Debug, Clone, Default)]
+    pub struct RepositoryCache {
+        actual: JsonMap,
+        parsed: IndexMap<String, remote_repo::PackageVersions>,
+    }
+
+    impl RepositoryCache {
+        pub fn new(cache: JsonMap) -> serde_json::Result<Self> {
+            Ok(Self {
+                parsed: serde_json::from_value(Value::Object(cache.clone()))?,
+                actual: cache,
+            })
+        }
+
+        pub fn is_empty(&self) -> bool {
+            self.actual.is_empty()
+        }
+
+        pub fn parsed(&self) -> &IndexMap<String, PackageVersions> {
+            &self.parsed
+        }
+
+        pub fn get(&self, key: &str) -> Option<&PackageVersions> {
+            self.parsed.get(key)
+        }
+
+        pub fn values(&self) -> impl Iterator<Item = &PackageVersions> {
+            self.parsed.values()
+        }
+    }
+
+    impl Serialize for RepositoryCache {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+            self.actual.serialize(serializer)
+        }
+    }
+
+    impl <'de> Deserialize<'de> for RepositoryCache {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+            use serde::de::Error;
+            let map = JsonMap::deserialize(deserializer)?;
+            Self::new(map).map_err(Error::custom)
         }
     }
 
