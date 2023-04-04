@@ -1,10 +1,6 @@
 use super::*;
-use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::future::Future;
-use std::marker::{PhantomData, PhantomPinned};
-use std::pin::Pin;
-use tokio::sync::Semaphore;
 
 #[derive(Debug)]
 pub(super) struct RepoHolder {
@@ -150,10 +146,6 @@ impl RepoHolder {
             update_from_remote(http, path.into(), &mut loaded).await;
         }
         return Ok(loaded);
-    }
-
-    pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
-        self.cached_repos_new.get(path)
     }
 
     pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
