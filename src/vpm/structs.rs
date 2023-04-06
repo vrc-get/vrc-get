@@ -52,7 +52,7 @@ pub mod package {
         pub version: Version,
         #[serde(rename = "vpmDependencies")]
         #[serde(default)]
-        pub vpm_dependencies: Option<IndexMap<String, VersionRange>>,
+        pub vpm_dependencies: IndexMap<String, VersionRange>,
         #[serde(default)]
         pub url: String,
     }

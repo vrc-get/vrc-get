@@ -497,7 +497,7 @@ impl <'a> PackageInfo<'a> {
         &self.package_json().version
     }
 
-    pub fn vpm_dependencies(self) -> &'a Option<IndexMap<String, VersionRange>> {
+    pub fn vpm_dependencies(self) -> &'a IndexMap<String, VersionRange> {
         &self.package_json().vpm_dependencies
     }
 }
@@ -975,7 +975,7 @@ impl UnityProject {
                 &pkg.name(),
                 VpmLockedDependency::new(
                     pkg.version().clone(),
-                    pkg.vpm_dependencies().clone().unwrap_or_else(IndexMap::new),
+                    pkg.vpm_dependencies().clone()
                 ),
             );
         }
@@ -1101,9 +1101,7 @@ impl UnityProject {
 
             pub(crate) fn set_package(&mut self, new_pkg: PackageInfo<'env>) -> HashSet<&'a str> {
                 let mut dependencies = new_pkg.vpm_dependencies()
-                    .as_ref()
-                    .map(|x| x.keys().map(|x| x.as_str()).collect())
-                    .unwrap_or_default();
+                    .keys().map(|x| x.as_str()).collect();
                 
                 self.current = Some(&new_pkg.version());
                 std::mem::swap(&mut self.dependencies, &mut dependencies);
@@ -1151,7 +1149,7 @@ impl UnityProject {
             }
 
             // add new dependencies
-            for (dependency, range) in vpm_dependencies.iter().flatten() {
+            for (dependency, range) in vpm_dependencies.iter() {
                 log::debug!("processing package {name}: dependency {dependency} version {range}");
                 let entry = dependencies.entry(dependency).or_default();
                 let mut install = true;
@@ -1234,8 +1232,7 @@ impl UnityProject {
             .unlocked_packages
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
-            .filter_map(|pkg| pkg.vpm_dependencies.as_ref())
-            .flatten()
+            .flat_map(|pkg| &pkg.vpm_dependencies)
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
             .map(|(k, v)| (k, v))
             .into_group_map()
@@ -1270,8 +1267,7 @@ impl UnityProject {
             .unlocked_packages
             .iter()
             .filter_map(|(_, json)| json.as_ref())
-            .filter_map(|x| x.vpm_dependencies.as_ref().map(|y| (&x.name, y)))
-            .map(|x| x);
+            .map(|x| (&x.name, &x.vpm_dependencies));
 
         return dependencies_locked.chain(dependencies_unlocked);
     }
