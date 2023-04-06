@@ -1,7 +1,7 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::{download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
+use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
@@ -79,6 +79,29 @@ async fn save_env(env: &mut Environment) {
 
 fn confirm_prompt(msg: &str) -> bool {
     Confirm::new().with_prompt(msg).interact().unwrap_or(false)
+}
+
+fn print_prompt_install(request: &AddPackageRequest, yes: bool) {
+    if request.locked().len() == 0 && request.dependencies().len() == 0 {
+        exit_with!("nothing to do")
+    }
+
+    if request.locked().len() != 0 {
+        println!("You're installing the following packages:");
+        for x in request.locked() {
+            println!("{} version {}", x.name(), x.version());
+        }
+    }
+
+    if request.locked().len() > 1 {
+        if yes {
+            println!("--yes is set. skipping confirm");
+        } else {
+            if !confirm_prompt("Do you want to continue install?") {
+                exit(1);
+            }
+        }
+    }
 }
 
 trait ResultExt<T, E>: Sized {
@@ -164,26 +187,7 @@ impl Install {
             let request = unity.add_package_request(&env, vec![package], true)
                 .exit_context("collecting packages to be installed");
 
-            if request.locked().len() == 0 && request.dependencies().len() == 0 {
-                exit_with!("nothing to do")
-            }
-
-            if request.locked().len() != 0 {
-                println!("You're installing the following packages:");
-                for x in request.locked() {
-                    println!("{} version {}", x.name(), x.version());
-                }
-            }
-
-            if request.locked().len() > 1 {
-                if self.yes {
-                    println!("--yes is set. skipping confirm");
-                } else {
-                    if !confirm_prompt("Do you want to continue install?") {
-                        exit(1);
-                    }
-                }
-            }
+            print_prompt_install(&request, self.yes);
 
             unity.do_add_package_request(&env, request).await.exit_context("adding package");
 
@@ -365,26 +369,7 @@ impl Upgrade {
         let request = unity.add_package_request(&env, updates, false)
             .exit_context("collecting packages to be upgraded");
 
-        if request.locked().len() == 0 && request.dependencies().len() == 0 {
-            exit_with!("nothing to do")
-        }
-
-        if request.locked().len() != 0 {
-            println!("You're installing the following packages:");
-            for x in request.locked() {
-                println!("{} version {}", x.name(), x.version());
-            }
-        }
-
-        if request.locked().len() > 1 {
-            if self.yes {
-                println!("--yes is set. skipping confirm");
-            } else {
-                if !confirm_prompt("Do you want to continue install?") {
-                    exit(1);
-                }
-            }
-        }
+        print_prompt_install(&request, self.yes);
 
         let updates = request.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
 
