@@ -155,6 +155,10 @@ impl Install {
             let request = unity.add_package_request(&env, vec![package], true)
                 .exit_context("collecting packages to be installed");
 
+            if request.locked().len() == 0 && request.dependencies().len() == 0 {
+                exit_with!("nothing to do")
+            }
+
             unity.do_add_package_request(&env, request).await.exit_context("adding package");
 
             mark_and_sweep(&mut unity).await;
@@ -330,6 +334,10 @@ impl Upgrade {
 
         let req = unity.add_package_request(&env, updates, false)
             .exit_context("collecting packages to be upgraded");
+
+        if req.locked().len() == 0 && req.dependencies().len() == 0 {
+            exit_with!("nothing to do")
+        }
 
         let updates = req.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
 

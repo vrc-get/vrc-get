@@ -902,6 +902,10 @@ impl <'env> AddPackageRequest<'env> {
     pub fn locked(&self) -> &[PackageInfo<'env>] {
         &self.locked
     }
+
+    pub fn dependencies(&self) -> &[(&'env str, VpmDependency)] {
+        &self.dependencies
+    }
 }
 
 impl UnityProject {
@@ -911,14 +915,9 @@ impl UnityProject {
         mut packages: Vec<PackageInfo<'env>>,
         to_dependencies: bool,
     ) -> Result<AddPackageRequest<'env>, AddPackageErr> {
-        use crate::vpm::AddPackageErr::*;
         packages.retain(|pkg| {
             self.manifest.dependencies().get(pkg.name()).map(|dep| dep.version < *pkg.version()).unwrap_or(true)
         });
-
-        if packages.len() == 0 {
-            return Err(AlreadyNewerPackageInstalled);
-        }
 
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
@@ -938,14 +937,11 @@ impl UnityProject {
         }
 
         if locked.len() == 0 {
-            if to_dependencies {
-                return Ok(AddPackageRequest {
-                    dependencies,
-                    locked: vec![],
-                });
-            } else {
-                return Err(AlreadyNewerPackageInstalled);
-            }
+            // early return: 
+            return Ok(AddPackageRequest {
+                dependencies,
+                locked: vec![],
+            });
         }
 
         let packages = self.collect_adding_packages(env, locked)?;
@@ -1248,13 +1244,9 @@ impl UnityProject {
             })
             .collect::<Vec<_>>();
 
-        match self.add_package_request(&env, unlocked_dependencies, false) {
-            Ok(req) => {
-                self.do_add_package_request(&env, req).await?;
-            }
-            Err(AddPackageErr::AlreadyNewerPackageInstalled) => (),
-            Err(e) => return Err(e),
-        }
+        let req = self.add_package_request(&env, unlocked_dependencies, false)?;
+
+        self.do_add_package_request(&env, req).await?;
 
         Ok(())
     }
@@ -1307,7 +1299,6 @@ impl<'a> VersionSelector<'a> {
 #[derive(Debug)]
 pub enum AddPackageErr {
     Io(io::Error),
-    AlreadyNewerPackageInstalled,
     ConflictWithDependencies {
         /// conflicting package name
         conflict: String,
@@ -1324,9 +1315,6 @@ impl fmt::Display for AddPackageErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             AddPackageErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            AddPackageErr::AlreadyNewerPackageInstalled => {
-                f.write_str("already newer package installed")
-            }
             AddPackageErr::ConflictWithDependencies {
                 conflict,
                 dependency_name,
