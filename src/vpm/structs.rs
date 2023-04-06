@@ -55,6 +55,13 @@ pub mod package {
         pub vpm_dependencies: IndexMap<String, VersionRange>,
         #[serde(default)]
         pub url: String,
+
+        #[serde(rename = "legacyFolders")]
+        #[serde(default)]
+        pub legacy_folders: IndexMap<String, String>,
+        #[serde(rename = "legacyFiles")]
+        #[serde(default)]
+        pub legacy_files: IndexMap<String, String>,
     }
 }
 
