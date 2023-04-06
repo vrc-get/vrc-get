@@ -787,8 +787,8 @@ mod vpm_manifest {
 
 #[derive(Debug)]
 pub struct UnityProject {
-    /// path to `Packages` folder.
-    packages_dir: PathBuf,
+    /// path to project folder.
+    project_dir: PathBuf,
     /// manifest.json
     manifest: VpmManifest,
     /// packages installed in the directory but not locked in vpm-manifest.json
@@ -797,22 +797,21 @@ pub struct UnityProject {
 
 impl UnityProject {
     pub async fn find_unity_project(unity_project: Option<PathBuf>) -> io::Result<UnityProject> {
-        let mut unity_found = unity_project
+        let unity_found = unity_project
             .ok_or(())
             .or_else(|_| UnityProject::find_unity_project_path())?;
-        unity_found.push("Packages");
 
         log::debug!(
-            "initializing UnityProject with Packages folder {}",
+            "initializing UnityProject with unity folder {}",
             unity_found.display()
         );
 
-        let manifest = unity_found.join("vpm-manifest.json");
+        let manifest = unity_found.join("Packages").joined("vpm-manifest.json");
         let vpm_manifest = VpmManifest::new(load_json_or_default(&manifest).await?)?;
 
         let mut unlocked_packages = vec![];
 
-        let mut dir_reading = read_dir(&unity_found).await?;
+        let mut dir_reading = read_dir(unity_found.join("Packages")).await?;
         while let Some(dir_entry) = dir_reading.next_entry().await? {
             if let Some(read) = Self::try_read_unlocked_package(dir_entry, &vpm_manifest).await {
                 unlocked_packages.push(read);
@@ -820,7 +819,7 @@ impl UnityProject {
         }
 
         Ok(UnityProject {
-            packages_dir: unity_found,
+            project_dir: unity_found,
             manifest: VpmManifest::new(load_json_or_default(&manifest).await?)?,
             unlocked_packages,
         })
@@ -981,10 +980,12 @@ impl UnityProject {
             );
         }
 
+        let packages_folder = self.project_dir.join("Packages");
+
         // resolve all packages
         let futures = packages
             .iter()
-            .map(|x| env.add_package(*x, &self.packages_dir))
+            .map(|x| env.add_package(*x, &packages_folder))
             .collect::<Vec<_>>();
         try_join_all(futures).await?;
 
@@ -1030,7 +1031,7 @@ impl UnityProject {
 
         self.manifest.remove_packages(names);
         try_join_all(names.into_iter().map(|name| {
-            remove_dir_all(self.packages_dir.join(name)).map(|x| match x {
+            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
                 Ok(()) => Ok(()),
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
                 Err(e) => Err(e),
@@ -1048,7 +1049,7 @@ impl UnityProject {
         let removed_packages = self.manifest.mark_and_sweep_packages();
 
         try_join_all(removed_packages.iter().map(|name| {
-            remove_dir_all(self.packages_dir.join(name)).map(|x| match x {
+            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
                 Ok(()) => Ok(()),
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
                 Err(e) => Err(e),
@@ -1207,13 +1208,14 @@ impl UnityProject {
 
     pub async fn save(&mut self) -> io::Result<()> {
         self.manifest
-            .save_to(&self.packages_dir.join("vpm-manifest.json"))
+            .save_to(&self.project_dir.join("Packages").joined("vpm-manifest.json"))
             .await
     }
 
     pub async fn resolve(&mut self, env: &Environment) -> Result<(), AddPackageErr> {
         // first, process locked dependencies
         let this = self as &Self;
+        let packages_folder = &this.project_dir.join("Packages");
         try_join_all(
             this.manifest
                 .locked()
@@ -1222,7 +1224,7 @@ impl UnityProject {
                     let pkg = env
                         .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
                         .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
-                    env.add_package(pkg, &this.packages_dir).await?;
+                    env.add_package(pkg, packages_folder).await?;
                     Result::<_, AddPackageErr>::Ok(())
                 }),
         )
