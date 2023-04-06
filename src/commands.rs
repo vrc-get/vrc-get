@@ -12,6 +12,7 @@ use std::fmt::Display;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use dialoguer::Confirm;
 use indexmap::IndexMap;
 use tokio::fs::{read_dir, remove_file};
 use crate::vpm::structs::repository::RepositoryCache;
@@ -76,6 +77,10 @@ async fn save_env(env: &mut Environment) {
     env.save().await.exit_context("saving global config");
 }
 
+fn confirm_prompt(msg: &str) -> bool {
+    Confirm::new().with_prompt(msg).interact().unwrap_or(false)
+}
+
 trait ResultExt<T, E>: Sized {
     fn exit_context(self, context: &str) -> T
     where
@@ -134,6 +139,10 @@ pub struct Install {
     /// do not connect to remote servers, use local caches only
     #[arg(long)]
     offline: bool,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
 }
 
 impl Install {
@@ -157,6 +166,23 @@ impl Install {
 
             if request.locked().len() == 0 && request.dependencies().len() == 0 {
                 exit_with!("nothing to do")
+            }
+
+            if request.locked().len() != 0 {
+                println!("You're installing the following packages:");
+                for x in request.locked() {
+                    println!("{} version {}", x.name(), x.version());
+                }
+            }
+
+            if request.locked().len() > 1 {
+                if self.yes {
+                    println!("--yes is set. skipping confirm");
+                } else {
+                    if !confirm_prompt("Do you want to continue install?") {
+                        exit(1);
+                    }
+                }
             }
 
             unity.do_add_package_request(&env, request).await.exit_context("adding package");
@@ -301,6 +327,10 @@ pub struct Upgrade {
     /// do not connect to remote servers, use local caches only
     #[arg(long)]
     offline: bool,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
 }
 
 impl Upgrade {
@@ -332,16 +362,33 @@ impl Upgrade {
                 .collect()
         };
 
-        let req = unity.add_package_request(&env, updates, false)
+        let request = unity.add_package_request(&env, updates, false)
             .exit_context("collecting packages to be upgraded");
 
-        if req.locked().len() == 0 && req.dependencies().len() == 0 {
+        if request.locked().len() == 0 && request.dependencies().len() == 0 {
             exit_with!("nothing to do")
         }
 
-        let updates = req.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
+        if request.locked().len() != 0 {
+            println!("You're installing the following packages:");
+            for x in request.locked() {
+                println!("{} version {}", x.name(), x.version());
+            }
+        }
 
-        unity.do_add_package_request(&env, req).await.exit_context("upgrading packages");
+        if request.locked().len() > 1 {
+            if self.yes {
+                println!("--yes is set. skipping confirm");
+            } else {
+                if !confirm_prompt("Do you want to continue install?") {
+                    exit(1);
+                }
+            }
+        }
+
+        let updates = request.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
+
+        unity.do_add_package_request(&env, request).await.exit_context("upgrading packages");
 
         for (name, version) in updates {
             println!("upgraded {} to {}", name, version);
