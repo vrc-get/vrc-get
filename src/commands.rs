@@ -86,14 +86,25 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool) {
         exit_with!("nothing to do")
     }
 
+    let mut prompt = false;
+
     if request.locked().len() != 0 {
         println!("You're installing the following packages:");
         for x in request.locked() {
-            println!("{} version {}", x.name(), x.version());
+            println!("- {} version {}", x.name(), x.version());
         }
+        prompt = prompt || request.locked().len() > 1;
     }
 
-    if request.locked().len() > 1 {
+    if request.legacy_folders().len() != 0 || request.legacy_files().len() != 0 {
+        println!("You're removing the following legacy assets:");
+        for x in request.legacy_folders().iter().chain(request.legacy_files()) {
+            println!("- {}", x.display());
+        }
+        prompt = true;
+    }
+
+    if prompt {
         if yes {
             println!("--yes is set. skipping confirm");
         } else {
@@ -185,6 +196,7 @@ impl Install {
             let package = get_package(&env, &name, version_selector);
 
             let request = unity.add_package_request(&env, vec![package], true)
+                .await
                 .exit_context("collecting packages to be installed");
 
             print_prompt_install(&request, self.yes);
@@ -367,6 +379,7 @@ impl Upgrade {
         };
 
         let request = unity.add_package_request(&env, updates, false)
+            .await
             .exit_context("collecting packages to be upgraded");
 
         print_prompt_install(&request, self.yes);

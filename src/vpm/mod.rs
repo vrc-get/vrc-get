@@ -10,17 +10,17 @@ use std::path::{Path, PathBuf};
 use std::task::ready;
 use std::task::Poll::Ready;
 use std::{env, fmt, io};
+use std::pin::pin;
 
-use futures::future::{join_all, try_join_all};
+use futures::future::{join, join_all, try_join_all};
 use futures::prelude::*;
+use futures::stream::FuturesUnordered;
 use indexmap::IndexMap;
 use itertools::{Itertools as _};
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
-use tokio::fs::{
-    create_dir_all, read_dir, remove_dir_all, remove_file, DirEntry, File,
-};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
+use tokio::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, DirEntry, File, metadata};
+use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader};
 
 use repo_holder::RepoHolder;
 use utils::*;
@@ -895,6 +895,8 @@ impl UnityProject {
 pub struct AddPackageRequest<'env> {
     dependencies: Vec<(&'env str, VpmDependency)>,
     locked: Vec<PackageInfo<'env>>,
+    legacy_files: Vec<PathBuf>,
+    legacy_folders: Vec<PathBuf>,
 }
 
 impl <'env> AddPackageRequest<'env> {
@@ -905,10 +907,18 @@ impl <'env> AddPackageRequest<'env> {
     pub fn dependencies(&self) -> &[(&'env str, VpmDependency)] {
         &self.dependencies
     }
+
+    pub fn legacy_files(&self) -> &[PathBuf] {
+        &self.legacy_files
+    }
+
+    pub fn legacy_folders(&self) -> &[PathBuf] {
+        &self.legacy_folders
+    }
 }
 
 impl UnityProject {
-    pub fn add_package_request<'env>(
+    pub async fn add_package_request<'env>(
         &self,
         env: &'env Environment,
         mut packages: Vec<PackageInfo<'env>>,
@@ -940,14 +950,140 @@ impl UnityProject {
             return Ok(AddPackageRequest {
                 dependencies,
                 locked: vec![],
+                legacy_files: vec![],
+                legacy_folders: vec![],
             });
         }
 
         let packages = self.collect_adding_packages(env, locked)?;
 
-        // TODO: find for legacyFolders/Files here
+        let (legacy_files, legacy_folders) = self.collect_legacy_assets(&packages).await;
 
-        return Ok(AddPackageRequest { dependencies, locked: packages });
+        return Ok(AddPackageRequest { 
+            dependencies, 
+            locked: packages,
+            legacy_files,
+            legacy_folders,
+        });
+    }
+
+    async fn collect_legacy_assets(&self, packages: &[PackageInfo<'_>]) -> (Vec<PathBuf>, Vec<PathBuf>) {
+        let folders = packages.iter().flat_map(|x| &x.package_json().legacy_folders).map(|(path, guid)| (path, guid, false));
+        let files = packages.iter().flat_map(|x| &x.package_json().legacy_files).map(|(path, guid)| (path, guid, true));
+        let assets = folders.chain(files).collect::<Vec<_>>();
+
+        enum LegacyInfo {
+            FoundFile(PathBuf),
+            FoundFolder(PathBuf),
+            NotFound,
+            GuidFile(GUID),
+            GuidFolder(GUID),
+        }
+        use LegacyInfo::*;
+
+        #[derive(Copy, Clone, Hash, Eq, PartialEq)]
+        struct GUID([u8; 16]);
+
+        fn try_parse_guid(guid: &str) -> Option<GUID> {
+            Some(GUID(parse_hex_128(guid.as_bytes().try_into().ok()?)?))
+        }
+
+        fn is_guid(guid: &str) -> bool {
+            guid.len() == 32 && guid
+                .as_bytes()
+                .iter()
+                .all(|x| matches!(x, b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F'))
+        }
+
+        let mut futures = pin!(assets.into_iter().map(|(path, guid, is_file)| async move {
+            // some packages uses '/' as path separator.
+            let path = PathBuf::from(path.replace('\\', "/"));
+            // for security, deny absolute path.
+            if path.is_absolute() {
+                return NotFound
+            }
+            let path = self.project_dir.join(path);
+            if metadata(&path).await.map(|x| x.is_file() == is_file).unwrap_or(false) {
+                if is_file {
+                    FoundFile(path)
+                } else {
+                    FoundFolder(path)
+                }
+            } else {
+                if let Some(guid) = try_parse_guid(guid) {
+                    if is_file {
+                        GuidFile(guid)
+                    } else {
+                        GuidFolder(guid)
+                    }
+                } else {
+                    NotFound
+                }
+            }
+        }).collect::<FuturesUnordered<_>>());
+
+        let mut found_files = HashSet::new();
+        let mut found_folders = HashSet::new();
+        let mut find_guids = HashMap::new();
+
+        while let Some(info) = futures.next().await {
+            match info {
+                FoundFile(path) => {
+                    found_files.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                },
+                FoundFolder(path) => { 
+                    found_folders.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                },
+                NotFound => (),
+                GuidFile(guid) => { find_guids.insert(guid, true); },
+                GuidFolder(guid) => { find_guids.insert(guid, false); },
+            }
+        }
+
+        if find_guids.len() != 0 {
+            async fn get_guid(entry: DirEntry) -> Option<(GUID, bool, PathBuf)> {
+                let path = entry.path();
+                if path.extension() != Some(OsStr::new("meta")) || !entry.file_type().await.ok()?.is_file() {
+                    return None
+                }
+                let mut file = BufReader::new(File::open(&path).await.ok()?);
+                let mut buffer = String::new();
+                while file.read_line(&mut buffer).await.ok()? != 0 {
+                    let line = buffer.as_str();
+                    if let Some(guid) = line.strip_prefix("guid: ") {
+                        // current line should be line for guid.
+                        if let Some(guid) = try_parse_guid(guid.trim()){
+                            // remove .meta extension
+                            let mut path = path;
+                            path.set_extension("");
+                            let is_file = metadata(&path).await.ok()?.is_file();
+                            return Some((guid, is_file, path))
+                        }
+                    }
+
+                    buffer.clear()
+                }
+
+                None
+            }
+
+            let mut stream = pin!(walk_dir([self.project_dir.join("Packages"), self.project_dir.join("Assets")]).filter_map(get_guid));
+
+            while let Some((guid, is_file_actual, path)) = stream.next().await {
+                if let Some(&is_file) = find_guids.get(&guid) {
+                    if is_file_actual == is_file {
+                        find_guids.remove(&guid);
+                        if is_file {
+                            found_files.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                        } else {
+                            found_folders.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                        }
+                    }
+                }
+            }
+        }
+
+        (found_files.into_iter().collect(), found_folders.into_iter().collect())
     }
 
     pub async fn do_add_package_request<'env>(
@@ -955,13 +1091,46 @@ impl UnityProject {
         env: &'env Environment,
         request: AddPackageRequest<'env>,
     ) -> io::Result<()> {
-
         // first, add to dependencies
         for x in request.dependencies {
             self.manifest.add_dependency(x.0.to_owned(), x.1);
         }
 
-        self.do_add_packages_to_locked(env, &request.locked).await
+        // then, do install
+        self.do_add_packages_to_locked(env, &request.locked).await?;
+
+        // finally try to remove legacy assets
+        async fn remove_meta_file(path: PathBuf) {
+            let mut building = path.into_os_string();
+            building.push(".meta");
+            let meta = PathBuf::from(building);
+
+            if let Some(err) = tokio::fs::remove_file(&meta).await.err() {
+                if !matches!(err.kind(), io::ErrorKind::NotFound) {
+                    log::error!("error removing legacy asset at {}: {}", meta.display(), err);
+                }
+            }
+        }
+
+        async fn remove_file(path: PathBuf) {
+            if let Some(err) = tokio::fs::remove_file(&path).await.err() {
+                log::error!("error removing legacy asset at {}: {}", path.display(), err);
+            }
+            remove_meta_file(path).await;
+        }
+
+        async fn remove_folder(path: PathBuf) {
+            if let Some(err) = tokio::fs::remove_dir_all(&path).await.err() {
+                log::error!("error removing legacy asset at {}: {}", path.display(), err);
+            }
+            remove_meta_file(path).await;
+        }
+
+        join(
+            join_all(request.legacy_files.into_iter().map(remove_file)),
+            join_all(request.legacy_folders.into_iter().map(remove_folder)),
+        ).await;
+        Ok(())
     }
 
     async fn do_add_packages_to_locked(
@@ -1243,7 +1412,7 @@ impl UnityProject {
             })
             .collect::<Vec<_>>();
 
-        let req = self.add_package_request(&env, unlocked_dependencies, false)?;
+        let req = self.add_package_request(&env, unlocked_dependencies, false).await?;
 
         self.do_add_package_request(&env, req).await?;
 
