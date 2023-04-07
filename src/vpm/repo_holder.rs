@@ -47,15 +47,20 @@ impl RepoHolder {
     ) -> io::Result<LocalCachedRepository> {
         match source {
             RepoSource::PreDefined(source, path) => {
-                RepoHolder::load_remote_repo(client, &path, source.url, Some(source.name)).await
+                RepoHolder::load_remote_repo(
+                    client,
+                    None,
+                    &path, 
+                    source.url,
+                ).await
             }
             RepoSource::UserRepo(user_repo) => {
                 if let Some(url) = &user_repo.url {
                     RepoHolder::load_remote_repo(
                         client,
+                        Some(&user_repo.headers),
                         &user_repo.local_path,
                         &url,
-                        user_repo.name.as_deref(),
                     )
                     .await
                 } else {
@@ -70,30 +75,21 @@ impl RepoHolder {
 
     async fn load_remote_repo(
         client: Option<&Client>,
+        headers: Option<&IndexMap<String, String>>,
         path: &Path,
         remote_url: &str,
-        name: Option<&str>,
     ) -> io::Result<LocalCachedRepository> {
         Self::load_repo(path, client, || async {
             // if local repository not found: try downloading remote one
             let Some(client) = client else {
                 return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "offline mode"))
             };
-            let (remote_repo, etag) = download_remote_repository(&client, remote_url, None)
+            let (remote_repo, etag) = download_remote_repository(&client, remote_url, headers, None)
                 .await?
                 .expect("logic failure: no etag");
 
-            let mut local_cache = LocalCachedRepository::new(
-                path.to_owned(),
-                name.map(str::to_owned),
-                Some(remote_url.to_owned()),
-            );
-            local_cache.cache = RepositoryCache::new(remote_repo
-                .get("packages")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or(JsonMap::new()))?;
-            local_cache.repo = Some(remote_repo);
+            let mut local_cache = LocalCachedRepository::new(remote_repo, headers.map(Clone::clone).unwrap_or_default());
+
             if let Some(etag) = etag {
                 local_cache
                     .vrc_get
@@ -150,5 +146,13 @@ impl RepoHolder {
 
     pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
         self.cached_repos_new.values().collect()
+    }
+
+    pub(crate) fn get_repo_with_path(&self) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+        self.cached_repos_new.iter()
+    }
+
+    pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
+        self.cached_repos_new.get(path)
     }
 }

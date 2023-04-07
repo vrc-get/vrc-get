@@ -29,8 +29,8 @@ use vpm_manifest::VpmManifest;
 use crate::version::{Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::vpm::structs::package::PackageJson;
-use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::structs::repository::{LocalCachedRepository, RepositoryCache};
+use crate::vpm::structs::repository::{PackageVersions, Repository};
+use crate::vpm::structs::repo_cache::LocalCachedRepository;
 use crate::vpm::structs::setting::UserRepoSetting;
 
 mod repo_holder;
@@ -135,8 +135,31 @@ impl Environment {
 
     pub async fn load_package_infos(&mut self) -> io::Result<()> {
         self.repo_cache.load_repos(self.get_repo_sources().await?).await?;
+        self.update_user_repo_id();
         self.load_user_package_infos().await?;
         Ok(())
+    }
+
+    fn update_user_repo_id(&mut self) {
+        let user_repos = self.get_user_repos().unwrap();
+        if user_repos.len() == 0 {
+            return
+        }
+
+        let json = self.settings.get_mut("userRepos").unwrap();
+        
+        // update id field
+        for (i, repo) in user_repos.into_iter().enumerate() {
+            let loaded = self.repo_cache.get_repo(&repo.local_path).unwrap();
+            let id = loaded.id();
+            if id != repo.id.as_deref() {
+                let mut repo = repo;
+                repo.id = id.map(|x| x.to_owned());
+
+                *json.get_mut(i).unwrap() = to_value(repo).unwrap();
+                self.settings_changed = true;
+            }
+        }
     }
 
     async fn load_user_package_infos(&mut self) -> io::Result<()> {
@@ -232,15 +255,18 @@ impl Environment {
         self.repo_cache.get_repos()
     }
 
+    pub fn get_repo_with_path(&self) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+        self.repo_cache.get_repo_with_path()
+    }
+
     pub(crate) fn find_packages(&self, package: &str) -> Vec<PackageInfo> {
         let mut list = Vec::new();
 
         list.extend(
             self.get_repos()
             .into_iter()
-            .flat_map(|repo| repo.cache.get(package))
-            .flat_map(|x| x.versions.values())
-            .map(PackageInfo::remote)
+            .flat_map(|repo| repo.get_versions_of(package).map(move |pkg| (pkg, repo)))
+            .map(|(pkg, repo)| PackageInfo::remote(pkg, repo))
         );
 
         // user package folders
@@ -269,7 +295,7 @@ impl Environment {
 
         self.get_repos()
             .into_iter()
-            .flat_map(|repo| repo.cache.values())
+            .flat_map(|repo| repo.get_packages())
             .filter_map(get_latest)
             .filter(|x| filter(x))
             .fold((), |_, pkg| list.push(pkg));
@@ -330,6 +356,7 @@ impl Environment {
         Ok(())
     }
 
+    // TODO: support for headers
     pub async fn add_remote_repo(
         &mut self,
         url: Url,
@@ -345,31 +372,28 @@ impl Environment {
         let Some(http) = &self.http else {
             return Err(AddRepositoryErr::OfflineMode);
         };
-        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), None)
+
+        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), None, None)
             .await?
             .expect("logic failure: no etag");
         let local_path = self
             .get_repos_dir()
             .joined(format!("{}.json", uuid::Uuid::new_v4()));
 
-        let repo_name = name.map(str::to_owned).or_else(|| {
-            remote_repo
-                .get("name")
-                .and_then(Value::as_str)
-                .map(str::to_owned)
-        });
+        let repo_name = name.or(remote_repo.name()).map(str::to_owned);
 
-        let mut local_cache = LocalCachedRepository::new(
-            local_path.clone(),
-            repo_name.clone(),
-            Some(url.to_string()),
-        );
-        local_cache.cache = RepositoryCache::new(remote_repo
-            .get("packages")
-            .and_then(Value::as_object)
-            .cloned()
-            .unwrap_or(JsonMap::new()))?;
-        local_cache.repo = Some(remote_repo);
+        let repo_id = remote_repo.id().map(str::to_owned);
+
+        if let Some(repo_id) = repo_id.as_deref() {
+            if user_repos
+                .iter()
+                .any(|x| x.id.as_deref() == Some(repo_id))
+            {
+                return Err(AddRepositoryErr::AlreadyAdded);
+            }
+        }
+
+        let mut local_cache = LocalCachedRepository::new(remote_repo, IndexMap::new());
 
         // set etag
         if let Some(etag) = etag {
@@ -385,6 +409,7 @@ impl Environment {
             local_path.clone(),
             repo_name,
             Some(url.to_string()),
+            repo_id,
         ))?;
         Ok(())
     }
@@ -402,6 +427,7 @@ impl Environment {
         self.add_user_repo(&UserRepoSetting::new(
             path.to_owned(),
             name.map(str::to_owned),
+            None,
             None,
         ))?;
         Ok(())
@@ -458,7 +484,7 @@ pub struct PackageInfo<'a> {
 
 #[derive(Copy, Clone)]
 enum PackageInfoInner<'a> {
-    Remote(&'a PackageJson),
+    Remote(&'a PackageJson, &'a LocalCachedRepository),
     Local(&'a PackageJson, &'a Path),
 }
 
@@ -466,13 +492,13 @@ impl <'a> PackageInfo<'a> {
     pub fn package_json(self) -> &'a PackageJson {
         // this match will be removed in the optimized code because package.json is exists at first
         match self.inner {
-            PackageInfoInner::Remote(pkg) => pkg,
+            PackageInfoInner::Remote(pkg, _) => pkg,
             PackageInfoInner::Local(pkg, _) => pkg,
         }
     }
 
-    pub(crate) fn remote(json: &'a PackageJson) -> Self {
-        Self { inner: PackageInfoInner::Remote(json) }
+    pub(crate) fn remote(json: &'a PackageJson, repo: &'a LocalCachedRepository) -> Self {
+        Self { inner: PackageInfoInner::Remote(json, repo) }
     }
 
     pub(crate) fn local(json: &'a PackageJson, path: &'a Path) -> Self {
@@ -481,7 +507,7 @@ impl <'a> PackageInfo<'a> {
 
     #[allow(unused)]
     pub fn is_remote(self) -> bool {
-        matches!(self.inner, PackageInfoInner::Remote(_))
+        matches!(self.inner, PackageInfoInner::Remote(_, _))
     }
 
     #[allow(unused)]
@@ -506,6 +532,7 @@ impl <'a> PackageInfo<'a> {
 pub struct PreDefinedRepoSource {
     file_name: &'static str,
     url: &'static str,
+    #[allow(dead_code)]
     name: &'static str,
 }
 
@@ -565,22 +592,15 @@ impl From<serde_json::Error> for AddRepositoryErr {
 }
 
 async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCachedRepository) {
-    let Some(remote_url) = repo.creation_info.as_ref().and_then(|x| x.url.as_ref()) else {
+    let Some(remote_url) = repo.url().map(|x| x.to_owned()) else {
         return;
     };
 
     let etag = repo.vrc_get.as_ref().map(|x| x.etag.as_str());
-    match download_remote_repository(&client, remote_url, etag).await {
+    match download_remote_repository(&client, &remote_url, Some(repo.headers()), etag).await {
         Ok(None) => log::debug!("cache matched downloading {}", remote_url),
         Ok(Some((remote_repo, etag))) => {
-            match RepositoryCache::new(remote_repo
-                .get("packages")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or(JsonMap::new())) {
-                Ok(cache) => repo.cache = cache,
-                Err(e) => log::error!("parsing remote repo '{}': {}", remote_url, e),
-            }
+            repo.set_repo(remote_repo);
 
             // set etag
             if let Some(etag) = etag {
@@ -588,7 +608,6 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
             } else {
                 repo.vrc_get.as_mut().map(|x| x.etag.clear());
             }
-            repo.repo = Some(remote_repo);
         }
         Err(e) => {
             log::error!("fetching remote repo '{}': {}", remote_url, e);
@@ -615,14 +634,22 @@ async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()>
 pub(crate) async fn download_remote_repository(
     client: &Client,
     url: impl IntoUrl,
+    headers: Option<&IndexMap<String, String>>,
     etag: Option<&str>,
-) -> io::Result<Option<(JsonMap, Option<String>)>> {
+) -> io::Result<Option<(Repository, Option<String>)>> {
     fn map_err(err: reqwest::Error) -> io::Error {
         io::Error::new(io::ErrorKind::NotFound, err)
     }
-    let mut request = client.get(url);
+
+    let url = url.into_url().map_err(map_err)?;
+    let mut request = client.get(url.clone());
     if let Some(etag) = &etag {
         request = request.header("If-None-Match", etag.to_owned())
+    }
+    if let Some(headers) = headers {
+        for (name, value) in headers {
+            request = request.header(name, value);
+        }
     }
     let response = request.send().await.err_mapped()?;
     let response = response.error_for_status().err_mapped()?;
@@ -637,7 +664,11 @@ pub(crate) async fn download_remote_repository(
         .and_then(|x| x.to_str().ok())
         .map(str::to_owned);
 
-    Ok(Some((response.json().await.err_mapped()?, etag)))
+    let json = response.json().await.err_mapped()?;
+
+    let mut repo = Repository::new(json)?;
+    repo.set_id_if_none(|| url.to_string());
+    Ok(Some((repo, etag)))
 }
 
 mod vpm_manifest {

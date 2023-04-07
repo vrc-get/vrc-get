@@ -1,11 +1,10 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
-use crate::vpm::structs::remote_repo::PackageVersions;
+use crate::vpm::structs::repository::Repository;
 use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
-use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
@@ -13,9 +12,7 @@ use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use dialoguer::Confirm;
-use indexmap::IndexMap;
 use tokio::fs::{read_dir, remove_file};
-use crate::vpm::structs::repository::RepositoryCache;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -492,23 +489,12 @@ impl RepoList {
 
         env.load_package_infos().await.exit_context("loading repositories");
 
-        for repo in env.get_repos() {
-            let mut name = None;
-            let mut r#type = None;
-            let mut local_path = None;
-            if let Some(description) = &repo.description {
-                name = name.or(description.name.as_deref());
-                r#type = r#type.or(description.r#type.as_deref());
-            }
-            if let Some(creation_info) = &repo.creation_info {
-                name = name.or(creation_info.name.as_deref());
-                local_path = local_path.or(creation_info.local_path.as_deref());
-            }
+        for (local_path, repo) in env.get_repo_with_path() {
             println!(
-                "{} | {} (at {})",
-                name.unwrap_or("(unnamed)"),
-                r#type.unwrap_or("(unknown type)"),
-                local_path.unwrap_or(Path::new("(unknown)")).display(),
+                "{}: {} (at {})",
+                repo.id().unwrap_or("(unnamed)"),
+                repo.name().unwrap_or("(unnamed)"),
+                local_path.display(),
             );
         }
     }
@@ -655,9 +641,10 @@ pub struct RepoPackages {
 
 impl RepoPackages {
     pub async fn run(self) {
-        fn print_repo(cache: &IndexMap<String, PackageVersions>) {
-            for (package, versions) in cache {
-                if let Some((_, pkg)) = versions.versions.first() {
+        fn print_repo<'a>(packages: &Repository) {
+            for versions in packages.get_packages() {
+                if let Some((_, pkg)) = versions.versions.iter().max_by_key(|(_, pkg)| &pkg.version) {
+                    let package = &pkg.name;
                     if let Some(display_name) = &pkg.display_name {
                         println!("{} | {}", display_name, package);
                     } else {
@@ -680,21 +667,13 @@ impl RepoPackages {
             let Some(client) = client else {
                 exit_with!("remote repository specified but offline mode.");
             };
-            let repo = download_remote_repository(&client, url, None)
+            let repo = download_remote_repository(&client, url, None, None)
                 .await
                 .exit_context("downloading repository")
                 .unwrap()
                 .0;
 
-            let cache = repo
-                .get("packages")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or(Map::<String, Value>::new());
-
-            let cache = RepositoryCache::new(cache).exit_context("loading package data");
-
-            print_repo(cache.parsed());
+            print_repo(&repo);
         } else {
             let mut env = load_env(client).await;
 
@@ -704,10 +683,8 @@ impl RepoPackages {
             let mut found = false;
 
             for repo in env.get_repos() {
-                if repo.creation_info.as_ref().and_then(|x| x.name.as_deref()) == some_name
-                    || repo.description.as_ref().and_then(|x| x.name.as_deref()) == some_name
-                {
-                    print_repo(repo.cache.parsed());
+                if repo.name() == some_name {
+                    print_repo(repo.repo());
                     found = true;
                 }
             }
