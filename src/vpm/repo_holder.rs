@@ -47,7 +47,7 @@ impl RepoHolder {
     ) -> io::Result<LocalCachedRepository> {
         match source {
             RepoSource::PreDefined(source, path) => {
-                RepoHolder::load_remote_repo(client, &path, source.url, Some(source.name)).await
+                RepoHolder::load_remote_repo(client, &path, source.url).await
             }
             RepoSource::UserRepo(user_repo) => {
                 if let Some(url) = &user_repo.url {
@@ -55,7 +55,6 @@ impl RepoHolder {
                         client,
                         &user_repo.local_path,
                         &url,
-                        user_repo.name.as_deref(),
                     )
                     .await
                 } else {
@@ -72,7 +71,6 @@ impl RepoHolder {
         client: Option<&Client>,
         path: &Path,
         remote_url: &str,
-        name: Option<&str>,
     ) -> io::Result<LocalCachedRepository> {
         Self::load_repo(path, client, || async {
             // if local repository not found: try downloading remote one
@@ -83,17 +81,8 @@ impl RepoHolder {
                 .await?
                 .expect("logic failure: no etag");
 
-            let mut local_cache = LocalCachedRepository::new(
-                path.to_owned(),
-                name.map(str::to_owned),
-                Some(remote_url.to_owned()),
-            );
-            local_cache.cache = RepositoryCache::new(remote_repo
-                .get("packages")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or(JsonMap::new()))?;
-            local_cache.repo = Some(remote_repo);
+            let mut local_cache = LocalCachedRepository::new(remote_repo, None, Some(remote_url.to_string()))?;
+
             if let Some(etag) = etag {
                 local_cache
                     .vrc_get
@@ -150,5 +139,13 @@ impl RepoHolder {
 
     pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
         self.cached_repos_new.values().collect()
+    }
+
+    pub(crate) fn get_repo_with_path(&self) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+        self.cached_repos_new.iter()
+    }
+
+    pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
+        self.cached_repos_new.get(path)
     }
 }
