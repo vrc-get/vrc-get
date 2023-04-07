@@ -6,12 +6,16 @@ use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::error::Error as StdError;
 use std::ffi::{OsStr, OsString};
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::str::FromStr;
 use dialoguer::Confirm;
+use indexmap::IndexMap;
+use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use tokio::fs::{read_dir, remove_file};
 
 macro_rules! multi_command {
@@ -506,9 +510,64 @@ pub struct RepoAdd {
     #[arg()]
     name: Option<String>,
 
+    /// Headers
+    #[arg(long, short, value_parser = HeaderPair::from_str)]
+    header: Vec<HeaderPair>,
+
     /// do not connect to remote servers, use local caches only
     #[arg(long)]
     offline: bool,
+}
+
+#[derive(Clone)]
+struct HeaderPair(HeaderName, HeaderValue);
+
+impl FromStr for HeaderPair {
+    type Err = HeaderPairErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (name, value) = s.split_once(":").ok_or(HeaderPairErr::NoComma)?;
+        Ok(HeaderPair(name.parse()?, value.parse()?))
+    }
+}
+
+#[derive(Debug)]
+enum HeaderPairErr {
+    NoComma,
+    HeaderNameErr(InvalidHeaderName),
+    HeaderValueErr(InvalidHeaderValue),
+}
+
+impl From<InvalidHeaderName> for HeaderPairErr {
+    fn from(value: InvalidHeaderName) -> Self {
+        Self::HeaderNameErr(value)
+    }
+}
+
+impl From<InvalidHeaderValue> for HeaderPairErr {
+    fn from(value: InvalidHeaderValue) -> Self {
+        Self::HeaderValueErr(value)
+    }
+}
+
+impl Display for HeaderPairErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            HeaderPairErr::NoComma => f.write_str("no ':' found"),
+            HeaderPairErr::HeaderNameErr(e) => Display::fmt(e, f),
+            HeaderPairErr::HeaderValueErr(e) => Display::fmt(e, f),
+        }
+    }
+}
+
+impl StdError for HeaderPairErr {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            HeaderPairErr::NoComma => None,
+            HeaderPairErr::HeaderNameErr(e) => Some(e),
+            HeaderPairErr::HeaderValueErr(e) => Some(e),
+        }
+    }
 }
 
 impl RepoAdd {
@@ -517,7 +576,11 @@ impl RepoAdd {
         let mut env = load_env(client).await;
 
         if let Ok(url) = Url::parse(&self.path_or_url) {
-            env.add_remote_repo(url, self.name.as_deref())
+            let mut headers = IndexMap::<String, String>::new();
+            for HeaderPair(name, value) in self.header {
+                headers.insert(name.to_string(), value.to_str().unwrap().to_string());
+            }
+            env.add_remote_repo(url, self.name.as_deref(), Some(&headers))
                 .await
                 .exit_context("adding repository")
         } else {
