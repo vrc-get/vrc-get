@@ -207,27 +207,18 @@ jobs:
 
       - name: set credentials for anatawa12/core tap
         env:
-          TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
+          GH_TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
         run: |-
-          PLACEHOLDER="AUTHORIZATION: basic github_token_placeholder_fd4b604d63e043949549caa3475c6f89"
-          CREDENTIAL="$(echo "x-access-token:$TOKEN" | base64 | tr -d '\n')"
-
           cd "$(brew --repository anatawa12/core)"
-          git config --local http."https://github.com/".extraheader "$PLACEHOLDER"
-          mv .git/config .git/config.bak
-          sed "s/$PLACEHOLDER/AUTHORIZATION: basic $CREDENTIAL/" <.git/config.bak >.git/config
+          gh auth setup-git --hostname github.com
 
       - name: Create update pr for anatawa12/homebrew-core 
         env:
           VERSION: ${{ needs.pre-build.outputs.version }}
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
+          GH_TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
         run: |-
           brew bump-formula-pr \
             anatawa12/core/vrc-get \
             --no-fork \
             --url "https://github.com/anatawa12/vrc-get/archive/${VERSION}.tar.gz"
-
-      - name: clear credentials for anatawa12/core tap
-        run: |-
-          cd "$(brew --repository anatawa12/core)"
-          git config --local --unset http."https://github.com".extraheader "$PLACEHOLDER"
