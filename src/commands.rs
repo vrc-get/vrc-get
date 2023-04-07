@@ -1,6 +1,6 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
-use crate::vpm::structs::repository::PackageVersions;
+use crate::vpm::structs::repository::Repository;
 use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
@@ -641,8 +641,8 @@ pub struct RepoPackages {
 
 impl RepoPackages {
     pub async fn run(self) {
-        fn print_repo<'a>(packages: impl Iterator<Item = &'a PackageVersions>) {
-            for versions in packages {
+        fn print_repo<'a>(packages: &Repository) {
+            for versions in packages.get_packages() {
                 if let Some((_, pkg)) = versions.versions.iter().max_by_key(|(_, pkg)| &pkg.version) {
                     let package = &pkg.name;
                     if let Some(display_name) = &pkg.display_name {
@@ -673,7 +673,7 @@ impl RepoPackages {
                 .unwrap()
                 .0;
 
-            print_repo(repo.get_packages());
+            print_repo(&repo);
         } else {
             let mut env = load_env(client).await;
 
@@ -684,7 +684,7 @@ impl RepoPackages {
 
             for repo in env.get_repos() {
                 if repo.name() == some_name {
-                    print_repo(repo.get_packages());
+                    print_repo(repo.repo());
                     found = true;
                 }
             }
