@@ -3,6 +3,7 @@ use std::io;
 use std::io::SeekFrom;
 use std::path::{Component, Path, PathBuf};
 use futures::TryStreamExt;
+use indexmap::IndexMap;
 use reqwest::Client;
 use sha2::{Digest, Sha256};
 use tokio::fs::{create_dir_all, File, OpenOptions, remove_dir_all};
@@ -19,8 +20,8 @@ pub(crate) async fn add_package(
 ) -> io::Result<()> {
     log::debug!("adding package {}", package.name());
     match package.inner {
-        PackageInfoInner::Remote(json, _) => {
-            add_remote_package(global_dir, http, json, target_packages_folder).await
+        PackageInfoInner::Remote(json, user_repo) => {
+            add_remote_package(global_dir, http, json, user_repo.headers(), target_packages_folder).await
         }
         PackageInfoInner::Local(json, path) => {
             add_local_package(path, &json.name, target_packages_folder).await
@@ -32,6 +33,7 @@ async fn add_remote_package(
     global_dir: &Path,
     http: Option<&Client>,
     package: &PackageJson,
+    headers: &IndexMap<String, String>,
     target_packages_folder: &Path,
 ) -> io::Result<()> {
     let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name, &package.version);
@@ -47,7 +49,7 @@ async fn add_remote_package(
     let zip_file = if let Some(cache_file) = try_cache(&zip_path, &sha_path, None).await {
         cache_file
     } else {
-        download_zip(http, &zip_path, &sha_path, &zip_file_name, &package.url).await?
+        download_zip(http, headers, &zip_path, &sha_path, &zip_file_name, &package.url).await?
     };
 
     // remove dest folder before extract if exists
@@ -152,6 +154,7 @@ async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Op
 /// returns: Result<File, Error> the readable zip file.
 async fn download_zip(
     http: Option<&Client>,
+    headers: &IndexMap<String, String>,
     zip_path: &Path,
     sha_path: &Path,
     zip_file_name: &str,
@@ -171,8 +174,15 @@ async fn download_zip(
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"))
     };
 
-    let mut stream = http
-        .get(url)
+    let mut request = http
+        .get(url);
+
+    for (name, header) in headers {
+        request = request.header(name, header);
+    }
+
+    let mut stream = 
+        request
         .send()
         .await
         .err_mapped()?
