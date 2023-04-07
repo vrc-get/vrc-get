@@ -79,6 +79,8 @@ pub mod setting {
         pub url: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub id: Option<String>,
+        #[serde(default)]
+        pub headers: IndexMap<String, String>,
     }
 
     impl UserRepoSetting {
@@ -88,6 +90,7 @@ pub mod setting {
                 name,
                 id: id.or(url.clone()),
                 url,
+                headers: IndexMap::new(),
             }
         }
     }
