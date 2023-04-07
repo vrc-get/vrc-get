@@ -1,6 +1,6 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
-use crate::vpm::structs::remote_repo::PackageVersions;
+use crate::vpm::structs::repository::PackageVersions;
 use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;

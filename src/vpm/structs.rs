@@ -96,9 +96,9 @@ pub mod setting {
     }
 }
 
-pub mod repository {
+pub mod repo_cache {
     use crate::vpm::structs::package::PackageJson;
-    use crate::vpm::structs::remote_repo::{PackageVersions, Repository};
+    use crate::vpm::structs::repository::{PackageVersions, Repository};
     use super::*;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -164,7 +164,7 @@ pub mod repository {
     }
 }
 
-pub mod remote_repo {
+pub mod repository {
     use super::*;
     use serde::{Deserializer, Serializer};
 

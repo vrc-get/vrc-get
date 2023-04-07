@@ -29,8 +29,8 @@ use vpm_manifest::VpmManifest;
 use crate::version::{Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::vpm::structs::package::PackageJson;
-use crate::vpm::structs::remote_repo::{PackageVersions, Repository};
-use crate::vpm::structs::repository::LocalCachedRepository;
+use crate::vpm::structs::repository::{PackageVersions, Repository};
+use crate::vpm::structs::repo_cache::LocalCachedRepository;
 use crate::vpm::structs::setting::UserRepoSetting;
 
 mod repo_holder;
