@@ -5,7 +5,6 @@ use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, Pac
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
-use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
@@ -13,9 +12,7 @@ use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use dialoguer::Confirm;
-use indexmap::IndexMap;
 use tokio::fs::{read_dir, remove_file};
-use crate::vpm::structs::repository::LocalCachedRepository;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -676,21 +673,7 @@ impl RepoPackages {
                 .unwrap()
                 .0;
 
-            let cache = repo
-                .get("packages")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or(Map::<String, Value>::new());
-
-            let cache = LocalCachedRepository::new(
-                cache, 
-                IndexMap::new(), 
-                None, 
-                None,
-            )
-                .exit_context("loading package data");
-
-            print_repo(cache.get_packages());
+            print_repo(repo.get_packages());
         } else {
             let mut env = load_env(client).await;
 

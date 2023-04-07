@@ -88,12 +88,7 @@ impl RepoHolder {
                 .await?
                 .expect("logic failure: no etag");
 
-            let mut local_cache = LocalCachedRepository::new(
-                remote_repo, 
-                headers.map(Clone::clone).unwrap_or_default(), 
-                None, 
-                Some(remote_url.to_string()),
-            )?;
+            let mut local_cache = LocalCachedRepository::new(remote_repo, headers.map(Clone::clone).unwrap_or_default());
 
             if let Some(etag) = etag {
                 local_cache

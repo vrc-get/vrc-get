@@ -113,45 +113,95 @@ pub mod repository {
 
     impl LocalCachedRepository {
         pub fn new(
-            repo: JsonMap, 
-            headers: IndexMap<String, String>, 
-            id: Option<String>, 
-            url: Option<String>,
-        ) -> serde_json::Result<Self> {
-            Ok(Self {
-                repo: Repository::new(repo, id, url)?,
-                headers,
-                vrc_get: None,
-            })
-        }
-
-        pub fn url(&self) -> Option<&str> {
-            self.repo.parsed.url.as_deref()
-        }
-
-        pub fn id(&self) -> Option<&str> {
-            self.repo.parsed.id.as_deref()
-        }
-
-        pub fn name(&self) -> Option<&str> {
-            self.repo.parsed.name.as_deref()
+            repo: Repository, 
+            headers: IndexMap<String, String>,
+        ) -> Self {
+            Self { repo, headers, vrc_get: None }
         }
 
         pub fn headers(&self) -> &IndexMap<String, String> {
             &self.headers
         }
 
-        pub fn set_repo(&mut self, repo: JsonMap) -> serde_json::Result<()> {
-            self.repo = Repository::new(
-                repo,
-                self.id().map(|x| x.to_owned()),
-                self.url().map(|x| x.to_owned()),
-            )?;
-            Ok(())
+        pub fn repo(&self) -> &Repository {
+            &self.repo
+        }
+
+        pub fn set_repo(&mut self, mut repo: Repository) {
+            if let Some(id) = self.id() {
+                repo.set_id_if_none(|| id.to_owned());
+            }
+            if let Some(url) = self.url() {
+                repo.set_url_if_none(|| url.to_owned());
+            }
+            self.repo = repo;
+        }
+
+        pub fn url(&self) -> Option<&str> {
+            self.repo().url()
+        }
+
+        pub fn id(&self) -> Option<&str> {
+            self.repo().id()
+        }
+
+        pub fn name(&self) -> Option<&str> {
+            self.repo().name()
         }
 
         pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageJson> {
-            self.repo.parsed.packages
+            self.repo().get_versions_of(package)
+        }
+
+        pub fn get_packages(&self) -> impl Iterator<Item = &'_ PackageVersions> {
+            self.repo().get_packages()
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Repository {
+        actual: JsonMap,
+        parsed: ParsedRepository,
+    }
+
+    impl Repository {
+        pub fn new(cache: JsonMap) -> serde_json::Result<Self> {
+            Ok(Self {
+                parsed: serde_json::from_value(Value::Object(cache.clone()))?,
+                actual: cache,
+            })
+        }
+
+        pub fn set_id_if_none(&mut self, f: impl FnOnce() -> String){
+            if let None = self.parsed.id {
+                let id = f();
+                self.parsed.id = Some(id.clone());
+                self.actual.insert("id".to_owned(), Value::String(id));
+            }
+        }
+
+        pub fn set_url_if_none(&mut self, f: impl FnOnce() -> String){
+            if let None = self.parsed.url {
+                let id = f();
+                self.parsed.id = Some(id.clone());
+                self.actual.insert("url".to_owned(), Value::String(id));
+            }
+        }
+
+        pub fn url(&self) -> Option<&str> {
+            self.parsed.url.as_deref()
+        }
+
+        pub fn id(&self) -> Option<&str> {
+            self.parsed.id.as_deref()
+        }
+
+        pub fn name(&self) -> Option<&str> {
+            self.parsed.name.as_deref()
+        }
+
+        pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageJson> {
+            self.parsed.packages
                 .get(package)
                 .map(|x| x.versions.values())
                 .into_iter()
@@ -159,36 +209,9 @@ pub mod repository {
         }
 
         pub fn get_packages(&self) -> impl Iterator<Item = &'_ PackageVersions> {
-            self.repo.parsed.packages
+            self.parsed.packages
                 .values()
                 .into_iter()
-        }
-    }
-
-    #[derive(Debug, Clone)]
-    struct Repository {
-        actual: JsonMap,
-        parsed: ParsedRepository,
-    }
-
-    impl Repository {
-        pub fn new(mut cache: JsonMap, mut id: Option<String>, url: Option<String>) -> serde_json::Result<Self> {
-            // initialize url and id if not specified
-
-            id = id.or_else(|| url.as_ref().map(|x| x.clone()));
-
-            if let (None, Some(url)) = (cache.get("url"), url) {
-                cache.insert("url".to_owned(), Value::String(url));
-            }
-            
-            if let (None, Some(id)) = (cache.get("id"), id) {
-                cache.insert("id".to_owned(), Value::String(id));
-            }
-
-            Ok(Self {
-                parsed: serde_json::from_value(Value::Object(cache.clone()))?,
-                actual: cache,
-            })
         }
     }
 
@@ -202,7 +225,7 @@ pub mod repository {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
             use serde::de::Error;
             let map = JsonMap::deserialize(deserializer)?;
-            Self::new(map, None, None).map_err(Error::custom)
+            Self::new(map).map_err(Error::custom)
         }
     }
 

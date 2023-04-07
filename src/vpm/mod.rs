@@ -30,7 +30,7 @@ use crate::version::{Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::structs::repository::LocalCachedRepository;
+use crate::vpm::structs::repository::{LocalCachedRepository, Repository};
 use crate::vpm::structs::setting::UserRepoSetting;
 
 mod repo_holder;
@@ -372,6 +372,7 @@ impl Environment {
         let Some(http) = &self.http else {
             return Err(AddRepositoryErr::OfflineMode);
         };
+
         let (remote_repo, etag) = download_remote_repository(&http, url.clone(), None, None)
             .await?
             .expect("logic failure: no etag");
@@ -379,14 +380,9 @@ impl Environment {
             .get_repos_dir()
             .joined(format!("{}.json", uuid::Uuid::new_v4()));
 
-        let repo_name = name.map(str::to_owned).or_else(|| {
-            remote_repo
-                .get("name")
-                .and_then(Value::as_str)
-                .map(str::to_owned)
-        });
+        let repo_name = name.or(remote_repo.name()).map(str::to_owned);
 
-        let repo_id = remote_repo.get("id").and_then(Value::as_str).map(str::to_owned);
+        let repo_id = remote_repo.id().map(str::to_owned);
 
         if let Some(repo_id) = repo_id.as_deref() {
             if user_repos
@@ -397,7 +393,7 @@ impl Environment {
             }
         }
 
-        let mut local_cache = LocalCachedRepository::new(remote_repo, IndexMap::new(), repo_id.clone(), Some(url.to_string()))?;
+        let mut local_cache = LocalCachedRepository::new(remote_repo, IndexMap::new());
 
         // set etag
         if let Some(etag) = etag {
@@ -604,9 +600,7 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
     match download_remote_repository(&client, &remote_url, Some(repo.headers()), etag).await {
         Ok(None) => log::debug!("cache matched downloading {}", remote_url),
         Ok(Some((remote_repo, etag))) => {
-            if let Err(e) = repo.set_repo(remote_repo) {
-                log::error!("parsing remote repo '{}': {}", remote_url, e)
-            }
+            repo.set_repo(remote_repo);
 
             // set etag
             if let Some(etag) = etag {
@@ -642,11 +636,13 @@ pub(crate) async fn download_remote_repository(
     url: impl IntoUrl,
     headers: Option<&IndexMap<String, String>>,
     etag: Option<&str>,
-) -> io::Result<Option<(JsonMap, Option<String>)>> {
+) -> io::Result<Option<(Repository, Option<String>)>> {
     fn map_err(err: reqwest::Error) -> io::Error {
         io::Error::new(io::ErrorKind::NotFound, err)
     }
-    let mut request = client.get(url);
+
+    let url = url.into_url().map_err(map_err)?;
+    let mut request = client.get(url.clone());
     if let Some(etag) = &etag {
         request = request.header("If-None-Match", etag.to_owned())
     }
@@ -668,7 +664,11 @@ pub(crate) async fn download_remote_repository(
         .and_then(|x| x.to_str().ok())
         .map(str::to_owned);
 
-    Ok(Some((response.json().await.err_mapped()?, etag)))
+    let json = response.json().await.err_mapped()?;
+
+    let mut repo = Repository::new(json)?;
+    repo.set_id_if_none(|| url.to_string());
+    Ok(Some((repo, etag)))
 }
 
 mod vpm_manifest {
