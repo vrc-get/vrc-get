@@ -19,7 +19,7 @@ pub(crate) async fn add_package(
 ) -> io::Result<()> {
     log::debug!("adding package {}", package.name());
     match package.inner {
-        PackageInfoInner::Remote(json) => {
+        PackageInfoInner::Remote(json, _) => {
             add_remote_package(global_dir, http, json, target_packages_folder).await
         }
         PackageInfoInner::Local(json, path) => {

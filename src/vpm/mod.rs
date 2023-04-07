@@ -265,8 +265,8 @@ impl Environment {
         list.extend(
             self.get_repos()
             .into_iter()
-            .flat_map(|repo| repo.get_versions_of(package))
-            .map(PackageInfo::remote)
+            .flat_map(|repo| repo.get_versions_of(package).map(move |pkg| (pkg, repo)))
+            .map(|(pkg, repo)| PackageInfo::remote(pkg, repo))
         );
 
         // user package folders
@@ -487,7 +487,7 @@ pub struct PackageInfo<'a> {
 
 #[derive(Copy, Clone)]
 enum PackageInfoInner<'a> {
-    Remote(&'a PackageJson),
+    Remote(&'a PackageJson, &'a LocalCachedRepository),
     Local(&'a PackageJson, &'a Path),
 }
 
@@ -495,13 +495,13 @@ impl <'a> PackageInfo<'a> {
     pub fn package_json(self) -> &'a PackageJson {
         // this match will be removed in the optimized code because package.json is exists at first
         match self.inner {
-            PackageInfoInner::Remote(pkg) => pkg,
+            PackageInfoInner::Remote(pkg, _) => pkg,
             PackageInfoInner::Local(pkg, _) => pkg,
         }
     }
 
-    pub(crate) fn remote(json: &'a PackageJson) -> Self {
-        Self { inner: PackageInfoInner::Remote(json) }
+    pub(crate) fn remote(json: &'a PackageJson, repo: &'a LocalCachedRepository) -> Self {
+        Self { inner: PackageInfoInner::Remote(json, repo) }
     }
 
     pub(crate) fn local(json: &'a PackageJson, path: &'a Path) -> Self {
@@ -510,7 +510,7 @@ impl <'a> PackageInfo<'a> {
 
     #[allow(unused)]
     pub fn is_remote(self) -> bool {
-        matches!(self.inner, PackageInfoInner::Remote(_))
+        matches!(self.inner, PackageInfoInner::Remote(_, _))
     }
 
     #[allow(unused)]
