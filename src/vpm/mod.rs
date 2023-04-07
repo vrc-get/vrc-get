@@ -637,11 +637,7 @@ pub(crate) async fn download_remote_repository(
     headers: Option<&IndexMap<String, String>>,
     etag: Option<&str>,
 ) -> io::Result<Option<(Repository, Option<String>)>> {
-    fn map_err(err: reqwest::Error) -> io::Error {
-        io::Error::new(io::ErrorKind::NotFound, err)
-    }
-
-    let url = url.into_url().map_err(map_err)?;
+    let url = url.into_url().err_mapped()?;
     let mut request = client.get(url.clone());
     if let Some(etag) = &etag {
         request = request.header("If-None-Match", etag.to_owned())
