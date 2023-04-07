@@ -356,6 +356,7 @@ impl Environment {
         Ok(())
     }
 
+    // TODO: support for headers
     pub async fn add_remote_repo(
         &mut self,
         url: Url,
@@ -371,7 +372,7 @@ impl Environment {
         let Some(http) = &self.http else {
             return Err(AddRepositoryErr::OfflineMode);
         };
-        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), None)
+        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), None, None)
             .await?
             .expect("logic failure: no etag");
         let local_path = self
@@ -600,7 +601,7 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
     };
 
     let etag = repo.vrc_get.as_ref().map(|x| x.etag.as_str());
-    match download_remote_repository(&client, &remote_url, etag).await {
+    match download_remote_repository(&client, &remote_url, Some(repo.headers()), etag).await {
         Ok(None) => log::debug!("cache matched downloading {}", remote_url),
         Ok(Some((remote_repo, etag))) => {
             if let Err(e) = repo.set_repo(remote_repo) {
@@ -639,6 +640,7 @@ async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()>
 pub(crate) async fn download_remote_repository(
     client: &Client,
     url: impl IntoUrl,
+    headers: Option<&IndexMap<String, String>>,
     etag: Option<&str>,
 ) -> io::Result<Option<(JsonMap, Option<String>)>> {
     fn map_err(err: reqwest::Error) -> io::Error {
@@ -647,6 +649,11 @@ pub(crate) async fn download_remote_repository(
     let mut request = client.get(url);
     if let Some(etag) = &etag {
         request = request.header("If-None-Match", etag.to_owned())
+    }
+    if let Some(headers) = headers {
+        for (name, value) in headers {
+            request = request.header(name, value);
+        }
     }
     let response = request.send().await.err_mapped()?;
     let response = response.error_for_status().err_mapped()?;

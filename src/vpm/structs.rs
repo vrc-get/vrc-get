@@ -137,6 +137,10 @@ pub mod repository {
             self.repo.parsed.name.as_deref()
         }
 
+        pub fn headers(&self) -> &IndexMap<String, String> {
+            &self.headers
+        }
+
         pub fn set_repo(&mut self, repo: JsonMap) -> serde_json::Result<()> {
             self.repo = Repository::new(
                 repo,

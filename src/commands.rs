@@ -670,7 +670,7 @@ impl RepoPackages {
             let Some(client) = client else {
                 exit_with!("remote repository specified but offline mode.");
             };
-            let repo = download_remote_repository(&client, url, None)
+            let repo = download_remote_repository(&client, url, None, None)
                 .await
                 .exit_context("downloading repository")
                 .unwrap()
