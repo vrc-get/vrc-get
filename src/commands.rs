@@ -1,20 +1,21 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::{
-    download_remote_repository, AddPackageErr, Environment, UnityProject, VersionSelector,
-};
+use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
-use serde_json::{from_value, Map, Value};
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Display;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use dialoguer::Confirm;
+use indexmap::IndexMap;
 use tokio::fs::{read_dir, remove_file};
+use crate::vpm::structs::repository::RepositoryCache;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -49,14 +50,12 @@ async fn load_unity(path: Option<PathBuf>) -> UnityProject {
         .exit_context("loading unity project")
 }
 
-async fn get_package<'a>(
-    env: &'a Environment,
+fn get_package<'env>(
+    env: &'env Environment,
     name: &str,
-    version_selector: VersionSelector<'a>,
-) -> PackageJson {
+    version_selector: VersionSelector,
+) -> PackageInfo<'env> {
     env.find_package_by_name(&name, version_selector)
-        .await
-        .exit_context("finding package")
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
 
@@ -76,6 +75,44 @@ async fn save_unity(unity: &mut UnityProject) {
 
 async fn save_env(env: &mut Environment) {
     env.save().await.exit_context("saving global config");
+}
+
+fn confirm_prompt(msg: &str) -> bool {
+    Confirm::new().with_prompt(msg).interact().unwrap_or(false)
+}
+
+fn print_prompt_install(request: &AddPackageRequest, yes: bool) {
+    if request.locked().len() == 0 && request.dependencies().len() == 0 {
+        exit_with!("nothing to do")
+    }
+
+    let mut prompt = false;
+
+    if request.locked().len() != 0 {
+        println!("You're installing the following packages:");
+        for x in request.locked() {
+            println!("- {} version {}", x.name(), x.version());
+        }
+        prompt = prompt || request.locked().len() > 1;
+    }
+
+    if request.legacy_folders().len() != 0 || request.legacy_files().len() != 0 {
+        println!("You're removing the following legacy assets:");
+        for x in request.legacy_folders().iter().chain(request.legacy_files()) {
+            println!("- {}", x.display());
+        }
+        prompt = true;
+    }
+
+    if prompt {
+        if yes {
+            println!("--yes is set. skipping confirm");
+        } else {
+            if !confirm_prompt("Do you want to continue install?") {
+                exit(1);
+            }
+        }
+    }
 }
 
 trait ResultExt<T, E>: Sized {
@@ -136,13 +173,19 @@ pub struct Install {
     /// do not connect to remote servers, use local caches only
     #[arg(long)]
     offline: bool,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
 }
 
 impl Install {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let mut env = load_env(client).await;
         let mut unity = load_unity(self.project).await;
+
+        env.load_package_infos().await.exit_context("loading repositories");
 
         if let Some(name) = self.name {
             let version_selector = match self.version {
@@ -150,11 +193,15 @@ impl Install {
                 None => VersionSelector::Latest,
                 Some(ref version) => VersionSelector::Specific(version),
             };
-            let package = get_package(&env, &name, version_selector).await;
-            unity
-                .add_package(&env, &package)
+            let package = get_package(&env, &name, version_selector);
+
+            let request = unity.add_package_request(&env, vec![package], true)
                 .await
-                .exit_context("adding package");
+                .exit_context("collecting packages to be installed");
+
+            print_prompt_install(&request, self.yes);
+
+            unity.do_add_package_request(&env, request).await.exit_context("adding package");
 
             mark_and_sweep(&mut unity).await;
         } else {
@@ -213,31 +260,30 @@ pub struct Outdated {
 impl Outdated {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let mut env = load_env(client).await;
         let unity = load_unity(self.project).await;
+
+        env.load_package_infos().await.exit_context("loading repositories");
 
         let mut outdated_packages = HashMap::new();
 
         for (name, dep) in unity.locked_packages() {
-            match env
-                .find_package_by_name(name, VersionSelector::Latest)
-                .await
+            match env.find_package_by_name(name, VersionSelector::Latest)
             {
-                Err(e) => log::error!("error loading package {}: {}", name, e),
-                Ok(None) => log::error!("package {} not found.", name),
+                None => log::error!("package {} not found.", name),
                 // if found version is newer: add to outdated
-                Ok(Some(pkg)) if dep.version < pkg.version => {
-                    outdated_packages.insert(pkg.name.clone(), (pkg, &dep.version));
+                Some(pkg) if dep.version < *pkg.version() => {
+                    outdated_packages.insert(pkg.name(), (pkg, &dep.version));
                 }
-                Ok(Some(_)) => (),
+                Some(_) => (),
             }
         }
 
         for (_, dependencies) in unity.all_dependencies() {
             for (name, range) in dependencies {
-                if let Some((outdated, _)) = outdated_packages.get(name) {
-                    if !range.matches(&outdated.version) {
-                        outdated_packages.remove(name);
+                if let Some((outdated, _)) = outdated_packages.get(name.as_str()) {
+                    if !range.matches(&outdated.version()) {
+                        outdated_packages.remove(name.as_str());
                     }
                 }
             }
@@ -248,23 +294,23 @@ impl Outdated {
                 for (name, (found, installed)) in &outdated_packages {
                     println!(
                         "{}: installed: {}, found: {}",
-                        name, installed, &found.version
+                        name, installed, &found.version()
                     );
                 }
             }
             1 => {
                 #[derive(Serialize)]
-                struct OutdatedInfo {
-                    package_name: String,
-                    installed_version: Version,
-                    newer_version: Version,
+                struct OutdatedInfo<'a> {
+                    package_name: &'a str,
+                    installed_version: &'a Version,
+                    newer_version: &'a Version,
                 }
                 let info = outdated_packages
                     .into_iter()
                     .map(|(package_name, (found, installed))| OutdatedInfo {
                         package_name,
-                        installed_version: installed.clone(),
-                        newer_version: found.version,
+                        installed_version: installed,
+                        newer_version: found.version(),
                     })
                     .collect::<Vec<_>>();
                 println!("{}", serde_json::to_string(&info).unwrap());
@@ -297,48 +343,53 @@ pub struct Upgrade {
     /// do not connect to remote servers, use local caches only
     #[arg(long)]
     offline: bool,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
 }
 
 impl Upgrade {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let mut env = load_env(client).await;
         let mut unity = load_unity(self.project).await;
 
-        if let Some(name) = self.name {
+        env.load_package_infos().await.exit_context("loading repositories");
+
+        let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
                 None if self.prerelease => VersionSelector::LatestIncluidingPrerelease,
                 None => VersionSelector::Latest,
                 Some(ref version) => VersionSelector::Specific(version),
             };
-            let package = get_package(&env, &name, version_selector).await;
+            let package = get_package(&env, &name, version_selector);
 
-            unity
-                .upgrade_package(&env, &package)
-                .await
-                .exit_context("upgrading package");
-
-            println!("upgraded {} to {}", name, package.version);
+            vec![package]
         } else {
             let version_selector = match self.prerelease {
                 true => VersionSelector::LatestIncluidingPrerelease,
                 false => VersionSelector::Latest,
             };
-            let package_names = unity.locked_packages().keys().cloned().collect::<Vec<_>>();
-            for name in package_names {
-                let package = get_package(&env, &name, version_selector).await;
 
-                match unity.upgrade_package(&env, &package).await {
-                    Ok(_) => {
-                        println!("upgraded {} to {}", name, package.version);
-                    }
-                    Err(AddPackageErr::Io(e)) => log::error!("upgrading package: {}", e),
-                    Err(AddPackageErr::AlreadyNewerPackageInstalled) => {}
-                    Err(e) => {
-                        log::warn!("upgrading {} to {}: {}", name, package.version, e);
-                    }
-                }
-            }
+            unity.locked_packages()
+                .keys()
+                .map(|name| get_package(&env, &name, version_selector))
+                .collect()
+        };
+
+        let request = unity.add_package_request(&env, updates, false)
+            .await
+            .exit_context("collecting packages to be upgraded");
+
+        print_prompt_install(&request, self.yes);
+
+        let updates = request.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
+
+        unity.do_add_package_request(&env, request).await.exit_context("upgrading packages");
+
+        for (name, version) in updates {
+            println!("upgraded {} to {}", name, version);
         }
 
         mark_and_sweep(&mut unity).await;
@@ -364,7 +415,9 @@ pub struct Search {
 impl Search {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let mut env = load_env(client).await;
+
+        env.load_package_infos().await.exit_context("loading repositories");
 
         let mut queries = self.queries;
         for query in &mut queries {
@@ -389,21 +442,19 @@ impl Search {
                 queries
                     .iter()
                     .all(|query| search_targets.iter().any(|x| x.contains(query)))
-            })
-            .await
-            .exit_context("searching whole repositories");
+            });
 
         if found_packages.is_empty() {
             println!("No matching package found!")
         } else {
             for x in found_packages {
-                if let Some(name) = x.display_name {
+                if let Some(name) = &x.display_name {
                     println!("{} version {}", name, x.version);
                     println!("({})", x.name);
                 } else {
                     println!("{} version {}", x.name, x.version);
                 }
-                if let Some(description) = x.description {
+                if let Some(description) = &x.description {
                     println!("{}", description);
                 }
                 println!();
@@ -437,9 +488,11 @@ pub struct RepoList {
 impl RepoList {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let mut env = load_env(client).await;
 
-        for repo in env.get_repos().await.exit_context("getting all repos") {
+        env.load_package_infos().await.exit_context("loading repositories");
+
+        for repo in env.get_repos() {
             let mut name = None;
             let mut r#type = None;
             let mut local_path = None;
@@ -488,7 +541,6 @@ impl RepoAdd {
                 .exit_context("adding repository")
         } else {
             env.add_local_repo(Path::new(&self.path_or_url), self.name.as_deref())
-                .await
                 .exit_context("adding repository")
         }
 
@@ -603,10 +655,8 @@ pub struct RepoPackages {
 
 impl RepoPackages {
     pub async fn run(self) {
-        fn print_repo(cache: Map<String, Value>) {
-            for (package, value) in cache {
-                let versions =
-                    from_value::<PackageVersions>(value).exit_context("loading package data");
+        fn print_repo(cache: &IndexMap<String, PackageVersions>) {
+            for (package, versions) in cache {
                 if let Some((_, pkg)) = versions.versions.first() {
                     if let Some(display_name) = &pkg.display_name {
                         println!("{} | {}", display_name, package);
@@ -642,17 +692,22 @@ impl RepoPackages {
                 .cloned()
                 .unwrap_or(Map::<String, Value>::new());
 
-            print_repo(cache);
+            let cache = RepositoryCache::new(cache).exit_context("loading package data");
+
+            print_repo(cache.parsed());
         } else {
-            let env = load_env(client).await;
+            let mut env = load_env(client).await;
+
+            env.load_package_infos().await.exit_context("loading repositories");
+
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
 
-            for repo in env.get_repos().await.exit_context("loading repos") {
+            for repo in env.get_repos() {
                 if repo.creation_info.as_ref().and_then(|x| x.name.as_deref()) == some_name
                     || repo.description.as_ref().and_then(|x| x.name.as_deref()) == some_name
                 {
-                    print_repo(repo.cache.clone());
+                    print_repo(repo.cache.parsed());
                     found = true;
                 }
             }
