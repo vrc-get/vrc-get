@@ -374,7 +374,7 @@ impl Environment {
             return Err(AddRepositoryErr::OfflineMode);
         };
 
-        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), Some(headers), None)
+        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), headers, None)
             .await?
             .expect("logic failure: no etag");
         let local_path = self
