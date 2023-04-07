@@ -46,15 +46,22 @@ pub mod package {
     pub struct PackageJson {
         pub name: String,
         #[serde(rename = "displayName")]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(default)]
         pub display_name: Option<String>,
         pub description: Option<String>,
         pub version: Version,
         #[serde(rename = "vpmDependencies")]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub vpm_dependencies: Option<IndexMap<String, VersionRange>>,
-        #[serde(default, skip_serializing_if = "String::is_empty")]
+        #[serde(default)]
+        pub vpm_dependencies: IndexMap<String, VersionRange>,
+        #[serde(default)]
         pub url: String,
+
+        #[serde(rename = "legacyFolders")]
+        #[serde(default)]
+        pub legacy_folders: IndexMap<String, String>,
+        #[serde(rename = "legacyFiles")]
+        #[serde(default)]
+        pub legacy_files: IndexMap<String, String>,
     }
 }
 

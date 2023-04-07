@@ -10,17 +10,17 @@ use std::path::{Path, PathBuf};
 use std::task::ready;
 use std::task::Poll::Ready;
 use std::{env, fmt, io};
+use std::pin::pin;
 
-use futures::future::{join_all, try_join_all};
+use futures::future::{join, join_all, try_join_all};
 use futures::prelude::*;
+use futures::stream::FuturesUnordered;
 use indexmap::IndexMap;
 use itertools::{Itertools as _};
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
-use tokio::fs::{
-    create_dir_all, read_dir, remove_dir_all, remove_file, DirEntry, File,
-};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
+use tokio::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, DirEntry, File, metadata};
+use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader};
 
 use repo_holder::RepoHolder;
 use utils::*;
@@ -497,7 +497,7 @@ impl <'a> PackageInfo<'a> {
         &self.package_json().version
     }
 
-    pub fn vpm_dependencies(self) -> &'a Option<IndexMap<String, VersionRange>> {
+    pub fn vpm_dependencies(self) -> &'a IndexMap<String, VersionRange> {
         &self.package_json().vpm_dependencies
     }
 }
@@ -787,8 +787,8 @@ mod vpm_manifest {
 
 #[derive(Debug)]
 pub struct UnityProject {
-    /// path to `Packages` folder.
-    packages_dir: PathBuf,
+    /// path to project folder.
+    project_dir: PathBuf,
     /// manifest.json
     manifest: VpmManifest,
     /// packages installed in the directory but not locked in vpm-manifest.json
@@ -797,22 +797,21 @@ pub struct UnityProject {
 
 impl UnityProject {
     pub async fn find_unity_project(unity_project: Option<PathBuf>) -> io::Result<UnityProject> {
-        let mut unity_found = unity_project
+        let unity_found = unity_project
             .ok_or(())
             .or_else(|_| UnityProject::find_unity_project_path())?;
-        unity_found.push("Packages");
 
         log::debug!(
-            "initializing UnityProject with Packages folder {}",
+            "initializing UnityProject with unity folder {}",
             unity_found.display()
         );
 
-        let manifest = unity_found.join("vpm-manifest.json");
+        let manifest = unity_found.join("Packages").joined("vpm-manifest.json");
         let vpm_manifest = VpmManifest::new(load_json_or_default(&manifest).await?)?;
 
         let mut unlocked_packages = vec![];
 
-        let mut dir_reading = read_dir(&unity_found).await?;
+        let mut dir_reading = read_dir(unity_found.join("Packages")).await?;
         while let Some(dir_entry) = dir_reading.next_entry().await? {
             if let Some(read) = Self::try_read_unlocked_package(dir_entry, &vpm_manifest).await {
                 unlocked_packages.push(read);
@@ -820,7 +819,7 @@ impl UnityProject {
         }
 
         Ok(UnityProject {
-            packages_dir: unity_found,
+            project_dir: unity_found,
             manifest: VpmManifest::new(load_json_or_default(&manifest).await?)?,
             unlocked_packages,
         })
@@ -896,29 +895,38 @@ impl UnityProject {
 pub struct AddPackageRequest<'env> {
     dependencies: Vec<(&'env str, VpmDependency)>,
     locked: Vec<PackageInfo<'env>>,
+    legacy_files: Vec<PathBuf>,
+    legacy_folders: Vec<PathBuf>,
 }
 
 impl <'env> AddPackageRequest<'env> {
     pub fn locked(&self) -> &[PackageInfo<'env>] {
         &self.locked
     }
+
+    pub fn dependencies(&self) -> &[(&'env str, VpmDependency)] {
+        &self.dependencies
+    }
+
+    pub fn legacy_files(&self) -> &[PathBuf] {
+        &self.legacy_files
+    }
+
+    pub fn legacy_folders(&self) -> &[PathBuf] {
+        &self.legacy_folders
+    }
 }
 
 impl UnityProject {
-    pub fn add_package_request<'env>(
+    pub async fn add_package_request<'env>(
         &self,
         env: &'env Environment,
         mut packages: Vec<PackageInfo<'env>>,
         to_dependencies: bool,
     ) -> Result<AddPackageRequest<'env>, AddPackageErr> {
-        use crate::vpm::AddPackageErr::*;
         packages.retain(|pkg| {
             self.manifest.dependencies().get(pkg.name()).map(|dep| dep.version < *pkg.version()).unwrap_or(true)
         });
-
-        if packages.len() == 0 {
-            return Err(AlreadyNewerPackageInstalled);
-        }
 
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
@@ -938,21 +946,144 @@ impl UnityProject {
         }
 
         if locked.len() == 0 {
-            if to_dependencies {
-                return Ok(AddPackageRequest {
-                    dependencies,
-                    locked: vec![],
-                });
-            } else {
-                return Err(AlreadyNewerPackageInstalled);
-            }
+            // early return: 
+            return Ok(AddPackageRequest {
+                dependencies,
+                locked: vec![],
+                legacy_files: vec![],
+                legacy_folders: vec![],
+            });
         }
 
         let packages = self.collect_adding_packages(env, locked)?;
 
-        // TODO: find for legacyFolders/Files here
+        let (legacy_files, legacy_folders) = self.collect_legacy_assets(&packages).await;
 
-        return Ok(AddPackageRequest { dependencies, locked: packages });
+        return Ok(AddPackageRequest { 
+            dependencies, 
+            locked: packages,
+            legacy_files,
+            legacy_folders,
+        });
+    }
+
+    async fn collect_legacy_assets(&self, packages: &[PackageInfo<'_>]) -> (Vec<PathBuf>, Vec<PathBuf>) {
+        let folders = packages.iter().flat_map(|x| &x.package_json().legacy_folders).map(|(path, guid)| (path, guid, false));
+        let files = packages.iter().flat_map(|x| &x.package_json().legacy_files).map(|(path, guid)| (path, guid, true));
+        let assets = folders.chain(files).collect::<Vec<_>>();
+
+        enum LegacyInfo {
+            FoundFile(PathBuf),
+            FoundFolder(PathBuf),
+            NotFound,
+            GuidFile(GUID),
+            GuidFolder(GUID),
+        }
+        use LegacyInfo::*;
+
+        #[derive(Copy, Clone, Hash, Eq, PartialEq)]
+        struct GUID([u8; 16]);
+
+        fn try_parse_guid(guid: &str) -> Option<GUID> {
+            Some(GUID(parse_hex_128(guid.as_bytes().try_into().ok()?)?))
+        }
+
+        fn is_guid(guid: &str) -> bool {
+            guid.len() == 32 && guid
+                .as_bytes()
+                .iter()
+                .all(|x| matches!(x, b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F'))
+        }
+
+        let mut futures = pin!(assets.into_iter().map(|(path, guid, is_file)| async move {
+            // some packages uses '/' as path separator.
+            let path = PathBuf::from(path.replace('\\', "/"));
+            // for security, deny absolute path.
+            if path.is_absolute() {
+                return NotFound
+            }
+            let path = self.project_dir.join(path);
+            if metadata(&path).await.map(|x| x.is_file() == is_file).unwrap_or(false) {
+                if is_file {
+                    FoundFile(path)
+                } else {
+                    FoundFolder(path)
+                }
+            } else {
+                if let Some(guid) = try_parse_guid(guid) {
+                    if is_file {
+                        GuidFile(guid)
+                    } else {
+                        GuidFolder(guid)
+                    }
+                } else {
+                    NotFound
+                }
+            }
+        }).collect::<FuturesUnordered<_>>());
+
+        let mut found_files = HashSet::new();
+        let mut found_folders = HashSet::new();
+        let mut find_guids = HashMap::new();
+
+        while let Some(info) = futures.next().await {
+            match info {
+                FoundFile(path) => {
+                    found_files.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                },
+                FoundFolder(path) => { 
+                    found_folders.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                },
+                NotFound => (),
+                GuidFile(guid) => { find_guids.insert(guid, true); },
+                GuidFolder(guid) => { find_guids.insert(guid, false); },
+            }
+        }
+
+        if find_guids.len() != 0 {
+            async fn get_guid(entry: DirEntry) -> Option<(GUID, bool, PathBuf)> {
+                let path = entry.path();
+                if path.extension() != Some(OsStr::new("meta")) || !entry.file_type().await.ok()?.is_file() {
+                    return None
+                }
+                let mut file = BufReader::new(File::open(&path).await.ok()?);
+                let mut buffer = String::new();
+                while file.read_line(&mut buffer).await.ok()? != 0 {
+                    let line = buffer.as_str();
+                    if let Some(guid) = line.strip_prefix("guid: ") {
+                        // current line should be line for guid.
+                        if let Some(guid) = try_parse_guid(guid.trim()){
+                            // remove .meta extension
+                            let mut path = path;
+                            path.set_extension("");
+                            let is_file = metadata(&path).await.ok()?.is_file();
+                            return Some((guid, is_file, path))
+                        }
+                    }
+
+                    buffer.clear()
+                }
+
+                None
+            }
+
+            let mut stream = pin!(walk_dir([self.project_dir.join("Packages"), self.project_dir.join("Assets")]).filter_map(get_guid));
+
+            while let Some((guid, is_file_actual, path)) = stream.next().await {
+                if let Some(&is_file) = find_guids.get(&guid) {
+                    if is_file_actual == is_file {
+                        find_guids.remove(&guid);
+                        if is_file {
+                            found_files.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                        } else {
+                            found_folders.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                        }
+                    }
+                }
+            }
+        }
+
+        (found_files.into_iter().collect(), found_folders.into_iter().collect())
     }
 
     pub async fn do_add_package_request<'env>(
@@ -960,13 +1091,46 @@ impl UnityProject {
         env: &'env Environment,
         request: AddPackageRequest<'env>,
     ) -> io::Result<()> {
-
         // first, add to dependencies
         for x in request.dependencies {
             self.manifest.add_dependency(x.0.to_owned(), x.1);
         }
 
-        self.do_add_packages_to_locked(env, &request.locked).await
+        // then, do install
+        self.do_add_packages_to_locked(env, &request.locked).await?;
+
+        // finally try to remove legacy assets
+        async fn remove_meta_file(path: PathBuf) {
+            let mut building = path.into_os_string();
+            building.push(".meta");
+            let meta = PathBuf::from(building);
+
+            if let Some(err) = tokio::fs::remove_file(&meta).await.err() {
+                if !matches!(err.kind(), io::ErrorKind::NotFound) {
+                    log::error!("error removing legacy asset at {}: {}", meta.display(), err);
+                }
+            }
+        }
+
+        async fn remove_file(path: PathBuf) {
+            if let Some(err) = tokio::fs::remove_file(&path).await.err() {
+                log::error!("error removing legacy asset at {}: {}", path.display(), err);
+            }
+            remove_meta_file(path).await;
+        }
+
+        async fn remove_folder(path: PathBuf) {
+            if let Some(err) = tokio::fs::remove_dir_all(&path).await.err() {
+                log::error!("error removing legacy asset at {}: {}", path.display(), err);
+            }
+            remove_meta_file(path).await;
+        }
+
+        join(
+            join_all(request.legacy_files.into_iter().map(remove_file)),
+            join_all(request.legacy_folders.into_iter().map(remove_folder)),
+        ).await;
+        Ok(())
     }
 
     async fn do_add_packages_to_locked(
@@ -980,15 +1144,17 @@ impl UnityProject {
                 &pkg.name(),
                 VpmLockedDependency::new(
                     pkg.version().clone(),
-                    pkg.vpm_dependencies().clone().unwrap_or_else(IndexMap::new),
+                    pkg.vpm_dependencies().clone()
                 ),
             );
         }
 
+        let packages_folder = self.project_dir.join("Packages");
+
         // resolve all packages
         let futures = packages
             .iter()
-            .map(|x| env.add_package(*x, &self.packages_dir))
+            .map(|x| env.add_package(*x, &packages_folder))
             .collect::<Vec<_>>();
         try_join_all(futures).await?;
 
@@ -1034,7 +1200,7 @@ impl UnityProject {
 
         self.manifest.remove_packages(names);
         try_join_all(names.into_iter().map(|name| {
-            remove_dir_all(self.packages_dir.join(name)).map(|x| match x {
+            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
                 Ok(()) => Ok(()),
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
                 Err(e) => Err(e),
@@ -1052,7 +1218,7 @@ impl UnityProject {
         let removed_packages = self.manifest.mark_and_sweep_packages();
 
         try_join_all(removed_packages.iter().map(|name| {
-            remove_dir_all(self.packages_dir.join(name)).map(|x| match x {
+            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
                 Ok(()) => Ok(()),
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
                 Err(e) => Err(e),
@@ -1104,9 +1270,7 @@ impl UnityProject {
 
             pub(crate) fn set_package(&mut self, new_pkg: PackageInfo<'env>) -> HashSet<&'a str> {
                 let mut dependencies = new_pkg.vpm_dependencies()
-                    .as_ref()
-                    .map(|x| x.keys().map(|x| x.as_str()).collect())
-                    .unwrap_or_default();
+                    .keys().map(|x| x.as_str()).collect();
                 
                 self.current = Some(&new_pkg.version());
                 std::mem::swap(&mut self.dependencies, &mut dependencies);
@@ -1154,7 +1318,7 @@ impl UnityProject {
             }
 
             // add new dependencies
-            for (dependency, range) in vpm_dependencies.iter().flatten() {
+            for (dependency, range) in vpm_dependencies.iter() {
                 log::debug!("processing package {name}: dependency {dependency} version {range}");
                 let entry = dependencies.entry(dependency).or_default();
                 let mut install = true;
@@ -1211,13 +1375,14 @@ impl UnityProject {
 
     pub async fn save(&mut self) -> io::Result<()> {
         self.manifest
-            .save_to(&self.packages_dir.join("vpm-manifest.json"))
+            .save_to(&self.project_dir.join("Packages").joined("vpm-manifest.json"))
             .await
     }
 
     pub async fn resolve(&mut self, env: &Environment) -> Result<(), AddPackageErr> {
         // first, process locked dependencies
         let this = self as &Self;
+        let packages_folder = &this.project_dir.join("Packages");
         try_join_all(
             this.manifest
                 .locked()
@@ -1226,7 +1391,7 @@ impl UnityProject {
                     let pkg = env
                         .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
                         .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
-                    env.add_package(pkg, &this.packages_dir).await?;
+                    env.add_package(pkg, packages_folder).await?;
                     Result::<_, AddPackageErr>::Ok(())
                 }),
         )
@@ -1236,8 +1401,7 @@ impl UnityProject {
             .unlocked_packages
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
-            .filter_map(|pkg| pkg.vpm_dependencies.as_ref())
-            .flatten()
+            .flat_map(|pkg| &pkg.vpm_dependencies)
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
             .map(|(k, v)| (k, v))
             .into_group_map()
@@ -1248,13 +1412,9 @@ impl UnityProject {
             })
             .collect::<Vec<_>>();
 
-        match self.add_package_request(&env, unlocked_dependencies, false) {
-            Ok(req) => {
-                self.do_add_package_request(&env, req).await?;
-            }
-            Err(AddPackageErr::AlreadyNewerPackageInstalled) => (),
-            Err(e) => return Err(e),
-        }
+        let req = self.add_package_request(&env, unlocked_dependencies, false).await?;
+
+        self.do_add_package_request(&env, req).await?;
 
         Ok(())
     }
@@ -1276,8 +1436,7 @@ impl UnityProject {
             .unlocked_packages
             .iter()
             .filter_map(|(_, json)| json.as_ref())
-            .filter_map(|x| x.vpm_dependencies.as_ref().map(|y| (&x.name, y)))
-            .map(|x| x);
+            .map(|x| (&x.name, &x.vpm_dependencies));
 
         return dependencies_locked.chain(dependencies_unlocked);
     }
@@ -1307,7 +1466,6 @@ impl<'a> VersionSelector<'a> {
 #[derive(Debug)]
 pub enum AddPackageErr {
     Io(io::Error),
-    AlreadyNewerPackageInstalled,
     ConflictWithDependencies {
         /// conflicting package name
         conflict: String,
@@ -1324,9 +1482,6 @@ impl fmt::Display for AddPackageErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             AddPackageErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            AddPackageErr::AlreadyNewerPackageInstalled => {
-                f.write_str("already newer package installed")
-            }
             AddPackageErr::ConflictWithDependencies {
                 conflict,
                 dependency_name,

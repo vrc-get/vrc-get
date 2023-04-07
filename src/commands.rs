@@ -1,7 +1,7 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::remote_repo::PackageVersions;
-use crate::vpm::{download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
+use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
 use clap::{Parser, Subcommand};
 use reqwest::Url;
 use serde::Serialize;
@@ -12,6 +12,7 @@ use std::fmt::Display;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use dialoguer::Confirm;
 use indexmap::IndexMap;
 use tokio::fs::{read_dir, remove_file};
 use crate::vpm::structs::repository::RepositoryCache;
@@ -76,6 +77,44 @@ async fn save_env(env: &mut Environment) {
     env.save().await.exit_context("saving global config");
 }
 
+fn confirm_prompt(msg: &str) -> bool {
+    Confirm::new().with_prompt(msg).interact().unwrap_or(false)
+}
+
+fn print_prompt_install(request: &AddPackageRequest, yes: bool) {
+    if request.locked().len() == 0 && request.dependencies().len() == 0 {
+        exit_with!("nothing to do")
+    }
+
+    let mut prompt = false;
+
+    if request.locked().len() != 0 {
+        println!("You're installing the following packages:");
+        for x in request.locked() {
+            println!("- {} version {}", x.name(), x.version());
+        }
+        prompt = prompt || request.locked().len() > 1;
+    }
+
+    if request.legacy_folders().len() != 0 || request.legacy_files().len() != 0 {
+        println!("You're removing the following legacy assets:");
+        for x in request.legacy_folders().iter().chain(request.legacy_files()) {
+            println!("- {}", x.display());
+        }
+        prompt = true;
+    }
+
+    if prompt {
+        if yes {
+            println!("--yes is set. skipping confirm");
+        } else {
+            if !confirm_prompt("Do you want to continue install?") {
+                exit(1);
+            }
+        }
+    }
+}
+
 trait ResultExt<T, E>: Sized {
     fn exit_context(self, context: &str) -> T
     where
@@ -134,6 +173,10 @@ pub struct Install {
     /// do not connect to remote servers, use local caches only
     #[arg(long)]
     offline: bool,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
 }
 
 impl Install {
@@ -153,7 +196,10 @@ impl Install {
             let package = get_package(&env, &name, version_selector);
 
             let request = unity.add_package_request(&env, vec![package], true)
+                .await
                 .exit_context("collecting packages to be installed");
+
+            print_prompt_install(&request, self.yes);
 
             unity.do_add_package_request(&env, request).await.exit_context("adding package");
 
@@ -297,6 +343,10 @@ pub struct Upgrade {
     /// do not connect to remote servers, use local caches only
     #[arg(long)]
     offline: bool,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
 }
 
 impl Upgrade {
@@ -328,12 +378,15 @@ impl Upgrade {
                 .collect()
         };
 
-        let req = unity.add_package_request(&env, updates, false)
+        let request = unity.add_package_request(&env, updates, false)
+            .await
             .exit_context("collecting packages to be upgraded");
 
-        let updates = req.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
+        print_prompt_install(&request, self.yes);
 
-        unity.do_add_package_request(&env, req).await.exit_context("upgrading packages");
+        let updates = request.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
+
+        unity.do_add_package_request(&env, request).await.exit_context("upgrading packages");
 
         for (name, version) in updates {
             println!("upgraded {} to {}", name, version);

@@ -9,7 +9,7 @@ use tokio::fs::{create_dir_all, File, OpenOptions, remove_dir_all};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::{PackageInfo, PackageInfoInner, try_open_file};
-use crate::vpm::utils::{MapResultExt, PathBufExt};
+use crate::vpm::utils::{MapResultExt, parse_hex_256, PathBufExt};
 
 pub(crate) async fn add_package(
     global_dir: &Path,
@@ -104,10 +104,10 @@ async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Op
     let mut buf = [0u8; 256 / 4];
     sha_file.read_exact(&mut buf).await.ok()?;
 
-    let hex = parse_hex(buf)?;
+    let hex = parse_hex_256(buf)?;
 
     // is stored sha doesn't match sha in repo: current cache is invalid
-    if let Some(repo_hash) = sha256.and_then(|s| s.as_bytes().try_into().ok()).and_then(parse_hex) {
+    if let Some(repo_hash) = sha256.and_then(|s| s.as_bytes().try_into().ok()).and_then(parse_hex_256) {
         if repo_hash != hex {
             return None;
         }
@@ -197,27 +197,6 @@ async fn download_zip(
     drop(sha_file);
 
     Ok(cache_file)
-}
-
-/// parses hex for sha256
-fn parse_hex(hex: [u8; 256 / 4]) -> Option<[u8; 256 / 8]> {
-    let mut result = [0u8; 256 / 8];
-    for i in 0..(256 / 8) {
-        let upper = match hex[i * 2 + 0] {
-            c @ b'0'..=b'9' => c - b'0',
-            c @ b'a'..=b'f' => c - b'a' + 10,
-            c @ b'A'..=b'F' => c - b'A' + 10,
-            _ => return None,
-        };
-        let lower = match hex[i * 2 + 1] {
-            c @ b'0'..=b'9' => c - b'0',
-            c @ b'a'..=b'f' => c - b'a' + 10,
-            c @ b'A'..=b'F' => c - b'A' + 10,
-            _ => return None,
-        };
-        result[i] = upper << 4 | lower;
-    }
-    Some(result)
 }
 
 fn to_hex(data: &[u8]) -> String {
