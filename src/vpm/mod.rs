@@ -361,6 +361,7 @@ impl Environment {
         &mut self,
         url: Url,
         name: Option<&str>,
+        headers: Option<&IndexMap<String, String>>,
     ) -> Result<(), AddRepositoryErr> {
         let user_repos = self.get_user_repos()?;
         if user_repos
@@ -373,7 +374,7 @@ impl Environment {
             return Err(AddRepositoryErr::OfflineMode);
         };
 
-        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), None, None)
+        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), Some(headers), None)
             .await?
             .expect("logic failure: no etag");
         let local_path = self
