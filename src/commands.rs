@@ -36,9 +36,14 @@ macro_rules! exit_with {
 }
 
 async fn load_env(client: Option<reqwest::Client>) -> Environment {
-    Environment::load_default(client)
+    let mut env = Environment::load_default(client)
         .await
-        .exit_context("loading global config")
+        .exit_context("loading global config");
+
+    env.load_package_infos().await.exit_context("loading repositories");
+    env.save().await.exit_context("saving repositories updates");
+
+    env
 }
 
 async fn load_unity(path: Option<PathBuf>) -> UnityProject {
@@ -179,10 +184,8 @@ pub struct Install {
 impl Install {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let mut env = load_env(client).await;
+        let env = load_env(client).await;
         let mut unity = load_unity(self.project).await;
-
-        env.load_package_infos().await.exit_context("loading repositories");
 
         if let Some(name) = self.name {
             let version_selector = match self.version {
@@ -257,10 +260,8 @@ pub struct Outdated {
 impl Outdated {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let mut env = load_env(client).await;
+        let env = load_env(client).await;
         let unity = load_unity(self.project).await;
-
-        env.load_package_infos().await.exit_context("loading repositories");
 
         let mut outdated_packages = HashMap::new();
 
@@ -349,10 +350,8 @@ pub struct Upgrade {
 impl Upgrade {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let mut env = load_env(client).await;
+        let env = load_env(client).await;
         let mut unity = load_unity(self.project).await;
-
-        env.load_package_infos().await.exit_context("loading repositories");
 
         let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
@@ -412,9 +411,7 @@ pub struct Search {
 impl Search {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let mut env = load_env(client).await;
-
-        env.load_package_infos().await.exit_context("loading repositories");
+        let env = load_env(client).await;
 
         let mut queries = self.queries;
         for query in &mut queries {
@@ -485,9 +482,7 @@ pub struct RepoList {
 impl RepoList {
     pub async fn run(self) {
         let client = crate::create_client(self.offline);
-        let mut env = load_env(client).await;
-
-        env.load_package_infos().await.exit_context("loading repositories");
+        let env = load_env(client).await;
 
         for (local_path, repo) in env.get_repo_with_path() {
             println!(
@@ -675,9 +670,7 @@ impl RepoPackages {
 
             print_repo(&repo);
         } else {
-            let mut env = load_env(client).await;
-
-            env.load_package_infos().await.exit_context("loading repositories");
+            let env = load_env(client).await;
 
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
