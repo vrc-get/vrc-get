@@ -97,9 +97,8 @@ pub mod setting {
 }
 
 pub mod repository {
-    use serde::{Deserializer, Serializer};
     use crate::vpm::structs::package::PackageJson;
-    use crate::vpm::structs::remote_repo::{PackageVersions, ParsedRepository};
+    use crate::vpm::structs::remote_repo::{PackageVersions, Repository};
     use super::*;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -158,6 +157,17 @@ pub mod repository {
         }
     }
 
+    #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+    pub struct VrcGetMeta {
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        pub etag: String,
+    }
+}
+
+pub mod remote_repo {
+    use super::*;
+    use serde::{Deserializer, Serializer};
+
     #[derive(Debug, Clone)]
     pub struct Repository {
         actual: JsonMap,
@@ -200,7 +210,7 @@ pub mod repository {
             self.parsed.name.as_deref()
         }
 
-        pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageJson> {
+        pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ package::PackageJson> {
             self.parsed.packages
                 .get(package)
                 .map(|x| x.versions.values())
@@ -229,23 +239,12 @@ pub mod repository {
         }
     }
 
-    #[derive(Serialize, Deserialize, Debug, Clone, Default)]
-    pub struct VrcGetMeta {
-        #[serde(default, skip_serializing_if = "String::is_empty")]
-        pub etag: String,
-    }
-}
-
-pub mod remote_repo {
-    use super::*;
-
     #[derive(Deserialize, Debug, Clone)]
-    pub struct ParsedRepository {
-        pub name: Option<String>,
-        pub url: Option<String>,
-        pub id: Option<String>,
-        pub author: Option<String>,
-        pub packages: HashMap<String, PackageVersions>,
+    struct ParsedRepository {
+        name: Option<String>,
+        url: Option<String>,
+        id: Option<String>,
+        packages: HashMap<String, PackageVersions>,
     }
 
     #[derive(Deserialize, Debug, Clone)]
