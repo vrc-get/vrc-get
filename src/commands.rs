@@ -13,6 +13,7 @@ use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use dialoguer::Confirm;
+use indexmap::IndexMap;
 use tokio::fs::{read_dir, remove_file};
 use crate::vpm::structs::repository::LocalCachedRepository;
 
@@ -681,7 +682,12 @@ impl RepoPackages {
                 .cloned()
                 .unwrap_or(Map::<String, Value>::new());
 
-            let cache = LocalCachedRepository::new(cache, None, None)
+            let cache = LocalCachedRepository::new(
+                cache, 
+                IndexMap::new(), 
+                None, 
+                None,
+            )
                 .exit_context("loading package data");
 
             print_repo(cache.get_packages());

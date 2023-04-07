@@ -396,7 +396,7 @@ impl Environment {
             }
         }
 
-        let mut local_cache = LocalCachedRepository::new(remote_repo, repo_id.clone(), Some(url.to_string()))?;
+        let mut local_cache = LocalCachedRepository::new(remote_repo, IndexMap::new(), repo_id.clone(), Some(url.to_string()))?;
 
         // set etag
         if let Some(etag) = etag {

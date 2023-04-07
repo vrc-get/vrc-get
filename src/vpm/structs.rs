@@ -112,10 +112,15 @@ pub mod repository {
     }
 
     impl LocalCachedRepository {
-        pub fn new(repo: JsonMap, id: Option<String>, url: Option<String>) -> serde_json::Result<Self> {
+        pub fn new(
+            repo: JsonMap, 
+            headers: IndexMap<String, String>, 
+            id: Option<String>, 
+            url: Option<String>,
+        ) -> serde_json::Result<Self> {
             Ok(Self {
                 repo: Repository::new(repo, id, url)?,
-                headers: IndexMap::new(),
+                headers,
                 vrc_get: None,
             })
         }

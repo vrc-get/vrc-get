@@ -47,12 +47,18 @@ impl RepoHolder {
     ) -> io::Result<LocalCachedRepository> {
         match source {
             RepoSource::PreDefined(source, path) => {
-                RepoHolder::load_remote_repo(client, &path, source.url).await
+                RepoHolder::load_remote_repo(
+                    client,
+                    None,
+                    &path, 
+                    source.url,
+                ).await
             }
             RepoSource::UserRepo(user_repo) => {
                 if let Some(url) = &user_repo.url {
                     RepoHolder::load_remote_repo(
                         client,
+                        Some(&user_repo.headers),
                         &user_repo.local_path,
                         &url,
                     )
@@ -69,6 +75,7 @@ impl RepoHolder {
 
     async fn load_remote_repo(
         client: Option<&Client>,
+        headers: Option<&IndexMap<String, String>>,
         path: &Path,
         remote_url: &str,
     ) -> io::Result<LocalCachedRepository> {
@@ -81,7 +88,12 @@ impl RepoHolder {
                 .await?
                 .expect("logic failure: no etag");
 
-            let mut local_cache = LocalCachedRepository::new(remote_repo, None, Some(remote_url.to_string()))?;
+            let mut local_cache = LocalCachedRepository::new(
+                remote_repo, 
+                headers.map(Clone::clone).unwrap_or_default(), 
+                None, 
+                Some(remote_url.to_string()),
+            )?;
 
             if let Some(etag) = etag {
                 local_cache
