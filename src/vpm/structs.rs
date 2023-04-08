@@ -192,9 +192,13 @@ pub mod repository {
 
         pub fn set_url_if_none(&mut self, f: impl FnOnce() -> String){
             if let None = self.parsed.url {
-                let id = f();
-                self.parsed.id = Some(id.clone());
-                self.actual.insert("url".to_owned(), Value::String(id));
+                let url = f();
+                self.parsed.url = Some(url.clone());
+                self.actual.insert("url".to_owned(), Value::String(url));
+                if let None = self.parsed.id {
+                    let url = self.parsed.url.clone().unwrap();
+                    self.set_id_if_none(move || url);
+                }
             }
         }
 
@@ -241,9 +245,13 @@ pub mod repository {
 
     #[derive(Deserialize, Debug, Clone)]
     struct ParsedRepository {
+        #[serde(default)]
         name: Option<String>,
+        #[serde(default)]
         url: Option<String>,
+        #[serde(default)]
         id: Option<String>,
+        #[serde(default)]
         packages: HashMap<String, PackageVersions>,
     }
 

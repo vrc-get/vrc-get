@@ -580,7 +580,7 @@ impl RepoAdd {
             for HeaderPair(name, value) in self.header {
                 headers.insert(name.to_string(), value.to_str().unwrap().to_string());
             }
-            env.add_remote_repo(url, self.name.as_deref(), Some(&headers))
+            env.add_remote_repo(url, self.name.as_deref(), headers)
                 .await
                 .exit_context("adding repository")
         } else {

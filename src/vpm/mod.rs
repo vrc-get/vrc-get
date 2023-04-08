@@ -361,7 +361,7 @@ impl Environment {
         &mut self,
         url: Url,
         name: Option<&str>,
-        headers: Option<&IndexMap<String, String>>,
+        headers: IndexMap<String, String>,
     ) -> Result<(), AddRepositoryErr> {
         let user_repos = self.get_user_repos()?;
         if user_repos
@@ -374,7 +374,7 @@ impl Environment {
             return Err(AddRepositoryErr::OfflineMode);
         };
 
-        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), headers, None)
+        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), Some(&headers), None)
             .await?
             .expect("logic failure: no etag");
         let local_path = self
@@ -394,7 +394,7 @@ impl Environment {
             }
         }
 
-        let mut local_cache = LocalCachedRepository::new(remote_repo, IndexMap::new());
+        let mut local_cache = LocalCachedRepository::new(remote_repo, headers);
 
         // set etag
         if let Some(etag) = etag {
@@ -664,7 +664,7 @@ pub(crate) async fn download_remote_repository(
     let json = response.json().await.err_mapped()?;
 
     let mut repo = Repository::new(json)?;
-    repo.set_id_if_none(|| url.to_string());
+    repo.set_url_if_none(|| url.to_string());
     Ok(Some((repo, etag)))
 }
 
@@ -1027,7 +1027,7 @@ impl UnityProject {
             // some packages uses '/' as path separator.
             let path = PathBuf::from(path.replace('\\', "/"));
             // for security, deny absolute path.
-            if path.is_absolute() {
+            if path.has_root() {
                 return NotFound
             }
             let path = self.project_dir.join(path);
