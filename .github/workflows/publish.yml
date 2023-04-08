@@ -173,7 +173,7 @@ jobs:
           popd
 
           sleep 1
-          gh release create "$VERSION" assets/*
+          gh release create "v$VERSION" assets/*
 
           rm -rf outputs assets
 
