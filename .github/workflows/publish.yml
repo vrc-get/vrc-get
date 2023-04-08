@@ -196,29 +196,11 @@ jobs:
     runs-on: macos-latest
     needs: [pre-build, publish]
     steps:
-      - run: git config --global user.name "github-actions[bot]" &&
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: update brew
-        run: brew update && brew update
-
-      - name: tap anatawa12/core
-        run: brew tap anatawa12/core
-
-      - name: set credentials for anatawa12/core tap
-        env:
-          GH_TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
-        run: |-
-          cd "$(brew --repository anatawa12/core)"
-          gh auth setup-git --hostname github.com
-
-      - name: Create update pr for anatawa12/homebrew-core 
-        env:
-          VERSION: ${{ needs.pre-build.outputs.version }}
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
-          GH_TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
-        run: |-
-          brew bump-formula-pr \
-            anatawa12/core/vrc-get \
-            --no-fork \
-            --url "https://github.com/anatawa12/vrc-get/archive/${VERSION}.tar.gz"
+      - uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          token: ${{ secrets.BREW_GITHUB_PAT }}
+          tap: anatawa12/core
+          no_fork: true
+          tag: v${{ needs.pre-build.outputs.version }}
+          revision: ''
+          formula: vrc-get
