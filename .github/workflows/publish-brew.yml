@@ -1,4 +1,4 @@
-name: Publish
+name: Publish to brew
 
 on:
   workflow_dispatch:
