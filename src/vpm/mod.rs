@@ -149,11 +149,10 @@ impl Environment {
         let json = self.settings.get_mut("userRepos").unwrap();
         
         // update id field
-        for (i, repo) in user_repos.into_iter().enumerate() {
+        for (i, mut repo) in user_repos.into_iter().enumerate() {
             let loaded = self.repo_cache.get_repo(&repo.local_path).unwrap();
-            let id = loaded.id();
+            let id = loaded.id().or(loaded.url()).or(repo.url.as_deref());
             if id != repo.id.as_deref() {
-                let mut repo = repo;
                 repo.id = id.map(|x| x.to_owned());
 
                 *json.get_mut(i).unwrap() = to_value(repo).unwrap();
