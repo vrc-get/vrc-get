@@ -100,8 +100,10 @@ jobs:
           path: target/${{ matrix.triple }}/release/vrc-get*
 
   publish-crates-io:
-    name: Publish
-    environment: crates.io
+    name: Publish to crates.io
+    environment:
+      name: crates.io
+      url: https://crates.io/crates/vrc-get
     runs-on: ubuntu-latest
     needs: [pre-build, build-rust]
     steps:
@@ -116,8 +118,10 @@ jobs:
         run: cargo publish --no-verify
 
   publish:
-    name: Publish
-    environment: master branch
+    name: Publish to GitHub
+    environment:
+      name: master branch
+      url: https://github.com/anatawa12/vrc-get/releases/v${{ needs.pre-build.outputs.version }}
     runs-on: ubuntu-latest
     needs: [pre-build, build-rust]
     steps:
@@ -189,7 +193,7 @@ jobs:
           git push --delete origin releasing
 
   update-brew-repo:
-    name: Publish
+    name: Publish to homebrew
     environment: 
       name: homebrew-core
       url: https://github.com/anatawa12/homebrew-core
