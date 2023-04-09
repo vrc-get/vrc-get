@@ -513,7 +513,7 @@ pub struct RepoAdd {
     name: Option<String>,
 
     /// Headers
-    #[arg(long, short, value_parser = HeaderPair::from_str)]
+    #[arg(long, value_parser = HeaderPair::from_str)]
     header: Vec<HeaderPair>,
 
     /// do not connect to remote servers, use local caches only
