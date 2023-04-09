@@ -603,7 +603,7 @@ impl fmt::Display for AddRepositoryErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             AddRepositoryErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            AddRepositoryErr::AlreadyAdded => f.write_str("already newer package installed"),
+            AddRepositoryErr::AlreadyAdded => f.write_str("already repository added"),
             AddRepositoryErr::OfflineMode => {
                 f.write_str("you can't add remote repo in offline mode")
             }
