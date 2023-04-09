@@ -356,7 +356,6 @@ impl Environment {
         Ok(())
     }
 
-    // TODO: support for headers
     pub async fn add_remote_repo(
         &mut self,
         url: Url,
@@ -377,10 +376,6 @@ impl Environment {
         let (remote_repo, etag) = download_remote_repository(&http, url.clone(), Some(&headers), None)
             .await?
             .expect("logic failure: no etag");
-        let local_path = self
-            .get_repos_dir()
-            .joined(format!("{}.json", uuid::Uuid::new_v4()));
-
         let repo_name = name.or(remote_repo.name()).map(str::to_owned);
 
         let repo_id = remote_repo.id().map(str::to_owned);
@@ -404,7 +399,45 @@ impl Environment {
                 .etag = etag;
         }
 
-        write_repo(&local_path, &local_cache).await?;
+        create_dir_all(self.get_repos_dir()).await?;
+
+        // [0-9a-zA-Z._-]+
+        fn is_id_name_for_file(id: &str) -> bool {
+            id.len() != 0 && id.bytes().all(|b| match b {
+                b'0'..=b'9' => true,
+                b'a'..=b'z' => true,
+                b'A'..=b'Z' => true,
+                b'.' | b'_' | b'-' => true,
+                _ => false,
+            })
+        }
+
+        // try id.json
+        let file = match repo_id.as_deref() {
+            Some(repo_id) if is_id_name_for_file(repo_id) => {
+                let path = self.get_repos_dir().joined(format!("{}.json", repo_id));
+                tokio::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&path)
+                    .await
+                    .ok()
+                    .map(|f| (f, path))
+            }
+            _ => None
+        };
+
+        // and then use 
+        let (mut file, local_path) = match file {
+            Some(file) => file,
+            None => {
+                let local_path = self.get_repos_dir().joined(format!("{}.json", uuid::Uuid::new_v4()));
+                (File::create(&local_path).await?, local_path)
+            }
+        };
+
+        file.write_all(&to_json_vec(&local_cache)?).await?;
+        file.flush().await?;
 
         self.add_user_repo(&UserRepoSetting::new(
             local_path.clone(),
