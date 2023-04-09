@@ -491,9 +491,10 @@ impl RepoList {
 
         for (local_path, repo) in env.get_repo_with_path() {
             println!(
-                "{}: {} (at {})",
-                repo.id().unwrap_or("(unnamed)"),
+                "{}: {} (from {} at {})",
+                repo.id().or(repo.url()).unwrap_or("(no id)"),
                 repo.name().unwrap_or("(unnamed)"),
+                repo.url().unwrap_or("(no remote)"),
                 local_path.display(),
             );
         }
