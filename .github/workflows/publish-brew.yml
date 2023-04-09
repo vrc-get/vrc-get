@@ -36,7 +36,7 @@ jobs:
         run: |-
           TAP_PATH="$(brew --repository "anatawa12/core")"
           mkdir -p "$(dirname "$TAP_PATH")"
-          ln -s "$(realpath CLONE_TAP_TO)" "$TAP_PATH"
+          ln -s "$(readlink -f -- "$CLONE_TAP_TO")" "$TAP_PATH"
 
       - name: Create update pr for anatawa12/homebrew-core 
         env:
