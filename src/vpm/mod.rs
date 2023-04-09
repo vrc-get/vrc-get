@@ -470,7 +470,7 @@ impl Environment {
     pub async fn remove_repo(
         &mut self,
         condition: impl Fn(&UserRepoSetting) -> bool,
-    ) -> io::Result<bool> {
+    ) -> io::Result<usize> {
         let user_repos = self.get_user_repos()?;
         let mut indices = user_repos
             .iter()
@@ -479,7 +479,7 @@ impl Environment {
             .collect::<Vec<_>>();
         indices.reverse();
         if indices.len() == 0 {
-            return Ok(false);
+            return Ok(0);
         }
 
         let repos_json = self
@@ -494,7 +494,7 @@ impl Environment {
 
         join_all(indices.iter().map(|(_, x)| remove_file(&x.local_path))).await;
         self.settings_changed = true;
-        Ok(true)
+        Ok(indices.len())
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
