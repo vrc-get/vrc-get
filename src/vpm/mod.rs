@@ -149,11 +149,10 @@ impl Environment {
         let json = self.settings.get_mut("userRepos").unwrap();
         
         // update id field
-        for (i, repo) in user_repos.into_iter().enumerate() {
+        for (i, mut repo) in user_repos.into_iter().enumerate() {
             let loaded = self.repo_cache.get_repo(&repo.local_path).unwrap();
-            let id = loaded.id();
+            let id = loaded.id().or(loaded.url()).or(repo.url.as_deref());
             if id != repo.id.as_deref() {
-                let mut repo = repo;
                 repo.id = id.map(|x| x.to_owned());
 
                 *json.get_mut(i).unwrap() = to_value(repo).unwrap();
@@ -470,7 +469,7 @@ impl Environment {
     pub async fn remove_repo(
         &mut self,
         condition: impl Fn(&UserRepoSetting) -> bool,
-    ) -> io::Result<bool> {
+    ) -> io::Result<usize> {
         let user_repos = self.get_user_repos()?;
         let mut indices = user_repos
             .iter()
@@ -479,7 +478,7 @@ impl Environment {
             .collect::<Vec<_>>();
         indices.reverse();
         if indices.len() == 0 {
-            return Ok(false);
+            return Ok(0);
         }
 
         let repos_json = self
@@ -494,7 +493,7 @@ impl Environment {
 
         join_all(indices.iter().map(|(_, x)| remove_file(&x.local_path))).await;
         self.settings_changed = true;
-        Ok(true)
+        Ok(indices.len())
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
@@ -603,7 +602,7 @@ impl fmt::Display for AddRepositoryErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             AddRepositoryErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            AddRepositoryErr::AlreadyAdded => f.write_str("already newer package installed"),
+            AddRepositoryErr::AlreadyAdded => f.write_str("already repository added"),
             AddRepositoryErr::OfflineMode => {
                 f.write_str("you can't add remote repo in offline mode")
             }

@@ -2,7 +2,7 @@ use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::repository::Repository;
 use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, Args};
 use reqwest::Url;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -17,6 +17,7 @@ use dialoguer::Confirm;
 use indexmap::IndexMap;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use tokio::fs::{read_dir, remove_file};
+use crate::vpm::structs::setting::UserRepoSetting;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -490,9 +491,10 @@ impl RepoList {
 
         for (local_path, repo) in env.get_repo_with_path() {
             println!(
-                "{}: {} (at {})",
-                repo.id().unwrap_or("(unnamed)"),
+                "{}: {} (from {} at {})",
+                repo.id().or(repo.url()).unwrap_or("(no id)"),
                 repo.name().unwrap_or("(unnamed)"),
+                repo.url().unwrap_or("(no remote)"),
                 local_path.display(),
             );
         }
@@ -511,7 +513,7 @@ pub struct RepoAdd {
     name: Option<String>,
 
     /// Headers
-    #[arg(long, short, value_parser = HeaderPair::from_str)]
+    #[arg(short='H', long, value_parser = HeaderPair::from_str)]
     header: Vec<HeaderPair>,
 
     /// do not connect to remote servers, use local caches only
@@ -595,13 +597,75 @@ impl RepoAdd {
 #[derive(Parser)]
 #[command(author, version)]
 pub struct RepoRemove {
-    /// URL of Package
+    /// id, url, name, or path of repository
     #[arg()]
-    name_or_url: String,
+    finder: String,
+
+    #[clap(flatten)]
+    searcher: RepoSearcherArgs,
 
     /// do not connect to remote servers, use local caches only
     #[arg(long)]
     offline: bool,
+}
+
+#[derive(Args)]
+#[group(multiple = false)]
+struct RepoSearcherArgs {
+    /// Find repository to remove by id
+    #[arg(long)]
+    id: bool,
+    /// Find repository to remove by url
+    #[arg(long)]
+    url: bool,
+    /// Find repository to remove by name
+    #[arg(long)]
+    name: bool,
+    /// Find repository to remove by local path
+    #[arg(long)]
+    path: bool,
+}
+
+impl RepoSearcherArgs {
+    fn as_searcher(&self) -> RepoSearcher {
+        match () {
+            () if self.id => RepoSearcher::Id,
+            () if self.url => RepoSearcher::Url,
+            () if self.name => RepoSearcher::Name,
+            () if self.path => RepoSearcher::Path,
+            () => RepoSearcher::Id,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+enum RepoSearcher {
+    Id,
+    Url,
+    Name,
+    Path,
+}
+
+impl Display for RepoSearcher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RepoSearcher::Id => f.write_str("id"),
+            RepoSearcher::Url => f.write_str("url"),
+            RepoSearcher::Name => f.write_str("name"),
+            RepoSearcher::Path => f.write_str("path"),
+        }
+    }
+}
+
+impl RepoSearcher {
+    fn get(self, repo: &UserRepoSetting) -> Option<&OsStr> {
+        match self {
+            RepoSearcher::Id => repo.id.as_deref().map(|x| OsStr::new(x)),
+            RepoSearcher::Url => repo.url.as_deref().map(|x| OsStr::new(x)),
+            RepoSearcher::Name => repo.name.as_deref().map(|x| OsStr::new(x)),
+            RepoSearcher::Path => Some(repo.local_path.as_os_str())
+        }
+    }
 }
 
 impl RepoRemove {
@@ -609,22 +673,15 @@ impl RepoRemove {
         let client = crate::create_client(self.offline);
         let mut env = load_env(client).await;
 
-        let removed = if let Ok(url) = Url::parse(&self.name_or_url) {
-            env.remove_repo(|x| x.url.as_deref() == Some(url.as_str()))
-                .await
-                .exit_context("removing based on url")
-        } else {
-            let path = Path::new(&self.name_or_url);
-            env.remove_repo(|x| x.local_path.as_path() == path)
-                .await
-                .exit_context("removing based on path")
-        };
+        // we're using OsStr for paths.
+        let finder = OsStr::new(self.finder.as_str());
+        let searcher = self.searcher.as_searcher();
 
-        if !removed {
-            env.remove_repo(|x| x.name.as_deref() == Some(self.name_or_url.as_str()))
-                .await
-                .exit_context("removing based on name");
-        }
+        let count = env.remove_repo(|x| searcher.get(x) == Some(finder))
+            .await
+            .exit_context("removing repository");
+
+        println!("removed {} repositories with {}", count, searcher);
 
         save_env(&mut env).await;
     }
