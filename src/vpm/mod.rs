@@ -199,6 +199,7 @@ impl Environment {
         let mut user_repo_file_names = HashSet::new();
         user_repo_file_names.insert(OsStr::new("vrc-curated.json"));
         user_repo_file_names.insert(OsStr::new("vrc-official.json"));
+        user_repo_file_names.insert(OsStr::new("package-cache.json"));
 
         fn relative_file_name<'a>(path: &'a Path, base: &Path) -> Option<&'a OsStr> {
             path.strip_prefix(&base)

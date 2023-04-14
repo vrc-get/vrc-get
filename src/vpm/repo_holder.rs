@@ -30,11 +30,11 @@ impl RepoHolder {
 
         let repos = try_join_all(sources.iter().map(|src| async {
             Self::load_repo_from_source(self.http.as_ref(), src).await
-                .map(|v| (v, file_path(src)))
+                .map(|v| v.map(|v| (v, file_path(src))))
         }))
         .await?;
 
-        for (repo, path) in repos {
+        for (repo, path) in repos.into_iter().flatten() {
             self.cached_repos_new.insert(path.to_owned(), repo);
         }
 
@@ -44,7 +44,7 @@ impl RepoHolder {
     async fn load_repo_from_source(
         client: Option<&Client>,
         source: &RepoSource,
-    ) -> io::Result<LocalCachedRepository> {
+    ) -> io::Result<Option<LocalCachedRepository>> {
         match source {
             RepoSource::PreDefined(source, path) => {
                 RepoHolder::load_remote_repo(
@@ -52,7 +52,7 @@ impl RepoHolder {
                     None,
                     &path, 
                     source.url,
-                ).await
+                ).await.map(Some)
             }
             RepoSource::UserRepo(user_repo) => {
                 if let Some(url) = &user_repo.url {
@@ -62,13 +62,15 @@ impl RepoHolder {
                         &user_repo.local_path,
                         &url,
                     )
-                    .await
+                    .await.map(Some)
                 } else {
-                    RepoHolder::load_local_repo(client, &user_repo.local_path).await
+                    RepoHolder::load_local_repo(client, &user_repo.local_path).await.map(Some)
                 }
             }
             RepoSource::Undefined(repo_json) => {
-                RepoHolder::load_local_repo(client, &repo_json).await
+                Ok(RepoHolder::load_local_repo(client, &repo_json).await
+                    .map(Some)
+                    .unwrap_or(None))
             }
         }
     }
