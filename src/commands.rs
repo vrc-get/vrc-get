@@ -707,6 +707,7 @@ impl RepoCleanup {
         let mut uesr_repo_file_names = vec![
             OsString::from("vrc-official.json"),
             OsString::from("vrc-curated.json"),
+            OsString::from("package-cache.json"),
         ];
         let repos_base = env.get_repos_dir();
 
