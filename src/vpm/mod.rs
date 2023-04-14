@@ -172,16 +172,17 @@ impl Environment {
         *json = Vec::with_capacity(took.len());
 
         for (repo, repo_json) in user_repos.iter().zip_eq(took) {
+            let mut to_add = true;
             if let Some(id) = repo.id.as_deref() {
-                let modified = used_ids.insert(id);
-                if modified {
-                    // this means new id
-                    json.push(repo_json)
-                } else { 
-                    // this means duplicated id: removed so mark as changed
-                    self.settings_changed = true;
-                    self.repo_cache.remove_repo(&repo.local_path);
-                }
+                to_add = used_ids.insert(id);
+            }
+            if to_add {
+                // this means new id
+                json.push(repo_json)
+            } else {
+                // this means duplicated id: removed so mark as changed
+                self.settings_changed = true;
+                self.repo_cache.remove_repo(&repo.local_path);
             }
         }
     }
