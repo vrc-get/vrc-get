@@ -134,6 +134,7 @@ impl Environment {
         self.repo_cache.load_repos(self.get_repo_sources()?).await?;
         self.update_user_repo_id();
         self.load_user_package_infos().await?;
+        self.remove_id_duplication();
         Ok(())
     }
 
@@ -154,6 +155,33 @@ impl Environment {
 
                 *json.get_mut(i).unwrap() = to_value(repo).unwrap();
                 self.settings_changed = true;
+            }
+        }
+    }
+
+    fn remove_id_duplication(&mut self) {
+        let user_repos = self.get_user_repos().unwrap();
+        if user_repos.len() == 0 {
+            return
+        }
+
+        let json = self.settings.get_mut("userRepos").unwrap().as_array_mut().unwrap();
+
+        let mut used_ids = HashSet::new();
+        let took = std::mem::take(json);
+        *json = Vec::with_capacity(took.len());
+
+        for (repo, repo_json) in user_repos.iter().zip_eq(took) {
+            if let Some(id) = repo.id.as_deref() {
+                let modified = used_ids.insert(id);
+                if modified {
+                    // this means new id
+                    json.push(repo_json)
+                } else { 
+                    // this means duplicated id: removed so mark as changed
+                    self.settings_changed = true;
+                    self.repo_cache.remove_repo(&repo.local_path);
+                }
             }
         }
     }

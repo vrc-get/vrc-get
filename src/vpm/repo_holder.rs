@@ -151,4 +151,8 @@ impl RepoHolder {
     pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
         self.cached_repos_new.get(path)
     }
+
+    pub(crate) fn remove_repo(&mut self, path: &Path) {
+        self.cached_repos_new.remove(path);
+    }
 }
