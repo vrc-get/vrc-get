@@ -13,6 +13,12 @@ jobs:
   build:
     strategy:
       matrix:
+        include:
+          - runs-on: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            setup: sudo apt update && sudo apt install -y musl-tools
+          - runs-on: windows-latest
+            target: x86_64-pc-windows-msvc
         runs-on:
           - ubuntu-latest
           - windows-latest
@@ -21,11 +27,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v1
         with:
           target-dir: target
           key: ci-build
+      - name: Setup
+        run: ${{ matrix.setup }}
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --verbose --target ${{ matrix.target }}
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --verbose --target ${{ matrix.target }}
