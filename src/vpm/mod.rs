@@ -5,10 +5,7 @@
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr};
-use std::future::ready;
 use std::path::{Path, PathBuf};
-use std::task::ready;
-use std::task::Poll::Ready;
 use std::{env, fmt, io};
 use std::pin::pin;
 
@@ -134,7 +131,7 @@ impl Environment {
     }
 
     pub async fn load_package_infos(&mut self) -> io::Result<()> {
-        self.repo_cache.load_repos(self.get_repo_sources().await?).await?;
+        self.repo_cache.load_repos(self.get_repo_sources()?).await?;
         self.update_user_repo_id();
         self.load_user_package_infos().await?;
         Ok(())
@@ -191,64 +188,14 @@ impl Environment {
         versions.into_iter().next()
     }
 
-    pub async fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
-        // collect user repositories for get_repos_dir
-        let repos_base = self.get_repos_dir();
-        let user_repos = self.get_user_repos()?;
-
-        let mut user_repo_file_names = HashSet::new();
-        user_repo_file_names.insert(OsStr::new("vrc-curated.json"));
-        user_repo_file_names.insert(OsStr::new("vrc-official.json"));
-        user_repo_file_names.insert(OsStr::new("package-cache.json"));
-
-        fn relative_file_name<'a>(path: &'a Path, base: &Path) -> Option<&'a OsStr> {
-            path.strip_prefix(&base)
-                .ok()
-                .filter(|x| x.parent().map(|x| x.as_os_str().is_empty()).unwrap_or(true))
-                .and_then(|x| x.file_name())
-        }
-
-        user_repo_file_names.extend(
-            user_repos
-                .iter()
-                .filter_map(|x| relative_file_name(&x.local_path, &repos_base)),
-        );
-
-        let mut entry = match read_dir(self.get_repos_dir()).await {
-            Ok(entry) => Some(entry),
-            Err(ref e) if e.kind() == io::ErrorKind::NotFound => None,
-            Err(e) => return Err(e),
-        };
-        let streams = stream::poll_fn(|cx| {
-            Ready(match entry {
-                Some(ref mut entry) => match ready!(entry.poll_next_entry(cx)) {
-                    Ok(Some(v)) => Some(Ok(v)),
-                    Ok(None) => None,
-                    Err(e) => Some(Err(e)),
-                },
-                None => None,
-            })
-        });
-
-        let undefined_repos = streams
-            .map_ok(|x| x.path())
-            .try_filter(|x| ready(!user_repo_file_names.contains(x.file_name().unwrap())))
-            .try_filter(|x| ready(x.extension() == Some(OsStr::new("json"))))
-            .try_filter(|x| {
-                tokio::fs::metadata(x.clone()).map(|x| x.map(|x| x.is_file()).unwrap_or(false))
-            })
-            .map_ok(RepoSource::Undefined);
-
+    fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
         let defined_sources = DEFINED_REPO_SOURCES
             .into_iter()
             .copied()
             .map(|x| RepoSource::PreDefined(x, self.get_repos_dir().join(x.file_name)));
         let user_repo_sources = self.get_user_repos()?.into_iter().map(RepoSource::UserRepo);
 
-        stream::iter(defined_sources.chain(user_repo_sources).map(Ok))
-            .chain(undefined_repos)
-            .try_collect::<Vec<_>>()
-            .await
+        Ok(defined_sources.chain(user_repo_sources).collect())
     }
 
     pub fn get_repos(&self) -> Vec<&LocalCachedRepository> {
@@ -575,7 +522,6 @@ pub struct PreDefinedRepoSource {
 pub enum RepoSource {
     PreDefined(PreDefinedRepoSource, PathBuf),
     UserRepo(UserRepoSetting),
-    Undefined(PathBuf),
 }
 
 static OFFICIAL_REPO_SOURCE: PreDefinedRepoSource = PreDefinedRepoSource {
