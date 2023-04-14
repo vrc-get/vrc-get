@@ -16,6 +16,7 @@ jobs:
         include:
           - runs-on: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            setup: sudo apt update && sudo apt install -y musl-tools
           - runs-on: windows-latest
             target: x86_64-pc-windows-msvc
         runs-on:
@@ -33,6 +34,8 @@ jobs:
         with:
           target-dir: target
           key: ci-build
+      - name: Setup
+        run: ${{ matrix.setup }}
       - name: Build
         run: cargo build --verbose --target ${{ matrix.target }}
       - name: Run tests
