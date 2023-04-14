@@ -13,6 +13,11 @@ jobs:
   build:
     strategy:
       matrix:
+        include:
+          - runs-on: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - runs-on: windows-latest
+            target: x86_64-pc-windows-msvc
         runs-on:
           - ubuntu-latest
           - windows-latest
@@ -26,6 +31,6 @@ jobs:
           target-dir: target
           key: ci-build
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --verbose --target ${{ matrix.target }}
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --verbose --target ${{ matrix.target }}
