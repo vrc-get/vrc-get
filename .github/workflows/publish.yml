@@ -123,7 +123,7 @@ jobs:
       name: master branch
       url: https://github.com/anatawa12/vrc-get/releases/v${{ needs.pre-build.outputs.version }}
     permissions:
-      pull-requests: write
+      contents: write
     runs-on: ubuntu-latest
     needs: [pre-build, build-rust]
     steps:
