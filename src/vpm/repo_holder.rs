@@ -24,7 +24,6 @@ impl RepoHolder {
             match source {
                 RepoSource::PreDefined(_, path) => path,
                 RepoSource::UserRepo(user) => &user.local_path,
-                RepoSource::Undefined(undefined) => undefined,
             }
         }
 
@@ -66,11 +65,6 @@ impl RepoHolder {
                 } else {
                     RepoHolder::load_local_repo(client, &user_repo.local_path).await.map(Some)
                 }
-            }
-            RepoSource::Undefined(repo_json) => {
-                Ok(RepoHolder::load_local_repo(client, &repo_json).await
-                    .map(Some)
-                    .unwrap_or(None))
             }
         }
     }
