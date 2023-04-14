@@ -1,5 +1,5 @@
-[target.'cfg(target_os = "linux")']
+[target.'cfg(all(target_os = "linux", not(proc_macro)))']
 rustflags = ["-C", "target-feature=+crt-static"]
 
-[target.'cfg(all(windows, target_env = "msvc"))']
+[target.'cfg(all(windows, target_env = "msvc", not(proc_macro)))']
 rustflags = ["-C", "target-feature=+crt-static"]
