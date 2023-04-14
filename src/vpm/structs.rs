@@ -104,6 +104,7 @@ pub mod repo_cache {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct LocalCachedRepository {
         repo: Repository,
+        #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
         headers: IndexMap<String, String>,
         #[serde(rename = "vrc-get")]
         #[serde(default, skip_serializing_if = "Option::is_none")]
