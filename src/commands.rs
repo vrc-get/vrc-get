@@ -13,7 +13,6 @@ use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
-use dialoguer::Confirm;
 use indexmap::IndexMap;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use tokio::fs::{read_dir, remove_file};
@@ -85,7 +84,31 @@ async fn save_env(env: &mut Environment) {
 }
 
 fn confirm_prompt(msg: &str) -> bool {
-    Confirm::new().with_prompt(msg).interact().unwrap_or(false)
+    use std::io;
+    use std::io::Write;
+    fn _impl(msg: &str) -> io::Result<bool> {
+        let mut stdout = io::stdout();
+        let stdin = io::stdin();
+        let mut buf = String::new();
+        loop {
+            // prompt
+            write!(stdout, "{}? [y/n] ", msg)?;
+            stdout.flush()?;
+
+            buf.clear();
+            stdin.read_line(&mut buf)?;
+
+            buf.make_ascii_lowercase();
+
+            match buf.trim() {
+                "y" | "yes" => return Ok(true),
+                "n" | "no" => return Ok(false),
+                _ => continue
+            }
+        }
+    }
+
+    _impl(msg).unwrap_or(false)
 }
 
 fn print_prompt_install(request: &AddPackageRequest, yes: bool) {
