@@ -200,7 +200,7 @@ impl Install {
             };
             let package = get_package(&env, &name, version_selector);
 
-            let request = unity.add_package_request(&env, vec![package], true)
+            let request = unity.add_package_request(&env, vec![package], true, self.prerelease)
                 .await
                 .exit_context("collecting packages to be installed");
 
@@ -388,7 +388,7 @@ impl Upgrade {
                 .collect()
         };
 
-        let request = unity.add_package_request(&env, updates, false)
+        let request = unity.add_package_request(&env, updates, false, self.prerelease)
             .await
             .exit_context("collecting packages to be upgraded");
 

@@ -959,6 +959,7 @@ impl UnityProject {
         env: &'env Environment,
         mut packages: Vec<PackageInfo<'env>>,
         to_dependencies: bool,
+        allow_prerelease: bool,
     ) -> Result<AddPackageRequest<'env>, AddPackageErr> {
         packages.retain(|pkg| {
             self.manifest.dependencies().get(pkg.name()).map(|dep| dep.version < *pkg.version()).unwrap_or(true)
@@ -991,7 +992,7 @@ impl UnityProject {
             });
         }
 
-        let packages = self.collect_adding_packages(env, locked)?;
+        let packages = self.collect_adding_packages(env, locked, allow_prerelease)?;
 
         let (legacy_files, legacy_folders) = self.collect_legacy_assets(&packages).await;
 
@@ -1269,6 +1270,7 @@ impl UnityProject {
         &self,
         env: &'env Environment,
         packages: Vec<PackageInfo<'env>>,
+        allow_prerelease: bool,
     ) -> Result<Vec<PackageInfo<'env>>, AddPackageErr> {
         #[derive(Default)]
         struct DependencyInfo<'env, 'a> {
@@ -1359,14 +1361,14 @@ impl UnityProject {
                 let entry = dependencies.entry(dependency).or_default();
                 let mut install = true;
 
-                if packages.iter().any(|x| x.name() == dependency && range.matches(&x.version())) {
+                if packages.iter().any(|x| x.name() == dependency && range.match_pre(&x.version(), allow_prerelease)) {
                     // if installing version is good, no need to reinstall
                     install = false;
                     log::debug!("processing package {name}: dependency {dependency} version {range}: pending matches");
                 } else {
                     // if already installed version is good, no need to reinstall
                     if let Some(version) = &entry.current {
-                        if range.matches(version) {
+                        if range.match_pre(version, allow_prerelease) {
                             log::debug!("processing package {name}: dependency {dependency} version {range}: existing matches");
                             install = false;
                         }
@@ -1393,7 +1395,7 @@ impl UnityProject {
         for (name, info) in &dependencies {
             if let Some(version) = &info.current {
                 for (source, range) in &info.requirements {
-                    if !range.matches(version) {
+                    if !range.match_pre(version, allow_prerelease) {
                         return Err(AddPackageErr::ConflictWithDependencies {
                             conflict: (*name).to_owned(),
                             dependency_name: (*source).to_owned(),
@@ -1448,7 +1450,9 @@ impl UnityProject {
             })
             .collect::<Vec<_>>();
 
-        let req = self.add_package_request(&env, unlocked_dependencies, false).await?;
+        let allow_prerelease = unlocked_dependencies.iter().any(|x| !x.version().pre.is_empty());
+
+        let req = self.add_package_request(&env, unlocked_dependencies, false, allow_prerelease).await?;
 
         self.do_add_package_request(&env, req).await?;
 
