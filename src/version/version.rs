@@ -127,6 +127,14 @@ impl Version {
     pub fn base_version(&self) -> Version {
         Version::new(self.major, self.minor, self.patch)
     }
+
+    pub fn is_pre(&self) -> bool {
+        !self.is_stable()
+    }
+
+    pub fn is_stable(&self) -> bool {
+        self.pre.is_empty()
+    }
 }
 
 impl FromParsingBuf for Prerelease {

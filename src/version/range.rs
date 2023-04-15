@@ -149,7 +149,7 @@ impl Comparator {
             };
         }
 
-        allow!(allow_prerelease || version.pre.is_empty());
+        allow!(allow_prerelease || version.is_stable());
 
         // might be prerelease & prerelease is not allowed: check for version existence
 
@@ -166,13 +166,13 @@ impl Comparator {
         };
         let in_version = in_version.to_zeros();
 
-        allow!(!in_version.pre.is_empty() && in_version.base_version() == version.base_version());
+        allow!(in_version.is_pre() && in_version.base_version() == version.base_version());
 
         // for Hyphen, we have two versions 
         if let Self::Hyphen(_, in_version) = self {
             let in_version = in_version.to_zeros();
 
-            allow!(!in_version.pre.is_empty() && in_version.base_version() == version.base_version());
+            allow!(in_version.is_pre() && in_version.base_version() == version.base_version());
         }
 
         return false;
