@@ -23,7 +23,11 @@ impl VersionRange {
     }
 
     pub(crate) fn matches(&self, version: &Version) -> bool {
-        self.comparators.iter().any(|x| x.matches(version))
+        self.match_pre(version, false)
+    }
+
+    pub(crate) fn match_pre(&self, version: &Version, allow_prerelease: bool) -> bool {
+        self.comparators.iter().any(|x| x.matches(version, allow_prerelease))
     }
 }
 
@@ -92,8 +96,8 @@ impl FromParsingBuf for ComparatorSet {
 }
 
 impl ComparatorSet {
-    fn matches(&self, version: &Version) -> bool {
-        self.0.iter().all(|x| x.matches(version))
+    fn matches(&self, version: &Version, allow_prerelease: bool) -> bool {
+        self.0.iter().all(|x| x.matches(version, allow_prerelease))
     }
 }
 
@@ -132,7 +136,49 @@ impl Display for Comparator {
 }
 
 impl Comparator {
-    fn matches(&self, version: &Version) -> bool {
+    fn matches(&self, version: &Version, allow_prerelease: bool) -> bool {
+        if !self.matches_internal(version) {
+            return false;
+        }
+
+        macro_rules! allow {
+            ($cond: expr) => {
+                if $cond {
+                    return true;
+                }
+            };
+        }
+
+        allow!(allow_prerelease || version.is_stable());
+
+        // might be prerelease & prerelease is not allowed: check for version existence
+
+        let in_version = match self {
+            Self::Tilde(c) => c,
+            Self::Caret(c) => c,
+            Self::Exact(c) => c,
+            Self::GreaterThan(c) => c,
+            Self::GreaterThanOrEqual(c) => c,
+            Self::LessThan(c) => c,
+            Self::LessThanOrEqual(c) => c,
+            Self::Star(c) => c,
+            Self::Hyphen(c, _) => c,
+        };
+        let in_version = in_version.to_zeros();
+
+        allow!(in_version.is_pre() && in_version.base_version() == version.base_version());
+
+        // for Hyphen, we have two versions 
+        if let Self::Hyphen(_, in_version) = self {
+            let in_version = in_version.to_zeros();
+
+            allow!(in_version.is_pre() && in_version.base_version() == version.base_version());
+        }
+
+        return false;
+    }
+
+    fn matches_internal(&self, version: &Version) -> bool {
         macro_rules! require {
             ($cond: expr) => {
                 if !$cond {
@@ -143,9 +189,6 @@ impl Comparator {
         return match self {
             Comparator::Tilde(v) => {
                 require!(version >= &v.to_zeros());
-                if !version.pre.is_empty() {
-                    return prerelease_check(v, version);
-                }
                 require!(version.major == v.major_or(0));
                 if let Some(minor) = v.minor() {
                     require!(version.minor == minor);
@@ -154,9 +197,6 @@ impl Comparator {
             }
             Comparator::Caret(v) => {
                 require!(version >= &v.to_zeros());
-                if !version.pre.is_empty() {
-                    return prerelease_check(v, version);
-                }
                 // ^* is always true
                 if let None = v.major() {
                     return true;
@@ -181,9 +221,6 @@ impl Comparator {
             Comparator::Star(v) | Comparator::Exact(v) => match full_or_next(v) {
                 Ok(full) => &full == version,
                 Err(next) => {
-                    if !version.pre.is_empty() {
-                        return prerelease_check(v, version);
-                    }
                     &v.to_zeros() <= version && version < &next
                 }
             },
@@ -195,11 +232,6 @@ impl Comparator {
                 greater_than_or_equal(version, lower) && less_than_or_equal(version, upper)
             }
         };
-
-        fn prerelease_check(v: &PartialVersion, version: &Version) -> bool {
-            // allow x.y.z-prerelease for ^x.y.z-prerelease
-            !v.pre.is_empty() && version.base_version() == v.to_zeros().base_version()
-        }
 
         fn full_or_next(v: &PartialVersion) -> Result<Version, Version> {
             if let Some(major) = v.major() {
@@ -225,27 +257,21 @@ impl Comparator {
         }
         fn greater_than_or_equal(version: &Version, v: &PartialVersion) -> bool {
             match v.to_full() {
-                Some(v) => version.pre.is_empty() && version >= &v || version.cmp(&v).is_eq(),
-                None => {
-                    let zeros = v.to_zeros();
-                    version.pre.is_empty() && version >= &zeros || version.cmp(&zeros).is_eq()
-                }
+                Some(v) => version >= &v,
+                None => version >= &v.to_zeros(),
             }
         }
         fn less_than(version: &Version, v: &PartialVersion) -> bool {
             return match v.to_full() {
-                Some(v) => version.pre.is_empty() && version < &v,
-                None => {
-                    let zeros = v.to_zeros();
-                    version.pre.is_empty() && version < &zeros
-                }
+                Some(v) => version < &v,
+                None => version < &v.to_zeros(),
             };
         }
 
         fn less_than_or_equal(version: &Version, v: &PartialVersion) -> bool {
             match full_or_next(v) {
-                Ok(full) => version.pre.is_empty() && version <= &full,
-                Err(next) => version.pre.is_empty() && version < &next,
+                Ok(full) => version <= &full,
+                Err(next) => version < &next,
             }
         }
     }

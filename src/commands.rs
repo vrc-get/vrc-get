@@ -200,7 +200,7 @@ impl Install {
             };
             let package = get_package(&env, &name, version_selector);
 
-            let request = unity.add_package_request(&env, vec![package], true)
+            let request = unity.add_package_request(&env, vec![package], true, self.prerelease)
                 .await
                 .exit_context("collecting packages to be installed");
 
@@ -252,6 +252,9 @@ pub struct Outdated {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
+    /// Include prerelease
+    #[arg(long = "prerelease")]
+    prerelease: bool,
 
     /// With this option, output is printed in json format
     #[arg(long = "json-format")]
@@ -270,8 +273,14 @@ impl Outdated {
 
         let mut outdated_packages = HashMap::new();
 
+        let selector = if self.prerelease {
+            VersionSelector::LatestIncluidingPrerelease
+        } else {
+            VersionSelector::Latest
+        };
+
         for (name, dep) in unity.locked_packages() {
-            match env.find_package_by_name(name, VersionSelector::Latest)
+            match env.find_package_by_name(name, selector)
             {
                 None => log::error!("package {} not found.", name),
                 // if found version is newer: add to outdated
@@ -379,7 +388,7 @@ impl Upgrade {
                 .collect()
         };
 
-        let request = unity.add_package_request(&env, updates, false)
+        let request = unity.add_package_request(&env, updates, false, self.prerelease)
             .await
             .exit_context("collecting packages to be upgraded");
 
