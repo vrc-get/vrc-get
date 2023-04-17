@@ -801,8 +801,10 @@ impl RepoPackages {
                     if let Some(description) = &pkg.description {
                         println!("{}", description);
                     }
-                    for (version, pkg) in &versions.versions {
-                        println!("{}: {}", version, pkg.url);
+                    let mut versions = versions.versions.values().collect::<Vec<_>>();
+                    versions.sort_by_key(|pkg| &pkg.version);
+                    for pkg in &versions {
+                        println!("{}: {}", pkg.version, pkg.url);
                     }
                     println!();
                 }
