@@ -1398,8 +1398,11 @@ impl UnityProject {
         // finally, check for conflict.
         for (name, info) in &dependencies {
             if let Some(version) = &info.current {
-                for (source, range) in &info.requirements {
+                for (mut source, range) in &info.requirements {
                     if !range.match_pre(version, info.allow_pre || allow_prerelease) {
+                        if source == &"" {
+                            source = &"dependencies";
+                        }
                         return Err(AddPackageErr::ConflictWithDependencies {
                             conflict: (*name).to_owned(),
                             dependency_name: (*source).to_owned(),
