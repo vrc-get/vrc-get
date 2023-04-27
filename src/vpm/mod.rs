@@ -1279,10 +1279,11 @@ impl UnityProject {
             // "" key for root dependencies
             requirements: HashMap<&'a str, &'a VersionRange>,
             dependencies: HashSet<&'a str>,
+            allow_pre: bool,
         }
 
         impl <'env, 'a> DependencyInfo<'env, 'a> where 'env: 'a {
-            fn new_dependency(version_range: &'a VersionRange) -> Self {
+            fn new_dependency(version_range: &'a VersionRange, allow_pre: bool) -> Self {
                 let mut requirements = HashMap::new();
                 requirements.insert("", version_range);
                 DependencyInfo { 
@@ -1290,6 +1291,7 @@ impl UnityProject {
                     current: None,
                     requirements, 
                     dependencies: HashSet::new(),
+                    allow_pre,
                 }
             }
 
@@ -1302,6 +1304,7 @@ impl UnityProject {
             }
 
             pub(crate) fn set_using_info(&mut self, version: &'a Version, dependencies: HashSet<&'a str>) {
+                self.allow_pre |= !version.pre.is_empty();
                 self.current = Some(version);
                 self.dependencies = dependencies;
             }
@@ -1324,10 +1327,10 @@ impl UnityProject {
         // first, add dependencies
         let root_dependencies = self.manifest.dependencies()
             .into_iter()
-            .map(|(name, dep)| (name, VersionRange::same_or_later(dep.version.clone())))
+            .map(|(name, dep)| (name, VersionRange::same_or_later(dep.version.clone()), !dep.version.pre.is_empty()))
             .collect_vec();
-        for (name, range) in &root_dependencies {
-            dependencies.insert(name, DependencyInfo::new_dependency(range));
+        for (name, range, allow_pre) in &root_dependencies {
+            dependencies.insert(name, DependencyInfo::new_dependency(range, *allow_pre));
         }
 
         // then, add locked dependencies info
@@ -1360,6 +1363,7 @@ impl UnityProject {
                 log::debug!("processing package {name}: dependency {dependency} version {range}");
                 let entry = dependencies.entry(dependency).or_default();
                 let mut install = true;
+                let allow_prerelease = entry.allow_pre || allow_prerelease;
 
                 if packages.iter().any(|x| x.name() == dependency && range.match_pre(&x.version(), allow_prerelease)) {
                     // if installing version is good, no need to reinstall
@@ -1395,7 +1399,7 @@ impl UnityProject {
         for (name, info) in &dependencies {
             if let Some(version) = &info.current {
                 for (source, range) in &info.requirements {
-                    if !range.match_pre(version, allow_prerelease) {
+                    if !range.match_pre(version, info.allow_pre || allow_prerelease) {
                         return Err(AddPackageErr::ConflictWithDependencies {
                             conflict: (*name).to_owned(),
                             dependency_name: (*source).to_owned(),
