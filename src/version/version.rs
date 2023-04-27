@@ -124,6 +124,16 @@ impl Version {
         }
     }
 
+    pub fn new_pre(major: Segment, minor: Segment, patch: Segment, pre: Prerelease) -> Version {
+        Version {
+            major,
+            minor,
+            patch,
+            pre,
+            build: BuildMetadata::EMPTY,
+        }
+    }
+
     pub fn base_version(&self) -> Version {
         Version::new(self.major, self.minor, self.patch)
     }
