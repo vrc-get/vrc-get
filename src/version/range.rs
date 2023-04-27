@@ -219,7 +219,7 @@ impl Comparator {
                 true
             }
             Comparator::Star(v) | Comparator::Exact(v) => match full_or_next(v) {
-                Ok(full) => &full == version,
+                Ok(full) => full.cmp(version).is_eq(),
                 Err(next) => {
                     &v.to_zeros() <= version && version < &next
                 }
@@ -237,7 +237,7 @@ impl Comparator {
             if let Some(major) = v.major() {
                 if let Some(minor) = v.minor() {
                     if let Some(patch) = v.patch() {
-                        Ok(Version::new(major, minor, patch))
+                        Ok(Version::new_pre(major, minor, patch, v.pre.clone()))
                     } else {
                         Err(Version::new(major, minor + 1, 0))
                     }
