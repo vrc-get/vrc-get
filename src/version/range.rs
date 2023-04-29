@@ -886,7 +886,7 @@ mod tests {
         test_pre("^1.0.0", "2.0.0-rc1");
         test_pre("^1.2.3-rc2", "2.0.0");
         test("^1.0.0", "2.0.0-rc1");
-        //test("1 - 2", "3.0.0-pre", { includePrerelease: true });
+        test_pre("1 - 2", "3.0.0-pre");
         test("1 - 2", "2.0.0-pre");
         test("1 - 2", "1.0.0-pre");
         test("1.0 - 2", "1.0.0-pre");
