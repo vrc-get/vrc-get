@@ -218,9 +218,9 @@ impl Comparator {
                 }
                 true
             }
-            Comparator::Star(v) | Comparator::Exact(v) => match full_or_next(v) {
-                Ok(full) => full.cmp(version).is_eq(),
-                Err(next) => {
+            Comparator::Star(v) | Comparator::Exact(v) => match v.to_full_or_next() {
+                (full, true) => full.cmp(version).is_eq(),
+                (next, false) => {
                     &v.to_zeros() <= version && version < &next
                 }
             },
@@ -233,26 +233,10 @@ impl Comparator {
             }
         };
 
-        fn full_or_next(v: &PartialVersion) -> Result<Version, Version> {
-            if let Some(major) = v.major() {
-                if let Some(minor) = v.minor() {
-                    if let Some(patch) = v.patch() {
-                        Ok(Version::new_pre(major, minor, patch, v.pre.clone()))
-                    } else {
-                        Err(Version::new(major, minor + 1, 0))
-                    }
-                } else {
-                    Err(Version::new(major + 1, 0, 0))
-                }
-            } else {
-                Err(Version::new(Segment::MAX, Segment::MAX, Segment::MAX))
-            }
-        }
-
         fn greater_than(version: &Version, v: &PartialVersion) -> bool {
-            match full_or_next(v) {
-                Ok(full) => version > &full,
-                Err(next) => version >= &next,
+            match v.to_full_or_next() {
+                (full, true) => version > &full,
+                (next, false) => version >= &next,
             }
         }
         fn greater_than_or_equal(version: &Version, v: &PartialVersion) -> bool {
@@ -269,9 +253,9 @@ impl Comparator {
         }
 
         fn less_than_or_equal(version: &Version, v: &PartialVersion) -> bool {
-            match full_or_next(v) {
-                Ok(full) => version <= &full,
-                Err(next) => version < &next,
+            match v.to_full_or_next() {
+                (full, true) => version <= &full,
+                (next, false) => version < &next,
             }
         }
     }
@@ -384,6 +368,29 @@ impl PartialVersion {
             })
         } else {
             None
+        }
+    }
+
+    /// Returns (version, is_full)
+    fn to_full_or_next(&self) -> (Version, bool) {
+        if let Some(major) = self.major() {
+            if let Some(minor) = self.minor() {
+                if let Some(patch) = self.patch() {
+                    (Version {
+                        major,
+                        minor,
+                        patch,
+                        pre: self.pre.clone(),
+                        build: self.build.clone(),
+                    }, true)
+                } else {
+                    (Version::new(major, minor + 1, 0), false)
+                }
+            } else {
+                (Version::new(major + 1, 0, 0), false)
+            }
+        } else {
+            (Version::new(Segment::MAX, Segment::MAX, Segment::MAX), false)
         }
     }
 
