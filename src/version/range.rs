@@ -786,6 +786,16 @@ mod tests {
                 version
             );
         }
+        fn test_pre(range: &str, version: &str) {
+            let range = VersionRange::from_str(range).expect(range);
+            let version = Version::from_str(version).expect(version);
+            assert!(
+                !range.match_pre(&version, true),
+                "{} should not matches {}",
+                range,
+                version
+            );
+        }
         // test set are from node-semver
         // Copyright (c) Isaac Z. Schlueter and Contributors
         // Originally under The ISC License
@@ -871,10 +881,10 @@ mod tests {
         //test("*", "not a version");
         //test(">=2", "glorp");
         //test(">=2", false);
-        //test("2.x", "3.0.0-pre.0", { includePrerelease: true });
-        //test("^1.0.0", "1.0.0-rc1", { includePrerelease: true });
-        //test("^1.0.0", "2.0.0-rc1", { includePrerelease: true });
-        //test("^1.2.3-rc2", "2.0.0", { includePrerelease: true });
+        test_pre("2.x", "3.0.0-pre.0");
+        test_pre("^1.0.0", "1.0.0-rc1");
+        test_pre("^1.0.0", "2.0.0-rc1");
+        test_pre("^1.2.3-rc2", "2.0.0");
         test("^1.0.0", "2.0.0-rc1");
         //test("1 - 2", "3.0.0-pre", { includePrerelease: true });
         test("1 - 2", "2.0.0-pre");
@@ -883,15 +893,15 @@ mod tests {
         test("1.1.x", "1.0.0-a");
         test("1.1.x", "1.1.0-a");
         test("1.1.x", "1.2.0-a");
-        //test("1.1.x", "1.2.0-a", { includePrerelease: true });
-        //test("1.1.x", "1.0.0-a", { includePrerelease: true });
+        test_pre("1.1.x", "1.2.0-a");
+        test_pre("1.1.x", "1.0.0-a");
         test("1.x", "1.0.0-a");
         test("1.x", "1.1.0-a");
         test("1.x", "1.2.0-a");
-        //test("1.x", "0.0.0-a", { includePrerelease: true });
-        //test("1.x", "2.0.0-a", { includePrerelease: true });
+        test_pre("1.x", "0.0.0-a");
+        test_pre("1.x", "2.0.0-a");
         test(">=1.0.0 <1.1.0", "1.1.0");
-        //test(">=1.0.0 <1.1.0", "1.1.0", { includePrerelease: true });
+        test_pre(">=1.0.0 <1.1.0", "1.1.0");
         test(">=1.0.0 <1.1.0", "1.1.0-pre");
         test(">=1.0.0 <1.1.0-pre", "1.1.0-pre");
     }
