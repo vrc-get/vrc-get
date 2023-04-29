@@ -384,13 +384,13 @@ impl PartialVersion {
                         build: self.build.clone(),
                     }, true)
                 } else {
-                    (Version::new(major, minor + 1, 0), false)
+                    (Version::new_pre(major, minor + 1, 0, Prerelease::new("0").unwrap()), false)
                 }
             } else {
-                (Version::new(major + 1, 0, 0), false)
+                (Version::new_pre(major + 1, 0, 0, Prerelease::new("0").unwrap()), false)
             }
         } else {
-            (Version::new(Segment::MAX, Segment::MAX, Segment::MAX), false)
+            (Version::new_pre(Segment::MAX, Segment::MAX, Segment::MAX, Prerelease::new("0").unwrap()), false)
         }
     }
 
