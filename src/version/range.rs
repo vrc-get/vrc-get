@@ -221,7 +221,7 @@ impl Comparator {
             Comparator::Star(v) | Comparator::Exact(v) => match v.to_full_or_next() {
                 (full, true) => full.cmp(version).is_eq(),
                 (next, false) => {
-                    &v.to_zeros() <= version && version < &next
+                    &v.to_zeros_with_pre() <= version && version < &next
                 }
             },
             Comparator::GreaterThan(v) => greater_than(version, v),
@@ -242,13 +242,13 @@ impl Comparator {
         fn greater_than_or_equal(version: &Version, v: &PartialVersion) -> bool {
             match v.to_full() {
                 Some(v) => version >= &v,
-                None => version >= &v.to_zeros(),
+                None => version >= &v.to_zeros_with_pre(),
             }
         }
         fn less_than(version: &Version, v: &PartialVersion) -> bool {
             return match v.to_full() {
                 Some(v) => version < &v,
-                None => version < &v.to_zeros(),
+                None => version < &v.to_zeros_with_pre(),
             };
         }
 
@@ -400,6 +400,20 @@ impl PartialVersion {
             minor: self.minor_or(0),
             patch: self.patch_or(0),
             pre: self.pre.clone(),
+            build: self.build.clone(),
+        }
+    }
+
+    fn to_zeros_with_pre(&self) -> Version {
+        Version {
+            major: self.major_or(0),
+            minor: self.minor_or(0),
+            patch: self.patch_or(0),
+            pre: if self.pre.is_empty() {
+                Prerelease::new("0").unwrap()
+            } else {
+                self.pre.clone()
+            },
             build: self.build.clone(),
         }
     }
