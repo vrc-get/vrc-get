@@ -616,6 +616,11 @@ mod tests {
             let version = Version::from_str(version).expect(version);
             assert!(range.matches(&version), "{} matches {}", range, version);
         }
+        fn test_pre(range: &str, version: &str) {
+            let range = VersionRange::from_str(range).expect(range);
+            let version = Version::from_str(version).expect(version);
+            assert!(range.match_pre(&version, true), "{} matches {}", range, version);
+        }
         // test set are from node-semver
         // Copyright (c) Isaac Z. Schlueter and Contributors
         // Originally under The ISC License
@@ -628,8 +633,8 @@ mod tests {
         //test("1.2.3pre+asdf - 2.4.3-pre+asdf", "1.2.3", true);
         //test("1.2.3-pre+asdf - 2.4.3pre+asdf", "1.2.3", true);
         //test("1.2.3pre+asdf - 2.4.3pre+asdf", "1.2.3", true);
-        //test("1.2.3-pre+asdf - 2.4.3-pre+asdf", "1.2.3-pre.2");
-        //test("1.2.3-pre+asdf - 2.4.3-pre+asdf", "2.4.3-alpha");
+        test("1.2.3-pre+asdf - 2.4.3-pre+asdf", "1.2.3-pre.2");
+        test("1.2.3-pre+asdf - 2.4.3-pre+asdf", "2.4.3-alpha");
         test("1.2.3+asdf - 2.4.3+asdf", "1.2.3");
         test("1.0.0", "1.0.0");
         test(">=*", "0.2.4");
@@ -732,24 +737,27 @@ mod tests {
         test("1.0.0 - x", "1.9.7");
         test("1.x - x", "1.9.7");
         test("<=7.x", "7.9.9");
-        //test("2.x", "2.0.0-pre.0", { includePrerelease: true });
-        //test("2.x", "2.1.0-pre.0", { includePrerelease: true });
-        //test("1.1.x", "1.1.0-a", { includePrerelease: true });
-        //test("1.1.x", "1.1.1-a", { includePrerelease: true });
-        //test("*", "1.0.0-rc1", { includePrerelease: true });
-        //test("^1.0.0-0", "1.0.1-rc1", { includePrerelease: true });
-        //test("^1.0.0-rc2", "1.0.1-rc1", { includePrerelease: true });
-        //test("^1.0.0", "1.0.1-rc1", { includePrerelease: true });
-        //test("^1.0.0", "1.1.0-rc1", { includePrerelease: true });
-        //test("1 - 2", "2.0.0-pre", { includePrerelease: true });
-        //test("1 - 2", "1.0.0-pre", { includePrerelease: true });
-        //test("1.0 - 2", "1.0.0-pre", { includePrerelease: true });
+        test_pre("2.x", "2.0.0-pre.0");
+        test_pre("2.x", "2.1.0-pre.0");
+        test_pre("1.1.x", "1.1.0-a");
+        test_pre("1.1.x", "1.1.1-a");
+        test_pre("*", "1.0.0-rc1");
+        test_pre("^1.0.0-0", "1.0.1-rc1");
+        test_pre("^1.0.0-rc2", "1.0.1-rc1");
+        test_pre("^1.0.0", "1.0.1-rc1");
+        test_pre("^1.0.0", "1.1.0-rc1");
+        test_pre("1 - 2", "2.0.0-pre");
+        test_pre("1 - 2", "1.0.0-pre");
+        test_pre("1.0 - 2", "1.0.0-pre");
 
-        //test("=0.7.x", "0.7.0-asdf", { includePrerelease: true });
-        //test(">=0.7.x", "0.7.0-asdf", { includePrerelease: true });
-        //test("<=0.7.x", "0.7.0-asdf", { includePrerelease: true });
+        test_pre("=0.7.x", "0.7.0-asdf");
+        test_pre(">=0.7.x", "0.7.0-asdf");
+        test_pre("<=0.7.x", "0.7.0-asdf");
 
-        //test(">=1.0.0 <=1.1.0", "1.1.0-pre", { includePrerelease: true });
+        test_pre(">=1.0.0 <=1.1.0", "1.1.0-pre");
+        
+        // additional tests by anatawa12
+        test_pre("1.0.x - 2", "1.0.0-pre");
     }
 
     #[test]
