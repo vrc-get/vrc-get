@@ -1133,10 +1133,15 @@ impl UnityProject {
             self.manifest.add_dependency(x.0.to_owned(), x.1);
         }
 
-        // then, do install
+        // then, try to remove legacy assets
+        join(
+            join_all(request.legacy_files.into_iter().map(remove_file)),
+            join_all(request.legacy_folders.into_iter().map(remove_folder)),
+        ).await;
+
+        // finally, do install packages
         self.do_add_packages_to_locked(env, &request.locked).await?;
 
-        // finally try to remove legacy assets
         async fn remove_meta_file(path: PathBuf) {
             let mut building = path.into_os_string();
             building.push(".meta");
@@ -1163,10 +1168,6 @@ impl UnityProject {
             remove_meta_file(path).await;
         }
 
-        join(
-            join_all(request.legacy_files.into_iter().map(remove_file)),
-            join_all(request.legacy_folders.into_iter().map(remove_folder)),
-        ).await;
         Ok(())
     }
 
