@@ -1047,7 +1047,7 @@ impl UnityProject {
                     FoundFolder(path)
                 }
             } else {
-                if let Some(guid) = try_parse_guid(guid) {
+                if let Some(guid) = guid.as_deref().and_then(try_parse_guid) {
                     if is_file {
                         GuidFile(guid)
                     } else {
