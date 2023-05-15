@@ -59,10 +59,10 @@ pub mod package {
 
         #[serde(rename = "legacyFolders")]
         #[serde(default)]
-        pub legacy_folders: HashMap<String, String>,
+        pub legacy_folders: HashMap<String, Option<String>>,
         #[serde(rename = "legacyFiles")]
         #[serde(default)]
-        pub legacy_files: HashMap<String, String>,
+        pub legacy_files: HashMap<String, Option<String>>,
     }
 }
 
