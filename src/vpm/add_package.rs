@@ -8,6 +8,7 @@ use reqwest::Client;
 use sha2::{Digest, Sha256};
 use tokio::fs::{create_dir_all, File, OpenOptions, remove_dir_all};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::{PackageInfo, PackageInfoInner, try_open_file};
 use crate::vpm::utils::{MapResultExt, parse_hex_256, PathBufExt};
@@ -56,27 +57,35 @@ async fn add_remote_package(
     remove_dir_all(&dest_folder).await.ok();
 
     // extract zip file
-    let mut zip_reader = async_zip::tokio::read::seek::ZipFileReader::new(zip_file)
+    let mut zip_reader = async_zip::tokio::read::seek::ZipFileReader::new(
+        zip_file.compat())
         .await
         .err_mapped()?;
     for i in 0..zip_reader.file().entries().len() {
         let entry = zip_reader.file().entries()[i].entry();
-        let path = dest_folder.join(entry.filename());
-        if !check_path(Path::new(entry.filename())) {
+        let Some(filename) = entry.filename().as_str().ok() else {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("path in zip file is not utf8"),
+            )
+                .into());
+        };
+        let path = dest_folder.join(filename);
+        if !check_path(Path::new(filename)) {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
                 format!("directory traversal detected: {}", path.display()),
             )
                 .into());
         }
-        if entry.dir() {
+        if filename.ends_with('/') {
             // if it's directory, just create directory
             create_dir_all(path).await?;
         } else {
-            let mut reader = zip_reader.entry(i).await.err_mapped()?;
+            let reader = zip_reader.reader_without_entry(i).await.err_mapped()?;
             create_dir_all(path.parent().unwrap()).await?;
             let mut dest_file = File::create(path).await?;
-            tokio::io::copy(&mut reader, &mut dest_file).await?;
+            tokio::io::copy(&mut reader.compat(), &mut dest_file).await?;
             dest_file.flush().await?;
         }
     }
