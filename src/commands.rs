@@ -35,7 +35,7 @@ macro_rules! multi_command {
 macro_rules! exit_with {
     ($($tt:tt)*) => {{
         eprintln!($($tt)*);
-        exit(1)
+        ::std::process::exit(1)
     }};
 }
 
@@ -174,6 +174,8 @@ impl<T, E> ResultExt<T, E> for Result<T, E> {
     }
 }
 
+mod info;
+
 /// Open Source command line interface of VRChat Package Manager.
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -188,9 +190,11 @@ pub enum Command {
     Search(Search),
     #[command(subcommand)]
     Repo(Repo),
+    #[command(subcommand)]
+    Info(info::Info),
 }
 
-multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo);
+multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo, Info);
 
 /// Adds package to unity project
 ///

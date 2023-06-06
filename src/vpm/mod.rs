@@ -830,6 +830,7 @@ pub struct UnityProject {
     manifest: VpmManifest,
     /// packages installed in the directory but not locked in vpm-manifest.json
     unlocked_packages: Vec<(String, Option<PackageJson>)>,
+    installed_packages: HashMap<String, PackageJson>,
 }
 
 impl UnityProject {
@@ -846,11 +847,21 @@ impl UnityProject {
         let manifest = unity_found.join("Packages").joined("vpm-manifest.json");
         let vpm_manifest = VpmManifest::new(load_json_or_default(&manifest).await?)?;
 
+        let mut installed_packages = HashMap::new();
         let mut unlocked_packages = vec![];
 
         let mut dir_reading = read_dir(unity_found.join("Packages")).await?;
         while let Some(dir_entry) = dir_reading.next_entry().await? {
-            if let Some(read) = Self::try_read_unlocked_package(dir_entry, &vpm_manifest).await {
+            let read = Self::try_read_unlocked_package(dir_entry).await;
+            let mut is_installed = false;
+            if let Some(parsed) = &read.1 {
+                if parsed.name == read.0 && vpm_manifest.locked().contains_key(&parsed.name) {
+                    is_installed = true;
+                }
+            }
+            if is_installed {
+                installed_packages.insert(read.0, read.1.unwrap());
+            } else {
                 unlocked_packages.push(read);
             }
         }
@@ -859,13 +870,13 @@ impl UnityProject {
             project_dir: unity_found,
             manifest: VpmManifest::new(load_json_or_default(&manifest).await?)?,
             unlocked_packages,
+            installed_packages,
         })
     }
 
     async fn try_read_unlocked_package(
-        dir_entry: DirEntry,
-        vpm_manifest: &VpmManifest,
-    ) -> Option<(String, Option<PackageJson>)> {
+        dir_entry: DirEntry
+    ) -> (String, Option<PackageJson>) {
         let package_path = dir_entry.path();
         let name = package_path
             .file_name()
@@ -877,12 +888,7 @@ impl UnityProject {
             .await
             .ok()
             .flatten();
-        if let Some(parsed) = &parsed {
-            if parsed.name == name && vpm_manifest.locked().contains_key(&parsed.name) {
-                return None;
-            }
-        }
-        Some((name, parsed))
+        (name, parsed)
     }
 
     fn find_unity_project_path() -> io::Result<PathBuf> {
@@ -1488,6 +1494,14 @@ impl UnityProject {
             .map(|x| (&x.name, &x.vpm_dependencies));
 
         return dependencies_locked.chain(dependencies_unlocked);
+    }
+
+    pub(crate) fn unlocked_packages(&self) -> &[(String, Option<PackageJson>)] {
+        &self.unlocked_packages
+    }
+
+    pub(crate) fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
+        self.installed_packages.get(name)
     }
 }
 
