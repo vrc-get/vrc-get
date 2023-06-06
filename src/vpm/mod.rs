@@ -66,10 +66,10 @@ impl Environment {
         );
 
         Ok(Environment {
-            http: http.clone(),
+            http,
             settings: load_json_or_default(&folder.join("settings.json")).await?,
             global_dir: folder,
-            repo_cache: RepoHolder::new(http),
+            repo_cache: RepoHolder::new(),
             user_packages: Vec::new(),
             settings_changed: false,
         })
@@ -130,8 +130,9 @@ impl Environment {
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 
-    pub async fn load_package_infos(&mut self) -> io::Result<()> {
-        self.repo_cache.load_repos(self.get_repo_sources()?).await?;
+    pub async fn load_package_infos(&mut self, update: bool) -> io::Result<()> {
+        let http = if update { self.http.as_ref() } else { None };
+        self.repo_cache.load_repos(http, self.get_repo_sources()?).await?;
         self.update_user_repo_id();
         self.load_user_package_infos().await?;
         self.remove_id_duplication();

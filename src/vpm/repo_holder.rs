@@ -4,14 +4,12 @@ use std::future::Future;
 
 #[derive(Debug)]
 pub(super) struct RepoHolder {
-    http: Option<Client>,
     cached_repos_new: HashMap<PathBuf, LocalCachedRepository>,
 }
 
 impl RepoHolder {
-    pub(crate) fn new(http: Option<Client>) -> Self {
+    pub(crate) fn new() -> Self {
         RepoHolder {
-            http,
             cached_repos_new: HashMap::new(),
         }
     }
@@ -19,7 +17,7 @@ impl RepoHolder {
 
 // new system
 impl RepoHolder {
-    pub(crate) async fn load_repos(&mut self, sources: Vec<RepoSource>) -> io::Result<()> {
+    pub(crate) async fn load_repos(&mut self, http: Option<&Client>, sources: Vec<RepoSource>) -> io::Result<()> {
         fn file_path(source: &RepoSource) -> &Path {
             match source {
                 RepoSource::PreDefined(_, path) => path,
@@ -28,7 +26,7 @@ impl RepoHolder {
         }
 
         let repos = try_join_all(sources.iter().map(|src| async {
-            Self::load_repo_from_source(self.http.as_ref(), src).await
+            Self::load_repo_from_source(http, src).await
                 .map(|v| v.map(|v| (v, file_path(src))))
         }))
         .await?;
