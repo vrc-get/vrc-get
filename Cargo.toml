@@ -33,7 +33,7 @@ semver = { version = "1.0.17", features = ["serde"] }
 serde = { version = "1.0.163", features = ["derive", "rc"] }
 serde_json = { version = "1.0.96", features = ["preserve_order"] }
 sha2 = "0.10.6"
-tokio = { version = "1.28.1", features = ["rt", "macros", "fs"] }
+tokio = { version = "1.28.2", features = ["rt", "macros", "fs"] }
 tokio-util = "0.7.8"
 uuid = { version = "1.3.3", features = ["v4"] }
 
