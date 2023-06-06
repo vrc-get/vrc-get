@@ -35,16 +35,27 @@ macro_rules! multi_command {
 macro_rules! exit_with {
     ($($tt:tt)*) => {{
         eprintln!($($tt)*);
-        exit(1)
+        ::std::process::exit(1)
     }};
 }
 
-async fn load_env(client: Option<reqwest::Client>) -> Environment {
+#[derive(Args, Default)]
+struct EnvArgs {
+    /// do not connect to remote servers, use local caches only. implicitly --no-update
+    #[arg(long)]
+    offline: bool,
+    /// do not update local repository cache.
+    #[arg(long)]
+    no_update: bool,
+}
+
+async fn load_env(args: &EnvArgs) -> Environment {
+    let client = crate::create_client(args.offline);
     let mut env = Environment::load_default(client)
         .await
         .exit_context("loading global config");
 
-    env.load_package_infos().await.exit_context("loading repositories");
+    env.load_package_infos(!args.no_update).await.exit_context("loading repositories");
     env.save().await.exit_context("saving repositories updates");
 
     env
@@ -163,6 +174,8 @@ impl<T, E> ResultExt<T, E> for Result<T, E> {
     }
 }
 
+mod info;
+
 /// Open Source command line interface of VRChat Package Manager.
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -171,14 +184,17 @@ pub enum Command {
     Install(Install),
     #[command(alias = "rm")]
     Remove(Remove),
+    Update(Update),
     Outdated(Outdated),
     Upgrade(Upgrade),
     Search(Search),
     #[command(subcommand)]
     Repo(Repo),
+    #[command(subcommand)]
+    Info(info::Info),
 }
 
-multi_command!(Command is Install, Remove, Outdated, Upgrade, Search, Repo);
+multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo, Info);
 
 /// Adds package to unity project
 ///
@@ -200,9 +216,8 @@ pub struct Install {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 
     /// skip confirm
     #[arg(short, long)]
@@ -211,8 +226,7 @@ pub struct Install {
 
 impl Install {
     pub async fn run(self) {
-        let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
         if let Some(name) = self.name {
@@ -268,6 +282,18 @@ impl Remove {
     }
 }
 
+/// Update local repository cache
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Update {
+}
+
+impl Update {
+    pub async fn run(self) {
+        let _ = load_env(&EnvArgs::default()).await;
+    }
+}
+
 /// Show list of outdated packages
 #[derive(Parser)]
 #[command(author, version)]
@@ -283,15 +309,13 @@ pub struct Outdated {
     #[arg(long = "json-format")]
     json_format: Option<NonZeroU32>,
 
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 }
 
 impl Outdated {
     pub async fn run(self) {
-        let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let env = load_env(&self.env_args).await;
         let unity = load_unity(self.project).await;
 
         let mut outdated_packages = HashMap::new();
@@ -375,9 +399,8 @@ pub struct Upgrade {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 
     /// skip confirm
     #[arg(short, long)]
@@ -386,8 +409,7 @@ pub struct Upgrade {
 
 impl Upgrade {
     pub async fn run(self) {
-        let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
         let updates = if let Some(name) = self.name {
@@ -440,15 +462,13 @@ pub struct Search {
     #[arg(required = true, name = "QUERY")]
     queries: Vec<String>,
 
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 }
 
 impl Search {
     pub async fn run(self) {
-        let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let env = load_env(&self.env_args).await;
 
         let mut queries = self.queries;
         for query in &mut queries {
@@ -511,15 +531,13 @@ multi_command!(Repo is List, Add, Remove, Cleanup, Packages);
 #[derive(Parser)]
 #[command(author, version)]
 pub struct RepoList {
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 }
 
 impl RepoList {
     pub async fn run(self) {
-        let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let env = load_env(&self.env_args).await;
 
         for (local_path, repo) in env.get_repo_with_path() {
             println!(
@@ -548,9 +566,8 @@ pub struct RepoAdd {
     #[arg(short='H', long, value_parser = HeaderPair::from_str)]
     header: Vec<HeaderPair>,
 
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 }
 
 #[derive(Clone)]
@@ -606,8 +623,7 @@ impl StdError for HeaderPairErr {
 
 impl RepoAdd {
     pub async fn run(self) {
-        let client = crate::create_client(self.offline);
-        let mut env = load_env(client).await;
+        let mut env = load_env(&self.env_args).await;
 
         if let Ok(url) = Url::parse(&self.path_or_url) {
             let mut headers = IndexMap::<String, String>::new();
@@ -636,9 +652,8 @@ pub struct RepoRemove {
     #[clap(flatten)]
     searcher: RepoSearcherArgs,
 
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 }
 
 #[derive(Args)]
@@ -702,8 +717,7 @@ impl RepoSearcher {
 
 impl RepoRemove {
     pub async fn run(self) {
-        let client = crate::create_client(self.offline);
-        let mut env = load_env(client).await;
+        let mut env = load_env(&self.env_args).await;
 
         // we're using OsStr for paths.
         let finder = OsStr::new(self.finder.as_str());
@@ -726,15 +740,13 @@ impl RepoRemove {
 #[derive(Parser)]
 #[command(author, version)]
 pub struct RepoCleanup {
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 }
 
 impl RepoCleanup {
     pub async fn run(self) {
-        let client = crate::create_client(self.offline);
-        let env = load_env(client).await;
+        let env = load_env(&self.env_args).await;
 
         let mut uesr_repo_file_names = vec![
             OsString::from("vrc-official.json"),
@@ -782,9 +794,8 @@ impl RepoCleanup {
 pub struct RepoPackages {
     name_or_url: String,
 
-    /// do not connect to remote servers, use local caches only
-    #[arg(long)]
-    offline: bool,
+    #[command(flatten)]
+    env_args: EnvArgs,
 }
 
 impl RepoPackages {
@@ -811,12 +822,12 @@ impl RepoPackages {
             }
         }
 
-        let client = crate::create_client(self.offline);
 
         if let Some(url) = Url::parse(&self.name_or_url).ok() {
-            let Some(client) = client else {
+            if self.env_args.offline {
                 exit_with!("remote repository specified but offline mode.");
-            };
+            }
+            let client = crate::create_client(self.env_args.offline).unwrap();
             let repo = download_remote_repository(&client, url, None, None)
                 .await
                 .exit_context("downloading repository")
@@ -825,7 +836,7 @@ impl RepoPackages {
 
             print_repo(&repo);
         } else {
-            let env = load_env(client).await;
+            let env = load_env(&self.env_args).await;
 
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
