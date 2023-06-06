@@ -171,6 +171,7 @@ pub enum Command {
     Install(Install),
     #[command(alias = "rm")]
     Remove(Remove),
+    Update(Update),
     Outdated(Outdated),
     Upgrade(Upgrade),
     Search(Search),
@@ -178,7 +179,7 @@ pub enum Command {
     Repo(Repo),
 }
 
-multi_command!(Command is Install, Remove, Outdated, Upgrade, Search, Repo);
+multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo);
 
 /// Adds package to unity project
 ///
@@ -265,6 +266,19 @@ impl Remove {
         mark_and_sweep(&mut unity).await;
 
         save_unity(&mut unity).await;
+    }
+}
+
+/// Update local repository cache
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Update {
+}
+
+impl Update {
+    pub async fn run(self) {
+        let client = crate::create_client(false);
+        let _ = load_env(client).await;
     }
 }
 
