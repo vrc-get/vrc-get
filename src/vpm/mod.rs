@@ -772,9 +772,10 @@ mod vpm_manifest {
             Ok(())
         }
 
-        pub(crate) fn mark_and_sweep_packages(&mut self) -> HashSet<String> {
+        pub(crate) fn mark_and_sweep_packages(&mut self, upstream_dependencies: impl Iterator<Item = &str>) -> HashSet<String> {
             // mark
             let mut required_packages = HashSet::<&str>::new();
+            required_packages.extend(upstream_dependencies);
             for x in self.dependencies.keys() {
                 required_packages.insert(x);
             }
@@ -1260,7 +1261,12 @@ impl UnityProject {
     ///
     /// This doesn't look packages not listed in vpm-maniefst.json.
     pub async fn mark_and_sweep(&mut self) -> io::Result<HashSet<String>> {
-        let removed_packages = self.manifest.mark_and_sweep_packages();
+        let upstream_dependencies = self.unlocked_packages
+            .iter()
+            .filter_map(|(_, pkg)| pkg.as_ref())
+            .flat_map(|x| x.vpm_dependencies.keys())
+            .map(String::as_str);
+        let removed_packages = self.manifest.mark_and_sweep_packages(upstream_dependencies);
 
         try_join_all(removed_packages.iter().map(|name| {
             remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
