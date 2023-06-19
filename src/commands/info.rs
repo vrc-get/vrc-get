@@ -1,9 +1,11 @@
+use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
+use itertools::Itertools;
 use serde::Serialize;
 use crate::commands::{load_env, load_unity};
-use crate::version::Version;
+use crate::version::{Version, VersionRange};
 
 /// Shows information for other program.
 #[derive(Subcommand)]
@@ -53,6 +55,7 @@ impl Project {
             name: &'a str,
             installed: Option<&'a Version>,
             locked: Option<&'a Version>,
+            requested: Vec<&'a VersionRange>,
         }
 
         let mut packages = vec![];
@@ -62,6 +65,7 @@ impl Project {
                 name: package,
                 installed: unity.get_installed_package(package).map(|x| &x.version),
                 locked: Some(&locked.version),
+                requested: vec![], // TODO: add requests from locked packages
             });
         }
 
@@ -71,8 +75,34 @@ impl Project {
                     name: package,
                     installed: Some(&installed.version),
                     locked: None,
+                    requested: vec![],
                 });
             }
+        }
+
+        let unlocked_names: HashSet<_> = unity
+            .unlocked_packages()
+            .into_iter()
+            .filter_map(|(_, pkg)| pkg.as_ref())
+            .map(|x| x.name.as_str())
+            .collect();
+
+        let unlocked_dependencies = unity
+            .unlocked_packages()
+            .into_iter()
+            .filter_map(|(_, pkg)| pkg.as_ref())
+            .flat_map(|pkg| &pkg.vpm_dependencies)
+            .filter(|(k, _)| !unity.locked_packages().contains_key(k.as_str()))
+            .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
+            .map(|(k, v)| (k, v))
+            .into_group_map();
+        for (package, requested) in unlocked_dependencies {
+            packages.push(PackageInfo {
+                name: package,
+                installed: None,
+                locked: None,
+                requested,
+            });
         }
 
         let project = Project {

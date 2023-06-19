@@ -1454,6 +1454,14 @@ impl UnityProject {
                 }),
         )
         .await?;
+
+        let unlocked_names: HashSet<_> = self
+            .unlocked_packages()
+            .into_iter()
+            .filter_map(|(_, pkg)| pkg.as_ref())
+            .map(|x| x.name.as_str())
+            .collect();
+
         // then, process dependencies of unlocked packages.
         let unlocked_dependencies = self
             .unlocked_packages
@@ -1461,6 +1469,7 @@ impl UnityProject {
             .filter_map(|(_, pkg)| pkg.as_ref())
             .flat_map(|pkg| &pkg.vpm_dependencies)
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
+            .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
             .map(|(k, v)| (k, v))
             .into_group_map()
             .into_iter()
