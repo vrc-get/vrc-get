@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
@@ -79,12 +80,20 @@ impl Project {
             }
         }
 
+        let unlocked_names: HashSet<_> = unity
+            .unlocked_packages()
+            .into_iter()
+            .filter_map(|(_, pkg)| pkg.as_ref())
+            .map(|x| x.name.as_str())
+            .collect();
+
         let unlocked_dependencies = unity
             .unlocked_packages()
             .into_iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .flat_map(|pkg| &pkg.vpm_dependencies)
             .filter(|(k, _)| !unity.locked_packages().contains_key(k.as_str()))
+            .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
             .map(|(k, v)| (k, v))
             .into_group_map();
         for (package, requested) in unlocked_dependencies {
