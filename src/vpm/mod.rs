@@ -670,7 +670,10 @@ pub(crate) async fn download_remote_repository(
         .and_then(|x| x.to_str().ok())
         .map(str::to_owned);
 
-    let json = response.json().await.err_mapped()?;
+    // response.json() doesn't support BOM 
+    let full = response.bytes().await.err_mapped()?;
+    let no_bom = full.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(full.as_ref());
+    let json = serde_json::from_slice(&no_bom)?;
 
     let mut repo = Repository::new(json)?;
     repo.set_url_if_none(|| url.to_string());
