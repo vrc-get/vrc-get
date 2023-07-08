@@ -1341,10 +1341,22 @@ impl UnityProject {
         let mut dependencies = HashMap::<&str, _>::new();
 
         // first, add dependencies
-        let root_dependencies = self.manifest.dependencies()
-            .into_iter()
-            .map(|(name, dep)| (name, VersionRange::same_or_later(dep.version.clone()), !dep.version.pre.is_empty()))
-            .collect_vec();
+        let mut root_dependencies = Vec::with_capacity(self.manifest.dependencies().len());
+
+        for (name, dependency) in self.manifest.dependencies() {
+            let mut min_ver = &dependency.version;
+            let mut allow_pre = !dependency.version.pre.is_empty();
+
+            if let Some(locked) = self.manifest.locked().get(name) {
+                allow_pre |= !locked.version.pre.is_empty();
+                if &locked.version < min_ver {
+                    min_ver = &locked.version;
+                }
+            }
+
+            root_dependencies.push((name, VersionRange::same_or_later(min_ver.clone()), allow_pre));
+        }
+
         for (name, range, allow_pre) in &root_dependencies {
             dependencies.insert(name, DependencyInfo::new_dependency(range, *allow_pre));
         }
