@@ -192,9 +192,11 @@ pub enum Command {
     Repo(Repo),
     #[command(subcommand)]
     Info(info::Info),
+
+    Completion(Completion),
 }
 
-multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo, Info);
+multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Completion);
 
 /// Adds package to unity project
 ///
@@ -852,5 +854,32 @@ impl RepoPackages {
                 exit_with!("no repository named {} found!", self.name_or_url);
             }
         }
+    }
+}
+
+#[derive(Parser)]
+pub struct Completion {
+    shell: Option<clap_complete::Shell>,
+}
+
+impl Completion {
+    pub async fn run(self) {
+        use clap::CommandFactory;
+        use std::env::args;
+
+        let Some(shell) = self.shell.or_else(|| clap_complete::Shell::from_env()) else {
+            exit_with!("shell not specified")
+        };
+        let mut bin_name = args().next().expect("bin name");
+        if let Some(slash) = bin_name.rfind(&['/', '\\']) {
+            bin_name = bin_name[slash + 1..].to_owned();
+        }
+
+        clap_complete::generate(
+            shell,
+            &mut Command::command(),
+            bin_name,
+            &mut std::io::stdout(),
+        );
     }
 }
