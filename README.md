@@ -6,9 +6,10 @@
 [![Github latest][shields-github-version]][release]
 [![crates.io latest][shields-crates-io-version]][crates-io]
 
-Open Source command line client of VRChat Package Manager. 
+Open Source command line client of VRChat Package Manager, 
+the main feature of VRChat Creator Companion (VCC), that supports Windows, Linux, and macOS.
 
-<sub>This project is developed by community, not by VRChat.</sub>
+<small>This project is developed by community, not by VRChat.</small>
 
 ## Goals
 
@@ -19,16 +20,17 @@ Open Source command line client of VRChat Package Manager.
 
 For more details, please see --help
 
-- [x] `vrc-get install [pkg] [version]` (with alias `vrc-get i [pkg] [version]` and `vrc-get resolve`)
-- [x] `vrc-get remove [pkg]` (with alias `vrc-get rm [pkg]`)
-- [x] `vrc-get outdated`
-- [x] `vrc-get upgrade [pkg] [version]`
-- [x] `vrc-get search <query...>`
-- [x] `vrc-get repo list`
-- [x] `vrc-get repo add <url> [NAME]`
-- [x] `vrc-get repo remove <name or url>`
-- [x] `vrc-get repo cleanup`
-- [x] `vrc-get repo packages <NAME|url>`
+- [x] `vrc-get install [pkg] [version]` (with alias `vrc-get i [pkg] [version]` and `vrc-get resolve`) 
+  install package to your project
+- [x] `vrc-get remove [pkg]` (with alias `vrc-get rm [pkg]`) remove package from your project
+- [x] `vrc-get outdated` list outdated packages in your project
+- [x] `vrc-get upgrade [pkg] [version]` upgrade package(s) in your project
+- [x] `vrc-get search <query...>` search package in installed repositories in your PC
+- [x] `vrc-get repo list` list installed repositories in your PC
+- [x] `vrc-get repo add <url> [NAME]` add repository into your PC
+- [x] `vrc-get repo remove <name or url>` remove repository from your PC
+- [x] `vrc-get repo cleanup` cleanup repo cache
+- [x] `vrc-get repo packages <NAME|url>` list packages in specified repository
 
 # Installation
 

@@ -100,8 +100,10 @@ jobs:
           path: target/${{ matrix.triple }}/release/vrc-get*
 
   publish-crates-io:
-    name: Publish
-    environment: crates.io
+    name: Publish to crates.io
+    environment:
+      name: crates.io
+      url: https://crates.io/crates/vrc-get
     runs-on: ubuntu-latest
     needs: [pre-build, build-rust]
     steps:
@@ -116,8 +118,12 @@ jobs:
         run: cargo publish --no-verify
 
   publish:
-    name: Publish
-    environment: master branch
+    name: Publish to GitHub
+    environment:
+      name: master branch
+      url: https://github.com/anatawa12/vrc-get/releases/v${{ needs.pre-build.outputs.version }}
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     needs: [pre-build, build-rust]
     steps:
@@ -157,7 +163,7 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ needs.pre-build.outputs.version }}
-          GH_TOKEN: ${{ secrets.MASTER_GITHUB_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: |-
           mkdir assets
 
@@ -173,7 +179,7 @@ jobs:
           popd
 
           sleep 1
-          gh release create "$VERSION" assets/*
+          gh release create --verify-tag "v$VERSION" assets/*
 
           rm -rf outputs assets
 

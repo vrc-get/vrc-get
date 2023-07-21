@@ -1,51 +1,89 @@
 use super::*;
-use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::future::Future;
 
 #[derive(Debug)]
 pub(super) struct RepoHolder {
-    http: Option<Client>,
-    // the pointer of LocalCachedRepository will never be changed
-    cached_repos: UnsafeCell<HashMap<PathBuf, Box<LocalCachedRepository>>>,
+    cached_repos_new: HashMap<PathBuf, LocalCachedRepository>,
 }
 
 impl RepoHolder {
-    pub(crate) fn new(http: Option<Client>) -> Self {
+    pub(crate) fn new() -> Self {
         RepoHolder {
-            http,
-            cached_repos: UnsafeCell::new(HashMap::new()),
+            cached_repos_new: HashMap::new(),
+        }
+    }
+}
+
+// new system
+impl RepoHolder {
+    pub(crate) async fn load_repos(&mut self, http: Option<&Client>, sources: Vec<RepoSource>) -> io::Result<()> {
+        fn file_path(source: &RepoSource) -> &Path {
+            match source {
+                RepoSource::PreDefined(_, path) => path,
+                RepoSource::UserRepo(user) => &user.local_path,
+            }
+        }
+
+        let repos = try_join_all(sources.iter().map(|src| async {
+            Self::load_repo_from_source(http, src).await
+                .map(|v| v.map(|v| (v, file_path(src))))
+        }))
+        .await?;
+
+        for (repo, path) in repos.into_iter().flatten() {
+            self.cached_repos_new.insert(path.to_owned(), repo);
+        }
+
+        Ok(())
+    }
+
+    async fn load_repo_from_source(
+        client: Option<&Client>,
+        source: &RepoSource,
+    ) -> io::Result<Option<LocalCachedRepository>> {
+        match source {
+            RepoSource::PreDefined(source, path) => {
+                RepoHolder::load_remote_repo(
+                    client,
+                    None,
+                    &path, 
+                    source.url,
+                ).await.map(Some)
+            }
+            RepoSource::UserRepo(user_repo) => {
+                if let Some(url) = &user_repo.url {
+                    RepoHolder::load_remote_repo(
+                        client,
+                        Some(&user_repo.headers),
+                        &user_repo.local_path,
+                        &url,
+                    )
+                    .await.map(Some)
+                } else {
+                    RepoHolder::load_local_repo(client, &user_repo.local_path).await.map(Some)
+                }
+            }
         }
     }
 
-    /// Get OR create and update repository
-    pub(crate) async fn get_or_create_repo(
-        &self,
+    async fn load_remote_repo(
+        client: Option<&Client>,
+        headers: Option<&IndexMap<String, String>>,
         path: &Path,
         remote_url: &str,
-        name: Option<&str>,
-    ) -> io::Result<&LocalCachedRepository> {
-        let client = self.http.clone();
-        self.get_repo(path, || async {
+    ) -> io::Result<LocalCachedRepository> {
+        Self::load_repo(path, client, || async {
             // if local repository not found: try downloading remote one
             let Some(client) = client else {
                 return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "offline mode"))
             };
-            let (remote_repo, etag) = download_remote_repository(&client, remote_url, None)
+            let (remote_repo, etag) = download_remote_repository(&client, remote_url, headers, None)
                 .await?
                 .expect("logic failure: no etag");
 
-            let mut local_cache = LocalCachedRepository::new(
-                path.to_owned(),
-                name.map(str::to_owned),
-                Some(remote_url.to_owned()),
-            );
-            local_cache.cache = remote_repo
-                .get("packages")
-                .and_then(Value::as_object)
-                .cloned()
-                .unwrap_or(JsonMap::new());
-            local_cache.repo = Some(remote_repo);
+            let mut local_cache = LocalCachedRepository::new(remote_repo, headers.map(Clone::clone).unwrap_or_default());
+
             if let Some(etag) = etag {
                 local_cache
                     .vrc_get
@@ -65,22 +103,24 @@ impl RepoHolder {
         .await
     }
 
-    pub(crate) async fn get_repo<F, T>(
-        &self,
+    async fn load_local_repo(
+        client: Option<&Client>,
         path: &Path,
+    ) -> io::Result<LocalCachedRepository> {
+        Self::load_repo(path, client, || async { unreachable!() }).await
+    }
+
+    async fn load_repo<F, T>(
+        path: &Path,
+        http: Option<&Client>,
         if_not_found: F,
-    ) -> io::Result<&LocalCachedRepository>
+    ) -> io::Result<LocalCachedRepository>
     where
         F: FnOnce() -> T,
         T: Future<Output = io::Result<LocalCachedRepository>>,
     {
-        if let Some(found) = unsafe { (*self.cached_repos.get()).get(path) } {
-            return Ok(found);
-        }
-
         let Some(json_file) = try_open_file(path).await? else {
-            let new_value = Box::new(if_not_found().await?);
-            return Ok(unsafe { (*self.cached_repos.get()).entry(path.into()) }.or_insert(new_value))
+            return Ok(if_not_found().await?);
         };
 
         let mut loaded = match serde_json::from_slice(&read_to_vec(json_file).await?) {
@@ -92,24 +132,25 @@ impl RepoHolder {
                 ))
             }
         };
-        if let Some(http) = &self.http {
+        if let Some(http) = http {
             update_from_remote(http, path.into(), &mut loaded).await;
         }
-        Ok(unsafe { (*self.cached_repos.get()).entry(path.into()) }.or_insert(Box::new(loaded)))
+        return Ok(loaded);
     }
 
-    pub(crate) async fn get_user_repo(
-        &self,
-        repo: &UserRepoSetting,
-    ) -> io::Result<&LocalCachedRepository> {
-        if let Some(url) = &repo.url {
-            self.get_or_create_repo(&repo.local_path, &url, repo.name.as_deref())
-                .await
-        } else {
-            self.get_repo(&repo.local_path, || async {
-                Err(io::Error::new(io::ErrorKind::NotFound, "repo not found"))
-            })
-            .await
-        }
+    pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
+        self.cached_repos_new.values().collect()
+    }
+
+    pub(crate) fn get_repo_with_path(&self) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+        self.cached_repos_new.iter()
+    }
+
+    pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
+        self.cached_repos_new.get(path)
+    }
+
+    pub(crate) fn remove_repo(&mut self, path: &Path) {
+        self.cached_repos_new.remove(path);
     }
 }
