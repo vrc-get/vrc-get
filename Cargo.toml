@@ -20,7 +20,7 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async_zip = { version = "0.0.15", features = ["deflate", "tokio"] }
+async_zip = { version = "0.0.15", features = ["deflate", "tokio", "deflate64"] }
 clap = { version = "4.3.11", features = ["derive"] }
 clap_complete = "4.1.1"
 env_logger = "0.10.0"
@@ -40,3 +40,7 @@ uuid = { version = "1.4.0", features = ["v4"] }
 
 [target."cfg(windows)".dependencies]
 windows = { version = "0.48.0", features = ["Win32_UI_Shell", "Win32_Foundation", "Win32_System_Com"] }
+
+[patch.crates-io]
+async_zip = { path = "../rs-async-zip" }
+async-compression = { path = "../async-compression" }
