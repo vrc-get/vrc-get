@@ -11,6 +11,8 @@ the main feature of VRChat Creator Companion (VCC), that supports Windows, Linux
 
 <small>This project is developed by community, not by VRChat.</small>
 
+**Cargo distribution is disabled for now because deflate64 support is not possible with crates.io-published libraries**
+
 ## Goals
 
 - Provide Open Source command line client of VRChat Package Manager.
