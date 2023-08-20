@@ -32,7 +32,7 @@ pin-project-lite = "0.2.10"
 reqwest = { version = "0.11.18", features = ["blocking", "native-tls-vendored", "stream"] }
 semver = { version = "1.0.18", features = ["serde"] }
 serde = { version = "1.0.164", features = ["derive", "rc"] }
-serde_json = { version = "1.0.100", features = ["preserve_order"] }
+serde_json = { version = "1.0.105", features = ["preserve_order"] }
 sha2 = "0.10.7"
 tokio = { version = "1.29.1", features = ["rt", "macros", "fs"] }
 tokio-util = "0.7.8"
