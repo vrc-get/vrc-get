@@ -9,7 +9,6 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use std::pin::pin;
 
-use futures::future::{join, join_all, try_join_all};
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use indexmap::IndexMap;
@@ -1684,4 +1683,33 @@ where
     T: ?Sized + serde::Serialize,
 {
     serde_json::to_vec_pretty(value)
+}
+
+async fn try_join_all<I>(iter: I) -> Result<Vec<<<I as IntoIterator>::Item as TryFuture>::Ok>, <<I as IntoIterator>::Item as TryFuture>::Error>
+    where
+        I: IntoIterator,
+        I::Item: TryFuture {
+    let mut vec = Vec::new();
+    for mut fut in iter {
+        let mut pinned = pin!(fut);
+        vec.push(std::future::poll_fn(|c| pinned.as_mut().try_poll(c)).await?);
+    }
+    Ok(vec)
+}
+
+async fn join_all<I>(iter: I) -> Vec<<<I as IntoIterator>::Item as Future>::Output>
+    where
+        I: IntoIterator,
+        I::Item: Future {
+    let mut vec = Vec::new();
+    for mut fut in iter {
+        let mut pinned = pin!(fut);
+        vec.push(pinned.as_mut().await);
+    }
+    vec
+}
+
+async fn join<A, B>(a: A, b: B) -> (<A as Future>::Output, <B as Future>::Output)
+    where A: Future, B: Future {
+    (a.await, b.await)
 }

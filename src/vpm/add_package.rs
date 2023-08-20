@@ -62,7 +62,7 @@ async fn add_remote_package(
         .await
         .err_mapped()?;
     for i in 0..zip_reader.file().entries().len() {
-        let entry = zip_reader.file().entries()[i].entry();
+        let entry = &zip_reader.file().entries()[i];
         let Some(filename) = entry.filename().as_str().ok() else {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,

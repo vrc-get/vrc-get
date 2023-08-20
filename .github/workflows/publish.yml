@@ -16,6 +16,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - uses: anatawa12/something-releaser@v2
       - uses: snow-actions/git-config-user@v1.0.0
       - uses: actions-rs/toolchain@v1
@@ -76,6 +78,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: 'releasing'
+          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -101,6 +104,7 @@ jobs:
 
   publish-crates-io:
     name: Publish to crates.io
+    if: false
     environment:
       name: crates.io
       url: https://crates.io/crates/vrc-get
@@ -111,6 +115,7 @@ jobs:
         with:
           ref: 'releasing'
           fetch-depth: 1
+          submodules: recursive
 
       - name: Publish CARGO
         env:
@@ -131,6 +136,7 @@ jobs:
         with:
           ref: 'releasing'
           fetch-depth: 2
+          submodules: recursive
           token: ${{ secrets.MASTER_GITHUB_PAT }}
 
       # tools
