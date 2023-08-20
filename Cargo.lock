@@ -268,9 +268,9 @@ dependencies = [
 
 [[package]]
 name = "deflate64"
-version = "0.1.2"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c27d6d529504d3dda5a6da57e0345c631b55425e89f665f7ce1ef49f235ab8f"
+checksum = "30dc5bb425a582de72bb57130320aac133893ea85f6151f79bd9aa9067114f60"
 
 [[package]]
 name = "digest"
