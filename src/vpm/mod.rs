@@ -1489,7 +1489,7 @@ impl UnityProject {
             .into_iter()
             .map(|(pkg_name, ranges)| {
                 env.find_package_by_name(pkg_name, VersionSelector::Ranges(&ranges))
-                    .expect("some dependencies of unlocked package not found")
+                    .unwrap_or_else(|| panic!("some dependencies of unlocked package not found: {pkg_name}"))
             })
             .collect::<Vec<_>>();
 
