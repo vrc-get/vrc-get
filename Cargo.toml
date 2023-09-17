@@ -21,7 +21,7 @@ exclude = [
 
 [dependencies]
 async_zip = { version = "0.0.15", features = ["deflate", "tokio", "deflate64"] }
-clap = { version = "4.3.23", features = ["derive"] }
+clap = { version = "4.4.3", features = ["derive"] }
 clap_complete = "4.4.1"
 env_logger = "0.10.0"
 futures = "0.3.28"
