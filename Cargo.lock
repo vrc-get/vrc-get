@@ -1411,7 +1411,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "vrc-get"
-version = "1.2.0-SNAPSHOT"
+version = "1.2.0"
 dependencies = [
  "async_zip",
  "clap",
