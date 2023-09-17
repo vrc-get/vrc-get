@@ -1,6 +1,3 @@
-[submodule "async-compression"]
-	path = async-compression
-	url = https://github.com/anatawa12/async-compression
 [submodule "rs-async-zip"]
 	path = rs-async-zip
 	url = https://github.com/anatawa12/rs-async-zip
