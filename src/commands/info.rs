@@ -6,6 +6,7 @@ use itertools::Itertools;
 use serde::Serialize;
 use crate::commands::{load_env, load_unity};
 use crate::version::{Version, VersionRange};
+use crate::vpm::UnityProject;
 
 /// Shows information for other program.
 #[derive(Subcommand)]
@@ -18,6 +19,9 @@ pub enum Info {
 multi_command!(Info is Project, Package);
 
 /// Show project information
+/// 
+/// Without --json-format, this will emit human readable information
+/// With --json-format, this will emit machine-readable information with json
 #[derive(Parser)]
 #[command(author, version)]
 pub struct Project {
@@ -34,17 +38,40 @@ impl Project {
     pub async fn run(self) {
         let unity = load_unity(self.project).await;
 
-        let format_version = match self.json_format.map(|x| x.get()).unwrap_or_default() {
+        match self.json_format.map(|x| x.get()).unwrap_or_default() {
             0 => {
-                eprintln!("warning: no --json-format is specified! using lastest version 1");
-                1
+                Self::human_readable(&unity).await;
             }
-            supported @ 1..=1 => supported,
+            1 => {
+                Self::version1(&unity).await;
+            }
             unsupported => exit_with!("unsupported json version: {unsupported}"),
         };
+    }
 
-        debug_assert_eq!(format_version, 1);
+    pub async fn human_readable(unity: &UnityProject) {
+        eprintln!("Project at {}", unity.project_dir().display());
+        eprintln!();
+        eprintln!("Locked Packages:");
+        for (package, locked) in unity.locked_packages() {
+            if let Some(installed) = unity.get_installed_package(package).map(|x| &x.version) {
+                eprintln!("{package} version {locked} with installed version {installed}", locked = locked.version);
+            } else {
+                eprintln!("{package} version {locked} not installed", locked = locked.version);
+            }
+        }
 
+        eprintln!();
+        eprintln!("Not Locked but installed Packages:");
+
+        for (package, installed) in unity.unlocked_packages() {
+            if let Some(installed) = installed {
+                eprintln!("{package} version {installed}", installed = installed.version);
+            }
+        }
+    }
+
+    pub async fn version1(unity: &UnityProject) {
         #[derive(Serialize)]
         struct Project<'a> {
             packages: &'a [PackageInfo<'a>],

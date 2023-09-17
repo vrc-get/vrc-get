@@ -940,6 +940,10 @@ impl UnityProject {
             }
         }
     }
+
+    pub fn project_dir(&self) -> &Path {
+        &self.project_dir
+    }
 }
 
 pub struct AddPackageRequest<'env> {
