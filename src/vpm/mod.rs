@@ -537,6 +537,10 @@ impl <'a> PackageInfo<'a> {
     pub fn vpm_dependencies(self) -> &'a IndexMap<String, VersionRange> {
         &self.package_json().vpm_dependencies
     }
+
+    pub fn legacy_packages(self) -> &'a Vec<String> {
+        &self.package_json().legacy_packages
+    }
 }
 
 #[derive(Copy, Clone)]
