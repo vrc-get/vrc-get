@@ -63,6 +63,9 @@ pub mod package {
         #[serde(rename = "legacyFiles")]
         #[serde(default)]
         pub legacy_files: HashMap<String, Option<String>>,
+        #[serde(rename = "legacyPackages")]
+        #[serde(default)]
+        pub legacy_packages: Vec<String>,
     }
 }
 
