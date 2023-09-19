@@ -29,7 +29,7 @@ impl<'a> PackageQueue<'a> {
 struct ResolutionContext<'env, 'a> where 'env: 'a {
     allow_prerelease: bool,
     pub pending_queue: PackageQueue<'env>,
-    pub dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
+    dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
 }
 
 #[derive(Default)]
@@ -40,6 +40,7 @@ struct DependencyInfo<'env, 'a> {
     requirements: HashMap<&'a str, &'a VersionRange>,
     dependencies: HashSet<&'a str>,
     allow_pre: bool,
+    touched: bool,
 }
 
 impl <'env, 'a> DependencyInfo<'env, 'a> where 'env: 'a {
@@ -52,15 +53,18 @@ impl <'env, 'a> DependencyInfo<'env, 'a> where 'env: 'a {
             requirements,
             dependencies: HashSet::new(),
             allow_pre,
+            touched: false,
         }
     }
 
     fn add_range(&mut self, source: &'a str, range: &'a VersionRange) {
         self.requirements.insert(source, range);
+        self.touched = true;
     }
 
     fn remove_range(&mut self, source: &str) {
         self.requirements.remove(source);
+        self.touched = true;
     }
 
     pub(crate) fn set_using_info(&mut self, version: &'a Version, dependencies: HashSet<&'a str>) {
@@ -77,15 +81,6 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
             pending_queue: PackageQueue::new(packages),
             allow_prerelease
         }
-    }
-}
-
-impl<'env, 'a> ResolutionContext<'env, 'a> {
-    pub(crate) fn installing_packages(self) -> Vec<PackageInfo<'env>> {
-        self.dependencies
-            .into_values()
-            .filter_map(|x| x.using)
-            .collect()
     }
 }
 
@@ -109,6 +104,7 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
         let vpm_dependencies = &package.vpm_dependencies();
         let dependencies = vpm_dependencies.keys().map(|x| x.as_str()).collect();
 
+        entry.touched = true;
         entry.current = Some(&package.version());
         entry.using = Some(package);
         let old_dependencies = std::mem::replace(&mut entry.dependencies, dependencies);
@@ -145,6 +141,37 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
         }
 
         return install;
+    }
+}
+
+impl<'env, 'a> ResolutionContext<'env, 'a> {
+    pub(crate) fn find_conflicts(&self) -> Result<(), AddPackageErr> {
+        for (name, info) in &self.dependencies {
+            if info.touched {
+                if let Some(version) = &info.current {
+                    for (mut source, range) in &info.requirements {
+                        if !range.match_pre(version, info.allow_pre || self.allow_prerelease) {
+                            if source == &"" {
+                                source = &"dependencies";
+                            }
+                            return Err(AddPackageErr::ConflictWithDependencies {
+                                conflict: (*name).to_owned(),
+                                dependency_name: (*source).to_owned(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn installing_packages(self) -> Vec<PackageInfo<'env>> {
+        self.dependencies
+            .into_values()
+            .filter_map(|x| x.using)
+            .collect()
     }
 }
 
@@ -207,21 +234,7 @@ pub fn collect_adding_packages<'env>(
     }
 
     // finally, check for conflict.
-    for (name, info) in &context.dependencies {
-        if let Some(version) = &info.current {
-            for (mut source, range) in &info.requirements {
-                if !range.match_pre(version, info.allow_pre || allow_prerelease) {
-                    if source == &"" {
-                        source = &"dependencies";
-                    }
-                    return Err(AddPackageErr::ConflictWithDependencies {
-                        conflict: (*name).to_owned(),
-                        dependency_name: (*source).to_owned(),
-                    });
-                }
-            }
-        }
-    }
+    context.find_conflicts()?;
 
     Ok(context.installing_packages())
 }
