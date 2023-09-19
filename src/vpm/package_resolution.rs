@@ -111,11 +111,11 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
 
         // remove previous dependencies if exists
         for dep in &old_dependencies {
-            self.dependencies.get_mut(*dep).unwrap().remove_range(dep);
+            self.dependencies.get_mut(*dep).unwrap().remove_range(name);
         }
 
         for (dependency, range) in vpm_dependencies.iter() {
-            self.dependencies.entry(dependency).or_default().add_range(dependency, range)
+            self.dependencies.entry(dependency).or_default().add_range(name, range)
         }
     }
 
