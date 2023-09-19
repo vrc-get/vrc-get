@@ -241,7 +241,8 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
 }
 
 pub fn collect_adding_packages<'env>(
-    unity: &UnityProject,
+    dependencies: &IndexMap<String, VpmDependency>,
+    locked_dependencies: &IndexMap<String, VpmLockedDependency>,
     env: &'env Environment,
     packages: Vec<PackageInfo<'env>>,
     allow_prerelease: bool,
@@ -249,13 +250,13 @@ pub fn collect_adding_packages<'env>(
     let mut context = ResolutionContext::<'env, '_>::new(allow_prerelease, packages);
 
     // first, add dependencies
-    let mut root_dependencies = Vec::with_capacity(unity.manifest.dependencies().len());
+    let mut root_dependencies = Vec::with_capacity(dependencies.len());
 
-    for (name, dependency) in unity.manifest.dependencies() {
+    for (name, dependency) in dependencies {
         let mut min_ver = &dependency.version;
         let mut allow_pre = !dependency.version.pre.is_empty();
 
-        if let Some(locked) = unity.manifest.locked().get(name) {
+        if let Some(locked) = locked_dependencies.get(name) {
             allow_pre |= !locked.version.pre.is_empty();
             if &locked.version < min_ver {
                 min_ver = &locked.version;
@@ -270,7 +271,7 @@ pub fn collect_adding_packages<'env>(
     }
 
     // then, add locked dependencies info
-    for (source, locked) in unity.manifest.locked() {
+    for (source, locked) in locked_dependencies {
         context.add_locked_dependency(source, locked, env);
     }
 

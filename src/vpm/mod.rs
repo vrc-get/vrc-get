@@ -1296,7 +1296,7 @@ impl UnityProject {
         packages: Vec<PackageInfo<'env>>,
         allow_prerelease: bool,
     ) -> Result<Vec<PackageInfo<'env>>, AddPackageErr> {
-        package_resolution::collect_adding_packages(self, env, packages, allow_prerelease)
+        package_resolution::collect_adding_packages(self.manifest.dependencies(), self.manifest.locked(), env, packages, allow_prerelease)
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
