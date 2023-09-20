@@ -153,6 +153,17 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = true;
     }
 
+    if request.conflicts().len() != 0 {
+        println!("**Those changes conflicts with the following packages**");
+        for (package, conflicts) in request.conflicts() {
+            println!("{package} conflicts with:");
+            for conflict in conflicts {
+                println!("- {conflict}");
+            }
+        }
+        prompt = true;
+    }
+
     if prompt {
         if yes {
             println!("--yes is set. skipping confirm");

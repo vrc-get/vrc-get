@@ -958,6 +958,7 @@ pub struct AddPackageRequest<'env> {
     legacy_files: Vec<PathBuf>,
     legacy_folders: Vec<PathBuf>,
     legacy_packages: Vec<String>,
+    conflicts: HashMap<String, Vec<String>>,
 }
 
 impl <'env> AddPackageRequest<'env> {
@@ -979,6 +980,10 @@ impl <'env> AddPackageRequest<'env> {
 
     pub fn legacy_packages(&self) -> &[String] {
         &self.legacy_packages
+    }
+
+    pub fn conflicts(&self) -> &HashMap<String, Vec<String>> {
+        &self.conflicts
     }
 }
 
@@ -1019,18 +1024,11 @@ impl UnityProject {
                 legacy_files: vec![],
                 legacy_folders: vec![],
                 legacy_packages: vec![],
+                conflicts: HashMap::new(),
             });
         }
 
         let result = package_resolution::collect_adding_packages(self.manifest.dependencies(), self.manifest.locked(), env, adding_packages, allow_prerelease)?;
-
-        // TODO: pass conflicts to upstream and allow ignore by upstream
-        if let Some((conflict, mut deps)) = result.conflicts.into_iter().next() {
-            return Err(AddPackageErr::ConflictWithDependencies {
-                conflict,
-                dependency_name: deps.swap_remove(0),
-            })
-        }
 
         let legacy_packages = result.found_legacy_packages
             .into_iter()
@@ -1042,6 +1040,7 @@ impl UnityProject {
         return Ok(AddPackageRequest { 
             dependencies, 
             locked: result.new_packages,
+            conflicts: result.conflicts,
             legacy_files,
             legacy_folders,
             legacy_packages,
@@ -1375,6 +1374,14 @@ impl UnityProject {
         let allow_prerelease = unlocked_dependencies.iter().any(|x| !x.version().pre.is_empty());
 
         let req = self.add_package_request(&env, unlocked_dependencies, false, allow_prerelease).await?;
+
+        if req.conflicts.len() != 0 {
+            let (conflict, mut deps) = req.conflicts.into_iter().next().unwrap();
+            return Err(AddPackageErr::ConflictWithDependencies {
+                conflict,
+                dependency_name: deps.swap_remove(0),
+            })
+        }
 
         self.do_add_package_request(&env, req).await?;
 
