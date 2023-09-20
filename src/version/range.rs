@@ -5,7 +5,50 @@ use std::str::FromStr;
 
 // TODO: TEST
 
-// TODO: implement struct
+#[derive(::serde::Serialize, ::serde::Deserialize, Debug, Clone)]
+pub struct DependencyRange(VersionRange);
+
+impl DependencyRange {
+    /// create from one version
+    pub fn version(version: Version) -> DependencyRange {
+        Self(VersionRange {
+            comparators: vec![
+                ComparatorSet(vec![
+                    Comparator::Star(PartialVersion::from(version))
+                ])
+            ]
+        })
+    }
+
+    pub fn as_single_version(&self) -> Option<Version> {
+        let [ComparatorSet(the_set)] = self.0.comparators.as_slice() else {
+            return None
+        };
+
+        let [Comparator::Star(star)] = &the_set[..] else {
+            return None
+        };
+
+        let Some(full) = star.to_full() else {
+            return None
+        };
+
+        Some(full)
+    }
+
+    pub(crate) fn matches(&self, version: &Version) -> bool {
+        if let Some(single) = self.as_single_version() {
+            return &single <= version;
+        } else {
+            self.0.match_pre(version, true)
+        }
+    }
+
+    pub fn as_range(&self) -> VersionRange {
+        self.as_single_version().map(VersionRange::same_or_later).unwrap_or_else(|| self.0.clone())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct VersionRange {
     comparators: Vec<ComparatorSet>,
@@ -20,6 +63,10 @@ impl VersionRange {
                 ])
             ]
         }
+    }
+
+    pub fn contains_pre(&self) -> bool {
+        self.comparators.iter().any(ComparatorSet::contains_pre)
     }
 
     pub(crate) fn matches(&self, version: &Version) -> bool {
@@ -98,6 +145,10 @@ impl FromParsingBuf for ComparatorSet {
 impl ComparatorSet {
     fn matches(&self, version: &Version, allow_prerelease: bool) -> bool {
         self.0.iter().all(|x| x.matches(version, allow_prerelease))
+    }
+
+    fn contains_pre(&self) -> bool {
+        self.0.iter().any(Comparator::contains_pre)
     }
 }
 
@@ -257,6 +308,20 @@ impl Comparator {
                 (full, true) => version <= &full,
                 (next, false) => version < &next,
             }
+        }
+    }
+
+    fn contains_pre(&self) -> bool {
+        match self {
+            Comparator::Tilde(v) |
+            Comparator::Caret(v) |
+            Comparator::Exact(v) |
+            Comparator::GreaterThan(v) |
+            Comparator::GreaterThanOrEqual(v) |
+            Comparator::LessThan(v) |
+            Comparator::LessThanOrEqual(v) |
+            Comparator::Star(v) => !v.pre.is_empty(),
+            Comparator::Hyphen(a, b) => !a.pre.is_empty() || !b.pre.is_empty(),
         }
     }
 }

@@ -1,4 +1,5 @@
 pub use range::VersionRange;
+pub use range::DependencyRange;
 use std::fmt::{Display, Formatter};
 pub use version::Version;
 

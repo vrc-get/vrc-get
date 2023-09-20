@@ -991,7 +991,7 @@ impl UnityProject {
         allow_prerelease: bool,
     ) -> Result<AddPackageRequest<'env>, AddPackageErr> {
         packages.retain(|pkg| {
-            self.manifest.dependencies().get(pkg.name()).map(|dep| dep.version < *pkg.version()).unwrap_or(true)
+            self.manifest.dependencies().get(pkg.name()).map(|dep| dep.version.matches(pkg.version())).unwrap_or(true)
         });
 
         // if same or newer requested package is in locked dependencies,
