@@ -8,6 +8,7 @@ use std::ffi::{OsStr};
 use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use std::pin::pin;
+use futures::future::join3;
 
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
@@ -33,6 +34,7 @@ mod repo_holder;
 pub mod structs;
 mod utils;
 mod add_package;
+mod package_resolution;
 
 type JsonMap = Map<String, Value>;
 
@@ -536,6 +538,10 @@ impl <'a> PackageInfo<'a> {
     pub fn vpm_dependencies(self) -> &'a IndexMap<String, VersionRange> {
         &self.package_json().vpm_dependencies
     }
+
+    pub fn legacy_packages(self) -> &'a Vec<String> {
+        &self.package_json().legacy_packages
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -731,8 +737,8 @@ mod vpm_manifest {
             self.locked.insert(name.to_string(), dependency);
         }
 
-        pub(crate) fn remove_packages(&mut self, names: &[&str]) {
-            for name in names.into_iter().copied() {
+        pub(crate) fn remove_packages<'a>(&mut self, names: impl Iterator<Item = &'a str>) {
+            for name in names {
                 self.locked.remove(name);
                 self.json
                     .get_mut("locked")
@@ -951,6 +957,7 @@ pub struct AddPackageRequest<'env> {
     locked: Vec<PackageInfo<'env>>,
     legacy_files: Vec<PathBuf>,
     legacy_folders: Vec<PathBuf>,
+    legacy_packages: Vec<String>,
 }
 
 impl <'env> AddPackageRequest<'env> {
@@ -969,6 +976,10 @@ impl <'env> AddPackageRequest<'env> {
     pub fn legacy_folders(&self) -> &[PathBuf] {
         &self.legacy_folders
     }
+
+    pub fn legacy_packages(&self) -> &[String] {
+        &self.legacy_packages
+    }
 }
 
 impl UnityProject {
@@ -986,7 +997,7 @@ impl UnityProject {
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
         let mut dependencies = vec![];
-        let mut locked = Vec::with_capacity(packages.len());
+        let mut adding_packages = Vec::with_capacity(packages.len());
 
         for request in packages {
             let update = self.manifest.locked().get(request.name()).map(|dep| dep.version < *request.version()).unwrap_or(true);
@@ -996,29 +1007,44 @@ impl UnityProject {
             }
 
             if update {
-                locked.push(request);
+                adding_packages.push(request);
             }
         }
 
-        if locked.len() == 0 {
+        if adding_packages.len() == 0 {
             // early return: 
             return Ok(AddPackageRequest {
                 dependencies,
                 locked: vec![],
                 legacy_files: vec![],
                 legacy_folders: vec![],
+                legacy_packages: vec![],
             });
         }
 
-        let packages = self.collect_adding_packages(env, locked, allow_prerelease)?;
+        let result = package_resolution::collect_adding_packages(self.manifest.dependencies(), self.manifest.locked(), env, adding_packages, allow_prerelease)?;
 
-        let (legacy_files, legacy_folders) = self.collect_legacy_assets(&packages).await;
+        // TODO: pass conflicts to upstream and allow ignore by upstream
+        if let Some((conflict, mut deps)) = result.conflicts.into_iter().next() {
+            return Err(AddPackageErr::ConflictWithDependencies {
+                conflict,
+                dependency_name: deps.swap_remove(0),
+            })
+        }
+
+        let legacy_packages = result.found_legacy_packages
+            .into_iter()
+            .filter(|name| self.manifest.locked().contains_key(name))
+            .collect();
+
+        let (legacy_files, legacy_folders) = self.collect_legacy_assets(&result.new_packages).await;
 
         return Ok(AddPackageRequest { 
             dependencies, 
-            locked: packages,
+            locked: result.new_packages,
             legacy_files,
             legacy_folders,
+            legacy_packages,
         });
     }
 
@@ -1151,14 +1177,18 @@ impl UnityProject {
             self.manifest.add_dependency(x.0.to_owned(), x.1);
         }
 
-        // then, try to remove legacy assets
-        join(
-            join_all(request.legacy_files.into_iter().map(remove_file)),
-            join_all(request.legacy_folders.into_iter().map(remove_folder)),
-        ).await;
-
-        // finally, do install packages
+        // then, do install packages
         self.do_add_packages_to_locked(env, &request.locked).await?;
+
+        let project_dir = &self.project_dir;
+
+        // finally, try to remove legacy assets
+        self.manifest.remove_packages(request.legacy_packages.iter().map(|x| x.as_str()));
+        join3(
+            join_all(request.legacy_files.into_iter().map(|x| remove_file(x, project_dir))),
+            join_all(request.legacy_folders.into_iter().map(|x| remove_folder(x, project_dir))),
+            join_all(request.legacy_packages.into_iter().map(|x| remove_package(x, project_dir))),
+        ).await;
 
         async fn remove_meta_file(path: PathBuf) {
             let mut building = path.into_os_string();
@@ -1172,18 +1202,27 @@ impl UnityProject {
             }
         }
 
-        async fn remove_file(path: PathBuf) {
+        async fn remove_file(path: PathBuf, project_dir: &Path) {
+            let path = project_dir.join(path);
             if let Some(err) = tokio::fs::remove_file(&path).await.err() {
                 log::error!("error removing legacy asset at {}: {}", path.display(), err);
             }
             remove_meta_file(path).await;
         }
 
-        async fn remove_folder(path: PathBuf) {
+        async fn remove_folder(path: PathBuf, project_dir: &Path) {
+            let path = project_dir.join(path);
             if let Some(err) = tokio::fs::remove_dir_all(&path).await.err() {
                 log::error!("error removing legacy asset at {}: {}", path.display(), err);
             }
             remove_meta_file(path).await;
+        }
+
+        async fn remove_package(name: String, project_dir: &Path) {
+            let folder = project_dir.join("Packages").joined(name);
+            if let Some(err) = tokio::fs::remove_dir_all(&folder).await.err() {
+                log::error!("error removing legacy package at {}: {}", folder.display(), err);
+            }
         }
 
         Ok(())
@@ -1254,7 +1293,7 @@ impl UnityProject {
 
         // there's no conflicts. So do remove
 
-        self.manifest.remove_packages(names);
+        self.manifest.remove_packages(names.iter().copied());
         try_join_all(names.into_iter().map(|name| {
             remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
                 Ok(()) => Ok(()),
@@ -1283,170 +1322,6 @@ impl UnityProject {
         .await?;
 
         Ok(removed_packages)
-    }
-
-    fn collect_adding_packages<'env>(
-        &self,
-        env: &'env Environment,
-        packages: Vec<PackageInfo<'env>>,
-        allow_prerelease: bool,
-    ) -> Result<Vec<PackageInfo<'env>>, AddPackageErr> {
-        #[derive(Default)]
-        struct DependencyInfo<'env, 'a> {
-            using: Option<PackageInfo<'env>>,
-            current: Option<&'a Version>,
-            // "" key for root dependencies
-            requirements: HashMap<&'a str, &'a VersionRange>,
-            dependencies: HashSet<&'a str>,
-            allow_pre: bool,
-        }
-
-        impl <'env, 'a> DependencyInfo<'env, 'a> where 'env: 'a {
-            fn new_dependency(version_range: &'a VersionRange, allow_pre: bool) -> Self {
-                let mut requirements = HashMap::new();
-                requirements.insert("", version_range);
-                DependencyInfo { 
-                    using: None, 
-                    current: None,
-                    requirements, 
-                    dependencies: HashSet::new(),
-                    allow_pre,
-                }
-            }
-
-            fn add_range(&mut self, source: &'a str, range: &'a VersionRange) {
-                self.requirements.insert(source, range);
-            }
-
-            fn remove_range(&mut self, source: &str) {
-                self.requirements.remove(source);
-            }
-
-            pub(crate) fn set_using_info(&mut self, version: &'a Version, dependencies: HashSet<&'a str>) {
-                self.allow_pre |= !version.pre.is_empty();
-                self.current = Some(version);
-                self.dependencies = dependencies;
-            }
-
-            pub(crate) fn set_package(&mut self, new_pkg: PackageInfo<'env>) -> HashSet<&'a str> {
-                let mut dependencies = new_pkg.vpm_dependencies()
-                    .keys().map(|x| x.as_str()).collect();
-                
-                self.current = Some(&new_pkg.version());
-                std::mem::swap(&mut self.dependencies, &mut dependencies);
-                self.using = Some(new_pkg);
-
-                // using is save
-                return dependencies
-            }
-        }
-
-        let mut dependencies = HashMap::<&str, _>::new();
-
-        // first, add dependencies
-        let mut root_dependencies = Vec::with_capacity(self.manifest.dependencies().len());
-
-        for (name, dependency) in self.manifest.dependencies() {
-            let mut min_ver = &dependency.version;
-            let mut allow_pre = !dependency.version.pre.is_empty();
-
-            if let Some(locked) = self.manifest.locked().get(name) {
-                allow_pre |= !locked.version.pre.is_empty();
-                if &locked.version < min_ver {
-                    min_ver = &locked.version;
-                }
-            }
-
-            root_dependencies.push((name, VersionRange::same_or_later(min_ver.clone()), allow_pre));
-        }
-
-        for (name, range, allow_pre) in &root_dependencies {
-            dependencies.insert(name, DependencyInfo::new_dependency(range, *allow_pre));
-        }
-
-        // then, add locked dependencies info
-        for (source, locked) in self.manifest.locked() {
-            dependencies.entry(source).or_default()
-                .set_using_info(&locked.version, locked.dependencies.keys().map(|x| x.as_str()).collect());
-
-            for (dependency, range) in &locked.dependencies {
-                dependencies.entry(dependency).or_default()
-                    .add_range(source, range)
-            }
-        }
-
-        let mut packages = std::collections::VecDeque::from_iter(packages);
-
-        while let Some(x) = packages.pop_front() {
-            log::debug!("processing package {} version {}", x.name(), x.version());
-            let name = x.name();
-            let vpm_dependencies = &x.vpm_dependencies();
-            let entry = dependencies.entry(x.name()).or_default();
-            let old_dependencies = entry.set_package(x);
-
-            // remove previous dependencies if exists
-            for dep in &old_dependencies {
-                dependencies.get_mut(*dep).unwrap().remove_range(dep);
-            }
-
-            // add new dependencies
-            for (dependency, range) in vpm_dependencies.iter() {
-                log::debug!("processing package {name}: dependency {dependency} version {range}");
-                let entry = dependencies.entry(dependency).or_default();
-                let mut install = true;
-                let allow_prerelease = entry.allow_pre || allow_prerelease;
-
-                if packages.iter().any(|x| x.name() == dependency && range.match_pre(&x.version(), allow_prerelease)) {
-                    // if installing version is good, no need to reinstall
-                    install = false;
-                    log::debug!("processing package {name}: dependency {dependency} version {range}: pending matches");
-                } else {
-                    // if already installed version is good, no need to reinstall
-                    if let Some(version) = &entry.current {
-                        if range.match_pre(version, allow_prerelease) {
-                            log::debug!("processing package {name}: dependency {dependency} version {range}: existing matches");
-                            install = false;
-                        }
-                    }
-                }
-
-                entry.add_range(name, range);
-
-                if install {
-                    let found = env
-                        .find_package_by_name(dependency, VersionSelector::Range(range))
-                        .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                            dependency_name: dependency.clone(),
-                        })?;
-
-                    // remove existing if existing
-                    packages.retain(|x| x.name() != dependency);
-                    packages.push_back(found);
-                }
-            }
-        }
-
-        // finally, check for conflict.
-        for (name, info) in &dependencies {
-            if let Some(version) = &info.current {
-                for (mut source, range) in &info.requirements {
-                    if !range.match_pre(version, info.allow_pre || allow_prerelease) {
-                        if source == &"" {
-                            source = &"dependencies";
-                        }
-                        return Err(AddPackageErr::ConflictWithDependencies {
-                            conflict: (*name).to_owned(),
-                            dependency_name: (*source).to_owned(),
-                        });
-                    }
-                }
-            }
-        }
-
-        Ok(dependencies
-            .into_values()
-            .filter_map(|x| x.using)
-            .collect())
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
