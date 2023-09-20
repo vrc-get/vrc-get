@@ -103,7 +103,7 @@ fn confirm_prompt(msg: &str) -> bool {
         let mut buf = String::new();
         loop {
             // prompt
-            write!(stdout, "{}? [y/n] ", msg)?;
+            write!(stdout, "{} [y/n] ", msg)?;
             stdout.flush()?;
 
             buf.clear();
