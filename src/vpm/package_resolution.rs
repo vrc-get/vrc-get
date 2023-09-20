@@ -108,11 +108,17 @@ impl <'env, 'a> DependencyInfo<'env, 'a> where 'env: 'a {
 
 impl<'env, 'a> ResolutionContext<'env, 'a> {
     fn new(allow_prerelease: bool, packages: Vec<PackageInfo<'env>>) -> Self {
-        Self {
+        let mut this = Self {
             dependencies: HashMap::new(),
             pending_queue: PackageQueue::new(packages),
             allow_prerelease
+        };
+
+        for pkg in &this.pending_queue.pending_queue {
+            this.dependencies.entry(pkg.name()).or_default().allow_pre = true;
         }
+
+        this
     }
 }
 

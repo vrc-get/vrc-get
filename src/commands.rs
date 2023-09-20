@@ -103,7 +103,7 @@ fn confirm_prompt(msg: &str) -> bool {
         let mut buf = String::new();
         loop {
             // prompt
-            write!(stdout, "{}? [y/n] ", msg)?;
+            write!(stdout, "{} [y/n] ", msg)?;
             stdout.flush()?;
 
             buf.clear();
@@ -122,12 +122,12 @@ fn confirm_prompt(msg: &str) -> bool {
     _impl(msg).unwrap_or(false)
 }
 
-fn print_prompt_install(request: &AddPackageRequest, yes: bool) {
+fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: bool) {
     if request.locked().len() == 0 && request.dependencies().len() == 0 {
         exit_with!("nothing to do")
     }
 
-    let mut prompt = false;
+    let mut prompt = require_prompt;
 
     if request.locked().len() != 0 {
         println!("You're installing the following packages:");
@@ -149,6 +149,17 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool) {
         println!("You're removing the following legacy packages:");
         for x in request.legacy_packages() {
             println!("- {}", x);
+        }
+        prompt = true;
+    }
+
+    if request.conflicts().len() != 0 {
+        println!("**Those changes conflicts with the following packages**");
+        for (package, conflicts) in request.conflicts() {
+            println!("{package} conflicts with:");
+            for conflict in conflicts {
+                println!("- {conflict}");
+            }
         }
         prompt = true;
     }
@@ -251,7 +262,7 @@ impl Install {
                 .await
                 .exit_context("collecting packages to be installed");
 
-            print_prompt_install(&request, self.yes);
+            print_prompt_install(&request, self.yes, false);
 
             unity.do_add_package_request(&env, request).await.exit_context("adding package");
 
@@ -421,6 +432,7 @@ impl Upgrade {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
+        let require_prompt;
 
         let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
@@ -430,12 +442,16 @@ impl Upgrade {
             };
             let package = get_package(&env, &name, version_selector);
 
+            require_prompt = false;
+
             vec![package]
         } else {
             let version_selector = match self.prerelease {
                 true => VersionSelector::LatestIncluidingPrerelease,
                 false => VersionSelector::Latest,
             };
+
+            require_prompt = true;
 
             unity.locked_packages()
                 .keys()
@@ -447,7 +463,7 @@ impl Upgrade {
             .await
             .exit_context("collecting packages to be upgraded");
 
-        print_prompt_install(&request, self.yes);
+        print_prompt_install(&request, self.yes, require_prompt);
 
         let updates = request.locked().iter().map(|x| (x.name().clone(), x.version().clone())).collect::<Vec<_>>();
 
