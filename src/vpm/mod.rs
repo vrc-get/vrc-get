@@ -737,8 +737,8 @@ mod vpm_manifest {
             self.locked.insert(name.to_string(), dependency);
         }
 
-        pub(crate) fn remove_packages(&mut self, names: &[&str]) {
-            for name in names.into_iter().copied() {
+        pub(crate) fn remove_packages<'a>(&mut self, names: impl Iterator<Item = &'a str>) {
+            for name in names {
                 self.locked.remove(name);
                 self.json
                     .get_mut("locked")
@@ -1183,6 +1183,7 @@ impl UnityProject {
         let project_dir = &self.project_dir;
 
         // finally, try to remove legacy assets
+        self.manifest.remove_packages(request.legacy_packages.iter().map(|x| x.as_str()));
         join3(
             join_all(request.legacy_files.into_iter().map(|x| remove_file(x, project_dir))),
             join_all(request.legacy_folders.into_iter().map(|x| remove_folder(x, project_dir))),
@@ -1292,7 +1293,7 @@ impl UnityProject {
 
         // there's no conflicts. So do remove
 
-        self.manifest.remove_packages(names);
+        self.manifest.remove_packages(names.iter().copied());
         try_join_all(names.into_iter().map(|name| {
             remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
                 Ok(()) => Ok(()),
