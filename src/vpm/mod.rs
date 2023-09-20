@@ -1219,7 +1219,7 @@ impl UnityProject {
 
         async fn remove_package(name: String, project_dir: &Path) {
             let folder = project_dir.join("Packages").joined(name);
-            if let Some(err) = tokio::fs::remove_dir_all(folder).await.err() {
+            if let Some(err) = tokio::fs::remove_dir_all(&folder).await.err() {
                 log::error!("error removing legacy package at {}: {}", folder.display(), err);
             }
         }
