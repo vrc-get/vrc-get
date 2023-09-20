@@ -265,17 +265,23 @@ pub fn collect_adding_packages<'env>(
     let mut root_dependencies = Vec::with_capacity(dependencies.len());
 
     for (name, dependency) in dependencies {
-        let mut min_ver = &dependency.version;
-        let mut allow_pre = !dependency.version.pre.is_empty();
+        let (range, mut allow_pre);
 
-        if let Some(locked) = locked_dependencies.get(name) {
-            allow_pre |= !locked.version.pre.is_empty();
-            if &locked.version < min_ver {
-                min_ver = &locked.version;
+        if let Some(mut min_ver) = dependency.version.as_single_version() {
+            allow_pre = min_ver.is_pre();
+            if let Some(locked) = locked_dependencies.get(name) {
+                allow_pre |= !locked.version.pre.is_empty();
+                if &locked.version < &min_ver {
+                    min_ver = locked.version.clone();
+                }
             }
+            range = VersionRange::same_or_later(min_ver);
+        } else {
+            range = dependency.version.as_range();
+            allow_pre = range.contains_pre();
         }
 
-        root_dependencies.push((name, VersionRange::same_or_later(min_ver.clone()), allow_pre));
+        root_dependencies.push((name, range, allow_pre));
     }
 
     for (name, range, allow_pre) in &root_dependencies {

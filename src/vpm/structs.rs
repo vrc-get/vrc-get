@@ -1,4 +1,4 @@
-use crate::version::{Version, VersionRange};
+use crate::version::{Version, VersionRange, DependencyRange};
 use indexmap::IndexMap;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
@@ -12,12 +12,14 @@ pub mod manifest {
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct VpmDependency {
-        pub version: Version,
+        pub version: DependencyRange,
     }
 
     impl VpmDependency {
         pub fn new(version: Version) -> Self {
-            Self { version }
+            Self {
+                version: DependencyRange::version(version)
+            }
         }
     }
 
