@@ -991,7 +991,7 @@ impl UnityProject {
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
         let mut dependencies = vec![];
-        let mut locked = Vec::with_capacity(packages.len());
+        let mut adding_packages = Vec::with_capacity(packages.len());
 
         for request in packages {
             let update = self.manifest.locked().get(request.name()).map(|dep| dep.version < *request.version()).unwrap_or(true);
@@ -1001,11 +1001,11 @@ impl UnityProject {
             }
 
             if update {
-                locked.push(request);
+                adding_packages.push(request);
             }
         }
 
-        if locked.len() == 0 {
+        if adding_packages.len() == 0 {
             // early return: 
             return Ok(AddPackageRequest {
                 dependencies,
@@ -1015,13 +1015,21 @@ impl UnityProject {
             });
         }
 
-        let packages = self.collect_adding_packages(env, locked, allow_prerelease)?;
+        let result = package_resolution::collect_adding_packages(self.manifest.dependencies(), self.manifest.locked(), env, adding_packages, allow_prerelease)?;
 
-        let (legacy_files, legacy_folders) = self.collect_legacy_assets(&packages).await;
+        // TODO: pass conflicts to upstream and allow ignore by upstream
+        if let Some((conflict, mut deps)) = result.conflicts.into_iter().next() {
+            return Err(AddPackageErr::ConflictWithDependencies {
+                conflict,
+                dependency_name: deps.swap_remove(0),
+            })
+        }
+
+        let (legacy_files, legacy_folders) = self.collect_legacy_assets(&result.new_packages).await;
 
         return Ok(AddPackageRequest { 
             dependencies, 
-            locked: packages,
+            locked: result.new_packages,
             legacy_files,
             legacy_folders,
         });
@@ -1288,15 +1296,6 @@ impl UnityProject {
         .await?;
 
         Ok(removed_packages)
-    }
-
-    fn collect_adding_packages<'env>(
-        &self,
-        env: &'env Environment,
-        packages: Vec<PackageInfo<'env>>,
-        allow_prerelease: bool,
-    ) -> Result<Vec<PackageInfo<'env>>, AddPackageErr> {
-        package_resolution::collect_adding_packages(self.manifest.dependencies(), self.manifest.locked(), env, packages, allow_prerelease)
     }
 
     pub async fn save(&mut self) -> io::Result<()> {

@@ -210,34 +210,36 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
 }
 
 impl<'env, 'a> ResolutionContext<'env, 'a> {
-    pub(crate) fn find_conflicts(&self) -> Result<(), AddPackageErr> {
-        for (name, info) in &self.dependencies {
+    pub(crate) fn build_result(self) -> PackageResolutionResult<'env> {
+        let mut conflicts = HashMap::<String, Vec<String>>::new();
+        for (&name, info) in &self.dependencies {
             if !info.is_legacy() && info.touched {
                 if let Some(version) = &info.current {
-                    for (mut source, range) in &info.requirements {
+                    for (source, range) in &info.requirements {
                         if !range.match_pre(version, info.allow_pre || self.allow_prerelease) {
-                            if source == &"" {
-                                source = &"dependencies";
-                            }
-                            return Err(AddPackageErr::ConflictWithDependencies {
-                                conflict: (*name).to_owned(),
-                                dependency_name: (*source).to_owned(),
-                            });
+                            conflicts.entry(name.to_owned()).or_default().push((*source).to_owned());
                         }
                     }
                 }
             }
         }
 
-        Ok(())
-    }
-
-    pub(crate) fn installing_packages(self) -> Vec<PackageInfo<'env>> {
-        self.dependencies
+        let new_packages= self.dependencies
             .into_values()
             .filter_map(|x| x.using)
-            .collect()
+            .collect();
+
+        PackageResolutionResult {
+            new_packages,
+            conflicts,
+        }
     }
+}
+
+pub struct PackageResolutionResult<'env> {
+    pub new_packages: Vec<PackageInfo<'env>>,
+    // conflict dependency -> conflicting package[])
+    pub conflicts: HashMap<String, Vec<String>>,
 }
 
 pub fn collect_adding_packages<'env>(
@@ -246,7 +248,7 @@ pub fn collect_adding_packages<'env>(
     env: &'env Environment,
     packages: Vec<PackageInfo<'env>>,
     allow_prerelease: bool,
-) -> Result<Vec<PackageInfo<'env>>, AddPackageErr> {
+) -> Result<PackageResolutionResult<'env>, AddPackageErr> {
     let mut context = ResolutionContext::<'env, '_>::new(allow_prerelease, packages);
 
     // first, add dependencies
@@ -299,8 +301,5 @@ pub fn collect_adding_packages<'env>(
         }
     }
 
-    // finally, check for conflict.
-    context.find_conflicts()?;
-
-    Ok(context.installing_packages())
+    Ok(context.build_result())
 }
