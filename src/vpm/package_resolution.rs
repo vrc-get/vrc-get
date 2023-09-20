@@ -224,14 +224,22 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
             }
         }
 
+        let found_legacy_packages = self.dependencies
+            .iter()
+            .filter(|(_, info)| info.is_legacy())
+            .map(|(&name, _)| name.to_owned())
+            .collect();
+
         let new_packages= self.dependencies
             .into_values()
+            .filter(|info| !info.is_legacy())
             .filter_map(|x| x.using)
             .collect();
 
         PackageResolutionResult {
             new_packages,
             conflicts,
+            found_legacy_packages,
         }
     }
 }
@@ -240,6 +248,8 @@ pub struct PackageResolutionResult<'env> {
     pub new_packages: Vec<PackageInfo<'env>>,
     // conflict dependency -> conflicting package[])
     pub conflicts: HashMap<String, Vec<String>>,
+    // list of names of legacy packages we found
+    pub found_legacy_packages: Vec<String>,
 }
 
 pub fn collect_adding_packages<'env>(

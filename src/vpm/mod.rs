@@ -8,6 +8,7 @@ use std::ffi::{OsStr};
 use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use std::pin::pin;
+use futures::future::join3;
 
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
@@ -956,6 +957,7 @@ pub struct AddPackageRequest<'env> {
     locked: Vec<PackageInfo<'env>>,
     legacy_files: Vec<PathBuf>,
     legacy_folders: Vec<PathBuf>,
+    legacy_packages: Vec<String>,
 }
 
 impl <'env> AddPackageRequest<'env> {
@@ -973,6 +975,10 @@ impl <'env> AddPackageRequest<'env> {
 
     pub fn legacy_folders(&self) -> &[PathBuf] {
         &self.legacy_folders
+    }
+
+    pub fn legacy_packages(&self) -> &[String] {
+        &self.legacy_packages
     }
 }
 
@@ -1012,6 +1018,7 @@ impl UnityProject {
                 locked: vec![],
                 legacy_files: vec![],
                 legacy_folders: vec![],
+                legacy_packages: vec![],
             });
         }
 
@@ -1025,6 +1032,11 @@ impl UnityProject {
             })
         }
 
+        let legacy_packages = result.found_legacy_packages
+            .into_iter()
+            .filter(|name| self.manifest.locked().contains_key(name))
+            .collect();
+
         let (legacy_files, legacy_folders) = self.collect_legacy_assets(&result.new_packages).await;
 
         return Ok(AddPackageRequest { 
@@ -1032,6 +1044,7 @@ impl UnityProject {
             locked: result.new_packages,
             legacy_files,
             legacy_folders,
+            legacy_packages,
         });
     }
 
@@ -1164,14 +1177,17 @@ impl UnityProject {
             self.manifest.add_dependency(x.0.to_owned(), x.1);
         }
 
-        // then, try to remove legacy assets
-        join(
-            join_all(request.legacy_files.into_iter().map(remove_file)),
-            join_all(request.legacy_folders.into_iter().map(remove_folder)),
-        ).await;
-
-        // finally, do install packages
+        // then, do install packages
         self.do_add_packages_to_locked(env, &request.locked).await?;
+
+        let project_dir = &self.project_dir;
+
+        // finally, try to remove legacy assets
+        join3(
+            join_all(request.legacy_files.into_iter().map(|x| remove_file(x, project_dir))),
+            join_all(request.legacy_folders.into_iter().map(|x| remove_folder(x, project_dir))),
+            join_all(request.legacy_packages.into_iter().map(|x| remove_package(x, project_dir))),
+        ).await;
 
         async fn remove_meta_file(path: PathBuf) {
             let mut building = path.into_os_string();
@@ -1185,18 +1201,27 @@ impl UnityProject {
             }
         }
 
-        async fn remove_file(path: PathBuf) {
+        async fn remove_file(path: PathBuf, project_dir: &Path) {
+            let path = project_dir.join(path);
             if let Some(err) = tokio::fs::remove_file(&path).await.err() {
                 log::error!("error removing legacy asset at {}: {}", path.display(), err);
             }
             remove_meta_file(path).await;
         }
 
-        async fn remove_folder(path: PathBuf) {
+        async fn remove_folder(path: PathBuf, project_dir: &Path) {
+            let path = project_dir.join(path);
             if let Some(err) = tokio::fs::remove_dir_all(&path).await.err() {
                 log::error!("error removing legacy asset at {}: {}", path.display(), err);
             }
             remove_meta_file(path).await;
+        }
+
+        async fn remove_package(name: String, project_dir: &Path) {
+            let folder = project_dir.join("Packages").joined(name);
+            if let Some(err) = tokio::fs::remove_dir_all(folder).await.err() {
+                log::error!("error removing legacy package at {}: {}", folder.display(), err);
+            }
         }
 
         Ok(())

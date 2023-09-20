@@ -145,6 +145,14 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool) {
         prompt = true;
     }
 
+    if request.legacy_packages().len() != 0 {
+        println!("You're removing the following legacy packages:");
+        for x in request.legacy_packages() {
+            println!("- {}", x);
+        }
+        prompt = true;
+    }
+
     if prompt {
         if yes {
             println!("--yes is set. skipping confirm");
