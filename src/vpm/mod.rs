@@ -1068,13 +1068,6 @@ impl UnityProject {
             Some(GUID(parse_hex_128(guid.as_bytes().try_into().ok()?)?))
         }
 
-        fn is_guid(guid: &str) -> bool {
-            guid.len() == 32 && guid
-                .as_bytes()
-                .iter()
-                .all(|x| matches!(x, b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F'))
-        }
-
         let mut futures = pin!(assets.into_iter().map(|(path, guid, is_file)| async move {
             // some packages uses '/' as path separator.
             let path = PathBuf::from(path.replace('\\', "/"));
@@ -1452,7 +1445,6 @@ pub enum AddPackageErr {
     DependencyNotFound {
         dependency_name: String,
     },
-    ConflictWithUnlocked,
 }
 
 impl fmt::Display for AddPackageErr {
@@ -1467,7 +1459,6 @@ impl fmt::Display for AddPackageErr {
                 f,
                 "Package {dependency_name} (maybe dependencies of the package) not found"
             ),
-            AddPackageErr::ConflictWithUnlocked => f.write_str("conflicts with unlocked packages"),
         }
     }
 }
@@ -1593,9 +1584,4 @@ async fn join_all<I>(iter: I) -> Vec<<<I as IntoIterator>::Item as Future>::Outp
         vec.push(pinned.as_mut().await);
     }
     vec
-}
-
-async fn join<A, B>(a: A, b: B) -> (<A as Future>::Output, <B as Future>::Output)
-    where A: Future, B: Future {
-    (a.await, b.await)
 }
