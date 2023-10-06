@@ -29,7 +29,7 @@ indexmap = { version = "2.0.0", features = ["serde"] }
 itertools = "0.11.0"
 log = "0.4.20"
 pin-project-lite = "0.2.13"
-reqwest = { version = "0.11.20", features = ["blocking", "native-tls-vendored", "stream"] }
+reqwest = { version = "0.11.20", features = ["blocking", "stream"] }
 semver = { version = "1.0.18", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive", "rc"] }
 serde_json = { version = "1.0.107", features = ["preserve_order"] }
@@ -43,3 +43,8 @@ windows = { version = "0.51.1", features = ["Win32_UI_Shell", "Win32_Foundation"
 
 [patch.crates-io]
 async_zip = { git = "https://github.com/Majored/rs-async-zip.git", rev = "a58024e" }
+
+[features]
+default = ["native-tls"]
+native-tls = ["reqwest/native-tls-vendored"]
+rustls = ["reqwest/rustls-tls-native-roots"]
