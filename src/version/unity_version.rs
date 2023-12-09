@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 use serde::{Serialize, Serializer};
@@ -69,6 +70,18 @@ impl UnityVersion {
     pub fn minor(self) -> u8 {
         self.minor
     }
+
+    pub fn revision(self) -> u8 {
+        self.revision
+    }
+
+    pub fn type_(self) -> ReleaseType {
+        self.type_
+    }
+
+    pub fn increment(self) -> u8 {
+        self.increment
+    }
 }
 
 impl fmt::Display for UnityVersion {
@@ -91,7 +104,48 @@ impl Serialize for UnityVersion {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+impl PartialOrd<Self> for UnityVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(Ord::cmp(self, other))
+    }
+}
+
+impl Ord for UnityVersion {
+    fn cmp(&self, other: &Self) -> Ordering {
+        return major_ord(self.major(), other.major())
+            .then_with(|| self.minor().cmp(&other.minor()))
+            .then_with(|| self.revision().cmp(&other.revision()))
+            .then_with(|| self.type_().cmp(&other.type_()))
+            .then_with(|| self.increment().cmp(&other.increment()));
+    }
+}
+
+// 1 < 2 < 3 < 4 < 5 < years < 6
+fn major_ord(this: u16, other: u16) -> Ordering {
+    let this_year = this >= 2000;
+    let other_year = other >= 2000;
+
+    match (this_year, other_year) {
+        (true, true) => this.cmp(&other),
+        (false, false) => this.cmp(&other),
+        (true, false) => {
+            if other <= 5 {
+                Ordering::Greater
+            } else {
+                Ordering::Less
+            }
+        }
+        (false, true) => {
+            if this <= 5 {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq)]
 pub enum ReleaseType {
     Alpha,
     Beta,
@@ -99,6 +153,61 @@ pub enum ReleaseType {
     China,
     Patch,
     Experimental,
+}
+
+impl PartialEq for ReleaseType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Alpha, Self::Alpha) => true,
+            (Self::Beta, Self::Beta) => true,
+            (Self::Normal, Self::Normal) => true,
+            (Self::China, Self::China) => true,
+            (Self::Patch, Self::Patch) => true,
+            (Self::Experimental, Self::Experimental) => true,
+
+            // exceptions!
+            (Self::Normal, Self::China) => true,
+            (Self::China, Self::Normal) => true,
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd for ReleaseType {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(Ord::cmp(self, other))
+    }
+}
+
+impl Ord for ReleaseType {
+    fn cmp(&self, other: &Self) -> Ordering {
+        use ReleaseType::*;
+        use Ordering::*;
+        match (*self, *other) {
+            (Alpha, Alpha) => Equal,
+            (Alpha, _) => Less,
+            (_, Alpha) => Greater,
+
+            (Beta, Beta) => Equal,
+            (Beta, _) => Less,
+            (_, Beta) => Greater,
+
+            (Normal, Normal) => Equal,
+            (Normal, China) => Equal,
+            (China, Normal) => Equal,
+            (China, China) => Equal,
+            (Normal, _) => Less,
+            (China, _) => Less,
+            (_, Normal) => Greater,
+            (_, China) => Greater,
+
+            (Patch, Patch) => Equal,
+            (Patch, _) => Less,
+            (_, Patch) => Greater,
+
+            (Experimental, Experimental) => Equal,
+        }
+    }
 }
 
 pub struct ReleaseTypeError(());
@@ -144,7 +253,7 @@ mod tests {
                 assert_eq!(version.major, $major);
                 assert_eq!(version.minor, $minor);
                 assert_eq!(version.revision, $revision);
-                assert_eq!(version.type_, ReleaseType::$type_);
+                assert!(matches!(version.type_, ReleaseType::$type_));
                 assert_eq!(version.increment, $increment);
             };
         }
@@ -171,5 +280,151 @@ mod tests {
         bad!("2019.0");
         bad!("5.6.6");
         bad!("2023.4.6f");
+    }
+
+    #[test]
+    fn ord_major() {
+        macro_rules! test {
+            ($left: literal <  $right: literal) => {
+                assert_eq!(major_ord($left, $right), Ordering::Less);
+            };
+            ($left: literal > $right: literal) => {
+                assert_eq!(major_ord($left, $right), Ordering::Greater);
+            };
+            ($left: literal = $right: literal) => {
+                assert_eq!(major_ord($left, $right), Ordering::Equal);
+            };
+        }
+
+        test!(4 < 5);
+        test!(5 < 2017);
+        test!(2017 < 2023);
+        test!(2023 < 6);
+        test!(6 < 7);
+
+        test!(5 < 6);
+    }
+
+    #[test]
+    fn ord_version() {
+        macro_rules! test {
+            ($left: literal <  $right: literal) => {
+                let left = UnityVersion::parse($left).unwrap();
+                let right = UnityVersion::parse($right).unwrap();
+                assert!(left < right);
+                assert!(right > left);
+            };
+        }
+
+        test!("5.6.5f1" < "5.6.6f1");
+        test!("5.6.6f1" < "5.6.6f2");
+        test!("5.6.6f1" < "2022.1.0f1");
+        test!("2022.1.0a1" < "2022.1.0f1");
+    }
+
+    #[test]
+    fn ord_release_type() {
+        use ReleaseType::*;
+
+        macro_rules! test {
+            ($left: ident $right: ident $ordering: ident) => {
+                assert_eq!($left.cmp(&$right), Ordering::$ordering);
+            };
+        }
+
+        assert!(Alpha < Beta);
+        assert!(Beta < Normal);
+        assert!(Beta < China);
+        assert!(China < Patch);
+        assert!(Patch < Experimental);
+
+        test!(Alpha Alpha Equal);
+        test!(Alpha Beta Less);
+        test!(Alpha Normal Less);
+        test!(Alpha China Less);
+        test!(Alpha Patch Less);
+        test!(Alpha Experimental Less);
+
+        test!(Beta Alpha Greater);
+        test!(Beta Beta Equal);
+        test!(Beta Normal Less);
+        test!(Beta China Less);
+        test!(Beta Patch Less);
+        test!(Beta Experimental Less);
+        
+        test!(Normal Alpha Greater);
+        test!(Normal Beta Greater);
+        test!(Normal Normal Equal);
+        test!(Normal China Equal);
+        test!(Normal Patch Less);
+        test!(Normal Experimental Less);
+
+        test!(China Alpha Greater);
+        test!(China Beta Greater);
+        test!(China Normal Equal);
+        test!(China China Equal);
+        test!(China Patch Less);
+        test!(China Experimental Less);
+        
+        test!(Patch Alpha Greater);
+        test!(Patch Beta Greater);
+        test!(Patch Normal Greater);
+        test!(Patch China Greater);
+        test!(Patch Patch Equal);
+        test!(Patch Experimental Less);
+        
+        test!(Experimental Alpha Greater);
+        test!(Experimental Beta Greater);
+        test!(Experimental Normal Greater);
+        test!(Experimental China Greater);
+        test!(Experimental Patch Greater);
+        test!(Experimental Experimental Equal);
+    }
+
+    #[test]
+    fn eq_release_type() {
+        use ReleaseType::*;
+
+        assert_eq!(Alpha, Alpha);
+        assert_ne!(Alpha, Beta);
+        assert_ne!(Alpha, Normal);
+        assert_ne!(Alpha, China);
+        assert_ne!(Alpha, Patch);
+        assert_ne!(Alpha, Experimental);
+
+        assert_ne!(Beta, Alpha);
+        assert_eq!(Beta, Beta);
+        assert_ne!(Beta, Normal);
+        assert_ne!(Beta, China);
+        assert_ne!(Beta, Patch);
+        assert_ne!(Beta, Experimental);
+
+        assert_ne!(Normal, Alpha);
+        assert_ne!(Normal, Beta);
+        assert_eq!(Normal, Normal);
+        assert_eq!(Normal, China);
+        assert_ne!(Normal, Patch);
+        assert_ne!(Normal, Experimental);
+
+        assert_ne!(China, Alpha);
+        assert_ne!(China, Beta);
+        assert_eq!(China, Normal);
+        assert_eq!(China, China);
+        assert_ne!(China, Patch);
+        assert_ne!(China, Experimental);
+
+        assert_ne!(Patch, Alpha);
+        assert_ne!(Patch, Beta);
+        assert_ne!(Patch, Normal);
+        assert_ne!(Patch, China);
+        assert_eq!(Patch, Patch);
+        assert_ne!(Patch, Experimental);
+
+        assert_ne!(Experimental, Alpha);
+        assert_ne!(Experimental, Beta);
+        assert_ne!(Experimental, Normal);
+        assert_ne!(Experimental, China);
+        assert_ne!(Experimental, Patch);
+        assert_eq!(Experimental, Experimental);
     }
 }
