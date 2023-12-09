@@ -1099,11 +1099,15 @@ impl UnityProject {
 
         let (legacy_files, legacy_folders) = self.collect_legacy_assets(&result.new_packages).await;
 
-        let unity_conflicts = result.new_packages
-            .iter()
-            .filter(|pkg| !unity_compatible(pkg, self.unity_version))
-            .map(|pkg| pkg.name().to_owned())
-            .collect();
+        let unity_conflicts = if let Some(unity) = self.unity_version {
+            result.new_packages
+                .iter()
+                .filter(|pkg| !unity_compatible(pkg, unity))
+                .map(|pkg| pkg.name().to_owned())
+                .collect()
+        } else {
+            vec![]
+        };
 
         return Ok(AddPackageRequest { 
             dependencies, 
