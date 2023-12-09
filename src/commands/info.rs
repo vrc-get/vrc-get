@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
 use itertools::Itertools;
 use serde::Serialize;
 use crate::commands::{load_env, load_unity};
-use crate::version::{Version, VersionRange};
+use crate::version::{UnityVersion, Version, VersionRange};
 use crate::vpm::UnityProject;
 
 /// Shows information for other program.
@@ -51,6 +51,11 @@ impl Project {
 
     pub async fn human_readable(unity: &UnityProject) {
         eprintln!("Project at {}", unity.project_dir().display());
+        if let Some(unity_version) = unity.unity_version() {
+            eprintln!("Using unity {unity_version}");
+        } else {
+            eprintln!("Using unknown unity");
+        }
         eprintln!();
         eprintln!("Locked Packages:");
         for (package, locked) in unity.locked_packages() {
@@ -74,6 +79,7 @@ impl Project {
     pub async fn version1(unity: &UnityProject) {
         #[derive(Serialize)]
         struct Project<'a> {
+            unity_version: Option<UnityVersion>,
             packages: &'a [PackageInfo<'a>],
         }
 
@@ -133,6 +139,7 @@ impl Project {
         }
 
         let project = Project {
+            unity_version: unity.unity_version(),
             packages: packages.as_slice(),
         };
 

@@ -23,7 +23,7 @@ use repo_holder::RepoHolder;
 use utils::*;
 use vpm_manifest::VpmManifest;
 
-use crate::version::{Version, VersionRange};
+use crate::version::{UnityVersion, Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::repository::{PackageVersions, Repository};
@@ -841,6 +841,8 @@ pub struct UnityProject {
     project_dir: PathBuf,
     /// manifest.json
     manifest: VpmManifest,
+    /// unity version parsed
+    unity_version: Option<UnityVersion>,
     /// packages installed in the directory but not locked in vpm-manifest.json
     unlocked_packages: Vec<(String, Option<PackageJson>)>,
     installed_packages: HashMap<String, PackageJson>,
@@ -879,9 +881,12 @@ impl UnityProject {
             }
         }
 
+        let unity_version = Self::try_read_unity_version(&unity_found).await;
+
         Ok(UnityProject {
             project_dir: unity_found,
             manifest: VpmManifest::new(load_json_or_default(&manifest).await?)?,
+            unity_version,
             unlocked_packages,
             installed_packages,
         })
@@ -947,8 +952,55 @@ impl UnityProject {
         }
     }
 
+    async fn try_read_unity_version(unity_project: &Path) -> Option<UnityVersion> {
+        let project_version_file = unity_project
+            .join("ProjectSettings")
+            .joined("ProjectVersion.txt");
+
+        let mut project_version_file = match File::open(project_version_file).await {
+            Ok(file) => file,
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+                log::error!("ProjectVersion.txt not found");
+                return None;
+            }
+            Err(e) => {
+                log::error!("opening ProjectVersion.txt failed with error: {e}");
+                return None;
+            }
+        };
+
+        let mut buffer = String::new();
+
+        if let Err(e) = project_version_file.read_to_string(&mut buffer).await {
+            log::error!("reading ProjectVersion.txt failed with error: {e}");
+            return None;
+        };
+
+        let Some((_, version_info)) = buffer.split_once("m_EditorVersion:") else {
+            log::error!("m_EditorVersion not found in ProjectVersion.txt");
+            return None
+        };
+
+        let version_info_end = version_info
+            .find(|x: char| x == '\r' || x == '\n')
+            .unwrap_or(version_info.len());
+        let version_info = &version_info[..version_info_end];
+        let version_info = version_info.trim();
+
+        let Some(unity_version) = UnityVersion::parse(version_info) else {
+            log::error!("failed to unity version in ProjectVersion.txt ({version_info})");
+            return None
+        };
+
+        Some(unity_version)
+    }
+
     pub fn project_dir(&self) -> &Path {
         &self.project_dir
+    }
+
+    pub fn unity_version(&self) -> Option<UnityVersion> {
+        self.unity_version
     }
 }
 
