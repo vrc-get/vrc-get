@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get"
-version = "1.4.0"
+version = "1.4.1-SNAPSHOT"
 edition = "2021"
 
 license = "MIT"
