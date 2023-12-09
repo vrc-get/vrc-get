@@ -132,7 +132,7 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
         info.set_using_info(&locked.version, locked.dependencies.keys().map(|x| x.as_str()).collect());
 
 
-        if let Some(pkg) = env.find_package_by_name(name, VersionSelector::Specific(&locked.version)) {
+        if let Some(pkg) = env.find_package_by_name(name, PackageSelector::specific_version(&locked.version)) {
             info.legacy_packages = Legacy(pkg.legacy_packages());
 
             for legacy in pkg.legacy_packages() {
@@ -261,6 +261,7 @@ pub struct PackageResolutionResult<'env> {
 pub fn collect_adding_packages<'env>(
     dependencies: &IndexMap<String, VpmDependency>,
     locked_dependencies: &IndexMap<String, VpmLockedDependency>,
+    unity_version: Option<UnityVersion>,
     env: &'env Environment,
     packages: Vec<PackageInfo<'env>>,
     allow_prerelease: bool,
@@ -311,7 +312,8 @@ pub fn collect_adding_packages<'env>(
 
                 if context.should_add_package(dependency, range) {
                     let found = env
-                        .find_package_by_name(dependency, VersionSelector::Range(range))
+                        .find_package_by_name(dependency, PackageSelector::range_for(unity_version, range))
+                        .or_else(||env.find_package_by_name(dependency, PackageSelector::range_for(None, range)))
                         .ok_or_else(|| AddPackageErr::DependencyNotFound {
                             dependency_name: dependency.clone(),
                         })?;

@@ -1,7 +1,7 @@
 use crate::version::Version;
 use crate::vpm::structs::package::PackageJson;
 use crate::vpm::structs::repository::Repository;
-use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, VersionSelector};
+use crate::vpm::{AddPackageRequest, download_remote_repository, Environment, PackageInfo, UnityProject, PackageSelector};
 use clap::{Parser, Subcommand, Args};
 use reqwest::Url;
 use serde::Serialize;
@@ -70,9 +70,9 @@ async fn load_unity(path: Option<PathBuf>) -> UnityProject {
 fn get_package<'env>(
     env: &'env Environment,
     name: &str,
-    version_selector: VersionSelector,
+    selector: PackageSelector,
 ) -> PackageInfo<'env> {
-    env.find_package_by_name(&name, version_selector)
+    env.find_package_by_name(&name, selector)
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
 
@@ -160,6 +160,14 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
             for conflict in conflicts {
                 println!("- {conflict}");
             }
+        }
+        prompt = true;
+    }
+
+    if request.unity_conflicts().len() != 0 {
+        println!("**Those packages are incompatible with your unity version**");
+        for package in request.unity_conflicts() {
+            println!("- {package}");
         }
         prompt = true;
     }
@@ -252,9 +260,8 @@ impl Install {
 
         if let Some(name) = self.name {
             let version_selector = match self.version {
-                None if self.prerelease => VersionSelector::LatestIncluidingPrerelease,
-                None => VersionSelector::Latest,
-                Some(ref version) => VersionSelector::Specific(version),
+                None => PackageSelector::latest_for(unity.unity_version(), self.prerelease),
+                Some(ref version) => PackageSelector::specific_version(version),
             };
             let package = get_package(&env, &name, version_selector);
 
@@ -341,11 +348,7 @@ impl Outdated {
 
         let mut outdated_packages = HashMap::new();
 
-        let selector = if self.prerelease {
-            VersionSelector::LatestIncluidingPrerelease
-        } else {
-            VersionSelector::Latest
-        };
+        let selector = PackageSelector::latest_for(unity.unity_version(), self.prerelease);
 
         for (name, dep) in unity.locked_packages() {
             match env.find_package_by_name(name, selector)
@@ -436,9 +439,8 @@ impl Upgrade {
 
         let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
-                None if self.prerelease => VersionSelector::LatestIncluidingPrerelease,
-                None => VersionSelector::Latest,
-                Some(ref version) => VersionSelector::Specific(version),
+                None => PackageSelector::latest_for(unity.unity_version(), self.prerelease),
+                Some(ref version) => PackageSelector::specific_version(version),
             };
             let package = get_package(&env, &name, version_selector);
 
@@ -446,10 +448,7 @@ impl Upgrade {
 
             vec![package]
         } else {
-            let version_selector = match self.prerelease {
-                true => VersionSelector::LatestIncluidingPrerelease,
-                false => VersionSelector::Latest,
-            };
+            let version_selector = PackageSelector::latest_for(unity.unity_version(), self.prerelease);
 
             require_prompt = true;
 
