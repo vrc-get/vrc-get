@@ -23,9 +23,9 @@ use repo_holder::RepoHolder;
 use utils::*;
 use vpm_manifest::VpmManifest;
 
-use crate::version::{Version, VersionRange};
+use crate::version::{ReleaseType, UnityVersion, Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
-use crate::vpm::structs::package::PackageJson;
+use crate::vpm::structs::package::{PackageJson, PartialUnityVersion};
 use crate::vpm::structs::repository::{PackageVersions, Repository};
 use crate::vpm::structs::repo_cache::LocalCachedRepository;
 use crate::vpm::structs::setting::UserRepoSetting;
@@ -208,11 +208,11 @@ impl Environment {
     pub fn find_package_by_name(
         &self,
         package: &str,
-        version: VersionSelector,
+        package_selector: PackageSelector,
     ) -> Option<PackageInfo> {
         let mut versions = self.find_packages(package);
 
-        versions.retain(|x| version.satisfies(x.version()));
+        versions.retain(|x| package_selector.satisfies(x));
 
         versions.sort_by_key(|x| Reverse(x.version()));
 
@@ -542,6 +542,10 @@ impl <'a> PackageInfo<'a> {
     pub fn legacy_packages(self) -> &'a Vec<String> {
         &self.package_json().legacy_packages
     }
+
+    pub fn unity(self) -> Option<&'a PartialUnityVersion> {
+        self.package_json().unity.as_ref()
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -841,6 +845,8 @@ pub struct UnityProject {
     project_dir: PathBuf,
     /// manifest.json
     manifest: VpmManifest,
+    /// unity version parsed
+    unity_version: Option<UnityVersion>,
     /// packages installed in the directory but not locked in vpm-manifest.json
     unlocked_packages: Vec<(String, Option<PackageJson>)>,
     installed_packages: HashMap<String, PackageJson>,
@@ -879,9 +885,12 @@ impl UnityProject {
             }
         }
 
+        let unity_version = Self::try_read_unity_version(&unity_found).await;
+
         Ok(UnityProject {
             project_dir: unity_found,
             manifest: VpmManifest::new(load_json_or_default(&manifest).await?)?,
+            unity_version,
             unlocked_packages,
             installed_packages,
         })
@@ -947,8 +956,55 @@ impl UnityProject {
         }
     }
 
+    async fn try_read_unity_version(unity_project: &Path) -> Option<UnityVersion> {
+        let project_version_file = unity_project
+            .join("ProjectSettings")
+            .joined("ProjectVersion.txt");
+
+        let mut project_version_file = match File::open(project_version_file).await {
+            Ok(file) => file,
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+                log::error!("ProjectVersion.txt not found");
+                return None;
+            }
+            Err(e) => {
+                log::error!("opening ProjectVersion.txt failed with error: {e}");
+                return None;
+            }
+        };
+
+        let mut buffer = String::new();
+
+        if let Err(e) = project_version_file.read_to_string(&mut buffer).await {
+            log::error!("reading ProjectVersion.txt failed with error: {e}");
+            return None;
+        };
+
+        let Some((_, version_info)) = buffer.split_once("m_EditorVersion:") else {
+            log::error!("m_EditorVersion not found in ProjectVersion.txt");
+            return None
+        };
+
+        let version_info_end = version_info
+            .find(|x: char| x == '\r' || x == '\n')
+            .unwrap_or(version_info.len());
+        let version_info = &version_info[..version_info_end];
+        let version_info = version_info.trim();
+
+        let Some(unity_version) = UnityVersion::parse(version_info) else {
+            log::error!("failed to unity version in ProjectVersion.txt ({version_info})");
+            return None
+        };
+
+        Some(unity_version)
+    }
+
     pub fn project_dir(&self) -> &Path {
         &self.project_dir
+    }
+
+    pub fn unity_version(&self) -> Option<UnityVersion> {
+        self.unity_version
     }
 }
 
@@ -959,6 +1015,7 @@ pub struct AddPackageRequest<'env> {
     legacy_folders: Vec<PathBuf>,
     legacy_packages: Vec<String>,
     conflicts: HashMap<String, Vec<String>>,
+    unity_conflicts: Vec<String>,
 }
 
 impl <'env> AddPackageRequest<'env> {
@@ -984,6 +1041,10 @@ impl <'env> AddPackageRequest<'env> {
 
     pub fn conflicts(&self) -> &HashMap<String, Vec<String>> {
         &self.conflicts
+    }
+
+    pub fn unity_conflicts(&self) -> &Vec<String> {
+        &self.unity_conflicts
     }
 }
 
@@ -1025,10 +1086,11 @@ impl UnityProject {
                 legacy_folders: vec![],
                 legacy_packages: vec![],
                 conflicts: HashMap::new(),
+                unity_conflicts: vec![],
             });
         }
 
-        let result = package_resolution::collect_adding_packages(self.manifest.dependencies(), self.manifest.locked(), env, adding_packages, allow_prerelease)?;
+        let result = package_resolution::collect_adding_packages(self.manifest.dependencies(), self.manifest.locked(), self.unity_version(), env, adding_packages, allow_prerelease)?;
 
         let legacy_packages = result.found_legacy_packages
             .into_iter()
@@ -1037,10 +1099,21 @@ impl UnityProject {
 
         let (legacy_files, legacy_folders) = self.collect_legacy_assets(&result.new_packages).await;
 
+        let unity_conflicts = if let Some(unity) = self.unity_version {
+            result.new_packages
+                .iter()
+                .filter(|pkg| !unity_compatible(pkg, unity))
+                .map(|pkg| pkg.name().to_owned())
+                .collect()
+        } else {
+            vec![]
+        };
+
         return Ok(AddPackageRequest { 
             dependencies, 
             locked: result.new_packages,
             conflicts: result.conflicts,
+            unity_conflicts,
             legacy_files,
             legacy_folders,
             legacy_packages,
@@ -1332,7 +1405,7 @@ impl UnityProject {
                 .into_iter()
                 .map(|(pkg, dep)| async move {
                     let pkg = env
-                        .find_package_by_name(&pkg, VersionSelector::Specific(&dep.version))
+                        .find_package_by_name(&pkg, PackageSelector::specific_version(&dep.version))
                         .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
                     env.add_package(pkg, packages_folder).await?;
                     Result::<_, AddPackageErr>::Ok(())
@@ -1359,8 +1432,13 @@ impl UnityProject {
             .into_group_map()
             .into_iter()
             .map(|(pkg_name, ranges)| {
-                env.find_package_by_name(pkg_name, VersionSelector::Ranges(&ranges))
-                    .unwrap_or_else(|| panic!("some dependencies of unlocked package not found: {pkg_name}"))
+                env.find_package_by_name(
+                    pkg_name,
+                    PackageSelector::ranges_for(self.unity_version, &ranges),
+                )
+                .unwrap_or_else(|| {
+                    panic!("some dependencies of unlocked package not found: {pkg_name}")
+                })
             })
             .collect::<Vec<_>>();
 
@@ -1409,6 +1487,95 @@ impl UnityProject {
 
     pub(crate) fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
         self.installed_packages.get(name)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct PackageSelector<'a> {
+    project_unity: Option<UnityVersion>,
+    version_selector: VersionSelector<'a>,
+}
+
+impl<'a> PackageSelector<'a> {
+    pub(crate) fn specific_version(version: &'a Version) -> Self {
+        Self {
+            project_unity: None,
+            version_selector: VersionSelector::Specific(version),
+        }
+    }
+
+    pub(crate) fn latest_for(
+        unity_version: Option<UnityVersion>,
+        include_prerelease: bool,
+    ) -> Self {
+        Self {
+            project_unity: unity_version,
+            version_selector: if include_prerelease {
+                VersionSelector::LatestIncluidingPrerelease
+            } else {
+                VersionSelector::Latest
+            },
+        }
+    }
+
+    pub(crate) fn range_for(unity_version: Option<UnityVersion>, range: &'a VersionRange) -> Self {
+        Self {
+            project_unity: unity_version,
+            version_selector: VersionSelector::Range(range),
+        }
+    }
+
+    pub(crate) fn ranges_for(
+        unity_version: Option<UnityVersion>,
+        ranges: &'a [&'a VersionRange],
+    ) -> Self {
+        Self {
+            project_unity: unity_version,
+            version_selector: VersionSelector::Ranges(ranges),
+        }
+    }
+}
+
+fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
+    fn is_vrcsdk_for_2019(version: &Version) -> bool {
+        version.major == 3 && version.minor <= 4
+    }
+
+    fn is_resolver_for_2019(version: &Version) -> bool {
+        version.major == 0 && version.minor == 1 && version.patch <= 26
+    }
+
+    match package.name() {
+        "com.vrchat.avatars" | "com.vrchat.worlds" | "com.vrchat.base" if is_vrcsdk_for_2019(package.version()) => {
+            // this version of VRCSDK is only for unity 2019 so for other version(s) of unity, it's not satisfied.
+            unity.major() == 2019
+        }
+        "com.vrchat.core.vpm-resolver" if is_resolver_for_2019(package.version()) => {
+            // this version of Resolver is only for unity 2019 so for other version(s) of unity, it's not satisfied.
+            unity.major() == 2019
+        }
+        _ => {
+            // otherwice, check based on package info
+
+            if let Some(min_unity) = package.unity() {
+                unity >= UnityVersion::new(min_unity.0, min_unity.1, 0, ReleaseType::Alpha, 0)
+            } else {
+                // if there are no info, satisfies for all unity versions
+                true
+            }
+        }
+    }
+}
+
+impl<'a> PackageSelector<'a> {
+    pub fn satisfies(&self, package: &PackageInfo) -> bool {
+        if let Some(unity) = self.project_unity {
+            if !unity_compatible(package, unity) {
+                return false;
+            }
+        }
+
+        return self.version_selector.satisfies(package.version());
     }
 }
 

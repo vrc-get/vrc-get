@@ -59,6 +59,8 @@ pub mod package {
         #[serde(default)]
         pub url: String,
 
+        pub unity: Option<PartialUnityVersion>,
+
         #[serde(rename = "legacyFolders")]
         #[serde(default)]
         pub legacy_folders: HashMap<String, Option<String>>,
@@ -68,6 +70,24 @@ pub mod package {
         #[serde(rename = "legacyPackages")]
         #[serde(default)]
         pub legacy_packages: Vec<String>,
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct PartialUnityVersion(pub u16, pub u8);
+
+    impl<'de> Deserialize<'de> for PartialUnityVersion {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::de::Deserializer<'de> {
+            use serde::de::Error;
+            let s = String::deserialize(deserializer)?;
+            if let Some((maj, min)) = s.split_once('.') {
+                let major = maj.trim().parse::<u16>().map_err(Error::custom)?;
+                let minor = min.trim().parse::<u8>().map_err(Error::custom)?;
+                Ok(Self(major, minor))
+            } else {
+                let major = s.trim().parse::<u16>().map_err(Error::custom)?;
+                Ok(Self(major, 0))
+            }
+        }
     }
 }
 

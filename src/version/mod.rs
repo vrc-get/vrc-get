@@ -1,5 +1,7 @@
-pub use range::VersionRange;
 pub use range::DependencyRange;
+pub use range::VersionRange;
+pub use unity_version::UnityVersion;
+pub use unity_version::ReleaseType;
 use std::fmt::{Display, Formatter};
 pub use version::Version;
 
@@ -62,6 +64,7 @@ macro_rules! deserialize_from_str {
 }
 
 mod range;
+mod unity_version;
 mod version;
 
 type Segment = u64;
