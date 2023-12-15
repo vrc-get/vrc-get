@@ -1,6 +1,6 @@
-//! This module contains vpm core implementation
-//!
-//! This module might be a separated crate.
+//! The vpm client library.
+//! 
+//! TODO: documentation
 
 use futures::future::join3;
 use std::cmp::Reverse;
@@ -23,18 +23,19 @@ use repo_holder::RepoHolder;
 use utils::*;
 use vpm_manifest::VpmManifest;
 
-use crate::version::{ReleaseType, UnityVersion, Version, VersionRange};
-use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
-use crate::vpm::structs::package::{PackageJson, PartialUnityVersion};
-use crate::vpm::structs::repo_cache::LocalCachedRepository;
-use crate::vpm::structs::repository::{PackageVersions, Repository};
-use crate::vpm::structs::setting::UserRepoSetting;
+use structs::manifest::{VpmDependency, VpmLockedDependency};
+use structs::package::{PackageJson, PartialUnityVersion};
+use structs::repo_cache::LocalCachedRepository;
+use structs::repository::{PackageVersions, Repository};
+use structs::setting::UserRepoSetting;
+use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 mod add_package;
 mod package_resolution;
 mod repo_holder;
 pub mod structs;
 mod utils;
+pub mod version;
 
 type JsonMap = Map<String, Value>;
 
@@ -207,7 +208,7 @@ impl Environment {
         Ok(())
     }
 
-    pub(crate) fn get_repos_dir(&self) -> PathBuf {
+    pub fn get_repos_dir(&self) -> PathBuf {
         self.global_dir.join("Repos")
     }
 
@@ -245,7 +246,7 @@ impl Environment {
         self.repo_cache.get_repo_with_path()
     }
 
-    pub(crate) fn find_packages(&self, package: &str) -> Vec<PackageInfo> {
+    pub fn find_packages(&self, package: &str) -> Vec<PackageInfo> {
         let mut list = Vec::new();
 
         list.extend(
@@ -265,7 +266,7 @@ impl Environment {
         list
     }
 
-    pub(crate) fn find_whole_all_packages(
+    pub fn find_whole_all_packages(
         &self,
         filter: impl Fn(&PackageJson) -> bool,
     ) -> Vec<&PackageJson> {
@@ -314,7 +315,7 @@ impl Environment {
         .await
     }
 
-    pub(crate) fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
+    pub fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
         from_value::<Vec<UserRepoSetting>>(
             self.settings
                 .get("userRepos")
@@ -663,7 +664,8 @@ async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()>
 }
 
 // returns None if etag matches
-pub(crate) async fn download_remote_repository(
+// TODO: make private or better API
+pub async fn download_remote_repository(
     client: &Client,
     url: impl IntoUrl,
     headers: Option<&IndexMap<String, String>>,
@@ -1412,7 +1414,7 @@ impl UnityProject {
     ///
     /// This doesn't look packages not listed in vpm-maniefst.json.
     pub async fn remove(&mut self, names: &[&str]) -> Result<(), RemovePackageErr> {
-        use crate::vpm::RemovePackageErr::*;
+        use crate::RemovePackageErr::*;
 
         // check for existence
 
@@ -1559,11 +1561,11 @@ impl UnityProject {
         Ok(())
     }
 
-    pub(crate) fn locked_packages(&self) -> &IndexMap<String, VpmLockedDependency> {
+    pub fn locked_packages(&self) -> &IndexMap<String, VpmLockedDependency> {
         return self.manifest.locked();
     }
 
-    pub(crate) fn all_dependencies(
+    pub fn all_dependencies(
         &self,
     ) -> impl Iterator<Item = (&String, &IndexMap<String, VersionRange>)> {
         let dependencies_locked = self
@@ -1581,11 +1583,11 @@ impl UnityProject {
         return dependencies_locked.chain(dependencies_unlocked);
     }
 
-    pub(crate) fn unlocked_packages(&self) -> &[(String, Option<PackageJson>)] {
+    pub fn unlocked_packages(&self) -> &[(String, Option<PackageJson>)] {
         &self.unlocked_packages
     }
 
-    pub(crate) fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
+    pub fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
         self.installed_packages.get(name)
     }
 }
@@ -1597,17 +1599,14 @@ pub struct PackageSelector<'a> {
 }
 
 impl<'a> PackageSelector<'a> {
-    pub(crate) fn specific_version(version: &'a Version) -> Self {
+    pub fn specific_version(version: &'a Version) -> Self {
         Self {
             project_unity: None,
             version_selector: VersionSelector::Specific(version),
         }
     }
 
-    pub(crate) fn latest_for(
-        unity_version: Option<UnityVersion>,
-        include_prerelease: bool,
-    ) -> Self {
+    pub fn latest_for(unity_version: Option<UnityVersion>, include_prerelease: bool) -> Self {
         Self {
             project_unity: unity_version,
             version_selector: if include_prerelease {
@@ -1618,17 +1617,14 @@ impl<'a> PackageSelector<'a> {
         }
     }
 
-    pub(crate) fn range_for(unity_version: Option<UnityVersion>, range: &'a VersionRange) -> Self {
+    pub fn range_for(unity_version: Option<UnityVersion>, range: &'a VersionRange) -> Self {
         Self {
             project_unity: unity_version,
             version_selector: VersionSelector::Range(range),
         }
     }
 
-    pub(crate) fn ranges_for(
-        unity_version: Option<UnityVersion>,
-        ranges: &'a [&'a VersionRange],
-    ) -> Self {
+    pub fn ranges_for(unity_version: Option<UnityVersion>, ranges: &'a [&'a VersionRange]) -> Self {
         Self {
             project_unity: unity_version,
             version_selector: VersionSelector::Ranges(ranges),

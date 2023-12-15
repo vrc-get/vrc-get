@@ -131,8 +131,8 @@ pub mod setting {
 
 pub mod repo_cache {
     use super::*;
-    use crate::vpm::structs::package::PackageJson;
-    use crate::vpm::structs::repository::{PackageVersions, Repository};
+    use crate::structs::package::PackageJson;
+    use crate::structs::repository::{PackageVersions, Repository};
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct LocalCachedRepository {

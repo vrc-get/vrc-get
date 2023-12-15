@@ -1,6 +1,6 @@
-use crate::vpm::structs::package::PackageJson;
-use crate::vpm::utils::{parse_hex_256, MapResultExt, PathBufExt};
-use crate::vpm::{try_open_file, PackageInfo, PackageInfoInner};
+use crate::structs::package::PackageJson;
+use crate::utils::{parse_hex_256, MapResultExt, PathBufExt};
+use crate::{try_open_file, PackageInfo, PackageInfoInner};
 use futures::TryStreamExt;
 use indexmap::IndexMap;
 use reqwest::Client;

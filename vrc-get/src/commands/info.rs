@@ -1,12 +1,12 @@
 use crate::commands::{load_env, load_unity};
-use crate::version::{UnityVersion, Version, VersionRange};
-use crate::vpm::UnityProject;
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::PathBuf;
+use vrc_get_vpm::version::{UnityVersion, Version, VersionRange};
+use vrc_get_vpm::UnityProject;
 
 /// Shows information for other program.
 #[derive(Subcommand)]
