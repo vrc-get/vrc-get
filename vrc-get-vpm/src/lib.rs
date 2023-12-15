@@ -54,6 +54,7 @@ pub struct Environment {
     // TODO: change type for user package info
     user_packages: Vec<(PathBuf, PackageJson)>,
     settings_changed: bool,
+    url_overrides: HashMap<PreDefinedRepoSource, String>,
 }
 
 impl Environment {
@@ -74,6 +75,7 @@ impl Environment {
             repo_cache: RepoHolder::new(),
             user_packages: Vec::new(),
             settings_changed: false,
+            url_overrides: HashMap::new(),
         })
     }
 
@@ -227,10 +229,16 @@ impl Environment {
     }
 
     fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
-        let defined_sources = DEFINED_REPO_SOURCES
-            .into_iter()
-            .copied()
-            .map(|x| RepoSource::PreDefined(x, self.get_repos_dir().join(x.file_name)));
+        let defined_sources = DEFINED_REPO_SOURCES.into_iter().copied().map(|x| {
+            RepoSource::PreDefined(
+                x,
+                self.url_overrides
+                    .get(&x)
+                    .cloned()
+                    .unwrap_or_else(|| x.url().to_owned()),
+                self.get_repos_dir().join(x.file_name()),
+            )
+        });
         let user_repo_sources = self.get_user_repos()?.into_iter().map(RepoSource::UserRepo);
 
         Ok(defined_sources.chain(user_repo_sources).collect())
@@ -486,6 +494,10 @@ impl Environment {
         Ok(indices.len())
     }
 
+    pub fn set_url_override(&mut self, repo: PreDefinedRepoSource, url: String) {
+        self.url_overrides.insert(repo, url);
+    }
+
     pub async fn save(&mut self) -> io::Result<()> {
         if !self.settings_changed {
             return Ok(());
@@ -580,34 +592,44 @@ fn is_truthy(value: Option<&Value>) -> bool {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct PreDefinedRepoSource {
-    file_name: &'static str,
-    url: &'static str,
-    #[allow(dead_code)]
-    name: &'static str,
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
+pub enum PreDefinedRepoSource {
+    Official,
+    Curated,
+}
+
+impl PreDefinedRepoSource {
+    pub fn file_name(self) -> &'static str {
+        match self {
+            PreDefinedRepoSource::Official => "vrc-official.json",
+            PreDefinedRepoSource::Curated => "vrc-curated.json",
+        }
+    }
+    pub fn url(self) -> &'static str {
+        match self {
+            PreDefinedRepoSource::Official => "https://packages.vrchat.com/official?download",
+            PreDefinedRepoSource::Curated => "https://packages.vrchat.com/curated?download",
+        }
+    }
+    pub fn name(self) -> &'static str {
+        match self {
+            PreDefinedRepoSource::Official => "Official",
+            PreDefinedRepoSource::Curated => "Curated",
+        }
+    }
 }
 
 #[derive(Clone)]
 #[non_exhaustive]
 pub enum RepoSource {
-    PreDefined(PreDefinedRepoSource, PathBuf),
+    PreDefined(PreDefinedRepoSource, String, PathBuf),
     UserRepo(UserRepoSetting),
 }
 
-static OFFICIAL_REPO_SOURCE: PreDefinedRepoSource = PreDefinedRepoSource {
-    file_name: "vrc-official.json",
-    url: "https://packages.vrchat.com/official?download",
-    name: "Official",
-};
-
-static CURATED_REPO_SOURCE: PreDefinedRepoSource = PreDefinedRepoSource {
-    file_name: "vrc-curated.json",
-    url: "https://packages.vrchat.com/curated?download",
-    name: "Curated",
-};
-
-static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[OFFICIAL_REPO_SOURCE, CURATED_REPO_SOURCE];
+static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[
+    PreDefinedRepoSource::Official,
+    PreDefinedRepoSource::Curated,
+];
 
 #[derive(Debug)]
 pub enum AddRepositoryErr {
