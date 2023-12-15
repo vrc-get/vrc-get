@@ -1,14 +1,14 @@
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 
-enum SegmentParseErr {
+pub(super) enum SegmentParseErr {
     IntError(std::num::ParseIntError),
     TooBig,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub(super) struct Segment(u64);
+pub(super) struct Segment(pub(super) u64);
 
 impl Segment {
     pub const NOT_EXISTS: Segment = Segment(u64::MAX);
@@ -20,7 +20,7 @@ impl Segment {
 
     pub const ZERO: Segment = Segment(0);
 
-    fn as_number(self) -> Option<u64> {
+    pub(super) fn as_number(self) -> Option<u64> {
         if self.0 <= Self::MAX.0 {
             Some(self.0)
         } else {
@@ -28,7 +28,7 @@ impl Segment {
         }
     }
 
-    fn new(value: u64) -> Option<Segment> {
+    pub fn new(value: u64) -> Option<Segment> {
         if value <= Self::MAX.0 {
             Some(Segment(value))
         } else {
