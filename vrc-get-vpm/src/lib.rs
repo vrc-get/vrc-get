@@ -54,6 +54,7 @@ pub struct Environment {
     // TODO: change type for user package info
     user_packages: Vec<(PathBuf, PackageJson)>,
     settings_changed: bool,
+    url_overrides: HashMap<PreDefinedRepoSource, String>,
 }
 
 impl Environment {
@@ -74,6 +75,7 @@ impl Environment {
             repo_cache: RepoHolder::new(),
             user_packages: Vec::new(),
             settings_changed: false,
+            url_overrides: HashMap::new(),
         })
     }
 
@@ -230,7 +232,10 @@ impl Environment {
         let defined_sources = DEFINED_REPO_SOURCES.into_iter().copied().map(|x| {
             RepoSource::PreDefined(
                 x,
-                x.url().to_owned(),
+                self.url_overrides
+                    .get(&x)
+                    .cloned()
+                    .unwrap_or_else(|| x.url().to_owned()),
                 self.get_repos_dir().join(x.file_name()),
             )
         });
@@ -488,6 +493,10 @@ impl Environment {
         Ok(indices.len())
     }
 
+    pub fn set_url_override(&mut self, repo: PreDefinedRepoSource, url: String) {
+        self.url_overrides.insert(repo, url);
+    }
+
     pub async fn save(&mut self) -> io::Result<()> {
         if !self.settings_changed {
             return Ok(());
@@ -565,7 +574,7 @@ impl<'a> PackageInfo<'a> {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
 pub enum PreDefinedRepoSource {
     Official,
     Curated,
