@@ -1,11 +1,3 @@
-use crate::version::Version;
-use crate::vpm::structs::package::PackageJson;
-use crate::vpm::structs::repository::Repository;
-use crate::vpm::structs::setting::UserRepoSetting;
-use crate::vpm::{
-    download_remote_repository, AddPackageRequest, Environment, PackageInfo, PackageSelector,
-    UnityProject,
-};
 use clap::{Args, Parser, Subcommand};
 use indexmap::IndexMap;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
@@ -20,6 +12,14 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::{read_dir, remove_file};
+use vrc_get_vpm::structs::package::PackageJson;
+use vrc_get_vpm::structs::repository::Repository;
+use vrc_get_vpm::structs::setting::UserRepoSetting;
+use vrc_get_vpm::version::Version;
+use vrc_get_vpm::{
+    download_remote_repository, AddPackageRequest, Environment, PackageInfo, PackageSelector,
+    UnityProject,
+};
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {

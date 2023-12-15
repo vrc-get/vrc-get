@@ -66,11 +66,11 @@ impl VersionRange {
         self.comparators.iter().any(ComparatorSet::contains_pre)
     }
 
-    pub(crate) fn matches(&self, version: &Version) -> bool {
+    pub fn matches(&self, version: &Version) -> bool {
         self.match_pre(version, false)
     }
 
-    pub(crate) fn match_pre(&self, version: &Version, allow_prerelease: bool) -> bool {
+    pub fn match_pre(&self, version: &Version, allow_prerelease: bool) -> bool {
         self.comparators
             .iter()
             .any(|x| x.matches(version, allow_prerelease))

@@ -1,3 +1,10 @@
+//! The semantic versioning used by vpm.
+//!
+//! Since vpm uses [semver.net], the semver notation is based on npm, which is different from the semver crate.
+//! So, vrc-get-vpm currently uses its own versioning system.
+//!
+//! [semver.net]: https://github.com/adamreeve/semver.net
+
 pub use range::DependencyRange;
 pub use range::VersionRange;
 use std::fmt::Debug;

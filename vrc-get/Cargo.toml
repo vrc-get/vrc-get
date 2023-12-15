@@ -1,0 +1,33 @@
+[package]
+name = "vrc-get"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+description = "Open Source command line client of VRChat Package Manager."
+readme = "README.md"
+keywords = ["vpm", "package-manager"]
+categories = ["command-line-utilities"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.4.11", features = ["derive"] }
+clap_complete = "4.4.4"
+env_logger = "0.10.1"
+indexmap = { version = "2.1.0", features = ["serde"] }
+itertools = "0.12.0"
+log = "0.4.20"
+reqwest = { version = "0.11.22", default-features = false }
+serde = { version = "1.0.193", features = ["derive", "rc"] }
+serde_json = { version = "1.0.108", features = ["preserve_order"] }
+tokio = { version = "1.35.0", features = ["rt-multi-thread", "macros", "fs"] }
+vrc-get-vpm = { path = "../vrc-get-vpm", default-features = false }
+
+[features]
+default = ["rustls"]
+native-tls = ["vrc-get-vpm/native-tls"]
+rustls = ["vrc-get-vpm/rustls"]
