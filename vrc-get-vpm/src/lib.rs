@@ -1,5 +1,5 @@
 //! The vpm client library.
-//! 
+//!
 //! TODO: documentation
 
 use futures::future::join3;
@@ -1508,25 +1508,40 @@ impl UnityProject {
             )
             .await
     }
+}
 
-    pub async fn resolve(&mut self, env: &Environment) -> Result<(), AddPackageErr> {
+pub struct ResolveResult<'env> {
+    installed_from_locked: Vec<PackageInfo<'env>>,
+    installed_from_unlocked_dependencies: Vec<PackageInfo<'env>>,
+}
+
+impl<'env> ResolveResult<'env> {
+    pub fn installed_from_locked(&self) -> &[PackageInfo<'env>] {
+        &self.installed_from_locked
+    }
+
+    pub fn installed_from_unlocked_dependencies(&self) -> &[PackageInfo<'env>] {
+        &self.installed_from_unlocked_dependencies
+    }
+}
+
+impl UnityProject {
+    pub async fn resolve<'env>(
+        &mut self,
+        env: &'env Environment,
+    ) -> Result<ResolveResult<'env>, AddPackageErr> {
         // first, process locked dependencies
         let this = self as &Self;
         let packages_folder = &this.project_dir.join("Packages");
-        try_join_all(
-            this.manifest
-                .locked()
-                .into_iter()
-                .map(|(pkg, dep)| async move {
-                    let pkg = env
-                        .find_package_by_name(&pkg, PackageSelector::specific_version(&dep.version))
-                        .unwrap_or_else(|| {
-                            panic!("some package in manifest.json not found: {pkg}")
-                        });
-                    env.add_package(pkg, packages_folder).await?;
-                    Result::<_, AddPackageErr>::Ok(())
-                }),
-        )
+        let installed_from_locked = try_join_all(this.manifest.locked().into_iter().map(
+            |(pkg, dep)| async move {
+                let pkg = env
+                    .find_package_by_name(&pkg, PackageSelector::specific_version(&dep.version))
+                    .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
+                env.add_package(pkg, packages_folder).await?;
+                Result::<_, AddPackageErr>::Ok(pkg)
+            },
+        ))
         .await?;
 
         let unlocked_names: HashSet<_> = self
@@ -1574,9 +1589,14 @@ impl UnityProject {
             });
         }
 
+        let installed_from_unlocked_dependencies = req.locked.clone();
+
         self.do_add_package_request(&env, req).await?;
 
-        Ok(())
+        Ok(ResolveResult {
+            installed_from_locked,
+            installed_from_unlocked_dependencies,
+        })
     }
 
     pub fn locked_packages(&self) -> &IndexMap<String, VpmLockedDependency> {
