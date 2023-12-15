@@ -1,7 +1,7 @@
+use serde::{Serialize, Serializer};
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
-use serde::{Serialize, Serializer};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct UnityVersion {
@@ -99,7 +99,10 @@ impl fmt::Display for UnityVersion {
 }
 
 impl Serialize for UnityVersion {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_str(&self.to_string())
     }
 }
@@ -181,8 +184,8 @@ impl PartialOrd for ReleaseType {
 
 impl Ord for ReleaseType {
     fn cmp(&self, other: &Self) -> Ordering {
-        use ReleaseType::*;
         use Ordering::*;
+        use ReleaseType::*;
         match (*self, *other) {
             (Alpha, Alpha) => Equal,
             (Alpha, _) => Less,
@@ -351,7 +354,7 @@ mod tests {
         test!(Beta China Less);
         test!(Beta Patch Less);
         test!(Beta Experimental Less);
-        
+
         test!(Normal Alpha Greater);
         test!(Normal Beta Greater);
         test!(Normal Normal Equal);
@@ -365,14 +368,14 @@ mod tests {
         test!(China China Equal);
         test!(China Patch Less);
         test!(China Experimental Less);
-        
+
         test!(Patch Alpha Greater);
         test!(Patch Beta Greater);
         test!(Patch Normal Greater);
         test!(Patch China Greater);
         test!(Patch Patch Equal);
         test!(Patch Experimental Less);
-        
+
         test!(Experimental Alpha Greater);
         test!(Experimental Beta Greater);
         test!(Experimental Normal Greater);

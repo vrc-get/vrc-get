@@ -1,17 +1,17 @@
-use std::collections::VecDeque;
-use std::io;
-use std::io::SeekFrom;
-use std::path::{Component, Path, PathBuf};
+use crate::vpm::structs::package::PackageJson;
+use crate::vpm::utils::{parse_hex_256, MapResultExt, PathBufExt};
+use crate::vpm::{try_open_file, PackageInfo, PackageInfoInner};
 use futures::TryStreamExt;
 use indexmap::IndexMap;
 use reqwest::Client;
 use sha2::{Digest, Sha256};
-use tokio::fs::{create_dir_all, File, OpenOptions, remove_dir_all};
+use std::collections::VecDeque;
+use std::io;
+use std::io::SeekFrom;
+use std::path::{Component, Path, PathBuf};
+use tokio::fs::{create_dir_all, remove_dir_all, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
-use crate::vpm::structs::package::PackageJson;
-use crate::vpm::{PackageInfo, PackageInfoInner, try_open_file};
-use crate::vpm::utils::{MapResultExt, parse_hex_256, PathBufExt};
 
 pub(crate) async fn add_package(
     global_dir: &Path,
@@ -22,7 +22,14 @@ pub(crate) async fn add_package(
     log::debug!("adding package {}", package.name());
     match package.inner {
         PackageInfoInner::Remote(json, user_repo) => {
-            add_remote_package(global_dir, http, json, user_repo.headers(), target_packages_folder).await
+            add_remote_package(
+                global_dir,
+                http,
+                json,
+                user_repo.headers(),
+                target_packages_folder,
+            )
+            .await
         }
         PackageInfoInner::Local(json, path) => {
             add_local_package(path, &json.name, target_packages_folder).await
@@ -38,7 +45,8 @@ async fn add_remote_package(
     target_packages_folder: &Path,
 ) -> io::Result<()> {
     let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name, &package.version);
-    let zip_path = global_dir.to_owned()
+    let zip_path = global_dir
+        .to_owned()
         .joined("Repos")
         .joined(&package.name)
         .joined(&zip_file_name);
@@ -50,15 +58,22 @@ async fn add_remote_package(
     let zip_file = if let Some(cache_file) = try_cache(&zip_path, &sha_path, None).await {
         cache_file
     } else {
-        download_zip(http, headers, &zip_path, &sha_path, &zip_file_name, &package.url).await?
+        download_zip(
+            http,
+            headers,
+            &zip_path,
+            &sha_path,
+            &zip_file_name,
+            &package.url,
+        )
+        .await?
     };
 
     // remove dest folder before extract if exists
     remove_dir_all(&dest_folder).await.ok();
 
     // extract zip file
-    let mut zip_reader = async_zip::tokio::read::seek::ZipFileReader::new(
-        zip_file.compat())
+    let mut zip_reader = async_zip::tokio::read::seek::ZipFileReader::new(zip_file.compat())
         .await
         .err_mapped()?;
     for i in 0..zip_reader.file().entries().len() {
@@ -76,7 +91,7 @@ async fn add_remote_package(
                 io::ErrorKind::PermissionDenied,
                 format!("directory traversal detected: {}", path.display()),
             )
-                .into());
+            .into());
         }
         if filename.ends_with('/') {
             // if it's directory, just create directory
@@ -94,19 +109,19 @@ async fn add_remote_package(
 }
 
 /// Try to load from the zip file
-/// 
-/// # Arguments 
-/// 
+///
+/// # Arguments
+///
 /// * `zip_path`: the path to zip file
 /// * `sha_path`: the path to sha256 file
 /// * `sha256`: sha256 hash if specified
-/// 
+///
 /// returns: Option<File> readable zip file file or None
-/// 
-/// # Examples 
-/// 
+///
+/// # Examples
+///
 /// ```
-/// 
+///
 /// ```
 async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Option<File> {
     let mut cache_file = try_open_file(&zip_path).await.ok()??;
@@ -118,7 +133,10 @@ async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Op
     let hex = parse_hex_256(buf)?;
 
     // is stored sha doesn't match sha in repo: current cache is invalid
-    if let Some(repo_hash) = sha256.and_then(|s| s.as_bytes().try_into().ok()).and_then(parse_hex_256) {
+    if let Some(repo_hash) = sha256
+        .and_then(|s| s.as_bytes().try_into().ok())
+        .and_then(parse_hex_256)
+    {
         if repo_hash != hex {
             return None;
         }
@@ -150,16 +168,16 @@ async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Op
     Some(cache_file)
 }
 
-/// downloads the zip file from the url to the specified path 
-/// 
-/// # Arguments 
-/// 
+/// downloads the zip file from the url to the specified path
+///
+/// # Arguments
+///
 /// * `http`: http client. returns error if none
 /// * `zip_path`: the path to zip file
 /// * `sha_path`: the path to sha256 file
 /// * `zip_file_name`: the name of zip file. will be used in the sha file
 /// * `url`: url to zip file
-/// 
+///
 /// returns: Result<File, Error> the readable zip file.
 async fn download_zip(
     http: Option<&Client>,
@@ -183,15 +201,13 @@ async fn download_zip(
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"))
     };
 
-    let mut request = http
-        .get(url);
+    let mut request = http.get(url);
 
     for (name, header) in headers {
         request = request.header(name, header);
     }
 
-    let mut stream = 
-        request
+    let mut stream = request
         .send()
         .await
         .err_mapped()?
@@ -241,7 +257,11 @@ fn check_path(path: &Path) -> bool {
     true
 }
 
-async fn add_local_package(package: &Path, name: &str, target_packages_folder: &Path) -> io::Result<()> {
+async fn add_local_package(
+    package: &Path,
+    name: &str,
+    target_packages_folder: &Path,
+) -> io::Result<()> {
     let dest_folder = target_packages_folder.join(name);
     remove_dir_all(&dest_folder).await.ok();
     copy_recursive(package.to_owned(), dest_folder).await
@@ -264,7 +284,10 @@ async fn copy_recursive(src_dir: PathBuf, dst_dir: PathBuf) -> io::Result<()> {
                 // symlink: just copy
                 let symlink = tokio::fs::read_link(src).await?;
                 if symlink.is_absolute() {
-                    return Err(io::Error::new(io::ErrorKind::PermissionDenied, "absolute symlink detected"));
+                    return Err(io::Error::new(
+                        io::ErrorKind::PermissionDenied,
+                        "absolute symlink detected",
+                    ));
                 }
 
                 #[cfg(unix)]
@@ -280,7 +303,10 @@ async fn copy_recursive(src_dir: PathBuf, dst_dir: PathBuf) -> io::Result<()> {
                     }
                 }
                 #[cfg(not(any(unix, windows)))]
-                return Err(io::Error::new(io::ErrorKind::Unsupported, "platform without symlink detected"));
+                return Err(io::Error::new(
+                    io::ErrorKind::Unsupported,
+                    "platform without symlink detected",
+                ));
             } else if file_type.is_file() {
                 tokio::fs::copy(src, dst).await?;
             } else if file_type.is_dir() {

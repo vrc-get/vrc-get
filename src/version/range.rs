@@ -11,11 +11,9 @@ impl DependencyRange {
     /// create from one version
     pub fn version(version: Version) -> DependencyRange {
         Self(VersionRange {
-            comparators: vec![
-                ComparatorSet(vec![
-                    Comparator::Star(PartialVersion::from(version))
-                ])
-            ]
+            comparators: vec![ComparatorSet(vec![Comparator::Star(PartialVersion::from(
+                version,
+            ))])],
         })
     }
 
@@ -44,7 +42,9 @@ impl DependencyRange {
     }
 
     pub fn as_range(&self) -> VersionRange {
-        self.as_single_version().map(VersionRange::same_or_later).unwrap_or_else(|| self.0.clone())
+        self.as_single_version()
+            .map(VersionRange::same_or_later)
+            .unwrap_or_else(|| self.0.clone())
     }
 }
 
@@ -56,11 +56,9 @@ pub struct VersionRange {
 impl VersionRange {
     pub fn same_or_later(version: Version) -> Self {
         Self {
-            comparators: vec![
-                ComparatorSet(vec![
-                    Comparator::GreaterThanOrEqual(PartialVersion::from(version))
-                ])
-            ]
+            comparators: vec![ComparatorSet(vec![Comparator::GreaterThanOrEqual(
+                PartialVersion::from(version),
+            )])],
         }
     }
 
@@ -73,7 +71,9 @@ impl VersionRange {
     }
 
     pub(crate) fn match_pre(&self, version: &Version, allow_prerelease: bool) -> bool {
-        self.comparators.iter().any(|x| x.matches(version, allow_prerelease))
+        self.comparators
+            .iter()
+            .any(|x| x.matches(version, allow_prerelease))
     }
 }
 
@@ -218,7 +218,7 @@ impl Comparator {
 
         allow!(in_version.is_pre() && in_version.base_version() == version.base_version());
 
-        // for Hyphen, we have two versions 
+        // for Hyphen, we have two versions
         if let Self::Hyphen(_, in_version) = self {
             let in_version = in_version.to_zeros();
 
@@ -270,9 +270,7 @@ impl Comparator {
             }
             Comparator::Star(v) | Comparator::Exact(v) => match v.to_full_or_next() {
                 (full, true) => full.cmp(version).is_eq(),
-                (next, false) => {
-                    &v.to_zeros_with_pre() <= version && version < &next
-                }
+                (next, false) => &v.to_zeros_with_pre() <= version && version < &next,
             },
             Comparator::GreaterThan(v) => greater_than(version, v),
             Comparator::GreaterThanOrEqual(v) => greater_than_or_equal(version, v),
@@ -312,14 +310,14 @@ impl Comparator {
 
     fn contains_pre(&self) -> bool {
         match self {
-            Comparator::Tilde(v) |
-            Comparator::Caret(v) |
-            Comparator::Exact(v) |
-            Comparator::GreaterThan(v) |
-            Comparator::GreaterThanOrEqual(v) |
-            Comparator::LessThan(v) |
-            Comparator::LessThanOrEqual(v) |
-            Comparator::Star(v) => !v.pre.is_empty(),
+            Comparator::Tilde(v)
+            | Comparator::Caret(v)
+            | Comparator::Exact(v)
+            | Comparator::GreaterThan(v)
+            | Comparator::GreaterThanOrEqual(v)
+            | Comparator::LessThan(v)
+            | Comparator::LessThanOrEqual(v)
+            | Comparator::Star(v) => !v.pre.is_empty(),
             Comparator::Hyphen(a, b) => !a.pre.is_empty() || !b.pre.is_empty(),
         }
     }
@@ -437,21 +435,33 @@ impl PartialVersion {
         if let Some(major) = self.major() {
             if let Some(minor) = self.minor() {
                 if let Some(patch) = self.patch() {
-                    (Version {
-                        major,
-                        minor,
-                        patch,
-                        pre: self.pre.clone(),
-                        build: self.build.clone(),
-                    }, true)
+                    (
+                        Version {
+                            major,
+                            minor,
+                            patch,
+                            pre: self.pre.clone(),
+                            build: self.build.clone(),
+                        },
+                        true,
+                    )
                 } else {
-                    (Version::new_pre(major, minor + 1, 0, Prerelease::new("0").unwrap()), false)
+                    (
+                        Version::new_pre(major, minor + 1, 0, Prerelease::new("0").unwrap()),
+                        false,
+                    )
                 }
             } else {
-                (Version::new_pre(major + 1, 0, 0, Prerelease::new("0").unwrap()), false)
+                (
+                    Version::new_pre(major + 1, 0, 0, Prerelease::new("0").unwrap()),
+                    false,
+                )
             }
         } else {
-            (Version::new_pre(u64::MAX, u64::MAX, u64::MAX, Prerelease::new("0").unwrap()), false)
+            (
+                Version::new_pre(u64::MAX, u64::MAX, u64::MAX, Prerelease::new("0").unwrap()),
+                false,
+            )
         }
     }
 
@@ -675,7 +685,12 @@ mod tests {
         fn test_pre(range: &str, version: &str) {
             let range = VersionRange::from_str(range).expect(range);
             let version = Version::from_str(version).expect(version);
-            assert!(range.match_pre(&version, true), "{} matches {}", range, version);
+            assert!(
+                range.match_pre(&version, true),
+                "{} matches {}",
+                range,
+                version
+            );
         }
         // test set are from node-semver
         // Copyright (c) Isaac Z. Schlueter and Contributors
@@ -811,7 +826,7 @@ mod tests {
         test_pre("<=0.7.x", "0.7.0-asdf");
 
         test_pre(">=1.0.0 <=1.1.0", "1.1.0-pre");
-        
+
         // additional tests by anatawa12
         test_pre("1.0.x - 2", "1.0.0-pre");
     }

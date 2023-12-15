@@ -17,7 +17,11 @@ impl RepoHolder {
 
 // new system
 impl RepoHolder {
-    pub(crate) async fn load_repos(&mut self, http: Option<&Client>, sources: Vec<RepoSource>) -> io::Result<()> {
+    pub(crate) async fn load_repos(
+        &mut self,
+        http: Option<&Client>,
+        sources: Vec<RepoSource>,
+    ) -> io::Result<()> {
         fn file_path(source: &RepoSource) -> &Path {
             match source {
                 RepoSource::PreDefined(_, path) => path,
@@ -26,7 +30,8 @@ impl RepoHolder {
         }
 
         let repos = try_join_all(sources.iter().map(|src| async {
-            Self::load_repo_from_source(http, src).await
+            Self::load_repo_from_source(http, src)
+                .await
                 .map(|v| v.map(|v| (v, file_path(src))))
         }))
         .await?;
@@ -44,12 +49,9 @@ impl RepoHolder {
     ) -> io::Result<Option<LocalCachedRepository>> {
         match source {
             RepoSource::PreDefined(source, path) => {
-                RepoHolder::load_remote_repo(
-                    client,
-                    None,
-                    &path, 
-                    source.url,
-                ).await.map(Some)
+                RepoHolder::load_remote_repo(client, None, &path, source.url)
+                    .await
+                    .map(Some)
             }
             RepoSource::UserRepo(user_repo) => {
                 if let Some(url) = &user_repo.url {
@@ -59,9 +61,12 @@ impl RepoHolder {
                         &user_repo.local_path,
                         &url,
                     )
-                    .await.map(Some)
+                    .await
+                    .map(Some)
                 } else {
-                    RepoHolder::load_local_repo(client, &user_repo.local_path).await.map(Some)
+                    RepoHolder::load_local_repo(client, &user_repo.local_path)
+                        .await
+                        .map(Some)
                 }
             }
         }
@@ -78,11 +83,15 @@ impl RepoHolder {
             let Some(client) = client else {
                 return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "offline mode"))
             };
-            let (remote_repo, etag) = download_remote_repository(&client, remote_url, headers, None)
-                .await?
-                .expect("logic failure: no etag");
+            let (remote_repo, etag) =
+                download_remote_repository(&client, remote_url, headers, None)
+                    .await?
+                    .expect("logic failure: no etag");
 
-            let mut local_cache = LocalCachedRepository::new(remote_repo, headers.map(Clone::clone).unwrap_or_default());
+            let mut local_cache = LocalCachedRepository::new(
+                remote_repo,
+                headers.map(Clone::clone).unwrap_or_default(),
+            );
 
             if let Some(etag) = etag {
                 local_cache
@@ -142,7 +151,9 @@ impl RepoHolder {
         self.cached_repos_new.values().collect()
     }
 
-    pub(crate) fn get_repo_with_path(&self) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+    pub(crate) fn get_repo_with_path(
+        &self,
+    ) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
         self.cached_repos_new.iter()
     }
 

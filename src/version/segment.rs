@@ -17,7 +17,6 @@ impl Segment {
     pub const LOWER_X: Segment = Segment(u64::MAX - 3);
     pub const MAX: Segment = Segment(u64::MAX / 2);
 
-
     pub const ZERO: Segment = Segment(0);
 
     pub(super) fn as_number(self) -> Option<u64> {

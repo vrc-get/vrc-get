@@ -1,8 +1,8 @@
+use crate::version::identifier::Identifier;
+use crate::version::{FromParsingBuf, ParseVersionError, ParsingBuf};
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use crate::version::{FromParsingBuf, ParseVersionError, ParsingBuf};
-use crate::version::identifier::Identifier;
 
 /// Optional pre-release identifier on a version string.
 #[derive(Default, Clone, Eq, PartialEq, Hash)]

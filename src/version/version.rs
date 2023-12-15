@@ -1,9 +1,9 @@
 use super::*;
+use crate::version::{BuildMetadata, Prerelease};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Write};
 use std::hash::Hash;
 use std::str::FromStr;
-use crate::version::{Prerelease, BuildMetadata};
 
 /// custom version implementation to avoid compare build meta
 #[derive(Debug, Clone, Hash)]
@@ -75,7 +75,10 @@ impl FromParsingBuf for Version {
                         i += 1;
                     }
                     let str = bytes.take(i);
-                    let value = Segment::from_str(str).map_err(|_| ParseVersionError::too_big())?.as_number().unwrap();
+                    let value = Segment::from_str(str)
+                        .map_err(|_| ParseVersionError::too_big())?
+                        .as_number()
+                        .unwrap();
                     Ok(value)
                 }
                 Some(b'0') => {
@@ -102,8 +105,7 @@ impl PartialEq<Self> for Version {
     }
 }
 
-impl Eq for Version {
-}
+impl Eq for Version {}
 
 impl PartialOrd<Self> for Version {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {

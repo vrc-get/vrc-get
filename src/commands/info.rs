@@ -1,12 +1,12 @@
-use std::collections::HashSet;
-use std::num::NonZeroU32;
-use std::path::PathBuf;
-use clap::{Parser, Subcommand};
-use itertools::Itertools;
-use serde::Serialize;
 use crate::commands::{load_env, load_unity};
 use crate::version::{UnityVersion, Version, VersionRange};
 use crate::vpm::UnityProject;
+use clap::{Parser, Subcommand};
+use itertools::Itertools;
+use serde::Serialize;
+use std::collections::HashSet;
+use std::num::NonZeroU32;
+use std::path::PathBuf;
 
 /// Shows information for other program.
 #[derive(Subcommand)]
@@ -19,7 +19,7 @@ pub enum Info {
 multi_command!(Info is Project, Package);
 
 /// Show project information
-/// 
+///
 /// Without --json-format, this will emit human readable information
 /// With --json-format, this will emit machine-readable information with json
 #[derive(Parser)]
@@ -60,9 +60,15 @@ impl Project {
         eprintln!("Locked Packages:");
         for (package, locked) in unity.locked_packages() {
             if let Some(installed) = unity.get_installed_package(package).map(|x| &x.version) {
-                eprintln!("{package} version {locked} with installed version {installed}", locked = locked.version);
+                eprintln!(
+                    "{package} version {locked} with installed version {installed}",
+                    locked = locked.version
+                );
             } else {
-                eprintln!("{package} version {locked} not installed", locked = locked.version);
+                eprintln!(
+                    "{package} version {locked} not installed",
+                    locked = locked.version
+                );
             }
         }
 
@@ -71,7 +77,10 @@ impl Project {
 
         for (package, installed) in unity.unlocked_packages() {
             if let Some(installed) = installed {
-                eprintln!("{package} version {installed}", installed = installed.version);
+                eprintln!(
+                    "{package} version {installed}",
+                    installed = installed.version
+                );
             }
         }
     }
@@ -178,20 +187,25 @@ impl Package {
 
         let packages = env.find_packages(&self.package);
 
-        let versions: Vec<_> = packages.iter().map(|x| PackageVersionInfo {version: x.version()}).collect();
+        let versions: Vec<_> = packages
+            .iter()
+            .map(|x| PackageVersionInfo {
+                version: x.version(),
+            })
+            .collect();
 
         #[derive(Serialize)]
         struct PackageInfo<'a> {
-            versions: &'a [PackageVersionInfo<'a>]
+            versions: &'a [PackageVersionInfo<'a>],
         }
 
         #[derive(Serialize)]
         struct PackageVersionInfo<'a> {
-            version: &'a Version
+            version: &'a Version,
         }
 
         let package_info = PackageInfo {
-            versions: versions.as_slice()
+            versions: versions.as_slice(),
         };
 
         println!("{}", serde_json::to_string(&package_info).unwrap());

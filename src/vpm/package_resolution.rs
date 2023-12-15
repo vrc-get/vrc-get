@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
 use super::*;
+use std::collections::VecDeque;
 
 struct PackageQueue<'a> {
     pending_queue: VecDeque<PackageInfo<'a>>,
@@ -26,7 +26,10 @@ impl<'a> PackageQueue<'a> {
     }
 }
 
-struct ResolutionContext<'env, 'a> where 'env: 'a {
+struct ResolutionContext<'env, 'a>
+where
+    'env: 'a,
+{
     allow_prerelease: bool,
     pub pending_queue: PackageQueue<'env>,
     dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
@@ -34,7 +37,7 @@ struct ResolutionContext<'env, 'a> where 'env: 'a {
 
 struct Legacy<'env>(&'env Vec<String>);
 
-impl <'env> Default for Legacy<'env> {
+impl<'env> Default for Legacy<'env> {
     fn default() -> Self {
         static VEC: Vec<String> = Vec::new();
         Self(&VEC)
@@ -46,7 +49,6 @@ struct DependencyInfo<'env, 'a> {
     using: Option<PackageInfo<'env>>,
     current: Option<&'a Version>,
     // "" key for root dependencies
-
     requirements: HashMap<&'a str, &'a VersionRange>,
     dependencies: HashSet<&'a str>,
 
@@ -57,7 +59,10 @@ struct DependencyInfo<'env, 'a> {
     touched: bool,
 }
 
-impl <'env, 'a> DependencyInfo<'env, 'a> where 'env: 'a {
+impl<'env, 'a> DependencyInfo<'env, 'a>
+where
+    'env: 'a,
+{
     fn new_dependency(version_range: &'a VersionRange, allow_pre: bool) -> Self {
         let mut requirements = HashMap::new();
         requirements.insert("", version_range);
@@ -111,7 +116,7 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
         let mut this = Self {
             dependencies: HashMap::new(),
             pending_queue: PackageQueue::new(packages),
-            allow_prerelease
+            allow_prerelease,
         };
 
         for pkg in &this.pending_queue.pending_queue {
@@ -122,26 +127,52 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
     }
 }
 
-impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
-    pub(crate) fn add_root_dependency(&mut self, name: &'a str, range: &'a VersionRange, allow_pre: bool) {
-        self.dependencies.insert(name, DependencyInfo::new_dependency(range, allow_pre));
+impl<'env, 'a> ResolutionContext<'env, 'a>
+where
+    'env: 'a,
+{
+    pub(crate) fn add_root_dependency(
+        &mut self,
+        name: &'a str,
+        range: &'a VersionRange,
+        allow_pre: bool,
+    ) {
+        self.dependencies
+            .insert(name, DependencyInfo::new_dependency(range, allow_pre));
     }
 
-    pub(crate) fn add_locked_dependency(&mut self, name: &'a String, locked: &'a VpmLockedDependency, env: &'env Environment) {
+    pub(crate) fn add_locked_dependency(
+        &mut self,
+        name: &'a String,
+        locked: &'a VpmLockedDependency,
+        env: &'env Environment,
+    ) {
         let info = self.dependencies.entry(name).or_default();
-        info.set_using_info(&locked.version, locked.dependencies.keys().map(|x| x.as_str()).collect());
+        info.set_using_info(
+            &locked.version,
+            locked.dependencies.keys().map(|x| x.as_str()).collect(),
+        );
 
-
-        if let Some(pkg) = env.find_package_by_name(name, PackageSelector::specific_version(&locked.version)) {
+        if let Some(pkg) =
+            env.find_package_by_name(name, PackageSelector::specific_version(&locked.version))
+        {
             info.legacy_packages = Legacy(pkg.legacy_packages());
 
             for legacy in pkg.legacy_packages() {
-                self.dependencies.entry(legacy).or_default().modern_packages.insert(name);
+                self.dependencies
+                    .entry(legacy)
+                    .or_default()
+                    .modern_packages
+                    .insert(name);
             }
         }
 
         for (dependency, range) in &locked.dependencies {
-            self.dependencies.entry(dependency).or_default().requirements.insert(name, range);
+            self.dependencies
+                .entry(dependency)
+                .or_default()
+                .requirements
+                .insert(name, range);
         }
     }
 
@@ -160,8 +191,12 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
         entry.current = Some(&package.version());
         entry.using = Some(package);
 
-        let old_dependencies = std::mem::replace(&mut entry.dependencies, vpm_dependencies.keys().map(|x| x.as_str()).collect());
-        let old_legacy_packages = std::mem::replace(&mut entry.legacy_packages, Legacy(legacy_packages));
+        let old_dependencies = std::mem::replace(
+            &mut entry.dependencies,
+            vpm_dependencies.keys().map(|x| x.as_str()).collect(),
+        );
+        let old_legacy_packages =
+            std::mem::replace(&mut entry.legacy_packages, Legacy(legacy_packages));
 
         // region process dependencies
         // remove previous dependencies if exists
@@ -169,16 +204,25 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
             self.dependencies.get_mut(*dep).unwrap().remove_range(name);
         }
         for (dependency, range) in vpm_dependencies.iter() {
-            self.dependencies.entry(dependency).or_default().add_range(name, range)
+            self.dependencies
+                .entry(dependency)
+                .or_default()
+                .add_range(name, range)
         }
         // endregion
 
         // region process modern packages
         for dep in old_legacy_packages.0 {
-            self.dependencies.get_mut(dep.as_str()).unwrap().remove_modern_package(name);
+            self.dependencies
+                .get_mut(dep.as_str())
+                .unwrap()
+                .remove_modern_package(name);
         }
         for legacy in legacy_packages {
-            self.dependencies.entry(legacy).or_default().add_modern_package(name)
+            self.dependencies
+                .entry(legacy)
+                .or_default()
+                .add_modern_package(name)
         }
         // endregion
 
@@ -187,9 +231,9 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
 
     pub(crate) fn should_add_package(&self, name: &'a str, range: &'a VersionRange) -> bool {
         let entry = self.dependencies.get(name).unwrap();
-        
+
         if entry.is_legacy() {
-            return false
+            return false;
         }
 
         let mut install = true;
@@ -199,7 +243,9 @@ impl<'env, 'a> ResolutionContext<'env, 'a> where 'env: 'a {
             if range.match_pre(&pending.version(), allow_prerelease) {
                 // if installing version is good, no need to reinstall
                 install = false;
-                log::debug!("processing package {name}: dependency {name} version {range}: pending matches");
+                log::debug!(
+                    "processing package {name}: dependency {name} version {range}: pending matches"
+                );
             }
         } else {
             // if already installed version is good, no need to reinstall
@@ -223,20 +269,25 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
                 if let Some(version) = &info.current {
                     for (source, range) in &info.requirements {
                         if !range.match_pre(version, info.allow_pre || self.allow_prerelease) {
-                            conflicts.entry(name.to_owned()).or_default().push((*source).to_owned());
+                            conflicts
+                                .entry(name.to_owned())
+                                .or_default()
+                                .push((*source).to_owned());
                         }
                     }
                 }
             }
         }
 
-        let found_legacy_packages = self.dependencies
+        let found_legacy_packages = self
+            .dependencies
             .iter()
             .filter(|(_, info)| info.is_legacy())
             .map(|(&name, _)| name.to_owned())
             .collect();
 
-        let new_packages= self.dependencies
+        let new_packages = self
+            .dependencies
             .into_values()
             .filter(|info| !info.is_legacy())
             .filter_map(|x| x.using)
@@ -312,8 +363,16 @@ pub fn collect_adding_packages<'env>(
 
                 if context.should_add_package(dependency, range) {
                     let found = env
-                        .find_package_by_name(dependency, PackageSelector::range_for(unity_version, range))
-                        .or_else(||env.find_package_by_name(dependency, PackageSelector::range_for(None, range)))
+                        .find_package_by_name(
+                            dependency,
+                            PackageSelector::range_for(unity_version, range),
+                        )
+                        .or_else(|| {
+                            env.find_package_by_name(
+                                dependency,
+                                PackageSelector::range_for(None, range),
+                            )
+                        })
                         .ok_or_else(|| AddPackageErr::DependencyNotFound {
                             dependency_name: dependency.clone(),
                         })?;

@@ -1,24 +1,24 @@
+use serde::Serializer;
 use std::alloc::{alloc, handle_alloc_error, Layout};
-use std::ptr;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::mem::{align_of, size_of};
-use serde::Serializer;
+use std::ptr;
 
 /// backend for BuildMeta or Prerelease
-/// 
+///
 /// Since most prerelease are less then 8 bytes like `beta.1`, `alpha.2`, etc, so,
 /// We inline the first 8 bytes if short, otherwise, we use a pointer to inline heap.
-/// 
+///
 /// This technic is inspired by [semver crate] by dtolnay which is also under MIT License.
-/// 
+///
 /// [semver crate]: https://github.com/dtolnay/semver
 // if uppermost bit is 1, it's pointer to heap shifted 1 bit to right.
 // otherwise, it's inline data with zero terminated (up to 8 bytes)
 // on heap, the first u16 is length of string, the rest is string data
 #[repr(C, align(8))]
 pub(super) struct Identifier {
-    data: u64
+    data: u64,
 }
 
 const U16_SIZE: usize = size_of::<u16>();
@@ -33,7 +33,7 @@ impl Identifier {
     pub const EMPTY: Identifier = Identifier { data: 0 };
 
     /// Creates new Identifier
-    /// 
+    ///
     /// SAFETY: the string must be valid ASCII string.
     /// if it contain non-ASCII bytes, it will undefined behaviour
     pub unsafe fn new_unchecked(string: &str) -> Self {
@@ -45,7 +45,7 @@ impl Identifier {
             let mut data_bytes = [0u8; 8];
             data_bytes[..len].copy_from_slice(string.as_bytes());
             Self {
-                data: u64::from_ne_bytes(data_bytes)
+                data: u64::from_ne_bytes(data_bytes),
             }
         } else if len < u16::MAX as usize {
             // heap data
@@ -62,7 +62,7 @@ impl Identifier {
             }
 
             Self {
-                data: unsafe { ptr_to_repr(ptr) }
+                data: unsafe { ptr_to_repr(ptr) },
             }
         } else {
             panic!("too long identifier")
@@ -105,9 +105,9 @@ impl Identifier {
         let repr = self.data;
 
         #[cfg(target_endian = "little")]
-            let zero_bits_on_string_end = repr.leading_zeros();
+        let zero_bits_on_string_end = repr.leading_zeros();
         #[cfg(target_endian = "big")]
-            let zero_bits_on_string_end = repr.trailing_zeros();
+        let zero_bits_on_string_end = repr.trailing_zeros();
 
         8 - zero_bits_on_string_end as usize / 8
     }
@@ -128,9 +128,7 @@ impl Hash for Identifier {
 impl Clone for Identifier {
     fn clone(&self) -> Self {
         if !self.is_heap() {
-            Self{
-                data: self.data
-            }
+            Self { data: self.data }
         } else {
             let ptr = unsafe { repr_to_ptr(self.data) };
             let size = unsafe { *ptr };
@@ -144,7 +142,7 @@ impl Clone for Identifier {
                 ptr::copy_nonoverlapping(ptr, new_ptr, data_size);
             }
             Self {
-                data: unsafe { ptr_to_repr(new_ptr) }
+                data: unsafe { ptr_to_repr(new_ptr) },
             }
         }
     }
@@ -155,7 +153,8 @@ impl Drop for Identifier {
         if self.is_heap() {
             let ptr = unsafe { repr_to_ptr(self.data) };
             let size = unsafe { *ptr };
-            let layout = unsafe { Layout::from_size_align_unchecked(size as usize + U16_SIZE, HEAP_ALIGN) };
+            let layout =
+                unsafe { Layout::from_size_align_unchecked(size as usize + U16_SIZE, HEAP_ALIGN) };
             unsafe { std::alloc::dealloc(ptr as *mut u8, layout) }
         }
     }
@@ -174,8 +173,7 @@ impl PartialEq for Identifier {
     }
 }
 
-impl Eq for Identifier {
-}
+impl Eq for Identifier {}
 
 // the data is not mutable so it's safe to send and sync
 unsafe impl Send for Identifier {}
@@ -214,16 +212,28 @@ mod tests {
     fn test_new() {
         unsafe {
             assert_eq!(Identifier::new_unchecked("beta.1").as_str(), "beta.1");
-            assert_eq!(Identifier::new_unchecked("beta.1").data, u64::from_ne_bytes(*b"beta.1\0\0"));
+            assert_eq!(
+                Identifier::new_unchecked("beta.1").data,
+                u64::from_ne_bytes(*b"beta.1\0\0")
+            );
 
             assert_eq!(Identifier::new_unchecked("alpha.2").as_str(), "alpha.2");
-            assert_eq!(Identifier::new_unchecked("alpha.2").data, u64::from_ne_bytes(*b"alpha.2\0"));
+            assert_eq!(
+                Identifier::new_unchecked("alpha.2").data,
+                u64::from_ne_bytes(*b"alpha.2\0")
+            );
 
             assert_eq!(Identifier::new_unchecked("").as_str(), "");
             assert_eq!(Identifier::new_unchecked("").data, 0);
 
-            assert_eq!(Identifier::new_unchecked("long-representation").as_str(), "long-representation");
-            assert_eq!(Identifier::new_unchecked("long-representation").data & HEAP_FLAG, HEAP_FLAG);
+            assert_eq!(
+                Identifier::new_unchecked("long-representation").as_str(),
+                "long-representation"
+            );
+            assert_eq!(
+                Identifier::new_unchecked("long-representation").data & HEAP_FLAG,
+                HEAP_FLAG
+            );
         }
     }
 
@@ -231,7 +241,10 @@ mod tests {
     fn test_eq() {
         macro_rules! test_eq {
             ($literal: literal) => {
-                assert_eq!(Identifier::new_unchecked($literal), Identifier::new_unchecked($literal));
+                assert_eq!(
+                    Identifier::new_unchecked($literal),
+                    Identifier::new_unchecked($literal)
+                );
             };
         }
         unsafe {

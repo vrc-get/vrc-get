@@ -1,8 +1,8 @@
-use crate::version::{Version, VersionRange, DependencyRange};
+use crate::version::{DependencyRange, Version, VersionRange};
 use indexmap::IndexMap;
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 type JsonMap = Map<String, Value>;
@@ -18,7 +18,7 @@ pub mod manifest {
     impl VpmDependency {
         pub fn new(version: Version) -> Self {
             Self {
-                version: DependencyRange::version(version)
+                version: DependencyRange::version(version),
             }
         }
     }
@@ -76,7 +76,10 @@ pub mod package {
     pub struct PartialUnityVersion(pub u16, pub u8);
 
     impl<'de> Deserialize<'de> for PartialUnityVersion {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::de::Deserializer<'de> {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::de::Deserializer<'de>,
+        {
             use serde::de::Error;
             let s = String::deserialize(deserializer)?;
             if let Some((maj, min)) = s.split_once('.') {
@@ -109,7 +112,12 @@ pub mod setting {
     }
 
     impl UserRepoSetting {
-        pub fn new(local_path: PathBuf, name: Option<String>, url: Option<String>, id: Option<String>) -> Self {
+        pub fn new(
+            local_path: PathBuf,
+            name: Option<String>,
+            url: Option<String>,
+            id: Option<String>,
+        ) -> Self {
             Self {
                 local_path,
                 name,
@@ -122,9 +130,9 @@ pub mod setting {
 }
 
 pub mod repo_cache {
+    use super::*;
     use crate::vpm::structs::package::PackageJson;
     use crate::vpm::structs::repository::{PackageVersions, Repository};
-    use super::*;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct LocalCachedRepository {
@@ -137,11 +145,12 @@ pub mod repo_cache {
     }
 
     impl LocalCachedRepository {
-        pub fn new(
-            repo: Repository, 
-            headers: IndexMap<String, String>,
-        ) -> Self {
-            Self { repo, headers, vrc_get: None }
+        pub fn new(repo: Repository, headers: IndexMap<String, String>) -> Self {
+            Self {
+                repo,
+                headers,
+                vrc_get: None,
+            }
         }
 
         pub fn headers(&self) -> &IndexMap<String, String> {
@@ -208,7 +217,7 @@ pub mod repository {
             })
         }
 
-        pub fn set_id_if_none(&mut self, f: impl FnOnce() -> String){
+        pub fn set_id_if_none(&mut self, f: impl FnOnce() -> String) {
             if let None = self.parsed.id {
                 let id = f();
                 self.parsed.id = Some(id.clone());
@@ -216,7 +225,7 @@ pub mod repository {
             }
         }
 
-        pub fn set_url_if_none(&mut self, f: impl FnOnce() -> String){
+        pub fn set_url_if_none(&mut self, f: impl FnOnce() -> String) {
             if let None = self.parsed.url {
                 let url = f();
                 self.parsed.url = Some(url.clone());
@@ -240,8 +249,12 @@ pub mod repository {
             self.parsed.name.as_deref()
         }
 
-        pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ package::PackageJson> {
-            self.parsed.packages
+        pub fn get_versions_of(
+            &self,
+            package: &str,
+        ) -> impl Iterator<Item = &'_ package::PackageJson> {
+            self.parsed
+                .packages
                 .get(package)
                 .map(|x| x.versions.values())
                 .into_iter()
@@ -249,20 +262,24 @@ pub mod repository {
         }
 
         pub fn get_packages(&self) -> impl Iterator<Item = &'_ PackageVersions> {
-            self.parsed.packages
-                .values()
-                .into_iter()
+            self.parsed.packages.values().into_iter()
         }
     }
 
     impl Serialize for Repository {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
             self.actual.serialize(serializer)
         }
     }
 
-    impl <'de> Deserialize<'de> for Repository {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+    impl<'de> Deserialize<'de> for Repository {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
             use serde::de::Error;
             let map = JsonMap::deserialize(deserializer)?;
             Self::new(map).map_err(Error::custom)

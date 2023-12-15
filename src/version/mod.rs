@@ -1,8 +1,8 @@
 pub use range::DependencyRange;
 pub use range::VersionRange;
-pub use unity_version::UnityVersion;
+use std::fmt::Debug;
 pub use unity_version::ReleaseType;
-use std::fmt::{Debug};
+pub use unity_version::UnityVersion;
 pub use version::Version;
 
 macro_rules! from_str_impl {
@@ -63,21 +63,21 @@ macro_rules! deserialize_from_str {
     };
 }
 
+mod actual_identifier;
+mod identifier;
+mod parsing_buf;
 mod range;
+mod segment;
 mod unity_version;
 mod version;
-mod identifier;
-mod actual_identifier;
-mod segment;
-mod parsing_buf;
 
 use segment::Segment;
 
-pub use actual_identifier::Prerelease;
 pub use actual_identifier::BuildMetadata;
-use parsing_buf::ParsingBuf;
+pub use actual_identifier::Prerelease;
 use parsing_buf::FromParsingBuf;
 use parsing_buf::ParseVersionError;
+use parsing_buf::ParsingBuf;
 
 #[cfg(test)]
 mod tests {

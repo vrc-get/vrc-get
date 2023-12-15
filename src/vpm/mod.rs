@@ -2,21 +2,21 @@
 //!
 //! This module might be a separated crate.
 
+use futures::future::join3;
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
-use std::ffi::{OsStr};
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::{env, fmt, io};
 use std::pin::pin;
-use futures::future::join3;
+use std::{env, fmt, io};
 
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use indexmap::IndexMap;
-use itertools::{Itertools as _};
+use itertools::Itertools as _;
 use reqwest::{Client, IntoUrl, Url};
 use serde_json::{from_value, to_value, Map, Value};
-use tokio::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, DirEntry, File, metadata};
+use tokio::fs::{create_dir_all, metadata, read_dir, remove_dir_all, remove_file, DirEntry, File};
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader};
 
 use repo_holder::RepoHolder;
@@ -26,15 +26,15 @@ use vpm_manifest::VpmManifest;
 use crate::version::{ReleaseType, UnityVersion, Version, VersionRange};
 use crate::vpm::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::vpm::structs::package::{PackageJson, PartialUnityVersion};
-use crate::vpm::structs::repository::{PackageVersions, Repository};
 use crate::vpm::structs::repo_cache::LocalCachedRepository;
+use crate::vpm::structs::repository::{PackageVersions, Repository};
 use crate::vpm::structs::setting::UserRepoSetting;
 
+mod add_package;
+mod package_resolution;
 mod repo_holder;
 pub mod structs;
 mod utils;
-mod add_package;
-mod package_resolution;
 
 type JsonMap = Map<String, Value>;
 
@@ -93,8 +93,7 @@ impl Environment {
             rfid: *const GUID,
             dwflags: KNOWN_FOLDER_FLAG,
             htoken: HANDLE,
-        ) -> windows::core::Result<PWSTR>
-        {
+        ) -> windows::core::Result<PWSTR> {
             windows::Win32::UI::Shell::SHGetKnownFolderPath(rfid, dwflags, htoken)
         }
 
@@ -104,7 +103,7 @@ impl Environment {
                 KNOWN_FOLDER_FLAG(0),
                 HANDLE::default(),
             )
-                .expect("cannot get Local AppData folder");
+            .expect("cannot get Local AppData folder");
             let os_string = OsString::from_wide(path.as_wide());
             windows::Win32::System::Com::CoTaskMemFree(Some(path.as_ptr().cast::<c_void>()));
             os_string
@@ -133,7 +132,9 @@ impl Environment {
 
     pub async fn load_package_infos(&mut self, update: bool) -> io::Result<()> {
         let http = if update { self.http.as_ref() } else { None };
-        self.repo_cache.load_repos(http, self.get_repo_sources()?).await?;
+        self.repo_cache
+            .load_repos(http, self.get_repo_sources()?)
+            .await?;
         self.update_user_repo_id();
         self.load_user_package_infos().await?;
         self.remove_id_duplication();
@@ -143,11 +144,11 @@ impl Environment {
     fn update_user_repo_id(&mut self) {
         let user_repos = self.get_user_repos().unwrap();
         if user_repos.len() == 0 {
-            return
+            return;
         }
 
         let json = self.settings.get_mut("userRepos").unwrap();
-        
+
         // update id field
         for (i, mut repo) in user_repos.into_iter().enumerate() {
             let loaded = self.repo_cache.get_repo(&repo.local_path).unwrap();
@@ -164,10 +165,15 @@ impl Environment {
     fn remove_id_duplication(&mut self) {
         let user_repos = self.get_user_repos().unwrap();
         if user_repos.len() == 0 {
-            return
+            return;
         }
 
-        let json = self.settings.get_mut("userRepos").unwrap().as_array_mut().unwrap();
+        let json = self
+            .settings
+            .get_mut("userRepos")
+            .unwrap()
+            .as_array_mut()
+            .unwrap();
 
         let mut used_ids = HashSet::new();
         let took = std::mem::take(json);
@@ -233,7 +239,9 @@ impl Environment {
         self.repo_cache.get_repos()
     }
 
-    pub fn get_repo_with_path(&self) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+    pub fn get_repo_with_path(
+        &self,
+    ) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
         self.repo_cache.get_repo_with_path()
     }
 
@@ -242,9 +250,9 @@ impl Environment {
 
         list.extend(
             self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.get_versions_of(package).map(move |pkg| (pkg, repo)))
-            .map(|(pkg, repo)| PackageInfo::remote(pkg, repo))
+                .into_iter()
+                .flat_map(|repo| repo.get_versions_of(package).map(move |pkg| (pkg, repo)))
+                .map(|(pkg, repo)| PackageInfo::remote(pkg, repo)),
         );
 
         // user package folders
@@ -287,8 +295,7 @@ impl Environment {
 
         list.sort_by_key(|x| Reverse(&x.version));
 
-        list
-            .into_iter()
+        list.into_iter()
             .unique_by(|x| (&x.name, &x.version))
             .collect()
     }
@@ -301,9 +308,10 @@ impl Environment {
         add_package::add_package(
             &self.global_dir,
             self.http.as_ref(),
-            package, 
+            package,
             target_packages_folder,
-        ).await
+        )
+        .await
     }
 
     pub(crate) fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
@@ -351,18 +359,16 @@ impl Environment {
             return Err(AddRepositoryErr::OfflineMode);
         };
 
-        let (remote_repo, etag) = download_remote_repository(&http, url.clone(), Some(&headers), None)
-            .await?
-            .expect("logic failure: no etag");
+        let (remote_repo, etag) =
+            download_remote_repository(&http, url.clone(), Some(&headers), None)
+                .await?
+                .expect("logic failure: no etag");
         let repo_name = name.or(remote_repo.name()).map(str::to_owned);
 
         let repo_id = remote_repo.id().map(str::to_owned);
 
         if let Some(repo_id) = repo_id.as_deref() {
-            if user_repos
-                .iter()
-                .any(|x| x.id.as_deref() == Some(repo_id))
-            {
+            if user_repos.iter().any(|x| x.id.as_deref() == Some(repo_id)) {
                 return Err(AddRepositoryErr::AlreadyAdded);
             }
         }
@@ -381,13 +387,14 @@ impl Environment {
 
         // [0-9a-zA-Z._-]+
         fn is_id_name_for_file(id: &str) -> bool {
-            id.len() != 0 && id.bytes().all(|b| match b {
-                b'0'..=b'9' => true,
-                b'a'..=b'z' => true,
-                b'A'..=b'Z' => true,
-                b'.' | b'_' | b'-' => true,
-                _ => false,
-            })
+            id.len() != 0
+                && id.bytes().all(|b| match b {
+                    b'0'..=b'9' => true,
+                    b'a'..=b'z' => true,
+                    b'A'..=b'Z' => true,
+                    b'.' | b'_' | b'-' => true,
+                    _ => false,
+                })
         }
 
         // try id.json
@@ -402,14 +409,16 @@ impl Environment {
                     .ok()
                     .map(|f| (f, path))
             }
-            _ => None
+            _ => None,
         };
 
-        // and then use 
+        // and then use
         let (mut file, local_path) = match file {
             Some(file) => file,
             None => {
-                let local_path = self.get_repos_dir().joined(format!("{}.json", uuid::Uuid::new_v4()));
+                let local_path = self
+                    .get_repos_dir()
+                    .joined(format!("{}.json", uuid::Uuid::new_v4()));
                 (File::create(&local_path).await?, local_path)
             }
         };
@@ -491,7 +500,7 @@ impl Environment {
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {
-    inner: PackageInfoInner<'a>
+    inner: PackageInfoInner<'a>,
 }
 
 #[derive(Copy, Clone)]
@@ -500,7 +509,7 @@ enum PackageInfoInner<'a> {
     Local(&'a PackageJson, &'a Path),
 }
 
-impl <'a> PackageInfo<'a> {
+impl<'a> PackageInfo<'a> {
     pub fn package_json(self) -> &'a PackageJson {
         // this match will be removed in the optimized code because package.json is exists at first
         match self.inner {
@@ -510,11 +519,15 @@ impl <'a> PackageInfo<'a> {
     }
 
     pub(crate) fn remote(json: &'a PackageJson, repo: &'a LocalCachedRepository) -> Self {
-        Self { inner: PackageInfoInner::Remote(json, repo) }
+        Self {
+            inner: PackageInfoInner::Remote(json, repo),
+        }
     }
 
     pub(crate) fn local(json: &'a PackageJson, path: &'a Path) -> Self {
-        Self { inner: PackageInfoInner::Local(json, path) }
+        Self {
+            inner: PackageInfoInner::Local(json, path),
+        }
     }
 
     #[allow(unused)]
@@ -679,7 +692,7 @@ pub(crate) async fn download_remote_repository(
         .and_then(|x| x.to_str().ok())
         .map(str::to_owned);
 
-    // response.json() doesn't support BOM 
+    // response.json() doesn't support BOM
     let full = response.bytes().await.err_mapped()?;
     let no_bom = full.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(full.as_ref());
     let json = serde_json::from_slice(&no_bom)?;
@@ -784,17 +797,23 @@ mod vpm_manifest {
             Ok(())
         }
 
-        pub(crate) fn mark_and_sweep_packages(&mut self, unlocked: &[(String, Option<PackageJson>)]) -> HashSet<String> {
+        pub(crate) fn mark_and_sweep_packages(
+            &mut self,
+            unlocked: &[(String, Option<PackageJson>)],
+        ) -> HashSet<String> {
             // mark
             let mut required_packages = HashSet::<&str>::new();
             for x in self.dependencies.keys() {
                 required_packages.insert(x);
             }
 
-            required_packages.extend(unlocked.iter()
-                .filter_map(|(_, pkg)| pkg.as_ref())
-                .flat_map(|x| x.vpm_dependencies.keys())
-                .map(String::as_str));
+            required_packages.extend(
+                unlocked
+                    .iter()
+                    .filter_map(|(_, pkg)| pkg.as_ref())
+                    .flat_map(|x| x.vpm_dependencies.keys())
+                    .map(String::as_str),
+            );
 
             let mut added_prev = required_packages.iter().copied().collect_vec();
 
@@ -896,9 +915,7 @@ impl UnityProject {
         })
     }
 
-    async fn try_read_unlocked_package(
-        dir_entry: DirEntry
-    ) -> (String, Option<PackageJson>) {
+    async fn try_read_unlocked_package(dir_entry: DirEntry) -> (String, Option<PackageJson>) {
         let package_path = dir_entry.path();
         let name = package_path
             .file_name()
@@ -1018,7 +1035,7 @@ pub struct AddPackageRequest<'env> {
     unity_conflicts: Vec<String>,
 }
 
-impl <'env> AddPackageRequest<'env> {
+impl<'env> AddPackageRequest<'env> {
     pub fn locked(&self) -> &[PackageInfo<'env>] {
         &self.locked
     }
@@ -1057,7 +1074,11 @@ impl UnityProject {
         allow_prerelease: bool,
     ) -> Result<AddPackageRequest<'env>, AddPackageErr> {
         packages.retain(|pkg| {
-            self.manifest.dependencies().get(pkg.name()).map(|dep| dep.version.matches(pkg.version())).unwrap_or(true)
+            self.manifest
+                .dependencies()
+                .get(pkg.name())
+                .map(|dep| dep.version.matches(pkg.version()))
+                .unwrap_or(true)
         });
 
         // if same or newer requested package is in locked dependencies,
@@ -1066,10 +1087,18 @@ impl UnityProject {
         let mut adding_packages = Vec::with_capacity(packages.len());
 
         for request in packages {
-            let update = self.manifest.locked().get(request.name()).map(|dep| dep.version < *request.version()).unwrap_or(true);
+            let update = self
+                .manifest
+                .locked()
+                .get(request.name())
+                .map(|dep| dep.version < *request.version())
+                .unwrap_or(true);
 
             if to_dependencies {
-                dependencies.push((request.name(), VpmDependency::new(request.version().clone())));
+                dependencies.push((
+                    request.name(),
+                    VpmDependency::new(request.version().clone()),
+                ));
             }
 
             if update {
@@ -1078,7 +1107,7 @@ impl UnityProject {
         }
 
         if adding_packages.len() == 0 {
-            // early return: 
+            // early return:
             return Ok(AddPackageRequest {
                 dependencies,
                 locked: vec![],
@@ -1090,9 +1119,17 @@ impl UnityProject {
             });
         }
 
-        let result = package_resolution::collect_adding_packages(self.manifest.dependencies(), self.manifest.locked(), self.unity_version(), env, adding_packages, allow_prerelease)?;
+        let result = package_resolution::collect_adding_packages(
+            self.manifest.dependencies(),
+            self.manifest.locked(),
+            self.unity_version(),
+            env,
+            adding_packages,
+            allow_prerelease,
+        )?;
 
-        let legacy_packages = result.found_legacy_packages
+        let legacy_packages = result
+            .found_legacy_packages
             .into_iter()
             .filter(|name| self.manifest.locked().contains_key(name))
             .collect();
@@ -1100,7 +1137,8 @@ impl UnityProject {
         let (legacy_files, legacy_folders) = self.collect_legacy_assets(&result.new_packages).await;
 
         let unity_conflicts = if let Some(unity) = self.unity_version {
-            result.new_packages
+            result
+                .new_packages
                 .iter()
                 .filter(|pkg| !unity_compatible(pkg, unity))
                 .map(|pkg| pkg.name().to_owned())
@@ -1109,8 +1147,8 @@ impl UnityProject {
             vec![]
         };
 
-        return Ok(AddPackageRequest { 
-            dependencies, 
+        return Ok(AddPackageRequest {
+            dependencies,
             locked: result.new_packages,
             conflicts: result.conflicts,
             unity_conflicts,
@@ -1120,9 +1158,18 @@ impl UnityProject {
         });
     }
 
-    async fn collect_legacy_assets(&self, packages: &[PackageInfo<'_>]) -> (Vec<PathBuf>, Vec<PathBuf>) {
-        let folders = packages.iter().flat_map(|x| &x.package_json().legacy_folders).map(|(path, guid)| (path, guid, false));
-        let files = packages.iter().flat_map(|x| &x.package_json().legacy_files).map(|(path, guid)| (path, guid, true));
+    async fn collect_legacy_assets(
+        &self,
+        packages: &[PackageInfo<'_>],
+    ) -> (Vec<PathBuf>, Vec<PathBuf>) {
+        let folders = packages
+            .iter()
+            .flat_map(|x| &x.package_json().legacy_folders)
+            .map(|(path, guid)| (path, guid, false));
+        let files = packages
+            .iter()
+            .flat_map(|x| &x.package_json().legacy_files)
+            .map(|(path, guid)| (path, guid, true));
         let assets = folders.chain(files).collect::<Vec<_>>();
 
         enum LegacyInfo {
@@ -1141,32 +1188,39 @@ impl UnityProject {
             Some(GUID(parse_hex_128(guid.as_bytes().try_into().ok()?)?))
         }
 
-        let mut futures = pin!(assets.into_iter().map(|(path, guid, is_file)| async move {
-            // some packages uses '/' as path separator.
-            let path = PathBuf::from(path.replace('\\', "/"));
-            // for security, deny absolute path.
-            if path.has_root() {
-                return NotFound
-            }
-            let path = self.project_dir.join(path);
-            if metadata(&path).await.map(|x| x.is_file() == is_file).unwrap_or(false) {
-                if is_file {
-                    FoundFile(path)
-                } else {
-                    FoundFolder(path)
+        let mut futures = pin!(assets
+            .into_iter()
+            .map(|(path, guid, is_file)| async move {
+                // some packages uses '/' as path separator.
+                let path = PathBuf::from(path.replace('\\', "/"));
+                // for security, deny absolute path.
+                if path.has_root() {
+                    return NotFound;
                 }
-            } else {
-                if let Some(guid) = guid.as_deref().and_then(try_parse_guid) {
+                let path = self.project_dir.join(path);
+                if metadata(&path)
+                    .await
+                    .map(|x| x.is_file() == is_file)
+                    .unwrap_or(false)
+                {
                     if is_file {
-                        GuidFile(guid)
+                        FoundFile(path)
                     } else {
-                        GuidFolder(guid)
+                        FoundFolder(path)
                     }
                 } else {
-                    NotFound
+                    if let Some(guid) = guid.as_deref().and_then(try_parse_guid) {
+                        if is_file {
+                            GuidFile(guid)
+                        } else {
+                            GuidFolder(guid)
+                        }
+                    } else {
+                        NotFound
+                    }
                 }
-            }
-        }).collect::<FuturesUnordered<_>>());
+            })
+            .collect::<FuturesUnordered<_>>());
 
         let mut found_files = HashSet::new();
         let mut found_folders = HashSet::new();
@@ -1176,21 +1230,27 @@ impl UnityProject {
             match info {
                 FoundFile(path) => {
                     found_files.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
-                },
-                FoundFolder(path) => { 
+                }
+                FoundFolder(path) => {
                     found_folders.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
-                },
+                }
                 NotFound => (),
-                GuidFile(guid) => { find_guids.insert(guid, true); },
-                GuidFolder(guid) => { find_guids.insert(guid, false); },
+                GuidFile(guid) => {
+                    find_guids.insert(guid, true);
+                }
+                GuidFolder(guid) => {
+                    find_guids.insert(guid, false);
+                }
             }
         }
 
         if find_guids.len() != 0 {
             async fn get_guid(entry: DirEntry) -> Option<(GUID, bool, PathBuf)> {
                 let path = entry.path();
-                if path.extension() != Some(OsStr::new("meta")) || !entry.file_type().await.ok()?.is_file() {
-                    return None
+                if path.extension() != Some(OsStr::new("meta"))
+                    || !entry.file_type().await.ok()?.is_file()
+                {
+                    return None;
                 }
                 let mut file = BufReader::new(File::open(&path).await.ok()?);
                 let mut buffer = String::new();
@@ -1198,12 +1258,12 @@ impl UnityProject {
                     let line = buffer.as_str();
                     if let Some(guid) = line.strip_prefix("guid: ") {
                         // current line should be line for guid.
-                        if let Some(guid) = try_parse_guid(guid.trim()){
+                        if let Some(guid) = try_parse_guid(guid.trim()) {
                             // remove .meta extension
                             let mut path = path;
                             path.set_extension("");
                             let is_file = metadata(&path).await.ok()?.is_file();
-                            return Some((guid, is_file, path))
+                            return Some((guid, is_file, path));
                         }
                     }
 
@@ -1213,23 +1273,32 @@ impl UnityProject {
                 None
             }
 
-            let mut stream = pin!(walk_dir([self.project_dir.join("Packages"), self.project_dir.join("Assets")]).filter_map(get_guid));
+            let mut stream = pin!(walk_dir([
+                self.project_dir.join("Packages"),
+                self.project_dir.join("Assets")
+            ])
+            .filter_map(get_guid));
 
             while let Some((guid, is_file_actual, path)) = stream.next().await {
                 if let Some(&is_file) = find_guids.get(&guid) {
                     if is_file_actual == is_file {
                         find_guids.remove(&guid);
                         if is_file {
-                            found_files.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                            found_files
+                                .insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
                         } else {
-                            found_folders.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                            found_folders
+                                .insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
                         }
                     }
                 }
             }
         }
 
-        (found_files.into_iter().collect(), found_folders.into_iter().collect())
+        (
+            found_files.into_iter().collect(),
+            found_folders.into_iter().collect(),
+        )
     }
 
     pub async fn do_add_package_request<'env>(
@@ -1248,12 +1317,29 @@ impl UnityProject {
         let project_dir = &self.project_dir;
 
         // finally, try to remove legacy assets
-        self.manifest.remove_packages(request.legacy_packages.iter().map(|x| x.as_str()));
+        self.manifest
+            .remove_packages(request.legacy_packages.iter().map(|x| x.as_str()));
         join3(
-            join_all(request.legacy_files.into_iter().map(|x| remove_file(x, project_dir))),
-            join_all(request.legacy_folders.into_iter().map(|x| remove_folder(x, project_dir))),
-            join_all(request.legacy_packages.into_iter().map(|x| remove_package(x, project_dir))),
-        ).await;
+            join_all(
+                request
+                    .legacy_files
+                    .into_iter()
+                    .map(|x| remove_file(x, project_dir)),
+            ),
+            join_all(
+                request
+                    .legacy_folders
+                    .into_iter()
+                    .map(|x| remove_folder(x, project_dir)),
+            ),
+            join_all(
+                request
+                    .legacy_packages
+                    .into_iter()
+                    .map(|x| remove_package(x, project_dir)),
+            ),
+        )
+        .await;
 
         async fn remove_meta_file(path: PathBuf) {
             let mut building = path.into_os_string();
@@ -1286,7 +1372,11 @@ impl UnityProject {
         async fn remove_package(name: String, project_dir: &Path) {
             let folder = project_dir.join("Packages").joined(name);
             if let Some(err) = tokio::fs::remove_dir_all(&folder).await.err() {
-                log::error!("error removing legacy package at {}: {}", folder.display(), err);
+                log::error!(
+                    "error removing legacy package at {}: {}",
+                    folder.display(),
+                    err
+                );
             }
         }
 
@@ -1302,10 +1392,7 @@ impl UnityProject {
         for pkg in packages.iter() {
             self.manifest.add_locked(
                 &pkg.name(),
-                VpmLockedDependency::new(
-                    pkg.version().clone(),
-                    pkg.vpm_dependencies().clone()
-                ),
+                VpmLockedDependency::new(pkg.version().clone(), pkg.vpm_dependencies().clone()),
             );
         }
 
@@ -1375,7 +1462,9 @@ impl UnityProject {
     ///
     /// This doesn't look packages not listed in vpm-maniefst.json.
     pub async fn mark_and_sweep(&mut self) -> io::Result<HashSet<String>> {
-        let removed_packages = self.manifest.mark_and_sweep_packages(&self.unlocked_packages);
+        let removed_packages = self
+            .manifest
+            .mark_and_sweep_packages(&self.unlocked_packages);
 
         try_join_all(removed_packages.iter().map(|name| {
             remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
@@ -1391,7 +1480,12 @@ impl UnityProject {
 
     pub async fn save(&mut self) -> io::Result<()> {
         self.manifest
-            .save_to(&self.project_dir.join("Packages").joined("vpm-manifest.json"))
+            .save_to(
+                &self
+                    .project_dir
+                    .join("Packages")
+                    .joined("vpm-manifest.json"),
+            )
             .await
     }
 
@@ -1406,7 +1500,9 @@ impl UnityProject {
                 .map(|(pkg, dep)| async move {
                     let pkg = env
                         .find_package_by_name(&pkg, PackageSelector::specific_version(&dep.version))
-                        .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
+                        .unwrap_or_else(|| {
+                            panic!("some package in manifest.json not found: {pkg}")
+                        });
                     env.add_package(pkg, packages_folder).await?;
                     Result::<_, AddPackageErr>::Ok(())
                 }),
@@ -1442,16 +1538,20 @@ impl UnityProject {
             })
             .collect::<Vec<_>>();
 
-        let allow_prerelease = unlocked_dependencies.iter().any(|x| !x.version().pre.is_empty());
+        let allow_prerelease = unlocked_dependencies
+            .iter()
+            .any(|x| !x.version().pre.is_empty());
 
-        let req = self.add_package_request(&env, unlocked_dependencies, false, allow_prerelease).await?;
+        let req = self
+            .add_package_request(&env, unlocked_dependencies, false, allow_prerelease)
+            .await?;
 
         if req.conflicts.len() != 0 {
             let (conflict, mut deps) = req.conflicts.into_iter().next().unwrap();
             return Err(AddPackageErr::ConflictWithDependencies {
                 conflict,
                 dependency_name: deps.swap_remove(0),
-            })
+            });
         }
 
         self.do_add_package_request(&env, req).await?;
@@ -1546,7 +1646,9 @@ fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
     }
 
     match package.name() {
-        "com.vrchat.avatars" | "com.vrchat.worlds" | "com.vrchat.base" if is_vrcsdk_for_2019(package.version()) => {
+        "com.vrchat.avatars" | "com.vrchat.worlds" | "com.vrchat.base"
+            if is_vrcsdk_for_2019(package.version()) =>
+        {
             // this version of VRCSDK is only for unity 2019 so for other version(s) of unity, it's not satisfied.
             unity.major() == 2019
         }
@@ -1729,10 +1831,16 @@ where
     serde_json::to_vec_pretty(value)
 }
 
-async fn try_join_all<I>(iter: I) -> Result<Vec<<<I as IntoIterator>::Item as TryFuture>::Ok>, <<I as IntoIterator>::Item as TryFuture>::Error>
-    where
-        I: IntoIterator,
-        I::Item: TryFuture {
+async fn try_join_all<I>(
+    iter: I,
+) -> Result<
+    Vec<<<I as IntoIterator>::Item as TryFuture>::Ok>,
+    <<I as IntoIterator>::Item as TryFuture>::Error,
+>
+where
+    I: IntoIterator,
+    I::Item: TryFuture,
+{
     let mut vec = Vec::new();
     for mut fut in iter {
         let mut pinned = pin!(fut);
@@ -1742,9 +1850,10 @@ async fn try_join_all<I>(iter: I) -> Result<Vec<<<I as IntoIterator>::Item as Tr
 }
 
 async fn join_all<I>(iter: I) -> Vec<<<I as IntoIterator>::Item as Future>::Output>
-    where
-        I: IntoIterator,
-        I::Item: Future {
+where
+    I: IntoIterator,
+    I::Item: Future,
+{
     let mut vec = Vec::new();
     for mut fut in iter {
         let mut pinned = pin!(fut);
