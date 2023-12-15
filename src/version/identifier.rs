@@ -1,6 +1,7 @@
 use std::alloc::{alloc, handle_alloc_error, Layout};
 use std::ptr;
 use std::fmt::{Debug, Formatter};
+use std::hash::{Hash, Hasher};
 use std::mem::{align_of, size_of};
 use serde::Serializer;
 
@@ -16,7 +17,7 @@ use serde::Serializer;
 // otherwise, it's inline data with zero terminated (up to 8 bytes)
 // on heap, the first u16 is length of string, the rest is string data
 #[repr(C, align(8))]
-pub struct Identifier {
+pub(super) struct Identifier {
     data: u64
 }
 
@@ -112,6 +113,18 @@ impl Identifier {
     }
 }
 
+impl Default for Identifier {
+    fn default() -> Self {
+        Self::EMPTY
+    }
+}
+
+impl Hash for Identifier {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
+    }
+}
+
 impl Clone for Identifier {
     fn clone(&self) -> Self {
         if !self.is_heap() {
@@ -159,6 +172,9 @@ impl PartialEq for Identifier {
             self.as_str() == rhs.as_str()
         }
     }
+}
+
+impl Eq for Identifier {
 }
 
 // the data is not mutable so it's safe to send and sync

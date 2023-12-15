@@ -2,9 +2,8 @@ pub use range::DependencyRange;
 pub use range::VersionRange;
 pub use unity_version::UnityVersion;
 pub use unity_version::ReleaseType;
-use std::fmt::{Debug, Display, Formatter, write};
+use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use sha2::digest::typenum::Less;
 pub use version::Version;
 
 macro_rules! from_str_impl {
@@ -69,6 +68,10 @@ mod range;
 mod unity_version;
 mod version;
 mod identifier;
+mod actual_identifier;
+
+pub use actual_identifier::Prerelease;
+pub use actual_identifier::BuildMetadata;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]

@@ -1,9 +1,9 @@
 use super::*;
-use semver::{BuildMetadata, Prerelease};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Write};
 use std::hash::Hash;
 use std::str::FromStr;
+use crate::version::{Prerelease, BuildMetadata};
 
 /// custom version implementation to avoid compare build meta
 #[derive(Debug, Clone, Hash)]
@@ -152,79 +152,5 @@ impl Version {
 
     pub fn is_stable(&self) -> bool {
         self.pre.is_empty()
-    }
-}
-
-impl FromParsingBuf for Prerelease {
-    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
-        Ok(Prerelease::new(parse_id(buffer, false)?).unwrap())
-    }
-}
-
-impl FromParsingBuf for BuildMetadata {
-    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
-        Ok(BuildMetadata::new(parse_id(buffer, true)?).unwrap())
-    }
-}
-
-fn parse_id<'a>(
-    bytes: &mut ParsingBuf<'a>,
-    allow_loading_zero: bool,
-) -> Result<&'a str, ParseRangeError> {
-    let buf = bytes.buf;
-    'outer: loop {
-        let mut leading_zero = false;
-        let mut alphanumeric = false;
-        match bytes.first() {
-            None => return Err(ParseRangeError::unexpected_end()),
-            Some(b'0') => {
-                bytes.skip();
-                leading_zero = true;
-            }
-            Some(b'0'..=b'9') => {
-                bytes.skip();
-            }
-            Some(b'a'..=b'z' | b'A'..=b'Z' | b'-') => {
-                bytes.skip();
-                alphanumeric = true;
-            }
-            Some(b'.') => return Err(ParseRangeError::invalid_char('.')),
-            _ => return Err(ParseRangeError::invalid_char(bytes.first_char())),
-        }
-        'segment: loop {
-            match bytes.first() {
-                Some(b'0'..=b'9') => {
-                    bytes.skip();
-                }
-                Some(b'a'..=b'z' | b'A'..=b'Z' | b'-') => {
-                    bytes.skip();
-                    alphanumeric = true;
-                }
-                Some(b'.') => {
-                    bytes.skip();
-                    if !allow_loading_zero && alphanumeric && leading_zero {
-                        // leading zero is invalid char
-                        return Err(ParseRangeError::invalid_char('0'));
-                    }
-
-                    break 'segment;
-                }
-                _ => {
-                    // end of segment
-                    if !allow_loading_zero && alphanumeric && leading_zero {
-                        // leading zero is invalid char
-                        return Err(ParseRangeError::invalid_char('0'));
-                    }
-                    break 'outer;
-                }
-            }
-        }
-    }
-
-    if bytes.buf.len() == 0 {
-        Ok(buf)
-    } else {
-        let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;
-        Ok(&buf[..len])
     }
 }

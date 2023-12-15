@@ -1,5 +1,4 @@
 use crate::version::*;
-use semver::{BuildMetadata, Prerelease};
 use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 
@@ -478,10 +477,6 @@ impl PartialVersion {
             },
             build: self.build.clone(),
         }
-    }
-
-    fn segment_or(segment: Segment, or: u64) -> u64 {
-        segment.as_number().unwrap_or(or)
     }
 
     fn major(&self) -> Option<u64> {
