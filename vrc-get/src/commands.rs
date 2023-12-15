@@ -18,7 +18,7 @@ use vrc_get_vpm::structs::setting::UserRepoSetting;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
     download_remote_repository, AddPackageRequest, Environment, PackageInfo, PackageSelector,
-    UnityProject,
+    PreDefinedRepoSource, UnityProject,
 };
 
 macro_rules! multi_command {
@@ -62,6 +62,16 @@ async fn load_env(args: &EnvArgs) -> Environment {
         .await
         .exit_context("loading repositories");
     env.save().await.exit_context("saving repositories updates");
+
+    if let Some(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE").ok() {
+        log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
+        env.set_url_override(PreDefinedRepoSource::Official, url_override);
+    }
+
+    if let Some(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE").ok() {
+        log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
+        env.set_url_override(PreDefinedRepoSource::Curated, url_override);
+    }
 
     env
 }
