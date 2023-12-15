@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "vrc-get",
+]
+
+[patch.crates-io]
+async_zip = { git = "https://github.com/Majored/rs-async-zip.git", rev = "a58024e" }
