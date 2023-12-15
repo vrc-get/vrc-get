@@ -66,6 +66,7 @@ macro_rules! deserialize_from_str {
 mod range;
 mod unity_version;
 mod version;
+mod identifier;
 
 type Segment = u64;
 
