@@ -23,17 +23,13 @@ impl<'a> ParsingBuf<'a> {
                 self.skip();
                 Ok(())
             }
-            Some(c) => Err(ParseVersionError::invalid()),
-            None => Err(ParseVersionError::invalid(),
+            Some(_) => Err(ParseVersionError::invalid()),
+            None => Err(ParseVersionError::invalid()),
         }
     }
 
     pub fn first(&self) -> Option<u8> {
         self.buf.as_bytes().first().copied()
-    }
-
-    pub fn first_char(&self) -> char {
-        self.buf.chars().next().expect("invalid state")
     }
 
     pub fn skip(&mut self) -> &mut Self {
