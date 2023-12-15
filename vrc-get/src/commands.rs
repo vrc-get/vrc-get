@@ -137,7 +137,12 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
     if request.locked().len() != 0 {
         println!("You're installing the following packages:");
         for x in request.locked() {
-            println!("- {} version {}", x.name(), x.version());
+            if x.is_yanked() {
+                prompt = true;
+                println!("- {} version {} (yanked)", x.name(), x.version());
+            } else {
+                println!("- {} version {}", x.name(), x.version());
+            }
         }
         prompt = prompt || request.locked().len() > 1;
     }

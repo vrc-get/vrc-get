@@ -276,6 +276,7 @@ impl Environment {
             versions
                 .versions
                 .values()
+                .filter(|x| !is_truthy(x.yanked.as_ref()))
                 .filter(|x| x.version.pre.is_empty())
                 .max_by_key(|x| &x.version)
         }
@@ -575,7 +576,7 @@ fn is_truthy(value: Option<&Value>) -> bool {
         // No NaN in json
         Some(Value::Number(num)) if num.as_f64() == Some(0.0) => false,
         Some(Value::String(s)) if s == "" => false,
-        _ => true
+        _ => true,
     }
 }
 
@@ -1684,6 +1685,18 @@ fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
 
 impl<'a> PackageSelector<'a> {
     pub fn satisfies(&self, package: &PackageInfo) -> bool {
+        match self.version_selector {
+            VersionSelector::Specific(_) => {
+                // if specific version is selected, ignore yank
+            }
+            _ => {
+                // otherwise, check if yanked
+                if package.is_yanked() {
+                    return false;
+                }
+            }
+        }
+
         if let Some(unity) = self.project_unity {
             if !unity_compatible(package, unity) {
                 return false;
