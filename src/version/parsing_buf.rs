@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 pub(super) trait FromParsingBuf: Sized {
-    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError>;
+    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseVersionError>;
 }
 
 pub(super) struct ParsingBuf<'a> {
@@ -17,14 +17,14 @@ impl<'a> ParsingBuf<'a> {
         self.buf.is_empty()
     }
 
-    pub fn read(&mut self, ch: char) -> Result<(), ParseRangeError> {
+    pub fn read(&mut self, ch: char) -> Result<(), ParseVersionError> {
         match self.buf.chars().next() {
             Some(c) if c == ch => {
                 self.skip();
                 Ok(())
             }
-            Some(c) => Err(ParseRangeError::invalid()),
-            None => Err(ParseRangeError::invalid(),
+            Some(c) => Err(ParseVersionError::invalid()),
+            None => Err(ParseVersionError::invalid(),
         }
     }
 
@@ -59,11 +59,11 @@ impl<'a> ParsingBuf<'a> {
 }
 
 #[derive(Debug)]
-pub struct ParseRangeError {
+pub struct ParseVersionError {
     inner: Inner,
 }
 
-impl Display for ParseRangeError {
+impl Display for ParseVersionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self.inner {
             Inner::VersionSegmentTooBig => f.write_str("version segment too big"),
@@ -73,7 +73,7 @@ impl Display for ParseRangeError {
     }
 }
 
-impl std::error::Error for ParseRangeError {}
+impl std::error::Error for ParseVersionError {}
 
 #[derive(Debug)]
 enum Inner {
@@ -82,7 +82,7 @@ enum Inner {
     Invalid,
 }
 
-impl ParseRangeError {
+impl ParseVersionError {
     pub(super) fn too_big() -> Self {
         Self {
             inner: Inner::VersionSegmentTooBig,
@@ -93,7 +93,7 @@ impl ParseRangeError {
             inner: Inner::Invalid,
         }
     }
-    pub(super) fn unexpected_end() -> ParseRangeError {
+    pub(super) fn unexpected_end() -> ParseVersionError {
         Self {
             inner: Inner::UnexpectedEnd,
         }

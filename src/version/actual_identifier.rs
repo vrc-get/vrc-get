@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use crate::version::{FromParsingBuf, ParseRangeError, ParsingBuf};
+use crate::version::{FromParsingBuf, ParseVersionError, ParsingBuf};
 use crate::version::identifier::Identifier;
 
 /// Optional pre-release identifier on a version string.
@@ -17,7 +17,7 @@ impl Prerelease {
         identifier: Identifier::EMPTY,
     };
 
-    pub fn new(text: &str) -> Result<Self, ParseRangeError> {
+    pub fn new(text: &str) -> Result<Self, ParseVersionError> {
         Prerelease::from_str(text)
     }
 
@@ -43,7 +43,7 @@ impl Debug for Prerelease {
 }
 
 impl FromParsingBuf for Prerelease {
-    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
+    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         let text = parse_id(buffer, false)?;
         Ok(Prerelease {
             identifier: unsafe { Identifier::new_unchecked(text) },
@@ -118,7 +118,7 @@ impl BuildMetadata {
         identifier: Identifier::EMPTY,
     };
 
-    pub fn new(text: &str) -> Result<Self, ParseRangeError> {
+    pub fn new(text: &str) -> Result<Self, ParseVersionError> {
         BuildMetadata::from_str(text)
     }
 
@@ -144,7 +144,7 @@ impl Debug for BuildMetadata {
 }
 
 impl FromParsingBuf for BuildMetadata {
-    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
+    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         let text = parse_id(buffer, true)?;
         Ok(Self {
             identifier: unsafe { Identifier::new_unchecked(text) },
@@ -155,13 +155,13 @@ impl FromParsingBuf for BuildMetadata {
 fn parse_id<'a>(
     bytes: &mut ParsingBuf<'a>,
     allow_loading_zero: bool,
-) -> Result<&'a str, ParseRangeError> {
+) -> Result<&'a str, ParseVersionError> {
     let buf = bytes.buf;
     'outer: loop {
         let mut leading_zero = false;
         let mut alphanumeric = false;
         match bytes.first() {
-            None => return Err(ParseRangeError::unexpected_end()),
+            None => return Err(ParseVersionError::unexpected_end()),
             Some(b'0') => {
                 bytes.skip();
                 leading_zero = true;
@@ -173,8 +173,8 @@ fn parse_id<'a>(
                 bytes.skip();
                 alphanumeric = true;
             }
-            Some(b'.') => return Err(ParseRangeError::invalid()),
-            _ => return Err(ParseRangeError::invalid()),
+            Some(b'.') => return Err(ParseVersionError::invalid()),
+            _ => return Err(ParseVersionError::invalid()),
         }
         'segment: loop {
             match bytes.first() {
@@ -189,7 +189,7 @@ fn parse_id<'a>(
                     bytes.skip();
                     if !allow_loading_zero && alphanumeric && leading_zero {
                         // leading zero is invalid char
-                        return Err(ParseRangeError::invalid());
+                        return Err(ParseVersionError::invalid());
                     }
 
                     break 'segment;
@@ -198,7 +198,7 @@ fn parse_id<'a>(
                     // end of segment
                     if !allow_loading_zero && alphanumeric && leading_zero {
                         // leading zero is invalid char
-                        return Err(ParseRangeError::invalid());
+                        return Err(ParseVersionError::invalid());
                     }
                     break 'outer;
                 }

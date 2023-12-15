@@ -96,7 +96,7 @@ impl Display for VersionRange {
 }
 
 impl FromStr for VersionRange {
-    type Err = ParseRangeError;
+    type Err = ParseVersionError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self {
@@ -129,7 +129,7 @@ impl Display for ComparatorSet {
 from_str_impl!(ComparatorSet);
 
 impl FromParsingBuf for ComparatorSet {
-    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
+    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         let mut result = Vec::<Comparator>::new();
 
         while !buffer.is_empty() {
@@ -326,7 +326,7 @@ impl Comparator {
 }
 
 impl FromParsingBuf for Comparator {
-    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
+    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         bytes.skip_ws();
         match bytes.first() {
             Some(b'~') => Ok(Self::Tilde(PartialVersion::parse(bytes.skip())?)),
@@ -369,7 +369,7 @@ impl FromParsingBuf for Comparator {
                     Ok(Self::Star(first))
                 }
             }
-            None => Err(ParseRangeError::unexpected_end()),
+            None => Err(ParseVersionError::unexpected_end()),
         }
     }
 }
@@ -505,7 +505,7 @@ impl PartialVersion {
 }
 
 impl FromParsingBuf for PartialVersion {
-    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
+    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         bytes.skip_ws();
         // allow v1.2.3
         if let Some(b'v') = bytes.first() {
@@ -547,7 +547,7 @@ impl FromParsingBuf for PartialVersion {
             build,
         });
 
-        fn parse_segment(bytes: &mut ParsingBuf) -> Result<Segment, ParseRangeError> {
+        fn parse_segment(bytes: &mut ParsingBuf) -> Result<Segment, ParseVersionError> {
             match bytes.first() {
                 Some(b'x') => {
                     bytes.skip();
@@ -567,19 +567,19 @@ impl FromParsingBuf for PartialVersion {
                         i += 1;
                     }
                     let str = bytes.take(i);
-                    let value = Segment::from_str(str).map_err(|_| ParseRangeError::too_big())?;
+                    let value = Segment::from_str(str).map_err(|_| ParseVersionError::too_big())?;
                     Ok(value)
                 }
                 Some(b'0') => {
                     bytes.skip();
                     // if 0\d, 0 is invalid char
                     if let Some(b'0'..=b'9') = bytes.first() {
-                        return Err(ParseRangeError::invalid());
+                        return Err(ParseVersionError::invalid());
                     }
                     Ok(Segment::ZERO)
                 }
-                Some(_) => Err(ParseRangeError::invalid()),
-                None => Err(ParseRangeError::invalid()),
+                Some(_) => Err(ParseVersionError::invalid()),
+                None => Err(ParseVersionError::invalid()),
             }
         }
     }
@@ -589,13 +589,13 @@ impl PartialVersion {
     fn parse_id<'a>(
         bytes: &mut ParsingBuf<'a>,
         allow_loading_zero: bool,
-    ) -> Result<&'a str, ParseRangeError> {
+    ) -> Result<&'a str, ParseVersionError> {
         let buf = bytes.buf;
         'outer: loop {
             let mut leading_zero = false;
             let mut alphanumeric = false;
             match bytes.first() {
-                None => return Err(ParseRangeError::unexpected_end()),
+                None => return Err(ParseVersionError::unexpected_end()),
                 Some(b'0') => {
                     bytes.skip();
                     leading_zero = true;
@@ -607,8 +607,8 @@ impl PartialVersion {
                     bytes.skip();
                     alphanumeric = true;
                 }
-                Some(b'.') => return Err(ParseRangeError::invalid()),
-                _ => return Err(ParseRangeError::invalid()),
+                Some(b'.') => return Err(ParseVersionError::invalid()),
+                _ => return Err(ParseVersionError::invalid()),
             }
             'segment: loop {
                 match bytes.first() {
@@ -623,7 +623,7 @@ impl PartialVersion {
                         bytes.skip();
                         if !allow_loading_zero && alphanumeric && leading_zero {
                             // leading zero is invalid char
-                            return Err(ParseRangeError::invalid());
+                            return Err(ParseVersionError::invalid());
                         }
 
                         break 'segment;
@@ -632,7 +632,7 @@ impl PartialVersion {
                         // end of segment
                         if !allow_loading_zero && alphanumeric && leading_zero {
                             // leading zero is invalid char
-                            return Err(ParseRangeError::invalid());
+                            return Err(ParseVersionError::invalid());
                         }
                         break 'outer;
                     }

@@ -8,13 +8,13 @@ pub use version::Version;
 macro_rules! from_str_impl {
     ($ty: ty) => {
         impl FromStr for $ty {
-            type Err = ParseRangeError;
+            type Err = ParseVersionError;
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 let mut buffer = ParsingBuf::new(s);
                 let result = FromParsingBuf::parse(&mut buffer)?;
                 if buffer.first().is_some() {
-                    return Err(ParseRangeError::invalid());
+                    return Err(ParseVersionError::invalid());
                 }
                 Ok(result)
             }
@@ -77,7 +77,7 @@ pub use actual_identifier::Prerelease;
 pub use actual_identifier::BuildMetadata;
 use parsing_buf::ParsingBuf;
 use parsing_buf::FromParsingBuf;
-use parsing_buf::ParseRangeError;
+use parsing_buf::ParseVersionError;
 
 #[cfg(test)]
 mod tests {

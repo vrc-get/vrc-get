@@ -38,7 +38,7 @@ impl Display for Version {
 }
 
 impl FromParsingBuf for Version {
-    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
+    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         let major = parse_segment(bytes)?;
         bytes.read('.')?;
         let minor = parse_segment(bytes)?;
@@ -67,7 +67,7 @@ impl FromParsingBuf for Version {
             build,
         });
 
-        fn parse_segment(bytes: &mut ParsingBuf) -> Result<u64, ParseRangeError> {
+        fn parse_segment(bytes: &mut ParsingBuf) -> Result<u64, ParseVersionError> {
             match bytes.first() {
                 Some(b'1'..=b'9') => {
                     let mut i = 1;
@@ -75,19 +75,19 @@ impl FromParsingBuf for Version {
                         i += 1;
                     }
                     let str = bytes.take(i);
-                    let value = Segment::from_str(str).map_err(|_| ParseRangeError::too_big())?.as_number().unwrap();
+                    let value = Segment::from_str(str).map_err(|_| ParseVersionError::too_big())?.as_number().unwrap();
                     Ok(value)
                 }
                 Some(b'0') => {
                     bytes.skip();
                     // if 0\d, 0 is invalid char
                     if let Some(b'0'..=b'9') = bytes.first() {
-                        return Err(ParseRangeError::invalid());
+                        return Err(ParseVersionError::invalid());
                     }
                     Ok(0)
                 }
-                Some(_) => Err(ParseRangeError::invalid()),
-                None => Err(ParseRangeError::invalid()),
+                Some(_) => Err(ParseVersionError::invalid()),
+                None => Err(ParseVersionError::invalid()),
             }
         }
     }
