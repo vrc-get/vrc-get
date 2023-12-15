@@ -1,16 +1,16 @@
 use super::*;
-use semver::{BuildMetadata, Prerelease};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Write};
 use std::hash::Hash;
 use std::str::FromStr;
+use crate::version::{Prerelease, BuildMetadata};
 
 /// custom version implementation to avoid compare build meta
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct Version {
-    pub major: Segment,
-    pub minor: Segment,
-    pub patch: Segment,
+    pub major: u64,
+    pub minor: u64,
+    pub patch: u64,
     pub pre: Prerelease,
     pub build: BuildMetadata,
 }
@@ -38,8 +38,7 @@ impl Display for Version {
 }
 
 impl FromParsingBuf for Version {
-    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
-        bytes.skip_ws();
+    fn parse(bytes: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         let major = parse_segment(bytes)?;
         bytes.read('.')?;
         let minor = parse_segment(bytes)?;
@@ -68,7 +67,7 @@ impl FromParsingBuf for Version {
             build,
         });
 
-        fn parse_segment(bytes: &mut ParsingBuf) -> Result<Segment, ParseRangeError> {
+        fn parse_segment(bytes: &mut ParsingBuf) -> Result<u64, ParseVersionError> {
             match bytes.first() {
                 Some(b'1'..=b'9') => {
                     let mut i = 1;
@@ -76,25 +75,34 @@ impl FromParsingBuf for Version {
                         i += 1;
                     }
                     let str = bytes.take(i);
-                    let value = Segment::from_str(str).map_err(|_| ParseRangeError::too_big())?;
-                    if value > VERSION_SEGMENT_MAX {
-                        return Err(ParseRangeError::too_big());
-                    }
+                    let value = Segment::from_str(str).map_err(|_| ParseVersionError::too_big())?.as_number().unwrap();
                     Ok(value)
                 }
                 Some(b'0') => {
                     bytes.skip();
                     // if 0\d, 0 is invalid char
                     if let Some(b'0'..=b'9') = bytes.first() {
-                        return Err(ParseRangeError::invalid_char(bytes.first_char()));
+                        return Err(ParseVersionError::invalid());
                     }
                     Ok(0)
                 }
-                Some(_) => Err(ParseRangeError::invalid_char(bytes.first_char())),
-                None => Err(ParseRangeError::unexpected_end()),
+                Some(_) => Err(ParseVersionError::invalid()),
+                None => Err(ParseVersionError::invalid()),
             }
         }
     }
+}
+
+impl PartialEq<Self> for Version {
+    fn eq(&self, other: &Self) -> bool {
+        self.major == other.major
+            && self.minor == other.minor
+            && self.patch == other.patch
+            && self.pre == other.pre
+    }
+}
+
+impl Eq for Version {
 }
 
 impl PartialOrd<Self> for Version {
@@ -114,7 +122,7 @@ impl Ord for Version {
 }
 
 impl Version {
-    pub fn new(major: Segment, minor: Segment, patch: Segment) -> Version {
+    pub fn new(major: u64, minor: u64, patch: u64) -> Version {
         Version {
             major,
             minor,
@@ -124,7 +132,7 @@ impl Version {
         }
     }
 
-    pub fn new_pre(major: Segment, minor: Segment, patch: Segment, pre: Prerelease) -> Version {
+    pub fn new_pre(major: u64, minor: u64, patch: u64, pre: Prerelease) -> Version {
         Version {
             major,
             minor,
@@ -144,79 +152,5 @@ impl Version {
 
     pub fn is_stable(&self) -> bool {
         self.pre.is_empty()
-    }
-}
-
-impl FromParsingBuf for Prerelease {
-    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
-        Ok(Prerelease::new(parse_id(buffer, false)?).unwrap())
-    }
-}
-
-impl FromParsingBuf for BuildMetadata {
-    fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError> {
-        Ok(BuildMetadata::new(parse_id(buffer, true)?).unwrap())
-    }
-}
-
-fn parse_id<'a>(
-    bytes: &mut ParsingBuf<'a>,
-    allow_loading_zero: bool,
-) -> Result<&'a str, ParseRangeError> {
-    let buf = bytes.buf;
-    'outer: loop {
-        let mut leading_zero = false;
-        let mut alphanumeric = false;
-        match bytes.first() {
-            None => return Err(ParseRangeError::unexpected_end()),
-            Some(b'0') => {
-                bytes.skip();
-                leading_zero = true;
-            }
-            Some(b'0'..=b'9') => {
-                bytes.skip();
-            }
-            Some(b'a'..=b'z' | b'A'..=b'Z' | b'-') => {
-                bytes.skip();
-                alphanumeric = true;
-            }
-            Some(b'.') => return Err(ParseRangeError::invalid_char('.')),
-            _ => return Err(ParseRangeError::invalid_char(bytes.first_char())),
-        }
-        'segment: loop {
-            match bytes.first() {
-                Some(b'0'..=b'9') => {
-                    bytes.skip();
-                }
-                Some(b'a'..=b'z' | b'A'..=b'Z' | b'-') => {
-                    bytes.skip();
-                    alphanumeric = true;
-                }
-                Some(b'.') => {
-                    bytes.skip();
-                    if !allow_loading_zero && alphanumeric && leading_zero {
-                        // leading zero is invalid char
-                        return Err(ParseRangeError::invalid_char('0'));
-                    }
-
-                    break 'segment;
-                }
-                _ => {
-                    // end of segment
-                    if !allow_loading_zero && alphanumeric && leading_zero {
-                        // leading zero is invalid char
-                        return Err(ParseRangeError::invalid_char('0'));
-                    }
-                    break 'outer;
-                }
-            }
-        }
-    }
-
-    if bytes.buf.len() == 0 {
-        Ok(buf)
-    } else {
-        let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;
-        Ok(&buf[..len])
     }
 }
