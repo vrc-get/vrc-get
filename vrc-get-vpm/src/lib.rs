@@ -230,7 +230,7 @@ impl Environment {
         let defined_sources = DEFINED_REPO_SOURCES
             .into_iter()
             .copied()
-            .map(|x| RepoSource::PreDefined(x, self.get_repos_dir().join(x.file_name)));
+            .map(|x| RepoSource::PreDefined(x, self.get_repos_dir().join(x.file_name())));
         let user_repo_sources = self.get_user_repos()?.into_iter().map(RepoSource::UserRepo);
 
         Ok(defined_sources.chain(user_repo_sources).collect())
@@ -563,11 +563,30 @@ impl<'a> PackageInfo<'a> {
 }
 
 #[derive(Copy, Clone)]
-pub struct PreDefinedRepoSource {
-    file_name: &'static str,
-    url: &'static str,
-    #[allow(dead_code)]
-    name: &'static str,
+pub enum PreDefinedRepoSource {
+    Official,
+    Curated,
+}
+
+impl PreDefinedRepoSource {
+    pub fn file_name(self) -> &'static str {
+        match self {
+            PreDefinedRepoSource::Official => "vrc-official.json",
+            PreDefinedRepoSource::Curated => "vrc-curated.json",
+        }
+    }
+    pub fn url(self) -> &'static str {
+        match self {
+            PreDefinedRepoSource::Official => "https://packages.vrchat.com/official?download",
+            PreDefinedRepoSource::Curated => "https://packages.vrchat.com/curated?download",
+        }
+    }
+    pub fn name(self) -> &'static str {
+        match self {
+            PreDefinedRepoSource::Official => "Official",
+            PreDefinedRepoSource::Curated => "Curated",
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -577,19 +596,7 @@ pub enum RepoSource {
     UserRepo(UserRepoSetting),
 }
 
-static OFFICIAL_REPO_SOURCE: PreDefinedRepoSource = PreDefinedRepoSource {
-    file_name: "vrc-official.json",
-    url: "https://packages.vrchat.com/official?download",
-    name: "Official",
-};
-
-static CURATED_REPO_SOURCE: PreDefinedRepoSource = PreDefinedRepoSource {
-    file_name: "vrc-curated.json",
-    url: "https://packages.vrchat.com/curated?download",
-    name: "Curated",
-};
-
-static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[OFFICIAL_REPO_SOURCE, CURATED_REPO_SOURCE];
+static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[PreDefinedRepoSource::Official, PreDefinedRepoSource::Curated];
 
 #[derive(Debug)]
 pub enum AddRepositoryErr {

@@ -49,7 +49,7 @@ impl RepoHolder {
     ) -> io::Result<Option<LocalCachedRepository>> {
         match source {
             RepoSource::PreDefined(source, path) => {
-                RepoHolder::load_remote_repo(client, None, &path, source.url)
+                RepoHolder::load_remote_repo(client, None, &path, source.url())
                     .await
                     .map(Some)
             }
