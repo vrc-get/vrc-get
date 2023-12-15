@@ -1,17 +1,29 @@
 name: Publish
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      release_kind:
+        type: choice
+        description: The type of release.
+        default: prerelease
+        required: true
+        options:
+          - prerelease
+          - start-rc
+          - stable
 
 env:
   RELEASER_CHANGER: 'regex-pattern:version = "$1"@Cargo.toml'
+  SOMETHING_RELEASER_SEMVER: 1
 
 jobs:
   pre-build:
     name: Update version name
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.update.outputs.version }}
+      version: ${{ steps.update-version.outputs.version }}
+      prerelease: ${{ steps.update-version.outputs.prerelease }}
     permissions:
       contents: write
     steps:
@@ -26,24 +38,57 @@ jobs:
           profile: minimal
           override: true
 
-      - name: update version name
+      - name: Update Version Name
+        id: update-version
+        run: |
+          # set version name in properties file
+          case "$RELEASE_KIND_IN" in
+            "prerelease" )
+              set-version "$(version-next "$(get-version)")"
+              gh-export-variable PRERELEASE true
+              gh-set-output prerelease true
+              ;;
+            "start-rc" )
+              set-version "$(version-set-channel "$(get-version)" rc)"
+              gh-export-variable PRERELEASE true
+              gh-set-output prerelease true
+              ;;
+            "stable" )
+              set-version "$(version-set-channel "$(get-version)" stable)"
+              gh-export-variable PRERELEASE false
+              gh-set-output prerelease '' # empty string for false
+              ;;
+            * )
+              echo "invalid release kind: $RELEASE_KIND_IN"
+              exit 255
+              ;;
+          esac
+
+          case "$GITHUB_REF_NAME" in
+            master | master-* )
+              echo "head is master or master-*"
+              ;;
+            * )
+              echo "invalid release kind: $RELEASE_KIND_IN is not allowd for $GITHUB_REF_NAME"
+              exit 255
+              ;;
+          esac
+
+          gh-export-variable VERSION "$(get-version)"
+          gh-set-output version "$(get-version)"
+        env:
+          RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
+
+      - name: Update cargo metadata
+        run: cargo metadata --format-version=1 > /dev/null
+      - name: Commit
         id: update
         run: |-
-          # update version name
-          VERSION="$(get-version)"
-          if ! [[ "$VERSION" = *-SNAPSHOT ]]; then
-            echo 'VERSION IS NOT SNAPSHOT' >&2
-            exit 1
-          fi
-          VERSION="$(version-unsnapshot "$VERSION")"
-          gh-set-output version "$VERSION"
-          set-version "$VERSION"
-          cargo metadata --format-version=1 > /dev/null
           # commit & tag
-          git add .
+          git add Cargo.lock
           git commit -m "v$VERSION"
           git branch releasing
-          git push -u origin releasing
+          git push -f -u origin releasing
 
   build-rust:
     name: Build rust
@@ -189,13 +234,12 @@ jobs:
 
           rm -rf outputs assets
 
-      - name: Update To Next Version
+      - name: prepare next release & push
+        if: inputs.publish && !needs.pre-build.outputs.prerelease
         run: |
-          VERSION="$(get-version)"
-          VERSION="$(version-next "$VERSION")"
-          set-version "$(version-snapshot "$VERSION")"
+          VERSION="$(version-next "$(get-version)")"
+          set-version "$(version-set-channel "$VERSION" beta 0)"
           cargo metadata --format-version=1 > /dev/null
-          git add .
-          git commit -m "prepare for next version: $VERSION"
+          git commit -am "chore: prepare for next version: $VERSION"
           git push
           git push --delete origin releasing
