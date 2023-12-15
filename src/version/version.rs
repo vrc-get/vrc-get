@@ -6,7 +6,7 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 /// custom version implementation to avoid compare build meta
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct Version {
     pub major: Segment,
     pub minor: Segment,
@@ -95,6 +95,18 @@ impl FromParsingBuf for Version {
             }
         }
     }
+}
+
+impl PartialEq<Self> for Version {
+    fn eq(&self, other: &Self) -> bool {
+        self.major == other.major
+            && self.minor == other.minor
+            && self.patch == other.patch
+            && self.pre == other.pre
+    }
+}
+
+impl Eq for Version {
 }
 
 impl PartialOrd<Self> for Version {
