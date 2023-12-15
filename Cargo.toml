@@ -2,6 +2,7 @@
 
 members = [
     "vrc-get",
+    "vrc-get-vpm"
 ]
 
 [workspace.package]

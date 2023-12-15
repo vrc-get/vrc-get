@@ -1501,6 +1501,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "vrc-get-vpm"
+version = "0.0.1"
+
+[[package]]
 name = "want"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
