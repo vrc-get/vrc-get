@@ -14,7 +14,7 @@ macro_rules! from_str_impl {
                 let mut buffer = ParsingBuf::new(s);
                 let result = FromParsingBuf::parse(&mut buffer)?;
                 if buffer.first().is_some() {
-                    return Err(ParseRangeError::invalid_char(buffer.first_char()));
+                    return Err(ParseRangeError::invalid());
                 }
                 Ok(result)
             }

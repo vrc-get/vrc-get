@@ -82,12 +82,12 @@ impl FromParsingBuf for Version {
                     bytes.skip();
                     // if 0\d, 0 is invalid char
                     if let Some(b'0'..=b'9') = bytes.first() {
-                        return Err(ParseRangeError::invalid_char(bytes.first_char()));
+                        return Err(ParseRangeError::invalid());
                     }
                     Ok(0)
                 }
-                Some(_) => Err(ParseRangeError::invalid_char(bytes.first_char())),
-                None => Err(ParseRangeError::unexpected_end()),
+                Some(_) => Err(ParseRangeError::invalid()),
+                None => Err(ParseRangeError::invalid()),
             }
         }
     }

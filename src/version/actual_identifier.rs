@@ -173,8 +173,8 @@ fn parse_id<'a>(
                 bytes.skip();
                 alphanumeric = true;
             }
-            Some(b'.') => return Err(ParseRangeError::invalid_char('.')),
-            _ => return Err(ParseRangeError::invalid_char(bytes.first_char())),
+            Some(b'.') => return Err(ParseRangeError::invalid()),
+            _ => return Err(ParseRangeError::invalid()),
         }
         'segment: loop {
             match bytes.first() {
@@ -189,7 +189,7 @@ fn parse_id<'a>(
                     bytes.skip();
                     if !allow_loading_zero && alphanumeric && leading_zero {
                         // leading zero is invalid char
-                        return Err(ParseRangeError::invalid_char('0'));
+                        return Err(ParseRangeError::invalid());
                     }
 
                     break 'segment;
@@ -198,7 +198,7 @@ fn parse_id<'a>(
                     // end of segment
                     if !allow_loading_zero && alphanumeric && leading_zero {
                         // leading zero is invalid char
-                        return Err(ParseRangeError::invalid_char('0'));
+                        return Err(ParseRangeError::invalid());
                     }
                     break 'outer;
                 }

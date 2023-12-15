@@ -574,12 +574,12 @@ impl FromParsingBuf for PartialVersion {
                     bytes.skip();
                     // if 0\d, 0 is invalid char
                     if let Some(b'0'..=b'9') = bytes.first() {
-                        return Err(ParseRangeError::invalid_char(bytes.first_char()));
+                        return Err(ParseRangeError::invalid());
                     }
                     Ok(Segment::ZERO)
                 }
-                Some(_) => Err(ParseRangeError::invalid_char(bytes.first_char())),
-                None => Err(ParseRangeError::unexpected_end()),
+                Some(_) => Err(ParseRangeError::invalid()),
+                None => Err(ParseRangeError::invalid()),
             }
         }
     }
@@ -607,8 +607,8 @@ impl PartialVersion {
                     bytes.skip();
                     alphanumeric = true;
                 }
-                Some(b'.') => return Err(ParseRangeError::invalid_char('.')),
-                _ => return Err(ParseRangeError::invalid_char(bytes.first_char())),
+                Some(b'.') => return Err(ParseRangeError::invalid()),
+                _ => return Err(ParseRangeError::invalid()),
             }
             'segment: loop {
                 match bytes.first() {
@@ -623,7 +623,7 @@ impl PartialVersion {
                         bytes.skip();
                         if !allow_loading_zero && alphanumeric && leading_zero {
                             // leading zero is invalid char
-                            return Err(ParseRangeError::invalid_char('0'));
+                            return Err(ParseRangeError::invalid());
                         }
 
                         break 'segment;
@@ -632,7 +632,7 @@ impl PartialVersion {
                         // end of segment
                         if !allow_loading_zero && alphanumeric && leading_zero {
                             // leading zero is invalid char
-                            return Err(ParseRangeError::invalid_char('0'));
+                            return Err(ParseRangeError::invalid());
                         }
                         break 'outer;
                     }

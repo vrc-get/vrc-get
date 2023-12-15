@@ -23,8 +23,8 @@ impl<'a> ParsingBuf<'a> {
                 self.skip();
                 Ok(())
             }
-            Some(c) => Err(ParseRangeError::invalid_char(c)),
-            None => Err(ParseRangeError::unexpected_end()),
+            Some(c) => Err(ParseRangeError::invalid()),
+            None => Err(ParseRangeError::invalid(),
         }
     }
 
@@ -68,7 +68,7 @@ impl Display for ParseRangeError {
         match self.inner {
             Inner::VersionSegmentTooBig => f.write_str("version segment too big"),
             Inner::UnexpectedEnd => f.write_str("unexpected end"),
-            Inner::InvalidChar(c) => write!(f, "invalid char: {:?}", c),
+            Inner::Invalid => write!(f, "invalid"),
         }
     }
 }
@@ -79,7 +79,7 @@ impl std::error::Error for ParseRangeError {}
 enum Inner {
     VersionSegmentTooBig,
     UnexpectedEnd,
-    InvalidChar(char),
+    Invalid,
 }
 
 impl ParseRangeError {
@@ -88,9 +88,9 @@ impl ParseRangeError {
             inner: Inner::VersionSegmentTooBig,
         }
     }
-    pub(super) fn invalid_char(c: char) -> Self {
+    pub(super) fn invalid() -> Self {
         Self {
-            inner: Inner::InvalidChar(c),
+            inner: Inner::Invalid,
         }
     }
     pub(super) fn unexpected_end() -> ParseRangeError {
