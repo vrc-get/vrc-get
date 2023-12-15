@@ -1,21 +1,16 @@
 [package]
 name = "vrc-get"
-version = "1.4.1-SNAPSHOT"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
-license = "MIT"
-authors = ["anatawa12 <anatawa12@icloud.com>"]
 description = "Open Source command line client of VRChat Package Manager."
-homepage = "https://github.com/anatawa12/vrc-get#readme"
-repository = "https://github.com/anatawa12/vrc-get"
 readme = "README.md"
 keywords = ["vpm", "package-manager"]
 categories = ["command-line-utilities"]
-
-exclude = [
-    ".github/**",
-    ".cargo/**",
-]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

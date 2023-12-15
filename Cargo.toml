@@ -4,5 +4,15 @@ members = [
     "vrc-get",
 ]
 
+[workspace.package]
+version = "1.4.1-SNAPSHOT"
+edition = "2021"
+
+license = "MIT"
+authors = ["anatawa12 <anatawa12@icloud.com>"]
+homepage = "https://github.com/anatawa12/vrc-get#readme"
+repository = "https://github.com/anatawa12/vrc-get"
+readme = "README.md"
+
 [patch.crates-io]
 async_zip = { git = "https://github.com/Majored/rs-async-zip.git", rev = "a58024e" }
