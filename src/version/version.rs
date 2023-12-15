@@ -8,9 +8,9 @@ use std::str::FromStr;
 /// custom version implementation to avoid compare build meta
 #[derive(Debug, Clone, Hash)]
 pub struct Version {
-    pub major: Segment,
-    pub minor: Segment,
-    pub patch: Segment,
+    pub major: u64,
+    pub minor: u64,
+    pub patch: u64,
     pub pre: Prerelease,
     pub build: BuildMetadata,
 }
@@ -67,7 +67,7 @@ impl FromParsingBuf for Version {
             build,
         });
 
-        fn parse_segment(bytes: &mut ParsingBuf) -> Result<Segment, ParseRangeError> {
+        fn parse_segment(bytes: &mut ParsingBuf) -> Result<u64, ParseRangeError> {
             match bytes.first() {
                 Some(b'1'..=b'9') => {
                     let mut i = 1;
@@ -75,10 +75,7 @@ impl FromParsingBuf for Version {
                         i += 1;
                     }
                     let str = bytes.take(i);
-                    let value = Segment::from_str(str).map_err(|_| ParseRangeError::too_big())?;
-                    if value > VERSION_SEGMENT_MAX {
-                        return Err(ParseRangeError::too_big());
-                    }
+                    let value = Segment::from_str(str).map_err(|_| ParseRangeError::too_big())?.as_number().unwrap();
                     Ok(value)
                 }
                 Some(b'0') => {
@@ -125,7 +122,7 @@ impl Ord for Version {
 }
 
 impl Version {
-    pub fn new(major: Segment, minor: Segment, patch: Segment) -> Version {
+    pub fn new(major: u64, minor: u64, patch: u64) -> Version {
         Version {
             major,
             minor,
@@ -135,7 +132,7 @@ impl Version {
         }
     }
 
-    pub fn new_pre(major: Segment, minor: Segment, patch: Segment, pre: Prerelease) -> Version {
+    pub fn new_pre(major: u64, minor: u64, patch: u64, pre: Prerelease) -> Version {
         Version {
             major,
             minor,

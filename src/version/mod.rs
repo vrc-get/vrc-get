@@ -2,7 +2,9 @@ pub use range::DependencyRange;
 pub use range::VersionRange;
 pub use unity_version::UnityVersion;
 pub use unity_version::ReleaseType;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, write};
+use std::str::FromStr;
+use sha2::digest::typenum::Less;
 pub use version::Version;
 
 macro_rules! from_str_impl {
@@ -68,13 +70,72 @@ mod unity_version;
 mod version;
 mod identifier;
 
-type Segment = u64;
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+struct Segment(u64);
 
-const NOT_EXISTS: Segment = Segment::MAX;
-const STAR: Segment = NOT_EXISTS - 1;
-const UPPER_X: Segment = STAR - 1;
-const LOWER_X: Segment = UPPER_X - 1;
-const VERSION_SEGMENT_MAX: Segment = LOWER_X - 1;
+impl Segment {
+    pub const NOT_EXISTS: Segment = Segment(u64::MAX);
+    pub const STAR: Segment = Segment(u64::MAX - 1);
+    pub const UPPER_X: Segment = Segment(u64::MAX - 2);
+    pub const LOWER_X: Segment = Segment(u64::MAX - 3);
+    pub const MAX: Segment = Segment(u64::MAX / 2);
+
+
+    pub const ZERO: Segment = Segment(0);
+
+    fn as_number(self) -> Option<u64> {
+        if self.0 <= Self::MAX.0 {
+            Some(self.0)
+        } else {
+            None
+        }
+    }
+
+    fn new(value: u64) -> Option<Segment> {
+        if value <= Self::MAX.0 {
+            Some(Segment(value))
+        } else {
+            None
+        }
+    }
+}
+
+impl Debug for Segment {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Segment::NOT_EXISTS => write!(f, "Segment(NOT_EXISTS)"),
+            Segment::STAR => write!(f, "Segment(STAR)"),
+            Segment::UPPER_X => write!(f, "Segment(UPPER_X)"),
+            Segment::LOWER_X => write!(f, "Segment(LOWER_X)"),
+            Segment(v) => write!(f, "Segment({v})"),
+        }
+    }
+}
+
+enum SegmentParseErr {
+    IntError(std::num::ParseIntError),
+    TooBig,
+}
+
+impl FromStr for Segment {
+    type Err = SegmentParseErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "x" => Ok(Segment::LOWER_X),
+            "X" => Ok(Segment::UPPER_X),
+            "*" => Ok(Segment::STAR),
+            _ => {
+                let value = s.parse().map_err(SegmentParseErr::IntError)?;
+                if value > Self::MAX.0 {
+                    return Err(SegmentParseErr::TooBig);
+                }
+                Ok(Segment(value))
+            }
+        }
+    }
+}
 
 trait FromParsingBuf: Sized {
     fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseRangeError>;

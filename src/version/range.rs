@@ -377,11 +377,8 @@ impl FromParsingBuf for Comparator {
 
 #[derive(Debug, Clone)]
 struct PartialVersion {
-    // MAX_VALUE for not exists
     major: Segment,
-    // MAX_VALUE for not exists
     minor: Segment,
-    // MAX_VALUE for not exists
     patch: Segment,
     pre: Prerelease,
     build: BuildMetadata,
@@ -390,13 +387,13 @@ struct PartialVersion {
 impl Display for PartialVersion {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         fn write_segment(f: &mut Formatter<'_>, value: Segment, prefix: &str) -> std::fmt::Result {
-            if value != NOT_EXISTS {
+            if value != Segment::NOT_EXISTS {
                 f.write_str(prefix)?;
                 match value {
-                    STAR => f.write_char('*')?,
-                    UPPER_X => f.write_char('X')?,
-                    LOWER_X => f.write_char('x')?,
-                    _ => Display::fmt(&value, f)?,
+                    Segment::STAR => f.write_char('*')?,
+                    Segment::UPPER_X => f.write_char('X')?,
+                    Segment::LOWER_X => f.write_char('x')?,
+                    _ => Display::fmt(&value.0, f)?,
                 }
             }
             Ok(())
@@ -455,7 +452,7 @@ impl PartialVersion {
                 (Version::new_pre(major + 1, 0, 0, Prerelease::new("0").unwrap()), false)
             }
         } else {
-            (Version::new_pre(Segment::MAX, Segment::MAX, Segment::MAX, Prerelease::new("0").unwrap()), false)
+            (Version::new_pre(u64::MAX, u64::MAX, u64::MAX, Prerelease::new("0").unwrap()), false)
         }
     }
 
@@ -483,44 +480,32 @@ impl PartialVersion {
         }
     }
 
-    fn segment(segment: Segment) -> Option<Segment> {
-        if segment <= VERSION_SEGMENT_MAX {
-            Some(segment)
-        } else {
-            None
-        }
+    fn segment_or(segment: Segment, or: u64) -> u64 {
+        segment.as_number().unwrap_or(or)
     }
 
-    fn segment_or(segment: Segment, or: Segment) -> Segment {
-        if segment <= VERSION_SEGMENT_MAX {
-            segment
-        } else {
-            or
-        }
+    fn major(&self) -> Option<u64> {
+        self.major.as_number()
     }
 
-    fn major(&self) -> Option<Segment> {
-        Self::segment(self.major)
+    fn major_or(&self, default: u64) -> u64 {
+        self.major.as_number().unwrap_or(default)
     }
 
-    fn major_or(&self, default: Segment) -> Segment {
-        Self::segment_or(self.major, default)
+    fn minor(&self) -> Option<u64> {
+        self.minor.as_number()
     }
 
-    fn minor(&self) -> Option<Segment> {
-        Self::segment(self.minor)
+    fn minor_or(&self, default: u64) -> u64 {
+        self.minor.as_number().unwrap_or(default)
     }
 
-    fn minor_or(&self, default: Segment) -> Segment {
-        Self::segment_or(self.minor, default)
+    fn patch(&self) -> Option<u64> {
+        self.patch.as_number()
     }
 
-    fn patch(&self) -> Option<Segment> {
-        Self::segment(self.patch)
-    }
-
-    fn patch_or(&self, default: Segment) -> Segment {
-        Self::segment_or(self.patch, default)
+    fn patch_or(&self, default: u64) -> u64 {
+        self.patch.as_number().unwrap_or(default)
     }
 }
 
@@ -536,7 +521,7 @@ impl FromParsingBuf for PartialVersion {
             bytes.skip();
             parse_segment(bytes)?
         } else {
-            NOT_EXISTS
+            Segment::NOT_EXISTS
         };
         let (patch, pre, build) = if let Some(b'.') = bytes.first() {
             bytes.skip();
@@ -556,7 +541,7 @@ impl FromParsingBuf for PartialVersion {
             };
             (patch, prerelease, build_meta)
         } else {
-            (NOT_EXISTS, Prerelease::EMPTY, BuildMetadata::EMPTY)
+            (Segment::NOT_EXISTS, Prerelease::EMPTY, BuildMetadata::EMPTY)
         };
 
         return Ok(PartialVersion {
@@ -571,15 +556,15 @@ impl FromParsingBuf for PartialVersion {
             match bytes.first() {
                 Some(b'x') => {
                     bytes.skip();
-                    Ok(LOWER_X)
+                    Ok(Segment::LOWER_X)
                 }
                 Some(b'X') => {
                     bytes.skip();
-                    Ok(UPPER_X)
+                    Ok(Segment::UPPER_X)
                 }
                 Some(b'*') => {
                     bytes.skip();
-                    Ok(STAR)
+                    Ok(Segment::STAR)
                 }
                 Some(b'1'..=b'9') => {
                     let mut i = 1;
@@ -588,9 +573,6 @@ impl FromParsingBuf for PartialVersion {
                     }
                     let str = bytes.take(i);
                     let value = Segment::from_str(str).map_err(|_| ParseRangeError::too_big())?;
-                    if value > VERSION_SEGMENT_MAX {
-                        return Err(ParseRangeError::too_big());
-                    }
                     Ok(value)
                 }
                 Some(b'0') => {
@@ -599,7 +581,7 @@ impl FromParsingBuf for PartialVersion {
                     if let Some(b'0'..=b'9') = bytes.first() {
                         return Err(ParseRangeError::invalid_char(bytes.first_char()));
                     }
-                    Ok(0)
+                    Ok(Segment::ZERO)
                 }
                 Some(_) => Err(ParseRangeError::invalid_char(bytes.first_char())),
                 None => Err(ParseRangeError::unexpected_end()),
@@ -675,9 +657,9 @@ impl PartialVersion {
 impl From<Version> for PartialVersion {
     fn from(value: Version) -> Self {
         Self {
-            major: value.major,
-            minor: value.minor,
-            patch: value.patch,
+            major: Segment::new(value.major).unwrap(),
+            minor: Segment::new(value.minor).unwrap(),
+            patch: Segment::new(value.patch).unwrap(),
             pre: value.pre,
             build: value.build,
         }
