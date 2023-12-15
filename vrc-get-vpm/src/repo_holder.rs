@@ -24,7 +24,7 @@ impl RepoHolder {
     ) -> io::Result<()> {
         fn file_path(source: &RepoSource) -> &Path {
             match source {
-                RepoSource::PreDefined(_, path) => path,
+                RepoSource::PreDefined(_, _, path) => path,
                 RepoSource::UserRepo(user) => &user.local_path,
             }
         }
@@ -48,8 +48,8 @@ impl RepoHolder {
         source: &RepoSource,
     ) -> io::Result<Option<LocalCachedRepository>> {
         match source {
-            RepoSource::PreDefined(source, path) => {
-                RepoHolder::load_remote_repo(client, None, &path, source.url())
+            RepoSource::PreDefined(_, url, path) => {
+                RepoHolder::load_remote_repo(client, None, &path, url)
                     .await
                     .map(Some)
             }

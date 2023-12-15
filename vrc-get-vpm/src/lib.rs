@@ -1,5 +1,5 @@
 //! The vpm client library.
-//! 
+//!
 //! TODO: documentation
 
 use futures::future::join3;
@@ -227,10 +227,13 @@ impl Environment {
     }
 
     fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
-        let defined_sources = DEFINED_REPO_SOURCES
-            .into_iter()
-            .copied()
-            .map(|x| RepoSource::PreDefined(x, self.get_repos_dir().join(x.file_name())));
+        let defined_sources = DEFINED_REPO_SOURCES.into_iter().copied().map(|x| {
+            RepoSource::PreDefined(
+                x,
+                x.url().to_owned(),
+                self.get_repos_dir().join(x.file_name()),
+            )
+        });
         let user_repo_sources = self.get_user_repos()?.into_iter().map(RepoSource::UserRepo);
 
         Ok(defined_sources.chain(user_repo_sources).collect())
@@ -592,11 +595,14 @@ impl PreDefinedRepoSource {
 #[derive(Clone)]
 #[non_exhaustive]
 pub enum RepoSource {
-    PreDefined(PreDefinedRepoSource, PathBuf),
+    PreDefined(PreDefinedRepoSource, String, PathBuf),
     UserRepo(UserRepoSetting),
 }
 
-static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[PreDefinedRepoSource::Official, PreDefinedRepoSource::Curated];
+static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[
+    PreDefinedRepoSource::Official,
+    PreDefinedRepoSource::Curated,
+];
 
 #[derive(Debug)]
 pub enum AddRepositoryErr {
