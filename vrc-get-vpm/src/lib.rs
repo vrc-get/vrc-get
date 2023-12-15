@@ -1,5 +1,5 @@
 //! The vpm client library.
-//! 
+//!
 //! TODO: documentation
 
 use futures::future::join3;
@@ -276,6 +276,7 @@ impl Environment {
             versions
                 .versions
                 .values()
+                .filter(|x| !is_truthy(x.yanked.as_ref()))
                 .filter(|x| x.version.pre.is_empty())
                 .max_by_key(|x| &x.version)
         }
@@ -559,6 +560,23 @@ impl<'a> PackageInfo<'a> {
 
     pub fn unity(self) -> Option<&'a PartialUnityVersion> {
         self.package_json().unity.as_ref()
+    }
+
+    pub fn is_yanked(self) -> bool {
+        is_truthy(self.package_json().yanked.as_ref())
+    }
+}
+
+fn is_truthy(value: Option<&Value>) -> bool {
+    // see https://developer.mozilla.org/en-US/docs/Glossary/Falsy
+    match value {
+        Some(Value::Null) => false,
+        None => false,
+        Some(Value::Bool(false)) => false,
+        // No NaN in json
+        Some(Value::Number(num)) if num.as_f64() == Some(0.0) => false,
+        Some(Value::String(s)) if s == "" => false,
+        _ => true,
     }
 }
 
@@ -1490,25 +1508,40 @@ impl UnityProject {
             )
             .await
     }
+}
 
-    pub async fn resolve(&mut self, env: &Environment) -> Result<(), AddPackageErr> {
+pub struct ResolveResult<'env> {
+    installed_from_locked: Vec<PackageInfo<'env>>,
+    installed_from_unlocked_dependencies: Vec<PackageInfo<'env>>,
+}
+
+impl<'env> ResolveResult<'env> {
+    pub fn installed_from_locked(&self) -> &[PackageInfo<'env>] {
+        &self.installed_from_locked
+    }
+
+    pub fn installed_from_unlocked_dependencies(&self) -> &[PackageInfo<'env>] {
+        &self.installed_from_unlocked_dependencies
+    }
+}
+
+impl UnityProject {
+    pub async fn resolve<'env>(
+        &mut self,
+        env: &'env Environment,
+    ) -> Result<ResolveResult<'env>, AddPackageErr> {
         // first, process locked dependencies
         let this = self as &Self;
         let packages_folder = &this.project_dir.join("Packages");
-        try_join_all(
-            this.manifest
-                .locked()
-                .into_iter()
-                .map(|(pkg, dep)| async move {
-                    let pkg = env
-                        .find_package_by_name(&pkg, PackageSelector::specific_version(&dep.version))
-                        .unwrap_or_else(|| {
-                            panic!("some package in manifest.json not found: {pkg}")
-                        });
-                    env.add_package(pkg, packages_folder).await?;
-                    Result::<_, AddPackageErr>::Ok(())
-                }),
-        )
+        let installed_from_locked = try_join_all(this.manifest.locked().into_iter().map(
+            |(pkg, dep)| async move {
+                let pkg = env
+                    .find_package_by_name(&pkg, PackageSelector::specific_version(&dep.version))
+                    .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
+                env.add_package(pkg, packages_folder).await?;
+                Result::<_, AddPackageErr>::Ok(pkg)
+            },
+        ))
         .await?;
 
         let unlocked_names: HashSet<_> = self
@@ -1556,9 +1589,14 @@ impl UnityProject {
             });
         }
 
+        let installed_from_unlocked_dependencies = req.locked.clone();
+
         self.do_add_package_request(&env, req).await?;
 
-        Ok(())
+        Ok(ResolveResult {
+            installed_from_locked,
+            installed_from_unlocked_dependencies,
+        })
     }
 
     pub fn locked_packages(&self) -> &IndexMap<String, VpmLockedDependency> {
@@ -1667,6 +1705,18 @@ fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
 
 impl<'a> PackageSelector<'a> {
     pub fn satisfies(&self, package: &PackageInfo) -> bool {
+        match self.version_selector {
+            VersionSelector::Specific(_) => {
+                // if specific version is selected, ignore yank
+            }
+            _ => {
+                // otherwise, check if yanked
+                if package.is_yanked() {
+                    return false;
+                }
+            }
+        }
+
         if let Some(unity) = self.project_unity {
             if !unity_compatible(package, unity) {
                 return false;

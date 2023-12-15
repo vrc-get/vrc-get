@@ -70,6 +70,9 @@ pub mod package {
         #[serde(rename = "legacyPackages")]
         #[serde(default)]
         pub legacy_packages: Vec<String>,
+
+        #[serde(default)]
+        pub yanked: Option<Value>,
     }
 
     #[derive(Debug, Clone)]

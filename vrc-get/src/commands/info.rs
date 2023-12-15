@@ -191,6 +191,8 @@ impl Package {
             .iter()
             .map(|x| PackageVersionInfo {
                 version: x.version(),
+                // since 1.5.0
+                is_yanked: x.is_yanked(),
             })
             .collect();
 
@@ -202,6 +204,7 @@ impl Package {
         #[derive(Serialize)]
         struct PackageVersionInfo<'a> {
             version: &'a Version,
+            is_yanked: bool,
         }
 
         let package_info = PackageInfo {

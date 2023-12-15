@@ -137,7 +137,12 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
     if request.locked().len() != 0 {
         println!("You're installing the following packages:");
         for x in request.locked() {
-            println!("- {} version {}", x.name(), x.version());
+            if x.is_yanked() {
+                prompt = true;
+                println!("- {} version {} (yanked)", x.name(), x.version());
+            } else {
+                println!("- {} version {}", x.name(), x.version());
+            }
         }
         prompt = prompt || request.locked().len() > 1;
     }
@@ -288,7 +293,15 @@ impl Install {
 
             mark_and_sweep(&mut unity).await;
         } else {
-            unity.resolve(&env).await.exit_context("resolving packages");
+            let resolve_result = unity.resolve(&env).await.exit_context("resolving packages");
+            for installed in resolve_result.installed_from_locked() {
+                if installed.is_yanked() {
+                    eprintln!("WARN: {} version {} is yanked", installed.name(), installed.version());
+                }
+            }
+            for installed in resolve_result.installed_from_unlocked_dependencies() {
+                println!("installed {} version {} from dependencies of unlocked packages", installed.name(), installed.version());
+            }
         }
 
         unity.save().await.exit_context("saving manifest file");
