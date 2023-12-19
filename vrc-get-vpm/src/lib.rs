@@ -16,7 +16,6 @@ use utils::*;
 
 use structs::package::{PackageJson, PartialUnityVersion};
 use structs::repo_cache::LocalCachedRepository;
-use structs::repository::Repository;
 use structs::setting::UserRepoSetting;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
@@ -27,6 +26,7 @@ pub mod structs;
 mod unity_project;
 mod utils;
 pub mod version;
+pub mod repository;
 
 type JsonMap = Map<String, Value>;
 
@@ -35,6 +35,7 @@ pub use environment::PackageSelector;
 pub use unity_project::AddPackageRequest;
 pub use unity_project::ResolveResult;
 pub use unity_project::UnityProject;
+use crate::repository::RemoteRepository;
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {
@@ -201,7 +202,7 @@ pub async fn download_remote_repository(
     url: impl IntoUrl,
     headers: Option<&IndexMap<String, String>>,
     etag: Option<&str>,
-) -> io::Result<Option<(Repository, Option<String>)>> {
+) -> io::Result<Option<(RemoteRepository, Option<String>)>> {
     let url = url.into_url().err_mapped()?;
     let mut request = client.get(url.clone());
     if let Some(etag) = &etag {
@@ -230,7 +231,7 @@ pub async fn download_remote_repository(
     let no_bom = full.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(full.as_ref());
     let json = serde_json::from_slice(&no_bom)?;
 
-    let mut repo = Repository::new(json)?;
+    let mut repo = RemoteRepository::new(json)?;
     repo.set_url_if_none(|| url.to_string());
     Ok(Some((repo, etag)))
 }

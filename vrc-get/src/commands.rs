@@ -13,13 +13,13 @@ use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::{read_dir, remove_file};
 use vrc_get_vpm::structs::package::PackageJson;
-use vrc_get_vpm::structs::repository::Repository;
 use vrc_get_vpm::structs::setting::UserRepoSetting;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
     download_remote_repository, AddPackageRequest, Environment, PackageInfo, PackageSelector,
     PreDefinedRepoSource, UnityProject,
 };
+use vrc_get_vpm::repository::RemoteRepository;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -879,7 +879,7 @@ pub struct RepoPackages {
 
 impl RepoPackages {
     pub async fn run(self) {
-        fn print_repo<'a>(packages: &Repository) {
+        fn print_repo<'a>(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
                 if let Some((_, pkg)) = versions.versions.iter().max_by_key(|(_, pkg)| &pkg.version)
                 {

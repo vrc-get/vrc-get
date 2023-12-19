@@ -1,7 +1,6 @@
 use crate::repo_holder::RepoHolder;
 use crate::structs::package::PackageJson;
 use crate::structs::repo_cache::LocalCachedRepository;
-use crate::structs::repository::PackageVersions;
 use crate::structs::setting::UserRepoSetting;
 use crate::utils::{JsonMapExt, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
@@ -20,6 +19,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use tokio::fs::{create_dir_all, remove_file, File};
 use tokio::io::AsyncWriteExt;
+use crate::repository::PackageVersions;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
