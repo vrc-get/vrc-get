@@ -530,7 +530,7 @@ impl<'a> PackageSelector<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub enum VersionSelector<'a> {
+enum VersionSelector<'a> {
     Latest,
     LatestIncluidingPrerelease,
     Specific(&'a Version),
