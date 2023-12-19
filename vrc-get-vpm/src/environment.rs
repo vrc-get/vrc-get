@@ -1,13 +1,13 @@
 use crate::repo_holder::RepoHolder;
-use crate::repository::RemotePackages;
+use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
 use crate::structs::repo_cache::LocalCachedRepository;
 use crate::structs::setting::UserRepoSetting;
 use crate::utils::{JsonMapExt, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
 use crate::{
-    add_package, download_remote_repository, is_truthy, load_json_or_default, to_json_vec,
-    unity_compatible, PackageInfo, PreDefinedRepoSource, RepoSource, DEFINED_REPO_SOURCES,
+    add_package, is_truthy, load_json_or_default, to_json_vec, unity_compatible, PackageInfo,
+    PreDefinedRepoSource, RepoSource, DEFINED_REPO_SOURCES,
 };
 use futures::future::join_all;
 use indexmap::IndexMap;
@@ -322,7 +322,7 @@ impl Environment {
         };
 
         let (remote_repo, etag) =
-            download_remote_repository(&http, url.clone(), Some(&headers), None)
+            RemoteRepository::download_with_etag(&http, url.clone(), &headers, None)
                 .await?
                 .expect("logic failure: no etag");
         let repo_name = name.or(remote_repo.name()).map(str::to_owned);

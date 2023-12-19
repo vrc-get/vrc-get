@@ -16,7 +16,7 @@ use vrc_get_vpm::structs::package::PackageJson;
 use vrc_get_vpm::structs::setting::UserRepoSetting;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    download_remote_repository, AddPackageRequest, Environment, PackageInfo, PackageSelector,
+    AddPackageRequest, Environment, PackageInfo, PackageSelector,
     PreDefinedRepoSource, UnityProject,
 };
 use vrc_get_vpm::repository::RemoteRepository;
@@ -907,11 +907,9 @@ impl RepoPackages {
                 exit_with!("remote repository specified but offline mode.");
             }
             let client = crate::create_client(self.env_args.offline).unwrap();
-            let repo = download_remote_repository(&client, url, None, None)
+            let repo = RemoteRepository::download(&client, url, &IndexMap::new())
                 .await
-                .exit_context("downloading repository")
-                .unwrap()
-                .0;
+                .exit_context("downloading repository");
 
             print_repo(&repo);
         } else {

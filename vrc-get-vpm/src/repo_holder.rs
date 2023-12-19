@@ -50,7 +50,7 @@ impl RepoHolder {
     ) -> io::Result<Option<LocalCachedRepository>> {
         match source {
             RepoSource::PreDefined(_, url, path) => {
-                RepoHolder::load_remote_repo(client, None, &path, url)
+                RepoHolder::load_remote_repo(client, &IndexMap::new(), &path, url)
                     .await
                     .map(Some)
             }
@@ -58,7 +58,7 @@ impl RepoHolder {
                 if let Some(url) = &user_repo.url {
                     RepoHolder::load_remote_repo(
                         client,
-                        Some(&user_repo.headers),
+                        &user_repo.headers,
                         &user_repo.local_path,
                         &url,
                     )
@@ -75,7 +75,7 @@ impl RepoHolder {
 
     async fn load_remote_repo(
         client: Option<&Client>,
-        headers: Option<&IndexMap<String, String>>,
+        headers: &IndexMap<String, String>,
         path: &Path,
         remote_url: &str,
     ) -> io::Result<LocalCachedRepository> {
@@ -85,14 +85,11 @@ impl RepoHolder {
                 return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "offline mode"))
             };
             let (remote_repo, etag) =
-                download_remote_repository(&client, remote_url, headers, None)
+                RemoteRepository::download_with_etag(&client, remote_url, headers, None)
                     .await?
                     .expect("logic failure: no etag");
 
-            let mut local_cache = LocalCachedRepository::new(
-                remote_repo,
-                headers.map(Clone::clone).unwrap_or_default(),
-            );
+            let mut local_cache = LocalCachedRepository::new(remote_repo, headers.clone());
 
             if let Some(etag) = etag {
                 local_cache

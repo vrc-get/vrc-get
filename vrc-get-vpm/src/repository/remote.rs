@@ -1,7 +1,11 @@
 use crate::structs::package::PackageJson;
+use crate::utils::MapResultExt;
+use indexmap::IndexMap;
+use reqwest::{Client, IntoUrl};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
+use std::io;
 
 type JsonMap = Map<String, Value>;
 
@@ -29,6 +33,55 @@ impl RemoteRepository {
             parsed: serde_json::from_value(Value::Object(cache.clone()))?,
             actual: cache,
         })
+    }
+
+    pub async fn download(
+        client: &Client,
+        url: impl IntoUrl,
+        headers: &IndexMap<String, String>,
+    ) -> io::Result<RemoteRepository> {
+        match Self::download_with_etag(client, url, headers, None).await {
+            Ok(None) => unreachable!("downloading without etag should must return Ok(Some)"),
+            Ok(Some((repo, _))) => Ok(repo),
+            Err(err) => Err(err),
+        }
+    }
+
+    pub async fn download_with_etag(
+        client: &Client,
+        url: impl IntoUrl,
+        headers: &IndexMap<String, String>,
+        current_etag: Option<&str>,
+    ) -> io::Result<Option<(RemoteRepository, Option<String>)>> {
+        let url = url.into_url().err_mapped()?;
+        let mut request = client.get(url.clone());
+        if let Some(etag) = &current_etag {
+            request = request.header("If-None-Match", etag.to_owned())
+        }
+        for (name, value) in headers {
+            request = request.header(name, value);
+        }
+        let response = request.send().await.err_mapped()?;
+        let response = response.error_for_status().err_mapped()?;
+
+        if current_etag.is_some() && response.status() == 304 {
+            return Ok(None);
+        }
+
+        let etag = response
+            .headers()
+            .get("Etag")
+            .and_then(|x| x.to_str().ok())
+            .map(str::to_owned);
+
+        // response.json() doesn't support BOM
+        let full = response.bytes().await.err_mapped()?;
+        let no_bom = full.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(full.as_ref());
+        let json = serde_json::from_slice(&no_bom)?;
+
+        let mut repo = RemoteRepository::parse(json)?;
+        repo.set_url_if_none(|| url.to_string());
+        Ok(Some((repo, etag)))
     }
 
     pub fn set_id_if_none(&mut self, f: impl FnOnce() -> String) {

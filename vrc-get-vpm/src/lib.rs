@@ -162,7 +162,7 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
     };
 
     let etag = repo.vrc_get.as_ref().map(|x| x.etag.as_str());
-    match download_remote_repository(&client, &remote_url, Some(repo.headers()), etag).await {
+    match RemoteRepository::download_with_etag(&client, &remote_url, repo.headers(), etag).await {
         Ok(None) => log::debug!("cache matched downloading {}", remote_url),
         Ok(Some((remote_repo, etag))) => {
             repo.set_repo(remote_repo);
@@ -193,47 +193,6 @@ async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()>
     file.write_all(&to_json_vec(repo)?).await?;
     file.flush().await?;
     Ok(())
-}
-
-// returns None if etag matches
-// TODO: make private or better API
-pub async fn download_remote_repository(
-    client: &Client,
-    url: impl IntoUrl,
-    headers: Option<&IndexMap<String, String>>,
-    etag: Option<&str>,
-) -> io::Result<Option<(RemoteRepository, Option<String>)>> {
-    let url = url.into_url().err_mapped()?;
-    let mut request = client.get(url.clone());
-    if let Some(etag) = &etag {
-        request = request.header("If-None-Match", etag.to_owned())
-    }
-    if let Some(headers) = headers {
-        for (name, value) in headers {
-            request = request.header(name, value);
-        }
-    }
-    let response = request.send().await.err_mapped()?;
-    let response = response.error_for_status().err_mapped()?;
-
-    if etag.is_some() && response.status() == 304 {
-        return Ok(None);
-    }
-
-    let etag = response
-        .headers()
-        .get("Etag")
-        .and_then(|x| x.to_str().ok())
-        .map(str::to_owned);
-
-    // response.json() doesn't support BOM
-    let full = response.bytes().await.err_mapped()?;
-    let no_bom = full.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(full.as_ref());
-    let json = serde_json::from_slice(&no_bom)?;
-
-    let mut repo = RemoteRepository::parse(json)?;
-    repo.set_url_if_none(|| url.to_string());
-    Ok(Some((repo, etag)))
 }
 
 fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
