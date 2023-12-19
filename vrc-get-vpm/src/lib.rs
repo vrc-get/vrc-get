@@ -81,38 +81,7 @@ impl Environment {
 
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
-        use std::ffi::c_void;
-        use std::ffi::OsString;
-        use std::os::windows::ffi::OsStringExt;
-        use windows::core::{GUID, PWSTR};
-        use windows::Win32::Foundation::HANDLE;
-        use windows::Win32::UI::Shell::KNOWN_FOLDER_FLAG;
-
-        // due to intellij rust bug, windows::Win32::UI::Shell::SHGetKnownFolderPath is not shown
-        // so I write wrapper here
-        #[allow(non_snake_case)]
-        #[inline(always)]
-        pub unsafe fn SHGetKnownFolderPath(
-            rfid: *const GUID,
-            dwflags: KNOWN_FOLDER_FLAG,
-            htoken: HANDLE,
-        ) -> windows::core::Result<PWSTR> {
-            windows::Win32::UI::Shell::SHGetKnownFolderPath(rfid, dwflags, htoken)
-        }
-
-        let path = unsafe {
-            let path = SHGetKnownFolderPath(
-                &windows::Win32::UI::Shell::FOLDERID_LocalAppData,
-                KNOWN_FOLDER_FLAG(0),
-                HANDLE::default(),
-            )
-            .expect("cannot get Local AppData folder");
-            let os_string = OsString::from_wide(path.as_wide());
-            windows::Win32::System::Com::CoTaskMemFree(Some(path.as_ptr().cast::<c_void>()));
-            os_string
-        };
-
-        return PathBuf::from(path);
+        return dirs_sys::known_folder_local_app_data().expect("LocalAppData not found");
     }
 
     #[cfg(not(windows))]
