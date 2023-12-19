@@ -1,3 +1,3 @@
 mod remote;
+pub use remote::RemotePackages;
 pub use remote::RemoteRepository;
-pub use remote::PackageVersions;

@@ -22,20 +22,20 @@ use version::{ReleaseType, UnityVersion, Version, VersionRange};
 mod add_package;
 mod environment;
 mod repo_holder;
+pub mod repository;
 pub mod structs;
 mod unity_project;
 mod utils;
 pub mod version;
-pub mod repository;
 
 type JsonMap = Map<String, Value>;
 
+use crate::repository::RemoteRepository;
 pub use environment::Environment;
 pub use environment::PackageSelector;
 pub use unity_project::AddPackageRequest;
 pub use unity_project::ResolveResult;
 pub use unity_project::UnityProject;
-use crate::repository::RemoteRepository;
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {

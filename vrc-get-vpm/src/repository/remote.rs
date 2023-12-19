@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use crate::structs::package::PackageJson;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
-use crate::structs::package::PackageJson;
+use std::collections::HashMap;
 
 type JsonMap = Map<String, Value>;
 
@@ -20,7 +20,7 @@ struct ParsedRepository {
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]
-    packages: HashMap<String, PackageVersions>,
+    packages: HashMap<String, RemotePackages>,
 }
 
 impl RemoteRepository {
@@ -63,27 +63,24 @@ impl RemoteRepository {
         self.parsed.name.as_deref()
     }
 
-    pub fn get_versions_of(
-        &self,
-        package: &str,
-    ) -> impl Iterator<Item = &'_ PackageJson> {
+    pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageJson> {
         self.parsed
             .packages
             .get(package)
-            .map(PackageVersions::all_versions)
+            .map(RemotePackages::all_versions)
             .into_iter()
             .flatten()
     }
 
-    pub fn get_packages(&self) -> impl Iterator<Item = &'_ PackageVersions> {
+    pub fn get_packages(&self) -> impl Iterator<Item = &'_ RemotePackages> {
         self.parsed.packages.values().into_iter()
     }
 }
 
 impl Serialize for RemoteRepository {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         self.actual.serialize(serializer)
     }
@@ -91,8 +88,8 @@ impl Serialize for RemoteRepository {
 
 impl<'de> Deserialize<'de> for RemoteRepository {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         use serde::de::Error;
         let map = JsonMap::deserialize(deserializer)?;
@@ -101,12 +98,12 @@ impl<'de> Deserialize<'de> for RemoteRepository {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct PackageVersions {
+pub struct RemotePackages {
     #[serde(default)]
     versions: HashMap<String, PackageJson>,
 }
 
-impl PackageVersions {
+impl RemotePackages {
     pub fn all_versions(&self) -> impl Iterator<Item = &PackageJson> {
         self.versions.values()
     }

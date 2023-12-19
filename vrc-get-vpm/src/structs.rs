@@ -131,8 +131,8 @@ pub mod setting {
 }
 
 pub mod repo_cache {
-    use crate::repository::{PackageVersions, RemoteRepository};
     use super::*;
+    use crate::repository::{RemotePackages, RemoteRepository};
     use crate::structs::package::PackageJson;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -188,7 +188,7 @@ pub mod repo_cache {
             self.repo().get_versions_of(package)
         }
 
-        pub fn get_packages(&self) -> impl Iterator<Item = &'_ PackageVersions> {
+        pub fn get_packages(&self) -> impl Iterator<Item = &'_ RemotePackages> {
             self.repo().get_packages()
         }
     }

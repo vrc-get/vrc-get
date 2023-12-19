@@ -1,4 +1,5 @@
 use crate::repo_holder::RepoHolder;
+use crate::repository::RemotePackages;
 use crate::structs::package::PackageJson;
 use crate::structs::repo_cache::LocalCachedRepository;
 use crate::structs::setting::UserRepoSetting;
@@ -19,7 +20,6 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use tokio::fs::{create_dir_all, remove_file, File};
 use tokio::io::AsyncWriteExt;
-use crate::repository::PackageVersions;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
@@ -233,7 +233,7 @@ impl Environment {
     ) -> Vec<&PackageJson> {
         let mut list = Vec::new();
 
-        fn get_latest(versions: &PackageVersions) -> Option<&PackageJson> {
+        fn get_latest(versions: &RemotePackages) -> Option<&PackageJson> {
             versions
                 .all_versions()
                 .filter(|x| !is_truthy(x.yanked.as_ref()))
