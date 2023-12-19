@@ -225,23 +225,13 @@ async fn download_zip(
 
     // write sha file
     let mut sha_file = File::create(&sha_path).await?;
-    let hash_hex = to_hex(&sha256.finalize()[..]);
+    let hash_hex = hex::encode(&sha256.finalize()[..]);
     let sha_file_content = format!("{} {}\n", hash_hex, zip_file_name);
     sha_file.write_all(sha_file_content.as_bytes()).await?;
     sha_file.flush().await?;
     drop(sha_file);
 
     Ok(cache_file)
-}
-
-fn to_hex(data: &[u8]) -> String {
-    static HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
-    let mut result = vec![0u8; data.len() * 2];
-    for i in 0..data.len() {
-        result[i * 2 + 0] = HEX_CHARS[((data[i] >> 4) & 0xf) as usize];
-        result[i * 2 + 1] = HEX_CHARS[((data[i] >> 0) & 0xf) as usize];
-    }
-    unsafe { String::from_utf8_unchecked(result) }
 }
 
 fn check_path(path: &Path) -> bool {
