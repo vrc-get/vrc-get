@@ -2,6 +2,8 @@
 //!
 //! TODO: documentation
 
+#[forbid(unsafe_code)]
+
 use futures::future::join3;
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
