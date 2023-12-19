@@ -3,7 +3,6 @@
 //! TODO: documentation
 
 #[forbid(unsafe_code)]
-use std::collections::{HashMap, HashSet};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -15,7 +14,6 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 
 use utils::*;
 
-use structs::manifest::{VpmDependency, VpmLockedDependency};
 use structs::package::{PackageJson, PartialUnityVersion};
 use structs::repo_cache::LocalCachedRepository;
 use structs::repository::Repository;
@@ -24,7 +22,6 @@ use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 mod add_package;
 mod environment;
-mod package_resolution;
 mod repo_holder;
 pub mod structs;
 mod unity_project;

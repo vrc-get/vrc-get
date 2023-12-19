@@ -1,5 +1,6 @@
 use super::*;
 use crate::unity_project::AddPackageErr;
+use crate::version::Version;
 use std::collections::VecDeque;
 
 struct PackageQueue<'a> {

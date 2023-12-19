@@ -1,26 +1,31 @@
+mod add_package;
+mod package_resolution;
+mod remove_package;
+
 use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::structs::package::PackageJson;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::utils::{parse_hex_128, walk_dir, PathBufExt};
+use crate::utils::PathBufExt;
 use crate::version::{UnityVersion, VersionRange};
 use crate::{
-    load_json_or_default, package_resolution, to_json_vec, unity_compatible, Environment, JsonMap,
-    PackageInfo, PackageSelector,
+    load_json_or_default, to_json_vec, Environment, JsonMap, PackageInfo, PackageSelector,
 };
-use futures::future::{join3, join_all, try_join_all};
+use futures::future::try_join_all;
 use futures::prelude::*;
-use futures::stream::FuturesUnordered;
-use futures::StreamExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::{from_value, to_value, Value};
 use std::collections::{HashMap, HashSet};
-use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::pin::pin;
-use std::{env, fmt, io};
-use tokio::fs::{metadata, read_dir, remove_dir_all, DirEntry, File};
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
+use std::{env, io};
+use tokio::fs::{read_dir, remove_dir_all, DirEntry, File};
+use tokio::io::AsyncReadExt;
+
+// note: this module only declares basic small operations.
+// there are module for each complex operations.
+
+pub use add_package::{AddPackageErr, AddPackageRequest};
+pub use remove_package::RemovePackageErr;
 
 #[derive(Debug)]
 pub struct UnityProject {
@@ -35,6 +40,7 @@ pub struct UnityProject {
     installed_packages: HashMap<String, PackageJson>,
 }
 
+// basic lifecycle
 impl UnityProject {
     pub async fn find_unity_project(unity_project: Option<PathBuf>) -> io::Result<UnityProject> {
         let unity_found = unity_project
@@ -180,428 +186,6 @@ impl UnityProject {
         Some(unity_version)
     }
 
-    pub fn project_dir(&self) -> &Path {
-        &self.project_dir
-    }
-
-    pub fn unity_version(&self) -> Option<UnityVersion> {
-        self.unity_version
-    }
-}
-
-impl UnityProject {
-    pub async fn add_package_request<'env>(
-        &self,
-        env: &'env Environment,
-        mut packages: Vec<PackageInfo<'env>>,
-        to_dependencies: bool,
-        allow_prerelease: bool,
-    ) -> Result<AddPackageRequest<'env>, AddPackageErr> {
-        packages.retain(|pkg| {
-            self.manifest
-                .dependencies()
-                .get(pkg.name())
-                .map(|dep| dep.version.matches(pkg.version()))
-                .unwrap_or(true)
-        });
-
-        // if same or newer requested package is in locked dependencies,
-        // just add requested version into dependencies
-        let mut dependencies = vec![];
-        let mut adding_packages = Vec::with_capacity(packages.len());
-
-        for request in packages {
-            let update = self
-                .manifest
-                .locked()
-                .get(request.name())
-                .map(|dep| dep.version < *request.version())
-                .unwrap_or(true);
-
-            if to_dependencies {
-                dependencies.push((
-                    request.name(),
-                    VpmDependency::new(request.version().clone()),
-                ));
-            }
-
-            if update {
-                adding_packages.push(request);
-            }
-        }
-
-        if adding_packages.len() == 0 {
-            // early return:
-            return Ok(AddPackageRequest {
-                dependencies,
-                locked: vec![],
-                legacy_files: vec![],
-                legacy_folders: vec![],
-                legacy_packages: vec![],
-                conflicts: HashMap::new(),
-                unity_conflicts: vec![],
-            });
-        }
-
-        let result = package_resolution::collect_adding_packages(
-            self.manifest.dependencies(),
-            self.manifest.locked(),
-            self.unity_version(),
-            env,
-            adding_packages,
-            allow_prerelease,
-        )?;
-
-        let legacy_packages = result
-            .found_legacy_packages
-            .into_iter()
-            .filter(|name| self.manifest.locked().contains_key(name))
-            .collect();
-
-        let (legacy_files, legacy_folders) = self.collect_legacy_assets(&result.new_packages).await;
-
-        let unity_conflicts = if let Some(unity) = self.unity_version {
-            result
-                .new_packages
-                .iter()
-                .filter(|pkg| !unity_compatible(pkg, unity))
-                .map(|pkg| pkg.name().to_owned())
-                .collect()
-        } else {
-            vec![]
-        };
-
-        return Ok(AddPackageRequest {
-            dependencies,
-            locked: result.new_packages,
-            conflicts: result.conflicts,
-            unity_conflicts,
-            legacy_files,
-            legacy_folders,
-            legacy_packages,
-        });
-    }
-
-    async fn collect_legacy_assets(
-        &self,
-        packages: &[PackageInfo<'_>],
-    ) -> (Vec<PathBuf>, Vec<PathBuf>) {
-        let folders = packages
-            .iter()
-            .flat_map(|x| &x.package_json().legacy_folders)
-            .map(|(path, guid)| (path, guid, false));
-        let files = packages
-            .iter()
-            .flat_map(|x| &x.package_json().legacy_files)
-            .map(|(path, guid)| (path, guid, true));
-        let assets = folders.chain(files).collect::<Vec<_>>();
-
-        enum LegacyInfo {
-            FoundFile(PathBuf),
-            FoundFolder(PathBuf),
-            NotFound,
-            GuidFile(GUID),
-            GuidFolder(GUID),
-        }
-        use LegacyInfo::*;
-
-        #[derive(Copy, Clone, Hash, Eq, PartialEq)]
-        struct GUID([u8; 16]);
-
-        fn try_parse_guid(guid: &str) -> Option<GUID> {
-            Some(GUID(parse_hex_128(guid.as_bytes().try_into().ok()?)?))
-        }
-
-        let mut futures = pin!(assets
-            .into_iter()
-            .map(|(path, guid, is_file)| async move {
-                // some packages uses '/' as path separator.
-                let path = PathBuf::from(path.replace('\\', "/"));
-                // for security, deny absolute path.
-                if path.has_root() {
-                    return NotFound;
-                }
-                let path = self.project_dir.join(path);
-                if metadata(&path)
-                    .await
-                    .map(|x| x.is_file() == is_file)
-                    .unwrap_or(false)
-                {
-                    if is_file {
-                        FoundFile(path)
-                    } else {
-                        FoundFolder(path)
-                    }
-                } else {
-                    if let Some(guid) = guid.as_deref().and_then(try_parse_guid) {
-                        if is_file {
-                            GuidFile(guid)
-                        } else {
-                            GuidFolder(guid)
-                        }
-                    } else {
-                        NotFound
-                    }
-                }
-            })
-            .collect::<FuturesUnordered<_>>());
-
-        let mut found_files = HashSet::new();
-        let mut found_folders = HashSet::new();
-        let mut find_guids = HashMap::new();
-
-        while let Some(info) = futures.next().await {
-            match info {
-                FoundFile(path) => {
-                    found_files.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
-                }
-                FoundFolder(path) => {
-                    found_folders.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
-                }
-                NotFound => (),
-                GuidFile(guid) => {
-                    find_guids.insert(guid, true);
-                }
-                GuidFolder(guid) => {
-                    find_guids.insert(guid, false);
-                }
-            }
-        }
-
-        if find_guids.len() != 0 {
-            async fn get_guid(entry: DirEntry) -> Option<(GUID, bool, PathBuf)> {
-                let path = entry.path();
-                if path.extension() != Some(OsStr::new("meta"))
-                    || !entry.file_type().await.ok()?.is_file()
-                {
-                    return None;
-                }
-                let mut file = BufReader::new(File::open(&path).await.ok()?);
-                let mut buffer = String::new();
-                while file.read_line(&mut buffer).await.ok()? != 0 {
-                    let line = buffer.as_str();
-                    if let Some(guid) = line.strip_prefix("guid: ") {
-                        // current line should be line for guid.
-                        if let Some(guid) = try_parse_guid(guid.trim()) {
-                            // remove .meta extension
-                            let mut path = path;
-                            path.set_extension("");
-                            let is_file = metadata(&path).await.ok()?.is_file();
-                            return Some((guid, is_file, path));
-                        }
-                    }
-
-                    buffer.clear()
-                }
-
-                None
-            }
-
-            let mut stream = pin!(walk_dir([
-                self.project_dir.join("Packages"),
-                self.project_dir.join("Assets")
-            ])
-            .filter_map(get_guid));
-
-            while let Some((guid, is_file_actual, path)) = stream.next().await {
-                if let Some(&is_file) = find_guids.get(&guid) {
-                    if is_file_actual == is_file {
-                        find_guids.remove(&guid);
-                        if is_file {
-                            found_files
-                                .insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
-                        } else {
-                            found_folders
-                                .insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
-                        }
-                    }
-                }
-            }
-        }
-
-        (
-            found_files.into_iter().collect(),
-            found_folders.into_iter().collect(),
-        )
-    }
-
-    pub async fn do_add_package_request<'env>(
-        &mut self,
-        env: &'env Environment,
-        request: AddPackageRequest<'env>,
-    ) -> io::Result<()> {
-        // first, add to dependencies
-        for x in request.dependencies {
-            self.manifest.add_dependency(x.0.to_owned(), x.1);
-        }
-
-        // then, do install packages
-        self.do_add_packages_to_locked(env, &request.locked).await?;
-
-        let project_dir = &self.project_dir;
-
-        // finally, try to remove legacy assets
-        self.manifest
-            .remove_packages(request.legacy_packages.iter().map(|x| x.as_str()));
-        join3(
-            join_all(
-                request
-                    .legacy_files
-                    .into_iter()
-                    .map(|x| remove_file(x, project_dir)),
-            ),
-            join_all(
-                request
-                    .legacy_folders
-                    .into_iter()
-                    .map(|x| remove_folder(x, project_dir)),
-            ),
-            join_all(
-                request
-                    .legacy_packages
-                    .into_iter()
-                    .map(|x| remove_package(x, project_dir)),
-            ),
-        )
-        .await;
-
-        async fn remove_meta_file(path: PathBuf) {
-            let mut building = path.into_os_string();
-            building.push(".meta");
-            let meta = PathBuf::from(building);
-
-            if let Some(err) = tokio::fs::remove_file(&meta).await.err() {
-                if !matches!(err.kind(), io::ErrorKind::NotFound) {
-                    log::error!("error removing legacy asset at {}: {}", meta.display(), err);
-                }
-            }
-        }
-
-        async fn remove_file(path: PathBuf, project_dir: &Path) {
-            let path = project_dir.join(path);
-            if let Some(err) = tokio::fs::remove_file(&path).await.err() {
-                log::error!("error removing legacy asset at {}: {}", path.display(), err);
-            }
-            remove_meta_file(path).await;
-        }
-
-        async fn remove_folder(path: PathBuf, project_dir: &Path) {
-            let path = project_dir.join(path);
-            if let Some(err) = tokio::fs::remove_dir_all(&path).await.err() {
-                log::error!("error removing legacy asset at {}: {}", path.display(), err);
-            }
-            remove_meta_file(path).await;
-        }
-
-        async fn remove_package(name: String, project_dir: &Path) {
-            let folder = project_dir.join("Packages").joined(name);
-            if let Some(err) = tokio::fs::remove_dir_all(&folder).await.err() {
-                log::error!(
-                    "error removing legacy package at {}: {}",
-                    folder.display(),
-                    err
-                );
-            }
-        }
-
-        Ok(())
-    }
-
-    async fn do_add_packages_to_locked(
-        &mut self,
-        env: &Environment,
-        packages: &[PackageInfo<'_>],
-    ) -> io::Result<()> {
-        // then, lock all dependencies
-        for pkg in packages.iter() {
-            self.manifest.add_locked(
-                &pkg.name(),
-                VpmLockedDependency::new(pkg.version().clone(), pkg.vpm_dependencies().clone()),
-            );
-        }
-
-        let packages_folder = self.project_dir.join("Packages");
-
-        // resolve all packages
-        let futures = packages
-            .iter()
-            .map(|x| env.add_package(*x, &packages_folder))
-            .collect::<Vec<_>>();
-        try_join_all(futures).await?;
-
-        Ok(())
-    }
-
-    /// Remove specified package from self project.
-    ///
-    /// This doesn't look packages not listed in vpm-maniefst.json.
-    pub async fn remove(&mut self, names: &[&str]) -> Result<(), RemovePackageErr> {
-        use RemovePackageErr::*;
-
-        // check for existence
-
-        let mut repos = Vec::with_capacity(names.len());
-        let mut not_founds = Vec::new();
-        for name in names.into_iter().copied() {
-            if let Some(x) = self.manifest.locked().get(name) {
-                repos.push(x);
-            } else {
-                not_founds.push(name.to_owned());
-            }
-        }
-
-        if !not_founds.is_empty() {
-            return Err(NotInstalled(not_founds));
-        }
-
-        // check for conflicts: if some package requires some packages to be removed, it's conflict.
-
-        let conflicts = self
-            .all_dependencies()
-            .filter(|(name, _)| !names.contains(&name.as_str()))
-            .filter(|(_, dep)| names.into_iter().any(|x| dep.contains_key(*x)))
-            .map(|(name, _)| String::from(name))
-            .collect::<Vec<_>>();
-
-        if !conflicts.is_empty() {
-            return Err(ConflictsWith(conflicts));
-        }
-
-        // there's no conflicts. So do remove
-
-        self.manifest.remove_packages(names.iter().copied());
-        try_join_all(names.into_iter().map(|name| {
-            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
-                Ok(()) => Ok(()),
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
-                Err(e) => Err(e),
-            })
-        }))
-        .await?;
-
-        Ok(())
-    }
-
-    /// Remove specified package from self project.
-    ///
-    /// This doesn't look packages not listed in vpm-maniefst.json.
-    pub async fn mark_and_sweep(&mut self) -> io::Result<HashSet<String>> {
-        let removed_packages = self
-            .manifest
-            .mark_and_sweep_packages(&self.unlocked_packages);
-
-        try_join_all(removed_packages.iter().map(|name| {
-            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
-                Ok(()) => Ok(()),
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
-                Err(e) => Err(e),
-            })
-        }))
-        .await?;
-
-        Ok(removed_packages)
-    }
-
     pub async fn save(&mut self) -> io::Result<()> {
         self.manifest
             .save_to(
@@ -702,8 +286,29 @@ impl UnityProject {
             installed_from_unlocked_dependencies,
         })
     }
+
+    /// Remove specified package from self project.
+    ///
+    /// This doesn't look packages not listed in vpm-maniefst.json.
+    pub async fn mark_and_sweep(&mut self) -> io::Result<HashSet<String>> {
+        let removed_packages = self
+            .manifest
+            .mark_and_sweep_packages(&self.unlocked_packages);
+
+        try_join_all(removed_packages.iter().map(|name| {
+            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
+                Ok(()) => Ok(()),
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+                Err(e) => Err(e),
+            })
+        }))
+        .await?;
+
+        Ok(removed_packages)
+    }
 }
 
+// accessors
 impl UnityProject {
     pub fn locked_packages(&self) -> &IndexMap<String, VpmLockedDependency> {
         return self.manifest.locked();
@@ -733,6 +338,14 @@ impl UnityProject {
 
     pub fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
         self.installed_packages.get(name)
+    }
+
+    pub fn project_dir(&self) -> &Path {
+        &self.project_dir
+    }
+
+    pub fn unity_version(&self) -> Option<UnityVersion> {
+        self.unity_version
     }
 }
 
@@ -890,127 +503,5 @@ mod vpm_manifest {
 
             removing_packages
         }
-    }
-}
-
-pub struct AddPackageRequest<'env> {
-    dependencies: Vec<(&'env str, VpmDependency)>,
-    locked: Vec<PackageInfo<'env>>,
-    legacy_files: Vec<PathBuf>,
-    legacy_folders: Vec<PathBuf>,
-    legacy_packages: Vec<String>,
-    conflicts: HashMap<String, Vec<String>>,
-    unity_conflicts: Vec<String>,
-}
-
-impl<'env> AddPackageRequest<'env> {
-    pub fn locked(&self) -> &[PackageInfo<'env>] {
-        &self.locked
-    }
-
-    pub fn dependencies(&self) -> &[(&'env str, VpmDependency)] {
-        &self.dependencies
-    }
-
-    pub fn legacy_files(&self) -> &[PathBuf] {
-        &self.legacy_files
-    }
-
-    pub fn legacy_folders(&self) -> &[PathBuf] {
-        &self.legacy_folders
-    }
-
-    pub fn legacy_packages(&self) -> &[String] {
-        &self.legacy_packages
-    }
-
-    pub fn conflicts(&self) -> &HashMap<String, Vec<String>> {
-        &self.conflicts
-    }
-
-    pub fn unity_conflicts(&self) -> &Vec<String> {
-        &self.unity_conflicts
-    }
-}
-
-#[derive(Debug)]
-pub enum AddPackageErr {
-    Io(io::Error),
-    ConflictWithDependencies {
-        /// conflicting package name
-        conflict: String,
-        /// the name of locked package
-        dependency_name: String,
-    },
-    DependencyNotFound {
-        dependency_name: String,
-    },
-}
-
-impl fmt::Display for AddPackageErr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AddPackageErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            AddPackageErr::ConflictWithDependencies {
-                conflict,
-                dependency_name,
-            } => write!(f, "{conflict} conflicts with {dependency_name}"),
-            AddPackageErr::DependencyNotFound { dependency_name } => write!(
-                f,
-                "Package {dependency_name} (maybe dependencies of the package) not found"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for AddPackageErr {}
-
-impl From<io::Error> for AddPackageErr {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value)
-    }
-}
-
-#[derive(Debug)]
-pub enum RemovePackageErr {
-    Io(io::Error),
-    NotInstalled(Vec<String>),
-    ConflictsWith(Vec<String>),
-}
-
-impl fmt::Display for RemovePackageErr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use RemovePackageErr::*;
-        match self {
-            Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            NotInstalled(names) => {
-                f.write_str("the following packages are not installed: ")?;
-                let mut iter = names.iter();
-                f.write_str(iter.next().unwrap())?;
-                while let Some(name) = iter.next() {
-                    f.write_str(", ")?;
-                    f.write_str(name)?;
-                }
-                Ok(())
-            }
-            ConflictsWith(names) => {
-                f.write_str("removing packages conflicts with the following packages: ")?;
-                let mut iter = names.iter();
-                f.write_str(iter.next().unwrap())?;
-                while let Some(name) = iter.next() {
-                    f.write_str(", ")?;
-                    f.write_str(name)?;
-                }
-                Ok(())
-            }
-        }
-    }
-}
-
-impl std::error::Error for RemovePackageErr {}
-
-impl From<io::Error> for RemovePackageErr {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value)
     }
 }
