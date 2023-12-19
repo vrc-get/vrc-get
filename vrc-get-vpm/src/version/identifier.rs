@@ -15,7 +15,7 @@ impl Identifier {
     ///
     /// SAFETY: the string must be valid ASCII string.
     /// if it contain non-ASCII bytes, it will undefined behaviour
-    pub unsafe fn new_unchecked(string: &str) -> Self {
+    pub(crate) fn new(string: &str) -> Self {
         Self { vec: string.to_owned() }
     }
 

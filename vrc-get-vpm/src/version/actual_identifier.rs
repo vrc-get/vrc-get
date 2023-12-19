@@ -46,7 +46,7 @@ impl FromParsingBuf for Prerelease {
     fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         let text = parse_id(buffer, false)?;
         Ok(Prerelease {
-            identifier: unsafe { Identifier::new_unchecked(text) },
+            identifier: Identifier::new(text),
         })
     }
 }
@@ -147,7 +147,7 @@ impl FromParsingBuf for BuildMetadata {
     fn parse(buffer: &mut ParsingBuf) -> Result<Self, ParseVersionError> {
         let text = parse_id(buffer, true)?;
         Ok(Self {
-            identifier: unsafe { Identifier::new_unchecked(text) },
+            identifier: Identifier::new(text),
         })
     }
 }
