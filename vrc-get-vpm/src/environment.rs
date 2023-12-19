@@ -235,8 +235,7 @@ impl Environment {
 
         fn get_latest(versions: &PackageVersions) -> Option<&PackageJson> {
             versions
-                .versions
-                .values()
+                .all_versions()
                 .filter(|x| !is_truthy(x.yanked.as_ref()))
                 .filter(|x| x.version.pre.is_empty())
                 .max_by_key(|x| &x.version)

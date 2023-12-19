@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
-use crate::structs::package;
+use crate::structs::package::PackageJson;
 
 type JsonMap = Map<String, Value>;
 
@@ -9,6 +9,18 @@ type JsonMap = Map<String, Value>;
 pub struct RemoteRepository {
     actual: JsonMap,
     parsed: ParsedRepository,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+struct ParsedRepository {
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    url: Option<String>,
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    packages: HashMap<String, PackageVersions>,
 }
 
 impl RemoteRepository {
@@ -54,11 +66,11 @@ impl RemoteRepository {
     pub fn get_versions_of(
         &self,
         package: &str,
-    ) -> impl Iterator<Item = &'_ package::PackageJson> {
+    ) -> impl Iterator<Item = &'_ PackageJson> {
         self.parsed
             .packages
             .get(package)
-            .map(|x| x.versions.values())
+            .map(PackageVersions::all_versions)
             .into_iter()
             .flatten()
     }
@@ -89,19 +101,13 @@ impl<'de> Deserialize<'de> for RemoteRepository {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct ParsedRepository {
-    #[serde(default)]
-    name: Option<String>,
-    #[serde(default)]
-    url: Option<String>,
-    #[serde(default)]
-    id: Option<String>,
-    #[serde(default)]
-    packages: HashMap<String, PackageVersions>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
 pub struct PackageVersions {
     #[serde(default)]
-    pub versions: HashMap<String, package::PackageJson>,
+    versions: HashMap<String, PackageJson>,
+}
+
+impl PackageVersions {
+    pub fn all_versions(&self) -> impl Iterator<Item = &PackageJson> {
+        self.versions.values()
+    }
 }

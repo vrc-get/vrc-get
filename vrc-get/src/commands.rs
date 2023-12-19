@@ -881,7 +881,7 @@ impl RepoPackages {
     pub async fn run(self) {
         fn print_repo<'a>(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
-                if let Some((_, pkg)) = versions.versions.iter().max_by_key(|(_, pkg)| &pkg.version)
+                if let Some(pkg) = versions.all_versions().max_by_key(|pkg| &pkg.version)
                 {
                     let package = &pkg.name;
                     if let Some(display_name) = &pkg.display_name {
@@ -892,7 +892,7 @@ impl RepoPackages {
                     if let Some(description) = &pkg.description {
                         println!("{}", description);
                     }
-                    let mut versions = versions.versions.values().collect::<Vec<_>>();
+                    let mut versions = versions.all_versions().collect::<Vec<_>>();
                     versions.sort_by_key(|pkg| &pkg.version);
                     for pkg in &versions {
                         println!("{}: {}", pkg.version, pkg.url);
