@@ -306,11 +306,19 @@ impl Install {
             let resolve_result = unity.resolve(&env).await.exit_context("resolving packages");
             for installed in resolve_result.installed_from_locked() {
                 if installed.is_yanked() {
-                    eprintln!("WARN: {} version {} is yanked", installed.name(), installed.version());
+                    eprintln!(
+                        "WARN: {} version {} is yanked",
+                        installed.name(),
+                        installed.version()
+                    );
                 }
             }
             for installed in resolve_result.installed_from_unlocked_dependencies() {
-                println!("installed {} version {} from dependencies of unlocked packages", installed.name(), installed.version());
+                println!(
+                    "installed {} version {} from dependencies of unlocked packages",
+                    installed.name(),
+                    installed.version()
+                );
             }
         }
 
