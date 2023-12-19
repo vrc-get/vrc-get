@@ -231,7 +231,7 @@ pub async fn download_remote_repository(
     let no_bom = full.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(full.as_ref());
     let json = serde_json::from_slice(&no_bom)?;
 
-    let mut repo = RemoteRepository::new(json)?;
+    let mut repo = RemoteRepository::parse(json)?;
     repo.set_url_if_none(|| url.to_string());
     Ok(Some((repo, etag)))
 }

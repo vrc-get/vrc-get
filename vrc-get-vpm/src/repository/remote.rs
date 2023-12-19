@@ -12,7 +12,7 @@ pub struct RemoteRepository {
 }
 
 impl RemoteRepository {
-    pub fn new(cache: JsonMap) -> serde_json::Result<Self> {
+    pub fn parse(cache: JsonMap) -> serde_json::Result<Self> {
         Ok(Self {
             parsed: serde_json::from_value(Value::Object(cache.clone()))?,
             actual: cache,
@@ -84,7 +84,7 @@ impl<'de> Deserialize<'de> for RemoteRepository {
     {
         use serde::de::Error;
         let map = JsonMap::deserialize(deserializer)?;
-        Self::new(map).map_err(Error::custom)
+        Self::parse(map).map_err(Error::custom)
     }
 }
 
