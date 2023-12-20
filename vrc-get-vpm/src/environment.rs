@@ -1,4 +1,7 @@
+mod uesr_package_collection;
+
 use crate::repo_holder::RepoHolder;
+use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
@@ -20,7 +23,8 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use tokio::fs::{create_dir_all, remove_file, File};
 use tokio::io::AsyncWriteExt;
-use crate::repository::local::LocalCachedRepository;
+
+pub(crate) use crate::environment::uesr_package_collection::UserPackageCollection;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
@@ -34,8 +38,7 @@ pub struct Environment {
     settings: Map<String, Value>,
     /// Cache
     repo_cache: RepoHolder,
-    // TODO: change type for user package info
-    user_packages: Vec<(PathBuf, PackageJson)>,
+    user_packages: UserPackageCollection,
     settings_changed: bool,
     url_overrides: HashMap<PreDefinedRepoSource, Url>,
 }
@@ -56,7 +59,7 @@ impl Environment {
             settings: load_json_or_default(&folder.join("settings.json")).await?,
             global_dir: folder,
             repo_cache: RepoHolder::new(),
-            user_packages: Vec::new(),
+            user_packages: UserPackageCollection::new(),
             settings_changed: false,
             url_overrides: HashMap::new(),
         })
@@ -158,11 +161,7 @@ impl Environment {
     async fn load_user_package_infos(&mut self) -> io::Result<()> {
         self.user_packages.clear();
         for x in self.get_user_package_folders()? {
-            if let Some(package_json) =
-                load_json_or_default::<Option<PackageJson>>(&x.join("package.json")).await?
-            {
-                self.user_packages.push((x, package_json));
-            }
+            self.user_packages.try_add_package(&x).await?;
         }
         Ok(())
     }
@@ -183,12 +182,7 @@ impl PackageCollection for Environment {
                 .map(|(pkg, repo)| PackageInfo::remote(pkg, repo)),
         );
 
-        // user package folders
-        for (path, package_json) in &self.user_packages {
-            if package_json.name == package {
-                list.push(PackageInfo::local(package_json, path));
-            }
-        }
+        list.extend(self.user_packages.find_packages(package));
 
         list.into_iter()
     }
@@ -253,9 +247,9 @@ impl Environment {
             .fold((), |_, pkg| list.push(pkg));
 
         // user package folders
-        for (_, package_json) in &self.user_packages {
-            if !package_json.version.pre.is_empty() && filter(package_json) {
-                list.push(package_json);
+        for info in self.user_packages.get_all_packages() {
+            if !info.version().pre.is_empty() && filter(info.package_json()) {
+                list.push(info.package_json());
             }
         }
 
@@ -521,7 +515,7 @@ impl<'a> PackageSelector<'a> {
     pub(crate) fn as_specific(&self) -> Option<&Version> {
         match self.inner {
             SelectorInner::Specific(version) => Some(version),
-            _ => None
+            _ => None,
         }
     }
 }

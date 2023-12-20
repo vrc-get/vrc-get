@@ -1,12 +1,12 @@
 use crate::structs::package::PackageJson;
 use crate::utils::MapResultExt;
+use crate::version::Version;
 use indexmap::IndexMap;
 use reqwest::{Client, Url};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::io;
-use crate::version::Version;
 
 type JsonMap = Map<String, Value>;
 
@@ -131,8 +131,11 @@ impl RemoteRepository {
     }
 
     pub fn get_package_version(&self, name: &str, version: &Version) -> Option<&PackageJson> {
-        self.parsed.packages.get(name)?
-            .versions.get(&version.to_string())
+        self.parsed
+            .packages
+            .get(name)?
+            .versions
+            .get(&version.to_string())
     }
 }
 

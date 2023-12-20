@@ -1,9 +1,9 @@
-use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
-use url::Url;
 use crate::{PackageCollection, PackageInfo, PackageSelector};
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LocalCachedRepository {
@@ -71,7 +71,8 @@ pub struct VrcGetMeta {
 
 impl PackageCollection for LocalCachedRepository {
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        self.get_versions_of(package).map(|pkg| PackageInfo::remote(pkg, self))
+        self.get_versions_of(package)
+            .map(|pkg| PackageInfo::remote(pkg, self))
     }
 
     fn find_package_by_name(
@@ -80,7 +81,8 @@ impl PackageCollection for LocalCachedRepository {
         package_selector: PackageSelector,
     ) -> Option<PackageInfo> {
         if let Some(version) = package_selector.as_specific() {
-            self.repo.get_package_version(package, version)
+            self.repo
+                .get_package_version(package, version)
                 .map(|pkg| PackageInfo::remote(pkg, self))
         } else {
             self.find_packages(package)

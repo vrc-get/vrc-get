@@ -130,4 +130,3 @@ pub mod setting {
         }
     }
 }
-

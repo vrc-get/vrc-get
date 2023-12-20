@@ -1,7 +1,7 @@
+use crate::repository::local::LocalCachedRepository;
 use crate::{Environment, PackageInfo, PackageSelector};
 use core::iter::Iterator;
 use core::option::Option;
-use crate::repository::local::LocalCachedRepository;
 
 mod seal {
     pub trait Sealed {}
@@ -19,3 +19,4 @@ pub trait PackageCollection: seal::Sealed {
 
 impl seal::Sealed for Environment {}
 impl seal::Sealed for LocalCachedRepository {}
+impl seal::Sealed for crate::environment::UserPackageCollection {}
