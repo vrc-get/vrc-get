@@ -8,6 +8,8 @@ mod seal {
 }
 
 pub trait PackageCollection: seal::Sealed {
+    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo>;
+
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo>;
 
     fn find_package_by_name(

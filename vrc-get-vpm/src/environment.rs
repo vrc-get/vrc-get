@@ -172,6 +172,17 @@ impl Environment {
 }
 
 impl PackageCollection for Environment {
+    fn get_all_packages(&self) -> impl Iterator<Item=PackageInfo> {
+        let local = self
+            .get_repos()
+            .into_iter()
+            .flat_map(|repo| repo.get_all_packages());
+
+        let user = self.user_packages.get_all_packages();
+
+        local.chain(user)
+    }
+
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
         let local = self
             .get_repos()
