@@ -65,12 +65,12 @@ async fn load_env(args: &EnvArgs) -> Environment {
 
     if let Some(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE").ok() {
         log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_url_override(PreDefinedRepoSource::Official, url_override);
+        env.set_url_override(PreDefinedRepoSource::Official, Url::parse(&url_override).expect("invalid url for VRC_GET_OFFICIAL_URL_OVERRIDE"));
     }
 
     if let Some(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE").ok() {
         log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_url_override(PreDefinedRepoSource::Curated, url_override);
+        env.set_url_override(PreDefinedRepoSource::Curated, Url::parse(&url_override).expect("invalid url for VRC_GET_CURATED_URL_OVERRIDE"));
     }
 
     env
@@ -620,9 +620,9 @@ impl RepoList {
         for (local_path, repo) in env.get_repo_with_path() {
             println!(
                 "{}: {} (from {} at {})",
-                repo.id().or(repo.url()).unwrap_or("(no id)"),
+                repo.id().or(repo.url().map(Url::as_str)).unwrap_or("(no id)"),
                 repo.name().unwrap_or("(unnamed)"),
-                repo.url().unwrap_or("(no remote)"),
+                repo.url().map(Url::as_str).unwrap_or("(no remote)"),
                 local_path.display(),
             );
         }
@@ -786,7 +786,7 @@ impl RepoSearcher {
     fn get(self, repo: &UserRepoSetting) -> Option<&OsStr> {
         match self {
             RepoSearcher::Id => repo.id.as_deref().map(|x| OsStr::new(x)),
-            RepoSearcher::Url => repo.url.as_deref().map(|x| OsStr::new(x)),
+            RepoSearcher::Url => repo.url.as_ref().map(|x| OsStr::new(x.as_str())),
             RepoSearcher::Name => repo.name.as_deref().map(|x| OsStr::new(x)),
             RepoSearcher::Path => Some(repo.local_path.as_os_str()),
         }
@@ -907,7 +907,7 @@ impl RepoPackages {
                 exit_with!("remote repository specified but offline mode.");
             }
             let client = crate::create_client(self.env_args.offline).unwrap();
-            let repo = RemoteRepository::download(&client, url, &IndexMap::new())
+            let repo = RemoteRepository::download(&client, &url, &IndexMap::new())
                 .await
                 .exit_context("downloading repository");
 

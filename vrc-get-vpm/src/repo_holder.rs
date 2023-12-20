@@ -2,6 +2,7 @@ use super::*;
 use futures::future::try_join_all;
 use std::collections::HashMap;
 use std::future::Future;
+use url::Url;
 
 #[derive(Debug)]
 pub(super) struct RepoHolder {
@@ -77,7 +78,7 @@ impl RepoHolder {
         client: Option<&Client>,
         headers: &IndexMap<String, String>,
         path: &Path,
-        remote_url: &str,
+        remote_url: &Url,
     ) -> io::Result<LocalCachedRepository> {
         Self::load_repo(path, client, || async {
             // if local repository not found: try downloading remote one

@@ -36,7 +36,7 @@ pub struct Environment {
     // TODO: change type for user package info
     user_packages: Vec<(PathBuf, PackageJson)>,
     settings_changed: bool,
-    url_overrides: HashMap<PreDefinedRepoSource, String>,
+    url_overrides: HashMap<PreDefinedRepoSource, Url>,
 }
 
 impl Environment {
@@ -108,7 +108,10 @@ impl Environment {
         // update id field
         for (i, mut repo) in user_repos.into_iter().enumerate() {
             let loaded = self.repo_cache.get_repo(&repo.local_path).unwrap();
-            let id = loaded.id().or(loaded.url()).or(repo.url.as_deref());
+            let id = loaded
+                .id()
+                .or(loaded.url().map(Url::as_str))
+                .or(repo.url.as_ref().map(Url::as_str));
             if id != repo.id.as_deref() {
                 repo.id = id.map(|x| x.to_owned());
 
@@ -188,7 +191,7 @@ impl Environment {
                 self.url_overrides
                     .get(&x)
                     .cloned()
-                    .unwrap_or_else(|| x.url().to_owned()),
+                    .unwrap_or_else(|| x.url()),
                 self.get_repos_dir().join(x.file_name()),
             )
         });
@@ -311,20 +314,16 @@ impl Environment {
         headers: IndexMap<String, String>,
     ) -> Result<(), AddRepositoryErr> {
         let user_repos = self.get_user_repos()?;
-        if user_repos
-            .iter()
-            .any(|x| x.url.as_deref() == Some(url.as_ref()))
-        {
+        if user_repos.iter().any(|x| x.url.as_ref() == Some(&url)) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
         let Some(http) = &self.http else {
             return Err(AddRepositoryErr::OfflineMode);
         };
 
-        let (remote_repo, etag) =
-            RemoteRepository::download_with_etag(&http, url.clone(), &headers, None)
-                .await?
-                .expect("logic failure: no etag");
+        let (remote_repo, etag) = RemoteRepository::download_with_etag(&http, &url, &headers, None)
+            .await?
+            .expect("logic failure: no etag");
         let repo_name = name.or(remote_repo.name()).map(str::to_owned);
 
         let repo_id = remote_repo.id().map(str::to_owned);
@@ -391,7 +390,7 @@ impl Environment {
         self.add_user_repo(&UserRepoSetting::new(
             local_path.clone(),
             repo_name,
-            Some(url.to_string()),
+            Some(url),
             repo_id,
         ))?;
         Ok(())
@@ -446,7 +445,7 @@ impl Environment {
         Ok(indices.len())
     }
 
-    pub fn set_url_override(&mut self, repo: PreDefinedRepoSource, url: String) {
+    pub fn set_url_override(&mut self, repo: PreDefinedRepoSource, url: Url) {
         self.url_overrides.insert(repo, url);
     }
 

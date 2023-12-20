@@ -7,12 +7,11 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use indexmap::IndexMap;
-use reqwest::{Client, IntoUrl};
+use reqwest::Client;
 use serde_json::{Map, Value};
 use tokio::fs::{create_dir_all, File};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
-
-use utils::*;
+use url::Url;
 
 use structs::package::{PackageJson, PartialUnityVersion};
 use structs::repo_cache::LocalCachedRepository;
@@ -130,10 +129,14 @@ impl PreDefinedRepoSource {
             PreDefinedRepoSource::Curated => "vrc-curated.json",
         }
     }
-    pub fn url(self) -> &'static str {
+    pub fn url(self) -> Url {
         match self {
-            PreDefinedRepoSource::Official => "https://packages.vrchat.com/official?download",
-            PreDefinedRepoSource::Curated => "https://packages.vrchat.com/curated?download",
+            PreDefinedRepoSource::Official => {
+                Url::parse("https://packages.vrchat.com/official?download").unwrap()
+            }
+            PreDefinedRepoSource::Curated => {
+                Url::parse("https://packages.vrchat.com/curated?download").unwrap()
+            }
         }
     }
     pub fn name(self) -> &'static str {
@@ -147,7 +150,7 @@ impl PreDefinedRepoSource {
 #[derive(Clone)]
 #[non_exhaustive]
 pub enum RepoSource {
-    PreDefined(PreDefinedRepoSource, String, PathBuf),
+    PreDefined(PreDefinedRepoSource, Url, PathBuf),
     UserRepo(UserRepoSetting),
 }
 

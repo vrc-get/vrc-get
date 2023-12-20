@@ -97,6 +97,7 @@ pub mod package {
 
 pub mod setting {
     use super::*;
+    use url::Url;
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct UserRepoSetting {
         #[serde(rename = "localPath")]
@@ -105,7 +106,7 @@ pub mod setting {
         pub name: Option<String>,
         // must be non-relative url.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub url: Option<String>,
+        pub url: Option<Url>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub id: Option<String>,
         #[serde(default)]
@@ -116,13 +117,13 @@ pub mod setting {
         pub fn new(
             local_path: PathBuf,
             name: Option<String>,
-            url: Option<String>,
+            url: Option<Url>,
             id: Option<String>,
         ) -> Self {
             Self {
                 local_path,
                 name,
-                id: id.or(url.clone()),
+                id: id.or(url.as_ref().map(Url::to_string)),
                 url,
                 headers: IndexMap::new(),
             }
@@ -134,6 +135,7 @@ pub mod repo_cache {
     use super::*;
     use crate::repository::{RemotePackages, RemoteRepository};
     use crate::structs::package::PackageJson;
+    use url::Url;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct LocalCachedRepository {
@@ -172,7 +174,7 @@ pub mod repo_cache {
             self.repo = repo;
         }
 
-        pub fn url(&self) -> Option<&str> {
+        pub fn url(&self) -> Option<&Url> {
             self.repo().url()
         }
 

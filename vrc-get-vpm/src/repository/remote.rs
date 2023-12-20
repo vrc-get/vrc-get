@@ -1,7 +1,7 @@
 use crate::structs::package::PackageJson;
 use crate::utils::MapResultExt;
 use indexmap::IndexMap;
-use reqwest::{Client, IntoUrl};
+use reqwest::{Client, Url};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -20,7 +20,7 @@ struct ParsedRepository {
     #[serde(default)]
     name: Option<String>,
     #[serde(default)]
-    url: Option<String>,
+    url: Option<Url>,
     #[serde(default)]
     id: Option<String>,
     #[serde(default)]
@@ -37,7 +37,7 @@ impl RemoteRepository {
 
     pub async fn download(
         client: &Client,
-        url: impl IntoUrl,
+        url: &Url,
         headers: &IndexMap<String, String>,
     ) -> io::Result<RemoteRepository> {
         match Self::download_with_etag(client, url, headers, None).await {
@@ -49,11 +49,10 @@ impl RemoteRepository {
 
     pub async fn download_with_etag(
         client: &Client,
-        url: impl IntoUrl,
+        url: &Url,
         headers: &IndexMap<String, String>,
         current_etag: Option<&str>,
     ) -> io::Result<Option<(RemoteRepository, Option<String>)>> {
-        let url = url.into_url().err_mapped()?;
         let mut request = client.get(url.clone());
         if let Some(etag) = &current_etag {
             request = request.header("If-None-Match", etag.to_owned())
@@ -80,7 +79,7 @@ impl RemoteRepository {
         let json = serde_json::from_slice(&no_bom)?;
 
         let mut repo = RemoteRepository::parse(json)?;
-        repo.set_url_if_none(|| url.to_string());
+        repo.set_url_if_none(|| url.clone());
         Ok(Some((repo, etag)))
     }
 
@@ -92,20 +91,21 @@ impl RemoteRepository {
         }
     }
 
-    pub fn set_url_if_none(&mut self, f: impl FnOnce() -> String) {
+    pub fn set_url_if_none(&mut self, f: impl FnOnce() -> Url) {
         if let None = self.parsed.url {
             let url = f();
             self.parsed.url = Some(url.clone());
-            self.actual.insert("url".to_owned(), Value::String(url));
+            self.actual
+                .insert("url".to_owned(), Value::String(url.to_string()));
             if let None = self.parsed.id {
-                let url = self.parsed.url.clone().unwrap();
+                let url = self.parsed.url.as_ref().unwrap().to_string();
                 self.set_id_if_none(move || url);
             }
         }
     }
 
-    pub fn url(&self) -> Option<&str> {
-        self.parsed.url.as_deref()
+    pub fn url(&self) -> Option<&Url> {
+        self.parsed.url.as_ref()
     }
 
     pub fn id(&self) -> Option<&str> {
