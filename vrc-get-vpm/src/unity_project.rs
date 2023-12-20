@@ -24,6 +24,7 @@ use tokio::io::AsyncReadExt;
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
+use crate::add_package::add_package;
 use crate::traits::PackageCollection;
 pub use add_package::{AddPackageErr, AddPackageRequest};
 
@@ -226,7 +227,7 @@ impl UnityProject {
                 let pkg = env
                     .find_package_by_name(pkg, PackageSelector::specific_version(&dep.version))
                     .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
-                env.add_package(pkg, packages_folder).await?;
+                add_package(&env.global_dir, env.http.as_ref(), pkg, packages_folder).await?;
                 Result::<_, AddPackageErr>::Ok(pkg)
             },
         ))

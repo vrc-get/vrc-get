@@ -9,7 +9,7 @@ use crate::traits::PackageCollection;
 use crate::utils::{JsonMapExt, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
 use crate::{
-    add_package, is_truthy, load_json_or_default, to_json_vec, unity_compatible, PackageInfo,
+    is_truthy, load_json_or_default, to_json_vec, unity_compatible, PackageInfo,
     PreDefinedRepoSource, RepoSource, DEFINED_REPO_SOURCES,
 };
 use futures::future::join_all;
@@ -29,11 +29,11 @@ pub(crate) use crate::environment::uesr_package_collection::UserPackageCollectio
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
 pub struct Environment {
-    http: Option<Client>,
+    pub(crate) http: Option<Client>,
     /// config folder.
     /// On windows, `%APPDATA%\\VRChatCreatorCompanion`.
     /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
-    global_dir: PathBuf,
+    pub(crate) global_dir: PathBuf,
     /// parsed settings
     settings: Map<String, Value>,
     /// Cache
@@ -272,20 +272,6 @@ impl Environment {
         list.into_iter()
             .unique_by(|x| (&x.name, &x.version))
             .collect()
-    }
-
-    pub async fn add_package(
-        &self,
-        package: PackageInfo<'_>,
-        target_packages_folder: &Path,
-    ) -> io::Result<()> {
-        add_package::add_package(
-            &self.global_dir,
-            self.http.as_ref(),
-            package,
-            target_packages_folder,
-        )
-        .await
     }
 
     pub fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {

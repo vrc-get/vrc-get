@@ -1,3 +1,4 @@
+use crate::add_package::add_package;
 use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::unity_project::package_resolution;
 use crate::utils::{parse_hex_128, walk_dir, PathBufExt};
@@ -433,7 +434,14 @@ impl UnityProject {
         // resolve all packages
         let futures = packages
             .iter()
-            .map(|x| env.add_package(*x, &packages_folder))
+            .map(|package| {
+                add_package(
+                    &env.global_dir,
+                    env.http.as_ref(),
+                    *package,
+                    &packages_folder,
+                )
+            })
             .collect::<Vec<_>>();
         try_join_all(futures).await?;
 
