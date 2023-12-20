@@ -30,7 +30,7 @@ impl UserPackageCollection {
 }
 
 impl PackageCollection for UserPackageCollection {
-    fn get_all_packages(&self) -> impl Iterator<Item=PackageInfo> {
+    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
         self.user_packages
             .iter()
             .map(|(path, json)| PackageInfo::local(json, path))

@@ -172,7 +172,7 @@ impl Environment {
 }
 
 impl PackageCollection for Environment {
-    fn get_all_packages(&self) -> impl Iterator<Item=PackageInfo> {
+    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
         let local = self
             .get_repos()
             .into_iter()

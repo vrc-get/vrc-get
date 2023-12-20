@@ -70,8 +70,9 @@ pub struct VrcGetMeta {
 }
 
 impl PackageCollection for LocalCachedRepository {
-    fn get_all_packages(&self) -> impl Iterator<Item=PackageInfo> {
-        self.repo().get_packages()
+    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
+        self.repo()
+            .get_packages()
             .flat_map(|x| x.all_versions())
             .map(|pkg| PackageInfo::remote(pkg, self))
     }
