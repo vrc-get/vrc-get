@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::PathBuf;
 use vrc_get_vpm::version::{UnityVersion, Version, VersionRange};
-use vrc_get_vpm::UnityProject;
+use vrc_get_vpm::{PackageCollection, UnityProject};
 
 /// Shows information for other program.
 #[derive(Subcommand)]
@@ -185,10 +185,8 @@ impl Package {
 
         debug_assert_eq!(format_version, 1);
 
-        let packages = env.find_packages(&self.package);
-
-        let versions: Vec<_> = packages
-            .iter()
+        let versions: Vec<_> = env
+            .find_packages(&self.package)
             .map(|x| PackageVersionInfo {
                 version: x.version(),
                 // since 1.5.0

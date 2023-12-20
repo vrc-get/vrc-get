@@ -3,6 +3,7 @@ use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
 use crate::structs::repo_cache::LocalCachedRepository;
 use crate::structs::setting::UserRepoSetting;
+use crate::traits::PackageCollection;
 use crate::utils::{JsonMapExt, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
 use crate::{
@@ -20,7 +21,6 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use tokio::fs::{create_dir_all, remove_file, File};
 use tokio::io::AsyncWriteExt;
-use crate::traits::PackageCollection;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
@@ -173,18 +173,34 @@ impl Environment {
 }
 
 impl PackageCollection for Environment {
+    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
+        let mut list = Vec::new();
+
+        list.extend(
+            self.get_repos()
+                .into_iter()
+                .flat_map(|repo| repo.get_versions_of(package).map(move |pkg| (pkg, repo)))
+                .map(|(pkg, repo)| PackageInfo::remote(pkg, repo)),
+        );
+
+        // user package folders
+        for (path, package_json) in &self.user_packages {
+            if package_json.name == package {
+                list.push(PackageInfo::local(package_json, path));
+            }
+        }
+
+        list.into_iter()
+    }
+
     fn find_package_by_name(
         &self,
         package: &str,
         package_selector: PackageSelector,
     ) -> Option<PackageInfo> {
-        let mut versions = self.find_packages(package);
-
-        versions.retain(|x| package_selector.satisfies(x));
-
-        versions.sort_by_key(|x| Reverse(x.version()));
-
-        versions.into_iter().next()
+        self.find_packages(package)
+            .filter(|x| package_selector.satisfies(x))
+            .max_by_key(|x| x.version())
     }
 }
 
@@ -213,26 +229,6 @@ impl Environment {
         &self,
     ) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
         self.repo_cache.get_repo_with_path()
-    }
-
-    pub fn find_packages(&self, package: &str) -> Vec<PackageInfo> {
-        let mut list = Vec::new();
-
-        list.extend(
-            self.get_repos()
-                .into_iter()
-                .flat_map(|repo| repo.get_versions_of(package).map(move |pkg| (pkg, repo)))
-                .map(|(pkg, repo)| PackageInfo::remote(pkg, repo)),
-        );
-
-        // user package folders
-        for (path, package_json) in &self.user_packages {
-            if package_json.name == package {
-                list.push(PackageInfo::local(package_json, path));
-            }
-        }
-
-        list
     }
 
     pub fn find_whole_all_packages(

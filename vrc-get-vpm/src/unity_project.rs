@@ -24,9 +24,8 @@ use tokio::io::AsyncReadExt;
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
-pub use add_package::{AddPackageErr, AddPackageRequest};
-pub use remove_package::RemovePackageErr;
 use crate::traits::PackageCollection;
+pub use add_package::{AddPackageErr, AddPackageRequest};
 
 #[derive(Debug)]
 pub struct UnityProject {
@@ -170,7 +169,7 @@ impl UnityProject {
 
         let Some((_, version_info)) = buffer.split_once("m_EditorVersion:") else {
             log::error!("m_EditorVersion not found in ProjectVersion.txt");
-            return None
+            return None;
         };
 
         let version_info_end = version_info
@@ -181,7 +180,7 @@ impl UnityProject {
 
         let Some(unity_version) = UnityVersion::parse(version_info) else {
             log::error!("failed to unity version in ProjectVersion.txt ({version_info})");
-            return None
+            return None;
         };
 
         Some(unity_version)

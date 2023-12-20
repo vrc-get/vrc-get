@@ -24,10 +24,10 @@ mod environment;
 mod repo_holder;
 pub mod repository;
 pub mod structs;
+mod traits;
 mod unity_project;
 mod utils;
 pub mod version;
-mod traits;
 
 type JsonMap = Map<String, Value>;
 

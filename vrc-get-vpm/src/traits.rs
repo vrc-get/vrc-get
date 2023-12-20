@@ -1,10 +1,14 @@
 use crate::{Environment, PackageInfo, PackageSelector};
+use core::iter::Iterator;
+use core::option::Option;
 
 mod seal {
     pub trait Sealed {}
 }
 
-pub trait PackageCollection : seal::Sealed {
+pub trait PackageCollection: seal::Sealed {
+    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo>;
+
     fn find_package_by_name(
         &self,
         package: &str,
@@ -12,5 +16,4 @@ pub trait PackageCollection : seal::Sealed {
     ) -> Option<PackageInfo>;
 }
 
-impl seal::Sealed for Environment {
-}
+impl seal::Sealed for Environment {}

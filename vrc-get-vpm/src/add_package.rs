@@ -194,7 +194,7 @@ async fn download_zip(
     let mut sha256 = Sha256::default();
 
     let Some(http) = http else {
-        return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"))
+        return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
     };
 
     let mut request = http.get(url);

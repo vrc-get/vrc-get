@@ -19,15 +19,15 @@ impl DependencyRange {
 
     pub fn as_single_version(&self) -> Option<Version> {
         let [ComparatorSet(the_set)] = self.0.comparators.as_slice() else {
-            return None
+            return None;
         };
 
         let [Comparator::Star(star)] = &the_set[..] else {
-            return None
+            return None;
         };
 
         let Some(full) = star.to_full() else {
-            return None
+            return None;
         };
 
         Some(full)

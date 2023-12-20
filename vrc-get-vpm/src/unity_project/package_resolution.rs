@@ -1,10 +1,10 @@
 use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
+use crate::traits::PackageCollection;
 use crate::unity_project::AddPackageErr;
 use crate::version::{UnityVersion, Version, VersionRange};
 use crate::{PackageInfo, PackageSelector};
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet, VecDeque};
-use crate::traits::PackageCollection;
 
 struct PackageQueue<'a> {
     pending_queue: VecDeque<PackageInfo<'a>>,
