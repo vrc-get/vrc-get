@@ -483,7 +483,9 @@ mod vpm_manifest {
             // sweep
             let removing_packages = self
                 .locked
-                .keys().filter(|&x| !required_packages.contains(x.as_str())).cloned()
+                .keys()
+                .filter(|&x| !required_packages.contains(x.as_str()))
+                .cloned()
                 .collect::<HashSet<_>>();
 
             //log::debug!("removing: {removing_packages:?}");
