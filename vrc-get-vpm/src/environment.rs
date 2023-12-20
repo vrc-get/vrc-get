@@ -462,85 +462,98 @@ impl Environment {
 
 #[derive(Clone, Copy)]
 pub struct PackageSelector<'a> {
-    project_unity: Option<UnityVersion>,
-    version_selector: VersionSelector<'a>,
+    inner: SelectorInner<'a>,
+}
+
+#[derive(Clone, Copy)]
+enum SelectorInner<'a> {
+    Specific(&'a Version),
+    Latest {
+        project_unity: Option<UnityVersion>,
+        include_prerelease: bool,
+    },
+    Range {
+        project_unity: Option<UnityVersion>,
+        range: &'a VersionRange,
+    },
+    Ranges {
+        project_unity: Option<UnityVersion>,
+        ranges: &'a [&'a VersionRange],
+    },
 }
 
 impl<'a> PackageSelector<'a> {
     pub fn specific_version(version: &'a Version) -> Self {
         Self {
-            project_unity: None,
-            version_selector: VersionSelector::Specific(version),
+            inner: SelectorInner::Specific(version),
         }
     }
 
     pub fn latest_for(unity_version: Option<UnityVersion>, include_prerelease: bool) -> Self {
         Self {
-            project_unity: unity_version,
-            version_selector: if include_prerelease {
-                VersionSelector::LatestIncluidingPrerelease
-            } else {
-                VersionSelector::Latest
+            inner: SelectorInner::Latest {
+                project_unity: unity_version,
+                include_prerelease,
             },
         }
     }
 
     pub fn range_for(unity_version: Option<UnityVersion>, range: &'a VersionRange) -> Self {
         Self {
-            project_unity: unity_version,
-            version_selector: VersionSelector::Range(range),
+            inner: SelectorInner::Range {
+                project_unity: unity_version,
+                range,
+            },
         }
     }
 
     pub fn ranges_for(unity_version: Option<UnityVersion>, ranges: &'a [&'a VersionRange]) -> Self {
         Self {
-            project_unity: unity_version,
-            version_selector: VersionSelector::Ranges(ranges),
+            inner: SelectorInner::Ranges {
+                project_unity: unity_version,
+                ranges,
+            },
         }
     }
 }
 
 impl<'a> PackageSelector<'a> {
     pub fn satisfies(&self, package: &PackageInfo) -> bool {
-        match self.version_selector {
-            VersionSelector::Specific(_) => {
-                // if specific version is selected, ignore yank
+        fn unity_and_yank(package: &PackageInfo, project_unity: Option<UnityVersion>) -> bool {
+            if package.is_yanked() {
+                return false;
             }
-            _ => {
-                // otherwise, check if yanked
-                if package.is_yanked() {
+
+            if let Some(unity) = project_unity {
+                if !unity_compatible(package, unity) {
                     return false;
                 }
             }
+
+            true
         }
 
-        if let Some(unity) = self.project_unity {
-            if !unity_compatible(package, unity) {
-                return false;
+        match self.inner {
+            SelectorInner::Specific(finding) => finding == package.version(),
+            SelectorInner::Latest {
+                include_prerelease: true,
+                project_unity,
+            } => unity_and_yank(package, project_unity),
+            SelectorInner::Latest {
+                include_prerelease: false,
+                project_unity,
+            } => package.version().is_stable() && unity_and_yank(package, project_unity),
+            SelectorInner::Range {
+                range,
+                project_unity,
+            } => range.matches(package.version()) && unity_and_yank(package, project_unity),
+            SelectorInner::Ranges {
+                ranges,
+                project_unity,
+            } => {
+                ranges.iter().all(|x| x.matches(package.version()))
+                    && unity_and_yank(package, project_unity)
             }
-        }
-
-        return self.version_selector.satisfies(package.version());
-    }
-}
-
-#[derive(Clone, Copy)]
-enum VersionSelector<'a> {
-    Latest,
-    LatestIncluidingPrerelease,
-    Specific(&'a Version),
-    Range(&'a VersionRange),
-    Ranges(&'a [&'a VersionRange]),
-}
-
-impl<'a> VersionSelector<'a> {
-    pub fn satisfies(&self, version: &Version) -> bool {
-        match self {
-            VersionSelector::Latest => version.pre.is_empty(),
-            VersionSelector::LatestIncluidingPrerelease => true,
-            VersionSelector::Specific(finding) => &version == finding,
-            VersionSelector::Range(range) => range.matches(version),
-            VersionSelector::Ranges(ranges) => ranges.iter().all(|x| x.matches(version)),
         }
     }
 }
