@@ -518,7 +518,7 @@ impl Upgrade {
         let updates = request
             .locked()
             .iter()
-            .map(|x| (x.name().clone(), x.version().clone()))
+            .map(|x| (x.name(), x.version().clone()))
             .collect::<Vec<_>>();
 
         unity
@@ -885,7 +885,7 @@ pub struct RepoPackages {
 
 impl RepoPackages {
     pub async fn run(self) {
-        fn print_repo<'a>(packages: &RemoteRepository) {
+        fn print_repo(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
                 if let Some(pkg) = versions.all_versions().max_by_key(|pkg| &pkg.version) {
                     let package = &pkg.name;
