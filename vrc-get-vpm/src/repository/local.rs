@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
 use url::Url;
+use crate::{PackageCollection, PackageInfo, PackageSelector};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LocalCachedRepository {
@@ -66,4 +67,25 @@ impl LocalCachedRepository {
 pub struct VrcGetMeta {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub etag: String,
+}
+
+impl PackageCollection for LocalCachedRepository {
+    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
+        self.get_versions_of(package).map(|pkg| PackageInfo::remote(pkg, self))
+    }
+
+    fn find_package_by_name(
+        &self,
+        package: &str,
+        package_selector: PackageSelector,
+    ) -> Option<PackageInfo> {
+        if let Some(version) = package_selector.as_specific() {
+            self.repo.get_package_version(package, version)
+                .map(|pkg| PackageInfo::remote(pkg, self))
+        } else {
+            self.find_packages(package)
+                .filter(|x| package_selector.satisfies(x))
+                .max_by_key(|x| x.version())
+        }
+    }
 }

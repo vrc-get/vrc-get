@@ -6,6 +6,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::io;
+use crate::version::Version;
 
 type JsonMap = Map<String, Value>;
 
@@ -127,6 +128,11 @@ impl RemoteRepository {
 
     pub fn get_packages(&self) -> impl Iterator<Item = &'_ RemotePackages> {
         self.parsed.packages.values()
+    }
+
+    pub fn get_package_version(&self, name: &str, version: &Version) -> Option<&PackageJson> {
+        self.parsed.packages.get(name)?
+            .versions.get(&version.to_string())
     }
 }
 

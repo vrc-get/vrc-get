@@ -518,6 +518,15 @@ impl<'a> PackageSelector<'a> {
 }
 
 impl<'a> PackageSelector<'a> {
+    pub(crate) fn as_specific(&self) -> Option<&Version> {
+        match self.inner {
+            SelectorInner::Specific(version) => Some(version),
+            _ => None
+        }
+    }
+}
+
+impl<'a> PackageSelector<'a> {
     pub fn satisfies(&self, package: &PackageInfo) -> bool {
         fn unity_and_yank(package: &PackageInfo, project_unity: Option<UnityVersion>) -> bool {
             if package.is_yanked() {
