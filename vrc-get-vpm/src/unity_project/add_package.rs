@@ -347,30 +347,37 @@ impl UnityProject {
         // then, do install packages
         self.do_add_packages_to_locked(env, &request.locked).await?;
 
-        let project_dir = &self.project_dir;
-
         // finally, try to remove legacy assets
         self.manifest
             .remove_packages(request.legacy_packages.iter().map(|x| x.as_str()));
+
+        Self::remove_legacy_assets(
+            &self.project_dir,
+            request.legacy_files.iter().map(PathBuf::as_path),
+            request.legacy_folders.iter().map(PathBuf::as_path),
+            request.legacy_packages.iter().map(String::as_str),
+        )
+        .await;
+
+        Ok(())
+    }
+
+    async fn remove_legacy_assets(
+        project_dir: &Path,
+        legacy_files: impl Iterator<Item = &Path>,
+        legacy_folders: impl Iterator<Item = &Path>,
+        legacy_packages: impl Iterator<Item = &str>,
+    ) {
         join3(
-            join_all(
-                request
-                    .legacy_files
-                    .into_iter()
-                    .map(|x| remove_file(x, project_dir)),
-            ),
-            join_all(
-                request
-                    .legacy_folders
-                    .into_iter()
-                    .map(|x| remove_folder(x, project_dir)),
-            ),
-            join_all(
-                request
-                    .legacy_packages
-                    .into_iter()
-                    .map(|x| remove_package(x, project_dir)),
-            ),
+            join_all(legacy_files.map(|relative| async move {
+                remove_file(project_dir.join(relative), true).await;
+            })),
+            join_all(legacy_folders.map(|relative| async move {
+                remove_folder(project_dir.join(relative), true).await;
+            })),
+            join_all(legacy_packages.map(|name| async move {
+                remove_folder(project_dir.join("Packages").joined(name), false).await;
+            })),
         )
         .await;
 
@@ -386,34 +393,23 @@ impl UnityProject {
             }
         }
 
-        async fn remove_file(path: PathBuf, project_dir: &Path) {
-            let path = project_dir.join(path);
+        async fn remove_file(path: PathBuf, with_meta: bool) {
             if let Some(err) = tokio::fs::remove_file(&path).await.err() {
                 log::error!("error removing legacy asset at {}: {}", path.display(), err);
             }
-            remove_meta_file(path).await;
+            if with_meta {
+                remove_meta_file(path).await;
+            }
         }
 
-        async fn remove_folder(path: PathBuf, project_dir: &Path) {
-            let path = project_dir.join(path);
+        async fn remove_folder(path: PathBuf, with_meta: bool) {
             if let Some(err) = tokio::fs::remove_dir_all(&path).await.err() {
                 log::error!("error removing legacy asset at {}: {}", path.display(), err);
             }
-            remove_meta_file(path).await;
-        }
-
-        async fn remove_package(name: String, project_dir: &Path) {
-            let folder = project_dir.join("Packages").joined(name);
-            if let Some(err) = tokio::fs::remove_dir_all(&folder).await.err() {
-                log::error!(
-                    "error removing legacy package at {}: {}",
-                    folder.display(),
-                    err
-                );
+            if with_meta {
+                remove_meta_file(path).await;
             }
         }
-
-        Ok(())
     }
 
     async fn do_add_packages_to_locked(
