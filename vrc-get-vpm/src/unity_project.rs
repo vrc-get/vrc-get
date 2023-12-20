@@ -247,7 +247,6 @@ impl UnityProject {
             .flat_map(|pkg| &pkg.vpm_dependencies)
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
             .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
-            .map(|(k, v)| (k, v))
             .into_group_map()
             .into_iter()
             .map(|(pkg_name, ranges)| {
@@ -484,9 +483,7 @@ mod vpm_manifest {
             // sweep
             let removing_packages = self
                 .locked
-                .keys()
-                .cloned()
-                .filter(|x| !required_packages.contains(x.as_str()))
+                .keys().filter(|&x| !required_packages.contains(x.as_str())).cloned()
                 .collect::<HashSet<_>>();
 
             //log::debug!("removing: {removing_packages:?}");

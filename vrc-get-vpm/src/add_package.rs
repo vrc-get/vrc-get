@@ -6,7 +6,6 @@ use crate::{try_open_file, PackageInfo, PackageInfoInner};
 use futures::TryStreamExt;
 use indexmap::IndexMap;
 use reqwest::Client;
-use sha2::{Digest, Sha256};
 use std::io;
 use std::io::SeekFrom;
 use std::path::Path;

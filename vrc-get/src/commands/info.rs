@@ -136,7 +136,6 @@ impl Project {
             .flat_map(|pkg| &pkg.vpm_dependencies)
             .filter(|(k, _)| !unity.locked_packages().contains_key(k.as_str()))
             .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
-            .map(|(k, v)| (k, v))
             .into_group_map();
         for (package, requested) in unlocked_dependencies {
             packages.push(PackageInfo {
