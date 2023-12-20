@@ -103,7 +103,7 @@ where
     }
 
     pub fn is_legacy(&self) -> bool {
-        self.modern_packages.len() != 0
+        !self.modern_packages.is_empty()
     }
 
     pub(crate) fn set_using_info(&mut self, version: &'a Version, dependencies: HashSet<&'a str>) {
@@ -190,7 +190,7 @@ where
         let name = package.name();
 
         entry.touched = true;
-        entry.current = Some(&package.version());
+        entry.current = Some(package.version());
         entry.using = Some(package);
 
         let old_dependencies = std::mem::replace(
@@ -242,7 +242,7 @@ where
         let allow_prerelease = entry.allow_pre || self.allow_prerelease;
 
         if let Some(pending) = self.pending_queue.find_pending_package(name) {
-            if range.match_pre(&pending.version(), allow_prerelease) {
+            if range.match_pre(pending.version(), allow_prerelease) {
                 // if installing version is good, no need to reinstall
                 install = false;
                 log::debug!(
@@ -259,7 +259,7 @@ where
             }
         }
 
-        return install;
+        install
     }
 }
 

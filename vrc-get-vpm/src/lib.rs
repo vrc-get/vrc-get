@@ -112,7 +112,7 @@ fn is_truthy(value: Option<&Value>) -> bool {
         Some(Value::Bool(false)) => false,
         // No NaN in json
         Some(Value::Number(num)) if num.as_f64() == Some(0.0) => false,
-        Some(Value::String(s)) if s == "" => false,
+        Some(Value::String(s)) if s.is_empty() => false,
         _ => true,
     }
 }
@@ -166,7 +166,7 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
     };
 
     let etag = repo.vrc_get.as_ref().map(|x| x.etag.as_str());
-    match RemoteRepository::download_with_etag(&client, &remote_url, repo.headers(), etag).await {
+    match RemoteRepository::download_with_etag(client, &remote_url, repo.headers(), etag).await {
         Ok(None) => log::debug!("cache matched downloading {}", remote_url),
         Ok(Some((remote_repo, etag))) => {
             repo.set_repo(remote_repo);
@@ -174,8 +174,8 @@ async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCached
             // set etag
             if let Some(etag) = etag {
                 repo.vrc_get.get_or_insert_with(Default::default).etag = etag;
-            } else {
-                repo.vrc_get.as_mut().map(|x| x.etag.clear());
+            } else if let Some(x) = repo.vrc_get.as_mut() {
+                x.etag.clear()
             }
         }
         Err(e) => {

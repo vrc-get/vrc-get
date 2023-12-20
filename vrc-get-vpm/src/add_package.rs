@@ -81,17 +81,15 @@ async fn add_remote_package(
         let Some(filename) = entry.filename().as_str().ok() else {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("path in zip file is not utf8"),
-            )
-                .into());
+                "path in zip file is not utf8".to_string(),
+            ));
         };
         let path = dest_folder.join(filename);
         if !check_path(Path::new(filename)) {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
                 format!("directory traversal detected: {}", path.display()),
-            )
-            .into());
+            ));
         }
         if filename.ends_with('/') {
             // if it's directory, just create directory
@@ -124,8 +122,8 @@ async fn add_remote_package(
 ///
 /// ```
 async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Option<File> {
-    let mut cache_file = try_open_file(&zip_path).await.ok()??;
-    let mut sha_file = try_open_file(&sha_path).await.ok()??;
+    let mut cache_file = try_open_file(zip_path).await.ok()??;
+    let mut sha_file = try_open_file(sha_path).await.ok()??;
 
     let mut buf = [0u8; 256 / 4];
     sha_file.read_exact(&mut buf).await.ok()?;

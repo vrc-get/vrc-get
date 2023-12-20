@@ -35,7 +35,7 @@ impl DependencyRange {
 
     pub(crate) fn matches(&self, version: &Version) -> bool {
         if let Some(single) = self.as_single_version() {
-            return &single <= version;
+            &single <= version
         } else {
             self.0.match_pre(version, true)
         }
@@ -87,7 +87,7 @@ impl Display for VersionRange {
             None => return Ok(()),
             Some(next) => Display::fmt(next, f)?,
         }
-        while let Some(next) = iter.next() {
+        for next in iter {
             f.write_str(" || ")?;
             Display::fmt(next, f)?
         }
@@ -118,7 +118,7 @@ impl Display for ComparatorSet {
             None => return Ok(()),
             Some(next) => Display::fmt(next, f)?,
         }
-        while let Some(next) = iter.next() {
+        for next in iter {
             f.write_str(" ")?;
             Display::fmt(next, f)?
         }
@@ -225,7 +225,7 @@ impl Comparator {
             allow!(in_version.is_pre() && in_version.base_version() == version.base_version());
         }
 
-        return false;
+        false
     }
 
     fn matches_internal(&self, version: &Version) -> bool {
@@ -248,7 +248,7 @@ impl Comparator {
             Comparator::Caret(v) => {
                 require!(version >= &v.to_zeros());
                 // ^* is always true
-                if let None = v.major() {
+                if v.major().is_none() {
                     return true;
                 }
                 require!(version.major == v.major_or(0));
@@ -294,10 +294,10 @@ impl Comparator {
             }
         }
         fn less_than(version: &Version, v: &PartialVersion) -> bool {
-            return match v.to_full() {
+            match v.to_full() {
                 Some(v) => version < &v,
                 None => version < &v.to_zeros_with_pre(),
-            };
+            }
         }
 
         fn less_than_or_equal(version: &Version, v: &PartialVersion) -> bool {
@@ -650,7 +650,7 @@ impl PartialVersion {
             }
         }
 
-        if bytes.buf.len() == 0 {
+        if bytes.buf.is_empty() {
             Ok(buf)
         } else {
             let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;

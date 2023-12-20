@@ -99,7 +99,7 @@ impl Environment {
 
     fn update_user_repo_id(&mut self) {
         let user_repos = self.get_user_repos().unwrap();
-        if user_repos.len() == 0 {
+        if user_repos.is_empty() {
             return;
         }
 
@@ -123,7 +123,7 @@ impl Environment {
 
     fn remove_id_duplication(&mut self) {
         let user_repos = self.get_user_repos().unwrap();
-        if user_repos.len() == 0 {
+        if user_repos.is_empty() {
             return;
         }
 
@@ -185,7 +185,7 @@ impl Environment {
     }
 
     fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
-        let defined_sources = DEFINED_REPO_SOURCES.into_iter().copied().map(|x| {
+        let defined_sources = DEFINED_REPO_SOURCES.iter().copied().map(|x| {
             RepoSource::PreDefined(
                 x,
                 self.url_overrides
@@ -299,7 +299,7 @@ impl Environment {
 
     fn add_user_repo(&mut self, repo: &UserRepoSetting) -> serde_json::Result<()> {
         self.settings
-            .get_or_put_mut("userRepos", || Vec::<Value>::new())
+            .get_or_put_mut("userRepos", Vec::<Value>::new)
             .as_array_mut()
             .expect("userRepos must be array")
             .push(to_value(repo)?);
@@ -321,7 +321,7 @@ impl Environment {
             return Err(AddRepositoryErr::OfflineMode);
         };
 
-        let (remote_repo, etag) = RemoteRepository::download_with_etag(&http, &url, &headers, None)
+        let (remote_repo, etag) = RemoteRepository::download_with_etag(http, &url, &headers, None)
             .await?
             .expect("logic failure: no etag");
         let repo_name = name.or(remote_repo.name()).map(str::to_owned);
@@ -348,7 +348,7 @@ impl Environment {
 
         // [0-9a-zA-Z._-]+
         fn is_id_name_for_file(id: &str) -> bool {
-            id.len() != 0
+            !id.is_empty()
                 && id.bytes().all(|b| match b {
                     b'0'..=b'9' => true,
                     b'a'..=b'z' => true,
@@ -426,7 +426,7 @@ impl Environment {
             .filter(|(_, x)| condition(x))
             .collect::<Vec<_>>();
         indices.reverse();
-        if indices.len() == 0 {
+        if indices.is_empty() {
             return Ok(0);
         }
 
@@ -543,7 +543,7 @@ impl<'a> VersionSelector<'a> {
             VersionSelector::LatestIncluidingPrerelease => true,
             VersionSelector::Specific(finding) => &version == finding,
             VersionSelector::Range(range) => range.matches(version),
-            VersionSelector::Ranges(ranges) => ranges.into_iter().all(|x| x.matches(version)),
+            VersionSelector::Ranges(ranges) => ranges.iter().all(|x| x.matches(version)),
         }
     }
 }

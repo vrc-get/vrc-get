@@ -17,7 +17,7 @@ impl UnityProject {
 
         let mut repos = Vec::with_capacity(names.len());
         let mut not_founds = Vec::new();
-        for name in names.into_iter().copied() {
+        for name in names.iter().copied() {
             if let Some(x) = self.manifest.locked().get(name) {
                 repos.push(x);
             } else {
@@ -34,7 +34,7 @@ impl UnityProject {
         let conflicts = self
             .all_dependencies()
             .filter(|(name, _)| !names.contains(&name.as_str()))
-            .filter(|(_, dep)| names.into_iter().any(|x| dep.contains_key(*x)))
+            .filter(|(_, dep)| names.iter().any(|x| dep.contains_key(*x)))
             .map(|(name, _)| String::from(name))
             .collect::<Vec<_>>();
 
@@ -45,7 +45,7 @@ impl UnityProject {
         // there's no conflicts. So do remove
 
         self.manifest.remove_packages(names.iter().copied());
-        try_join_all(names.into_iter().map(|name| {
+        try_join_all(names.iter().map(|name| {
             remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
                 Ok(()) => Ok(()),
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
@@ -74,7 +74,7 @@ impl fmt::Display for RemovePackageErr {
                 f.write_str("the following packages are not installed: ")?;
                 let mut iter = names.iter();
                 f.write_str(iter.next().unwrap())?;
-                while let Some(name) = iter.next() {
+                for name in iter {
                     f.write_str(", ")?;
                     f.write_str(name)?;
                 }
@@ -84,7 +84,7 @@ impl fmt::Display for RemovePackageErr {
                 f.write_str("removing packages conflicts with the following packages: ")?;
                 let mut iter = names.iter();
                 f.write_str(iter.next().unwrap())?;
-                while let Some(name) = iter.next() {
+                for name in iter {
                     f.write_str(", ")?;
                     f.write_str(name)?;
                 }

@@ -224,7 +224,7 @@ impl UnityProject {
         let installed_from_locked = try_join_all(this.manifest.locked().into_iter().map(
             |(pkg, dep)| async move {
                 let pkg = env
-                    .find_package_by_name(&pkg, PackageSelector::specific_version(&dep.version))
+                    .find_package_by_name(pkg, PackageSelector::specific_version(&dep.version))
                     .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
                 env.add_package(pkg, packages_folder).await?;
                 Result::<_, AddPackageErr>::Ok(pkg)
@@ -234,7 +234,7 @@ impl UnityProject {
 
         let unlocked_names: HashSet<_> = self
             .unlocked_packages()
-            .into_iter()
+            .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .map(|x| x.name.as_str())
             .collect();
@@ -266,10 +266,10 @@ impl UnityProject {
             .any(|x| !x.version().pre.is_empty());
 
         let req = self
-            .add_package_request(&env, unlocked_dependencies, false, allow_prerelease)
+            .add_package_request(env, unlocked_dependencies, false, allow_prerelease)
             .await?;
 
-        if req.conflicts.len() != 0 {
+        if !req.conflicts.is_empty() {
             let (conflict, mut deps) = req.conflicts.into_iter().next().unwrap();
             return Err(AddPackageErr::ConflictWithDependencies {
                 conflict,
@@ -279,7 +279,7 @@ impl UnityProject {
 
         let installed_from_unlocked_dependencies = req.locked.clone();
 
-        self.do_add_package_request(&env, req).await?;
+        self.do_add_package_request(env, req).await?;
 
         Ok(ResolveResult {
             installed_from_locked,
@@ -329,7 +329,7 @@ impl UnityProject {
             .filter_map(|(_, json)| json.as_ref())
             .map(|x| (&x.name, &x.vpm_dependencies));
 
-        return dependencies_locked.chain(dependencies_unlocked);
+        dependencies_locked.chain(dependencies_unlocked)
     }
 
     pub fn unlocked_packages(&self) -> &[(String, Option<PackageJson>)] {
@@ -485,7 +485,7 @@ mod vpm_manifest {
             let removing_packages = self
                 .locked
                 .keys()
-                .map(|x| x.clone())
+                .cloned()
                 .filter(|x| !required_packages.contains(x.as_str()))
                 .collect::<HashSet<_>>();
 

@@ -51,7 +51,7 @@ impl RepoHolder {
     ) -> io::Result<Option<LocalCachedRepository>> {
         match source {
             RepoSource::PreDefined(_, url, path) => {
-                RepoHolder::load_remote_repo(client, &IndexMap::new(), &path, url)
+                RepoHolder::load_remote_repo(client, &IndexMap::new(), path, url)
                     .await
                     .map(Some)
             }
@@ -61,7 +61,7 @@ impl RepoHolder {
                         client,
                         &user_repo.headers,
                         &user_repo.local_path,
-                        &url,
+                        url,
                     )
                     .await
                     .map(Some)
@@ -86,7 +86,7 @@ impl RepoHolder {
                 return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "offline mode"))
             };
             let (remote_repo, etag) =
-                RemoteRepository::download_with_etag(&client, remote_url, headers, None)
+                RemoteRepository::download_with_etag(client, remote_url, headers, None)
                     .await?
                     .expect("logic failure: no etag");
 
@@ -128,7 +128,7 @@ impl RepoHolder {
         T: Future<Output = io::Result<LocalCachedRepository>>,
     {
         let Some(json_file) = try_open_file(path).await? else {
-            return Ok(if_not_found().await?);
+            return if_not_found().await;
         };
 
         let mut loaded = match serde_json::from_slice(&read_to_vec(json_file).await?) {
@@ -141,9 +141,9 @@ impl RepoHolder {
             }
         };
         if let Some(http) = http {
-            update_from_remote(http, path.into(), &mut loaded).await;
+            update_from_remote(http, path, &mut loaded).await;
         }
-        return Ok(loaded);
+        Ok(loaded)
     }
 
     pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {

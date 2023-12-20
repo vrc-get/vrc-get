@@ -33,7 +33,7 @@ impl<'a> ParsingBuf<'a> {
     }
 
     pub fn skip(&mut self) -> &mut Self {
-        if self.buf.len() != 0 {
+        if !self.buf.is_empty() {
             self.buf = &self.buf[1..];
         }
         self

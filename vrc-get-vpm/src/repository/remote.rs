@@ -76,7 +76,7 @@ impl RemoteRepository {
         // response.json() doesn't support BOM
         let full = response.bytes().await.err_mapped()?;
         let no_bom = full.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(full.as_ref());
-        let json = serde_json::from_slice(&no_bom)?;
+        let json = serde_json::from_slice(no_bom)?;
 
         let mut repo = RemoteRepository::parse(json)?;
         repo.set_url_if_none(|| url.clone());
@@ -84,7 +84,7 @@ impl RemoteRepository {
     }
 
     pub fn set_id_if_none(&mut self, f: impl FnOnce() -> String) {
-        if let None = self.parsed.id {
+        if self.parsed.id.is_none() {
             let id = f();
             self.parsed.id = Some(id.clone());
             self.actual.insert("id".to_owned(), Value::String(id));
@@ -92,12 +92,12 @@ impl RemoteRepository {
     }
 
     pub fn set_url_if_none(&mut self, f: impl FnOnce() -> Url) {
-        if let None = self.parsed.url {
+        if self.parsed.url.is_none() {
             let url = f();
             self.parsed.url = Some(url.clone());
             self.actual
                 .insert("url".to_owned(), Value::String(url.to_string()));
-            if let None = self.parsed.id {
+            if self.parsed.id.is_none() {
                 let url = self.parsed.url.as_ref().unwrap().to_string();
                 self.set_id_if_none(move || url);
             }
@@ -126,7 +126,7 @@ impl RemoteRepository {
     }
 
     pub fn get_packages(&self) -> impl Iterator<Item = &'_ RemotePackages> {
-        self.parsed.packages.values().into_iter()
+        self.parsed.packages.values()
     }
 }
 

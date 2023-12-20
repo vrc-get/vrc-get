@@ -140,7 +140,7 @@ impl UnityProject {
             }
         }
 
-        if adding_packages.len() == 0 {
+        if adding_packages.is_empty() {
             // early return:
             return Ok(AddPackageRequest {
                 dependencies,
@@ -181,7 +181,7 @@ impl UnityProject {
             vec![]
         };
 
-        return Ok(AddPackageRequest {
+        Ok(AddPackageRequest {
             dependencies,
             locked: result.new_packages,
             conflicts: result.conflicts,
@@ -189,7 +189,7 @@ impl UnityProject {
             legacy_files,
             legacy_folders,
             legacy_packages,
-        });
+        })
     }
 
     async fn collect_legacy_assets(
@@ -242,16 +242,14 @@ impl UnityProject {
                     } else {
                         FoundFolder(path)
                     }
-                } else {
-                    if let Some(guid) = guid.as_deref().and_then(try_parse_guid) {
-                        if is_file {
-                            GuidFile(guid)
-                        } else {
-                            GuidFolder(guid)
-                        }
+                } else if let Some(guid) = guid.as_deref().and_then(try_parse_guid) {
+                    if is_file {
+                        GuidFile(guid)
                     } else {
-                        NotFound
+                        GuidFolder(guid)
                     }
+                } else {
+                    NotFound
                 }
             })
             .collect::<FuturesUnordered<_>>());
@@ -278,7 +276,7 @@ impl UnityProject {
             }
         }
 
-        if find_guids.len() != 0 {
+        if !find_guids.is_empty() {
             async fn get_guid(entry: DirEntry) -> Option<(GUID, bool, PathBuf)> {
                 let path = entry.path();
                 if path.extension() != Some(OsStr::new("meta"))
@@ -425,7 +423,7 @@ impl UnityProject {
         // then, lock all dependencies
         for pkg in packages.iter() {
             self.manifest.add_locked(
-                &pkg.name(),
+                pkg.name(),
                 VpmLockedDependency::new(pkg.version().clone(), pkg.vpm_dependencies().clone()),
             );
         }

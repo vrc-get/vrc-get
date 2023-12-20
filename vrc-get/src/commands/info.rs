@@ -124,14 +124,14 @@ impl Project {
 
         let unlocked_names: HashSet<_> = unity
             .unlocked_packages()
-            .into_iter()
+            .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .map(|x| x.name.as_str())
             .collect();
 
         let unlocked_dependencies = unity
             .unlocked_packages()
-            .into_iter()
+            .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .flat_map(|pkg| &pkg.vpm_dependencies)
             .filter(|(k, _)| !unity.locked_packages().contains_key(k.as_str()))

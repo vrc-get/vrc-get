@@ -262,5 +262,5 @@ pub(crate) fn walk_dir(paths: impl IntoIterator<Item = PathBuf>) -> impl Stream<
         }
     }
 
-    return StreamImpl::new(read_dir, paths.into_iter());
+    StreamImpl::new(read_dir, paths.into_iter())
 }

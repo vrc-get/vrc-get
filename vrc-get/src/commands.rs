@@ -12,14 +12,14 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::{read_dir, remove_file};
+use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::structs::package::PackageJson;
 use vrc_get_vpm::structs::setting::UserRepoSetting;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    AddPackageRequest, Environment, PackageInfo, PackageSelector,
-    PreDefinedRepoSource, UnityProject,
+    AddPackageRequest, Environment, PackageInfo, PackageSelector, PreDefinedRepoSource,
+    UnityProject,
 };
-use vrc_get_vpm::repository::RemoteRepository;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -63,14 +63,20 @@ async fn load_env(args: &EnvArgs) -> Environment {
         .exit_context("loading repositories");
     env.save().await.exit_context("saving repositories updates");
 
-    if let Some(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE").ok() {
+    if let Ok(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE") {
         log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_url_override(PreDefinedRepoSource::Official, Url::parse(&url_override).expect("invalid url for VRC_GET_OFFICIAL_URL_OVERRIDE"));
+        env.set_url_override(
+            PreDefinedRepoSource::Official,
+            Url::parse(&url_override).expect("invalid url for VRC_GET_OFFICIAL_URL_OVERRIDE"),
+        );
     }
 
-    if let Some(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE").ok() {
+    if let Ok(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE") {
         log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_url_override(PreDefinedRepoSource::Curated, Url::parse(&url_override).expect("invalid url for VRC_GET_CURATED_URL_OVERRIDE"));
+        env.set_url_override(
+            PreDefinedRepoSource::Curated,
+            Url::parse(&url_override).expect("invalid url for VRC_GET_CURATED_URL_OVERRIDE"),
+        );
     }
 
     env
@@ -87,7 +93,7 @@ fn get_package<'env>(
     name: &str,
     selector: PackageSelector,
 ) -> PackageInfo<'env> {
-    env.find_package_by_name(&name, selector)
+    env.find_package_by_name(name, selector)
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
 
@@ -138,13 +144,13 @@ fn confirm_prompt(msg: &str) -> bool {
 }
 
 fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: bool) {
-    if request.locked().len() == 0 && request.dependencies().len() == 0 {
+    if request.locked().is_empty() && request.dependencies().is_empty() {
         exit_with!("nothing to do")
     }
 
     let mut prompt = require_prompt;
 
-    if request.locked().len() != 0 {
+    if !request.locked().is_empty() {
         println!("You're installing the following packages:");
         for x in request.locked() {
             if x.is_yanked() {
@@ -157,7 +163,7 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = prompt || request.locked().len() > 1;
     }
 
-    if request.legacy_folders().len() != 0 || request.legacy_files().len() != 0 {
+    if !request.legacy_folders().is_empty() || !request.legacy_files().is_empty() {
         println!("You're removing the following legacy assets:");
         for x in request
             .legacy_folders()
@@ -169,7 +175,7 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = true;
     }
 
-    if request.legacy_packages().len() != 0 {
+    if !request.legacy_packages().is_empty() {
         println!("You're removing the following legacy packages:");
         for x in request.legacy_packages() {
             println!("- {}", x);
@@ -177,7 +183,7 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = true;
     }
 
-    if request.conflicts().len() != 0 {
+    if !request.conflicts().is_empty() {
         println!("**Those changes conflicts with the following packages**");
         for (package, conflicts) in request.conflicts() {
             println!("{package} conflicts with:");
@@ -188,7 +194,7 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = true;
     }
 
-    if request.unity_conflicts().len() != 0 {
+    if !request.unity_conflicts().is_empty() {
         println!("**Those packages are incompatible with your unity version**");
         for package in request.unity_conflicts() {
             println!("- {package}");
@@ -199,10 +205,8 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
     if prompt {
         if yes {
             println!("--yes is set. skipping confirm");
-        } else {
-            if !confirm_prompt("Do you want to continue install?") {
-                exit(1);
-            }
+        } else if !confirm_prompt("Do you want to continue install?") {
+            exit(1);
         }
     }
 }
@@ -407,7 +411,7 @@ impl Outdated {
         for (_, dependencies) in unity.all_dependencies() {
             for (name, range) in dependencies {
                 if let Some((outdated, _)) = outdated_packages.get(name.as_str()) {
-                    if !range.matches(&outdated.version()) {
+                    if !range.matches(outdated.version()) {
                         outdated_packages.remove(name.as_str());
                     }
                 }
@@ -500,7 +504,7 @@ impl Upgrade {
             unity
                 .locked_packages()
                 .keys()
-                .map(|name| get_package(&env, &name, version_selector))
+                .map(|name| get_package(&env, name, version_selector))
                 .collect()
         };
 
@@ -620,7 +624,9 @@ impl RepoList {
         for (local_path, repo) in env.get_repo_with_path() {
             println!(
                 "{}: {} (from {} at {})",
-                repo.id().or(repo.url().map(Url::as_str)).unwrap_or("(no id)"),
+                repo.id()
+                    .or(repo.url().map(Url::as_str))
+                    .unwrap_or("(no id)"),
                 repo.name().unwrap_or("(unnamed)"),
                 repo.url().map(Url::as_str).unwrap_or("(no remote)"),
                 local_path.display(),
@@ -655,7 +661,7 @@ impl FromStr for HeaderPair {
     type Err = HeaderPairErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (name, value) = s.split_once(":").ok_or(HeaderPairErr::NoComma)?;
+        let (name, value) = s.split_once(':').ok_or(HeaderPairErr::NoComma)?;
         Ok(HeaderPair(name.parse()?, value.parse()?))
     }
 }
@@ -785,9 +791,9 @@ impl Display for RepoSearcher {
 impl RepoSearcher {
     fn get(self, repo: &UserRepoSetting) -> Option<&OsStr> {
         match self {
-            RepoSearcher::Id => repo.id.as_deref().map(|x| OsStr::new(x)),
+            RepoSearcher::Id => repo.id.as_deref().map(OsStr::new),
             RepoSearcher::Url => repo.url.as_ref().map(|x| OsStr::new(x.as_str())),
-            RepoSearcher::Name => repo.name.as_deref().map(|x| OsStr::new(x)),
+            RepoSearcher::Name => repo.name.as_deref().map(OsStr::new),
             RepoSearcher::Path => Some(repo.local_path.as_os_str()),
         }
     }
@@ -881,8 +887,7 @@ impl RepoPackages {
     pub async fn run(self) {
         fn print_repo<'a>(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
-                if let Some(pkg) = versions.all_versions().max_by_key(|pkg| &pkg.version)
-                {
+                if let Some(pkg) = versions.all_versions().max_by_key(|pkg| &pkg.version) {
                     let package = &pkg.name;
                     if let Some(display_name) = &pkg.display_name {
                         println!("{} | {}", display_name, package);
@@ -902,7 +907,7 @@ impl RepoPackages {
             }
         }
 
-        if let Some(url) = Url::parse(&self.name_or_url).ok() {
+        if let Ok(url) = Url::parse(&self.name_or_url) {
             if self.env_args.offline {
                 exit_with!("remote repository specified but offline mode.");
             }
@@ -942,7 +947,7 @@ impl Completion {
         use clap::CommandFactory;
         use std::env::args;
 
-        let Some(shell) = self.shell.or_else(|| clap_complete::Shell::from_env()) else {
+        let Some(shell) = self.shell.or_else(clap_complete::Shell::from_env) else {
             exit_with!("shell not specified")
         };
         let mut bin_name = args().next().expect("bin name");
