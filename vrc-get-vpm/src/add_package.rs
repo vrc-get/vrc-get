@@ -71,7 +71,15 @@ async fn add_remote_package(
     // remove dest folder before extract if exists
     remove_dir_all(&dest_folder).await.ok();
 
+    extract_zip(zip_file, &dest_folder).await?;
+
+    Ok(())
+}
+
+async fn extract_zip(mut zip_file: File, dest_folder: &Path) -> io::Result<()> {
     // extract zip file
+    zip_file.seek(SeekFrom::Start(0)).await?;
+
     let mut zip_reader = async_zip::tokio::read::seek::ZipFileReader::new(zip_file.compat())
         .await
         .err_mapped()?;
@@ -83,13 +91,14 @@ async fn add_remote_package(
                 "path in zip file is not utf8".to_string(),
             ));
         };
-        let path = dest_folder.join(filename);
         if !check_path(Path::new(filename)) {
             return Err(io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                format!("directory traversal detected: {}", path.display()),
+                io::ErrorKind::InvalidData,
+                format!("directory traversal detected: {}", filename),
             ));
         }
+
+        let path = dest_folder.join(filename);
         if filename.ends_with('/') {
             // if it's directory, just create directory
             create_dir_all(path).await?;
