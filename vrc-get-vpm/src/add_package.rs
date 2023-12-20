@@ -2,7 +2,7 @@ use crate::structs::package::PackageJson;
 use crate::utils::{
     copy_recursive, extract_zip, parse_hex_256, MapResultExt, PathBufExt, Sha256AsyncWrite,
 };
-use crate::{try_open_file, PackageInfo, PackageInfoInner};
+use crate::{PackageInfo, PackageInfoInner};
 use futures::{StreamExt, TryStreamExt};
 use indexmap::IndexMap;
 use reqwest::{Client, Response};
@@ -93,11 +93,15 @@ async fn add_remote_package(
 ///
 /// ```
 async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Option<File> {
-    let mut cache_file = try_open_file(zip_path).await.ok()??;
-    let mut sha_file = try_open_file(sha_path).await.ok()??;
+    let mut cache_file = File::open(zip_path).await.ok()?;
 
     let mut buf = [0u8; 256 / 4];
-    sha_file.read_exact(&mut buf).await.ok()?;
+    File::open(sha_path)
+        .await
+        .ok()?
+        .read_exact(&mut buf)
+        .await
+        .ok()?;
 
     let hex = parse_hex_256(buf)?;
 
