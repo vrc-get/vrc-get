@@ -1,5 +1,7 @@
 use crate::structs::package::PackageJson;
-use crate::utils::{copy_recursive, extract_zip, parse_hex_256, MapResultExt, PathBufExt};
+use crate::utils::{
+    copy_recursive, extract_zip, parse_hex_256, MapResultExt, PathBufExt, Sha256AsyncWrite,
+};
 use crate::{try_open_file, PackageInfo, PackageInfoInner};
 use futures::TryStreamExt;
 use indexmap::IndexMap;
@@ -7,10 +9,9 @@ use reqwest::Client;
 use sha2::{Digest, Sha256};
 use std::io;
 use std::io::SeekFrom;
-use std::path::{Component, Path};
+use std::path::Path;
 use tokio::fs::{create_dir_all, remove_dir_all, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
-use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 
 pub(crate) async fn add_package(
     global_dir: &Path,
@@ -110,21 +111,11 @@ async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Op
         }
     }
 
-    let mut sha256 = Sha256::default();
-    let mut buffer = [0u8; 1024 * 4];
+    let mut hasher = Sha256AsyncWrite::new(tokio::io::sink());
 
-    // process sha256
-    loop {
-        match cache_file.read(&mut buffer).await {
-            Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
-            Err(_) => return None,
-            Ok(0) => break,
-            Ok(size) => sha256.update(&buffer[0..size]),
-        }
-    }
+    tokio::io::copy(&mut cache_file, &mut hasher).await.ok()?;
 
-    let hash = sha256.finalize();
-    let hash = &hash[..];
+    let hash = &hasher.finalize().1[..];
     if hash != &hex[..] {
         return None;
     }
@@ -154,14 +145,12 @@ async fn download_zip(
     url: &str,
 ) -> io::Result<File> {
     // file not found: err
-    let mut cache_file = OpenOptions::new()
+    let cache_file = OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
         .open(&zip_path)
         .await?;
-
-    let mut sha256 = Sha256::default();
 
     let Some(http) = http else {
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
@@ -181,21 +170,22 @@ async fn download_zip(
         .err_mapped()?
         .bytes_stream();
 
+    let mut writer = Sha256AsyncWrite::new(cache_file);
     while let Some(data) = stream.try_next().await.err_mapped()? {
-        sha256.update(&data);
-        cache_file.write_all(&data).await?;
+        writer.write_all(&data).await?;
     }
+
+    let (mut cache_file, hash) = writer.finalize();
 
     cache_file.flush().await?;
     cache_file.seek(SeekFrom::Start(0)).await?;
 
     // write sha file
-    let mut sha_file = File::create(&sha_path).await?;
-    let hash_hex = hex::encode(&sha256.finalize()[..]);
-    let sha_file_content = format!("{} {}\n", hash_hex, zip_file_name);
-    sha_file.write_all(sha_file_content.as_bytes()).await?;
-    sha_file.flush().await?;
-    drop(sha_file);
+    tokio::fs::write(
+        &sha_path,
+        format!("{} {}\n", hex::encode(&hash[..]), zip_file_name),
+    )
+    .await?;
 
     Ok(cache_file)
 }
