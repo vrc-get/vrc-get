@@ -15,7 +15,6 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 use url::Url;
 
 use structs::package::{PackageJson, PartialUnityVersion};
-use structs::repo_cache::LocalCachedRepository;
 use structs::setting::UserRepoSetting;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
@@ -39,6 +38,7 @@ pub use unity_project::ResolveResult;
 pub use unity_project::UnityProject;
 
 pub use traits::PackageCollection;
+use crate::repository::local::LocalCachedRepository;
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {
