@@ -169,7 +169,7 @@ impl UnityProject {
             .filter(|name| self.manifest.locked().contains_key(name))
             .collect();
 
-        let (legacy_files, legacy_folders) = self.collect_legacy_assets(&result.new_packages).await;
+        let (legacy_files, legacy_folders) = Self::collect_legacy_assets(&self.project_dir, &result.new_packages).await;
 
         let unity_conflicts = if let Some(unity) = self.unity_version {
             result
@@ -194,7 +194,7 @@ impl UnityProject {
     }
 
     async fn collect_legacy_assets(
-        &self,
+        project_dir: &Path,
         packages: &[PackageInfo<'_>],
     ) -> (Vec<PathBuf>, Vec<PathBuf>) {
         let folders = packages
@@ -232,7 +232,7 @@ impl UnityProject {
                 if path.has_root() {
                     return NotFound;
                 }
-                let path = self.project_dir.join(path);
+                let path = project_dir.join(path);
                 if metadata(&path)
                     .await
                     .map(|x| x.is_file() == is_file)
@@ -262,10 +262,10 @@ impl UnityProject {
         while let Some(info) = futures.next().await {
             match info {
                 FoundFile(path) => {
-                    found_files.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                    found_files.insert(path.strip_prefix(project_dir).unwrap().to_owned());
                 }
                 FoundFolder(path) => {
-                    found_folders.insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                    found_folders.insert(path.strip_prefix(project_dir).unwrap().to_owned());
                 }
                 NotFound => (),
                 GuidFile(guid) => {
@@ -306,22 +306,21 @@ impl UnityProject {
                 None
             }
 
-            let mut stream = pin!(walk_dir([
-                self.project_dir.join("Packages"),
-                self.project_dir.join("Assets")
-            ])
-            .filter_map(get_guid));
+            let mut stream =
+                pin!(
+                    walk_dir([project_dir.join("Packages"), project_dir.join("Assets")])
+                        .filter_map(get_guid)
+                );
 
             while let Some((guid, is_file_actual, path)) = stream.next().await {
                 if let Some(&is_file) = find_guids.get(&guid) {
                     if is_file_actual == is_file {
                         find_guids.remove(&guid);
                         if is_file {
-                            found_files
-                                .insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                            found_files.insert(path.strip_prefix(project_dir).unwrap().to_owned());
                         } else {
                             found_folders
-                                .insert(path.strip_prefix(&self.project_dir).unwrap().to_owned());
+                                .insert(path.strip_prefix(project_dir).unwrap().to_owned());
                         }
                     }
                 }
