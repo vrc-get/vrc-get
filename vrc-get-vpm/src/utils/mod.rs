@@ -1,5 +1,6 @@
 mod copy_recursive;
 mod extract_zip;
+mod sha256_async_write;
 
 use async_zip::error::ZipError;
 use futures::stream::FuturesUnordered;
@@ -16,6 +17,7 @@ use tokio::fs::{read_dir, DirEntry, ReadDir};
 
 pub(crate) use copy_recursive::copy_recursive;
 pub(crate) use extract_zip::extract_zip;
+pub(crate) use sha256_async_write::Sha256AsyncWrite;
 
 pub(crate) trait PathBufExt {
     fn joined(self, into: impl AsRef<Path>) -> Self;
