@@ -27,6 +27,7 @@ pub mod structs;
 mod unity_project;
 mod utils;
 pub mod version;
+mod traits;
 
 type JsonMap = Map<String, Value>;
 
@@ -36,6 +37,8 @@ pub use environment::PackageSelector;
 pub use unity_project::AddPackageRequest;
 pub use unity_project::ResolveResult;
 pub use unity_project::UnityProject;
+
+pub use traits::PackageCollection;
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {

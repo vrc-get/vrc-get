@@ -26,6 +26,7 @@ use tokio::io::AsyncReadExt;
 
 pub use add_package::{AddPackageErr, AddPackageRequest};
 pub use remove_package::RemovePackageErr;
+use crate::traits::PackageCollection;
 
 #[derive(Debug)]
 pub struct UnityProject {

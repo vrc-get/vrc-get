@@ -16,10 +16,7 @@ use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::structs::package::PackageJson;
 use vrc_get_vpm::structs::setting::UserRepoSetting;
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::{
-    AddPackageRequest, Environment, PackageInfo, PackageSelector, PreDefinedRepoSource,
-    UnityProject,
-};
+use vrc_get_vpm::{AddPackageRequest, Environment, PackageCollection, PackageInfo, PackageSelector, PreDefinedRepoSource, UnityProject};
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {

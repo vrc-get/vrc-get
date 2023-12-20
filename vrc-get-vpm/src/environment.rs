@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
 use tokio::fs::{create_dir_all, remove_file, File};
 use tokio::io::AsyncWriteExt;
+use crate::traits::PackageCollection;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
@@ -169,8 +170,10 @@ impl Environment {
     pub fn get_repos_dir(&self) -> PathBuf {
         self.global_dir.join("Repos")
     }
+}
 
-    pub fn find_package_by_name(
+impl PackageCollection for Environment {
+    fn find_package_by_name(
         &self,
         package: &str,
         package_selector: PackageSelector,
@@ -183,7 +186,9 @@ impl Environment {
 
         versions.into_iter().next()
     }
+}
 
+impl Environment {
     fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
         let defined_sources = DEFINED_REPO_SOURCES.iter().copied().map(|x| {
             RepoSource::PreDefined(

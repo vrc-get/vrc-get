@@ -1,7 +1,10 @@
-use super::*;
+use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::unity_project::AddPackageErr;
-use crate::version::Version;
-use std::collections::VecDeque;
+use crate::version::{UnityVersion, Version, VersionRange};
+use crate::{PackageInfo, PackageSelector};
+use indexmap::IndexMap;
+use std::collections::{HashMap, HashSet, VecDeque};
+use crate::traits::PackageCollection;
 
 struct PackageQueue<'a> {
     pending_queue: VecDeque<PackageInfo<'a>>,
@@ -147,7 +150,7 @@ where
         &mut self,
         name: &'a String,
         locked: &'a VpmLockedDependency,
-        env: &'env Environment,
+        env: &'env impl PackageCollection,
     ) {
         let info = self.dependencies.entry(name).or_default();
         info.set_using_info(
@@ -311,11 +314,11 @@ pub struct PackageResolutionResult<'env> {
     pub found_legacy_packages: Vec<String>,
 }
 
-pub fn collect_adding_packages<'env>(
+pub(crate) fn collect_adding_packages<'env>(
     dependencies: &IndexMap<String, VpmDependency>,
     locked_dependencies: &IndexMap<String, VpmLockedDependency>,
     unity_version: Option<UnityVersion>,
-    env: &'env Environment,
+    env: &'env impl PackageCollection,
     packages: Vec<PackageInfo<'env>>,
     allow_prerelease: bool,
 ) -> Result<PackageResolutionResult<'env>, AddPackageErr> {
