@@ -332,7 +332,9 @@ impl UnityProject {
             found_folders.into_iter().collect(),
         )
     }
+}
 
+impl UnityProject {
     pub async fn do_add_package_request<'env>(
         &mut self,
         env: &'env Environment,
