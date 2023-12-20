@@ -1,5 +1,5 @@
 use crate::structs::package::PackageJson;
-use crate::utils::{copy_recursive, parse_hex_256, MapResultExt, PathBufExt};
+use crate::utils::{copy_recursive, extract_zip, parse_hex_256, MapResultExt, PathBufExt};
 use crate::{try_open_file, PackageInfo, PackageInfoInner};
 use futures::TryStreamExt;
 use indexmap::IndexMap;
@@ -72,44 +72,6 @@ async fn add_remote_package(
     remove_dir_all(&dest_folder).await.ok();
 
     extract_zip(zip_file, &dest_folder).await?;
-
-    Ok(())
-}
-
-async fn extract_zip(mut zip_file: File, dest_folder: &Path) -> io::Result<()> {
-    // extract zip file
-    zip_file.seek(SeekFrom::Start(0)).await?;
-
-    let mut zip_reader = async_zip::tokio::read::seek::ZipFileReader::new(zip_file.compat())
-        .await
-        .err_mapped()?;
-    for i in 0..zip_reader.file().entries().len() {
-        let entry = &zip_reader.file().entries()[i];
-        let Some(filename) = entry.filename().as_str().ok() else {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "path in zip file is not utf8".to_string(),
-            ));
-        };
-        if !check_path(Path::new(filename)) {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("directory traversal detected: {}", filename),
-            ));
-        }
-
-        let path = dest_folder.join(filename);
-        if filename.ends_with('/') {
-            // if it's directory, just create directory
-            create_dir_all(path).await?;
-        } else {
-            let reader = zip_reader.reader_without_entry(i).await.err_mapped()?;
-            create_dir_all(path.parent().unwrap()).await?;
-            let mut dest_file = File::create(path).await?;
-            tokio::io::copy(&mut reader.compat(), &mut dest_file).await?;
-            dest_file.flush().await?;
-        }
-    }
 
     Ok(())
 }
@@ -236,19 +198,6 @@ async fn download_zip(
     drop(sha_file);
 
     Ok(cache_file)
-}
-
-fn check_path(path: &Path) -> bool {
-    for x in path.components() {
-        match x {
-            Component::Prefix(_) => return false,
-            Component::RootDir => return false,
-            Component::ParentDir => return false,
-            Component::CurDir => {}
-            Component::Normal(_) => {}
-        }
-    }
-    true
 }
 
 async fn add_local_package(
