@@ -173,18 +173,14 @@ impl Environment {
 
 impl PackageCollection for Environment {
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        let mut list = Vec::new();
+        let local = self
+            .get_repos()
+            .into_iter()
+            .flat_map(|repo| repo.find_packages(package));
 
-        list.extend(
-            self.get_repos()
-                .into_iter()
-                .flat_map(|repo| repo.get_versions_of(package).map(move |pkg| (pkg, repo)))
-                .map(|(pkg, repo)| PackageInfo::remote(pkg, repo)),
-        );
+        let user = self.user_packages.find_packages(package);
 
-        list.extend(self.user_packages.find_packages(package));
-
-        list.into_iter()
+        local.chain(user)
     }
 
     fn find_package_by_name(
@@ -192,9 +188,16 @@ impl PackageCollection for Environment {
         package: &str,
         package_selector: PackageSelector,
     ) -> Option<PackageInfo> {
-        self.find_packages(package)
-            .filter(|x| package_selector.satisfies(x))
-            .max_by_key(|x| x.version())
+        let local = self
+            .get_repos()
+            .into_iter()
+            .flat_map(|repo| repo.find_package_by_name(package, package_selector));
+
+        let user = self
+            .user_packages
+            .find_package_by_name(package, package_selector);
+
+        return local.chain(user).max_by_key(|x| x.version());
     }
 }
 
