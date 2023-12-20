@@ -3,14 +3,15 @@ use crate::utils::{
     copy_recursive, extract_zip, parse_hex_256, MapResultExt, PathBufExt, Sha256AsyncWrite,
 };
 use crate::{try_open_file, PackageInfo, PackageInfoInner};
-use futures::TryStreamExt;
+use futures::{StreamExt, TryStreamExt};
 use indexmap::IndexMap;
-use reqwest::Client;
+use reqwest::{Client, Response};
 use std::io;
 use std::io::SeekFrom;
 use std::path::Path;
 use tokio::fs::{create_dir_all, remove_dir_all, File, OpenOptions};
-use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt as _, AsyncSeekExt, AsyncWriteExt};
+use tokio_util::compat::FuturesAsyncReadCompatExt;
 
 pub(crate) async fn add_package(
     global_dir: &Path,
@@ -143,6 +144,10 @@ async fn download_zip(
     zip_file_name: &str,
     url: &str,
 ) -> io::Result<File> {
+    let Some(http) = http else {
+        return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
+    };
+
     // file not found: err
     let cache_file = OpenOptions::new()
         .read(true)
@@ -151,28 +156,24 @@ async fn download_zip(
         .open(&zip_path)
         .await?;
 
-    let Some(http) = http else {
-        return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
-    };
-
     let mut request = http.get(url);
 
     for (name, header) in headers {
         request = request.header(name, header);
     }
 
-    let mut stream = request
+    let mut response = request
         .send()
         .await
+        .and_then(Response::error_for_status)
         .err_mapped()?
-        .error_for_status()
-        .err_mapped()?
-        .bytes_stream();
+        .bytes_stream()
+        .map(|x| x.err_mapped())
+        .into_async_read()
+        .compat();
 
     let mut writer = Sha256AsyncWrite::new(cache_file);
-    while let Some(data) = stream.try_next().await.err_mapped()? {
-        writer.write_all(&data).await?;
-    }
+    tokio::io::copy(&mut response, &mut writer).await?;
 
     let (mut cache_file, hash) = writer.finalize();
 
