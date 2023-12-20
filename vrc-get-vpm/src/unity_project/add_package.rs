@@ -344,8 +344,16 @@ impl UnityProject {
             self.manifest.add_dependency(x.0.to_owned(), x.1);
         }
 
+        // then, lock all dependencies
+        for pkg in request.locked.iter() {
+            self.manifest.add_locked(
+                pkg.name(),
+                VpmLockedDependency::new(pkg.version().clone(), pkg.vpm_dependencies().clone()),
+            );
+        }
+
         // then, do install packages
-        self.do_add_packages_to_locked(env, &request.locked).await?;
+        self.install_packages(env, &request.locked).await?;
 
         // finally, try to remove legacy assets
         self.manifest
@@ -412,34 +420,23 @@ impl UnityProject {
         }
     }
 
-    async fn do_add_packages_to_locked(
+    async fn install_packages(
         &mut self,
         env: &Environment,
         packages: &[PackageInfo<'_>],
     ) -> io::Result<()> {
-        // then, lock all dependencies
-        for pkg in packages.iter() {
-            self.manifest.add_locked(
-                pkg.name(),
-                VpmLockedDependency::new(pkg.version().clone(), pkg.vpm_dependencies().clone()),
-            );
-        }
-
         let packages_folder = self.project_dir.join("Packages");
 
         // resolve all packages
-        let futures = packages
-            .iter()
-            .map(|package| {
-                add_package(
-                    &env.global_dir,
-                    env.http.as_ref(),
-                    *package,
-                    &packages_folder,
-                )
-            })
-            .collect::<Vec<_>>();
-        try_join_all(futures).await?;
+        try_join_all(packages.iter().map(|package| {
+            add_package(
+                &env.global_dir,
+                env.http.as_ref(),
+                *package,
+                &packages_folder,
+            )
+        }))
+        .await?;
 
         Ok(())
     }
