@@ -1,3 +1,5 @@
+mod copy_recursive;
+
 use async_zip::error::ZipError;
 use futures::stream::FuturesUnordered;
 use futures::{Stream, TryStream};
@@ -10,6 +12,8 @@ use std::pin::Pin;
 use std::task::Poll::Ready;
 use std::task::{ready, Context, Poll};
 use tokio::fs::{read_dir, DirEntry, ReadDir};
+
+pub(crate) use copy_recursive::copy_recursive;
 
 pub(crate) trait PathBufExt {
     fn joined(self, into: impl AsRef<Path>) -> Self;
