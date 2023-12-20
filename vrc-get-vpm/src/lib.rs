@@ -2,7 +2,8 @@
 //!
 //! TODO: documentation
 
-#[forbid(unsafe_code)]
+#![forbid(unsafe_code)]
+
 use std::io;
 use std::path::{Path, PathBuf};
 
