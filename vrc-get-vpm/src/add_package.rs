@@ -153,8 +153,6 @@ async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Op
         }
     }
 
-    drop(buffer);
-
     let hash = sha256.finalize();
     let hash = &hash[..];
     if hash != &hex[..] {

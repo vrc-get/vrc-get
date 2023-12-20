@@ -349,13 +349,9 @@ impl Environment {
         // [0-9a-zA-Z._-]+
         fn is_id_name_for_file(id: &str) -> bool {
             !id.is_empty()
-                && id.bytes().all(|b| match b {
-                    b'0'..=b'9' => true,
-                    b'a'..=b'z' => true,
-                    b'A'..=b'Z' => true,
-                    b'.' | b'_' | b'-' => true,
-                    _ => false,
-                })
+                && id.bytes().all(
+                    |b| matches!(b, b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'.' | b'_' | b'-'),
+                )
         }
 
         // try id.json

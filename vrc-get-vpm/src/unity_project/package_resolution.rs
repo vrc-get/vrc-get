@@ -331,7 +331,7 @@ pub fn collect_adding_packages<'env>(
             allow_pre = min_ver.is_pre();
             if let Some(locked) = locked_dependencies.get(name) {
                 allow_pre |= !locked.version.pre.is_empty();
-                if &locked.version < &min_ver {
+                if locked.version < min_ver {
                     min_ver = locked.version.clone();
                 }
             }

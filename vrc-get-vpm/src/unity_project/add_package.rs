@@ -210,16 +210,16 @@ impl UnityProject {
             FoundFile(PathBuf),
             FoundFolder(PathBuf),
             NotFound,
-            GuidFile(GUID),
-            GuidFolder(GUID),
+            GuidFile(Guid),
+            GuidFolder(Guid),
         }
         use LegacyInfo::*;
 
         #[derive(Copy, Clone, Hash, Eq, PartialEq)]
-        struct GUID([u8; 16]);
+        struct Guid([u8; 16]);
 
-        fn try_parse_guid(guid: &str) -> Option<GUID> {
-            Some(GUID(parse_hex_128(guid.as_bytes().try_into().ok()?)?))
+        fn try_parse_guid(guid: &str) -> Option<Guid> {
+            Some(Guid(parse_hex_128(guid.as_bytes().try_into().ok()?)?))
         }
 
         let mut futures = pin!(assets
@@ -277,7 +277,7 @@ impl UnityProject {
         }
 
         if !find_guids.is_empty() {
-            async fn get_guid(entry: DirEntry) -> Option<(GUID, bool, PathBuf)> {
+            async fn get_guid(entry: DirEntry) -> Option<(Guid, bool, PathBuf)> {
                 let path = entry.path();
                 if path.extension() != Some(OsStr::new("meta"))
                     || !entry.file_type().await.ok()?.is_file()
