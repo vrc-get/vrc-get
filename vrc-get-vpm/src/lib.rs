@@ -3,7 +3,6 @@
 //! TODO: documentation
 
 #[forbid(unsafe_code)]
-
 use futures::future::{join3, join_all, try_join_all};
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
@@ -56,6 +55,7 @@ pub struct Environment {
     // TODO: change type for user package info
     user_packages: Vec<(PathBuf, PackageJson)>,
     settings_changed: bool,
+    #[cfg(feature = "experimental-override-predefined")]
     url_overrides: HashMap<PreDefinedRepoSource, String>,
 }
 
@@ -77,6 +77,7 @@ impl Environment {
             repo_cache: RepoHolder::new(),
             user_packages: Vec::new(),
             settings_changed: false,
+            #[cfg(feature = "experimental-override-predefined")]
             url_overrides: HashMap::new(),
         })
     }
@@ -203,10 +204,19 @@ impl Environment {
         let defined_sources = DEFINED_REPO_SOURCES.into_iter().copied().map(|x| {
             RepoSource::PreDefined(
                 x,
-                self.url_overrides
-                    .get(&x)
-                    .cloned()
-                    .unwrap_or_else(|| x.url().to_owned()),
+                {
+                    #[cfg(feature = "experimental-override-predefined")]
+                    {
+                        self.url_overrides
+                            .get(&x)
+                            .cloned()
+                            .unwrap_or_else(|| x.url().to_owned())
+                    }
+                    #[cfg(not(feature = "experimental-override-predefined"))]
+                    {
+                        x.url().to_owned()
+                    }
+                },
                 self.get_repos_dir().join(x.file_name()),
             )
         });
@@ -255,7 +265,7 @@ impl Environment {
             versions
                 .versions
                 .values()
-                .filter(|x| !is_truthy(x.yanked.as_ref()))
+                .filter(|x| !is_yanked(x))
                 .filter(|x| x.version.pre.is_empty())
                 .max_by_key(|x| &x.version)
         }
@@ -465,6 +475,7 @@ impl Environment {
         Ok(indices.len())
     }
 
+    #[cfg(feature = "experimental-override-predefined")]
     pub fn set_url_override(&mut self, repo: PreDefinedRepoSource, url: String) {
         self.url_overrides.insert(repo, url);
     }
@@ -545,6 +556,7 @@ impl<'a> PackageInfo<'a> {
         self.package_json().unity.as_ref()
     }
 
+    #[cfg(feature = "experimental-yank")]
     pub fn is_yanked(self) -> bool {
         is_truthy(self.package_json().yanked.as_ref())
     }
@@ -1012,7 +1024,7 @@ impl UnityProject {
 
         let Some((_, version_info)) = buffer.split_once("m_EditorVersion:") else {
             log::error!("m_EditorVersion not found in ProjectVersion.txt");
-            return None
+            return None;
         };
 
         let version_info_end = version_info
@@ -1023,7 +1035,7 @@ impl UnityProject {
 
         let Some(unity_version) = UnityVersion::parse(version_info) else {
             log::error!("failed to unity version in ProjectVersion.txt ({version_info})");
-            return None
+            return None;
         };
 
         Some(unity_version)
@@ -1698,6 +1710,7 @@ fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
 
 impl<'a> PackageSelector<'a> {
     pub fn satisfies(&self, package: &PackageInfo) -> bool {
+        #[cfg(feature = "experimental-yank")]
         match self.version_selector {
             VersionSelector::Specific(_) => {
                 // if specific version is selected, ignore yank
@@ -1868,4 +1881,14 @@ where
     T: ?Sized + serde::Serialize,
 {
     serde_json::to_vec_pretty(value)
+}
+
+#[cfg(feature = "experimental-yank")]
+fn is_yanked(package: &PackageJson) -> bool {
+    is_truthy(package.yanked.as_ref())
+}
+
+#[cfg(not(feature = "experimental-yank"))]
+fn is_yanked(package: &PackageJson) -> bool {
+    false
 }

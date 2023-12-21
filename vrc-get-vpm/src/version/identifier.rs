@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 #[repr(C, align(8))]
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub(super) struct Identifier {
-    vec: String
+    vec: String,
 }
 
 impl Identifier {
@@ -16,7 +16,9 @@ impl Identifier {
     /// SAFETY: the string must be valid ASCII string.
     /// if it contain non-ASCII bytes, it will undefined behaviour
     pub(crate) fn new(string: &str) -> Self {
-        Self { vec: string.to_owned() }
+        Self {
+            vec: string.to_owned(),
+        }
     }
 
     /// Returns true if this is empty identifier

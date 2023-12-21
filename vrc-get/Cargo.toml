@@ -31,3 +31,6 @@ vrc-get-vpm = { path = "../vrc-get-vpm", default-features = false }
 default = ["rustls"]
 native-tls = ["vrc-get-vpm/native-tls"]
 rustls = ["vrc-get-vpm/rustls"]
+
+experimental-override-predefined = ["vrc-get-vpm/experimental-override-predefined"]
+experimental-yank = ["vrc-get-vpm/experimental-yank"]

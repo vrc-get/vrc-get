@@ -16,9 +16,11 @@ use vrc_get_vpm::structs::package::PackageJson;
 use vrc_get_vpm::structs::repository::Repository;
 use vrc_get_vpm::structs::setting::UserRepoSetting;
 use vrc_get_vpm::version::Version;
+#[cfg(feature = "experimental-override-predefined")]
+use vrc_get_vpm::PreDefinedRepoSource;
 use vrc_get_vpm::{
     download_remote_repository, AddPackageRequest, Environment, PackageInfo, PackageSelector,
-    PreDefinedRepoSource, UnityProject,
+    UnityProject,
 };
 
 macro_rules! multi_command {
@@ -63,11 +65,13 @@ async fn load_env(args: &EnvArgs) -> Environment {
         .exit_context("loading repositories");
     env.save().await.exit_context("saving repositories updates");
 
+    #[cfg(feature = "experimental-override-predefined")]
     if let Some(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE").ok() {
         log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
         env.set_url_override(PreDefinedRepoSource::Official, url_override);
     }
 
+    #[cfg(feature = "experimental-override-predefined")]
     if let Some(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE").ok() {
         log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
         env.set_url_override(PreDefinedRepoSource::Curated, url_override);
@@ -147,12 +151,15 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
     if request.locked().len() != 0 {
         println!("You're installing the following packages:");
         for x in request.locked() {
+            #[cfg(feature = "experimental-yank")]
             if x.is_yanked() {
                 prompt = true;
                 println!("- {} version {} (yanked)", x.name(), x.version());
             } else {
                 println!("- {} version {}", x.name(), x.version());
             }
+            #[cfg(not(feature = "experimental-yank"))]
+            println!("- {} version {}", x.name(), x.version());
         }
         prompt = prompt || request.locked().len() > 1;
     }
@@ -304,13 +311,22 @@ impl Install {
             mark_and_sweep(&mut unity).await;
         } else {
             let resolve_result = unity.resolve(&env).await.exit_context("resolving packages");
+            #[cfg(feature = "experimental-yank")]
             for installed in resolve_result.installed_from_locked() {
                 if installed.is_yanked() {
-                    eprintln!("WARN: {} version {} is yanked", installed.name(), installed.version());
+                    eprintln!(
+                        "WARN: {} version {} is yanked",
+                        installed.name(),
+                        installed.version()
+                    );
                 }
             }
             for installed in resolve_result.installed_from_unlocked_dependencies() {
-                println!("installed {} version {} from dependencies of unlocked packages", installed.name(), installed.version());
+                println!(
+                    "installed {} version {} from dependencies of unlocked packages",
+                    installed.name(),
+                    installed.version()
+                );
             }
         }
 
