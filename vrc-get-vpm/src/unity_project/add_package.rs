@@ -271,6 +271,7 @@ impl UnityProject {
                 if relative_path.is_absolute() {
                     return None;
                 }
+                #[allow(clippy::manual_map)] // it's parallel, not just a if-else
                 if metadata(project_dir.join(&relative_path))
                     .await
                     .map(|x| x.is_file() == info.is_file)
