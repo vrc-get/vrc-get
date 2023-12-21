@@ -109,6 +109,9 @@ impl From<io::Error> for AddPackageErr {
 
 // adding package
 impl UnityProject {
+    /// Creates a new `AddPackageRequest` to add the specified packages.
+    /// 
+    /// You should call `do_add_package_request` to apply the changes after confirming to the user.
     pub async fn add_package_request<'env>(
         &self,
         env: &'env Environment,
@@ -388,6 +391,7 @@ impl UnityProject {
 }
 
 impl UnityProject {
+    /// Applies the changes specified in `AddPackageRequest` to the project.
     pub async fn do_add_package_request<'env>(
         &mut self,
         env: &'env Environment,
