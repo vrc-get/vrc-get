@@ -17,7 +17,7 @@ use itertools::Itertools;
 use serde_json::{from_value, to_value, Value};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::{env, io};
+use std::{env, fmt, io};
 use tokio::fs::{read_dir, remove_dir_all, DirEntry, File};
 use tokio::io::AsyncReadExt;
 
@@ -199,6 +199,54 @@ impl UnityProject {
     }
 }
 
+#[derive(Debug)]
+pub enum ResolvePackageErr {
+    Io(io::Error),
+    ConflictWithDependencies {
+        /// conflicting package name
+        conflict: String,
+        /// the name of locked package
+        dependency_name: String,
+    },
+    DependencyNotFound {
+        dependency_name: String,
+    },
+}
+
+impl fmt::Display for ResolvePackageErr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ResolvePackageErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
+            ResolvePackageErr::ConflictWithDependencies {
+                conflict,
+                dependency_name,
+            } => write!(f, "{conflict} conflicts with {dependency_name}"),
+            ResolvePackageErr::DependencyNotFound { dependency_name } => write!(
+                f,
+                "Package {dependency_name} (maybe dependencies of the package) not found"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ResolvePackageErr {}
+
+impl From<io::Error> for ResolvePackageErr {
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
+    }
+}
+
+impl From<AddPackageErr> for ResolvePackageErr {
+    fn from(value: AddPackageErr) -> Self {
+        match value {
+            AddPackageErr::DependencyNotFound { dependency_name } => {
+                Self::DependencyNotFound { dependency_name }
+            }
+        }
+    }
+}
+
 pub struct ResolveResult<'env> {
     installed_from_locked: Vec<PackageInfo<'env>>,
     installed_from_unlocked_dependencies: Vec<PackageInfo<'env>>,
@@ -218,7 +266,7 @@ impl UnityProject {
     pub async fn resolve<'env>(
         &mut self,
         env: &'env Environment,
-    ) -> Result<ResolveResult<'env>, AddPackageErr> {
+    ) -> Result<ResolveResult<'env>, ResolvePackageErr> {
         // first, process locked dependencies
         let this = self as &Self;
         let packages_folder = &this.project_dir.join("Packages");
@@ -227,7 +275,9 @@ impl UnityProject {
                 let pkg = env
                     .find_package_by_name(pkg, PackageSelector::specific_version(&dep.version))
                     .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
-                add_package(&env.global_dir, env.http.as_ref(), pkg, packages_folder).await?;
+                add_package(&env.global_dir, env.http.as_ref(), pkg, packages_folder)
+                    .await
+                    .unwrap(); // TODO
                 Result::<_, AddPackageErr>::Ok(pkg)
             },
         ))
@@ -271,7 +321,7 @@ impl UnityProject {
 
         if !req.conflicts.is_empty() {
             let (conflict, mut deps) = req.conflicts.into_iter().next().unwrap();
-            return Err(AddPackageErr::ConflictWithDependencies {
+            return Err(ResolvePackageErr::ConflictWithDependencies {
                 conflict,
                 dependency_name: deps.swap_remove(0),
             });
@@ -279,7 +329,7 @@ impl UnityProject {
 
         let installed_from_unlocked_dependencies = req.locked.clone();
 
-        self.do_add_package_request(env, req).await?;
+        self.do_add_package_request(env, req).await.unwrap();
 
         Ok(ResolveResult {
             installed_from_locked,

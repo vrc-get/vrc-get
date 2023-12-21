@@ -2,8 +2,8 @@ use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::structs::package::PackageJson;
 use crate::unity_project::package_resolution;
 use crate::utils::{
-    copy_recursive, extract_zip, walk_dir_relative, MapResultExt, PathBufExt,
-    Sha256AsyncWrite, WalkDirEntry,
+    copy_recursive, extract_zip, walk_dir_relative, MapResultExt, PathBufExt, Sha256AsyncWrite,
+    WalkDirEntry,
 };
 use crate::{unity_compatible, Environment, PackageInfo, PackageInfoInner, UnityProject};
 use futures::future::{join3, join_all, try_join_all};
@@ -70,27 +70,14 @@ impl<'env> AddPackageRequest<'env> {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum AddPackageErr {
-    Io(io::Error),
-    ConflictWithDependencies {
-        /// conflicting package name
-        conflict: String,
-        /// the name of locked package
-        dependency_name: String,
-    },
-    DependencyNotFound {
-        dependency_name: String,
-    },
+    DependencyNotFound { dependency_name: String },
 }
 
 impl fmt::Display for AddPackageErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AddPackageErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            AddPackageErr::ConflictWithDependencies {
-                conflict,
-                dependency_name,
-            } => write!(f, "{conflict} conflicts with {dependency_name}"),
             AddPackageErr::DependencyNotFound { dependency_name } => write!(
                 f,
                 "Package {dependency_name} (maybe dependencies of the package) not found"
@@ -101,16 +88,10 @@ impl fmt::Display for AddPackageErr {
 
 impl std::error::Error for AddPackageErr {}
 
-impl From<io::Error> for AddPackageErr {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value)
-    }
-}
-
 // adding package
 impl UnityProject {
     /// Creates a new `AddPackageRequest` to add the specified packages.
-    /// 
+    ///
     /// You should call `do_add_package_request` to apply the changes after confirming to the user.
     pub async fn add_package_request<'env>(
         &self,
@@ -593,9 +574,7 @@ async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Op
     let hex: [u8; 256 / 8] = FromHex::from_hex(buf).ok()?;
 
     // is stored sha doesn't match sha in repo: current cache is invalid
-    if let Some(repo_hash) = sha256
-        .and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok())
-    {
+    if let Some(repo_hash) = sha256.and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok()) {
         if repo_hash != hex {
             return None;
         }
