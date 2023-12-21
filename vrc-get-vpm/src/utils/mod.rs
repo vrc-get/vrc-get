@@ -3,8 +3,9 @@ mod extract_zip;
 mod sha256_async_write;
 
 use async_zip::error::ZipError;
+use either::Either;
 use futures::stream::FuturesUnordered;
-use futures::{Stream, TryStream};
+use futures::{FutureExt, Stream, StreamExt, TryStream};
 use pin_project_lite::pin_project;
 use serde_json::{Map, Value};
 use std::future::Future;
@@ -271,4 +272,73 @@ pub(crate) fn walk_dir(paths: impl IntoIterator<Item = PathBuf>) -> impl Stream<
     }
 
     StreamImpl::new(read_dir, paths.into_iter())
+}
+
+pub(crate) struct WalkDirEntry {
+    pub(crate) original: DirEntry,
+    pub(crate) relative: PathBuf,
+}
+
+impl WalkDirEntry {
+    pub(crate) fn new(original: DirEntry, relative: PathBuf) -> Self {
+        Self { original, relative }
+    }
+
+    pub(crate) fn path(&self) -> PathBuf {
+        self.original.path()
+    }
+}
+
+pub(crate) fn walk_dir_relative(
+    root: &Path,
+    paths: impl IntoIterator<Item = PathBuf>,
+) -> impl Stream<Item = WalkDirEntry> {
+    type FutureResult =
+        Either<io::Result<(ReadDir, PathBuf)>, io::Result<Option<(ReadDir, PathBuf, DirEntry)>>>;
+
+    async fn read_dir_phase(
+        absolute: PathBuf,
+        relative: PathBuf,
+    ) -> io::Result<(ReadDir, PathBuf)> {
+        Ok((read_dir(absolute).await?, relative))
+    }
+
+    async fn next_phase(
+        mut read_dir: ReadDir,
+        relative: PathBuf,
+    ) -> io::Result<Option<(ReadDir, PathBuf, DirEntry)>> {
+        if let Some(entry) = read_dir.next_entry().await? {
+            Ok(Some((read_dir, relative, entry)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    let mut futures = FuturesUnordered::new();
+
+    for path in paths {
+        futures.push(Either::Left(
+            read_dir_phase(root.join(&path), path).map(FutureResult::Left),
+        ));
+    }
+
+    async_stream::stream! {
+        loop {
+            match futures.next().await {
+                None => break,
+                Some(Either::Left(Err(_))) => continue,
+                Some(Either::Left(Ok((read_dir, dir_relative)))) => {
+                    futures.push(Either::Right(next_phase(read_dir, dir_relative).map(FutureResult::Right)))
+                },
+                Some(Either::Right(Err(_))) => continue,
+                Some(Either::Right(Ok(None))) => continue,
+                Some(Either::Right(Ok(Some((read_dir_iter, dir_relative, entry))))) => {
+                    let new_relative_path = dir_relative.join(entry.file_name());
+                    futures.push(Either::Left(read_dir_phase(entry.path(), new_relative_path.clone()).map(FutureResult::Left)));
+                    futures.push(Either::Right(next_phase(read_dir_iter, dir_relative).map(FutureResult::Right)));
+                    yield WalkDirEntry::new(entry, new_relative_path);
+                },
+            }
+        }
+    }
 }

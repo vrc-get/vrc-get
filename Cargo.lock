@@ -89,6 +89,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-stream"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd56dd203fef61ac097dd65721a419ddccb106b2d2b70ba60a6b529f03961a51"
+dependencies = [
+ "async-stream-impl",
+ "futures-core",
+ "pin-project-lite",
+]
+
+[[package]]
+name = "async-stream-impl"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16e62a023e7c117e27523144c5d2459f4397fcc3cab0085af8e2224f643a0193"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "async_zip"
 version = "0.0.15"
 source = "git+https://github.com/Majored/rs-async-zip.git?rev=a58024e#a58024eee84d3d50e105de79bd6210f832667984"
@@ -1554,8 +1576,10 @@ dependencies = [
 name = "vrc-get-vpm"
 version = "0.0.1"
 dependencies = [
+ "async-stream",
  "async_zip",
  "dirs-sys",
+ "either",
  "futures",
  "hex",
  "indexmap 2.1.0",
