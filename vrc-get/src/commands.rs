@@ -59,11 +59,6 @@ async fn load_env(args: &EnvArgs) -> Environment {
         .await
         .exit_context("loading global config");
 
-    env.load_package_infos(!args.no_update)
-        .await
-        .exit_context("loading repositories");
-    env.save().await.exit_context("saving repositories updates");
-
     if let Ok(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE") {
         log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
         env.set_url_override(
@@ -79,6 +74,11 @@ async fn load_env(args: &EnvArgs) -> Environment {
             Url::parse(&url_override).expect("invalid url for VRC_GET_CURATED_URL_OVERRIDE"),
         );
     }
+
+    env.load_package_infos(!args.no_update)
+        .await
+        .exit_context("loading repositories");
+    env.save().await.exit_context("saving repositories updates");
 
     env
 }
