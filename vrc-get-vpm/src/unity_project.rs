@@ -275,9 +275,7 @@ impl UnityProject {
                 let pkg = env
                     .find_package_by_name(pkg, PackageSelector::specific_version(&dep.version))
                     .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
-                add_package(&env.global_dir, env.http.as_ref(), pkg, packages_folder)
-                    .await
-                    .unwrap(); // TODO
+                add_package(env, pkg, packages_folder).await.unwrap(); // TODO
                 Result::<_, AddPackageErr>::Ok(pkg)
             },
         ))

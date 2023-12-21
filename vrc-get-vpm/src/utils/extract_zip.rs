@@ -1,17 +1,21 @@
 use crate::utils::MapResultExt;
-use async_zip::tokio::read::seek::ZipFileReader;
+use async_zip::base::read::seek::ZipFileReader;
+use futures::{AsyncRead, AsyncSeek, AsyncSeekExt};
 use std::io;
 use std::io::SeekFrom;
 use std::path::{Component, Path};
 use tokio::fs::{create_dir_all, File};
-use tokio::io::{AsyncSeekExt, AsyncWriteExt};
-use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
+use tokio::io::AsyncWriteExt;
+use tokio_util::compat::FuturesAsyncReadCompatExt;
 
-pub(crate) async fn extract_zip(mut zip_file: File, dest_folder: &Path) -> io::Result<()> {
+pub(crate) async fn extract_zip(
+    mut zip_file: impl AsyncRead + AsyncSeek + Unpin,
+    dest_folder: &Path,
+) -> io::Result<()> {
     // extract zip file
     zip_file.seek(SeekFrom::Start(0)).await?;
 
-    let mut zip_reader = ZipFileReader::new(zip_file.compat()).await.err_mapped()?;
+    let mut zip_reader = ZipFileReader::new(zip_file).await.err_mapped()?;
     for i in 0..zip_reader.file().entries().len() {
         let entry = &zip_reader.file().entries()[i];
         let Some(filename) = entry.filename().as_str().ok() else {

@@ -1,25 +1,19 @@
 use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
-use crate::structs::package::PackageJson;
+use crate::traits::RemotePackageDownloader;
 use crate::unity_project::package_resolution;
-use crate::utils::{
-    copy_recursive, extract_zip, walk_dir_relative, MapResultExt, PathBufExt, Sha256AsyncWrite,
-    WalkDirEntry,
-};
-use crate::{unity_compatible, Environment, PackageInfo, PackageInfoInner, UnityProject};
+use crate::utils::{copy_recursive, extract_zip, walk_dir_relative, PathBufExt, WalkDirEntry};
+use crate::{unity_compatible, PackageCollection, PackageInfo, PackageInfoInner, UnityProject};
 use futures::future::{join3, join_all, try_join_all};
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use hex::FromHex;
-use indexmap::IndexMap;
-use reqwest::{Client, Response};
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
-use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::{fmt, io};
-use tokio::fs::{create_dir_all, metadata, remove_dir_all, File, OpenOptions};
-use tokio::io::{AsyncBufReadExt, AsyncReadExt as _, AsyncSeekExt, AsyncWriteExt, BufReader};
+use tokio::fs::{metadata, remove_dir_all, File};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_util::compat::*;
 
 /// Represents Packages to be added and folders / packages to be removed
@@ -95,7 +89,7 @@ impl UnityProject {
     /// You should call `do_add_package_request` to apply the changes after confirming to the user.
     pub async fn add_package_request<'env>(
         &self,
-        env: &'env Environment,
+        env: &'env impl PackageCollection,
         mut packages: Vec<PackageInfo<'env>>,
         to_dependencies: bool,
         allow_prerelease: bool,
@@ -375,7 +369,7 @@ impl UnityProject {
     /// Applies the changes specified in `AddPackageRequest` to the project.
     pub async fn do_add_package_request<'env>(
         &mut self,
-        env: &'env Environment,
+        env: &'env impl RemotePackageDownloader,
         request: AddPackageRequest<'env>,
     ) -> io::Result<()> {
         // first, add to dependencies
@@ -461,20 +455,17 @@ impl UnityProject {
 
     async fn install_packages(
         &mut self,
-        env: &Environment,
+        env: &impl RemotePackageDownloader,
         packages: &[PackageInfo<'_>],
     ) -> io::Result<()> {
         let packages_folder = self.project_dir.join("Packages");
 
         // resolve all packages
-        try_join_all(packages.iter().map(|package| {
-            add_package(
-                &env.global_dir,
-                env.http.as_ref(),
-                *package,
-                &packages_folder,
-            )
-        }))
+        try_join_all(
+            packages
+                .iter()
+                .map(|package| add_package(env, *package, &packages_folder)),
+        )
         .await?;
 
         Ok(())
@@ -482,189 +473,26 @@ impl UnityProject {
 }
 
 pub(crate) async fn add_package(
-    global_dir: &Path,
-    http: Option<&Client>,
+    remote_source: &impl RemotePackageDownloader,
     package: PackageInfo<'_>,
     target_packages_folder: &Path,
 ) -> io::Result<()> {
     log::debug!("adding package {}", package.name());
+    let dest_folder = target_packages_folder.join(package.name());
     match package.inner {
-        PackageInfoInner::Remote(json, user_repo) => {
-            add_remote_package(
-                global_dir,
-                http,
-                json,
-                user_repo.headers(),
-                target_packages_folder,
-            )
-            .await
+        PackageInfoInner::Remote(package, user_repo) => {
+            let zip_file = remote_source.get_package(user_repo, package).await?;
+
+            // remove dest folder before extract if exists
+            remove_dir_all(&dest_folder).await.ok();
+            extract_zip(zip_file.compat(), &dest_folder).await?;
+
+            Ok(())
         }
-        PackageInfoInner::Local(json, path) => {
-            add_local_package(path, &json.name, target_packages_folder).await
-        }
-    }
-}
-
-async fn add_remote_package(
-    global_dir: &Path,
-    http: Option<&Client>,
-    package: &PackageJson,
-    headers: &IndexMap<String, String>,
-    target_packages_folder: &Path,
-) -> io::Result<()> {
-    let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name, &package.version);
-    let zip_path = global_dir
-        .to_owned()
-        .joined("Repos")
-        .joined(&package.name)
-        .joined(&zip_file_name);
-    create_dir_all(zip_path.parent().unwrap()).await?;
-    let sha_path = zip_path.with_extension("zip.sha256");
-    let dest_folder = target_packages_folder.join(&package.name);
-
-    // TODO: set sha256 when zipSHA256 is documented
-    let zip_file = if let Some(cache_file) = try_cache(&zip_path, &sha_path, None).await {
-        cache_file
-    } else {
-        download_zip(
-            http,
-            headers,
-            &zip_path,
-            &sha_path,
-            &zip_file_name,
-            &package.url,
-        )
-        .await?
-    };
-
-    // remove dest folder before extract if exists
-    remove_dir_all(&dest_folder).await.ok();
-
-    extract_zip(zip_file, &dest_folder).await?;
-
-    Ok(())
-}
-
-/// Try to load from the zip file
-///
-/// # Arguments
-///
-/// * `zip_path`: the path to zip file
-/// * `sha_path`: the path to sha256 file
-/// * `sha256`: sha256 hash if specified
-///
-/// returns: Option<File> readable zip file file or None
-///
-/// # Examples
-///
-/// ```
-///
-/// ```
-async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Option<File> {
-    let mut cache_file = File::open(zip_path).await.ok()?;
-
-    let mut buf = [0u8; 256 / 4];
-    File::open(sha_path)
-        .await
-        .ok()?
-        .read_exact(&mut buf)
-        .await
-        .ok()?;
-
-    let hex: [u8; 256 / 8] = FromHex::from_hex(buf).ok()?;
-
-    // is stored sha doesn't match sha in repo: current cache is invalid
-    if let Some(repo_hash) = sha256.and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok()) {
-        if repo_hash != hex {
-            return None;
+        PackageInfoInner::Local(_, path) => {
+            remove_dir_all(&dest_folder).await.ok();
+            copy_recursive(path.to_owned(), dest_folder).await?;
+            Ok(())
         }
     }
-
-    let mut hasher = Sha256AsyncWrite::new(tokio::io::sink());
-
-    tokio::io::copy(&mut cache_file, &mut hasher).await.ok()?;
-
-    let hash = &hasher.finalize().1[..];
-    if hash != &hex[..] {
-        return None;
-    }
-
-    cache_file.seek(SeekFrom::Start(0)).await.ok()?;
-
-    Some(cache_file)
-}
-
-/// downloads the zip file from the url to the specified path
-///
-/// # Arguments
-///
-/// * `http`: http client. returns error if none
-/// * `zip_path`: the path to zip file
-/// * `sha_path`: the path to sha256 file
-/// * `zip_file_name`: the name of zip file. will be used in the sha file
-/// * `url`: url to zip file
-///
-/// returns: Result<File, Error> the readable zip file.
-async fn download_zip(
-    http: Option<&Client>,
-    headers: &IndexMap<String, String>,
-    zip_path: &Path,
-    sha_path: &Path,
-    zip_file_name: &str,
-    url: &str,
-) -> io::Result<File> {
-    let Some(http) = http else {
-        return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
-    };
-
-    // file not found: err
-    let cache_file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(&zip_path)
-        .await?;
-
-    let mut request = http.get(url);
-
-    for (name, header) in headers {
-        request = request.header(name, header);
-    }
-
-    let mut response = request
-        .send()
-        .await
-        .and_then(Response::error_for_status)
-        .err_mapped()?
-        .bytes_stream()
-        .map(|x| x.err_mapped())
-        .into_async_read()
-        .compat();
-
-    let mut writer = Sha256AsyncWrite::new(cache_file);
-    tokio::io::copy(&mut response, &mut writer).await?;
-
-    let (mut cache_file, hash) = writer.finalize();
-
-    cache_file.flush().await?;
-    cache_file.seek(SeekFrom::Start(0)).await?;
-
-    // write sha file
-    tokio::fs::write(
-        &sha_path,
-        format!("{} {}\n", hex::encode(&hash[..]), zip_file_name),
-    )
-    .await?;
-
-    Ok(cache_file)
-}
-
-async fn add_local_package(
-    package: &Path,
-    name: &str,
-    target_packages_folder: &Path,
-) -> io::Result<()> {
-    let dest_folder = target_packages_folder.join(name);
-    remove_dir_all(&dest_folder).await.ok();
-    copy_recursive(package.to_owned(), dest_folder).await
 }

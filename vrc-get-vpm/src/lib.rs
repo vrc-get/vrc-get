@@ -36,6 +36,7 @@ pub use unity_project::UnityProject;
 
 use crate::repository::local::LocalCachedRepository;
 pub use traits::PackageCollection;
+pub use traits::RemotePackageDownloader;
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {

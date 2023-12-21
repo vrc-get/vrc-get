@@ -1,7 +1,10 @@
 use crate::repository::local::LocalCachedRepository;
+use crate::structs::package::PackageJson;
 use crate::{Environment, PackageInfo, PackageSelector};
 use core::iter::Iterator;
 use core::option::Option;
+use std::io;
+use tokio::fs::File;
 
 mod seal {
     pub trait Sealed {}
@@ -17,6 +20,17 @@ pub trait PackageCollection: seal::Sealed {
         package: &str,
         package_selector: PackageSelector,
     ) -> Option<PackageInfo>;
+}
+
+/// The trait for downloading remote packages.
+///
+/// Caching packages is responsibility of this crate.
+pub trait RemotePackageDownloader: seal::Sealed {
+    fn get_package(
+        &self,
+        repository: &LocalCachedRepository,
+        package: &PackageJson,
+    ) -> impl std::future::Future<Output = io::Result<File>> + Send;
 }
 
 impl seal::Sealed for Environment {}
