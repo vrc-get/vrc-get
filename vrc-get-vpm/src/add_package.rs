@@ -83,7 +83,7 @@ async fn add_remote_package(
                 io::ErrorKind::InvalidData,
                 format!("path in zip file is not utf8"),
             )
-                .into());
+            .into());
         };
         let path = dest_folder.join(filename);
         if !check_path(Path::new(filename)) {
@@ -198,7 +198,7 @@ async fn download_zip(
     let mut sha256 = Sha256::default();
 
     let Some(http) = http else {
-        return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"))
+        return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
     };
 
     let mut request = http.get(url);

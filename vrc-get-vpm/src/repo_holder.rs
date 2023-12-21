@@ -81,7 +81,10 @@ impl RepoHolder {
         Self::load_repo(path, client, || async {
             // if local repository not found: try downloading remote one
             let Some(client) = client else {
-                return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "offline mode"))
+                return Err(io::Error::new(
+                    io::ErrorKind::ConnectionAborted,
+                    "offline mode",
+                ));
             };
             let (remote_repo, etag) =
                 download_remote_repository(&client, remote_url, headers, None)
