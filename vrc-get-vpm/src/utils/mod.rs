@@ -8,11 +8,9 @@ use futures::stream::FuturesUnordered;
 use futures::{FutureExt, Stream, StreamExt, TryStream};
 use pin_project_lite::pin_project;
 use serde_json::{Map, Value};
-use std::future::Future;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
-use std::task::Poll::Ready;
 use std::task::{ready, Context, Poll};
 use tokio::fs::{read_dir, DirEntry, ReadDir};
 
@@ -167,112 +165,6 @@ macro_rules! parse_hex_bits {
 
 parse_hex_bits!(parse_hex_256: 256);
 parse_hex_bits!(parse_hex_128: 128);
-
-pub(crate) fn walk_dir(paths: impl IntoIterator<Item = PathBuf>) -> impl Stream<Item = DirEntry> {
-    pin_project! {
-        #[project = ReadingDirProj]
-        enum ReadingDir<ReadDirFut>
-            where ReadDirFut: Future<Output = io::Result<ReadDir>>,
-        {
-            ReadDir{
-                #[pin]
-                inner: ReadDirFut,
-            },
-            ReadDirNext {
-                inner: Option<ReadDir>,
-            },
-        }
-    }
-
-    enum ReadingDirResult {
-        ReadDir(io::Result<ReadDir>),
-        ReadDirNext(io::Result<Option<(ReadDir, DirEntry)>>),
-    }
-
-    impl<ReadDirFut> Future for ReadingDir<ReadDirFut>
-    where
-        ReadDirFut: Future<Output = io::Result<ReadDir>>,
-    {
-        type Output = ReadingDirResult;
-
-        fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-            match self.project() {
-                ReadingDirProj::ReadDir { inner } => {
-                    Ready(ReadingDirResult::ReadDir(ready!(inner.poll(cx))))
-                }
-                ReadingDirProj::ReadDirNext { inner } => Ready(ReadingDirResult::ReadDirNext(
-                    ready!(inner.as_mut().unwrap().poll_next_entry(cx))
-                        .map(|x| x.map(|y| (inner.take().unwrap(), y))),
-                )),
-            }
-        }
-    }
-
-    pin_project! {
-        struct StreamImpl<ReadDirFut, ReadDirFn>
-            where ReadDirFut: Future<Output = io::Result<ReadDir>>,
-                  ReadDirFn: Fn(PathBuf) -> ReadDirFut,
-        {
-            #[pin]
-            inner: FuturesUnordered<ReadingDir<ReadDirFut>>,
-            read_dir: ReadDirFn,
-        }
-    }
-
-    impl<ReadDirFut, ReadDirFn> StreamImpl<ReadDirFut, ReadDirFn>
-    where
-        ReadDirFut: Future<Output = io::Result<ReadDir>>,
-        ReadDirFn: Fn(PathBuf) -> ReadDirFut,
-    {
-        fn new(read_dir: ReadDirFn, paths: impl Iterator<Item = PathBuf>) -> Self {
-            let futures = FuturesUnordered::new();
-            for path in paths {
-                futures.push(ReadingDir::ReadDir {
-                    inner: read_dir(path),
-                });
-            }
-            Self {
-                inner: futures,
-                read_dir,
-            }
-        }
-    }
-
-    impl<ReadDirFut, ReadDirFn> Stream for StreamImpl<ReadDirFut, ReadDirFn>
-    where
-        ReadDirFut: Future<Output = io::Result<ReadDir>>,
-        ReadDirFn: Fn(PathBuf) -> ReadDirFut,
-    {
-        type Item = DirEntry;
-
-        fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-            loop {
-                match ready!(self.as_mut().project().inner.poll_next(cx)) {
-                    None => return Ready(None),
-                    Some(ReadingDirResult::ReadDir(Err(_))) => continue,
-                    Some(ReadingDirResult::ReadDir(Ok(read_dir))) => {
-                        self.inner.push(ReadingDir::ReadDirNext {
-                            inner: Some(read_dir),
-                        })
-                    }
-                    Some(ReadingDirResult::ReadDirNext(Err(_))) => continue,
-                    Some(ReadingDirResult::ReadDirNext(Ok(None))) => continue,
-                    Some(ReadingDirResult::ReadDirNext(Ok(Some((read_dir, entry))))) => {
-                        self.inner.push(ReadingDir::ReadDir {
-                            inner: (self.read_dir)(entry.path()),
-                        });
-                        self.inner.push(ReadingDir::ReadDirNext {
-                            inner: Some(read_dir),
-                        });
-                        return Ready(Some(entry));
-                    }
-                }
-            }
-        }
-    }
-
-    StreamImpl::new(read_dir, paths.into_iter())
-}
 
 pub(crate) struct WalkDirEntry {
     pub(crate) original: DirEntry,
