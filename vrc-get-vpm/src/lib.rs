@@ -8,7 +8,6 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use indexmap::IndexMap;
-use reqwest::Client;
 use serde_json::{Map, Value};
 use tokio::fs::{create_dir_all, File};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
@@ -34,6 +33,7 @@ pub use environment::PackageSelector;
 pub use unity_project::UnityProject;
 
 use crate::repository::local::LocalCachedRepository;
+pub use traits::HttpClient;
 pub use traits::PackageCollection;
 pub use traits::RemotePackageDownloader;
 
@@ -163,7 +163,11 @@ static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[
     PreDefinedRepoSource::Curated,
 ];
 
-async fn update_from_remote(client: &Client, path: &Path, repo: &mut LocalCachedRepository) {
+async fn update_from_remote(
+    client: &impl HttpClient,
+    path: &Path,
+    repo: &mut LocalCachedRepository,
+) {
     let Some(remote_url) = repo.url().map(|x| x.to_owned()) else {
         return;
     };

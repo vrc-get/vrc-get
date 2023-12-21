@@ -24,7 +24,7 @@ use tokio::io::AsyncReadExt;
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
-use crate::traits::PackageCollection;
+use crate::traits::{HttpClient, PackageCollection};
 use crate::unity_project::add_package::add_package;
 pub use add_package::{AddPackageErr, AddPackageRequest};
 
@@ -265,7 +265,7 @@ impl<'env> ResolveResult<'env> {
 impl UnityProject {
     pub async fn resolve<'env>(
         &mut self,
-        env: &'env Environment,
+        env: &'env Environment<impl HttpClient>,
     ) -> Result<ResolveResult<'env>, ResolvePackageErr> {
         // first, process locked dependencies
         let this = self as &Self;

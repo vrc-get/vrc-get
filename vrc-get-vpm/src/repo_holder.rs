@@ -1,6 +1,8 @@
 use super::*;
+use crate::traits::HttpClient;
 use futures::future::try_join_all;
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::future::Future;
 use url::Url;
 
@@ -21,7 +23,7 @@ impl RepoHolder {
 impl RepoHolder {
     pub(crate) async fn load_repos(
         &mut self,
-        http: Option<&Client>,
+        http: Option<&impl HttpClient>,
         sources: Vec<RepoSource>,
     ) -> io::Result<()> {
         fn file_path(source: &RepoSource) -> &Path {
@@ -46,7 +48,7 @@ impl RepoHolder {
     }
 
     async fn load_repo_from_source(
-        client: Option<&Client>,
+        client: Option<&impl HttpClient>,
         source: &RepoSource,
     ) -> io::Result<Option<LocalCachedRepository>> {
         match source {
@@ -66,7 +68,7 @@ impl RepoHolder {
                     .await
                     .map(Some)
                 } else {
-                    RepoHolder::load_local_repo(client, &user_repo.local_path)
+                    RepoHolder::load_local_repo(&user_repo.local_path)
                         .await
                         .map(Some)
                 }
@@ -75,7 +77,7 @@ impl RepoHolder {
     }
 
     async fn load_remote_repo(
-        client: Option<&Client>,
+        client: Option<&impl HttpClient>,
         headers: &IndexMap<String, String>,
         path: &Path,
         remote_url: &Url,
@@ -114,16 +116,16 @@ impl RepoHolder {
         .await
     }
 
-    async fn load_local_repo(
-        client: Option<&Client>,
-        path: &Path,
-    ) -> io::Result<LocalCachedRepository> {
-        Self::load_repo(path, client, || async { unreachable!() }).await
+    async fn load_local_repo(path: &Path) -> io::Result<LocalCachedRepository> {
+        Self::load_repo(path, Option::<&Infallible>::None, || async {
+            unreachable!()
+        })
+        .await
     }
 
     async fn load_repo<F, T>(
         path: &Path,
-        http: Option<&Client>,
+        http: Option<&impl HttpClient>,
         if_not_found: F,
     ) -> io::Result<LocalCachedRepository>
     where

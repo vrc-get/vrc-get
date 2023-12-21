@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use indexmap::IndexMap;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
-use reqwest::Url;
+use reqwest::{Client, Url};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::error::Error as StdError;
@@ -15,12 +15,12 @@ use tokio::fs::{read_dir, remove_file};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::AddPackageRequest;
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::PackageJson;
 use vrc_get_vpm::UserRepoSetting;
 use vrc_get_vpm::{
     Environment, PackageCollection, PackageInfo, PackageSelector, PreDefinedRepoSource,
     UnityProject,
 };
+use vrc_get_vpm::{HttpClient, PackageJson};
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -53,7 +53,7 @@ struct EnvArgs {
     no_update: bool,
 }
 
-async fn load_env(args: &EnvArgs) -> Environment {
+async fn load_env(args: &EnvArgs) -> Environment<Client> {
     let client = crate::create_client(args.offline);
     let mut env = Environment::load_default(client)
         .await
@@ -90,7 +90,7 @@ async fn load_unity(path: Option<PathBuf>) -> UnityProject {
 }
 
 fn get_package<'env>(
-    env: &'env Environment,
+    env: &'env Environment<impl HttpClient>,
     name: &str,
     selector: PackageSelector,
 ) -> PackageInfo<'env> {
@@ -112,7 +112,7 @@ async fn save_unity(unity: &mut UnityProject) {
     unity.save().await.exit_context("saving manifest file");
 }
 
-async fn save_env(env: &mut Environment) {
+async fn save_env(env: &mut Environment<impl HttpClient>) {
     env.save().await.exit_context("saving global config");
 }
 

@@ -1,12 +1,14 @@
 use crate::structs::package::PackageJson;
-use crate::utils::MapResultExt;
+use crate::traits::HttpClient;
 use crate::version::Version;
+use futures::prelude::*;
 use indexmap::IndexMap;
-use reqwest::{Client, Url};
+use url::Url;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::io;
+use std::pin::pin;
 
 type JsonMap = Map<String, Value>;
 
@@ -37,7 +39,7 @@ impl RemoteRepository {
     }
 
     pub async fn download(
-        client: &Client,
+        client: &impl HttpClient,
         url: &Url,
         headers: &IndexMap<String, String>,
     ) -> io::Result<RemoteRepository> {
@@ -49,34 +51,22 @@ impl RemoteRepository {
     }
 
     pub async fn download_with_etag(
-        client: &Client,
+        client: &impl HttpClient,
         url: &Url,
         headers: &IndexMap<String, String>,
         current_etag: Option<&str>,
     ) -> io::Result<Option<(RemoteRepository, Option<String>)>> {
-        let mut request = client.get(url.clone());
-        if let Some(etag) = &current_etag {
-            request = request.header("If-None-Match", etag.to_owned())
-        }
-        for (name, value) in headers {
-            request = request.header(name, value);
-        }
-        let response = request.send().await.err_mapped()?;
-        let response = response.error_for_status().err_mapped()?;
-
-        if current_etag.is_some() && response.status() == 304 {
+        let Some((mut stream, etag)) = client.get_with_etag(url, headers, current_etag).await?
+        else {
             return Ok(None);
-        }
+        };
 
-        let etag = response
-            .headers()
-            .get("Etag")
-            .and_then(|x| x.to_str().ok())
-            .map(str::to_owned);
+        let mut bytes = Vec::new();
+        pin!(stream).read_to_end(&mut bytes).await?;
 
-        // response.json() doesn't support BOM
-        let full = response.bytes().await.err_mapped()?;
-        let no_bom = full.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(full.as_ref());
+        let no_bom = bytes
+            .strip_prefix(b"\xEF\xBB\xBF")
+            .unwrap_or(bytes.as_ref());
         let json = serde_json::from_slice(no_bom)?;
 
         let mut repo = RemoteRepository::parse(json)?;

@@ -5,36 +5,35 @@ use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
-use crate::traits::{PackageCollection, RemotePackageDownloader};
-use crate::utils::{JsonMapExt, MapResultExt, PathBufExt, Sha256AsyncWrite};
+use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
+use crate::utils::{JsonMapExt, PathBufExt, Sha256AsyncWrite};
 use crate::version::{UnityVersion, Version, VersionRange};
 use crate::{
     is_truthy, load_json_or_default, to_json_vec, unity_compatible, PackageInfo,
     PreDefinedRepoSource, RepoSource, DEFINED_REPO_SOURCES,
 };
 use futures::future::join_all;
-use futures::prelude::*;
-use futures::StreamExt;
 use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use reqwest::{Client, Response, Url};
 use serde_json::{from_value, to_value, Map, Value};
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
+use std::pin::pin;
 use std::{env, fmt, io};
 use tokio::fs::{create_dir_all, remove_file, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
+use url::Url;
 
 pub(crate) use crate::environment::uesr_package_collection::UserPackageCollection;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
-pub struct Environment {
-    pub(crate) http: Option<Client>,
+pub struct Environment<T: HttpClient> {
+    pub(crate) http: Option<T>,
     /// config folder.
     /// On windows, `%APPDATA%\\VRChatCreatorCompanion`.
     /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
@@ -48,9 +47,9 @@ pub struct Environment {
     url_overrides: HashMap<PreDefinedRepoSource, Url>,
 }
 
-impl Environment {
-    pub async fn load_default(http: Option<Client>) -> io::Result<Environment> {
-        let mut folder = Environment::get_local_config_folder();
+impl<T: HttpClient> Environment<T> {
+    pub async fn load_default(http: Option<T>) -> io::Result<Self> {
+        let mut folder = Self::get_local_config_folder();
         folder.push("VRChatCreatorCompanion");
         let folder = folder;
 
@@ -59,7 +58,7 @@ impl Environment {
             folder.display()
         );
 
-        Ok(Environment {
+        Ok(Self {
             http,
             settings: load_json_or_default(&folder.join("settings.json")).await?,
             global_dir: folder,
@@ -94,7 +93,7 @@ impl Environment {
     }
 }
 
-impl Environment {
+impl<T: HttpClient> Environment<T> {
     pub async fn load_package_infos(&mut self, update: bool) -> io::Result<()> {
         let http = if update { self.http.as_ref() } else { None };
         self.repo_cache
@@ -176,7 +175,7 @@ impl Environment {
     }
 }
 
-impl PackageCollection for Environment {
+impl<T: HttpClient> PackageCollection for Environment<T> {
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
         self.repo_cache
             .get_all_packages()
@@ -205,7 +204,7 @@ impl PackageCollection for Environment {
     }
 }
 
-impl Environment {
+impl<T: HttpClient> Environment<T> {
     fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
         let defined_sources = DEFINED_REPO_SOURCES.iter().copied().map(|x| {
             RepoSource::PreDefined(
@@ -447,7 +446,7 @@ impl Environment {
     }
 }
 
-impl RemotePackageDownloader for Environment {
+impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
     async fn get_package(
         &self,
         repository: &LocalCachedRepository,
@@ -539,7 +538,7 @@ async fn try_load_package_cache(
 ///
 /// returns: Result<File, Error> the readable zip file.
 async fn download_package_zip(
-    http: Option<&Client>,
+    http: Option<&impl HttpClient>,
     headers: &IndexMap<String, String>,
     zip_path: &Path,
     sha_path: &Path,
@@ -558,21 +557,8 @@ async fn download_package_zip(
         .open(&zip_path)
         .await?;
 
-    let mut request = http.get(url);
-
-    for (name, header) in headers {
-        request = request.header(name, header);
-    }
-
-    let mut response = request
-        .send()
-        .await
-        .and_then(Response::error_for_status)
-        .err_mapped()?
-        .bytes_stream()
-        .map(|x| x.err_mapped())
-        .into_async_read()
-        .compat();
+    let url = Url::parse(url).unwrap();
+    let mut response = pin!(http.get(&url, headers).await?.compat());
 
     let mut writer = Sha256AsyncWrite::new(cache_file);
     tokio::io::copy(&mut response, &mut writer).await?;
