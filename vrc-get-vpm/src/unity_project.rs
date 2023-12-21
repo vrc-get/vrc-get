@@ -274,9 +274,11 @@ impl UnityProject {
             |(pkg, dep)| async move {
                 let pkg = env
                     .find_package_by_name(pkg, PackageSelector::specific_version(&dep.version))
-                    .unwrap_or_else(|| panic!("some package in manifest.json not found: {pkg}"));
-                add_package(env, pkg, packages_folder).await.unwrap(); // TODO
-                Result::<_, AddPackageErr>::Ok(pkg)
+                    .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
+                        dependency_name: pkg.clone(),
+                    })?;
+                add_package(env, pkg, packages_folder).await?;
+                Result::<_, ResolvePackageErr>::Ok(pkg)
             },
         ))
         .await?;
@@ -303,11 +305,11 @@ impl UnityProject {
                     pkg_name,
                     PackageSelector::ranges_for(self.unity_version, &ranges),
                 )
-                .unwrap_or_else(|| {
-                    panic!("some dependencies of unlocked package not found: {pkg_name}")
+                .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
+                    dependency_name: pkg_name.clone(),
                 })
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, _>>()?;
 
         let allow_prerelease = unlocked_dependencies
             .iter()
@@ -327,7 +329,7 @@ impl UnityProject {
 
         let installed_from_unlocked_dependencies = req.locked.clone();
 
-        self.do_add_package_request(env, req).await.unwrap();
+        self.do_add_package_request(env, req).await?;
 
         Ok(ResolveResult {
             installed_from_locked,
