@@ -33,7 +33,7 @@ impl UnityProject {
 
         let conflicts = self
             .all_dependencies()
-            .filter(|(name, _)| !names.contains(&name.as_str()))
+            .filter(|(name, _)| !names.contains(name))
             .filter(|(_, dep)| names.iter().any(|x| dep.contains_key(*x)))
             .map(|(name, _)| String::from(name))
             .collect::<Vec<_>>();

@@ -39,7 +39,7 @@ impl PackageCollection for UserPackageCollection {
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
         self.user_packages
             .iter()
-            .filter(move |(_, json)| json.name == package)
+            .filter(move |(_, json)| json.name() == package)
             .map(|(path, json)| PackageInfo::local(json, path))
     }
 

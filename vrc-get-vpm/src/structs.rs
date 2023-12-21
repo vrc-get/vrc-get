@@ -47,35 +47,75 @@ pub mod package {
     use url::Url;
     #[derive(Deserialize, Debug, Clone)]
     pub struct PackageJson {
-        pub name: String,
+        name: String,
         #[serde(rename = "displayName")]
         #[serde(default)]
-        pub display_name: Option<String>,
-        pub description: Option<String>,
-        pub version: Version,
+        display_name: Option<String>,
+        description: Option<String>,
+        version: Version,
         #[serde(rename = "vpmDependencies")]
         #[serde(default)]
-        pub vpm_dependencies: IndexMap<String, VersionRange>,
+        vpm_dependencies: IndexMap<String, VersionRange>,
         #[serde(default)]
-        pub url: Option<Url>,
+        url: Option<Url>,
 
-        pub unity: Option<PartialUnityVersion>,
+        unity: Option<PartialUnityVersion>,
 
         #[serde(rename = "legacyFolders")]
         #[serde(default)]
-        pub legacy_folders: HashMap<String, Option<String>>,
+        legacy_folders: HashMap<String, Option<String>>,
         #[serde(rename = "legacyFiles")]
         #[serde(default)]
-        pub legacy_files: HashMap<String, Option<String>>,
+        legacy_files: HashMap<String, Option<String>>,
         #[serde(rename = "legacyPackages")]
         #[serde(default)]
-        pub legacy_packages: Vec<String>,
+        legacy_packages: Vec<String>,
 
         #[serde(default)]
-        pub yanked: Option<Value>,
+        yanked: Option<Value>,
     }
 
     impl PackageJson {
+        pub fn name(&self) -> &str {
+            &self.name
+        }
+
+        pub fn version(&self) -> &Version {
+            &self.version
+        }
+
+        pub fn vpm_dependencies(&self) -> &IndexMap<String, VersionRange> {
+            &self.vpm_dependencies
+        }
+
+        pub fn legacy_folders(&self) -> &HashMap<String, Option<String>> {
+            &self.legacy_folders
+        }
+
+        pub fn legacy_files(&self) -> &HashMap<String, Option<String>> {
+            &self.legacy_files
+        }
+
+        pub fn legacy_packages(&self) -> &[String] {
+            self.legacy_packages.as_slice()
+        }
+
+        pub fn display_name(&self) -> Option<&str> {
+            self.display_name.as_deref()
+        }
+
+        pub fn description(&self) -> Option<&str> {
+            self.description.as_deref()
+        }
+
+        pub fn url(&self) -> Option<&Url> {
+            self.url.as_ref()
+        }
+
+        pub fn unity(&self) -> Option<&PartialUnityVersion> {
+            self.unity.as_ref()
+        }
+
         pub fn is_yanked(&self) -> bool {
             is_truthy(self.yanked.as_ref())
         }

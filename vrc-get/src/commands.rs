@@ -562,9 +562,9 @@ impl Search {
         fn search_targets(pkg: &PackageJson) -> Vec<String> {
             let mut sources = Vec::with_capacity(3);
 
-            sources.push(pkg.name.as_str().to_ascii_lowercase());
-            sources.extend(pkg.display_name.as_deref().map(|x| x.to_ascii_lowercase()));
-            sources.extend(pkg.description.as_deref().map(|x| x.to_ascii_lowercase()));
+            sources.push(pkg.name().to_ascii_lowercase());
+            sources.extend(pkg.display_name().map(|x| x.to_ascii_lowercase()));
+            sources.extend(pkg.description().map(|x| x.to_ascii_lowercase()));
 
             sources
         }
@@ -582,13 +582,13 @@ impl Search {
             println!("No matching package found!")
         } else {
             for x in found_packages {
-                if let Some(name) = &x.display_name {
-                    println!("{} version {}", name, x.version);
-                    println!("({})", x.name);
+                if let Some(name) = x.display_name() {
+                    println!("{} version {}", name, x.version());
+                    println!("({})", x.name());
                 } else {
-                    println!("{} version {}", x.name, x.version);
+                    println!("{} version {}", x.name(), x.version());
                 }
-                if let Some(description) = &x.description {
+                if let Some(description) = x.description() {
                     println!("{}", description);
                 }
                 println!();
@@ -889,22 +889,21 @@ impl RepoPackages {
         fn print_repo(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
                 if let Some(pkg) = versions.get_latest() {
-                    let package = &pkg.name;
-                    if let Some(display_name) = &pkg.display_name {
-                        println!("{} | {}", display_name, package);
+                    if let Some(display_name) = pkg.display_name() {
+                        println!("{} | {}", display_name, pkg.name());
                     } else {
-                        println!("{}", package);
+                        println!("{}", pkg.name());
                     }
-                    if let Some(description) = &pkg.description {
+                    if let Some(description) = pkg.description() {
                         println!("{}", description);
                     }
                     let mut versions = versions.all_versions().collect::<Vec<_>>();
-                    versions.sort_by_key(|pkg| &pkg.version);
+                    versions.sort_by_key(|pkg| pkg.version());
                     for pkg in &versions {
                         println!(
                             "{}: {}",
-                            pkg.version,
-                            pkg.url.as_ref().map(|x| x.as_str()).unwrap_or("<no url>")
+                            pkg.version(),
+                            pkg.url().map(|x| x.as_str()).unwrap_or("<no url>")
                         );
                     }
                     println!();

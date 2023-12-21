@@ -84,23 +84,23 @@ impl<'a> PackageInfo<'a> {
     }
 
     pub fn name(self) -> &'a str {
-        &self.package_json().name
+        self.package_json().name()
     }
 
     pub fn version(self) -> &'a Version {
-        &self.package_json().version
+        self.package_json().version()
     }
 
     pub fn vpm_dependencies(self) -> &'a IndexMap<String, VersionRange> {
-        &self.package_json().vpm_dependencies
+        self.package_json().vpm_dependencies()
     }
 
-    pub fn legacy_packages(self) -> &'a Vec<String> {
-        &self.package_json().legacy_packages
+    pub fn legacy_packages(self) -> &'a [String] {
+        self.package_json().legacy_packages()
     }
 
     pub fn unity(self) -> Option<&'a PartialUnityVersion> {
-        self.package_json().unity.as_ref()
+        self.package_json().unity()
     }
 
     pub fn is_yanked(self) -> bool {

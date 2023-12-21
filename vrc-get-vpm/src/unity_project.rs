@@ -64,7 +64,7 @@ impl UnityProject {
             let read = Self::try_read_unlocked_package(dir_entry).await;
             let mut is_installed = false;
             if let Some(parsed) = &read.1 {
-                if parsed.name == read.0 && vpm_manifest.locked().contains_key(&parsed.name) {
+                if parsed.name() == read.0 && vpm_manifest.locked().contains_key(parsed.name()) {
                     is_installed = true;
                 }
             }
@@ -287,7 +287,7 @@ impl UnityProject {
             .unlocked_packages()
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
-            .map(|x| x.name.as_str())
+            .map(|x| x.name())
             .collect();
 
         // then, process dependencies of unlocked packages.
@@ -295,7 +295,7 @@ impl UnityProject {
             .unlocked_packages
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
-            .flat_map(|pkg| &pkg.vpm_dependencies)
+            .flat_map(|pkg| pkg.vpm_dependencies())
             .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
             .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
             .into_group_map()
@@ -366,18 +366,18 @@ impl UnityProject {
 
     pub fn all_dependencies(
         &self,
-    ) -> impl Iterator<Item = (&String, &IndexMap<String, VersionRange>)> {
+    ) -> impl Iterator<Item = (&str, &IndexMap<String, VersionRange>)> {
         let dependencies_locked = self
             .manifest
             .locked()
             .into_iter()
-            .map(|(name, dep)| (name, &dep.dependencies));
+            .map(|(name, dep)| (name.as_str(), &dep.dependencies));
 
         let dependencies_unlocked = self
             .unlocked_packages
             .iter()
             .filter_map(|(_, json)| json.as_ref())
-            .map(|x| (&x.name, &x.vpm_dependencies));
+            .map(|x| (x.name(), x.vpm_dependencies()));
 
         dependencies_locked.chain(dependencies_unlocked)
     }
@@ -509,7 +509,7 @@ mod vpm_manifest {
                 unlocked
                     .iter()
                     .filter_map(|(_, pkg)| pkg.as_ref())
-                    .flat_map(|x| x.vpm_dependencies.keys())
+                    .flat_map(|x| x.vpm_dependencies().keys())
                     .map(String::as_str),
             );
 

@@ -226,13 +226,13 @@ impl UnityProject {
     ) -> (Vec<PathBuf>, Vec<PathBuf>) {
         let folders = packages
             .iter()
-            .flat_map(|x| &x.package_json().legacy_folders)
+            .flat_map(|x| x.package_json().legacy_folders())
             .map(|(path, guid)| {
                 DefinedLegacyInfo::new_dir(path, guid.as_deref().and_then(Guid::parse))
             });
         let files = packages
             .iter()
-            .flat_map(|x| &x.package_json().legacy_files)
+            .flat_map(|x| x.package_json().legacy_files())
             .map(|(path, guid)| {
                 DefinedLegacyInfo::new_file(path, guid.as_deref().and_then(Guid::parse))
             });

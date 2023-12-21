@@ -160,6 +160,6 @@ impl RemotePackages {
         self.versions
             .values()
             .filter(|json| json.is_yanked())
-            .max_by_key(|json| &json.version)
+            .max_by_key(|json| json.version())
     }
 }

@@ -40,7 +40,7 @@ where
     dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
 }
 
-struct Legacy<'env>(&'env Vec<String>);
+struct Legacy<'env>(&'env [String]);
 
 impl<'env> Default for Legacy<'env> {
     fn default() -> Self {

@@ -250,10 +250,10 @@ impl<T: HttpClient> Environment<T> {
             }
         }
 
-        list.sort_by_key(|x| Reverse(&x.version));
+        list.sort_by_key(|x| Reverse(x.version()));
 
         list.into_iter()
-            .unique_by(|x| (&x.name, &x.version))
+            .unique_by(|x| (x.name(), x.version()))
             .collect()
     }
 
@@ -443,12 +443,12 @@ impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
         repository: &LocalCachedRepository,
         package: &PackageJson,
     ) -> io::Result<File> {
-        let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name, &package.version);
+        let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name(), package.version());
         let zip_path = self
             .global_dir
             .to_owned()
             .joined("Repos")
-            .joined(&package.name)
+            .joined(package.name())
             .joined(&zip_file_name);
         let sha_path = zip_path.with_extension("zip.sha256");
 
@@ -463,7 +463,7 @@ impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
                 &zip_path,
                 &sha_path,
                 &zip_file_name,
-                package.url.as_ref().ok_or_else(|| {
+                package.url().ok_or_else(|| {
                     io::Error::new(
                         io::ErrorKind::InvalidData,
                         "URL field of the package.json in the repository empty",
