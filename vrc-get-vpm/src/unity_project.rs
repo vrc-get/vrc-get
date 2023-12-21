@@ -8,7 +8,7 @@ use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::PathBufExt;
 use crate::version::{UnityVersion, VersionRange};
 use crate::{
-    load_json_or_default, to_json_vec, Environment, JsonMap, PackageInfo, PackageSelector,
+    load_json_or_default, to_json_vec, Environment, JsonMap, PackageInfo, VersionSelector,
 };
 use futures::future::try_join_all;
 use futures::prelude::*;
@@ -273,7 +273,7 @@ impl UnityProject {
         let installed_from_locked = try_join_all(this.manifest.locked().into_iter().map(
             |(pkg, dep)| async move {
                 let pkg = env
-                    .find_package_by_name(pkg, PackageSelector::specific_version(&dep.version))
+                    .find_package_by_name(pkg, VersionSelector::specific_version(&dep.version))
                     .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
                         dependency_name: pkg.clone(),
                     })?;
@@ -303,7 +303,7 @@ impl UnityProject {
             .map(|(pkg_name, ranges)| {
                 env.find_package_by_name(
                     pkg_name,
-                    PackageSelector::ranges_for(self.unity_version, &ranges),
+                    VersionSelector::ranges_for(self.unity_version, &ranges),
                 )
                 .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
                     dependency_name: pkg_name.clone(),

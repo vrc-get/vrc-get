@@ -2,7 +2,7 @@ use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::traits::PackageCollection;
 use crate::unity_project::AddPackageErr;
 use crate::version::{UnityVersion, Version, VersionRange};
-use crate::{PackageInfo, PackageSelector};
+use crate::{PackageInfo, VersionSelector};
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -159,7 +159,7 @@ where
         );
 
         if let Some(pkg) =
-            env.find_package_by_name(name, PackageSelector::specific_version(&locked.version))
+            env.find_package_by_name(name, VersionSelector::specific_version(&locked.version))
         {
             info.legacy_packages = Legacy(pkg.legacy_packages());
 
@@ -370,12 +370,12 @@ pub(crate) fn collect_adding_packages<'env>(
                     let found = env
                         .find_package_by_name(
                             dependency,
-                            PackageSelector::range_for(unity_version, range),
+                            VersionSelector::range_for(unity_version, range),
                         )
                         .or_else(|| {
                             env.find_package_by_name(
                                 dependency,
-                                PackageSelector::range_for(None, range),
+                                VersionSelector::range_for(None, range),
                             )
                         })
                         .ok_or_else(|| AddPackageErr::DependencyNotFound {

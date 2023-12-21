@@ -186,7 +186,7 @@ impl PackageCollection for RepoHolder {
     fn find_package_by_name(
         &self,
         package: &str,
-        package_selector: PackageSelector,
+        package_selector: VersionSelector,
     ) -> Option<PackageInfo> {
         self.get_repos()
             .into_iter()

@@ -2,7 +2,7 @@ use crate::repo_holder::RepoHolder;
 use crate::repository::local::LocalCachedRepository;
 use crate::structs::package::PackageJson;
 use crate::utils::MapResultExt;
-use crate::{Environment, PackageInfo, PackageSelector};
+use crate::{Environment, PackageInfo, VersionSelector};
 use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;
@@ -27,7 +27,7 @@ pub trait PackageCollection: seal::Sealed {
     fn find_package_by_name(
         &self,
         package: &str,
-        package_selector: PackageSelector,
+        package_selector: VersionSelector,
     ) -> Option<PackageInfo>;
 }
 

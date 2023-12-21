@@ -17,8 +17,8 @@ use vrc_get_vpm::unity_project::AddPackageRequest;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::UserRepoSetting;
 use vrc_get_vpm::{
-    Environment, PackageCollection, PackageInfo, PackageSelector, PreDefinedRepoSource,
-    UnityProject,
+    Environment, PackageCollection, PackageInfo, PreDefinedRepoSource, UnityProject,
+    VersionSelector,
 };
 use vrc_get_vpm::{HttpClient, PackageJson};
 
@@ -92,7 +92,7 @@ async fn load_unity(path: Option<PathBuf>) -> UnityProject {
 fn get_package<'env>(
     env: &'env Environment<impl HttpClient>,
     name: &str,
-    selector: PackageSelector,
+    selector: VersionSelector,
 ) -> PackageInfo<'env> {
     env.find_package_by_name(name, selector)
         .unwrap_or_else(|| exit_with!("no matching package not found"))
@@ -289,8 +289,8 @@ impl Install {
 
         if let Some(name) = self.name {
             let version_selector = match self.version {
-                None => PackageSelector::latest_for(unity.unity_version(), self.prerelease),
-                Some(ref version) => PackageSelector::specific_version(version),
+                None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+                Some(ref version) => VersionSelector::specific_version(version),
             };
             let package = get_package(&env, &name, version_selector);
 
@@ -396,7 +396,7 @@ impl Outdated {
 
         let mut outdated_packages = HashMap::new();
 
-        let selector = PackageSelector::latest_for(unity.unity_version(), self.prerelease);
+        let selector = VersionSelector::latest_for(unity.unity_version(), self.prerelease);
 
         for (name, dep) in unity.locked_packages() {
             match env.find_package_by_name(name, selector) {
@@ -488,8 +488,8 @@ impl Upgrade {
 
         let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
-                None => PackageSelector::latest_for(unity.unity_version(), self.prerelease),
-                Some(ref version) => PackageSelector::specific_version(version),
+                None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+                Some(ref version) => VersionSelector::specific_version(version),
             };
             let package = get_package(&env, &name, version_selector);
 
@@ -498,7 +498,7 @@ impl Upgrade {
             vec![package]
         } else {
             let version_selector =
-                PackageSelector::latest_for(unity.unity_version(), self.prerelease);
+                VersionSelector::latest_for(unity.unity_version(), self.prerelease);
 
             require_prompt = true;
 

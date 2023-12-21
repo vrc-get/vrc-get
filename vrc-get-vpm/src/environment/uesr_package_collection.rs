@@ -1,5 +1,5 @@
 use crate::structs::package::PackageJson;
-use crate::{load_json_or_default, PackageCollection, PackageInfo, PackageSelector};
+use crate::{load_json_or_default, PackageCollection, PackageInfo, VersionSelector};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -46,7 +46,7 @@ impl PackageCollection for UserPackageCollection {
     fn find_package_by_name(
         &self,
         package: &str,
-        package_selector: PackageSelector,
+        package_selector: VersionSelector,
     ) -> Option<PackageInfo> {
         self.find_packages(package)
             .filter(|x| package_selector.satisfies(x))

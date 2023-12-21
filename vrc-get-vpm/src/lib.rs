@@ -24,13 +24,14 @@ mod traits;
 pub mod unity_project;
 mod utils;
 pub mod version;
+mod version_selector;
 
 type JsonMap = Map<String, Value>;
 
 use crate::repository::RemoteRepository;
 pub use environment::Environment;
-pub use environment::PackageSelector;
 pub use unity_project::UnityProject;
+pub use version_selector::VersionSelector;
 
 use crate::repository::local::LocalCachedRepository;
 pub use traits::HttpClient;

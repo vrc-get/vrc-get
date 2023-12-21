@@ -7,10 +7,9 @@ use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{JsonMapExt, PathBufExt, Sha256AsyncWrite};
-use crate::version::{UnityVersion, Version, VersionRange};
 use crate::{
-    is_truthy, load_json_or_default, to_json_vec, unity_compatible, PackageInfo,
-    PreDefinedRepoSource, RepoSource, DEFINED_REPO_SOURCES,
+    is_truthy, load_json_or_default, to_json_vec, PackageInfo, PreDefinedRepoSource, RepoSource,
+    VersionSelector, DEFINED_REPO_SOURCES,
 };
 use futures::future::join_all;
 use hex::FromHex;
@@ -191,7 +190,7 @@ impl<T: HttpClient> PackageCollection for Environment<T> {
     fn find_package_by_name(
         &self,
         package: &str,
-        package_selector: PackageSelector,
+        package_selector: VersionSelector,
     ) -> Option<PackageInfo> {
         let local = self
             .repo_cache
@@ -576,113 +575,6 @@ async fn download_package_zip(
     .await?;
 
     Ok(cache_file)
-}
-
-#[derive(Clone, Copy)]
-pub struct PackageSelector<'a> {
-    inner: SelectorInner<'a>,
-}
-
-#[derive(Clone, Copy)]
-enum SelectorInner<'a> {
-    Specific(&'a Version),
-    Latest {
-        project_unity: Option<UnityVersion>,
-        include_prerelease: bool,
-    },
-    Range {
-        project_unity: Option<UnityVersion>,
-        range: &'a VersionRange,
-    },
-    Ranges {
-        project_unity: Option<UnityVersion>,
-        ranges: &'a [&'a VersionRange],
-    },
-}
-
-impl<'a> PackageSelector<'a> {
-    pub fn specific_version(version: &'a Version) -> Self {
-        Self {
-            inner: SelectorInner::Specific(version),
-        }
-    }
-
-    pub fn latest_for(unity_version: Option<UnityVersion>, include_prerelease: bool) -> Self {
-        Self {
-            inner: SelectorInner::Latest {
-                project_unity: unity_version,
-                include_prerelease,
-            },
-        }
-    }
-
-    pub fn range_for(unity_version: Option<UnityVersion>, range: &'a VersionRange) -> Self {
-        Self {
-            inner: SelectorInner::Range {
-                project_unity: unity_version,
-                range,
-            },
-        }
-    }
-
-    pub fn ranges_for(unity_version: Option<UnityVersion>, ranges: &'a [&'a VersionRange]) -> Self {
-        Self {
-            inner: SelectorInner::Ranges {
-                project_unity: unity_version,
-                ranges,
-            },
-        }
-    }
-}
-
-impl<'a> PackageSelector<'a> {
-    pub(crate) fn as_specific(&self) -> Option<&Version> {
-        match self.inner {
-            SelectorInner::Specific(version) => Some(version),
-            _ => None,
-        }
-    }
-}
-
-impl<'a> PackageSelector<'a> {
-    pub fn satisfies(&self, package: &PackageInfo) -> bool {
-        fn unity_and_yank(package: &PackageInfo, project_unity: Option<UnityVersion>) -> bool {
-            if package.is_yanked() {
-                return false;
-            }
-
-            if let Some(unity) = project_unity {
-                if !unity_compatible(package, unity) {
-                    return false;
-                }
-            }
-
-            true
-        }
-
-        match self.inner {
-            SelectorInner::Specific(finding) => finding == package.version(),
-            SelectorInner::Latest {
-                include_prerelease: true,
-                project_unity,
-            } => unity_and_yank(package, project_unity),
-            SelectorInner::Latest {
-                include_prerelease: false,
-                project_unity,
-            } => package.version().is_stable() && unity_and_yank(package, project_unity),
-            SelectorInner::Range {
-                range,
-                project_unity,
-            } => range.matches(package.version()) && unity_and_yank(package, project_unity),
-            SelectorInner::Ranges {
-                ranges,
-                project_unity,
-            } => {
-                ranges.iter().all(|x| x.matches(package.version()))
-                    && unity_and_yank(package, project_unity)
-            }
-        }
-    }
 }
 
 #[derive(Debug)]

@@ -1,6 +1,6 @@
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
-use crate::{PackageCollection, PackageInfo, PackageSelector};
+use crate::{PackageCollection, PackageInfo, VersionSelector};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -85,7 +85,7 @@ impl PackageCollection for LocalCachedRepository {
     fn find_package_by_name(
         &self,
         package: &str,
-        package_selector: PackageSelector,
+        package_selector: VersionSelector,
     ) -> Option<PackageInfo> {
         if let Some(version) = package_selector.as_specific() {
             self.repo
