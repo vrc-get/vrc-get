@@ -13,10 +13,10 @@ use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::{read_dir, remove_file};
 use vrc_get_vpm::repository::RemoteRepository;
-use vrc_get_vpm::structs::package::PackageJson;
-use vrc_get_vpm::structs::setting::UserRepoSetting;
 use vrc_get_vpm::unity_project::AddPackageRequest;
 use vrc_get_vpm::version::Version;
+use vrc_get_vpm::PackageJson;
+use vrc_get_vpm::UserRepoSetting;
 use vrc_get_vpm::{
     Environment, PackageCollection, PackageInfo, PackageSelector, PreDefinedRepoSource,
     UnityProject,

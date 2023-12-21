@@ -14,14 +14,13 @@ use tokio::fs::{create_dir_all, File};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 use url::Url;
 
-use structs::package::{PackageJson, PartialUnityVersion};
-use structs::setting::UserRepoSetting;
+use structs::package::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 pub mod environment;
 mod repo_holder;
 pub mod repository;
-pub mod structs;
+mod structs;
 mod traits;
 pub mod unity_project;
 mod utils;
@@ -37,6 +36,9 @@ pub use unity_project::UnityProject;
 use crate::repository::local::LocalCachedRepository;
 pub use traits::PackageCollection;
 pub use traits::RemotePackageDownloader;
+
+pub use structs::package::PackageJson;
+pub use structs::setting::UserRepoSetting;
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {
