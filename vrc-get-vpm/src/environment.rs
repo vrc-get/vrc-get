@@ -1,6 +1,6 @@
 mod uesr_package_collection;
+mod repo_holder;
 
-use crate::repo_holder::RepoHolder;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
@@ -27,7 +27,8 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
 use url::Url;
 
-pub(crate) use crate::environment::uesr_package_collection::UserPackageCollection;
+pub(crate) use repo_holder::RepoHolder;
+pub(crate) use uesr_package_collection::UserPackageCollection;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]

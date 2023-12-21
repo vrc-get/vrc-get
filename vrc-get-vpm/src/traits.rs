@@ -1,4 +1,3 @@
-use crate::repo_holder::RepoHolder;
 use crate::repository::local::LocalCachedRepository;
 use crate::structs::package::PackageJson;
 use crate::utils::MapResultExt;
@@ -148,6 +147,6 @@ impl HttpClient for Infallible {
 impl<T: HttpClient> seal::Sealed for Environment<T> {}
 impl seal::Sealed for LocalCachedRepository {}
 impl seal::Sealed for crate::environment::UserPackageCollection {}
-impl seal::Sealed for RepoHolder {}
+impl seal::Sealed for crate::environment::RepoHolder {}
 impl seal::Sealed for reqwest::Client {}
 impl seal::Sealed for Infallible {}

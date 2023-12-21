@@ -17,7 +17,6 @@ use structs::package::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 pub mod environment;
-mod repo_holder;
 pub mod repository;
 mod structs;
 mod traits;
