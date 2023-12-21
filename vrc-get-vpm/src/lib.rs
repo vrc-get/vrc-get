@@ -5,13 +5,12 @@
 #![forbid(unsafe_code)]
 
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
 use tokio::fs::{create_dir_all, File};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
-use url::Url;
 
 use structs::package::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
@@ -106,49 +105,6 @@ impl<'a> PackageInfo<'a> {
         self.package_json().is_yanked()
     }
 }
-
-#[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
-pub enum PreDefinedRepoSource {
-    Official,
-    Curated,
-}
-
-impl PreDefinedRepoSource {
-    pub fn file_name(self) -> &'static str {
-        match self {
-            PreDefinedRepoSource::Official => "vrc-official.json",
-            PreDefinedRepoSource::Curated => "vrc-curated.json",
-        }
-    }
-    pub fn url(self) -> Url {
-        match self {
-            PreDefinedRepoSource::Official => {
-                Url::parse("https://packages.vrchat.com/official?download").unwrap()
-            }
-            PreDefinedRepoSource::Curated => {
-                Url::parse("https://packages.vrchat.com/curated?download").unwrap()
-            }
-        }
-    }
-    pub fn name(self) -> &'static str {
-        match self {
-            PreDefinedRepoSource::Official => "Official",
-            PreDefinedRepoSource::Curated => "Curated",
-        }
-    }
-}
-
-#[derive(Clone)]
-#[non_exhaustive]
-pub enum RepoSource {
-    PreDefined(PreDefinedRepoSource, Url, PathBuf),
-    UserRepo(UserRepoSetting),
-}
-
-static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[
-    PreDefinedRepoSource::Official,
-    PreDefinedRepoSource::Curated,
-];
 
 async fn update_from_remote(
     client: &impl HttpClient,

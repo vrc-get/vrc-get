@@ -1,11 +1,11 @@
 use super::*;
 use crate::traits::HttpClient;
+use crate::{read_to_vec, try_open_file, update_from_remote, write_repo};
 use futures::future::try_join_all;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::future::Future;
 use url::Url;
-use crate::{read_to_vec, try_open_file, update_from_remote, write_repo};
 
 #[derive(Debug)]
 pub(crate) struct RepoHolder {

@@ -16,10 +16,7 @@ use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::AddPackageRequest;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::UserRepoSetting;
-use vrc_get_vpm::{
-    Environment, PackageCollection, PackageInfo, PreDefinedRepoSource, UnityProject,
-    VersionSelector,
-};
+use vrc_get_vpm::{Environment, PackageCollection, PackageInfo, UnityProject, VersionSelector};
 use vrc_get_vpm::{HttpClient, PackageJson};
 
 macro_rules! multi_command {
@@ -61,16 +58,14 @@ async fn load_env(args: &EnvArgs) -> Environment<Client> {
 
     if let Ok(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE") {
         log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_url_override(
-            PreDefinedRepoSource::Official,
+        env.set_official_url_override(
             Url::parse(&url_override).expect("invalid url for VRC_GET_OFFICIAL_URL_OVERRIDE"),
         );
     }
 
     if let Ok(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE") {
         log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_url_override(
-            PreDefinedRepoSource::Curated,
+        env.set_curated_url_override(
             Url::parse(&url_override).expect("invalid url for VRC_GET_CURATED_URL_OVERRIDE"),
         );
     }

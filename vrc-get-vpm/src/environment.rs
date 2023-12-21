@@ -1,5 +1,6 @@
-mod uesr_package_collection;
 mod repo_holder;
+mod repo_source;
+mod uesr_package_collection;
 
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
@@ -7,10 +8,7 @@ use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{JsonMapExt, PathBufExt, Sha256AsyncWrite};
-use crate::{
-    load_json_or_default, to_json_vec, PackageInfo, PreDefinedRepoSource, RepoSource,
-    VersionSelector, DEFINED_REPO_SOURCES,
-};
+use crate::{load_json_or_default, to_json_vec, PackageInfo, VersionSelector};
 use futures::future::join_all;
 use hex::FromHex;
 use indexmap::IndexMap;
@@ -27,6 +25,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
 use url::Url;
 
+use crate::environment::repo_source::{PreDefinedRepoSource, RepoSource, DEFINED_REPO_SOURCES};
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use uesr_package_collection::UserPackageCollection;
 
@@ -420,8 +419,14 @@ impl<T: HttpClient> Environment<T> {
         Ok(indices.len())
     }
 
-    pub fn set_url_override(&mut self, repo: PreDefinedRepoSource, url: Url) {
-        self.url_overrides.insert(repo, url);
+    pub fn set_official_url_override(&mut self, url: Url) {
+        self.url_overrides
+            .insert(PreDefinedRepoSource::Official, url);
+    }
+
+    pub fn set_curated_url_override(&mut self, url: Url) {
+        self.url_overrides
+            .insert(PreDefinedRepoSource::Curated, url);
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
