@@ -273,7 +273,7 @@ pub struct Install {
     #[arg(long = "prerelease")]
     prerelease: bool,
 
-    /// Path to project dir. by default CWD or parents of CWD will be used
+    /// Path to project dir. by default working directory or parents of working directory will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
     #[command(flatten)]
@@ -457,7 +457,14 @@ impl Outdated {
 
 /// Upgrade specified package or all packages to latest or specified version.
 ///
-/// With install command, you'll add to dependencies. With upgrade command,
+/// Specifying both package and version will upgrade the specified package to the specified version.
+///
+/// Specifying package name only will upgrade the specified package to latest version.
+///
+/// Not specifying both package and version will upgrade all packages to latest version.
+///
+/// With install command, you'll add to dependencies.
+/// With upgrade command,
 /// you'll upgrade dependencies or locked dependencies but not add to dependencies.
 #[derive(Parser)]
 #[command(author, version)]
