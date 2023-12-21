@@ -256,12 +256,22 @@ pub enum Command {
 
 multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Completion);
 
+const INSTALL_USAGE: &str = color_print::cstr!("
+      <bold>vrc-get install</>
+          installs all packages locked in vpm-manifest.json and dependencies of non-vpm managed embed packages
+
+      <bold>vrc-get install</> [OPTIONS] <<PACKAGE>>
+          installs the latest version of specified package
+
+      <bold>vrc-get upgrade</> [OPTIONS] <<PACKAGE>> <<VERSION>>
+          installs the specified version of specified package");
+
 /// Adds package to unity project
 ///
 /// With install command, you'll add to dependencies. With upgrade command,
 /// you'll upgrade dependencies or locked dependencies but not add to dependencies.
 #[derive(Parser)]
-#[command(author, version)]
+#[command(author, version, override_usage = INSTALL_USAGE)]
 pub struct Install {
     /// Name of Package
     #[arg()]
@@ -273,7 +283,7 @@ pub struct Install {
     #[arg(long = "prerelease")]
     prerelease: bool,
 
-    /// Path to project dir. by default CWD or parents of CWD will be used
+    /// Path to project dir. by default working directory or parents of working directory will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
     #[command(flatten)]
@@ -455,16 +465,27 @@ impl Outdated {
     }
 }
 
+const UPGRADE_USAGE: &str = color_print::cstr!("
+      <bold>vrc-get upgrade</>
+          upgrades all packages to the latest
+
+      <bold>vrc-get upgrade</> [OPTIONS] <<PACKAGE>>
+          upgrade specified package to the latest
+
+      <bold>vrc-get upgrade</> [OPTIONS] <<PACKAGE>> <<VERSION>>
+          upgrade specified package to the specified version");
+
 /// Upgrade specified package or all packages to latest or specified version.
 ///
-/// With install command, you'll add to dependencies. With upgrade command,
+/// With install command, you'll add to dependencies.
+/// With upgrade command,
 /// you'll upgrade dependencies or locked dependencies but not add to dependencies.
 #[derive(Parser)]
-#[command(author, version)]
+#[command(author, version, override_usage = UPGRADE_USAGE)]
 pub struct Upgrade {
     /// Name of Package
     #[arg()]
-    name: Option<String>,
+    name: String,
     /// Version of package. if not specified, latest version will be used
     #[arg(id = "VERSION")]
     version: Option<Version>,
@@ -489,7 +510,7 @@ impl Upgrade {
         let mut unity = load_unity(self.project).await;
         let require_prompt;
 
-        let updates = if let Some(name) = self.name {
+        let updates = if let Some(name) = Some(self.name) {
             let version_selector = match self.version {
                 None => PackageSelector::latest_for(unity.unity_version(), self.prerelease),
                 Some(ref version) => PackageSelector::specific_version(version),
