@@ -1,3 +1,4 @@
+use crate::repo_holder::RepoHolder;
 use crate::repository::local::LocalCachedRepository;
 use crate::structs::package::PackageJson;
 use crate::{Environment, PackageInfo, PackageSelector};
@@ -36,3 +37,4 @@ pub trait RemotePackageDownloader: seal::Sealed {
 impl seal::Sealed for Environment {}
 impl seal::Sealed for LocalCachedRepository {}
 impl seal::Sealed for crate::environment::UserPackageCollection {}
+impl seal::Sealed for RepoHolder {}

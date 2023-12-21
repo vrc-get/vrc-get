@@ -178,25 +178,15 @@ impl Environment {
 
 impl PackageCollection for Environment {
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        let local = self
-            .get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.get_all_packages());
-
-        let user = self.user_packages.get_all_packages();
-
-        local.chain(user)
+        self.repo_cache
+            .get_all_packages()
+            .chain(self.user_packages.get_all_packages())
     }
 
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        let local = self
-            .get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.find_packages(package));
-
-        let user = self.user_packages.find_packages(package);
-
-        local.chain(user)
+        self.repo_cache
+            .find_packages(package)
+            .chain(self.user_packages.find_packages(package))
     }
 
     fn find_package_by_name(
@@ -205,15 +195,13 @@ impl PackageCollection for Environment {
         package_selector: PackageSelector,
     ) -> Option<PackageInfo> {
         let local = self
-            .get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.find_package_by_name(package, package_selector));
-
+            .repo_cache
+            .find_package_by_name(package, package_selector);
         let user = self
             .user_packages
             .find_package_by_name(package, package_selector);
 
-        return local.chain(user).max_by_key(|x| x.version());
+        return local.into_iter().chain(user).max_by_key(|x| x.version());
     }
 }
 
