@@ -8,7 +8,7 @@ use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{JsonMapExt, PathBufExt, Sha256AsyncWrite};
 use crate::{
-    is_truthy, load_json_or_default, to_json_vec, PackageInfo, PreDefinedRepoSource, RepoSource,
+    load_json_or_default, to_json_vec, PackageInfo, PreDefinedRepoSource, RepoSource,
     VersionSelector, DEFINED_REPO_SOURCES,
 };
 use futures::future::join_all;
@@ -236,18 +236,10 @@ impl<T: HttpClient> Environment<T> {
     ) -> Vec<&PackageJson> {
         let mut list = Vec::new();
 
-        fn get_latest(versions: &RemotePackages) -> Option<&PackageJson> {
-            versions
-                .all_versions()
-                .filter(|x| !is_truthy(x.yanked.as_ref()))
-                .filter(|x| x.version.pre.is_empty())
-                .max_by_key(|x| &x.version)
-        }
-
         self.get_repos()
             .into_iter()
             .flat_map(|repo| repo.get_packages())
-            .filter_map(get_latest)
+            .filter_map(RemotePackages::get_latest)
             .filter(|x| filter(x))
             .fold((), |_, pkg| list.push(pkg));
 

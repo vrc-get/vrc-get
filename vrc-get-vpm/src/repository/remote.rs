@@ -159,4 +159,11 @@ impl RemotePackages {
     pub fn all_versions(&self) -> impl Iterator<Item = &PackageJson> {
         self.versions.values()
     }
+
+    pub fn get_latest(&self) -> Option<&PackageJson> {
+        self.versions
+            .values()
+            .filter(|json| json.is_yanked())
+            .max_by_key(|json| &json.version)
+    }
 }

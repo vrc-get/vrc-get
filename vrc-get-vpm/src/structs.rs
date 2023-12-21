@@ -42,6 +42,7 @@ pub mod manifest {
 }
 
 pub mod package {
+    use crate::utils::is_truthy;
     use super::*;
     #[derive(Deserialize, Debug, Clone)]
     pub struct PackageJson {
@@ -71,6 +72,12 @@ pub mod package {
 
         #[serde(default)]
         pub yanked: Option<Value>,
+    }
+
+    impl PackageJson {
+        pub fn is_yanked(&self) -> bool {
+            is_truthy(self.yanked.as_ref())
+        }
     }
 
     #[derive(Debug, Clone)]

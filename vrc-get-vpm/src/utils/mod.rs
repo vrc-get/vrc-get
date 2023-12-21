@@ -207,3 +207,16 @@ pub(crate) fn walk_dir_relative(
         }
     }
 }
+
+pub(crate) fn is_truthy(value: Option<&Value>) -> bool {
+    // see https://developer.mozilla.org/en-US/docs/Glossary/Falsy
+    match value {
+        Some(Value::Null) => false,
+        None => false,
+        Some(Value::Bool(false)) => false,
+        // No NaN in json
+        Some(Value::Number(num)) if num.as_f64() == Some(0.0) => false,
+        Some(Value::String(s)) if s.is_empty() => false,
+        _ => true,
+    }
+}

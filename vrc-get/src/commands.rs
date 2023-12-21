@@ -888,7 +888,7 @@ impl RepoPackages {
     pub async fn run(self) {
         fn print_repo(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
-                if let Some(pkg) = versions.all_versions().max_by_key(|pkg| &pkg.version) {
+                if let Some(pkg) = versions.get_latest() {
                     let package = &pkg.name;
                     if let Some(display_name) = &pkg.display_name {
                         println!("{} | {}", display_name, package);
