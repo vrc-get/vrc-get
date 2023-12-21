@@ -821,7 +821,7 @@ impl RepoRemove {
 
 /// Cleanup repositories in Repos directory
 ///
-/// The official VPM CLI will add <uuid>.json in the Repos directory even if error occurs.
+/// The official VPM CLI will add &lt;uuid&gt;.json in the Repos directory even if error occurs.
 /// So this command will cleanup Repos directory.
 #[derive(Parser)]
 #[command(author, version)]
