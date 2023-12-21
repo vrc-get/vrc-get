@@ -2,7 +2,7 @@ use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::structs::package::PackageJson;
 use crate::unity_project::package_resolution;
 use crate::utils::{
-    copy_recursive, extract_zip, parse_hex_256, walk_dir_relative, MapResultExt, PathBufExt,
+    copy_recursive, extract_zip, walk_dir_relative, MapResultExt, PathBufExt,
     Sha256AsyncWrite, WalkDirEntry,
 };
 use crate::{unity_compatible, Environment, PackageInfo, PackageInfoInner, UnityProject};
@@ -586,12 +586,11 @@ async fn try_cache(zip_path: &Path, sha_path: &Path, sha256: Option<&str>) -> Op
         .await
         .ok()?;
 
-    let hex = parse_hex_256(buf)?;
+    let hex: [u8; 256 / 8] = FromHex::from_hex(buf).ok()?;
 
     // is stored sha doesn't match sha in repo: current cache is invalid
     if let Some(repo_hash) = sha256
-        .and_then(|s| s.as_bytes().try_into().ok())
-        .and_then(parse_hex_256)
+        .and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok())
     {
         if repo_hash != hex {
             return None;

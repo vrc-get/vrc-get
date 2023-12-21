@@ -139,33 +139,6 @@ where
     }
 }
 
-macro_rules! parse_hex_bits {
-    ($name: ident : $bits: literal) => {
-        pub(crate) fn $name(hex: [u8; $bits / 4]) -> Option<[u8; $bits / 8]> {
-            let mut result = [0u8; $bits / 8];
-            for i in 0..($bits / 8) {
-                let upper = match hex[i * 2 + 0] {
-                    c @ b'0'..=b'9' => c - b'0',
-                    c @ b'a'..=b'f' => c - b'a' + 10,
-                    c @ b'A'..=b'F' => c - b'A' + 10,
-                    _ => return None,
-                };
-                let lower = match hex[i * 2 + 1] {
-                    c @ b'0'..=b'9' => c - b'0',
-                    c @ b'a'..=b'f' => c - b'a' + 10,
-                    c @ b'A'..=b'F' => c - b'A' + 10,
-                    _ => return None,
-                };
-                result[i] = upper << 4 | lower;
-            }
-            Some(result)
-        }
-    };
-}
-
-parse_hex_bits!(parse_hex_256: 256);
-parse_hex_bits!(parse_hex_128: 128);
-
 pub(crate) struct WalkDirEntry {
     pub(crate) original: DirEntry,
     pub(crate) relative: PathBuf,
