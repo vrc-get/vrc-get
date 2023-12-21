@@ -18,12 +18,12 @@ use structs::package::{PackageJson, PartialUnityVersion};
 use structs::setting::UserRepoSetting;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
-mod environment;
+pub mod environment;
 mod repo_holder;
 pub mod repository;
 pub mod structs;
 mod traits;
-mod unity_project;
+pub mod unity_project;
 mod utils;
 pub mod version;
 
@@ -32,8 +32,6 @@ type JsonMap = Map<String, Value>;
 use crate::repository::RemoteRepository;
 pub use environment::Environment;
 pub use environment::PackageSelector;
-pub use unity_project::AddPackageRequest;
-pub use unity_project::ResolveResult;
 pub use unity_project::UnityProject;
 
 use crate::repository::local::LocalCachedRepository;
