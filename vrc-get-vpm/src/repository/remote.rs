@@ -3,12 +3,12 @@ use crate::traits::HttpClient;
 use crate::version::Version;
 use futures::prelude::*;
 use indexmap::IndexMap;
-use url::Url;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::io;
 use std::pin::pin;
+use url::Url;
 
 type JsonMap = Map<String, Value>;
 

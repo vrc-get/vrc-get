@@ -17,10 +17,13 @@ mod seal {
 }
 
 pub trait PackageCollection: seal::Sealed {
+    /// get all packages in the collection
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo>;
 
+    /// get all package versions of the specified package
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo>;
 
+    /// get specified version of specified package
     fn find_package_by_name(
         &self,
         package: &str,
@@ -32,6 +35,7 @@ pub trait PackageCollection: seal::Sealed {
 ///
 /// Caching packages is responsibility of this crate.
 pub trait RemotePackageDownloader: seal::Sealed {
+    /// Get package from remote server.
     fn get_package(
         &self,
         repository: &LocalCachedRepository,
@@ -39,15 +43,27 @@ pub trait RemotePackageDownloader: seal::Sealed {
     ) -> impl Future<Output = io::Result<File>> + Send;
 }
 
+/// The HTTP Client.
 pub trait HttpClient: Sync + seal::Sealed {
+    /// Get resource from the URL with specified headers
+    ///
+    /// Note: If remote server returns error status code, this function should return error.
     fn get(
         &self,
-        url: &url::Url,
+        url: &Url,
         headers: &IndexMap<String, String>,
     ) -> impl Future<Output = io::Result<impl AsyncRead + Send>> + Send;
+
+    /// Get resource from the URL with specified headers and etag
+    ///
+    /// Returning `Ok(None)` means cache matched.
+    /// Returning `Ok(Some((stream, etag)))` means cache not matched and get from remote server.
+    /// Returning `Err(_)` means error.
+    ///
+    /// Note: If remote server returns error status code, this function should return error.
     fn get_with_etag(
         &self,
-        url: &url::Url,
+        url: &Url,
         headers: &IndexMap<String, String>,
         current_etag: Option<&str>,
     ) -> impl Future<Output = io::Result<Option<(impl AsyncRead + Send, Option<String>)>>> + Send;
@@ -56,7 +72,7 @@ pub trait HttpClient: Sync + seal::Sealed {
 impl HttpClient for reqwest::Client {
     async fn get(
         &self,
-        url: &url::Url,
+        url: &Url,
         headers: &IndexMap<String, String>,
     ) -> io::Result<impl AsyncRead> {
         // file not found: err
