@@ -121,11 +121,7 @@ impl RemoteRepository {
     }
 
     pub fn get_package_version(&self, name: &str, version: &Version) -> Option<&PackageJson> {
-        self.parsed
-            .packages
-            .get(name)?
-            .versions
-            .get(&version.to_string())
+        self.parsed.packages.get(name)?.versions.get(version)
     }
 }
 
@@ -152,7 +148,7 @@ impl<'de> Deserialize<'de> for RemoteRepository {
 #[derive(Deserialize, Debug, Clone)]
 pub struct RemotePackages {
     #[serde(default)]
-    versions: HashMap<String, PackageJson>,
+    versions: HashMap<Version, PackageJson>,
 }
 
 impl RemotePackages {

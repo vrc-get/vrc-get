@@ -901,7 +901,11 @@ impl RepoPackages {
                     let mut versions = versions.all_versions().collect::<Vec<_>>();
                     versions.sort_by_key(|pkg| &pkg.version);
                     for pkg in &versions {
-                        println!("{}: {}", pkg.version, pkg.url);
+                        println!(
+                            "{}: {}",
+                            pkg.version,
+                            pkg.url.as_ref().map(|x| x.as_str()).unwrap_or("<no url>")
+                        );
                     }
                     println!();
                 }

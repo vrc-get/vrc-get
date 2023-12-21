@@ -463,7 +463,12 @@ impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
                 &zip_path,
                 &sha_path,
                 &zip_file_name,
-                &package.url,
+                package.url.as_ref().ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "URL field of the package.json in the repository empty",
+                    )
+                })?,
             )
             .await?)
         }
@@ -534,7 +539,7 @@ async fn download_package_zip(
     zip_path: &Path,
     sha_path: &Path,
     zip_file_name: &str,
-    url: &str,
+    url: &Url,
 ) -> io::Result<File> {
     let Some(http) = http else {
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
@@ -548,8 +553,7 @@ async fn download_package_zip(
         .open(&zip_path)
         .await?;
 
-    let url = Url::parse(url).unwrap();
-    let mut response = pin!(http.get(&url, headers).await?.compat());
+    let mut response = pin!(http.get(url, headers).await?.compat());
 
     let mut writer = Sha256AsyncWrite::new(cache_file);
     tokio::io::copy(&mut response, &mut writer).await?;

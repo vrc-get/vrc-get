@@ -42,8 +42,9 @@ pub mod manifest {
 }
 
 pub mod package {
-    use crate::utils::is_truthy;
     use super::*;
+    use crate::utils::is_truthy;
+    use url::Url;
     #[derive(Deserialize, Debug, Clone)]
     pub struct PackageJson {
         pub name: String,
@@ -56,7 +57,7 @@ pub mod package {
         #[serde(default)]
         pub vpm_dependencies: IndexMap<String, VersionRange>,
         #[serde(default)]
-        pub url: String,
+        pub url: Option<Url>,
 
         pub unity: Option<PartialUnityVersion>,
 
