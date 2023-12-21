@@ -1,17 +1,18 @@
 use crate::add_package::add_package;
 use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::unity_project::package_resolution;
-use crate::utils::{parse_hex_128, walk_dir, PathBufExt};
+use crate::utils::{walk_dir_relative, PathBufExt, WalkDirEntry};
 use crate::{unity_compatible, Environment, PackageInfo, UnityProject};
 use futures::future::{join3, join_all, try_join_all};
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
+use hex::FromHex;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::{fmt, io};
-use tokio::fs::{metadata, DirEntry, File};
+use tokio::fs::{metadata, File};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 /// Represents Packages to be added and folders / packages to be removed
@@ -169,7 +170,8 @@ impl UnityProject {
             .filter(|name| self.manifest.locked().contains_key(name))
             .collect();
 
-        let (legacy_files, legacy_folders) = Self::collect_legacy_assets(&self.project_dir, &result.new_packages).await;
+        let (legacy_files, legacy_folders) =
+            Self::collect_legacy_assets(&self.project_dir, &result.new_packages).await;
 
         let unity_conflicts = if let Some(unity) = self.unity_version {
             result
@@ -192,7 +194,47 @@ impl UnityProject {
             legacy_packages,
         })
     }
+}
 
+#[derive(Copy, Clone, Hash, Eq, PartialEq)]
+struct Guid([u8; 16]);
+
+impl Guid {
+    fn parse(guid: &str) -> Option<Guid> {
+        FromHex::from_hex(guid).ok().map(Guid)
+    }
+}
+
+struct DefinedLegacyInfo<'a> {
+    path: &'a str,
+    guid: Option<Guid>,
+    is_file: bool,
+}
+
+impl<'a> DefinedLegacyInfo<'a> {
+    fn new_file(path: &'a str, guid: Option<Guid>) -> Self {
+        Self {
+            path,
+            guid,
+            is_file: true,
+        }
+    }
+
+    fn new_dir(path: &'a str, guid: Option<Guid>) -> Self {
+        Self {
+            path,
+            guid,
+            is_file: false,
+        }
+    }
+}
+
+enum LegacySearchResult {
+    FoundWithPath(PathBuf, bool),
+    SearchWithGuid(Guid, bool),
+}
+
+impl UnityProject {
     async fn collect_legacy_assets(
         project_dir: &Path,
         packages: &[PackageInfo<'_>],
@@ -200,57 +242,60 @@ impl UnityProject {
         let folders = packages
             .iter()
             .flat_map(|x| &x.package_json().legacy_folders)
-            .map(|(path, guid)| (path, guid, false));
+            .map(|(path, guid)| {
+                DefinedLegacyInfo::new_dir(path, guid.as_deref().and_then(Guid::parse))
+            });
         let files = packages
             .iter()
             .flat_map(|x| &x.package_json().legacy_files)
-            .map(|(path, guid)| (path, guid, true));
-        let assets = folders.chain(files).collect::<Vec<_>>();
+            .map(|(path, guid)| {
+                DefinedLegacyInfo::new_file(path, guid.as_deref().and_then(Guid::parse))
+            });
+        let assets = folders.chain(files);
 
-        enum LegacyInfo {
-            FoundFile(PathBuf),
-            FoundFolder(PathBuf),
-            NotFound,
-            GuidFile(Guid),
-            GuidFolder(Guid),
+        let (mut found_files, mut found_folders, find_guids) =
+            Self::find_legacy_assets_by_path(project_dir, assets).await;
+
+        if !find_guids.is_empty() {
+            Self::find_legacy_assets_by_guid(
+                project_dir,
+                find_guids,
+                &mut found_files,
+                &mut found_folders,
+            )
+            .await;
         }
-        use LegacyInfo::*;
 
-        #[derive(Copy, Clone, Hash, Eq, PartialEq)]
-        struct Guid([u8; 16]);
+        (
+            found_files.into_iter().collect(),
+            found_folders.into_iter().collect(),
+        )
+    }
 
-        fn try_parse_guid(guid: &str) -> Option<Guid> {
-            Some(Guid(parse_hex_128(guid.as_bytes().try_into().ok()?)?))
-        }
+    async fn find_legacy_assets_by_path(
+        project_dir: &Path,
+        assets: impl Iterator<Item = DefinedLegacyInfo<'_>>,
+    ) -> (HashSet<PathBuf>, HashSet<PathBuf>, HashMap<Guid, bool>) {
+        use LegacySearchResult::*;
 
         let mut futures = pin!(assets
-            .into_iter()
-            .map(|(path, guid, is_file)| async move {
+            .map(|info| async move {
                 // some packages uses '/' as path separator.
-                let path = PathBuf::from(path.replace('\\', "/"));
+                let relative_path = PathBuf::from(info.path.replace('\\', "/"));
                 // for security, deny absolute path.
-                if path.has_root() {
-                    return NotFound;
+                if relative_path.is_absolute() {
+                    return None;
                 }
-                let path = project_dir.join(path);
-                if metadata(&path)
+                if metadata(project_dir.join(&relative_path))
                     .await
-                    .map(|x| x.is_file() == is_file)
+                    .map(|x| x.is_file() == info.is_file)
                     .unwrap_or(false)
                 {
-                    if is_file {
-                        FoundFile(path)
-                    } else {
-                        FoundFolder(path)
-                    }
-                } else if let Some(guid) = guid.as_deref().and_then(try_parse_guid) {
-                    if is_file {
-                        GuidFile(guid)
-                    } else {
-                        GuidFolder(guid)
-                    }
+                    Some(FoundWithPath(relative_path, info.is_file))
+                } else if let Some(guid) = info.guid {
+                    Some(SearchWithGuid(guid, info.is_file))
                 } else {
-                    NotFound
+                    None
                 }
             })
             .collect::<FuturesUnordered<_>>());
@@ -261,76 +306,77 @@ impl UnityProject {
 
         while let Some(info) = futures.next().await {
             match info {
-                FoundFile(path) => {
-                    found_files.insert(path.strip_prefix(project_dir).unwrap().to_owned());
+                Some(FoundWithPath(relative_path, true)) => {
+                    found_files.insert(relative_path);
                 }
-                FoundFolder(path) => {
-                    found_folders.insert(path.strip_prefix(project_dir).unwrap().to_owned());
+                Some(FoundWithPath(relative_path, false)) => {
+                    found_folders.insert(relative_path);
                 }
-                NotFound => (),
-                GuidFile(guid) => {
-                    find_guids.insert(guid, true);
+                Some(SearchWithGuid(guid, is_file)) => {
+                    find_guids.insert(guid, is_file);
                 }
-                GuidFolder(guid) => {
-                    find_guids.insert(guid, false);
-                }
+                None => (),
             }
         }
 
-        if !find_guids.is_empty() {
-            async fn get_guid(entry: DirEntry) -> Option<(Guid, bool, PathBuf)> {
-                let path = entry.path();
-                if path.extension() != Some(OsStr::new("meta"))
-                    || !entry.file_type().await.ok()?.is_file()
-                {
-                    return None;
-                }
-                let mut file = BufReader::new(File::open(&path).await.ok()?);
-                let mut buffer = String::new();
-                while file.read_line(&mut buffer).await.ok()? != 0 {
-                    let line = buffer.as_str();
-                    if let Some(guid) = line.strip_prefix("guid: ") {
-                        // current line should be line for guid.
-                        if let Some(guid) = try_parse_guid(guid.trim()) {
-                            // remove .meta extension
-                            let mut path = path;
-                            path.set_extension("");
-                            let is_file = metadata(&path).await.ok()?.is_file();
-                            return Some((guid, is_file, path));
-                        }
-                    }
+        (found_files, found_folders, find_guids)
+    }
 
-                    buffer.clear()
-                }
+    async fn try_parse_meta(path: &Path) -> Option<Guid> {
+        let mut file = BufReader::new(File::open(&path).await.ok()?);
+        let mut buffer = String::new();
+        while file.read_line(&mut buffer).await.ok()? != 0 {
+            let line = buffer.as_str();
+            if let Some(guid) = line.strip_prefix("guid: ") {
+                // current line should be line for guid.
+                return Guid::parse(guid.trim());
+            }
 
+            buffer.clear()
+        }
+        None
+    }
+
+    async fn find_legacy_assets_by_guid(
+        project_dir: &Path,
+        mut find_guids: HashMap<Guid, bool>,
+        found_files: &mut HashSet<PathBuf>,
+        found_folders: &mut HashSet<PathBuf>,
+    ) {
+        async fn get_guid(entry: WalkDirEntry) -> Option<(Guid, bool, PathBuf)> {
+            let path = entry.path();
+            if path.extension() != Some(OsStr::new("meta")) {
+                None
+            } else if let Some(guid) = UnityProject::try_parse_meta(&path).await {
+                // remove .meta extension
+                let mut path = path;
+                path.set_extension("");
+
+                let is_file = metadata(&path).await.ok()?.is_file();
+                Some((guid, is_file, entry.relative))
+            } else {
                 None
             }
+        }
 
-            let mut stream =
-                pin!(
-                    walk_dir([project_dir.join("Packages"), project_dir.join("Assets")])
-                        .filter_map(get_guid)
-                );
+        let mut stream = pin!(walk_dir_relative(
+            project_dir,
+            [PathBuf::from("Packages"), PathBuf::from("Assets")]
+        )
+        .filter_map(get_guid));
 
-            while let Some((guid, is_file_actual, path)) = stream.next().await {
-                if let Some(&is_file) = find_guids.get(&guid) {
-                    if is_file_actual == is_file {
-                        find_guids.remove(&guid);
-                        if is_file {
-                            found_files.insert(path.strip_prefix(project_dir).unwrap().to_owned());
-                        } else {
-                            found_folders
-                                .insert(path.strip_prefix(project_dir).unwrap().to_owned());
-                        }
+        while let Some((guid, is_file_actual, relative)) = stream.next().await {
+            if let Some(&is_file) = find_guids.get(&guid) {
+                if is_file_actual == is_file {
+                    find_guids.remove(&guid);
+                    if is_file {
+                        found_files.insert(relative);
+                    } else {
+                        found_folders.insert(relative);
                     }
                 }
             }
         }
-
-        (
-            found_files.into_iter().collect(),
-            found_folders.into_iter().collect(),
-        )
     }
 }
 
