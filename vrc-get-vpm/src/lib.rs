@@ -1749,7 +1749,10 @@ impl<'a> VersionSelector<'a> {
             VersionSelector::LatestIncluidingPrerelease => true,
             VersionSelector::Specific(finding) => &version == finding,
             VersionSelector::Range(range) => range.matches(version),
-            VersionSelector::Ranges(ranges) => ranges.into_iter().all(|x| x.matches(version)),
+            VersionSelector::Ranges(ranges) => {
+                let allow_pre = ranges.into_iter().any(|x| x.contains_pre());
+                ranges.into_iter().all(|x| x.match_pre(version, allow_pre))
+            },
         }
     }
 }
