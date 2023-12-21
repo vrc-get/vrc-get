@@ -18,7 +18,6 @@ use structs::package::{PackageJson, PartialUnityVersion};
 use structs::setting::UserRepoSetting;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
-mod add_package;
 mod environment;
 mod repo_holder;
 pub mod repository;

@@ -24,8 +24,8 @@ use tokio::io::AsyncReadExt;
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
-use crate::add_package::add_package;
 use crate::traits::PackageCollection;
+use crate::unity_project::add_package::add_package;
 pub use add_package::{AddPackageErr, AddPackageRequest};
 
 #[derive(Debug)]
