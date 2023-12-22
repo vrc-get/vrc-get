@@ -22,6 +22,8 @@ use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::{env, fmt, io};
+use either::{Left, Right};
+use lazy_static::lazy_static;
 use tokio::fs::{create_dir_all, remove_file, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
@@ -29,8 +31,9 @@ use url::Url;
 
 #[cfg(feature = "experimental-override-predefined")]
 use crate::environment::repo_source::PreDefinedRepoSource;
-use crate::environment::repo_source::{RepoSource, RepoSourceImpl, DEFINED_REPO_SOURCES};
+use crate::environment::repo_source::DEFINED_REPO_SOURCES;
 pub(crate) use repo_holder::RepoHolder;
+pub(crate) use repo_source::RepoSource;
 pub(crate) use uesr_package_collection::UserPackageCollection;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
@@ -211,9 +214,31 @@ impl<T: HttpClient> PackageCollection for Environment<T> {
 
 impl<T: HttpClient> Environment<T> {
     fn get_repo_sources(&self) -> io::Result<Vec<impl RepoSource>> {
+        struct PredefinedSource {
+            url: Url,
+            path: PathBuf,
+        }
+
+        impl RepoSource for PredefinedSource {
+            fn cache_path(&self) -> &Path {
+                self.path.as_path()
+            }
+
+            fn headers(&self) -> &IndexMap<String, String> {
+                lazy_static! {
+                    static ref EMPTY_HEADERS: IndexMap<String, String> = IndexMap::new();
+                }
+                &EMPTY_HEADERS
+            }
+
+            fn url(&self) -> Option<&Url> {
+                Some(&self.url)
+            }
+        }
+
         let defined_sources = DEFINED_REPO_SOURCES.iter().copied().map(|x| {
-            RepoSourceImpl::PreDefined(
-                x,
+            PredefinedSource {
+                url:
                 {
                     #[cfg(feature = "experimental-override-predefined")]
                     {
@@ -227,15 +252,14 @@ impl<T: HttpClient> Environment<T> {
                         x.url().to_owned()
                     }
                 },
-                self.get_repos_dir().join(x.file_name()),
-            )
+                path: self.get_repos_dir().join(x.file_name()),
+            }
         });
         let user_repo_sources = self
             .get_user_repos()?
-            .into_iter()
-            .map(RepoSourceImpl::UserRepo);
+            .into_iter();
 
-        Ok(defined_sources.chain(user_repo_sources).collect())
+        Ok(defined_sources.map(Left).chain(user_repo_sources.map(Right)).collect())
     }
 
     pub fn get_repos(&self) -> Vec<&LocalCachedRepository> {

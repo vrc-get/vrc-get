@@ -147,6 +147,8 @@ pub mod setting {
     use std::path::Path;
     use super::*;
     use url::Url;
+    use crate::environment::RepoSource;
+
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct UserRepoSetting {
         #[serde(rename = "localPath")]
@@ -196,6 +198,20 @@ pub mod setting {
 
         pub fn headers(&self) -> &IndexMap<String, String> {
             &self.headers
+        }
+    }
+
+    impl RepoSource for UserRepoSetting {
+        fn cache_path(&self) -> &Path {
+            self.local_path()
+        }
+
+        fn headers(&self) -> &IndexMap<String, String> {
+            self.headers()
+        }
+
+        fn url(&self) -> Option<&Url> {
+            self.url()
         }
     }
 }

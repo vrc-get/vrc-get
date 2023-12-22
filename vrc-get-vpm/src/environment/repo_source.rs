@@ -1,7 +1,6 @@
-use crate::UserRepoSetting;
 use indexmap::IndexMap;
-use lazy_static::lazy_static;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use either::{Either, for_both};
 use url::Url;
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
@@ -9,6 +8,11 @@ pub(crate) enum PreDefinedRepoSource {
     Official,
     Curated,
 }
+
+pub(crate) static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[
+    PreDefinedRepoSource::Official,
+    PreDefinedRepoSource::Curated,
+];
 
 impl PreDefinedRepoSource {
     pub fn file_name(self) -> &'static str {
@@ -36,42 +40,16 @@ pub(crate) trait RepoSource {
     fn url(&self) -> Option<&Url>;
 }
 
-impl RepoSource for RepoSourceImpl {
+impl <L: RepoSource, R: RepoSource> RepoSource for Either<L, R> {
     fn cache_path(&self) -> &Path {
-        match self {
-            RepoSourceImpl::PreDefined(_, _, path) => path.as_path(),
-            RepoSourceImpl::UserRepo(repo) => repo.local_path(),
-        }
+        for_both!(self, src => src.cache_path())
     }
 
     fn headers(&self) -> &IndexMap<String, String> {
-        match self {
-            RepoSourceImpl::PreDefined(_, _, _) => {
-                lazy_static! {
-                    static ref HEADERS: IndexMap<String, String> = IndexMap::new();
-                }
-                &HEADERS
-            }
-            RepoSourceImpl::UserRepo(repo) => repo.headers(),
-        }
+        for_both!(self, src => src.headers())
     }
 
     fn url(&self) -> Option<&Url> {
-        match self {
-            RepoSourceImpl::PreDefined(_, url, _) => Some(url),
-            RepoSourceImpl::UserRepo(repo) => repo.url(),
-        }
+        for_both!(self, src => src.url())
     }
 }
-
-#[derive(Clone)]
-#[non_exhaustive]
-pub(crate) enum RepoSourceImpl {
-    PreDefined(PreDefinedRepoSource, Url, PathBuf),
-    UserRepo(UserRepoSetting),
-}
-
-pub(crate) static DEFINED_REPO_SOURCES: &[PreDefinedRepoSource] = &[
-    PreDefinedRepoSource::Official,
-    PreDefinedRepoSource::Curated,
-];
