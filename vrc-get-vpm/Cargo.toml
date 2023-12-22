@@ -34,6 +34,7 @@ tokio-util = "0.7.10"
 url = { version = "2.5.0", features = ["serde"] }
 uuid = { version = "1.6.1", features = ["v4"] }
 lazy_static = "1.4.0"
+enum-map = "2.7.3"
 
 [target."cfg(windows)".dependencies]
 dirs-sys = "0.4.1"

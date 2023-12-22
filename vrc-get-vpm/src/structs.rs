@@ -144,10 +144,10 @@ pub mod package {
 }
 
 pub mod setting {
-    use std::path::Path;
     use super::*;
-    use url::Url;
     use crate::environment::RepoSource;
+    use std::path::Path;
+    use url::Url;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct UserRepoSetting {

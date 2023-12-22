@@ -9,29 +9,25 @@ use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{JsonMapExt, PathBufExt, Sha256AsyncWrite};
 use crate::{load_json_or_default, to_json_vec, PackageInfo, VersionSelector};
+use either::{Left, Right};
+use enum_map::EnumMap;
 use futures::future::join_all;
 use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::{from_value, to_value, Map, Value};
 use std::cmp::Reverse;
-#[cfg(feature = "experimental-override-predefined")]
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::{env, fmt, io};
-use either::{Left, Right};
-use lazy_static::lazy_static;
 use tokio::fs::{create_dir_all, remove_file, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
 use url::Url;
 
-#[cfg(feature = "experimental-override-predefined")]
-use crate::environment::repo_source::PreDefinedRepoSource;
-use crate::environment::repo_source::DEFINED_REPO_SOURCES;
+use crate::environment::repo_source::{PreDefinedRepoType, PredefinedSource};
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
 pub(crate) use uesr_package_collection::UserPackageCollection;
@@ -50,8 +46,7 @@ pub struct Environment<T: HttpClient> {
     repo_cache: RepoHolder,
     user_packages: UserPackageCollection,
     settings_changed: bool,
-    #[cfg(feature = "experimental-override-predefined")]
-    url_overrides: HashMap<PreDefinedRepoSource, Url>,
+    predefined_repos: EnumMap<PreDefinedRepoType, PredefinedSource>,
 }
 
 impl<T: HttpClient> Environment<T> {
@@ -68,12 +63,11 @@ impl<T: HttpClient> Environment<T> {
         Ok(Self {
             http,
             settings: load_json_or_default(&folder.join("settings.json")).await?,
-            global_dir: folder,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
             settings_changed: false,
-            #[cfg(feature = "experimental-override-predefined")]
-            url_overrides: HashMap::new(),
+            predefined_repos: EnumMap::from_fn(|x: PreDefinedRepoType| PredefinedSource::new(&folder, x)),
+            global_dir: folder,
         })
     }
 
@@ -105,7 +99,14 @@ impl<T: HttpClient> Environment<T> {
     pub async fn load_package_infos(&mut self, update: bool) -> io::Result<()> {
         let http = if update { self.http.as_ref() } else { None };
         self.repo_cache
-            .load_repos(http, self.get_repo_sources()?)
+            .load_repos(
+                http,
+                self.predefined_repos
+                    .values()
+                    .map(Left)
+                    .chain(self.get_user_repos()?.into_iter().map(Right))
+                    .collect(),
+            )
             .await?;
         self.update_user_repo_id();
         self.load_user_package_infos().await?;
@@ -213,55 +214,6 @@ impl<T: HttpClient> PackageCollection for Environment<T> {
 }
 
 impl<T: HttpClient> Environment<T> {
-    fn get_repo_sources(&self) -> io::Result<Vec<impl RepoSource>> {
-        struct PredefinedSource {
-            url: Url,
-            path: PathBuf,
-        }
-
-        impl RepoSource for PredefinedSource {
-            fn cache_path(&self) -> &Path {
-                self.path.as_path()
-            }
-
-            fn headers(&self) -> &IndexMap<String, String> {
-                lazy_static! {
-                    static ref EMPTY_HEADERS: IndexMap<String, String> = IndexMap::new();
-                }
-                &EMPTY_HEADERS
-            }
-
-            fn url(&self) -> Option<&Url> {
-                Some(&self.url)
-            }
-        }
-
-        let defined_sources = DEFINED_REPO_SOURCES.iter().copied().map(|x| {
-            PredefinedSource {
-                url:
-                {
-                    #[cfg(feature = "experimental-override-predefined")]
-                    {
-                        self.url_overrides
-                            .get(&x)
-                            .cloned()
-                            .unwrap_or_else(|| x.url().to_owned())
-                    }
-                    #[cfg(not(feature = "experimental-override-predefined"))]
-                    {
-                        x.url().to_owned()
-                    }
-                },
-                path: self.get_repos_dir().join(x.file_name()),
-            }
-        });
-        let user_repo_sources = self
-            .get_user_repos()?
-            .into_iter();
-
-        Ok(defined_sources.map(Left).chain(user_repo_sources.map(Right)).collect())
-    }
-
     pub fn get_repos(&self) -> Vec<&LocalCachedRepository> {
         self.repo_cache.get_repos()
     }
@@ -463,14 +415,12 @@ impl<T: HttpClient> Environment<T> {
 
     #[cfg(feature = "experimental-override-predefined")]
     pub fn set_official_url_override(&mut self, url: Url) {
-        self.url_overrides
-            .insert(PreDefinedRepoSource::Official, url);
+        self.predefined_repos[PreDefinedRepoType::Official].url = url;
     }
 
     #[cfg(feature = "experimental-override-predefined")]
     pub fn set_curated_url_override(&mut self, url: Url) {
-        self.url_overrides
-            .insert(PreDefinedRepoSource::Curated, url);
+        self.predefined_repos[PreDefinedRepoType::Curated].url = url;
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
