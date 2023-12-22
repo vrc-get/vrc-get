@@ -161,7 +161,9 @@ impl RemotePackages {
             .values()
             .filter(|json| {
                 #[cfg(feature = "experimental-yank")]
-                { json.is_yanked() }
+                {
+                    json.is_yanked()
+                }
                 #[cfg(not(feature = "experimental-yank"))]
                 {
                     let _json = json;

@@ -143,7 +143,9 @@ impl FromParsingBuf for ComparatorSet {
 
 impl ComparatorSet {
     fn matches(&self, version: &Version, allow_prerelease: bool) -> bool {
-        self.0.iter().all(|x| x.matches(version, allow_prerelease || self.contains_pre()))
+        self.0
+            .iter()
+            .all(|x| x.matches(version, allow_prerelease || self.contains_pre()))
     }
 
     fn contains_pre(&self) -> bool {

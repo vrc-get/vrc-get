@@ -1633,6 +1633,7 @@ dependencies = [
  "hex",
  "indexmap 2.1.0",
  "itertools",
+ "lazy_static",
  "log",
  "pin-project-lite",
  "reqwest",

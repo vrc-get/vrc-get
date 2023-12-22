@@ -1,4 +1,5 @@
 use super::*;
+use crate::environment::repo_source::RepoSource;
 use crate::traits::HttpClient;
 use crate::{read_to_vec, try_open_file, update_from_remote, write_repo};
 use futures::future::try_join_all;
@@ -25,19 +26,12 @@ impl RepoHolder {
     pub(crate) async fn load_repos(
         &mut self,
         http: Option<&impl HttpClient>,
-        sources: Vec<RepoSource>,
+        sources: Vec<impl RepoSource>,
     ) -> io::Result<()> {
-        fn file_path(source: &RepoSource) -> &Path {
-            match source {
-                RepoSource::PreDefined(_, _, path) => path,
-                RepoSource::UserRepo(user) => &user.local_path,
-            }
-        }
-
         let repos = try_join_all(sources.iter().map(|src| async {
             Self::load_repo_from_source(http, src)
                 .await
-                .map(|v| v.map(|v| (v, file_path(src))))
+                .map(|v| v.map(|v| (v, src.cache_path())))
         }))
         .await?;
 
@@ -50,30 +44,16 @@ impl RepoHolder {
 
     async fn load_repo_from_source(
         client: Option<&impl HttpClient>,
-        source: &RepoSource,
+        source: &impl RepoSource,
     ) -> io::Result<Option<LocalCachedRepository>> {
-        match source {
-            RepoSource::PreDefined(_, url, path) => {
-                RepoHolder::load_remote_repo(client, &IndexMap::new(), path, url)
-                    .await
-                    .map(Some)
-            }
-            RepoSource::UserRepo(user_repo) => {
-                if let Some(url) = &user_repo.url {
-                    RepoHolder::load_remote_repo(
-                        client,
-                        &user_repo.headers,
-                        &user_repo.local_path,
-                        url,
-                    )
-                    .await
-                    .map(Some)
-                } else {
-                    RepoHolder::load_local_repo(&user_repo.local_path)
-                        .await
-                        .map(Some)
-                }
-            }
+        if let Some(url) = &source.url() {
+            RepoHolder::load_remote_repo(client, source.headers(), source.cache_path(), url)
+                .await
+                .map(Some)
+        } else {
+            RepoHolder::load_local_repo(source.cache_path())
+                .await
+                .map(Some)
         }
     }
 

@@ -29,7 +29,7 @@ use url::Url;
 
 #[cfg(feature = "experimental-override-predefined")]
 use crate::environment::repo_source::PreDefinedRepoSource;
-use crate::environment::repo_source::{RepoSource, DEFINED_REPO_SOURCES};
+use crate::environment::repo_source::{RepoSource, RepoSourceImpl, DEFINED_REPO_SOURCES};
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use uesr_package_collection::UserPackageCollection;
 
@@ -210,9 +210,9 @@ impl<T: HttpClient> PackageCollection for Environment<T> {
 }
 
 impl<T: HttpClient> Environment<T> {
-    fn get_repo_sources(&self) -> io::Result<Vec<RepoSource>> {
+    fn get_repo_sources(&self) -> io::Result<Vec<impl RepoSource>> {
         let defined_sources = DEFINED_REPO_SOURCES.iter().copied().map(|x| {
-            RepoSource::PreDefined(
+            RepoSourceImpl::PreDefined(
                 x,
                 {
                     #[cfg(feature = "experimental-override-predefined")]
@@ -230,7 +230,10 @@ impl<T: HttpClient> Environment<T> {
                 self.get_repos_dir().join(x.file_name()),
             )
         });
-        let user_repo_sources = self.get_user_repos()?.into_iter().map(RepoSource::UserRepo);
+        let user_repo_sources = self
+            .get_user_repos()?
+            .into_iter()
+            .map(RepoSourceImpl::UserRepo);
 
         Ok(defined_sources.chain(user_repo_sources).collect())
     }
