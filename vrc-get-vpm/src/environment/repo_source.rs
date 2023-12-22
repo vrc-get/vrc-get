@@ -40,7 +40,7 @@ impl RepoSource for RepoSourceImpl {
     fn cache_path(&self) -> &Path {
         match self {
             RepoSourceImpl::PreDefined(_, _, path) => path.as_path(),
-            RepoSourceImpl::UserRepo(repo) => repo.local_path.as_path(),
+            RepoSourceImpl::UserRepo(repo) => repo.local_path(),
         }
     }
 
@@ -52,14 +52,14 @@ impl RepoSource for RepoSourceImpl {
                 }
                 &HEADERS
             }
-            RepoSourceImpl::UserRepo(repo) => &repo.headers,
+            RepoSourceImpl::UserRepo(repo) => repo.headers(),
         }
     }
 
     fn url(&self) -> Option<&Url> {
         match self {
             RepoSourceImpl::PreDefined(_, url, _) => Some(url),
-            RepoSourceImpl::UserRepo(repo) => repo.url.as_ref(),
+            RepoSourceImpl::UserRepo(repo) => repo.url(),
         }
     }
 }

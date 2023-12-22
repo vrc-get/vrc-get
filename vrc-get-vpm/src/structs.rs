@@ -144,21 +144,22 @@ pub mod package {
 }
 
 pub mod setting {
+    use std::path::Path;
     use super::*;
     use url::Url;
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct UserRepoSetting {
         #[serde(rename = "localPath")]
-        pub local_path: PathBuf,
+        local_path: PathBuf,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub name: Option<String>,
+        name: Option<String>,
         // must be non-relative url.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub url: Option<Url>,
+        url: Option<Url>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub id: Option<String>,
+        pub(crate) id: Option<String>,
         #[serde(default)]
-        pub headers: IndexMap<String, String>,
+        headers: IndexMap<String, String>,
     }
 
     impl UserRepoSetting {
@@ -175,6 +176,26 @@ pub mod setting {
                 url,
                 headers: IndexMap::new(),
             }
+        }
+
+        pub fn local_path(&self) -> &Path {
+            &self.local_path
+        }
+
+        pub fn name(&self) -> Option<&str> {
+            self.name.as_deref()
+        }
+
+        pub fn url(&self) -> Option<&Url> {
+            self.url.as_ref()
+        }
+
+        pub fn id(&self) -> Option<&str> {
+            self.id.as_deref()
+        }
+
+        pub fn headers(&self) -> &IndexMap<String, String> {
+            &self.headers
         }
     }
 }

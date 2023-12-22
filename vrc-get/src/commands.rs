@@ -793,10 +793,10 @@ impl Display for RepoSearcher {
 impl RepoSearcher {
     fn get(self, repo: &UserRepoSetting) -> Option<&OsStr> {
         match self {
-            RepoSearcher::Id => repo.id.as_deref().map(OsStr::new),
-            RepoSearcher::Url => repo.url.as_ref().map(|x| OsStr::new(x.as_str())),
-            RepoSearcher::Name => repo.name.as_deref().map(OsStr::new),
-            RepoSearcher::Path => Some(repo.local_path.as_os_str()),
+            RepoSearcher::Id => repo.id().map(OsStr::new),
+            RepoSearcher::Url => repo.url().map(|x| OsStr::new(x.as_str())),
+            RepoSearcher::Name => repo.name().map(OsStr::new),
+            RepoSearcher::Path => Some(repo.local_path().as_os_str()),
         }
     }
 }
@@ -843,7 +843,7 @@ impl RepoCleanup {
         let repos_base = env.get_repos_dir();
 
         for x in env.get_user_repos().exit_context("reading user repos") {
-            if let Ok(relative) = x.local_path.strip_prefix(&repos_base) {
+            if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
                 if let Some(file_name) = relative.file_name() {
                     if relative
                         .parent()

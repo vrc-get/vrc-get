@@ -120,12 +120,12 @@ impl<T: HttpClient> Environment<T> {
 
         // update id field
         for (i, mut repo) in user_repos.into_iter().enumerate() {
-            let loaded = self.repo_cache.get_repo(&repo.local_path).unwrap();
+            let loaded = self.repo_cache.get_repo(repo.local_path()).unwrap();
             let id = loaded
                 .id()
                 .or(loaded.url().map(Url::as_str))
-                .or(repo.url.as_ref().map(Url::as_str));
-            if id != repo.id.as_deref() {
+                .or(repo.url().map(Url::as_str));
+            if id != repo.id() {
                 repo.id = id.map(|x| x.to_owned());
 
                 *json.get_mut(i).unwrap() = to_value(repo).unwrap();
@@ -153,7 +153,7 @@ impl<T: HttpClient> Environment<T> {
 
         for (repo, repo_json) in user_repos.iter().zip_eq(took) {
             let mut to_add = true;
-            if let Some(id) = repo.id.as_deref() {
+            if let Some(id) = repo.id() {
                 to_add = used_ids.insert(id);
             }
             if to_add {
@@ -162,7 +162,7 @@ impl<T: HttpClient> Environment<T> {
             } else {
                 // this means duplicated id: removed so mark as changed
                 self.settings_changed = true;
-                self.repo_cache.remove_repo(&repo.local_path);
+                self.repo_cache.remove_repo(repo.local_path());
             }
         }
     }
@@ -310,7 +310,7 @@ impl<T: HttpClient> Environment<T> {
         headers: IndexMap<String, String>,
     ) -> Result<(), AddRepositoryErr> {
         let user_repos = self.get_user_repos()?;
-        if user_repos.iter().any(|x| x.url.as_ref() == Some(&url)) {
+        if user_repos.iter().any(|x| x.url() == Some(&url)) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
         let Some(http) = &self.http else {
@@ -325,7 +325,7 @@ impl<T: HttpClient> Environment<T> {
         let repo_id = remote_repo.id().map(str::to_owned);
 
         if let Some(repo_id) = repo_id.as_deref() {
-            if user_repos.iter().any(|x| x.id.as_deref() == Some(repo_id)) {
+            if user_repos.iter().any(|x| x.id() == Some(repo_id)) {
                 return Err(AddRepositoryErr::AlreadyAdded);
             }
         }
@@ -394,7 +394,7 @@ impl<T: HttpClient> Environment<T> {
         name: Option<&str>,
     ) -> Result<(), AddRepositoryErr> {
         let user_repos = self.get_user_repos()?;
-        if user_repos.iter().any(|x| x.local_path.as_path() == path) {
+        if user_repos.iter().any(|x| x.local_path() == path) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
 
@@ -432,7 +432,7 @@ impl<T: HttpClient> Environment<T> {
             repos_json.remove(*i);
         }
 
-        join_all(indices.iter().map(|(_, x)| remove_file(&x.local_path))).await;
+        join_all(indices.iter().map(|(_, x)| remove_file(x.local_path()))).await;
         self.settings_changed = true;
         Ok(indices.len())
     }
