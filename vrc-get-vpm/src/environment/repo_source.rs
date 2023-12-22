@@ -1,10 +1,10 @@
+use crate::utils::PathBufExt;
 use either::{for_both, Either};
 use enum_map::Enum;
 use indexmap::IndexMap;
 use lazy_static::lazy_static;
 use std::path::{Path, PathBuf};
 use url::Url;
-use crate::utils::PathBufExt;
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Debug, Enum)]
 pub(crate) enum PreDefinedRepoType {

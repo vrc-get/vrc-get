@@ -7,22 +7,20 @@ use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
-use crate::utils::{JsonMapExt, PathBufExt, Sha256AsyncWrite};
+use crate::utils::{PathBufExt, Sha256AsyncWrite};
 use crate::{load_json_or_default, to_json_vec, PackageInfo, VersionSelector};
 use either::{Left, Right};
 use enum_map::EnumMap;
-use futures::future::join_all;
 use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use serde_json::{from_value, to_value, Map, Value};
 use std::cmp::Reverse;
 use std::collections::HashSet;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::{env, fmt, io};
-use tokio::fs::{create_dir_all, remove_file, File, OpenOptions};
+use tokio::fs::{create_dir_all, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
 use url::Url;
@@ -41,12 +39,102 @@ pub struct Environment<T: HttpClient> {
     /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
     pub(crate) global_dir: PathBuf,
     /// parsed settings
-    settings: Map<String, Value>,
+    settings: settings::Settings,
     /// Cache
     repo_cache: RepoHolder,
     user_packages: UserPackageCollection,
-    settings_changed: bool,
     predefined_repos: EnumMap<PreDefinedRepoType, PredefinedSource>,
+}
+
+mod settings {
+    use crate::{to_json_vec, UserRepoSetting};
+    use serde::{Deserialize, Serialize};
+    use serde_json::{Map, Value};
+    use std::io;
+    use std::path::{Path, PathBuf};
+    use tokio::fs::{create_dir_all, File};
+    use tokio::io::AsyncWriteExt;
+
+    // TODO: restore ordering of the fields 
+    #[derive(Debug, Default, Serialize, Deserialize)]
+    pub(crate) struct Settings {
+        #[serde(rename = "userPackageFolders")]
+        #[serde(default)]
+        user_package_folders: Vec<PathBuf>,
+
+        #[serde(flatten)]
+        rest: Map<String, Value>,
+
+        #[serde(rename = "userRepos")]
+        #[serde(default)]
+        user_repos: Vec<UserRepoSetting>,
+
+        #[serde(skip)]
+        settings_changed: bool,
+    }
+
+    pub(crate) trait NewIdGetter {
+        // I wanted to be closure but it looks not possible
+        // https://users.rust-lang.org/t/any-way-to-return-an-closure-that-would-returns-a-reference-to-one-of-its-captured-variable/22652/2
+        fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Option<&'a str>;
+    }
+
+    impl Settings {
+        pub(crate) fn user_repos(&self) -> &[UserRepoSetting] {
+            &self.user_repos
+        }
+
+        pub(crate) fn user_package_folders(&self) -> &[PathBuf] {
+            &self.user_package_folders
+        }
+
+        pub(crate) fn update_user_repo_id(&mut self, new_id: impl NewIdGetter) {
+            for repo in &mut self.user_repos {
+                let id = new_id.new_id(repo);
+                if id != repo.id() {
+                    let owned = id.map(|x| x.to_owned());
+                    repo.id = owned;
+                    self.settings_changed = true;
+                }
+            }
+        }
+
+        pub(crate) fn retain_user_repos(
+            &mut self,
+            f: impl FnMut(&UserRepoSetting) -> bool,
+        ) -> usize {
+            let prev_count = self.user_repos.len();
+            self.user_repos.retain(f);
+            let new_count = self.user_repos.len();
+
+            if prev_count != new_count {
+                self.settings_changed = true;
+            }
+
+            prev_count - new_count
+        }
+
+        pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {
+            self.user_repos.push(repo);
+            self.settings_changed = true;
+        }
+
+        pub fn changed(&self) -> bool {
+            self.settings_changed
+        }
+
+        pub(crate) async fn save_to(&mut self, json_path: &Path) -> io::Result<()> {
+            if let Some(parent) = json_path.parent() {
+                create_dir_all(&parent).await?;
+            }
+
+            let mut file = File::create(json_path).await?;
+            file.write_all(&to_json_vec(&self)?).await?;
+            file.flush().await?;
+            self.settings_changed = false;
+            Ok(())
+        }
+    }
 }
 
 impl<T: HttpClient> Environment<T> {
@@ -65,8 +153,9 @@ impl<T: HttpClient> Environment<T> {
             settings: load_json_or_default(&folder.join("settings.json")).await?,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
-            settings_changed: false,
-            predefined_repos: EnumMap::from_fn(|x: PreDefinedRepoType| PredefinedSource::new(&folder, x)),
+            predefined_repos: EnumMap::from_fn(|x: PreDefinedRepoType| {
+                PredefinedSource::new(&folder, x)
+            }),
             global_dir: folder,
         })
     }
@@ -98,14 +187,12 @@ impl<T: HttpClient> Environment<T> {
 impl<T: HttpClient> Environment<T> {
     pub async fn load_package_infos(&mut self, update: bool) -> io::Result<()> {
         let http = if update { self.http.as_ref() } else { None };
+        let predefined_repos = self.predefined_repos.values();
+        let user_repos = self.settings.user_repos().iter();
         self.repo_cache
             .load_repos(
                 http,
-                self.predefined_repos
-                    .values()
-                    .map(Left)
-                    .chain(self.get_user_repos()?.into_iter().map(Right))
-                    .collect(),
+                predefined_repos.map(Left).chain(user_repos.map(Right)),
             )
             .await?;
         self.update_user_repo_id();
@@ -115,65 +202,55 @@ impl<T: HttpClient> Environment<T> {
     }
 
     fn update_user_repo_id(&mut self) {
-        let user_repos = self.get_user_repos().unwrap();
-        if user_repos.is_empty() {
-            return;
-        }
-
-        let json = self.settings.get_mut("userRepos").unwrap();
-
         // update id field
-        for (i, mut repo) in user_repos.into_iter().enumerate() {
-            let loaded = self.repo_cache.get_repo(repo.local_path()).unwrap();
-            let id = loaded
-                .id()
-                .or(loaded.url().map(Url::as_str))
-                .or(repo.url().map(Url::as_str));
-            if id != repo.id() {
-                repo.id = id.map(|x| x.to_owned());
+        struct NewIdGetterImpl<'b>(&'b RepoHolder);
 
-                *json.get_mut(i).unwrap() = to_value(repo).unwrap();
-                self.settings_changed = true;
+        impl<'b> settings::NewIdGetter for NewIdGetterImpl<'b> {
+            fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Option<&'a str> {
+                let loaded = self.0.get_repo(repo.local_path()).unwrap();
+
+                let id = loaded.id();
+                let url = loaded.url().map(Url::as_str);
+                let local_url = repo.url().map(Url::as_str);
+
+                id.or(url).or(local_url)
             }
         }
+
+        self.settings
+            .update_user_repo_id(NewIdGetterImpl(&self.repo_cache));
     }
 
     fn remove_id_duplication(&mut self) {
-        let user_repos = self.get_user_repos().unwrap();
+        let user_repos = self.get_user_repos();
         if user_repos.is_empty() {
             return;
         }
 
-        let json = self
-            .settings
-            .get_mut("userRepos")
-            .unwrap()
-            .as_array_mut()
-            .unwrap();
-
         let mut used_ids = HashSet::new();
-        let took = std::mem::take(json);
-        *json = Vec::with_capacity(took.len());
 
-        for (repo, repo_json) in user_repos.iter().zip_eq(took) {
+        // retain operates in place, visiting each element exactly once in the original order.
+        // s
+        self.settings.retain_user_repos(|repo| {
             let mut to_add = true;
             if let Some(id) = repo.id() {
-                to_add = used_ids.insert(id);
+                to_add = used_ids.insert(id.to_owned());
             }
             if to_add {
                 // this means new id
-                json.push(repo_json)
+                true
             } else {
                 // this means duplicated id: removed so mark as changed
-                self.settings_changed = true;
                 self.repo_cache.remove_repo(repo.local_path());
+
+                false
             }
-        }
+        });
     }
 
     async fn load_user_package_infos(&mut self) -> io::Result<()> {
         self.user_packages.clear();
-        for x in self.get_user_package_folders()? {
+        for x in self.settings.user_package_folders() {
             self.user_packages.try_add_package(&x).await?;
         }
         Ok(())
@@ -251,31 +328,13 @@ impl<T: HttpClient> Environment<T> {
             .collect()
     }
 
-    pub fn get_user_repos(&self) -> serde_json::Result<Vec<UserRepoSetting>> {
-        from_value::<Vec<UserRepoSetting>>(
-            self.settings
-                .get("userRepos")
-                .cloned()
-                .unwrap_or(Value::Array(vec![])),
-        )
+    pub fn get_user_repos(&self) -> &[UserRepoSetting] {
+        &self.settings.user_repos()
     }
 
-    fn get_user_package_folders(&self) -> serde_json::Result<Vec<PathBuf>> {
-        from_value(
-            self.settings
-                .get("userPackageFolders")
-                .cloned()
-                .unwrap_or(Value::Array(vec![])),
-        )
-    }
-
-    fn add_user_repo(&mut self, repo: &UserRepoSetting) -> serde_json::Result<()> {
-        self.settings
-            .get_or_put_mut("userRepos", Vec::<Value>::new)
-            .as_array_mut()
-            .expect("userRepos must be array")
-            .push(to_value(repo)?);
-        self.settings_changed = true;
+    fn add_user_repo(&mut self, repo: UserRepoSetting) -> serde_json::Result<()> {
+        // TODO? fetch from remote?
+        self.settings.add_user_repo(repo);
         Ok(())
     }
 
@@ -285,7 +344,7 @@ impl<T: HttpClient> Environment<T> {
         name: Option<&str>,
         headers: IndexMap<String, String>,
     ) -> Result<(), AddRepositoryErr> {
-        let user_repos = self.get_user_repos()?;
+        let user_repos = self.get_user_repos();
         if user_repos.iter().any(|x| x.url() == Some(&url)) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
@@ -355,7 +414,7 @@ impl<T: HttpClient> Environment<T> {
         file.write_all(&to_json_vec(&local_cache)?).await?;
         file.flush().await?;
 
-        self.add_user_repo(&UserRepoSetting::new(
+        self.add_user_repo(UserRepoSetting::new(
             local_path.clone(),
             repo_name,
             Some(url),
@@ -369,12 +428,11 @@ impl<T: HttpClient> Environment<T> {
         path: &Path,
         name: Option<&str>,
     ) -> Result<(), AddRepositoryErr> {
-        let user_repos = self.get_user_repos()?;
-        if user_repos.iter().any(|x| x.local_path() == path) {
+        if self.get_user_repos().iter().any(|x| x.local_path() == path) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
 
-        self.add_user_repo(&UserRepoSetting::new(
+        self.add_user_repo(UserRepoSetting::new(
             path.to_owned(),
             name.map(str::to_owned),
             None,
@@ -383,34 +441,8 @@ impl<T: HttpClient> Environment<T> {
         Ok(())
     }
 
-    pub async fn remove_repo(
-        &mut self,
-        condition: impl Fn(&UserRepoSetting) -> bool,
-    ) -> io::Result<usize> {
-        let user_repos = self.get_user_repos()?;
-        let mut indices = user_repos
-            .iter()
-            .enumerate()
-            .filter(|(_, x)| condition(x))
-            .collect::<Vec<_>>();
-        indices.reverse();
-        if indices.is_empty() {
-            return Ok(0);
-        }
-
-        let repos_json = self
-            .settings
-            .get_mut("userRepos")
-            .and_then(Value::as_array_mut)
-            .expect("userRepos");
-
-        for (i, _) in &indices {
-            repos_json.remove(*i);
-        }
-
-        join_all(indices.iter().map(|(_, x)| remove_file(x.local_path()))).await;
-        self.settings_changed = true;
-        Ok(indices.len())
+    pub async fn remove_repo(&mut self, condition: impl Fn(&UserRepoSetting) -> bool) -> usize {
+        self.settings.retain_user_repos(|x| !condition(x))
     }
 
     #[cfg(feature = "experimental-override-predefined")]
@@ -424,15 +456,13 @@ impl<T: HttpClient> Environment<T> {
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
-        if !self.settings_changed {
+        if !self.settings.changed() {
             return Ok(());
         }
 
-        create_dir_all(&self.global_dir).await?;
-        let mut file = File::create(self.global_dir.join("settings.json")).await?;
-        file.write_all(&to_json_vec(&self.settings)?).await?;
-        file.flush().await?;
-        self.settings_changed = false;
+        self.settings
+            .save_to(&self.global_dir.join("settings.json"))
+            .await?;
         Ok(())
     }
 }

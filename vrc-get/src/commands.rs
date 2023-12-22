@@ -809,10 +809,7 @@ impl RepoRemove {
         let finder = OsStr::new(self.finder.as_str());
         let searcher = self.searcher.as_searcher();
 
-        let count = env
-            .remove_repo(|x| searcher.get(x) == Some(finder))
-            .await
-            .exit_context("removing repository");
+        let count = env.remove_repo(|x| searcher.get(x) == Some(finder)).await;
 
         println!("removed {} repositories with {}", count, searcher);
 
@@ -842,7 +839,7 @@ impl RepoCleanup {
         ];
         let repos_base = env.get_repos_dir();
 
-        for x in env.get_user_repos().exit_context("reading user repos") {
+        for x in env.get_user_repos() {
             if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
                 if let Some(file_name) = relative.file_name() {
                     if relative

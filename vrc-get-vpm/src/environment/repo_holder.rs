@@ -26,17 +26,17 @@ impl RepoHolder {
     pub(crate) async fn load_repos(
         &mut self,
         http: Option<&impl HttpClient>,
-        sources: Vec<impl RepoSource>,
+        sources: impl Iterator<Item = impl RepoSource>,
     ) -> io::Result<()> {
-        let repos = try_join_all(sources.iter().map(|src| async {
-            Self::load_repo_from_source(http, src)
+        let repos = try_join_all(sources.map(|src| async move {
+            Self::load_repo_from_source(http, &src)
                 .await
-                .map(|v| v.map(|v| (v, src.cache_path())))
+                .map(|v| v.map(|v| (v, src.cache_path().to_path_buf())))
         }))
         .await?;
 
         for (repo, path) in repos.into_iter().flatten() {
-            self.cached_repos_new.insert(path.to_owned(), repo);
+            self.cached_repos_new.insert(path, repo);
         }
 
         Ok(())
