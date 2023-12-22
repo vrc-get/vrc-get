@@ -101,6 +101,7 @@ impl<'a> PackageInfo<'a> {
         self.package_json().unity()
     }
 
+    #[cfg(feature = "experimental-yank")]
     pub fn is_yanked(self) -> bool {
         self.package_json().is_yanked()
     }

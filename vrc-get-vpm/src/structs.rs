@@ -1,7 +1,6 @@
 use crate::version::{DependencyRange, Version, VersionRange};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -43,7 +42,6 @@ pub mod manifest {
 
 pub mod package {
     use super::*;
-    use crate::utils::is_truthy;
     use url::Url;
     #[derive(Deserialize, Debug, Clone)]
     pub struct PackageJson {
@@ -71,8 +69,9 @@ pub mod package {
         #[serde(default)]
         legacy_packages: Vec<String>,
 
+        #[cfg(feature = "experimental-yank")]
         #[serde(default)]
-        yanked: Option<Value>,
+        yanked: Option<serde_json::Value>,
     }
 
     impl PackageJson {
@@ -116,8 +115,9 @@ pub mod package {
             self.unity.as_ref()
         }
 
+        #[cfg(feature = "experimental-yank")]
         pub fn is_yanked(&self) -> bool {
-            is_truthy(self.yanked.as_ref())
+            crate::utils::is_truthy(self.yanked.as_ref())
         }
     }
 

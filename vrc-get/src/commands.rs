@@ -56,6 +56,7 @@ async fn load_env(args: &EnvArgs) -> Environment<Client> {
         .await
         .exit_context("loading global config");
 
+    #[cfg(feature = "experimental-override-predefined")]
     if let Ok(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE") {
         log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
         env.set_official_url_override(
@@ -63,6 +64,7 @@ async fn load_env(args: &EnvArgs) -> Environment<Client> {
         );
     }
 
+    #[cfg(feature = "experimental-override-predefined")]
     if let Ok(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE") {
         log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
         env.set_curated_url_override(
@@ -149,12 +151,15 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
     if !request.locked().is_empty() {
         println!("You're installing the following packages:");
         for x in request.locked() {
+            #[cfg(feature = "experimental-yank")]
             if x.is_yanked() {
                 prompt = true;
                 println!("- {} version {} (yanked)", x.name(), x.version());
             } else {
                 println!("- {} version {}", x.name(), x.version());
             }
+            #[cfg(not(feature = "experimental-yank"))]
+            println!("- {} version {}", x.name(), x.version());
         }
         prompt = prompt || request.locked().len() > 1;
     }
@@ -304,6 +309,7 @@ impl Install {
             mark_and_sweep(&mut unity).await;
         } else {
             let resolve_result = unity.resolve(&env).await.exit_context("resolving packages");
+            #[cfg(feature = "experimental-yank")]
             for installed in resolve_result.installed_from_locked() {
                 if installed.is_yanked() {
                     eprintln!(

@@ -159,7 +159,15 @@ impl RemotePackages {
     pub fn get_latest(&self) -> Option<&PackageJson> {
         self.versions
             .values()
-            .filter(|json| json.is_yanked())
+            .filter(|json| {
+                #[cfg(feature = "experimental-yank")]
+                { json.is_yanked() }
+                #[cfg(not(feature = "experimental-yank"))]
+                {
+                    let _json = json;
+                    true
+                }
+            })
             .max_by_key(|json| json.version())
     }
 }

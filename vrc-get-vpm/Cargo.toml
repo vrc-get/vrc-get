@@ -41,3 +41,6 @@ dirs-sys = "0.4.1"
 default = ["rustls"]
 native-tls = ["reqwest/native-tls-vendored"]
 rustls = ["reqwest/rustls-tls-native-roots"]
+
+experimental-override-predefined = []
+experimental-yank = []

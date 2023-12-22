@@ -15,7 +15,9 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::{from_value, to_value, Map, Value};
 use std::cmp::Reverse;
-use std::collections::{HashMap, HashSet};
+#[cfg(feature = "experimental-override-predefined")]
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
@@ -25,7 +27,9 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
 use url::Url;
 
-use crate::environment::repo_source::{PreDefinedRepoSource, RepoSource, DEFINED_REPO_SOURCES};
+#[cfg(feature = "experimental-override-predefined")]
+use crate::environment::repo_source::PreDefinedRepoSource;
+use crate::environment::repo_source::{RepoSource, DEFINED_REPO_SOURCES};
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use uesr_package_collection::UserPackageCollection;
 
@@ -43,6 +47,7 @@ pub struct Environment<T: HttpClient> {
     repo_cache: RepoHolder,
     user_packages: UserPackageCollection,
     settings_changed: bool,
+    #[cfg(feature = "experimental-override-predefined")]
     url_overrides: HashMap<PreDefinedRepoSource, Url>,
 }
 
@@ -64,6 +69,7 @@ impl<T: HttpClient> Environment<T> {
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
             settings_changed: false,
+            #[cfg(feature = "experimental-override-predefined")]
             url_overrides: HashMap::new(),
         })
     }
@@ -208,10 +214,19 @@ impl<T: HttpClient> Environment<T> {
         let defined_sources = DEFINED_REPO_SOURCES.iter().copied().map(|x| {
             RepoSource::PreDefined(
                 x,
-                self.url_overrides
-                    .get(&x)
-                    .cloned()
-                    .unwrap_or_else(|| x.url()),
+                {
+                    #[cfg(feature = "experimental-override-predefined")]
+                    {
+                        self.url_overrides
+                            .get(&x)
+                            .cloned()
+                            .unwrap_or_else(|| x.url().to_owned())
+                    }
+                    #[cfg(not(feature = "experimental-override-predefined"))]
+                    {
+                        x.url().to_owned()
+                    }
+                },
                 self.get_repos_dir().join(x.file_name()),
             )
         });
@@ -419,11 +434,13 @@ impl<T: HttpClient> Environment<T> {
         Ok(indices.len())
     }
 
+    #[cfg(feature = "experimental-override-predefined")]
     pub fn set_official_url_override(&mut self, url: Url) {
         self.url_overrides
             .insert(PreDefinedRepoSource::Official, url);
     }
 
+    #[cfg(feature = "experimental-override-predefined")]
     pub fn set_curated_url_override(&mut self, url: Url) {
         self.url_overrides
             .insert(PreDefinedRepoSource::Curated, url);

@@ -70,6 +70,7 @@ impl<'a> VersionSelector<'a> {
 impl<'a> VersionSelector<'a> {
     pub fn satisfies(&self, package: &PackageInfo) -> bool {
         fn unity_and_yank(package: &PackageInfo, project_unity: Option<UnityVersion>) -> bool {
+            #[cfg(feature = "experimental-yank")]
             if package.is_yanked() {
                 return false;
             }
