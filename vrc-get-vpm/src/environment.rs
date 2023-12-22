@@ -55,19 +55,53 @@ mod settings {
     use tokio::fs::{create_dir_all, File};
     use tokio::io::AsyncWriteExt;
 
-    // TODO: restore ordering of the fields 
+    type JsonObject = Map<String, Value>;
+
     #[derive(Debug, Default, Serialize, Deserialize)]
     pub(crate) struct Settings {
+        #[serde(rename = "pathToUnityExe")]
+        path_to_unity_exe: String,
+        #[serde(rename = "pathToUnityHub")]
+        path_to_unity_hub: String,
+        #[serde(rename = "userProjects")]
+        user_projects: Vec<String>,
+        #[serde(rename = "unityEditors")]
+        unity_editors: Vec<String>,
+        #[serde(rename = "preferredUnityEditors")]
+        preferred_unity_editors: JsonObject,
+        #[serde(rename = "defaultProjectPath")]
+        default_project_path: String,
+        #[serde(rename = "lastUIState")]
+        last_uistate: i64,
+        #[serde(rename = "skipUnityAutoFind")]
+        skip_unity_auto_find: bool,
         #[serde(rename = "userPackageFolders")]
         #[serde(default)]
         user_package_folders: Vec<PathBuf>,
-
-        #[serde(flatten)]
-        rest: Map<String, Value>,
-
+        #[serde(rename = "windowSizeData")]
+        window_size_data: JsonObject,
+        #[serde(rename = "skipRequirements")]
+        skip_requirements: bool,
+        #[serde(rename = "lastNewsUpdate")]
+        last_news_update: String,
+        #[serde(rename = "allowPii")]
+        allow_pii: bool,
+        #[serde(rename = "projectBackupPath")]
+        project_backup_path: String,
+        #[serde(rename = "showPrereleasePackages")]
+        show_prerelease_packages: bool,
+        #[serde(rename = "trackCommunityRepos")]
+        track_community_repos: bool,
+        #[serde(rename = "selectedProviders")]
+        selected_providers: u64,
+        #[serde(rename = "lastSelectedProject")]
+        last_selected_project: String,
         #[serde(rename = "userRepos")]
         #[serde(default)]
         user_repos: Vec<UserRepoSetting>,
+
+        #[serde(flatten)]
+        rest: Map<String, Value>,
 
         #[serde(skip)]
         settings_changed: bool,
