@@ -206,13 +206,7 @@ impl<T: HttpClient> PackageCollection for Environment<T> {
 }
 
 impl<T: HttpClient> Environment<T> {
-    pub fn get_repos(&self) -> Vec<&LocalCachedRepository> {
-        self.repo_cache.get_repos()
-    }
-
-    pub fn get_repo_with_path(
-        &self,
-    ) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+    pub fn get_repos(&self) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
         self.repo_cache.get_repo_with_path()
     }
 
@@ -223,8 +217,7 @@ impl<T: HttpClient> Environment<T> {
         let mut list = Vec::new();
 
         self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.get_packages())
+            .flat_map(|(_, repo)| repo.get_packages())
             .filter_map(RemotePackages::get_latest)
             .filter(|x| filter(x))
             .fold((), |_, pkg| list.push(pkg));
@@ -257,9 +250,7 @@ impl<T: HttpClient> Environment<T> {
         if user_repos.iter().any(|x| x.url() == Some(&url)) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
-        let Some(http) = &self.http else {
-            return Err(AddRepositoryErr::OfflineMode);
-        };
+        let http = self.http.as_ref().ok_or(AddRepositoryErr::OfflineMode)?;
 
         let (remote_repo, etag) = RemoteRepository::download(http, &url, &headers).await?;
         let repo_name = name.or(remote_repo.name()).map(str::to_owned);

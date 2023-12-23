@@ -7,7 +7,6 @@
 use std::path::Path;
 
 use indexmap::IndexMap;
-use serde_json::{Map, Value};
 
 use structs::package::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
@@ -20,8 +19,6 @@ pub mod unity_project;
 mod utils;
 pub mod version;
 mod version_selector;
-
-type JsonMap = Map<String, Value>;
 
 pub use environment::Environment;
 pub use unity_project::UnityProject;
