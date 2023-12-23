@@ -99,16 +99,21 @@ impl Settings {
         }
     }
 
-    pub fn retain_user_repos(&mut self, f: impl FnMut(&UserRepoSetting) -> bool) -> usize {
-        let prev_count = self.as_json.user_repos.len();
-        self.as_json.user_repos.retain(f);
-        let new_count = self.as_json.user_repos.len();
+    pub fn retain_user_repos(&mut self, mut f: impl FnMut(&UserRepoSetting) -> bool) -> Vec<UserRepoSetting> {
+        // awaiting extract_if but not stable yet so use cloned method
+        let cloned = self.as_json.user_repos.iter().cloned().collect::<Vec<_>>();
+        self.as_json.user_repos.clear();
+        let mut removed = Vec::new();
 
-        if prev_count != new_count {
-            self.settings_changed = true;
+        for element in cloned {
+            if f(&element) {
+                self.as_json.user_repos.push(element);
+            } else {
+                removed.push(element);
+            }
         }
 
-        prev_count - new_count
+        removed
     }
 
     pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {

@@ -21,6 +21,9 @@ use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::{env, fmt, io};
+use std::fs::remove_file;
+use futures::future::join_all;
+use log::error;
 use tokio::fs::{create_dir_all, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
@@ -356,7 +359,17 @@ impl<T: HttpClient> Environment<T> {
     }
 
     pub async fn remove_repo(&mut self, condition: impl Fn(&UserRepoSetting) -> bool) -> usize {
-        self.settings.retain_user_repos(|x| !condition(x))
+        let removed = self.settings.retain_user_repos(|x| !condition(x));
+
+        join_all(removed.iter().map(|x| async move {
+            match remove_file(x.local_path()) {
+                Ok(()) => (),
+                Err(e) if e.kind() == io::ErrorKind::NotFound => (),
+                Err(e) => error!("removing local repository {}: {}", x.local_path().display(), e),
+            }
+        })).await;
+
+        removed.len()
     }
 
     #[cfg(feature = "experimental-override-predefined")]
