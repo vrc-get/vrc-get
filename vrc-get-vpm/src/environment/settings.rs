@@ -99,10 +99,7 @@ impl Settings {
         }
     }
 
-    pub fn retain_user_repos(
-        &mut self,
-        f: impl FnMut(&UserRepoSetting) -> bool,
-    ) -> usize {
+    pub fn retain_user_repos(&mut self, f: impl FnMut(&UserRepoSetting) -> bool) -> usize {
         let prev_count = self.as_json.user_repos.len();
         self.as_json.user_repos.retain(f);
         let new_count = self.as_json.user_repos.len();

@@ -257,14 +257,13 @@ impl<T: HttpClient> Environment<T> {
             return Err(AddRepositoryErr::OfflineMode);
         };
 
-        let (remote_repo, etag) = RemoteRepository::download_with_etag(http, &url, &headers, None)
-            .await?
-            .expect("logic failure: no etag");
+        let (remote_repo, etag) = RemoteRepository::download(http, &url, &headers).await?;
         let repo_name = name.or(remote_repo.name()).map(str::to_owned);
 
         let repo_id = remote_repo.id().map(str::to_owned);
 
         if let Some(repo_id) = repo_id.as_deref() {
+            // if there is id, check if there is already repo with same id
             if user_repos.iter().any(|x| x.id() == Some(repo_id)) {
                 return Err(AddRepositoryErr::AlreadyAdded);
             }

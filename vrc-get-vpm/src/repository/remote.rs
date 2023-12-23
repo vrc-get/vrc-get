@@ -42,10 +42,10 @@ impl RemoteRepository {
         client: &impl HttpClient,
         url: &Url,
         headers: &IndexMap<String, String>,
-    ) -> io::Result<RemoteRepository> {
+    ) -> io::Result<(RemoteRepository, Option<String>)> {
         match Self::download_with_etag(client, url, headers, None).await {
             Ok(None) => unreachable!("downloading without etag should must return Ok(Some)"),
-            Ok(Some((repo, _))) => Ok(repo),
+            Ok(Some(repo_and_etag)) => Ok(repo_and_etag),
             Err(err) => Err(err),
         }
     }

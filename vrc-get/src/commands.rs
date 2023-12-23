@@ -914,7 +914,7 @@ impl RepoPackages {
                 exit_with!("remote repository specified but offline mode.");
             }
             let client = crate::create_client(self.env_args.offline).unwrap();
-            let repo = RemoteRepository::download(&client, &url, &IndexMap::new())
+            let (repo, _) = RemoteRepository::download(&client, &url, &IndexMap::new())
                 .await
                 .exit_context("downloading repository");
 
