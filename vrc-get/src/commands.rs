@@ -485,7 +485,7 @@ const UPGRADE_USAGE: &str = color_print::cstr!("
 pub struct Upgrade {
     /// Name of Package
     #[arg()]
-    name: String,
+    name: Option<String>,
     /// Version of package. if not specified, latest version will be used
     #[arg(id = "VERSION")]
     version: Option<Version>,
@@ -510,7 +510,7 @@ impl Upgrade {
         let mut unity = load_unity(self.project).await;
         let require_prompt;
 
-        let updates = if let Some(name) = Some(self.name) {
+        let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
                 None => PackageSelector::latest_for(unity.unity_version(), self.prerelease),
                 Some(ref version) => PackageSelector::specific_version(version),
