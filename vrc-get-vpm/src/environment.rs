@@ -58,45 +58,45 @@ mod settings {
     type JsonObject = Map<String, Value>;
 
     #[derive(Debug, Default, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub(crate) struct Settings {
-        #[serde(rename = "pathToUnityExe")]
+        #[serde(default)]
         path_to_unity_exe: String,
-        #[serde(rename = "pathToUnityHub")]
+        #[serde(default)]
         path_to_unity_hub: String,
-        #[serde(rename = "userProjects")]
+        #[serde(default)]
         user_projects: Vec<String>,
-        #[serde(rename = "unityEditors")]
+        #[serde(default)]
         unity_editors: Vec<String>,
-        #[serde(rename = "preferredUnityEditors")]
+        #[serde(default)]
         preferred_unity_editors: JsonObject,
-        #[serde(rename = "defaultProjectPath")]
+        #[serde(default)]
         default_project_path: String,
         #[serde(rename = "lastUIState")]
-        last_uistate: i64,
-        #[serde(rename = "skipUnityAutoFind")]
+        #[serde(default)]
+        last_ui_state: i64,
+        #[serde(default)]
         skip_unity_auto_find: bool,
-        #[serde(rename = "userPackageFolders")]
         #[serde(default)]
         user_package_folders: Vec<PathBuf>,
-        #[serde(rename = "windowSizeData")]
+        #[serde(default)]
         window_size_data: JsonObject,
-        #[serde(rename = "skipRequirements")]
+        #[serde(default)]
         skip_requirements: bool,
-        #[serde(rename = "lastNewsUpdate")]
+        #[serde(default)]
         last_news_update: String,
-        #[serde(rename = "allowPii")]
+        #[serde(default)]
         allow_pii: bool,
-        #[serde(rename = "projectBackupPath")]
+        #[serde(default)]
         project_backup_path: String,
-        #[serde(rename = "showPrereleasePackages")]
+        #[serde(default)]
         show_prerelease_packages: bool,
-        #[serde(rename = "trackCommunityRepos")]
+        #[serde(default)]
         track_community_repos: bool,
-        #[serde(rename = "selectedProviders")]
+        #[serde(default)]
         selected_providers: u64,
-        #[serde(rename = "lastSelectedProject")]
+        #[serde(default)]
         last_selected_project: String,
-        #[serde(rename = "userRepos")]
         #[serde(default)]
         user_repos: Vec<UserRepoSetting>,
 

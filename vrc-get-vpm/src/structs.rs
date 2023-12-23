@@ -44,14 +44,13 @@ pub mod package {
     use super::*;
     use url::Url;
     #[derive(Deserialize, Debug, Clone)]
+    #[serde(rename_all = "camelCase")]
     pub struct PackageJson {
         name: String,
-        #[serde(rename = "displayName")]
         #[serde(default)]
         display_name: Option<String>,
         description: Option<String>,
         version: Version,
-        #[serde(rename = "vpmDependencies")]
         #[serde(default)]
         vpm_dependencies: IndexMap<String, VersionRange>,
         #[serde(default)]
@@ -59,13 +58,10 @@ pub mod package {
 
         unity: Option<PartialUnityVersion>,
 
-        #[serde(rename = "legacyFolders")]
         #[serde(default)]
         legacy_folders: HashMap<String, Option<String>>,
-        #[serde(rename = "legacyFiles")]
         #[serde(default)]
         legacy_files: HashMap<String, Option<String>>,
-        #[serde(rename = "legacyPackages")]
         #[serde(default)]
         legacy_packages: Vec<String>,
 
@@ -150,8 +146,8 @@ pub mod setting {
     use url::Url;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(rename_all = "camelCase")]
     pub struct UserRepoSetting {
-        #[serde(rename = "localPath")]
         local_path: PathBuf,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         name: Option<String>,
