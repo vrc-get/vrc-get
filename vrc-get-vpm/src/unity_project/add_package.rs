@@ -375,7 +375,7 @@ impl UnityProject {
     ) -> io::Result<()> {
         // first, add to dependencies
         for x in request.dependencies {
-            self.manifest.add_dependency(x.0.to_owned(), x.1);
+            self.manifest.add_dependency(x.0, x.1);
         }
 
         // then, lock all dependencies

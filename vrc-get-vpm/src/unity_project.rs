@@ -8,12 +8,11 @@ use crate::structs::package::PackageJson;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
 use crate::version::{UnityVersion, VersionRange};
-use crate::{Environment, JsonMap, PackageInfo, VersionSelector};
+use crate::{Environment, PackageInfo, VersionSelector};
 use futures::future::try_join_all;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use serde_json::{from_value, to_value, Value};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
@@ -53,7 +52,7 @@ impl UnityProject {
         );
 
         let manifest = unity_found.join("Packages").joined("vpm-manifest.json");
-        let vpm_manifest = VpmManifest::new(load_json_or_default(&manifest).await?)?;
+        let manifest = VpmManifest::from(&manifest).await?;
 
         let mut installed_packages = HashMap::new();
         let mut unlocked_packages = vec![];
@@ -63,7 +62,7 @@ impl UnityProject {
             let read = Self::try_read_unlocked_package(dir_entry).await;
             let mut is_installed = false;
             if let Some(parsed) = &read.1 {
-                if parsed.name() == read.0 && vpm_manifest.locked().contains_key(parsed.name()) {
+                if parsed.name() == read.0 && manifest.locked().contains_key(parsed.name()) {
                     is_installed = true;
                 }
             }
@@ -78,7 +77,7 @@ impl UnityProject {
 
         Ok(UnityProject {
             project_dir: unity_found,
-            manifest: VpmManifest::new(load_json_or_default(&manifest).await?)?,
+            manifest,
             unity_version,
             unlocked_packages,
             installed_packages,
