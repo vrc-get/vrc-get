@@ -1,7 +1,7 @@
 mod repo_holder;
 mod repo_source;
-mod uesr_package_collection;
 mod settings;
+mod uesr_package_collection;
 
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
@@ -29,8 +29,8 @@ use url::Url;
 use crate::environment::repo_source::{PreDefinedRepoType, PredefinedSource};
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
-pub(crate) use uesr_package_collection::UserPackageCollection;
 pub(crate) use settings::Settings;
+pub(crate) use uesr_package_collection::UserPackageCollection;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
@@ -281,6 +281,20 @@ impl<T: HttpClient> Environment<T> {
 
         create_dir_all(self.get_repos_dir()).await?;
 
+        let local_path = self.write_new_repo(&local_cache).await?;
+
+        self.settings.add_user_repo(UserRepoSetting::new(
+            local_path.clone(),
+            repo_name,
+            Some(url),
+            repo_id,
+        ));
+        Ok(())
+    }
+
+    async fn write_new_repo(&self, local_cache: &LocalCachedRepository) -> io::Result<PathBuf> {
+        create_dir_all(self.get_repos_dir()).await?;
+
         // [0-9a-zA-Z._-]+
         fn is_id_name_for_file(id: &str) -> bool {
             !id.is_empty()
@@ -290,41 +304,37 @@ impl<T: HttpClient> Environment<T> {
         }
 
         // try id.json
-        let file = match repo_id.as_deref() {
-            Some(repo_id) if is_id_name_for_file(repo_id) => {
-                let path = self.get_repos_dir().joined(format!("{}.json", repo_id));
-                tokio::fs::OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open(&path)
-                    .await
-                    .ok()
-                    .map(|f| (f, path))
+        let id_names = local_cache
+            .id()
+            .filter(|id| is_id_name_for_file(id))
+            .map(|id| format!("{}.json", id))
+            .into_iter();
+
+        // finally generate with uuid v4. 
+        // note: this iterator is endless. Consumes uuidv4 infinitely. 
+        let guid_names = std::iter::from_fn(|| {
+            Some(format!("{}.json", uuid::Uuid::new_v4()))
+        });
+
+        for file_name in id_names.chain(guid_names) {
+            let path = self.get_repos_dir().joined(file_name);
+            match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+                .await {
+                Ok(mut file) => {
+                    file.write_all(&to_json_vec(&local_cache)?).await?;
+                    file.flush().await?;
+
+                    return Ok(path);
+                }
+                Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(e),
             }
-            _ => None,
-        };
+        }
 
-        // and then use
-        let (mut file, local_path) = match file {
-            Some(file) => file,
-            None => {
-                let local_path = self
-                    .get_repos_dir()
-                    .joined(format!("{}.json", uuid::Uuid::new_v4()));
-                (File::create(&local_path).await?, local_path)
-            }
-        };
-
-        file.write_all(&to_json_vec(&local_cache)?).await?;
-        file.flush().await?;
-
-        self.settings.add_user_repo(UserRepoSetting::new(
-            local_path.clone(),
-            repo_name,
-            Some(url),
-            repo_id,
-        ));
-        Ok(())
+        unreachable!();
     }
 
     pub fn add_local_repo(
