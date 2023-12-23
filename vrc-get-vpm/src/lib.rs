@@ -4,13 +4,10 @@
 
 #![forbid(unsafe_code)]
 
-use std::io;
 use std::path::Path;
 
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
-use tokio::fs::{create_dir_all, File};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 
 use structs::package::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
@@ -26,7 +23,6 @@ mod version_selector;
 
 type JsonMap = Map<String, Value>;
 
-use crate::repository::RemoteRepository;
 pub use environment::Environment;
 pub use unity_project::UnityProject;
 pub use version_selector::VersionSelector;
@@ -107,49 +103,6 @@ impl<'a> PackageInfo<'a> {
     }
 }
 
-async fn update_from_remote(
-    client: &impl HttpClient,
-    path: &Path,
-    repo: &mut LocalCachedRepository,
-) {
-    let Some(remote_url) = repo.url().map(|x| x.to_owned()) else {
-        return;
-    };
-
-    let etag = repo.vrc_get.as_ref().map(|x| x.etag.as_str());
-    match RemoteRepository::download_with_etag(client, &remote_url, repo.headers(), etag).await {
-        Ok(None) => log::debug!("cache matched downloading {}", remote_url),
-        Ok(Some((remote_repo, etag))) => {
-            repo.set_repo(remote_repo);
-
-            // set etag
-            if let Some(etag) = etag {
-                repo.vrc_get.get_or_insert_with(Default::default).etag = etag;
-            } else if let Some(x) = repo.vrc_get.as_mut() {
-                x.etag.clear()
-            }
-        }
-        Err(e) => {
-            log::error!("fetching remote repo '{}': {}", remote_url, e);
-        }
-    }
-
-    match write_repo(path, repo).await {
-        Ok(_) => {}
-        Err(e) => {
-            log::error!("writing local repo '{}': {}", path.display(), e);
-        }
-    }
-}
-
-async fn write_repo(path: &Path, repo: &LocalCachedRepository) -> io::Result<()> {
-    create_dir_all(path.parent().unwrap()).await?;
-    let mut file = File::create(path).await?;
-    file.write_all(&to_json_vec(repo)?).await?;
-    file.flush().await?;
-    Ok(())
-}
-
 fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
     fn is_vrcsdk_for_2019(version: &Version) -> bool {
         version.major == 3 && version.minor <= 4
@@ -181,51 +134,4 @@ fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
             }
         }
     }
-}
-
-/// open file or returns none if not exists
-async fn try_open_file(path: &Path) -> io::Result<Option<File>> {
-    match File::open(path).await {
-        Ok(file) => Ok(Some(file)),
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(e) => Err(e),
-    }
-}
-
-async fn load_json_or_else<T>(
-    manifest_path: &Path,
-    default: impl FnOnce() -> io::Result<T>,
-) -> io::Result<T>
-where
-    T: serde::de::DeserializeOwned,
-{
-    match try_open_file(manifest_path).await? {
-        Some(file) => {
-            let vec = read_to_vec(file).await?;
-            let mut slice = vec.as_slice();
-            slice = slice.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(slice);
-            Ok(serde_json::from_slice(slice)?)
-        }
-        None => default(),
-    }
-}
-
-async fn load_json_or_default<T>(manifest_path: &Path) -> io::Result<T>
-where
-    T: serde::de::DeserializeOwned + Default,
-{
-    load_json_or_else(manifest_path, || Ok(Default::default())).await
-}
-
-async fn read_to_vec(mut read: impl AsyncRead + Unpin) -> io::Result<Vec<u8>> {
-    let mut vec = Vec::new();
-    read.read_to_end(&mut vec).await?;
-    Ok(vec)
-}
-
-fn to_json_vec<T>(value: &T) -> serde_json::Result<Vec<u8>>
-where
-    T: ?Sized + serde::Serialize,
-{
-    serde_json::to_vec_pretty(value)
 }

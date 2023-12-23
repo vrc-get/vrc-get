@@ -1,11 +1,9 @@
 use super::*;
 use crate::environment::repo_source::RepoSource;
 use crate::traits::HttpClient;
-use crate::{read_to_vec, try_open_file, update_from_remote, write_repo};
+use crate::utils::{read_json_file, try_load_json};
 use futures::future::try_join_all;
 use std::collections::HashMap;
-use std::convert::Infallible;
-use std::future::Future;
 use url::Url;
 
 #[derive(Debug)]
@@ -63,7 +61,36 @@ impl RepoHolder {
         path: &Path,
         remote_url: &Url,
     ) -> io::Result<LocalCachedRepository> {
-        Self::load_repo(path, client, || async {
+        if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(path).await? {
+            if let (Some(client), Some(remote_url)) = (client, loaded.url().map(|x| x.to_owned())) {
+                // if it's possible to download remote repo, try to update with that
+                match RemoteRepository::download_with_etag(
+                    client,
+                    &remote_url,
+                    loaded.headers(),
+                    loaded.vrc_get.as_ref().map(|x| x.etag.as_str()),
+                )
+                .await
+                {
+                    Ok(None) => log::debug!("cache matched downloading {}", remote_url),
+                    Ok(Some((remote_repo, etag))) => {
+                        loaded.set_repo(remote_repo);
+                        loaded.set_etag(etag);
+
+                        tokio::fs::write(path, &to_vec_pretty(&loaded)?)
+                            .await
+                            .unwrap_or_else(|e| {
+                                error!("writing local repo cache '{}': {}", path.display(), e)
+                            });
+                    }
+                    Err(e) => {
+                        error!("fetching remote repo '{}': {}", remote_url, e);
+                    }
+                }
+            }
+
+            Ok(loaded)
+        } else {
             // if local repository not found: try downloading remote one
             let Some(client) = client else {
                 return Err(io::Error::new(
@@ -72,64 +99,24 @@ impl RepoHolder {
                 ));
             };
             let (remote_repo, etag) =
-                RemoteRepository::download_with_etag(client, remote_url, headers, None)
-                    .await?
-                    .expect("logic failure: no etag");
+                RemoteRepository::download(client, remote_url, headers).await?;
 
             let mut local_cache = LocalCachedRepository::new(remote_repo, headers.clone());
 
-            if let Some(etag) = etag {
-                local_cache
-                    .vrc_get
-                    .get_or_insert_with(Default::default)
-                    .etag = etag;
-            }
+            local_cache.set_etag(etag);
 
-            match write_repo(path, &local_cache).await {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("writing local repo '{}': {}", path.display(), e);
-                }
-            }
+            tokio::fs::write(path, &to_vec_pretty(&local_cache)?)
+                .await
+                .unwrap_or_else(|e| {
+                    error!("writing local repo cache '{}': {}", path.display(), e);
+                });
 
             Ok(local_cache)
-        })
-        .await
+        }
     }
 
     async fn load_local_repo(path: &Path) -> io::Result<LocalCachedRepository> {
-        Self::load_repo(path, Option::<&Infallible>::None, || async {
-            unreachable!()
-        })
-        .await
-    }
-
-    async fn load_repo<F, T>(
-        path: &Path,
-        http: Option<&impl HttpClient>,
-        if_not_found: F,
-    ) -> io::Result<LocalCachedRepository>
-    where
-        F: FnOnce() -> T,
-        T: Future<Output = io::Result<LocalCachedRepository>>,
-    {
-        let Some(json_file) = try_open_file(path).await? else {
-            return if_not_found().await;
-        };
-
-        let mut loaded = match serde_json::from_slice(&read_to_vec(json_file).await?) {
-            Ok(loaded) => loaded,
-            Err(e) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("loading {}: {}", path.display(), e),
-                ))
-            }
-        };
-        if let Some(http) = http {
-            update_from_remote(http, path, &mut loaded).await;
-        }
-        Ok(loaded)
+        read_json_file::<LocalCachedRepository>(File::open(path).await?, path).await
     }
 
     pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {

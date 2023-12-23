@@ -74,7 +74,7 @@ impl RemoteRepository {
         Ok(Some((repo, etag)))
     }
 
-    pub fn set_id_if_none(&mut self, f: impl FnOnce() -> String) {
+    pub(crate) fn set_id_if_none(&mut self, f: impl FnOnce() -> String) {
         if self.parsed.id.is_none() {
             let id = f();
             self.parsed.id = Some(id.clone());
@@ -82,7 +82,7 @@ impl RemoteRepository {
         }
     }
 
-    pub fn set_url_if_none(&mut self, f: impl FnOnce() -> Url) {
+    pub(crate) fn set_url_if_none(&mut self, f: impl FnOnce() -> Url) {
         if self.parsed.url.is_none() {
             let url = f();
             self.parsed.url = Some(url.clone());

@@ -32,7 +32,7 @@ impl LocalCachedRepository {
         &self.repo
     }
 
-    pub fn set_repo(&mut self, mut repo: RemoteRepository) {
+    pub(crate) fn set_repo(&mut self, mut repo: RemoteRepository) {
         if let Some(id) = self.id() {
             repo.set_id_if_none(|| id.to_owned());
         }
@@ -40,6 +40,14 @@ impl LocalCachedRepository {
             repo.set_url_if_none(|| url.to_owned());
         }
         self.repo = repo;
+    }
+
+    pub(crate) fn set_etag(&mut self, etag: Option<String>) {
+        if let Some(etag) = etag {
+            self.vrc_get.get_or_insert_with(Default::default).etag = etag;
+        } else if let Some(x) = self.vrc_get.as_mut() {
+            x.etag.clear()
+        }
     }
 
     pub fn url(&self) -> Option<&Url> {

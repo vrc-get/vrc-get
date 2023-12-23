@@ -9,21 +9,22 @@ use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{PathBufExt, Sha256AsyncWrite};
-use crate::{to_json_vec, PackageInfo, VersionSelector};
+use crate::{PackageInfo, VersionSelector};
 use either::{Left, Right};
 use enum_map::EnumMap;
+use futures::future::join_all;
 use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use log::error;
+use serde_json::to_vec_pretty;
 use std::cmp::Reverse;
 use std::collections::HashSet;
+use std::fs::remove_file;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::{env, fmt, io};
-use std::fs::remove_file;
-use futures::future::join_all;
-use log::error;
 use tokio::fs::{create_dir_all, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
@@ -313,11 +314,9 @@ impl<T: HttpClient> Environment<T> {
             .map(|id| format!("{}.json", id))
             .into_iter();
 
-        // finally generate with uuid v4. 
-        // note: this iterator is endless. Consumes uuidv4 infinitely. 
-        let guid_names = std::iter::from_fn(|| {
-            Some(format!("{}.json", uuid::Uuid::new_v4()))
-        });
+        // finally generate with uuid v4.
+        // note: this iterator is endless. Consumes uuidv4 infinitely.
+        let guid_names = std::iter::from_fn(|| Some(format!("{}.json", uuid::Uuid::new_v4())));
 
         for file_name in id_names.chain(guid_names) {
             let path = self.get_repos_dir().joined(file_name);
@@ -325,9 +324,10 @@ impl<T: HttpClient> Environment<T> {
                 .write(true)
                 .create_new(true)
                 .open(&path)
-                .await {
+                .await
+            {
                 Ok(mut file) => {
-                    file.write_all(&to_json_vec(&local_cache)?).await?;
+                    file.write_all(&to_vec_pretty(&local_cache)?).await?;
                     file.flush().await?;
 
                     return Ok(path);
@@ -365,9 +365,14 @@ impl<T: HttpClient> Environment<T> {
             match remove_file(x.local_path()) {
                 Ok(()) => (),
                 Err(e) if e.kind() == io::ErrorKind::NotFound => (),
-                Err(e) => error!("removing local repository {}: {}", x.local_path().display(), e),
+                Err(e) => error!(
+                    "removing local repository {}: {}",
+                    x.local_path().display(),
+                    e
+                ),
             }
-        })).await;
+        }))
+        .await;
 
         removed.len()
     }

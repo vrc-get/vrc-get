@@ -1,6 +1,7 @@
-use crate::{load_json_or_default, to_json_vec, UserRepoSetting};
+use crate::utils::load_json_or_default;
+use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::{to_vec_pretty, Map, Value};
 use std::io;
 use std::path::PathBuf;
 use tokio::fs::create_dir_all;
@@ -99,7 +100,10 @@ impl Settings {
         }
     }
 
-    pub fn retain_user_repos(&mut self, mut f: impl FnMut(&UserRepoSetting) -> bool) -> Vec<UserRepoSetting> {
+    pub fn retain_user_repos(
+        &mut self,
+        mut f: impl FnMut(&UserRepoSetting) -> bool,
+    ) -> Vec<UserRepoSetting> {
         // awaiting extract_if but not stable yet so use cloned method
         let cloned = self.as_json.user_repos.iter().cloned().collect::<Vec<_>>();
         self.as_json.user_repos.clear();
@@ -132,7 +136,7 @@ impl Settings {
             create_dir_all(&parent).await?;
         }
 
-        tokio::fs::write(json_path, &to_json_vec(&self.as_json)?).await?;
+        tokio::fs::write(json_path, &to_vec_pretty(&self.as_json)?).await?;
         self.settings_changed = false;
         Ok(())
     }

@@ -1,5 +1,6 @@
 use crate::structs::package::PackageJson;
-use crate::{load_json_or_default, PackageCollection, PackageInfo, VersionSelector};
+use crate::utils::try_load_json;
+use crate::{PackageCollection, PackageInfo, VersionSelector};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -21,7 +22,7 @@ impl UserPackageCollection {
 
     pub(crate) async fn try_add_package(&mut self, folder: &Path) -> io::Result<()> {
         if let Some(package_json) =
-            load_json_or_default::<Option<PackageJson>>(&folder.join("package.json")).await?
+            try_load_json::<PackageJson>(&folder.join("package.json")).await?
         {
             self.user_packages.push((folder.to_owned(), package_json));
         }

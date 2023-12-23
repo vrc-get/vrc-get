@@ -12,7 +12,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::task::{ready, Context, Poll};
-use tokio::fs::{read_dir, DirEntry, ReadDir};
+use tokio::fs::{read_dir, DirEntry, File, ReadDir};
+use tokio::io::AsyncReadExt;
 
 pub(crate) use copy_recursive::copy_recursive;
 pub(crate) use extract_zip::extract_zip;
@@ -219,5 +220,45 @@ pub(crate) fn is_truthy(value: Option<&Value>) -> bool {
         Some(Value::Number(num)) if num.as_f64() == Some(0.0) => false,
         Some(Value::String(s)) if s.is_empty() => false,
         _ => true,
+    }
+}
+
+pub(crate) async fn read_json_file<T: serde::de::DeserializeOwned>(
+    mut file: File,
+    path: &Path,
+) -> io::Result<T> {
+    let mut vec = Vec::new();
+    file.read_to_end(&mut vec).await?;
+
+    let mut slice = vec.as_slice();
+    slice = slice.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(slice);
+
+    match serde_json::from_slice::<T>(slice) {
+        Ok(loaded) => Ok(loaded),
+        Err(e) => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("syntax error loading {}: {}", path.display(), e),
+        )),
+    }
+}
+
+pub(crate) async fn try_load_json<T: serde::de::DeserializeOwned>(
+    path: &Path,
+) -> io::Result<Option<T>> {
+    match File::open(path).await {
+        Ok(file) => Ok(Some(read_json_file::<T>(file, path).await?)),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+pub(crate) async fn load_json_or_default<T>(path: &Path) -> io::Result<T>
+where
+    T: serde::de::DeserializeOwned + Default,
+{
+    match File::open(path).await {
+        Ok(file) => Ok(read_json_file::<T>(file, path).await?),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
+        Err(e) => Err(e),
     }
 }

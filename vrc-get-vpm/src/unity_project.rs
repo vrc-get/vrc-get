@@ -5,11 +5,9 @@ mod remove_package;
 use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::structs::package::PackageJson;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::utils::PathBufExt;
+use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
 use crate::version::{UnityVersion, VersionRange};
-use crate::{
-    load_json_or_default, to_json_vec, Environment, JsonMap, PackageInfo, VersionSelector,
-};
+use crate::{Environment, JsonMap, PackageInfo, VersionSelector};
 use futures::future::try_join_all;
 use futures::prelude::*;
 use indexmap::IndexMap;
@@ -94,7 +92,7 @@ impl UnityProject {
             .to_string_lossy()
             .into_owned();
         let package_json_path = package_path.join("package.json");
-        let parsed = load_json_or_default::<Option<PackageJson>>(&package_json_path)
+        let parsed = try_load_json::<PackageJson>(&package_json_path)
             .await
             .ok()
             .flatten();
@@ -401,8 +399,7 @@ impl UnityProject {
 
 mod vpm_manifest {
     use serde::Serialize;
-    use serde_json::json;
-    use tokio::io::AsyncWriteExt;
+    use serde_json::{json, to_vec_pretty};
 
     use super::*;
 
@@ -489,9 +486,7 @@ mod vpm_manifest {
             if !self.changed {
                 return Ok(());
             }
-            let mut file = File::create(file).await?;
-            file.write_all(&to_json_vec(&self.json)?).await?;
-            file.flush().await?;
+            tokio::fs::write(file, &to_vec_pretty(&self.json)?).await?;
             Ok(())
         }
 
