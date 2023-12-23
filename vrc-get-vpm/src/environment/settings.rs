@@ -1,16 +1,15 @@
-use crate::{to_json_vec, UserRepoSetting};
+use crate::{load_json_or_default, to_json_vec, UserRepoSetting};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::io;
-use std::path::{Path, PathBuf};
-use tokio::fs::{create_dir_all, File};
-use tokio::io::AsyncWriteExt;
+use std::path::PathBuf;
+use tokio::fs::create_dir_all;
 
 type JsonObject = Map<String, Value>;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Settings {
+struct AsJson {
     #[serde(default)]
     path_to_unity_exe: String,
     #[serde(default)]
@@ -53,8 +52,14 @@ pub(crate) struct Settings {
 
     #[serde(flatten)]
     rest: Map<String, Value>,
+}
 
-    #[serde(skip)]
+#[derive(Debug)]
+pub(crate) struct Settings {
+    as_json: AsJson,
+
+    path: PathBuf,
+
     settings_changed: bool,
 }
 
@@ -65,16 +70,26 @@ pub(crate) trait NewIdGetter {
 }
 
 impl Settings {
+    pub async fn load(json_path: PathBuf) -> io::Result<Self> {
+        let parsed = load_json_or_default(&json_path).await?;
+
+        Ok(Self {
+            as_json: parsed,
+            path: json_path,
+            settings_changed: false,
+        })
+    }
+
     pub(crate) fn user_repos(&self) -> &[UserRepoSetting] {
-        &self.user_repos
+        &self.as_json.user_repos
     }
 
     pub(crate) fn user_package_folders(&self) -> &[PathBuf] {
-        &self.user_package_folders
+        &self.as_json.user_package_folders
     }
 
     pub(crate) fn update_user_repo_id(&mut self, new_id: impl NewIdGetter) {
-        for repo in &mut self.user_repos {
+        for repo in &mut self.as_json.user_repos {
             let id = new_id.new_id(repo);
             if id != repo.id() {
                 let owned = id.map(|x| x.to_owned());
@@ -84,13 +99,13 @@ impl Settings {
         }
     }
 
-    pub(crate) fn retain_user_repos(
+    pub fn retain_user_repos(
         &mut self,
         f: impl FnMut(&UserRepoSetting) -> bool,
     ) -> usize {
-        let prev_count = self.user_repos.len();
-        self.user_repos.retain(f);
-        let new_count = self.user_repos.len();
+        let prev_count = self.as_json.user_repos.len();
+        self.as_json.user_repos.retain(f);
+        let new_count = self.as_json.user_repos.len();
 
         if prev_count != new_count {
             self.settings_changed = true;
@@ -100,22 +115,22 @@ impl Settings {
     }
 
     pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {
-        self.user_repos.push(repo);
+        self.as_json.user_repos.push(repo);
         self.settings_changed = true;
     }
 
-    pub fn changed(&self) -> bool {
-        self.settings_changed
-    }
+    pub async fn save(&mut self) -> io::Result<()> {
+        if !self.settings_changed {
+            return Ok(());
+        }
 
-    pub(crate) async fn save_to(&mut self, json_path: &Path) -> io::Result<()> {
+        let json_path = &self.path;
+
         if let Some(parent) = json_path.parent() {
             create_dir_all(&parent).await?;
         }
 
-        let mut file = File::create(json_path).await?;
-        file.write_all(&to_json_vec(&self)?).await?;
-        file.flush().await?;
+        tokio::fs::write(json_path, &to_json_vec(&self.as_json)?).await?;
         self.settings_changed = false;
         Ok(())
     }

@@ -9,7 +9,7 @@ use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{PathBufExt, Sha256AsyncWrite};
-use crate::{load_json_or_default, to_json_vec, PackageInfo, VersionSelector};
+use crate::{to_json_vec, PackageInfo, VersionSelector};
 use either::{Left, Right};
 use enum_map::EnumMap;
 use hex::FromHex;
@@ -61,7 +61,7 @@ impl<T: HttpClient> Environment<T> {
 
         Ok(Self {
             http,
-            settings: load_json_or_default(&folder.join("settings.json")).await?,
+            settings: Settings::load(folder.join("settings.json")).await?,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
             predefined_repos: EnumMap::from_fn(|x: PreDefinedRepoType| {
@@ -243,12 +243,6 @@ impl<T: HttpClient> Environment<T> {
         &self.settings.user_repos()
     }
 
-    fn add_user_repo(&mut self, repo: UserRepoSetting) -> serde_json::Result<()> {
-        // TODO? fetch from remote?
-        self.settings.add_user_repo(repo);
-        Ok(())
-    }
-
     pub async fn add_remote_repo(
         &mut self,
         url: Url,
@@ -325,12 +319,12 @@ impl<T: HttpClient> Environment<T> {
         file.write_all(&to_json_vec(&local_cache)?).await?;
         file.flush().await?;
 
-        self.add_user_repo(UserRepoSetting::new(
+        self.settings.add_user_repo(UserRepoSetting::new(
             local_path.clone(),
             repo_name,
             Some(url),
             repo_id,
-        ))?;
+        ));
         Ok(())
     }
 
@@ -343,12 +337,12 @@ impl<T: HttpClient> Environment<T> {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
 
-        self.add_user_repo(UserRepoSetting::new(
+        self.settings.add_user_repo(UserRepoSetting::new(
             path.to_owned(),
             name.map(str::to_owned),
             None,
             None,
-        ))?;
+        ));
         Ok(())
     }
 
@@ -367,14 +361,7 @@ impl<T: HttpClient> Environment<T> {
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
-        if !self.settings.changed() {
-            return Ok(());
-        }
-
-        self.settings
-            .save_to(&self.global_dir.join("settings.json"))
-            .await?;
-        Ok(())
+        self.settings.save().await
     }
 }
 
