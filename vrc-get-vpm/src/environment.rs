@@ -166,7 +166,7 @@ impl<T: HttpClient> Environment<T> {
     async fn load_user_package_infos(&mut self) -> io::Result<()> {
         self.user_packages.clear();
         for x in self.settings.user_package_folders() {
-            self.user_packages.try_add_package(&x).await?;
+            self.user_packages.try_add_package(x).await?;
         }
         Ok(())
     }
@@ -244,7 +244,7 @@ impl<T: HttpClient> Environment<T> {
     }
 
     pub fn get_user_repos(&self) -> &[UserRepoSetting] {
-        &self.settings.user_repos()
+        self.settings.user_repos()
     }
 
     pub async fn add_remote_repo(

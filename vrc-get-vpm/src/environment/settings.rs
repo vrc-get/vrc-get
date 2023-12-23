@@ -105,7 +105,7 @@ impl Settings {
         mut f: impl FnMut(&UserRepoSetting) -> bool,
     ) -> Vec<UserRepoSetting> {
         // awaiting extract_if but not stable yet so use cloned method
-        let cloned = self.as_json.user_repos.iter().cloned().collect::<Vec<_>>();
+        let cloned = self.as_json.user_repos.to_vec();
         self.as_json.user_repos.clear();
         let mut removed = Vec::new();
 
