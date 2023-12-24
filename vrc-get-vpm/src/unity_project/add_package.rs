@@ -1,7 +1,7 @@
-use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::traits::RemotePackageDownloader;
 use crate::unity_project::package_resolution;
 use crate::utils::{copy_recursive, extract_zip, walk_dir_relative, PathBufExt, WalkDirEntry};
+use crate::version::DependencyRange;
 use crate::{unity_compatible, PackageCollection, PackageInfo, PackageInfoInner, UnityProject};
 use futures::future::{join3, join_all, try_join_all};
 use futures::prelude::*;
@@ -15,7 +15,6 @@ use std::{fmt, io};
 use tokio::fs::{metadata, remove_dir_all, File};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_util::compat::*;
-use crate::version::DependencyRange;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -97,9 +96,8 @@ impl UnityProject {
     ) -> Result<AddPackageRequest<'env>, AddPackageErr> {
         packages.retain(|pkg| {
             self.manifest
-                .dependencies()
-                .get(pkg.name())
-                .map(|dep| dep.version.matches(pkg.version()))
+                .get_dependency(pkg.name())
+                .map(|version| version.matches(pkg.version()))
                 .unwrap_or(true)
         });
 
@@ -111,9 +109,8 @@ impl UnityProject {
         for request in packages {
             let update = self
                 .manifest
-                .locked()
-                .get(request.name())
-                .map(|dep| dep.version < *request.version())
+                .get_locked(request.name())
+                .map(|version| version.version() < request.version())
                 .unwrap_or(true);
 
             if to_dependencies {
@@ -143,7 +140,8 @@ impl UnityProject {
 
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
-            self.manifest.locked(),
+            self.manifest.all_locked(),
+            |pkg| self.manifest.get_locked(pkg),
             self.unity_version(),
             env,
             adding_packages,
@@ -153,7 +151,7 @@ impl UnityProject {
         let legacy_packages = result
             .found_legacy_packages
             .into_iter()
-            .filter(|name| self.manifest.locked().contains_key(name))
+            .filter(|name| self.is_locked(name))
             .collect();
 
         let (legacy_files, legacy_folders) =
@@ -376,14 +374,15 @@ impl UnityProject {
     ) -> io::Result<()> {
         // first, add to dependencies
         for x in request.dependencies {
-            self.manifest.add_dependency(x.0, VpmDependency::new(x.1));
+            self.manifest.add_dependency(x.0, x.1);
         }
 
         // then, lock all dependencies
         for pkg in request.locked.iter() {
             self.manifest.add_locked(
                 pkg.name(),
-                VpmLockedDependency::new(pkg.version().clone(), pkg.vpm_dependencies().clone()),
+                pkg.version().clone(),
+                pkg.vpm_dependencies().clone(),
             );
         }
 

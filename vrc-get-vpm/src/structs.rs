@@ -1,44 +1,8 @@
-use crate::version::{DependencyRange, Version, VersionRange};
+use crate::version::{Version, VersionRange};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-
-pub mod manifest {
-    use super::*;
-
-    #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub(crate) struct VpmDependency {
-        pub version: DependencyRange,
-    }
-
-    impl VpmDependency {
-        pub fn new(version: DependencyRange) -> Self {
-            Self {
-                version,
-            }
-        }
-    }
-
-    #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub(crate) struct VpmLockedDependency {
-        pub version: Version,
-        #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
-        pub dependencies: IndexMap<String, VersionRange>,
-    }
-
-    impl VpmLockedDependency {
-        pub fn new(
-            version: Version,
-            dependencies: IndexMap<String, VersionRange>,
-        ) -> VpmLockedDependency {
-            Self {
-                version,
-                dependencies,
-            }
-        }
-    }
-}
 
 pub mod package {
     use super::*;

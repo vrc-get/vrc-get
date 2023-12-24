@@ -15,12 +15,9 @@ impl UnityProject {
 
         // check for existence
 
-        let mut repos = Vec::with_capacity(names.len());
         let mut not_founds = Vec::new();
         for name in names.iter().copied() {
-            if let Some(x) = self.manifest.locked().get(name) {
-                repos.push(x);
-            } else {
+            if self.manifest.get_locked(name).is_none() {
                 not_founds.push(name.to_owned());
             }
         }
@@ -33,9 +30,9 @@ impl UnityProject {
 
         let conflicts = self
             .all_dependencies()
-            .filter(|(name, _)| !names.contains(name))
-            .filter(|(_, dep)| names.iter().any(|x| dep.contains_key(*x)))
-            .map(|(name, _)| String::from(name))
+            .filter(|dep| !names.contains(&dep.name()))
+            .filter(|dep| names.iter().any(|x| dep.dependencies().contains_key(*x)))
+            .map(|dep| String::from(dep.name()))
             .collect::<Vec<_>>();
 
         if !conflicts.is_empty() {

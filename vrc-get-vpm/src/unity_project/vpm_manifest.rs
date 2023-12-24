@@ -1,3 +1,4 @@
+use crate::version::DependencyRange;
 use serde::{Deserialize, Serialize};
 use serde_json::to_vec_pretty;
 use std::collections::VecDeque;
@@ -11,6 +12,18 @@ struct AsJson {
     dependencies: IndexMap<String, VpmDependency>,
     #[serde(default)]
     locked: IndexMap<String, VpmLockedDependency>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct VpmDependency {
+    pub version: DependencyRange,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct VpmLockedDependency {
+    pub version: Version,
+    #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
+    pub dependencies: IndexMap<String, VersionRange>,
 }
 
 #[derive(Debug)]
@@ -27,23 +40,50 @@ impl VpmManifest {
         })
     }
 
-    pub(super) fn dependencies(&self) -> &IndexMap<String, VpmDependency> {
-        &self.as_json.dependencies
-    }
-
-    pub(super) fn locked(&self) -> &IndexMap<String, VpmLockedDependency> {
-        &self.as_json.locked
-    }
-
-    pub(super) fn add_dependency(&mut self, name: &str, dependency: VpmDependency) {
+    pub(super) fn dependencies(&self) -> impl Iterator<Item = (&str, &DependencyRange)> {
         self.as_json
             .dependencies
-            .insert(name.to_owned(), dependency);
+            .iter()
+            .map(|(name, dep)| (name.as_str(), &dep.version))
+    }
+
+    pub(super) fn get_dependency(&self, package: &str) -> Option<&DependencyRange> {
+        self.as_json.dependencies.get(package).map(|x| &x.version)
+    }
+
+    pub(super) fn all_locked(&self) -> impl Iterator<Item = LockedDependencyInfo> {
+        self.as_json.locked.iter().map(|(name, dep)| {
+            LockedDependencyInfo::new(name.as_str(), &dep.version, &dep.dependencies)
+        })
+    }
+
+    pub(super) fn get_locked(&self, package: &str) -> Option<LockedDependencyInfo> {
+        self.as_json
+            .locked
+            .get_key_value(package)
+            .map(|(package, x)| LockedDependencyInfo::new(package, &x.version, &x.dependencies))
+    }
+
+    pub(super) fn add_dependency(&mut self, name: &str, version: DependencyRange) {
+        self.as_json
+            .dependencies
+            .insert(name.to_owned(), VpmDependency { version });
         self.changed = true;
     }
 
-    pub(super) fn add_locked(&mut self, name: &str, dependency: VpmLockedDependency) {
-        self.as_json.locked.insert(name.to_owned(), dependency);
+    pub(super) fn add_locked(
+        &mut self,
+        name: &str,
+        version: Version,
+        dependencies: IndexMap<String, VersionRange>,
+    ) {
+        self.as_json.locked.insert(
+            name.to_owned(),
+            VpmLockedDependency {
+                version,
+                dependencies,
+            },
+        );
         self.changed = true;
     }
 

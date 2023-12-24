@@ -58,11 +58,23 @@ impl Project {
         }
         eprintln!();
         eprintln!("Locked Packages:");
-        for (package, version) in unity.locked_packages() {
-            if let Some(installed) = unity.get_installed_package(package).map(|x| x.version()) {
-                eprintln!("{package} version {version} with installed version {installed}");
+        for locked in unity.locked_packages() {
+            if let Some(installed) = unity
+                .get_installed_package(locked.name())
+                .map(|x| x.version())
+            {
+                eprintln!(
+                    "{package} version {version} with installed version {installed}",
+                    package = locked.name(),
+                    version = locked.version(),
+                    installed = installed,
+                );
             } else {
-                eprintln!("{package} version {version} not installed");
+                eprintln!(
+                    "{package} version {version} not installed",
+                    package = locked.name(),
+                    version = locked.version(),
+                );
             }
         }
 
@@ -96,11 +108,13 @@ impl Project {
 
         let mut packages = vec![];
 
-        for (package, version) in unity.locked_packages() {
+        for locked in unity.locked_packages() {
             packages.push(PackageInfo {
-                name: package,
-                installed: unity.get_installed_package(package).map(|x| x.version()),
-                locked: Some(&version),
+                name: locked.name(),
+                installed: unity
+                    .get_installed_package(locked.name())
+                    .map(|x| x.version()),
+                locked: Some(locked.version()),
                 requested: vec![], // TODO: add requests from locked packages
             });
         }

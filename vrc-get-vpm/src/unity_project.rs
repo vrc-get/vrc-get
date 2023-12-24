@@ -3,7 +3,6 @@ mod package_resolution;
 mod remove_package;
 mod vpm_manifest;
 
-use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::structs::package::PackageJson;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
@@ -62,7 +61,7 @@ impl UnityProject {
             let read = Self::try_read_unlocked_package(dir_entry).await;
             let mut is_installed = false;
             if let Some(parsed) = &read.1 {
-                if parsed.name() == read.0 && manifest.locked().contains_key(parsed.name()) {
+                if parsed.name() == read.0 && manifest.get_locked(parsed.name()).is_some() {
                     is_installed = true;
                 }
             }
@@ -268,18 +267,20 @@ impl UnityProject {
         // first, process locked dependencies
         let this = self as &Self;
         let packages_folder = &this.project_dir.join("Packages");
-        let installed_from_locked = try_join_all(this.manifest.locked().into_iter().map(
-            |(pkg, dep)| async move {
+        let installed_from_locked =
+            try_join_all(this.manifest.all_locked().map(|dep| async move {
                 let pkg = env
-                    .find_package_by_name(pkg, VersionSelector::specific_version(&dep.version))
+                    .find_package_by_name(
+                        dep.name(),
+                        VersionSelector::specific_version(dep.version()),
+                    )
                     .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
-                        dependency_name: pkg.clone(),
+                        dependency_name: dep.name().to_owned(),
                     })?;
                 add_package(env, pkg, packages_folder).await?;
                 Result::<_, ResolvePackageErr>::Ok(pkg)
-            },
-        ))
-        .await?;
+            }))
+            .await?;
 
         let unlocked_names: HashSet<_> = self
             .unlocked_packages()
@@ -294,7 +295,7 @@ impl UnityProject {
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .flat_map(|pkg| pkg.vpm_dependencies())
-            .filter(|(k, _)| !self.manifest.locked().contains_key(k.as_str()))
+            .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none())
             .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
             .into_group_map()
             .into_iter()
@@ -358,30 +359,22 @@ impl UnityProject {
 
 // accessors
 impl UnityProject {
-    pub fn locked_packages(&self) -> impl Iterator<Item = (&str, &Version)> {
-        self.manifest.locked()
-            .iter()
-            .map(|(name, version)| (name.as_str(), &version.version))
+    pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
+        self.manifest.all_locked()
     }
 
     pub fn is_locked(&self, name: &str) -> bool {
-        self.manifest.locked().contains_key(name)
+        self.manifest.get_locked(name).is_some()
     }
 
-    pub fn all_dependencies(
-        &self,
-    ) -> impl Iterator<Item = (&str, &IndexMap<String, VersionRange>)> {
-        let dependencies_locked = self
-            .manifest
-            .locked()
-            .into_iter()
-            .map(|(name, dep)| (name.as_str(), &dep.dependencies));
+    pub fn all_dependencies(&self) -> impl Iterator<Item = LockedDependencyInfo> {
+        let dependencies_locked = self.manifest.all_locked();
 
         let dependencies_unlocked = self
             .unlocked_packages
             .iter()
             .filter_map(|(_, json)| json.as_ref())
-            .map(|x| (x.name(), x.vpm_dependencies()));
+            .map(|x| LockedDependencyInfo::new(x.name(), x.version(), x.vpm_dependencies()));
 
         dependencies_locked.chain(dependencies_unlocked)
     }
@@ -400,5 +393,37 @@ impl UnityProject {
 
     pub fn unity_version(&self) -> Option<UnityVersion> {
         self.unity_version
+    }
+}
+
+pub struct LockedDependencyInfo<'a> {
+    name: &'a str,
+    version: &'a Version,
+    dependencies: &'a IndexMap<String, VersionRange>,
+}
+
+impl<'a> LockedDependencyInfo<'a> {
+    fn new(
+        name: &'a str,
+        version: &'a Version,
+        dependencies: &'a IndexMap<String, VersionRange>,
+    ) -> Self {
+        Self {
+            name,
+            version,
+            dependencies,
+        }
+    }
+
+    pub fn name(&self) -> &'a str {
+        self.name
+    }
+
+    pub fn version(&self) -> &'a Version {
+        self.version
+    }
+
+    pub fn dependencies(&self) -> &'a IndexMap<String, VersionRange> {
+        self.dependencies
     }
 }

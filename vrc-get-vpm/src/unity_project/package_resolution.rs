@@ -1,9 +1,7 @@
-use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::traits::PackageCollection;
-use crate::unity_project::AddPackageErr;
-use crate::version::{UnityVersion, Version, VersionRange};
+use crate::unity_project::{AddPackageErr, LockedDependencyInfo};
+use crate::version::{DependencyRange, UnityVersion, Version, VersionRange};
 use crate::{PackageInfo, VersionSelector};
-use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 struct PackageQueue<'a> {
@@ -148,19 +146,19 @@ where
 
     pub(crate) fn add_locked_dependency(
         &mut self,
-        name: &'a String,
-        locked: &'a VpmLockedDependency,
+        locked: LockedDependencyInfo<'a>,
         env: &'env impl PackageCollection,
     ) {
-        let info = self.dependencies.entry(name).or_default();
+        let info = self.dependencies.entry(locked.name()).or_default();
         info.set_using_info(
-            &locked.version,
-            locked.dependencies.keys().map(|x| x.as_str()).collect(),
+            locked.version(),
+            locked.dependencies().keys().map(|x| x.as_str()).collect(),
         );
 
-        if let Some(pkg) =
-            env.find_package_by_name(name, VersionSelector::specific_version(&locked.version))
-        {
+        if let Some(pkg) = env.find_package_by_name(
+            locked.name(),
+            VersionSelector::specific_version(locked.version()),
+        ) {
             info.legacy_packages = Legacy(pkg.legacy_packages());
 
             for legacy in pkg.legacy_packages() {
@@ -168,16 +166,16 @@ where
                     .entry(legacy)
                     .or_default()
                     .modern_packages
-                    .insert(name);
+                    .insert(locked.name());
             }
         }
 
-        for (dependency, range) in &locked.dependencies {
+        for (dependency, range) in locked.dependencies() {
             self.dependencies
                 .entry(dependency)
                 .or_default()
                 .requirements
-                .insert(name, range);
+                .insert(locked.name(), range);
         }
     }
 
@@ -314,9 +312,10 @@ pub struct PackageResolutionResult<'env> {
     pub found_legacy_packages: Vec<String>,
 }
 
-pub(crate) fn collect_adding_packages<'env>(
-    dependencies: &IndexMap<String, VpmDependency>,
-    locked_dependencies: &IndexMap<String, VpmLockedDependency>,
+pub(crate) fn collect_adding_packages<'a, 'env>(
+    dependencies: impl Iterator<Item = (&'a str, &'a DependencyRange)>,
+    locked_dependencies: impl Iterator<Item = LockedDependencyInfo<'a>>,
+    get_locked: impl Fn(&str) -> Option<LockedDependencyInfo<'a>>,
     unity_version: Option<UnityVersion>,
     env: &'env impl PackageCollection,
     packages: Vec<PackageInfo<'env>>,
@@ -325,35 +324,36 @@ pub(crate) fn collect_adding_packages<'env>(
     let mut context = ResolutionContext::<'env, '_>::new(allow_prerelease, packages);
 
     // first, add dependencies
-    let mut root_dependencies = Vec::with_capacity(dependencies.len());
+    let root_dependencies = dependencies
+        .into_iter()
+        .map(|(name, dependency)| {
+            let (range, mut allow_pre);
 
-    for (name, dependency) in dependencies {
-        let (range, mut allow_pre);
-
-        if let Some(mut min_ver) = dependency.version.as_single_version() {
-            allow_pre = min_ver.is_pre();
-            if let Some(locked) = locked_dependencies.get(name) {
-                allow_pre |= !locked.version.pre.is_empty();
-                if locked.version < min_ver {
-                    min_ver = locked.version.clone();
+            if let Some(mut min_ver) = dependency.as_single_version() {
+                allow_pre = min_ver.is_pre();
+                if let Some(locked) = get_locked(name) {
+                    allow_pre |= !locked.version().pre.is_empty();
+                    if locked.version() < &min_ver {
+                        min_ver = locked.version().clone();
+                    }
                 }
+                range = VersionRange::same_or_later(min_ver);
+            } else {
+                range = dependency.as_range();
+                allow_pre = range.contains_pre();
             }
-            range = VersionRange::same_or_later(min_ver);
-        } else {
-            range = dependency.version.as_range();
-            allow_pre = range.contains_pre();
-        }
 
-        root_dependencies.push((name, range, allow_pre));
-    }
+            (name, range, allow_pre)
+        })
+        .collect::<Vec<_>>();
 
     for (name, range, allow_pre) in &root_dependencies {
         context.add_root_dependency(name, range, *allow_pre);
     }
 
     // then, add locked dependencies info
-    for (source, locked) in locked_dependencies {
-        context.add_locked_dependency(source, locked, env);
+    for locked in locked_dependencies {
+        context.add_locked_dependency(locked, env);
     }
 
     while let Some(x) = context.pending_queue.next_package() {
