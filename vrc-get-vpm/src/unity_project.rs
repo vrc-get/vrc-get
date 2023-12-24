@@ -7,7 +7,7 @@ use crate::structs::manifest::{VpmDependency, VpmLockedDependency};
 use crate::structs::package::PackageJson;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
-use crate::version::{UnityVersion, VersionRange};
+use crate::version::{UnityVersion, Version, VersionRange};
 use crate::{Environment, PackageInfo, VersionSelector};
 use futures::future::try_join_all;
 use futures::prelude::*;
@@ -358,8 +358,14 @@ impl UnityProject {
 
 // accessors
 impl UnityProject {
-    pub fn locked_packages(&self) -> &IndexMap<String, VpmLockedDependency> {
-        return self.manifest.locked();
+    pub fn locked_packages(&self) -> impl Iterator<Item = (&str, &Version)> {
+        self.manifest.locked()
+            .iter()
+            .map(|(name, version)| (name.as_str(), &version.version))
+    }
+
+    pub fn is_locked(&self, name: &str) -> bool {
+        self.manifest.locked().contains_key(name)
     }
 
     pub fn all_dependencies(

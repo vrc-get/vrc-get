@@ -8,20 +8,20 @@ pub mod manifest {
     use super::*;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub struct VpmDependency {
+    pub(crate) struct VpmDependency {
         pub version: DependencyRange,
     }
 
     impl VpmDependency {
-        pub fn new(version: Version) -> Self {
+        pub fn new(version: DependencyRange) -> Self {
             Self {
-                version: DependencyRange::version(version),
+                version,
             }
         }
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub struct VpmLockedDependency {
+    pub(crate) struct VpmLockedDependency {
         pub version: Version,
         #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
         pub dependencies: IndexMap<String, VersionRange>,

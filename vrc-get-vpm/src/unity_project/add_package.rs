@@ -15,6 +15,7 @@ use std::{fmt, io};
 use tokio::fs::{metadata, remove_dir_all, File};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_util::compat::*;
+use crate::version::DependencyRange;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -24,7 +25,7 @@ use tokio_util::compat::*;
 ///
 /// This is done to ask users before removing packages
 pub struct AddPackageRequest<'env> {
-    dependencies: Vec<(&'env str, VpmDependency)>,
+    dependencies: Vec<(&'env str, DependencyRange)>,
     pub(crate) locked: Vec<PackageInfo<'env>>,
     legacy_files: Vec<PathBuf>,
     legacy_folders: Vec<PathBuf>,
@@ -38,7 +39,7 @@ impl<'env> AddPackageRequest<'env> {
         &self.locked
     }
 
-    pub fn dependencies(&self) -> &[(&'env str, VpmDependency)] {
+    pub fn dependencies(&self) -> &[(&'env str, DependencyRange)] {
         &self.dependencies
     }
 
@@ -118,7 +119,7 @@ impl UnityProject {
             if to_dependencies {
                 dependencies.push((
                     request.name(),
-                    VpmDependency::new(request.version().clone()),
+                    DependencyRange::version(request.version().clone()),
                 ));
             }
 
@@ -375,7 +376,7 @@ impl UnityProject {
     ) -> io::Result<()> {
         // first, add to dependencies
         for x in request.dependencies {
-            self.manifest.add_dependency(x.0, x.1);
+            self.manifest.add_dependency(x.0, VpmDependency::new(x.1));
         }
 
         // then, lock all dependencies

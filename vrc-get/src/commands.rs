@@ -399,12 +399,12 @@ impl Outdated {
 
         let selector = VersionSelector::latest_for(unity.unity_version(), self.prerelease);
 
-        for (name, dep) in unity.locked_packages() {
+        for (name, version) in unity.locked_packages() {
             match env.find_package_by_name(name, selector) {
                 None => log::error!("package {} not found.", name),
                 // if found version is newer: add to outdated
-                Some(pkg) if dep.version < *pkg.version() => {
-                    outdated_packages.insert(pkg.name(), (pkg, &dep.version));
+                Some(pkg) if version < pkg.version() => {
+                    outdated_packages.insert(pkg.name(), (pkg, version));
                 }
                 Some(_) => (),
             }
@@ -505,8 +505,7 @@ impl Upgrade {
 
             unity
                 .locked_packages()
-                .keys()
-                .map(|name| get_package(&env, name, version_selector))
+                .map(|(name, _)| get_package(&env, name, version_selector))
                 .collect()
         };
 
