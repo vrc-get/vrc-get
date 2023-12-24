@@ -367,7 +367,7 @@ impl UnityProject {
         self.manifest.get_locked(name).is_some()
     }
 
-    pub fn all_dependencies(&self) -> impl Iterator<Item = LockedDependencyInfo> {
+    pub fn all_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         let dependencies_locked = self.manifest.all_locked();
 
         let dependencies_unlocked = self

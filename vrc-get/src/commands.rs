@@ -410,7 +410,7 @@ impl Outdated {
             }
         }
 
-        for locked in unity.all_dependencies() {
+        for locked in unity.all_packages() {
             for (name, range) in locked.dependencies() {
                 if let Some((outdated, _)) = outdated_packages.get(name.as_str()) {
                     if !range.matches(outdated.version()) {

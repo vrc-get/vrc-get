@@ -29,7 +29,7 @@ impl UnityProject {
         // check for conflicts: if some package requires some packages to be removed, it's conflict.
 
         let conflicts = self
-            .all_dependencies()
+            .all_packages()
             .filter(|dep| !names.contains(&dep.name()))
             .filter(|dep| names.iter().any(|x| dep.dependencies().contains_key(*x)))
             .map(|dep| String::from(dep.name()))
