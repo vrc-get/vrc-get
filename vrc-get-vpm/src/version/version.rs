@@ -2,11 +2,11 @@ use super::*;
 use crate::version::{BuildMetadata, Prerelease};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Write};
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 /// custom version implementation to avoid compare build meta
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Version {
     pub major: u64,
     pub minor: u64,
@@ -93,6 +93,15 @@ impl FromParsingBuf for Version {
                 None => Err(ParseVersionError::invalid()),
             }
         }
+    }
+}
+
+impl Hash for Version {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.major.hash(state);
+        self.minor.hash(state);
+        self.patch.hash(state);
+        self.pre.hash(state);
     }
 }
 

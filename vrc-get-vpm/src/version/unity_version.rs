@@ -115,11 +115,11 @@ impl PartialOrd<Self> for UnityVersion {
 
 impl Ord for UnityVersion {
     fn cmp(&self, other: &Self) -> Ordering {
-        return major_ord(self.major(), other.major())
+        major_ord(self.major(), other.major())
             .then_with(|| self.minor().cmp(&other.minor()))
             .then_with(|| self.revision().cmp(&other.revision()))
             .then_with(|| self.type_().cmp(&other.type_()))
-            .then_with(|| self.increment().cmp(&other.increment()));
+            .then_with(|| self.increment().cmp(&other.increment()))
     }
 }
 

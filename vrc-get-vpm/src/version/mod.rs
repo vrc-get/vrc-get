@@ -76,6 +76,7 @@ mod parsing_buf;
 mod range;
 mod segment;
 mod unity_version;
+#[allow(clippy::module_inception)]
 mod version;
 
 use segment::Segment;

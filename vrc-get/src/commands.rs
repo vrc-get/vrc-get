@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use indexmap::IndexMap;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
-use reqwest::Url;
+use reqwest::{Client, Url};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::error::Error as StdError;
@@ -12,16 +12,12 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::{read_dir, remove_file};
-use vrc_get_vpm::structs::package::PackageJson;
-use vrc_get_vpm::structs::repository::Repository;
-use vrc_get_vpm::structs::setting::UserRepoSetting;
+use vrc_get_vpm::repository::RemoteRepository;
+use vrc_get_vpm::unity_project::AddPackageRequest;
 use vrc_get_vpm::version::Version;
-#[cfg(feature = "experimental-override-predefined")]
-use vrc_get_vpm::PreDefinedRepoSource;
-use vrc_get_vpm::{
-    download_remote_repository, AddPackageRequest, Environment, PackageInfo, PackageSelector,
-    UnityProject,
-};
+use vrc_get_vpm::UserRepoSetting;
+use vrc_get_vpm::{Environment, PackageCollection, PackageInfo, UnityProject, VersionSelector};
+use vrc_get_vpm::{HttpClient, PackageJson};
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -54,28 +50,32 @@ struct EnvArgs {
     no_update: bool,
 }
 
-async fn load_env(args: &EnvArgs) -> Environment {
+async fn load_env(args: &EnvArgs) -> Environment<Client> {
     let client = crate::create_client(args.offline);
     let mut env = Environment::load_default(client)
         .await
         .exit_context("loading global config");
 
+    #[cfg(feature = "experimental-override-predefined")]
+    if let Ok(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE") {
+        log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
+        env.set_official_url_override(
+            Url::parse(&url_override).expect("invalid url for VRC_GET_OFFICIAL_URL_OVERRIDE"),
+        );
+    }
+
+    #[cfg(feature = "experimental-override-predefined")]
+    if let Ok(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE") {
+        log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
+        env.set_curated_url_override(
+            Url::parse(&url_override).expect("invalid url for VRC_GET_CURATED_URL_OVERRIDE"),
+        );
+    }
+
     env.load_package_infos(!args.no_update)
         .await
         .exit_context("loading repositories");
     env.save().await.exit_context("saving repositories updates");
-
-    #[cfg(feature = "experimental-override-predefined")]
-    if let Some(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE").ok() {
-        log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_url_override(PreDefinedRepoSource::Official, url_override);
-    }
-
-    #[cfg(feature = "experimental-override-predefined")]
-    if let Some(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE").ok() {
-        log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_url_override(PreDefinedRepoSource::Curated, url_override);
-    }
 
     env
 }
@@ -87,11 +87,11 @@ async fn load_unity(path: Option<PathBuf>) -> UnityProject {
 }
 
 fn get_package<'env>(
-    env: &'env Environment,
+    env: &'env Environment<impl HttpClient>,
     name: &str,
-    selector: PackageSelector,
+    selector: VersionSelector,
 ) -> PackageInfo<'env> {
-    env.find_package_by_name(&name, selector)
+    env.find_package_by_name(name, selector)
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
 
@@ -109,7 +109,7 @@ async fn save_unity(unity: &mut UnityProject) {
     unity.save().await.exit_context("saving manifest file");
 }
 
-async fn save_env(env: &mut Environment) {
+async fn save_env(env: &mut Environment<impl HttpClient>) {
     env.save().await.exit_context("saving global config");
 }
 
@@ -142,13 +142,13 @@ fn confirm_prompt(msg: &str) -> bool {
 }
 
 fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: bool) {
-    if request.locked().len() == 0 && request.dependencies().len() == 0 {
+    if request.locked().is_empty() && request.dependencies().is_empty() {
         exit_with!("nothing to do")
     }
 
     let mut prompt = require_prompt;
 
-    if request.locked().len() != 0 {
+    if !request.locked().is_empty() {
         println!("You're installing the following packages:");
         for x in request.locked() {
             #[cfg(feature = "experimental-yank")]
@@ -164,7 +164,7 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = prompt || request.locked().len() > 1;
     }
 
-    if request.legacy_folders().len() != 0 || request.legacy_files().len() != 0 {
+    if !request.legacy_folders().is_empty() || !request.legacy_files().is_empty() {
         println!("You're removing the following legacy assets:");
         for x in request
             .legacy_folders()
@@ -176,7 +176,7 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = true;
     }
 
-    if request.legacy_packages().len() != 0 {
+    if !request.legacy_packages().is_empty() {
         println!("You're removing the following legacy packages:");
         for x in request.legacy_packages() {
             println!("- {}", x);
@@ -184,7 +184,7 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = true;
     }
 
-    if request.conflicts().len() != 0 {
+    if !request.conflicts().is_empty() {
         println!("**Those changes conflicts with the following packages**");
         for (package, conflicts) in request.conflicts() {
             println!("{package} conflicts with:");
@@ -195,7 +195,7 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
         prompt = true;
     }
 
-    if request.unity_conflicts().len() != 0 {
+    if !request.unity_conflicts().is_empty() {
         println!("**Those packages are incompatible with your unity version**");
         for package in request.unity_conflicts() {
             println!("- {package}");
@@ -206,10 +206,8 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
     if prompt {
         if yes {
             println!("--yes is set. skipping confirm");
-        } else {
-            if !confirm_prompt("Do you want to continue install?") {
-                exit(1);
-            }
+        } else if !confirm_prompt("Do you want to continue install?") {
+            exit(1);
         }
     }
 }
@@ -256,22 +254,12 @@ pub enum Command {
 
 multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Completion);
 
-const INSTALL_USAGE: &str = color_print::cstr!("
-      <bold>vrc-get install</>
-          installs all packages locked in vpm-manifest.json and dependencies of non-vpm managed embed packages
-
-      <bold>vrc-get install</> [OPTIONS] <<PACKAGE>>
-          installs the latest version of specified package
-
-      <bold>vrc-get upgrade</> [OPTIONS] <<PACKAGE>> <<VERSION>>
-          installs the specified version of specified package");
-
 /// Adds package to unity project
 ///
 /// With install command, you'll add to dependencies. With upgrade command,
 /// you'll upgrade dependencies or locked dependencies but not add to dependencies.
 #[derive(Parser)]
-#[command(author, version, override_usage = INSTALL_USAGE)]
+#[command(author, version)]
 pub struct Install {
     /// Name of Package
     #[arg()]
@@ -283,7 +271,7 @@ pub struct Install {
     #[arg(long = "prerelease")]
     prerelease: bool,
 
-    /// Path to project dir. by default working directory or parents of working directory will be used
+    /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
     #[command(flatten)]
@@ -301,8 +289,8 @@ impl Install {
 
         if let Some(name) = self.name {
             let version_selector = match self.version {
-                None => PackageSelector::latest_for(unity.unity_version(), self.prerelease),
-                Some(ref version) => PackageSelector::specific_version(version),
+                None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+                Some(ref version) => VersionSelector::specific_version(version),
             };
             let package = get_package(&env, &name, version_selector);
 
@@ -409,23 +397,23 @@ impl Outdated {
 
         let mut outdated_packages = HashMap::new();
 
-        let selector = PackageSelector::latest_for(unity.unity_version(), self.prerelease);
+        let selector = VersionSelector::latest_for(unity.unity_version(), self.prerelease);
 
-        for (name, dep) in unity.locked_packages() {
-            match env.find_package_by_name(name, selector) {
-                None => log::error!("package {} not found.", name),
+        for locked in unity.locked_packages() {
+            match env.find_package_by_name(locked.name(), selector) {
+                None => log::error!("latest version for package {} not found.", locked.name()),
                 // if found version is newer: add to outdated
-                Some(pkg) if dep.version < *pkg.version() => {
-                    outdated_packages.insert(pkg.name(), (pkg, &dep.version));
+                Some(pkg) if locked.version() < pkg.version() => {
+                    outdated_packages.insert(pkg.name(), (pkg, locked.version()));
                 }
                 Some(_) => (),
             }
         }
 
-        for (_, dependencies) in unity.all_dependencies() {
-            for (name, range) in dependencies {
+        for locked in unity.all_packages() {
+            for (name, range) in locked.dependencies() {
                 if let Some((outdated, _)) = outdated_packages.get(name.as_str()) {
-                    if !range.matches(&outdated.version()) {
+                    if !range.matches(outdated.version()) {
                         outdated_packages.remove(name.as_str());
                     }
                 }
@@ -465,23 +453,12 @@ impl Outdated {
     }
 }
 
-const UPGRADE_USAGE: &str = color_print::cstr!("
-      <bold>vrc-get upgrade</>
-          upgrades all packages to the latest
-
-      <bold>vrc-get upgrade</> [OPTIONS] <<PACKAGE>>
-          upgrade specified package to the latest
-
-      <bold>vrc-get upgrade</> [OPTIONS] <<PACKAGE>> <<VERSION>>
-          upgrade specified package to the specified version");
-
 /// Upgrade specified package or all packages to latest or specified version.
 ///
-/// With install command, you'll add to dependencies.
-/// With upgrade command,
+/// With install command, you'll add to dependencies. With upgrade command,
 /// you'll upgrade dependencies or locked dependencies but not add to dependencies.
 #[derive(Parser)]
-#[command(author, version, override_usage = UPGRADE_USAGE)]
+#[command(author, version)]
 pub struct Upgrade {
     /// Name of Package
     #[arg()]
@@ -512,8 +489,8 @@ impl Upgrade {
 
         let updates = if let Some(name) = self.name {
             let version_selector = match self.version {
-                None => PackageSelector::latest_for(unity.unity_version(), self.prerelease),
-                Some(ref version) => PackageSelector::specific_version(version),
+                None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+                Some(ref version) => VersionSelector::specific_version(version),
             };
             let package = get_package(&env, &name, version_selector);
 
@@ -522,14 +499,13 @@ impl Upgrade {
             vec![package]
         } else {
             let version_selector =
-                PackageSelector::latest_for(unity.unity_version(), self.prerelease);
+                VersionSelector::latest_for(unity.unity_version(), self.prerelease);
 
             require_prompt = true;
 
             unity
                 .locked_packages()
-                .keys()
-                .map(|name| get_package(&env, &name, version_selector))
+                .map(|locked| get_package(&env, locked.name(), version_selector))
                 .collect()
         };
 
@@ -543,7 +519,7 @@ impl Upgrade {
         let updates = request
             .locked()
             .iter()
-            .map(|x| (x.name().clone(), x.version().clone()))
+            .map(|x| (x.name(), x.version().clone()))
             .collect::<Vec<_>>();
 
         unity
@@ -586,9 +562,9 @@ impl Search {
         fn search_targets(pkg: &PackageJson) -> Vec<String> {
             let mut sources = Vec::with_capacity(3);
 
-            sources.push(pkg.name.as_str().to_ascii_lowercase());
-            sources.extend(pkg.display_name.as_deref().map(|x| x.to_ascii_lowercase()));
-            sources.extend(pkg.description.as_deref().map(|x| x.to_ascii_lowercase()));
+            sources.push(pkg.name().to_ascii_lowercase());
+            sources.extend(pkg.display_name().map(|x| x.to_ascii_lowercase()));
+            sources.extend(pkg.description().map(|x| x.to_ascii_lowercase()));
 
             sources
         }
@@ -606,13 +582,13 @@ impl Search {
             println!("No matching package found!")
         } else {
             for x in found_packages {
-                if let Some(name) = &x.display_name {
-                    println!("{} version {}", name, x.version);
-                    println!("({})", x.name);
+                if let Some(name) = x.display_name() {
+                    println!("{} version {}", name, x.version());
+                    println!("({})", x.name());
                 } else {
-                    println!("{} version {}", x.name, x.version);
+                    println!("{} version {}", x.name(), x.version());
                 }
-                if let Some(description) = &x.description {
+                if let Some(description) = x.description() {
                     println!("{}", description);
                 }
                 println!();
@@ -646,12 +622,14 @@ impl RepoList {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
 
-        for (local_path, repo) in env.get_repo_with_path() {
+        for (local_path, repo) in env.get_repos() {
             println!(
                 "{}: {} (from {} at {})",
-                repo.id().or(repo.url()).unwrap_or("(no id)"),
+                repo.id()
+                    .or(repo.url().map(Url::as_str))
+                    .unwrap_or("(no id)"),
                 repo.name().unwrap_or("(unnamed)"),
-                repo.url().unwrap_or("(no remote)"),
+                repo.url().map(Url::as_str).unwrap_or("(no remote)"),
                 local_path.display(),
             );
         }
@@ -684,7 +662,7 @@ impl FromStr for HeaderPair {
     type Err = HeaderPairErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (name, value) = s.split_once(":").ok_or(HeaderPairErr::NoComma)?;
+        let (name, value) = s.split_once(':').ok_or(HeaderPairErr::NoComma)?;
         Ok(HeaderPair(name.parse()?, value.parse()?))
     }
 }
@@ -814,10 +792,10 @@ impl Display for RepoSearcher {
 impl RepoSearcher {
     fn get(self, repo: &UserRepoSetting) -> Option<&OsStr> {
         match self {
-            RepoSearcher::Id => repo.id.as_deref().map(|x| OsStr::new(x)),
-            RepoSearcher::Url => repo.url.as_deref().map(|x| OsStr::new(x)),
-            RepoSearcher::Name => repo.name.as_deref().map(|x| OsStr::new(x)),
-            RepoSearcher::Path => Some(repo.local_path.as_os_str()),
+            RepoSearcher::Id => repo.id().map(OsStr::new),
+            RepoSearcher::Url => repo.url().map(|x| OsStr::new(x.as_str())),
+            RepoSearcher::Name => repo.name().map(OsStr::new),
+            RepoSearcher::Path => Some(repo.local_path().as_os_str()),
         }
     }
 }
@@ -830,10 +808,7 @@ impl RepoRemove {
         let finder = OsStr::new(self.finder.as_str());
         let searcher = self.searcher.as_searcher();
 
-        let count = env
-            .remove_repo(|x| searcher.get(x) == Some(finder))
-            .await
-            .exit_context("removing repository");
+        let count = env.remove_repo(|x| searcher.get(x) == Some(finder)).await;
 
         println!("removed {} repositories with {}", count, searcher);
 
@@ -843,7 +818,7 @@ impl RepoRemove {
 
 /// Cleanup repositories in Repos directory
 ///
-/// The official VPM CLI will add <uuid>.json in the Repos directory even if error occurs.
+/// The official VPM CLI will add &lt;uuid&gt;.json in the Repos directory even if error occurs.
 /// So this command will cleanup Repos directory.
 #[derive(Parser)]
 #[command(author, version)]
@@ -863,8 +838,8 @@ impl RepoCleanup {
         ];
         let repos_base = env.get_repos_dir();
 
-        for x in env.get_user_repos().exit_context("reading user repos") {
-            if let Ok(relative) = x.local_path.strip_prefix(&repos_base) {
+        for x in env.get_user_repos() {
+            if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
                 if let Some(file_name) = relative.file_name() {
                     if relative
                         .parent()
@@ -908,39 +883,39 @@ pub struct RepoPackages {
 
 impl RepoPackages {
     pub async fn run(self) {
-        fn print_repo<'a>(packages: &Repository) {
+        fn print_repo(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
-                if let Some((_, pkg)) = versions.versions.iter().max_by_key(|(_, pkg)| &pkg.version)
-                {
-                    let package = &pkg.name;
-                    if let Some(display_name) = &pkg.display_name {
-                        println!("{} | {}", display_name, package);
+                if let Some(pkg) = versions.get_latest() {
+                    if let Some(display_name) = pkg.display_name() {
+                        println!("{} | {}", display_name, pkg.name());
                     } else {
-                        println!("{}", package);
+                        println!("{}", pkg.name());
                     }
-                    if let Some(description) = &pkg.description {
+                    if let Some(description) = pkg.description() {
                         println!("{}", description);
                     }
-                    let mut versions = versions.versions.values().collect::<Vec<_>>();
-                    versions.sort_by_key(|pkg| &pkg.version);
+                    let mut versions = versions.all_versions().collect::<Vec<_>>();
+                    versions.sort_by_key(|pkg| pkg.version());
                     for pkg in &versions {
-                        println!("{}: {}", pkg.version, pkg.url);
+                        println!(
+                            "{}: {}",
+                            pkg.version(),
+                            pkg.url().map(|x| x.as_str()).unwrap_or("<no url>")
+                        );
                     }
                     println!();
                 }
             }
         }
 
-        if let Some(url) = Url::parse(&self.name_or_url).ok() {
+        if let Ok(url) = Url::parse(&self.name_or_url) {
             if self.env_args.offline {
                 exit_with!("remote repository specified but offline mode.");
             }
             let client = crate::create_client(self.env_args.offline).unwrap();
-            let repo = download_remote_repository(&client, url, None, None)
+            let (repo, _) = RemoteRepository::download(&client, &url, &IndexMap::new())
                 .await
-                .exit_context("downloading repository")
-                .unwrap()
-                .0;
+                .exit_context("downloading repository");
 
             print_repo(&repo);
         } else {
@@ -949,7 +924,7 @@ impl RepoPackages {
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
 
-            for repo in env.get_repos() {
+            for (_, repo) in env.get_repos() {
                 if repo.name() == some_name {
                     print_repo(repo.repo());
                     found = true;
@@ -973,7 +948,7 @@ impl Completion {
         use clap::CommandFactory;
         use std::env::args;
 
-        let Some(shell) = self.shell.or_else(|| clap_complete::Shell::from_env()) else {
+        let Some(shell) = self.shell.or_else(clap_complete::Shell::from_env) else {
             exit_with!("shell not specified")
         };
         let mut bin_name = args().next().expect("bin name");

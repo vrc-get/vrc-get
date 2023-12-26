@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::PathBuf;
 use vrc_get_vpm::version::{UnityVersion, Version, VersionRange};
-use vrc_get_vpm::UnityProject;
+use vrc_get_vpm::{PackageCollection, UnityProject};
 
 /// Shows information for other program.
 #[derive(Subcommand)]
@@ -58,16 +58,22 @@ impl Project {
         }
         eprintln!();
         eprintln!("Locked Packages:");
-        for (package, locked) in unity.locked_packages() {
-            if let Some(installed) = unity.get_installed_package(package).map(|x| &x.version) {
+        for locked in unity.locked_packages() {
+            if let Some(installed) = unity
+                .get_installed_package(locked.name())
+                .map(|x| x.version())
+            {
                 eprintln!(
-                    "{package} version {locked} with installed version {installed}",
-                    locked = locked.version
+                    "{package} version {version} with installed version {installed}",
+                    package = locked.name(),
+                    version = locked.version(),
+                    installed = installed,
                 );
             } else {
                 eprintln!(
-                    "{package} version {locked} not installed",
-                    locked = locked.version
+                    "{package} version {version} not installed",
+                    package = locked.name(),
+                    version = locked.version(),
                 );
             }
         }
@@ -79,7 +85,7 @@ impl Project {
             if let Some(installed) = installed {
                 eprintln!(
                     "{package} version {installed}",
-                    installed = installed.version
+                    installed = installed.version()
                 );
             }
         }
@@ -102,11 +108,13 @@ impl Project {
 
         let mut packages = vec![];
 
-        for (package, locked) in unity.locked_packages() {
+        for locked in unity.locked_packages() {
             packages.push(PackageInfo {
-                name: package,
-                installed: unity.get_installed_package(package).map(|x| &x.version),
-                locked: Some(&locked.version),
+                name: locked.name(),
+                installed: unity
+                    .get_installed_package(locked.name())
+                    .map(|x| x.version()),
+                locked: Some(locked.version()),
                 requested: vec![], // TODO: add requests from locked packages
             });
         }
@@ -115,7 +123,7 @@ impl Project {
             if let Some(installed) = installed {
                 packages.push(PackageInfo {
                     name: package,
-                    installed: Some(&installed.version),
+                    installed: Some(installed.version()),
                     locked: None,
                     requested: vec![],
                 });
@@ -124,19 +132,18 @@ impl Project {
 
         let unlocked_names: HashSet<_> = unity
             .unlocked_packages()
-            .into_iter()
+            .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
-            .map(|x| x.name.as_str())
+            .map(|x| x.name())
             .collect();
 
         let unlocked_dependencies = unity
             .unlocked_packages()
-            .into_iter()
+            .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
-            .flat_map(|pkg| &pkg.vpm_dependencies)
-            .filter(|(k, _)| !unity.locked_packages().contains_key(k.as_str()))
+            .flat_map(|pkg| pkg.vpm_dependencies())
+            .filter(|(k, _)| !unity.is_locked(k.as_str()))
             .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
-            .map(|(k, v)| (k, v))
             .into_group_map();
         for (package, requested) in unlocked_dependencies {
             packages.push(PackageInfo {
@@ -185,10 +192,8 @@ impl Package {
 
         debug_assert_eq!(format_version, 1);
 
-        let packages = env.find_packages(&self.package);
-
-        let versions: Vec<_> = packages
-            .iter()
+        let versions: Vec<_> = env
+            .find_packages(&self.package)
             .map(|x| PackageVersionInfo {
                 version: x.version(),
                 // since 1.5.0

@@ -206,7 +206,7 @@ fn parse_id<'a>(
         }
     }
 
-    if bytes.buf.len() == 0 {
+    if bytes.buf.is_empty() {
         Ok(buf)
     } else {
         let len = bytes.buf.as_ptr() as usize - buf.as_ptr() as usize;
