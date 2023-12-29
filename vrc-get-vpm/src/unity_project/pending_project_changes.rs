@@ -42,7 +42,7 @@ impl<'env> PackageChange<'env> {
         }
     }
 
-    pub fn as_rmeove(&self) -> Option<&Remove<'env>> {
+    pub fn as_remove(&self) -> Option<&Remove<'env>> {
         match self {
             PackageChange::Install(_) => None,
             PackageChange::Remove(x) => Some(x),
