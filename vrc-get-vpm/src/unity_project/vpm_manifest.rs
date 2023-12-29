@@ -1,7 +1,6 @@
 use crate::version::DependencyRange;
 use serde::{Deserialize, Serialize};
 use serde_json::to_vec_pretty;
-use std::collections::VecDeque;
 
 use super::*;
 
@@ -100,57 +99,5 @@ impl VpmManifest {
             tokio::fs::write(file, &to_vec_pretty(&self.as_json)?).await?;
         }
         Ok(())
-    }
-
-    pub(crate) fn mark_and_sweep_packages(
-        &mut self,
-        unlocked: &[(String, Option<PackageJson>)],
-    ) -> HashSet<String> {
-        // mark
-        let mut required_packages = HashSet::<&str>::new();
-        for x in self.as_json.dependencies.keys() {
-            required_packages.insert(x);
-        }
-
-        required_packages.extend(
-            unlocked
-                .iter()
-                .filter_map(|(_, pkg)| pkg.as_ref())
-                .flat_map(|x| x.vpm_dependencies().keys())
-                .map(String::as_str),
-        );
-
-        let mut queue = required_packages.iter().copied().collect::<VecDeque<_>>();
-
-        while let Some(dep_name) = queue.pop_back() {
-            for dep_name in self
-                .as_json
-                .locked
-                .get(dep_name)
-                .into_iter()
-                .flat_map(|dep| dep.dependencies.keys())
-            {
-                if required_packages.insert(dep_name) {
-                    queue.push_front(dep_name);
-                }
-            }
-        }
-
-        // sweep
-        let removing_packages = self
-            .as_json
-            .locked
-            .keys()
-            .filter(|&x| !required_packages.contains(x.as_str()))
-            .cloned()
-            .collect::<HashSet<_>>();
-
-        //log::debug!("removing: {removing_packages:?}");
-
-        for name in &removing_packages {
-            self.as_json.locked.remove(name);
-        }
-
-        removing_packages
     }
 }

@@ -10,14 +10,12 @@ use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
 use crate::{Environment, VersionSelector};
-use futures::future::try_join_all;
-use futures::prelude::*;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::{env, fmt, io};
-use tokio::fs::{read_dir, remove_dir_all, DirEntry, File};
+use tokio::fs::{read_dir, DirEntry, File};
 use tokio::io::AsyncReadExt;
 
 // note: this module only declares basic small operations.
@@ -341,26 +339,6 @@ impl UnityProject {
         }
 
         Ok(())
-    }
-
-    /// Remove specified package from self project.
-    ///
-    /// This doesn't look packages not listed in vpm-maniefst.json.
-    pub async fn mark_and_sweep(&mut self) -> io::Result<HashSet<String>> {
-        let removed_packages = self
-            .manifest
-            .mark_and_sweep_packages(&self.unlocked_packages);
-
-        try_join_all(removed_packages.iter().map(|name| {
-            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
-                Ok(()) => Ok(()),
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
-                Err(e) => Err(e),
-            })
-        }))
-        .await?;
-
-        Ok(removed_packages)
     }
 }
 
