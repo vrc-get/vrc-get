@@ -96,7 +96,7 @@ impl UnityProject {
         }
 
         for (package, conflicts_with) in result.conflicts {
-            changes.conflicts(package, &conflicts_with);
+            changes.conflict_multiple(package, conflicts_with);
         }
 
         for name in result

@@ -191,12 +191,21 @@ impl<'env> Builder<'env> {
         self
     }
 
-    pub fn conflicts(&mut self, name: String, conflict: &[String]) -> &mut Self {
+    pub fn conflict_multiple(&mut self, name: String, conflict: impl IntoIterator<Item = String>) -> &mut Self {
         self.conflicts
             .entry(name)
             .or_default()
             .conflicts_packages
-            .extend_from_slice(conflict);
+            .extend(conflict);
+        self
+    }
+
+    pub fn conflicts(&mut self, name: String, conflict: String) -> &mut Self {
+        self.conflicts
+            .entry(name)
+            .or_default()
+            .conflicts_packages
+            .push(conflict);
         self
     }
 

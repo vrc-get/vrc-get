@@ -1,9 +1,10 @@
-use crate::utils::*;
 use crate::UnityProject;
-use futures::future::try_join_all;
-use futures::prelude::*;
 use std::{fmt, io};
-use tokio::fs::remove_dir_all;
+use itertools::Itertools;
+use crate::environment::EmptyEnvironment;
+
+use crate::unity_project::{pending_project_changes, PendingProjectChanges};
+use crate::unity_project::pending_project_changes::RemoveReason;
 
 // removing package
 impl UnityProject {
@@ -11,12 +12,29 @@ impl UnityProject {
     ///
     /// This doesn't look packages not listed in vpm-maniefst.json.
     pub async fn remove(&mut self, names: &[&str]) -> Result<(), RemovePackageErr> {
+        let changes = self.remove_request(names).await?;
+
+        let values = changes.conflicts().values().flat_map(|x| x.conflicting_packages()).cloned().collect_vec();
+
+        if !values.is_empty() {
+            return Err(RemovePackageErr::ConflictsWith(values))
+        }
+
+        self.apply_pending_changes(&EmptyEnvironment, changes).await?;
+
+        Ok(())
+    }
+
+    /// Remove specified package from self project.
+    ///
+    /// This doesn't look packages not listed in vpm-maniefst.json.
+    pub async fn remove_request(&self, remove: &[&str]) -> Result<PendingProjectChanges<'static>, RemovePackageErr> {
         use RemovePackageErr::*;
 
         // check for existence
 
         let mut not_founds = Vec::new();
-        for name in names.iter().copied() {
+        for name in remove.iter().copied() {
             if self.manifest.get_locked(name).is_none() {
                 not_founds.push(name.to_owned());
             }
@@ -26,32 +44,26 @@ impl UnityProject {
             return Err(NotInstalled(not_founds));
         }
 
+        let mut changes = pending_project_changes::Builder::new();
+
         // check for conflicts: if some package requires some packages to be removed, it's conflict.
 
-        let conflicts = self
-            .all_packages()
-            .filter(|dep| !names.contains(&dep.name()))
-            .filter(|dep| names.iter().any(|x| dep.dependencies().contains_key(*x)))
-            .map(|dep| String::from(dep.name()))
-            .collect::<Vec<_>>();
-
-        if !conflicts.is_empty() {
-            return Err(ConflictsWith(conflicts));
+        for dep in self.all_packages().filter(|dep| !remove.contains(&dep.name())) {
+            // TODO: do not conflict if this package is legacy package of installed packages
+            for &to_remove in remove {
+                if dep.dependencies().contains_key(to_remove) {
+                    changes.conflicts(String::from(to_remove), String::from(dep.name()));
+                }
+            }
         }
 
         // there's no conflicts. So do remove
 
-        self.manifest.remove_packages(names.iter().copied());
-        try_join_all(names.iter().map(|name| {
-            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
-                Ok(()) => Ok(()),
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
-                Err(e) => Err(e),
-            })
-        }))
-        .await?;
+        for x in remove {
+            changes.remove(x.to_string(), RemoveReason::Requested);
+        }
 
-        Ok(())
+        Ok(changes.build_resolve(self).await)
     }
 }
 
