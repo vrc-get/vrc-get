@@ -1,31 +1,20 @@
-use std::{fmt, io};
-use std::collections::HashSet;
-use itertools::Itertools;
-use crate::unity_project::{AddPackageErr, package_resolution, pending_project_changes, PendingProjectChanges};
+use crate::unity_project::{
+    package_resolution, pending_project_changes, AddPackageErr, PendingProjectChanges,
+};
 use crate::{Environment, HttpClient, PackageCollection, UnityProject, VersionSelector};
+use itertools::Itertools;
+use std::collections::HashSet;
+use std::fmt;
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum ResolvePackageErr {
-    Io(io::Error),
-    ConflictWithDependencies {
-        /// conflicting package name
-        conflict: String,
-        /// the name of locked package
-        dependency_name: String,
-    },
-    DependencyNotFound {
-        dependency_name: String,
-    },
+    DependencyNotFound { dependency_name: String },
 }
 
 impl fmt::Display for ResolvePackageErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ResolvePackageErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            ResolvePackageErr::ConflictWithDependencies {
-                conflict,
-                dependency_name,
-            } => write!(f, "{conflict} conflicts with {dependency_name}"),
             ResolvePackageErr::DependencyNotFound { dependency_name } => write!(
                 f,
                 "Package {dependency_name} (maybe dependencies of the package) not found"
@@ -35,12 +24,6 @@ impl fmt::Display for ResolvePackageErr {
 }
 
 impl std::error::Error for ResolvePackageErr {}
-
-impl From<io::Error> for ResolvePackageErr {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value)
-    }
-}
 
 impl From<AddPackageErr> for ResolvePackageErr {
     fn from(value: AddPackageErr) -> Self {
@@ -118,9 +101,9 @@ impl UnityProject {
                     pkg_name,
                     VersionSelector::ranges_for(self.unity_version, &ranges),
                 )
-                    .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                        dependency_name: pkg_name.clone(),
-                    })
+                .ok_or_else(|| AddPackageErr::DependencyNotFound {
+                    dependency_name: pkg_name.clone(),
+                })
             })
             .collect::<Result<Vec<_>, _>>()?;
 

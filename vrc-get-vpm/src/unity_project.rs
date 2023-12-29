@@ -21,8 +21,8 @@ use tokio::io::AsyncReadExt;
 // there are module for each complex operations.
 
 pub use add_package::AddPackageErr;
-pub use resolve::ResolvePackageErr;
 pub use pending_project_changes::PendingProjectChanges;
+pub use resolve::ResolvePackageErr;
 
 #[derive(Debug)]
 pub struct UnityProject {
