@@ -92,7 +92,7 @@ impl UnityProject {
         )?;
 
         for x in result.new_packages {
-            changes.install_locked(x);
+            changes.install_to_locked(x);
         }
 
         for (package, conflicts_with) in result.conflicts {

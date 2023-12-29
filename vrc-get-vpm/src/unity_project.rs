@@ -24,7 +24,6 @@ use tokio::io::AsyncReadExt;
 // there are module for each complex operations.
 
 use crate::traits::{HttpClient, PackageCollection};
-use crate::unity_project::add_package::add_package;
 use crate::unity_project::pending_project_changes::PackageChange;
 pub use add_package::AddPackageErr;
 pub use pending_project_changes::PendingProjectChanges;
@@ -268,59 +267,12 @@ impl UnityProject {
         &mut self,
         env: &'env Environment<impl HttpClient>,
     ) -> Result<ResolveResult<'env>, ResolvePackageErr> {
-        // first, process locked dependencies
-        let this = self as &Self;
-        let packages_folder = &this.project_dir.join("Packages");
-        let installed_from_locked =
-            try_join_all(this.manifest.all_locked().map(|dep| async move {
-                let pkg = env
-                    .find_package_by_name(
-                        dep.name(),
-                        VersionSelector::specific_version(dep.version()),
-                    )
-                    .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
-                        dependency_name: dep.name().to_owned(),
-                    })?;
-                add_package(env, pkg, packages_folder).await?;
-                Result::<_, ResolvePackageErr>::Ok(pkg)
-            }))
-            .await?;
-
-        let unlocked_names: HashSet<_> = self
-            .unlocked_packages()
-            .iter()
-            .filter_map(|(_, pkg)| pkg.as_ref())
-            .map(|x| x.name())
-            .collect();
-
-        // then, process dependencies of unlocked packages.
-        let unlocked_dependencies = self
-            .unlocked_packages
-            .iter()
-            .filter_map(|(_, pkg)| pkg.as_ref())
-            .flat_map(|pkg| pkg.vpm_dependencies())
-            .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none())
-            .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
-            .into_group_map()
-            .into_iter()
-            .map(|(pkg_name, ranges)| {
-                env.find_package_by_name(
-                    pkg_name,
-                    VersionSelector::ranges_for(self.unity_version, &ranges),
-                )
-                .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
-                    dependency_name: pkg_name.clone(),
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let allow_prerelease = unlocked_dependencies
-            .iter()
-            .any(|x| !x.version().pre.is_empty());
-
-        let changes = self
-            .add_package_request(env, unlocked_dependencies, false, allow_prerelease)
-            .await?;
+        let changes = match self.resolve_request(env).await {
+            Ok(changes) => changes,
+            Err(AddPackageErr::DependencyNotFound { dependency_name }) => {
+                return Err(ResolvePackageErr::DependencyNotFound { dependency_name })
+            }
+        };
 
         if let Some((conflict, dep)) = changes
             .conflicts
@@ -334,21 +286,121 @@ impl UnityProject {
             });
         }
 
-        let installed_from_unlocked_dependencies = changes
-            .package_changes
-            .iter()
-            .filter_map(|(_, change)| match change {
-                PackageChange::Install(install) => install.install_package(),
-                PackageChange::Remove(_) => None,
-            })
-            .collect();
+        let mut installed_from_locked = Vec::new();
+        let mut installed_from_unlocked_dependencies = Vec::new();
 
-        self.apply_pending_changes(env, changes).await?;
+        for change in changes.package_changes.values() {
+            match change {
+                PackageChange::Install(install) if install.is_adding_to_locked() => {
+                    // adding to locked: for unlocked
+                    installed_from_unlocked_dependencies.push(install.install_package().unwrap());
+                },
+                PackageChange::Install(install) if install.install_package().is_some() => {
+                    // already in locked: for locked
+                    installed_from_locked.push(install.install_package().unwrap());
+                },
+                PackageChange::Install(_) => (),
+                PackageChange::Remove(_) => (),
+            }
+        }
 
         Ok(ResolveResult {
             installed_from_locked,
             installed_from_unlocked_dependencies,
         })
+    }
+
+    pub async fn resolve_request<'env>(
+        &mut self,
+        env: &'env Environment<impl HttpClient>,
+    ) -> Result<PendingProjectChanges<'env>, AddPackageErr> {
+        let mut changes = pending_project_changes::Builder::new();
+
+        // first, process locked dependencies
+        for dep in self.manifest.all_locked() {
+            let pkg = env
+                .find_package_by_name(dep.name(), VersionSelector::specific_version(dep.version()))
+                .ok_or_else(|| AddPackageErr::DependencyNotFound {
+                    dependency_name: dep.name().to_owned(),
+                })?;
+
+            changes.install_already_locked(pkg);
+        }
+
+        // then, process dependencies of unlocked packages.
+        self.resolve_unlocked(env, &mut changes)?;
+
+        Ok(changes.build_resolve(self).await)
+    }
+
+    fn resolve_unlocked<'env>(&self, env: &'env Environment<impl HttpClient>, changes: &mut pending_project_changes::Builder<'env>) -> Result<(), AddPackageErr> {
+        if self.unlocked_packages().is_empty() {
+            // if there are no unlocked packages, early return
+            return Ok(())
+        }
+
+        // set of packages already installed as unlocked
+        let unlocked_names: HashSet<_> = self
+            .unlocked_packages()
+            .iter()
+            .filter_map(|(_, pkg)| pkg.as_ref())
+            .map(|x| x.name())
+            .collect();
+
+        // then, process dependencies of unlocked packages.
+        let dependencies_of_unlocked_packages = self
+            .unlocked_packages
+            .iter()
+            .filter_map(|(_, pkg)| pkg.as_ref())
+            .flat_map(|pkg| pkg.vpm_dependencies());
+
+        let unlocked_dependencies_versions =
+            dependencies_of_unlocked_packages
+                .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none()) // skip if already installed to locked
+                .filter(|(k, _)| !unlocked_names.contains(k.as_str())) // skip if already installed as unlocked
+                .into_group_map();
+
+        if unlocked_dependencies_versions.is_empty() {
+            // if no dependencies are to be installed, early return
+            return Ok(())
+        }
+
+        let unlocked_dependencies = unlocked_dependencies_versions
+                .into_iter()
+                .map(|(pkg_name, ranges)| {
+                    env.find_package_by_name(
+                        pkg_name,
+                        VersionSelector::ranges_for(self.unity_version, &ranges),
+                    )
+                        .ok_or_else(|| AddPackageErr::DependencyNotFound {
+                            dependency_name: pkg_name.clone(),
+                        })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+
+        let allow_prerelease = unlocked_dependencies
+            .iter()
+            .any(|x| !x.version().pre.is_empty());
+
+        let result = package_resolution::collect_adding_packages(
+            self.manifest.dependencies(),
+            self.manifest.all_locked(),
+            |pkg| self.manifest.get_locked(pkg),
+            self.unity_version(),
+            env,
+            unlocked_dependencies,
+            allow_prerelease,
+        )?;
+
+        for x in result.new_packages {
+            changes.install_to_locked(x);
+        }
+
+        for (package, conflicts_with) in result.conflicts {
+            changes.conflicts(package, &conflicts_with);
+        }
+
+        Ok(())
     }
 
     /// Remove specified package from self project.
