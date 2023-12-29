@@ -268,8 +268,9 @@ mod info;
 #[derive(Parser)]
 #[command(author, version, about)]
 pub enum Command {
-    #[command(alias = "i", alias = "resolve")]
+    #[command(alias = "i")]
     Install(Install),
+    Resolve(Resolve),
     #[command(alias = "rm")]
     Remove(Remove),
     Update(Update),
@@ -284,7 +285,7 @@ pub enum Command {
     Completion(Completion),
 }
 
-multi_command!(Command is Install, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Completion);
+multi_command!(Command is Install, Resolve, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Completion);
 
 /// Adds package to unity project
 ///
@@ -316,46 +317,77 @@ pub struct Install {
 
 impl Install {
     pub async fn run(self) {
+        let Some(name) = self.name else {
+            // if resolve
+            return Resolve {
+                project: self.project,
+                env_args: self.env_args,
+            }
+            .run()
+            .await;
+        };
+
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
-        if let Some(name) = self.name {
-            let version_selector = match self.version {
-                None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
-                Some(ref version) => VersionSelector::specific_version(version),
-            };
-            let package = get_package(&env, &name, version_selector);
+        let version_selector = match self.version {
+            None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+            Some(ref version) => VersionSelector::specific_version(version),
+        };
+        let package = get_package(&env, &name, version_selector);
 
-            let changes = unity
-                .add_package_request(&env, vec![package], true, self.prerelease)
-                .await
-                .exit_context("collecting packages to be installed");
+        let changes = unity
+            .add_package_request(&env, vec![package], true, self.prerelease)
+            .await
+            .exit_context("collecting packages to be installed");
 
-            print_prompt_install(&changes, self.yes, false);
+        print_prompt_install(&changes, self.yes, false);
 
-            unity
-                .apply_pending_changes(&env, changes)
-                .await
-                .exit_context("adding package");
-        } else {
-            let resolve_result = unity.resolve(&env).await.exit_context("resolving packages");
-            #[cfg(feature = "experimental-yank")]
-            for installed in resolve_result.installed_from_locked() {
-                if installed.is_yanked() {
-                    eprintln!(
-                        "WARN: {} version {} is yanked",
-                        installed.name(),
-                        installed.version()
-                    );
-                }
-            }
-            for installed in resolve_result.installed_from_unlocked_dependencies() {
-                println!(
-                    "installed {} version {} from dependencies of unlocked packages",
+        unity
+            .apply_pending_changes(&env, changes)
+            .await
+            .exit_context("adding package");
+
+        unity.save().await.exit_context("saving manifest file");
+    }
+}
+
+/// (re)installs all locked packages
+///
+/// If some install packages that is not locked depends on non installed packages,
+/// This command tries to install those packages.
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Resolve {
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<PathBuf>,
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl Resolve {
+    pub async fn run(self) {
+        let env = load_env(&self.env_args).await;
+        let mut unity = load_unity(self.project).await;
+
+        let resolve_result = unity.resolve(&env).await.exit_context("resolving packages");
+        #[cfg(feature = "experimental-yank")]
+        for installed in resolve_result.installed_from_locked() {
+            if installed.is_yanked() {
+                eprintln!(
+                    "WARN: {} version {} is yanked",
                     installed.name(),
                     installed.version()
                 );
             }
+        }
+        for installed in resolve_result.installed_from_unlocked_dependencies() {
+            println!(
+                "installed {} version {} from dependencies of unlocked packages",
+                installed.name(),
+                installed.version()
+            );
         }
 
         unity.save().await.exit_context("saving manifest file");
