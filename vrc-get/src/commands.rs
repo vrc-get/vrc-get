@@ -143,7 +143,6 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
     let mut removed = Vec::new();
 
     for (name, change) in changes.package_changes() {
-        #[deny(clippy::wildcard_enum_match_arm)]
         match change {
             PackageChange::Install(change) => {
                 if let Some(package) = change.install_package() {
@@ -186,7 +185,6 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
         println!("You're removing the following legacy:");
         removed.sort_by_key(|(reason, _)| *reason);
         for (reason, name) in removed {
-            #[deny(clippy::wildcard_enum_match_arm)]
             let reason_name = match reason {
                 RemoveReason::Requested => "requested",
                 RemoveReason::Legacy => "legacy",
