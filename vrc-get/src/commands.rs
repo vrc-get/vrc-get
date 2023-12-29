@@ -13,7 +13,8 @@ use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::{read_dir, remove_file};
 use vrc_get_vpm::repository::RemoteRepository;
-use vrc_get_vpm::unity_project::AddPackageRequest;
+use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
+use vrc_get_vpm::unity_project::PendingProjectChanges;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::UserRepoSetting;
 use vrc_get_vpm::{Environment, PackageCollection, PackageInfo, UnityProject, VersionSelector};
@@ -141,16 +142,34 @@ fn confirm_prompt(msg: &str) -> bool {
     _impl(msg).unwrap_or(false)
 }
 
-fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: bool) {
-    if request.locked().is_empty() && request.dependencies().is_empty() {
+fn print_prompt_install(changes: &PendingProjectChanges, yes: bool, require_prompt: bool) {
+    if changes.package_changes().is_empty() {
         exit_with!("nothing to do")
     }
 
     let mut prompt = require_prompt;
 
-    if !request.locked().is_empty() {
+    let mut newly_installed = Vec::new();
+    let mut removed = Vec::new();
+
+    for (name, change) in changes.package_changes() {
+        #[deny(clippy::wildcard_enum_match_arm)]
+        match change {
+            PackageChange::Install(change) => {
+                if let Some(package) = change.install_package() {
+                    newly_installed.push(package);
+                }
+            }
+            PackageChange::Remove(change) => {
+                removed.push((change.reason(), name));
+            }
+            _ => {}
+        }
+    }
+
+    if !newly_installed.is_empty() {
         println!("You're installing the following packages:");
-        for x in request.locked() {
+        for x in &newly_installed {
             #[cfg(feature = "experimental-yank")]
             if x.is_yanked() {
                 prompt = true;
@@ -161,46 +180,69 @@ fn print_prompt_install(request: &AddPackageRequest, yes: bool, require_prompt: 
             #[cfg(not(feature = "experimental-yank"))]
             println!("- {} version {}", x.name(), x.version());
         }
-        prompt = prompt || request.locked().len() > 1;
+        prompt = prompt || newly_installed.len() > 1;
     }
 
-    if !request.legacy_folders().is_empty() || !request.legacy_files().is_empty() {
+    if !changes.remove_legacy_folders().is_empty() || !changes.remove_legacy_files().is_empty() {
         println!("You're removing the following legacy assets:");
-        for x in request
-            .legacy_folders()
+        for x in changes
+            .remove_legacy_folders()
             .iter()
-            .chain(request.legacy_files())
+            .chain(changes.remove_legacy_files())
         {
             println!("- {}", x.display());
         }
         prompt = true;
     }
 
-    if !request.legacy_packages().is_empty() {
-        println!("You're removing the following legacy packages:");
-        for x in request.legacy_packages() {
-            println!("- {}", x);
+    if !removed.is_empty() {
+        println!("You're removing the following legacy:");
+        removed.sort_by_key(|(reason, _)| *reason);
+        for (reason, name) in removed {
+            #[deny(clippy::wildcard_enum_match_arm)]
+            let reason_name = match reason {
+                RemoveReason::Requested => "requested",
+                RemoveReason::Legacy => "legacy",
+                RemoveReason::Unused => "unused",
+                _ => unreachable!(),
+            };
+            println!("- {} (removed since {})", name, reason_name);
         }
         prompt = true;
     }
 
-    if !request.conflicts().is_empty() {
-        println!("**Those changes conflicts with the following packages**");
-        for (package, conflicts) in request.conflicts() {
-            println!("{package} conflicts with:");
-            for conflict in conflicts {
-                println!("- {conflict}");
+    // process package conflicts
+    {
+        let mut conflicts = (changes.conflicts().iter())
+            .filter(|(_, conflicts)| !conflicts.conflicting_packages().is_empty())
+            .peekable();
+
+        if conflicts.peek().is_some() {
+            println!("**Those changes conflicts with the following packages**");
+
+            for (package, conflicts) in conflicts {
+                println!("{package} conflicts with:");
+                for conflict in conflicts.conflicting_packages() {
+                    println!("- {conflict}");
+                }
+                prompt = true;
             }
         }
-        prompt = true;
     }
 
-    if !request.unity_conflicts().is_empty() {
-        println!("**Those packages are incompatible with your unity version**");
-        for package in request.unity_conflicts() {
-            println!("- {package}");
+    // process unity conflicts
+    {
+        let mut unity_conflicts = (changes.conflicts().iter())
+            .filter(|(_, conflicts)| conflicts.conflicts_with_unity())
+            .map(|(package, _)| package)
+            .peekable();
+
+        if unity_conflicts.peek().is_some() {
+            println!("**Those packages are incompatible with your unity version**");
+            for package in unity_conflicts {
+                println!("- {}", package);
+            }
         }
-        prompt = true;
     }
 
     if prompt {
@@ -294,15 +336,15 @@ impl Install {
             };
             let package = get_package(&env, &name, version_selector);
 
-            let request = unity
+            let changes = unity
                 .add_package_request(&env, vec![package], true, self.prerelease)
                 .await
                 .exit_context("collecting packages to be installed");
 
-            print_prompt_install(&request, self.yes, false);
+            print_prompt_install(&changes, self.yes, false);
 
             unity
-                .do_add_package_request(&env, request)
+                .apply_pending_changes(&env, changes)
                 .await
                 .exit_context("adding package");
 
@@ -509,21 +551,21 @@ impl Upgrade {
                 .collect()
         };
 
-        let request = unity
+        let changes = unity
             .add_package_request(&env, updates, false, self.prerelease)
             .await
             .exit_context("collecting packages to be upgraded");
 
-        print_prompt_install(&request, self.yes, require_prompt);
+        print_prompt_install(&changes, self.yes, require_prompt);
 
-        let updates = request
-            .locked()
-            .iter()
-            .map(|x| (x.name(), x.version().clone()))
+        let updates = (changes.package_changes().iter())
+            .filter_map(|(_, x)| x.as_install())
+            .filter_map(|x| x.install_package())
+            .map(|x| (x.name().to_owned(), x.version().clone()))
             .collect::<Vec<_>>();
 
         unity
-            .do_add_package_request(&env, request)
+            .apply_pending_changes(&env, changes)
             .await
             .exit_context("upgrading packages");
 

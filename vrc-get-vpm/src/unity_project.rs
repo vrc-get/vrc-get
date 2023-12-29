@@ -1,5 +1,7 @@
 mod add_package;
+mod find_legacy_assets;
 mod package_resolution;
+pub mod pending_project_changes;
 mod remove_package;
 mod vpm_manifest;
 
@@ -23,7 +25,9 @@ use tokio::io::AsyncReadExt;
 
 use crate::traits::{HttpClient, PackageCollection};
 use crate::unity_project::add_package::add_package;
-pub use add_package::{AddPackageErr, AddPackageRequest};
+use crate::unity_project::pending_project_changes::PackageChange;
+pub use add_package::AddPackageErr;
+pub use pending_project_changes::PendingProjectChanges;
 
 #[derive(Debug)]
 pub struct UnityProject {
@@ -314,21 +318,32 @@ impl UnityProject {
             .iter()
             .any(|x| !x.version().pre.is_empty());
 
-        let req = self
+        let changes = self
             .add_package_request(env, unlocked_dependencies, false, allow_prerelease)
             .await?;
 
-        if !req.conflicts.is_empty() {
-            let (conflict, mut deps) = req.conflicts.into_iter().next().unwrap();
+        if let Some((conflict, dep)) = changes
+            .conflicts
+            .iter()
+            .filter_map(|(name, x)| x.conflicting_packages().first().map(|x| (name, x)))
+            .next()
+        {
             return Err(ResolvePackageErr::ConflictWithDependencies {
-                conflict,
-                dependency_name: deps.swap_remove(0),
+                conflict: conflict.to_owned(),
+                dependency_name: dep.to_owned(),
             });
         }
 
-        let installed_from_unlocked_dependencies = req.locked.clone();
+        let installed_from_unlocked_dependencies = changes
+            .package_changes
+            .iter()
+            .filter_map(|(_, change)| match change {
+                PackageChange::Install(install) => install.install_package(),
+                PackageChange::Remove(_) => None,
+            })
+            .collect();
 
-        self.do_add_package_request(env, req).await?;
+        self.apply_pending_changes(env, changes).await?;
 
         Ok(ResolveResult {
             installed_from_locked,
@@ -361,6 +376,14 @@ impl UnityProject {
 impl UnityProject {
     pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         self.manifest.all_locked()
+    }
+
+    pub fn dependencies(&self) -> impl Iterator<Item = &str> {
+        self.manifest.dependencies().map(|(name, _)| name)
+    }
+
+    pub(crate) fn get_locked(&self, name: &str) -> Option<LockedDependencyInfo> {
+        self.manifest.get_locked(name)
     }
 
     pub fn is_locked(&self, name: &str) -> bool {
