@@ -1,7 +1,9 @@
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
 use crate::utils::{copy_recursive, extract_zip, PathBufExt};
 use crate::version::DependencyRange;
-use crate::{unity_compatible, PackageInfo, RemotePackageDownloader, UnityProject, PackageInfoInner};
+use crate::{
+    unity_compatible, PackageInfo, PackageInfoInner, RemotePackageDownloader, UnityProject,
+};
 use either::Either;
 use futures::future::{join3, join_all, try_join_all};
 use std::collections::hash_map::Entry;
@@ -192,7 +194,11 @@ impl<'env> Builder<'env> {
         self
     }
 
-    pub fn conflict_multiple(&mut self, name: String, conflict: impl IntoIterator<Item = String>) -> &mut Self {
+    pub fn conflict_multiple(
+        &mut self,
+        name: String,
+        conflict: impl IntoIterator<Item = String>,
+    ) -> &mut Self {
         self.conflicts
             .entry(name)
             .or_default()
@@ -490,7 +496,7 @@ async fn install_packages(
             .iter()
             .map(|package| add_package(env, *package, &packages_folder)),
     )
-        .await?;
+    .await?;
 
     Ok(())
 }
@@ -512,7 +518,7 @@ async fn remove_assets(
             remove_folder(project_dir.join("Packages").joined(name), false).await;
         })),
     )
-        .await;
+    .await;
 
     async fn remove_meta_file(path: PathBuf) {
         let mut building = path.into_os_string();

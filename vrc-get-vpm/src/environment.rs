@@ -1,8 +1,8 @@
+mod empty;
 mod repo_holder;
 mod repo_source;
 mod settings;
 mod uesr_package_collection;
-mod empty;
 
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
@@ -32,11 +32,11 @@ use tokio_util::compat::*;
 use url::Url;
 
 use crate::environment::repo_source::{PreDefinedRepoType, PredefinedSource};
+pub use empty::EmptyEnvironment;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
 pub(crate) use settings::Settings;
 pub(crate) use uesr_package_collection::UserPackageCollection;
-pub use empty::EmptyEnvironment;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]

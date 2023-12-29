@@ -1,10 +1,10 @@
-use crate::UnityProject;
-use std::{fmt, io};
-use itertools::Itertools;
 use crate::environment::EmptyEnvironment;
+use crate::UnityProject;
+use itertools::Itertools;
+use std::{fmt, io};
 
-use crate::unity_project::{pending_project_changes, PendingProjectChanges};
 use crate::unity_project::pending_project_changes::RemoveReason;
+use crate::unity_project::{pending_project_changes, PendingProjectChanges};
 
 // removing package
 impl UnityProject {
@@ -14,13 +14,19 @@ impl UnityProject {
     pub async fn remove(&mut self, names: &[&str]) -> Result<(), RemovePackageErr> {
         let changes = self.remove_request(names).await?;
 
-        let values = changes.conflicts().values().flat_map(|x| x.conflicting_packages()).cloned().collect_vec();
+        let values = changes
+            .conflicts()
+            .values()
+            .flat_map(|x| x.conflicting_packages())
+            .cloned()
+            .collect_vec();
 
         if !values.is_empty() {
-            return Err(RemovePackageErr::ConflictsWith(values))
+            return Err(RemovePackageErr::ConflictsWith(values));
         }
 
-        self.apply_pending_changes(&EmptyEnvironment, changes).await?;
+        self.apply_pending_changes(&EmptyEnvironment, changes)
+            .await?;
 
         Ok(())
     }
@@ -28,7 +34,10 @@ impl UnityProject {
     /// Remove specified package from self project.
     ///
     /// This doesn't look packages not listed in vpm-maniefst.json.
-    pub async fn remove_request(&self, remove: &[&str]) -> Result<PendingProjectChanges<'static>, RemovePackageErr> {
+    pub async fn remove_request(
+        &self,
+        remove: &[&str],
+    ) -> Result<PendingProjectChanges<'static>, RemovePackageErr> {
         use RemovePackageErr::*;
 
         // check for existence
@@ -48,7 +57,10 @@ impl UnityProject {
 
         // check for conflicts: if some package requires some packages to be removed, it's conflict.
 
-        for dep in self.all_packages().filter(|dep| !remove.contains(&dep.name())) {
+        for dep in self
+            .all_packages()
+            .filter(|dep| !remove.contains(&dep.name()))
+        {
             // TODO: do not conflict if this package is legacy package of installed packages
             for &to_remove in remove {
                 if dep.dependencies().contains_key(to_remove) {

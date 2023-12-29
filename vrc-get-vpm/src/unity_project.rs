@@ -294,11 +294,11 @@ impl UnityProject {
                 PackageChange::Install(install) if install.is_adding_to_locked() => {
                     // adding to locked: for unlocked
                     installed_from_unlocked_dependencies.push(install.install_package().unwrap());
-                },
+                }
                 PackageChange::Install(install) if install.install_package().is_some() => {
                     // already in locked: for locked
                     installed_from_locked.push(install.install_package().unwrap());
-                },
+                }
                 PackageChange::Install(_) => (),
                 PackageChange::Remove(_) => (),
             }
@@ -333,10 +333,14 @@ impl UnityProject {
         Ok(changes.build_resolve(self).await)
     }
 
-    fn resolve_unlocked<'env>(&self, env: &'env Environment<impl HttpClient>, changes: &mut pending_project_changes::Builder<'env>) -> Result<(), AddPackageErr> {
+    fn resolve_unlocked<'env>(
+        &self,
+        env: &'env Environment<impl HttpClient>,
+        changes: &mut pending_project_changes::Builder<'env>,
+    ) -> Result<(), AddPackageErr> {
         if self.unlocked_packages().is_empty() {
             // if there are no unlocked packages, early return
-            return Ok(())
+            return Ok(());
         }
 
         // set of packages already installed as unlocked
@@ -354,29 +358,28 @@ impl UnityProject {
             .filter_map(|(_, pkg)| pkg.as_ref())
             .flat_map(|pkg| pkg.vpm_dependencies());
 
-        let unlocked_dependencies_versions =
-            dependencies_of_unlocked_packages
-                .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none()) // skip if already installed to locked
-                .filter(|(k, _)| !unlocked_names.contains(k.as_str())) // skip if already installed as unlocked
-                .into_group_map();
+        let unlocked_dependencies_versions = dependencies_of_unlocked_packages
+            .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none()) // skip if already installed to locked
+            .filter(|(k, _)| !unlocked_names.contains(k.as_str())) // skip if already installed as unlocked
+            .into_group_map();
 
         if unlocked_dependencies_versions.is_empty() {
             // if no dependencies are to be installed, early return
-            return Ok(())
+            return Ok(());
         }
 
         let unlocked_dependencies = unlocked_dependencies_versions
-                .into_iter()
-                .map(|(pkg_name, ranges)| {
-                    env.find_package_by_name(
-                        pkg_name,
-                        VersionSelector::ranges_for(self.unity_version, &ranges),
-                    )
-                        .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                            dependency_name: pkg_name.clone(),
-                        })
+            .into_iter()
+            .map(|(pkg_name, ranges)| {
+                env.find_package_by_name(
+                    pkg_name,
+                    VersionSelector::ranges_for(self.unity_version, &ranges),
+                )
+                .ok_or_else(|| AddPackageErr::DependencyNotFound {
+                    dependency_name: pkg_name.clone(),
                 })
-                .collect::<Result<Vec<_>, _>>()?;
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         let allow_prerelease = unlocked_dependencies
             .iter()
