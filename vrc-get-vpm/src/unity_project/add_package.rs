@@ -1,13 +1,8 @@
-use crate::traits::RemotePackageDownloader;
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::{package_resolution, PendingProjectChanges};
-use crate::utils::{copy_recursive, extract_zip};
 use crate::version::DependencyRange;
-use crate::{PackageCollection, PackageInfo, PackageInfoInner, UnityProject};
-use std::path::Path;
-use std::{fmt, io};
-use tokio::fs::remove_dir_all;
-use tokio_util::compat::*;
+use crate::{PackageCollection, PackageInfo, UnityProject};
+use std::fmt;
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -108,30 +103,5 @@ impl UnityProject {
         }
 
         Ok(changes.build_resolve(self).await)
-    }
-}
-
-pub(crate) async fn add_package(
-    remote_source: &impl RemotePackageDownloader,
-    package: PackageInfo<'_>,
-    target_packages_folder: &Path,
-) -> io::Result<()> {
-    log::debug!("adding package {}", package.name());
-    let dest_folder = target_packages_folder.join(package.name());
-    match package.inner {
-        PackageInfoInner::Remote(package, user_repo) => {
-            let zip_file = remote_source.get_package(user_repo, package).await?;
-
-            // remove dest folder before extract if exists
-            remove_dir_all(&dest_folder).await.ok();
-            extract_zip(zip_file.compat(), &dest_folder).await?;
-
-            Ok(())
-        }
-        PackageInfoInner::Local(_, path) => {
-            remove_dir_all(&dest_folder).await.ok();
-            copy_recursive(path.to_owned(), dest_folder).await?;
-            Ok(())
-        }
     }
 }

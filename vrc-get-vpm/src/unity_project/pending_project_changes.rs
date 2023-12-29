@@ -1,8 +1,7 @@
-use crate::unity_project::add_package::add_package;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
-use crate::utils::PathBufExt;
+use crate::utils::{copy_recursive, extract_zip, PathBufExt};
 use crate::version::DependencyRange;
-use crate::{unity_compatible, PackageInfo, RemotePackageDownloader, UnityProject};
+use crate::{unity_compatible, PackageInfo, RemotePackageDownloader, UnityProject, PackageInfoInner};
 use either::Either;
 use futures::future::{join3, join_all, try_join_all};
 use std::collections::hash_map::Entry;
@@ -10,6 +9,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
+use tokio::fs::remove_dir_all;
+use tokio_util::compat::TokioAsyncReadCompatExt;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -540,6 +541,31 @@ impl UnityProject {
             if with_meta {
                 remove_meta_file(path).await;
             }
+        }
+    }
+}
+
+pub(crate) async fn add_package(
+    remote_source: &impl RemotePackageDownloader,
+    package: PackageInfo<'_>,
+    target_packages_folder: &Path,
+) -> io::Result<()> {
+    log::debug!("adding package {}", package.name());
+    let dest_folder = target_packages_folder.join(package.name());
+    match package.inner {
+        PackageInfoInner::Remote(package, user_repo) => {
+            let zip_file = remote_source.get_package(user_repo, package).await?;
+
+            // remove dest folder before extract if exists
+            remove_dir_all(&dest_folder).await.ok();
+            extract_zip(zip_file.compat(), &dest_folder).await?;
+
+            Ok(())
+        }
+        PackageInfoInner::Local(_, path) => {
+            remove_dir_all(&dest_folder).await.ok();
+            copy_recursive(path.to_owned(), dest_folder).await?;
+            Ok(())
         }
     }
 }
