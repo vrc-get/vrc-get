@@ -63,7 +63,7 @@ impl<'env> Install<'env> {
         self.package
     }
 
-    pub(crate) fn is_adding_to_locked(&self) -> bool {
+    pub fn is_adding_to_locked(&self) -> bool {
         self.add_to_locked
     }
 }

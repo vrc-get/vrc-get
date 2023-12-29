@@ -1,6 +1,4 @@
-use crate::environment::EmptyEnvironment;
 use crate::UnityProject;
-use itertools::Itertools;
 use std::{fmt, io};
 
 use crate::unity_project::pending_project_changes::RemoveReason;
@@ -8,29 +6,6 @@ use crate::unity_project::{pending_project_changes, PendingProjectChanges};
 
 // removing package
 impl UnityProject {
-    /// Remove specified package from self project.
-    ///
-    /// This doesn't look packages not listed in vpm-maniefst.json.
-    pub async fn remove(&mut self, names: &[&str]) -> Result<(), RemovePackageErr> {
-        let changes = self.remove_request(names).await?;
-
-        let values = changes
-            .conflicts()
-            .values()
-            .flat_map(|x| x.conflicting_packages())
-            .cloned()
-            .collect_vec();
-
-        if !values.is_empty() {
-            return Err(RemovePackageErr::ConflictsWith(values));
-        }
-
-        self.apply_pending_changes(&EmptyEnvironment, changes)
-            .await?;
-
-        Ok(())
-    }
-
     /// Remove specified package from self project.
     ///
     /// This doesn't look packages not listed in vpm-maniefst.json.

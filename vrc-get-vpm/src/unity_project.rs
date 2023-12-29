@@ -9,7 +9,7 @@ use crate::structs::package::PackageJson;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
-use crate::{Environment, PackageInfo, VersionSelector};
+use crate::{Environment, VersionSelector};
 use futures::future::try_join_all;
 use futures::prelude::*;
 use indexmap::IndexMap;
@@ -24,7 +24,6 @@ use tokio::io::AsyncReadExt;
 // there are module for each complex operations.
 
 use crate::traits::{HttpClient, PackageCollection};
-use crate::unity_project::pending_project_changes::PackageChange;
 pub use add_package::AddPackageErr;
 pub use pending_project_changes::PendingProjectChanges;
 
@@ -247,69 +246,7 @@ impl From<AddPackageErr> for ResolvePackageErr {
     }
 }
 
-pub struct ResolveResult<'env> {
-    installed_from_locked: Vec<PackageInfo<'env>>,
-    installed_from_unlocked_dependencies: Vec<PackageInfo<'env>>,
-}
-
-impl<'env> ResolveResult<'env> {
-    pub fn installed_from_locked(&self) -> &[PackageInfo<'env>] {
-        &self.installed_from_locked
-    }
-
-    pub fn installed_from_unlocked_dependencies(&self) -> &[PackageInfo<'env>] {
-        &self.installed_from_unlocked_dependencies
-    }
-}
-
 impl UnityProject {
-    pub async fn resolve<'env>(
-        &mut self,
-        env: &'env Environment<impl HttpClient>,
-    ) -> Result<ResolveResult<'env>, ResolvePackageErr> {
-        let changes = match self.resolve_request(env).await {
-            Ok(changes) => changes,
-            Err(AddPackageErr::DependencyNotFound { dependency_name }) => {
-                return Err(ResolvePackageErr::DependencyNotFound { dependency_name })
-            }
-        };
-
-        if let Some((conflict, dep)) = changes
-            .conflicts
-            .iter()
-            .filter_map(|(name, x)| x.conflicting_packages().first().map(|x| (name, x)))
-            .next()
-        {
-            return Err(ResolvePackageErr::ConflictWithDependencies {
-                conflict: conflict.to_owned(),
-                dependency_name: dep.to_owned(),
-            });
-        }
-
-        let mut installed_from_locked = Vec::new();
-        let mut installed_from_unlocked_dependencies = Vec::new();
-
-        for change in changes.package_changes.values() {
-            match change {
-                PackageChange::Install(install) if install.is_adding_to_locked() => {
-                    // adding to locked: for unlocked
-                    installed_from_unlocked_dependencies.push(install.install_package().unwrap());
-                }
-                PackageChange::Install(install) if install.install_package().is_some() => {
-                    // already in locked: for locked
-                    installed_from_locked.push(install.install_package().unwrap());
-                }
-                PackageChange::Install(_) => (),
-                PackageChange::Remove(_) => (),
-            }
-        }
-
-        Ok(ResolveResult {
-            installed_from_locked,
-            installed_from_unlocked_dependencies,
-        })
-    }
-
     pub async fn resolve_request<'env>(
         &mut self,
         env: &'env Environment<impl HttpClient>,
