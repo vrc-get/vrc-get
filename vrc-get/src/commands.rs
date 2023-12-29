@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use reqwest::{Client, Url};
 use serde::Serialize;
@@ -12,6 +13,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::{read_dir, remove_file};
+use vrc_get_vpm::environment::EmptyEnvironment;
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
 use vrc_get_vpm::unity_project::PendingProjectChanges;
@@ -132,12 +134,10 @@ fn confirm_prompt(msg: &str) -> bool {
     _impl(msg).unwrap_or(false)
 }
 
-fn print_prompt_install(changes: &PendingProjectChanges, yes: bool, require_prompt: bool) {
+fn print_prompt_install(changes: &PendingProjectChanges) {
     if changes.package_changes().is_empty() {
         exit_with!("nothing to do")
     }
-
-    let mut prompt = require_prompt;
 
     let mut newly_installed = Vec::new();
     let mut removed = Vec::new();
@@ -162,7 +162,6 @@ fn print_prompt_install(changes: &PendingProjectChanges, yes: bool, require_prom
         for x in &newly_installed {
             #[cfg(feature = "experimental-yank")]
             if x.is_yanked() {
-                prompt = true;
                 println!("- {} version {} (yanked)", x.name(), x.version());
             } else {
                 println!("- {} version {}", x.name(), x.version());
@@ -170,7 +169,6 @@ fn print_prompt_install(changes: &PendingProjectChanges, yes: bool, require_prom
             #[cfg(not(feature = "experimental-yank"))]
             println!("- {} version {}", x.name(), x.version());
         }
-        prompt = prompt || newly_installed.len() > 1;
     }
 
     if !changes.remove_legacy_folders().is_empty() || !changes.remove_legacy_files().is_empty() {
@@ -182,7 +180,6 @@ fn print_prompt_install(changes: &PendingProjectChanges, yes: bool, require_prom
         {
             println!("- {}", x.display());
         }
-        prompt = true;
     }
 
     if !removed.is_empty() {
@@ -198,7 +195,6 @@ fn print_prompt_install(changes: &PendingProjectChanges, yes: bool, require_prom
             };
             println!("- {} (removed since {})", name, reason_name);
         }
-        prompt = true;
     }
 
     // process package conflicts
@@ -215,7 +211,6 @@ fn print_prompt_install(changes: &PendingProjectChanges, yes: bool, require_prom
                 for conflict in conflicts.conflicting_packages() {
                     println!("- {conflict}");
                 }
-                prompt = true;
             }
         }
     }
@@ -234,14 +229,53 @@ fn print_prompt_install(changes: &PendingProjectChanges, yes: bool, require_prom
             }
         }
     }
+}
 
-    if prompt {
-        if yes {
-            println!("--yes is set. skipping confirm");
-        } else if !confirm_prompt("Do you want to continue install?") {
-            exit(1);
+fn prompt_install(yes: bool) {
+    if yes {
+        println!("--yes is set. skipping confirm");
+    } else if !confirm_prompt("Do you want to apply those changes?") {
+        exit(1);
+    }
+}
+
+fn require_prompt_for_install(
+    changes: &PendingProjectChanges,
+    name: &str,
+    version: Option<&Version>,
+) -> bool {
+    // dangerous changes
+    if !changes.remove_legacy_folders().is_empty()
+        || !changes.remove_legacy_files().is_empty()
+        || !changes.conflicts().is_empty()
+    {
+        return true;
+    }
+
+    // unintended changes
+    let Some((change_name, changes)) = changes.package_changes().iter().exactly_one().ok() else {
+        return true;
+    };
+
+    if change_name != name {
+        return true;
+    }
+
+    let Some(install) = changes.as_install() else {
+        return true;
+    };
+
+    let Some(package) = install.install_package() else {
+        return true;
+    };
+
+    if let Some(request_version) = version {
+        if request_version != package.version() {
+            return true;
         }
     }
+
+    false
 }
 
 trait ResultExt<T, E>: Sized {
@@ -341,7 +375,11 @@ impl Install {
             .await
             .exit_context("collecting packages to be installed");
 
-        print_prompt_install(&changes, self.yes, false);
+        print_prompt_install(&changes);
+
+        if require_prompt_for_install(&changes, name.as_str(), None) {
+            prompt_install(self.yes);
+        }
 
         unity
             .apply_pending_changes(&env, changes)
@@ -371,24 +409,17 @@ impl Resolve {
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
-        let resolve_result = unity.resolve(&env).await.exit_context("resolving packages");
-        #[cfg(feature = "experimental-yank")]
-        for installed in resolve_result.installed_from_locked() {
-            if installed.is_yanked() {
-                eprintln!(
-                    "WARN: {} version {} is yanked",
-                    installed.name(),
-                    installed.version()
-                );
-            }
-        }
-        for installed in resolve_result.installed_from_unlocked_dependencies() {
-            println!(
-                "installed {} version {} from dependencies of unlocked packages",
-                installed.name(),
-                installed.version()
-            );
-        }
+        let changes = unity
+            .resolve_request(&env)
+            .await
+            .exit_context("collecting packages to be installed");
+
+        print_prompt_install(&changes);
+
+        unity
+            .apply_pending_changes(&env, changes)
+            .await
+            .exit_context("installing packages");
 
         unity.save().await.exit_context("saving manifest file");
     }
@@ -405,16 +436,34 @@ pub struct Remove {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<PathBuf>,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
 }
 
 impl Remove {
     pub async fn run(self) {
         let mut unity = load_unity(self.project).await;
 
-        unity
-            .remove(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
+        let changes = unity
+            .remove_request(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
             .await
-            .exit_context("removing package");
+            .exit_context("collecting packages to be removed");
+
+        print_prompt_install(&changes);
+
+        let confirm =
+            changes.package_changes().len() >= self.names.len() || !changes.conflicts().is_empty();
+
+        if confirm {
+            prompt_install(self.yes);
+        }
+
+        unity
+            .apply_pending_changes(&EmptyEnvironment, changes)
+            .await
+            .exit_context("removing packages");
 
         save_unity(&mut unity).await;
     }
@@ -545,23 +594,18 @@ impl Upgrade {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
-        let require_prompt;
 
-        let updates = if let Some(name) = self.name {
+        let updates = if let Some(name) = &self.name {
             let version_selector = match self.version {
                 None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
                 Some(ref version) => VersionSelector::specific_version(version),
             };
-            let package = get_package(&env, &name, version_selector);
-
-            require_prompt = false;
+            let package = get_package(&env, name, version_selector);
 
             vec![package]
         } else {
             let version_selector =
                 VersionSelector::latest_for(unity.unity_version(), self.prerelease);
-
-            require_prompt = true;
 
             unity
                 .locked_packages()
@@ -574,7 +618,17 @@ impl Upgrade {
             .await
             .exit_context("collecting packages to be upgraded");
 
-        print_prompt_install(&changes, self.yes, require_prompt);
+        print_prompt_install(&changes);
+
+        let require_prompt = if let Some(name) = &self.name {
+            require_prompt_for_install(&changes, name.as_str(), None)
+        } else {
+            true
+        };
+
+        if require_prompt {
+            prompt_install(self.yes)
+        }
 
         let updates = (changes.package_changes().iter())
             .filter_map(|(_, x)| x.as_install())
