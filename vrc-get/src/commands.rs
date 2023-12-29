@@ -96,16 +96,6 @@ fn get_package<'env>(
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
 
-async fn mark_and_sweep(unity: &mut UnityProject) {
-    for x in unity
-        .mark_and_sweep()
-        .await
-        .exit_context("sweeping unused packages")
-    {
-        eprintln!("removed {x} which is unused");
-    }
-}
-
 async fn save_unity(unity: &mut UnityProject) {
     unity.save().await.exit_context("saving manifest file");
 }
@@ -347,8 +337,6 @@ impl Install {
                 .apply_pending_changes(&env, changes)
                 .await
                 .exit_context("adding package");
-
-            mark_and_sweep(&mut unity).await;
         } else {
             let resolve_result = unity.resolve(&env).await.exit_context("resolving packages");
             #[cfg(feature = "experimental-yank")]
@@ -395,8 +383,6 @@ impl Remove {
             .remove(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
             .await
             .exit_context("removing package");
-
-        mark_and_sweep(&mut unity).await;
 
         save_unity(&mut unity).await;
     }
@@ -573,7 +559,6 @@ impl Upgrade {
             println!("upgraded {} to {}", name, version);
         }
 
-        mark_and_sweep(&mut unity).await;
         save_unity(&mut unity).await;
     }
 }
