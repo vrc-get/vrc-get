@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
+use log::debug;
 use tokio::fs::remove_dir_all;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
@@ -243,6 +244,25 @@ impl<'env> Builder<'env> {
         self
     }
 
+    fn remove_unused(&mut self, name: String) -> &mut Self {
+        match self.package_changes.entry(name) {
+            Entry::Occupied(mut e) => match e.get_mut() {
+                PackageChange::Install(_) => {
+                    panic!("INTERNAL ERROR: remove_unused for installed");
+                }
+                PackageChange::Remove(_) => {
+                }
+            },
+            Entry::Vacant(e) => {
+                e.insert(PackageChange::Remove(Remove {
+                    reason: RemoveReason::Unused,
+                    _phantom: PhantomData,
+                }));
+            }
+        }
+        self
+    }
+
     pub fn build_no_resolve(self) -> PendingProjectChanges<'env> {
         for change in self.package_changes.values() {
             match change {
@@ -357,6 +377,7 @@ impl<'env> Builder<'env> {
             })
         };
 
+        debug!("removable packages: {:?}", removable);
         // nothing can be removed
         if removable.is_empty() {
             return;
@@ -371,8 +392,11 @@ impl<'env> Builder<'env> {
                 .flat_map(|pkg| pkg.vpm_dependencies().keys())
                 .map(String::as_str);
 
+            let dependencies = unity_project.dependencies()
+                .filter(|name| self.package_changes.get(*name).and_then(|change| change.as_remove()).is_none());
+
             mark_recursive(
-                unlocked_dependencies.chain(unity_project.dependencies()),
+                unlocked_dependencies.chain(dependencies),
                 |dep_name| {
                     if let Some(to_install) = self
                         .package_changes
@@ -394,10 +418,12 @@ impl<'env> Builder<'env> {
             )
         };
 
+        debug!("using packages: {:?}", using_packages);
+
         // weep
         for locked in unity_project.locked_packages() {
             if !using_packages.contains(locked.name()) && removable.contains(locked.name()) {
-                self.remove(locked.name().to_owned(), RemoveReason::Unused);
+                self.remove_unused(locked.name().to_owned());
             }
         }
     }
