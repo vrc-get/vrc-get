@@ -182,7 +182,7 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
     }
 
     if !removed.is_empty() {
-        println!("You're removing the following legacy:");
+        println!("You're removing the following packages:");
         removed.sort_by_key(|(reason, _)| *reason);
         for (reason, name) in removed {
             let reason_name = match reason {
