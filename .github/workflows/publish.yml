@@ -221,7 +221,7 @@ jobs:
           rm -rf outputs assets
 
       - name: prepare next release & push
-        if: inputs.publish && !needs.pre-build.outputs.prerelease
+        if: ${{ !needs.pre-build.outputs.prerelease }}
         run: |
           VERSION="$(version-next "$(get-version)")"
           set-version "$(version-set-channel "$VERSION" beta 0)"
