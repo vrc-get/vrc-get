@@ -155,7 +155,7 @@ jobs:
       - name: Publish CARGO
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish --no-verify
+        run: cargo publish --package vrc-get --dry-run
 
   publish:
     name: Publish to GitHub
