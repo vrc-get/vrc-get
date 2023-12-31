@@ -140,7 +140,6 @@ jobs:
 
   publish-crates-io:
     name: Publish to crates.io
-    if: false
     environment:
       name: crates.io
       url: https://crates.io/crates/vrc-get
