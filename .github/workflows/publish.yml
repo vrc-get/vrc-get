@@ -14,7 +14,7 @@ on:
           - stable
 
 env:
-  RELEASER_CHANGER: 'regex-pattern:version = "$1"@Cargo.toml'
+  RELEASER_CHANGER: 'regex-pattern:version = "$1"@vrc-get/Cargo.toml'
   SOMETHING_RELEASER_SEMVER: 1
 
 jobs:

@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get"
-version.workspace = true
+version = "1.4.2"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
