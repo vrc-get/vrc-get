@@ -15,6 +15,3 @@ authors = ["anatawa12 <anatawa12@icloud.com>"]
 homepage = "https://github.com/anatawa12/vrc-get#readme"
 repository = "https://github.com/anatawa12/vrc-get"
 readme = "README.md"
-
-[patch.crates-io]
-async_zip = { git = "https://github.com/Majored/rs-async-zip.git", rev = "a58024e" }
