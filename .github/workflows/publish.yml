@@ -32,11 +32,9 @@ jobs:
           submodules: recursive
       - uses: anatawa12/something-releaser@v2
       - uses: snow-actions/git-config-user@v1.0.0
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          override: true
+          targets: ${{ matrix.target }}
 
       - name: Update Version Name
         id: update-version
@@ -124,23 +122,16 @@ jobs:
         with:
           ref: 'releasing'
           submodules: recursive
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          override: true
-          target: ${{ matrix.triple }}
+          targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v1
         with:
           target-dir: target
           key: ${{ matrix.triple }}
 
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: ${{ matrix.cross }}
-          command: build
-          args: --target ${{ matrix.triple }} --release
+        run: ${{ matrix.cross && 'cross' || 'cargo' }} build --target ${{ matrix.triple }} --release --verbose
 
       - uses: actions/upload-artifact@v3
         with:
@@ -187,11 +178,7 @@ jobs:
       # tools
       - uses: anatawa12/something-releaser@v2
       - uses: snow-actions/git-config-user@v1.0.0
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/download-artifact@v3
         with:
