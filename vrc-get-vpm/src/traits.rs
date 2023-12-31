@@ -150,3 +150,4 @@ impl seal::Sealed for crate::environment::UserPackageCollection {}
 impl seal::Sealed for crate::environment::RepoHolder {}
 impl seal::Sealed for reqwest::Client {}
 impl seal::Sealed for Infallible {}
+impl seal::Sealed for crate::environment::EmptyEnvironment {}

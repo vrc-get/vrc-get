@@ -1,29 +1,28 @@
 mod add_package;
+mod find_legacy_assets;
 mod package_resolution;
+pub mod pending_project_changes;
 mod remove_package;
+mod resolve;
 mod vpm_manifest;
 
 use crate::structs::package::PackageJson;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
-use crate::{Environment, PackageInfo, VersionSelector};
-use futures::future::try_join_all;
-use futures::prelude::*;
 use indexmap::IndexMap;
-use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::{env, fmt, io};
-use tokio::fs::{read_dir, remove_dir_all, DirEntry, File};
+use std::{env, io};
+use tokio::fs::{read_dir, DirEntry, File};
 use tokio::io::AsyncReadExt;
 
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
-use crate::traits::{HttpClient, PackageCollection};
-use crate::unity_project::add_package::add_package;
-pub use add_package::{AddPackageErr, AddPackageRequest};
+pub use add_package::AddPackageErr;
+pub use pending_project_changes::PendingProjectChanges;
+pub use resolve::ResolvePackageErr;
 
 #[derive(Debug)]
 pub struct UnityProject {
@@ -196,171 +195,18 @@ impl UnityProject {
     }
 }
 
-#[derive(Debug)]
-pub enum ResolvePackageErr {
-    Io(io::Error),
-    ConflictWithDependencies {
-        /// conflicting package name
-        conflict: String,
-        /// the name of locked package
-        dependency_name: String,
-    },
-    DependencyNotFound {
-        dependency_name: String,
-    },
-}
-
-impl fmt::Display for ResolvePackageErr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ResolvePackageErr::Io(ioerr) => fmt::Display::fmt(ioerr, f),
-            ResolvePackageErr::ConflictWithDependencies {
-                conflict,
-                dependency_name,
-            } => write!(f, "{conflict} conflicts with {dependency_name}"),
-            ResolvePackageErr::DependencyNotFound { dependency_name } => write!(
-                f,
-                "Package {dependency_name} (maybe dependencies of the package) not found"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for ResolvePackageErr {}
-
-impl From<io::Error> for ResolvePackageErr {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value)
-    }
-}
-
-impl From<AddPackageErr> for ResolvePackageErr {
-    fn from(value: AddPackageErr) -> Self {
-        match value {
-            AddPackageErr::DependencyNotFound { dependency_name } => {
-                Self::DependencyNotFound { dependency_name }
-            }
-        }
-    }
-}
-
-pub struct ResolveResult<'env> {
-    installed_from_locked: Vec<PackageInfo<'env>>,
-    installed_from_unlocked_dependencies: Vec<PackageInfo<'env>>,
-}
-
-impl<'env> ResolveResult<'env> {
-    pub fn installed_from_locked(&self) -> &[PackageInfo<'env>] {
-        &self.installed_from_locked
-    }
-
-    pub fn installed_from_unlocked_dependencies(&self) -> &[PackageInfo<'env>] {
-        &self.installed_from_unlocked_dependencies
-    }
-}
-
-impl UnityProject {
-    pub async fn resolve<'env>(
-        &mut self,
-        env: &'env Environment<impl HttpClient>,
-    ) -> Result<ResolveResult<'env>, ResolvePackageErr> {
-        // first, process locked dependencies
-        let this = self as &Self;
-        let packages_folder = &this.project_dir.join("Packages");
-        let installed_from_locked =
-            try_join_all(this.manifest.all_locked().map(|dep| async move {
-                let pkg = env
-                    .find_package_by_name(
-                        dep.name(),
-                        VersionSelector::specific_version(dep.version()),
-                    )
-                    .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
-                        dependency_name: dep.name().to_owned(),
-                    })?;
-                add_package(env, pkg, packages_folder).await?;
-                Result::<_, ResolvePackageErr>::Ok(pkg)
-            }))
-            .await?;
-
-        let unlocked_names: HashSet<_> = self
-            .unlocked_packages()
-            .iter()
-            .filter_map(|(_, pkg)| pkg.as_ref())
-            .map(|x| x.name())
-            .collect();
-
-        // then, process dependencies of unlocked packages.
-        let unlocked_dependencies = self
-            .unlocked_packages
-            .iter()
-            .filter_map(|(_, pkg)| pkg.as_ref())
-            .flat_map(|pkg| pkg.vpm_dependencies())
-            .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none())
-            .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
-            .into_group_map()
-            .into_iter()
-            .map(|(pkg_name, ranges)| {
-                env.find_package_by_name(
-                    pkg_name,
-                    VersionSelector::ranges_for(self.unity_version, &ranges),
-                )
-                .ok_or_else(|| ResolvePackageErr::DependencyNotFound {
-                    dependency_name: pkg_name.clone(),
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let allow_prerelease = unlocked_dependencies
-            .iter()
-            .any(|x| !x.version().pre.is_empty());
-
-        let req = self
-            .add_package_request(env, unlocked_dependencies, false, allow_prerelease)
-            .await?;
-
-        if !req.conflicts.is_empty() {
-            let (conflict, mut deps) = req.conflicts.into_iter().next().unwrap();
-            return Err(ResolvePackageErr::ConflictWithDependencies {
-                conflict,
-                dependency_name: deps.swap_remove(0),
-            });
-        }
-
-        let installed_from_unlocked_dependencies = req.locked.clone();
-
-        self.do_add_package_request(env, req).await?;
-
-        Ok(ResolveResult {
-            installed_from_locked,
-            installed_from_unlocked_dependencies,
-        })
-    }
-
-    /// Remove specified package from self project.
-    ///
-    /// This doesn't look packages not listed in vpm-maniefst.json.
-    pub async fn mark_and_sweep(&mut self) -> io::Result<HashSet<String>> {
-        let removed_packages = self
-            .manifest
-            .mark_and_sweep_packages(&self.unlocked_packages);
-
-        try_join_all(removed_packages.iter().map(|name| {
-            remove_dir_all(self.project_dir.join("Packages").joined(name)).map(|x| match x {
-                Ok(()) => Ok(()),
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
-                Err(e) => Err(e),
-            })
-        }))
-        .await?;
-
-        Ok(removed_packages)
-    }
-}
-
 // accessors
 impl UnityProject {
     pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         self.manifest.all_locked()
+    }
+
+    pub fn dependencies(&self) -> impl Iterator<Item = &str> {
+        self.manifest.dependencies().map(|(name, _)| name)
+    }
+
+    pub(crate) fn get_locked(&self, name: &str) -> Option<LockedDependencyInfo> {
+        self.manifest.get_locked(name)
     }
 
     pub fn is_locked(&self, name: &str) -> bool {

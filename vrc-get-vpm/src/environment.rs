@@ -1,3 +1,4 @@
+mod empty;
 mod repo_holder;
 mod repo_source;
 mod settings;
@@ -31,6 +32,7 @@ use tokio_util::compat::*;
 use url::Url;
 
 use crate::environment::repo_source::{PreDefinedRepoType, PredefinedSource};
+pub use empty::EmptyEnvironment;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
 pub(crate) use settings::Settings;
