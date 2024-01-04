@@ -205,7 +205,7 @@ jobs:
         run: |-
           brew bump-formula-pr \
             anatawa12/core/vrc-get \
-            --url "https://github.com/anatawa12/vrc-get/archive/refs/tags/${VERSION}.tar.gz"
+            --url "https://github.com/anatawa12/vrc-get/archive/refs/tags/v${VERSION}.tar.gz"
 
   publish:
     name: Publish to GitHub
