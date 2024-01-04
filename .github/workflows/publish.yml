@@ -247,7 +247,7 @@ jobs:
         run: |-
           # set tag and publish current version
           git tag "v$CLI_VERSION"
-          git tag "vpm-v$CLI_VERSION"
+          git tag "vpm-v$VPM_VERSION"
           git push && git push --tags
           # create master and push
           git switch -c master
