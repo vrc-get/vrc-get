@@ -164,14 +164,17 @@ jobs:
     name: Publish to GitHub
     # execute even if publishing to somewhere failed
     # but pre-build must be run successfully
-    if: ${{ !cancelled() && needs.pre-build.result == 'success' }} 
+    if: ${{ !cancelled() && needs.pre-build.result == 'success' && needs.build-rust.result == 'success' }} 
     environment:
       name: master branch
       url: https://github.com/anatawa12/vrc-get/releases/v${{ needs.pre-build.outputs.cli-version }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: [pre-build, build-rust]    
+    needs: 
+      - pre-build
+      - build-rust
+      - publish-crates-io
     env:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
