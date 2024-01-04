@@ -39,8 +39,8 @@ jobs:
           # set version name in properties file
           case "$RELEASE_KIND_IN" in
             "prerelease" )
-              get-version -t vpm | version-next | version-set-channel - beta 0 | set-version -t vpm
-              get-version -t cli | version-next | version-set-channel - beta 0 | set-version -t cli
+              get-version -t vpm | version-next | set-version -t vpm
+              get-version -t cli | version-next | set-version -t cli
               gh-export-variable PRERELEASE true
               gh-set-output prerelease true
               ;;
@@ -81,8 +81,7 @@ jobs:
         id: update
         run: |-
           # commit & tag
-          git add Cargo.toml Cargo.lock
-          git commit -m "v$CLI_VERSION"
+          git commit -am "v$CLI_VERSION"
           git branch releasing
           git push -f -u origin releasing
 
