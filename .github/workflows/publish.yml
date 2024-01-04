@@ -166,7 +166,7 @@ jobs:
 
   publish-to-homebrew:
     name: Publish to homebrew
-    if: ${{ !needs.pre-build.outputs.prerelease }}
+    #if: ${{ !needs.pre-build.outputs.prerelease }}
     environment:
       name: homebrew-core
       url: https://github.com/anatawa12/homebrew-core
