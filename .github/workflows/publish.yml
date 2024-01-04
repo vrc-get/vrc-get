@@ -121,11 +121,14 @@ jobs:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.triple }}
       - uses: Swatinem/rust-cache@v1
         with:
           target-dir: target
           key: ${{ matrix.triple }}
+      - name: Setup cross
+        if: ${{ matrix.cross }}
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Build
         run: ${{ matrix.cross && 'cross' || 'cargo' }} build --target ${{ matrix.triple }} --release --verbose
