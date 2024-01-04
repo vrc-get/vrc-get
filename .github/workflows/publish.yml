@@ -235,4 +235,10 @@ jobs:
           CLI_NEXT="$(get-version -t cli | version-stable)"
           git commit -am "chore: prepare for next version: $CLI_NEXT"
           git push
-          git push --delete origin releasing
+      - name: remove releasing branch
+        if: ${{ 
+          !contains(needs.*.result, 'failure')
+          && !contains(needs.*.result, 'cancelled')
+          && !contains(needs.*.result, 'skipped')
+        }}
+        run: git push --delete origin releasing
