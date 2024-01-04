@@ -1,0 +1,5 @@
+[target.cli]
+release_changer = ["cargo:vrc-get"]
+
+[target.vpm]
+release_changer = ["cargo:vrc-get-vpm"]
