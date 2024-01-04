@@ -128,7 +128,9 @@ jobs:
           key: ${{ matrix.triple }}
       - name: Setup cross
         if: ${{ matrix.cross }}
-        run: cargo install cross --git https://github.com/cross-rs/cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
 
       - name: Build
         run: ${{ matrix.cross && 'cross' || 'cargo' }} build --target ${{ matrix.triple }} --release --verbose
