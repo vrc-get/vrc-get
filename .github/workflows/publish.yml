@@ -207,22 +207,15 @@ jobs:
             anatawa12/core/vrc-get \
             --url "https://github.com/anatawa12/vrc-get/archive/refs/tags/v${VERSION}.tar.gz"
 
-  publish:
+  publish-to-github:
     name: Publish to GitHub
-    # execute even if publishing to somewhere failed
-    # but pre-build must be run successfully
-    if: ${{ !cancelled() && needs.pre-build.result == 'success' && needs.build-rust.result == 'success' }} 
     environment:
       name: master branch
       url: https://github.com/anatawa12/vrc-get/releases/v${{ needs.pre-build.outputs.cli-version }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: 
-      - pre-build
-      - build-rust
-      - publish-crates-io
-      - publish-to-homebrew
+    needs: [pre-build, build-rust]
     env:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
@@ -248,7 +241,7 @@ jobs:
           # set tag and publish current version
           git tag "v$CLI_VERSION"
           git tag "vpm-v$VPM_VERSION"
-          git push && git push --tags
+          git push --tags
           # create master and push
           git switch -c master
           git fetch origin master --depth=1
@@ -287,9 +280,24 @@ jobs:
           git commit -am "chore: prepare for next version: $CLI_NEXT"
           git push
 
+  cleanup:
+    name: Cleanup
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs: 
+      - pre-build
+      - build-rust
+      - publish-crates-io
+      - publish-to-homebrew
+      - publish-to-github
+    env:
+      CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
+      VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: 'releasing'
+          fetch-depth: 2
       - name: remove releasing branch
-        if: ${{ 
-            !contains(needs.*.result, 'failure')
-            && !contains(needs.*.result, 'cancelled')
-          }}
         run: git push --delete origin releasing
