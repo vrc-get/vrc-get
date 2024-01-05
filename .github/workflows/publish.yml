@@ -282,6 +282,7 @@ jobs:
 
   cleanup:
     name: Cleanup
+    if: ${{ !failure() && !cancelled() }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
