@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - uses: anatawa12/something-releaser@6900502f8133162ebc74e4abb7304164face8887 # v3 beta
+      - uses: anatawa12/something-releaser@v3
       - uses: snow-actions/git-config-user@v1.0.0
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -166,7 +166,7 @@ jobs:
 
   publish-to-homebrew:
     name: Publish to homebrew
-    #if: ${{ !needs.pre-build.outputs.prerelease }}
+    if: ${{ !needs.pre-build.outputs.prerelease }}
     environment:
       name: homebrew-core
       url: https://github.com/anatawa12/homebrew-core
@@ -228,7 +228,7 @@ jobs:
           token: ${{ secrets.MASTER_GITHUB_PAT }}
 
       # tools
-      - uses: anatawa12/something-releaser@6900502f8133162ebc74e4abb7304164face8887 # v3 beta
+      - uses: anatawa12/something-releaser@v3
       - uses: snow-actions/git-config-user@v1.0.0
       - uses: dtolnay/rust-toolchain@stable
 
