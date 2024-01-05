@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get"
-version = "1.4.3-beta.4"
+version = "1.4.3-beta.5"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
@@ -26,7 +26,7 @@ reqwest = { version = "0.11.23", default-features = false }
 serde = { version = "1.0.193", features = ["derive", "rc"] }
 serde_json = { version = "1.0.109", features = ["preserve_order"] }
 tokio = { version = "1.35.1", features = ["rt-multi-thread", "macros", "fs"] }
-vrc-get-vpm = { version = "0.0.2-beta.4", path = "../vrc-get-vpm", default-features = false }
+vrc-get-vpm = { version = "0.0.2-beta.5", path = "../vrc-get-vpm", default-features = false }
 
 [features]
 default = ["rustls"]
