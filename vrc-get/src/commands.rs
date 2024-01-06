@@ -1,6 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use indexmap::IndexMap;
 use itertools::Itertools;
+
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use reqwest::{Client, Url};
 use serde::Serialize;
@@ -295,6 +296,7 @@ impl<T, E> ResultExt<T, E> for Result<T, E> {
 }
 
 mod info;
+mod migrate;
 
 /// Open Source command line interface of VRChat Package Manager.
 #[derive(Parser)]
@@ -313,11 +315,13 @@ pub enum Command {
     Repo(Repo),
     #[command(subcommand)]
     Info(info::Info),
+    #[command(subcommand)]
+    Migrate(migrate::Migrate),
 
     Completion(Completion),
 }
 
-multi_command!(Command is Install, Resolve, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Completion);
+multi_command!(Command is Install, Resolve, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Migrate, Completion);
 
 /// Adds package to unity project
 ///

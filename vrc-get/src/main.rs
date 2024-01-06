@@ -9,8 +9,13 @@ mod commands;
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    init_log();
     commands::Command::parse().run().await;
+}
+
+fn init_log() {
+    use env_logger::*;
+    init_from_env(Env::default().filter_or(DEFAULT_FILTER_ENV, "info"));
 }
 
 pub(crate) fn create_client(offline: bool) -> Option<Client> {

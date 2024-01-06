@@ -1,16 +1,20 @@
 mod add_package;
 mod find_legacy_assets;
+mod migrate_unity_2022;
 mod package_resolution;
 pub mod pending_project_changes;
 mod remove_package;
 mod resolve;
+mod upm_manifest;
 mod vpm_manifest;
 
 use crate::structs::package::PackageJson;
+use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
 use indexmap::IndexMap;
+use log::debug;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::{env, io};
@@ -21,6 +25,7 @@ use tokio::io::AsyncReadExt;
 // there are module for each complex operations.
 
 pub use add_package::AddPackageErr;
+pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use pending_project_changes::PendingProjectChanges;
 pub use resolve::ResolvePackageErr;
 
@@ -28,8 +33,10 @@ pub use resolve::ResolvePackageErr;
 pub struct UnityProject {
     /// path to project folder.
     project_dir: PathBuf,
-    /// manifest.json
+    /// vpm-manifest.json
     manifest: VpmManifest,
+    // manifest.json
+    upm_manifest: UpmManifest,
     /// unity version parsed
     unity_version: Option<UnityVersion>,
     /// packages installed in the directory but not locked in vpm-manifest.json
@@ -51,6 +58,8 @@ impl UnityProject {
 
         let manifest = unity_found.join("Packages").joined("vpm-manifest.json");
         let manifest = VpmManifest::from(&manifest).await?;
+        let upm_manifest = unity_found.join("Packages").joined("manifest.json");
+        let upm_manifest = UpmManifest::from(&upm_manifest).await?;
 
         let mut installed_packages = HashMap::new();
         let mut unlocked_packages = vec![];
@@ -73,13 +82,18 @@ impl UnityProject {
 
         let unity_version = Self::try_read_unity_version(&unity_found).await;
 
-        Ok(UnityProject {
+        let project = UnityProject {
             project_dir: unity_found,
             manifest,
+            upm_manifest,
             unity_version,
             unlocked_packages,
             installed_packages,
-        })
+        };
+
+        debug!("UnityProject initialized: {:#?}", project);
+
+        Ok(project)
     }
 
     async fn try_read_unlocked_package(dir_entry: DirEntry) -> (String, Option<PackageJson>) {
@@ -191,7 +205,11 @@ impl UnityProject {
                     .join("Packages")
                     .joined("vpm-manifest.json"),
             )
-            .await
+            .await?;
+        self.upm_manifest
+            .save(&self.project_dir.join("Packages").joined("manifest.json"))
+            .await?;
+        Ok(())
     }
 }
 
