@@ -1,5 +1,6 @@
 mod add_package;
 mod find_legacy_assets;
+mod migrate_unity_2022;
 mod package_resolution;
 pub mod pending_project_changes;
 mod remove_package;
@@ -24,6 +25,7 @@ use tokio::io::AsyncReadExt;
 // there are module for each complex operations.
 
 pub use add_package::AddPackageErr;
+pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use pending_project_changes::PendingProjectChanges;
 pub use resolve::ResolvePackageErr;
 

@@ -35,6 +35,16 @@ impl UnityVersion {
         }
     }
 
+    pub fn new_f1(major: u16, minor: u8, revision: u8) -> Self {
+        Self {
+            major,
+            minor,
+            revision,
+            type_: ReleaseType::Normal,
+            increment: 1,
+        }
+    }
+
     // expects major.minor.revision[type]increment
     pub fn parse(input: &str) -> Option<Self> {
         let (major, rest) = input.split_once('.')?;

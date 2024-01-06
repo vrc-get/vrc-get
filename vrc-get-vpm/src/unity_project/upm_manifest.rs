@@ -2,7 +2,7 @@ use crate::utils::{load_json_or_default, JsonMapExt};
 use crate::version::Version;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
-use serde_json::{from_value, Map, Value};
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::path::Path;
@@ -86,6 +86,7 @@ impl UpmManifest {
         })
     }
 
+    #[allow(dead_code)]
     pub(super) fn dependencies(&self) -> impl Iterator<Item = (&str, &UpmDependency)> {
         self.as_json
             .dependencies
@@ -93,10 +94,12 @@ impl UpmManifest {
             .map(|(name, dep)| (name.as_str(), dep))
     }
 
+    #[allow(dead_code)]
     pub(super) fn get_dependency(&self, package: &str) -> Option<&UpmDependency> {
         self.as_json.dependencies.get(package)
     }
 
+    #[allow(dead_code)]
     pub(super) fn add_dependency(&mut self, name: &str, version: Version) {
         self.raw
             .get_or_put_mut("dependencies", Map::new)
