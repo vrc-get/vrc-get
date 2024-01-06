@@ -6,12 +6,12 @@ use crate::{
 };
 use either::Either;
 use futures::future::{join3, join_all, try_join_all};
+use log::debug;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
-use log::debug;
 use tokio::fs::remove_dir_all;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
@@ -250,8 +250,7 @@ impl<'env> Builder<'env> {
                 PackageChange::Install(_) => {
                     panic!("INTERNAL ERROR: remove_unused for installed");
                 }
-                PackageChange::Remove(_) => {
-                }
+                PackageChange::Remove(_) => {}
             },
             Entry::Vacant(e) => {
                 e.insert(PackageChange::Remove(Remove {
@@ -261,6 +260,22 @@ impl<'env> Builder<'env> {
             }
         }
         self
+    }
+
+    pub(crate) fn get_installing(&self, name: &str) -> Option<PackageInfo<'env>> {
+        self.package_changes
+            .get(name)
+            .and_then(|x| x.as_install())
+            .filter(|x| x.add_to_locked)
+            .and_then(|x| x.package)
+    }
+
+    pub(crate) fn get_all_installing(&self) -> impl Iterator<Item = PackageInfo<'env>> + '_ {
+        self.package_changes
+            .values()
+            .filter_map(|x| x.as_install())
+            .filter(|x| x.add_to_locked)
+            .filter_map(|x| x.package)
     }
 
     pub fn build_no_resolve(self) -> PendingProjectChanges<'env> {
@@ -392,30 +407,31 @@ impl<'env> Builder<'env> {
                 .flat_map(|pkg| pkg.vpm_dependencies().keys())
                 .map(String::as_str);
 
-            let dependencies = unity_project.dependencies()
-                .filter(|name| self.package_changes.get(*name).and_then(|change| change.as_remove()).is_none());
+            let dependencies = unity_project.dependencies().filter(|name| {
+                self.package_changes
+                    .get(*name)
+                    .and_then(|change| change.as_remove())
+                    .is_none()
+            });
 
-            mark_recursive(
-                unlocked_dependencies.chain(dependencies),
-                |dep_name| {
-                    if let Some(to_install) = self
-                        .package_changes
-                        .get(dep_name)
-                        .and_then(|change| change.as_install())
-                        .and_then(|x| x.package)
-                    {
-                        Either::Left(to_install.vpm_dependencies().keys().map(String::as_str))
-                    } else {
-                        Either::Right(
-                            unity_project
-                                .get_locked(dep_name)
-                                .into_iter()
-                                .flat_map(|dep| dep.dependencies.keys())
-                                .map(String::as_str),
-                        )
-                    }
-                },
-            )
+            mark_recursive(unlocked_dependencies.chain(dependencies), |dep_name| {
+                if let Some(to_install) = self
+                    .package_changes
+                    .get(dep_name)
+                    .and_then(|change| change.as_install())
+                    .and_then(|x| x.package)
+                {
+                    Either::Left(to_install.vpm_dependencies().keys().map(String::as_str))
+                } else {
+                    Either::Right(
+                        unity_project
+                            .get_locked(dep_name)
+                            .into_iter()
+                            .flat_map(|dep| dep.dependencies.keys())
+                            .map(String::as_str),
+                    )
+                }
+            })
         };
 
         debug!("using packages: {:?}", using_packages);
