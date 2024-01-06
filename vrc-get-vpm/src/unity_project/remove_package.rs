@@ -1,5 +1,6 @@
 use crate::UnityProject;
 use std::{fmt, io};
+use std::collections::HashSet;
 
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::{pending_project_changes, PendingProjectChanges};
@@ -32,12 +33,21 @@ impl UnityProject {
 
         // check for conflicts: if some package requires some packages to be removed, it's conflict.
 
+        let remove = remove.iter().copied().collect::<HashSet<_>>();
+        let mut may_conflict = remove.clone();
+
+        for name in (self.all_installed_packages())
+            .filter(|dep| !remove.contains(&dep.name()))
+            .flat_map(|x| x.legacy_packages()) {
+            may_conflict.remove(name.as_str());
+        }
+
         for dep in self
             .all_packages()
             .filter(|dep| !remove.contains(&dep.name()))
         {
             // TODO: do not conflict if this package is legacy package of installed packages
-            for &to_remove in remove {
+            for &to_remove in &may_conflict {
                 if dep.dependencies().contains_key(to_remove) {
                     changes.conflicts(String::from(to_remove), String::from(dep.name()));
                 }

@@ -251,6 +251,11 @@ impl UnityProject {
         self.installed_packages.get(name)
     }
 
+    pub fn all_installed_packages(&self) -> impl Iterator<Item = &PackageJson> {
+        self.installed_packages.values()
+            .chain(self.unlocked_packages.iter().filter_map(|(_, json)| json.as_ref()))
+    }
+
     pub fn project_dir(&self) -> &Path {
         &self.project_dir
     }
