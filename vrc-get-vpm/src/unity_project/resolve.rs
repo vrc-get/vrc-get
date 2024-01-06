@@ -1,9 +1,11 @@
 use crate::unity_project::{
-    package_resolution, pending_project_changes, AddPackageErr, PendingProjectChanges,
+    package_resolution, pending_project_changes, AddPackageErr, LockedDependencyInfo,
+    PendingProjectChanges,
 };
+use crate::version::DependencyRange;
 use crate::{Environment, HttpClient, PackageCollection, UnityProject, VersionSelector};
 use itertools::Itertools;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 #[derive(Debug)]
@@ -53,10 +55,70 @@ impl UnityProject {
             changes.install_already_locked(pkg);
         }
 
-        // then, process dependencies of unlocked packages.
+        // then, process packages in dependencies but not in locked.
+        // This usually happens with template projects.
+        self.add_just_dependency(env, &mut changes)?;
+
+        // finally, process dependencies of unlocked packages.
         self.resolve_unlocked(env, &mut changes)?;
 
         Ok(changes.build_resolve(self).await)
+    }
+
+    fn add_just_dependency<'env>(
+        &self,
+        env: &'env Environment<impl HttpClient>,
+        changes: &mut pending_project_changes::Builder<'env>,
+    ) -> Result<(), AddPackageErr> {
+        let mut to_install = vec![];
+        let mut install_names = HashSet::new();
+
+        for (name, range) in self.manifest.dependencies() {
+            if self.manifest.get_locked(name).is_none() {
+                to_install.push(
+                    env.find_package_by_name(
+                        name,
+                        VersionSelector::range_for(self.unity_version(), &range.as_range()),
+                    )
+                    .ok_or_else(|| AddPackageErr::DependencyNotFound {
+                        dependency_name: name.to_string(),
+                    })?,
+                );
+                install_names.insert(name);
+            }
+        }
+
+        if to_install.is_empty() {
+            return Ok(());
+        }
+
+        let allow_prerelease = to_install.iter().any(|x| !x.version().pre.is_empty());
+
+        let result = package_resolution::collect_adding_packages(
+            self.manifest.dependencies(),
+            self.manifest.all_locked(),
+            |pkg| self.manifest.get_locked(pkg),
+            self.unity_version(),
+            env,
+            to_install,
+            allow_prerelease,
+        )?;
+
+        for x in result.new_packages {
+            changes.install_to_locked(x);
+            if install_names.contains(x.name()) {
+                changes.add_to_dependencies(
+                    x.name().to_owned(),
+                    DependencyRange::version(x.version().clone()),
+                );
+            }
+        }
+
+        for (package, conflicts_with) in result.conflicts {
+            changes.conflict_multiple(package, conflicts_with);
+        }
+
+        Ok(())
     }
 
     fn resolve_unlocked<'env>(
@@ -86,12 +148,26 @@ impl UnityProject {
 
         let unlocked_dependencies_versions = dependencies_of_unlocked_packages
             .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none()) // skip if already installed to locked
+            .filter(|(k, _)| changes.get_installing(k).is_none()) // skip if we're installing
             .filter(|(k, _)| !unlocked_names.contains(k.as_str())) // skip if already installed as unlocked
             .into_group_map();
 
         if unlocked_dependencies_versions.is_empty() {
             // if no dependencies are to be installed, early return
             return Ok(());
+        }
+
+        let mut virtual_locked_dependencies = self
+            .manifest
+            .all_locked()
+            .map(|x| (x.name(), x))
+            .collect::<HashMap<_, _>>();
+
+        for x in changes.get_all_installing() {
+            virtual_locked_dependencies.insert(
+                x.name(),
+                LockedDependencyInfo::new(x.name(), x.version(), x.vpm_dependencies()),
+            );
         }
 
         let unlocked_dependencies = unlocked_dependencies_versions
@@ -113,8 +189,8 @@ impl UnityProject {
 
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
-            self.manifest.all_locked(),
-            |pkg| self.manifest.get_locked(pkg),
+            virtual_locked_dependencies.values().cloned(),
+            |pkg| virtual_locked_dependencies.get(pkg).cloned(),
             self.unity_version(),
             env,
             unlocked_dependencies,

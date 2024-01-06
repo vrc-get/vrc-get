@@ -260,6 +260,7 @@ impl UnityProject {
     }
 }
 
+#[derive(Clone)]
 pub struct LockedDependencyInfo<'a> {
     name: &'a str,
     version: &'a Version,

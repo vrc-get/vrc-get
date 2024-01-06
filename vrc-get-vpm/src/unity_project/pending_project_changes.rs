@@ -262,6 +262,22 @@ impl<'env> Builder<'env> {
         self
     }
 
+    pub(crate) fn get_installing(&self, name: &str) -> Option<PackageInfo<'env>> {
+        self.package_changes
+            .get(name)
+            .and_then(|x| x.as_install())
+            .filter(|x| x.add_to_locked)
+            .and_then(|x| x.package)
+    }
+
+    pub(crate) fn get_all_installing(&self) -> impl Iterator<Item = PackageInfo<'env>> + '_ {
+        self.package_changes
+            .values()
+            .filter_map(|x| x.as_install())
+            .filter(|x| x.add_to_locked)
+            .filter_map(|x| x.package)
+    }
+
     pub fn build_no_resolve(self) -> PendingProjectChanges<'env> {
         for change in self.package_changes.values() {
             match change {
