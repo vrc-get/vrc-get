@@ -1,6 +1,7 @@
-use std::ffi::OsStr;
+use std::ffi::{OsString};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
@@ -10,14 +11,14 @@ fn main() {
     // currently this code is only tested on macOS.
 
     let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    let target_vendor = std::env::var("CARGO_CFG_TARGET_VENDOR").unwrap();
+    let manifest_dir = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
+
     let ilcompiler_path = PathBuf::from(std::env::var_os("DOTNET_ILCOMPILER_PACKAGE").expect(
         "please set path to runtime.<target>.microsoft.dotnet.ilcompiler package to DOTNET_ILCOMPILER_PACKAGE env var"
     ));
-    let dontet_built = PathBuf::from(
-        std::env::var_os("DOTNET_BUILT_LIBRARY")
-            .expect("please set path to built static libarary to DOTNET_BUILT_LIBRARY env var"),
-    );
-    let target_vendor = std::env::var_os("CARGO_CFG_TARGET_VENDOR").unwrap();
+
+    let dotnet_built = build_dotnet(&out_dir, &manifest_dir);
 
     let sdk_path = ilcompiler_path.join("sdk");
     let framework_path = ilcompiler_path.join("framework");
@@ -32,12 +33,12 @@ fn main() {
     println!("cargo:rustc-link-arg={path}", path = bootstrapper.display());
 
     // link prebuilt dotnet
-    if target_vendor.as_os_str() == OsStr::new("apple") {
+    if target_vendor == "apple" {
         // for apple platform, we need to fix object file a little
         // see https://github.com/dotnet/runtime/issues/96663
 
         let dst_object_file = out_dir.join("vrc-get-litedb-native-patched.o");
-        patch_mach_o_from_archive(&dontet_built, &dst_object_file);
+        patch_mach_o_from_archive(&dotnet_built, &dst_object_file);
         println!(
             "cargo:rustc-link-arg={path}",
             path = dst_object_file.display()
@@ -45,7 +46,7 @@ fn main() {
     } else {
         println!(
             "cargo:rustc-link-lib=static:+verbatim={}",
-            dontet_built.display()
+            dotnet_built.display()
         );
     }
 
@@ -62,8 +63,71 @@ fn main() {
         println!("cargo:rustc-link-lib=static={}", x);
     }
 
-    if target_vendor.as_os_str() == OsStr::new("apple") {
+    if target_vendor == "apple" {
         println!("cargo:rustc-link-lib=framework=Foundation");
+    }
+}
+
+fn build_dotnet(out_dir: &Path, manifest_dir: &Path) -> PathBuf {
+    /*
+    dotnet publish vrc-get-litedb.csproj -P:OutputPath="~/IdeaProjects/vrc-get/vrc-get-litedb/dotnet/target/bin/" -r osx-arm64
+     */
+
+    let mut command = Command::new("dotnet");
+    command.arg("publish");
+    command.arg(manifest_dir.join("dotnet/vrc-get-litedb.csproj"));
+
+    // set output paths
+    let output_dir = out_dir.join("dotnet").join("bin/");
+    command.arg("--output").arg(&output_dir);
+    let mut building = OsString::from("-P:IntermediateOutputPath=");
+    building.push(out_dir.join("dotnet").join("obj/"));
+    command.arg(building);
+
+    // os
+    match std::env::var("CARGO_CFG_TARGET_OS").unwrap().as_str() {
+        #[cfg(target_os = "macos")]
+        "macos" => {
+            command.arg("--os").arg("osx");
+        }
+        #[cfg(target_os = "windows")]
+        "windows" => {
+            command.arg("--os").arg("win");
+        }
+        #[cfg(target_os = "linux")]
+        "linux" => {
+            command.arg("--os").arg("linux");
+        }
+        os => panic!("unsupported target os: {os}. cross-os building is not supported by .NET nativeaot."),
+    }
+
+    // arch
+    match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_str() {
+        "x86_64" => {
+            command.arg("--arch").arg("x64");
+        }
+        "aarch64" => {
+            command.arg("--arch").arg("arm64");
+        }
+        arch => panic!("unsupported target arch: {arch}"),
+    }
+
+    let status = command.status().unwrap();
+    if !status.success() {
+        panic!("failed to build dotnet library");
+    }
+
+    match std::env::var("CARGO_CFG_TARGET_OS").unwrap().as_str() {
+        "macos" => {
+            output_dir.join("vrc-get-litedb.a")
+        }
+        "windows" => {
+            output_dir.join("vrc-get-litedb.lib")
+        }
+        "linux" => {
+            output_dir.join("vrc-get-litedb.a")
+        }
+        os => panic!("unsupported target os: {os}"),
     }
 }
 
