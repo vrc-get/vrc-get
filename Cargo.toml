@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "vrc-get",
+    "vrc-get-litedb",
     "vrc-get-vpm"
 ]
 
