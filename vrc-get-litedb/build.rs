@@ -14,22 +14,19 @@ fn main() {
     let target_vendor = std::env::var("CARGO_CFG_TARGET_VENDOR").unwrap();
     let manifest_dir = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
 
-    let ilcompiler_path = PathBuf::from(std::env::var_os("DOTNET_ILCOMPILER_PACKAGE").expect(
-        "please set path to runtime.<target>.microsoft.dotnet.ilcompiler package to DOTNET_ILCOMPILER_PACKAGE env var"
-    ));
-
     let dotnet_built = build_dotnet(&out_dir, &manifest_dir);
 
-    let sdk_path = ilcompiler_path.join("sdk");
-    let framework_path = ilcompiler_path.join("framework");
+    let dotnet_out_folder = out_dir.join("dotnet").join("bin/");
+    let dotnet_sdk_folder = dotnet_out_folder.join("sdk");
+    let dotnet_framework_folder = dotnet_out_folder.join("framework");
 
-    println!("cargo:rustc-link-search={path}", path = sdk_path.display());
+    println!("cargo:rustc-link-search={path}", path = dotnet_sdk_folder.display());
     println!(
         "cargo:rustc-link-search={path}",
-        path = framework_path.display()
+        path = dotnet_framework_folder.display()
     );
 
-    let bootstrapper = sdk_path.join("libbootstrapperdll.o");
+    let bootstrapper = dotnet_sdk_folder.join("libbootstrapperdll.o");
     println!("cargo:rustc-link-arg={path}", path = bootstrapper.display());
 
     // link prebuilt dotnet

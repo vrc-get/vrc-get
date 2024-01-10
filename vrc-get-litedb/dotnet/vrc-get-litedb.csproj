@@ -13,5 +13,28 @@
 
   <ItemGroup>
   </ItemGroup>
+  <!-- IlcSdkPath IlcFrameworkNativePath -->
+
+  <Target Name="CopySdkAndFrameworkNative"
+          DependsOnTargets="SetupProperties" 
+          BeforeTargets="Publish">
+    <ItemGroup>
+      <_IlcSdkNativeLibraries Include="$(IlcSdkPath)\*.a" />
+      <_IlcSdkNativeLibraries Include="$(IlcSdkPath)\*.lib" />
+      <_IlcSdkNativeLibraries Include="$(IlcSdkPath)\libbootstrapperdll.o" />
+    </ItemGroup>
+    <ItemGroup>
+      <_IlcFrameworkNativeLibraries Include="$(IlcFrameworkNativePath)\*.a" />
+      <_IlcFrameworkNativeLibraries Include="$(IlcFrameworkNativePath)\*.lib" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_IlcSdkNativeLibraries)"
+          DestinationFolder="$(PublishDir)\sdk" 
+          UseSymbolicLinksIfPossible="true"/>
+
+    <Copy SourceFiles="@(_IlcFrameworkNativeLibraries)"
+          DestinationFolder="$(PublishDir)\framework"
+          UseSymbolicLinksIfPossible="true"/>
+  </Target>
 
 </Project>
