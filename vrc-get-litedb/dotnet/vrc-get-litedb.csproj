@@ -22,6 +22,7 @@
       <_IlcSdkNativeLibraries Include="$(IlcSdkPath)*.a" />
       <_IlcSdkNativeLibraries Include="$(IlcSdkPath)*.lib" />
       <_IlcSdkNativeLibraries Include="$(IlcSdkPath)*.o" />
+      <_IlcSdkNativeLibraries Include="$(IlcSdkPath)*.obj" />
     </ItemGroup>
     <ItemGroup>
       <_IlcFrameworkNativeLibraries Include="$(IlcFrameworkNativePath)*.a" />

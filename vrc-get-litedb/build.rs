@@ -26,7 +26,11 @@ fn main() {
         path = dotnet_framework_folder.display()
     );
 
-    let bootstrapper = dotnet_sdk_folder.join("libbootstrapperdll.o");
+    let bootstrapper = if std::env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows" {
+        dotnet_sdk_folder.join("bootstrapperdll.obj")
+    } else {
+        dotnet_sdk_folder.join("libbootstrapperdll.o")
+    };
     println!("cargo:rustc-link-arg={path}", path = bootstrapper.display());
 
     // link prebuilt dotnet
