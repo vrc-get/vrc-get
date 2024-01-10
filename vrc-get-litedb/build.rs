@@ -25,6 +25,10 @@ fn main() {
         "cargo:rustc-link-search={path}",
         path = dotnet_framework_folder.display()
     );
+    println!(
+        "cargo:rustc-link-search={path}",
+        path = dotnet_built.parent().unwrap().display()
+    );
 
     let bootstrapper = if std::env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows" {
         dotnet_sdk_folder.join("bootstrapperdll.obj")
@@ -47,7 +51,7 @@ fn main() {
     } else {
         println!(
             "cargo:rustc-link-lib=static:+verbatim={}",
-            dotnet_built.display()
+            dotnet_built.file_name().unwrap().to_string_lossy()
         );
     }
 
