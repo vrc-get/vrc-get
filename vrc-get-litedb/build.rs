@@ -77,7 +77,7 @@ fn build_dotnet(out_dir: &Path, manifest_dir: &Path) -> PathBuf {
     // set output paths
     let output_dir = out_dir.join("dotnet").join("bin/");
     command.arg("--output").arg(&output_dir);
-    let mut building = OsString::from("-P:IntermediateOutputPath=");
+    let mut building = OsString::from("-p:IntermediateOutputPath=");
     building.push(out_dir.join("dotnet").join("obj/"));
     command.arg(building);
 
@@ -107,6 +107,12 @@ fn build_dotnet(out_dir: &Path, manifest_dir: &Path) -> PathBuf {
             command.arg("--arch").arg("arm64");
         }
         arch => panic!("unsupported target arch: {arch}"),
+    }
+
+    if std::env::var("CARGO_CFG_TARGET_VENDOR").unwrap() == "apple" {
+        // according to filipnavara, setting S_ATTR_NO_DEAD_STRIP for hydrated section is invalid
+        // so use IlcDehydrate=false instead
+        command.arg("-p:IlcDehydrate=false");
     }
 
     let status = command.status().unwrap();
@@ -187,14 +193,7 @@ fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
             let (section_headers, _) =
                 slice_from_bytes_mut::<Section64<E>>(data, section_count as usize).unwrap();
             for section_header in section_headers {
-                if &section_header.sectname == b"hydrated\0\0\0\0\0\0\0\0"
-                    && &section_header.segname == b"__DATA\0\0\0\0\0\0\0\0\0\0"
-                {
-                    // hydrated section in the data segment
-                    let flags = section_header.flags.get(endian);
-                    let flags = flags | S_ATTR_NO_DEAD_STRIP;
-                    section_header.flags.set(endian, flags);
-                } else if &section_header.sectname == b"__modules\0\0\0\0\0\0\0"
+                if &section_header.sectname == b"__modules\0\0\0\0\0\0\0"
                     && &section_header.segname == b"__DATA\0\0\0\0\0\0\0\0\0\0"
                 {
                     // __modules section in the data segment
