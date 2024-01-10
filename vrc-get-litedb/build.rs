@@ -132,7 +132,7 @@ fn build_dotnet(out_dir: &Path, manifest_dir: &Path) -> PathBuf {
             output_dir.join("vrc-get-litedb.lib")
         }
         "linux" => {
-            output_dir.join("vrc-get-litedb.a")
+            output_dir.join("libvrc-get-litedb.a")
         }
         os => panic!("unsupported target os: {os}"),
     }
