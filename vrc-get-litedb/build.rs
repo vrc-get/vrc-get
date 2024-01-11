@@ -56,7 +56,8 @@ fn main() {
     }
 
     let common_libs: &[&str] = &[
-        "static=Runtime.ServerGC",
+        //"static=Runtime.ServerGC",
+        "static=Runtime.WorkstationGC",
         "static=System.Globalization.Native",
         "static=eventpipe-disabled",
     ];
