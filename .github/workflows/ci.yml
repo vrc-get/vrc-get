@@ -26,7 +26,8 @@ jobs:
               ld.lld --version
             rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: aarch64-unknown-linux-musl
-            run-test: false
+            run-test: true
+            qemu-platforms: arm64
             on: ubuntu-latest
             setup: |
               # setup musl tools for cross compilation 
@@ -70,7 +71,8 @@ jobs:
               ld.lld --version
             rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: aarch64-unknown-linux-gnu
-            run-test: false
+            run-test: true
+            qemu-platforms: arm64
             on: ubuntu-latest
             setup: |
               sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu lld
@@ -117,6 +119,12 @@ jobs:
         with:
           target-dir: target
           key: ci-build
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        if: ${{ matrix.qemu-platforms }}
+        with:
+          platforms: ${{ matrix.qemu-platforms }}
       - name: Setup
         run: ${{ matrix.setup }}
       - name: Build
