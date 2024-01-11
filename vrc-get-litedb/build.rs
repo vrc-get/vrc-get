@@ -44,7 +44,7 @@ fn main() {
     println!("cargo:rustc-link-arg={path}", path = bootstrapper.display());
 
     // link prebuilt dotnet
-    if target_info.patch_mach_o {
+    if target_info.family == TargetFamily::MacOS {
         // for apple platform, we need to fix object file a little
         // see https://github.com/dotnet/runtime/issues/96663
 
@@ -59,11 +59,17 @@ fn main() {
     }
 
     if target_info.remove_libunwind {
-        println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
+        // for linux musl, duplicated linking libunwind causes linkage error so
+        // strip from Runtime.WorkstationGC.a
         let lib_name = "libRuntime.WorkstationGC.a";
         let before = dotnet_sdk_folder.join(lib_name);
         let patched = patched_lib_folder.join(lib_name);
         remove_libunwind(&before, &patched);
+    }
+
+    if target_info.family == TargetFamily::Linux {
+        // start stop gc is not supported by dotnet. 
+        println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
     }
 
     let common_libs: &[&str] = &[
@@ -86,8 +92,16 @@ struct TargetInformation {
     output_file_name: &'static str,
     link_libraries: &'static [&'static str],
     bootstrapper: &'static str,
+    family: TargetFamily,
     patch_mach_o: bool,
     remove_libunwind: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TargetFamily {
+    Windows,
+    Linux,
+    MacOS,
 }
 
 impl TargetInformation {
@@ -119,6 +133,7 @@ impl TargetInformation {
             ],
             bootstrapper: "libbootstrapperdll.o",
             patch_mach_o: false,
+            family: TargetFamily::Linux,
             remove_libunwind,
         }
     }
@@ -135,6 +150,7 @@ impl TargetInformation {
             ],
             bootstrapper: "libbootstrapperdll.o",
             patch_mach_o: true,
+            family: TargetFamily::MacOS,
             remove_libunwind: false,
         }
     }
@@ -166,6 +182,7 @@ impl TargetInformation {
             ],
             bootstrapper: "bootstrapperdll.obj",
             patch_mach_o: false,
+            family: TargetFamily::Windows,
             remove_libunwind: false,
         }
     }
