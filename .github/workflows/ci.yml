@@ -24,7 +24,7 @@ jobs:
               # check installed version
               musl-gcc --version
               ld.lld --version
-            rustflags: "-C link-arg=-fuse-ld=lld"
+            rustflags: "-C link-arg=-fuse-ld=lld -C target-feature=+crt-static"
           - triple: aarch64-unknown-linux-musl
             run-test: true
             qemu-platforms: arm64
@@ -61,7 +61,7 @@ jobs:
               aarch64-linux-musl-gcc --version
               ld.lld --version
               popd
-            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-musl-gcc -C linker-flavor=gcc -C default-linker-libraries=y"
+            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-musl-gcc -C linker-flavor=gcc -C default-linker-libraries=y -C target-feature=+crt-static"
           # linux with gnu toolchain
           - triple: x86_64-unknown-linux-gnu
             run-test: true
