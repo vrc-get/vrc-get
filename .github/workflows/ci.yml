@@ -68,6 +68,6 @@ jobs:
         with:
           tool: cross
       - name: Build
-        run: $CARGO build --verbose --target ${{ matrix.triple }}
+        run: ${{ env.CARGO }} build --verbose --target ${{ matrix.triple }}
       - name: Run tests
-        run: $CARGO test --verbose --target ${{ matrix.triple }}
+        run: ${{ env.CARGO }} test --verbose --target ${{ matrix.triple }}
