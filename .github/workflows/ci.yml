@@ -26,7 +26,7 @@ jobs:
               # setup musl tools for cross compilation 
 
               # setup env settings
-              dpkg --add-architecture arm64
+              sudo dpkg --add-architecture arm64
               sudo apt update
 
               # install cross compiler
