@@ -89,7 +89,7 @@ jobs:
       - name: Build
         run: cargo build --verbose --target ${{ matrix.triple }}
       - name: Build tests
-        if: ${{ matrix.run-test }}
         run: cargo build --tests --target ${{ matrix.triple }}
       - name: Run tests
+        if: ${{ matrix.run-test }}
         run: cargo test --verbose --target ${{ matrix.triple }}
