@@ -129,6 +129,13 @@ jobs:
         run: ${{ matrix.setup }}
       - name: Build
         run: cargo build --verbose --target ${{ matrix.triple }}
+      - name: Upload built binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.triple }}
+          path: |
+            target/${{ matrix.triple }}/debug/vrc-get*
+            target/${{ matrix.triple }}/debug/libvrc-get*
       - name: Build tests
         run: cargo build --tests --target ${{ matrix.triple }}
       - name: Run tests
