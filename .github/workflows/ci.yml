@@ -39,8 +39,8 @@ jobs:
               pushd .setup-musl
               apt download musl-dev:arm64
               dpkg --extract musl-dev*.deb musl-dev
-              ln -s musl-dev/usr/include/$NEW_ARCH /usr/include/$NEW_ARCH
-              ln -s musl-dev/usr/lib/$NEW_ARCH /usr/lib/$NEW_ARCH
+              sudo ln -s musl-dev/usr/include/$NEW_ARCH /usr/include/$NEW_ARCH
+              sudo ln -s musl-dev/usr/lib/$NEW_ARCH /usr/lib/$NEW_ARCH
               sudo tee /usr/bin/x86_64-linux-musl-gcc << 'EOF'
               #!/bin/sh
               exec "${REALGCC:-aarch64-linux-gnu-gcc}" "$@" -specs "/usr/lib/aarch64-linux-musl/musl-gcc.specs"
