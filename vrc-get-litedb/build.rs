@@ -221,8 +221,8 @@ fn patch_mach_o_from_archive(archive: &Path, patched: &Path) {
     let file = std::fs::File::open(archive).expect("failed to open built library");
     let mut archive = ar::Archive::new(std::io::BufReader::new(file));
 
-    let patched = std::fs::File::create(patched).expect("failed to create patched library");
-    let mut builder = ar::Builder::new(std::io::BufWriter::new(patched));
+    let file = std::fs::File::create(patched).expect("failed to create patched library");
+    let mut builder = ar::Builder::new(std::io::BufWriter::new(file));
 
     while let Some(entry) = archive.next_entry() {
         let mut entry = entry.expect("reading library");
@@ -251,6 +251,8 @@ fn patch_mach_o_from_archive(archive: &Path, patched: &Path) {
     }
 
     builder.into_inner().unwrap().flush().expect("writing patched library");
+
+    Command::new("ranlib").arg(patched).status().expect("running ranlib");
 }
 
 fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
