@@ -123,7 +123,7 @@ impl TargetInformation {
     fn windows(rid: &'static str) -> Self {
         Self {
             dotnet_runtime_id: rid,
-            output_file_name: "vrc-get-litedb.a",
+            output_file_name: "vrc-get-litedb.lib",
             link_libraries: &["static=System.Native", "static=stdc++compat"],
             bootstrapper: "bootstrapperdll.obj",
             patch_mach_o: false,
