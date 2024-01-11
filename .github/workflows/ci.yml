@@ -55,7 +55,7 @@ jobs:
               aarch64-linux-musl-gcc --version
               ld.lld --version
               popd
-            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-musl-gcc -C linker-flavor=gcc"
+            rustflags: "-C link-arg=-v -C linker=aarch64-linux-musl-gcc -C linker-flavor=gcc"
           # linux with gnu toolchain
           - triple: x86_64-unknown-linux-gnu
             run-test: true
@@ -71,7 +71,7 @@ jobs:
               sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu lld
               aarch64-linux-gnu-gcc --version
               ld.lld --version
-            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-gnu-gcc"
+            rustflags: "-C link-arg=-v -C linker=aarch64-linux-gnu-gcc"
           # for windows, use cross on ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             run-test: true
