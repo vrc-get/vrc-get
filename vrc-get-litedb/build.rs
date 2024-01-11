@@ -21,15 +21,15 @@ fn main() {
     let dotnet_framework_folder = dotnet_out_folder.join("framework");
 
     println!(
-        "cargo:rustc-link-search={path}",
+        "cargo:rustc-link-search=native={path}",
         path = dotnet_sdk_folder.display()
     );
     println!(
-        "cargo:rustc-link-search={path}",
+        "cargo:rustc-link-search=native={path}",
         path = dotnet_framework_folder.display()
     );
     println!(
-        "cargo:rustc-link-search={path}",
+        "cargo:rustc-link-search=native={path}",
         path = dotnet_built.parent().unwrap().display()
     );
 
