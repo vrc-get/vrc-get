@@ -60,7 +60,7 @@ jobs:
               aarch64-linux-musl-gcc --version
               ld.lld --version
               popd
-            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-musl-gcc -C linker-flavor=gcc"
+            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-musl-gcc -C linker-flavor=gcc -C default-linker-libraries=y"
           # linux with gnu toolchain
           - triple: x86_64-unknown-linux-gnu
             run-test: true
