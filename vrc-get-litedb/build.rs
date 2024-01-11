@@ -129,7 +129,6 @@ impl TargetInformation {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.lib",
             link_libraries: &[
-                "static=System.Native",
                 "static=System.Globalization.Native.Aot",
             ],
             bootstrapper: "bootstrapperdll.obj",
