@@ -1,5 +1,5 @@
 extern "C" {
-    fn add_dotnet(a: u32, b: u32) -> u32;
+    pub fn add_dotnet(a: u32, b: u32) -> u32;
 }
 
 #[export_name = "rust_callback"]

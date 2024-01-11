@@ -68,7 +68,7 @@ fn main() {
     }
 
     if target_info.family == TargetFamily::Linux {
-        // start stop gc is not supported by dotnet. 
+        // start stop gc is not supported by dotnet.
         println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
     }
 
@@ -162,7 +162,6 @@ impl TargetInformation {
             link_libraries: &[
                 "static=System.Globalization.Native.Aot",
                 "static=Runtime.VxsortDisabled",
-
                 // windows sdk items
                 "dylib=advapi32",
                 "dylib=bcrypt",
@@ -217,7 +216,6 @@ fn build_dotnet(out_dir: &Path, manifest_dir: &Path, target: &TargetInformation)
 }
 
 fn patch_mach_o_from_archive(archive: &Path, patched: &Path) {
-
     let file = std::fs::File::open(archive).expect("failed to open built library");
     let mut archive = ar::Archive::new(std::io::BufReader::new(file));
 
@@ -244,15 +242,26 @@ fn patch_mach_o_from_archive(archive: &Path, patched: &Path) {
                 panic!("invalid mach-o: unknown magic");
             }
 
-            builder.append(entry.header(), std::io::Cursor::new(buffer)).expect("copying file in archive");
+            builder
+                .append(entry.header(), std::io::Cursor::new(buffer))
+                .expect("copying file in archive");
         } else {
-            builder.append(&entry.header().clone(), &mut entry).expect("copying file in archive");
+            builder
+                .append(&entry.header().clone(), &mut entry)
+                .expect("copying file in archive");
         }
     }
 
-    builder.into_inner().unwrap().flush().expect("writing patched library");
+    builder
+        .into_inner()
+        .unwrap()
+        .flush()
+        .expect("writing patched library");
 
-    Command::new("ranlib").arg(patched).status().expect("running ranlib");
+    Command::new("ranlib")
+        .arg(patched)
+        .status()
+        .expect("running ranlib");
 }
 
 fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
@@ -298,9 +307,15 @@ fn remove_libunwind(archive: &Path, patched: &Path) {
         if entry.header().identifier().starts_with(b"libunwind") {
             // remove libunwind
         } else {
-            builder.append(&entry.header().clone(), &mut entry).expect("copying file in archive");
+            builder
+                .append(&entry.header().clone(), &mut entry)
+                .expect("copying file in archive");
         }
     }
 
-    builder.into_inner().unwrap().flush().expect("writing patched library");
+    builder
+        .into_inner()
+        .unwrap()
+        .flush()
+        .expect("writing patched library");
 }
