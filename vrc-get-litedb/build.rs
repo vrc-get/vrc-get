@@ -130,6 +130,7 @@ impl TargetInformation {
             output_file_name: "vrc-get-litedb.lib",
             link_libraries: &[
                 "static=System.Globalization.Native.Aot",
+                "static=Runtime.VxsortDisabled"
             ],
             bootstrapper: "bootstrapperdll.obj",
             patch_mach_o: false,
