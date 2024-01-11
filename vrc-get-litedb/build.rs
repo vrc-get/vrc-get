@@ -57,7 +57,6 @@ fn main() {
     let common_libs: &[&str] = &[
         //"static=Runtime.ServerGC",
         "static=Runtime.WorkstationGC",
-        "static=System.Globalization.Native",
         "static=eventpipe-disabled",
     ];
 
@@ -100,7 +99,11 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.a",
-            link_libraries: &["static=System.Native", "static=stdc++compat"],
+            link_libraries: &[
+                "static=System.Native",
+                "static=System.Globalization.Native",
+                "static=stdc++compat",
+            ],
             bootstrapper: "libbootstrapperdll.o",
             patch_mach_o: false,
         }
@@ -112,6 +115,7 @@ impl TargetInformation {
             output_file_name: "vrc-get-litedb.a",
             link_libraries: &[
                 "static=System.Native",
+                "static=System.Globalization.Native",
                 "static=stdc++compat",
                 "framework=Foundation",
             ],
@@ -124,7 +128,10 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.lib",
-            link_libraries: &["static=System.Native", "static=stdc++compat"],
+            link_libraries: &[
+                "static=System.Native",
+                "static=System.Globalization.Native.Aot",
+            ],
             bootstrapper: "bootstrapperdll.obj",
             patch_mach_o: false,
         }
