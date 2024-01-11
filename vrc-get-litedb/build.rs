@@ -1,4 +1,4 @@
-use std::ffi::{OsString};
+use std::ffi::OsString;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -11,16 +11,20 @@ fn main() {
     // currently this code is only tested on macOS.
 
     let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
-    let target_vendor = std::env::var("CARGO_CFG_TARGET_VENDOR").unwrap();
+    let target_info =
+        TargetInformation::from_triple(std::env::var("CARGO_CFG_TARGET_TRIPLE").unwrap().as_str());
     let manifest_dir = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
 
-    let dotnet_built = build_dotnet(&out_dir, &manifest_dir);
+    let dotnet_out_folder = build_dotnet(&out_dir, &manifest_dir, &target_info);
 
-    let dotnet_out_folder = out_dir.join("dotnet").join("bin/");
+    let dotnet_built = dotnet_out_folder.join(target_info.output_file_name);
     let dotnet_sdk_folder = dotnet_out_folder.join("sdk");
     let dotnet_framework_folder = dotnet_out_folder.join("framework");
 
-    println!("cargo:rustc-link-search={path}", path = dotnet_sdk_folder.display());
+    println!(
+        "cargo:rustc-link-search={path}",
+        path = dotnet_sdk_folder.display()
+    );
     println!(
         "cargo:rustc-link-search={path}",
         path = dotnet_framework_folder.display()
@@ -30,15 +34,11 @@ fn main() {
         path = dotnet_built.parent().unwrap().display()
     );
 
-    let bootstrapper = if std::env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows" {
-        dotnet_sdk_folder.join("bootstrapperdll.obj")
-    } else {
-        dotnet_sdk_folder.join("libbootstrapperdll.o")
-    };
+    let bootstrapper = dotnet_sdk_folder.join(target_info.bootstrapper);
     println!("cargo:rustc-link-arg={path}", path = bootstrapper.display());
 
     // link prebuilt dotnet
-    if target_vendor == "apple" {
+    if target_info.patch_mach_o {
         // for apple platform, we need to fix object file a little
         // see https://github.com/dotnet/runtime/issues/96663
 
@@ -55,29 +55,89 @@ fn main() {
         );
     }
 
-    let libs: &[&str] = &[
-        // .NET runtime
-        "System.Native",
-        "Runtime.ServerGC",
-        "stdc++compat",
-        "System.Globalization.Native",
-        "eventpipe-disabled",
+    let common_libs: &[&str] = &[
+        "static=Runtime.ServerGC",
+        "static=System.Globalization.Native",
+        "static=eventpipe-disabled",
     ];
 
-    for x in libs {
-        println!("cargo:rustc-link-lib=static={}", x);
+    for lib in common_libs {
+        println!("cargo:rustc-link-lib={lib}");
     }
 
-    if target_vendor == "apple" {
-        println!("cargo:rustc-link-lib=framework=Foundation");
+    for lib in target_info.link_libraries {
+        println!("cargo:rustc-link-lib={lib}");
     }
 }
 
-fn build_dotnet(out_dir: &Path, manifest_dir: &Path) -> PathBuf {
-    /*
-    dotnet publish vrc-get-litedb.csproj -P:OutputPath="~/IdeaProjects/vrc-get/vrc-get-litedb/dotnet/target/bin/" -r osx-arm64
-     */
+struct TargetInformation {
+    dotnet_runtime_id: &'static str,
+    output_file_name: &'static str,
+    link_libraries: &'static [&'static str],
+    bootstrapper: &'static str,
+    patch_mach_o: bool,
+}
 
+impl TargetInformation {
+    fn from_triple(triple: &str) -> Self {
+        match triple {
+            "x86_64-apple-darwin" => Self::macos("osx-x64"),
+            "aarch64-apple-darwin" => Self::macos("osx-arm64"),
+
+            "x86_64-pc-windows-msvc" => Self::windows("win-x64"),
+            "aaarch64-pc-windows-msvc" => Self::windows("win-arm64"),
+
+            "x86_64-unknown-linux-gnu" => Self::linux("linux-x64"),
+            "x86_64-unknown-linux-musl" => Self::linux("linux-musl-x64"),
+            "aarch64-unknown-linux-gnu" => Self::linux("linux-arm64"),
+            "aarch64-unknown-linux-musl" => Self::linux("linux-musl-arm64"),
+
+            _ => panic!("unsupported target triple: {}", triple),
+        }
+    }
+
+    fn linux(rid: &'static str) -> Self {
+        Self {
+            dotnet_runtime_id: rid,
+            output_file_name: "vrc-get-litedb.a",
+            link_libraries: &[
+                "static=System.Native",
+                "static=stdc++compat",
+            ],
+            bootstrapper: "libbootstrapperdll.o",
+            patch_mach_o: false,
+        }
+    }
+
+    fn macos(rid: &'static str) -> Self {
+        Self {
+            dotnet_runtime_id: rid,
+            output_file_name: "vrc-get-litedb.a",
+            link_libraries: &[
+                "static=System.Native",
+                "static=stdc++compat",
+                "framework=Foundation",
+            ],
+            bootstrapper: "libbootstrapperdll.o",
+            patch_mach_o: true,
+        }
+    }
+
+    fn windows(rid: &'static str) -> Self {
+        Self {
+            dotnet_runtime_id: rid,
+            output_file_name: "vrc-get-litedb.a",
+            link_libraries: &[
+                "static=System.Native",
+                "static=stdc++compat",
+            ],
+            bootstrapper: "bootstrapperdll.obj",
+            patch_mach_o: false,
+        }
+    }
+}
+
+fn build_dotnet(out_dir: &Path, manifest_dir: &Path, target: &TargetInformation) -> PathBuf {
     let mut command = Command::new("dotnet");
     command.arg("publish");
     command.arg(manifest_dir.join("dotnet/vrc-get-litedb.csproj"));
@@ -89,35 +149,9 @@ fn build_dotnet(out_dir: &Path, manifest_dir: &Path) -> PathBuf {
     building.push(out_dir.join("dotnet").join("obj/"));
     command.arg(building);
 
-    // os
-    match std::env::var("CARGO_CFG_TARGET_OS").unwrap().as_str() {
-        #[cfg(target_os = "macos")]
-        "macos" => {
-            command.arg("--os").arg("osx");
-        }
-        #[cfg(target_os = "windows")]
-        "windows" => {
-            command.arg("--os").arg("win");
-        }
-        #[cfg(target_os = "linux")]
-        "linux" => {
-            command.arg("--os").arg("linux");
-        }
-        os => panic!("unsupported target os: {os}. cross-os building is not supported by .NET nativeaot."),
-    }
+    command.arg("--runtime").arg(target.dotnet_runtime_id);
 
-    // arch
-    match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_str() {
-        "x86_64" => {
-            command.arg("--arch").arg("x64");
-        }
-        "aarch64" => {
-            command.arg("--arch").arg("arm64");
-        }
-        arch => panic!("unsupported target arch: {arch}"),
-    }
-
-    if std::env::var("CARGO_CFG_TARGET_VENDOR").unwrap() == "apple" {
+    if target.patch_mach_o {
         // according to filipnavara, setting S_ATTR_NO_DEAD_STRIP for hydrated section is invalid
         // so use IlcDehydrate=false instead
         command.arg("-p:IlcDehydrate=false");
@@ -128,18 +162,7 @@ fn build_dotnet(out_dir: &Path, manifest_dir: &Path) -> PathBuf {
         panic!("failed to build dotnet library");
     }
 
-    match std::env::var("CARGO_CFG_TARGET_OS").unwrap().as_str() {
-        "macos" => {
-            output_dir.join("vrc-get-litedb.a")
-        }
-        "windows" => {
-            output_dir.join("vrc-get-litedb.lib")
-        }
-        "linux" => {
-            output_dir.join("vrc-get-litedb.a")
-        }
-        os => panic!("unsupported target os: {os}"),
-    }
+    output_dir
 }
 
 fn patch_mach_o_from_archive(archive: &Path, dst_object_file: &Path) {
