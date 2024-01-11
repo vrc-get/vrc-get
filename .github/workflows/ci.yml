@@ -23,8 +23,8 @@ jobs:
               sudo apt update && sudo apt install -y musl-tools lld
               # check installed version
               musl-gcc --version
-              lld --version
-            rustflags: "-C link-arg=-fuse-ld=lld"
+              ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=ld.lld"
           - triple: aarch64-unknown-linux-musl
             run-test: false
             on: ubuntu-latest
@@ -52,25 +52,25 @@ jobs:
 
               # check installed version
               aarch64-linux-musl-gcc --version
-              lld --version
+              ld.lld --version
               popd
-            rustflags: "-C link-arg=-fuse-ld=lld -C linker=x86_64-linux-musl-gcc -C linker-flavor=gcc"
+            rustflags: "-C link-arg=-fuse-ld=ld.lld -C linker=x86_64-linux-musl-gcc -C linker-flavor=gcc"
           # linux with gnu toolchain
           - triple: x86_64-unknown-linux-gnu
             run-test: true
             on: ubuntu-latest
             setup: |
               sudo apt update && sudo apt install -y lld
-              lld --version
-            rustflags: "-C link-arg=-fuse-ld=lld"
+              ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=ld.lld"
           - triple: aarch64-unknown-linux-gnu
             run-test: false
             on: ubuntu-latest
             setup: |
               sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu lld
               gcc-aarch64-linux-gnu --version
-              lld --version
-            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-gnu-gcc"
+              ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=ld.lld -C linker=aarch64-linux-gnu-gcc"
           # for windows, use cross on ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             run-test: true
