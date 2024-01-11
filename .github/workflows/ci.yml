@@ -54,6 +54,7 @@ jobs:
 
               # link lld for cross compilation
               sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-musl-ld.lld"
+              sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-gnu-ld.lld"
 
               # check installed version
               aarch64-linux-musl-gcc --version
