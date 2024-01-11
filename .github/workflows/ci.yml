@@ -20,7 +20,7 @@ jobs:
             setup: |
               sudo apt update && sudo apt install -y musl-tools
               cat << HEREDOC >> .cargo/config.toml
-              [target.'cfg(all(target_os = "linux", target_env = "musl"))']
+              [target.'cfg(all(target_os = "linux", target_env = "musl", any()))']
               rustflags = ["-C", "link-arg=-fuse-ld=lld"]
               HEREDOC
           - runs-on: windows-latest
