@@ -17,7 +17,7 @@ jobs:
         include:
           - runs-on: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            setup: sudo apt update && sudo apt install -y musl-tools
+            setup: sudo apt update && sudo apt install -y musl-tools binutils
           - runs-on: windows-latest
             target: x86_64-pc-windows-msvc
         runs-on:
