@@ -58,6 +58,13 @@ fn main() {
         );
     }
 
+    if target_info.remove_libunwind {
+        let lib_name = "libRuntime.WorkstationGC.a";
+        let before = dotnet_sdk_folder.join(lib_name);
+        let patched = patched_lib_folder.join(lib_name);
+        remove_libunwind(&before, &patched);
+    }
+
     let common_libs: &[&str] = &[
         //"static=Runtime.ServerGC",
         "static=Runtime.WorkstationGC",
@@ -79,6 +86,7 @@ struct TargetInformation {
     link_libraries: &'static [&'static str],
     bootstrapper: &'static str,
     patch_mach_o: bool,
+    remove_libunwind: bool,
 }
 
 impl TargetInformation {
@@ -90,16 +98,16 @@ impl TargetInformation {
             "x86_64-pc-windows-msvc" => Self::windows("win-x64"),
             "aaarch64-pc-windows-msvc" => Self::windows("win-arm64"),
 
-            "x86_64-unknown-linux-gnu" => Self::linux("linux-x64"),
-            "x86_64-unknown-linux-musl" => Self::linux("linux-musl-x64"),
-            "aarch64-unknown-linux-gnu" => Self::linux("linux-arm64"),
-            "aarch64-unknown-linux-musl" => Self::linux("linux-musl-arm64"),
+            "x86_64-unknown-linux-gnu" => Self::linux("linux-x64", false),
+            "x86_64-unknown-linux-musl" => Self::linux("linux-musl-x64", true),
+            "aarch64-unknown-linux-gnu" => Self::linux("linux-arm64", false),
+            "aarch64-unknown-linux-musl" => Self::linux("linux-musl-arm64", true),
 
             _ => panic!("unsupported target triple: {}", triple),
         }
     }
 
-    fn linux(rid: &'static str) -> Self {
+    fn linux(rid: &'static str, remove_libunwind: bool) -> Self {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.a",
@@ -110,6 +118,7 @@ impl TargetInformation {
             ],
             bootstrapper: "libbootstrapperdll.o",
             patch_mach_o: false,
+            remove_libunwind,
         }
     }
 
@@ -125,6 +134,7 @@ impl TargetInformation {
             ],
             bootstrapper: "libbootstrapperdll.o",
             patch_mach_o: true,
+            remove_libunwind: false,
         }
     }
 
@@ -155,6 +165,7 @@ impl TargetInformation {
             ],
             bootstrapper: "bootstrapperdll.obj",
             patch_mach_o: false,
+            remove_libunwind: false,
         }
     }
 }
@@ -253,4 +264,23 @@ fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
         }
         as_slice = &mut as_slice[cmd_size..];
     }
+}
+
+fn remove_libunwind(archive: &Path, patched: &Path) {
+    let file = std::fs::File::open(archive).expect("failed to open built library");
+    let mut archive = ar::Archive::new(std::io::BufReader::new(file));
+
+    let patched = std::fs::File::create(patched).expect("failed to create patched library");
+    let mut builder = ar::Builder::new(std::io::BufWriter::new(patched));
+
+    while let Some(entry) = archive.next_entry() {
+        let mut entry = entry.expect("reading library");
+        if entry.header().identifier().starts_with(b"libunwind") {
+            // remove libunwind
+        } else {
+            builder.append(&entry.header().clone(), &mut entry).expect("copying file in archive");
+        }
+    }
+
+    builder.into_inner().unwrap().flush().expect("writing patched library");
 }
