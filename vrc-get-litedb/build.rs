@@ -11,8 +11,7 @@ fn main() {
     // currently this code is only tested on macOS.
 
     let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
-    let target_info =
-        TargetInformation::from_triple(std::env::var("CARGO_CFG_TARGET_TRIPLE").unwrap().as_str());
+    let target_info = TargetInformation::from_triple(std::env::var("TARGET").unwrap().as_str());
     let manifest_dir = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
 
     let dotnet_out_folder = build_dotnet(&out_dir, &manifest_dir, &target_info);
@@ -101,10 +100,7 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.a",
-            link_libraries: &[
-                "static=System.Native",
-                "static=stdc++compat",
-            ],
+            link_libraries: &["static=System.Native", "static=stdc++compat"],
             bootstrapper: "libbootstrapperdll.o",
             patch_mach_o: false,
         }
@@ -128,10 +124,7 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.a",
-            link_libraries: &[
-                "static=System.Native",
-                "static=stdc++compat",
-            ],
+            link_libraries: &["static=System.Native", "static=stdc++compat"],
             bootstrapper: "bootstrapperdll.obj",
             patch_mach_o: false,
         }
