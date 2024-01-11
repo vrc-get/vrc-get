@@ -18,7 +18,7 @@ jobs:
           # for linux, use cross on ubuntu-latest
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
-            setup: sudo apt update && sudo apt install -y musl-tools
+            setup: sudo apt update && sudo apt install -y musl-tools lld
             rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: aarch64-unknown-linux-musl
             on: ubuntu-latest
@@ -30,7 +30,7 @@ jobs:
               sudo apt update
 
               # install cross compiler
-              sudo apt install -y gcc-11-aarch64-linux-gnu
+              sudo apt install -y gcc-11-aarch64-linux-gnu lld
               # setup musl tools
               NEW_ARCH=aarch64-linux-musl
               mkdir .setup-musl
