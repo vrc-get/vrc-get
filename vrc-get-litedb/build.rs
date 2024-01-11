@@ -130,7 +130,24 @@ impl TargetInformation {
             output_file_name: "vrc-get-litedb.lib",
             link_libraries: &[
                 "static=System.Globalization.Native.Aot",
-                "static=Runtime.VxsortDisabled"
+                "static=Runtime.VxsortDisabled",
+
+                // windows sdk items
+                "static=advapi32",
+                "static=bcrypt",
+                "static=crypt32",
+                "static=iphlpapi",
+                "static=kernel32",
+                "static=mswsock",
+                "static=ncrypt",
+                "static=normaliz",
+                "static=ntdll",
+                "static=ole32",
+                "static=oleaut32",
+                "static=secur32",
+                "static=user32",
+                "static=version",
+                "static=ws2_32",
             ],
             bootstrapper: "bootstrapperdll.obj",
             patch_mach_o: false,
