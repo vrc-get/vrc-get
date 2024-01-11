@@ -18,26 +18,44 @@ jobs:
           # for linux, use cross on ubuntu-latest
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
-            cross: true
+            setup: sudo apt update && sudo apt install -y musl-tools
             rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: aarch64-unknown-linux-musl
             on: ubuntu-latest
-            cross: true
-            rustflags: "-C link-arg=-fuse-ld=lld"
+            setup: |
+              # setup musl tools for cross compilation 
+
+              # setup env settings
+              dpkg --add-architecture arm64
+              sudo apt update
+
+              # install cross compiler
+              sudo apt install -y gcc-11-aarch64-linux-gnu
+              # setup musl tools
+              NEW_ARCH=aarch64-linux-musl
+              mkdir .setup-musl
+              pushd .setup-musl
+              apt download musl-dev:arm64
+              dpkg --extract musl-dev*.deb musl-dev
+              ln -s musl-dev/usr/include/$NEW_ARCH /usr/include/$NEW_ARCH
+              ln -s musl-dev/usr/lib/$NEW_ARCH /usr/lib/$NEW_ARCH
+              sudo tee /usr/bin/x86_64-linux-musl-gcc << 'EOF'
+              #!/bin/sh
+              exec "${REALGCC:-aarch64-linux-gnu-gcc}" "$@" -specs "/usr/lib/aarch64-linux-musl/musl-gcc.specs"
+              EOF
+              popd
+            rustflags: "-C link-arg=-fuse-ld=lld -C linker=x86_64-linux-musl-gcc -C linker-flavor=gcc"
           # for windows, use cross on ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
-            cross: false
           #- triple: aarch64-pc-windows-msvc
           #  on: macos-latest
           #  cross: false
           # for macOS, on macOS without cross
           - triple: x86_64-apple-darwin
             on: macos-latest
-            cross: false
           - triple: aarch64-apple-darwin
             on: macos-latest
-            cross: false
         triple:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
@@ -49,7 +67,6 @@ jobs:
     runs-on: ${{ matrix.on }}
     env:
       RUSTFLAGS: ${{ matrix.rustflags }}
-      CARGO: ${{ matrix.cross && 'cross' || 'cargo' }}
 
     steps:
       - uses: actions/checkout@v3
@@ -62,12 +79,9 @@ jobs:
         with:
           target-dir: target
           key: ci-build
-      - name: Setup cross
-        if: ${{ matrix.cross }}
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cross
+      - name: Setup
+        run: ${{ matrix.setup }}
       - name: Build
-        run: ${{ env.CARGO }} build --verbose --target ${{ matrix.triple }}
+        run: cargo build --verbose --target ${{ matrix.triple }}
       - name: Run tests
-        run: ${{ env.CARGO }} test --verbose --target ${{ matrix.triple }}
+        run: cargo test --verbose --target ${{ matrix.triple }}
