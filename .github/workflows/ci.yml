@@ -77,7 +77,7 @@ jobs:
               aarch64-linux-gnu-gcc --version
               ld.lld --version
               sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-gnu-ld.lld"
-            rustflags: "-C link-arg=-fuse-ld=lld C linker=aarch64-linux-gnu-gcc"
+            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-gnu-gcc"
           # for windows, use cross on ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             run-test: true
