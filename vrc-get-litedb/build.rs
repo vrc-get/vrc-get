@@ -20,6 +20,13 @@ fn main() {
     let dotnet_sdk_folder = dotnet_out_folder.join("sdk");
     let dotnet_framework_folder = dotnet_out_folder.join("framework");
 
+    let patched_lib_folder = out_dir.join("patched-lib");
+    std::fs::create_dir_all(&patched_lib_folder).expect("creating patched folder");
+
+    println!(
+        "cargo:rustc-link-search=native={path}",
+        path = patched_lib_folder.display()
+    );
     println!(
         "cargo:rustc-link-search=native={path}",
         path = dotnet_sdk_folder.display()
@@ -41,12 +48,9 @@ fn main() {
         // for apple platform, we need to fix object file a little
         // see https://github.com/dotnet/runtime/issues/96663
 
-        let dst_object_file = out_dir.join("vrc-get-litedb-native-patched.o");
-        patch_mach_o_from_archive(&dotnet_built, &dst_object_file);
-        println!(
-            "cargo:rustc-link-arg={path}",
-            path = dst_object_file.display()
-        );
+        let patched = patched_lib_folder.join("vrc-get-litedb-patched.a");
+        patch_mach_o_from_archive(&dotnet_built, &patched);
+        println!("cargo:rustc-link-lib=static:+verbatim=vrc-get-litedb-patched.a");
     } else {
         println!(
             "cargo:rustc-link-lib=static:+verbatim={}",
@@ -183,46 +187,41 @@ fn build_dotnet(out_dir: &Path, manifest_dir: &Path, target: &TargetInformation)
     output_dir
 }
 
-fn patch_mach_o_from_archive(archive: &Path, dst_object_file: &Path) {
-    std::fs::remove_file(&dst_object_file).ok();
+fn patch_mach_o_from_archive(archive: &Path, patched: &Path) {
 
     let file = std::fs::File::open(archive).expect("failed to open built library");
-    let mut archive = ar::Archive::new(file);
+    let mut archive = ar::Archive::new(std::io::BufReader::new(file));
+
+    let patched = std::fs::File::create(patched).expect("failed to create patched library");
+    let mut builder = ar::Builder::new(std::io::BufWriter::new(patched));
+
     while let Some(entry) = archive.next_entry() {
         let mut entry = entry.expect("reading library");
         if entry.header().identifier().ends_with(b".o") {
+            let mut buffer = vec![0u8; 0];
+
+            std::io::copy(&mut entry, &mut buffer).expect("reading library");
+
             use object::endian::*;
             use object::from_bytes;
             use object::macho::*;
 
-            // it's object file
-            let mut dst_file = std::fs::File::options()
-                .create_new(true)
-                .read(true)
-                .write(true)
-                .open(&dst_object_file)
-                .expect("creating patched object file");
-            std::io::copy(&mut entry, &mut dst_file).expect("creating patched object file");
-            dst_file.flush().expect("creating patched object file");
-
-            let mut mapped = unsafe { memmap2::MmapMut::map_mut(&dst_file) }
-                .expect("mmap: patching object file");
-            let as_slice = &mut mapped[..];
-
-            let (magic, _) = from_bytes::<U32<BigEndian>>(as_slice).unwrap();
+            let (magic, _) = from_bytes::<U32<BigEndian>>(&buffer).unwrap();
             if magic.get(BigEndian) == MH_MAGIC_64 {
-                patch_mach_o_64(as_slice, Endianness::Big);
+                patch_mach_o_64(&mut buffer, Endianness::Big);
             } else if magic.get(BigEndian) == MH_CIGAM_64 {
-                patch_mach_o_64(as_slice, Endianness::Little);
+                patch_mach_o_64(&mut buffer, Endianness::Little);
             } else {
                 panic!("invalid mach-o: unknown magic");
             }
 
-            mapped.flush().expect("flush:patching object file");
-            drop(mapped);
-            drop(dst_file);
+            builder.append(entry.header(), std::io::Cursor::new(buffer)).expect("copying file in archive");
+        } else {
+            builder.append(&entry.header().clone(), &mut entry).expect("copying file in archive");
         }
     }
+
+    builder.into_inner().unwrap().flush().expect("writing patched library");
 }
 
 fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
