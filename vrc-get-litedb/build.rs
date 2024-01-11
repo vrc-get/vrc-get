@@ -59,6 +59,7 @@ fn main() {
     }
 
     if target_info.remove_libunwind {
+        println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
         let lib_name = "libRuntime.WorkstationGC.a";
         let before = dotnet_sdk_folder.join(lib_name);
         let patched = patched_lib_folder.join(lib_name);
