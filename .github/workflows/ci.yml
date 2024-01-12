@@ -38,15 +38,15 @@ jobs:
             on: ubuntu-latest
             setup: |
               sudo apt update && sudo apt install -y lld
-              sudo ln -s "/usr/bin/ld.lld" /usr/local/aarch64-linux-musl/bin/ld.lld
-              /usr/local/aarch64-linux-musl/bin/ld.lld --version
+              ld.lld --version
             rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: aarch64-unknown-linux-gnu
             run-test: true
             on: ubuntu-latest
             setup: |
               sudo apt update && sudo apt install -y lld
-              ld.lld --version
+              sudo ln -s "/usr/bin/ld.lld" /usr/aarch64-linux-gnu/bin/ld.lld
+              /usr/aarch64-linux-gnu/bin/ld.lld --version
             rustflags: "-C link-arg=-fuse-ld=lld"
           # for windows, use cross on ubuntu-latest
           - triple: x86_64-pc-windows-msvc
