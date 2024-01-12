@@ -19,18 +19,35 @@ jobs:
           - triple: x86_64-unknown-linux-musl
             run-test: true
             on: ubuntu-latest
-            rustflags: "-C target-feature=+crt-static"
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              sudo ln -s "/usr/bin/ld.lld" "/usr/bin/x86_64-unknown-linux-musl-ld.lld"
+              x86_64-unknown-linux-musl-ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld -C target-feature=+crt-static"
           - triple: aarch64-unknown-linux-musl
             run-test: true
             on: ubuntu-latest
-            rustflags: "-C default-linker-libraries=y -C target-feature=+crt-static"
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-unknown-linux-musl-ld.lld"
+              aarch64-unknown-linux-musl-ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld -C default-linker-libraries=y -C target-feature=+crt-static"
           # linux with gnu toolchain
           - triple: x86_64-unknown-linux-gnu
             run-test: true
             on: ubuntu-latest
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-gnu-ld.lld"
+              aarch64-linux-gnu-ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: aarch64-unknown-linux-gnu
             run-test: true
             on: ubuntu-latest
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld"
           # for windows, use cross on ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             run-test: true
