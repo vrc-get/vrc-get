@@ -114,7 +114,8 @@ jobs:
 
     runs-on: ${{ matrix.on }}
     env:
-      RUSTFLAGS: ${{ matrix.rustflags }}
+      RUSTFLAGS: ${{ matrix.rustflags }} -C link-arg=-Wl,--verbose
+      RUSTC_LOG: rustc_codegen_ssa::back::link=info
 
     steps:
       - uses: actions/checkout@v3
