@@ -74,7 +74,7 @@ jobs:
 
     runs-on: ${{ matrix.on }}
     env:
-      RUSTFLAGS: ${{ matrix.rustflags }} -C link-arg=-Wl,--verbose
+      RUSTFLAGS: ${{ matrix.rustflags }}
       RUSTC_LOG: rustc_codegen_ssa::back::link=info
 
     steps:
