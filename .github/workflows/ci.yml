@@ -36,7 +36,7 @@ jobs:
               sudo apt update
 
               # setup qemu
-              apt install qemu-user-static
+              sudo apt install qemu-user-static
               echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER=qemu-aarch64-static" >> $GITHUB_ENV
 
               # install cross compiler
