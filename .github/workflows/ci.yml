@@ -27,7 +27,6 @@ jobs:
             rustflags: "-C link-arg=-fuse-ld=lld -C target-feature=+crt-static"
           - triple: aarch64-unknown-linux-musl
             run-test: true
-            qemu-platforms: arm64
             on: ubuntu-latest
             setup: |
               # setup musl tools for cross compilation 
@@ -35,6 +34,10 @@ jobs:
               # setup env settings
               echo "deb [ arch=arm64 ] http://ports.ubuntu.com/ubuntu-ports/ $(lsb_release -sc) universe" | sudo tee -a /etc/apt/sources.list
               sudo apt update
+
+              # setup qemu
+              apt install qemu-user-static
+              echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER=qemu-aarch64-static" >> $GITHUB_ENV
 
               # install cross compiler
               sudo apt install -y gcc-aarch64-linux-gnu lld
@@ -58,6 +61,7 @@ jobs:
               sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-gnu-ld.lld"
 
               # check installed version
+              qemu-aarch64-static --version
               aarch64-linux-musl-gcc --version
               ld.lld --version
               popd
@@ -72,11 +76,15 @@ jobs:
             rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: aarch64-unknown-linux-gnu
             run-test: true
-            qemu-platforms: arm64
             on: ubuntu-latest
             setup: |
-              sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu lld
+              sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu lld qemu-user-static
               aarch64-linux-gnu-gcc --version
+              qemu-aarch64-static --version
+              
+              # setup qemu
+              echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER=qemu-aarch64-static" >> $GITHUB_ENV
+
               ld.lld --version
               sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-gnu-ld.lld"
             rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-gnu-gcc"
@@ -120,11 +128,6 @@ jobs:
           target-dir: target
           key: ci-build
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        if: ${{ matrix.qemu-platforms }}
-        with:
-          platforms: ${{ matrix.qemu-platforms }}
       - name: Setup
         run: ${{ matrix.setup }}
       - name: Build
