@@ -29,43 +29,9 @@ jobs:
             run-test: true
             on: ubuntu-latest
             setup: |
-              # setup musl tools for cross compilation 
-
-              # setup env settings
-              echo "deb [ arch=arm64 ] http://ports.ubuntu.com/ubuntu-ports/ $(lsb_release -sc) universe" | sudo tee -a /etc/apt/sources.list
-              sudo apt update
-
-              # setup qemu
-              sudo apt install qemu-user-static
-              echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER=qemu-aarch64-static" >> $GITHUB_ENV
-
-              # install cross compiler
-              sudo apt install -y gcc-aarch64-linux-gnu lld
-              # setup musl tools
-              mkdir .setup-musl
-              pushd .setup-musl
-              apt download musl-dev:arm64
-              dpkg --extract musl-dev*.deb musl-dev
-              sudo ln -s "$(pwd)"/musl-dev/usr/include/aarch64-linux-musl /usr/include/
-              sudo ln -s "$(pwd)"/musl-dev/usr/lib/aarch64-linux-musl /usr/lib/
-              find /usr/lib/aarch64-linux-musl -follow
-              find /usr/include/aarch64-linux-musl -follow
-              sudo tee /usr/bin/aarch64-linux-musl-gcc << 'EOF'
-              #!/bin/sh
-              exec "${REALGCC:-aarch64-linux-gnu-gcc}" "$@" -specs "/usr/lib/aarch64-linux-musl/musl-gcc.specs"
-              EOF
-              sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
-
-              # link lld for cross compilation
-              sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-musl-ld.lld"
-              sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-gnu-ld.lld"
-
-              # check installed version
-              qemu-aarch64-static --version
-              aarch64-linux-musl-gcc --version
+              sudo apt update && sudo apt install -y lld
               ld.lld --version
-              popd
-            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-musl-gcc -C linker-flavor=gcc -C default-linker-libraries=y -C target-feature=+crt-static"
+            rustflags: "-C link-arg=-fuse-ld=lld -C default-linker-libraries=y -C target-feature=+crt-static"
           # linux with gnu toolchain
           - triple: x86_64-unknown-linux-gnu
             run-test: true
@@ -78,16 +44,9 @@ jobs:
             run-test: true
             on: ubuntu-latest
             setup: |
-              sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu lld qemu-user-static
-              aarch64-linux-gnu-gcc --version
-              qemu-aarch64-static --version
-              
-              # setup qemu
-              echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER=qemu-aarch64-static" >> $GITHUB_ENV
-
+              sudo apt update && sudo apt install -y lld
               ld.lld --version
-              sudo ln -s "/usr/bin/ld.lld" "/usr/bin/aarch64-linux-gnu-ld.lld"
-            rustflags: "-C link-arg=-fuse-ld=lld -C linker=aarch64-linux-gnu-gcc"
+            rustflags: "-C link-arg=-fuse-ld=lld"
           # for windows, use cross on ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             run-test: true
@@ -124,6 +83,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.triple }}
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: ${{ matrix.triple }}
       - uses: Swatinem/rust-cache@v1
         with:
           target-dir: target
