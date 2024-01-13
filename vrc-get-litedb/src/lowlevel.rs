@@ -61,14 +61,14 @@ extern "C" fn vrc_get_litedb_lowlevel_alloc_byte_slice(len: usize) -> *mut u8 {
     ByteSlice::from_boxed_slice(slice).ptr
 }
 
+#[no_mangle]
+extern "C" fn test_returns_hello_rust() -> ByteSlice {
+    ByteSlice::from_byte_slice(b"Hello, Rust!")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[no_mangle]
-    extern "C" fn test_returns_hello_rust() -> ByteSlice {
-        ByteSlice::from_byte_slice(b"Hello, Rust!")
-    }
 
     #[test]
     fn test_call_returns_hello_rust() {
