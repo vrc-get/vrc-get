@@ -1,3 +1,5 @@
+mod lowlevel;
+
 extern "C" {
     pub fn add_dotnet(a: u32, b: u32) -> u32;
 }
