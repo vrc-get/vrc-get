@@ -289,8 +289,8 @@ fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
             let (section_headers, _) =
                 slice_from_bytes_mut::<Section64<E>>(data, section_count as usize).unwrap();
             for section_header in section_headers {
-                if &section_header.sectname == b"__modules\0\0\0\0\0\0\0"
-                    && &section_header.segname == b"__DATA\0\0\0\0\0\0\0\0\0\0"
+                if &section_header.segname == b"__DATA\0\0\0\0\0\0\0\0\0\0"
+                    && section_header.flags.get(endian) & S_ZEROFILL == 0
                 {
                     // __modules section in the data segment
                     let flags = section_header.flags.get(endian);
