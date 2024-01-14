@@ -119,7 +119,7 @@ impl TargetInformation {
             "aarch64-apple-darwin" => Self::macos("osx-arm64"),
 
             "x86_64-pc-windows-msvc" => Self::windows("win-x64"),
-            "aaarch64-pc-windows-msvc" => Self::windows("win-arm64"),
+            "aarch64-pc-windows-msvc" => Self::windows("win-arm64"),
 
             "x86_64-unknown-linux-gnu" => Self::linux("linux-x64", false),
             "x86_64-unknown-linux-musl" => Self::linux("linux-musl-x64", true),
