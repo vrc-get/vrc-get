@@ -1,5 +1,7 @@
 //! This module contains low-level functions for interacting with the C# code
 
+use std::alloc::Layout;
+
 /// Rust representation of the System.Runtime.InteropServices.GCHandle type  
 /// 
 /// This is actually a wrapper type of [`isize`] but this struct will call `GCHandle.Free()` when dropped
@@ -21,27 +23,27 @@ impl Drop for GcHandle {
 /// 
 /// This struct doesn't free the memory when dropped
 #[repr(C)]
-pub struct ByteSlice {
-    ptr: *mut u8,
+pub struct FFISlice<T = u8> {
+    ptr: *mut T,
     len: usize,
 }
 
-impl ByteSlice {
-    fn from_byte_slice(slice: &[u8]) -> Self {
+impl<T> FFISlice<T> {
+    pub fn from_byte_slice(slice: &[T]) -> Self {
         Self {
             ptr: slice.as_ptr() as *mut _,
             len: slice.len(),
         }
     }
 
-    fn from_boxed_slice(slice: Box<[u8]>) -> Self {
+    pub fn from_boxed_slice(slice: Box<[T]>) -> Self {
         let ptr = Box::into_raw(slice);
         let len = unsafe { (*ptr).len() };
         Self { ptr: ptr as *mut _, len }
     }
 
     /// SAFETY: the caller must ensure that the pointer is valid and the length is correct
-    unsafe fn as_byte_slice(&self) -> &[u8] {
+    pub unsafe fn as_byte_slice(&self) -> &[T] {
         std::slice::from_raw_parts(self.ptr, self.len)
     }
 
@@ -49,21 +51,21 @@ impl ByteSlice {
     /// the length is correct, the pointer is allocated with `Box`,
     /// and there are no other box instance for the same pointer.
     #[must_use = "call `drop(Box::as_boxed_byte_slice(slice))` if you intend to drop the `Box`"]
-    unsafe fn as_boxed_byte_slice(&self) -> Box<[u8]> {
+    pub unsafe fn as_boxed_byte_slice(&self) -> Box<[T]> {
         let slice_ptr = std::ptr::slice_from_raw_parts_mut(self.ptr, self.len);
         Box::from_raw(slice_ptr)
     }
 }
 
 #[no_mangle]
-extern "C" fn vrc_get_litedb_lowlevel_alloc_byte_slice(len: usize) -> *mut u8 {
-    let slice = vec![0; len].into_boxed_slice();
-    ByteSlice::from_boxed_slice(slice).ptr
+unsafe extern "C" fn vrc_get_litedb_lowlevel_alloc(size: usize, align: usize) -> *mut u8 {
+    let layout = Layout::from_size_align_unchecked(size, align);
+    std::alloc::alloc(layout)
 }
 
 #[no_mangle]
-extern "C" fn test_returns_hello_rust() -> ByteSlice {
-    ByteSlice::from_byte_slice(b"Hello, Rust!")
+extern "C" fn test_returns_hello_rust() -> FFISlice {
+    FFISlice::from_byte_slice(b"Hello, Rust!")
 }
 
 #[cfg(test)]
@@ -83,13 +85,13 @@ mod tests {
     #[test]
     fn test_call_returns_hello_csharp() {
         extern "C" {
-            fn test_returns_hello_csharp() -> ByteSlice;
+            fn test_returns_hello_csharp() -> FFISlice;
         }
         
         unsafe {
             let slice = test_returns_hello_csharp();
             assert_eq!(slice.as_byte_slice(), b"Hello, C#!");
-            drop(ByteSlice::as_boxed_byte_slice(&slice));
+            drop(FFISlice::as_boxed_byte_slice(&slice));
         }
     }
 
@@ -113,9 +115,9 @@ mod tests {
         assert_eq!(size_of::<GcHandle>(), ptr_size);
         assert_eq!(offset_of!(GcHandle, 0), 0);
 
-        assert_eq!(size_of::<ByteSlice>(), 2 * ptr_size);
-        assert_eq!(offset_of!(ByteSlice, ptr), 0);
-        assert_eq!(offset_of!(ByteSlice, len), ptr_size);
+        assert_eq!(size_of::<FFISlice>(), 2 * ptr_size);
+        assert_eq!(offset_of!(FFISlice, ptr), 0);
+        assert_eq!(offset_of!(FFISlice, len), ptr_size);
     }
 
     #[test]
