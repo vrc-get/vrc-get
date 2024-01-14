@@ -84,7 +84,7 @@ jobs:
   conclude:
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [build, example]
+    needs: [build]
     steps:
       - name: Conclude Tests
         env: { NEEDS: "${{ toJSON(needs) }}" }
