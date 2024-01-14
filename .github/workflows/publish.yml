@@ -91,28 +91,36 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # for linux, use cross on ubuntu-latest
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
-            cross: true
           - triple: aarch64-unknown-linux-musl
             on: ubuntu-latest
-            cross: true
-          # for windows, use cross on ubuntu-latest
+          - triple: x86_64-unknown-linux-gnu
+            on: ubuntu-latest
+          - triple: aarch64-unknown-linux-gnu
+            on: ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
-            cross: false
-          #- triple: aarch64-pc-windows-msvc
-          #  on: macos-latest
-          #  cross: false
-          # for macOS, on macOS without cross
+          - triple: aarch64-pc-windows-msvc
+            on: windows-latest
           - triple: x86_64-apple-darwin
             on: macos-latest
-            cross: false
           - triple: aarch64-apple-darwin
             on: macos-latest
-            cross: false
+        triple:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+
     runs-on: ${{ matrix.on }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+
     needs: [pre-build]
     steps:
       - uses: actions/checkout@v3
@@ -122,23 +130,31 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.triple }}
-      - uses: Swatinem/rust-cache@v1
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
         with:
-          target-dir: target
-          key: ${{ matrix.triple }}
-      - name: Setup cross
-        if: ${{ matrix.cross }}
-        uses: taiki-e/install-action@v2
+          target: ${{ matrix.triple }}
+      - uses: Swatinem/rust-cache@v2
         with:
-          tool: cross
+          cache-targets: false # for release build, do not cache build artifacts
+          key: release # there are no elements about build result, so it's ok to share between all builds
 
       - name: Build
-        run: ${{ matrix.cross && 'cross' || 'cargo' }} build --target ${{ matrix.triple }} --release --verbose
+        run: cargo build --target ${{ matrix.triple }} --release --verbose
 
-      - uses: actions/upload-artifact@v3
+      - name: Move artifacts
+        run: |-
+          mkdir artifacts
+          pushd target/${{ matrix.triple }}/release
+            for f in vrc-get*; do
+              mv $f "../../../artifacts/${{ matrix.triple }}-$f"
+            done
+          popd
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.triple }}
-          path: target/${{ matrix.triple }}/release/vrc-get*
+          name: artifacts-${{ matrix.triple }}
+          path: artifacts/*
 
   publish-crates-io:
     name: Publish to crates.io
@@ -232,9 +248,12 @@ jobs:
       - uses: snow-actions/git-config-user@v1.0.0
       - uses: dtolnay/rust-toolchain@stable
 
-      - uses: actions/download-artifact@v3
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
         with:
-          path: outputs
+          path: assets
+          pattern: artifacts-*
+          merge-multiple: true
 
       - name: Push tag
         run: |-
@@ -247,26 +266,13 @@ jobs:
           git fetch origin master --depth=1
           git log --all --graph
           git push -u origin master
+          sleep 1
 
       - name: create release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |-
-          mkdir assets
-
-          pushd outputs
-            for d in *; do
-              pushd "$d"
-                ls
-                for f in vrc-get*; do
-                  mv $f "../../assets/$d-$f"
-                done
-              popd
-            done
-          popd
-
-          sleep 1
           gh release create ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} --verify-tag "v$CLI_VERSION" assets/*
 
           rm -rf outputs assets

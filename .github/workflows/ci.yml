@@ -12,18 +12,42 @@ env:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            setup: sudo apt update && sudo apt install -y musl-tools
-          - runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
-        runs-on:
-          - ubuntu-latest
-          - windows-latest
+          - run-test: true
+          - triple: x86_64-unknown-linux-musl
+            on: ubuntu-latest
+          - triple: aarch64-unknown-linux-musl
+            on: ubuntu-latest
+          - triple: x86_64-unknown-linux-gnu
+            on: ubuntu-latest
+          - triple: aarch64-unknown-linux-gnu
+            on: ubuntu-latest
+          - triple: x86_64-pc-windows-msvc
+            on: windows-latest
+          - triple: aarch64-pc-windows-msvc
+            on: windows-latest
+            run-test: false
+          - triple: x86_64-apple-darwin
+            on: macos-latest
+          - triple: aarch64-apple-darwin
+            run-test: false
+            on: macos-latest
+        triple:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
 
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.on }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+      RUSTC_LOG: rustc_codegen_ssa::back::link=info
 
     steps:
       - uses: actions/checkout@v3
@@ -31,14 +55,39 @@ jobs:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v1
+          targets: ${{ matrix.triple }}
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
         with:
-          target-dir: target
-          key: ci-build
+          target: ${{ matrix.triple }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ci-build-${{ matrix.triple }}
+
       - name: Setup
         run: ${{ matrix.setup }}
       - name: Build
-        run: cargo build --verbose --target ${{ matrix.target }}
+        run: cargo build --verbose --target ${{ matrix.triple }}
+      - name: Upload built binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.triple }}
+          path: |
+            target/${{ matrix.triple }}/debug/vrc-get*
+            target/${{ matrix.triple }}/debug/libvrc-get*
+      - name: Build tests
+        run: cargo build --tests --target ${{ matrix.triple }}
       - name: Run tests
-        run: cargo test --verbose --target ${{ matrix.target }}
+        if: ${{ matrix.run-test }}
+        run: cargo test --verbose --target ${{ matrix.triple }}
+
+  conclude:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [build]
+    steps:
+      - name: Conclude Tests
+        env: { NEEDS: "${{ toJSON(needs) }}" }
+        run: |
+          echo "$NEEDS" | jq -c '. | to_entries[] | [.key, .value.result]'
+          echo "$NEEDS" | jq -e '. | all(.result == "success")' > /dev/null
