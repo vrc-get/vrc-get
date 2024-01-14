@@ -142,10 +142,19 @@ jobs:
       - name: Build
         run: cargo build --target ${{ matrix.triple }} --release --verbose
 
-      - uses: actions/upload-artifact@v3
+      - name: Move artifacts
+        run: |-
+          mkdir artifacts
+          pushd target/${{ matrix.triple }}/release
+            for f in vrc-get*; do
+              mv $f "../../../artifacts/${{ matrix.triple }}-$f"
+            done
+          popd
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.triple }}
-          path: target/${{ matrix.triple }}/release/vrc-get*
+          name: artifacts-${{ matrix.triple }}
+          path: artifacts/*
 
   publish-crates-io:
     name: Publish to crates.io
@@ -239,9 +248,12 @@ jobs:
       - uses: snow-actions/git-config-user@v1.0.0
       - uses: dtolnay/rust-toolchain@stable
 
-      - uses: actions/download-artifact@v3
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
         with:
-          path: outputs
+          path: assets
+          pattern: artifacts-*
+          merge-multiple: true
 
       - name: Push tag
         run: |-
@@ -254,26 +266,13 @@ jobs:
           git fetch origin master --depth=1
           git log --all --graph
           git push -u origin master
+          sleep 1
 
       - name: create release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |-
-          mkdir assets
-
-          pushd outputs
-            for d in *; do
-              pushd "$d"
-                ls
-                for f in vrc-get*; do
-                  mv $f "../../assets/$d-$f"
-                done
-              popd
-            done
-          popd
-
-          sleep 1
           gh release create ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} --verify-tag "v$CLI_VERSION" assets/*
 
           rm -rf outputs assets
