@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -56,4 +57,32 @@ internal static class Tests
     
     [UnmanagedCallersOnly(EntryPoint = "test_returns_hello_csharp")]
     public static ByteSlice TestReturnsHelloCsharp() => ByteSlice.NewBoxedStrOnRustMemory("Hello, C#!");
+
+    [UnmanagedCallersOnly(EntryPoint = "test_struct_size_offset_test_cs")]
+    public static unsafe bool TestStructSizeOffsetTestCs()
+    {
+        try
+        {
+            var pointerSize = sizeof(nuint);
+
+            AssertThat(sizeof(ByteSlice) == 2 * pointerSize);
+            AssertThat(Marshal.OffsetOf<ByteSlice>("Data") == 0 * pointerSize);
+            AssertThat(Marshal.OffsetOf<ByteSlice>("Length") == 1 * pointerSize);
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e);
+            return false;
+        }
+    }
+
+    private static void AssertThat(bool condition, [CallerArgumentExpression("condition")] string message = "")
+    {
+        if (!condition)
+        {
+            throw new Exception(message);
+        }
+    }
 }

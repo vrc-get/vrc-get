@@ -92,4 +92,40 @@ mod tests {
             drop(ByteSlice::as_boxed_byte_slice(&slice));
         }
     }
+
+    #[test]
+    fn struct_size_offset_test() {
+        use std::mem::size_of;
+        macro_rules! offset_of {
+            ($ty:ty, $field:tt) => {
+                {
+                    let uninitialized = std::mem::MaybeUninit::<$ty>::uninit();
+                    let ptr = uninitialized.as_ptr();
+                    let field = unsafe { &(*ptr).$field as *const _ };
+                    let offset = field as usize - ptr as usize;
+                    offset
+                }
+            }
+        }
+
+        let ptr_size = size_of::<*mut u8>();
+
+        assert_eq!(size_of::<GcHandle>(), ptr_size);
+        assert_eq!(offset_of!(GcHandle, 0), 0);
+
+        assert_eq!(size_of::<ByteSlice>(), 2 * ptr_size);
+        assert_eq!(offset_of!(ByteSlice, ptr), 0);
+        assert_eq!(offset_of!(ByteSlice, len), ptr_size);
+    }
+
+    #[test]
+    fn struct_size_offset_test_cs() {
+        extern "C" {
+            fn test_struct_size_offset_test_cs() -> bool;
+        }
+
+        let successful = unsafe { test_struct_size_offset_test_cs() };
+
+        assert!(successful);
+    }
 }
