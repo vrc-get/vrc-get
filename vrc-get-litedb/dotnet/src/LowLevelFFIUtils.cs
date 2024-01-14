@@ -17,16 +17,16 @@ public static class LowLevelFfiUtils
 public unsafe struct ByteSlice
 {
     public byte* Data;
-    public int Length;
+    public nuint Length;
 
-    public ByteSlice(byte* data, int length)
+    public ByteSlice(byte* data, nuint length)
     {
         Data = data;
         Length = length;
     }
 
-    public Span<byte> AsSpan() => new(Data, Length);
-    public ReadOnlySpan<byte> AsReadOnlySpan() => new(Data, Length);
+    public Span<byte> AsSpan() => new(Data, (int)Length);
+    public ReadOnlySpan<byte> AsReadOnlySpan() => new(Data, (int)Length);
     public string ToUtf8String() => LowLevelFfiUtils.FfiUtf8.GetString(AsReadOnlySpan());
 
     [DllImport("*", EntryPoint = "vrc_get_litedb_lowlevel_alloc_byte_slice")]
@@ -34,9 +34,9 @@ public unsafe struct ByteSlice
 
     public static ByteSlice NewBoxedStrOnRustMemory(string data)
     {
-        var length = LowLevelFfiUtils.FfiUtf8.GetByteCount(data);
-        var ptr = AllocByteSlice((nuint)length);
-        LowLevelFfiUtils.FfiUtf8.GetBytes(data, new Span<byte>(ptr, length));
+        var length = (nuint)LowLevelFfiUtils.FfiUtf8.GetByteCount(data);
+        var ptr = AllocByteSlice(length);
+        LowLevelFfiUtils.FfiUtf8.GetBytes(data, new Span<byte>(ptr, (int)length));
         return new ByteSlice(ptr, length);
     }
 }
