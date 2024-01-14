@@ -52,9 +52,18 @@ scoop bucket add xrtools "https://github.com/babo4d/scoop-xrtools"
 scoop install vrc-get
 ```
 
+## Using `cargo binstall`
+
+If you have [`cargo binstall`][cargo-binstall], installing using cargo binstall is the easy & fast way to install vrc-get.
+Cargo binstall will downloads & installs prebuilt vrc-get from GitHub.
+
+```bash
+cargo binstall vrc-get
+```
+
 ## Using `cargo`
 
-If you have [`cargo`][cargo], installing using cargo is the easiest way to install vrc-get.
+If you have [`cargo`][cargo], installing using cargo is a easy way to install vrc-get.
 
 ```bash
 cargo install vrc-get
@@ -90,6 +99,7 @@ For more details, please see README for each action.
 [shields-crates-io-version]: https://img.shields.io/crates/v/vrc-get
 
 [cargo]: https://github.com/rust-lang/cargo/
+[cargo-binstall]: https://github.com/cargo-bins/cargo-binstall#cargo-binaryinstall
 [release]: https://github.com/anatawa12/vrc-get/releases/latest
 [resolve-vpm-packages]: https://github.com/anatawa12/sh-actions/tree/master/resolve-vpm-packages
 [setup-vrc-get]: https://github.com/anatawa12/sh-actions/tree/master/setup-vrc-get
