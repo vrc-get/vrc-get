@@ -91,28 +91,39 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # for linux, use cross on ubuntu-latest
+          - run-test: true
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
-            cross: true
           - triple: aarch64-unknown-linux-musl
             on: ubuntu-latest
-            cross: true
-          # for windows, use cross on ubuntu-latest
+          - triple: x86_64-unknown-linux-gnu
+            on: ubuntu-latest
+          - triple: aarch64-unknown-linux-gnu
+            on: ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
-            cross: false
-          #- triple: aarch64-pc-windows-msvc
-          #  on: macos-latest
-          #  cross: false
-          # for macOS, on macOS without cross
+          - triple: aarch64-pc-windows-msvc
+            on: windows-latest
+            run-test: false
           - triple: x86_64-apple-darwin
             on: macos-latest
-            cross: false
           - triple: aarch64-apple-darwin
+            run-test: false
             on: macos-latest
-            cross: false
+        triple:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+
     runs-on: ${{ matrix.on }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+
     needs: [pre-build]
     steps:
       - uses: actions/checkout@v3
@@ -122,18 +133,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.triple }}
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: ${{ matrix.triple }}
       - uses: Swatinem/rust-cache@v1
         with:
           target-dir: target
           key: ${{ matrix.triple }}
-      - name: Setup cross
-        if: ${{ matrix.cross }}
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cross
 
       - name: Build
-        run: ${{ matrix.cross && 'cross' || 'cargo' }} build --target ${{ matrix.triple }} --release --verbose
+        run: cargo build --target ${{ matrix.triple }} --release --verbose
 
       - uses: actions/upload-artifact@v3
         with:
