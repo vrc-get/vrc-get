@@ -289,9 +289,7 @@ fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
             let (section_headers, _) =
                 slice_from_bytes_mut::<Section64<E>>(data, section_count as usize).unwrap();
             for section_header in section_headers {
-                if &section_header.segname == b"__DATA\0\0\0\0\0\0\0\0\0\0"
-                    && section_header.flags.get(endian) & S_ZEROFILL == 0
-                {
+                if should_not_dead_strip(section_header, endian) {
                     // __modules section in the data segment
                     let flags = section_header.flags.get(endian);
                     let flags = flags | S_ATTR_NO_DEAD_STRIP;
@@ -300,6 +298,24 @@ fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
             }
         }
         as_slice = &mut as_slice[cmd_size..];
+    }
+
+    fn should_not_dead_strip<E: object::Endian>(section_header: &Section64<E>, endian: E) -> bool {
+        if section_header.flags.get(endian) & S_ZEROFILL != 0 {
+            return false;
+        }
+
+        if &section_header.segname == b"__DATA\0\0\0\0\0\0\0\0\0\0" {
+            return true
+        }
+
+        if &section_header.segname == b"__TEXT\0\0\0\0\0\0\0\0\0\0"
+            && &section_header.sectname == b"__managedcode\0\0\0"
+        {
+            return true
+        }
+
+        return false
     }
 }
 
