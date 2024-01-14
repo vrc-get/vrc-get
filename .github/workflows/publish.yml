@@ -91,7 +91,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - run-test: true
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
           - triple: aarch64-unknown-linux-musl
@@ -104,11 +103,9 @@ jobs:
             on: windows-latest
           - triple: aarch64-pc-windows-msvc
             on: windows-latest
-            run-test: false
           - triple: x86_64-apple-darwin
             on: macos-latest
           - triple: aarch64-apple-darwin
-            run-test: false
             on: macos-latest
         triple:
           - x86_64-unknown-linux-musl
@@ -137,10 +134,10 @@ jobs:
         uses: taiki-e/setup-cross-toolchain-action@v1
         with:
           target: ${{ matrix.triple }}
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
         with:
-          target-dir: target
-          key: ${{ matrix.triple }}
+          cache-targets: false # for release build, do not cache build artifacts
+          key: release # there are no elements about build result, so it's ok to share between all builds
 
       - name: Build
         run: cargo build --target ${{ matrix.triple }} --release --verbose

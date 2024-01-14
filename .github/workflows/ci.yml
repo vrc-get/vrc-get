@@ -60,10 +60,9 @@ jobs:
         uses: taiki-e/setup-cross-toolchain-action@v1
         with:
           target: ${{ matrix.triple }}
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
         with:
-          target-dir: target
-          key: ci-build
+          key: ci-build-${{ matrix.triple }}
 
       - name: Setup
         run: ${{ matrix.setup }}
