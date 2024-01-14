@@ -1040,7 +1040,7 @@ impl RepoPackages {
             let mut found = false;
 
             for (_, repo) in env.get_repos() {
-                if repo.name() == some_name {
+                if repo.name() == some_name || repo.id() == some_name {
                     print_repo(repo.repo());
                     found = true;
                 }

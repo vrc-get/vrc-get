@@ -16,7 +16,6 @@ jobs:
       matrix:
         include:
           - run-test: true
-          # for linux, use cross on ubuntu-latest
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
             setup: |
@@ -31,7 +30,6 @@ jobs:
               sudo ln -s "/usr/bin/ld.lld" /usr/local/aarch64-linux-musl/bin/ld.lld
               /usr/local/aarch64-linux-musl/bin/ld.lld --version
             rustflags: "-C link-arg=-fuse-ld=lld -C default-linker-libraries=y -C target-feature=+crt-static"
-          # linux with gnu toolchain
           - triple: x86_64-unknown-linux-gnu
             on: ubuntu-latest
             setup: |
@@ -45,13 +43,11 @@ jobs:
               sudo ln -s "/usr/bin/ld.lld" /usr/aarch64-linux-gnu/bin/ld.lld
               /usr/aarch64-linux-gnu/bin/ld.lld --version
             rustflags: "-C link-arg=-fuse-ld=lld"
-          # for windows, use cross on ubuntu-latest
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
-          #- triple: aarch64-pc-windows-msvc
-          #  on: windows-latest
-          #  run-test: false
-          # for macOS, on macOS without cross
+          - triple: aarch64-pc-windows-msvc
+            on: windows-latest
+            run-test: false
           - triple: x86_64-apple-darwin
             on: macos-latest
           - triple: aarch64-apple-darwin
@@ -63,14 +59,13 @@ jobs:
           - x86_64-unknown-linux-gnu
           - aarch64-unknown-linux-gnu
           - x86_64-pc-windows-msvc
-          #- aarch64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
           - x86_64-apple-darwin
           - aarch64-apple-darwin
 
     runs-on: ${{ matrix.on }}
     env:
       RUSTFLAGS: ${{ matrix.rustflags }}
-      RUSTC_LOG: rustc_codegen_ssa::back::link=info
 
     steps:
       - uses: actions/checkout@v3
@@ -83,10 +78,9 @@ jobs:
         uses: taiki-e/setup-cross-toolchain-action@v1
         with:
           target: ${{ matrix.triple }}
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
         with:
-          target-dir: target
-          key: ci-build
+          key: ci-build-${{ matrix.triple }}
 
       - name: Setup
         run: ${{ matrix.setup }}
@@ -104,3 +98,14 @@ jobs:
       - name: Run tests
         if: ${{ matrix.run-test }}
         run: cargo test --verbose --target ${{ matrix.triple }}
+
+  conclude:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [build]
+    steps:
+      - name: Conclude Tests
+        env: { NEEDS: "${{ toJSON(needs) }}" }
+        run: |
+          echo "$NEEDS" | jq -c '. | to_entries[] | [.key, .value.result]'
+          echo "$NEEDS" | jq -e '. | all(.result == "success")' > /dev/null
