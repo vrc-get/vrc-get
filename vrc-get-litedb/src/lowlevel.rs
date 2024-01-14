@@ -1,17 +1,18 @@
 //! This module contains low-level functions for interacting with the C# code
 
 use std::alloc::Layout;
+use std::num::NonZeroIsize;
 
 /// Rust representation of the System.Runtime.InteropServices.GCHandle type  
 /// 
 /// This is actually a wrapper type of [`isize`] but this struct will call `GCHandle.Free()` when dropped
 #[repr(transparent)]
-pub struct GcHandle(isize);
+pub struct GcHandle(NonZeroIsize);
 
 impl Drop for GcHandle {
     fn drop(&mut self) {
         extern "C" {
-            fn vrc_get_litedb_lowlevel_free_gc_handle(handle: isize);
+            fn vrc_get_litedb_lowlevel_free_gc_handle(handle: NonZeroIsize);
         }
 
         // SAFETY: the C# code is safe
