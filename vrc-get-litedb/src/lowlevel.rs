@@ -128,4 +128,13 @@ mod tests {
 
         assert!(successful);
     }
+
+    #[test]
+    fn throw_csharp_test() {
+        extern "C" {
+            fn throws_exception_cs();
+        }
+
+        unsafe { throws_exception_cs(); }
+    }
 }

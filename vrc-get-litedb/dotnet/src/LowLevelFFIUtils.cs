@@ -85,4 +85,17 @@ internal static class Tests
             throw new Exception(message);
         }
     }
+
+    [UnmanagedCallersOnly(EntryPoint = "throws_exception_cs")]
+    public static void ThrowsExceptionCs()
+    {
+        try
+        {
+            throw new Exception("Hello, Rust! Could you see this?");
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e);
+        }
+    }
 }
