@@ -143,6 +143,7 @@ jobs:
         run: cargo build --target ${{ matrix.triple }} --release --verbose
 
       - name: Move artifacts
+        shell: bash
         run: |-
           mkdir artifacts
           pushd target/${{ matrix.triple }}/release
