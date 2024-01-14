@@ -136,7 +136,6 @@ impl TargetInformation {
             output_file_name: "vrc-get-litedb.a",
             link_libraries: &[
                 "static=System.Native",
-                "static=System.Globalization.Native",
                 "static=stdc++compat",
             ],
             bootstrapper: "libbootstrapperdll.o",
@@ -152,7 +151,6 @@ impl TargetInformation {
             output_file_name: "vrc-get-litedb.a",
             link_libraries: &[
                 "static=System.Native",
-                "static=System.Globalization.Native",
                 "static=stdc++compat",
                 "framework=Foundation",
             ],
@@ -168,7 +166,6 @@ impl TargetInformation {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.lib",
             link_libraries: &[
-                "static=System.Globalization.Native.Aot",
                 "static=Runtime.VxsortDisabled",
                 // windows sdk items
                 "dylib=advapi32",
