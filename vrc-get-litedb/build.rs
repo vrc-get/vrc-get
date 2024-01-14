@@ -98,7 +98,7 @@ fn main() {
 struct TargetInformation {
     dotnet_runtime_id: &'static str,
     output_file_name: &'static str,
-    link_libraries: &'static [&'static str],
+    link_libraries: Vec<&'static str>,
     bootstrapper: &'static str,
     family: TargetFamily,
     patch_mach_o: bool,
@@ -118,7 +118,11 @@ impl TargetInformation {
             "x86_64-apple-darwin" => Self::macos("osx-x64"),
             "aarch64-apple-darwin" => Self::macos("osx-arm64"),
 
-            "x86_64-pc-windows-msvc" => Self::windows("win-x64"),
+            "x86_64-pc-windows-msvc" => {
+                let mut base = Self::windows("win-x64");
+                base.link_libraries.push("static=Runtime.VxsortDisabled");
+                base
+            },
             "aarch64-pc-windows-msvc" => Self::windows("win-arm64"),
 
             "x86_64-unknown-linux-gnu" => Self::linux("linux-x64", false),
@@ -134,7 +138,7 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.a",
-            link_libraries: &[
+            link_libraries: vec![
                 "static=System.Native",
                 "static=stdc++compat",
             ],
@@ -149,7 +153,7 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.a",
-            link_libraries: &[
+            link_libraries: vec![
                 "static=System.Native",
                 "static=stdc++compat",
                 "framework=Foundation",
@@ -165,8 +169,7 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.lib",
-            link_libraries: &[
-                "static=Runtime.VxsortDisabled",
+            link_libraries: vec![
                 // windows sdk items
                 "dylib=advapi32",
                 "dylib=bcrypt",
