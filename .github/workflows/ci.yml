@@ -81,3 +81,14 @@ jobs:
       - name: Run tests
         if: ${{ matrix.run-test }}
         run: cargo test --verbose --target ${{ matrix.triple }}
+
+  conclude:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [build, example]
+    steps:
+      - name: Conclude Tests
+        env: { NEEDS: "${{ toJSON(needs) }}" }
+        run: |
+          echo "$NEEDS" | jq -c '. | to_entries[] | [.key, .value.result]'
+          echo "$NEEDS" | jq -e '. | all(.result == "success")' > /dev/null
