@@ -19,4 +19,5 @@ features = [
     "read_core",
     "macho",
     "pe",
+    "elf",
 ]

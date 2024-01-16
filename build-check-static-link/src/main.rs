@@ -11,6 +11,7 @@ fn main() {
     match FileKind::parse(binary.as_slice()).expect("detecting type") {
         FileKind::MachO64 => process_mach_64::<Endianness>(&binary),
         FileKind::Pe64 => process_pe_64(&binary),
+        FileKind::Elf64 => process_elf_64::<Endianness>(&binary),
         unknown => panic!("unknown file type: {:?}", unknown),
     }
 }
@@ -102,6 +103,25 @@ fn process_pe_64(binary: &[u8]) {
                 // known system library
             }
             unknown => panic!("unknown dll: {:?}", std::str::from_utf8(unknown).unwrap_or("unable to parse with utf8")),
+        }
+    }
+}
+
+fn process_elf_64<E : Endian>(binary: &[u8]) {
+    use object::read::elf::*;
+    use object::elf::*;
+    use object::Object;
+
+    let parsed = ElfFile64::<E>::parse(binary).expect("failed to parse binary");
+
+    for x in parsed.imports().unwrap() {
+        println!("dynamic importing symbol: {}", std::str::from_utf8(x.name()).unwrap());
+    }
+
+    for segment in parsed.raw_segments() {
+        if segment.p_type.get(parsed.endian()) == PT_INTERP {
+            let data = segment.data(parsed.endian(), parsed.data()).unwrap();
+            println!("interpreter: {:?}", std::str::from_utf8(data).unwrap());
         }
     }
 }
