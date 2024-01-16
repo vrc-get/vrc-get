@@ -180,6 +180,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "build-check-static-link"
+version = "0.1.0"
+dependencies = [
+ "object",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
