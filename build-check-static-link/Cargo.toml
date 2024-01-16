@@ -18,4 +18,5 @@ default-features = false
 features = [
     "read_core",
     "macho",
+    "pe",
 ]

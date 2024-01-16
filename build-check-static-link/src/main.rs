@@ -10,6 +10,7 @@ fn main() {
 
     match FileKind::parse(binary.as_slice()).expect("detecting type") {
         FileKind::MachO64 => process_mach_64::<Endianness>(&binary),
+        FileKind::Pe64 => process_pe_64(&binary),
         unknown => panic!("unknown file type: {:?}", unknown),
     }
 }
@@ -74,5 +75,33 @@ fn process_mach_64<E : Endian>(binary: &[u8]) {
         let bytes = &d.raw_data()[(offset as usize)..];
         let end_idx = bytes.iter().position(|x| x == &b'\0').unwrap_or(bytes.len());
         &bytes[..end_idx]
+    }
+}
+
+fn process_pe_64(binary: &[u8]) {
+    use object::read::pe::*;
+    use object::LittleEndian as LE;
+
+    let parsed = PeFile64::parse(binary).expect("failed to parse binary");
+
+    let table = parsed.import_table().unwrap().unwrap();
+    let mut iter = table.descriptors().unwrap();
+    while let Some(x) = iter.next().unwrap() {
+        let dll = table.name(x.name.get(LE)).unwrap();
+        match dll.to_ascii_lowercase().as_slice() {
+            | b"advapi32.dll"
+            | b"kernel32.dll"
+            | b"bcrypt.dll" // TODO: check if this is a system library
+            | b"ntdll.dll"
+            | b"shell32.dll"
+            | b"ole32.dll"
+            | b"ws2_32.dll"
+            | b"crypt32.dll"
+            => {
+                println!("system dll: {}", std::str::from_utf8(dll).unwrap());
+                // known system library
+            }
+            unknown => panic!("unknown dll: {:?}", std::str::from_utf8(unknown).unwrap_or("unable to parse with utf8")),
+        }
     }
 }
