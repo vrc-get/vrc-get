@@ -98,6 +98,8 @@ jobs:
       - name: Run tests
         if: ${{ matrix.run-test }}
         run: cargo test --verbose --target ${{ matrix.triple }}
+      - name: Check binary is statically linked
+        run: cargo run --bin build-check-static-link target/${{ matrix.triple }}/debug/vrc-get*
 
   conclude:
     runs-on: ubuntu-latest
