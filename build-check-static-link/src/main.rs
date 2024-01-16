@@ -5,16 +5,22 @@ use object::{Endian, Endianness, FileKind, Object};
 fn main() {
     let mut args = std::env::args();
     let _ = args.next();
-    let binary = args.next().unwrap();
-    let binary = std::path::Path::new(&binary);
-    let binary = fs::read(binary).unwrap();
+    let mut success = true;
+    for arg in args {
+        if arg.ends_with(".d") {
+            println!("skipping .d file: {}", arg);
+            continue
+        }
+        let binary = std::path::Path::new(&arg);
+        let binary = fs::read(binary).unwrap();
 
-    let success = match FileKind::parse(binary.as_slice()).expect("detecting type") {
-        FileKind::MachO64 => process_mach_64::<Endianness>(&binary),
-        FileKind::Pe64 => process_pe_64(&binary),
-        FileKind::Elf64 => process_elf_64::<Endianness>(&binary),
-        unknown => panic!("unknown file type: {:?}", unknown),
-    };
+        success |= match FileKind::parse(binary.as_slice()).expect("detecting type") {
+            FileKind::MachO64 => process_mach_64::<Endianness>(&binary),
+            FileKind::Pe64 => process_pe_64(&binary),
+            FileKind::Elf64 => process_elf_64::<Endianness>(&binary),
+            unknown => panic!("unknown file type: {:?}", unknown),
+        };
+    }
 
     if success {
         exit(0)
