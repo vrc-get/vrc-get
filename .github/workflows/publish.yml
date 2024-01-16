@@ -149,6 +149,8 @@ jobs:
         run: ${{ matrix.setup }}
       - name: Build
         run: cargo build --target ${{ matrix.triple }} --release --verbose
+      - name: Check binary is statically linked
+        run: cargo run --bin build-check-static-link target/${{ matrix.triple }}/release/vrc-get*
 
       - name: Move artifacts
         shell: bash
