@@ -34,56 +34,33 @@ fn process_mach_64<E : Endian>(binary: &[u8]) -> bool {
 
     let mut commands = parsed.load_commands(endian, binary, 0).expect("parsing binary");
     while let Some(command) = commands.next().expect("reading binary") {
-        match command.cmd() {
-            | LC_SEGMENT_64
-            | LC_DYLD_EXPORTS_TRIE
-            | LC_DYLD_CHAINED_FIXUPS
-            | LC_SYMTAB
-            | LC_DYSYMTAB
-            | LC_UUID
-            | LC_BUILD_VERSION
-            | LC_SOURCE_VERSION
-            | LC_MAIN
-            | LC_FUNCTION_STARTS
-            | LC_DATA_IN_CODE
-            | LC_CODE_SIGNATURE
-            => {
-                // ignore
-            },
-            LC_LOAD_DYLINKER => {
-                let data: &DylinkerCommand<E> = command.data().expect("parse LC_LOAD_DYLINKER");
-                if command.string(endian, data.name).unwrap() != b"/usr/lib/dyld" {
-                    println!("ERROR: dylinker is not /usr/lib/dyld");
+        if let Some(dylib) = command.dylib().unwrap() {
+            let dylib = command.string(endian, dylib.dylib.name).unwrap();
+            match dylib {
+                | b"/System/Library/Frameworks/Security.framework/Versions/A/Security"
+                | b"/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration"
+                | b"/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
+                | b"/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
+                | b"/usr/lib/libobjc.A.dylib"
+                | b"/usr/lib/libiconv.2.dylib"
+                | b"/usr/lib/libSystem.B.dylib"
+                => {
+                    // known system library
+                    println!("system dylib: {}", std::str::from_utf8(dylib).unwrap());
+                }
+                unknown => {
+                    println!("ERROR: unknown dylib: {:?}", std::str::from_utf8(unknown).unwrap_or("unable to parse with utf8"));
                     success = false;
-                } else {
-                    println!("dylinker: /usr/lib/dyld");
-                }
-            },
-            LC_LOAD_DYLIB => {
-                let data = command.dylib().expect("parse LC_LOAD_DYLIB").unwrap();
-                let dylib = command.string(endian, data.dylib.name).unwrap();
-                match dylib {
-                    | b"/System/Library/Frameworks/Security.framework/Versions/A/Security"
-                    | b"/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration"
-                    | b"/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation"
-                    | b"/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
-                    | b"/usr/lib/libobjc.A.dylib"
-                    | b"/usr/lib/libiconv.2.dylib"
-                    | b"/usr/lib/libSystem.B.dylib"
-                    => {
-                        // known system library
-                        println!("system dylib: {}", std::str::from_utf8(dylib).unwrap());
-                    }
-                    unknown => {
-                        println!("ERROR: unknown dylib: {:?}", std::str::from_utf8(unknown).unwrap_or("unable to parse with utf8"));
-                        success = false;
-                    },
-                }
-            },
-            unknown => {
-                println!("unknown linker command: {unknown:08x}");
+                },
+            }
+        } else if command.cmd() == LC_LOAD_DYLINKER {
+            let data: &DylinkerCommand<E> = command.data().expect("parse LC_LOAD_DYLINKER");
+            if command.string(endian, data.name).unwrap() != b"/usr/lib/dyld" {
+                println!("ERROR: dylinker is not /usr/lib/dyld");
                 success = false;
-            },
+            } else {
+                println!("dylinker: /usr/lib/dyld");
+            }
         }
     }
     success
