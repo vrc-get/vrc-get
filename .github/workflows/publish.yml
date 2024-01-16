@@ -150,7 +150,11 @@ jobs:
       - name: Build
         run: cargo build --target ${{ matrix.triple }} --release --verbose
       - name: Check binary is statically linked
-        run: cargo run --bin build-check-static-link target/${{ matrix.triple }}/release/vrc-get*
+        shell: bash
+        run: |
+          # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
+          unset CARGO_BUILD_TARGET
+          cargo run --bin build-check-static-link target/${{ matrix.triple }}/release/vrc-get*
 
       - name: Move artifacts
         shell: bash
