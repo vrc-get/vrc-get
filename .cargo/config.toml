@@ -1,5 +1,0 @@
-[target.'cfg(all(target_os = "linux", target_env = "musl"))']
-rustflags = ["-C", "target-feature=+crt-static"]
-
-[target.'cfg(all(windows, target_env = "msvc"))']
-rustflags = ["-C", "target-feature=+crt-static"]

@@ -45,8 +45,10 @@ jobs:
             rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
+            rustflags: "-C target-feature=+crt-static"
           - triple: aarch64-pc-windows-msvc
             on: windows-latest
+            rustflags: "-C target-feature=+crt-static"
             run-test: false
           - triple: x86_64-apple-darwin
             on: macos-latest
