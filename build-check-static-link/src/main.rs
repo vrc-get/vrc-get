@@ -1,5 +1,5 @@
 use std::fs;
-use object::{Endian, Endianness, FileKind};
+use object::{Endian, Endianness, FileKind, Object};
 
 fn main() {
     let mut args = std::env::args();
@@ -43,7 +43,7 @@ fn process_mach_64<E : Endian>(binary: &[u8]) {
             },
             LC_LOAD_DYLINKER => {
                 let data: &DylinkerCommand<E> = command.data().expect("parse LC_LOAD_DYLINKER");
-                if load_lc_str(data.name, command, endian) != b"/usr/lib/dyld" {
+                if command.string(endian, data.name).unwrap() != b"/usr/lib/dyld" {
                     panic!("dylinker is not /usr/lib/dyld");
                 } else {
                     println!("dylinker: /usr/lib/dyld");
@@ -51,7 +51,7 @@ fn process_mach_64<E : Endian>(binary: &[u8]) {
             },
             LC_LOAD_DYLIB => {
                 let data = command.dylib().expect("parse LC_LOAD_DYLIB").unwrap();
-                let dylib = load_lc_str(data.dylib.name, command, endian);
+                let dylib = command.string(endian, data.dylib.name).unwrap();
                 match dylib {
                     | b"/System/Library/Frameworks/Security.framework/Versions/A/Security"
                     | b"/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration"
@@ -69,13 +69,6 @@ fn process_mach_64<E : Endian>(binary: &[u8]) {
             },
             unknown => panic!("unknown linker command: {unknown:08x}"),
         }
-    }
-
-    fn load_lc_str<'data, E : Endian>(s: LcStr<E>, d: LoadCommandData<'data, E>, endian: E) -> &'data [u8] {
-        let offset = s.offset.get(endian);
-        let bytes = &d.raw_data()[(offset as usize)..];
-        let end_idx = bytes.iter().position(|x| x == &b'\0').unwrap_or(bytes.len());
-        &bytes[..end_idx]
     }
 }
 
@@ -110,7 +103,6 @@ fn process_pe_64(binary: &[u8]) {
 fn process_elf_64<E : Endian>(binary: &[u8]) {
     use object::read::elf::*;
     use object::elf::*;
-    use object::Object;
 
     let parsed = ElfFile64::<E>::parse(binary).expect("failed to parse binary");
 
