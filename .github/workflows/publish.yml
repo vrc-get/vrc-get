@@ -93,12 +93,16 @@ jobs:
         include:
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
+            rustflags: "-C target-feature=+crt-static"
           - triple: aarch64-unknown-linux-musl
             on: ubuntu-latest
+            rustflags: "-C target-feature=+crt-static"
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
+            rustflags: "-C target-feature=+crt-static"
           - triple: aarch64-pc-windows-msvc
             on: windows-latest
+            rustflags: "-C target-feature=+crt-static"
           - triple: x86_64-apple-darwin
             on: macos-latest
           - triple: aarch64-apple-darwin
