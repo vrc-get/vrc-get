@@ -15,6 +15,20 @@
 
   <ItemGroup>
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LiteDB" Version="5.0.17" />
+    <IlcSubstitution Include="ILLink.Substitutions.xml" />
+    <IlcArg Include="--substitution=$(MSBuildThisFileDirectory)ILLink.Substitutions.xml"/>
+    <IlcArg Include="--trim:System.Security.Cryptography" />
+    <IlcArg Include="--trim:System.Net.Security" />
+
+    <PackageReference Include="Microsoft.DotNet.ILCompiler" Version="8.0.1" />
+    <PackageReference Include="runtime.osx-arm64.Microsoft.DotNet.ILCompiler" Version="8.0.1" />
+  </ItemGroup>
+
+  <Target Name="IlcCompile" Inputs="@(IlcSubstitution)"/>
+
   <!-- IlcSdkPath IlcFrameworkNativePath -->
 
   <Target Name="CopySdkAndFrameworkNative"

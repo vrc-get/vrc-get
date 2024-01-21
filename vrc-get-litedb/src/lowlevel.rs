@@ -20,6 +20,12 @@ impl Drop for GcHandle {
     }
 }
 
+impl GcHandle {
+    pub fn get(&self) -> isize {
+        self.0.get()
+    }
+}
+
 /// FFI safe byte slice which might be owned (`Boxed<[u8]>`) or a `str`
 /// 
 /// This struct doesn't free the memory when dropped
