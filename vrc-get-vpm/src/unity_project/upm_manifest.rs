@@ -11,6 +11,7 @@ use tokio::{fs, io};
 
 #[derive(Debug, Deserialize)]
 struct Parsed {
+    #[serde(default)]
     dependencies: HashMap<String, UpmDependency>,
 }
 
