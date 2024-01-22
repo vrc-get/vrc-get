@@ -535,7 +535,14 @@ impl FromParsingBuf for PartialVersion {
             let patch = parse_segment(bytes)?;
 
             let prerelease = if let Some(b'-') = bytes.first() {
-                bytes.skip();
+                if bytes.get(1).is_none() || bytes.get(1) == Some(b'.') {
+                    // '-' can be start of prerelease
+                    Prerelease::new(Self::parse_id(bytes, false)?).unwrap()
+                } else {
+                    bytes.skip();
+                    Prerelease::new(Self::parse_id(bytes, false)?).unwrap()
+                }
+            } else if bytes.first().map(Self::is_id_start).unwrap_or(false) {
                 Prerelease::new(Self::parse_id(bytes, false)?).unwrap()
             } else {
                 Prerelease::EMPTY
@@ -598,6 +605,10 @@ impl FromParsingBuf for PartialVersion {
 }
 
 impl PartialVersion {
+    fn is_id_start(b: u8) -> bool {
+        matches!(b, b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-')
+    }
+
     fn parse_id<'a>(
         bytes: &mut ParsingBuf<'a>,
         allow_loading_zero: bool,
@@ -831,6 +842,9 @@ mod tests {
 
         // additional tests by anatawa12
         test_pre("1.0.x - 2", "1.0.0-pre");
+        // hyphen-less prerelease in range
+        test("~3.5.0beta", "3.5.0");
+        test("~3.5.0-", "3.5.0");
     }
 
     #[test]
