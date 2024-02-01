@@ -11,6 +11,7 @@
     <NativeLib>Static</NativeLib>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +24,10 @@
 
     <PackageReference Include="Microsoft.DotNet.ILCompiler" Version="8.0.1" />
     <PackageReference Include="runtime.osx-arm64.Microsoft.DotNet.ILCompiler" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="src\**\*.cs" />
   </ItemGroup>
 
   <Target Name="IlcCompile" Inputs="@(IlcSubstitution)" />
