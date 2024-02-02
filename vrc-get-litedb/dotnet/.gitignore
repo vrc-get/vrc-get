@@ -3,6 +3,7 @@
 project.lock.json
 *.pyc
 nupkg/
+*.DotSettings.user
 
 # Build results
 [Dd]ebug/
