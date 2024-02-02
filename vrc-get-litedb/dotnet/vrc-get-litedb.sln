@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "vrc-get-litedb", "vrc-get-l
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiteDB", "LiteDB\LiteDB\LiteDB.csproj", "{21EE5ADE-BAAE-4DA1-8AC8-237C9540F022}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiteDB.Tests", "LiteDB\LiteDB.Tests\LiteDB.Tests.csproj", "{637BA2FB-22FB-4C48-9607-84AF6B73CF4F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{21EE5ADE-BAAE-4DA1-8AC8-237C9540F022}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21EE5ADE-BAAE-4DA1-8AC8-237C9540F022}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21EE5ADE-BAAE-4DA1-8AC8-237C9540F022}.Release|Any CPU.Build.0 = Release|Any CPU
+		{637BA2FB-22FB-4C48-9607-84AF6B73CF4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{637BA2FB-22FB-4C48-9607-84AF6B73CF4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{637BA2FB-22FB-4C48-9607-84AF6B73CF4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{637BA2FB-22FB-4C48-9607-84AF6B73CF4F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
