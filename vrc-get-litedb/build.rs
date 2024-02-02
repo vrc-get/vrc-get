@@ -6,7 +6,8 @@ use std::process::Command;
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=dotnet/vrc-get-litedb.csproj");
-    println!("cargo:rerun-if-changed=dotnet/vrc-get-litedb/src");
+    println!("cargo:rerun-if-changed=dotnet/src");
+    println!("cargo:rerun-if-changed=dotnet/LiteDB/LiteDB");
 
     // currently this code is only tested on macOS.
 
