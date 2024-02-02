@@ -26,7 +26,7 @@ public struct LiteDbError
             // it's unrecoverable error, panic in rust
             return new LiteDbError()
             {
-                message = RustSlice.NewBoxedStrOnRustMemory(e.Message),
+                message = RustSlice.NewBoxedStrOnRustMemory(e.ToString(), noException: true),
                 code = -1,
             };
         }

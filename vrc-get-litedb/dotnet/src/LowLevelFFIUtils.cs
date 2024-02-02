@@ -17,6 +17,7 @@ public static class LowLevelFfiUtils
     internal static extern unsafe byte* Alloc(nuint size, nuint alignment);
 
     public static UTF8Encoding FfiUtf8 = new(false, true);
+    public static UTF8Encoding NoErrorFfiUtf8 = new(false, false);
 }
 
 public readonly unsafe struct RustSlice<T> where T : unmanaged
@@ -48,11 +49,12 @@ public readonly unsafe struct RustSlice<T> where T : unmanaged
 public static class RustSlice {
     public static string ToUtf8String(this in RustSlice<byte> self) => LowLevelFfiUtils.FfiUtf8.GetString(self.AsReadOnlySpan());
 
-    public static RustSlice<byte> NewBoxedStrOnRustMemory(string data)
+    public static RustSlice<byte> NewBoxedStrOnRustMemory(string data, bool noException = false)
     {
-        var length = (nuint)LowLevelFfiUtils.FfiUtf8.GetByteCount(data);
+        var utf8 = noException ? LowLevelFfiUtils.NoErrorFfiUtf8 : LowLevelFfiUtils.FfiUtf8;
+        var length = (nuint)utf8.GetByteCount(data);
         var slice = RustSlice<byte>.AllocRust(length);
-        LowLevelFfiUtils.FfiUtf8.GetBytes(data, slice.AsSpan());
+        utf8.GetBytes(data, slice.AsSpan());
         return slice;
     }
 }
