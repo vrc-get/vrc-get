@@ -1,6 +1,6 @@
 use crate::version::DependencyRange;
 use serde::{Deserialize, Serialize};
-use serde_json::to_vec_pretty;
+use crate::utils::to_vec_pretty_os_eol;
 
 use super::*;
 
@@ -96,7 +96,7 @@ impl VpmManifest {
 
     pub(super) async fn save_to(&self, file: &Path) -> io::Result<()> {
         if self.changed {
-            tokio::fs::write(file, &to_vec_pretty(&self.as_json)?).await?;
+            tokio::fs::write(file, &to_vec_pretty_os_eol(&self.as_json)?).await?;
         }
         Ok(())
     }

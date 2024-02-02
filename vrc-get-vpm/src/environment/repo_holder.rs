@@ -77,7 +77,7 @@ impl RepoHolder {
                         loaded.set_repo(remote_repo);
                         loaded.set_etag(etag);
 
-                        tokio::fs::write(path, &to_vec_pretty(&loaded)?)
+                        tokio::fs::write(path, &to_vec_pretty_os_eol(&loaded)?)
                             .await
                             .unwrap_or_else(|e| {
                                 error!("writing local repo cache '{}': {}", path.display(), e)
@@ -105,7 +105,7 @@ impl RepoHolder {
 
             local_cache.set_etag(etag);
 
-            tokio::fs::write(path, &to_vec_pretty(&local_cache)?)
+            tokio::fs::write(path, &to_vec_pretty_os_eol(&local_cache)?)
                 .await
                 .unwrap_or_else(|e| {
                     error!("writing local repo cache '{}': {}", path.display(), e);
