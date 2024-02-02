@@ -9,7 +9,7 @@ use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
-use crate::utils::{PathBufExt, Sha256AsyncWrite};
+use crate::utils::{PathBufExt, Sha256AsyncWrite, to_vec_pretty_os_eol};
 use crate::{PackageInfo, VersionSelector};
 use either::{Left, Right};
 use enum_map::EnumMap;
@@ -18,7 +18,6 @@ use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use log::error;
-use serde_json::to_vec_pretty;
 use std::cmp::Reverse;
 use std::collections::HashSet;
 use std::fs::remove_file;
@@ -320,7 +319,7 @@ impl<T: HttpClient> Environment<T> {
                 .await
             {
                 Ok(mut file) => {
-                    file.write_all(&to_vec_pretty(&local_cache)?).await?;
+                    file.write_all(&to_vec_pretty_os_eol(&local_cache)?).await?;
                     file.flush().await?;
 
                     return Ok(path);
