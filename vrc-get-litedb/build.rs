@@ -123,7 +123,7 @@ impl TargetInformation {
                 let mut base = Self::windows("win-x64");
                 base.link_libraries.push("static=Runtime.VxsortDisabled");
                 base
-            },
+            }
             "aarch64-pc-windows-msvc" => Self::windows("win-arm64"),
 
             "x86_64-unknown-linux-gnu" => Self::linux("linux-x64", false),
@@ -139,10 +139,7 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.a",
-            link_libraries: vec![
-                "static=System.Native",
-                "static=stdc++compat",
-            ],
+            link_libraries: vec!["static=System.Native", "static=stdc++compat"],
             bootstrapper: "libbootstrapperdll.o",
             patch_mach_o: false,
             family: TargetFamily::Linux,
@@ -307,16 +304,16 @@ fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
         }
 
         if &section_header.segname == b"__DATA\0\0\0\0\0\0\0\0\0\0" {
-            return true
+            return true;
         }
 
         if &section_header.segname == b"__TEXT\0\0\0\0\0\0\0\0\0\0"
             && &section_header.sectname == b"__managedcode\0\0\0"
         {
-            return true
+            return true;
         }
 
-        return false
+        return false;
     }
 }
 

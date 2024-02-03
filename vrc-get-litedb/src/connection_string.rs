@@ -4,7 +4,7 @@ use crate::lowlevel;
 /// Connection string for LiteDB
 ///
 /// Rust representation of the `LiteDB.ConnectionString`.
-/// This struct holds the values of the connections string and will be converted to 
+/// This struct holds the values of the connections string and will be converted to
 /// `LiteDB.ConnectionString` when passed to the C# code.
 pub struct ConnectionString<'a> {
     filename: &'a str,

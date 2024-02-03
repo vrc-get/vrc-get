@@ -9,7 +9,7 @@ use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
-use crate::utils::{PathBufExt, Sha256AsyncWrite, to_vec_pretty_os_eol};
+use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
 use crate::{PackageInfo, VersionSelector};
 use either::{Left, Right};
 use enum_map::EnumMap;

@@ -1,5 +1,5 @@
-use std::str;
 use crate::lowlevel::{FFISlice, GcHandle};
+use std::str;
 
 #[derive(Debug)]
 pub struct LiteDbError {
@@ -9,7 +9,7 @@ pub struct LiteDbError {
 
 impl LiteDbError {
     pub(crate) unsafe fn from_ffi(error: LiteDbErrorFFI) -> Self {
-        let message=  str::from_boxed_utf8_unchecked(error.message.as_boxed_byte_slice());
+        let message = str::from_boxed_utf8_unchecked(error.message.as_boxed_byte_slice());
         if error.code == -1 {
             // -1 means unexpected error in C# code so panic here
             panic!("{}", message);
@@ -72,7 +72,7 @@ pub enum LiteDBErrorCode {
 
 #[repr(C)]
 pub(crate) struct LiteDbErrorFFI {
-    // must be 
+    // must be
     message: FFISlice<u8>,
     code: i32,
 }
@@ -80,7 +80,7 @@ pub(crate) struct LiteDbErrorFFI {
 impl LiteDbErrorFFI {
     pub unsafe fn into_result(self) -> super::Result<()> {
         if self.code == 0 && self.message.is_null() {
-            return Ok(())
+            return Ok(());
         }
         Err(LiteDbError::from_ffi(self))
     }

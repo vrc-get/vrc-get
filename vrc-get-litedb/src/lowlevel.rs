@@ -5,7 +5,7 @@ use std::num::NonZeroIsize;
 use std::ptr::null_mut;
 
 /// Rust representation of the System.Runtime.InteropServices.GCHandle type  
-/// 
+///
 /// This is actually a wrapper type of [`isize`] but this struct will call `GCHandle.Free()` when dropped
 #[repr(transparent)]
 pub struct GcHandle(NonZeroIsize);
@@ -28,7 +28,7 @@ impl GcHandle {
 }
 
 /// FFI safe byte slice which might be owned (`Boxed<[u8]>`) or a `str`
-/// 
+///
 /// This struct doesn't free the memory when dropped
 #[repr(C)]
 pub struct FFISlice<T = u8> {
@@ -51,7 +51,10 @@ impl<T> FFISlice<T> {
     pub fn from_boxed_slice(slice: Box<[T]>) -> Self {
         let ptr = Box::into_raw(slice);
         let len = unsafe { (*ptr).len() };
-        Self { ptr: ptr as *mut _, len }
+        Self {
+            ptr: ptr as *mut _,
+            len,
+        }
     }
 
     /// SAFETY: the caller must ensure that the pointer is valid and the length is correct
@@ -110,7 +113,7 @@ mod tests {
         extern "C" {
             fn test_returns_hello_csharp() -> FFISlice;
         }
-        
+
         unsafe {
             let slice = test_returns_hello_csharp();
             assert_eq!(slice.as_byte_slice(), b"Hello, C#!");
@@ -122,15 +125,13 @@ mod tests {
     fn struct_size_offset_test() {
         use std::mem::size_of;
         macro_rules! offset_of {
-            ($ty:ty, $field:tt) => {
-                {
-                    let uninitialized = std::mem::MaybeUninit::<$ty>::uninit();
-                    let ptr = uninitialized.as_ptr();
-                    let field = unsafe { &(*ptr).$field as *const _ };
-                    let offset = field as usize - ptr as usize;
-                    offset
-                }
-            }
+            ($ty:ty, $field:tt) => {{
+                let uninitialized = std::mem::MaybeUninit::<$ty>::uninit();
+                let ptr = uninitialized.as_ptr();
+                let field = unsafe { &(*ptr).$field as *const _ };
+                let offset = field as usize - ptr as usize;
+                offset
+            }};
         }
 
         let ptr_size = size_of::<*mut u8>();
@@ -160,6 +161,8 @@ mod tests {
             fn throws_exception_cs();
         }
 
-        unsafe { throws_exception_cs(); }
+        unsafe {
+            throws_exception_cs();
+        }
     }
 }

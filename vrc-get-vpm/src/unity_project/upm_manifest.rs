@@ -1,4 +1,4 @@
-use crate::utils::{load_json_or_default, JsonMapExt, to_vec_pretty_os_eol};
+use crate::utils::{load_json_or_default, to_vec_pretty_os_eol, JsonMapExt};
 use crate::version::Version;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};

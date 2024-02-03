@@ -1,6 +1,6 @@
+use object::{Endian, Endianness, FileKind, Object};
 use std::fs;
 use std::process::exit;
-use object::{Endian, Endianness, FileKind, Object};
 
 fn main() {
     let mut args = std::env::args();
@@ -9,7 +9,7 @@ fn main() {
     for arg in args {
         if arg.ends_with(".d") {
             println!("skipping .d file: {}", arg);
-            continue
+            continue;
         }
         let binary = std::path::Path::new(&arg);
         let binary = fs::read(binary).unwrap();
@@ -29,7 +29,7 @@ fn main() {
     }
 }
 
-fn process_mach_64<E : Endian>(binary: &[u8]) -> bool {
+fn process_mach_64<E: Endian>(binary: &[u8]) -> bool {
     use object::macho::*;
     use object::read::macho::*;
 
@@ -38,7 +38,9 @@ fn process_mach_64<E : Endian>(binary: &[u8]) -> bool {
     let parsed = MachHeader64::<E>::parse(binary, 0).expect("failed to parse binary");
     let endian = parsed.endian().unwrap();
 
-    let mut commands = parsed.load_commands(endian, binary, 0).expect("parsing binary");
+    let mut commands = parsed
+        .load_commands(endian, binary, 0)
+        .expect("parsing binary");
     while let Some(command) = commands.next().expect("reading binary") {
         if let Some(dylib) = command.dylib().unwrap() {
             let dylib = command.string(endian, dylib.dylib.name).unwrap();
@@ -106,16 +108,19 @@ fn process_pe_64(binary: &[u8]) -> bool {
     success
 }
 
-fn process_elf_64<E : Endian>(binary: &[u8]) -> bool {
-    use object::read::elf::*;
+fn process_elf_64<E: Endian>(binary: &[u8]) -> bool {
     use object::elf::*;
+    use object::read::elf::*;
 
     let mut success = true;
 
     let parsed = ElfFile64::<E>::parse(binary).expect("failed to parse binary");
 
     for x in parsed.imports().unwrap() {
-        println!("dynamic importing symbol: {}", std::str::from_utf8(x.name()).unwrap());
+        println!(
+            "dynamic importing symbol: {}",
+            std::str::from_utf8(x.name()).unwrap()
+        );
         success = false;
     }
 
