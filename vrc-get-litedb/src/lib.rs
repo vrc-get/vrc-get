@@ -1,18 +1,14 @@
 mod lowlevel;
 use std::path::Path;
+use crate::bson::ObjectId;
+
 mod connection;
 mod error;
 mod connection_string;
+mod bson;
 
 type Result<T> = std::result::Result<T, error::LiteDbError>;
 
-
-
-
-#[repr(C)]
-struct ObjectId {
-    bytes: [u8; 12],
-}
 
 #[repr(transparent)]
 struct ProjectType(u32);
