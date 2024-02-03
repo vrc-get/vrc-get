@@ -1,3 +1,4 @@
+use crate::connection_string::{ConnectionString, ConnectionStringFFI};
 use crate::lowlevel;
 use super::Result;
 
@@ -6,9 +7,9 @@ pub struct DatabaseConnection {
 }
 
 impl DatabaseConnection {
-    pub fn connect(string: &str) -> Result<DatabaseConnection> {
+    pub(crate) fn connect(string: &ConnectionString) -> Result<DatabaseConnection> {
         unsafe {
-            vrc_get_litedb_database_connection_new(lowlevel::FFISlice::from_byte_slice(string.as_bytes()))
+            vrc_get_litedb_database_connection_new(&ConnectionStringFFI::from(string))
                 .into_result()
                 .map(|ptr| DatabaseConnection { ptr })
         }
@@ -25,7 +26,7 @@ impl Drop for DatabaseConnection {
 
 // C# functions
 extern "C" {
-    fn vrc_get_litedb_database_connection_new(string: lowlevel::FFISlice) -> super::error::HandleErrorResult;
+    fn vrc_get_litedb_database_connection_new(string: &ConnectionStringFFI) -> super::error::HandleErrorResult;
     fn vrc_get_litedb_database_connection_dispose(ptr: isize);
 }
 
@@ -35,6 +36,9 @@ mod tests {
 
     #[test]
     fn test_connect() {
-        let connection = DatabaseConnection::connect("vcc.litedb").unwrap();
+        ConnectionString::new("vcc.litedb")
+                .readonly(true)
+                .connect()
+                .unwrap();
     }
 }

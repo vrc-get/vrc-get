@@ -2,6 +2,7 @@ mod lowlevel;
 use std::path::Path;
 mod connection;
 mod error;
+mod connection_string;
 
 type Result<T> = std::result::Result<T, error::LiteDbError>;
 

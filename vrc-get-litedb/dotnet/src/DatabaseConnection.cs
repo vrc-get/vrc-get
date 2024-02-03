@@ -8,13 +8,11 @@ using HandleType = LiteDatabase;
 public class DatabaseConnection
 {
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_new")]
-    public static HandleErrorResult New(RustSlice<byte> path)
+    public unsafe static HandleErrorResult New(ConnectionStringFFI *connectionString)
     {
-        
         try
         {
-            var pathStr = path.ToUtf8String();
-            var connection = new LiteDatabase(pathStr);
+            var connection = new LiteDatabase((*connectionString).ToLiteConnectionString());
             return new HandleErrorResult(GCHandle.Alloc(connection));
         }
         catch (Exception e)
