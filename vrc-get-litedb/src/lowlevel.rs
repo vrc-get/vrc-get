@@ -2,6 +2,7 @@
 
 use std::alloc::Layout;
 use std::num::NonZeroIsize;
+use std::ptr::null_mut;
 
 /// Rust representation of the System.Runtime.InteropServices.GCHandle type  
 /// 
@@ -36,6 +37,10 @@ pub struct FFISlice<T = u8> {
 }
 
 impl<T> FFISlice<T> {
+    pub fn is_null(&self) -> bool {
+        self.ptr == null_mut()
+    }
+
     pub fn from_byte_slice(slice: &[T]) -> Self {
         Self {
             ptr: slice.as_ptr() as *mut _,
@@ -58,9 +63,20 @@ impl<T> FFISlice<T> {
     /// the length is correct, the pointer is allocated with `Box`,
     /// and there are no other box instance for the same pointer.
     #[must_use = "call `drop(Box::as_boxed_byte_slice(slice))` if you intend to drop the `Box`"]
-    pub unsafe fn as_boxed_byte_slice(&self) -> Box<[T]> {
+    pub unsafe fn as_boxed_byte_slice(self) -> Box<[T]> {
         let slice_ptr = std::ptr::slice_from_raw_parts_mut(self.ptr, self.len);
         Box::from_raw(slice_ptr)
+    }
+
+    /// SAFETY: the caller must ensure that the pointer is valid,
+    /// the length is correct, the pointer is allocated with `Box`,
+    /// and there are no other box instance for the same pointer.
+    #[must_use = "call `drop(Box::as_boxed_byte_slice(slice))` if you intend to drop the `Box`"]
+    pub unsafe fn as_boxed_byte_slice_option(self) -> Option<Box<[T]>> {
+        if self.ptr == null_mut() {
+            return None;
+        }
+        Some(self.as_boxed_byte_slice())
     }
 }
 
@@ -98,7 +114,7 @@ mod tests {
         unsafe {
             let slice = test_returns_hello_csharp();
             assert_eq!(slice.as_byte_slice(), b"Hello, C#!");
-            drop(FFISlice::as_boxed_byte_slice(&slice));
+            drop(FFISlice::as_boxed_byte_slice(slice));
         }
     }
 

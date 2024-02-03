@@ -67,6 +67,7 @@ pub enum LiteDBErrorCode {
     AvoidUseOfProcess = 215,
     NotEncrypted = 216,
     InvalidPassword = 217,
+    Unsupported = 300,
 }
 
 #[repr(C)]
@@ -74,6 +75,15 @@ pub(crate) struct LiteDbErrorFFI {
     // must be 
     message: FFISlice<u8>,
     code: i32,
+}
+
+impl LiteDbErrorFFI {
+    pub unsafe fn into_result(self) -> super::Result<()> {
+        if self.code == 0 && self.message.is_null() {
+            return Ok(())
+        }
+        Err(LiteDbError::from_ffi(self))
+    }
 }
 
 #[repr(C)]

@@ -20,7 +20,26 @@ public class DatabaseConnection
             return new HandleErrorResult(e);
         }
     }
-    
+
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_get_projects")]
+    public unsafe static LiteDbError GetProjects(GCHandle handle, RustSlice<ProjectFFI> *result)
+    {
+        try
+        {
+            var connection = (LiteDatabase)handle.Target!;
+            var projects = connection.GetCollection("projects").FindAll().ToArray();
+            var slice = *result = RustSlice<ProjectFFI>.AllocRust((nuint)projects.Length);
+            var asSpan = slice.AsSpan();
+            for (var i = 0; i < projects.Length; i++)
+                asSpan[i] = new ProjectFFI(projects[i]);
+            return default;
+        }
+        catch (Exception e)
+        {
+            return LiteDbError.FromException(e);
+        }
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_dispose")]
     public static void DisposeHandle(GCHandle handle)
     {
