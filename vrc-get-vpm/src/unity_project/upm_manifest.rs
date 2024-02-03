@@ -1,4 +1,4 @@
-use crate::utils::{load_json_or_default, JsonMapExt};
+use crate::utils::{load_json_or_default, JsonMapExt, to_vec_pretty_os_eol};
 use crate::version::Version;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
@@ -11,6 +11,7 @@ use tokio::{fs, io};
 
 #[derive(Debug, Deserialize)]
 struct Parsed {
+    #[serde(default)]
     dependencies: HashMap<String, UpmDependency>,
 }
 
@@ -123,7 +124,7 @@ impl UpmManifest {
 
     pub(super) async fn save(&mut self, manifest: &Path) -> io::Result<()> {
         if self.changed {
-            let json = serde_json::to_string_pretty(&self.raw)?;
+            let json = to_vec_pretty_os_eol(&self.raw)?;
             fs::write(manifest, json).await?;
             self.changed = false;
         }

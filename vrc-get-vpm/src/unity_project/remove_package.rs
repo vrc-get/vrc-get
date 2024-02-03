@@ -1,6 +1,6 @@
 use crate::UnityProject;
-use std::{fmt, io};
 use std::collections::HashSet;
+use std::{fmt, io};
 
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::{pending_project_changes, PendingProjectChanges};
@@ -38,7 +38,8 @@ impl UnityProject {
 
         for name in (self.all_installed_packages())
             .filter(|dep| !remove.contains(&dep.name()))
-            .flat_map(|x| x.legacy_packages()) {
+            .flat_map(|x| x.legacy_packages())
+        {
             may_conflict.remove(name.as_str());
         }
 
