@@ -31,6 +31,8 @@ public readonly unsafe struct RustSlice<T> where T : unmanaged
         Length = length;
     }
 
+    public bool IsNull => Data == null;
+
     // Caller must guarantee (nuint)sizeof(T) is multiple of alignment.
     // This function infers alignment from sizeof(T).
     public static RustSlice<T> AllocRust(nuint length)
@@ -47,7 +49,11 @@ public readonly unsafe struct RustSlice<T> where T : unmanaged
 }
 
 public static class RustSlice {
-    public static string ToUtf8String(this in RustSlice<byte> self) => LowLevelFfiUtils.FfiUtf8.GetString(self.AsReadOnlySpan());
+    public static string? ToUtf8String(this in RustSlice<byte> self)
+    {
+        if (self.IsNull) return null;
+        return LowLevelFfiUtils.FfiUtf8.GetString(self.AsReadOnlySpan());
+    }
 
     public static RustSlice<byte> NewBoxedStrOnRustMemory(string data, bool noException = false)
     {
