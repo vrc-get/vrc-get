@@ -5,6 +5,7 @@ use crate::lowlevel;
 use crate::lowlevel::FFISlice;
 use crate::project::{Project, ProjectFFI};
 
+#[derive(Debug)]
 pub struct DatabaseConnection {
     ptr: lowlevel::GcHandle,
 }
@@ -61,11 +62,31 @@ extern "C" {
 
 #[cfg(test)]
 mod tests {
+    use std::any::Any;
+    use super::*;
     use crate::bson::{DateTime, ObjectId};
     use crate::project::ProjectType;
-    use super::*;
 
-    const TEST_DB_PATH : &str = "test-resources/vcc.liteDb";
+    const TEST_DB_PATH: &str = "test-resources/vcc.liteDb";
+
+    #[test]
+    fn not_found() {
+        let path = "test-resources/not-found.liteDb";
+        std::fs::remove_file(path).ok();
+        let error = ConnectionString::new(path)
+            .readonly(true)
+            .connect()
+            .expect_err("expecting not found");
+        assert_eq!(error.kind(), crate::error::ErrorKind::NotFound);
+    }
+
+    #[test]
+    fn not_found_writable() {
+        let path = "test-resources/not-found-writable.liteDb";
+        std::fs::remove_file(path).ok();
+        ConnectionString::new(path).connect().unwrap();
+        std::fs::remove_file(path).ok();
+    }
 
     #[test]
     fn test_connect() {
@@ -219,7 +240,7 @@ mod tests {
         );
 
         fn check_exists(
-            projects: &[Project], 
+            projects: &[Project],
             id: ObjectId,
             path: &str,
             type_: ProjectType,
@@ -227,7 +248,11 @@ mod tests {
             created_at: DateTime,
             last_modified: DateTime,
         ) {
-            let project = projects.iter().filter(|x| x.id() == id).next().expect("not found");
+            let project = projects
+                .iter()
+                .filter(|x| x.id() == id)
+                .next()
+                .expect("not found");
 
             assert_eq!(project.path(), path);
             assert_eq!(project.unity_version(), unity_version);

@@ -8,6 +8,7 @@ use std::ptr::null_mut;
 ///
 /// This is actually a wrapper type of [`isize`] but this struct will call `GCHandle.Free()` when dropped
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct GcHandle(NonZeroIsize);
 
 impl Drop for GcHandle {

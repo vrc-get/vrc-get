@@ -4,13 +4,13 @@ use std::str;
 #[derive(Debug)]
 pub struct LiteDbError {
     message: Box<str>,
-    code: LiteDBErrorCode,
+    code: ErrorKind,
 }
 
 impl LiteDbError {
     pub(crate) unsafe fn from_ffi(error: LiteDbErrorFFI) -> Self {
         let message = str::from_boxed_utf8_unchecked(error.message.as_boxed_byte_slice());
-        if error.code == -1 {
+        if error.code == i32::MIN {
             // -1 means unexpected error in C# code so panic here
             panic!("{}", message);
         }
@@ -21,12 +21,19 @@ impl LiteDbError {
             message,
         }
     }
+
+    pub fn kind(&self) -> ErrorKind {
+        self.code
+    }
 }
 
 #[cfg_attr(not(doc), repr(i32))]
-#[derive(Debug, Eq, PartialEq)]
-pub enum LiteDBErrorCode {
-    Uncategorized = 0,
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ErrorKind {
+    NotFound = -1,
+    PermissionDenied = -3,
+    InvalidFilename = -4,
+    OtherIO = -5,
     FileNotFound = 101,
     DatabaseShutdown = 102,
     InvalidDatabase = 103,
@@ -68,6 +75,7 @@ pub enum LiteDBErrorCode {
     NotEncrypted = 216,
     InvalidPassword = 217,
     Unsupported = 300,
+    Uncategorized = 400,
 }
 
 #[repr(C)]
