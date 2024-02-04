@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 
 /// ObjectId in Bson. Used for identifying documents in a collection.
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ObjectId {
     bytes: [u8; 12],
 }
