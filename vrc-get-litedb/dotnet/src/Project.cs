@@ -29,4 +29,18 @@ public struct ProjectFFI
         var favorite = document["Favorite"];
         this.Favorite = (byte)(favorite.IsBoolean && favorite.AsBoolean ? 1 : 0);
     }
+
+    public BsonDocument ToBsonDocument()
+    {
+        return new BsonDocument
+        {
+            ["_id"] = Id.ToLiteObjectId(),
+            ["Path"] = Path.ToUtf8String(),
+            ["Type"] = Type,
+            ["Favorite"] = Favorite != 0,
+            ["UnityVersion"] = UnityVersion.ToUtf8String(),
+            ["CreatedAt"] = CreatedAt.ToDateTimeFromUnixMilliseconds(),
+            ["LastModified"] = LastModified.ToDateTimeFromUnixMilliseconds(),
+        };
+    }
 }

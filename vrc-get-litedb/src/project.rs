@@ -107,4 +107,20 @@ impl Project {
             favorite: ffi.favorite != 0,
         }
     }
+
+    pub unsafe fn to_ffi(&self) -> ProjectFFI {
+        ProjectFFI {
+            path: FFISlice::from_byte_slice(self.path.as_bytes()),
+            unity_version: self
+                .unity_version
+                .as_ref()
+                .map(|x| FFISlice::from_byte_slice(self.path.as_bytes()))
+                .unwrap_or_else(|| FFISlice::null()),
+            created_at: self.created_at,
+            last_modified: self.last_modified,
+            type_: self.type_,
+            id: self.id,
+            favorite: self.favorite as u8,
+        }
+    }
 }

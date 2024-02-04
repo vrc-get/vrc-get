@@ -42,6 +42,13 @@ impl<T> FFISlice<T> {
         self.ptr == null_mut()
     }
 
+    pub(crate) fn null() -> Self {
+        Self {
+            ptr: null_mut(),
+            len: 0,
+        }
+    }
+
     pub fn from_byte_slice(slice: &[T]) -> Self {
         Self {
             ptr: slice.as_ptr() as *mut _,

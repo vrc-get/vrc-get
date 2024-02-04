@@ -33,8 +33,7 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {
-}
+impl std::error::Error for Error {}
 
 #[cfg_attr(not(doc), repr(i32))]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

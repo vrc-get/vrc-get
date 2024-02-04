@@ -40,6 +40,36 @@ public class DatabaseConnection
         }
     }
 
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_update")]
+    public unsafe static LiteDbError Update(GCHandle handle, ProjectFFI *project)
+    {
+        try
+        {
+            var connection = (LiteDatabase)handle.Target!;
+            connection.GetCollection("projects").Update(project->ToBsonDocument());
+            return default;
+        }
+        catch (Exception e)
+        {
+            return LiteDbError.FromException(e);
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_insert")]
+    public unsafe static LiteDbError Insert(GCHandle handle, ProjectFFI *project)
+    {
+        try
+        {
+            var connection = (LiteDatabase)handle.Target!;
+            connection.GetCollection("projects").Insert(project->ToBsonDocument());
+            return default;
+        }
+        catch (Exception e)
+        {
+            return LiteDbError.FromException(e);
+        }
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_dispose")]
     public static void DisposeHandle(GCHandle handle)
     {

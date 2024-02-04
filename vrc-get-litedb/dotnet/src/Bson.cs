@@ -24,4 +24,7 @@ static class Extensions
         var ts = utc - BsonValue.UnixEpoch;
         return (ulong)(ts.Ticks / TimeSpan.TicksPerMillisecond);
     }
+
+    public static DateTime ToDateTimeFromUnixMilliseconds(this ulong dateTime) =>
+        BsonValue.UnixEpoch + TimeSpan.FromMicroseconds(dateTime);
 }

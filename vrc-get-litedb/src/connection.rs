@@ -40,6 +40,20 @@ impl DatabaseConnection {
                 .collect());
         }
     }
+
+    pub fn update(&self, project: &Project) -> Result<()> {
+        unsafe {
+            vrc_get_litedb_database_connection_update(self.ptr.get(), &project.to_ffi())
+                .into_result()
+        }
+    }
+
+    pub fn insert(&self, project: &Project) -> Result<()> {
+        unsafe {
+            vrc_get_litedb_database_connection_insert(self.ptr.get(), &project.to_ffi())
+                .into_result()
+        }
+    }
 }
 
 impl Drop for DatabaseConnection {
@@ -60,6 +74,8 @@ extern "C" {
         ptr: isize,
         out: &mut FFISlice<ProjectFFI>,
     ) -> ErrorFFI;
+    fn vrc_get_litedb_database_connection_update(ptr: isize, out: &ProjectFFI) -> ErrorFFI;
+    fn vrc_get_litedb_database_connection_insert(ptr: isize, out: &ProjectFFI) -> ErrorFFI;
 }
 
 #[cfg(test)]
@@ -67,7 +83,6 @@ mod tests {
     use super::*;
     use crate::bson::{DateTime, ObjectId};
     use crate::project::ProjectType;
-    use std::any::Any;
 
     const TEST_DB_PATH: &str = "test-resources/vcc.liteDb";
 
