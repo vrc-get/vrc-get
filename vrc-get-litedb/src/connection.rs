@@ -114,6 +114,80 @@ mod tests {
     }
 
     #[test]
+    fn test_update() {
+        let copied = "test-resources/test-update.liteDb";
+        std::fs::remove_file(copied).ok();
+        std::fs::copy(TEST_DB_PATH, copied).unwrap();
+        let connection = ConnectionString::new(copied).connect().unwrap();
+        let find = ObjectId::from_bytes(b"\x65\xbe\x38\xdf\xcb\xac\x18\x12\x6a\x69\x4a\xb2");
+        let new_last_modified = DateTime::from_millis_since_epoch(1707061524000);
+
+        let mut project = connection
+            .get_projects()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .find(|x| x.id() == find)
+            .unwrap();
+        project.set_last_modified(new_last_modified);
+
+        connection.update(&project).unwrap();
+
+        drop(connection);
+
+        let connection = ConnectionString::new(copied).readonly(true).connect().unwrap();
+        let project = connection
+            .get_projects()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .find(|x| x.id() == find)
+            .unwrap();
+        drop(connection);
+
+        assert_eq!(project.last_modified(), new_last_modified);
+
+        // teardown
+        std::fs::remove_file(copied).ok();
+    }
+
+    #[test]
+    fn test_insert() {
+        let copied = "test-resources/test-insert.liteDb";
+        std::fs::remove_file(copied).ok();
+        std::fs::copy(TEST_DB_PATH, copied).unwrap();
+        let connection = ConnectionString::new(copied).connect().unwrap();
+        let new_project = Project::new(
+            "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\NewProject".into(),
+            Some("2022.3.6f1".into()),
+            ProjectType::WORLDS,
+        );
+
+        connection.insert(&new_project).unwrap();
+
+        drop(connection);
+
+        let connection = ConnectionString::new(copied).readonly(true).connect().unwrap();
+
+        let found_project = connection
+            .get_projects()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .find(|x| x.id() == new_project.id())
+            .unwrap();
+        drop(connection);
+
+        assert_eq!(found_project.path(), new_project.path());
+        assert_eq!(found_project.path(), new_project.path());
+        assert_eq!(found_project.created_at(), new_project.created_at());
+        assert_eq!(found_project.last_modified(), new_project.last_modified());
+
+        // teardown
+        std::fs::remove_file(copied).ok();
+    }
+
+    #[test]
     fn test_read() {
         let connection = ConnectionString::new(TEST_DB_PATH)
             .readonly(true)
