@@ -1652,6 +1652,7 @@ name = "vrc-get-litedb"
 version = "0.1.0"
 dependencies = [
  "ar",
+ "hex",
  "memmap2",
  "object",
 ]
