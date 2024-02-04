@@ -7,16 +7,16 @@ use crate::lowlevel::FFISlice;
 pub struct ProjectType(u32);
 
 impl ProjectType {
-    const UNKNOWN: Self = Self(0);
-    const LEGACY_SDK2: Self = Self(1);
-    const LEGACY_WORLDS: Self = Self(2);
-    const LEGACY_AVATARS: Self = Self(3);
-    const UPM_WORLDS: Self = Self(4);
-    const UPM_AVATARS: Self = Self(5);
-    const UPM_STARTER: Self = Self(6);
-    const WORLDS: Self = Self(7);
-    const AVATARS: Self = Self(8);
-    const VPM_STARTER: Self = Self(9);
+    pub const UNKNOWN: Self = Self(0);
+    pub const LEGACY_SDK2: Self = Self(1);
+    pub const LEGACY_WORLDS: Self = Self(2);
+    pub const LEGACY_AVATARS: Self = Self(3);
+    pub const UPM_WORLDS: Self = Self(4);
+    pub const UPM_AVATARS: Self = Self(5);
+    pub const UPM_STARTER: Self = Self(6);
+    pub const WORLDS: Self = Self(7);
+    pub const AVATARS: Self = Self(8);
+    pub const VPM_STARTER: Self = Self(9);
 }
 
 impl Debug for ProjectType {
