@@ -50,6 +50,24 @@ pub struct Project {
 }
 
 impl Project {
+    pub fn new(
+        path: Box<str>,
+        unity_version: Option<Box<str>>,
+        project_type: ProjectType,
+    ) -> Self {
+        let created_at: DateTime = DateTime::now();
+
+        Self {
+            path,
+            unity_version,
+            created_at,
+            last_modified: created_at,
+            type_: project_type,
+            id: ObjectId::new(),
+            favorite: false,
+        }
+    }
+
     pub fn id(&self) -> ObjectId {
         self.id
     }
@@ -76,6 +94,26 @@ impl Project {
 
     pub fn last_modified(&self) -> DateTime {
         self.last_modified
+    }
+
+    pub fn set_path(&mut self, path: Box<str>) {
+        self.path = path;
+    }
+
+    pub fn set_project_type(&mut self, project_type: ProjectType) {
+        self.type_ = project_type;
+    }
+
+    pub fn set_unity_version(&mut self, unity_version: Option<Box<str>>) {
+        self.unity_version = unity_version;
+    }
+
+    pub fn set_favorite(&mut self, favorite: bool) {
+        self.favorite = favorite;
+    }
+
+    pub fn set_last_modified(&mut self, last_modified: DateTime) {
+        self.last_modified = last_modified;
     }
 }
 
