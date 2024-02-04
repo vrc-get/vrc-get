@@ -43,8 +43,7 @@ pub struct Project {
     path: Box<str>,
     unity_version: Option<Box<str>>,
     created_at: DateTime,
-    // zero if no update performed
-    updated_at: DateTime,
+    last_modified: DateTime,
     type_: ProjectType,
     id: ObjectId,
     favorite: bool,
@@ -55,7 +54,7 @@ pub(crate) struct ProjectFFI {
     path: FFISlice,
     unity_version: FFISlice,
     created_at: DateTime,
-    updated_at: DateTime,
+    last_modified: DateTime,
     type_: ProjectType,
     id: ObjectId,
     favorite: u8,
@@ -72,7 +71,7 @@ impl Project {
                     .map(|x| std::str::from_boxed_utf8_unchecked(x))
             },
             created_at: ffi.created_at,
-            updated_at: ffi.updated_at,
+            last_modified: ffi.last_modified,
             type_: ffi.type_,
             id: ffi.id,
             favorite: ffi.favorite != 0,

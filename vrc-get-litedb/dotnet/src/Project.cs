@@ -9,7 +9,7 @@ public struct ProjectFFI
     public RustSlice<byte> Path;
     public RustSlice<byte> UnityVersion;
     public ulong CreatedAt; // milliseconds since Unix epoch in UTC
-    public ulong UpdatedAt; // milliseconds since Unix epoch in UTC
+    public ulong LastModified; // milliseconds since Unix epoch in UTC
     public int Type; // project type (enum)
     public ObjectId Id; // wether if this project is favorite or not
     public byte Favorite; // wether if this project is favorite or not
@@ -21,8 +21,8 @@ public struct ProjectFFI
         UnityVersion = unityVersion.IsString ? RustSlice.NewBoxedStrOnRustMemory(unityVersion.AsString) : default;
         var createdAt = document["CreatedAt"];
         CreatedAt = createdAt.IsDateTime ? createdAt.AsDateTime.ToUnixMilliseconds() : 0;
-        var updatedAt = document["UpdatedAt"];
-        UpdatedAt = updatedAt.IsDateTime ? updatedAt.AsDateTime.ToUnixMilliseconds() : 0;
+        var lastModified = document["LastModified"];
+        LastModified = lastModified.IsDateTime ? lastModified.AsDateTime.ToUnixMilliseconds() : 0;
         var type = document["Type"];
         this.Type = type.IsInt32 ? type.AsInt32 : 0;
         this.Id = new ObjectId(document["_id"].AsObjectId); // required
