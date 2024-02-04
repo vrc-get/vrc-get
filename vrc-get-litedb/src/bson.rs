@@ -7,6 +7,12 @@ pub struct ObjectId {
     bytes: [u8; 12],
 }
 
+impl ObjectId {
+    pub fn new(bytes: &[u8; 12]) -> Self {
+        Self { bytes: *bytes }
+    }
+}
+
 impl Debug for ObjectId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut buffer = [0u8; b"ObjectId(012345678901234567890123)".len()];
