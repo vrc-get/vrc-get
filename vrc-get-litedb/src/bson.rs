@@ -16,3 +16,23 @@ impl Debug for ObjectId {
         f.write_str(unsafe { std::str::from_utf8_unchecked(&buffer) })
     }
 }
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct DateTime(u64);
+
+impl DateTime {
+    pub fn from_millis_since_epoch(millis: u64) -> Self {
+        Self(millis)
+    }
+
+    pub fn as_millis_since_epoch(&self) -> u64 {
+        self.0
+    }
+}
+
+impl Debug for DateTime {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("DateTime({})", self.0))
+    }
+}

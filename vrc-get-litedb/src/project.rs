@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Formatter};
-use crate::bson::ObjectId;
+use crate::bson::{DateTime, ObjectId};
 use crate::lowlevel::FFISlice;
 
 #[repr(transparent)]
@@ -42,8 +42,9 @@ impl Debug for ProjectType {
 pub struct Project {
     path: Box<str>,
     unity_version: Option<Box<str>>,
-    created_at: u64, // milliseconds since Unix epoch in UTC
-    updated_at: u64, // milliseconds since Unix epoch in UTC
+    created_at: DateTime,
+    // zero if no update performed
+    updated_at: DateTime,
     type_: ProjectType,
     id: ObjectId,
     favorite: bool,
@@ -53,8 +54,8 @@ pub struct Project {
 pub(crate) struct ProjectFFI {
     path: FFISlice,
     unity_version: FFISlice,
-    created_at: u64, // milliseconds since Unix epoch in UTC
-    updated_at: u64, // milliseconds since Unix epoch in UTC
+    created_at: DateTime,
+    updated_at: DateTime,
     type_: ProjectType,
     id: ObjectId,
     favorite: u8,
