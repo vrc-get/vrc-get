@@ -9,7 +9,7 @@ pub struct ObjectId {
 
 impl Debug for ObjectId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut buffer = [0u8; b"ObjectId(0123456789012345678901234)".len()];
+        let mut buffer = [0u8; b"ObjectId(012345678901234567890123)".len()];
         buffer[0..b"ObjectId(".len()].copy_from_slice(b"ObjectId(");
         hex::encode_to_slice(self.bytes, &mut buffer[b"ObjectId(".len()..][..24]).unwrap();
         buffer[buffer.len() - 1] = b')';
