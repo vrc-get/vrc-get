@@ -22,7 +22,6 @@
     <IlcArg Include="--trim:System.Security.Cryptography" />
     <IlcArg Include="--trim:System.Net.Security" />
 
-    <PackageReference Include="Microsoft.DotNet.ILCompiler" Version="8.0.1" />
     <PackageReference Include="runtime.osx-arm64.Microsoft.DotNet.ILCompiler" Version="8.0.1" />
   </ItemGroup>
 
