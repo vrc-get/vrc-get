@@ -4,7 +4,7 @@ use crate::lowlevel::FFISlice;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
-struct ProjectType(u32);
+pub struct ProjectType(u32);
 
 impl ProjectType {
     const UNKNOWN: Self = Self(0);
@@ -47,6 +47,36 @@ pub struct Project {
     type_: ProjectType,
     id: ObjectId,
     favorite: bool,
+}
+
+impl Project {
+    pub fn id(&self) -> ObjectId {
+        self.id
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn project_type(&self) -> ProjectType {
+        self.type_
+    }
+
+    pub fn unity_version(&self) -> Option<&str> {
+        self.unity_version.as_deref()
+    }
+
+    pub fn favorite(&self) -> bool {
+        self.favorite
+    }
+
+    pub fn created_at(&self) -> DateTime {
+        self.created_at
+    }
+
+    pub fn last_modified(&self) -> DateTime {
+        self.last_modified
+    }
 }
 
 #[repr(C)]
