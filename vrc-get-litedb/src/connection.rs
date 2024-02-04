@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let connection = ConnectionString::new("vcc.litedb")
+        let connection = ConnectionString::new("test-resources/vcc.liteDb")
             .readonly(true)
             .connect()
             .unwrap();
