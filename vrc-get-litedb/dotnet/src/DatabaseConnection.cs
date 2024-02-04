@@ -41,7 +41,7 @@ public class DatabaseConnection
     }
 
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_update")]
-    public unsafe static LiteDbError Update(GCHandle handle, ProjectFFI *project)
+    public unsafe static LiteDbError UpdateProject(GCHandle handle, ProjectFFI *project)
     {
         try
         {
@@ -56,7 +56,7 @@ public class DatabaseConnection
     }
 
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_insert")]
-    public unsafe static LiteDbError Insert(GCHandle handle, ProjectFFI *project)
+    public unsafe static LiteDbError InsertProject(GCHandle handle, ProjectFFI *project)
     {
         try
         {

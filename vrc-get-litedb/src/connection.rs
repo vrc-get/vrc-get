@@ -41,14 +41,14 @@ impl DatabaseConnection {
         }
     }
 
-    pub fn update(&self, project: &Project) -> Result<()> {
+    pub fn update_project(&self, project: &Project) -> Result<()> {
         unsafe {
             vrc_get_litedb_database_connection_update(self.ptr.get(), &project.to_ffi())
                 .into_result()
         }
     }
 
-    pub fn insert(&self, project: &Project) -> Result<()> {
+    pub fn insert_project(&self, project: &Project) -> Result<()> {
         unsafe {
             vrc_get_litedb_database_connection_insert(self.ptr.get(), &project.to_ffi())
                 .into_result()
@@ -131,7 +131,7 @@ mod tests {
             .unwrap();
         project.set_last_modified(new_last_modified);
 
-        connection.update(&project).unwrap();
+        connection.update_project(&project).unwrap();
 
         drop(connection);
 
@@ -163,7 +163,7 @@ mod tests {
             ProjectType::WORLDS,
         );
 
-        connection.insert(&new_project).unwrap();
+        connection.insert_project(&new_project).unwrap();
 
         drop(connection);
 
