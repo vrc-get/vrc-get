@@ -70,6 +70,21 @@ public class DatabaseConnection
         }
     }
 
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_delete")]
+    public static LiteDbError DeleteProject(GCHandle handle, ObjectId objectId)
+    {
+        try
+        {
+            var connection = (LiteDatabase)handle.Target!;
+            connection.GetCollection("projects").Delete(objectId.ToLiteObjectId());
+            return default;
+        }
+        catch (Exception e)
+        {
+            return LiteDbError.FromException(e);
+        }
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_dispose")]
     public static void DisposeHandle(GCHandle handle)
     {

@@ -1,3 +1,4 @@
+use crate::bson::ObjectId;
 use super::Result;
 use crate::connection_string::ConnectionStringFFI;
 use crate::error::ErrorFFI;
@@ -54,6 +55,13 @@ impl DatabaseConnection {
                 .into_result()
         }
     }
+
+    pub fn delete_project(&self, project_id: ObjectId) -> Result<()> {
+        unsafe {
+            vrc_get_litedb_database_connection_delete(self.ptr.get(), project_id)
+                .into_result()
+        }
+    }
 }
 
 impl Drop for DatabaseConnection {
@@ -76,6 +84,7 @@ extern "C" {
     ) -> ErrorFFI;
     fn vrc_get_litedb_database_connection_update(ptr: isize, out: &ProjectFFI) -> ErrorFFI;
     fn vrc_get_litedb_database_connection_insert(ptr: isize, out: &ProjectFFI) -> ErrorFFI;
+    fn vrc_get_litedb_database_connection_delete(ptr: isize, out: ObjectId) -> ErrorFFI;
 }
 
 #[cfg(test)]
@@ -182,6 +191,42 @@ mod tests {
         assert_eq!(found_project.path(), new_project.path());
         assert_eq!(found_project.created_at(), new_project.created_at());
         assert_eq!(found_project.last_modified(), new_project.last_modified());
+
+        // teardown
+        std::fs::remove_file(copied).ok();
+    }
+
+    #[test]
+    fn test_delete() {
+        let copied = "test-resources/test-delete.liteDb";
+        std::fs::remove_file(copied).ok();
+        std::fs::copy(TEST_DB_PATH, copied).unwrap();
+        let connection = ConnectionString::new(copied).connect().unwrap();
+        let project_id = ObjectId::from_bytes(b"\x65\xbe\x38\xdf\xcb\xac\x18\x12\x6a\x69\x4a\xb2");
+
+        assert!(connection
+            .get_projects()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .find(|x| x.id() == project_id)
+            .is_some());
+
+        connection.delete_project(project_id).unwrap();
+
+        drop(connection);
+
+        let connection = ConnectionString::new(copied).readonly(true).connect().unwrap();
+
+        assert!(connection
+            .get_projects()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .find(|x| x.id() == project_id)
+            .is_none());
+
+        drop(connection);
 
         // teardown
         std::fs::remove_file(copied).ok();
