@@ -65,9 +65,11 @@ mod tests {
     use crate::project::ProjectType;
     use super::*;
 
+    const TEST_DB_PATH : &str = "test-resources/vcc.liteDb";
+
     #[test]
     fn test_connect() {
-        ConnectionString::new("vcc.litedb")
+        ConnectionString::new(TEST_DB_PATH)
             .readonly(true)
             .connect()
             .unwrap();
@@ -75,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let connection = ConnectionString::new("test-resources/vcc.liteDb")
+        let connection = ConnectionString::new(TEST_DB_PATH)
             .readonly(true)
             .connect()
             .unwrap();
