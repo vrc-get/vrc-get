@@ -26,5 +26,5 @@ static class Extensions
     }
 
     public static DateTime ToDateTimeFromUnixMilliseconds(this ulong dateTime) =>
-        BsonValue.UnixEpoch + TimeSpan.FromMicroseconds(dateTime);
+        BsonValue.UnixEpoch + TimeSpan.FromMilliseconds(dateTime);
 }
