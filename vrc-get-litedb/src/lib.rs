@@ -1,8 +1,8 @@
 mod bson;
-mod connection;
-mod connection_string;
-mod error;
+pub mod connection;
+mod connection_string; // exported in connection
+pub mod error;
 mod lowlevel;
-mod project;
+pub mod project;
 
-type Result<T> = std::result::Result<T, error::LiteDbError>;
+pub type Result<T> = std::result::Result<T, error::Error>;

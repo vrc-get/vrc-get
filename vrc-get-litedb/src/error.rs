@@ -2,13 +2,13 @@ use crate::lowlevel::{FFISlice, GcHandle};
 use std::str;
 
 #[derive(Debug)]
-pub struct LiteDbError {
+pub struct Error {
     message: Box<str>,
     code: ErrorKind,
 }
 
-impl LiteDbError {
-    pub(crate) unsafe fn from_ffi(error: LiteDbErrorFFI) -> Self {
+impl Error {
+    pub(crate) unsafe fn from_ffi(error: ErrorFFI) -> Self {
         let message = str::from_boxed_utf8_unchecked(error.message.as_boxed_byte_slice());
         if error.code == i32::MIN {
             // -1 means unexpected error in C# code so panic here
@@ -25,6 +25,15 @@ impl LiteDbError {
     pub fn kind(&self) -> ErrorKind {
         self.code
     }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for Error {
 }
 
 #[cfg_attr(not(doc), repr(i32))]
@@ -79,25 +88,25 @@ pub enum ErrorKind {
 }
 
 #[repr(C)]
-pub(crate) struct LiteDbErrorFFI {
+pub(crate) struct ErrorFFI {
     // must be
     message: FFISlice<u8>,
     code: i32,
 }
 
-impl LiteDbErrorFFI {
+impl ErrorFFI {
     pub unsafe fn into_result(self) -> super::Result<()> {
         if self.code == 0 && self.message.is_null() {
             return Ok(());
         }
-        Err(LiteDbError::from_ffi(self))
+        Err(Error::from_ffi(self))
     }
 }
 
 #[repr(C)]
 pub(crate) struct HandleErrorResult {
     pub result: Option<GcHandle>,
-    pub error: LiteDbErrorFFI,
+    pub error: ErrorFFI,
 }
 
 impl HandleErrorResult {
@@ -105,7 +114,7 @@ impl HandleErrorResult {
         if let Some(result) = self.result {
             Ok(result)
         } else {
-            Err(LiteDbError::from_ffi(self.error))
+            Err(Error::from_ffi(self.error))
         }
     }
 }

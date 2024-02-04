@@ -1,9 +1,11 @@
 use super::Result;
-use crate::connection_string::{ConnectionString, ConnectionStringFFI};
-use crate::error::LiteDbErrorFFI;
+use crate::connection_string::ConnectionStringFFI;
+use crate::error::ErrorFFI;
 use crate::lowlevel;
 use crate::lowlevel::FFISlice;
 use crate::project::{Project, ProjectFFI};
+
+pub use super::connection_string::ConnectionString;
 
 #[derive(Debug)]
 pub struct DatabaseConnection {
@@ -57,15 +59,15 @@ extern "C" {
     fn vrc_get_litedb_database_connection_get_projects(
         ptr: isize,
         out: &mut FFISlice<ProjectFFI>,
-    ) -> LiteDbErrorFFI;
+    ) -> ErrorFFI;
 }
 
 #[cfg(test)]
 mod tests {
-    use std::any::Any;
     use super::*;
     use crate::bson::{DateTime, ObjectId};
     use crate::project::ProjectType;
+    use std::any::Any;
 
     const TEST_DB_PATH: &str = "test-resources/vcc.liteDb";
 

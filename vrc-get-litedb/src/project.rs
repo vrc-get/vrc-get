@@ -1,6 +1,6 @@
-use std::fmt::{Debug, Formatter};
 use crate::bson::{DateTime, ObjectId};
 use crate::lowlevel::FFISlice;
+use std::fmt::{Debug, Formatter};
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
