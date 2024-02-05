@@ -22,7 +22,7 @@ env_logger = "0.11.1"
 indexmap = { version = "2.2.1", features = ["serde"] }
 itertools = "0.12.1"
 log = "0.4.20"
-reqwest = { version = "0.11.23", default-features = false }
+reqwest = { version = "0.11.24", default-features = false }
 serde = { version = "1.0.196", features = ["derive", "rc"] }
 serde_json = { version = "1.0.113", features = ["preserve_order"] }
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros", "fs"] }
