@@ -143,7 +143,7 @@ impl Project {
     }
 
     /// # SAFETY
-    /// The returned FFI struct must not outlive the `Project` instance 
+    /// The returned FFI struct must not outlive the `Project` instance
     pub(crate) unsafe fn to_ffi(&self) -> ProjectFFI {
         ProjectFFI {
             path: FFISlice::from_byte_slice(self.path.as_bytes()),

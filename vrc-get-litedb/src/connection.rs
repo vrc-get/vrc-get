@@ -229,7 +229,8 @@ mod tests {
             .get_projects()
             .unwrap()
             .into_vec()
-            .into_iter().any(|x| x.id() == project_id));
+            .into_iter()
+            .any(|x| x.id() == project_id));
 
         drop(connection);
 
@@ -389,9 +390,7 @@ mod tests {
             created_at: DateTime,
             last_modified: DateTime,
         ) {
-            let project = projects
-                .iter().find(|x| x.id() == id)
-                .expect("not found");
+            let project = projects.iter().find(|x| x.id() == id).expect("not found");
 
             assert_eq!(project.path(), path);
             assert_eq!(project.unity_version(), unity_version);
