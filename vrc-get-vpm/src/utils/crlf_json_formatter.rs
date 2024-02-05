@@ -1,5 +1,5 @@
-use std::io;
 use serde_json::ser::Formatter;
+use std::io;
 
 pub(crate) fn to_vec_pretty_os_eol<T>(value: &T) -> io::Result<Vec<u8>>
 where
@@ -48,9 +48,9 @@ macro_rules! comma_eol {
 
 /// [Formatter] implementation
 /// that supports pretty formatting JSON with CRLF line endings and indentation.
-/// 
+///
 /// on windows, CRLF is used as line ending, otherwise LF is used.
-impl <'a> OsEolJsonPrettyFormatter<'a> {
+impl<'a> OsEolJsonPrettyFormatter<'a> {
     #[allow(dead_code)]
     pub fn new() -> Self {
         Self::with_indent(b"  ")
@@ -68,8 +68,8 @@ impl <'a> OsEolJsonPrettyFormatter<'a> {
 impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
     #[inline]
     fn begin_array<W>(&mut self, writer: &mut W) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         self.current_indent += 1;
         self.has_value = false;
@@ -78,8 +78,8 @@ impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
 
     #[inline]
     fn end_array<W>(&mut self, writer: &mut W) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         self.current_indent -= 1;
 
@@ -93,8 +93,8 @@ impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
 
     #[inline]
     fn begin_array_value<W>(&mut self, writer: &mut W, first: bool) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         writer.write_all(if first { eol!() } else { comma_eol!() })?;
         indent(writer, self.current_indent, self.indent)
@@ -102,8 +102,8 @@ impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
 
     #[inline]
     fn end_array_value<W>(&mut self, _writer: &mut W) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         self.has_value = true;
         Ok(())
@@ -111,8 +111,8 @@ impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
 
     #[inline]
     fn begin_object<W>(&mut self, writer: &mut W) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         self.current_indent += 1;
         self.has_value = false;
@@ -121,8 +121,8 @@ impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
 
     #[inline]
     fn end_object<W>(&mut self, writer: &mut W) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         self.current_indent -= 1;
 
@@ -136,8 +136,8 @@ impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
 
     #[inline]
     fn begin_object_key<W>(&mut self, writer: &mut W, first: bool) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         writer.write_all(if first { eol!() } else { comma_eol!() })?;
         indent(writer, self.current_indent, self.indent)
@@ -145,16 +145,16 @@ impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
 
     #[inline]
     fn begin_object_value<W>(&mut self, writer: &mut W) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         writer.write_all(b": ")
     }
 
     #[inline]
     fn end_object_value<W>(&mut self, _writer: &mut W) -> io::Result<()>
-        where
-            W: ?Sized + io::Write,
+    where
+        W: ?Sized + io::Write,
     {
         self.has_value = true;
         Ok(())
@@ -162,8 +162,8 @@ impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
 }
 
 fn indent<W>(wr: &mut W, n: usize, s: &[u8]) -> io::Result<()>
-    where
-        W: ?Sized + io::Write,
+where
+    W: ?Sized + io::Write,
 {
     for _ in 0..n {
         wr.write_all(s)?;

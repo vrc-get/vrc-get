@@ -1,7 +1,7 @@
 mod copy_recursive;
+mod crlf_json_formatter;
 mod extract_zip;
 mod sha256_async_write;
-mod crlf_json_formatter;
 
 use async_zip::error::ZipError;
 use either::Either;
@@ -17,9 +17,9 @@ use tokio::fs::{read_dir, DirEntry, File, ReadDir};
 use tokio::io::AsyncReadExt;
 
 pub(crate) use copy_recursive::copy_recursive;
+pub(crate) use crlf_json_formatter::to_vec_pretty_os_eol;
 pub(crate) use extract_zip::extract_zip;
 pub(crate) use sha256_async_write::Sha256AsyncWrite;
-pub(crate) use crlf_json_formatter::to_vec_pretty_os_eol;
 
 pub(crate) trait PathBufExt {
     fn joined(self, into: impl AsRef<Path>) -> Self;
