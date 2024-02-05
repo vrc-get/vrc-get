@@ -77,6 +77,35 @@ jobs:
         env:
           RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
 
+      # region changelog
+      - name: Create Changelog
+        id: changelog
+        uses: anatawa12/sh-actions/changelog/prepare-release@master
+        with:
+          version: ${{ env.VERSION }}
+          prerelease: ${{ env.PRERELEASE }}
+          tag-prefix: v
+          prerelease-note-heading: |
+            Version ${{ env.VERSION }}
+            ---
+          release-note-heading: |
+            Version ${{ env.VERSION }}
+            ---
+      - name: Upload CHANGELOG.md
+        if: ${{ !fromJSON(env.PRERELEASE) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHANGELOG
+          path: CHANGELOG.md
+      - run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
+      - name: Upload release note
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-note-for-release
+          path: release-note.md
+      - run: rm release-note.md
+      # endregion changelog
+
       - name: Commit
         id: update
         run: |-
@@ -225,7 +254,7 @@ jobs:
   publish-to-github:
     name: Publish to GitHub
     environment:
-      name: master branch
+      name: actions-github-app
       url: https://github.com/anatawa12/vrc-get/releases/v${{ needs.pre-build.outputs.cli-version }}
     permissions:
       contents: write
@@ -235,12 +264,17 @@ jobs:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
     steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
       - uses: actions/checkout@v3
         with:
           ref: 'releasing'
           fetch-depth: 2
           submodules: recursive
-          token: ${{ secrets.MASTER_GITHUB_PAT }}
+          token: ${{ steps.app-token.outputs.token }}
 
       # tools
       - uses: anatawa12/something-releaser@v3
@@ -253,6 +287,12 @@ jobs:
           path: assets
           pattern: artifacts-*
           merge-multiple: true
+
+      - name: Download changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: release-note-for-release
+          path: changelog
 
       - name: Push tag
         run: |-
@@ -272,7 +312,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |-
-          gh release create ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} --verify-tag "v$CLI_VERSION" assets/*
+          gh release create \
+            ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} \
+            --notes-file changelog/release-note.md \
+            --verify-tag "v$CLI_VERSION" \
+            assets/*
 
           rm -rf outputs assets
 
