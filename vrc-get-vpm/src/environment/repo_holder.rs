@@ -21,10 +21,10 @@ impl RepoHolder {
 
 // new system
 impl RepoHolder {
-    pub(crate) async fn load_repos(
+    pub(crate) async fn load_repos<'a>(
         &mut self,
         http: Option<&impl HttpClient>,
-        sources: impl Iterator<Item = impl RepoSource>,
+        sources: impl Iterator<Item = RepoSource<'a>>,
     ) -> io::Result<()> {
         let repos = try_join_all(sources.map(|src| async move {
             Self::load_repo_from_source(http, &src)
@@ -42,7 +42,7 @@ impl RepoHolder {
 
     async fn load_repo_from_source(
         client: Option<&impl HttpClient>,
-        source: &impl RepoSource,
+        source: &RepoSource<'_>,
     ) -> io::Result<Option<LocalCachedRepository>> {
         if let Some(url) = &source.url() {
             RepoHolder::load_remote_repo(client, source.headers(), source.cache_path(), url)

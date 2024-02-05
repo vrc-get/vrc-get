@@ -1,5 +1,4 @@
 use crate::utils::PathBufExt;
-use either::{for_both, Either};
 use enum_map::Enum;
 use indexmap::IndexMap;
 use lazy_static::lazy_static;
@@ -45,55 +44,43 @@ impl PredefinedSource {
             path: folder.join("Repos").joined(source.file_name()),
         }
     }
-}
 
-impl RepoSource for PredefinedSource {
-    fn cache_path(&self) -> &Path {
-        self.path.as_path()
-    }
-
-    fn headers(&self) -> &IndexMap<String, String> {
+    pub(crate) fn to_source(&self) -> RepoSource {
         lazy_static! {
             static ref EMPTY_HEADERS: IndexMap<String, String> = IndexMap::new();
         }
-        &EMPTY_HEADERS
-    }
-
-    fn url(&self) -> Option<&Url> {
-        Some(&self.url)
+        RepoSource::new(&self.path, &EMPTY_HEADERS, Some(&self.url))
     }
 }
 
-pub(crate) trait RepoSource {
-    fn cache_path(&self) -> &Path;
-    fn headers(&self) -> &IndexMap<String, String>;
-    fn url(&self) -> Option<&Url>;
+pub(crate) struct RepoSource<'a> {
+    cache_path: &'a Path,
+    headers: &'a IndexMap<String, String>,
+    url: Option<&'a Url>,
 }
 
-impl<T: RepoSource + ?Sized> RepoSource for &T {
-    fn cache_path(&self) -> &Path {
-        T::cache_path(self)
+impl<'a> RepoSource<'a> {
+    pub fn new(
+        cache_path: &'a Path,
+        headers: &'a IndexMap<String, String>,
+        url: Option<&'a Url>,
+    ) -> Self {
+        Self {
+            cache_path,
+            headers,
+            url,
+        }
     }
 
-    fn headers(&self) -> &IndexMap<String, String> {
-        T::headers(self)
+    pub fn cache_path(&self) -> &Path {
+        self.cache_path
     }
 
-    fn url(&self) -> Option<&Url> {
-        T::url(self)
-    }
-}
-
-impl<L: RepoSource, R: RepoSource> RepoSource for Either<L, R> {
-    fn cache_path(&self) -> &Path {
-        for_both!(self, src => src.cache_path())
+    pub fn headers(&self) -> &IndexMap<String, String> {
+        self.headers
     }
 
-    fn headers(&self) -> &IndexMap<String, String> {
-        for_both!(self, src => src.headers())
-    }
-
-    fn url(&self) -> Option<&Url> {
-        for_both!(self, src => src.url())
+    pub fn url(&self) -> Option<&Url> {
+        self.url
     }
 }

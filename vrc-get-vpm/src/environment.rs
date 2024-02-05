@@ -12,7 +12,6 @@ use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
 use crate::{PackageInfo, VersionSelector};
-use either::{Left, Right};
 use enum_map::EnumMap;
 use futures::future::{join_all, try_join};
 use hex::FromHex;
@@ -107,13 +106,17 @@ impl<T: HttpClient> Environment<T> {
 impl<T: HttpClient> Environment<T> {
     pub async fn load_package_infos(&mut self, update: bool) -> io::Result<()> {
         let http = if update { self.http.as_ref() } else { None };
-        let predefined_repos = self.predefined_repos.values();
-        let user_repos = self.settings.user_repos().iter();
+        let predefined_repos = self
+            .predefined_repos
+            .values()
+            .map(PredefinedSource::to_source);
+        let user_repos = self
+            .settings
+            .user_repos()
+            .iter()
+            .map(UserRepoSetting::to_source);
         self.repo_cache
-            .load_repos(
-                http,
-                predefined_repos.map(Left).chain(user_repos.map(Right)),
-            )
+            .load_repos(http, predefined_repos.chain(user_repos))
             .await?;
         self.update_user_repo_id();
         self.load_user_package_infos().await?;
