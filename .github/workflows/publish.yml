@@ -77,6 +77,35 @@ jobs:
         env:
           RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
 
+      # region changelog
+      - name: Create Changelog
+        id: changelog
+        uses: anatawa12/sh-actions/changelog/prepare-release@master
+        with:
+          version: ${{ env.VERSION }}
+          prerelease: ${{ env.PRERELEASE }}
+          tag-prefix: v
+          prerelease-note-heading: |
+            Version ${{ env.VERSION }}
+            ---
+          release-note-heading: |
+            Version ${{ env.VERSION }}
+            ---
+      - name: Upload CHANGELOG.md
+        if: ${{ !fromJSON(env.PRERELEASE) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHANGELOG
+          path: CHANGELOG.md
+      - run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
+      - name: Upload release note
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-note-for-release
+          path: release-note.md
+      - run: rm release-note.md
+      # endregion changelog
+
       - name: Commit
         id: update
         run: |-
@@ -259,6 +288,12 @@ jobs:
           pattern: artifacts-*
           merge-multiple: true
 
+      - name: Download changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: release-note-for-release
+          path: changelog
+
       - name: Push tag
         run: |-
           # set tag and publish current version
@@ -277,7 +312,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |-
-          gh release create ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} --verify-tag "v$CLI_VERSION" assets/*
+          gh release create \
+            ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} \
+            --notes-file changelog/release-note.md \
+            --verify-tag "v$CLI_VERSION" \
+            assets/*
 
           rm -rf outputs assets
 
