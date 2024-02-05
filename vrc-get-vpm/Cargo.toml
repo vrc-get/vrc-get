@@ -44,5 +44,4 @@ default = ["rustls"]
 native-tls = ["reqwest/native-tls-vendored"]
 rustls = ["reqwest/rustls-tls-native-roots"]
 
-experimental-override-predefined = []
 experimental-yank = []

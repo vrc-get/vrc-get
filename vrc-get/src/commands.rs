@@ -60,22 +60,6 @@ async fn load_env(args: &EnvArgs) -> Environment<Client> {
         .await
         .exit_context("loading global config");
 
-    #[cfg(feature = "experimental-override-predefined")]
-    if let Ok(url_override) = std::env::var("VRC_GET_OFFICIAL_URL_OVERRIDE") {
-        log::warn!("VRC_GET_OFFICIAL_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_official_url_override(
-            Url::parse(&url_override).expect("invalid url for VRC_GET_OFFICIAL_URL_OVERRIDE"),
-        );
-    }
-
-    #[cfg(feature = "experimental-override-predefined")]
-    if let Ok(url_override) = std::env::var("VRC_GET_CURATED_URL_OVERRIDE") {
-        log::warn!("VRC_GET_CURATED_URL_OVERRIDE env variable is set! overriding official repository url is experimental feature!");
-        env.set_curated_url_override(
-            Url::parse(&url_override).expect("invalid url for VRC_GET_CURATED_URL_OVERRIDE"),
-        );
-    }
-
     env.load_package_infos(!args.no_update)
         .await
         .exit_context("loading repositories");

@@ -7,7 +7,12 @@ use tokio::fs::create_dir_all;
 /// since this file is vrc-get specific, additional keys can be removed
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct AsJson {}
+struct AsJson {
+    #[serde(default)]
+    ignore_official_repository: bool,
+    #[serde(default)]
+    ignore_curated_repository: bool,
+}
 
 #[derive(Debug)]
 pub(crate) struct VrcGetSettings {
@@ -27,6 +32,26 @@ impl VrcGetSettings {
             path: json_path,
             settings_changed: false,
         })
+    }
+
+    pub fn ignore_official_repository(&self) -> bool {
+        self.as_json.ignore_official_repository
+    }
+
+    #[allow(dead_code)]
+    pub fn set_ignore_official_repository(&mut self, value: bool) {
+        self.as_json.ignore_official_repository = value;
+        self.settings_changed = true;
+    }
+
+    pub fn ignore_curated_repository(&self) -> bool {
+        self.as_json.ignore_curated_repository
+    }
+
+    #[allow(dead_code)]
+    pub fn set_ignore_curated_repository(&mut self, value: bool) {
+        self.as_json.ignore_curated_repository = value;
+        self.settings_changed = true;
     }
 
     pub async fn save(&mut self) -> io::Result<()> {

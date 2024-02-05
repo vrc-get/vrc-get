@@ -1,62 +1,12 @@
-use crate::utils::PathBufExt;
-use enum_map::Enum;
 use indexmap::IndexMap;
-use lazy_static::lazy_static;
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use url::Url;
 
-#[derive(Copy, Clone, Hash, Eq, PartialEq, Debug, Enum)]
-pub(crate) enum PreDefinedRepoType {
-    Official,
-    Curated,
-}
-
-impl PreDefinedRepoType {
-    pub fn file_name(self) -> &'static str {
-        match self {
-            PreDefinedRepoType::Official => "vrc-official.json",
-            PreDefinedRepoType::Curated => "vrc-curated.json",
-        }
-    }
-
-    pub fn url(self) -> Url {
-        match self {
-            PreDefinedRepoType::Official => {
-                Url::parse("https://packages.vrchat.com/official?download").unwrap()
-            }
-            PreDefinedRepoType::Curated => {
-                Url::parse("https://packages.vrchat.com/curated?download").unwrap()
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct PredefinedSource {
-    pub(crate) url: Url,
-    path: PathBuf,
-}
-
-impl PredefinedSource {
-    pub(crate) fn new(folder: &Path, source: PreDefinedRepoType) -> Self {
-        Self {
-            url: source.url(),
-            path: folder.join("Repos").joined(source.file_name()),
-        }
-    }
-
-    pub(crate) fn to_source(&self) -> RepoSource {
-        lazy_static! {
-            static ref EMPTY_HEADERS: IndexMap<String, String> = IndexMap::new();
-        }
-        RepoSource::new(&self.path, &EMPTY_HEADERS, Some(&self.url))
-    }
-}
-
 pub(crate) struct RepoSource<'a> {
-    cache_path: &'a Path,
+    cache_path: Cow<'a, Path>,
     headers: &'a IndexMap<String, String>,
-    url: Option<&'a Url>,
+    url: Option<Cow<'a, Url>>,
 }
 
 impl<'a> RepoSource<'a> {
@@ -66,14 +16,26 @@ impl<'a> RepoSource<'a> {
         url: Option<&'a Url>,
     ) -> Self {
         Self {
-            cache_path,
+            cache_path: cache_path.into(),
             headers,
-            url,
+            url: url.map(Cow::Borrowed),
+        }
+    }
+
+    pub fn new_owned(
+        cache_path: PathBuf,
+        headers: &'a IndexMap<String, String>,
+        url: Option<Url>,
+    ) -> Self {
+        Self {
+            cache_path: cache_path.into(),
+            headers,
+            url: url.map(Cow::Owned),
         }
     }
 
     pub fn cache_path(&self) -> &Path {
-        self.cache_path
+        &self.cache_path
     }
 
     pub fn headers(&self) -> &IndexMap<String, String> {
@@ -81,6 +43,6 @@ impl<'a> RepoSource<'a> {
     }
 
     pub fn url(&self) -> Option<&Url> {
-        self.url
+        self.url.as_deref()
     }
 }
