@@ -1,6 +1,6 @@
+use crate::utils::to_vec_pretty_os_eol;
 use crate::version::DependencyRange;
 use serde::{Deserialize, Serialize};
-use crate::utils::to_vec_pretty_os_eol;
 
 use super::*;
 
