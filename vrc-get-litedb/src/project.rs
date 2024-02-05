@@ -50,11 +50,7 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn new(
-        path: Box<str>,
-        unity_version: Option<Box<str>>,
-        project_type: ProjectType,
-    ) -> Self {
+    pub fn new(path: Box<str>, unity_version: Option<Box<str>>, project_type: ProjectType) -> Self {
         let created_at: DateTime = DateTime::now();
 
         Self {

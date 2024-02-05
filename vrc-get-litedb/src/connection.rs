@@ -1,5 +1,5 @@
-use crate::bson::ObjectId;
 use super::Result;
+use crate::bson::ObjectId;
 use crate::connection_string::ConnectionStringFFI;
 use crate::error::ErrorFFI;
 use crate::lowlevel;
@@ -58,8 +58,7 @@ impl DatabaseConnection {
 
     pub fn delete_project(&self, project_id: ObjectId) -> Result<()> {
         unsafe {
-            vrc_get_litedb_database_connection_delete(self.ptr.get(), project_id)
-                .into_result()
+            vrc_get_litedb_database_connection_delete(self.ptr.get(), project_id).into_result()
         }
     }
 }
@@ -144,7 +143,10 @@ mod tests {
 
         drop(connection);
 
-        let connection = ConnectionString::new(copied).readonly(true).connect().unwrap();
+        let connection = ConnectionString::new(copied)
+            .readonly(true)
+            .connect()
+            .unwrap();
         let project = connection
             .get_projects()
             .unwrap()
@@ -176,7 +178,10 @@ mod tests {
 
         drop(connection);
 
-        let connection = ConnectionString::new(copied).readonly(true).connect().unwrap();
+        let connection = ConnectionString::new(copied)
+            .readonly(true)
+            .connect()
+            .unwrap();
 
         let found_project = connection
             .get_projects()
@@ -216,7 +221,10 @@ mod tests {
 
         drop(connection);
 
-        let connection = ConnectionString::new(copied).readonly(true).connect().unwrap();
+        let connection = ConnectionString::new(copied)
+            .readonly(true)
+            .connect()
+            .unwrap();
 
         assert!(connection
             .get_projects()

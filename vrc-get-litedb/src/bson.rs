@@ -1,8 +1,8 @@
+use once_cell::sync::Lazy;
+use rand::Rng;
 use std::fmt::{Debug, Formatter};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
-use once_cell::sync::Lazy;
-use rand::Rng;
 
 /// ObjectId in Bson. Used for identifying documents in a collection.
 #[repr(C)]
@@ -30,8 +30,7 @@ impl ObjectId {
         let timestamp: u32 = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
-            .as_secs()
-            as u32;
+            .as_secs() as u32;
         timestamp.to_be_bytes()
     }
 
