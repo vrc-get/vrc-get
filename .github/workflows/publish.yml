@@ -80,7 +80,7 @@ jobs:
       # region changelog
       - name: Create Changelog
         id: changelog
-        if: ${{ !fromJSON(env.PRERELEASE) }}
+        if: ${{ !steps.update-version.outputs.prerelease }}
         uses: anatawa12/sh-actions/changelog/prepare-release@master
         with:
           version: ${{ env.VERSION }}
@@ -93,18 +93,23 @@ jobs:
             Version ${{ env.VERSION }}
             ---
       - name: Upload CHANGELOG.md
-        if: ${{ !fromJSON(env.PRERELEASE) }}
+        if: ${{ !steps.update-version.outputs.prerelease }}
         uses: actions/upload-artifact@v4
         with:
           name: CHANGELOG
           path: CHANGELOG.md
-      - run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
+      - name: copy release note
+        if: ${{ !steps.update-version.outputs.prerelease }}
+        run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
       - name: Upload release note
+        if: ${{ !steps.update-version.outputs.prerelease }}
         uses: actions/upload-artifact@v4
         with:
           name: release-note-for-release
           path: release-note.md
-      - run: rm release-note.md
+      - name: remove temp release note file
+        if: ${{ !steps.update-version.outputs.prerelease }}
+        run: rm release-note.md
       # endregion changelog
 
       - name: Commit
@@ -315,7 +320,7 @@ jobs:
         run: |-
           gh release create \
             ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} \
-            --notes-file changelog/release-note.md \
+            ${{ !needs.pre-build.outputs.prerelease && '--notes-file changelog/release-note.md' || '' }} \
             --verify-tag "v$CLI_VERSION" \
             assets/*
 
