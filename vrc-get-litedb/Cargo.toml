@@ -8,6 +8,18 @@ homepage.workspace = true
 repository.workspace = true
 readme = "README.md"
 
+include = [
+    "/src/**/*",
+    "/dotnet/vrc-get-litedb.csproj",
+    "/dotnet/src/**/*",
+    "/dotnet/LiteDB/LiteDB/**/*",
+    "!/dotnet/LiteDB/LiteDB/bin/**/*",
+    "!/dotnet/LiteDB/LiteDB/obj/**/*",
+    "/Cargo.toml",
+    "README.md",
+    "LICENSE",
+]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
