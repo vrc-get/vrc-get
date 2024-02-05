@@ -3,6 +3,7 @@ mod repo_holder;
 mod repo_source;
 mod settings;
 mod uesr_package_collection;
+mod vrc_get_settings;
 
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
@@ -11,12 +12,11 @@ use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
 use crate::{PackageInfo, VersionSelector};
-use either::{Left, Right};
-use enum_map::EnumMap;
-use futures::future::join_all;
+use futures::future::{join_all, try_join};
 use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use lazy_static::lazy_static;
 use log::error;
 use std::cmp::Reverse;
 use std::collections::HashSet;
@@ -30,7 +30,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
 use url::Url;
 
-use crate::environment::repo_source::{PreDefinedRepoType, PredefinedSource};
+use crate::environment::vrc_get_settings::VrcGetSettings;
 pub use empty::EmptyEnvironment;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
@@ -47,10 +47,10 @@ pub struct Environment<T: HttpClient> {
     pub(crate) global_dir: PathBuf,
     /// parsed settings
     settings: Settings,
+    vrc_get_settings: VrcGetSettings,
     /// Cache
     repo_cache: RepoHolder,
     user_packages: UserPackageCollection,
-    predefined_repos: EnumMap<PreDefinedRepoType, PredefinedSource>,
 }
 
 impl<T: HttpClient> Environment<T> {
@@ -67,11 +67,9 @@ impl<T: HttpClient> Environment<T> {
         Ok(Self {
             http,
             settings: Settings::load(folder.join("settings.json")).await?,
+            vrc_get_settings: VrcGetSettings::load(folder.join("vrc-get-settings.json")).await?,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
-            predefined_repos: EnumMap::from_fn(|x: PreDefinedRepoType| {
-                PredefinedSource::new(&folder, x)
-            }),
             global_dir: folder,
         })
     }
@@ -101,15 +99,46 @@ impl<T: HttpClient> Environment<T> {
 }
 
 impl<T: HttpClient> Environment<T> {
+    fn get_predefined_repos(&self) -> Vec<RepoSource<'static>> {
+        lazy_static! {
+            static ref EMPTY_HEADERS: IndexMap<String, String> = IndexMap::new();
+            static ref OFFICIAL_URL: Url =
+                Url::parse("https://packages.vrchat.com/official?download").unwrap();
+            static ref CURATED_URL: Url =
+                Url::parse("https://packages.vrchat.com/curated?download").unwrap();
+        }
+
+        let mut repositories = Vec::with_capacity(2);
+
+        if !self.vrc_get_settings.ignore_official_repository() {
+            repositories.push(RepoSource::new_owned(
+                self.get_repos_dir().joined("vrc-official.json"),
+                &EMPTY_HEADERS,
+                Some(OFFICIAL_URL.clone()),
+            ));
+        }
+
+        if !self.vrc_get_settings.ignore_curated_repository() {
+            repositories.push(RepoSource::new_owned(
+                self.get_repos_dir().joined("vrc-curated.json"),
+                &EMPTY_HEADERS,
+                Some(CURATED_URL.clone()),
+            ));
+        }
+
+        repositories
+    }
+
     pub async fn load_package_infos(&mut self, update: bool) -> io::Result<()> {
         let http = if update { self.http.as_ref() } else { None };
-        let predefined_repos = self.predefined_repos.values();
-        let user_repos = self.settings.user_repos().iter();
+        let predefined_repos = self.get_predefined_repos().into_iter();
+        let user_repos = self
+            .settings
+            .user_repos()
+            .iter()
+            .map(UserRepoSetting::to_source);
         self.repo_cache
-            .load_repos(
-                http,
-                predefined_repos.map(Left).chain(user_repos.map(Right)),
-            )
+            .load_repos(http, predefined_repos.chain(user_repos))
             .await?;
         self.update_user_repo_id();
         self.load_user_package_infos().await?;
@@ -369,18 +398,10 @@ impl<T: HttpClient> Environment<T> {
         removed.len()
     }
 
-    #[cfg(feature = "experimental-override-predefined")]
-    pub fn set_official_url_override(&mut self, url: Url) {
-        self.predefined_repos[PreDefinedRepoType::Official].url = url;
-    }
-
-    #[cfg(feature = "experimental-override-predefined")]
-    pub fn set_curated_url_override(&mut self, url: Url) {
-        self.predefined_repos[PreDefinedRepoType::Curated].url = url;
-    }
-
     pub async fn save(&mut self) -> io::Result<()> {
-        self.settings.save().await
+        try_join(self.settings.save(), self.vrc_get_settings.save())
+            .await
+            .map(|_| ())
     }
 }
 

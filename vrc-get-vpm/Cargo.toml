@@ -2,7 +2,7 @@
 name = "vrc-get-vpm"
 
 # discreate versioning since this library will not have stable versions
-version = "0.0.7-beta.0"
+version = "0.0.7-beta.2"
 
 edition.workspace = true
 license.workspace = true
@@ -44,5 +44,4 @@ default = ["rustls"]
 native-tls = ["reqwest/native-tls-vendored"]
 rustls = ["reqwest/rustls-tls-native-roots"]
 
-experimental-override-predefined = []
 experimental-yank = []
