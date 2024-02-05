@@ -88,8 +88,8 @@ impl VpmManifest {
 
     pub(crate) fn remove_packages<'a>(&mut self, names: impl Iterator<Item = &'a str>) {
         for name in names {
-            self.as_json.locked.remove(name);
-            self.as_json.dependencies.remove(name);
+            self.as_json.locked.shift_remove(name);
+            self.as_json.dependencies.shift_remove(name);
         }
         self.changed = true;
     }
