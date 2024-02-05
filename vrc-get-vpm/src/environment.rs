@@ -3,6 +3,7 @@ mod repo_holder;
 mod repo_source;
 mod settings;
 mod uesr_package_collection;
+mod vrc_get_settings;
 
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
@@ -13,7 +14,7 @@ use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
 use crate::{PackageInfo, VersionSelector};
 use either::{Left, Right};
 use enum_map::EnumMap;
-use futures::future::join_all;
+use futures::future::{join_all, try_join};
 use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -31,6 +32,7 @@ use tokio_util::compat::*;
 use url::Url;
 
 use crate::environment::repo_source::{PreDefinedRepoType, PredefinedSource};
+use crate::environment::vrc_get_settings::VrcGetSettings;
 pub use empty::EmptyEnvironment;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
@@ -47,6 +49,7 @@ pub struct Environment<T: HttpClient> {
     pub(crate) global_dir: PathBuf,
     /// parsed settings
     settings: Settings,
+    vrc_get_settings: VrcGetSettings,
     /// Cache
     repo_cache: RepoHolder,
     user_packages: UserPackageCollection,
@@ -67,6 +70,7 @@ impl<T: HttpClient> Environment<T> {
         Ok(Self {
             http,
             settings: Settings::load(folder.join("settings.json")).await?,
+            vrc_get_settings: VrcGetSettings::load(folder.join("vrc-get-settings.json")).await?,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
             predefined_repos: EnumMap::from_fn(|x: PreDefinedRepoType| {
@@ -380,7 +384,9 @@ impl<T: HttpClient> Environment<T> {
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
-        self.settings.save().await
+        try_join(self.settings.save(), self.vrc_get_settings.save())
+            .await
+            .map(|_| ())
     }
 }
 
