@@ -80,6 +80,7 @@ jobs:
       # region changelog
       - name: Create Changelog
         id: changelog
+        if: ${{ !fromJSON(env.PRERELEASE) }}
         uses: anatawa12/sh-actions/changelog/prepare-release@master
         with:
           version: ${{ env.VERSION }}
