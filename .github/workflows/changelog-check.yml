@@ -23,7 +23,9 @@ jobs:
         || contains(github.event.pull_request.labels.*.name, 'localization')
         || contains(github.event.pull_request.labels.*.name, 'ci')
         || contains(github.event.pull_request.labels.*.name, 'refactor')
+        || github.event.user.id == 49699333
         || '' }}
+      # github.event.user.id == 49699333: dependabot
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Fetch pull_request info
