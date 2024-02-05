@@ -7,6 +7,9 @@ authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
 readme = "README.md"
+description = "A NativeAOT LiteDB wrapper to read VCC's project information made for vrc-get."
+keywords = ["vpm", "package-manager", "vrc-get"]
+categories = ["database"]
 
 include = [
     "/src/**/*",
