@@ -25,7 +25,7 @@ log = "0.4.20"
 reqwest = { version = "0.11.23", default-features = false }
 serde = { version = "1.0.196", features = ["derive", "rc"] }
 serde_json = { version = "1.0.112", features = ["preserve_order"] }
-tokio = { version = "1.35.1", features = ["rt-multi-thread", "macros", "fs"] }
+tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros", "fs"] }
 vrc-get-vpm = { version = "0.0.7-beta.2", path = "../vrc-get-vpm", default-features = false }
 
 [features]
