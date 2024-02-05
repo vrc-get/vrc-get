@@ -125,13 +125,13 @@ pub(crate) struct ProjectFFI {
 }
 
 impl Project {
-    pub unsafe fn from_ffi(ffi: ProjectFFI) -> Self {
+    pub(crate) unsafe fn from_ffi(ffi: ProjectFFI) -> Self {
         Self {
             path: unsafe {
-                std::str::from_boxed_utf8_unchecked(FFISlice::as_boxed_byte_slice(ffi.path))
+                std::str::from_boxed_utf8_unchecked(FFISlice::into_boxed_byte_slice(ffi.path))
             },
             unity_version: unsafe {
-                FFISlice::as_boxed_byte_slice_option(ffi.unity_version)
+                FFISlice::into_boxed_byte_slice_option(ffi.unity_version)
                     .map(|x| std::str::from_boxed_utf8_unchecked(x))
             },
             created_at: ffi.created_at,
@@ -142,14 +142,16 @@ impl Project {
         }
     }
 
-    pub unsafe fn to_ffi(&self) -> ProjectFFI {
+    /// # SAFETY
+    /// The returned FFI struct must not outlive the `Project` instance 
+    pub(crate) unsafe fn to_ffi(&self) -> ProjectFFI {
         ProjectFFI {
             path: FFISlice::from_byte_slice(self.path.as_bytes()),
             unity_version: self
                 .unity_version
                 .as_ref()
-                .map(|x| FFISlice::from_byte_slice(self.path.as_bytes()))
-                .unwrap_or_else(|| FFISlice::null()),
+                .map(|_x| FFISlice::from_byte_slice(self.path.as_bytes()))
+                .unwrap_or_else(FFISlice::null),
             created_at: self.created_at,
             last_modified: self.last_modified,
             type_: self.type_,

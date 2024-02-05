@@ -9,7 +9,7 @@ pub struct Error {
 
 impl Error {
     pub(crate) unsafe fn from_ffi(error: ErrorFFI) -> Self {
-        let message = str::from_boxed_utf8_unchecked(error.message.as_boxed_byte_slice());
+        let message = str::from_boxed_utf8_unchecked(error.message.into_boxed_byte_slice());
         if error.code == i32::MIN {
             // -1 means unexpected error in C# code so panic here
             panic!("{}", message);

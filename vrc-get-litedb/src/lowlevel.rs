@@ -9,7 +9,7 @@ use std::ptr::null_mut;
 /// This is actually a wrapper type of [`isize`] but this struct will call `GCHandle.Free()` when dropped
 #[repr(transparent)]
 #[derive(Debug)]
-pub struct GcHandle(NonZeroIsize);
+pub(crate) struct GcHandle(NonZeroIsize);
 
 impl Drop for GcHandle {
     fn drop(&mut self) {
@@ -32,14 +32,15 @@ impl GcHandle {
 ///
 /// This struct doesn't free the memory when dropped
 #[repr(C)]
-pub struct FFISlice<T = u8> {
+pub(crate) struct FFISlice<T = u8> {
     ptr: *mut T,
     len: usize,
 }
 
+#[allow(dead_code)]
 impl<T> FFISlice<T> {
     pub fn is_null(&self) -> bool {
-        self.ptr == null_mut()
+        self.ptr.is_null()
     }
 
     pub(crate) fn null() -> Self {
@@ -74,7 +75,7 @@ impl<T> FFISlice<T> {
     /// the length is correct, the pointer is allocated with `Box`,
     /// and there are no other box instance for the same pointer.
     #[must_use = "call `drop(Box::as_boxed_byte_slice(slice))` if you intend to drop the `Box`"]
-    pub unsafe fn as_boxed_byte_slice(self) -> Box<[T]> {
+    pub unsafe fn into_boxed_byte_slice(self) -> Box<[T]> {
         let slice_ptr = std::ptr::slice_from_raw_parts_mut(self.ptr, self.len);
         Box::from_raw(slice_ptr)
     }
@@ -83,11 +84,11 @@ impl<T> FFISlice<T> {
     /// the length is correct, the pointer is allocated with `Box`,
     /// and there are no other box instance for the same pointer.
     #[must_use = "call `drop(Box::as_boxed_byte_slice(slice))` if you intend to drop the `Box`"]
-    pub unsafe fn as_boxed_byte_slice_option(self) -> Option<Box<[T]>> {
-        if self.ptr == null_mut() {
+    pub unsafe fn into_boxed_byte_slice_option(self) -> Option<Box<[T]>> {
+        if self.ptr.is_null() {
             return None;
         }
-        Some(self.as_boxed_byte_slice())
+        Some(self.into_boxed_byte_slice())
     }
 }
 
@@ -125,7 +126,7 @@ mod tests {
         unsafe {
             let slice = test_returns_hello_csharp();
             assert_eq!(slice.as_byte_slice(), b"Hello, C#!");
-            drop(FFISlice::as_boxed_byte_slice(slice));
+            drop(FFISlice::into_boxed_byte_slice(slice));
         }
     }
 

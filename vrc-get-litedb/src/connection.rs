@@ -29,16 +29,16 @@ impl DatabaseConnection {
             let result =
                 vrc_get_litedb_database_connection_get_projects(self.ptr.get(), &mut slice)
                     .into_result();
-            let boxed = slice.as_boxed_byte_slice_option();
+            let boxed = slice.into_boxed_byte_slice_option();
 
             result?; // return if error
 
-            return Ok(boxed
+            Ok(boxed
                 .unwrap()
                 .into_vec()
                 .into_iter()
                 .map(|x| Project::from_ffi(x))
-                .collect());
+                .collect())
         }
     }
 
@@ -214,8 +214,7 @@ mod tests {
             .unwrap()
             .into_vec()
             .into_iter()
-            .find(|x| x.id() == project_id)
-            .is_some());
+            .any(|x| x.id() == project_id));
 
         connection.delete_project(project_id).unwrap();
 
@@ -226,13 +225,11 @@ mod tests {
             .connect()
             .unwrap();
 
-        assert!(connection
+        assert!(!connection
             .get_projects()
             .unwrap()
             .into_vec()
-            .into_iter()
-            .find(|x| x.id() == project_id)
-            .is_none());
+            .into_iter().any(|x| x.id() == project_id));
 
         drop(connection);
 
@@ -393,14 +390,12 @@ mod tests {
             last_modified: DateTime,
         ) {
             let project = projects
-                .iter()
-                .filter(|x| x.id() == id)
-                .next()
+                .iter().find(|x| x.id() == id)
                 .expect("not found");
 
             assert_eq!(project.path(), path);
             assert_eq!(project.unity_version(), unity_version);
-            assert_eq!(project.favorite(), false);
+            assert!(!project.favorite());
             assert_eq!(project.created_at(), created_at);
             assert_eq!(project.last_modified(), last_modified);
             assert_eq!(project.project_type(), type_);

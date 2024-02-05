@@ -39,7 +39,7 @@ pub(crate) struct ConnectionStringFFI {
     readonly: bool,
 }
 
-impl<'a> ConnectionStringFFI {
+impl ConnectionStringFFI {
     pub fn from(cs: &ConnectionString) -> Self {
         Self {
             filename: lowlevel::FFISlice::from_byte_slice(cs.filename.as_bytes()),

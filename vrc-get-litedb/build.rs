@@ -313,7 +313,7 @@ fn patch_mach_o_64<E: object::Endian>(as_slice: &mut [u8], endian: E) {
             return true;
         }
 
-        return false;
+        false
     }
 }
 

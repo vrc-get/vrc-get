@@ -11,6 +11,12 @@ pub struct ObjectId {
     bytes: [u8; 12],
 }
 
+impl Default for ObjectId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ObjectId {
     pub fn new() -> ObjectId {
         let timestamp = ObjectId::gen_timestamp();
