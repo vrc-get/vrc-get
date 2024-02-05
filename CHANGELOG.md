@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog].
 ### Added
 - Changelog `#351`
   - I wrote changelog for all releases for all releases
+- global (whole-user) configuration for vrc-get `#352`
+  - create in the `%LOCALAPPDATA%/VRChatCreatorCompanion/vrc-get-settings.json` or `$XDG_DATA_HOME/VRChatCreatorCompanion/vrc-get-settings.json`
+- Feature to ignore official / curated repositories `#352`
+  - You can enable this feature in `vrc-get-settings.json` by setting `ignoreOfficialRepository` or `ignoreCuratedRepository` to true.
 
 ### Changed
 
