@@ -159,19 +159,9 @@ pub mod setting {
         pub fn headers(&self) -> &IndexMap<String, String> {
             &self.headers
         }
-    }
 
-    impl RepoSource for UserRepoSetting {
-        fn cache_path(&self) -> &Path {
-            self.local_path()
-        }
-
-        fn headers(&self) -> &IndexMap<String, String> {
-            self.headers()
-        }
-
-        fn url(&self) -> Option<&Url> {
-            self.url()
+        pub(crate) fn to_source(&self) -> RepoSource {
+            RepoSource::new(&self.local_path, &self.headers, self.url.as_ref())
         }
     }
 }
