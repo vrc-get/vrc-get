@@ -104,6 +104,13 @@ impl<T: TokioIoTraitImpl> IoTrait for T {
         resolved!(self: path => fs::remove_file(path))
     }
 
+    fn remove_dir_all(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<()>> + Send {
+        resolved!(self: path => fs::remove_dir_all(path))
+    }
+
     fn metadata(
         &self,
         path: impl AsRef<Path>,

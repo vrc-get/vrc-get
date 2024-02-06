@@ -31,6 +31,8 @@ pub trait IoTrait {
         content: impl AsRef<[u8]>,
     ) -> impl Future<Output = io::Result<()>> + Send;
     fn remove_file(&self, path: impl AsRef<Path>) -> impl Future<Output = io::Result<()>> + Send;
+    fn remove_dir_all(&self, path: impl AsRef<Path>)
+        -> impl Future<Output = io::Result<()>> + Send;
     fn metadata(
         &self,
         path: impl AsRef<Path>,

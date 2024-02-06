@@ -1,6 +1,6 @@
 use crate::io::ProjectIo;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
-use crate::utils::{copy_recursive, extract_zip, PathBufExt};
+use crate::utils::{copy_recursive, extract_zip};
 use crate::version::DependencyRange;
 use crate::{
     unity_compatible, PackageInfo, PackageInfoInner, RemotePackageDownloader, UnityProject,
@@ -515,7 +515,7 @@ impl UnityProject {
         install_packages(self.project_dir(), env, &installs).await?;
 
         remove_assets(
-            self.project_dir(),
+            &self.io,
             request.remove_legacy_files.iter().map(Box::as_ref),
             request.remove_legacy_folders.iter().map(Box::as_ref),
             remove_names.iter().map(Box::as_ref),
@@ -545,51 +545,53 @@ async fn install_packages(
 }
 
 async fn remove_assets(
-    project_dir: &Path,
+    io: &impl ProjectIo,
     legacy_files: impl Iterator<Item = &Path>,
     legacy_folders: impl Iterator<Item = &Path>,
     legacy_packages: impl Iterator<Item = &str>,
 ) {
     join3(
         join_all(legacy_files.map(|relative| async move {
-            remove_file(project_dir.join(relative), true).await;
+            remove_file(io, relative).await;
         })),
         join_all(legacy_folders.map(|relative| async move {
-            remove_folder(project_dir.join(relative), true).await;
+            remove_folder(io, relative).await;
         })),
         join_all(legacy_packages.map(|name| async move {
-            remove_folder(project_dir.join("Packages").joined(name), false).await;
+            remove_package(io, name).await;
         })),
     )
     .await;
 
-    async fn remove_meta_file(path: PathBuf) {
+    async fn remove_meta_file(io: &impl ProjectIo, path: PathBuf) {
         let mut building = path.into_os_string();
         building.push(".meta");
         let meta = PathBuf::from(building);
 
-        if let Some(err) = tokio::fs::remove_file(&meta).await.err() {
+        if let Some(err) = io.remove_file(&meta).await.err() {
             if !matches!(err.kind(), io::ErrorKind::NotFound) {
                 log::error!("error removing legacy asset at {}: {}", meta.display(), err);
             }
         }
     }
 
-    async fn remove_file(path: PathBuf, with_meta: bool) {
-        if let Some(err) = tokio::fs::remove_file(&path).await.err() {
+    async fn remove_file(io: &impl ProjectIo, path: &Path) {
+        if let Some(err) = io.remove_file(&path).await.err() {
             log::error!("error removing legacy asset at {}: {}", path.display(), err);
         }
-        if with_meta {
-            remove_meta_file(path).await;
-        }
+        remove_meta_file(io, path.to_owned()).await;
     }
 
-    async fn remove_folder(path: PathBuf, with_meta: bool) {
-        if let Some(err) = tokio::fs::remove_dir_all(&path).await.err() {
+    async fn remove_folder(io: &impl ProjectIo, path: &Path) {
+        if let Some(err) = io.remove_dir_all(&path).await.err() {
             log::error!("error removing legacy asset at {}: {}", path.display(), err);
         }
-        if with_meta {
-            remove_meta_file(path).await;
+        remove_meta_file(io, path.to_owned()).await;
+    }
+
+    async fn remove_package(io: &impl ProjectIo, name: &str) {
+        if let Some(err) = io.remove_dir_all(&format!("Packages/{}", name)).await.err() {
+            log::error!("error removing legacy package {}: {}", name, err);
         }
     }
 }
