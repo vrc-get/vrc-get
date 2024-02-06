@@ -14,6 +14,8 @@ use std::task::{Context, Poll};
 /// This will be used for removing packages.
 pub struct EmptyEnvironment;
 
+impl crate::traits::seal::Sealed for EmptyEnvironment {}
+
 impl RemotePackageDownloader for EmptyEnvironment {
     type FileStream = NoFileStream;
 

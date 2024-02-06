@@ -1,10 +1,14 @@
-mod tokio;
 use futures::{AsyncRead, AsyncSeek, AsyncWrite, Stream};
 use std::ffi::OsString;
 use std::future::Future;
 use std::io;
 use std::path::{Path, PathBuf};
+
+#[cfg(feature = "tokio")]
+mod tokio;
+#[cfg(feature = "tokio")]
 pub use tokio::DefaultEnvironmentIo;
+#[cfg(feature = "tokio")]
 pub use tokio::DefaultProjectIo;
 
 /// Wrapper for the file system operation for the Environment
@@ -21,6 +25,10 @@ pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync + IoTrait {
 ///
 /// [UnityProject]: crate::unity_project::UnityProject
 pub trait ProjectIo: crate::traits::seal::Sealed + Sync + IoTrait {}
+
+pub trait FileSystemProjectIo {
+    fn location(&self) -> &Path;
+}
 
 pub enum SymlinkKind {
     File,

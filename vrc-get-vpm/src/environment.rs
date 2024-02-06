@@ -1,4 +1,3 @@
-mod empty;
 mod repo_holder;
 mod repo_source;
 mod settings;
@@ -29,12 +28,16 @@ use std::{fmt, io};
 use url::Url;
 
 use crate::environment::vrc_get_settings::VrcGetSettings;
-use crate::io::{DefaultEnvironmentIo, DirEntry, EnvironmentIo};
-pub use empty::EmptyEnvironment;
+use crate::io::{DirEntry, EnvironmentIo};
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
 pub(crate) use settings::Settings;
 pub(crate) use uesr_package_collection::UserPackageCollection;
+
+#[cfg(feature = "tokio")]
+mod empty;
+#[cfg(feature = "tokio")]
+pub use empty::EmptyEnvironment;
 
 const OFFICIAL_URL_STR: &str = "https://packages.vrchat.com/official?download";
 const LOCAL_OFFICIAL_PATH: &str = "Repos/vrc-official.json";
@@ -44,7 +47,7 @@ const REPO_CACHE_FOLDER: &str = "Repos";
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
-pub struct Environment<T: HttpClient, IO: EnvironmentIo = DefaultEnvironmentIo> {
+pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
     pub(crate) http: Option<T>,
     pub(crate) io: IO,
     /// parsed settings

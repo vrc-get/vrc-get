@@ -474,8 +474,7 @@ impl PendingProjectChanges<'_> {
     }
 }
 
-//impl<IO: ProjectIo> UnityProject<IO> { // TODO: generalize again
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     /// Applies the changes specified in `AddPackageRequest` to the project.
     pub async fn apply_pending_changes<'env, Env: RemotePackageDownloader + EnvironmentIoHolder>(
         &mut self,

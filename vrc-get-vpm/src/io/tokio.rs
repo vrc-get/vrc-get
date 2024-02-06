@@ -1,4 +1,4 @@
-use crate::io::{EnvironmentIo, IoTrait, ProjectIo, SymlinkKind};
+use crate::io::{EnvironmentIo, FileSystemProjectIo, IoTrait, ProjectIo, SymlinkKind};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::OsString;
@@ -127,15 +127,17 @@ impl DefaultProjectIo {
             }
         }
     }
-
-    pub fn location(&self) -> &Path {
-        &self.root
-    }
 }
 
 impl crate::traits::seal::Sealed for DefaultProjectIo {}
 
 impl ProjectIo for DefaultProjectIo {}
+
+impl FileSystemProjectIo for DefaultProjectIo {
+    fn location(&self) -> &Path {
+        &self.root
+    }
+}
 
 impl TokioIoTraitImpl for DefaultProjectIo {
     fn resolve(&self, path: impl AsRef<Path>) -> io::Result<PathBuf> {

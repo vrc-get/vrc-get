@@ -1,3 +1,4 @@
+use crate::io::DefaultProjectIo;
 use crate::UnityProject;
 use std::path::Path;
 use tokio::io;
@@ -38,7 +39,7 @@ impl From<io::Error> for ExecuteUnityError {
 
 type Result<T = (), E = ExecuteUnityError> = std::result::Result<T, E>;
 
-impl UnityProject {
+impl UnityProject<DefaultProjectIo> {
     pub async fn call_unity(&self, unity_executable: &Path) -> Result {
         let mut command = Command::new(unity_executable);
         command.args(["-quit", "-batchmode", "-projectPath"]);

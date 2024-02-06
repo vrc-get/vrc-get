@@ -52,7 +52,7 @@ impl From<io::Error> for MigrateUnity2022Error {
 
 type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
 
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     /// NOTE: This function will save manifest changes to disk immediately.
     pub async fn migrate_unity_2022<E>(&mut self, env: &E) -> Result
     where
@@ -62,7 +62,7 @@ impl UnityProject {
     }
 }
 
-async fn migrate_unity_2022_beta<E>(project: &mut UnityProject, env: &E) -> Result
+async fn migrate_unity_2022_beta<E>(project: &mut UnityProject<impl ProjectIo>, env: &E) -> Result
 where
     E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
 {
