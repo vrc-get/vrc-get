@@ -125,7 +125,14 @@ fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
             // otherwice, check based on package info
 
             if let Some(min_unity) = package.unity() {
-                unity >= UnityVersion::new(min_unity.0, min_unity.1, 0, ReleaseType::Alpha, 0)
+                unity
+                    >= UnityVersion::new(
+                        min_unity.major(),
+                        min_unity.minor(),
+                        0,
+                        ReleaseType::Alpha,
+                        0,
+                    )
             } else {
                 // if there are no info, satisfies for all unity versions
                 true

@@ -78,7 +78,17 @@ impl PackageJson {
 }
 
 #[derive(Debug, Clone)]
-pub struct PartialUnityVersion(pub(crate) u16, pub(crate) u8);
+pub struct PartialUnityVersion(u16, u8);
+
+impl PartialUnityVersion {
+    pub fn major(&self) -> u16 {
+        self.0
+    }
+
+    pub fn minor(&self) -> u8 {
+        self.1
+    }
+}
 
 impl<'de> Deserialize<'de> for PartialUnityVersion {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
