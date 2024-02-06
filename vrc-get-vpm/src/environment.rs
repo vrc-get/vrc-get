@@ -25,7 +25,7 @@ use std::fs::remove_file;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
-use std::{env, fmt, io};
+use std::{fmt, io};
 use url::Url;
 
 use crate::environment::vrc_get_settings::VrcGetSettings;
@@ -55,19 +55,8 @@ pub struct Environment<T: HttpClient, IO: EnvironmentIo = DefaultEnvironmentIo> 
     user_packages: UserPackageCollection,
 }
 
-impl<T: HttpClient> Environment<T, DefaultEnvironmentIo> {
-    pub async fn load_default(http: Option<T>) -> io::Result<Self> {
-        let mut folder = Self::get_local_config_folder();
-        folder.push("VRChatCreatorCompanion");
-        let folder = folder;
-
-        log::debug!(
-            "initializing Environment with config folder {}",
-            folder.display()
-        );
-
-        let io = DefaultEnvironmentIo::new(folder.clone().into_boxed_path());
-
+impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+    pub async fn load(http: Option<T>, io: IO) -> io::Result<Self> {
         Ok(Self {
             http,
             settings: Settings::load(&io).await?,
@@ -76,29 +65,6 @@ impl<T: HttpClient> Environment<T, DefaultEnvironmentIo> {
             user_packages: UserPackageCollection::new(),
             io,
         })
-    }
-
-    #[cfg(windows)]
-    fn get_local_config_folder() -> PathBuf {
-        return dirs_sys::known_folder_local_app_data().expect("LocalAppData not found");
-    }
-
-    #[cfg(not(windows))]
-    fn get_local_config_folder() -> PathBuf {
-        if let Some(data_home) = env::var_os("XDG_DATA_HOME") {
-            log::debug!("XDG_DATA_HOME found {:?}", data_home);
-            return data_home.into();
-        }
-
-        // fallback: use HOME
-        if let Some(home_folder) = env::var_os("HOME") {
-            log::debug!("HOME found {:?}", home_folder);
-            let mut path = PathBuf::from(home_folder);
-            path.push(".local/share");
-            return path;
-        }
-
-        panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 }
 

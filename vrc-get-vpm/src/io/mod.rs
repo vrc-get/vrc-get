@@ -4,8 +4,8 @@ use std::ffi::OsString;
 use std::future::Future;
 use std::io;
 use std::path::{Path, PathBuf};
-pub(crate) use tokio::DefaultEnvironmentIo;
-pub(crate) use tokio::DefaultProjectIo;
+pub use tokio::DefaultEnvironmentIo;
+pub use tokio::DefaultProjectIo;
 
 /// Wrapper for the file system operation for the Environment
 ///

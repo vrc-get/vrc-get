@@ -6,6 +6,7 @@ use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderV
 use reqwest::{Client, Url};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::env;
 use std::error::Error as StdError;
 use std::ffi::OsStr;
 use std::fmt::{Debug, Display};
@@ -14,13 +15,15 @@ use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
 use vrc_get_vpm::environment::EmptyEnvironment;
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
 use vrc_get_vpm::unity_project::PendingProjectChanges;
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::UserRepoSetting;
-use vrc_get_vpm::{Environment, PackageCollection, PackageInfo, UnityProject, VersionSelector};
-use vrc_get_vpm::{HttpClient, PackageJson};
+use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, UserRepoSetting, VersionSelector};
+
+type Environment = vrc_get_vpm::Environment<Client, DefaultEnvironmentIo>;
+type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -53,9 +56,10 @@ struct EnvArgs {
     no_update: bool,
 }
 
-async fn load_env(args: &EnvArgs) -> Environment<Client> {
+async fn load_env(args: &EnvArgs) -> Environment {
     let client = crate::create_client(args.offline);
-    let mut env = Environment::load_default(client)
+    let io = DefaultEnvironmentIo::new_default();
+    let mut env = Environment::load(client, io)
         .await
         .exit_context("loading global config");
 
@@ -68,13 +72,21 @@ async fn load_env(args: &EnvArgs) -> Environment<Client> {
 }
 
 async fn load_unity(path: Option<Box<Path>>) -> UnityProject {
-    UnityProject::find_unity_project(path)
+    let io = match path {
+        None => {
+            let current_dir = env::current_dir().exit_context("getting current directory");
+            DefaultProjectIo::find_project_parent(current_dir).exit_context("finding unity project")
+        }
+        Some(path) => DefaultProjectIo::new(path),
+    };
+
+    UnityProject::load(io)
         .await
         .exit_context("loading unity project")
 }
 
 fn get_package<'env>(
-    env: &'env Environment<impl HttpClient>,
+    env: &'env Environment,
     name: &str,
     selector: VersionSelector,
 ) -> PackageInfo<'env> {
@@ -86,7 +98,7 @@ async fn save_unity(unity: &mut UnityProject) {
     unity.save().await.exit_context("saving manifest file");
 }
 
-async fn save_env(env: &mut Environment<impl HttpClient>) {
+async fn save_env(env: &mut Environment) {
     env.save().await.exit_context("saving global config");
 }
 

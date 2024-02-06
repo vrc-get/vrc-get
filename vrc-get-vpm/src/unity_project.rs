@@ -15,10 +15,9 @@ use crate::utils::{try_load_json2, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
 use futures::prelude::*;
 use indexmap::IndexMap;
-use log::debug;
 use std::collections::HashMap;
+use std::io;
 use std::path::{Path, PathBuf};
-use std::{env, io};
 
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
@@ -47,29 +46,8 @@ pub struct UnityProject<IO: ProjectIo = DefaultProjectIo> {
 }
 
 // basic lifecycle
-impl UnityProject {
-    pub async fn find_unity_project(unity_project: Option<Box<Path>>) -> io::Result<Self> {
-        let unity_found = unity_project
-            .ok_or(())
-            .or_else(|_| Self::find_unity_project_path())?;
-
-        log::debug!(
-            "initializing UnityProject with unity folder {}",
-            unity_found.display()
-        );
-
-        let io = DefaultProjectIo::new(unity_found.clone());
-
-        let project = Self::new(io).await;
-
-        debug!("UnityProject initialized: {:#?}", project);
-
-        project
-    }
-}
-
 impl<IO: ProjectIo> UnityProject<IO> {
-    pub async fn new(io: IO) -> io::Result<Self> {
+    pub async fn load(io: IO) -> io::Result<Self> {
         let manifest = VpmManifest::load(&io).await?;
         let upm_manifest = UpmManifest::load(&io).await?;
 
@@ -118,49 +96,6 @@ impl<IO: ProjectIo> UnityProject<IO> {
             .ok()
             .flatten();
         (name, parsed)
-    }
-
-    fn find_unity_project_path() -> io::Result<Box<Path>> {
-        let mut candidate = env::current_dir()?;
-
-        loop {
-            candidate.push("Packages");
-            candidate.push("vpm-manifest.json");
-
-            if candidate.exists() {
-                log::debug!("vpm-manifest.json found at {}", candidate.display());
-                // if there's vpm-manifest.json, it's project path
-                candidate.pop();
-                candidate.pop();
-                return Ok(candidate.into_boxed_path());
-            }
-
-            // replace vpm-manifest.json -> manifest.json
-            candidate.pop();
-            candidate.push("manifest.json");
-
-            if candidate.exists() {
-                log::debug!("manifest.json found at {}", candidate.display());
-                // if there's manifest.json (which is manifest.json), it's project path
-                candidate.pop();
-                candidate.pop();
-                return Ok(candidate.into_boxed_path());
-            }
-
-            // remove Packages/manifest.json
-            candidate.pop();
-            candidate.pop();
-
-            log::debug!("Unity Project not found on {}", candidate.display());
-
-            // go to parent dir
-            if !candidate.pop() {
-                return Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "Unity project Not Found",
-                ));
-            }
-        }
     }
 
     async fn try_read_unity_version(io: &IO) -> Option<UnityVersion> {

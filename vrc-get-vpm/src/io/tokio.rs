@@ -1,5 +1,6 @@
 use crate::io::{EnvironmentIo, IoTrait, ProjectIo, SymlinkKind};
 use futures::{Stream, TryFutureExt};
+use log::debug;
 use std::ffi::OsString;
 use std::fs::Metadata;
 use std::future::Future;
@@ -19,6 +20,42 @@ pub struct DefaultEnvironmentIo {
 impl DefaultEnvironmentIo {
     pub fn new(root: Box<Path>) -> Self {
         Self { root }
+    }
+
+    pub fn new_default() -> Self {
+        let mut folder = Self::get_local_config_folder();
+        folder.push("VRChatCreatorCompanion");
+        let folder = folder;
+
+        debug!(
+            "initializing EnvironmentIo with config folder {}",
+            folder.display()
+        );
+
+        DefaultEnvironmentIo::new(folder.clone().into_boxed_path())
+    }
+
+    #[cfg(windows)]
+    fn get_local_config_folder() -> PathBuf {
+        return dirs_sys::known_folder_local_app_data().expect("LocalAppData not found");
+    }
+
+    #[cfg(not(windows))]
+    fn get_local_config_folder() -> PathBuf {
+        if let Some(data_home) = std::env::var_os("XDG_DATA_HOME") {
+            debug!("XDG_DATA_HOME found {:?}", data_home);
+            return data_home.into();
+        }
+
+        // fallback: use HOME
+        if let Some(home_folder) = std::env::var_os("HOME") {
+            debug!("HOME found {:?}", home_folder);
+            let mut path = PathBuf::from(home_folder);
+            path.push(".local/share");
+            return path;
+        }
+
+        panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 }
 
@@ -44,6 +81,51 @@ pub struct DefaultProjectIo {
 impl DefaultProjectIo {
     pub fn new(root: Box<Path>) -> Self {
         Self { root }
+    }
+
+    pub fn find_project_parent(path_buf: PathBuf) -> io::Result<Self> {
+        Self::find_unity_project_path(path_buf).map(Self::new)
+    }
+
+    fn find_unity_project_path(mut candidate: PathBuf) -> io::Result<Box<Path>> {
+        loop {
+            candidate.push("Packages");
+            candidate.push("vpm-manifest.json");
+
+            if candidate.exists() {
+                debug!("vpm-manifest.json found at {}", candidate.display());
+                // if there's vpm-manifest.json, it's a project path
+                candidate.pop();
+                candidate.pop();
+                return Ok(candidate.into_boxed_path());
+            }
+
+            // replace vpm-manifest.json -> manifest.json
+            candidate.pop();
+            candidate.push("manifest.json");
+
+            if candidate.exists() {
+                debug!("manifest.json found at {}", candidate.display());
+                // if there's manifest.json (which is manifest of UPM), it's a project path
+                candidate.pop();
+                candidate.pop();
+                return Ok(candidate.into_boxed_path());
+            }
+
+            // remove Packages/manifest.json
+            candidate.pop();
+            candidate.pop();
+
+            debug!("Unity Project not found on {}", candidate.display());
+
+            // go to parent dir
+            if !candidate.pop() {
+                return Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "Unity project Not Found",
+                ));
+            }
+        }
     }
 
     pub fn location(&self) -> &Path {
