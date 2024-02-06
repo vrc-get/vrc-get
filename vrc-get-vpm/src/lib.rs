@@ -8,10 +8,11 @@ use std::path::Path;
 
 use indexmap::IndexMap;
 
-use structs::package::PartialUnityVersion;
+use crate::package_json::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 pub mod environment;
+pub mod package_json;
 pub mod repository;
 mod structs;
 mod traits;
@@ -29,7 +30,7 @@ pub use traits::HttpClient;
 pub use traits::PackageCollection;
 pub use traits::RemotePackageDownloader;
 
-pub use structs::package::PackageJson;
+pub use package_json::PackageJson;
 pub use structs::setting::UserRepoSetting;
 
 #[derive(Copy, Clone)]

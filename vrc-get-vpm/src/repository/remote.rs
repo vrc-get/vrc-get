@@ -1,6 +1,6 @@
-use crate::structs::package::PackageJson;
 use crate::traits::HttpClient;
 use crate::version::Version;
+use crate::PackageJson;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

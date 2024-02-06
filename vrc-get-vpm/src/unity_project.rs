@@ -8,7 +8,6 @@ mod resolve;
 mod upm_manifest;
 mod vpm_manifest;
 
-use crate::structs::package::PackageJson;
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
@@ -24,6 +23,7 @@ use tokio::io::AsyncReadExt;
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
+use crate::PackageJson;
 pub use add_package::AddPackageErr;
 pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use pending_project_changes::PendingProjectChanges;

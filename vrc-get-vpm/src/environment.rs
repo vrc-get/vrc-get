@@ -7,11 +7,10 @@ mod vrc_get_settings;
 
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
-use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
-use crate::{PackageInfo, VersionSelector};
+use crate::{PackageInfo, PackageJson, VersionSelector};
 use futures::future::{join_all, try_join};
 use hex::FromHex;
 use indexmap::IndexMap;

@@ -1,7 +1,6 @@
 use crate::repository::local::LocalCachedRepository;
-use crate::structs::package::PackageJson;
 use crate::utils::MapResultExt;
-use crate::{Environment, PackageInfo, VersionSelector};
+use crate::{Environment, PackageInfo, PackageJson, VersionSelector};
 use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;

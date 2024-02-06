@@ -1,6 +1,5 @@
-use crate::structs::package::PackageJson;
 use crate::utils::try_load_json;
-use crate::{PackageCollection, PackageInfo, VersionSelector};
+use crate::{PackageCollection, PackageInfo, PackageJson, VersionSelector};
 use std::io;
 use std::path::{Path, PathBuf};
 
