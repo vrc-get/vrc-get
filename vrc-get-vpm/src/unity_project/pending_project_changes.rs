@@ -1,3 +1,4 @@
+use crate::io::ProjectIo;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
 use crate::utils::{copy_recursive, extract_zip, PathBufExt};
 use crate::version::DependencyRange;
@@ -302,7 +303,7 @@ impl<'env> Builder<'env> {
 
     pub async fn build_resolve(
         mut self,
-        unity_project: &UnityProject,
+        unity_project: &UnityProject<impl ProjectIo>,
     ) -> PendingProjectChanges<'env> {
         let installs = Vec::from_iter(
             self.package_changes
@@ -335,7 +336,7 @@ impl<'env> Builder<'env> {
         }
     }
 
-    fn mark_and_sweep_packages(&mut self, unity_project: &UnityProject) {
+    fn mark_and_sweep_packages(&mut self, unity_project: &UnityProject<impl ProjectIo>) {
         fn mark_recursive<'a, F, I>(
             entrypoint: impl Iterator<Item = &'a str>,
             get_dependencies: F,
@@ -473,7 +474,7 @@ impl PendingProjectChanges<'_> {
     }
 }
 
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     /// Applies the changes specified in `AddPackageRequest` to the project.
     pub async fn apply_pending_changes<'env>(
         &mut self,

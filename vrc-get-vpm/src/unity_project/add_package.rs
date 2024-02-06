@@ -1,3 +1,4 @@
+use crate::io::ProjectIo;
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::{package_resolution, PendingProjectChanges};
 use crate::version::DependencyRange;
@@ -24,7 +25,7 @@ impl fmt::Display for AddPackageErr {
 impl std::error::Error for AddPackageErr {}
 
 // adding package
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     /// Creates a new `AddPackageRequest` to add the specified packages.
     ///
     /// You should call `do_add_package_request` to apply the changes after confirming to the user.

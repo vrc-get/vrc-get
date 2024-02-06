@@ -23,6 +23,7 @@ use tokio::io::AsyncReadExt;
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
+use crate::io::{DefaultProjectIo, ProjectIo};
 use crate::PackageJson;
 pub use add_package::AddPackageErr;
 pub use migrate_unity_2022::MigrateUnity2022Error;
@@ -30,9 +31,11 @@ pub use pending_project_changes::PendingProjectChanges;
 pub use resolve::ResolvePackageErr;
 
 #[derive(Debug)]
-pub struct UnityProject {
+pub struct UnityProject<IO: ProjectIo = DefaultProjectIo> {
     /// path to project folder.
     project_dir: Box<Path>,
+    #[allow(dead_code)] // TODO: remove this
+    io: IO,
     /// vpm-manifest.json
     manifest: VpmManifest,
     // manifest.json
@@ -46,10 +49,10 @@ pub struct UnityProject {
 
 // basic lifecycle
 impl UnityProject {
-    pub async fn find_unity_project(unity_project: Option<Box<Path>>) -> io::Result<UnityProject> {
+    pub async fn find_unity_project(unity_project: Option<Box<Path>>) -> io::Result<Self> {
         let unity_found = unity_project
             .ok_or(())
-            .or_else(|_| UnityProject::find_unity_project_path())?;
+            .or_else(|_| Self::find_unity_project_path())?;
 
         log::debug!(
             "initializing UnityProject with unity folder {}",
@@ -84,7 +87,8 @@ impl UnityProject {
         let unity_version = Self::try_read_unity_version(&unity_found).await;
 
         let project = UnityProject {
-            project_dir: unity_found,
+            project_dir: unity_found.clone(),
+            io: DefaultProjectIo::new(unity_found),
             manifest,
             upm_manifest,
             unity_version,
@@ -96,7 +100,9 @@ impl UnityProject {
 
         Ok(project)
     }
+}
 
+impl<IO: ProjectIo> UnityProject<IO> {
     async fn try_read_unlocked_package(dir_entry: DirEntry) -> (Box<str>, Option<PackageJson>) {
         let package_path = dir_entry.path();
         let name = package_path.file_name().unwrap().to_string_lossy().into();
@@ -211,7 +217,7 @@ impl UnityProject {
 }
 
 // accessors
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         self.manifest.all_locked()
     }

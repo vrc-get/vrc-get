@@ -1,4 +1,4 @@
-use crate::io::EnvironmentIo;
+use crate::io::{EnvironmentIo, ProjectIo};
 use crate::unity_project::{
     package_resolution, pending_project_changes, AddPackageErr, LockedDependencyInfo,
     PendingProjectChanges,
@@ -38,7 +38,7 @@ impl From<AddPackageErr> for ResolvePackageErr {
     }
 }
 
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn resolve_request<'env>(
         &mut self,
         env: &'env Environment<impl HttpClient, impl EnvironmentIo>,

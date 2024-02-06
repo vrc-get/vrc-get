@@ -5,6 +5,7 @@ use std::future::Future;
 use std::io;
 use std::path::{Path, PathBuf};
 pub(crate) use tokio::DefaultEnvironmentIo;
+pub(crate) use tokio::DefaultProjectIo;
 
 /// Wrapper for the file system operation for the Environment
 ///
@@ -13,6 +14,13 @@ pub(crate) use tokio::DefaultEnvironmentIo;
 pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync + IoTrait {
     fn resolve(&self, path: impl AsRef<Path>) -> PathBuf;
 }
+
+/// Wrapper for the file system operation for the [UnityProject]
+///
+/// Absolute paths are not allowed and relative paths should be resolved as a relative path from the project folder.
+///
+/// [UnityProject]: crate::unity_project::UnityProject
+pub trait ProjectIo: crate::traits::seal::Sealed + Sync + IoTrait {}
 
 pub trait IoTrait {
     fn create_dir_all(&self, path: impl AsRef<Path>)

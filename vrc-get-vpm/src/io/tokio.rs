@@ -1,4 +1,4 @@
-use crate::io::{EnvironmentIo, IoTrait};
+use crate::io::{EnvironmentIo, IoTrait, ProjectIo};
 use futures::{Stream, TryFutureExt};
 use std::ffi::OsString;
 use std::fs::Metadata;
@@ -32,6 +32,33 @@ impl EnvironmentIo for DefaultEnvironmentIo {
 
 impl TokioIoTraitImpl for DefaultEnvironmentIo {
     fn resolve(&self, path: impl AsRef<Path>) -> io::Result<PathBuf> {
+        Ok(self.root.join(path))
+    }
+}
+
+#[derive(Debug)]
+pub struct DefaultProjectIo {
+    root: Box<Path>,
+}
+
+impl DefaultProjectIo {
+    pub fn new(root: Box<Path>) -> Self {
+        Self { root }
+    }
+}
+
+impl crate::traits::seal::Sealed for DefaultProjectIo {}
+
+impl ProjectIo for DefaultProjectIo {}
+
+impl TokioIoTraitImpl for DefaultProjectIo {
+    fn resolve(&self, path: impl AsRef<Path>) -> io::Result<PathBuf> {
+        if path.as_ref().is_absolute() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "absolute path is not allowed",
+            ));
+        }
         Ok(self.root.join(path))
     }
 }

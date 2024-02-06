@@ -1,3 +1,4 @@
+use crate::io::ProjectIo;
 use crate::unity_project::AddPackageErr;
 use crate::version::UnityVersion;
 use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
@@ -55,7 +56,7 @@ impl From<tokio::io::Error> for MigrateUnity2022Error {
 
 type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
 
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     /// NOTE: This function will save manifest changes to disk immediately.
     pub async fn migrate_unity_2022<E>(&mut self, env: &E, unity_executable: &Path) -> Result
     where
@@ -65,7 +66,11 @@ impl UnityProject {
     }
 }
 
-async fn migrate_unity_2022_beta<E>(project: &mut UnityProject, env: &E, unity2022: &Path) -> Result
+async fn migrate_unity_2022_beta<E>(
+    project: &mut UnityProject<impl ProjectIo>,
+    env: &E,
+    unity2022: &Path,
+) -> Result
 where
     E: PackageCollection + RemotePackageDownloader,
 {
@@ -134,7 +139,7 @@ where
 }
 
 // memo /Applications/Unity/Hub/Editor/2022.3.6f1/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath .
-fn is_vpm_vrcsdk_installed(project: &UnityProject) -> bool {
+fn is_vpm_vrcsdk_installed(project: &UnityProject<impl ProjectIo>) -> bool {
     if project.get_locked("com.vrchat.base").is_some()
         || project.get_locked("com.vrchat.avatars").is_some()
         || project.get_locked("com.vrchat.worlds").is_some()
