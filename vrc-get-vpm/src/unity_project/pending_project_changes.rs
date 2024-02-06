@@ -612,7 +612,6 @@ pub(crate) async fn add_package<Env: RemotePackageDownloader + EnvironmentIoHold
         }
         PackageInfoInner::Local(_, path) => {
             io.remove_dir_all(&dest_folder).await.ok();
-            // TODO: use io traits
             copy_recursive(env.io(), path.into(), io, dest_folder).await?;
             Ok(())
         }

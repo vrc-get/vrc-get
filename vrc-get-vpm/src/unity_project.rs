@@ -35,7 +35,6 @@ pub use call_unity::ExecuteUnityError;
 
 #[derive(Debug)]
 pub struct UnityProject<IO: ProjectIo> {
-    #[allow(dead_code)] // TODO: remove this
     io: IO,
     /// vpm-manifest.json
     manifest: VpmManifest,
