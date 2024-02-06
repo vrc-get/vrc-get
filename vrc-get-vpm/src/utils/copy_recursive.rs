@@ -15,11 +15,11 @@ pub(crate) async fn copy_recursive(
     queue.push_front((src_dir, dst_dir));
 
     while let Some((src_dir, dst_dir)) = queue.pop_back() {
-        let mut iter = src_io.read_dir(src_dir).await?;
+        let mut iter = src_io.read_dir(&src_dir).await?;
         dst_io.create_dir_all(&dst_dir).await?;
         while let Some(entry) = iter.try_next().await? {
             let file_type = entry.file_type().await?;
-            let src = entry.path();
+            let src = src_dir.join(entry.file_name());
             let dst = dst_dir.join(entry.file_name());
 
             if file_type.is_symlink() {

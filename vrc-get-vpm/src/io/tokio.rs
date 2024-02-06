@@ -359,10 +359,6 @@ impl DirEntry {
 }
 
 impl super::DirEntry for DirEntry {
-    fn path(&self) -> PathBuf {
-        self.inner.path()
-    }
-
     fn file_name(&self) -> OsString {
         self.inner.file_name()
     }

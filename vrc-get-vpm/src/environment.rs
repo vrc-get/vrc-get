@@ -394,11 +394,16 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         let mut entry = self.io.read_dir(REPO_CACHE_FOLDER).await?;
         while let Some(entry) = entry.try_next().await? {
-            let path = entry.path();
-            if path.extension() == Some(OsStr::new("json"))
-                && !uesr_repo_file_names.contains(&entry.file_name())
+            let file_name: OsString = entry.file_name();
+            if file_name.as_encoded_bytes().ends_with(b".json")
+                && !uesr_repo_file_names.contains(&file_name)
                 && entry.metadata().await.map(|x| x.is_file()).unwrap_or(false)
             {
+                let mut path =
+                    OsString::with_capacity(REPO_CACHE_FOLDER.len() + 1 + file_name.len());
+                path.push(REPO_CACHE_FOLDER);
+                path.push(OsStr::new("/"));
+                path.push(file_name);
                 self.io.remove_file(path).await?;
             }
         }

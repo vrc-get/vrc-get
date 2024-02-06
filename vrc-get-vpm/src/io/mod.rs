@@ -91,7 +91,6 @@ pub trait IoTrait {
 }
 
 pub trait DirEntry {
-    fn path(&self) -> PathBuf;
     fn file_name(&self) -> OsString;
     fn file_type(&self) -> impl Future<Output = io::Result<std::fs::FileType>> + Send;
     fn metadata(&self) -> impl Future<Output = io::Result<std::fs::Metadata>> + Send;
