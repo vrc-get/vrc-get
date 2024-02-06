@@ -325,7 +325,7 @@ impl<'env> Builder<'env> {
 
         self.mark_and_sweep_packages(unity_project);
 
-        let legacy_assets = collect_legacy_assets(unity_project.project_dir(), &installs).await;
+        let legacy_assets = collect_legacy_assets(&unity_project.io, &installs).await;
 
         PendingProjectChanges {
             package_changes: self.package_changes,
@@ -474,7 +474,8 @@ impl PendingProjectChanges<'_> {
     }
 }
 
-impl<IO: ProjectIo> UnityProject<IO> {
+//impl<IO: ProjectIo> UnityProject<IO> { // TODO: generalize again
+impl UnityProject {
     /// Applies the changes specified in `AddPackageRequest` to the project.
     pub async fn apply_pending_changes<'env>(
         &mut self,

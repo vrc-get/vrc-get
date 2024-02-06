@@ -32,8 +32,6 @@ pub use resolve::ResolvePackageErr;
 
 #[derive(Debug)]
 pub struct UnityProject<IO: ProjectIo = DefaultProjectIo> {
-    /// path to project folder.
-    project_dir: Box<Path>,
     #[allow(dead_code)] // TODO: remove this
     io: IO,
     /// vpm-manifest.json
@@ -87,7 +85,6 @@ impl UnityProject {
         let unity_version = Self::try_read_unity_version(&unity_found).await;
 
         let project = UnityProject {
-            project_dir: unity_found.clone(),
             io: DefaultProjectIo::new(unity_found),
             manifest,
             upm_manifest,
@@ -201,17 +198,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
-        self.manifest
-            .save_to(
-                &self
-                    .project_dir
-                    .join("Packages")
-                    .joined("vpm-manifest.json"),
-            )
-            .await?;
-        self.upm_manifest
-            .save(&self.project_dir.join("Packages").joined("manifest.json"))
-            .await?;
+        self.manifest.save(&self.io).await?;
+        self.upm_manifest.save(&self.io).await?;
         Ok(())
     }
 }
@@ -262,12 +250,14 @@ impl<IO: ProjectIo> UnityProject<IO> {
         )
     }
 
-    pub fn project_dir(&self) -> &Path {
-        &self.project_dir
-    }
-
     pub fn unity_version(&self) -> Option<UnityVersion> {
         self.unity_version
+    }
+}
+
+impl UnityProject {
+    pub fn project_dir(&self) -> &Path {
+        self.io.location()
     }
 }
 

@@ -45,6 +45,10 @@ impl DefaultProjectIo {
     pub fn new(root: Box<Path>) -> Self {
         Self { root }
     }
+
+    pub fn location(&self) -> &Path {
+        &self.root
+    }
 }
 
 impl crate::traits::seal::Sealed for DefaultProjectIo {}

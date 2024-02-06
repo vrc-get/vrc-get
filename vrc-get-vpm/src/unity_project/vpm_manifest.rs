@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use super::*;
 
+const MANIFEST_PATH: &str = "Packages/vpm-manifest.json";
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AsJson {
@@ -94,9 +96,10 @@ impl VpmManifest {
         self.changed = true;
     }
 
-    pub(super) async fn save_to(&self, file: &Path) -> io::Result<()> {
+    pub(super) async fn save(&self, io: &impl ProjectIo) -> io::Result<()> {
         if self.changed {
-            tokio::fs::write(file, &to_vec_pretty_os_eol(&self.as_json)?).await?;
+            io.write(&MANIFEST_PATH, &to_vec_pretty_os_eol(&self.as_json)?)
+                .await?;
         }
         Ok(())
     }

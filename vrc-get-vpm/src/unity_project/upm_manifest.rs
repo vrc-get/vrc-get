@@ -1,3 +1,4 @@
+use crate::io::ProjectIo;
 use crate::utils::{load_json_or_default, to_vec_pretty_os_eol, JsonMapExt};
 use crate::version::Version;
 use serde::de::Error;
@@ -5,9 +6,11 @@ use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt::Formatter;
+use std::io;
 use std::path::Path;
 use std::str::FromStr;
-use tokio::{fs, io};
+
+const MANIFEST_PATH: &str = "Packages/manifest.json";
 
 #[derive(Debug, Deserialize)]
 struct Parsed {
@@ -122,10 +125,10 @@ impl UpmManifest {
         self.changed = true;
     }
 
-    pub(super) async fn save(&mut self, manifest: &Path) -> io::Result<()> {
+    pub(super) async fn save(&mut self, io: &impl ProjectIo) -> io::Result<()> {
         if self.changed {
             let json = to_vec_pretty_os_eol(&self.raw)?;
-            fs::write(manifest, json).await?;
+            io.write(&MANIFEST_PATH, json).await?;
             self.changed = false;
         }
         Ok(())
