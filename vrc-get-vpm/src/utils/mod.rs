@@ -17,6 +17,7 @@ use std::task::{ready, Context, Poll};
 use tokio::fs::{read_dir, DirEntry, File, ReadDir};
 use tokio::io::AsyncReadExt;
 
+use crate::io::EnvironmentIo;
 pub(crate) use copy_recursive::copy_recursive;
 pub(crate) use crlf_json_formatter::to_vec_pretty_os_eol;
 pub(crate) use extract_zip::extract_zip;
@@ -280,6 +281,17 @@ where
 {
     match File::open(path).await {
         Ok(file) => Ok(read_json_file::<T>(file, path).await?),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
+        Err(e) => Err(e),
+    }
+}
+
+pub(crate) async fn load_json_or_default2<T>(io: &impl EnvironmentIo, path: &Path) -> io::Result<T>
+where
+    T: serde::de::DeserializeOwned + Default,
+{
+    match io.open(path).await {
+        Ok(file) => Ok(read_json_file2::<T>(file, path).await?),
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
         Err(e) => Err(e),
     }

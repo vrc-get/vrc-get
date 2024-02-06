@@ -9,7 +9,7 @@ use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
-use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
+use crate::utils::{to_vec_pretty_os_eol, Sha256AsyncWrite};
 use crate::{PackageInfo, PackageJson, VersionSelector};
 use futures::future::{join_all, try_join};
 use futures::prelude::*;
@@ -41,10 +41,6 @@ pub(crate) use uesr_package_collection::UserPackageCollection;
 pub struct Environment<T: HttpClient, IO: EnvironmentIo = DefaultEnvironmentIo> {
     pub(crate) http: Option<T>,
     pub(crate) io: IO,
-    /// config folder.
-    /// On windows, `%APPDATA%\\VRChatCreatorCompanion`.
-    /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
-    pub(crate) global_dir: Box<Path>,
     /// parsed settings
     settings: Settings,
     vrc_get_settings: VrcGetSettings,
@@ -64,14 +60,15 @@ impl<T: HttpClient> Environment<T, DefaultEnvironmentIo> {
             folder.display()
         );
 
+        let io = DefaultEnvironmentIo::new(folder.clone().into_boxed_path());
+
         Ok(Self {
             http,
-            settings: Settings::load(folder.join("settings.json")).await?,
-            vrc_get_settings: VrcGetSettings::load(folder.join("vrc-get-settings.json")).await?,
+            settings: Settings::load(&io).await?,
+            vrc_get_settings: VrcGetSettings::load(&io).await?,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
-            io: DefaultEnvironmentIo::new(folder.clone().into_boxed_path()),
-            global_dir: folder.into_boxed_path(),
+            io,
         })
     }
 
@@ -112,18 +109,18 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let mut repositories = Vec::with_capacity(2);
 
         if !self.vrc_get_settings.ignore_official_repository() {
-            repositories.push(RepoSource::new_owned(
-                self.get_repos_dir().joined("vrc-official.json"),
+            repositories.push(RepoSource::new(
+                Path::new("Repos/vrc-official.json"),
                 &EMPTY_HEADERS,
-                Some(OFFICIAL_URL.clone()),
+                Some(&OFFICIAL_URL),
             ));
         }
 
         if !self.vrc_get_settings.ignore_curated_repository() {
-            repositories.push(RepoSource::new_owned(
-                self.get_repos_dir().joined("vrc-curated.json"),
+            repositories.push(RepoSource::new(
+                Path::new("Repos/vrc-curated.json"),
                 &EMPTY_HEADERS,
-                Some(CURATED_URL.clone()),
+                Some(&CURATED_URL),
             ));
         }
 
@@ -200,10 +197,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             self.user_packages.try_add_package(x).await?;
         }
         Ok(())
-    }
-
-    pub fn get_repos_dir(&self) -> PathBuf {
-        self.global_dir.join("Repos")
     }
 }
 
@@ -307,10 +300,12 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         self.io.create_dir_all("Repos").await?;
 
-        let local_path = self.write_new_repo(&local_cache).await?;
+        let file_name = self.write_new_repo(&local_cache).await?;
 
         self.settings.add_user_repo(UserRepoSetting::new(
-            local_path.clone(),
+            self.io
+                .resolve(format!("{}/{}", "Repos", file_name))
+                .into_boxed_path(),
             repo_name,
             Some(url),
             repo_id,
@@ -318,7 +313,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
-    async fn write_new_repo(&self, local_cache: &LocalCachedRepository) -> io::Result<Box<Path>> {
+    async fn write_new_repo(&self, local_cache: &LocalCachedRepository) -> io::Result<String> {
         self.io.create_dir_all("Repos").await?;
 
         // [0-9a-zA-Z._-]+
@@ -341,13 +336,16 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let guid_names = std::iter::from_fn(|| Some(format!("{}.json", uuid::Uuid::new_v4())));
 
         for file_name in id_names.chain(guid_names) {
-            let path = self.io.resolve(format!("{}/{}", "Repos", file_name));
-            match self.io.create_new(&path).await {
+            match self
+                .io
+                .create_new(format!("{}/{}", "Repos", file_name))
+                .await
+            {
                 Ok(mut file) => {
                     file.write_all(&to_vec_pretty_os_eol(&local_cache)?).await?;
                     file.flush().await?;
 
-                    return Ok(path.into_boxed_path());
+                    return Ok(file_name);
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
                 Err(e) => return Err(e),
@@ -400,7 +398,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             OsString::from("vrc-curated.json"),
             OsString::from("package-cache.json"),
         ]);
-        let repos_base = self.get_repos_dir();
+        let repos_base = self.io.resolve("Repos");
 
         for x in self.get_user_repos() {
             if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
@@ -450,12 +448,7 @@ impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T
         package: &PackageJson,
     ) -> io::Result<Self::FileStream> {
         let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name(), package.version());
-        let zip_path = self
-            .global_dir
-            .to_path_buf()
-            .joined("Repos")
-            .joined(package.name())
-            .joined(&zip_file_name);
+        let zip_path = PathBuf::from(format!("{}/{}/{}", "Repos", package.name(), &zip_file_name));
         let sha_path = zip_path.with_extension("zip.sha256");
 
         if let Some(cache_file) = try_load_package_cache(&self.io, &zip_path, &sha_path, None).await
