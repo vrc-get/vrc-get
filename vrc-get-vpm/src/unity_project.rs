@@ -10,20 +10,19 @@ mod vpm_manifest;
 
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
+use crate::utils::{try_load_json2, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
+use futures::prelude::*;
 use indexmap::IndexMap;
 use log::debug;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{env, io};
-use tokio::fs::{read_dir, DirEntry, File};
-use tokio::io::AsyncReadExt;
 
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
-use crate::io::{DefaultProjectIo, ProjectIo};
+use crate::io::{DefaultProjectIo, DirEntry, ProjectIo};
 use crate::PackageJson;
 pub use add_package::AddPackageErr;
 pub use migrate_unity_2022::MigrateUnity2022Error;
@@ -57,17 +56,27 @@ impl UnityProject {
             unity_found.display()
         );
 
-        let manifest = unity_found.join("Packages").joined("vpm-manifest.json");
-        let manifest = VpmManifest::from(&manifest).await?;
-        let upm_manifest = unity_found.join("Packages").joined("manifest.json");
-        let upm_manifest = UpmManifest::from(&upm_manifest).await?;
+        let io = DefaultProjectIo::new(unity_found.clone());
+
+        let project = Self::new(io).await;
+
+        debug!("UnityProject initialized: {:#?}", project);
+
+        project
+    }
+}
+
+impl<IO: ProjectIo> UnityProject<IO> {
+    pub async fn new(io: IO) -> io::Result<Self> {
+        let manifest = VpmManifest::load(&io).await?;
+        let upm_manifest = UpmManifest::load(&io).await?;
 
         let mut installed_packages = HashMap::new();
         let mut unlocked_packages = vec![];
 
-        let mut dir_reading = read_dir(unity_found.join("Packages")).await?;
-        while let Some(dir_entry) = dir_reading.next_entry().await? {
-            let read = Self::try_read_unlocked_package(dir_entry).await;
+        let mut dir_reading = io.read_dir("Packages").await?;
+        while let Some(dir_entry) = dir_reading.try_next().await? {
+            let read = Self::try_read_unlocked_package(&io, dir_entry).await;
             let mut is_installed = false;
             if let Some(parsed) = &read.1 {
                 if parsed.name() == read.0.as_ref() && manifest.get_locked(parsed.name()).is_some()
@@ -82,29 +91,27 @@ impl UnityProject {
             }
         }
 
-        let unity_version = Self::try_read_unity_version(&unity_found).await;
+        let unity_version = Self::try_read_unity_version(&io).await;
 
-        let project = UnityProject {
-            io: DefaultProjectIo::new(unity_found),
+        Ok(Self {
+            io,
             manifest,
             upm_manifest,
             unity_version,
             unlocked_packages,
             installed_packages,
-        };
-
-        debug!("UnityProject initialized: {:#?}", project);
-
-        Ok(project)
+        })
     }
 }
 
 impl<IO: ProjectIo> UnityProject<IO> {
-    async fn try_read_unlocked_package(dir_entry: DirEntry) -> (Box<str>, Option<PackageJson>) {
-        let package_path = dir_entry.path();
-        let name = package_path.file_name().unwrap().to_string_lossy().into();
-        let package_json_path = package_path.join("package.json");
-        let parsed = try_load_json::<PackageJson>(&package_json_path)
+    async fn try_read_unlocked_package(
+        io: &IO,
+        dir_entry: IO::DirEntry,
+    ) -> (Box<str>, Option<PackageJson>) {
+        let name = dir_entry.file_name().to_string_lossy().into();
+        let package_json_path = PathBuf::from(dir_entry.file_name()).joined("package.json");
+        let parsed = try_load_json2::<PackageJson>(io, &package_json_path)
             .await
             .ok()
             .flatten();
@@ -154,12 +161,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
         }
     }
 
-    async fn try_read_unity_version(unity_project: &Path) -> Option<UnityVersion> {
-        let project_version_file = unity_project
-            .join("ProjectSettings")
-            .joined("ProjectVersion.txt");
-
-        let mut project_version_file = match File::open(project_version_file).await {
+    async fn try_read_unity_version(io: &IO) -> Option<UnityVersion> {
+        let mut project_version_file = match io.open("ProjectSettings/ProjectVersion.txt").await {
             Ok(file) => file,
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
                 log::error!("ProjectVersion.txt not found");

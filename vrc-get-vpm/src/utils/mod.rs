@@ -17,7 +17,6 @@ use std::task::{ready, Context, Poll};
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-use crate::io::{EnvironmentIo, ProjectIo};
 pub(crate) use copy_recursive::copy_recursive;
 pub(crate) use crlf_json_formatter::to_vec_pretty_os_eol;
 pub(crate) use extract_zip::extract_zip;
@@ -144,7 +143,7 @@ where
     }
 }
 
-pub(crate) fn walk_dir_relative<IO: ProjectIo>(
+pub(crate) fn walk_dir_relative<IO: IoTrait>(
     io: &IO,
     paths: impl IntoIterator<Item = PathBuf>,
 ) -> impl Stream<Item = PathBuf> + '_ {
@@ -159,14 +158,14 @@ pub(crate) fn walk_dir_relative<IO: ProjectIo>(
         >,
     >;
 
-    async fn read_dir_phase<IO: ProjectIo>(
+    async fn read_dir_phase<IO: IoTrait>(
         io: &IO,
         relative: PathBuf,
     ) -> io::Result<(IO::ReadDirStream, PathBuf)> {
         Ok((io.read_dir(&relative).await?, relative))
     }
 
-    async fn next_phase<IO: ProjectIo>(
+    async fn next_phase<IO: IoTrait>(
         mut read_dir: IO::ReadDirStream,
         relative: PathBuf,
     ) -> io::Result<Option<(IO::ReadDirStream, PathBuf, IO::DirEntry)>> {
@@ -258,6 +257,17 @@ pub(crate) async fn read_json_file2<T: serde::de::DeserializeOwned>(
     }
 }
 
+pub(crate) async fn try_load_json2<T: serde::de::DeserializeOwned>(
+    io: &impl IoTrait,
+    path: &Path,
+) -> io::Result<Option<T>> {
+    match io.open(path).await {
+        Ok(file) => Ok(Some(read_json_file2::<T>(file, path).await?)),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
 pub(crate) async fn try_load_json<T: serde::de::DeserializeOwned>(
     path: &Path,
 ) -> io::Result<Option<T>> {
@@ -268,18 +278,7 @@ pub(crate) async fn try_load_json<T: serde::de::DeserializeOwned>(
     }
 }
 
-pub(crate) async fn load_json_or_default<T>(path: &Path) -> io::Result<T>
-where
-    T: serde::de::DeserializeOwned + Default,
-{
-    match File::open(path).await {
-        Ok(file) => Ok(read_json_file::<T>(file, path).await?),
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
-        Err(e) => Err(e),
-    }
-}
-
-pub(crate) async fn load_json_or_default2<T>(io: &impl EnvironmentIo, path: &Path) -> io::Result<T>
+pub(crate) async fn load_json_or_default2<T>(io: &impl IoTrait, path: &Path) -> io::Result<T>
 where
     T: serde::de::DeserializeOwned + Default,
 {

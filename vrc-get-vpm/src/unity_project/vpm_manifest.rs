@@ -1,4 +1,4 @@
-use crate::utils::to_vec_pretty_os_eol;
+use crate::utils::{load_json_or_default2, to_vec_pretty_os_eol};
 use crate::version::DependencyRange;
 use serde::{Deserialize, Serialize};
 
@@ -34,9 +34,9 @@ pub(super) struct VpmManifest {
 }
 
 impl VpmManifest {
-    pub(super) async fn from(manifest: &Path) -> io::Result<Self> {
+    pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
         Ok(Self {
-            as_json: load_json_or_default(manifest).await?,
+            as_json: load_json_or_default2(io, Path::new(MANIFEST_PATH)).await?,
             changed: false,
         })
     }

@@ -1,5 +1,5 @@
 use crate::io::ProjectIo;
-use crate::utils::{load_json_or_default, to_vec_pretty_os_eol, JsonMapExt};
+use crate::utils::{load_json_or_default2, to_vec_pretty_os_eol, JsonMapExt};
 use crate::version::Version;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
@@ -75,8 +75,8 @@ pub(super) struct UpmManifest {
 }
 
 impl UpmManifest {
-    pub(super) async fn from(manifest: &Path) -> io::Result<Self> {
-        let raw: Map<String, Value> = load_json_or_default(manifest).await?;
+    pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
+        let raw: Map<String, Value> = load_json_or_default2(io, Path::new(MANIFEST_PATH)).await?;
         let raw_value = Value::Object(raw);
         let as_json = Parsed::deserialize(&raw_value)?;
         let raw = match raw_value {
