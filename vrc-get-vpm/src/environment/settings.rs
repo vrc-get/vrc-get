@@ -1,10 +1,10 @@
+use crate::io::EnvironmentIo;
 use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
 use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::io;
 use std::path::PathBuf;
-use tokio::fs::create_dir_all;
 
 type JsonObject = Map<String, Value>;
 
@@ -125,7 +125,7 @@ impl Settings {
         self.settings_changed = true;
     }
 
-    pub async fn save(&mut self) -> io::Result<()> {
+    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
         if !self.settings_changed {
             return Ok(());
         }
@@ -133,10 +133,11 @@ impl Settings {
         let json_path = &self.path;
 
         if let Some(parent) = json_path.parent() {
-            create_dir_all(&parent).await?;
+            io.create_dir_all(&parent).await?;
         }
 
-        tokio::fs::write(json_path, &to_vec_pretty_os_eol(&self.as_json)?).await?;
+        io.write(json_path, &to_vec_pretty_os_eol(&self.as_json)?)
+            .await?;
         self.settings_changed = false;
         Ok(())
     }

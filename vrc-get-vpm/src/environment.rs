@@ -138,7 +138,7 @@ impl<T: HttpClient> Environment<T> {
             .iter()
             .map(UserRepoSetting::to_source);
         self.repo_cache
-            .load_repos(http, predefined_repos.chain(user_repos))
+            .load_repos(http, &self.io, predefined_repos.chain(user_repos))
             .await?;
         self.update_user_repo_id();
         self.load_user_package_infos().await?;
@@ -394,9 +394,12 @@ impl<T: HttpClient> Environment<T> {
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
-        try_join(self.settings.save(), self.vrc_get_settings.save())
-            .await
-            .map(|_| ())
+        try_join(
+            self.settings.save(&self.io),
+            self.vrc_get_settings.save(&self.io),
+        )
+        .await
+        .map(|_| ())
     }
 }
 

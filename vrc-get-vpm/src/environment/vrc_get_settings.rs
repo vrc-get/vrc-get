@@ -1,8 +1,8 @@
+use crate::io::EnvironmentIo;
 use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::PathBuf;
-use tokio::fs::create_dir_all;
 
 /// since this file is vrc-get specific, additional keys can be removed
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -54,7 +54,7 @@ impl VrcGetSettings {
         self.settings_changed = true;
     }
 
-    pub async fn save(&mut self) -> io::Result<()> {
+    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
         if !self.settings_changed {
             return Ok(());
         }
@@ -62,10 +62,11 @@ impl VrcGetSettings {
         let json_path = &self.path;
 
         if let Some(parent) = json_path.parent() {
-            create_dir_all(&parent).await?;
+            io.create_dir_all(&parent).await?;
         }
 
-        tokio::fs::write(json_path, &to_vec_pretty_os_eol(&self.as_json)?).await?;
+        io.write(json_path, &to_vec_pretty_os_eol(&self.as_json)?)
+            .await?;
         self.settings_changed = false;
         Ok(())
     }

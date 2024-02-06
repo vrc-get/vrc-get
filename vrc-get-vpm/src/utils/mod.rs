@@ -6,6 +6,7 @@ mod sha256_async_write;
 use async_zip::error::ZipError;
 use either::Either;
 use futures::stream::FuturesUnordered;
+use futures::{AsyncRead, AsyncReadExt as _};
 use futures::{FutureExt, Stream, StreamExt, TryStream};
 use pin_project_lite::pin_project;
 use serde_json::{Map, Value};
@@ -227,6 +228,25 @@ pub(crate) fn is_truthy(value: Option<&Value>) -> bool {
 
 pub(crate) async fn read_json_file<T: serde::de::DeserializeOwned>(
     mut file: File,
+    path: &Path,
+) -> io::Result<T> {
+    let mut vec = Vec::new();
+    file.read_to_end(&mut vec).await?;
+
+    let mut slice = vec.as_slice();
+    slice = slice.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(slice);
+
+    match serde_json::from_slice::<T>(slice) {
+        Ok(loaded) => Ok(loaded),
+        Err(e) => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("syntax error loading {}: {}", path.display(), e),
+        )),
+    }
+}
+
+pub(crate) async fn read_json_file2<T: serde::de::DeserializeOwned>(
+    mut file: impl AsyncRead + Unpin,
     path: &Path,
 ) -> io::Result<T> {
     let mut vec = Vec::new();
