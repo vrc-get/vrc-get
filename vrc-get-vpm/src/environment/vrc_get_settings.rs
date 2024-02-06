@@ -1,7 +1,7 @@
+use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::{load_json_or_default2, to_vec_pretty_os_eol};
 use serde::{Deserialize, Serialize};
-use std::io;
 
 /// since this file is vrc-get specific, additional keys can be removed
 #[derive(Debug, Default, Serialize, Deserialize)]

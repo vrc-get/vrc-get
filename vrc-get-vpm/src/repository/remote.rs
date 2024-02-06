@@ -1,3 +1,4 @@
+use crate::io;
 use crate::traits::HttpClient;
 use crate::version::Version;
 use crate::PackageJson;
@@ -6,7 +7,6 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
-use std::io;
 use std::pin::pin;
 use url::Url;
 

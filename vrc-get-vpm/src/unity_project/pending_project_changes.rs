@@ -1,3 +1,4 @@
+use crate::io;
 use crate::io::ProjectIo;
 use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
@@ -11,7 +12,6 @@ use futures::future::{join3, join_all, try_join_all};
 use log::debug;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::io;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 

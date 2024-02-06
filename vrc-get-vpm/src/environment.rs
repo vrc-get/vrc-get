@@ -4,6 +4,8 @@ mod settings;
 mod uesr_package_collection;
 mod vrc_get_settings;
 
+use crate::io;
+use crate::io::SeekFrom;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::setting::UserRepoSetting;
@@ -20,11 +22,10 @@ use log::error;
 use std::cmp::Reverse;
 use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
+use std::fmt;
 use std::fs::remove_file;
-use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
-use std::{fmt, io};
 use url::Url;
 
 use crate::environment::vrc_get_settings::VrcGetSettings;
@@ -496,9 +497,9 @@ async fn try_load_package_cache<IO: EnvironmentIo>(
         }
     }
 
-    let mut hasher = Sha256AsyncWrite::new(futures::io::sink());
+    let mut hasher = Sha256AsyncWrite::new(io::sink());
 
-    futures::io::copy(&mut cache_file, &mut hasher).await.ok()?;
+    io::copy(&mut cache_file, &mut hasher).await.ok()?;
 
     let hash = &hasher.finalize().1[..];
     if hash != &hex[..] {
@@ -540,7 +541,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     let mut response = pin!(http.get(url, headers).await?);
 
     let mut writer = Sha256AsyncWrite::new(cache_file);
-    futures::io::copy(&mut response, &mut writer).await?;
+    io::copy(&mut response, &mut writer).await?;
 
     let (mut cache_file, hash) = writer.finalize();
 

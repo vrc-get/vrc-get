@@ -1,3 +1,4 @@
+use crate::io;
 use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::utils::MapResultExt;
@@ -7,7 +8,6 @@ use core::option::Option;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use std::convert::Infallible;
-use std::io;
 use url::Url;
 
 pub(crate) mod seal {
@@ -137,7 +137,7 @@ impl HttpClient for reqwest::Client {
 
 impl HttpClient for Infallible {
     async fn get(&self, _: &Url, _: &IndexMap<Box<str>, Box<str>>) -> io::Result<impl AsyncRead> {
-        Ok(futures::io::empty())
+        Ok(io::empty())
     }
 
     async fn get_with_etag(
@@ -146,7 +146,7 @@ impl HttpClient for Infallible {
         _: &IndexMap<Box<str>, Box<str>>,
         _: Option<&str>,
     ) -> io::Result<Option<(impl AsyncRead, Option<Box<str>>)>> {
-        Ok(Some((futures::io::empty(), None)))
+        Ok(Some((io::empty(), None)))
     }
 }
 

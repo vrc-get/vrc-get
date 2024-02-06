@@ -3,6 +3,7 @@ mod crlf_json_formatter;
 mod extract_zip;
 mod sha256_async_write;
 
+use crate::io;
 use crate::io::{DirEntry, IoTrait};
 use async_zip::error::ZipError;
 use either::Either;
@@ -10,7 +11,6 @@ use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use pin_project_lite::pin_project;
 use serde_json::{Map, Value};
-use std::io;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::task::{ready, Context, Poll};

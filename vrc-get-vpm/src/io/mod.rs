@@ -1,8 +1,13 @@
-use futures::{AsyncRead, AsyncSeek, AsyncWrite, Stream};
+use crate::io;
 use std::ffi::OsString;
 use std::future::Future;
-use std::io;
 use std::path::{Path, PathBuf};
+
+pub(crate) use futures::io::{
+    copy, empty, sink, AsyncRead, AsyncSeek, AsyncWrite, BufReader, Error, ErrorKind, Result,
+};
+pub(crate) use futures::Stream;
+pub(crate) use std::io::SeekFrom;
 
 #[cfg(feature = "tokio")]
 mod tokio;

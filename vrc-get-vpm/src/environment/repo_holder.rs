@@ -1,4 +1,5 @@
 use crate::environment::repo_source::RepoSource;
+use crate::io;
 use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
@@ -9,7 +10,6 @@ use futures::future::try_join_all;
 use indexmap::IndexMap;
 use log::error;
 use std::collections::HashMap;
-use std::io;
 use std::path::Path;
 use url::Url;
 

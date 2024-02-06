@@ -1,10 +1,10 @@
+use crate::io;
 use crate::io::{EnvironmentIo, FileSystemProjectIo, IoTrait, ProjectIo, SymlinkKind};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::OsString;
 use std::fs::Metadata;
 use std::future::Future;
-use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use std::pin::Pin;

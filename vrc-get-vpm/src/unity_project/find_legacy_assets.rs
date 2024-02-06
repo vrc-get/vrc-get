@@ -1,7 +1,7 @@
+use crate::io::BufReader;
 use crate::io::ProjectIo;
 use crate::utils::walk_dir_relative;
 use crate::PackageInfo;
-use futures::io::BufReader;
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;

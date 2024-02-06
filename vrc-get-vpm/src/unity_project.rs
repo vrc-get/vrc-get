@@ -8,6 +8,7 @@ mod resolve;
 mod upm_manifest;
 mod vpm_manifest;
 
+use crate::io;
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{try_load_json2, PathBufExt};
@@ -15,7 +16,6 @@ use crate::version::{UnityVersion, Version, VersionRange};
 use futures::prelude::*;
 use indexmap::IndexMap;
 use std::collections::HashMap;
-use std::io;
 use std::path::{Path, PathBuf};
 
 // note: this module only declares basic small operations.

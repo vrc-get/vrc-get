@@ -1,3 +1,4 @@
+use crate::io;
 use crate::io::ProjectIo;
 use crate::utils::{load_json_or_default2, to_vec_pretty_os_eol, JsonMapExt};
 use crate::version::Version;
@@ -6,7 +7,6 @@ use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt::Formatter;
-use std::io;
 use std::path::Path;
 use std::str::FromStr;
 

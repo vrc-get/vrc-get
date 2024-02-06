@@ -1,9 +1,9 @@
+use crate::io;
 use crate::io::ProjectIo;
 use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::AddPackageErr;
 use crate::version::UnityVersion;
 use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
-use futures::io;
 use log::warn;
 
 #[non_exhaustive]

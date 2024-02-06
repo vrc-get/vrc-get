@@ -1,9 +1,9 @@
+use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::{load_json_or_default2, to_vec_pretty_os_eol};
 use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::io;
 use std::path::PathBuf;
 
 type JsonObject = Map<String, Value>;

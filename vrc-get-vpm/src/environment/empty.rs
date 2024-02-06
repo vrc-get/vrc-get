@@ -1,11 +1,11 @@
+use crate::io;
 use crate::io::DefaultEnvironmentIo;
+use crate::io::SeekFrom;
 use crate::repository::local::LocalCachedRepository;
 use crate::traits::EnvironmentIoHolder;
 use crate::{PackageJson, RemotePackageDownloader};
 use futures::{AsyncRead, AsyncSeek};
 use std::future::Future;
-use std::io;
-use std::io::SeekFrom;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 

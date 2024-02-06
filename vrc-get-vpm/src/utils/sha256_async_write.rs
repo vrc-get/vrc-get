@@ -1,4 +1,5 @@
-use futures::io::AsyncWrite;
+use crate::io;
+use crate::io::AsyncWrite;
 use pin_project_lite::pin_project;
 use sha2::digest::Output;
 use sha2::{Digest, Sha256};
@@ -32,18 +33,18 @@ impl<W: AsyncWrite> AsyncWrite for Sha256AsyncWrite<W> {
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
-    ) -> Poll<std::io::Result<usize>> {
+    ) -> Poll<io::Result<usize>> {
         let this = self.project();
         let size = ready!(this.inner.poll_write(cx, buf))?;
         this.hasher.update(&buf[..size]);
         Poll::Ready(Ok(size))
     }
 
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         self.project().inner.poll_flush(cx)
     }
 
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         self.project().inner.poll_close(cx)
     }
 }

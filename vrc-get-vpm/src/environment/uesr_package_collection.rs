@@ -1,7 +1,7 @@
+use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::try_load_json2;
 use crate::{PackageCollection, PackageInfo, PackageJson, VersionSelector};
-use std::io;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]

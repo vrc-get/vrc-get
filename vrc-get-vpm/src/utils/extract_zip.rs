@@ -1,9 +1,9 @@
+use crate::io;
 use crate::io::ProjectIo;
+use crate::io::SeekFrom;
 use crate::utils::MapResultExt;
 use async_zip::base::read::seek::ZipFileReader;
-use futures::io;
 use futures::prelude::*;
-use std::io::SeekFrom;
 use std::path::{Component, Path};
 
 pub(crate) async fn extract_zip(
@@ -38,7 +38,7 @@ pub(crate) async fn extract_zip(
             let mut reader = zip_reader.reader_without_entry(i).await.err_mapped()?;
             io.create_dir_all(path.parent().unwrap()).await?;
             let mut dest_file = io.create(path).await?;
-            futures::io::copy(&mut reader, &mut dest_file).await?;
+            io::copy(&mut reader, &mut dest_file).await?;
             dest_file.flush().await?;
         }
     }

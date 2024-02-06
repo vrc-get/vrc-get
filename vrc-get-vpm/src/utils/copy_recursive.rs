@@ -1,5 +1,5 @@
+use crate::io;
 use crate::io::{DirEntry, IoTrait};
-use futures::io;
 use futures::prelude::*;
 use std::collections::VecDeque;
 use std::path::PathBuf;
