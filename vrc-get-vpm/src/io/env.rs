@@ -8,9 +8,11 @@ use std::path::{Path, PathBuf};
 ///
 /// All relative paths should be resolved as a relative path from the environment folder.
 /// Which is `%APPDATA%\\VRChatCreatorCompanion` or `${XDG_DATA_HOME}/VRChatCreatorCompanion` by default.
-pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync {
+pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync + IoTrait {
     fn resolve(&self, path: impl AsRef<Path>) -> PathBuf;
+}
 
+pub trait IoTrait {
     fn create_dir_all(&self, path: impl AsRef<Path>)
         -> impl Future<Output = io::Result<()>> + Send;
     fn write(
@@ -68,6 +70,7 @@ impl DefaultEnvironmentIo {
 impl crate::traits::seal::Sealed for DefaultEnvironmentIo {}
 
 mod tokio {
+    use crate::io::env::IoTrait;
     use crate::io::{DefaultEnvironmentIo, EnvironmentIo};
     use futures::{Stream, TryFutureExt};
     use std::ffi::OsString;
@@ -84,7 +87,9 @@ mod tokio {
         fn resolve(&self, path: impl AsRef<Path>) -> PathBuf {
             self.root.join(path)
         }
+    }
 
+    impl IoTrait for DefaultEnvironmentIo {
         fn create_dir_all(
             &self,
             path: impl AsRef<Path>,
@@ -112,7 +117,7 @@ mod tokio {
         fn metadata(
             &self,
             path: impl AsRef<Path>,
-        ) -> impl Future<Output = io::Result<std::fs::Metadata>> + Send {
+        ) -> impl Future<Output = io::Result<Metadata>> + Send {
             fs::metadata(self.resolve(path))
         }
 
