@@ -35,11 +35,6 @@ pub(crate) use repo_source::RepoSource;
 pub(crate) use settings::Settings;
 pub(crate) use uesr_package_collection::UserPackageCollection;
 
-#[cfg(feature = "tokio")]
-mod empty;
-#[cfg(feature = "tokio")]
-pub use empty::EmptyEnvironment;
-
 const OFFICIAL_URL_STR: &str = "https://packages.vrchat.com/official?download";
 const LOCAL_OFFICIAL_PATH: &str = "Repos/vrc-official.json";
 const CURATED_URL_STR: &str = "https://packages.vrchat.com/curated?download";

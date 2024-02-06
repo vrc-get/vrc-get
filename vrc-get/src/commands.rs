@@ -14,7 +14,6 @@ use std::num::NonZeroU32;
 use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
-use vrc_get_vpm::environment::EmptyEnvironment;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
@@ -433,6 +432,8 @@ pub struct Remove {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<Box<Path>>,
+    #[command(flatten)]
+    env_args: EnvArgs,
 
     /// skip confirm
     #[arg(short, long)]
@@ -441,6 +442,7 @@ pub struct Remove {
 
 impl Remove {
     pub async fn run(self) {
+        let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
         let changes = unity
@@ -458,7 +460,7 @@ impl Remove {
         }
 
         unity
-            .apply_pending_changes(&EmptyEnvironment, changes)
+            .apply_pending_changes(&env, changes)
             .await
             .exit_context("removing packages");
 
