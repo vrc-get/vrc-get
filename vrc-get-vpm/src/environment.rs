@@ -198,7 +198,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     async fn load_user_package_infos(&mut self) -> io::Result<()> {
         self.user_packages.clear();
         for x in self.settings.user_package_folders() {
-            self.user_packages.try_add_package(x).await?;
+            self.user_packages.try_add_package(&self.io, x).await?;
         }
         Ok(())
     }

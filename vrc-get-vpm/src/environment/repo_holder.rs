@@ -3,7 +3,7 @@ use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::traits::HttpClient;
-use crate::utils::{read_json_file2, to_vec_pretty_os_eol, try_load_json};
+use crate::utils::{read_json_file2, to_vec_pretty_os_eol, try_load_json2};
 use crate::{PackageCollection, PackageInfo, VersionSelector};
 use futures::future::try_join_all;
 use indexmap::IndexMap;
@@ -71,7 +71,7 @@ impl RepoHolder {
         path: &Path,
         remote_url: &Url,
     ) -> io::Result<LocalCachedRepository> {
-        if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(path).await? {
+        if let Some(mut loaded) = try_load_json2::<LocalCachedRepository>(io, path).await? {
             if let (Some(client), Some(remote_url)) = (client, loaded.url().map(|x| x.to_owned())) {
                 // if it's possible to download remote repo, try to update with that
                 match RemoteRepository::download_with_etag(
