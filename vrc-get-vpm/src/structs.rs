@@ -2,7 +2,6 @@ use crate::version::{Version, VersionRange};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 pub mod package {
     use super::*;
@@ -10,24 +9,24 @@ pub mod package {
     #[derive(Deserialize, Debug, Clone)]
     #[serde(rename_all = "camelCase")]
     pub struct PackageJson {
-        name: String,
+        name: Box<str>,
         #[serde(default)]
-        display_name: Option<String>,
-        description: Option<String>,
+        display_name: Option<Box<str>>,
+        description: Option<Box<str>>,
         version: Version,
         #[serde(default)]
-        vpm_dependencies: IndexMap<String, VersionRange>,
+        vpm_dependencies: IndexMap<Box<str>, VersionRange>,
         #[serde(default)]
         url: Option<Url>,
 
         unity: Option<PartialUnityVersion>,
 
         #[serde(default)]
-        legacy_folders: HashMap<String, Option<String>>,
+        legacy_folders: HashMap<Box<str>, Option<Box<str>>>,
         #[serde(default)]
-        legacy_files: HashMap<String, Option<String>>,
+        legacy_files: HashMap<Box<str>, Option<Box<str>>>,
         #[serde(default)]
-        legacy_packages: Vec<String>,
+        legacy_packages: Vec<Box<str>>,
 
         #[cfg(feature = "experimental-yank")]
         #[serde(default)]
@@ -43,19 +42,19 @@ pub mod package {
             &self.version
         }
 
-        pub fn vpm_dependencies(&self) -> &IndexMap<String, VersionRange> {
+        pub fn vpm_dependencies(&self) -> &IndexMap<Box<str>, VersionRange> {
             &self.vpm_dependencies
         }
 
-        pub fn legacy_folders(&self) -> &HashMap<String, Option<String>> {
+        pub fn legacy_folders(&self) -> &HashMap<Box<str>, Option<Box<str>>> {
             &self.legacy_folders
         }
 
-        pub fn legacy_files(&self) -> &HashMap<String, Option<String>> {
+        pub fn legacy_files(&self) -> &HashMap<Box<str>, Option<Box<str>>> {
             &self.legacy_files
         }
 
-        pub fn legacy_packages(&self) -> &[String] {
+        pub fn legacy_packages(&self) -> &[Box<str>] {
             self.legacy_packages.as_slice()
         }
 
@@ -112,29 +111,29 @@ pub mod setting {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename_all = "camelCase")]
     pub struct UserRepoSetting {
-        local_path: PathBuf,
+        local_path: Box<Path>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        name: Option<String>,
+        name: Option<Box<str>>,
         // must be non-relative url.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         url: Option<Url>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub(crate) id: Option<String>,
+        pub(crate) id: Option<Box<str>>,
         #[serde(default)]
-        headers: IndexMap<String, String>,
+        headers: IndexMap<Box<str>, Box<str>>,
     }
 
     impl UserRepoSetting {
         pub fn new(
-            local_path: PathBuf,
-            name: Option<String>,
+            local_path: Box<Path>,
+            name: Option<Box<str>>,
             url: Option<Url>,
-            id: Option<String>,
+            id: Option<Box<str>>,
         ) -> Self {
             Self {
                 local_path,
                 name,
-                id: id.or(url.as_ref().map(Url::to_string)),
+                id: id.or(url.as_ref().map(Url::to_string).map(Into::into)),
                 url,
                 headers: IndexMap::new(),
             }
@@ -156,7 +155,7 @@ pub mod setting {
             self.id.as_deref()
         }
 
-        pub fn headers(&self) -> &IndexMap<String, String> {
+        pub fn headers(&self) -> &IndexMap<Box<str>, Box<str>> {
             &self.headers
         }
 

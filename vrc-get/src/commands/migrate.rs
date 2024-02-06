@@ -1,7 +1,7 @@
 use crate::commands::{confirm_prompt, load_env, load_unity, EnvArgs, ResultExt};
 use clap::{Parser, Subcommand};
 use log::warn;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::exit;
 
 /// Migrate Unity Project
@@ -27,7 +27,7 @@ multi_command!(Unity is Unity2022);
 pub struct Unity2022 {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     /// Path to unity 2022 executable.
     #[arg(long)]
     unity: PathBuf,

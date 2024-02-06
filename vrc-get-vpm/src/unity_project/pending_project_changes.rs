@@ -23,12 +23,12 @@ use tokio_util::compat::TokioAsyncReadCompatExt;
 ///
 /// This is done to ask users before removing packages
 pub struct PendingProjectChanges<'env> {
-    pub(crate) package_changes: HashMap<String, PackageChange<'env>>,
+    pub(crate) package_changes: HashMap<Box<str>, PackageChange<'env>>,
 
-    pub(crate) remove_legacy_files: Vec<PathBuf>,
-    pub(crate) remove_legacy_folders: Vec<PathBuf>,
+    pub(crate) remove_legacy_files: Vec<Box<Path>>,
+    pub(crate) remove_legacy_folders: Vec<Box<Path>>,
 
-    pub(crate) conflicts: HashMap<String, ConflictInfo>,
+    pub(crate) conflicts: HashMap<Box<str>, ConflictInfo>,
 }
 
 #[non_exhaustive]
@@ -90,12 +90,12 @@ pub enum RemoveReason {
 
 #[derive(Default)]
 pub struct ConflictInfo {
-    conflicts_packages: Vec<String>,
+    conflicts_packages: Vec<Box<str>>,
     conflicts_with_unity: bool,
 }
 
 impl ConflictInfo {
-    pub fn conflicting_packages(&self) -> &[String] {
+    pub fn conflicting_packages(&self) -> &[Box<str>] {
         self.conflicts_packages.as_slice()
     }
 
@@ -105,8 +105,8 @@ impl ConflictInfo {
 }
 
 pub(crate) struct Builder<'env> {
-    package_changes: HashMap<String, PackageChange<'env>>,
-    conflicts: HashMap<String, ConflictInfo>,
+    package_changes: HashMap<Box<str>, PackageChange<'env>>,
+    conflicts: HashMap<Box<str>, ConflictInfo>,
 }
 
 impl<'env> Builder<'env> {
@@ -117,7 +117,7 @@ impl<'env> Builder<'env> {
         }
     }
 
-    pub fn add_to_dependencies(&mut self, name: String, version: DependencyRange) -> &mut Self {
+    pub fn add_to_dependencies(&mut self, name: Box<str>, version: DependencyRange) -> &mut Self {
         match self.package_changes.entry(name) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(e) => {
@@ -144,7 +144,7 @@ impl<'env> Builder<'env> {
     }
 
     pub fn install_to_locked(&mut self, info: PackageInfo<'env>) -> &mut Self {
-        match self.package_changes.entry(info.name().to_owned()) {
+        match self.package_changes.entry(info.name().into()) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(e) => {
                     if e.package.is_none() {
@@ -170,7 +170,7 @@ impl<'env> Builder<'env> {
     }
 
     pub fn install_already_locked(&mut self, info: PackageInfo<'env>) -> &mut Self {
-        match self.package_changes.entry(info.name().to_owned()) {
+        match self.package_changes.entry(info.name().into()) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(e) => {
                     if e.package.is_none() {
@@ -197,8 +197,8 @@ impl<'env> Builder<'env> {
 
     pub fn conflict_multiple(
         &mut self,
-        name: String,
-        conflict: impl IntoIterator<Item = String>,
+        name: Box<str>,
+        conflict: impl IntoIterator<Item = Box<str>>,
     ) -> &mut Self {
         self.conflicts
             .entry(name)
@@ -208,7 +208,7 @@ impl<'env> Builder<'env> {
         self
     }
 
-    pub fn conflicts(&mut self, name: String, conflict: String) -> &mut Self {
+    pub fn conflicts(&mut self, name: Box<str>, conflict: Box<str>) -> &mut Self {
         self.conflicts
             .entry(name)
             .or_default()
@@ -217,12 +217,12 @@ impl<'env> Builder<'env> {
         self
     }
 
-    pub fn conflicts_unity(&mut self, name: String) -> &mut Self {
+    pub fn conflicts_unity(&mut self, name: Box<str>) -> &mut Self {
         self.conflicts.entry(name).or_default().conflicts_with_unity = true;
         self
     }
 
-    pub fn remove(&mut self, name: String, reason: RemoveReason) -> &mut Self {
+    pub fn remove(&mut self, name: Box<str>, reason: RemoveReason) -> &mut Self {
         match self.package_changes.entry(name) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(_) => {
@@ -244,7 +244,7 @@ impl<'env> Builder<'env> {
         self
     }
 
-    fn remove_unused(&mut self, name: String) -> &mut Self {
+    fn remove_unused(&mut self, name: Box<str>) -> &mut Self {
         match self.package_changes.entry(name) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(_) => {
@@ -317,7 +317,7 @@ impl<'env> Builder<'env> {
             for package in installs
                 .iter()
                 .filter(|pkg| !unity_compatible(pkg, unity))
-                .map(|pkg| pkg.name().to_owned())
+                .map(|pkg| pkg.name().into())
             {
                 self.conflicts_unity(package);
             }
@@ -374,12 +374,12 @@ impl<'env> Builder<'env> {
                     .iter()
                     .filter_map(|(name, change)| match change {
                         PackageChange::Install(change) if change.add_to_locked => {
-                            unity_project.get_locked(name.as_str()).map(|x| x.name())
+                            unity_project.get_locked(name.as_ref()).map(|x| x.name())
                         }
                         // packages that is not added to locked are not removable
                         PackageChange::Install(_) => None,
                         PackageChange::Remove(_) => {
-                            unity_project.get_locked(name.as_str()).map(|x| x.name())
+                            unity_project.get_locked(name.as_ref()).map(|x| x.name())
                         }
                     });
 
@@ -388,7 +388,7 @@ impl<'env> Builder<'env> {
                     .get_locked(dep_name)
                     .into_iter()
                     .flat_map(|dep| dep.dependencies.keys())
-                    .map(String::as_str)
+                    .map(Box::as_ref)
             })
         };
 
@@ -405,7 +405,7 @@ impl<'env> Builder<'env> {
                 .iter()
                 .filter_map(|(_, pkg)| pkg.as_ref())
                 .flat_map(|pkg| pkg.vpm_dependencies().keys())
-                .map(String::as_str);
+                .map(Box::as_ref);
 
             let dependencies = unity_project.dependencies().filter(|name| {
                 self.package_changes
@@ -421,14 +421,14 @@ impl<'env> Builder<'env> {
                     .and_then(|change| change.as_install())
                     .and_then(|x| x.package)
                 {
-                    Either::Left(to_install.vpm_dependencies().keys().map(String::as_str))
+                    Either::Left(to_install.vpm_dependencies().keys().map(Box::as_ref))
                 } else {
                     Either::Right(
                         unity_project
                             .get_locked(dep_name)
                             .into_iter()
                             .flat_map(|dep| dep.dependencies.keys())
-                            .map(String::as_str),
+                            .map(Box::as_ref),
                     )
                 }
             })
@@ -439,7 +439,7 @@ impl<'env> Builder<'env> {
         // weep
         for locked in unity_project.locked_packages() {
             if !using_packages.contains(locked.name()) && removable.contains(locked.name()) {
-                self.remove_unused(locked.name().to_owned());
+                self.remove_unused(locked.name().into());
             }
         }
     }
@@ -457,19 +457,19 @@ impl<'env> PendingProjectChanges<'env> {
 }
 
 impl PendingProjectChanges<'_> {
-    pub fn package_changes(&self) -> &HashMap<String, PackageChange<'_>> {
+    pub fn package_changes(&self) -> &HashMap<Box<str>, PackageChange<'_>> {
         &self.package_changes
     }
 
-    pub fn remove_legacy_files(&self) -> &[PathBuf] {
+    pub fn remove_legacy_files(&self) -> &[Box<Path>] {
         self.remove_legacy_files.as_slice()
     }
 
-    pub fn remove_legacy_folders(&self) -> &[PathBuf] {
+    pub fn remove_legacy_folders(&self) -> &[Box<Path>] {
         self.remove_legacy_folders.as_slice()
     }
 
-    pub fn conflicts(&self) -> &HashMap<String, ConflictInfo> {
+    pub fn conflicts(&self) -> &HashMap<Box<str>, ConflictInfo> {
         &self.conflicts
     }
 }
@@ -509,15 +509,15 @@ impl UnityProject {
         }
 
         self.manifest
-            .remove_packages(remove_names.iter().map(String::as_str));
+            .remove_packages(remove_names.iter().map(Box::as_ref));
 
         install_packages(self.project_dir(), env, &installs).await?;
 
         remove_assets(
             self.project_dir(),
-            request.remove_legacy_files.iter().map(PathBuf::as_path),
-            request.remove_legacy_folders.iter().map(PathBuf::as_path),
-            remove_names.iter().map(String::as_str),
+            request.remove_legacy_files.iter().map(Box::as_ref),
+            request.remove_legacy_folders.iter().map(Box::as_ref),
+            remove_names.iter().map(Box::as_ref),
         )
         .await;
 
@@ -612,7 +612,7 @@ pub(crate) async fn add_package(
         }
         PackageInfoInner::Local(_, path) => {
             remove_dir_all(&dest_folder).await.ok();
-            copy_recursive(path.to_owned(), dest_folder).await?;
+            copy_recursive(path.into(), dest_folder.into()).await?;
             Ok(())
         }
     }

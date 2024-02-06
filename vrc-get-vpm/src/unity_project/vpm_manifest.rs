@@ -8,9 +8,9 @@ use super::*;
 #[serde(rename_all = "camelCase")]
 struct AsJson {
     #[serde(default)]
-    dependencies: IndexMap<String, VpmDependency>,
+    dependencies: IndexMap<Box<str>, VpmDependency>,
     #[serde(default)]
-    locked: IndexMap<String, VpmLockedDependency>,
+    locked: IndexMap<Box<str>, VpmLockedDependency>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -22,7 +22,7 @@ struct VpmDependency {
 struct VpmLockedDependency {
     pub version: Version,
     #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
-    pub dependencies: IndexMap<String, VersionRange>,
+    pub dependencies: IndexMap<Box<str>, VersionRange>,
 }
 
 #[derive(Debug)]
@@ -43,7 +43,7 @@ impl VpmManifest {
         self.as_json
             .dependencies
             .iter()
-            .map(|(name, dep)| (name.as_str(), &dep.version))
+            .map(|(name, dep)| (name.as_ref(), &dep.version))
     }
 
     pub(super) fn get_dependency(&self, package: &str) -> Option<&DependencyRange> {
@@ -52,7 +52,7 @@ impl VpmManifest {
 
     pub(super) fn all_locked(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         self.as_json.locked.iter().map(|(name, dep)| {
-            LockedDependencyInfo::new(name.as_str(), &dep.version, &dep.dependencies)
+            LockedDependencyInfo::new(name.as_ref(), &dep.version, &dep.dependencies)
         })
     }
 
@@ -66,7 +66,7 @@ impl VpmManifest {
     pub(super) fn add_dependency(&mut self, name: &str, version: DependencyRange) {
         self.as_json
             .dependencies
-            .insert(name.to_owned(), VpmDependency { version });
+            .insert(name.into(), VpmDependency { version });
         self.changed = true;
     }
 
@@ -74,10 +74,10 @@ impl VpmManifest {
         &mut self,
         name: &str,
         version: Version,
-        dependencies: IndexMap<String, VersionRange>,
+        dependencies: IndexMap<Box<str>, VersionRange>,
     ) {
         self.as_json.locked.insert(
-            name.to_owned(),
+            name.into(),
             VpmLockedDependency {
                 version,
                 dependencies,

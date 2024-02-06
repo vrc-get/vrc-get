@@ -12,17 +12,17 @@ type JsonObject = Map<String, Value>;
 #[serde(rename_all = "camelCase")]
 struct AsJson {
     #[serde(default)]
-    path_to_unity_exe: String,
+    path_to_unity_exe: Box<str>,
     #[serde(default)]
-    path_to_unity_hub: String,
+    path_to_unity_hub: Box<str>,
     #[serde(default)]
-    user_projects: Vec<String>,
+    user_projects: Vec<Box<str>>,
     #[serde(default)]
-    unity_editors: Vec<String>,
+    unity_editors: Vec<Box<str>>,
     #[serde(default)]
     preferred_unity_editors: JsonObject,
     #[serde(default)]
-    default_project_path: String,
+    default_project_path: Box<str>,
     #[serde(rename = "lastUIState")]
     #[serde(default)]
     last_ui_state: i64,
@@ -35,11 +35,11 @@ struct AsJson {
     #[serde(default)]
     skip_requirements: bool,
     #[serde(default)]
-    last_news_update: String,
+    last_news_update: Box<str>,
     #[serde(default)]
     allow_pii: bool,
     #[serde(default)]
-    project_backup_path: String,
+    project_backup_path: Box<str>,
     #[serde(default)]
     show_prerelease_packages: bool,
     #[serde(default)]
@@ -47,12 +47,12 @@ struct AsJson {
     #[serde(default)]
     selected_providers: u64,
     #[serde(default)]
-    last_selected_project: String,
+    last_selected_project: Box<str>,
     #[serde(default)]
     user_repos: Vec<UserRepoSetting>,
 
     #[serde(flatten)]
-    rest: Map<String, Value>,
+    rest: JsonObject,
 }
 
 #[derive(Debug)]
@@ -93,7 +93,7 @@ impl Settings {
         for repo in &mut self.as_json.user_repos {
             let id = new_id.new_id(repo);
             if id != repo.id() {
-                let owned = id.map(|x| x.to_owned());
+                let owned = id.map(|x| x.into());
                 repo.id = owned;
                 self.settings_changed = true;
             }

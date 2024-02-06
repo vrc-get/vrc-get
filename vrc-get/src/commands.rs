@@ -10,7 +10,7 @@ use std::error::Error as StdError;
 use std::ffi::{OsStr, OsString};
 use std::fmt::{Debug, Display};
 use std::num::NonZeroU32;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::{read_dir, remove_file};
@@ -68,7 +68,7 @@ async fn load_env(args: &EnvArgs) -> Environment<Client> {
     env
 }
 
-async fn load_unity(path: Option<PathBuf>) -> UnityProject {
+async fn load_unity(path: Option<Box<Path>>) -> UnityProject {
     UnityProject::find_unity_project(path)
         .await
         .exit_context("loading unity project")
@@ -240,7 +240,7 @@ fn require_prompt_for_install(
         return true;
     };
 
-    if change_name != name {
+    if change_name.as_ref() != name {
         return true;
     }
 
@@ -326,7 +326,7 @@ pub struct Install {
 
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     #[command(flatten)]
     env_args: EnvArgs,
 
@@ -385,7 +385,7 @@ impl Install {
 pub struct Resolve {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     #[command(flatten)]
     env_args: EnvArgs,
 }
@@ -421,7 +421,7 @@ pub struct Remove {
 
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
 
     /// skip confirm
     #[arg(short, long)]
@@ -472,7 +472,7 @@ impl Update {
 pub struct Outdated {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     /// Include prerelease
     #[arg(long = "prerelease")]
     prerelease: bool,
@@ -507,9 +507,9 @@ impl Outdated {
 
         for locked in unity.all_packages() {
             for (name, range) in locked.dependencies() {
-                if let Some((outdated, _)) = outdated_packages.get(name.as_str()) {
+                if let Some((outdated, _)) = outdated_packages.get(name.as_ref()) {
                     if !range.matches(outdated.version()) {
-                        outdated_packages.remove(name.as_str());
+                        outdated_packages.remove(name.as_ref());
                     }
                 }
             }
@@ -567,7 +567,7 @@ pub struct Upgrade {
 
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     #[command(flatten)]
     env_args: EnvArgs,
 
@@ -810,9 +810,9 @@ impl RepoAdd {
         let mut env = load_env(&self.env_args).await;
 
         if let Ok(url) = Url::parse(&self.path_or_url) {
-            let mut headers = IndexMap::<String, String>::new();
+            let mut headers = IndexMap::<Box<str>, Box<str>>::new();
             for HeaderPair(name, value) in self.header {
-                headers.insert(name.to_string(), value.to_str().unwrap().to_string());
+                headers.insert(name.as_str().into(), value.to_str().unwrap().into());
             }
             env.add_remote_repo(url, self.name.as_deref(), headers)
                 .await

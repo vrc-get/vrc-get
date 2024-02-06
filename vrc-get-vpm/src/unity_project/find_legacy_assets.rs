@@ -11,8 +11,8 @@ use tokio::fs::{metadata, File};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 pub(crate) struct LegacyAssets {
-    pub(crate) files: Vec<PathBuf>,
-    pub(crate) folders: Vec<PathBuf>,
+    pub(crate) files: Vec<Box<Path>>,
+    pub(crate) folders: Vec<Box<Path>>,
 }
 
 pub(crate) async fn collect_legacy_assets(
@@ -55,13 +55,13 @@ pub(crate) async fn collect_legacy_assets(
 async fn find_legacy_assets_by_path(
     project_dir: &Path,
     assets: impl Iterator<Item = DefinedLegacyInfo<'_>>,
-) -> (HashSet<PathBuf>, HashSet<PathBuf>, HashMap<Guid, bool>) {
+) -> (HashSet<Box<Path>>, HashSet<Box<Path>>, HashMap<Guid, bool>) {
     use LegacySearchResult::*;
 
     let mut futures = pin!(assets
         .map(|info| async move {
             // some packages uses '/' as path separator.
-            let relative_path = PathBuf::from(info.path.replace('\\', "/"));
+            let relative_path = PathBuf::from(info.path.replace('\\', "/")).into_boxed_path();
             // for security, deny absolute path.
             if relative_path.is_absolute() {
                 return None;
@@ -121,8 +121,8 @@ async fn try_parse_meta(path: &Path) -> Option<Guid> {
 async fn find_legacy_assets_by_guid(
     project_dir: &Path,
     mut find_guids: HashMap<Guid, bool>,
-    found_files: &mut HashSet<PathBuf>,
-    found_folders: &mut HashSet<PathBuf>,
+    found_files: &mut HashSet<Box<Path>>,
+    found_folders: &mut HashSet<Box<Path>>,
 ) {
     async fn get_guid(entry: WalkDirEntry) -> Option<(Guid, bool, PathBuf)> {
         let path = entry.path();
@@ -151,9 +151,9 @@ async fn find_legacy_assets_by_guid(
             if is_file_actual == is_file {
                 find_guids.remove(&guid);
                 if is_file {
-                    found_files.insert(relative);
+                    found_files.insert(relative.into_boxed_path());
                 } else {
-                    found_folders.insert(relative);
+                    found_folders.insert(relative.into_boxed_path());
                 }
             }
         }
@@ -185,7 +185,7 @@ impl<'a> DefinedLegacyInfo<'a> {
 }
 
 enum LegacySearchResult {
-    FoundWithPath(PathBuf, bool),
+    FoundWithPath(Box<Path>, bool),
     SearchWithGuid(Guid, bool),
 }
 

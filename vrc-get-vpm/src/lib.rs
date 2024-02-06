@@ -82,11 +82,11 @@ impl<'a> PackageInfo<'a> {
         self.package_json().version()
     }
 
-    pub fn vpm_dependencies(self) -> &'a IndexMap<String, VersionRange> {
+    pub fn vpm_dependencies(self) -> &'a IndexMap<Box<str>, VersionRange> {
         self.package_json().vpm_dependencies()
     }
 
-    pub fn legacy_packages(self) -> &'a [String] {
+    pub fn legacy_packages(self) -> &'a [Box<str>] {
         self.package_json().legacy_packages()
     }
 
