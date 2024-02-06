@@ -12,6 +12,7 @@ use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
 use crate::{PackageInfo, PackageJson, VersionSelector};
 use futures::future::{join_all, try_join};
+use futures::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -24,12 +25,10 @@ use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::{env, fmt, io};
-use tokio::fs::{create_dir_all, File, OpenOptions};
-use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
-use tokio_util::compat::*;
 use url::Url;
 
 use crate::environment::vrc_get_settings::VrcGetSettings;
+use crate::io::{DefaultEnvironmentIo, EnvironmentIo};
 pub use empty::EmptyEnvironment;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
@@ -40,6 +39,7 @@ pub(crate) use uesr_package_collection::UserPackageCollection;
 #[derive(Debug)]
 pub struct Environment<T: HttpClient> {
     pub(crate) http: Option<T>,
+    pub(crate) io: DefaultEnvironmentIo,
     /// config folder.
     /// On windows, `%APPDATA%\\VRChatCreatorCompanion`.
     /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
@@ -69,6 +69,7 @@ impl<T: HttpClient> Environment<T> {
             vrc_get_settings: VrcGetSettings::load(folder.join("vrc-get-settings.json")).await?,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
+            io: DefaultEnvironmentIo::new(folder.clone().into_boxed_path()),
             global_dir: folder.into_boxed_path(),
         })
     }
@@ -303,7 +304,7 @@ impl<T: HttpClient> Environment<T> {
                 .etag = etag;
         }
 
-        create_dir_all(self.get_repos_dir()).await?;
+        self.io.create_dir_all("Repos").await?;
 
         let local_path = self.write_new_repo(&local_cache).await?;
 
@@ -317,7 +318,7 @@ impl<T: HttpClient> Environment<T> {
     }
 
     async fn write_new_repo(&self, local_cache: &LocalCachedRepository) -> io::Result<Box<Path>> {
-        create_dir_all(self.get_repos_dir()).await?;
+        self.io.create_dir_all("Repos").await?;
 
         // [0-9a-zA-Z._-]+
         fn is_id_name_for_file(id: &str) -> bool {
@@ -339,13 +340,8 @@ impl<T: HttpClient> Environment<T> {
         let guid_names = std::iter::from_fn(|| Some(format!("{}.json", uuid::Uuid::new_v4())));
 
         for file_name in id_names.chain(guid_names) {
-            let path = self.get_repos_dir().joined(file_name);
-            match OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&path)
-                .await
-            {
+            let path = self.io.resolve(format!("{}/{}", "Repos", file_name));
+            match self.io.create_new(&path).await {
                 Ok(mut file) => {
                     file.write_all(&to_vec_pretty_os_eol(&local_cache)?).await?;
                     file.flush().await?;
@@ -405,11 +401,13 @@ impl<T: HttpClient> Environment<T> {
 }
 
 impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
+    type FileStream = tokio_util::compat::Compat<tokio::fs::File>;
+
     async fn get_package(
         &self,
         repository: &LocalCachedRepository,
         package: &PackageJson,
-    ) -> io::Result<File> {
+    ) -> io::Result<Self::FileStream> {
         let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name(), package.version());
         let zip_path = self
             .global_dir
@@ -419,13 +417,15 @@ impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
             .joined(&zip_file_name);
         let sha_path = zip_path.with_extension("zip.sha256");
 
-        if let Some(cache_file) = try_load_package_cache(&zip_path, &sha_path, None).await {
+        if let Some(cache_file) = try_load_package_cache(&self.io, &zip_path, &sha_path, None).await
+        {
             Ok(cache_file)
         } else {
-            create_dir_all(zip_path.parent().unwrap()).await?;
+            self.io.create_dir_all(zip_path.parent().unwrap()).await?;
 
             Ok(download_package_zip(
                 self.http.as_ref(),
+                &self.io,
                 repository.headers(),
                 &zip_path,
                 &sha_path,
@@ -450,16 +450,17 @@ impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
 /// * `sha_path`: the path to sha256 file
 /// * `sha256`: sha256 hash if specified
 ///
-/// returns: Option<File> readable zip file file or None
-async fn try_load_package_cache(
+/// returns: Option<File> readable zip file or None
+async fn try_load_package_cache<IO: EnvironmentIo>(
+    io: &IO,
     zip_path: &Path,
     sha_path: &Path,
     sha256: Option<&str>,
-) -> Option<File> {
-    let mut cache_file = File::open(zip_path).await.ok()?;
+) -> Option<IO::FileStream> {
+    let mut cache_file = io.open(zip_path).await.ok()?;
 
     let mut buf = [0u8; 256 / 4];
-    File::open(sha_path)
+    io.open(sha_path)
         .await
         .ok()?
         .read_exact(&mut buf)
@@ -475,9 +476,9 @@ async fn try_load_package_cache(
         }
     }
 
-    let mut hasher = Sha256AsyncWrite::new(tokio::io::sink());
+    let mut hasher = Sha256AsyncWrite::new(futures::io::sink());
 
-    tokio::io::copy(&mut cache_file, &mut hasher).await.ok()?;
+    futures::io::copy(&mut cache_file, &mut hasher).await.ok()?;
 
     let hash = &hasher.finalize().1[..];
     if hash != &hex[..] {
@@ -500,30 +501,26 @@ async fn try_load_package_cache(
 /// * `url`: url to zip file
 ///
 /// returns: Result<File, Error> the readable zip file.
-async fn download_package_zip(
+async fn download_package_zip<IO: EnvironmentIo>(
     http: Option<&impl HttpClient>,
+    io: &IO,
     headers: &IndexMap<Box<str>, Box<str>>,
     zip_path: &Path,
     sha_path: &Path,
     zip_file_name: &str,
     url: &Url,
-) -> io::Result<File> {
+) -> io::Result<IO::FileStream> {
     let Some(http) = http else {
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
     };
 
     // file not found: err
-    let cache_file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(&zip_path)
-        .await?;
+    let cache_file = io.create(&zip_path).await?;
 
-    let mut response = pin!(http.get(url, headers).await?.compat());
+    let mut response = pin!(http.get(url, headers).await?);
 
     let mut writer = Sha256AsyncWrite::new(cache_file);
-    tokio::io::copy(&mut response, &mut writer).await?;
+    futures::io::copy(&mut response, &mut writer).await?;
 
     let (mut cache_file, hash) = writer.finalize();
 
@@ -531,9 +528,9 @@ async fn download_package_zip(
     cache_file.seek(SeekFrom::Start(0)).await?;
 
     // write sha file
-    tokio::fs::write(
-        &sha_path,
-        format!("{} {}\n", hex::encode(&hash[..]), zip_file_name),
+    io.write(
+        sha_path,
+        format!("{} {}\n", hex::encode(&hash[..]), zip_file_name).as_bytes(),
     )
     .await?;
 

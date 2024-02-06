@@ -7,10 +7,9 @@ use futures::prelude::*;
 use indexmap::IndexMap;
 use std::convert::Infallible;
 use std::io;
-use tokio::fs::File;
 use url::Url;
 
-mod seal {
+pub(crate) mod seal {
     pub trait Sealed {}
 }
 
@@ -33,12 +32,14 @@ pub trait PackageCollection: seal::Sealed {
 ///
 /// Caching packages is responsibility of this crate.
 pub trait RemotePackageDownloader: seal::Sealed {
+    type FileStream: AsyncRead + AsyncSeek + Unpin;
+
     /// Get package from remote server.
     fn get_package(
         &self,
         repository: &LocalCachedRepository,
         package: &PackageJson,
-    ) -> impl Future<Output = io::Result<File>> + Send;
+    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
 }
 
 /// The HTTP Client.

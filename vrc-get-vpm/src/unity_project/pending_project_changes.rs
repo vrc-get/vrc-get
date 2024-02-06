@@ -13,7 +13,6 @@ use std::io;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use tokio::fs::remove_dir_all;
-use tokio_util::compat::TokioAsyncReadCompatExt;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -606,7 +605,7 @@ pub(crate) async fn add_package(
 
             // remove dest folder before extract if exists
             remove_dir_all(&dest_folder).await.ok();
-            extract_zip(zip_file.compat(), &dest_folder).await?;
+            extract_zip(zip_file, &dest_folder).await?;
 
             Ok(())
         }

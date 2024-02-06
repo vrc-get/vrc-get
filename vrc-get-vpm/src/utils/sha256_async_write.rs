@@ -1,10 +1,9 @@
+use futures::io::AsyncWrite;
 use pin_project_lite::pin_project;
 use sha2::digest::Output;
 use sha2::{Digest, Sha256};
-use std::io::Error;
 use std::pin::Pin;
 use std::task::{ready, Context, Poll};
-use tokio::io::AsyncWrite;
 
 pin_project! {
 
@@ -44,7 +43,7 @@ impl<W: AsyncWrite> AsyncWrite for Sha256AsyncWrite<W> {
         self.project().inner.poll_flush(cx)
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        self.project().inner.poll_shutdown(cx)
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        self.project().inner.poll_close(cx)
     }
 }
