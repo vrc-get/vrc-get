@@ -7,13 +7,12 @@ use reqwest::{Client, Url};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::error::Error as StdError;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fmt::{Debug, Display};
 use std::num::NonZeroU32;
 use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
-use tokio::fs::{read_dir, remove_file};
 use vrc_get_vpm::environment::EmptyEnvironment;
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
@@ -929,44 +928,9 @@ pub struct RepoCleanup {
 impl RepoCleanup {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
-
-        let mut uesr_repo_file_names = vec![
-            OsString::from("vrc-official.json"),
-            OsString::from("vrc-curated.json"),
-            OsString::from("package-cache.json"),
-        ];
-        let repos_base = env.get_repos_dir();
-
-        for x in env.get_user_repos() {
-            if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
-                if let Some(file_name) = relative.file_name() {
-                    if relative
-                        .parent()
-                        .map(|x| x.as_os_str().is_empty())
-                        .unwrap_or(true)
-                    {
-                        // the file must be in direct child of
-                        uesr_repo_file_names.push(file_name.to_owned());
-                    }
-                }
-            }
-        }
-
-        let mut entry = read_dir(repos_base).await.exit_context("reading dir");
-        while let Some(entry) = entry.next_entry().await.exit_context("reading dir") {
-            let path = entry.path();
-            if tokio::fs::metadata(&path)
-                .await
-                .map(|x| x.is_file())
-                .unwrap_or(false)
-                && path.extension() == Some(OsStr::new("json"))
-                && !uesr_repo_file_names.contains(&entry.file_name())
-            {
-                remove_file(path)
-                    .await
-                    .exit_context("removing unused files");
-            }
-        }
+        env.cleanup_repos_folder()
+            .await
+            .exit_context("cleaning up Repos directory");
     }
 }
 

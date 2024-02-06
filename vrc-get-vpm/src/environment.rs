@@ -12,7 +12,7 @@ use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
 use crate::{PackageInfo, PackageJson, VersionSelector};
 use futures::future::{join_all, try_join};
-use futures::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+use futures::prelude::*;
 use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -20,6 +20,7 @@ use lazy_static::lazy_static;
 use log::error;
 use std::cmp::Reverse;
 use std::collections::HashSet;
+use std::ffi::{OsStr, OsString};
 use std::fs::remove_file;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
@@ -28,7 +29,7 @@ use std::{env, fmt, io};
 use url::Url;
 
 use crate::environment::vrc_get_settings::VrcGetSettings;
-use crate::io::{DefaultEnvironmentIo, EnvironmentIo};
+use crate::io::{DefaultEnvironmentIo, DirEntry, EnvironmentIo};
 pub use empty::EmptyEnvironment;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
@@ -391,6 +392,43 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         .await;
 
         removed.len()
+    }
+
+    pub async fn cleanup_repos_folder(&self) -> io::Result<()> {
+        let mut uesr_repo_file_names = HashSet::<OsString>::from_iter([
+            OsString::from("vrc-official.json"),
+            OsString::from("vrc-curated.json"),
+            OsString::from("package-cache.json"),
+        ]);
+        let repos_base = self.get_repos_dir();
+
+        for x in self.get_user_repos() {
+            if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
+                if let Some(file_name) = relative.file_name() {
+                    if relative
+                        .parent()
+                        .map(|x| x.as_os_str().is_empty())
+                        .unwrap_or(true)
+                    {
+                        // the file must be in direct child of
+                        uesr_repo_file_names.insert(file_name.to_owned());
+                    }
+                }
+            }
+        }
+
+        let mut entry = self.io.read_dir("Repos").await?;
+        while let Some(entry) = entry.try_next().await? {
+            let path = entry.path();
+            if path.extension() == Some(OsStr::new("json"))
+                && !uesr_repo_file_names.contains(&entry.file_name())
+                && entry.metadata().await.map(|x| x.is_file()).unwrap_or(false)
+            {
+                self.io.remove_file(path).await?;
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
