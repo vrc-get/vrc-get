@@ -22,6 +22,11 @@ pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync + IoTrait {
 /// [UnityProject]: crate::unity_project::UnityProject
 pub trait ProjectIo: crate::traits::seal::Sealed + Sync + IoTrait {}
 
+pub enum SymlinkKind {
+    File,
+    Directory,
+}
+
 pub trait IoTrait {
     fn create_dir_all(&self, path: impl AsRef<Path>)
         -> impl Future<Output = io::Result<()>> + Send;
@@ -33,6 +38,12 @@ pub trait IoTrait {
     fn remove_file(&self, path: impl AsRef<Path>) -> impl Future<Output = io::Result<()>> + Send;
     fn remove_dir_all(&self, path: impl AsRef<Path>)
         -> impl Future<Output = io::Result<()>> + Send;
+    fn symlink(
+        &self,
+        path: impl AsRef<Path>,
+        kind: Option<SymlinkKind>,
+        link_target: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<()>> + Send;
     fn metadata(
         &self,
         path: impl AsRef<Path>,

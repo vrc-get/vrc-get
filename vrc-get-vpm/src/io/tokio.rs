@@ -1,4 +1,4 @@
-use crate::io::{EnvironmentIo, IoTrait, ProjectIo};
+use crate::io::{EnvironmentIo, IoTrait, ProjectIo, SymlinkKind};
 use futures::{Stream, TryFutureExt};
 use std::ffi::OsString;
 use std::fs::Metadata;
@@ -109,6 +109,47 @@ impl<T: TokioIoTraitImpl> IoTrait for T {
         path: impl AsRef<Path>,
     ) -> impl Future<Output = io::Result<()>> + Send {
         resolved!(self: path => fs::remove_dir_all(path))
+    }
+
+    #[cfg(unix)]
+    fn symlink(
+        &self,
+        path: impl AsRef<Path>,
+        _kind: Option<SymlinkKind>,
+        link_target: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<()>> + Send {
+        let link_target = link_target.as_ref().to_owned();
+        resolved!(self: path => fs::symlink(path, link_target))
+    }
+
+    #[cfg(windows)]
+    fn symlink(
+        &self,
+        path: impl AsRef<Path>,
+        kind: Option<SymlinkKind>,
+        link_target: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<()>> + Send {
+        let link_target = link_target.as_ref().to_owned();
+        resolved!(self: path => async move {
+            match kind {
+                Some(SymlinkKind::File) => tokio::fs::symlink_file(path, link_target).await,
+                Some(SymlinkKind::Directory) => tokio::fs::symlink_dir(path, link_target).await,
+                None => Err(io::Error::new(io::ErrorKind::InvalidInput, "symlink kind is required")),
+            }
+        })
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    fn symlink(
+        &self,
+        path: impl AsRef<Path>,
+        kind: Option<SymlinkKind>,
+        link_target: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<()>> + Send {
+        return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "platform without symlink detected",
+        ));
     }
 
     fn metadata(
