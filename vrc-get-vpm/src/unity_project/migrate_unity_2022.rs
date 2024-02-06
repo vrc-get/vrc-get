@@ -3,9 +3,8 @@ use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::AddPackageErr;
 use crate::version::UnityVersion;
 use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
-use log::{info, warn};
+use log::warn;
 use std::path::Path;
-use tokio::process::Command;
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -59,15 +58,28 @@ type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
 
 impl UnityProject {
     /// NOTE: This function will save manifest changes to disk immediately.
-    pub async fn migrate_unity_2022<E>(&mut self, env: &E, unity_executable: &Path) -> Result
+    pub async fn migrate_unity_2022<E>(&mut self, env: &E) -> Result
     where
         E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
     {
-        migrate_unity_2022_beta(self, env, unity_executable).await
+        migrate_unity_2022_beta(self, env).await
+    }
+
+    pub async fn call_unity(&self, unity_executable: &Path) -> Result {
+        let mut command = tokio::process::Command::new(unity_executable);
+        command.args(["-quit", "-batchmode", "-projectPath"]);
+        command.arg(self.project_dir());
+        let status = command.status().await?;
+
+        if !status.success() {
+            return Err(MigrateUnity2022Error::Unity(status));
+        }
+
+        Ok(())
     }
 }
 
-async fn migrate_unity_2022_beta<E>(project: &mut UnityProject, env: &E, unity2022: &Path) -> Result
+async fn migrate_unity_2022_beta<E>(project: &mut UnityProject, env: &E) -> Result
 where
     E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
 {
@@ -115,21 +127,6 @@ where
             .add_package_request(env, packages, true, false)
             .await?;
         project.apply_pending_changes(env, request).await?;
-    }
-
-    // run Unity to finalize migration
-
-    project.save().await?;
-
-    info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
-
-    let mut command = Command::new(unity2022);
-    command.args(["-quit", "-batchmode", "-projectPath"]);
-    command.arg(project.project_dir());
-    let status = command.status().await?;
-
-    if !status.success() {
-        return Err(MigrateUnity2022Error::Unity(status));
     }
 
     Ok(())
