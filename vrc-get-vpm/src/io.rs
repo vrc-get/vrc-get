@@ -7,28 +7,35 @@ use std::path::{Path, PathBuf};
 ///
 /// All relative paths should be resolved as a relative path from the environment folder.
 /// Which is `%APPDATA%\\VRChatCreatorCompanion` or `${XDG_DATA_HOME}/VRChatCreatorCompanion` by default.
-pub trait EnvironmentIo: crate::traits::seal::Sealed {
+pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync {
     fn resolve(&self, path: impl AsRef<Path>) -> PathBuf;
 
-    fn create_dir_all(&self, path: impl AsRef<Path>) -> impl Future<Output = io::Result<()>>;
+    fn create_dir_all(&self, path: impl AsRef<Path>)
+        -> impl Future<Output = io::Result<()>> + Send;
     fn write(
         &self,
         path: impl AsRef<Path>,
         content: impl AsRef<[u8]>,
-    ) -> impl Future<Output = io::Result<()>>;
+    ) -> impl Future<Output = io::Result<()>> + Send;
 
-    type FileStream: AsyncRead + AsyncWrite + AsyncSeek + Unpin;
+    type FileStream: AsyncRead + AsyncWrite + AsyncSeek + Unpin + Send;
 
     fn create_new(
         &self,
         path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<Self::FileStream>>;
-    fn create(&self, path: impl AsRef<Path>) -> impl Future<Output = io::Result<Self::FileStream>>;
-    fn open(&self, path: impl AsRef<Path>) -> impl Future<Output = io::Result<Self::FileStream>>;
+    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
+    fn create(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
+    fn open(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
 }
 
 #[derive(Debug)]
-pub(crate) struct DefaultEnvironmentIo {
+pub struct DefaultEnvironmentIo {
     root: Box<Path>,
 }
 
@@ -42,6 +49,8 @@ impl crate::traits::seal::Sealed for DefaultEnvironmentIo {}
 
 mod tokio {
     use crate::io::{DefaultEnvironmentIo, EnvironmentIo};
+    use futures::TryFutureExt;
+    use std::future::Future;
     use std::io;
     use std::path::{Path, PathBuf};
     use tokio::fs;
@@ -52,43 +61,61 @@ mod tokio {
             self.root.join(path)
         }
 
-        async fn create_dir_all(&self, path: impl AsRef<Path>) -> io::Result<()> {
-            fs::create_dir_all(self.resolve(path)).await
+        fn create_dir_all(
+            &self,
+            path: impl AsRef<Path>,
+        ) -> impl Future<Output = io::Result<()>> + Send {
+            fs::create_dir_all(self.resolve(path))
         }
 
-        async fn write(&self, path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> io::Result<()> {
+        fn write(
+            &self,
+            path: impl AsRef<Path>,
+            content: impl AsRef<[u8]>,
+        ) -> impl Future<Output = io::Result<()>> + Send {
             let path = self.resolve(path);
-            let content = content.as_ref();
-            tokio::fs::write(path, content).await
+            let content = content.as_ref().to_owned();
+            tokio::fs::write(path, content)
         }
 
         type FileStream = tokio_util::compat::Compat<fs::File>;
 
-        async fn create_new(&self, path: impl AsRef<Path>) -> io::Result<Self::FileStream> {
+        fn create_new(
+            &self,
+            path: impl AsRef<Path>,
+        ) -> impl Future<Output = io::Result<Self::FileStream>> + Send {
             let path = self.resolve(path);
-            fs::OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .read(true)
-                .open(path)
-                .await
-                .map(|file| file.compat())
+            let mut options = fs::OpenOptions::new();
+            options.create_new(true).write(true).read(true);
+            async move {
+                options
+                    .open(path)
+                    .and_then(|file| async { Ok(file.compat()) })
+                    .await
+            }
         }
 
-        async fn create(&self, path: impl AsRef<Path>) -> io::Result<Self::FileStream> {
+        fn create(
+            &self,
+            path: impl AsRef<Path>,
+        ) -> impl Future<Output = io::Result<Self::FileStream>> + Send {
             let path = self.resolve(path);
-            fs::OpenOptions::new()
-                .create(true)
-                .write(true)
-                .read(true)
-                .open(path)
-                .await
-                .map(|file| file.compat())
+            let mut options = fs::OpenOptions::new();
+            options.create(true).write(true).read(true);
+            async move {
+                options
+                    .open(path)
+                    .and_then(|file| async { Ok(file.compat()) })
+                    .await
+            }
         }
 
-        async fn open(&self, path: impl AsRef<Path>) -> io::Result<Self::FileStream> {
+        fn open(
+            &self,
+            path: impl AsRef<Path>,
+        ) -> impl Future<Output = io::Result<Self::FileStream>> + Send {
             let path = self.resolve(path);
-            fs::File::open(path).await.map(|file| file.compat())
+            fs::File::open(path).and_then(|file| async { Ok(file.compat()) })
         }
     }
 }

@@ -1,3 +1,4 @@
+use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::utils::MapResultExt;
 use crate::{Environment, PackageInfo, PackageJson, VersionSelector};
@@ -144,7 +145,7 @@ impl HttpClient for Infallible {
     }
 }
 
-impl<T: HttpClient> seal::Sealed for Environment<T> {}
+impl<T: HttpClient, IO: EnvironmentIo> seal::Sealed for Environment<T, IO> {}
 impl seal::Sealed for LocalCachedRepository {}
 impl seal::Sealed for crate::environment::UserPackageCollection {}
 impl seal::Sealed for crate::environment::RepoHolder {}

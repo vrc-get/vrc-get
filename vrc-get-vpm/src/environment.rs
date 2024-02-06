@@ -37,9 +37,9 @@ pub(crate) use uesr_package_collection::UserPackageCollection;
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
-pub struct Environment<T: HttpClient> {
+pub struct Environment<T: HttpClient, IO: EnvironmentIo = DefaultEnvironmentIo> {
     pub(crate) http: Option<T>,
-    pub(crate) io: DefaultEnvironmentIo,
+    pub(crate) io: IO,
     /// config folder.
     /// On windows, `%APPDATA%\\VRChatCreatorCompanion`.
     /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
@@ -52,7 +52,7 @@ pub struct Environment<T: HttpClient> {
     user_packages: UserPackageCollection,
 }
 
-impl<T: HttpClient> Environment<T> {
+impl<T: HttpClient> Environment<T, DefaultEnvironmentIo> {
     pub async fn load_default(http: Option<T>) -> io::Result<Self> {
         let mut folder = Self::get_local_config_folder();
         folder.push("VRChatCreatorCompanion");
@@ -98,7 +98,7 @@ impl<T: HttpClient> Environment<T> {
     }
 }
 
-impl<T: HttpClient> Environment<T> {
+impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     fn get_predefined_repos(&self) -> Vec<RepoSource<'static>> {
         lazy_static! {
             static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
@@ -206,7 +206,7 @@ impl<T: HttpClient> Environment<T> {
     }
 }
 
-impl<T: HttpClient> PackageCollection for Environment<T> {
+impl<T: HttpClient, IO: EnvironmentIo> PackageCollection for Environment<T, IO> {
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
         self.repo_cache
             .get_all_packages()
@@ -235,7 +235,7 @@ impl<T: HttpClient> PackageCollection for Environment<T> {
     }
 }
 
-impl<T: HttpClient> Environment<T> {
+impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub fn get_repos(&self) -> impl Iterator<Item = (&'_ Box<Path>, &'_ LocalCachedRepository)> {
         self.repo_cache.get_repo_with_path()
     }
@@ -403,8 +403,8 @@ impl<T: HttpClient> Environment<T> {
     }
 }
 
-impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
-    type FileStream = tokio_util::compat::Compat<tokio::fs::File>;
+impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T, IO> {
+    type FileStream = IO::FileStream;
 
     async fn get_package(
         &self,
