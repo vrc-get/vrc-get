@@ -1,4 +1,6 @@
+use crate::io::DefaultEnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
+use crate::traits::EnvironmentIoHolder;
 use crate::{PackageJson, RemotePackageDownloader};
 use futures::{AsyncRead, AsyncSeek};
 use std::future::Future;
@@ -21,6 +23,14 @@ impl RemotePackageDownloader for EmptyEnvironment {
         _package: &PackageJson,
     ) -> impl Future<Output = io::Result<Self::FileStream>> + Send {
         futures::future::err(io::Error::new(io::ErrorKind::NotFound, "not found"))
+    }
+}
+
+impl EnvironmentIoHolder for EmptyEnvironment {
+    type EnvironmentIo = DefaultEnvironmentIo;
+
+    fn io(&self) -> &Self::EnvironmentIo {
+        panic!("EmptyEnvironment::io() should not be called")
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::io::ProjectIo;
+use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::AddPackageErr;
 use crate::version::UnityVersion;
 use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
@@ -60,7 +61,7 @@ impl UnityProject {
     /// NOTE: This function will save manifest changes to disk immediately.
     pub async fn migrate_unity_2022<E>(&mut self, env: &E, unity_executable: &Path) -> Result
     where
-        E: PackageCollection + RemotePackageDownloader,
+        E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
     {
         migrate_unity_2022_beta(self, env, unity_executable).await
     }
@@ -68,7 +69,7 @@ impl UnityProject {
 
 async fn migrate_unity_2022_beta<E>(project: &mut UnityProject, env: &E, unity2022: &Path) -> Result
 where
-    E: PackageCollection + RemotePackageDownloader,
+    E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
 {
     // See https://misskey.niri.la/notes/9nod7sk4sr for migration process
     if project.unity_version().map(UnityVersion::major) != Some(2019) {

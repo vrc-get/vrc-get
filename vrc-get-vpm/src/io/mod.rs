@@ -44,6 +44,10 @@ pub trait IoTrait {
         kind: Option<SymlinkKind>,
         link_target: impl AsRef<Path>,
     ) -> impl Future<Output = io::Result<()>> + Send;
+    fn read_symlink(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<(PathBuf, Option<SymlinkKind>)>> + Send;
     fn metadata(
         &self,
         path: impl AsRef<Path>,
@@ -76,5 +80,6 @@ pub trait IoTrait {
 pub trait DirEntry {
     fn path(&self) -> PathBuf;
     fn file_name(&self) -> OsString;
+    fn file_type(&self) -> impl Future<Output = io::Result<std::fs::FileType>> + Send;
     fn metadata(&self) -> impl Future<Output = io::Result<std::fs::Metadata>> + Send;
 }

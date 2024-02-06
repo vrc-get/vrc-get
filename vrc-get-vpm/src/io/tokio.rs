@@ -122,6 +122,16 @@ impl<T: TokioIoTraitImpl> IoTrait for T {
         resolved!(self: path => fs::symlink(path, link_target))
     }
 
+    #[cfg(unix)]
+    fn read_symlink(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<(PathBuf, Option<SymlinkKind>)>> + Send {
+        resolved!(self: path => async move {
+            Ok((fs::read_link(path).await?, None))
+        })
+    }
+
     #[cfg(windows)]
     fn symlink(
         &self,
@@ -136,6 +146,29 @@ impl<T: TokioIoTraitImpl> IoTrait for T {
                 Some(SymlinkKind::Directory) => tokio::fs::symlink_dir(path, link_target).await,
                 None => Err(io::Error::new(io::ErrorKind::InvalidInput, "symlink kind is required")),
             }
+        })
+    }
+
+    #[cfg(windows)]
+    fn read_symlink(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> impl Future<Output = io::Result<(PathBuf, Option<SymlinkKind>)>> + Send {
+        use std::os::windows::fs::FileTypeExt;
+        resolved!(self: path => async move {
+            let link = fs::read_link(path).await?;
+            let file_type = fs::metadata(&link).await?;
+
+            let kind = {
+                if file_type.file_type().is_symlink_file() {
+                    Some(SymlinkKind::File)
+                } else if file_type.file_type().is_symlink_dir() {
+                    Some(SymlinkKind::Directory)
+                } else {
+                    None
+                }
+            };
+            Ok((link, kind))
         })
     }
 
@@ -248,6 +281,10 @@ impl super::DirEntry for DirEntry {
 
     fn file_name(&self) -> OsString {
         self.inner.file_name()
+    }
+
+    fn file_type(&self) -> impl Future<Output = io::Result<std::fs::FileType>> + Send {
+        self.inner.file_type()
     }
 
     fn metadata(&self) -> impl Future<Output = io::Result<Metadata>> + Send {

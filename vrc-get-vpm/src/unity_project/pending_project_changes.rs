@@ -1,4 +1,5 @@
 use crate::io::ProjectIo;
+use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
 use crate::utils::{copy_recursive, extract_zip};
 use crate::version::DependencyRange;
@@ -476,9 +477,9 @@ impl PendingProjectChanges<'_> {
 //impl<IO: ProjectIo> UnityProject<IO> { // TODO: generalize again
 impl UnityProject {
     /// Applies the changes specified in `AddPackageRequest` to the project.
-    pub async fn apply_pending_changes<'env>(
+    pub async fn apply_pending_changes<'env, Env: RemotePackageDownloader + EnvironmentIoHolder>(
         &mut self,
-        env: &'env impl RemotePackageDownloader,
+        env: &'env Env,
         request: PendingProjectChanges<'env>,
     ) -> io::Result<()> {
         let mut installs = Vec::new();
@@ -525,9 +526,9 @@ impl UnityProject {
     }
 }
 
-async fn install_packages(
+async fn install_packages<Env: RemotePackageDownloader + EnvironmentIoHolder>(
     io: &impl ProjectIo,
-    env: &impl RemotePackageDownloader,
+    env: &Env,
     packages: &[PackageInfo<'_>],
 ) -> io::Result<()> {
     // resolve all packages
@@ -593,16 +594,16 @@ async fn remove_assets(
     }
 }
 
-pub(crate) async fn add_package(
+pub(crate) async fn add_package<Env: RemotePackageDownloader + EnvironmentIoHolder>(
     io: &impl ProjectIo,
-    remote_source: &impl RemotePackageDownloader,
+    env: &Env,
     package: PackageInfo<'_>,
 ) -> io::Result<()> {
     log::debug!("adding package {}", package.name());
     let dest_folder = PathBuf::from(format!("Packages/{}", package.name()));
     match package.inner {
         PackageInfoInner::Remote(package, user_repo) => {
-            let zip_file = remote_source.get_package(user_repo, package).await?;
+            let zip_file = env.get_package(user_repo, package).await?;
 
             // remove dest folder before extract if exists
             io.remove_dir_all(&dest_folder).await.ok();
@@ -613,7 +614,7 @@ pub(crate) async fn add_package(
         PackageInfoInner::Local(_, path) => {
             io.remove_dir_all(&dest_folder).await.ok();
             // TODO: use io traits
-            copy_recursive(path.into(), io, dest_folder).await?;
+            copy_recursive(env.io(), path.into(), io, dest_folder).await?;
             Ok(())
         }
     }

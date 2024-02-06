@@ -29,6 +29,11 @@ pub trait PackageCollection: seal::Sealed {
     ) -> Option<PackageInfo>;
 }
 
+pub trait EnvironmentIoHolder: seal::Sealed {
+    type EnvironmentIo: EnvironmentIo;
+    fn io(&self) -> &Self::EnvironmentIo;
+}
+
 /// The trait for downloading remote packages.
 ///
 /// Caching packages is responsibility of this crate.

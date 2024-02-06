@@ -8,7 +8,7 @@ mod vrc_get_settings;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
 use crate::structs::setting::UserRepoSetting;
-use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
+use crate::traits::{EnvironmentIoHolder, HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{to_vec_pretty_os_eol, Sha256AsyncWrite};
 use crate::{PackageInfo, PackageJson, VersionSelector};
 use futures::future::{join_all, try_join};
@@ -230,6 +230,14 @@ impl<T: HttpClient, IO: EnvironmentIo> PackageCollection for Environment<T, IO> 
             .find_package_by_name(package, package_selector);
 
         return local.into_iter().chain(user).max_by_key(|x| x.version());
+    }
+}
+
+impl<T: HttpClient, IO: EnvironmentIo> EnvironmentIoHolder for Environment<T, IO> {
+    type EnvironmentIo = IO;
+
+    fn io(&self) -> &Self::EnvironmentIo {
+        &self.io
     }
 }
 

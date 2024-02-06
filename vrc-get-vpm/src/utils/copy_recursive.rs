@@ -1,29 +1,30 @@
-use crate::io::{IoTrait, SymlinkKind};
+use crate::io::{DirEntry, IoTrait};
 use futures::io;
+use futures::prelude::*;
 use std::collections::VecDeque;
-use std::path::{Path, PathBuf};
-use tokio_util::compat::TokioAsyncReadCompatExt;
+use std::path::PathBuf;
 
 pub(crate) async fn copy_recursive(
-    src_dir: Box<Path>,
+    src_io: &impl IoTrait,
+    src_dir: PathBuf,
     dst_io: &impl IoTrait,
     dst_dir: PathBuf,
 ) -> io::Result<()> {
     // TODO: parallelize & speedup
     let mut queue = VecDeque::new();
-    queue.push_front((src_dir.into_path_buf(), dst_dir));
+    queue.push_front((src_dir, dst_dir));
 
     while let Some((src_dir, dst_dir)) = queue.pop_back() {
-        let mut iter = tokio::fs::read_dir(src_dir).await?;
+        let mut iter = src_io.read_dir(src_dir).await?;
         dst_io.create_dir_all(&dst_dir).await?;
-        while let Some(entry) = iter.next_entry().await? {
+        while let Some(entry) = iter.try_next().await? {
             let file_type = entry.file_type().await?;
             let src = entry.path();
             let dst = dst_dir.join(entry.file_name());
 
             if file_type.is_symlink() {
                 // symlink: just copy
-                let symlink = tokio::fs::read_link(src).await?;
+                let (symlink, kind) = src_io.read_symlink(src).await?;
                 if symlink.is_absolute() {
                     return Err(io::Error::new(
                         io::ErrorKind::PermissionDenied,
@@ -31,23 +32,9 @@ pub(crate) async fn copy_recursive(
                     ));
                 }
 
-                #[cfg(not(windows))]
-                let kind: Option<SymlinkKind> = None;
-                #[cfg(windows)]
-                let kind = {
-                    use std::os::windows::fs::FileTypeExt;
-                    if file_type.is_symlink_file() {
-                        Some(SymlinkKind::File)
-                    } else if file_type.is_symlink_dir() {
-                        Some(SymlinkKind::Directory)
-                    } else {
-                        None
-                    }
-                };
-
                 dst_io.symlink(dst, kind, symlink).await?;
             } else if file_type.is_file() {
-                let mut src_file = tokio::fs::File::open(src).await?.compat();
+                let mut src_file = src_io.open(src).await?;
                 let mut dst_file = dst_io.create_new(dst).await?;
                 io::copy(&mut src_file, &mut dst_file).await?;
             } else if file_type.is_dir() {
