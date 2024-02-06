@@ -13,7 +13,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
-use tokio::fs::remove_dir_all;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -512,7 +511,7 @@ impl UnityProject {
         self.manifest
             .remove_packages(remove_names.iter().map(Box::as_ref));
 
-        install_packages(self.project_dir(), env, &installs).await?;
+        install_packages(&self.io, self.project_dir(), env, &installs).await?;
 
         remove_assets(
             &self.io,
@@ -527,6 +526,7 @@ impl UnityProject {
 }
 
 async fn install_packages(
+    io: &impl ProjectIo,
     project_dir: &Path,
     env: &impl RemotePackageDownloader,
     packages: &[PackageInfo<'_>],
@@ -537,7 +537,7 @@ async fn install_packages(
     try_join_all(
         packages
             .iter()
-            .map(|package| add_package(env, *package, &packages_folder)),
+            .map(|package| add_package(io, env, *package, &packages_folder)),
     )
     .await?;
 
@@ -597,24 +597,29 @@ async fn remove_assets(
 }
 
 pub(crate) async fn add_package(
+    io: &impl ProjectIo,
     remote_source: &impl RemotePackageDownloader,
     package: PackageInfo<'_>,
     target_packages_folder: &Path,
 ) -> io::Result<()> {
     log::debug!("adding package {}", package.name());
-    let dest_folder = target_packages_folder.join(package.name());
     match package.inner {
         PackageInfoInner::Remote(package, user_repo) => {
             let zip_file = remote_source.get_package(user_repo, package).await?;
 
             // remove dest folder before extract if exists
-            remove_dir_all(&dest_folder).await.ok();
-            extract_zip(zip_file, &dest_folder).await?;
+            let dest_folder = PathBuf::from(format!("Packages/{}", package.name()));
+            io.remove_dir_all(&dest_folder).await.ok();
+            extract_zip(zip_file, io, &dest_folder).await?;
 
             Ok(())
         }
         PackageInfoInner::Local(_, path) => {
-            remove_dir_all(&dest_folder).await.ok();
+            io.remove_dir_all(format!("Packages/{}", package.name()))
+                .await
+                .ok();
+            // TODO: use io traits
+            let dest_folder = target_packages_folder.join(package.name());
             copy_recursive(path.into(), dest_folder.into()).await?;
             Ok(())
         }

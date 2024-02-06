@@ -1,15 +1,14 @@
+use crate::io::ProjectIo;
 use crate::utils::MapResultExt;
 use async_zip::base::read::seek::ZipFileReader;
-use futures::{AsyncRead, AsyncSeek, AsyncSeekExt};
-use std::io;
+use futures::io;
+use futures::prelude::*;
 use std::io::SeekFrom;
 use std::path::{Component, Path};
-use tokio::fs::{create_dir_all, File};
-use tokio::io::AsyncWriteExt;
-use tokio_util::compat::FuturesAsyncReadCompatExt;
 
 pub(crate) async fn extract_zip(
     mut zip_file: impl AsyncRead + AsyncSeek + Unpin,
+    io: &impl ProjectIo,
     dest_folder: &Path,
 ) -> io::Result<()> {
     // extract zip file
@@ -34,12 +33,12 @@ pub(crate) async fn extract_zip(
         let path = dest_folder.join(filename);
         if filename.ends_with('/') {
             // if it's directory, just create directory
-            create_dir_all(path).await?;
+            io.create_dir_all(path).await?;
         } else {
-            let reader = zip_reader.reader_without_entry(i).await.err_mapped()?;
-            create_dir_all(path.parent().unwrap()).await?;
-            let mut dest_file = File::create(path).await?;
-            tokio::io::copy(&mut reader.compat(), &mut dest_file).await?;
+            let mut reader = zip_reader.reader_without_entry(i).await.err_mapped()?;
+            io.create_dir_all(path.parent().unwrap()).await?;
+            let mut dest_file = io.create(path).await?;
+            futures::io::copy(&mut reader, &mut dest_file).await?;
             dest_file.flush().await?;
         }
     }
