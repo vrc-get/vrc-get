@@ -4,7 +4,7 @@ use itertools::Itertools;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::num::NonZeroU32;
-use std::path::PathBuf;
+use std::path::Path;
 use vrc_get_vpm::version::{UnityVersion, Version, VersionRange};
 use vrc_get_vpm::{PackageCollection, UnityProject};
 
@@ -27,7 +27,7 @@ multi_command!(Info is Project, Package);
 pub struct Project {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
 
     /// Output json format
     #[arg(long = "json-format")]
@@ -142,8 +142,8 @@ impl Project {
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
             .flat_map(|pkg| pkg.vpm_dependencies())
-            .filter(|(k, _)| !unity.is_locked(k.as_str()))
-            .filter(|(k, _)| !unlocked_names.contains(k.as_str()))
+            .filter(|(k, _)| !unity.is_locked(k.as_ref()))
+            .filter(|(k, _)| !unlocked_names.contains(k.as_ref()))
             .into_group_map();
         for (package, requested) in unlocked_dependencies {
             packages.push(PackageInfo {

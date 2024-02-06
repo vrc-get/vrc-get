@@ -12,7 +12,7 @@ use tokio::{fs, io};
 #[derive(Debug, Deserialize)]
 struct Parsed {
     #[serde(default)]
-    dependencies: HashMap<String, UpmDependency>,
+    dependencies: HashMap<Box<str>, UpmDependency>,
 }
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ pub(super) enum UpmDependency {
     // minimum version name. build meta is not supported by upm
     Version(Version),
     // Other Notation including local file and git url
-    OtherNotation(String),
+    OtherNotation(Box<str>),
 }
 
 impl<'de> Deserialize<'de> for UpmDependency {
@@ -44,7 +44,7 @@ impl<'de> Deserialize<'de> for UpmDependency {
                 if let Ok(semver) = Version::from_str(v) {
                     Ok(UpmDependency::Version(semver))
                 } else {
-                    Ok(UpmDependency::OtherNotation(v.to_string()))
+                    Ok(UpmDependency::OtherNotation(v.into()))
                 }
             }
 
@@ -55,7 +55,7 @@ impl<'de> Deserialize<'de> for UpmDependency {
                 if let Ok(semver) = Version::from_str(&v) {
                     Ok(UpmDependency::Version(semver))
                 } else {
-                    Ok(UpmDependency::OtherNotation(v))
+                    Ok(UpmDependency::OtherNotation(v.into_boxed_str()))
                 }
             }
         }
@@ -92,7 +92,7 @@ impl UpmManifest {
         self.as_json
             .dependencies
             .iter()
-            .map(|(name, dep)| (name.as_str(), dep))
+            .map(|(name, dep)| (name.as_ref(), dep))
     }
 
     #[allow(dead_code)]
@@ -109,7 +109,7 @@ impl UpmManifest {
             .insert(name.to_string(), Value::String(version.to_string()));
         self.as_json
             .dependencies
-            .insert(name.to_string(), UpmDependency::Version(version));
+            .insert(name.into(), UpmDependency::Version(version));
         self.changed = true;
     }
 

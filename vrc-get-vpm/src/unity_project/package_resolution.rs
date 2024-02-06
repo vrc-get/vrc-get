@@ -38,11 +38,11 @@ where
     dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
 }
 
-struct Legacy<'env>(&'env [String]);
+struct Legacy<'env>(&'env [Box<str>]);
 
 impl<'env> Default for Legacy<'env> {
     fn default() -> Self {
-        static VEC: Vec<String> = Vec::new();
+        static VEC: Vec<Box<str>> = Vec::new();
         Self(&VEC)
     }
 }
@@ -152,7 +152,7 @@ where
         let info = self.dependencies.entry(locked.name()).or_default();
         info.set_using_info(
             locked.version(),
-            locked.dependencies().keys().map(|x| x.as_str()).collect(),
+            locked.dependencies().keys().map(|x| x.as_ref()).collect(),
         );
 
         if let Some(pkg) = env.find_package_by_name(
@@ -196,7 +196,7 @@ where
 
         let old_dependencies = std::mem::replace(
             &mut entry.dependencies,
-            vpm_dependencies.keys().map(|x| x.as_str()).collect(),
+            vpm_dependencies.keys().map(|x| x.as_ref()).collect(),
         );
         let old_legacy_packages =
             std::mem::replace(&mut entry.legacy_packages, Legacy(legacy_packages));
@@ -217,7 +217,7 @@ where
         // region process modern packages
         for dep in old_legacy_packages.0 {
             self.dependencies
-                .get_mut(dep.as_str())
+                .get_mut(dep.as_ref())
                 .unwrap()
                 .remove_modern_package(name);
         }
@@ -266,16 +266,16 @@ where
 
 impl<'env, 'a> ResolutionContext<'env, 'a> {
     pub(crate) fn build_result(self) -> PackageResolutionResult<'env> {
-        let mut conflicts = HashMap::<String, Vec<String>>::new();
+        let mut conflicts = HashMap::<Box<str>, Vec<Box<str>>>::new();
         for (&name, info) in &self.dependencies {
             if !info.is_legacy() && info.touched {
                 if let Some(version) = &info.current {
                     for (source, range) in &info.requirements {
                         if !range.match_pre(version, info.allow_pre || self.allow_prerelease) {
                             conflicts
-                                .entry(name.to_owned())
+                                .entry(name.into())
                                 .or_default()
-                                .push((*source).to_owned());
+                                .push((*source).into());
                         }
                     }
                 }
@@ -286,7 +286,7 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
             .dependencies
             .iter()
             .filter(|(_, info)| info.is_legacy())
-            .map(|(&name, _)| name.to_owned())
+            .map(|(&name, _)| name.into())
             .collect();
 
         let new_packages = self
@@ -307,9 +307,9 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
 pub struct PackageResolutionResult<'env> {
     pub new_packages: Vec<PackageInfo<'env>>,
     // conflict dependency -> conflicting package[])
-    pub conflicts: HashMap<String, Vec<String>>,
+    pub conflicts: HashMap<Box<str>, Vec<Box<str>>>,
     // list of names of legacy packages we found
-    pub found_legacy_packages: Vec<String>,
+    pub found_legacy_packages: Vec<Box<str>>,
 }
 
 pub(crate) fn collect_adding_packages<'a, 'env>(

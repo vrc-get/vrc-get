@@ -11,7 +11,7 @@ use std::fmt;
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ResolvePackageErr {
-    DependencyNotFound { dependency_name: String },
+    DependencyNotFound { dependency_name: Box<str> },
 }
 
 impl fmt::Display for ResolvePackageErr {
@@ -49,7 +49,7 @@ impl UnityProject {
             let pkg = env
                 .find_package_by_name(dep.name(), VersionSelector::specific_version(dep.version()))
                 .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                    dependency_name: dep.name().to_owned(),
+                    dependency_name: dep.name().into(),
                 })?;
 
             changes.install_already_locked(pkg);
@@ -81,7 +81,7 @@ impl UnityProject {
                         VersionSelector::range_for(self.unity_version(), &range.as_range()),
                     )
                     .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                        dependency_name: name.to_string(),
+                        dependency_name: name.into(),
                     })?,
                 );
                 install_names.insert(name);
@@ -108,7 +108,7 @@ impl UnityProject {
             changes.install_to_locked(x);
             if install_names.contains(x.name()) {
                 changes.add_to_dependencies(
-                    x.name().to_owned(),
+                    x.name().into(),
                     DependencyRange::version(x.version().clone()),
                 );
             }
@@ -147,9 +147,9 @@ impl UnityProject {
             .flat_map(|pkg| pkg.vpm_dependencies());
 
         let unlocked_dependencies_versions = dependencies_of_unlocked_packages
-            .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none()) // skip if already installed to locked
+            .filter(|(k, _)| self.manifest.get_locked(k.as_ref()).is_none()) // skip if already installed to locked
             .filter(|(k, _)| changes.get_installing(k).is_none()) // skip if we're installing
-            .filter(|(k, _)| !unlocked_names.contains(k.as_str())) // skip if already installed as unlocked
+            .filter(|(k, _)| !unlocked_names.contains(k.as_ref())) // skip if already installed as unlocked
             .into_group_map();
 
         if unlocked_dependencies_versions.is_empty() {

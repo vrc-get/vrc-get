@@ -7,7 +7,7 @@ use std::fmt;
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum AddPackageErr {
-    DependencyNotFound { dependency_name: String },
+    DependencyNotFound { dependency_name: Box<str> },
 }
 
 impl fmt::Display for AddPackageErr {
@@ -61,7 +61,7 @@ impl UnityProject {
 
             if to_dependencies {
                 changes.add_to_dependencies(
-                    request.name().to_owned(),
+                    request.name().into(),
                     DependencyRange::version(request.version().clone()),
                 );
             }

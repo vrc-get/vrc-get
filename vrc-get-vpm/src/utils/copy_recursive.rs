@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 use std::io;
-use std::path::PathBuf;
+use std::path::Path;
 use tokio::fs::create_dir_all;
 
-pub(crate) async fn copy_recursive(src_dir: PathBuf, dst_dir: PathBuf) -> io::Result<()> {
+pub(crate) async fn copy_recursive(src_dir: Box<Path>, dst_dir: Box<Path>) -> io::Result<()> {
     // TODO: parallelize & speedup
     let mut queue = VecDeque::new();
-    queue.push_front((src_dir, dst_dir));
+    queue.push_front((src_dir.into_path_buf(), dst_dir.into_path_buf()));
 
     while let Some((src_dir, dst_dir)) = queue.pop_back() {
         let mut iter = tokio::fs::read_dir(src_dir).await?;

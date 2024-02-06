@@ -1,6 +1,5 @@
 use crate::repository::{RemotePackages, RemoteRepository};
-use crate::structs::package::PackageJson;
-use crate::{PackageCollection, PackageInfo, VersionSelector};
+use crate::{PackageCollection, PackageInfo, PackageJson, VersionSelector};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -9,14 +8,14 @@ use url::Url;
 pub struct LocalCachedRepository {
     repo: RemoteRepository,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
-    headers: IndexMap<String, String>,
+    headers: IndexMap<Box<str>, Box<str>>,
     #[serde(rename = "vrc-get")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub vrc_get: Option<VrcGetMeta>,
 }
 
 impl LocalCachedRepository {
-    pub fn new(repo: RemoteRepository, headers: IndexMap<String, String>) -> Self {
+    pub fn new(repo: RemoteRepository, headers: IndexMap<Box<str>, Box<str>>) -> Self {
         Self {
             repo,
             headers,
@@ -24,7 +23,7 @@ impl LocalCachedRepository {
         }
     }
 
-    pub fn headers(&self) -> &IndexMap<String, String> {
+    pub fn headers(&self) -> &IndexMap<Box<str>, Box<str>> {
         &self.headers
     }
 
@@ -34,7 +33,7 @@ impl LocalCachedRepository {
 
     pub(crate) fn set_repo(&mut self, mut repo: RemoteRepository) {
         if let Some(id) = self.id() {
-            repo.set_id_if_none(|| id.to_owned());
+            repo.set_id_if_none(|| id.into());
         }
         if let Some(url) = self.url() {
             repo.set_url_if_none(|| url.to_owned());
@@ -42,11 +41,11 @@ impl LocalCachedRepository {
         self.repo = repo;
     }
 
-    pub(crate) fn set_etag(&mut self, etag: Option<String>) {
+    pub(crate) fn set_etag(&mut self, etag: Option<Box<str>>) {
         if let Some(etag) = etag {
             self.vrc_get.get_or_insert_with(Default::default).etag = etag;
         } else if let Some(x) = self.vrc_get.as_mut() {
-            x.etag.clear()
+            x.etag = "".into();
         }
     }
 
@@ -73,8 +72,8 @@ impl LocalCachedRepository {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct VrcGetMeta {
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub etag: String,
+    #[serde(default, skip_serializing_if = "str::is_empty")]
+    pub etag: Box<str>,
 }
 
 impl PackageCollection for LocalCachedRepository {

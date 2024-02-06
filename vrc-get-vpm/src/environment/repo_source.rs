@@ -5,14 +5,14 @@ use url::Url;
 
 pub(crate) struct RepoSource<'a> {
     cache_path: Cow<'a, Path>,
-    headers: &'a IndexMap<String, String>,
+    headers: &'a IndexMap<Box<str>, Box<str>>,
     url: Option<Cow<'a, Url>>,
 }
 
 impl<'a> RepoSource<'a> {
     pub fn new(
         cache_path: &'a Path,
-        headers: &'a IndexMap<String, String>,
+        headers: &'a IndexMap<Box<str>, Box<str>>,
         url: Option<&'a Url>,
     ) -> Self {
         Self {
@@ -24,7 +24,7 @@ impl<'a> RepoSource<'a> {
 
     pub fn new_owned(
         cache_path: PathBuf,
-        headers: &'a IndexMap<String, String>,
+        headers: &'a IndexMap<Box<str>, Box<str>>,
         url: Option<Url>,
     ) -> Self {
         Self {
@@ -38,7 +38,7 @@ impl<'a> RepoSource<'a> {
         &self.cache_path
     }
 
-    pub fn headers(&self) -> &IndexMap<String, String> {
+    pub fn headers(&self) -> &IndexMap<Box<str>, Box<str>> {
         self.headers
     }
 

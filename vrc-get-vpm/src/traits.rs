@@ -1,7 +1,6 @@
 use crate::repository::local::LocalCachedRepository;
-use crate::structs::package::PackageJson;
 use crate::utils::MapResultExt;
-use crate::{Environment, PackageInfo, VersionSelector};
+use crate::{Environment, PackageInfo, PackageJson, VersionSelector};
 use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;
@@ -50,7 +49,7 @@ pub trait HttpClient: Sync + seal::Sealed {
     fn get(
         &self,
         url: &Url,
-        headers: &IndexMap<String, String>,
+        headers: &IndexMap<Box<str>, Box<str>>,
     ) -> impl Future<Output = io::Result<impl AsyncRead + Send>> + Send;
 
     /// Get resource from the URL with specified headers and etag
@@ -63,23 +62,23 @@ pub trait HttpClient: Sync + seal::Sealed {
     fn get_with_etag(
         &self,
         url: &Url,
-        headers: &IndexMap<String, String>,
+        headers: &IndexMap<Box<str>, Box<str>>,
         current_etag: Option<&str>,
-    ) -> impl Future<Output = io::Result<Option<(impl AsyncRead + Send, Option<String>)>>> + Send;
+    ) -> impl Future<Output = io::Result<Option<(impl AsyncRead + Send, Option<Box<str>>)>>> + Send;
 }
 
 impl HttpClient for reqwest::Client {
     async fn get(
         &self,
         url: &Url,
-        headers: &IndexMap<String, String>,
+        headers: &IndexMap<Box<str>, Box<str>>,
     ) -> io::Result<impl AsyncRead> {
         // file not found: err
 
         let mut request = self.get(url.to_owned());
 
         for (name, header) in headers {
-            request = request.header(name, header);
+            request = request.header(name.as_ref(), header.as_ref());
         }
 
         Ok(request
@@ -95,12 +94,12 @@ impl HttpClient for reqwest::Client {
     async fn get_with_etag(
         &self,
         url: &Url,
-        headers: &IndexMap<String, String>,
+        headers: &IndexMap<Box<str>, Box<str>>,
         current_etag: Option<&str>,
-    ) -> io::Result<Option<(impl AsyncRead, Option<String>)>> {
+    ) -> io::Result<Option<(impl AsyncRead, Option<Box<str>>)>> {
         let mut request = self.get(url.to_owned());
         for (name, value) in headers {
-            request = request.header(name, value);
+            request = request.header(name.as_ref(), value.as_ref());
         }
         if let Some(etag) = current_etag {
             request = request.header("If-None-Match", etag.to_owned())
@@ -117,7 +116,7 @@ impl HttpClient for reqwest::Client {
             .headers()
             .get("Etag")
             .and_then(|x| x.to_str().ok())
-            .map(str::to_owned);
+            .map(Into::into);
 
         // response.json() doesn't support BOM
         let response_stream = response
@@ -130,16 +129,16 @@ impl HttpClient for reqwest::Client {
 }
 
 impl HttpClient for Infallible {
-    async fn get(&self, _: &Url, _: &IndexMap<String, String>) -> io::Result<impl AsyncRead> {
+    async fn get(&self, _: &Url, _: &IndexMap<Box<str>, Box<str>>) -> io::Result<impl AsyncRead> {
         Ok(futures::io::empty())
     }
 
     async fn get_with_etag(
         &self,
         _: &Url,
-        _: &IndexMap<String, String>,
+        _: &IndexMap<Box<str>, Box<str>>,
         _: Option<&str>,
-    ) -> io::Result<Option<(impl AsyncRead, Option<String>)>> {
+    ) -> io::Result<Option<(impl AsyncRead, Option<Box<str>>)>> {
         Ok(Some((futures::io::empty(), None)))
     }
 }

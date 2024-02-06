@@ -8,7 +8,6 @@ mod resolve;
 mod upm_manifest;
 mod vpm_manifest;
 
-use crate::structs::package::PackageJson;
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
@@ -16,7 +15,7 @@ use crate::version::{UnityVersion, Version, VersionRange};
 use indexmap::IndexMap;
 use log::debug;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::{env, io};
 use tokio::fs::{read_dir, DirEntry, File};
 use tokio::io::AsyncReadExt;
@@ -24,6 +23,7 @@ use tokio::io::AsyncReadExt;
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
+use crate::PackageJson;
 pub use add_package::AddPackageErr;
 pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use pending_project_changes::PendingProjectChanges;
@@ -32,7 +32,7 @@ pub use resolve::ResolvePackageErr;
 #[derive(Debug)]
 pub struct UnityProject {
     /// path to project folder.
-    project_dir: PathBuf,
+    project_dir: Box<Path>,
     /// vpm-manifest.json
     manifest: VpmManifest,
     // manifest.json
@@ -40,13 +40,13 @@ pub struct UnityProject {
     /// unity version parsed
     unity_version: Option<UnityVersion>,
     /// packages installed in the directory but not locked in vpm-manifest.json
-    unlocked_packages: Vec<(String, Option<PackageJson>)>,
-    installed_packages: HashMap<String, PackageJson>,
+    unlocked_packages: Vec<(Box<str>, Option<PackageJson>)>,
+    installed_packages: HashMap<Box<str>, PackageJson>,
 }
 
 // basic lifecycle
 impl UnityProject {
-    pub async fn find_unity_project(unity_project: Option<PathBuf>) -> io::Result<UnityProject> {
+    pub async fn find_unity_project(unity_project: Option<Box<Path>>) -> io::Result<UnityProject> {
         let unity_found = unity_project
             .ok_or(())
             .or_else(|_| UnityProject::find_unity_project_path())?;
@@ -69,7 +69,8 @@ impl UnityProject {
             let read = Self::try_read_unlocked_package(dir_entry).await;
             let mut is_installed = false;
             if let Some(parsed) = &read.1 {
-                if parsed.name() == read.0 && manifest.get_locked(parsed.name()).is_some() {
+                if parsed.name() == read.0.as_ref() && manifest.get_locked(parsed.name()).is_some()
+                {
                     is_installed = true;
                 }
             }
@@ -96,13 +97,9 @@ impl UnityProject {
         Ok(project)
     }
 
-    async fn try_read_unlocked_package(dir_entry: DirEntry) -> (String, Option<PackageJson>) {
+    async fn try_read_unlocked_package(dir_entry: DirEntry) -> (Box<str>, Option<PackageJson>) {
         let package_path = dir_entry.path();
-        let name = package_path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .into_owned();
+        let name = package_path.file_name().unwrap().to_string_lossy().into();
         let package_json_path = package_path.join("package.json");
         let parsed = try_load_json::<PackageJson>(&package_json_path)
             .await
@@ -111,7 +108,7 @@ impl UnityProject {
         (name, parsed)
     }
 
-    fn find_unity_project_path() -> io::Result<PathBuf> {
+    fn find_unity_project_path() -> io::Result<Box<Path>> {
         let mut candidate = env::current_dir()?;
 
         loop {
@@ -123,7 +120,7 @@ impl UnityProject {
                 // if there's vpm-manifest.json, it's project path
                 candidate.pop();
                 candidate.pop();
-                return Ok(candidate);
+                return Ok(candidate.into_boxed_path());
             }
 
             // replace vpm-manifest.json -> manifest.json
@@ -135,7 +132,7 @@ impl UnityProject {
                 // if there's manifest.json (which is manifest.json), it's project path
                 candidate.pop();
                 candidate.pop();
-                return Ok(candidate);
+                return Ok(candidate.into_boxed_path());
             }
 
             // remove Packages/manifest.json
@@ -243,7 +240,7 @@ impl UnityProject {
         dependencies_locked.chain(dependencies_unlocked)
     }
 
-    pub fn unlocked_packages(&self) -> &[(String, Option<PackageJson>)] {
+    pub fn unlocked_packages(&self) -> &[(Box<str>, Option<PackageJson>)] {
         &self.unlocked_packages
     }
 
@@ -272,14 +269,14 @@ impl UnityProject {
 pub struct LockedDependencyInfo<'a> {
     name: &'a str,
     version: &'a Version,
-    dependencies: &'a IndexMap<String, VersionRange>,
+    dependencies: &'a IndexMap<Box<str>, VersionRange>,
 }
 
 impl<'a> LockedDependencyInfo<'a> {
     fn new(
         name: &'a str,
         version: &'a Version,
-        dependencies: &'a IndexMap<String, VersionRange>,
+        dependencies: &'a IndexMap<Box<str>, VersionRange>,
     ) -> Self {
         Self {
             name,
@@ -296,7 +293,7 @@ impl<'a> LockedDependencyInfo<'a> {
         self.version
     }
 
-    pub fn dependencies(&self) -> &'a IndexMap<String, VersionRange> {
+    pub fn dependencies(&self) -> &'a IndexMap<Box<str>, VersionRange> {
         self.dependencies
     }
 }

@@ -7,11 +7,10 @@ mod vrc_get_settings;
 
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::{RemotePackages, RemoteRepository};
-use crate::structs::package::PackageJson;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{to_vec_pretty_os_eol, PathBufExt, Sha256AsyncWrite};
-use crate::{PackageInfo, VersionSelector};
+use crate::{PackageInfo, PackageJson, VersionSelector};
 use futures::future::{join_all, try_join};
 use hex::FromHex;
 use indexmap::IndexMap;
@@ -44,7 +43,7 @@ pub struct Environment<T: HttpClient> {
     /// config folder.
     /// On windows, `%APPDATA%\\VRChatCreatorCompanion`.
     /// On posix, `${XDG_DATA_HOME}/VRChatCreatorCompanion`.
-    pub(crate) global_dir: PathBuf,
+    pub(crate) global_dir: Box<Path>,
     /// parsed settings
     settings: Settings,
     vrc_get_settings: VrcGetSettings,
@@ -70,7 +69,7 @@ impl<T: HttpClient> Environment<T> {
             vrc_get_settings: VrcGetSettings::load(folder.join("vrc-get-settings.json")).await?,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
-            global_dir: folder,
+            global_dir: folder.into_boxed_path(),
         })
     }
 
@@ -101,7 +100,7 @@ impl<T: HttpClient> Environment<T> {
 impl<T: HttpClient> Environment<T> {
     fn get_predefined_repos(&self) -> Vec<RepoSource<'static>> {
         lazy_static! {
-            static ref EMPTY_HEADERS: IndexMap<String, String> = IndexMap::new();
+            static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
             static ref OFFICIAL_URL: Url =
                 Url::parse("https://packages.vrchat.com/official?download").unwrap();
             static ref CURATED_URL: Url =
@@ -236,7 +235,7 @@ impl<T: HttpClient> PackageCollection for Environment<T> {
 }
 
 impl<T: HttpClient> Environment<T> {
-    pub fn get_repos(&self) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+    pub fn get_repos(&self) -> impl Iterator<Item = (&'_ Box<Path>, &'_ LocalCachedRepository)> {
         self.repo_cache.get_repo_with_path()
     }
 
@@ -274,7 +273,7 @@ impl<T: HttpClient> Environment<T> {
         &mut self,
         url: Url,
         name: Option<&str>,
-        headers: IndexMap<String, String>,
+        headers: IndexMap<Box<str>, Box<str>>,
     ) -> Result<(), AddRepositoryErr> {
         let user_repos = self.get_user_repos();
         if user_repos.iter().any(|x| x.url() == Some(&url)) {
@@ -283,9 +282,9 @@ impl<T: HttpClient> Environment<T> {
         let http = self.http.as_ref().ok_or(AddRepositoryErr::OfflineMode)?;
 
         let (remote_repo, etag) = RemoteRepository::download(http, &url, &headers).await?;
-        let repo_name = name.or(remote_repo.name()).map(str::to_owned);
+        let repo_name = name.or(remote_repo.name()).map(Into::into);
 
-        let repo_id = remote_repo.id().map(str::to_owned);
+        let repo_id = remote_repo.id().map(Into::into);
 
         if let Some(repo_id) = repo_id.as_deref() {
             // if there is id, check if there is already repo with same id
@@ -317,7 +316,7 @@ impl<T: HttpClient> Environment<T> {
         Ok(())
     }
 
-    async fn write_new_repo(&self, local_cache: &LocalCachedRepository) -> io::Result<PathBuf> {
+    async fn write_new_repo(&self, local_cache: &LocalCachedRepository) -> io::Result<Box<Path>> {
         create_dir_all(self.get_repos_dir()).await?;
 
         // [0-9a-zA-Z._-]+
@@ -351,7 +350,7 @@ impl<T: HttpClient> Environment<T> {
                     file.write_all(&to_vec_pretty_os_eol(&local_cache)?).await?;
                     file.flush().await?;
 
-                    return Ok(path);
+                    return Ok(path.into_boxed_path());
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
                 Err(e) => return Err(e),
@@ -371,8 +370,8 @@ impl<T: HttpClient> Environment<T> {
         }
 
         self.settings.add_user_repo(UserRepoSetting::new(
-            path.to_owned(),
-            name.map(str::to_owned),
+            path.into(),
+            name.map(Into::into),
             None,
             None,
         ));
@@ -414,7 +413,7 @@ impl<T: HttpClient> RemotePackageDownloader for Environment<T> {
         let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name(), package.version());
         let zip_path = self
             .global_dir
-            .to_owned()
+            .to_path_buf()
             .joined("Repos")
             .joined(package.name())
             .joined(&zip_file_name);
@@ -503,7 +502,7 @@ async fn try_load_package_cache(
 /// returns: Result<File, Error> the readable zip file.
 async fn download_package_zip(
     http: Option<&impl HttpClient>,
-    headers: &IndexMap<String, String>,
+    headers: &IndexMap<Box<str>, Box<str>>,
     zip_path: &Path,
     sha_path: &Path,
     zip_file_name: &str,

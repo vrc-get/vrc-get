@@ -8,7 +8,7 @@ use url::Url;
 
 #[derive(Debug)]
 pub(crate) struct RepoHolder {
-    cached_repos_new: HashMap<PathBuf, LocalCachedRepository>,
+    cached_repos_new: HashMap<Box<Path>, LocalCachedRepository>,
 }
 
 impl RepoHolder {
@@ -29,7 +29,7 @@ impl RepoHolder {
         let repos = try_join_all(sources.map(|src| async move {
             Self::load_repo_from_source(http, &src)
                 .await
-                .map(|v| v.map(|v| (v, src.cache_path().to_path_buf())))
+                .map(|v| v.map(|v| (v, src.cache_path().into())))
         }))
         .await?;
 
@@ -57,7 +57,7 @@ impl RepoHolder {
 
     async fn load_remote_repo(
         client: Option<&impl HttpClient>,
-        headers: &IndexMap<String, String>,
+        headers: &IndexMap<Box<str>, Box<str>>,
         path: &Path,
         remote_url: &Url,
     ) -> io::Result<LocalCachedRepository> {
@@ -68,7 +68,7 @@ impl RepoHolder {
                     client,
                     &remote_url,
                     loaded.headers(),
-                    loaded.vrc_get.as_ref().map(|x| x.etag.as_str()),
+                    loaded.vrc_get.as_ref().map(|x| x.etag.as_ref()),
                 )
                 .await
                 {
@@ -125,7 +125,7 @@ impl RepoHolder {
 
     pub(crate) fn get_repo_with_path(
         &self,
-    ) -> impl Iterator<Item = (&'_ PathBuf, &'_ LocalCachedRepository)> {
+    ) -> impl Iterator<Item = (&'_ Box<Path>, &'_ LocalCachedRepository)> {
         self.cached_repos_new.iter()
     }
 
