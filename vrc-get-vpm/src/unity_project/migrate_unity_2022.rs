@@ -3,8 +3,8 @@ use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::AddPackageErr;
 use crate::version::UnityVersion;
 use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
+use futures::io;
 use log::warn;
-use std::path::Path;
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -12,8 +12,7 @@ pub enum MigrateUnity2022Error {
     UnityVersionMismatch,
     VpmPackageNotFound(&'static str),
     AddPackageErr(AddPackageErr),
-    Io(tokio::io::Error),
-    Unity(std::process::ExitStatus),
+    Io(io::Error),
 }
 
 impl std::error::Error for MigrateUnity2022Error {
@@ -35,9 +34,6 @@ impl std::fmt::Display for MigrateUnity2022Error {
             }
             MigrateUnity2022Error::AddPackageErr(err) => write!(f, "{}", err),
             MigrateUnity2022Error::Io(err) => write!(f, "{}", err),
-            MigrateUnity2022Error::Unity(status) => {
-                write!(f, "Unity exited with status {}", status)
-            }
         }
     }
 }
@@ -48,8 +44,8 @@ impl From<AddPackageErr> for MigrateUnity2022Error {
     }
 }
 
-impl From<tokio::io::Error> for MigrateUnity2022Error {
-    fn from(err: tokio::io::Error) -> Self {
+impl From<io::Error> for MigrateUnity2022Error {
+    fn from(err: io::Error) -> Self {
         MigrateUnity2022Error::Io(err)
     }
 }
@@ -63,19 +59,6 @@ impl UnityProject {
         E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
     {
         migrate_unity_2022_beta(self, env).await
-    }
-
-    pub async fn call_unity(&self, unity_executable: &Path) -> Result {
-        let mut command = tokio::process::Command::new(unity_executable);
-        command.args(["-quit", "-batchmode", "-projectPath"]);
-        command.arg(self.project_dir());
-        let status = command.status().await?;
-
-        if !status.success() {
-            return Err(MigrateUnity2022Error::Unity(status));
-        }
-
-        Ok(())
     }
 }
 
