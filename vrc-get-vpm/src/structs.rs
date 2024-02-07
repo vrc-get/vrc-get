@@ -1,9 +1,7 @@
-use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
-
 pub mod setting {
-    use super::*;
     use crate::environment::RepoSource;
+    use indexmap::IndexMap;
+    use serde::{Deserialize, Serialize};
     use std::path::Path;
     use url::Url;
 

@@ -1,8 +1,10 @@
+use crate::io;
+use crate::io::ProjectIo;
+use crate::unity_project::LockedDependencyInfo;
 use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
-use crate::version::DependencyRange;
+use crate::version::{DependencyRange, Version, VersionRange};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-
-use super::*;
 
 const MANIFEST_PATH: &str = "Packages/vpm-manifest.json";
 
