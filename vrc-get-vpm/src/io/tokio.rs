@@ -61,12 +61,14 @@ impl DefaultEnvironmentIo {
 impl crate::traits::seal::Sealed for DefaultEnvironmentIo {}
 
 impl EnvironmentIo for DefaultEnvironmentIo {
+    #[inline]
     fn resolve(&self, path: &Path) -> PathBuf {
         self.root.join(path)
     }
 }
 
 impl TokioIoTraitImpl for DefaultEnvironmentIo {
+    #[inline]
     fn resolve(&self, path: &Path) -> io::Result<PathBuf> {
         Ok(self.root.join(path))
     }
@@ -133,12 +135,14 @@ impl crate::traits::seal::Sealed for DefaultProjectIo {}
 impl ProjectIo for DefaultProjectIo {}
 
 impl FileSystemProjectIo for DefaultProjectIo {
+    #[inline]
     fn location(&self) -> &Path {
         &self.root
     }
 }
 
 impl TokioIoTraitImpl for DefaultProjectIo {
+    #[inline]
     fn resolve(&self, path: &Path) -> io::Result<PathBuf> {
         if path.is_absolute() {
             return Err(io::Error::new(
