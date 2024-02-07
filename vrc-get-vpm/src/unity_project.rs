@@ -93,7 +93,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
         dir_entry: IO::DirEntry,
     ) -> (Box<str>, Option<PackageJson>) {
         let name = dir_entry.file_name().to_string_lossy().into();
-        let package_json_path = PathBuf::from(dir_entry.file_name()).joined("package.json");
+        let package_json_path = PathBuf::from("Packages")
+            .joined(dir_entry.file_name())
+            .joined("package.json");
         let parsed = try_load_json::<PackageJson>(io, &package_json_path)
             .await
             .ok()
