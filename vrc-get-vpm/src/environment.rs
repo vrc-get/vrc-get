@@ -79,7 +79,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         if !self.vrc_get_settings.ignore_official_repository() {
             repositories.push(RepoSource::new(
-                Path::new(LOCAL_OFFICIAL_PATH),
+                LOCAL_OFFICIAL_PATH.as_ref(),
                 &EMPTY_HEADERS,
                 Some(&OFFICIAL_URL),
             ));
@@ -87,7 +87,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         if !self.vrc_get_settings.ignore_curated_repository() {
             repositories.push(RepoSource::new(
-                Path::new(LOCAL_CURATED_PATH),
+                LOCAL_CURATED_PATH.as_ref(),
                 &EMPTY_HEADERS,
                 Some(&CURATED_URL),
             ));

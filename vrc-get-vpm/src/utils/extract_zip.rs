@@ -23,7 +23,7 @@ pub(crate) async fn extract_zip(
                 "path in zip file is not utf8".to_string(),
             ));
         };
-        if !is_complete_relative(Path::new(filename)) {
+        if !is_complete_relative(filename.as_ref()) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("directory traversal detected: {}", filename),

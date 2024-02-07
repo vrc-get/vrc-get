@@ -7,7 +7,6 @@ use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt::Formatter;
-use std::path::Path;
 use std::str::FromStr;
 
 const MANIFEST_PATH: &str = "Packages/manifest.json";
@@ -76,7 +75,7 @@ pub(super) struct UpmManifest {
 
 impl UpmManifest {
     pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
-        let raw: Map<String, Value> = load_json_or_default(io, Path::new(MANIFEST_PATH)).await?;
+        let raw: Map<String, Value> = load_json_or_default(io, MANIFEST_PATH.as_ref()).await?;
         let raw_value = Value::Object(raw);
         let as_json = Parsed::deserialize(&raw_value)?;
         let raw = match raw_value {

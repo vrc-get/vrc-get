@@ -36,7 +36,7 @@ pub(super) struct VpmManifest {
 impl VpmManifest {
     pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
         Ok(Self {
-            as_json: load_json_or_default(io, Path::new(MANIFEST_PATH)).await?,
+            as_json: load_json_or_default(io, MANIFEST_PATH.as_ref()).await?,
             changed: false,
         })
     }
