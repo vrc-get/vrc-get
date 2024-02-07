@@ -1,3 +1,5 @@
+use crate::io;
+use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::utils::MapResultExt;
 use crate::{Environment, PackageInfo, PackageJson, VersionSelector};
@@ -6,11 +8,9 @@ use core::option::Option;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use std::convert::Infallible;
-use std::io;
-use tokio::fs::File;
 use url::Url;
 
-mod seal {
+pub(crate) mod seal {
     pub trait Sealed {}
 }
 
@@ -29,16 +29,23 @@ pub trait PackageCollection: seal::Sealed {
     ) -> Option<PackageInfo>;
 }
 
+pub trait EnvironmentIoHolder: seal::Sealed {
+    type EnvironmentIo: EnvironmentIo;
+    fn io(&self) -> &Self::EnvironmentIo;
+}
+
 /// The trait for downloading remote packages.
 ///
 /// Caching packages is responsibility of this crate.
 pub trait RemotePackageDownloader: seal::Sealed {
+    type FileStream: AsyncRead + AsyncSeek + Unpin;
+
     /// Get package from remote server.
     fn get_package(
         &self,
         repository: &LocalCachedRepository,
         package: &PackageJson,
-    ) -> impl Future<Output = io::Result<File>> + Send;
+    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
 }
 
 /// The HTTP Client.
@@ -130,7 +137,7 @@ impl HttpClient for reqwest::Client {
 
 impl HttpClient for Infallible {
     async fn get(&self, _: &Url, _: &IndexMap<Box<str>, Box<str>>) -> io::Result<impl AsyncRead> {
-        Ok(futures::io::empty())
+        Ok(io::empty())
     }
 
     async fn get_with_etag(
@@ -139,14 +146,13 @@ impl HttpClient for Infallible {
         _: &IndexMap<Box<str>, Box<str>>,
         _: Option<&str>,
     ) -> io::Result<Option<(impl AsyncRead, Option<Box<str>>)>> {
-        Ok(Some((futures::io::empty(), None)))
+        Ok(Some((io::empty(), None)))
     }
 }
 
-impl<T: HttpClient> seal::Sealed for Environment<T> {}
+impl<T: HttpClient, IO: EnvironmentIo> seal::Sealed for Environment<T, IO> {}
 impl seal::Sealed for LocalCachedRepository {}
 impl seal::Sealed for crate::environment::UserPackageCollection {}
 impl seal::Sealed for crate::environment::RepoHolder {}
 impl seal::Sealed for reqwest::Client {}
 impl seal::Sealed for Infallible {}
-impl seal::Sealed for crate::environment::EmptyEnvironment {}

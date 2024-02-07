@@ -1,52 +1,33 @@
+use crate::io;
+use crate::io::{DirEntry, IoTrait};
+use futures::prelude::*;
 use std::collections::VecDeque;
-use std::io;
-use std::path::Path;
-use tokio::fs::create_dir_all;
+use std::path::PathBuf;
 
-pub(crate) async fn copy_recursive(src_dir: Box<Path>, dst_dir: Box<Path>) -> io::Result<()> {
+pub(crate) async fn copy_recursive(
+    src_io: &impl IoTrait,
+    src_dir: PathBuf,
+    dst_io: &impl IoTrait,
+    dst_dir: PathBuf,
+) -> io::Result<()> {
     // TODO: parallelize & speedup
     let mut queue = VecDeque::new();
-    queue.push_front((src_dir.into_path_buf(), dst_dir.into_path_buf()));
+    queue.push_front((src_dir, dst_dir));
 
     while let Some((src_dir, dst_dir)) = queue.pop_back() {
-        let mut iter = tokio::fs::read_dir(src_dir).await?;
-        create_dir_all(&dst_dir).await?;
-        while let Some(entry) = iter.next_entry().await? {
+        let mut iter = src_io.read_dir(&src_dir).await?;
+        dst_io.create_dir_all(&dst_dir).await?;
+        while let Some(entry) = iter.try_next().await? {
             let file_type = entry.file_type().await?;
-            let src = entry.path();
+            let src = src_dir.join(entry.file_name());
             let dst = dst_dir.join(entry.file_name());
 
-            if file_type.is_symlink() {
-                // symlink: just copy
-                let symlink = tokio::fs::read_link(src).await?;
-                if symlink.is_absolute() {
-                    return Err(io::Error::new(
-                        io::ErrorKind::PermissionDenied,
-                        "absolute symlink detected",
-                    ));
-                }
-
-                #[cfg(unix)]
-                tokio::fs::symlink(dst, symlink).await?;
-                #[cfg(windows)]
-                {
-                    use std::os::windows::fs::FileTypeExt;
-                    if file_type.is_symlink_file() {
-                        tokio::fs::symlink_file(dst, symlink).await?;
-                    } else {
-                        assert!(file_type.is_symlink_dir(), "unknown symlink");
-                        tokio::fs::symlink_dir(dst, symlink).await?;
-                    }
-                }
-                #[cfg(not(any(unix, windows)))]
-                return Err(io::Error::new(
-                    io::ErrorKind::Unsupported,
-                    "platform without symlink detected",
-                ));
-            } else if file_type.is_file() {
-                tokio::fs::copy(src, dst).await?;
+            if file_type.is_file() {
+                let mut src_file = src_io.open(src.as_ref()).await?;
+                let mut dst_file = dst_io.create_new(dst.as_ref()).await?;
+                io::copy(&mut src_file, &mut dst_file).await?;
             } else if file_type.is_dir() {
-                //copy_recursive(&src, &dst).await?;
+                //copy_recursive(&src, dst_io, &dst).await?;
                 queue.push_front((src, dst));
             } else {
                 panic!("unknown file type: none of file, dir, symlink")

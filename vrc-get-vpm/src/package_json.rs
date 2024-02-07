@@ -1,4 +1,5 @@
-use super::*;
+use crate::version::{Version, VersionRange};
+use indexmap::IndexMap;
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;

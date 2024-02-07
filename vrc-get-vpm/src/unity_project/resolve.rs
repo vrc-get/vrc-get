@@ -1,3 +1,4 @@
+use crate::io::{EnvironmentIo, ProjectIo};
 use crate::unity_project::{
     package_resolution, pending_project_changes, AddPackageErr, LockedDependencyInfo,
     PendingProjectChanges,
@@ -37,10 +38,10 @@ impl From<AddPackageErr> for ResolvePackageErr {
     }
 }
 
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn resolve_request<'env>(
         &mut self,
-        env: &'env Environment<impl HttpClient>,
+        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
     ) -> Result<PendingProjectChanges<'env>, AddPackageErr> {
         let mut changes = pending_project_changes::Builder::new();
 
@@ -67,7 +68,7 @@ impl UnityProject {
 
     fn add_just_dependency<'env>(
         &self,
-        env: &'env Environment<impl HttpClient>,
+        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
         changes: &mut pending_project_changes::Builder<'env>,
     ) -> Result<(), AddPackageErr> {
         let mut to_install = vec![];
@@ -123,7 +124,7 @@ impl UnityProject {
 
     fn resolve_unlocked<'env>(
         &self,
-        env: &'env Environment<impl HttpClient>,
+        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
         changes: &mut pending_project_changes::Builder<'env>,
     ) -> Result<(), AddPackageErr> {
         if self.unlocked_packages().is_empty() {

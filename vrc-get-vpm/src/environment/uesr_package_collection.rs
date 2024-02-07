@@ -1,6 +1,7 @@
+use crate::io;
+use crate::io::EnvironmentIo;
 use crate::utils::try_load_json;
 use crate::{PackageCollection, PackageInfo, PackageJson, VersionSelector};
-use std::io;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -19,9 +20,13 @@ impl UserPackageCollection {
         self.user_packages.clear();
     }
 
-    pub(crate) async fn try_add_package(&mut self, folder: &Path) -> io::Result<()> {
+    pub(crate) async fn try_add_package(
+        &mut self,
+        io: &impl EnvironmentIo,
+        folder: &Path,
+    ) -> io::Result<()> {
         if let Some(package_json) =
-            try_load_json::<PackageJson>(&folder.join("package.json")).await?
+            try_load_json::<PackageJson>(io, &folder.join("package.json")).await?
         {
             self.user_packages.push((folder.to_owned(), package_json));
         }

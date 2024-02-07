@@ -1,3 +1,4 @@
+use crate::io::ProjectIo;
 use crate::UnityProject;
 use std::collections::HashSet;
 use std::{fmt, io};
@@ -6,7 +7,7 @@ use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::{pending_project_changes, PendingProjectChanges};
 
 // removing package
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     /// Remove specified package from self project.
     ///
     /// This doesn't look packages not listed in vpm-maniefst.json.

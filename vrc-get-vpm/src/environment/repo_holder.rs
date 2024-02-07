@@ -1,9 +1,16 @@
-use super::*;
 use crate::environment::repo_source::RepoSource;
+use crate::io;
+use crate::io::EnvironmentIo;
+use crate::repository::local::LocalCachedRepository;
+use crate::repository::RemoteRepository;
 use crate::traits::HttpClient;
-use crate::utils::{read_json_file, try_load_json};
+use crate::utils::{read_json_file, to_vec_pretty_os_eol, try_load_json};
+use crate::{PackageCollection, PackageInfo, VersionSelector};
 use futures::future::try_join_all;
+use indexmap::IndexMap;
+use log::error;
 use std::collections::HashMap;
+use std::path::Path;
 use url::Url;
 
 #[derive(Debug)]
@@ -21,13 +28,14 @@ impl RepoHolder {
 
 // new system
 impl RepoHolder {
-    pub(crate) async fn load_repos<'a>(
+    pub(crate) async fn load_repos<'a, IO: EnvironmentIo>(
         &mut self,
         http: Option<&impl HttpClient>,
+        io: &IO,
         sources: impl Iterator<Item = RepoSource<'a>>,
     ) -> io::Result<()> {
         let repos = try_join_all(sources.map(|src| async move {
-            Self::load_repo_from_source(http, &src)
+            Self::load_repo_from_source(http, io, &src)
                 .await
                 .map(|v| v.map(|v| (v, src.cache_path().into())))
         }))
@@ -40,16 +48,17 @@ impl RepoHolder {
         Ok(())
     }
 
-    async fn load_repo_from_source(
+    async fn load_repo_from_source<IO: EnvironmentIo>(
         client: Option<&impl HttpClient>,
+        io: &IO,
         source: &RepoSource<'_>,
     ) -> io::Result<Option<LocalCachedRepository>> {
         if let Some(url) = &source.url() {
-            RepoHolder::load_remote_repo(client, source.headers(), source.cache_path(), url)
+            RepoHolder::load_remote_repo(client, io, source.headers(), source.cache_path(), url)
                 .await
                 .map(Some)
         } else {
-            RepoHolder::load_local_repo(source.cache_path())
+            RepoHolder::load_local_repo(io, source.cache_path())
                 .await
                 .map(Some)
         }
@@ -57,11 +66,12 @@ impl RepoHolder {
 
     async fn load_remote_repo(
         client: Option<&impl HttpClient>,
+        io: &impl EnvironmentIo,
         headers: &IndexMap<Box<str>, Box<str>>,
         path: &Path,
         remote_url: &Url,
     ) -> io::Result<LocalCachedRepository> {
-        if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(path).await? {
+        if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(io, path).await? {
             if let (Some(client), Some(remote_url)) = (client, loaded.url().map(|x| x.to_owned())) {
                 // if it's possible to download remote repo, try to update with that
                 match RemoteRepository::download_with_etag(
@@ -77,7 +87,7 @@ impl RepoHolder {
                         loaded.set_repo(remote_repo);
                         loaded.set_etag(etag);
 
-                        tokio::fs::write(path, &to_vec_pretty_os_eol(&loaded)?)
+                        io.write(path, &to_vec_pretty_os_eol(&loaded)?)
                             .await
                             .unwrap_or_else(|e| {
                                 error!("writing local repo cache '{}': {}", path.display(), e)
@@ -105,7 +115,7 @@ impl RepoHolder {
 
             local_cache.set_etag(etag);
 
-            tokio::fs::write(path, &to_vec_pretty_os_eol(&local_cache)?)
+            io.write(path, &to_vec_pretty_os_eol(&local_cache)?)
                 .await
                 .unwrap_or_else(|e| {
                     error!("writing local repo cache '{}': {}", path.display(), e);
@@ -115,8 +125,11 @@ impl RepoHolder {
         }
     }
 
-    async fn load_local_repo(path: &Path) -> io::Result<LocalCachedRepository> {
-        read_json_file::<LocalCachedRepository>(File::open(path).await?, path).await
+    async fn load_local_repo(
+        io: &impl EnvironmentIo,
+        path: &Path,
+    ) -> io::Result<LocalCachedRepository> {
+        read_json_file::<LocalCachedRepository>(io.open(path).await?, path).await
     }
 
     pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {

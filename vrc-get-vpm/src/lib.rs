@@ -12,6 +12,7 @@ use crate::package_json::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 pub mod environment;
+pub mod io;
 pub mod package_json;
 pub mod repository;
 mod structs;

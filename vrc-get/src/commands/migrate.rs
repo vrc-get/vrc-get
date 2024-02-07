@@ -1,6 +1,6 @@
 use crate::commands::{confirm_prompt, load_env, load_unity, EnvArgs, ResultExt};
 use clap::{Parser, Subcommand};
-use log::warn;
+use log::{info, warn};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
@@ -49,10 +49,19 @@ impl Unity2022 {
         let env = load_env(&self.env_args).await;
 
         project
-            .migrate_unity_2022(&env, &self.unity)
+            .migrate_unity_2022(&env)
             .await
             .exit_context("migrating unity project");
 
-        // Already saved in migrate_unity_2022
+        project.save().await.exit_context("saving project");
+
+        info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
+
+        project
+            .call_unity(&self.unity)
+            .await
+            .exit_context("launching unity to finalize migration");
+
+        info!("Unity exited successfully. Migration finished.")
     }
 }

@@ -8,31 +8,35 @@ mod resolve;
 mod upm_manifest;
 mod vpm_manifest;
 
+use crate::io;
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::utils::{load_json_or_default, try_load_json, PathBufExt};
+use crate::utils::{try_load_json, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
+use futures::future::try_join;
+use futures::prelude::*;
 use indexmap::IndexMap;
-use log::debug;
 use std::collections::HashMap;
-use std::path::Path;
-use std::{env, io};
-use tokio::fs::{read_dir, DirEntry, File};
-use tokio::io::AsyncReadExt;
+use std::path::{Path, PathBuf};
 
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
+use crate::io::{DirEntry, FileSystemProjectIo, ProjectIo};
 use crate::PackageJson;
 pub use add_package::AddPackageErr;
 pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use pending_project_changes::PendingProjectChanges;
 pub use resolve::ResolvePackageErr;
 
+#[cfg(feature = "tokio")]
+mod call_unity;
+#[cfg(feature = "tokio")]
+pub use call_unity::ExecuteUnityError;
+
 #[derive(Debug)]
-pub struct UnityProject {
-    /// path to project folder.
-    project_dir: Box<Path>,
+pub struct UnityProject<IO: ProjectIo> {
+    io: IO,
     /// vpm-manifest.json
     manifest: VpmManifest,
     // manifest.json
@@ -45,28 +49,17 @@ pub struct UnityProject {
 }
 
 // basic lifecycle
-impl UnityProject {
-    pub async fn find_unity_project(unity_project: Option<Box<Path>>) -> io::Result<UnityProject> {
-        let unity_found = unity_project
-            .ok_or(())
-            .or_else(|_| UnityProject::find_unity_project_path())?;
-
-        log::debug!(
-            "initializing UnityProject with unity folder {}",
-            unity_found.display()
-        );
-
-        let manifest = unity_found.join("Packages").joined("vpm-manifest.json");
-        let manifest = VpmManifest::from(&manifest).await?;
-        let upm_manifest = unity_found.join("Packages").joined("manifest.json");
-        let upm_manifest = UpmManifest::from(&upm_manifest).await?;
+impl<IO: ProjectIo> UnityProject<IO> {
+    pub async fn load(io: IO) -> io::Result<Self> {
+        let manifest = VpmManifest::load(&io).await?;
+        let upm_manifest = UpmManifest::load(&io).await?;
 
         let mut installed_packages = HashMap::new();
         let mut unlocked_packages = vec![];
 
-        let mut dir_reading = read_dir(unity_found.join("Packages")).await?;
-        while let Some(dir_entry) = dir_reading.next_entry().await? {
-            let read = Self::try_read_unlocked_package(dir_entry).await;
+        let mut dir_reading = io.read_dir("Packages".as_ref()).await?;
+        while let Some(dir_entry) = dir_reading.try_next().await? {
+            let read = Self::try_read_unlocked_package(&io, dir_entry).await;
             let mut is_installed = false;
             if let Some(parsed) = &read.1 {
                 if parsed.name() == read.0.as_ref() && manifest.get_locked(parsed.name()).is_some()
@@ -81,92 +74,48 @@ impl UnityProject {
             }
         }
 
-        let unity_version = Self::try_read_unity_version(&unity_found).await;
+        let unity_version = Self::try_read_unity_version(&io).await;
 
-        let project = UnityProject {
-            project_dir: unity_found,
+        Ok(Self {
+            io,
             manifest,
             upm_manifest,
             unity_version,
             unlocked_packages,
             installed_packages,
-        };
-
-        debug!("UnityProject initialized: {:#?}", project);
-
-        Ok(project)
+        })
     }
+}
 
-    async fn try_read_unlocked_package(dir_entry: DirEntry) -> (Box<str>, Option<PackageJson>) {
-        let package_path = dir_entry.path();
-        let name = package_path.file_name().unwrap().to_string_lossy().into();
-        let package_json_path = package_path.join("package.json");
-        let parsed = try_load_json::<PackageJson>(&package_json_path)
+impl<IO: ProjectIo> UnityProject<IO> {
+    async fn try_read_unlocked_package(
+        io: &IO,
+        dir_entry: IO::DirEntry,
+    ) -> (Box<str>, Option<PackageJson>) {
+        let name = dir_entry.file_name().to_string_lossy().into();
+        let package_json_path = PathBuf::from("Packages")
+            .joined(dir_entry.file_name())
+            .joined("package.json");
+        let parsed = try_load_json::<PackageJson>(io, &package_json_path)
             .await
             .ok()
             .flatten();
         (name, parsed)
     }
 
-    fn find_unity_project_path() -> io::Result<Box<Path>> {
-        let mut candidate = env::current_dir()?;
-
-        loop {
-            candidate.push("Packages");
-            candidate.push("vpm-manifest.json");
-
-            if candidate.exists() {
-                log::debug!("vpm-manifest.json found at {}", candidate.display());
-                // if there's vpm-manifest.json, it's project path
-                candidate.pop();
-                candidate.pop();
-                return Ok(candidate.into_boxed_path());
-            }
-
-            // replace vpm-manifest.json -> manifest.json
-            candidate.pop();
-            candidate.push("manifest.json");
-
-            if candidate.exists() {
-                log::debug!("manifest.json found at {}", candidate.display());
-                // if there's manifest.json (which is manifest.json), it's project path
-                candidate.pop();
-                candidate.pop();
-                return Ok(candidate.into_boxed_path());
-            }
-
-            // remove Packages/manifest.json
-            candidate.pop();
-            candidate.pop();
-
-            log::debug!("Unity Project not found on {}", candidate.display());
-
-            // go to parent dir
-            if !candidate.pop() {
-                return Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "Unity project Not Found",
-                ));
-            }
-        }
-    }
-
-    async fn try_read_unity_version(unity_project: &Path) -> Option<UnityVersion> {
-        let project_version_file = unity_project
-            .join("ProjectSettings")
-            .joined("ProjectVersion.txt");
-
-        let mut project_version_file = match File::open(project_version_file).await {
-            Ok(file) => file,
-            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-                log::error!("ProjectVersion.txt not found");
-                return None;
-            }
-            Err(e) => {
-                log::error!("opening ProjectVersion.txt failed with error: {e}");
-                return None;
-            }
-        };
+    async fn try_read_unity_version(io: &IO) -> Option<UnityVersion> {
+        let mut project_version_file =
+            match io.open("ProjectSettings/ProjectVersion.txt".as_ref()).await {
+                Ok(file) => file,
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+                    log::error!("ProjectVersion.txt not found");
+                    return None;
+                }
+                Err(e) => {
+                    log::error!("opening ProjectVersion.txt failed with error: {e}");
+                    return None;
+                }
+            };
 
         let mut buffer = String::new();
 
@@ -195,23 +144,17 @@ impl UnityProject {
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
-        self.manifest
-            .save_to(
-                &self
-                    .project_dir
-                    .join("Packages")
-                    .joined("vpm-manifest.json"),
-            )
-            .await?;
-        self.upm_manifest
-            .save(&self.project_dir.join("Packages").joined("manifest.json"))
-            .await?;
+        try_join(
+            self.manifest.save(&self.io),
+            self.upm_manifest.save(&self.io),
+        )
+        .await?;
         Ok(())
     }
 }
 
 // accessors
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         self.manifest.all_locked()
     }
@@ -256,12 +199,14 @@ impl UnityProject {
         )
     }
 
-    pub fn project_dir(&self) -> &Path {
-        &self.project_dir
-    }
-
     pub fn unity_version(&self) -> Option<UnityVersion> {
         self.unity_version
+    }
+}
+
+impl<IO: FileSystemProjectIo + ProjectIo> UnityProject<IO> {
+    pub fn project_dir(&self) -> &Path {
+        self.io.location()
     }
 }
 

@@ -1,12 +1,11 @@
 use indexmap::IndexMap;
-use std::borrow::Cow;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use url::Url;
 
 pub(crate) struct RepoSource<'a> {
-    cache_path: Cow<'a, Path>,
+    cache_path: &'a Path,
     headers: &'a IndexMap<Box<str>, Box<str>>,
-    url: Option<Cow<'a, Url>>,
+    url: Option<&'a Url>,
 }
 
 impl<'a> RepoSource<'a> {
@@ -16,26 +15,14 @@ impl<'a> RepoSource<'a> {
         url: Option<&'a Url>,
     ) -> Self {
         Self {
-            cache_path: cache_path.into(),
+            cache_path,
             headers,
-            url: url.map(Cow::Borrowed),
-        }
-    }
-
-    pub fn new_owned(
-        cache_path: PathBuf,
-        headers: &'a IndexMap<Box<str>, Box<str>>,
-        url: Option<Url>,
-    ) -> Self {
-        Self {
-            cache_path: cache_path.into(),
-            headers,
-            url: url.map(Cow::Owned),
+            url,
         }
     }
 
     pub fn cache_path(&self) -> &Path {
-        &self.cache_path
+        self.cache_path
     }
 
     pub fn headers(&self) -> &IndexMap<Box<str>, Box<str>> {
@@ -43,6 +30,6 @@ impl<'a> RepoSource<'a> {
     }
 
     pub fn url(&self) -> Option<&Url> {
-        self.url.as_deref()
+        self.url
     }
 }

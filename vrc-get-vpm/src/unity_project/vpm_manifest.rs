@@ -1,8 +1,12 @@
-use crate::utils::to_vec_pretty_os_eol;
-use crate::version::DependencyRange;
+use crate::io;
+use crate::io::ProjectIo;
+use crate::unity_project::LockedDependencyInfo;
+use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
+use crate::version::{DependencyRange, Version, VersionRange};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-use super::*;
+const MANIFEST_PATH: &str = "Packages/vpm-manifest.json";
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,9 +36,9 @@ pub(super) struct VpmManifest {
 }
 
 impl VpmManifest {
-    pub(super) async fn from(manifest: &Path) -> io::Result<Self> {
+    pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
         Ok(Self {
-            as_json: load_json_or_default(manifest).await?,
+            as_json: load_json_or_default(io, MANIFEST_PATH.as_ref()).await?,
             changed: false,
         })
     }
@@ -94,9 +98,13 @@ impl VpmManifest {
         self.changed = true;
     }
 
-    pub(super) async fn save_to(&self, file: &Path) -> io::Result<()> {
+    pub(super) async fn save(&self, io: &impl ProjectIo) -> io::Result<()> {
         if self.changed {
-            tokio::fs::write(file, &to_vec_pretty_os_eol(&self.as_json)?).await?;
+            io.write(
+                MANIFEST_PATH.as_ref(),
+                &to_vec_pretty_os_eol(&self.as_json)?,
+            )
+            .await?;
         }
         Ok(())
     }

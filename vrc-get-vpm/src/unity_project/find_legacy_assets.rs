@@ -1,5 +1,8 @@
-use crate::utils::{walk_dir_relative, WalkDirEntry};
+use crate::io::BufReader;
+use crate::io::ProjectIo;
+use crate::utils::walk_dir_relative;
 use crate::PackageInfo;
+use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use hex::FromHex;
@@ -7,8 +10,6 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
-use tokio::fs::{metadata, File};
-use tokio::io::{AsyncBufReadExt, BufReader};
 
 pub(crate) struct LegacyAssets {
     pub(crate) files: Vec<Box<Path>>,
@@ -16,7 +17,7 @@ pub(crate) struct LegacyAssets {
 }
 
 pub(crate) async fn collect_legacy_assets(
-    project_dir: &Path,
+    io: &impl ProjectIo,
     packages: &[PackageInfo<'_>],
 ) -> LegacyAssets {
     let folders = packages
@@ -34,16 +35,10 @@ pub(crate) async fn collect_legacy_assets(
     let assets = folders.chain(files);
 
     let (mut found_files, mut found_folders, find_guids) =
-        find_legacy_assets_by_path(project_dir, assets).await;
+        find_legacy_assets_by_path(io, assets).await;
 
     if !find_guids.is_empty() {
-        find_legacy_assets_by_guid(
-            project_dir,
-            find_guids,
-            &mut found_files,
-            &mut found_folders,
-        )
-        .await;
+        find_legacy_assets_by_guid(io, find_guids, &mut found_files, &mut found_folders).await;
     }
 
     LegacyAssets {
@@ -53,7 +48,7 @@ pub(crate) async fn collect_legacy_assets(
 }
 
 async fn find_legacy_assets_by_path(
-    project_dir: &Path,
+    io: &impl ProjectIo,
     assets: impl Iterator<Item = DefinedLegacyInfo<'_>>,
 ) -> (HashSet<Box<Path>>, HashSet<Box<Path>>, HashMap<Guid, bool>) {
     use LegacySearchResult::*;
@@ -67,7 +62,8 @@ async fn find_legacy_assets_by_path(
                 return None;
             }
             #[allow(clippy::manual_map)] // it's parallel, not just a if-else
-            if metadata(project_dir.join(&relative_path))
+            if io
+                .metadata(&relative_path)
                 .await
                 .map(|x| x.is_file() == info.is_file)
                 .unwrap_or(false)
@@ -103,8 +99,8 @@ async fn find_legacy_assets_by_path(
     (found_files, found_folders, find_guids)
 }
 
-async fn try_parse_meta(path: &Path) -> Option<Guid> {
-    let mut file = BufReader::new(File::open(&path).await.ok()?);
+async fn try_parse_meta(io: &impl ProjectIo, path: &Path) -> Option<Guid> {
+    let mut file = BufReader::new(io.open(path).await.ok()?);
     let mut buffer = String::new();
     while file.read_line(&mut buffer).await.ok()? != 0 {
         let line = buffer.as_str();
@@ -119,32 +115,31 @@ async fn try_parse_meta(path: &Path) -> Option<Guid> {
 }
 
 async fn find_legacy_assets_by_guid(
-    project_dir: &Path,
+    io: &impl ProjectIo,
     mut find_guids: HashMap<Guid, bool>,
     found_files: &mut HashSet<Box<Path>>,
     found_folders: &mut HashSet<Box<Path>>,
 ) {
-    async fn get_guid(entry: WalkDirEntry) -> Option<(Guid, bool, PathBuf)> {
-        let path = entry.path();
-        if path.extension() != Some(OsStr::new("meta")) {
+    async fn get_guid<IO: ProjectIo>(io: &IO, relative: PathBuf) -> Option<(Guid, bool, PathBuf)> {
+        if relative.extension() != Some(OsStr::new("meta")) {
             None
-        } else if let Some(guid) = try_parse_meta(&path).await {
+        } else if let Some(guid) = try_parse_meta(io, &relative).await {
             // remove .meta extension
-            let mut path = path;
+            let mut path = relative;
             path.set_extension("");
 
-            let is_file = metadata(&path).await.ok()?.is_file();
-            Some((guid, is_file, entry.relative))
+            let is_file = io.metadata(&path).await.ok()?.is_file();
+            Some((guid, is_file, path))
         } else {
             None
         }
     }
 
     let mut stream = pin!(walk_dir_relative(
-        project_dir,
+        io,
         [PathBuf::from("Packages"), PathBuf::from("Assets")]
     )
-    .filter_map(get_guid));
+    .filter_map(|x| get_guid(io, x)));
 
     while let Some((guid, is_file_actual, relative)) = stream.next().await {
         if let Some(&is_file) = find_guids.get(&guid) {

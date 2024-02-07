@@ -1,3 +1,5 @@
+use crate::io;
+use crate::io::ProjectIo;
 use crate::utils::{load_json_or_default, to_vec_pretty_os_eol, JsonMapExt};
 use crate::version::Version;
 use serde::de::Error;
@@ -5,9 +7,9 @@ use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt::Formatter;
-use std::path::Path;
 use std::str::FromStr;
-use tokio::{fs, io};
+
+const MANIFEST_PATH: &str = "Packages/manifest.json";
 
 #[derive(Debug, Deserialize)]
 struct Parsed {
@@ -72,8 +74,8 @@ pub(super) struct UpmManifest {
 }
 
 impl UpmManifest {
-    pub(super) async fn from(manifest: &Path) -> io::Result<Self> {
-        let raw: Map<String, Value> = load_json_or_default(manifest).await?;
+    pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
+        let raw: Map<String, Value> = load_json_or_default(io, MANIFEST_PATH.as_ref()).await?;
         let raw_value = Value::Object(raw);
         let as_json = Parsed::deserialize(&raw_value)?;
         let raw = match raw_value {
@@ -122,10 +124,10 @@ impl UpmManifest {
         self.changed = true;
     }
 
-    pub(super) async fn save(&mut self, manifest: &Path) -> io::Result<()> {
+    pub(super) async fn save(&mut self, io: &impl ProjectIo) -> io::Result<()> {
         if self.changed {
             let json = to_vec_pretty_os_eol(&self.raw)?;
-            fs::write(manifest, json).await?;
+            io.write(MANIFEST_PATH.as_ref(), json.as_ref()).await?;
             self.changed = false;
         }
         Ok(())
