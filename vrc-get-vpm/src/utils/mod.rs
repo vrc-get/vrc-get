@@ -217,7 +217,7 @@ pub(crate) fn is_truthy(value: Option<&Value>) -> bool {
     }
 }
 
-pub(crate) async fn read_json_file2<T: serde::de::DeserializeOwned>(
+pub(crate) async fn read_json_file<T: serde::de::DeserializeOwned>(
     mut file: impl AsyncRead + Unpin,
     path: &Path,
 ) -> io::Result<T> {
@@ -236,23 +236,23 @@ pub(crate) async fn read_json_file2<T: serde::de::DeserializeOwned>(
     }
 }
 
-pub(crate) async fn try_load_json2<T: serde::de::DeserializeOwned>(
+pub(crate) async fn try_load_json<T: serde::de::DeserializeOwned>(
     io: &impl IoTrait,
     path: &Path,
 ) -> io::Result<Option<T>> {
     match io.open(path).await {
-        Ok(file) => Ok(Some(read_json_file2::<T>(file, path).await?)),
+        Ok(file) => Ok(Some(read_json_file::<T>(file, path).await?)),
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e),
     }
 }
 
-pub(crate) async fn load_json_or_default2<T>(io: &impl IoTrait, path: &Path) -> io::Result<T>
+pub(crate) async fn load_json_or_default<T>(io: &impl IoTrait, path: &Path) -> io::Result<T>
 where
     T: serde::de::DeserializeOwned + Default,
 {
     match io.open(path).await {
-        Ok(file) => Ok(read_json_file2::<T>(file, path).await?),
+        Ok(file) => Ok(read_json_file::<T>(file, path).await?),
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
         Err(e) => Err(e),
     }

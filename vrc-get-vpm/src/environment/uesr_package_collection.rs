@@ -1,6 +1,6 @@
 use crate::io;
 use crate::io::EnvironmentIo;
-use crate::utils::try_load_json2;
+use crate::utils::try_load_json;
 use crate::{PackageCollection, PackageInfo, PackageJson, VersionSelector};
 use std::path::{Path, PathBuf};
 
@@ -26,7 +26,7 @@ impl UserPackageCollection {
         folder: &Path,
     ) -> io::Result<()> {
         if let Some(package_json) =
-            try_load_json2::<PackageJson>(io, &folder.join("package.json")).await?
+            try_load_json::<PackageJson>(io, &folder.join("package.json")).await?
         {
             self.user_packages.push((folder.to_owned(), package_json));
         }

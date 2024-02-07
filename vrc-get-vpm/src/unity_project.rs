@@ -11,7 +11,7 @@ mod vpm_manifest;
 use crate::io;
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::utils::{try_load_json2, PathBufExt};
+use crate::utils::{try_load_json, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
 use futures::prelude::*;
 use indexmap::IndexMap;
@@ -93,7 +93,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
     ) -> (Box<str>, Option<PackageJson>) {
         let name = dir_entry.file_name().to_string_lossy().into();
         let package_json_path = PathBuf::from(dir_entry.file_name()).joined("package.json");
-        let parsed = try_load_json2::<PackageJson>(io, &package_json_path)
+        let parsed = try_load_json::<PackageJson>(io, &package_json_path)
             .await
             .ok()
             .flatten();

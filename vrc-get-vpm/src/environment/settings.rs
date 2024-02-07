@@ -1,6 +1,6 @@
 use crate::io;
 use crate::io::EnvironmentIo;
-use crate::utils::{load_json_or_default2, to_vec_pretty_os_eol};
+use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
 use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -72,7 +72,7 @@ const JSON_PATH: &str = "settings.json";
 
 impl Settings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
-        let parsed = load_json_or_default2(io, JSON_PATH.as_ref()).await?;
+        let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
         Ok(Self {
             as_json: parsed,
