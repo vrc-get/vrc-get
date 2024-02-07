@@ -1,5 +1,5 @@
 use crate::io;
-use crate::io::{EnvironmentIo, FileSystemProjectIo, IoTrait, ProjectIo, SymlinkKind};
+use crate::io::{EnvironmentIo, FileSystemProjectIo, IoTrait, ProjectIo};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::OsString;
@@ -169,72 +169,6 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
 
     async fn remove_dir_all(&self, path: &Path) -> io::Result<()> {
         fs::remove_dir_all(self.resolve(path)?).await
-    }
-
-    #[cfg(unix)]
-    async fn symlink(
-        &self,
-        path: &Path,
-        _kind: Option<SymlinkKind>,
-        link_target: &Path,
-    ) -> io::Result<()> {
-        fs::symlink(self.resolve(path)?, link_target).await
-    }
-
-    #[cfg(unix)]
-    async fn read_symlink(&self, path: &Path) -> io::Result<(PathBuf, Option<SymlinkKind>)> {
-        Ok((fs::read_link(self.resolve(path)?).await?, None))
-    }
-
-    #[cfg(windows)]
-    async fn symlink(
-        &self,
-        path: &Path,
-        kind: Option<SymlinkKind>,
-        link_target: &Path,
-    ) -> io::Result<()> {
-        let path = self.resolve(path)?;
-        match kind {
-            Some(SymlinkKind::File) => tokio::fs::symlink_file(path, link_target).await,
-            Some(SymlinkKind::Directory) => tokio::fs::symlink_dir(path, link_target).await,
-            None => Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "symlink kind is required",
-            )),
-        }
-    }
-
-    #[cfg(windows)]
-    async fn read_symlink(&self, path: &Path) -> io::Result<(PathBuf, Option<SymlinkKind>)> {
-        use std::os::windows::fs::FileTypeExt;
-        let path = self.resolve(path)?;
-
-        let link = fs::read_link(&path).await?;
-        let file_type = fs::metadata(&path).await?;
-
-        let kind = {
-            if file_type.file_type().is_symlink_file() {
-                Some(SymlinkKind::File)
-            } else if file_type.file_type().is_symlink_dir() {
-                Some(SymlinkKind::Directory)
-            } else {
-                None
-            }
-        };
-        Ok((link, kind))
-    }
-
-    #[cfg(not(any(unix, windows)))]
-    async fn symlink(
-        &self,
-        path: &Path,
-        kind: Option<SymlinkKind>,
-        link_target: &Path,
-    ) -> io::Result<()> {
-        return Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "platform without symlink detected",
-        ));
     }
 
     async fn metadata(&self, path: &Path) -> io::Result<Metadata> {

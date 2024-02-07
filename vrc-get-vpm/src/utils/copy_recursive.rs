@@ -22,18 +22,7 @@ pub(crate) async fn copy_recursive(
             let src = src_dir.join(entry.file_name());
             let dst = dst_dir.join(entry.file_name());
 
-            if file_type.is_symlink() {
-                // symlink: just copy
-                let (symlink, kind) = src_io.read_symlink(src.as_ref()).await?;
-                if symlink.is_absolute() {
-                    return Err(io::Error::new(
-                        io::ErrorKind::PermissionDenied,
-                        "absolute symlink detected",
-                    ));
-                }
-
-                dst_io.symlink(dst.as_ref(), kind, symlink.as_ref()).await?;
-            } else if file_type.is_file() {
+            if file_type.is_file() {
                 let mut src_file = src_io.open(src.as_ref()).await?;
                 let mut dst_file = dst_io.create_new(dst.as_ref()).await?;
                 io::copy(&mut src_file, &mut dst_file).await?;

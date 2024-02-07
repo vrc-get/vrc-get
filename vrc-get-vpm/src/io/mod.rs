@@ -34,26 +34,11 @@ pub trait FileSystemProjectIo {
     fn location(&self) -> &Path;
 }
 
-pub enum SymlinkKind {
-    File,
-    Directory,
-}
-
 pub trait IoTrait {
     fn create_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn write(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
     fn remove_file(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn remove_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
-    fn symlink(
-        &self,
-        path: &Path,
-        kind: Option<SymlinkKind>,
-        link_target: &Path,
-    ) -> impl Future<Output = Result<()>> + Send;
-    fn read_symlink(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = Result<(PathBuf, Option<SymlinkKind>)>> + Send;
     fn metadata(&self, path: &Path) -> impl Future<Output = Result<std::fs::Metadata>> + Send;
 
     type DirEntry: DirEntry;
