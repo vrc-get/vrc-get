@@ -13,6 +13,7 @@ use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{try_load_json, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
+use futures::future::try_join;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use std::collections::HashMap;
@@ -141,8 +142,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
-        self.manifest.save(&self.io).await?;
-        self.upm_manifest.save(&self.io).await?;
+        try_join(
+            self.manifest.save(&self.io),
+            self.upm_manifest.save(&self.io),
+        )
+        .await?;
         Ok(())
     }
 }
