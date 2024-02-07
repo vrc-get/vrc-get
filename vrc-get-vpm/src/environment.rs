@@ -275,13 +275,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 .etag = etag;
         }
 
-        self.io.create_dir_all(REPO_CACHE_FOLDER).await?;
+        self.io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
 
         let file_name = self.write_new_repo(&local_cache).await?;
 
         self.settings.add_user_repo(UserRepoSetting::new(
             self.io
-                .resolve(format!("{}/{}", REPO_CACHE_FOLDER, file_name))
+                .resolve(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref())
                 .into_boxed_path(),
             repo_name,
             Some(url),
@@ -291,7 +291,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     async fn write_new_repo(&self, local_cache: &LocalCachedRepository) -> io::Result<String> {
-        self.io.create_dir_all(REPO_CACHE_FOLDER).await?;
+        self.io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
 
         // [0-9a-zA-Z._-]+
         fn is_id_name_for_file(id: &str) -> bool {
@@ -315,7 +315,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         for file_name in id_names.chain(guid_names) {
             match self
                 .io
-                .create_new(format!("{}/{}", REPO_CACHE_FOLDER, file_name))
+                .create_new(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref())
                 .await
             {
                 Ok(mut file) => {
@@ -375,7 +375,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             OsString::from("vrc-curated.json"),
             OsString::from("package-cache.json"),
         ]);
-        let repos_base = self.io.resolve(REPO_CACHE_FOLDER);
+        let repos_base = self.io.resolve(REPO_CACHE_FOLDER.as_ref());
 
         for x in self.get_user_repos() {
             if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
@@ -392,7 +392,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
         }
 
-        let mut entry = self.io.read_dir(REPO_CACHE_FOLDER).await?;
+        let mut entry = self.io.read_dir(REPO_CACHE_FOLDER.as_ref()).await?;
         while let Some(entry) = entry.try_next().await? {
             let file_name: OsString = entry.file_name();
             if file_name.as_encoded_bytes().ends_with(b".json")
@@ -404,7 +404,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 path.push(REPO_CACHE_FOLDER);
                 path.push(OsStr::new("/"));
                 path.push(file_name);
-                self.io.remove_file(path).await?;
+                self.io.remove_file(path.as_ref()).await?;
             }
         }
 
@@ -536,7 +536,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     };
 
     // file not found: err
-    let cache_file = io.create(&zip_path).await?;
+    let cache_file = io.create(zip_path).await?;
 
     let mut response = pin!(http.get(url, headers).await?);
 

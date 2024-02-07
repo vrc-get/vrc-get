@@ -4,7 +4,6 @@ use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::OsString;
 use std::fs::Metadata;
-use std::future::Future;
 use std::path::Path;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -62,13 +61,13 @@ impl DefaultEnvironmentIo {
 impl crate::traits::seal::Sealed for DefaultEnvironmentIo {}
 
 impl EnvironmentIo for DefaultEnvironmentIo {
-    fn resolve(&self, path: impl AsRef<Path>) -> PathBuf {
+    fn resolve(&self, path: &Path) -> PathBuf {
         self.root.join(path)
     }
 }
 
 impl TokioIoTraitImpl for DefaultEnvironmentIo {
-    fn resolve(&self, path: impl AsRef<Path>) -> io::Result<PathBuf> {
+    fn resolve(&self, path: &Path) -> io::Result<PathBuf> {
         Ok(self.root.join(path))
     }
 }
@@ -140,8 +139,8 @@ impl FileSystemProjectIo for DefaultProjectIo {
 }
 
 impl TokioIoTraitImpl for DefaultProjectIo {
-    fn resolve(&self, path: impl AsRef<Path>) -> io::Result<PathBuf> {
-        if path.as_ref().is_absolute() {
+    fn resolve(&self, path: &Path) -> io::Result<PathBuf> {
+        if path.is_absolute() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "absolute path is not allowed",
@@ -152,176 +151,127 @@ impl TokioIoTraitImpl for DefaultProjectIo {
 }
 
 trait TokioIoTraitImpl {
-    fn resolve(&self, path: impl AsRef<Path>) -> io::Result<PathBuf>;
+    fn resolve(&self, path: &Path) -> io::Result<PathBuf>;
 }
 
-macro_rules! resolved {
-    ($self: ident: $path: ident => $expr: expr) => {{
-        let resolved = $self.resolve($path);
-        async move {
-            match resolved {
-                Ok($path) => $expr.await,
-                Err(err) => Err(err),
-            }
-        }
-    }};
-}
-
-impl<T: TokioIoTraitImpl> IoTrait for T {
-    fn create_dir_all(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<()>> + Send {
-        resolved!(self: path => fs::create_dir_all(path))
+impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
+    async fn create_dir_all(&self, path: &Path) -> io::Result<()> {
+        fs::create_dir_all(self.resolve(path)?).await
     }
 
-    fn write(
-        &self,
-        path: impl AsRef<Path>,
-        content: impl AsRef<[u8]>,
-    ) -> impl Future<Output = io::Result<()>> + Send {
-        let content = content.as_ref().to_owned();
-        resolved!(self: path => tokio::fs::write(path, content))
+    async fn write(&self, path: &Path, content: &[u8]) -> io::Result<()> {
+        tokio::fs::write(self.resolve(path)?, content).await
     }
 
-    fn remove_file(&self, path: impl AsRef<Path>) -> impl Future<Output = io::Result<()>> + Send {
-        resolved!(self: path => fs::remove_file(path))
+    async fn remove_file(&self, path: &Path) -> io::Result<()> {
+        fs::remove_file(self.resolve(path)?).await
     }
 
-    fn remove_dir_all(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<()>> + Send {
-        resolved!(self: path => fs::remove_dir_all(path))
+    async fn remove_dir_all(&self, path: &Path) -> io::Result<()> {
+        fs::remove_dir_all(self.resolve(path)?).await
     }
 
     #[cfg(unix)]
-    fn symlink(
+    async fn symlink(
         &self,
-        path: impl AsRef<Path>,
+        path: &Path,
         _kind: Option<SymlinkKind>,
-        link_target: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<()>> + Send {
-        let link_target = link_target.as_ref().to_owned();
-        resolved!(self: path => fs::symlink(path, link_target))
+        link_target: &Path,
+    ) -> io::Result<()> {
+        fs::symlink(self.resolve(path)?, link_target).await
     }
 
     #[cfg(unix)]
-    fn read_symlink(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<(PathBuf, Option<SymlinkKind>)>> + Send {
-        resolved!(self: path => async move {
-            Ok((fs::read_link(path).await?, None))
-        })
+    async fn read_symlink(&self, path: &Path) -> io::Result<(PathBuf, Option<SymlinkKind>)> {
+        Ok((fs::read_link(self.resolve(path)?).await?, None))
     }
 
     #[cfg(windows)]
-    fn symlink(
+    async fn symlink(
         &self,
-        path: impl AsRef<Path>,
+        path: &Path,
         kind: Option<SymlinkKind>,
-        link_target: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<()>> + Send {
-        let link_target = link_target.as_ref().to_owned();
-        resolved!(self: path => async move {
-            match kind {
-                Some(SymlinkKind::File) => tokio::fs::symlink_file(path, link_target).await,
-                Some(SymlinkKind::Directory) => tokio::fs::symlink_dir(path, link_target).await,
-                None => Err(io::Error::new(io::ErrorKind::InvalidInput, "symlink kind is required")),
-            }
-        })
+        link_target: &Path,
+    ) -> io::Result<()> {
+        let path = self.resolve(path)?;
+        match kind {
+            Some(SymlinkKind::File) => tokio::fs::symlink_file(path, link_target).await,
+            Some(SymlinkKind::Directory) => tokio::fs::symlink_dir(path, link_target).await,
+            None => Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "symlink kind is required",
+            )),
+        }
     }
 
     #[cfg(windows)]
-    fn read_symlink(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<(PathBuf, Option<SymlinkKind>)>> + Send {
+    async fn read_symlink(&self, path: &Path) -> io::Result<(PathBuf, Option<SymlinkKind>)> {
         use std::os::windows::fs::FileTypeExt;
-        resolved!(self: path => async move {
-            let link = fs::read_link(path).await?;
-            let file_type = fs::metadata(&link).await?;
+        let path = self.resolve(path)?;
 
-            let kind = {
-                if file_type.file_type().is_symlink_file() {
-                    Some(SymlinkKind::File)
-                } else if file_type.file_type().is_symlink_dir() {
-                    Some(SymlinkKind::Directory)
-                } else {
-                    None
-                }
-            };
-            Ok((link, kind))
-        })
+        let link = fs::read_link(&path).await?;
+        let file_type = fs::metadata(&path).await?;
+
+        let kind = {
+            if file_type.file_type().is_symlink_file() {
+                Some(SymlinkKind::File)
+            } else if file_type.file_type().is_symlink_dir() {
+                Some(SymlinkKind::Directory)
+            } else {
+                None
+            }
+        };
+        Ok((link, kind))
     }
 
     #[cfg(not(any(unix, windows)))]
-    fn symlink(
+    async fn symlink(
         &self,
-        path: impl AsRef<Path>,
+        path: &Path,
         kind: Option<SymlinkKind>,
-        link_target: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<()>> + Send {
+        link_target: &Path,
+    ) -> io::Result<()> {
         return Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "platform without symlink detected",
         ));
     }
 
-    fn metadata(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<Metadata>> + Send {
-        resolved!(self: path => fs::metadata(path))
+    async fn metadata(&self, path: &Path) -> io::Result<Metadata> {
+        fs::metadata(self.resolve(path)?).await
     }
 
     type DirEntry = DirEntry;
     type ReadDirStream = ReadDir;
 
-    fn read_dir(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<Self::ReadDirStream>> + Send {
-        resolved!(self: path => fs::read_dir(path).map_ok(ReadDir::new))
+    async fn read_dir(&self, path: &Path) -> io::Result<Self::ReadDirStream> {
+        Ok(ReadDir::new(fs::read_dir(self.resolve(path)?).await?))
     }
 
     type FileStream = tokio_util::compat::Compat<fs::File>;
 
-    fn create_new(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send {
-        resolved!(self: path => {
-            let mut options = fs::OpenOptions::new();
-            options.create_new(true).write(true).read(true);
-            async move {
-                options.open(path).map_ok(|file| file.compat()).await
-            }
-        })
+    async fn create_new(&self, path: &Path) -> io::Result<Self::FileStream> {
+        fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .read(true)
+            .open(self.resolve(path)?)
+            .map_ok(|file| file.compat())
+            .await
     }
 
-    fn create(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send {
-        resolved!(self: path => {
-            let mut options = fs::OpenOptions::new();
-            options.create(true).write(true).read(true);
-            async move {
-                options
-                    .open(path)
-                    .and_then(|file| async { Ok(file.compat()) })
-                    .await
-            }
-        })
+    async fn create(&self, path: &Path) -> io::Result<Self::FileStream> {
+        fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(self.resolve(path)?)
+            .and_then(|file| async { Ok(file.compat()) })
+            .await
     }
 
-    fn open(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send {
-        resolved!(self: path => fs::File::open(path).and_then(|file| async { Ok(file.compat()) }))
+    async fn open(&self, path: &Path) -> io::Result<Self::FileStream> {
+        Ok(fs::File::open(self.resolve(path)?).await?.compat())
     }
 }
 
@@ -363,11 +313,11 @@ impl super::DirEntry for DirEntry {
         self.inner.file_name()
     }
 
-    fn file_type(&self) -> impl Future<Output = io::Result<std::fs::FileType>> + Send {
-        self.inner.file_type()
+    async fn file_type(&self) -> io::Result<std::fs::FileType> {
+        self.inner.file_type().await
     }
 
-    fn metadata(&self) -> impl Future<Output = io::Result<Metadata>> + Send {
-        self.inner.metadata()
+    async fn metadata(&self) -> io::Result<Metadata> {
+        self.inner.metadata().await
     }
 }

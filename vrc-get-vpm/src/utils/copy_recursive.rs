@@ -24,7 +24,7 @@ pub(crate) async fn copy_recursive(
 
             if file_type.is_symlink() {
                 // symlink: just copy
-                let (symlink, kind) = src_io.read_symlink(src).await?;
+                let (symlink, kind) = src_io.read_symlink(src.as_ref()).await?;
                 if symlink.is_absolute() {
                     return Err(io::Error::new(
                         io::ErrorKind::PermissionDenied,
@@ -32,10 +32,10 @@ pub(crate) async fn copy_recursive(
                     ));
                 }
 
-                dst_io.symlink(dst, kind, symlink).await?;
+                dst_io.symlink(dst.as_ref(), kind, symlink.as_ref()).await?;
             } else if file_type.is_file() {
-                let mut src_file = src_io.open(src).await?;
-                let mut dst_file = dst_io.create_new(dst).await?;
+                let mut src_file = src_io.open(src.as_ref()).await?;
+                let mut dst_file = dst_io.create_new(dst.as_ref()).await?;
                 io::copy(&mut src_file, &mut dst_file).await?;
             } else if file_type.is_dir() {
                 //copy_recursive(&src, dst_io, &dst).await?;

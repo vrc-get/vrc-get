@@ -128,7 +128,7 @@ impl UpmManifest {
     pub(super) async fn save(&mut self, io: &impl ProjectIo) -> io::Result<()> {
         if self.changed {
             let json = to_vec_pretty_os_eol(&self.raw)?;
-            io.write(&MANIFEST_PATH, json).await?;
+            io.write(MANIFEST_PATH.as_ref(), json.as_ref()).await?;
             self.changed = false;
         }
         Ok(())

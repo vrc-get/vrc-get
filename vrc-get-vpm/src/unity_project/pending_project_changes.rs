@@ -573,21 +573,25 @@ async fn remove_assets(
     }
 
     async fn remove_file(io: &impl ProjectIo, path: &Path) {
-        if let Some(err) = io.remove_file(&path).await.err() {
+        if let Some(err) = io.remove_file(path).await.err() {
             log::error!("error removing legacy asset at {}: {}", path.display(), err);
         }
         remove_meta_file(io, path.to_owned()).await;
     }
 
     async fn remove_folder(io: &impl ProjectIo, path: &Path) {
-        if let Some(err) = io.remove_dir_all(&path).await.err() {
+        if let Some(err) = io.remove_dir_all(path).await.err() {
             log::error!("error removing legacy asset at {}: {}", path.display(), err);
         }
         remove_meta_file(io, path.to_owned()).await;
     }
 
     async fn remove_package(io: &impl ProjectIo, name: &str) {
-        if let Some(err) = io.remove_dir_all(&format!("Packages/{}", name)).await.err() {
+        if let Some(err) = io
+            .remove_dir_all(format!("Packages/{}", name).as_ref())
+            .await
+            .err()
+        {
             log::error!("error removing legacy package {}: {}", name, err);
         }
     }

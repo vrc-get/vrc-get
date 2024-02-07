@@ -98,8 +98,11 @@ impl VpmManifest {
 
     pub(super) async fn save(&self, io: &impl ProjectIo) -> io::Result<()> {
         if self.changed {
-            io.write(&MANIFEST_PATH, &to_vec_pretty_os_eol(&self.as_json)?)
-                .await?;
+            io.write(
+                MANIFEST_PATH.as_ref(),
+                &to_vec_pretty_os_eol(&self.as_json)?,
+            )
+            .await?;
         }
         Ok(())
     }

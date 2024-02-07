@@ -129,8 +129,8 @@ impl Settings {
             return Ok(());
         }
 
-        io.create_dir_all(".").await?;
-        io.write(JSON_PATH, &to_vec_pretty_os_eol(&self.as_json)?)
+        io.create_dir_all(".".as_ref()).await?;
+        io.write(JSON_PATH.as_ref(), &to_vec_pretty_os_eol(&self.as_json)?)
             .await?;
 
         self.settings_changed = false;

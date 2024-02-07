@@ -56,7 +56,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let mut installed_packages = HashMap::new();
         let mut unlocked_packages = vec![];
 
-        let mut dir_reading = io.read_dir("Packages").await?;
+        let mut dir_reading = io.read_dir("Packages".as_ref()).await?;
         while let Some(dir_entry) = dir_reading.try_next().await? {
             let read = Self::try_read_unlocked_package(&io, dir_entry).await;
             let mut is_installed = false;
@@ -101,17 +101,18 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 
     async fn try_read_unity_version(io: &IO) -> Option<UnityVersion> {
-        let mut project_version_file = match io.open("ProjectSettings/ProjectVersion.txt").await {
-            Ok(file) => file,
-            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-                log::error!("ProjectVersion.txt not found");
-                return None;
-            }
-            Err(e) => {
-                log::error!("opening ProjectVersion.txt failed with error: {e}");
-                return None;
-            }
-        };
+        let mut project_version_file =
+            match io.open("ProjectSettings/ProjectVersion.txt".as_ref()).await {
+                Ok(file) => file,
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+                    log::error!("ProjectVersion.txt not found");
+                    return None;
+                }
+                Err(e) => {
+                    log::error!("opening ProjectVersion.txt failed with error: {e}");
+                    return None;
+                }
+            };
 
         let mut buffer = String::new();
 

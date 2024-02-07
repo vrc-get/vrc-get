@@ -33,11 +33,11 @@ pub(crate) async fn extract_zip(
         let path = dest_folder.join(filename);
         if filename.ends_with('/') {
             // if it's directory, just create directory
-            io.create_dir_all(path).await?;
+            io.create_dir_all(path.as_ref()).await?;
         } else {
             let mut reader = zip_reader.reader_without_entry(i).await.err_mapped()?;
             io.create_dir_all(path.parent().unwrap()).await?;
-            let mut dest_file = io.create(path).await?;
+            let mut dest_file = io.create(path.as_ref()).await?;
             io::copy(&mut reader, &mut dest_file).await?;
             dest_file.flush().await?;
         }

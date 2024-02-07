@@ -100,7 +100,7 @@ async fn find_legacy_assets_by_path(
 }
 
 async fn try_parse_meta(io: &impl ProjectIo, path: &Path) -> Option<Guid> {
-    let mut file = BufReader::new(io.open(&path).await.ok()?);
+    let mut file = BufReader::new(io.open(path).await.ok()?);
     let mut buffer = String::new();
     while file.read_line(&mut buffer).await.ok()? != 0 {
         let line = buffer.as_str();
