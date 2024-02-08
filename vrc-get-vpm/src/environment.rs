@@ -78,21 +78,23 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let mut repositories = Vec::with_capacity(2);
 
         if !self.vrc_get_settings.ignore_official_repository() {
-            warn!("ignoring official repository is experimental feature!");
             repositories.push(RepoSource::new(
                 LOCAL_OFFICIAL_PATH.as_ref(),
                 &EMPTY_HEADERS,
                 Some(&OFFICIAL_URL),
             ));
+        } else {
+            warn!("ignoring official repository is experimental feature!");
         }
 
         if !self.vrc_get_settings.ignore_curated_repository() {
-            warn!("ignoring curated repository is experimental feature!");
             repositories.push(RepoSource::new(
                 LOCAL_CURATED_PATH.as_ref(),
                 &EMPTY_HEADERS,
                 Some(&CURATED_URL),
             ));
+        } else {
+            warn!("ignoring curated repository is experimental feature!");
         }
 
         repositories
