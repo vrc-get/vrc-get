@@ -1726,6 +1726,7 @@ dependencies = [
  "tokio-util",
  "url",
  "uuid",
+ "vrc-get-litedb",
 ]
 
 [[package]]
