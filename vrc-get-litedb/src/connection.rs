@@ -105,10 +105,8 @@ extern "C" {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bson::{DateTime, ObjectId};
-    use crate::project::ProjectType;
 
-    const TEST_DB_PATH: &str = "test-resources/vcc.liteDb";
+    pub(super) const TEST_DB_PATH: &str = "test-resources/vcc.liteDb";
 
     #[test]
     fn not_found() {
@@ -136,6 +134,14 @@ mod tests {
             .connect()
             .unwrap();
     }
+}
+
+#[cfg(test)]
+mod project_op_tests {
+    use super::tests::*;
+    use super::*;
+    use crate::bson::{DateTime, ObjectId};
+    use crate::project::ProjectType;
 
     #[test]
     fn test_update() {
