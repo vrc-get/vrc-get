@@ -59,8 +59,6 @@ impl DefaultEnvironmentIo {
     }
 }
 
-impl crate::traits::seal::Sealed for DefaultEnvironmentIo {}
-
 impl EnvironmentIo for DefaultEnvironmentIo {
     #[inline]
     fn resolve(&self, path: &Path) -> PathBuf {
@@ -130,8 +128,6 @@ impl DefaultProjectIo {
         }
     }
 }
-
-impl crate::traits::seal::Sealed for DefaultProjectIo {}
 
 impl ProjectIo for DefaultProjectIo {}
 
