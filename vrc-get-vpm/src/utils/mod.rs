@@ -1,6 +1,7 @@
 mod copy_recursive;
 mod crlf_json_formatter;
 mod extract_zip;
+mod save_controller;
 mod sha256_async_write;
 
 use crate::io;
@@ -18,6 +19,7 @@ use std::task::{ready, Context, Poll};
 pub(crate) use copy_recursive::copy_recursive;
 pub(crate) use crlf_json_formatter::to_vec_pretty_os_eol;
 pub(crate) use extract_zip::extract_zip;
+pub(crate) use save_controller::SaveController;
 pub(crate) use sha256_async_write::Sha256AsyncWrite;
 
 pub(crate) trait PathBufExt {
