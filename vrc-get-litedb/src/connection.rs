@@ -143,9 +143,15 @@ mod project_op_tests {
     use crate::bson::{DateTime, ObjectId};
     use crate::project::ProjectType;
 
+    macro_rules! temp_path {
+        ($name: literal) => {
+            concat!("test-resources/test-project-", $name, ".liteDb")
+        };
+    }
+
     #[test]
     fn test_update() {
-        let copied = "test-resources/test-update.liteDb";
+        let copied = temp_path!("update");
         std::fs::remove_file(copied).ok();
         std::fs::copy(TEST_DB_PATH, copied).unwrap();
         let connection = ConnectionString::new(copied).connect().unwrap();
@@ -186,7 +192,7 @@ mod project_op_tests {
 
     #[test]
     fn test_insert() {
-        let copied = "test-resources/test-insert.liteDb";
+        let copied = temp_path!("insert");
         std::fs::remove_file(copied).ok();
         std::fs::copy(TEST_DB_PATH, copied).unwrap();
         let connection = ConnectionString::new(copied).connect().unwrap();
@@ -225,7 +231,7 @@ mod project_op_tests {
 
     #[test]
     fn test_delete() {
-        let copied = "test-resources/test-delete.liteDb";
+        let copied = temp_path!("delete");
         std::fs::remove_file(copied).ok();
         std::fs::copy(TEST_DB_PATH, copied).unwrap();
         let connection = ConnectionString::new(copied).connect().unwrap();
