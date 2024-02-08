@@ -1,4 +1,5 @@
-use super::*;
+use crate::version::parsing_buf::{FromParsingBuf, ParseVersionError, ParsingBuf};
+use crate::version::segment::Segment;
 use crate::version::{BuildMetadata, Prerelease};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Write};

@@ -1,16 +1,20 @@
-use crate::utils::to_vec_pretty_os_eol;
-use crate::version::DependencyRange;
+use crate::io;
+use crate::io::ProjectIo;
+use crate::unity_project::LockedDependencyInfo;
+use crate::utils::{load_json_or_default, SaveController};
+use crate::version::{DependencyRange, Version, VersionRange};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-use super::*;
+const MANIFEST_PATH: &str = "Packages/vpm-manifest.json";
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AsJson {
     #[serde(default)]
-    dependencies: IndexMap<String, VpmDependency>,
+    dependencies: IndexMap<Box<str>, VpmDependency>,
     #[serde(default)]
-    locked: IndexMap<String, VpmLockedDependency>,
+    locked: IndexMap<Box<str>, VpmLockedDependency>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -22,82 +26,80 @@ struct VpmDependency {
 struct VpmLockedDependency {
     pub version: Version,
     #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
-    pub dependencies: IndexMap<String, VersionRange>,
+    pub dependencies: IndexMap<Box<str>, VersionRange>,
 }
 
 #[derive(Debug)]
 pub(super) struct VpmManifest {
-    as_json: AsJson,
-    changed: bool,
+    controller: SaveController<AsJson>,
 }
 
 impl VpmManifest {
-    pub(super) async fn from(manifest: &Path) -> io::Result<Self> {
+    pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
         Ok(Self {
-            as_json: load_json_or_default(manifest).await?,
-            changed: false,
+            controller: SaveController::new(
+                load_json_or_default(io, MANIFEST_PATH.as_ref()).await?,
+            ),
         })
     }
 
     pub(super) fn dependencies(&self) -> impl Iterator<Item = (&str, &DependencyRange)> {
-        self.as_json
+        self.controller
             .dependencies
             .iter()
-            .map(|(name, dep)| (name.as_str(), &dep.version))
+            .map(|(name, dep)| (name.as_ref(), &dep.version))
     }
 
     pub(super) fn get_dependency(&self, package: &str) -> Option<&DependencyRange> {
-        self.as_json.dependencies.get(package).map(|x| &x.version)
+        self.controller
+            .dependencies
+            .get(package)
+            .map(|x| &x.version)
     }
 
     pub(super) fn all_locked(&self) -> impl Iterator<Item = LockedDependencyInfo> {
-        self.as_json.locked.iter().map(|(name, dep)| {
-            LockedDependencyInfo::new(name.as_str(), &dep.version, &dep.dependencies)
+        self.controller.locked.iter().map(|(name, dep)| {
+            LockedDependencyInfo::new(name.as_ref(), &dep.version, &dep.dependencies)
         })
     }
 
     pub(super) fn get_locked(&self, package: &str) -> Option<LockedDependencyInfo> {
-        self.as_json
+        self.controller
             .locked
             .get_key_value(package)
             .map(|(package, x)| LockedDependencyInfo::new(package, &x.version, &x.dependencies))
     }
 
     pub(super) fn add_dependency(&mut self, name: &str, version: DependencyRange) {
-        self.as_json
+        self.controller
+            .as_mut()
             .dependencies
-            .insert(name.to_owned(), VpmDependency { version });
-        self.changed = true;
+            .insert(name.into(), VpmDependency { version });
     }
 
     pub(super) fn add_locked(
         &mut self,
         name: &str,
         version: Version,
-        dependencies: IndexMap<String, VersionRange>,
+        dependencies: IndexMap<Box<str>, VersionRange>,
     ) {
-        self.as_json.locked.insert(
-            name.to_owned(),
+        self.controller.as_mut().locked.insert(
+            name.into(),
             VpmLockedDependency {
                 version,
                 dependencies,
             },
         );
-        self.changed = true;
     }
 
     pub(crate) fn remove_packages<'a>(&mut self, names: impl Iterator<Item = &'a str>) {
         for name in names {
-            self.as_json.locked.shift_remove(name);
-            self.as_json.dependencies.shift_remove(name);
+            self.controller.as_mut().locked.shift_remove(name);
+            self.controller.as_mut().dependencies.shift_remove(name);
         }
-        self.changed = true;
     }
 
-    pub(super) async fn save_to(&self, file: &Path) -> io::Result<()> {
-        if self.changed {
-            tokio::fs::write(file, &to_vec_pretty_os_eol(&self.as_json)?).await?;
-        }
-        Ok(())
+    pub(super) async fn save(&mut self, io: &impl ProjectIo) -> io::Result<()> {
+        self.controller.save(io, MANIFEST_PATH.as_ref()).await
     }
 }

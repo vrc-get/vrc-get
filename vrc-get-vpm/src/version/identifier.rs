@@ -5,11 +5,11 @@ use std::fmt::{Debug, Formatter};
 #[repr(C, align(8))]
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub(super) struct Identifier {
-    vec: String,
+    vec: Option<Box<str>>,
 }
 
 impl Identifier {
-    pub const EMPTY: Identifier = Identifier { vec: String::new() };
+    pub const EMPTY: Identifier = Identifier { vec: None };
 
     /// Creates new Identifier
     ///
@@ -17,17 +17,17 @@ impl Identifier {
     /// if it contain non-ASCII bytes, it will undefined behaviour
     pub(crate) fn new(string: &str) -> Self {
         Self {
-            vec: string.to_owned(),
+            vec: Some(string.into()),
         }
     }
 
     /// Returns true if this is empty identifier
     pub(crate) fn is_empty(&self) -> bool {
-        self.vec.is_empty()
+        self.vec.as_ref().map(|x| x.is_empty()).unwrap_or(true)
     }
 
     pub fn as_str(&self) -> &str {
-        &self.vec
+        self.vec.as_deref().unwrap_or("")
     }
 }
 

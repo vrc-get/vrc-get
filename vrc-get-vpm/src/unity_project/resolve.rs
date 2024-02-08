@@ -1,3 +1,4 @@
+use crate::io::{EnvironmentIo, ProjectIo};
 use crate::unity_project::{
     package_resolution, pending_project_changes, AddPackageErr, LockedDependencyInfo,
     PendingProjectChanges,
@@ -11,7 +12,7 @@ use std::fmt;
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ResolvePackageErr {
-    DependencyNotFound { dependency_name: String },
+    DependencyNotFound { dependency_name: Box<str> },
 }
 
 impl fmt::Display for ResolvePackageErr {
@@ -37,10 +38,10 @@ impl From<AddPackageErr> for ResolvePackageErr {
     }
 }
 
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn resolve_request<'env>(
         &mut self,
-        env: &'env Environment<impl HttpClient>,
+        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
     ) -> Result<PendingProjectChanges<'env>, AddPackageErr> {
         let mut changes = pending_project_changes::Builder::new();
 
@@ -49,7 +50,7 @@ impl UnityProject {
             let pkg = env
                 .find_package_by_name(dep.name(), VersionSelector::specific_version(dep.version()))
                 .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                    dependency_name: dep.name().to_owned(),
+                    dependency_name: dep.name().into(),
                 })?;
 
             changes.install_already_locked(pkg);
@@ -67,7 +68,7 @@ impl UnityProject {
 
     fn add_just_dependency<'env>(
         &self,
-        env: &'env Environment<impl HttpClient>,
+        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
         changes: &mut pending_project_changes::Builder<'env>,
     ) -> Result<(), AddPackageErr> {
         let mut to_install = vec![];
@@ -81,7 +82,7 @@ impl UnityProject {
                         VersionSelector::range_for(self.unity_version(), &range.as_range()),
                     )
                     .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                        dependency_name: name.to_string(),
+                        dependency_name: name.into(),
                     })?,
                 );
                 install_names.insert(name);
@@ -108,7 +109,7 @@ impl UnityProject {
             changes.install_to_locked(x);
             if install_names.contains(x.name()) {
                 changes.add_to_dependencies(
-                    x.name().to_owned(),
+                    x.name().into(),
                     DependencyRange::version(x.version().clone()),
                 );
             }
@@ -123,7 +124,7 @@ impl UnityProject {
 
     fn resolve_unlocked<'env>(
         &self,
-        env: &'env Environment<impl HttpClient>,
+        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
         changes: &mut pending_project_changes::Builder<'env>,
     ) -> Result<(), AddPackageErr> {
         if self.unlocked_packages().is_empty() {
@@ -147,9 +148,9 @@ impl UnityProject {
             .flat_map(|pkg| pkg.vpm_dependencies());
 
         let unlocked_dependencies_versions = dependencies_of_unlocked_packages
-            .filter(|(k, _)| self.manifest.get_locked(k.as_str()).is_none()) // skip if already installed to locked
+            .filter(|(k, _)| self.manifest.get_locked(k.as_ref()).is_none()) // skip if already installed to locked
             .filter(|(k, _)| changes.get_installing(k).is_none()) // skip if we're installing
-            .filter(|(k, _)| !unlocked_names.contains(k.as_str())) // skip if already installed as unlocked
+            .filter(|(k, _)| !unlocked_names.contains(k.as_ref())) // skip if already installed as unlocked
             .into_group_map();
 
         if unlocked_dependencies_versions.is_empty() {

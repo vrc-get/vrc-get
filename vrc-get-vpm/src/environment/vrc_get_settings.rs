@@ -1,8 +1,7 @@
-use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
+use crate::io;
+use crate::io::EnvironmentIo;
+use crate::utils::{read_json_file, SaveController};
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::path::PathBuf;
-use tokio::fs::create_dir_all;
 
 /// since this file is vrc-get specific, additional keys can be removed
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -16,57 +15,48 @@ struct AsJson {
 
 #[derive(Debug)]
 pub(crate) struct VrcGetSettings {
-    as_json: AsJson,
-
-    path: PathBuf,
-
-    settings_changed: bool,
+    controller: SaveController<AsJson>,
 }
 
+const JSON_PATH: &str = "vrc-get-settings.json";
+
 impl VrcGetSettings {
-    pub async fn load(json_path: PathBuf) -> io::Result<Self> {
-        let parsed = load_json_or_default(&json_path).await?;
+    pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
+        //let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
+
+        let parsed = match io.open(JSON_PATH.as_ref()).await {
+            Ok(file) => {
+                log::warn!("vrc-get specific settings file is experimental feature!");
+                read_json_file::<AsJson>(file, JSON_PATH.as_ref()).await?
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => Default::default(),
+            Err(e) => return Err(e),
+        };
 
         Ok(Self {
-            as_json: parsed,
-            path: json_path,
-            settings_changed: false,
+            controller: SaveController::new(parsed),
         })
     }
 
     pub fn ignore_official_repository(&self) -> bool {
-        self.as_json.ignore_official_repository
+        self.controller.ignore_official_repository
     }
 
     #[allow(dead_code)]
     pub fn set_ignore_official_repository(&mut self, value: bool) {
-        self.as_json.ignore_official_repository = value;
-        self.settings_changed = true;
+        self.controller.as_mut().ignore_official_repository = value;
     }
 
     pub fn ignore_curated_repository(&self) -> bool {
-        self.as_json.ignore_curated_repository
+        self.controller.ignore_curated_repository
     }
 
     #[allow(dead_code)]
     pub fn set_ignore_curated_repository(&mut self, value: bool) {
-        self.as_json.ignore_curated_repository = value;
-        self.settings_changed = true;
+        self.controller.as_mut().ignore_curated_repository = value;
     }
 
-    pub async fn save(&mut self) -> io::Result<()> {
-        if !self.settings_changed {
-            return Ok(());
-        }
-
-        let json_path = &self.path;
-
-        if let Some(parent) = json_path.parent() {
-            create_dir_all(&parent).await?;
-        }
-
-        tokio::fs::write(json_path, &to_vec_pretty_os_eol(&self.as_json)?).await?;
-        self.settings_changed = false;
-        Ok(())
+    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
+        self.controller.save(io, JSON_PATH.as_ref()).await
     }
 }

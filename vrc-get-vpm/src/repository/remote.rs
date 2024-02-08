@@ -1,12 +1,12 @@
-use crate::structs::package::PackageJson;
+use crate::io;
 use crate::traits::HttpClient;
 use crate::version::Version;
+use crate::PackageJson;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
-use std::io;
 use std::pin::pin;
 use url::Url;
 
@@ -21,13 +21,13 @@ pub struct RemoteRepository {
 #[derive(Deserialize, Debug, Clone)]
 struct ParsedRepository {
     #[serde(default)]
-    name: Option<String>,
+    name: Option<Box<str>>,
     #[serde(default)]
     url: Option<Url>,
     #[serde(default)]
-    id: Option<String>,
+    id: Option<Box<str>>,
     #[serde(default)]
-    packages: HashMap<String, RemotePackages>,
+    packages: HashMap<Box<str>, RemotePackages>,
 }
 
 impl RemoteRepository {
@@ -41,8 +41,8 @@ impl RemoteRepository {
     pub async fn download(
         client: &impl HttpClient,
         url: &Url,
-        headers: &IndexMap<String, String>,
-    ) -> io::Result<(RemoteRepository, Option<String>)> {
+        headers: &IndexMap<Box<str>, Box<str>>,
+    ) -> io::Result<(RemoteRepository, Option<Box<str>>)> {
         match Self::download_with_etag(client, url, headers, None).await {
             Ok(None) => unreachable!("downloading without etag should must return Ok(Some)"),
             Ok(Some(repo_and_etag)) => Ok(repo_and_etag),
@@ -53,9 +53,9 @@ impl RemoteRepository {
     pub async fn download_with_etag(
         client: &impl HttpClient,
         url: &Url,
-        headers: &IndexMap<String, String>,
+        headers: &IndexMap<Box<str>, Box<str>>,
         current_etag: Option<&str>,
-    ) -> io::Result<Option<(RemoteRepository, Option<String>)>> {
+    ) -> io::Result<Option<(RemoteRepository, Option<Box<str>>)>> {
         let Some((mut stream, etag)) = client.get_with_etag(url, headers, current_etag).await?
         else {
             return Ok(None);
@@ -74,11 +74,12 @@ impl RemoteRepository {
         Ok(Some((repo, etag)))
     }
 
-    pub(crate) fn set_id_if_none(&mut self, f: impl FnOnce() -> String) {
+    pub(crate) fn set_id_if_none(&mut self, f: impl FnOnce() -> Box<str>) {
         if self.parsed.id.is_none() {
             let id = f();
             self.parsed.id = Some(id.clone());
-            self.actual.insert("id".to_owned(), Value::String(id));
+            self.actual
+                .insert("id".to_owned(), Value::String(id.into()));
         }
     }
 
@@ -89,7 +90,7 @@ impl RemoteRepository {
             self.actual
                 .insert("url".to_owned(), Value::String(url.to_string()));
             if self.parsed.id.is_none() {
-                let url = self.parsed.url.as_ref().unwrap().to_string();
+                let url = self.parsed.url.as_ref().unwrap().as_str().into();
                 self.set_id_if_none(move || url);
             }
         }

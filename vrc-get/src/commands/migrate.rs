@@ -1,7 +1,7 @@
 use crate::commands::{confirm_prompt, load_env, load_unity, EnvArgs, ResultExt};
 use clap::{Parser, Subcommand};
-use log::warn;
-use std::path::PathBuf;
+use log::{info, warn};
+use std::path::{Path, PathBuf};
 use std::process::exit;
 
 /// Migrate Unity Project
@@ -27,7 +27,7 @@ multi_command!(Unity is Unity2022);
 pub struct Unity2022 {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     /// Path to unity 2022 executable.
     #[arg(long)]
     unity: PathBuf,
@@ -49,10 +49,19 @@ impl Unity2022 {
         let env = load_env(&self.env_args).await;
 
         project
-            .migrate_unity_2022(&env, &self.unity)
+            .migrate_unity_2022(&env)
             .await
             .exit_context("migrating unity project");
 
-        // Already saved in migrate_unity_2022
+        project.save().await.exit_context("saving project");
+
+        info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
+
+        project
+            .call_unity(&self.unity)
+            .await
+            .exit_context("launching unity to finalize migration");
+
+        info!("Unity exited successfully. Migration finished.")
     }
 }

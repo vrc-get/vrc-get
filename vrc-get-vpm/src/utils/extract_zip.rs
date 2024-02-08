@@ -1,15 +1,14 @@
+use crate::io;
+use crate::io::ProjectIo;
+use crate::io::SeekFrom;
 use crate::utils::MapResultExt;
 use async_zip::base::read::seek::ZipFileReader;
-use futures::{AsyncRead, AsyncSeek, AsyncSeekExt};
-use std::io;
-use std::io::SeekFrom;
+use futures::prelude::*;
 use std::path::{Component, Path};
-use tokio::fs::{create_dir_all, File};
-use tokio::io::AsyncWriteExt;
-use tokio_util::compat::FuturesAsyncReadCompatExt;
 
 pub(crate) async fn extract_zip(
     mut zip_file: impl AsyncRead + AsyncSeek + Unpin,
+    io: &impl ProjectIo,
     dest_folder: &Path,
 ) -> io::Result<()> {
     // extract zip file
@@ -24,7 +23,7 @@ pub(crate) async fn extract_zip(
                 "path in zip file is not utf8".to_string(),
             ));
         };
-        if !is_complete_relative(Path::new(filename)) {
+        if !is_complete_relative(filename.as_ref()) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("directory traversal detected: {}", filename),
@@ -34,12 +33,12 @@ pub(crate) async fn extract_zip(
         let path = dest_folder.join(filename);
         if filename.ends_with('/') {
             // if it's directory, just create directory
-            create_dir_all(path).await?;
+            io.create_dir_all(path.as_ref()).await?;
         } else {
-            let reader = zip_reader.reader_without_entry(i).await.err_mapped()?;
-            create_dir_all(path.parent().unwrap()).await?;
-            let mut dest_file = File::create(path).await?;
-            tokio::io::copy(&mut reader.compat(), &mut dest_file).await?;
+            let mut reader = zip_reader.reader_without_entry(i).await.err_mapped()?;
+            io.create_dir_all(path.parent().unwrap()).await?;
+            let mut dest_file = io.create(path.as_ref()).await?;
+            io::copy(&mut reader, &mut dest_file).await?;
             dest_file.flush().await?;
         }
     }

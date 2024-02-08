@@ -1,9 +1,10 @@
+use crate::io;
+use crate::io::ProjectIo;
+use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::AddPackageErr;
 use crate::version::UnityVersion;
 use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
-use log::{info, warn};
-use std::path::Path;
-use tokio::process::Command;
+use log::warn;
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -11,8 +12,7 @@ pub enum MigrateUnity2022Error {
     UnityVersionMismatch,
     VpmPackageNotFound(&'static str),
     AddPackageErr(AddPackageErr),
-    Io(tokio::io::Error),
-    Unity(std::process::ExitStatus),
+    Io(io::Error),
 }
 
 impl std::error::Error for MigrateUnity2022Error {
@@ -34,9 +34,6 @@ impl std::fmt::Display for MigrateUnity2022Error {
             }
             MigrateUnity2022Error::AddPackageErr(err) => write!(f, "{}", err),
             MigrateUnity2022Error::Io(err) => write!(f, "{}", err),
-            MigrateUnity2022Error::Unity(status) => {
-                write!(f, "Unity exited with status {}", status)
-            }
         }
     }
 }
@@ -47,27 +44,27 @@ impl From<AddPackageErr> for MigrateUnity2022Error {
     }
 }
 
-impl From<tokio::io::Error> for MigrateUnity2022Error {
-    fn from(err: tokio::io::Error) -> Self {
+impl From<io::Error> for MigrateUnity2022Error {
+    fn from(err: io::Error) -> Self {
         MigrateUnity2022Error::Io(err)
     }
 }
 
 type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
 
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     /// NOTE: This function will save manifest changes to disk immediately.
-    pub async fn migrate_unity_2022<E>(&mut self, env: &E, unity_executable: &Path) -> Result
+    pub async fn migrate_unity_2022<E>(&mut self, env: &E) -> Result
     where
-        E: PackageCollection + RemotePackageDownloader,
+        E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
     {
-        migrate_unity_2022_beta(self, env, unity_executable).await
+        migrate_unity_2022_beta(self, env).await
     }
 }
 
-async fn migrate_unity_2022_beta<E>(project: &mut UnityProject, env: &E, unity2022: &Path) -> Result
+async fn migrate_unity_2022_beta<E>(project: &mut UnityProject<impl ProjectIo>, env: &E) -> Result
 where
-    E: PackageCollection + RemotePackageDownloader,
+    E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
 {
     // See https://misskey.niri.la/notes/9nod7sk4sr for migration process
     if project.unity_version().map(UnityVersion::major) != Some(2019) {
@@ -115,26 +112,11 @@ where
         project.apply_pending_changes(env, request).await?;
     }
 
-    // run Unity to finalize migration
-
-    project.save().await?;
-
-    info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
-
-    let mut command = Command::new(unity2022);
-    command.args(["-quit", "-batchmode", "-projectPath"]);
-    command.arg(project.project_dir());
-    let status = command.status().await?;
-
-    if !status.success() {
-        return Err(MigrateUnity2022Error::Unity(status));
-    }
-
     Ok(())
 }
 
 // memo /Applications/Unity/Hub/Editor/2022.3.6f1/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath .
-fn is_vpm_vrcsdk_installed(project: &UnityProject) -> bool {
+fn is_vpm_vrcsdk_installed(project: &UnityProject<impl ProjectIo>) -> bool {
     if project.get_locked("com.vrchat.base").is_some()
         || project.get_locked("com.vrchat.avatars").is_some()
         || project.get_locked("com.vrchat.worlds").is_some()

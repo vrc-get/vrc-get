@@ -8,10 +8,12 @@ use std::path::Path;
 
 use indexmap::IndexMap;
 
-use structs::package::PartialUnityVersion;
+use crate::package_json::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 pub mod environment;
+pub mod io;
+pub mod package_json;
 pub mod repository;
 mod structs;
 mod traits;
@@ -29,7 +31,7 @@ pub use traits::HttpClient;
 pub use traits::PackageCollection;
 pub use traits::RemotePackageDownloader;
 
-pub use structs::package::PackageJson;
+pub use package_json::PackageJson;
 pub use structs::setting::UserRepoSetting;
 
 #[derive(Copy, Clone)]
@@ -82,11 +84,11 @@ impl<'a> PackageInfo<'a> {
         self.package_json().version()
     }
 
-    pub fn vpm_dependencies(self) -> &'a IndexMap<String, VersionRange> {
+    pub fn vpm_dependencies(self) -> &'a IndexMap<Box<str>, VersionRange> {
         self.package_json().vpm_dependencies()
     }
 
-    pub fn legacy_packages(self) -> &'a [String] {
+    pub fn legacy_packages(self) -> &'a [Box<str>] {
         self.package_json().legacy_packages()
     }
 
@@ -124,7 +126,14 @@ fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
             // otherwice, check based on package info
 
             if let Some(min_unity) = package.unity() {
-                unity >= UnityVersion::new(min_unity.0, min_unity.1, 0, ReleaseType::Alpha, 0)
+                unity
+                    >= UnityVersion::new(
+                        min_unity.major(),
+                        min_unity.minor(),
+                        0,
+                        ReleaseType::Alpha,
+                        0,
+                    )
             } else {
                 // if there are no info, satisfies for all unity versions
                 true

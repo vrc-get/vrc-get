@@ -6,22 +6,23 @@ use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderV
 use reqwest::{Client, Url};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::env;
 use std::error::Error as StdError;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fmt::{Debug, Display};
 use std::num::NonZeroU32;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
-use tokio::fs::{read_dir, remove_file};
-use vrc_get_vpm::environment::EmptyEnvironment;
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
 use vrc_get_vpm::unity_project::PendingProjectChanges;
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::UserRepoSetting;
-use vrc_get_vpm::{Environment, PackageCollection, PackageInfo, UnityProject, VersionSelector};
-use vrc_get_vpm::{HttpClient, PackageJson};
+use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, UserRepoSetting, VersionSelector};
+
+type Environment = vrc_get_vpm::Environment<Client, DefaultEnvironmentIo>;
+type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
@@ -54,9 +55,10 @@ struct EnvArgs {
     no_update: bool,
 }
 
-async fn load_env(args: &EnvArgs) -> Environment<Client> {
+async fn load_env(args: &EnvArgs) -> Environment {
     let client = crate::create_client(args.offline);
-    let mut env = Environment::load_default(client)
+    let io = DefaultEnvironmentIo::new_default();
+    let mut env = Environment::load(client, io)
         .await
         .exit_context("loading global config");
 
@@ -68,14 +70,22 @@ async fn load_env(args: &EnvArgs) -> Environment<Client> {
     env
 }
 
-async fn load_unity(path: Option<PathBuf>) -> UnityProject {
-    UnityProject::find_unity_project(path)
+async fn load_unity(path: Option<Box<Path>>) -> UnityProject {
+    let io = match path {
+        None => {
+            let current_dir = env::current_dir().exit_context("getting current directory");
+            DefaultProjectIo::find_project_parent(current_dir).exit_context("finding unity project")
+        }
+        Some(path) => DefaultProjectIo::new(path),
+    };
+
+    UnityProject::load(io)
         .await
         .exit_context("loading unity project")
 }
 
 fn get_package<'env>(
-    env: &'env Environment<impl HttpClient>,
+    env: &'env Environment,
     name: &str,
     selector: VersionSelector,
 ) -> PackageInfo<'env> {
@@ -87,7 +97,7 @@ async fn save_unity(unity: &mut UnityProject) {
     unity.save().await.exit_context("saving manifest file");
 }
 
-async fn save_env(env: &mut Environment<impl HttpClient>) {
+async fn save_env(env: &mut Environment) {
     env.save().await.exit_context("saving global config");
 }
 
@@ -240,7 +250,7 @@ fn require_prompt_for_install(
         return true;
     };
 
-    if change_name != name {
+    if change_name.as_ref() != name {
         return true;
     }
 
@@ -326,7 +336,7 @@ pub struct Install {
 
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     #[command(flatten)]
     env_args: EnvArgs,
 
@@ -385,7 +395,7 @@ impl Install {
 pub struct Resolve {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     #[command(flatten)]
     env_args: EnvArgs,
 }
@@ -421,7 +431,9 @@ pub struct Remove {
 
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
+    #[command(flatten)]
+    env_args: EnvArgs,
 
     /// skip confirm
     #[arg(short, long)]
@@ -430,6 +442,7 @@ pub struct Remove {
 
 impl Remove {
     pub async fn run(self) {
+        let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
         let changes = unity
@@ -447,7 +460,7 @@ impl Remove {
         }
 
         unity
-            .apply_pending_changes(&EmptyEnvironment, changes)
+            .apply_pending_changes(&env, changes)
             .await
             .exit_context("removing packages");
 
@@ -472,7 +485,7 @@ impl Update {
 pub struct Outdated {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     /// Include prerelease
     #[arg(long = "prerelease")]
     prerelease: bool,
@@ -507,9 +520,9 @@ impl Outdated {
 
         for locked in unity.all_packages() {
             for (name, range) in locked.dependencies() {
-                if let Some((outdated, _)) = outdated_packages.get(name.as_str()) {
+                if let Some((outdated, _)) = outdated_packages.get(name.as_ref()) {
                     if !range.matches(outdated.version()) {
-                        outdated_packages.remove(name.as_str());
+                        outdated_packages.remove(name.as_ref());
                     }
                 }
             }
@@ -567,7 +580,7 @@ pub struct Upgrade {
 
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
-    project: Option<PathBuf>,
+    project: Option<Box<Path>>,
     #[command(flatten)]
     env_args: EnvArgs,
 
@@ -810,9 +823,9 @@ impl RepoAdd {
         let mut env = load_env(&self.env_args).await;
 
         if let Ok(url) = Url::parse(&self.path_or_url) {
-            let mut headers = IndexMap::<String, String>::new();
+            let mut headers = IndexMap::<Box<str>, Box<str>>::new();
             for HeaderPair(name, value) in self.header {
-                headers.insert(name.to_string(), value.to_str().unwrap().to_string());
+                headers.insert(name.as_str().into(), value.to_str().unwrap().into());
             }
             env.add_remote_repo(url, self.name.as_deref(), headers)
                 .await
@@ -929,44 +942,9 @@ pub struct RepoCleanup {
 impl RepoCleanup {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
-
-        let mut uesr_repo_file_names = vec![
-            OsString::from("vrc-official.json"),
-            OsString::from("vrc-curated.json"),
-            OsString::from("package-cache.json"),
-        ];
-        let repos_base = env.get_repos_dir();
-
-        for x in env.get_user_repos() {
-            if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
-                if let Some(file_name) = relative.file_name() {
-                    if relative
-                        .parent()
-                        .map(|x| x.as_os_str().is_empty())
-                        .unwrap_or(true)
-                    {
-                        // the file must be in direct child of
-                        uesr_repo_file_names.push(file_name.to_owned());
-                    }
-                }
-            }
-        }
-
-        let mut entry = read_dir(repos_base).await.exit_context("reading dir");
-        while let Some(entry) = entry.next_entry().await.exit_context("reading dir") {
-            let path = entry.path();
-            if tokio::fs::metadata(&path)
-                .await
-                .map(|x| x.is_file())
-                .unwrap_or(false)
-                && path.extension() == Some(OsStr::new("json"))
-                && !uesr_repo_file_names.contains(&entry.file_name())
-            {
-                remove_file(path)
-                    .await
-                    .exit_context("removing unused files");
-            }
-        }
+        env.cleanup_repos_folder()
+            .await
+            .exit_context("cleaning up Repos directory");
     }
 }
 

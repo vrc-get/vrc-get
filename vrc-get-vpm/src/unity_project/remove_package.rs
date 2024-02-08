@@ -1,3 +1,4 @@
+use crate::io::ProjectIo;
 use crate::UnityProject;
 use std::collections::HashSet;
 use std::{fmt, io};
@@ -6,7 +7,7 @@ use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::{pending_project_changes, PendingProjectChanges};
 
 // removing package
-impl UnityProject {
+impl<IO: ProjectIo> UnityProject<IO> {
     /// Remove specified package from self project.
     ///
     /// This doesn't look packages not listed in vpm-maniefst.json.
@@ -21,7 +22,7 @@ impl UnityProject {
         let mut not_founds = Vec::new();
         for name in remove.iter().copied() {
             if self.manifest.get_locked(name).is_none() {
-                not_founds.push(name.to_owned());
+                not_founds.push(name.into());
             }
         }
 
@@ -40,7 +41,7 @@ impl UnityProject {
             .filter(|dep| !remove.contains(&dep.name()))
             .flat_map(|x| x.legacy_packages())
         {
-            may_conflict.remove(name.as_str());
+            may_conflict.remove(name.as_ref());
         }
 
         for dep in self
@@ -50,7 +51,7 @@ impl UnityProject {
             // TODO: do not conflict if this package is legacy package of installed packages
             for &to_remove in &may_conflict {
                 if dep.dependencies().contains_key(to_remove) {
-                    changes.conflicts(String::from(to_remove), String::from(dep.name()));
+                    changes.conflicts(to_remove.into(), dep.name().into());
                 }
             }
         }
@@ -58,7 +59,7 @@ impl UnityProject {
         // there's no conflicts. So do remove
 
         for x in remove {
-            changes.remove(x.to_string(), RemoveReason::Requested);
+            changes.remove(x.into(), RemoveReason::Requested);
         }
 
         Ok(changes.build_resolve(self).await)
@@ -68,8 +69,8 @@ impl UnityProject {
 #[derive(Debug)]
 pub enum RemovePackageErr {
     Io(io::Error),
-    NotInstalled(Vec<String>),
-    ConflictsWith(Vec<String>),
+    NotInstalled(Vec<Box<str>>),
+    ConflictsWith(Vec<Box<str>>),
 }
 
 impl fmt::Display for RemovePackageErr {
