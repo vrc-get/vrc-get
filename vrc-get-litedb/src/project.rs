@@ -1,5 +1,5 @@
 use crate::bson::{DateTime, ObjectId};
-use crate::lowlevel::FFISlice;
+use crate::lowlevel::{FFISlice, FromFFI, ToFFI};
 use std::fmt::{Debug, Formatter};
 
 #[repr(transparent)]
@@ -124,16 +124,13 @@ pub(crate) struct ProjectFFI {
     favorite: u8,
 }
 
-impl Project {
-    pub(crate) unsafe fn from_ffi(ffi: ProjectFFI) -> Self {
+impl FromFFI for Project {
+    type FFIType = ProjectFFI;
+
+    unsafe fn from_ffi(ffi: ProjectFFI) -> Self {
         Self {
-            path: unsafe {
-                std::str::from_boxed_utf8_unchecked(FFISlice::into_boxed_byte_slice(ffi.path))
-            },
-            unity_version: unsafe {
-                FFISlice::into_boxed_byte_slice_option(ffi.unity_version)
-                    .map(|x| std::str::from_boxed_utf8_unchecked(x))
-            },
+            path: FromFFI::from_ffi(ffi.path),
+            unity_version: FromFFI::from_ffi(ffi.unity_version),
             created_at: ffi.created_at,
             last_modified: ffi.last_modified,
             type_: ffi.type_,
@@ -141,17 +138,15 @@ impl Project {
             favorite: ffi.favorite != 0,
         }
     }
+}
 
-    /// # SAFETY
-    /// The returned FFI struct must not outlive the `Project` instance
-    pub(crate) unsafe fn to_ffi(&self) -> ProjectFFI {
+impl ToFFI for Project {
+    type FFIType = ProjectFFI;
+
+    unsafe fn to_ffi(&self) -> Self::FFIType {
         ProjectFFI {
-            path: FFISlice::from_byte_slice(self.path.as_bytes()),
-            unity_version: self
-                .unity_version
-                .as_ref()
-                .map(|_x| FFISlice::from_byte_slice(self.path.as_bytes()))
-                .unwrap_or_else(FFISlice::null),
+            path: self.path.as_ref().to_ffi(),
+            unity_version: self.unity_version.as_deref().to_ffi(),
             created_at: self.created_at,
             last_modified: self.last_modified,
             type_: self.type_,

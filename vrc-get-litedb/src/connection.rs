@@ -3,7 +3,7 @@ use crate::bson::ObjectId;
 use crate::connection_string::ConnectionStringFFI;
 use crate::error::ErrorFFI;
 use crate::lowlevel;
-use crate::lowlevel::FFISlice;
+use crate::lowlevel::{FFISlice, FromFFI, ToFFI};
 use crate::project::{Project, ProjectFFI};
 
 pub use super::connection_string::ConnectionString;

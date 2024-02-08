@@ -28,6 +28,52 @@ impl GcHandle {
     }
 }
 
+pub(crate) trait FromFFI {
+    type FFIType;
+
+    unsafe fn from_ffi(ffi: Self::FFIType) -> Self;
+}
+
+impl FromFFI for Box<str> {
+    type FFIType = FFISlice;
+
+    unsafe fn from_ffi(ffi: FFISlice) -> Self {
+        std::str::from_boxed_utf8_unchecked(ffi.into_boxed_byte_slice())
+    }
+}
+
+impl FromFFI for Option<Box<str>> {
+    type FFIType = FFISlice;
+
+    unsafe fn from_ffi(ffi: FFISlice) -> Self {
+        FFISlice::into_boxed_byte_slice_option(ffi).map(|x| std::str::from_boxed_utf8_unchecked(x))
+    }
+}
+
+pub(crate) trait ToFFI {
+    type FFIType;
+
+    unsafe fn to_ffi(&self) -> Self::FFIType;
+}
+
+impl ToFFI for str {
+    type FFIType = FFISlice;
+
+    unsafe fn to_ffi(&self) -> Self::FFIType {
+        FFISlice::from_byte_slice(self.as_ref())
+    }
+}
+
+impl ToFFI for Option<&str> {
+    type FFIType = FFISlice;
+
+    unsafe fn to_ffi(&self) -> Self::FFIType {
+        self.map(str::as_bytes)
+            .map(FFISlice::from_byte_slice)
+            .unwrap_or_else(FFISlice::null)
+    }
+}
+
 /// FFI safe byte slice which might be owned (`Boxed<[u8]>`) or a `str`
 ///
 /// This struct doesn't free the memory when dropped
