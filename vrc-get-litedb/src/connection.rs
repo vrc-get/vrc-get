@@ -22,13 +22,15 @@ impl DatabaseConnection {
         }
     }
 
-    pub fn get_projects(&self) -> Result<Box<[Project]>> {
+    #[inline(always)]
+    fn get_all<T: FromFFI>(
+        &self,
+        f: unsafe extern "C" fn(isize, &mut FFISlice<T::FFIType>) -> ErrorFFI,
+    ) -> Result<Box<[T]>> {
         unsafe {
-            let mut slice = FFISlice::<ProjectFFI>::from_byte_slice(&[]);
+            let mut slice = FFISlice::<T::FFIType>::from_byte_slice(&[]);
 
-            let result =
-                vrc_get_litedb_database_connection_get_projects(self.ptr.get(), &mut slice)
-                    .into_result();
+            let result = f(self.ptr.get(), &mut slice).into_result();
             let boxed = slice.into_boxed_byte_slice_option();
 
             result?; // return if error
@@ -37,29 +39,43 @@ impl DatabaseConnection {
                 .unwrap()
                 .into_vec()
                 .into_iter()
-                .map(|x| Project::from_ffi(x))
+                .map(|x| T::from_ffi(x))
                 .collect())
         }
     }
 
+    #[inline(always)]
+    fn update_insert<T: ToFFI>(
+        &self,
+        project: &T,
+        f: unsafe extern "C" fn(isize, &T::FFIType) -> ErrorFFI,
+    ) -> Result<()> {
+        unsafe { f(self.ptr.get(), &project.to_ffi()).into_result() }
+    }
+
+    #[inline(always)]
+    fn delete(
+        &self,
+        id: ObjectId,
+        f: unsafe extern "C" fn(isize, ObjectId) -> ErrorFFI,
+    ) -> Result<()> {
+        unsafe { f(self.ptr.get(), id).into_result() }
+    }
+
+    pub fn get_projects(&self) -> Result<Box<[Project]>> {
+        self.get_all(vrc_get_litedb_database_connection_get_projects)
+    }
+
     pub fn update_project(&self, project: &Project) -> Result<()> {
-        unsafe {
-            vrc_get_litedb_database_connection_update(self.ptr.get(), &project.to_ffi())
-                .into_result()
-        }
+        self.update_insert(project, vrc_get_litedb_database_connection_update)
     }
 
     pub fn insert_project(&self, project: &Project) -> Result<()> {
-        unsafe {
-            vrc_get_litedb_database_connection_insert(self.ptr.get(), &project.to_ffi())
-                .into_result()
-        }
+        self.update_insert(project, vrc_get_litedb_database_connection_insert)
     }
 
     pub fn delete_project(&self, project_id: ObjectId) -> Result<()> {
-        unsafe {
-            vrc_get_litedb_database_connection_delete(self.ptr.get(), project_id).into_result()
-        }
+        self.delete(project_id, vrc_get_litedb_database_connection_delete)
     }
 }
 
