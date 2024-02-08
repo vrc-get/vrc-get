@@ -1,14 +1,13 @@
-use crate::io::DefaultProjectIo;
+use crate::io;
+use crate::io::{DefaultProjectIo, IoTrait};
 use crate::UnityProject;
 use std::path::Path;
-use tokio::io;
-use tokio::process::Command;
 
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum ExecuteUnityError {
     Io(io::Error),
-    Unity(std::process::ExitStatus),
+    Unity(io::ExitStatus),
 }
 
 impl std::error::Error for ExecuteUnityError {
@@ -41,10 +40,18 @@ type Result<T = (), E = ExecuteUnityError> = std::result::Result<T, E>;
 
 impl UnityProject<DefaultProjectIo> {
     pub async fn call_unity(&self, unity_executable: &Path) -> Result {
-        let mut command = Command::new(unity_executable);
-        command.args(["-quit", "-batchmode", "-projectPath"]);
-        command.arg(self.project_dir());
-        let status = command.status().await?;
+        let status = self
+            .io
+            .command_status(
+                unity_executable.as_ref(),
+                &[
+                    "-quit".as_ref(),
+                    "-batchmode".as_ref(),
+                    "-projectPath".as_ref(),
+                    self.project_dir().as_os_str(),
+                ],
+            )
+            .await?;
 
         if !status.success() {
             return Err(ExecuteUnityError::Unity(status));

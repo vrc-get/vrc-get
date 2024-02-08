@@ -1,4 +1,4 @@
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
@@ -7,6 +7,7 @@ pub(crate) use futures::io::{
 };
 pub(crate) use futures::Stream;
 pub(crate) use std::io::SeekFrom;
+pub(crate) use std::process::ExitStatus;
 
 #[cfg(feature = "tokio")]
 mod tokio;
@@ -51,6 +52,13 @@ pub trait IoTrait {
     fn create_new(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn create(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn open(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
+
+    // simple process operation.
+    fn command_status(
+        &self,
+        command: &OsStr,
+        args: &[&OsStr],
+    ) -> impl Future<Output = Result<ExitStatus>> + Send;
 }
 
 pub trait DirEntry {
