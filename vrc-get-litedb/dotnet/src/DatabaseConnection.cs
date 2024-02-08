@@ -137,6 +137,37 @@ public class DatabaseConnection
     public static LiteDbError DeleteProject(GCHandle handle, ObjectId objectId) => 
         Delete<ProjectsAccess, ProjectFFI>(handle, objectId);
 
+    struct UnityVersionAccess : ICollectionElementAccessor<UnityVersionFFI>
+    {
+        public string CollectionName
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => "unityVersions";
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UnityVersionFFI FromBsonDocument(BsonDocument document) => new(document);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public BsonDocument ToBsonDocument(in UnityVersionFFI element) => element.ToBsonDocument();
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_get_unity_versions")]
+    public static unsafe LiteDbError GetUnityVersions(GCHandle handle, RustSlice<UnityVersionFFI>* result) =>
+        GetAll<UnityVersionAccess, UnityVersionFFI>(handle, result);
+
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_update_unity_version")]
+    public static unsafe LiteDbError UpdateUnityVersion(GCHandle handle, UnityVersionFFI* project) =>
+        Update<UnityVersionAccess, UnityVersionFFI>(handle, project);
+
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_insert_unity_version")]
+    public static unsafe LiteDbError InsertUnityVersion(GCHandle handle, UnityVersionFFI* project) =>
+        Insert<UnityVersionAccess, UnityVersionFFI>(handle, project);
+
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_delete_unity_version")]
+    public static LiteDbError DeleteUnityVersion(GCHandle handle, ObjectId objectId) => 
+        Delete<UnityVersionAccess, UnityVersionFFI>(handle, objectId);
+
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_dispose")]
     public static void DisposeHandle(GCHandle handle)
     {

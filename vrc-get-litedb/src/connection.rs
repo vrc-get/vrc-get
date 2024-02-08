@@ -5,6 +5,7 @@ use crate::error::ErrorFFI;
 use crate::lowlevel;
 use crate::lowlevel::{FFISlice, FromFFI, ToFFI};
 use crate::project::{Project, ProjectFFI};
+use crate::unity_version::{UnityVersion, UnityVersionFFI};
 
 pub use super::connection_string::ConnectionString;
 
@@ -77,6 +78,31 @@ impl DatabaseConnection {
     pub fn delete_project(&self, project_id: ObjectId) -> Result<()> {
         self.delete(project_id, vrc_get_litedb_database_connection_delete)
     }
+
+    pub fn get_unity_versions(&self) -> Result<Box<[UnityVersion]>> {
+        self.get_all(vrc_get_litedb_database_connection_get_unity_versions)
+    }
+
+    pub fn update_unity_version(&self, project: &UnityVersion) -> Result<()> {
+        self.update_insert(
+            project,
+            vrc_get_litedb_database_connection_update_unity_version,
+        )
+    }
+
+    pub fn insert_unity_version(&self, project: &UnityVersion) -> Result<()> {
+        self.update_insert(
+            project,
+            vrc_get_litedb_database_connection_insert_unity_version,
+        )
+    }
+
+    pub fn delete_unity_version(&self, project_id: ObjectId) -> Result<()> {
+        self.delete(
+            project_id,
+            vrc_get_litedb_database_connection_delete_unity_version,
+        )
+    }
 }
 
 impl Drop for DatabaseConnection {
@@ -93,6 +119,7 @@ extern "C" {
         string: &ConnectionStringFFI,
     ) -> super::error::HandleErrorResult;
     fn vrc_get_litedb_database_connection_dispose(ptr: isize);
+
     fn vrc_get_litedb_database_connection_get_projects(
         ptr: isize,
         out: &mut FFISlice<ProjectFFI>,
@@ -100,6 +127,23 @@ extern "C" {
     fn vrc_get_litedb_database_connection_update(ptr: isize, out: &ProjectFFI) -> ErrorFFI;
     fn vrc_get_litedb_database_connection_insert(ptr: isize, out: &ProjectFFI) -> ErrorFFI;
     fn vrc_get_litedb_database_connection_delete(ptr: isize, out: ObjectId) -> ErrorFFI;
+
+    fn vrc_get_litedb_database_connection_get_unity_versions(
+        ptr: isize,
+        out: &mut FFISlice<UnityVersionFFI>,
+    ) -> ErrorFFI;
+    fn vrc_get_litedb_database_connection_update_unity_version(
+        ptr: isize,
+        out: &UnityVersionFFI,
+    ) -> ErrorFFI;
+    fn vrc_get_litedb_database_connection_insert_unity_version(
+        ptr: isize,
+        out: &UnityVersionFFI,
+    ) -> ErrorFFI;
+    fn vrc_get_litedb_database_connection_delete_unity_version(
+        ptr: isize,
+        out: ObjectId,
+    ) -> ErrorFFI;
 }
 
 #[cfg(test)]
@@ -426,6 +470,175 @@ mod project_op_tests {
             assert_eq!(project.created_at(), created_at);
             assert_eq!(project.last_modified(), last_modified);
             assert_eq!(project.project_type(), type_);
+        }
+    }
+}
+
+#[cfg(test)]
+mod unity_versions_op_tests {
+    use super::tests::*;
+    use super::*;
+    use crate::bson::ObjectId;
+
+    macro_rules! temp_path {
+        ($name: literal) => {
+            concat!("test-resources/test-unity-version-", $name, ".liteDb")
+        };
+    }
+
+    #[test]
+    fn test_update() {
+        let copied = temp_path!("update");
+        std::fs::remove_file(copied).ok();
+        std::fs::copy(TEST_DB_PATH, copied).unwrap();
+        let connection = ConnectionString::new(copied).connect().unwrap();
+        let find = ObjectId::from_bytes(b"\x65\xbe\x38\xa0\xcb\xac\x18\x12\x6a\x69\x4a\xb1");
+
+        let mut version = connection
+            .get_unity_versions()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .find(|x| x.id() == find)
+            .unwrap();
+
+        assert!(version.loaded_from_hub());
+        version.set_loaded_from_hub(false);
+
+        connection.update_unity_version(&version).unwrap();
+
+        drop(connection);
+
+        let connection = ConnectionString::new(copied)
+            .readonly(true)
+            .connect()
+            .unwrap();
+        let version = connection
+            .get_unity_versions()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .find(|x| x.id() == find)
+            .unwrap();
+        drop(connection);
+
+        assert!(!version.loaded_from_hub());
+
+        // teardown
+        std::fs::remove_file(copied).ok();
+    }
+
+    #[test]
+    fn test_insert() {
+        let copied = temp_path!("insert");
+        std::fs::remove_file(copied).ok();
+        std::fs::copy(TEST_DB_PATH, copied).unwrap();
+        let connection = ConnectionString::new(copied).connect().unwrap();
+        let new_version = UnityVersion::new(
+            "C:\\Program Files\\Unity\\Hub\\Editor\\2022.3.19f1\\Editor\\Unity.exe".into(),
+            "2022.3.6f1".into(),
+            false,
+        );
+
+        connection.insert_unity_version(&new_version).unwrap();
+
+        drop(connection);
+
+        let connection = ConnectionString::new(copied)
+            .readonly(true)
+            .connect()
+            .unwrap();
+
+        let found_project = connection
+            .get_unity_versions()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .find(|x| x.id() == new_version.id())
+            .unwrap();
+        drop(connection);
+
+        assert_eq!(found_project.path(), new_version.path());
+        assert_eq!(found_project.version(), new_version.version());
+        assert_eq!(
+            found_project.loaded_from_hub(),
+            new_version.loaded_from_hub()
+        );
+
+        // teardown
+        std::fs::remove_file(copied).ok();
+    }
+
+    #[test]
+    fn test_delete() {
+        let copied = temp_path!("delete");
+        std::fs::remove_file(copied).ok();
+        std::fs::copy(TEST_DB_PATH, copied).unwrap();
+        let connection = ConnectionString::new(copied).connect().unwrap();
+        let project_id = ObjectId::from_bytes(b"\x65\xbe\x38\xa0\xcb\xac\x18\x12\x6a\x69\x4a\xb1");
+
+        assert!(connection
+            .get_unity_versions()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .any(|x| x.id() == project_id));
+
+        connection.delete_unity_version(project_id).unwrap();
+
+        drop(connection);
+
+        let connection = ConnectionString::new(copied)
+            .readonly(true)
+            .connect()
+            .unwrap();
+
+        assert!(!connection
+            .get_unity_versions()
+            .unwrap()
+            .into_vec()
+            .into_iter()
+            .any(|x| x.id() == project_id));
+
+        drop(connection);
+
+        // teardown
+        std::fs::remove_file(copied).ok();
+    }
+
+    #[test]
+    fn test_read() {
+        let connection = ConnectionString::new(TEST_DB_PATH)
+            .readonly(true)
+            .connect()
+            .unwrap();
+
+        let versions = connection.get_unity_versions().unwrap();
+
+        assert_eq!(versions.len(), 2);
+
+        // {"_id": {"$oid": "65be38a0cbac18126a694ab1"},"Path": "C:\\Program Files\\Unity\\Hub\\Editor\\2022.3.6f1\\Editor\\Unity.exe","Version": "2022.3.6f1","LoadedFromHub": true}
+        check_exists(
+            &versions,
+            ObjectId::from_bytes(b"\x65\xbe\x38\xa0\xcb\xac\x18\x12\x6a\x69\x4a\xb1"),
+            "C:\\Program Files\\Unity\\Hub\\Editor\\2022.3.6f1\\Editor\\Unity.exe",
+            "2022.3.6f1",
+        );
+
+        // {"_id": {"$oid": "65be3f989854f50fadcd90bb"},"Path": "C:\\Program Files\\Unity\\Hub\\Editor\\2019.4.31f1\\Editor\\Unity.exe","Version": "2019.4.31f1","LoadedFromHub": true}
+        check_exists(
+            &versions,
+            ObjectId::from_bytes(b"\x65\xbe\x3f\x98\x98\x54\xf5\x0f\xad\xcd\x90\xbb"),
+            "C:\\Program Files\\Unity\\Hub\\Editor\\2019.4.31f1\\Editor\\Unity.exe",
+            "2019.4.31f1",
+        );
+
+        fn check_exists(versions: &[UnityVersion], id: ObjectId, path: &str, version: &str) {
+            let project = versions.iter().find(|x| x.id() == id).expect("not found");
+
+            assert_eq!(project.path(), path);
+            assert_eq!(project.version(), Some(version));
+            assert!(project.loaded_from_hub());
         }
     }
 }
