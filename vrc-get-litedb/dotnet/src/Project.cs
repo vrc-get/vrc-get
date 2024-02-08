@@ -24,13 +24,13 @@ public struct ProjectFFI
         var lastModified = document["LastModified"];
         LastModified = lastModified.IsDateTime ? lastModified.AsDateTime.ToUnixMilliseconds() : 0;
         var type = document["Type"];
-        this.Type = type.IsInt32 ? type.AsInt32 : 0;
-        this.Id = new ObjectId(document["_id"].AsObjectId); // required
+        Type = type.IsInt32 ? type.AsInt32 : 0;
+        Id = new ObjectId(document["_id"].AsObjectId); // required
         var favorite = document["Favorite"];
-        this.Favorite = (byte)(favorite.IsBoolean && favorite.AsBoolean ? 1 : 0);
+        Favorite = (byte)(favorite.IsBoolean && favorite.AsBoolean ? 1 : 0);
     }
 
-    public BsonDocument ToBsonDocument()
+    public readonly BsonDocument ToBsonDocument()
     {
         return new BsonDocument
         {
