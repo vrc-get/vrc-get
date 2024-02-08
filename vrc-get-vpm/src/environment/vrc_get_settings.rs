@@ -1,6 +1,6 @@
 use crate::io;
 use crate::io::EnvironmentIo;
-use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
+use crate::utils::{read_json_file, to_vec_pretty_os_eol};
 use serde::{Deserialize, Serialize};
 
 /// since this file is vrc-get specific, additional keys can be removed
@@ -24,7 +24,16 @@ const JSON_PATH: &str = "vrc-get-settings.json";
 
 impl VrcGetSettings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
-        let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
+        //let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
+
+        let parsed = match io.open(JSON_PATH.as_ref()).await {
+            Ok(file) => {
+                log::warn!("vrc-get specific settings file is experimental feature!");
+                read_json_file::<AsJson>(file, JSON_PATH.as_ref()).await?
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => Default::default(),
+            Err(e) => return Err(e),
+        };
 
         Ok(Self {
             as_json: parsed,

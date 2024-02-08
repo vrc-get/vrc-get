@@ -18,7 +18,7 @@ use hex::FromHex;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use log::error;
+use log::{error, warn};
 use std::cmp::Reverse;
 use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
@@ -78,6 +78,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let mut repositories = Vec::with_capacity(2);
 
         if !self.vrc_get_settings.ignore_official_repository() {
+            warn!("ignoring official repository is experimental feature!");
             repositories.push(RepoSource::new(
                 LOCAL_OFFICIAL_PATH.as_ref(),
                 &EMPTY_HEADERS,
@@ -86,6 +87,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
 
         if !self.vrc_get_settings.ignore_curated_repository() {
+            warn!("ignoring curated repository is experimental feature!");
             repositories.push(RepoSource::new(
                 LOCAL_CURATED_PATH.as_ref(),
                 &EMPTY_HEADERS,
