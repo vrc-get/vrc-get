@@ -13,7 +13,10 @@ public unsafe struct ObjectId
     [UnscopedRef]
     public Span<byte> AsSpan() => MemoryMarshal.CreateSpan(ref value[0], 12);
 
-    public LiteDB.ObjectId ToLiteObjectId() => new(AsSpan());
+    [UnscopedRef]
+    public readonly ReadOnlySpan<byte> AsReadOnlySpan() => MemoryMarshal.CreateReadOnlySpan(in value[0], 12);
+
+    public readonly LiteDB.ObjectId ToLiteObjectId() => new(AsReadOnlySpan());
 }
 
 static class Extensions
