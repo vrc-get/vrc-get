@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Warnings about index map `#350`
+- `vrc-get repo remove` not working `#361`
 
 ### Security
 
