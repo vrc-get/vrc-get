@@ -20,7 +20,9 @@ pub use tokio::DefaultProjectIo;
 ///
 /// All relative paths should be resolved as a relative path from the environment folder.
 /// Which is `%APPDATA%\\VRChatCreatorCompanion` or `${XDG_DATA_HOME}/VRChatCreatorCompanion` by default.
-pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync + IoTrait {
+pub trait EnvironmentIo: Sync + IoTrait {
+    /// We may need to resolve a relative path to an absolute path for some reason.
+    /// For example, to get the absolute path of the Repos folder for creating local cache and cleanup repos folder.
     fn resolve(&self, path: &Path) -> PathBuf;
 }
 
@@ -29,7 +31,7 @@ pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync + IoTrait {
 /// Absolute paths are not allowed and relative paths should be resolved as a relative path from the project folder.
 ///
 /// [UnityProject]: crate::unity_project::UnityProject
-pub trait ProjectIo: crate::traits::seal::Sealed + Sync + IoTrait {}
+pub trait ProjectIo: Sync + IoTrait {}
 
 pub trait FileSystemProjectIo {
     fn location(&self) -> &Path;

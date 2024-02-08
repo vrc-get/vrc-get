@@ -10,7 +10,7 @@ use indexmap::IndexMap;
 use std::convert::Infallible;
 use url::Url;
 
-pub(crate) mod seal {
+mod seal {
     pub trait Sealed {}
 }
 
