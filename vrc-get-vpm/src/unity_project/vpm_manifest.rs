@@ -1,7 +1,7 @@
 use crate::io;
 use crate::io::ProjectIo;
 use crate::unity_project::LockedDependencyInfo;
-use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
+use crate::utils::{load_json_or_default, SaveController};
 use crate::version::{DependencyRange, Version, VersionRange};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -31,47 +31,50 @@ struct VpmLockedDependency {
 
 #[derive(Debug)]
 pub(super) struct VpmManifest {
-    as_json: AsJson,
-    changed: bool,
+    controller: SaveController<AsJson>,
 }
 
 impl VpmManifest {
     pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
         Ok(Self {
-            as_json: load_json_or_default(io, MANIFEST_PATH.as_ref()).await?,
-            changed: false,
+            controller: SaveController::new(
+                load_json_or_default(io, MANIFEST_PATH.as_ref()).await?,
+            ),
         })
     }
 
     pub(super) fn dependencies(&self) -> impl Iterator<Item = (&str, &DependencyRange)> {
-        self.as_json
+        self.controller
             .dependencies
             .iter()
             .map(|(name, dep)| (name.as_ref(), &dep.version))
     }
 
     pub(super) fn get_dependency(&self, package: &str) -> Option<&DependencyRange> {
-        self.as_json.dependencies.get(package).map(|x| &x.version)
+        self.controller
+            .dependencies
+            .get(package)
+            .map(|x| &x.version)
     }
 
     pub(super) fn all_locked(&self) -> impl Iterator<Item = LockedDependencyInfo> {
-        self.as_json.locked.iter().map(|(name, dep)| {
+        self.controller.locked.iter().map(|(name, dep)| {
             LockedDependencyInfo::new(name.as_ref(), &dep.version, &dep.dependencies)
         })
     }
 
     pub(super) fn get_locked(&self, package: &str) -> Option<LockedDependencyInfo> {
-        self.as_json
+        self.controller
             .locked
             .get_key_value(package)
             .map(|(package, x)| LockedDependencyInfo::new(package, &x.version, &x.dependencies))
     }
 
     pub(super) fn add_dependency(&mut self, name: &str, version: DependencyRange) {
-        self.as_json
+        self.controller
+            .as_mut()
             .dependencies
             .insert(name.into(), VpmDependency { version });
-        self.changed = true;
     }
 
     pub(super) fn add_locked(
@@ -80,32 +83,23 @@ impl VpmManifest {
         version: Version,
         dependencies: IndexMap<Box<str>, VersionRange>,
     ) {
-        self.as_json.locked.insert(
+        self.controller.as_mut().locked.insert(
             name.into(),
             VpmLockedDependency {
                 version,
                 dependencies,
             },
         );
-        self.changed = true;
     }
 
     pub(crate) fn remove_packages<'a>(&mut self, names: impl Iterator<Item = &'a str>) {
         for name in names {
-            self.as_json.locked.shift_remove(name);
-            self.as_json.dependencies.shift_remove(name);
+            self.controller.as_mut().locked.shift_remove(name);
+            self.controller.as_mut().dependencies.shift_remove(name);
         }
-        self.changed = true;
     }
 
-    pub(super) async fn save(&self, io: &impl ProjectIo) -> io::Result<()> {
-        if self.changed {
-            io.write(
-                MANIFEST_PATH.as_ref(),
-                &to_vec_pretty_os_eol(&self.as_json)?,
-            )
-            .await?;
-        }
-        Ok(())
+    pub(super) async fn save(&mut self, io: &impl ProjectIo) -> io::Result<()> {
+        self.controller.save(io, MANIFEST_PATH.as_ref()).await
     }
 }
