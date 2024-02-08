@@ -1,4 +1,5 @@
 mod add_package;
+mod call_unity;
 mod find_legacy_assets;
 mod migrate_unity_2022;
 mod package_resolution;
@@ -25,14 +26,10 @@ use std::path::{Path, PathBuf};
 use crate::io::{DirEntry, FileSystemProjectIo, ProjectIo};
 use crate::PackageJson;
 pub use add_package::AddPackageErr;
+pub use call_unity::ExecuteUnityError;
 pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use pending_project_changes::PendingProjectChanges;
 pub use resolve::ResolvePackageErr;
-
-#[cfg(feature = "tokio")]
-mod call_unity;
-#[cfg(feature = "tokio")]
-pub use call_unity::ExecuteUnityError;
 
 #[derive(Debug)]
 pub struct UnityProject<IO: ProjectIo> {
