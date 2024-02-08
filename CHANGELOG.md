@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog].
   - You can enable this feature in `vrc-get-settings.json` by setting `ignoreOfficialRepository` or `ignoreCuratedRepository` to true.
   - This feature is replacement of `experimental-override-predefined` feature since 1.4.1.
     - Please add alternative repository to user repository and enable this feature to use alternative repository instead of official / curated repository.
-  - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. `#362`
+  - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. `#362` `#365`
 
 ### Changed
 
