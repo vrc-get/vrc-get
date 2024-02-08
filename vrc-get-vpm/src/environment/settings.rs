@@ -116,6 +116,7 @@ impl Settings {
             }
         }
 
+        self.settings_changed |= !removed.is_empty();
         removed
     }
 
