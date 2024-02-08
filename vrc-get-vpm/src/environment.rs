@@ -106,6 +106,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .user_repos()
             .iter()
             .map(UserRepoSetting::to_source);
+        self.io.create_dir_all("Repos".as_ref()).await?;
         self.repo_cache
             .load_repos(http, &self.io, predefined_repos.chain(user_repos))
             .await?;
