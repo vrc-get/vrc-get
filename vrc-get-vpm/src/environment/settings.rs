@@ -1,6 +1,6 @@
 use crate::io;
 use crate::io::EnvironmentIo;
-use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
+use crate::utils::{load_json_or_default, SaveController};
 use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -57,9 +57,7 @@ struct AsJson {
 
 #[derive(Debug)]
 pub(crate) struct Settings {
-    as_json: AsJson,
-
-    settings_changed: bool,
+    controller: SaveController<AsJson>,
 }
 
 pub(crate) trait NewIdGetter {
@@ -75,66 +73,63 @@ impl Settings {
         let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
         Ok(Self {
-            as_json: parsed,
-            settings_changed: false,
+            controller: SaveController::new(parsed),
         })
     }
 
     pub(crate) fn user_repos(&self) -> &[UserRepoSetting] {
-        &self.as_json.user_repos
+        &self.controller.user_repos
     }
 
     pub(crate) fn user_package_folders(&self) -> &[PathBuf] {
-        &self.as_json.user_package_folders
+        &self.controller.user_package_folders
     }
 
     pub(crate) fn update_user_repo_id(&mut self, new_id: impl NewIdGetter) {
-        for repo in &mut self.as_json.user_repos {
-            let id = new_id.new_id(repo);
-            if id != repo.id() {
-                let owned = id.map(|x| x.into());
-                repo.id = owned;
-                self.settings_changed = true;
+        self.controller.may_changing(|json| {
+            let mut changed = false;
+            for repo in &mut json.user_repos {
+                let id = new_id.new_id(repo);
+                if id != repo.id() {
+                    let owned = id.map(|x| x.into());
+                    repo.id = owned;
+                    changed = true;
+                }
             }
-        }
+            changed
+        })
     }
 
     pub fn retain_user_repos(
         &mut self,
         mut f: impl FnMut(&UserRepoSetting) -> bool,
     ) -> Vec<UserRepoSetting> {
-        // awaiting extract_if but not stable yet so use cloned method
-        let cloned = self.as_json.user_repos.to_vec();
-        self.as_json.user_repos.clear();
         let mut removed = Vec::new();
 
-        for element in cloned {
-            if f(&element) {
-                self.as_json.user_repos.push(element);
-            } else {
-                removed.push(element);
-            }
-        }
+        // awaiting extract_if but not stable yet so use cloned method
+        self.controller.may_changing(|json| {
+            let cloned = json.user_repos.to_vec();
+            json.user_repos.clear();
 
-        self.settings_changed |= !removed.is_empty();
+            for element in cloned {
+                if f(&element) {
+                    json.user_repos.push(element);
+                } else {
+                    removed.push(element);
+                }
+            }
+
+            !removed.is_empty()
+        });
+
         removed
     }
 
     pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {
-        self.as_json.user_repos.push(repo);
-        self.settings_changed = true;
+        self.controller.as_mut().user_repos.push(repo);
     }
 
     pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        if !self.settings_changed {
-            return Ok(());
-        }
-
-        io.create_dir_all(".".as_ref()).await?;
-        io.write(JSON_PATH.as_ref(), &to_vec_pretty_os_eol(&self.as_json)?)
-            .await?;
-
-        self.settings_changed = false;
-        Ok(())
+        self.controller.save(io, JSON_PATH.as_ref()).await
     }
 }
