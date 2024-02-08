@@ -12,8 +12,12 @@ The format is based on [Keep a Changelog].
   - I wrote changelog for all releases for all releases
 - global (whole-user) configuration for vrc-get `#352`
   - create in the `%LOCALAPPDATA%/VRChatCreatorCompanion/vrc-get-settings.json` or `$XDG_DATA_HOME/VRChatCreatorCompanion/vrc-get-settings.json`
+  - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. `#362`
 - Feature to ignore official / curated repositories `#352`
   - You can enable this feature in `vrc-get-settings.json` by setting `ignoreOfficialRepository` or `ignoreCuratedRepository` to true.
+  - This feature is replacement of `experimental-override-predefined` feature since 1.4.1.
+    - Please add alternative repository to user repository and enable this feature to use alternative repository instead of official / curated repository.
+  - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. `#362`
 
 ### Changed
 
