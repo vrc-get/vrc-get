@@ -90,3 +90,32 @@ impl HandleErrorResult {
         }
     }
 }
+
+impl From<Error> for std::io::Error {
+    fn from(value: Error) -> Self {
+        use std::io::ErrorKind as IoErrorKind;
+        let kind = match value.kind() {
+            ErrorKind::NotFound => IoErrorKind::NotFound,
+            ErrorKind::PermissionDenied => IoErrorKind::PermissionDenied,
+            ErrorKind::InvalidFilename => IoErrorKind::InvalidInput,
+            ErrorKind::OtherIO => IoErrorKind::Other, // might have suitable error kind but not sure.
+            ErrorKind::InvalidDatabase => IoErrorKind::InvalidData,
+            ErrorKind::IndexDuplicateKey => IoErrorKind::InvalidData,
+            ErrorKind::InvalidIndexKey => IoErrorKind::Unsupported,
+            ErrorKind::IndexNotFound => IoErrorKind::InvalidInput,
+            ErrorKind::LockTimeout => IoErrorKind::TimedOut,
+            ErrorKind::InvalidTransactionState => IoErrorKind::InvalidInput,
+            ErrorKind::InvalidCollectionName => IoErrorKind::InvalidInput,
+            ErrorKind::InvalidUpdateField => IoErrorKind::InvalidInput,
+            ErrorKind::UnexpectedToken => IoErrorKind::InvalidData,
+            ErrorKind::InvalidDataType => IoErrorKind::InvalidData,
+            ErrorKind::InvalidInitialSize => IoErrorKind::InvalidInput,
+            ErrorKind::InvalidNullCharString => IoErrorKind::InvalidInput,
+            ErrorKind::InvalidFreeSpacePage => IoErrorKind::InvalidData,
+            ErrorKind::Unsupported => IoErrorKind::Unsupported,
+            ErrorKind::Uncategorized => IoErrorKind::Other,
+        };
+
+        Self::new(kind, value)
+    }
+}
