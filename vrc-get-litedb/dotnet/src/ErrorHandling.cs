@@ -35,7 +35,6 @@ public struct LiteDbError
         INVALID_TRANSACTION_STATE = LiteException.LiteErrorCode.INVALID_TRANSACTION_STATE,
         INVALID_COLLECTION_NAME = LiteException.LiteErrorCode.INVALID_COLLECTION_NAME,
         INVALID_UPDATE_FIELD = LiteException.LiteErrorCode.INVALID_UPDATE_FIELD,
-        INVALID_FORMAT = LiteException.LiteErrorCode.INVALID_FORMAT,
         UNEXPECTED_TOKEN = LiteException.LiteErrorCode.UNEXPECTED_TOKEN,
         INVALID_DATA_TYPE = LiteException.LiteErrorCode.INVALID_DATA_TYPE,
         INVALID_INITIALSIZE = LiteException.LiteErrorCode.INVALID_INITIALSIZE,

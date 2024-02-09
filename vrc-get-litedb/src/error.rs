@@ -50,7 +50,6 @@ pub enum ErrorKind {
     InvalidTransactionState = 126,
     InvalidCollectionName = 130,
     InvalidUpdateField = 136,
-    InvalidFormat = 200,
     UnexpectedToken = 203,
     InvalidDataType = 204,
     InvalidInitialSize = 211,
