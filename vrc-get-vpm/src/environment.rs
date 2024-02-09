@@ -4,6 +4,9 @@ mod settings;
 mod uesr_package_collection;
 mod vrc_get_settings;
 
+#[cfg(feature = "experimental-project-management")]
+mod project_management;
+
 use crate::io;
 use crate::io::SeekFrom;
 use crate::repository::local::LocalCachedRepository;
@@ -49,6 +52,10 @@ pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
     /// parsed settings
     settings: Settings,
     vrc_get_settings: VrcGetSettings,
+    // we do not connect to litedb unless we need information from litedb.
+    // TODO?: use inner mutability?
+    #[cfg(feature = "experimental-project-management")]
+    litedb_connection: Option<vrc_get_litedb::DatabaseConnection>,
     /// Cache
     repo_cache: RepoHolder,
     user_packages: UserPackageCollection,
@@ -60,6 +67,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             http,
             settings: Settings::load(&io).await?,
             vrc_get_settings: VrcGetSettings::load(&io).await?,
+            #[cfg(feature = "vrc-get-litedb")]
+            litedb_connection: None,
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
             io,

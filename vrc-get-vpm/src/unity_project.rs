@@ -199,6 +199,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
     pub fn unity_version(&self) -> Option<UnityVersion> {
         self.unity_version
     }
+
+    pub fn has_upm_package(&self, name: &str) -> bool {
+        self.upm_manifest.get_dependency(name).is_some()
+    }
 }
 
 impl<IO: FileSystemProjectIo + ProjectIo> UnityProject<IO> {

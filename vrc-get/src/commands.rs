@@ -26,8 +26,11 @@ type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
     ($class: ident is $($variant: ident),*) => {
+        multi_command!(fn run $class is $($variant),*);
+    };
+    (fn $f: ident $class: ident is $($variant: ident),*) => {
         impl $class {
-            pub async fn run(self) {
+            pub async fn $f(self) {
                 match self {
                     $($class::$variant(cmd) => cmd.run().await,)*
                 }
@@ -291,6 +294,7 @@ impl<T, E> ResultExt<T, E> for Result<T, E> {
 
 mod info;
 mod migrate;
+mod vcc;
 
 /// Open Source command line interface of VRChat Package Manager.
 #[derive(Parser)]
@@ -311,11 +315,13 @@ pub enum Command {
     Info(info::Info),
     #[command(subcommand)]
     Migrate(migrate::Migrate),
+    #[command(subcommand)]
+    Vcc(vcc::Vcc),
 
     Completion(Completion),
 }
 
-multi_command!(Command is Install, Resolve, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Migrate, Completion);
+multi_command!(Command is Install, Resolve, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Migrate, Vcc, Completion);
 
 /// Adds package to unity project
 ///
