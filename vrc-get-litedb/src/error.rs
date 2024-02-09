@@ -47,7 +47,6 @@ pub enum ErrorKind {
     InvalidIndexKey = 111,
     IndexNotFound = 112,
     LockTimeout = 120,
-    AlreadyExistsCollectionName = 122,
     InvalidTransactionState = 126,
     InvalidCollectionName = 130,
     InvalidUpdateField = 136,

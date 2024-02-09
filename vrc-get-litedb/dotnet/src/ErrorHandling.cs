@@ -32,7 +32,6 @@ public struct LiteDbError
         INVALID_INDEX_KEY = LiteException.LiteErrorCode.INVALID_INDEX_KEY,
         INDEX_NOT_FOUND = LiteException.LiteErrorCode.INDEX_NOT_FOUND,
         LOCK_TIMEOUT = LiteException.LiteErrorCode.LOCK_TIMEOUT,
-        ALREADY_EXISTS_COLLECTION_NAME = LiteException.LiteErrorCode.ALREADY_EXISTS_COLLECTION_NAME,
         INVALID_TRANSACTION_STATE = LiteException.LiteErrorCode.INVALID_TRANSACTION_STATE,
         INVALID_COLLECTION_NAME = LiteException.LiteErrorCode.INVALID_COLLECTION_NAME,
         INVALID_UPDATE_FIELD = LiteException.LiteErrorCode.INVALID_UPDATE_FIELD,
