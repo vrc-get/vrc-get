@@ -2,13 +2,14 @@ use crate::io;
 use crate::io::{EnvironmentIo, FileSystemProjectIo, IoTrait, ProjectIo};
 use futures::{Stream, TryFutureExt};
 use log::debug;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::fs::Metadata;
 use std::path::Path;
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::fs;
+use tokio::process::Command;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 #[derive(Debug)]
@@ -57,8 +58,6 @@ impl DefaultEnvironmentIo {
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
 }
-
-impl crate::traits::seal::Sealed for DefaultEnvironmentIo {}
 
 impl EnvironmentIo for DefaultEnvironmentIo {
     #[inline]
@@ -129,8 +128,6 @@ impl DefaultProjectIo {
         }
     }
 }
-
-impl crate::traits::seal::Sealed for DefaultProjectIo {}
 
 impl ProjectIo for DefaultProjectIo {}
 
@@ -210,6 +207,10 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
 
     async fn open(&self, path: &Path) -> io::Result<Self::FileStream> {
         Ok(fs::File::open(self.resolve(path)?).await?.compat())
+    }
+
+    async fn command_status(&self, command: &OsStr, args: &[&OsStr]) -> io::Result<io::ExitStatus> {
+        Command::new(command).args(args).status().await
     }
 }
 

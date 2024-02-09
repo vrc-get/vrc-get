@@ -1,4 +1,4 @@
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
@@ -7,6 +7,7 @@ pub(crate) use futures::io::{
 };
 pub(crate) use futures::Stream;
 pub(crate) use std::io::SeekFrom;
+pub(crate) use std::process::ExitStatus;
 
 #[cfg(feature = "tokio")]
 mod tokio;
@@ -19,7 +20,9 @@ pub use tokio::DefaultProjectIo;
 ///
 /// All relative paths should be resolved as a relative path from the environment folder.
 /// Which is `%APPDATA%\\VRChatCreatorCompanion` or `${XDG_DATA_HOME}/VRChatCreatorCompanion` by default.
-pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync + IoTrait {
+pub trait EnvironmentIo: Sync + IoTrait {
+    /// We may need to resolve a relative path to an absolute path for some reason.
+    /// For example, to get the absolute path of the Repos folder for creating local cache and cleanup repos folder.
     fn resolve(&self, path: &Path) -> PathBuf;
 }
 
@@ -28,7 +31,7 @@ pub trait EnvironmentIo: crate::traits::seal::Sealed + Sync + IoTrait {
 /// Absolute paths are not allowed and relative paths should be resolved as a relative path from the project folder.
 ///
 /// [UnityProject]: crate::unity_project::UnityProject
-pub trait ProjectIo: crate::traits::seal::Sealed + Sync + IoTrait {}
+pub trait ProjectIo: Sync + IoTrait {}
 
 pub trait FileSystemProjectIo {
     fn location(&self) -> &Path;
@@ -51,6 +54,13 @@ pub trait IoTrait {
     fn create_new(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn create(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn open(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
+
+    // simple process operation.
+    fn command_status(
+        &self,
+        command: &OsStr,
+        args: &[&OsStr],
+    ) -> impl Future<Output = Result<ExitStatus>> + Send;
 }
 
 pub trait DirEntry {
