@@ -35,6 +35,7 @@ uuid = { version = "1.6.1", features = ["v4"] }
 lazy_static = "1.4.0"
 enum-map = "2.7.3"
 
+vrc-get-litedb = { version = "0.1.1", optional = true }
 tokio = { version = "1.36.0", features = ["fs", "process"], optional = true }
 
 [target."cfg(windows)".dependencies]
@@ -45,4 +46,5 @@ default = ["rustls"]
 native-tls = ["reqwest/native-tls-vendored"]
 rustls = ["reqwest/rustls-tls-native-roots"]
 
+experimental-project-management = ["vrc-get-litedb"]
 experimental-yank = []

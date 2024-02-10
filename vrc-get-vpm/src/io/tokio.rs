@@ -64,6 +64,24 @@ impl EnvironmentIo for DefaultEnvironmentIo {
     fn resolve(&self, path: &Path) -> PathBuf {
         self.root.join(path)
     }
+
+    #[cfg(feature = "vrc-get-litedb")]
+    fn connect_lite_db(&self) -> io::Result<vrc_get_litedb::DatabaseConnection> {
+        let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
+        let path = path.to_str().expect("path is not utf8").to_string();
+
+        vrc_get_litedb::ConnectionString::new(&path)
+            .connect()
+            .map_err(Into::into)
+    }
+
+    #[cfg(feature = "experimental-project-management")]
+    type ProjectIo = DefaultProjectIo;
+
+    #[cfg(feature = "experimental-project-management")]
+    fn new_project_io(&self, path: &Path) -> Self::ProjectIo {
+        DefaultProjectIo::new(path.into())
+    }
 }
 
 impl TokioIoTraitImpl for DefaultEnvironmentIo {

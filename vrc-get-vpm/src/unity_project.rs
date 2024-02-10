@@ -4,6 +4,7 @@ mod find_legacy_assets;
 mod migrate_unity_2022;
 mod package_resolution;
 pub mod pending_project_changes;
+mod project_type;
 mod remove_package;
 mod resolve;
 mod upm_manifest;
@@ -140,6 +141,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
         Some(unity_version)
     }
 
+    pub async fn is_valid(&self) -> bool {
+        self.unity_version.is_some() || self.manifest.has_any()
+    }
+
     pub async fn save(&mut self) -> io::Result<()> {
         try_join(
             self.manifest.save(&self.io),
@@ -198,6 +203,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
     pub fn unity_version(&self) -> Option<UnityVersion> {
         self.unity_version
+    }
+
+    pub fn has_upm_package(&self, name: &str) -> bool {
+        self.upm_manifest.get_dependency(name).is_some()
     }
 }
 
