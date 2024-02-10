@@ -35,6 +35,9 @@ path = "../vrc-get-vpm"
 features = ["tokio"]
 default-features = false
 
+[build-dependencies]
+home = "0.5.9"
+
 [features]
 default = ["rustls", "experimental-vcc"]
 native-tls = ["vrc-get-vpm/native-tls"]
