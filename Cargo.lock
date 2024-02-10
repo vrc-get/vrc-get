@@ -1714,9 +1714,9 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-litedb"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c66fd13ff3750eee6191a1391de629d01b2e2e13952ead0893b9cbbf102bf9b9"
+checksum = "4fc37429a968f7257cc62533fe733e966ec13928d4fcbd8c4f79d5f47b338f9c"
 dependencies = [
  "ar",
  "hex",
@@ -1750,7 +1750,7 @@ dependencies = [
  "tokio-util",
  "url",
  "uuid",
- "vrc-get-litedb 0.1.0",
+ "vrc-get-litedb 0.1.1",
 ]
 
 [[package]]
