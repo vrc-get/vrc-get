@@ -14,5 +14,10 @@ fn main() {
                  version = FRAMEWORK_VERSION,
                  lib = target_info.bootstrapper
         );
+
+        if target_info.family == TargetFamily::Linux {
+            // start stop gc is not supported by dotnet.
+            println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
+        }
     }
 }
