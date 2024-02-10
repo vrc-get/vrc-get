@@ -105,10 +105,11 @@ fn build_dotnet(out_dir: &Path, manifest_dir: &Path, target: &TargetInformation)
     command.arg(manifest_dir.join("dotnet/vrc-get-litedb.csproj"));
 
     // set output paths
-    let output_dir = out_dir.join("dotnet").join("bin/");
+    let output_dir = out_dir.join("dotnet").join("lib/");
     command.arg("--output").arg(&output_dir);
-    let mut building = OsString::from("-p:IntermediateOutputPath=");
-    building.push(out_dir.join("dotnet").join("obj/"));
+
+    let mut building = OsString::from("-p:VrcGetOutDir=");
+    building.push(out_dir.join("dotnet"));
     command.arg(building);
 
     command.arg("--runtime").arg(target.dotnet_runtime_id);
