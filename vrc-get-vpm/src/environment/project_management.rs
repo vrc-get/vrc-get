@@ -34,7 +34,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
-    pub fn add_project<ProjectIO: ProjectIo + FileSystemProjectIo>(
+    pub async fn add_project<ProjectIO: ProjectIo + FileSystemProjectIo>(
         &mut self,
         project: &UnityProject<ProjectIO>,
     ) -> io::Result<()> {
@@ -47,7 +47,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             "project has no unity version",
         ))?;
 
-        let project_type = project.detect_project_type()?;
+        let project_type = project.detect_project_type().await?;
 
         let new_project = Project::new(
             path.into(),

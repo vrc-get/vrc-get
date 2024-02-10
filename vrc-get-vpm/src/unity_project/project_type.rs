@@ -3,7 +3,7 @@ use crate::io::ProjectIo;
 use crate::{ProjectType, UnityProject};
 
 impl<IO: ProjectIo> UnityProject<IO> {
-    pub fn detect_project_type(&self) -> io::Result<ProjectType> {
+    pub async fn detect_project_type(&self) -> io::Result<ProjectType> {
         if self.get_locked("com.vrchat.avatars").is_some() {
             return Ok(ProjectType::Avatars);
         } else if self.get_locked("com.vrchat.worlds").is_some() {
@@ -20,7 +20,28 @@ impl<IO: ProjectIo> UnityProject<IO> {
             return Ok(ProjectType::UpmStarter);
         }
 
-        // TODO: add legacy project type detection with installed files
+        // VRCSDK2.dll is for SDK2
+        if file_exists(&self.io, "Assets/VRCSDK/Plugins/VRCSDK2.dll").await {
+            return Ok(ProjectType::LegacySdk2);
+        }
+
+        // VRCSDK3.dll is for SDK3 Worlds
+        if file_exists(&self.io, "Assets/VRCSDK/Plugins/VRCSDK3.dll").await {
+            return Ok(ProjectType::LegacyWorlds);
+        }
+
+        // VRCSDK3A.dll is for SDK3 Worlds
+        if file_exists(&self.io, "Assets/VRCSDK/Plugins/VRCSDK3A.dll").await {
+            return Ok(ProjectType::LegacyAvatars);
+        }
+
+        async fn file_exists(io: &impl ProjectIo, path: &str) -> bool {
+            io.metadata(path.as_ref())
+                .await
+                .map(|x| x.is_file())
+                .unwrap_or(false)
+        }
+
         Ok(ProjectType::Unknown)
     }
 }

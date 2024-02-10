@@ -88,7 +88,9 @@ impl ProjectAdd {
             UnityProject::load(DefaultProjectIo::new(Path::new(self.path.as_ref()).into()))
                 .await
                 .exit_context("loading specified project");
-        env.add_project(&project).exit_context("adding project");
+        env.add_project(&project)
+            .await
+            .exit_context("adding project");
         env.save().await.exit_context("saving environment");
     }
 }
