@@ -74,6 +74,14 @@ impl EnvironmentIo for DefaultEnvironmentIo {
             .connect()
             .map_err(Into::into)
     }
+
+    #[cfg(feature = "experimental-project-management")]
+    type ProjectIo = DefaultProjectIo;
+
+    #[cfg(feature = "experimental-project-management")]
+    fn new_project_io(&self, path: &Path) -> Self::ProjectIo {
+        DefaultProjectIo::new(path.into())
+    }
 }
 
 impl TokioIoTraitImpl for DefaultEnvironmentIo {

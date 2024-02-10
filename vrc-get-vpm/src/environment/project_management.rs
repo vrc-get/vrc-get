@@ -2,6 +2,8 @@ use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
 use crate::utils::PathBufExt;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
+use futures::future::try_join_all;
+use log::error;
 use std::path::{Component, Path, PathBuf};
 use vrc_get_litedb::{DatabaseConnection, DateTime, Project};
 
@@ -13,6 +15,58 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
 
         Ok(self.litedb_connection.as_ref().unwrap())
+    }
+
+    pub async fn sync_with_real_projects(&mut self) -> io::Result<()> {
+        self.get_db()?; // ensure the database connection is initialized
+        let db = self.litedb_connection.as_ref().unwrap();
+
+        let mut projects = db.get_projects()?;
+
+        let changed_projects = try_join_all(
+            projects
+                .iter_mut()
+                .map(|x| update_project_with_actual_data(&self.io, x)),
+        )
+        .await?;
+
+        for project in changed_projects.iter().flatten() {
+            db.update_project(project)?;
+        }
+
+        async fn update_project_with_actual_data<'a>(
+            io: &impl EnvironmentIo,
+            project: &'a mut Project,
+        ) -> io::Result<Option<&'a Project>> {
+            let path = project.path().as_ref();
+
+            let metadata = io.metadata(path).await;
+            if !metadata.map(|x| x.is_dir()).unwrap_or(false) {
+                error!("Project {} not found", path.display());
+                return Ok(None);
+            }
+
+            let mut changed = false;
+
+            let loaded_project = UnityProject::load(io.new_project_io(path)).await?;
+            if let Some(unity_version) = loaded_project.unity_version() {
+                let unity_version = unity_version.to_string().into_boxed_str();
+                if project.unity_version() != Some(&unity_version) {
+                    changed = true;
+                    project.set_unity_version(Some(unity_version));
+                }
+            }
+
+            let project_type = loaded_project.detect_project_type().await?;
+            if project.project_type() != project_type.into() {
+                changed = true;
+                project.set_project_type(project_type.into());
+            }
+
+            Ok(if changed { Some(project) } else { None })
+        }
+
+        Ok(())
     }
 
     // TODO: return wrapper type instead?

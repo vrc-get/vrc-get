@@ -46,6 +46,10 @@ impl ProjectList {
     pub async fn run(self) {
         let mut env = load_env(&self.env_args).await;
 
+        env.sync_with_real_projects()
+            .await
+            .exit_context("syncing with real projects");
+
         let mut projects = env.get_projects().exit_context("getting projects");
 
         projects.sort_by_key(|x| Reverse(x.last_modified().as_millis_since_epoch()));

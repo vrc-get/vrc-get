@@ -26,6 +26,11 @@ pub trait EnvironmentIo: Sync + IoTrait {
     fn resolve(&self, path: &Path) -> PathBuf;
     #[cfg(feature = "vrc-get-litedb")]
     fn connect_lite_db(&self) -> Result<vrc_get_litedb::DatabaseConnection>;
+    #[cfg(feature = "experimental-project-management")]
+    type ProjectIo: ProjectIo;
+
+    #[cfg(feature = "experimental-project-management")]
+    fn new_project_io(&self, path: &Path) -> Self::ProjectIo;
 }
 
 /// Wrapper for the file system operation for the [UnityProject]
