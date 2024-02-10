@@ -46,6 +46,10 @@ impl ProjectList {
     pub async fn run(self) {
         let mut env = load_env(&self.env_args).await;
 
+        env.migrate_from_settings_json()
+            .await
+            .exit_context("migrating from settings.json");
+
         env.sync_with_real_projects()
             .await
             .exit_context("syncing with real projects");
@@ -92,6 +96,11 @@ impl ProjectAdd {
             UnityProject::load(DefaultProjectIo::new(Path::new(self.path.as_ref()).into()))
                 .await
                 .exit_context("loading specified project");
+
+        env.migrate_from_settings_json()
+            .await
+            .exit_context("migrating from settings.json");
+
         env.add_project(&project)
             .await
             .exit_context("adding project");
@@ -120,6 +129,10 @@ impl ProjectRemove {
         else {
             return println!("No project found at {}", self.path);
         };
+
+        env.migrate_from_settings_json()
+            .await
+            .exit_context("migrating from settings.json");
 
         env.remove_project(&project)
             .exit_context("removing project");

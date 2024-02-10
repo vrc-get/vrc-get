@@ -136,6 +136,10 @@ impl Settings {
 
 #[cfg(feature = "experimental-project-management")]
 impl Settings {
+    pub(crate) fn user_projects(&self) -> &[Box<str>] {
+        &self.controller.user_projects
+    }
+
     pub(crate) fn remove_user_project(&mut self, path: &str) {
         self.controller
             .as_mut()

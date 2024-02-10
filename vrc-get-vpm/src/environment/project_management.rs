@@ -4,6 +4,7 @@ use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
 use futures::future::try_join_all;
 use log::error;
+use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
 use vrc_get_litedb::{DatabaseConnection, DateTime, Project};
 
@@ -15,6 +16,54 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
 
         Ok(self.litedb_connection.as_ref().unwrap())
+    }
+
+    pub async fn migrate_from_settings_json(&mut self) -> io::Result<()> {
+        self.get_db()?; // ensure the database connection is initialized
+        let db = self.litedb_connection.as_ref().unwrap();
+
+        let projects = self
+            .settings
+            .user_projects()
+            .iter()
+            .map(|x| x.as_ref())
+            .collect::<HashSet<_>>();
+        let db_projects = db
+            .get_projects()?
+            .into_vec()
+            .into_iter()
+            .map(|x| (x.path().to_owned(), x))
+            .collect::<std::collections::HashMap<_, _>>();
+
+        // add new projects
+        for project in &projects {
+            if !db_projects.contains_key(*project) {
+                async fn get_project_type(
+                    io: &impl EnvironmentIo,
+                    path: &Path,
+                ) -> io::Result<ProjectType> {
+                    let project = UnityProject::load(io.new_project_io(path)).await?;
+                    project.detect_project_type().await
+                }
+                db.insert_project(&Project::new(
+                    (*project).into(),
+                    None,
+                    get_project_type(&self.io, project.as_ref())
+                        .await
+                        .unwrap_or(ProjectType::Unknown)
+                        .into(),
+                ))?;
+            }
+        }
+
+        // remove deleted projects
+        for project in db_projects.iter() {
+            if !projects.contains(project.0.as_str()) {
+                db.delete_project(project.1.id())?;
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn sync_with_real_projects(&mut self) -> io::Result<()> {
