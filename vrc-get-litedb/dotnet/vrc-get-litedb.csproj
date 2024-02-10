@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- Remember to update FRAMEWORK_VERSION in build_target_info.rs file when updating this version -->
     <RuntimeFrameworkVersion>8.0.1</RuntimeFrameworkVersion>
     <RootNamespace>vrc_get_litedb</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
