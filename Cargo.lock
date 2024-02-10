@@ -1697,7 +1697,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "vrc-get-litedb",
  "vrc-get-vpm",
 ]
 

@@ -27,8 +27,6 @@ serde = { version = "1.0.196", features = ["derive", "rc"] }
 serde_json = { version = "1.0.113", features = ["preserve_order"] }
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros", "fs"] }
 
-vrc-get-litedb = { path = "../vrc-get-litedb", optional = true }
-
 [dependencies.vrc-get-vpm]
 version = "0.0.7-beta.2"
 path = "../vrc-get-vpm"
@@ -43,7 +41,7 @@ default = ["rustls", "experimental-vcc"]
 native-tls = ["vrc-get-vpm/native-tls"]
 rustls = ["vrc-get-vpm/rustls"]
 
-experimental-vcc = ["vrc-get-vpm/experimental-project-management", "vrc-get-litedb"]
+experimental-vcc = ["vrc-get-vpm/experimental-project-management"]
 experimental-yank = ["vrc-get-vpm/experimental-yank"]
 
 # binstall support
