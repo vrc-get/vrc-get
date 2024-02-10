@@ -106,10 +106,17 @@ impl ProjectRemove {
     pub async fn run(self) {
         let mut env = load_env(&self.env_args).await;
 
-        let removed = env
-            .remove_project(&self.path)
+        let Some(project) = env
+            .get_projects()
+            .exit_context("getting projects")
+            .into_iter()
+            .find(|x| x.path() == self.path.as_ref())
+        else {
+            return println!("No project found at {}", self.path);
+        };
+
+        env.remove_project(&project)
             .exit_context("removing project");
-        println!("Removed {removed} projects");
         env.save().await.exit_context("saving environment");
     }
 }

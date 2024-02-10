@@ -25,19 +25,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .collect())
     }
 
-    pub fn remove_project(&mut self, path: &str) -> io::Result<usize> {
+    pub fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
         let db = self.get_db()?;
-        let mut count = 0;
 
-        for x in db.get_projects()?.iter().filter(|x| x.path() == path) {
-            db.delete_project(x.id())?;
-            count += 1;
-        }
+        db.delete_project(project.project.id())?;
+        self.settings.remove_user_project(project.path());
 
-        // remove from settings json
-        self.settings.remove_user_project(path);
-
-        Ok(count)
+        Ok(())
     }
 
     pub fn add_project<ProjectIO: ProjectIo + FileSystemProjectIo>(
