@@ -1,6 +1,8 @@
 use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
-use crate::{io, Environment, HttpClient, UnityProject};
-use vrc_get_litedb::{DatabaseConnection, Project, ProjectType};
+use crate::version::UnityVersion;
+use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
+use std::path::Path;
+use vrc_get_litedb::{DatabaseConnection, DateTime, Project};
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     // TODO?: use inner mutability to get the database connection?
@@ -13,8 +15,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     // TODO: return wrapper type instead?
-    pub fn get_projects(&mut self) -> io::Result<Box<[Project]>> {
-        Ok(self.get_db()?.get_projects()?)
+    pub fn get_projects(&mut self) -> io::Result<Vec<UserProject>> {
+        Ok(self
+            .get_db()?
+            .get_projects()?
+            .into_vec()
+            .into_iter()
+            .map(UserProject::new)
+            .collect())
     }
 
     pub fn remove_project(&mut self, path: &str) -> io::Result<usize> {
@@ -57,5 +65,44 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         self.settings.add_user_project(path);
 
         Ok(())
+    }
+}
+
+pub struct UserProject {
+    project: Project,
+}
+
+impl UserProject {
+    fn new(project: Project) -> Self {
+        Self { project }
+    }
+
+    pub fn path(&self) -> &str {
+        self.project.path()
+    }
+
+    pub fn name(&self) -> &str {
+        Path::new(self.path())
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+    }
+
+    pub fn last_modified(&self) -> DateTime {
+        // TODO: provide our wrapper type
+        self.project.last_modified()
+    }
+
+    pub fn unity_version(&self) -> Option<UnityVersion> {
+        UnityVersion::parse(self.project.unity_version()?)
+    }
+
+    pub fn project_type(&self) -> ProjectType {
+        self.project.project_type().into()
+    }
+
+    pub fn favorite(&self) -> bool {
+        self.project.favorite()
     }
 }

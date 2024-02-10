@@ -33,6 +33,7 @@ use url::Url;
 
 use crate::environment::vrc_get_settings::VrcGetSettings;
 use crate::io::{DirEntry, EnvironmentIo};
+pub use project_management::*;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
 pub(crate) use settings::Settings;

@@ -46,10 +46,7 @@ impl ProjectList {
     pub async fn run(self) {
         let mut env = load_env(&self.env_args).await;
 
-        let mut projects = env
-            .get_projects()
-            .exit_context("getting projects")
-            .into_vec();
+        let mut projects = env.get_projects().exit_context("getting projects");
 
         projects.sort_by_key(|x| Reverse(x.last_modified().as_millis_since_epoch()));
 
@@ -60,12 +57,15 @@ impl ProjectList {
                 .rsplit_once(['/', '\\'])
                 .map(|(_, name)| name)
                 .unwrap_or(path);
-            let unity_version = project.unity_version().unwrap_or("unknown");
+            let unity_version = project
+                .unity_version()
+                .map(|x| x.to_string())
+                .unwrap_or("unknown".into());
 
             println!("{name}:");
             println!("  Path: {}", path);
             println!("  Unity: {unity_version}");
-            println!("  Target: {:?}", project.project_type()); // TODO: use Display implementation
+            println!("  Target: {}", project.project_type());
             println!("  Is Favorite: {}", project.favorite());
         }
     }
