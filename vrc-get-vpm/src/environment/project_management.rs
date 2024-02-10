@@ -32,9 +32,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(count)
     }
 
-    pub fn add_project(
+    pub fn add_project<ProjectIO: ProjectIo + FileSystemProjectIo>(
         &mut self,
-        project: &UnityProject<impl ProjectIo + FileSystemProjectIo>,
+        project: &UnityProject<ProjectIO>,
     ) -> io::Result<()> {
         let path = project.project_dir().to_str().ok_or(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -45,30 +45,12 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             "project has no unity version",
         ))?;
 
-        // TODO: move this detection to better place like in UnityProject
-        let project_type = if project.get_locked("com.vrchat.avatars").is_some() {
-            ProjectType::AVATARS
-        } else if project.get_locked("com.vrchat.worlds").is_some() {
-            ProjectType::WORLDS
-        } else if project.get_locked("com.vrchat.core.vpm-resolver").is_some()
-            || project.get_locked("com.vrchat.base").is_some()
-        {
-            ProjectType::VPM_STARTER
-        } else if project.has_upm_package("com.vrchat.avatars") {
-            ProjectType::UPM_AVATARS
-        } else if project.has_upm_package("com.vrchat.worlds") {
-            ProjectType::UPM_WORLDS
-        } else if project.has_upm_package("com.vrchat.base") {
-            ProjectType::UPM_STARTER
-        } else {
-            // TODO: add legacy project type detection with installed files
-            ProjectType::UNKNOWN
-        };
+        let project_type = project.detect_project_type()?;
 
         let new_project = Project::new(
             path.into(),
             unity_version.to_string().into_boxed_str().into(),
-            project_type,
+            project_type.into(),
         );
 
         self.get_db()?.insert_project(&new_project)?;
