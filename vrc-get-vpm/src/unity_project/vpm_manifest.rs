@@ -99,6 +99,10 @@ impl VpmManifest {
         }
     }
 
+    pub(crate) fn has_any(&self) -> bool {
+        !self.controller.locked.is_empty() || !self.controller.dependencies.is_empty()
+    }
+
     pub(super) async fn save(&mut self, io: &impl ProjectIo) -> io::Result<()> {
         self.controller.save(io, MANIFEST_PATH.as_ref()).await
     }

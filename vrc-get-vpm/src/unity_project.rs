@@ -4,6 +4,7 @@ mod find_legacy_assets;
 mod migrate_unity_2022;
 mod package_resolution;
 pub mod pending_project_changes;
+mod project_type;
 mod remove_package;
 mod resolve;
 mod upm_manifest;
