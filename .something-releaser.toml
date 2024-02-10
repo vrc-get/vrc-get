@@ -3,3 +3,6 @@ release_changer = ["cargo:vrc-get"]
 
 [target.vpm]
 release_changer = ["cargo:vrc-get-vpm"]
+
+[target.litedb]
+release_changer = ["cargo:vrc-get-litedb"]

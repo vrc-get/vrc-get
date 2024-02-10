@@ -16,24 +16,49 @@ jobs:
       matrix:
         include:
           - run-test: true
+          - static-linked: true
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              sudo ln -s "/usr/bin/ld.lld" /usr/local/x86_64-linux-musl/bin/ld.lld
+              /usr/local/x86_64-linux-musl/bin/ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld -C target-feature=+crt-static"
           - triple: aarch64-unknown-linux-musl
             on: ubuntu-latest
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              sudo ln -s "/usr/bin/ld.lld" /usr/local/aarch64-linux-musl/bin/ld.lld
+              /usr/local/aarch64-linux-musl/bin/ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld -C default-linker-libraries=y -C target-feature=+crt-static"
           - triple: x86_64-unknown-linux-gnu
             on: ubuntu-latest
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld"
+            static-linked: false
           - triple: aarch64-unknown-linux-gnu
             on: ubuntu-latest
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              sudo ln -s "/usr/bin/ld.lld" /usr/aarch64-linux-gnu/bin/ld.lld
+              /usr/aarch64-linux-gnu/bin/ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld"
+            static-linked: false
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
+            rustflags: "-C target-feature=+crt-static"
           - triple: aarch64-pc-windows-msvc
             on: windows-latest
+            rustflags: "-C target-feature=+crt-static"
             run-test: false
           - triple: x86_64-apple-darwin
             on: macos-latest
+            # Arm64 runner on macOS is not available for open source repositories with macos-14!
+            # https://github.blog/changelog/2024-01-30-github-actions-introducing-the-new-m1-macos-runner-available-to-open-source/
           - triple: aarch64-apple-darwin
-            run-test: false
-            on: macos-latest
+            on: macos-14
         triple:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
@@ -79,6 +104,13 @@ jobs:
       - name: Run tests
         if: ${{ matrix.run-test }}
         run: cargo test --verbose --target ${{ matrix.triple }}
+      - name: Check binary is statically linked
+        shell: bash
+        if: ${{ matrix.static-linked }}
+        run: |
+          # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
+          unset CARGO_BUILD_TARGET
+          cargo run --bin build-check-static-link target/${{ matrix.triple }}/debug/vrc-get*
 
   conclude:
     runs-on: ubuntu-latest

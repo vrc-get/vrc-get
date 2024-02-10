@@ -128,10 +128,18 @@ jobs:
         include:
           - triple: x86_64-unknown-linux-musl
             on: ubuntu-latest
-            rustflags: "-C target-feature=+crt-static"
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              sudo ln -s "/usr/bin/ld.lld" /usr/local/x86_64-linux-musl/bin/ld.lld
+              /usr/local/x86_64-linux-musl/bin/ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld -C target-feature=+crt-static"
           - triple: aarch64-unknown-linux-musl
             on: ubuntu-latest
-            rustflags: "-C target-feature=+crt-static"
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              sudo ln -s "/usr/bin/ld.lld" /usr/local/aarch64-linux-musl/bin/ld.lld
+              /usr/local/aarch64-linux-musl/bin/ld.lld --version
+            rustflags: "-C link-arg=-fuse-ld=lld -C default-linker-libraries=y -C target-feature=+crt-static"
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
             rustflags: "-C target-feature=+crt-static"
@@ -172,8 +180,16 @@ jobs:
           cache-targets: false # for release build, do not cache build artifacts
           key: release # there are no elements about build result, so it's ok to share between all builds
 
+      - name: Setup
+        run: ${{ matrix.setup }}
       - name: Build
         run: cargo build --target ${{ matrix.triple }} --release --verbose
+      - name: Check binary is statically linked
+        shell: bash
+        run: |
+          # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
+          unset CARGO_BUILD_TARGET
+          cargo run --bin build-check-static-link target/${{ matrix.triple }}/release/vrc-get*
 
       - name: Move artifacts
         shell: bash

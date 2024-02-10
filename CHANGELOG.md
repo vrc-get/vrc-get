@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
   - This feature is replacement of `experimental-override-predefined` feature since 1.4.1.
     - Please add alternative repository to user repository and enable this feature to use alternative repository instead of official / curated repository.
   - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. `#362` `#365`
+- `vrc-get-litedb` crate which is NativeAOT based LiteDB wrapper for vrc-get `#320`
 
 ### Changed
 

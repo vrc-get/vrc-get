@@ -1,0 +1,23 @@
+[package]
+name = "build-check-static-link"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[dependencies.object]
+version = "0.32.2"
+default-features = false
+features = [
+    "read_core",
+    "macho",
+    "pe",
+    "elf",
+]
