@@ -25,14 +25,33 @@ type Environment = vrc_get_vpm::Environment<Client, DefaultEnvironmentIo>;
 type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
-    ($class: ident is $($variant: ident),*) => {
-        multi_command!(fn run $class is $($variant),*);
+    ($class: ident is $($args:tt)*) => {
+        multi_command!(@ fn run $class [$($args)*] []);
     };
-    (fn $f: ident $class: ident is $($variant: ident),*) => {
+    (fn $f: ident $class: ident is $($args:tt)*) => {
+        multi_command!(@ fn $f $class [$($args)*] []);
+    };
+
+    (@ fn $f: ident $class: ident [$variant: ident $(, $($args:tt)*)?] [$($out:tt)*]) => {
+        multi_command!(@ fn $f $class [$($($args)*)?] [
+            $($out)*
+            $class::$variant(cmd) => cmd.run().await,
+        ]);
+    };
+
+    (@ fn $f: ident $class: ident [#[$meta:meta] $variant: ident $(, $($args:tt)*)?] [$($out:tt)*]) => {
+        multi_command!(@ fn $f $class [$($($args)*)?] [
+            $($out)*
+            #[$meta]
+            $class::$variant(cmd) => cmd.run().await,
+        ]);
+    };
+
+    (@ fn $f: ident $class: ident [] [$($out:tt)*]) => {
         impl $class {
             pub async fn $f(self) {
                 match self {
-                    $($class::$variant(cmd) => cmd.run().await,)*
+                    $($out)*
                 }
             }
         }
@@ -294,6 +313,7 @@ impl<T, E> ResultExt<T, E> for Result<T, E> {
 
 mod info;
 mod migrate;
+#[cfg(feature = "experimental-vcc")]
 mod vcc;
 
 /// Open Source command line interface of VRChat Package Manager.
@@ -315,13 +335,27 @@ pub enum Command {
     Info(info::Info),
     #[command(subcommand)]
     Migrate(migrate::Migrate),
+    #[cfg(feature = "experimental-vcc")]
     #[command(subcommand)]
     Vcc(vcc::Vcc),
 
     Completion(Completion),
 }
 
-multi_command!(Command is Install, Resolve, Remove, Update, Outdated, Upgrade, Search, Repo, Info, Migrate, Vcc, Completion);
+multi_command!(Command is
+    Install,
+    Resolve,
+    Remove,
+    Update,
+    Outdated,
+    Upgrade,
+    Search,
+    Repo,
+    Info,
+    Migrate,
+    #[cfg(feature = "experimental-vcc")] Vcc,
+    Completion,
+);
 
 /// Adds package to unity project
 ///
