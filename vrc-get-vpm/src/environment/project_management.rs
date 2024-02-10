@@ -2,7 +2,7 @@ use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
 use crate::utils::PathBufExt;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 use vrc_get_litedb::{DatabaseConnection, DateTime, Project};
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
@@ -41,9 +41,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     ) -> io::Result<()> {
         let path = project.project_dir();
         let path = if path.is_absolute() {
-            path.to_path_buf()
+            normalize_path(path)
         } else {
-            std::env::current_dir().unwrap().joined(path)
+            normalize_path(&std::env::current_dir().unwrap().joined(path))
         };
         let path = path.to_str().ok_or(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -67,6 +67,24 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         Ok(())
     }
+}
+
+fn normalize_path(input: &Path) -> PathBuf {
+    let mut result = PathBuf::with_capacity(input.as_os_str().len());
+
+    for component in input.components() {
+        match component {
+            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
+            Component::RootDir => result.push("/"),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                result.pop();
+            }
+            Component::Normal(_) => result.push(component.as_os_str()),
+        }
+    }
+
+    result
 }
 
 pub struct UserProject {
