@@ -1,4 +1,5 @@
 use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
+use crate::utils::PathBufExt;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
 use std::path::Path;
@@ -38,7 +39,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         &mut self,
         project: &UnityProject<ProjectIO>,
     ) -> io::Result<()> {
-        let path = project.project_dir().to_str().ok_or(io::Error::new(
+        let path = project.project_dir();
+        let path = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            std::env::current_dir().unwrap().joined(path)
+        };
+        let path = path.to_str().ok_or(io::Error::new(
             io::ErrorKind::InvalidData,
             "project path is not utf8",
         ))?;
