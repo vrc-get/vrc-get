@@ -1683,7 +1683,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "vrc-get"
-version = "1.5.4-beta.2"
+version = "1.6.0-beta.0"
 dependencies = [
  "clap",
  "clap_complete",
@@ -1702,7 +1702,9 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-litedb"
-version = "0.1.2-beta.0"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fc37429a968f7257cc62533fe733e966ec13928d4fcbd8c4f79d5f47b338f9c"
 dependencies = [
  "ar",
  "hex",
@@ -1714,9 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-litedb"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fc37429a968f7257cc62533fe733e966ec13928d4fcbd8c4f79d5f47b338f9c"
+version = "0.1.2-beta.0"
 dependencies = [
  "ar",
  "hex",
