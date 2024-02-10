@@ -19,6 +19,7 @@ include = [
     "!/dotnet/LiteDB/LiteDB/bin/**/*",
     "!/dotnet/LiteDB/LiteDB/obj/**/*",
     "/Cargo.toml",
+    "/*.rs",
     "README.md",
     "LICENSE",
 ]
