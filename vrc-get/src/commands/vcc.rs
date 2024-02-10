@@ -97,6 +97,10 @@ impl ProjectAdd {
                 .await
                 .exit_context("loading specified project");
 
+        if project.is_valid().await {
+            return eprintln!("Invalid project at {}", self.path);
+        }
+
         env.migrate_from_settings_json()
             .await
             .exit_context("migrating from settings.json");
