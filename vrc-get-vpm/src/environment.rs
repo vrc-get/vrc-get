@@ -60,7 +60,7 @@ pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
     // we do not connect to litedb unless we need information from litedb.
     // TODO?: use inner mutability?
     #[cfg(feature = "vrc-get-litedb")]
-    litedb_connection: Option<vrc_get_litedb::DatabaseConnection>,
+    litedb_connection: litedb::LiteDbConnectionHolder,
     /// Cache
     repo_cache: RepoHolder,
     user_packages: UserPackageCollection,
@@ -73,7 +73,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             settings: Settings::load(&io).await?,
             vrc_get_settings: VrcGetSettings::load(&io).await?,
             #[cfg(feature = "vrc-get-litedb")]
-            litedb_connection: None,
+            litedb_connection: litedb::LiteDbConnectionHolder::new(),
             repo_cache: RepoHolder::new(),
             user_packages: UserPackageCollection::new(),
             io,

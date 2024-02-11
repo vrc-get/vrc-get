@@ -10,7 +10,7 @@ use std::str::from_utf8;
 use vrc_get_litedb::UnityVersion as DbUnityVersion;
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
-    pub fn get_unity_installations(&mut self) -> io::Result<Vec<UnityInstallation>> {
+    pub fn get_unity_installations(&self) -> io::Result<Vec<UnityInstallation>> {
         Ok(self
             .get_db()?
             .get_unity_versions()?
@@ -21,8 +21,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub async fn add_unity_installation(&mut self, path: &str) -> io::Result<UnityVersion> {
-        self.get_db()?;
-        let db = self.litedb_connection.as_ref().unwrap();
+        let db = self.get_db()?;
 
         // first, check for duplicates
         if db
@@ -196,8 +195,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .map(unity_path)
             .collect::<HashSet<_>>();
 
-        self.get_db()?;
-        let db = self.litedb_connection.as_ref().unwrap();
+        let db = self.get_db()?;
 
         let mut installed = HashSet::new();
 

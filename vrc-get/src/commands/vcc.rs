@@ -165,7 +165,7 @@ pub struct UnityList {
 
 impl UnityList {
     pub async fn run(self) {
-        let mut env = load_env(&self.env_args).await;
+        let env = load_env(&self.env_args).await;
 
         let mut unity_installations = env
             .get_unity_installations()
@@ -250,7 +250,6 @@ pub struct UnityUpdate {
 
 impl UnityUpdate {
     pub async fn run(self) {
-        // TODO: update
         let mut env = load_env(&self.env_args).await;
 
         env.update_unity_from_unity_hub_and_fs()
