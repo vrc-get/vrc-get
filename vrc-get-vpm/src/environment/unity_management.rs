@@ -52,11 +52,16 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .position(|&x| x == b' ')
             .unwrap_or(stdout.len());
 
-        let version = std::str::from_utf8(&stdout[..index])
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid version"))?;
+        let version = from_utf8(&stdout[..index])
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid version"))?
+            .trim();
 
-        let version = UnityVersion::parse(version)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "invalid version"))?;
+        let version = UnityVersion::parse(version).ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("invalid version: {version}"),
+            )
+        })?;
 
         let installation =
             DbUnityVersion::new(path.into(), version.to_string().into_boxed_str(), false);
