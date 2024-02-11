@@ -20,11 +20,11 @@ extern "C" {
     fn RhSetRuntimeInitializationCallback(fPtr: unsafe extern "C" fn() -> c_int);
     fn RhRegisterOSModule(
         p_module: *mut u8,
-        pv_managed_code_start_range: *mut u8,
+        pv_managed_code_start_range: *const u8,
         cb_managed_code_range: u32,
-        pv_unboxing_stubs_start_range: *mut u8,
+        pv_unboxing_stubs_start_range: *const u8,
         cb_unboxing_stubs_range: u32,
-        p_classlib_functions: *mut ClasslibFunction,
+        p_classlib_functions: *const ClasslibFunction,
         n_classlib_functions: u32,
     ) -> bool;
     fn PalGetModuleHandleFromPointer(pointer: *mut u8) -> *mut u8;
@@ -50,9 +50,9 @@ extern "C" {
 
     fn InitializeModules(
         os_module: *mut u8,
-        modules: *mut *mut u8,
+        modules: *const usize,
         count: c_int,
-        p_classlib_functions: *mut *mut u8,
+        p_classlib_functions: *const ClasslibFunction,
         n_classlib_functions: c_int,
     );
 
@@ -87,7 +87,7 @@ fn test_classlib_function_size() {
     );
 }
 
-static mut C_CLASSLIB_FUNCTIONS: [ClasslibFunction; 14] = [
+static C_CLASSLIB_FUNCTIONS: [ClasslibFunction; 14] = [
     Some(GetRuntimeException),
     Some(FailFast),
     None, // UnhandledExceptionHandler
@@ -125,11 +125,11 @@ extern "C" fn initialize_runtime() -> c_int {
 
         if !RhRegisterOSModule(
             os_module,
-            managedcode.as_mut_ptr(),
+            managedcode.as_ptr(),
             managedcode.len() as u32,
-            unbox.as_mut_ptr(),
+            unbox.as_ptr(),
             unbox.len() as u32,
-            C_CLASSLIB_FUNCTIONS.as_mut_ptr(),
+            C_CLASSLIB_FUNCTIONS.as_ptr(),
             C_CLASSLIB_FUNCTIONS.len() as u32,
         ) {
             return -1;
@@ -139,9 +139,9 @@ extern "C" fn initialize_runtime() -> c_int {
 
         InitializeModules(
             os_module,
-            modules.as_mut_ptr(),
+            modules.as_ptr(),
             modules.len() as c_int,
-            C_CLASSLIB_FUNCTIONS.as_mut_ptr() as *mut *mut u8,
+            C_CLASSLIB_FUNCTIONS.as_ptr(),
             C_CLASSLIB_FUNCTIONS.len() as c_int,
         );
 
@@ -154,11 +154,11 @@ extern "C" fn initialize_runtime() -> c_int {
 
 use os::*;
 
-unsafe fn slice_from_start_stop<T>(start: &'static mut T, stop: &'static mut T) -> &'static mut [T] {
+unsafe fn slice_from_start_stop<T>(start: &'static T, stop: &'static T) -> &'static [T] {
     unsafe {
-        std::slice::from_raw_parts_mut(
+        std::slice::from_raw_parts(
             start,
-            (stop as *mut T).offset_from(start as *mut _) as usize,
+            (stop as *const T).offset_from(start as *const _) as usize,
         )
     }
 }
@@ -170,29 +170,29 @@ mod os {
 
     extern "C" {
         #[link_name = "\u{1}section$start$__DATA$__modules"]
-        static mut modules_start_ptr: *mut u8;
+        static modules_start_ptr: usize;
         #[link_name = "\u{1}section$end$__DATA$__modules"]
-        static mut modules_end_ptr: *mut u8;
+        static modules_end_ptr: usize;
         #[link_name = "\u{1}section$start$__TEXT$__managedcode"]
-        static mut managedcode_start_ptr: u8;
+        static managedcode_start_ptr: u8;
         #[link_name = "\u{1}section$end$__TEXT$__managedcode"]
-        static mut managedcode_end_ptr: u8;
+        static managedcode_end_ptr: u8;
         #[link_name = "\u{1}section$start$__TEXT$__unbox"]
-        static mut unbox_start_ptr: u8;
+        static unbox_start_ptr: u8;
         #[link_name = "\u{1}section$end$__TEXT$__unbox"]
-        static mut unbox_end_ptr: u8;
+        static unbox_end_ptr: u8;
     }
 
-    pub(super) fn managedcode() -> &'static mut [u8] {
-        unsafe { slice_from_start_stop(&mut managedcode_start_ptr, &mut managedcode_end_ptr) }
+    pub(super) fn managedcode() -> &'static [u8] {
+        unsafe { slice_from_start_stop(&managedcode_start_ptr, &managedcode_end_ptr) }
     }
 
-    pub(super) fn unbox() -> &'static mut [u8] {
-        unsafe { slice_from_start_stop(&mut unbox_start_ptr, &mut unbox_end_ptr) }
+    pub(super) fn unbox() -> &'static [u8] {
+        unsafe { slice_from_start_stop(&unbox_start_ptr, &unbox_end_ptr) }
     }
 
-    pub(super) fn modules() -> &'static mut [*mut u8] {
-        unsafe { slice_from_start_stop(&mut modules_start_ptr, &mut modules_end_ptr) }
+    pub(super) fn modules() -> &'static [usize] {
+        unsafe { slice_from_start_stop(&modules_start_ptr, &modules_end_ptr) }
     }
 }
 
@@ -202,28 +202,26 @@ mod os {
     use crate::bootstrapper::slice_from_start_stop;
 
     extern "C" {
-        static mut __start___modules: *mut u8;
-        static mut __stop___modules: *mut u8;
-        static mut __start___managedcode: u8;
-        static mut __stop___managedcode: u8;
-        static mut __start___unbox: u8;
-        static mut __stop___unbox: u8;
+        static __start___modules: usize;
+        static __stop___modules: usize;
+        static __start___managedcode: u8;
+        static __stop___managedcode: u8;
+        static __start___unbox: u8;
+        static __stop___unbox: u8;
     }
 
-    pub(super) fn managedcode() -> &'static mut [u8] {
-        unsafe { slice_from_start_stop(&mut __start___managedcode, &mut __stop___managedcode) }
+    pub(super) fn managedcode() -> &'static [u8] {
+        unsafe { slice_from_start_stop(&__start___managedcode, &__stop___managedcode) }
     }
 
-    pub(super) fn unbox() -> &'static mut [u8] {
-        unsafe { slice_from_start_stop(&mut __start___unbox, &mut __stop___unbox) }
+    pub(super) fn unbox() -> &'static [u8] {
+        unsafe { slice_from_start_stop(&__start___unbox, &__stop___unbox) }
     }
 
-    pub(super) fn modules() -> &'static mut [*mut u8] {
-        unsafe { slice_from_start_stop(&mut __start___modules, &mut __stop___modules) }
+    pub(super) fn modules() -> &'static [usize] {
+        unsafe { slice_from_start_stop(&__start___modules, &__stop___modules) }
     }
 }
-
-// TODO: port MSVC
 
 #[cfg(target_env = "msvc")]
 mod os {
@@ -238,9 +236,9 @@ mod os {
     use crate::bootstrapper::slice_from_start_stop;
 
     #[link_section = ".modules$A"]
-    static MODULES_START: [usize; 1] = [0];
+    static MODULES_START: usize = 0;
     #[link_section = ".modules$Z"]
-    static MODULES_END: [usize; 1] = [0];
+    static MODULES_END: usize = 0;
 
     static mut BOOKEND_A: u8 = 0;
     static mut BOOKEND_Z: u8 = 0;
@@ -265,30 +263,20 @@ mod os {
         unsafe { &mut BOOKEND_Z }
     }
 
-    pub(super) fn managedcode() -> &'static mut [u8] {
+    pub(super) fn managedcode() -> &'static [u8] {
         unsafe {
             slice_from_start_stop(
-                &mut *(managedcode_start as usize as *mut _),
-                &mut *(managedcode_end as usize as *mut _),
+                &*(managedcode_start as *const _),
+                &*(managedcode_end as *const _),
             )
         }
     }
 
-    pub(super) fn unbox() -> &'static mut [u8] {
-        unsafe {
-            slice_from_start_stop(
-                &mut *(unbox_start as usize as *mut _),
-                &mut *(unbox_end as usize as *mut _),
-            )
-        }
+    pub(super) fn unbox() -> &'static [u8] {
+        unsafe { slice_from_start_stop(&*(unbox_start as *const _), &*(unbox_end as *const _)) }
     }
 
-    pub(super) fn modules() -> &'static mut [*mut u8] {
-        unsafe {
-            slice_from_start_stop(
-                &mut *(MODULES_START.as_ptr() as *mut *mut u8),
-                &mut *(MODULES_END.as_ptr() as *mut *mut u8),
-            )
-        }
+    pub(super) fn modules() -> &'static [usize] {
+        unsafe { slice_from_start_stop(&MODULES_START, &MODULES_END) }
     }
 }
