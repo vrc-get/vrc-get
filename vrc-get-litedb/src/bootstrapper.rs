@@ -238,9 +238,9 @@ mod os {
     use crate::bootstrapper::slice_from_start_stop;
 
     #[link_section = ".modules$A"]
-    static MODULES_START: [usize; 1] = [0];
+    static mut MODULES_START: [usize; 1] = [0];
     #[link_section = ".modules$Z"]
-    static MODULES_END: [usize; 1] = [0];
+    static mut MODULES_END: [usize; 1] = [0];
 
     static mut BOOKEND_A: u8 = 0;
     static mut BOOKEND_Z: u8 = 0;
@@ -266,11 +266,21 @@ mod os {
     }
 
     pub(super) fn managedcode() -> &'static mut [u8] {
-        unsafe { slice_from_start_stop(&mut (managedcode_start as _), &mut (managedcode_end as _)) }
+        unsafe {
+            slice_from_start_stop(
+                &mut *(managedcode_start as usize as *mut _),
+                &mut *(managedcode_end as usize as *mut _),
+            )
+        }
     }
 
     pub(super) fn unbox() -> &'static mut [u8] {
-        unsafe { slice_from_start_stop(&mut (unbox_start as _), &mut (unbox_end as _)) }
+        unsafe {
+            slice_from_start_stop(
+                &mut *(unbox_start as usize as *mut _),
+                &mut *(unbox_end as usize as *mut _),
+            )
+        }
     }
 
     pub(super) fn modules() -> &'static mut [*mut u8] {
