@@ -154,3 +154,14 @@ impl Settings {
             .insert(0, path.into());
     }
 }
+
+#[cfg(feature = "experimental-unity-management")]
+impl Settings {
+    pub(crate) fn unity_hub(&self) -> &str {
+        &self.controller.path_to_unity_hub
+    }
+
+    pub(crate) fn set_unity_hub(&mut self, path: &str) {
+        self.controller.as_mut().path_to_unity_hub = path.into();
+    }
+}

@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog].
   - `vrc-get vcc project list` to list projects `#369`
   - `vrc-get vcc project add <path>` to add a project to project list `#369`
   - `vrc-get vcc project remove <path>` to remove a project from project list `#369`
+  - `vrc-get vcc unity list` to list unity in vcc's unity list `#382`
+  - `vrc-get vcc unity add <path>` to add a unity to vcc's unity list `#382`
+  - `vrc-get vcc unity remove <path>` to remove a unity from vcc's unity list `#382`
+  - In addition, `vrc-get migrate unity 2022` command will get unity from the vcc's unity list `#382`
 
 ### Changed
 

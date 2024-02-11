@@ -12,6 +12,8 @@ use vrc_get_vpm::UnityProject;
 pub enum Vcc {
     #[command(subcommand)]
     Project(Project),
+    #[command(subcommand)]
+    Unity(Unity),
 }
 
 impl Vcc {
@@ -21,7 +23,7 @@ impl Vcc {
     }
 }
 
-multi_command!(fn run_inner Vcc is Project);
+multi_command!(fn run_inner Vcc is Project, Unity);
 
 /// Vcc Project Commands
 #[derive(Subcommand)]
@@ -61,10 +63,7 @@ impl ProjectList {
         for project in projects.iter() {
             let path = project.path();
             // TODO: use '/' for unix
-            let name = path
-                .rsplit_once(['/', '\\'])
-                .map(|(_, name)| name)
-                .unwrap_or(path);
+            let name = project.name();
             let unity_version = project
                 .unity_version()
                 .map(|x| x.to_string())
@@ -140,6 +139,123 @@ impl ProjectRemove {
 
         env.remove_project(&project)
             .exit_context("removing project");
+        env.save().await.exit_context("saving environment");
+    }
+}
+
+/// Vcc Unity Management Commands
+#[derive(Subcommand)]
+#[command(author, version)]
+pub enum Unity {
+    List(UnityList),
+    Add(UnityAdd),
+    Remove(UnityRemove),
+    Update(UnityUpdate),
+}
+
+multi_command!(Unity is List, Add, Remove, Update);
+
+/// List registered Unity installations
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UnityList {
+    #[command(flatten)]
+    env_args: super::EnvArgs,
+}
+
+impl UnityList {
+    pub async fn run(self) {
+        let env = load_env(&self.env_args).await;
+
+        let mut unity_installations = env
+            .get_unity_installations()
+            .exit_context("getting installations");
+
+        unity_installations.sort_by_key(|x| Reverse(x.version()));
+
+        for unity in unity_installations.iter() {
+            if let Some(unity_version) = unity.version() {
+                println!("version {} at {}", unity_version, unity.path());
+            } else {
+                println!("unknown version at {}", unity.path());
+            }
+        }
+    }
+}
+
+/// Add Unity installation to the list
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UnityAdd {
+    #[command(flatten)]
+    env_args: super::EnvArgs,
+    path: Box<str>,
+}
+
+impl UnityAdd {
+    pub async fn run(self) {
+        let mut env = load_env(&self.env_args).await;
+
+        let added = env
+            .add_unity_installation(self.path.as_ref())
+            .await
+            .exit_context("adding unity installation");
+
+        println!("Added version {} at {}", added, self.path);
+
+        env.save().await.exit_context("saving environment");
+    }
+}
+
+/// Remove specified Unity installation from the list
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UnityRemove {
+    #[command(flatten)]
+    env_args: super::EnvArgs,
+    path: Box<str>,
+}
+
+impl UnityRemove {
+    pub async fn run(self) {
+        let mut env = load_env(&self.env_args).await;
+
+        let Some(unity) = env
+            .get_unity_installations()
+            .exit_context("getting installations")
+            .into_iter()
+            .find(|x| x.path() == self.path.as_ref())
+        else {
+            return eprintln!("No unity installation found at {}", self.path);
+        };
+
+        env.remove_unity_installation(&unity)
+            .await
+            .exit_context("adding unity installation");
+
+        env.save().await.exit_context("saving environment");
+    }
+}
+
+/// Update Unity installation list from file system and Unity Hub.
+///
+/// If the installation is not found in the file system, it will be removed from the list.
+/// If the installation is found from Unity Hub, it will be added to the list.
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UnityUpdate {
+    #[command(flatten)]
+    env_args: super::EnvArgs,
+}
+
+impl UnityUpdate {
+    pub async fn run(self) {
+        let mut env = load_env(&self.env_args).await;
+
+        env.update_unity_from_unity_hub_and_fs()
+            .await
+            .exit_context("updating unity from unity hub");
+
         env.save().await.exit_context("saving environment");
     }
 }

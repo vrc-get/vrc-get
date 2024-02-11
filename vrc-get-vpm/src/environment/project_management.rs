@@ -6,21 +6,11 @@ use futures::future::try_join_all;
 use log::error;
 use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
-use vrc_get_litedb::{DatabaseConnection, DateTime, Project};
+use vrc_get_litedb::{DateTime, Project};
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
-    // TODO?: use inner mutability to get the database connection?
-    fn get_db(&mut self) -> io::Result<&DatabaseConnection> {
-        if self.litedb_connection.is_none() {
-            self.litedb_connection = Some(self.io.connect_lite_db()?);
-        }
-
-        Ok(self.litedb_connection.as_ref().unwrap())
-    }
-
     pub async fn migrate_from_settings_json(&mut self) -> io::Result<()> {
-        self.get_db()?; // ensure the database connection is initialized
-        let db = self.litedb_connection.as_ref().unwrap();
+        let db = self.get_db()?; // ensure the database connection is initialized
 
         let projects = self
             .settings
@@ -67,8 +57,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub async fn sync_with_real_projects(&mut self) -> io::Result<()> {
-        self.get_db()?; // ensure the database connection is initialized
-        let db = self.litedb_connection.as_ref().unwrap();
+        let db = self.get_db()?; // ensure the database connection is initialized
 
         let mut projects = db.get_projects()?;
 
@@ -119,7 +108,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     // TODO: return wrapper type instead?
-    pub fn get_projects(&mut self) -> io::Result<Vec<UserProject>> {
+    pub fn get_projects(&self) -> io::Result<Vec<UserProject>> {
         Ok(self
             .get_db()?
             .get_projects()?

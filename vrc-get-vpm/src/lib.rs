@@ -2,7 +2,7 @@
 //!
 //! TODO: documentation
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 use std::fmt::Display;
 use std::path::Path;
