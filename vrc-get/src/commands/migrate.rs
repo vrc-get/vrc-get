@@ -28,9 +28,14 @@ pub struct Unity2022 {
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
     project: Option<Box<Path>>,
+    #[cfg(not(feature = "experimental-vcc"))]
     /// Path to unity 2022 executable.
     #[arg(long)]
     unity: PathBuf,
+    #[cfg(feature = "experimental-vcc")]
+    /// Path to unity 2022 executable.
+    #[arg(long)]
+    unity: Option<PathBuf>,
     #[command(flatten)]
     env_args: EnvArgs,
 }
@@ -57,8 +62,29 @@ impl Unity2022 {
 
         info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
 
+        #[cfg(not(feature = "experimental-vcc"))]
+        let unity = self.unity;
+
+        #[cfg(feature = "experimental-vcc")]
+        let unity = self.unity.unwrap_or_else(|| {
+            use vrc_get_vpm::version::ReleaseType;
+            use vrc_get_vpm::version::UnityVersion;
+            let recommended = UnityVersion::new(2022, 3, 6, ReleaseType::Normal, 1);
+            let Some(found) = env.find_most_suitable_unity(recommended)
+                .exit_context("getting unity 2022 path") else {
+                exit_with!("Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option.")
+            };
+
+            if found.version() != Some(recommended) {
+                // since we know it's unity 2022, we can safely unwrap
+                warn!("Recommended Unity 2022 version is not found. Using found version: {}", found.version().unwrap());
+            }
+
+            PathBuf::from(found.path())
+        });
+
         project
-            .call_unity(&self.unity)
+            .call_unity(&unity)
             .await
             .exit_context("launching unity to finalize migration");
 
