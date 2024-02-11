@@ -148,9 +148,10 @@ impl ProjectRemove {
 #[command(author, version)]
 pub enum Unity {
     List(UnityList),
+    Add(UnityAdd),
 }
 
-multi_command!(Unity is List);
+multi_command!(Unity is List, Add);
 
 /// List registered Unity installations
 #[derive(Parser)]
@@ -177,5 +178,29 @@ impl UnityList {
                 println!("unknown version at {}", unity.path());
             }
         }
+    }
+}
+
+/// List registered Unity installations
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UnityAdd {
+    #[command(flatten)]
+    env_args: super::EnvArgs,
+    path: Box<str>,
+}
+
+impl UnityAdd {
+    pub async fn run(self) {
+        let mut env = load_env(&self.env_args).await;
+
+        let added = env
+            .add_unity_installation(self.path.as_ref())
+            .await
+            .exit_context("adding unity installation");
+
+        println!("Added version {} at {}", added, self.path);
+
+        env.save().await.exit_context("saving environment");
     }
 }

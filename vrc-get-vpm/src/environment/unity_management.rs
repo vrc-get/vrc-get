@@ -1,6 +1,7 @@
 use crate::io::EnvironmentIo;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
+use vrc_get_litedb::UnityVersion as DbUnityVersion;
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub fn get_unity_installations(&mut self) -> io::Result<Vec<UnityInstallation>> {
@@ -12,15 +13,48 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .map(UnityInstallation::new)
             .collect())
     }
+
+    pub async fn add_unity_installation(&mut self, path: &str) -> io::Result<UnityVersion> {
+        let output = self
+            .io
+            .command_output(path.as_ref(), &["-version".as_ref()])
+            .await?;
+
+        if !output.status.success() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("invalid unity installation at {}", path),
+            ));
+        }
+
+        let stdout = &output.stdout[..];
+        let index = stdout
+            .iter()
+            .position(|&x| x == b' ')
+            .unwrap_or(stdout.len());
+
+        let version = std::str::from_utf8(&stdout[..index])
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid version"))?;
+
+        let version = UnityVersion::parse(version)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "invalid version"))?;
+
+        let installation =
+            DbUnityVersion::new(path.into(), version.to_string().into_boxed_str(), false);
+
+        self.get_db()?.insert_unity_version(&installation)?;
+
+        Ok(version)
+    }
 }
 
 #[allow(dead_code)]
 pub struct UnityInstallation {
-    inner: vrc_get_litedb::UnityVersion,
+    inner: DbUnityVersion,
 }
 
 impl UnityInstallation {
-    pub fn new(inner: vrc_get_litedb::UnityVersion) -> Self {
+    pub fn new(inner: DbUnityVersion) -> Self {
         Self { inner }
     }
 

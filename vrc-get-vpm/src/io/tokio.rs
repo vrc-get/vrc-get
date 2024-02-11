@@ -230,6 +230,10 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
     async fn command_status(&self, command: &OsStr, args: &[&OsStr]) -> io::Result<io::ExitStatus> {
         Command::new(command).args(args).status().await
     }
+
+    async fn command_output(&self, command: &OsStr, args: &[&OsStr]) -> io::Result<io::Output> {
+        Command::new(command).args(args).output().await
+    }
 }
 
 pub struct ReadDir {

@@ -8,6 +8,7 @@ pub(crate) use futures::io::{
 pub(crate) use futures::Stream;
 pub(crate) use std::io::SeekFrom;
 pub(crate) use std::process::ExitStatus;
+pub(crate) use std::process::Output;
 
 #[cfg(feature = "tokio")]
 mod tokio;
@@ -68,6 +69,11 @@ pub trait IoTrait {
         command: &OsStr,
         args: &[&OsStr],
     ) -> impl Future<Output = Result<ExitStatus>> + Send;
+    fn command_output(
+        &self,
+        command: &OsStr,
+        args: &[&OsStr],
+    ) -> impl Future<Output = Result<Output>> + Send;
 }
 
 pub trait DirEntry {
