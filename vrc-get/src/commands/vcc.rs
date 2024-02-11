@@ -237,7 +237,10 @@ impl UnityRemove {
     }
 }
 
-/// List unity installations from unity hub
+/// Update Unity installation list from file system and Unity Hub.
+///
+/// If the installation is not found in the file system, it will be removed from the list.
+/// If the installation is found from Unity Hub, it will be added to the list.
 #[derive(Parser)]
 #[command(author, version)]
 pub struct UnityUpdate {
@@ -250,14 +253,9 @@ impl UnityUpdate {
         // TODO: update
         let mut env = load_env(&self.env_args).await;
 
-        let verions = env
-            .get_unity_from_unity_hub()
+        env.update_unity_from_unity_hub_and_fs()
             .await
-            .exit_context("getting unity installations from unity hub");
-
-        for version in verions {
-            println!("Found version {}", version);
-        }
+            .exit_context("updating unity from unity hub");
 
         env.save().await.exit_context("saving environment");
     }

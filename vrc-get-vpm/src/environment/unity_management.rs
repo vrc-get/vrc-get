@@ -2,7 +2,10 @@ use crate::io::{EnvironmentIo, Output};
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
 use lazy_static::lazy_static;
+use log::info;
+use std::collections::HashSet;
 use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 use std::str::from_utf8;
 use vrc_get_litedb::UnityVersion as DbUnityVersion;
 
@@ -183,6 +186,64 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
 
         Ok(result)
+    }
+
+    pub async fn update_unity_from_unity_hub_and_fs(&mut self) -> io::Result<()> {
+        let paths_from_hub = self
+            .get_unity_from_unity_hub()
+            .await?
+            .into_iter()
+            .map(unity_path)
+            .collect::<HashSet<_>>();
+
+        self.get_db()?;
+        let db = self.litedb_connection.as_ref().unwrap();
+
+        let mut installed = HashSet::new();
+
+        for mut in_db in db.get_unity_versions()?.into_vec() {
+            if !self
+                .io
+                .metadata(in_db.path().as_ref())
+                .await
+                .map(|x| x.is_file())
+                .unwrap_or(false)
+            {
+                // if the unity editor not found, remove it from the db
+                info!("Removed Unity that is not exists: {}", in_db.path());
+                db.delete_unity_version(in_db.id())?;
+                continue;
+            }
+
+            installed.insert(PathBuf::from(in_db.path()));
+
+            let exists_in_hub = paths_from_hub.contains(Path::new(in_db.path()));
+
+            if exists_in_hub != in_db.loaded_from_hub() {
+                in_db.set_loaded_from_hub(exists_in_hub);
+                db.update_unity_version(&in_db)?;
+            }
+        }
+
+        for path in paths_from_hub {
+            if !installed.contains(&path) {
+                info!("Added Unity from Unity Hub: {}", path.display());
+                self.add_unity_installation(&path.to_string_lossy()).await?;
+            }
+        }
+
+        return Ok(());
+
+        #[cfg(not(target_os = "macos"))]
+        fn unity_path(original: String) -> PathBuf {
+            PathBuf::from(original)
+        }
+
+        #[cfg(target_os = "macos")]
+        fn unity_path(original: String) -> PathBuf {
+            // on macos, unity hub returns path to app bundle folder, not the executable
+            PathBuf::from(original).join("Contents/MacOS/Unity")
+        }
     }
 }
 
