@@ -44,17 +44,6 @@ fn main() {
         path = dotnet_built.parent().unwrap().display()
     );
 
-    let bootstrapper = dotnet_sdk_folder.join(target_info.bootstrapper);
-    if target_info.family == TargetFamily::Linux || target_info.family == TargetFamily::MacOS {
-        // for unix-like platforms, generate a static library from bootstrapperdll and link it
-        create_libbootstrapperdll(&bootstrapper, &patched_lib_folder, &target_info);
-        println!("cargo:rustc-link-lib=static=bootstrapperdll");
-    } else {
-        // for windows, link with link-arg
-        // TODO: create .lib file from bootstrapperdll.obj
-        println!("cargo:rustc-link-arg={path}", path = bootstrapper.display());
-    }
-
     // link prebuilt dotnet
     if target_info.family == TargetFamily::MacOS {
         // for apple platform, we need to fix object file a little
@@ -82,6 +71,10 @@ fn main() {
     if target_info.family == TargetFamily::Linux {
         // start stop gc is not supported by dotnet.
         println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
+    } else if target_info.family == TargetFamily::Windows {
+        // "/merge:.modules=.rdata" "/merge:.unbox=.text"
+        println!("cargo:rustc-link-arg=/merge:.modules=.rdata");
+        println!("cargo:rustc-link-arg=/merge:.unbox=.text");
     }
 
     let common_libs: &[&str] = &[
@@ -247,30 +240,4 @@ fn remove_libunwind(archive: &Path, patched: &Path) {
         .unwrap()
         .flush()
         .expect("writing patched library");
-}
-
-fn create_libbootstrapperdll(obj: &Path, folder: &Path, target_info: &TargetInformation) {
-    let lib_path = folder.join("libbootstrapperdll.a");
-    let file = std::fs::File::create(&lib_path).expect("failed to create libbootstrapperdll.a");
-    let mut builder = ar::Builder::new(std::io::BufWriter::new(file));
-    builder
-        .append_file(
-            b"bootstrapperdll.o",
-            &mut std::fs::File::open(obj).expect("opening bootstrapperdll.o"),
-        )
-        .unwrap();
-
-    builder
-        .into_inner()
-        .unwrap()
-        .flush()
-        .expect("writing patched libbootstrapperdll.a");
-
-    if target_info.family == TargetFamily::MacOS {
-        // for bsd, ranlib to index
-        Command::new("ranlib")
-            .arg(lib_path)
-            .status()
-            .expect("running ranlib");
-    }
 }

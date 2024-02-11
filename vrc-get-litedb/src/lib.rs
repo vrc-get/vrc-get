@@ -1,3 +1,4 @@
+mod bootstrapper;
 mod bson;
 pub mod connection;
 mod connection_string; // exported in connection
