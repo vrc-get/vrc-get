@@ -16,7 +16,7 @@ the main feature of VRChat Creator Companion (VCC), that supports Windows, Linux
 ### Initial goals
 
 - Provide Open Source command line client of VRChat Package Manager.
-- Provide more functionality fpr VPM than official vpm command.
+- Provide more functionality for VPM than official vpm command.
 
 ### Additional goals since 2024
 - Provide better cross-platform Creator Companion
