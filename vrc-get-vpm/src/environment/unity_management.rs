@@ -78,6 +78,39 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         Ok(())
     }
+
+    pub fn find_most_suitable_unity(
+        &self,
+        expected: UnityVersion,
+    ) -> io::Result<Option<UnityInstallation>> {
+        let mut revision_match = None;
+        let mut minor_match = None;
+        let mut major_match = None;
+
+        for unity in self.get_unity_installations()? {
+            if let Some(version) = unity.version() {
+                if version == expected {
+                    return Ok(Some(unity));
+                }
+
+                if version.major() == expected.major() {
+                    if version.minor() == expected.minor() {
+                        if version.revision() == expected.revision() {
+                            revision_match = Some(unity);
+                        } else {
+                            minor_match = Some(unity);
+                        }
+                    } else {
+                        major_match = Some(unity);
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
+
+        Ok(revision_match.or(minor_match).or(major_match))
+    }
 }
 
 /// UnityHub Operations
