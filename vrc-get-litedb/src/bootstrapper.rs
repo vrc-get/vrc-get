@@ -225,58 +225,60 @@ mod os {
 
 // TODO: port MSVC
 
-/*
+#[cfg(target_env = "msvc")]
+mod os {
+    // There is nothing like #pragma comment(linker, "") in rust
+    // so user needs to manually add the following linker option to the binary crate.
+    // "/merge:.modules=.rdata" "/merge:.unbox=.text"
 
-#if defined(_MSC_VER)
+    // In MSVC, there is nothing like start and stop symbol,
+    // so we put our code to .<section>$A and .<section>$Z and
+    // use pointer to those code to get the start and stop of the section.
 
-#pragma section(".modules$A", read)
-#pragma section(".modules$Z", read)
-extern "C" __declspec(allocate(".modules$A")) void * __modules_a[];
-extern "C" __declspec(allocate(".modules$Z")) void * __modules_z[];
+    use crate::bootstrapper::slice_from_start_stop;
 
-__declspec(allocate(".modules$A")) void * __modules_a[] = { nullptr };
-__declspec(allocate(".modules$Z")) void * __modules_z[] = { nullptr };
+    #[link_section = ".modules$A"]
+    static MODULES_START: [usize; 1] = [0];
+    #[link_section = ".modules$Z"]
+    static MODULES_END: [usize; 1] = [0];
 
-//
-// Each obj file compiled from managed code has a .modules$I section containing a pointer to its ReadyToRun
-// data (which points at eager class constructors, frozen strings, etc).
-//
-// The #pragma ... /merge directive folds the book-end sections and all .modules$I sections from all input
-// obj files into .rdata in alphabetical order.
-//
-#pragma comment(linker, "/merge:.modules=.rdata")
+    static mut BOOKEND_A: u8 = 0;
+    static mut BOOKEND_Z: u8 = 0;
 
-//
-// Unboxing stubs need to be merged, folded and sorted. They are delimited by two special sections (.unbox$A
-// and .unbox$Z). All unboxing stubs are in .unbox$M sections.
-//
-#pragma comment(linker, "/merge:.unbox=.text")
+    #[link_section = ".managedcode$A"]
+    fn managedcode_start() -> *mut u8 {
+        unsafe { &mut BOOKEND_A }
+    }
 
-char _bookend_a;
-char _bookend_z;
+    #[link_section = ".managedcode$Z"]
+    fn managedcode_end() -> *mut u8 {
+        unsafe { &mut BOOKEND_Z }
+    }
 
-//
-// Generate bookends for the managed code section.
-// We give them unique bodies to prevent folding.
-//
+    #[link_section = ".unbox$A"]
+    fn unbox_start() -> *mut u8 {
+        unsafe { &mut BOOKEND_A }
+    }
 
-#pragma code_seg(".managedcode$A")
-void* __managedcode_a() { return &_bookend_a; }
-#pragma code_seg(".managedcode$Z")
-void* __managedcode_z() { return &_bookend_z; }
-#pragma code_seg()
+    #[link_section = ".unbox$Z"]
+    fn unbox_end() -> *mut u8 {
+        unsafe { &mut BOOKEND_Z }
+    }
 
-//
-// Generate bookends for the unboxing stub section.
-// We give them unique bodies to prevent folding.
-//
+    pub(super) fn managedcode() -> &'static mut [u8] {
+        unsafe { slice_from_start_stop(&mut (managedcode_start as _), &mut (managedcode_end as _)) }
+    }
 
-#pragma code_seg(".unbox$A")
-void* __unbox_a() { return &_bookend_a; }
-#pragma code_seg(".unbox$Z")
-void* __unbox_z() { return &_bookend_z; }
-#pragma code_seg()
+    pub(super) fn unbox() -> &'static mut [u8] {
+        unsafe { slice_from_start_stop(&mut (unbox_start as _), &mut (unbox_end as _)) }
+    }
 
-#endif // _MSC_VER
-
- */
+    pub(super) fn modules() -> &'static mut [*mut u8] {
+        unsafe {
+            slice_from_start_stop(
+                &mut (MODULES_START.as_mut_ptr() as _),
+                &mut (MODULES_END.as_mut_ptr() as _),
+            )
+        }
+    }
+}

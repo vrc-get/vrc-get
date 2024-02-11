@@ -44,15 +44,6 @@ fn main() {
         path = dotnet_built.parent().unwrap().display()
     );
 
-    if target_info.family == TargetFamily::Linux || target_info.family == TargetFamily::MacOS {
-        // for unix-like platforms, we use bootstrapper written in rust
-    } else {
-        let bootstrapper = dotnet_sdk_folder.join(target_info.bootstrapper);
-        // for windows, link with link-arg
-        // TODO: create .lib file from bootstrapperdll.obj
-        println!("cargo:rustc-link-arg={path}", path = bootstrapper.display());
-    }
-
     // link prebuilt dotnet
     if target_info.family == TargetFamily::MacOS {
         // for apple platform, we need to fix object file a little
