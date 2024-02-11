@@ -154,7 +154,7 @@ extern "C" fn initialize_runtime() -> c_int {
 
 use os::*;
 
-unsafe fn slice_from_start_stop<T>(start: &mut T, stop: &mut T) -> &'static mut [T] {
+unsafe fn slice_from_start_stop<T>(start: &'static mut T, stop: &'static mut T) -> &'static mut [T] {
     unsafe {
         std::slice::from_raw_parts_mut(
             start,
@@ -238,9 +238,9 @@ mod os {
     use crate::bootstrapper::slice_from_start_stop;
 
     #[link_section = ".modules$A"]
-    static mut MODULES_START: [usize; 1] = [0];
+    static MODULES_START: [usize; 1] = [0];
     #[link_section = ".modules$Z"]
-    static mut MODULES_END: [usize; 1] = [0];
+    static MODULES_END: [usize; 1] = [0];
 
     static mut BOOKEND_A: u8 = 0;
     static mut BOOKEND_Z: u8 = 0;
@@ -286,8 +286,8 @@ mod os {
     pub(super) fn modules() -> &'static mut [*mut u8] {
         unsafe {
             slice_from_start_stop(
-                &mut (MODULES_START.as_mut_ptr() as _),
-                &mut (MODULES_END.as_mut_ptr() as _),
+                &mut *(MODULES_START.as_ptr() as *mut *mut u8),
+                &mut *(MODULES_END.as_ptr() as *mut *mut u8),
             )
         }
     }
