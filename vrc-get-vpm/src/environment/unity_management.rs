@@ -15,6 +15,22 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub async fn add_unity_installation(&mut self, path: &str) -> io::Result<UnityVersion> {
+        self.get_db()?;
+        let db = self.litedb_connection.as_ref().unwrap();
+
+        // first, check for duplicates
+        if db
+            .get_unity_versions()?
+            .into_vec()
+            .into_iter()
+            .any(|x| x.path() == path)
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                format!("unity installation at {} already exists", path),
+            ));
+        }
+
         let output = self
             .io
             .command_output(path.as_ref(), &["-version".as_ref()])
@@ -42,7 +58,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let installation =
             DbUnityVersion::new(path.into(), version.to_string().into_boxed_str(), false);
 
-        self.get_db()?.insert_unity_version(&installation)?;
+        db.insert_unity_version(&installation)?;
 
         Ok(version)
     }
