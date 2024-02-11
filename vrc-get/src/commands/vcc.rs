@@ -183,7 +183,7 @@ impl UnityList {
     }
 }
 
-/// List registered Unity installations
+/// Add Unity installation to the list
 #[derive(Parser)]
 #[command(author, version)]
 pub struct UnityAdd {
@@ -207,7 +207,7 @@ impl UnityAdd {
     }
 }
 
-/// List registered Unity installations
+/// Remove specified Unity installation from the list
 #[derive(Parser)]
 #[command(author, version)]
 pub struct UnityRemove {
