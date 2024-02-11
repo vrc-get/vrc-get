@@ -52,9 +52,9 @@ impl LiteDbConnectionHolder {
             std::sync::atomic::Ordering::SeqCst,
             std::sync::atomic::Ordering::SeqCst,
         ) {
-            Ok(success) => {
+            Ok(_) => {
                 // success means the value is used so return the value
-                Ok(unsafe { &*success })
+                Ok(unsafe { &*ptr })
             }
             Err(failure) => {
                 // failure means the value is already set so drop the new value and return the old value
