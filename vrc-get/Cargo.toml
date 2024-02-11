@@ -37,7 +37,7 @@ default-features = false
 home = "0.5.9"
 
 [features]
-default = ["rustls", "experimental-vcc"]
+default = ["rustls"]
 native-tls = ["vrc-get-vpm/native-tls"]
 rustls = ["vrc-get-vpm/rustls"]
 

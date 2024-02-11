@@ -70,11 +70,6 @@ cargo binstall vrc-get
 
 If you have [`cargo`][cargo], installing using cargo is an easy way to install vrc-get.
 
-Since vrc-get 1.6.0, the `experimental-vcc` feature which is enabled by default requires `dotnet` to build vrc-get.
-Please make sure you have installed dotnet to your system or disable the feature by `--no-default-features` flag.
-In addition, the NativeAOT, a part of dotnet which vrc-get use, requires `clang` and newer version of `ld` to build so
-please install them to your system.
-
 ```bash
 cargo install vrc-get
 ```
