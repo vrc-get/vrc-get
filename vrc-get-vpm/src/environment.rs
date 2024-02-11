@@ -8,6 +8,8 @@ mod vrc_get_settings;
 mod litedb;
 #[cfg(feature = "experimental-project-management")]
 mod project_management;
+#[cfg(feature = "experimental-unity-management")]
+mod unity_management;
 
 use crate::io;
 use crate::io::SeekFrom;

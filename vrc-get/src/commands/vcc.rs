@@ -12,6 +12,8 @@ use vrc_get_vpm::UnityProject;
 pub enum Vcc {
     #[command(subcommand)]
     Project(Project),
+    #[command(subcommand)]
+    Unity(Unity),
 }
 
 impl Vcc {
@@ -21,7 +23,7 @@ impl Vcc {
     }
 }
 
-multi_command!(fn run_inner Vcc is Project);
+multi_command!(fn run_inner Vcc is Project, Unity);
 
 /// Vcc Project Commands
 #[derive(Subcommand)]
@@ -61,10 +63,7 @@ impl ProjectList {
         for project in projects.iter() {
             let path = project.path();
             // TODO: use '/' for unix
-            let name = path
-                .rsplit_once(['/', '\\'])
-                .map(|(_, name)| name)
-                .unwrap_or(path);
+            let name = project.name();
             let unity_version = project
                 .unity_version()
                 .map(|x| x.to_string())
@@ -141,5 +140,42 @@ impl ProjectRemove {
         env.remove_project(&project)
             .exit_context("removing project");
         env.save().await.exit_context("saving environment");
+    }
+}
+
+/// Vcc Unity Management Commands
+#[derive(Subcommand)]
+#[command(author, version)]
+pub enum Unity {
+    List(UnityList),
+}
+
+multi_command!(Unity is List);
+
+/// List registered Unity installations
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UnityList {
+    #[command(flatten)]
+    env_args: super::EnvArgs,
+}
+
+impl UnityList {
+    pub async fn run(self) {
+        let mut env = load_env(&self.env_args).await;
+
+        let mut unity_installations = env
+            .get_unity_installations()
+            .exit_context("getting installations");
+
+        unity_installations.sort_by_key(|x| Reverse(x.version()));
+
+        for unity in unity_installations.iter() {
+            if let Some(unity_version) = unity.version() {
+                println!("version {} at {}", unity_version, unity.path());
+            } else {
+                println!("unknown version at {}", unity.path());
+            }
+        }
     }
 }
