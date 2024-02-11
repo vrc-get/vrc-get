@@ -4,6 +4,8 @@ mod settings;
 mod uesr_package_collection;
 mod vrc_get_settings;
 
+#[cfg(feature = "vrc-get-litedb")]
+mod litedb;
 #[cfg(feature = "experimental-project-management")]
 mod project_management;
 
@@ -55,7 +57,7 @@ pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
     vrc_get_settings: VrcGetSettings,
     // we do not connect to litedb unless we need information from litedb.
     // TODO?: use inner mutability?
-    #[cfg(feature = "experimental-project-management")]
+    #[cfg(feature = "vrc-get-litedb")]
     litedb_connection: Option<vrc_get_litedb::DatabaseConnection>,
     /// Cache
     repo_cache: RepoHolder,
