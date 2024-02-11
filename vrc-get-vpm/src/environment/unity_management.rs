@@ -46,6 +46,12 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         Ok(version)
     }
+
+    pub async fn remove_unity_installation(&mut self, unity: &UnityInstallation) -> io::Result<()> {
+        self.get_db()?.delete_unity_version(unity.inner.id())?;
+
+        Ok(())
+    }
 }
 
 #[allow(dead_code)]
