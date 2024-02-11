@@ -150,9 +150,10 @@ pub enum Unity {
     List(UnityList),
     Add(UnityAdd),
     Remove(UnityRemove),
+    Update(UnityUpdate),
 }
 
-multi_command!(Unity is List, Add, Remove);
+multi_command!(Unity is List, Add, Remove, Update);
 
 /// List registered Unity installations
 #[derive(Parser)]
@@ -231,6 +232,32 @@ impl UnityRemove {
         env.remove_unity_installation(&unity)
             .await
             .exit_context("adding unity installation");
+
+        env.save().await.exit_context("saving environment");
+    }
+}
+
+/// List unity installations from unity hub
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UnityUpdate {
+    #[command(flatten)]
+    env_args: super::EnvArgs,
+}
+
+impl UnityUpdate {
+    pub async fn run(self) {
+        // TODO: update
+        let mut env = load_env(&self.env_args).await;
+
+        let verions = env
+            .get_unity_from_unity_hub()
+            .await
+            .exit_context("getting unity installations from unity hub");
+
+        for version in verions {
+            println!("Found version {}", version);
+        }
 
         env.save().await.exit_context("saving environment");
     }
