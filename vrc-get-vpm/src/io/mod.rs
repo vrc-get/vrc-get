@@ -92,7 +92,7 @@ pub trait IoTrait: Sync {
     ) -> impl Future<Output = Result<Output>> + Send;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct FileType {
     is_file: bool,
     is_dir: bool,
@@ -147,6 +147,10 @@ impl Metadata {
         Self {
             file_type: FileType::dir(),
         }
+    }
+
+    pub fn file_type(&self) -> FileType {
+        self.file_type
     }
 
     pub fn is_file(&self) -> bool {
