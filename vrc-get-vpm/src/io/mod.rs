@@ -53,6 +53,24 @@ pub trait IoTrait: Sync {
     type DirEntry: DirEntry;
     type ReadDirStream: Stream<Item = Result<Self::DirEntry>> + Unpin + Send;
 
+    fn is_file(&self, path: &Path) -> impl Future<Output = bool> + Send {
+        async {
+            self.metadata(path)
+                .await
+                .map(|x| x.is_file())
+                .unwrap_or(false)
+        }
+    }
+
+    fn is_dir(&self, path: &Path) -> impl Future<Output = bool> + Send {
+        async {
+            self.metadata(path)
+                .await
+                .map(|x| x.is_dir())
+                .unwrap_or(false)
+        }
+    }
+
     fn read_dir(&self, path: &Path) -> impl Future<Output = Result<Self::ReadDirStream>> + Send;
 
     type FileStream: AsyncRead + AsyncWrite + AsyncSeek + Unpin + Send;

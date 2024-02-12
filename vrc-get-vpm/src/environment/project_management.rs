@@ -78,8 +78,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         ) -> io::Result<Option<&'a Project>> {
             let path = project.path().as_ref();
 
-            let metadata = io.metadata(path).await;
-            if !metadata.map(|x| x.is_dir()).unwrap_or(false) {
+            if !io.is_dir(path).await {
                 error!("Project {} not found", path.display());
                 return Ok(None);
             }

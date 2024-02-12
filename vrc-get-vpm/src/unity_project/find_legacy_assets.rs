@@ -62,12 +62,7 @@ async fn find_legacy_assets_by_path(
                 return None;
             }
             #[allow(clippy::manual_map)] // it's parallel, not just a if-else
-            if io
-                .metadata(&relative_path)
-                .await
-                .map(|x| x.is_file() == info.is_file)
-                .unwrap_or(false)
-            {
+            if io.is_file(&relative_path).await {
                 Some(FoundWithPath(relative_path, info.is_file))
             } else if let Some(guid) = info.guid {
                 Some(SearchWithGuid(guid, info.is_file))

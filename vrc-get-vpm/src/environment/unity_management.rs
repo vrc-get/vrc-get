@@ -140,14 +140,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
     async fn find_unity_hub(&mut self) -> io::Result<Option<String>> {
         let path = self.settings.unity_hub();
-        if !path.is_empty()
-            && self
-                .io
-                .metadata(path.as_ref())
-                .await
-                .map(|x| x.is_file())
-                .unwrap_or(false)
-        {
+        if !path.is_empty() && self.io.is_file(path.as_ref()).await {
             // if configured one is valid path to file, return it
             return Ok(Some(path.to_string()));
         }
@@ -155,13 +148,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         // if not, try default paths
 
         for &path in Self::default_unity_hub_path() {
-            if self
-                .io
-                .metadata(path.as_ref())
-                .await
-                .map(|x| x.is_file())
-                .unwrap_or(false)
-            {
+            if self.io.is_file(path.as_ref()).await {
                 self.settings.set_unity_hub(path);
                 return Ok(Some(path.to_string()));
             }
@@ -233,13 +220,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let mut installed = HashSet::new();
 
         for mut in_db in db.get_unity_versions()?.into_vec() {
-            if !self
-                .io
-                .metadata(in_db.path().as_ref())
-                .await
-                .map(|x| x.is_file())
-                .unwrap_or(false)
-            {
+            if !self.io.is_file(in_db.path().as_ref()).await {
                 // if the unity editor not found, remove it from the db
                 info!("Removed Unity that is not exists: {}", in_db.path());
                 db.delete_unity_version(in_db.id())?;
