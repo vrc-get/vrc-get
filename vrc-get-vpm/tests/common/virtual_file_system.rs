@@ -41,7 +41,7 @@ impl VirtualFileSystem {
             return err(IS_DIRECTORY, "is directory");
         };
         self.root
-            .get_folder(&dir_path)
+            .create_dir_all(&dir_path)
             .await?
             .create_file(last, true)
             .await?
@@ -84,28 +84,7 @@ impl VirtualFileSystem {
 
 impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
     async fn create_dir_all(&self, path: &Path) -> io::Result<()> {
-        let path = self.resolve(path)?;
-
-        let mut current = self.root.clone();
-
-        for component in path {
-            let mut locked = current.backed.lock().unwrap();
-            let next = match locked.entry(component.to_os_string()) {
-                Entry::Occupied(e) => match e.into_mut() {
-                    FileSystemEntry::File(_) => return err(NOTA_DIRECTORY, "is a file"),
-                    FileSystemEntry::Directory(e) => e.clone(),
-                },
-                Entry::Vacant(e) => {
-                    match e.insert(FileSystemEntry::Directory(DirectoryEntry::new())) {
-                        FileSystemEntry::Directory(e) => e.clone(),
-                        _ => unreachable!(),
-                    }
-                }
-            };
-            drop(locked);
-            current = next;
-        }
-
+        self.root.create_dir_all(&self.resolve(path)?).await?;
         Ok(())
     }
 
@@ -322,6 +301,26 @@ impl DirectoryEntry {
 
         for component in path {
             current = current.get(component).await?.into_directory()?;
+        }
+
+        Ok(current)
+    }
+
+    async fn create_dir_all(&self, path: &[&OsStr]) -> io::Result<DirectoryEntry> {
+        let mut current = self.clone();
+
+        for component in path {
+            let mut locked = current.backed.lock().unwrap();
+            let next = match locked.entry(component.to_os_string()) {
+                Entry::Occupied(e) => e.into_mut().as_directory()?.clone(),
+                Entry::Vacant(e) => e
+                    .insert(FileSystemEntry::Directory(DirectoryEntry::new()))
+                    .as_directory()
+                    .unwrap()
+                    .clone(),
+            };
+            drop(locked);
+            current = next;
         }
 
         Ok(current)
