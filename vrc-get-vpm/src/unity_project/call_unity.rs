@@ -1,5 +1,5 @@
 use crate::io;
-use crate::io::{DefaultProjectIo, IoTrait};
+use crate::io::{FileSystemProjectIo, ProjectIo};
 use crate::UnityProject;
 use std::path::Path;
 
@@ -38,7 +38,10 @@ impl From<io::Error> for ExecuteUnityError {
 
 type Result<T = (), E = ExecuteUnityError> = std::result::Result<T, E>;
 
-impl UnityProject<DefaultProjectIo> {
+impl<IO> UnityProject<IO>
+where
+    IO: ProjectIo + FileSystemProjectIo,
+{
     pub async fn call_unity(&self, unity_executable: &Path) -> Result {
         let status = self
             .io
