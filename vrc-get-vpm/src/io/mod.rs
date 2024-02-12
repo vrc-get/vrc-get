@@ -131,7 +131,7 @@ impl From<std::fs::FileType> for FileType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Metadata {
     file_type: FileType,
 }
