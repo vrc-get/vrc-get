@@ -55,13 +55,13 @@ impl<'a> PackageInfo<'a> {
         }
     }
 
-    pub(crate) fn remote(json: &'a PackageJson, repo: &'a LocalCachedRepository) -> Self {
+    pub fn remote(json: &'a PackageJson, repo: &'a LocalCachedRepository) -> Self {
         Self {
             inner: PackageInfoInner::Remote(json, repo),
         }
     }
 
-    pub(crate) fn local(json: &'a PackageJson, path: &'a Path) -> Self {
+    pub fn local(json: &'a PackageJson, path: &'a Path) -> Self {
         Self {
             inner: PackageInfoInner::Local(json, path),
         }

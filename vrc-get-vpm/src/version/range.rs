@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 // TODO: TEST
 
-#[derive(::serde::Serialize, ::serde::Deserialize, Debug, Clone)]
+#[derive(::serde::Serialize, ::serde::Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct DependencyRange(VersionRange);
 
 impl DependencyRange {
@@ -48,7 +48,7 @@ impl DependencyRange {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct VersionRange {
     comparators: Vec<ComparatorSet>,
 }
@@ -108,7 +108,7 @@ impl FromStr for VersionRange {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct ComparatorSet(Vec<Comparator>);
 
 impl Display for ComparatorSet {
@@ -153,7 +153,7 @@ impl ComparatorSet {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum Comparator {
     Tilde(PartialVersion),
     Caret(PartialVersion),
@@ -374,7 +374,7 @@ impl FromParsingBuf for Comparator {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct PartialVersion {
     major: Segment,
     minor: Segment,

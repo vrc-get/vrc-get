@@ -67,6 +67,10 @@ impl<'env> Install<'env> {
     pub fn is_adding_to_locked(&self) -> bool {
         self.add_to_locked
     }
+
+    pub fn to_dependencies(&self) -> Option<&DependencyRange> {
+        self.to_dependencies.as_ref()
+    }
 }
 
 pub struct Remove<'env> {
