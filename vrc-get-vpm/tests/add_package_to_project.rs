@@ -1,5 +1,7 @@
 use common::*;
 use futures::executor::block_on;
+use std::collections::HashSet;
+use std::path::Path;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageJson;
@@ -382,5 +384,178 @@ fn remove_referenced_legacy_package_when_install() {
             "com.anatawa12.legacy-package",
             RemoveReason::Legacy,
         );
+    })
+}
+
+#[test]
+fn legacy_assets_by_path() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dir("Assets/LegacyFolder")
+            .add_dir("Packages/legacy.package") // VRCSDK Worlds uses legacy dir for removing package
+            .add_file("Assets/LegacyAsset.cs", "// empty file")
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                    .add_legacy_folder("Assets\\LegacyFolder", "")
+                    .add_legacy_folder("Assets\\NotExists", "")
+                    .add_legacy_folder("Packages\\legacy.package", "")
+                    .add_legacy_file("Assets\\LegacyAsset.cs", ""),
+            )
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_eq!(
+            result
+                .remove_legacy_folders()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [
+                Path::new("Assets/LegacyFolder").into(),
+                Path::new("Packages/legacy.package").into()
+            ]
+            .iter()
+            .collect::<HashSet<_>>()
+        );
+
+        assert_eq!(
+            result.remove_legacy_files().iter().collect::<HashSet<_>>(),
+            [Path::new("Assets/LegacyAsset.cs").into()]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+    })
+}
+
+#[test]
+fn legacy_assets_by_guid() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dir("Assets/MovedLegacyFolder")
+            .add_file(
+                "Assets/MovedLegacyFolder.meta",
+                "guid: 1c54b633da4d4d2abc01c6dedae67e09",
+            )
+            .add_file("Assets/MovedLegacyAsset.cs", "// empty file")
+            .add_file(
+                "Assets/MovedLegacyAsset.cs.meta",
+                "guid: ca06b0788d62432083b3577cc2346126",
+            )
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                    .add_legacy_folder("Assets\\LegacyFolder", "1c54b633da4d4d2abc01c6dedae67e09")
+                    .add_legacy_folder("Assets\\NotExists", "62a9615044174c818622c19d0181d036")
+                    .add_legacy_file("Assets\\LegacyAsset.cs", "ca06b0788d62432083b3577cc2346126"),
+            )
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_eq!(
+            result
+                .remove_legacy_folders()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [Path::new("Assets/MovedLegacyFolder").into(),]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+
+        assert_eq!(
+            result.remove_legacy_files().iter().collect::<HashSet<_>>(),
+            [Path::new("Assets/MovedLegacyAsset.cs").into()]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+    })
+}
+
+#[test]
+fn deny_remove_files_not_in_assets_or_packages() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dir("Assets1/LegacyFolder")
+            .add_dir("Packages1/legacy.package") // VRCSDK Worlds uses legacy dir for removing package
+            .add_file("Assets1/LegacyAsset.cs", "// empty file")
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                    .add_legacy_folder("Assets1\\LegacyFolder", "")
+                    .add_legacy_folder("Assets1\\NotExists", "")
+                    .add_legacy_folder("Packages1\\legacy.package", "")
+                    .add_legacy_file("Assets1\\LegacyAsset.cs", ""),
+            )
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_eq!(result.remove_legacy_folders(), &[]);
+        assert_eq!(result.remove_legacy_files(), &[]);
+    })
+}
+
+#[test]
+fn deny_remove_parent_folders() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                    .add_legacy_folder("..", "")
+                    .add_legacy_folder("", ""),
+            )
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_eq!(result.remove_legacy_folders(), &[]);
+        assert_eq!(result.remove_legacy_files(), &[]);
     })
 }
