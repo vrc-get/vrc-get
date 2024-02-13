@@ -1,4 +1,4 @@
-use crate::common::VirtualProjectBuilder;
+use crate::common::{assert_removed, VirtualProjectBuilder};
 use futures::executor::block_on;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
 use vrc_get_vpm::version::Version;
@@ -25,16 +25,13 @@ fn basic_remove() {
         assert_eq!(result.remove_legacy_files().len(), 0);
         assert_eq!(result.conflicts().len(), 0);
 
-        let gists_change = result.package_changes().get("com.anatawa12.gists").unwrap();
-        let gists_change = gists_change.as_remove().expect("gists is not removing");
-        assert_eq!(gists_change.reason(), RemoveReason::Requested);
+        assert_removed(&result, "com.anatawa12.gists", RemoveReason::Requested);
     })
 }
 
 #[test]
 fn transitive_unused_remove() {
     block_on(async {
-        // create minimum project
         let project = VirtualProjectBuilder::new()
             .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
             .add_locked(
@@ -57,20 +54,14 @@ fn transitive_unused_remove() {
         assert_eq!(result.remove_legacy_files().len(), 0);
         assert_eq!(result.conflicts().len(), 0);
 
-        let avatars_change = result.package_changes().get("com.vrchat.avatars").unwrap();
-        let avatars_change = avatars_change.as_remove().expect("avatars is not removing");
-        assert_eq!(avatars_change.reason(), RemoveReason::Requested);
-
-        let avatars_change = result.package_changes().get("com.vrchat.base").unwrap();
-        let avatars_change = avatars_change.as_remove().expect("base is not removing");
-        assert_eq!(avatars_change.reason(), RemoveReason::Unused);
+        assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
+        assert_removed(&result, "com.vrchat.base", RemoveReason::Unused);
     })
 }
 
 #[test]
 fn do_not_remove_transitively_when_untouched() {
     block_on(async {
-        // create minimum project
         let project = VirtualProjectBuilder::new()
             .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
             .add_locked(
@@ -98,12 +89,7 @@ fn do_not_remove_transitively_when_untouched() {
         assert_eq!(result.remove_legacy_files().len(), 0);
         assert_eq!(result.conflicts().len(), 0);
 
-        let avatars_change = result.package_changes().get("com.vrchat.avatars").unwrap();
-        let avatars_change = avatars_change.as_remove().expect("avatars is not removing");
-        assert_eq!(avatars_change.reason(), RemoveReason::Requested);
-
-        let avatars_change = result.package_changes().get("com.vrchat.base").unwrap();
-        let avatars_change = avatars_change.as_remove().expect("base is not removing");
-        assert_eq!(avatars_change.reason(), RemoveReason::Unused);
+        assert_removed(&result, "com.vrchat.avatars", RemoveReason::Requested);
+        assert_removed(&result, "com.vrchat.base", RemoveReason::Unused);
     })
 }
