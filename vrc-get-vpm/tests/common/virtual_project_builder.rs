@@ -7,7 +7,7 @@ use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::{PackageJson, UnityProject};
 
 pub struct VirtualProjectBuilder {
-    dependencies: IndexMap<String, Version>,
+    dependencies: IndexMap<String, String>,
     locked: IndexMap<String, (Version, IndexMap<String, VersionRange>)>,
     files: IndexMap<String, String>,
     directories: Vec<String>,
@@ -24,7 +24,16 @@ impl VirtualProjectBuilder {
     }
 
     pub fn add_dependency(&mut self, name: &str, version: Version) -> &mut VirtualProjectBuilder {
-        self.dependencies.insert(name.into(), version);
+        self.dependencies.insert(name.into(), version.to_string());
+        self
+    }
+
+    pub fn add_dependency_range(
+        &mut self,
+        name: &str,
+        version: &str,
+    ) -> &mut VirtualProjectBuilder {
+        self.dependencies.insert(name.into(), version.into());
         self
     }
 
@@ -73,10 +82,7 @@ impl VirtualProjectBuilder {
         let vpm_manifest = {
             let mut dependencies = serde_json::Map::new();
             for (dependency, version) in &self.dependencies {
-                dependencies.insert(
-                    dependency.to_string(),
-                    json!({ "version": version.to_string() }),
-                );
+                dependencies.insert(dependency.to_string(), json!({ "version": version }));
             }
 
             let mut locked = serde_json::Map::new();
