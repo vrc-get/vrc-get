@@ -32,6 +32,10 @@ The format is based on [Keep a Changelog].
   - For basic project operations, I added tests in `vrc-get-vpm` module.
 
 ### Changed
+- Improved confirmation behaviour about updating `dependencies` `#395`
+  - Previously, the confirmation show nothing about updating `dependencies` since it's almost safe (just updating `vpm-manifest.json`).
+  - Since this release, `vrc-get` shows about what's updating `dependencies`
+  - In addition, if actual operaion is just updating `dependencies`, `vrc-get` will just show updates and apply changes without confirmation.
 
 ### Deprecated
 
