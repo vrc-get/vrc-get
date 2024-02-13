@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog].
   - In addition, `vrc-get migrate unity 2022` command will get unity from the vcc's unity list `#382`
 - Tests for `vrc-get-vpm` module. `#393`
   - For basic project operations, I added tests in `vrc-get-vpm` module.
+- `vrc-get i --name <name>` to install package by name `#398`
+  - Currently, name-based search ignores whitespace in the name.
+  - This feature is experimental. Behavior may change in the future.
 
 ### Changed
 - Improved confirmation behaviour about updating `dependencies` `#395`

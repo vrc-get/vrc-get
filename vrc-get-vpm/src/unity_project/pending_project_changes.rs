@@ -324,7 +324,7 @@ impl<'env> Builder<'env> {
         if let Some(unity) = unity_project.unity_version {
             for package in installs
                 .iter()
-                .filter(|pkg| !unity_compatible(pkg, unity))
+                .filter(|pkg| !unity_compatible(pkg.package_json(), unity))
                 .map(|pkg| pkg.name().into())
             {
                 self.conflicts_unity(package);

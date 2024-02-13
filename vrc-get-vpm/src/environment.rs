@@ -14,7 +14,7 @@ mod unity_management;
 use crate::io;
 use crate::io::SeekFrom;
 use crate::repository::local::LocalCachedRepository;
-use crate::repository::{RemotePackages, RemoteRepository};
+use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{EnvironmentIoHolder, HttpClient, PackageCollection, RemotePackageDownloader};
 use crate::utils::{to_vec_pretty_os_eol, Sha256AsyncWrite};
@@ -233,20 +233,24 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
     pub fn find_whole_all_packages(
         &self,
+        version_selector: VersionSelector,
         filter: impl Fn(&PackageJson) -> bool,
-    ) -> Vec<&PackageJson> {
+    ) -> Vec<PackageInfo> {
         let mut list = Vec::new();
 
         self.get_repos()
-            .flat_map(|(_, repo)| repo.get_packages())
-            .filter_map(RemotePackages::get_latest)
-            .filter(|x| filter(x))
+            .flat_map(|(_, repo)| {
+                repo.get_packages()
+                    .filter_map(|packages| packages.get_latest(version_selector))
+                    .map(|json| PackageInfo::remote(json, repo))
+            })
+            .filter(|x| filter(x.package_json()))
             .fold((), |_, pkg| list.push(pkg));
 
         // user package folders
         for info in self.user_packages.get_all_packages() {
             if !info.version().pre.is_empty() && filter(info.package_json()) {
-                list.push(info.package_json());
+                list.push(info);
             }
         }
 

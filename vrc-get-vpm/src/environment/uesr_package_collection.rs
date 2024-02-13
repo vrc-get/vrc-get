@@ -54,7 +54,7 @@ impl PackageCollection for UserPackageCollection {
         package_selector: VersionSelector,
     ) -> Option<PackageInfo> {
         self.find_packages(package)
-            .filter(|x| package_selector.satisfies(x))
+            .filter(|x| package_selector.satisfies(x.package_json()))
             .max_by_key(|x| x.version())
     }
 }
