@@ -1,10 +1,10 @@
-use crate::io::{EnvironmentIo, ProjectIo};
+use crate::io::ProjectIo;
 use crate::unity_project::{
     package_resolution, pending_project_changes, AddPackageErr, LockedDependencyInfo,
     PendingProjectChanges,
 };
 use crate::version::DependencyRange;
-use crate::{Environment, HttpClient, PackageCollection, UnityProject, VersionSelector};
+use crate::{PackageCollection, UnityProject, VersionSelector};
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -40,8 +40,8 @@ impl From<AddPackageErr> for ResolvePackageErr {
 
 impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn resolve_request<'env>(
-        &mut self,
-        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
+        &self,
+        env: &'env impl PackageCollection,
     ) -> Result<PendingProjectChanges<'env>, AddPackageErr> {
         let mut changes = pending_project_changes::Builder::new();
 
@@ -68,7 +68,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
     fn add_just_dependency<'env>(
         &self,
-        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
+        env: &'env impl PackageCollection,
         changes: &mut pending_project_changes::Builder<'env>,
     ) -> Result<(), AddPackageErr> {
         let mut to_install = vec![];
@@ -124,7 +124,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
     fn resolve_unlocked<'env>(
         &self,
-        env: &'env Environment<impl HttpClient, impl EnvironmentIo>,
+        env: &'env impl PackageCollection,
         changes: &mut pending_project_changes::Builder<'env>,
     ) -> Result<(), AddPackageErr> {
         if self.unlocked_packages().is_empty() {
