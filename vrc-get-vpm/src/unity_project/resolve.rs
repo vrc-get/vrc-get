@@ -140,6 +140,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
             .map(|x| x.name())
             .collect();
 
+        if unlocked_names.is_empty() {
+            // if there are no unlocked packages, early return
+            return Ok(());
+        }
+
         // then, process dependencies of unlocked packages.
         let dependencies_of_unlocked_packages = self
             .unlocked_packages
