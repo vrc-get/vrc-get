@@ -57,6 +57,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         let mut dir_reading = io.read_dir("Packages".as_ref()).await?;
         while let Some(dir_entry) = dir_reading.try_next().await? {
+            if !dir_entry.file_type().await?.is_dir() {
+                continue;
+            }
             let read = Self::try_read_unlocked_package(&io, dir_entry).await;
             let mut is_installed = false;
             if let Some(parsed) = &read.1 {
