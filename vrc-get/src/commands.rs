@@ -2,6 +2,7 @@ use clap::{Args, Parser, Subcommand};
 use indexmap::IndexMap;
 use itertools::Itertools;
 
+use log::warn;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use reqwest::{Client, Url};
 use serde::Serialize;
@@ -374,15 +375,21 @@ multi_command!(Command is
 #[derive(Parser)]
 #[command(author, version)]
 pub struct Install {
-    /// Name of Package
+    /// id of Package
     #[arg()]
-    name: Option<String>,
+    id: Option<String>,
     /// Version of package. if not specified, latest version will be used
     #[arg(id = "VERSION")]
     version: Option<Version>,
     /// Include prerelease
     #[arg(long = "prerelease")]
     prerelease: bool,
+
+    /// Install package by display name instead of name
+    ///
+    /// This option is experimental and behavior may change in the future.
+    #[arg(long = "name", short = 'n')]
+    name: bool,
 
     /// Path to project dir. by default CWD or parents of CWD will be used
     #[arg(short = 'p', long = "project")]
@@ -397,7 +404,7 @@ pub struct Install {
 
 impl Install {
     pub async fn run(self) {
-        let Some(name) = self.name else {
+        let Some(name) = self.id else {
             // if resolve
             return Resolve {
                 project: self.project,
@@ -414,10 +421,30 @@ impl Install {
             None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
             Some(ref version) => VersionSelector::specific_version(version),
         };
-        let package = get_package(&env, &name, version_selector);
+        let packages = if self.name {
+            warn!("--name is experimental and behavior may change in the future.");
+
+            fn normalize_name(name: &str) -> String {
+                name.chars()
+                    .map(|x| x.to_ascii_lowercase())
+                    .filter(|x| !x.is_ascii_whitespace())
+                    .collect::<String>()
+            }
+
+            let lowercase_name = normalize_name(&name);
+            let packages = env.find_whole_all_packages(version_selector, |pkg| {
+                pkg.display_name().map(normalize_name).as_ref() == Some(&lowercase_name)
+            });
+            if packages.is_empty() {
+                exit_with!("no matching package not found")
+            }
+            packages.into_iter().unique_by(|x| x.name()).collect()
+        } else {
+            vec![get_package(&env, &name, version_selector)]
+        };
 
         let changes = unity
-            .add_package_request(&env, vec![package], true, self.prerelease)
+            .add_package_request(&env, packages, true, self.prerelease)
             .await
             .exit_context("collecting packages to be installed");
 
@@ -731,26 +758,27 @@ impl Search {
             sources
         }
 
-        let found_packages = env.find_whole_all_packages(|pkg| {
-            // filtering
-            let search_targets = search_targets(pkg);
+        let found_packages =
+            env.find_whole_all_packages(VersionSelector::latest_for(None, true), |pkg| {
+                // filtering
+                let search_targets = search_targets(pkg);
 
-            queries
-                .iter()
-                .all(|query| search_targets.iter().any(|x| x.contains(query)))
-        });
+                queries
+                    .iter()
+                    .all(|query| search_targets.iter().any(|x| x.contains(query)))
+            });
 
         if found_packages.is_empty() {
             println!("No matching package found!")
         } else {
             for x in found_packages {
-                if let Some(name) = x.display_name() {
+                if let Some(name) = x.package_json().display_name() {
                     println!("{} version {}", name, x.version());
                     println!("({})", x.name());
                 } else {
                     println!("{} version {}", x.name(), x.version());
                 }
-                if let Some(description) = x.description() {
+                if let Some(description) = x.package_json().description() {
                     println!("{}", description);
                 }
                 println!();
@@ -1012,7 +1040,7 @@ impl RepoPackages {
     pub async fn run(self) {
         fn print_repo(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
-                if let Some(pkg) = versions.get_latest() {
+                if let Some(pkg) = versions.get_latest(VersionSelector::latest_for(None, true)) {
                     if let Some(display_name) = pkg.display_name() {
                         println!("{} | {}", display_name, pkg.name());
                     } else {

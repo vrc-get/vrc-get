@@ -1,7 +1,7 @@
-use crate::io;
 use crate::traits::HttpClient;
 use crate::version::Version;
 use crate::PackageJson;
+use crate::{io, VersionSelector};
 use futures::prelude::*;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -157,20 +157,22 @@ impl RemotePackages {
         self.versions.values()
     }
 
-    pub fn get_latest(&self) -> Option<&PackageJson> {
-        self.versions
+    pub fn get_latest(&self, selector: VersionSelector) -> Option<&PackageJson> {
+        let before_yank = self
+            .versions
             .values()
-            .filter(|json| {
-                #[cfg(feature = "experimental-yank")]
-                {
-                    json.is_yanked()
-                }
-                #[cfg(not(feature = "experimental-yank"))]
-                {
-                    let _json = json;
-                    true
-                }
-            })
-            .max_by_key(|json| json.version())
+            .filter(|json| selector.satisfies(json));
+        #[cfg(feature = "experimental-yank")]
+        {
+            before_yank
+                .clone()
+                .filter(|json| json.is_yanked())
+                .max_by_key(|json| json.version())
+                .or_else(|| before_yank.max_by_key(|json| json.version()))
+        }
+        #[cfg(not(feature = "experimental-yank"))]
+        {
+            before_yank.max_by_key(|json| json.version())
+        }
     }
 }

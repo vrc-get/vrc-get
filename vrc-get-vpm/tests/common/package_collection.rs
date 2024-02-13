@@ -52,6 +52,7 @@ impl vrc_get_vpm::PackageCollection for PackageCollection {
         name: &str,
         version: VersionSelector,
     ) -> Option<PackageInfo<'_>> {
-        self.find_packages(name).find(|pkg| version.satisfies(pkg))
+        self.find_packages(name)
+            .find(|pkg| version.satisfies(pkg.package_json()))
     }
 }

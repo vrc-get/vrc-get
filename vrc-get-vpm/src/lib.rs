@@ -171,7 +171,7 @@ impl From<ProjectType> for vrc_get_litedb::ProjectType {
     }
 }
 
-fn unity_compatible(package: &PackageInfo, unity: UnityVersion) -> bool {
+fn unity_compatible(package: &PackageJson, unity: UnityVersion) -> bool {
     fn is_vrcsdk_for_2019(version: &Version) -> bool {
         version.major == 3 && version.minor <= 4
     }

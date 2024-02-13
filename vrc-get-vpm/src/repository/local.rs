@@ -100,7 +100,7 @@ impl PackageCollection for LocalCachedRepository {
                 .map(|pkg| PackageInfo::remote(pkg, self))
         } else {
             self.find_packages(package)
-                .filter(|x| package_selector.satisfies(x))
+                .filter(|x| package_selector.satisfies(x.package_json()))
                 .max_by_key(|x| x.version())
         }
     }
