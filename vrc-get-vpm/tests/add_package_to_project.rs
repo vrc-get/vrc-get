@@ -263,3 +263,80 @@ fn do_not_remove_transitively_when_untouched() {
         assert_removed(&result, "com.anatawa12.library", RemoveReason::Unused);
     })
 }
+
+#[test]
+fn remove_legacy_package_when_install() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.legacy-package", Version::new(1, 0, 0))
+            .add_locked("com.anatawa12.legacy-package", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.anatawa12.package", Version::new(1, 1, 0))
+                    .add_legacy_package("com.anatawa12.legacy-package"),
+            )
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 2);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_installing_to_locked_only(&result, &package);
+        assert_removed(
+            &result,
+            "com.anatawa12.legacy-package",
+            RemoveReason::Legacy,
+        );
+    })
+}
+
+#[test]
+fn remove_legacy_package_when_upgrade() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.package", Version::new(1, 0, 0))
+            .add_locked("com.anatawa12.legacy-package", Version::new(1, 0, 0), &[])
+            .add_locked("com.anatawa12.package", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.anatawa12.package", Version::new(1, 1, 0))
+                    .add_legacy_package("com.anatawa12.legacy-package"),
+            )
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 2);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_installing_to_locked_only(&result, &package);
+        assert_removed(
+            &result,
+            "com.anatawa12.legacy-package",
+            RemoveReason::Legacy,
+        );
+    })
+}
