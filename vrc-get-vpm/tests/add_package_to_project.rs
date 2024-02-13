@@ -662,7 +662,7 @@ fn conflict_requirements_of_installed_and_installing() {
         assert_eq!(resolve.package_changes().len(), 2);
         assert_eq!(resolve.remove_legacy_folders().len(), 0);
         assert_eq!(resolve.remove_legacy_files().len(), 0);
-        assert_eq!(resolve.conflicts().len(), 1); // TODO: restore this check
+        assert_eq!(resolve.conflicts().len(), 1);
 
         assert_installing_to_locked_only(&resolve, &tool);
         assert_installing_to_locked_only(&resolve, &base_1_1_0);
@@ -672,6 +672,50 @@ fn conflict_requirements_of_installed_and_installing() {
             base_conflict.conflicting_packages(),
             &["com.vrchat.avatars".into()]
         )
+    })
+}
+
+#[test]
+fn conflict_already_conflicted_and_no_new_conflict() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(1, 1, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
+            )
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 1, 0)))
+            .add(
+                PackageJson::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "^1.1.0"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(&collection, vec![tool], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(resolve.package_changes().len(), 1);
+        assert_eq!(resolve.remove_legacy_folders().len(), 0);
+        assert_eq!(resolve.remove_legacy_files().len(), 0);
+        assert_eq!(resolve.conflicts().len(), 0);
+
+        assert_installing_to_locked_only(&resolve, &tool);
     })
 }
 
