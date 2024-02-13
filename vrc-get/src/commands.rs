@@ -157,6 +157,7 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
     }
 
     let mut newly_installed = Vec::new();
+    let mut adding_to_dependencies = Vec::new();
     let mut removed = Vec::new();
 
     for (name, change) in changes.package_changes() {
@@ -164,6 +165,9 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
             PackageChange::Install(change) => {
                 if let Some(package) = change.install_package() {
                     newly_installed.push(package);
+                }
+                if let Some(v) = change.to_dependencies() {
+                    adding_to_dependencies.push((name, v));
                 }
             }
             PackageChange::Remove(change) => {
@@ -184,6 +188,13 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
             }
             #[cfg(not(feature = "experimental-yank"))]
             println!("- {} version {}", x.name(), x.version());
+        }
+    }
+
+    if !adding_to_dependencies.is_empty() {
+        println!("You're adding the following packages to dependencies:");
+        for (name, range) in &adding_to_dependencies {
+            println!("- {} version {}", name, range);
         }
     }
 
@@ -280,13 +291,12 @@ fn require_prompt_for_install(
         return true;
     };
 
-    let Some(package) = install.install_package() else {
-        return true;
-    };
-
-    if let Some(request_version) = version {
-        if request_version != package.version() {
-            return true;
+    // if we're installing package,
+    if let Some(package) = install.install_package() {
+        if let Some(request_version) = version {
+            if request_version != package.version() {
+                return true;
+            }
         }
     }
 
