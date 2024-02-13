@@ -32,21 +32,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn add_package_request<'env>(
         &self,
         env: &'env impl PackageCollection,
-        mut packages: Vec<PackageInfo<'env>>,
+        packages: Vec<PackageInfo<'env>>,
         to_dependencies: bool,
         allow_prerelease: bool,
     ) -> Result<PendingProjectChanges<'env>, AddPackageErr> {
-        packages.retain(|pkg| {
-            self.manifest
-                .get_dependency(pkg.name())
-                .map(|version| version.matches(pkg.version()))
-                .unwrap_or(true)
-        });
-
-        if packages.is_empty() {
-            return Ok(PendingProjectChanges::empty());
-        }
-
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
         let mut adding_packages = Vec::with_capacity(packages.len());
@@ -54,20 +43,28 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let mut changes = super::pending_project_changes::Builder::new();
 
         for request in packages {
-            let update = self
+            if to_dependencies {
+                let add_to_dependencies = self
+                    .manifest
+                    .get_dependency(request.name())
+                    .and_then(|range| range.as_single_version())
+                    .map(|full| &full < request.version())
+                    .unwrap_or(true);
+
+                if add_to_dependencies {
+                    changes.add_to_dependencies(
+                        request.name().into(),
+                        DependencyRange::version(request.version().clone()),
+                    );
+                }
+            }
+
+            if self
                 .manifest
                 .get_locked(request.name())
                 .map(|version| version.version() < request.version())
-                .unwrap_or(true);
-
-            if to_dependencies {
-                changes.add_to_dependencies(
-                    request.name().into(),
-                    DependencyRange::version(request.version().clone()),
-                );
-            }
-
-            if update {
+                .unwrap_or(true)
+            {
                 adding_packages.push(request);
             }
         }

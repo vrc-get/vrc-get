@@ -47,6 +47,22 @@ pub(crate) async fn collect_legacy_assets(
     }
 }
 
+fn valid_path(path: &Path) -> bool {
+    // removing folders other than Assets and Packages are not allowed.
+    if !path.starts_with("Assets") && !path.starts_with("Packages") {
+        return false;
+    }
+
+    for x in path.components() {
+        match x {
+            std::path::Component::Normal(_) => (),
+            _ => return false,
+        }
+    }
+
+    true
+}
+
 async fn find_legacy_assets_by_path(
     io: &impl ProjectIo,
     assets: impl Iterator<Item = DefinedLegacyInfo<'_>>,
@@ -62,11 +78,12 @@ async fn find_legacy_assets_by_path(
                 return None;
             }
             #[allow(clippy::manual_map)] // it's parallel, not just a if-else
-            if io
-                .metadata(&relative_path)
-                .await
-                .map(|x| x.is_file() == info.is_file)
-                .unwrap_or(false)
+            if valid_path(&relative_path)
+                && io
+                    .metadata(&relative_path)
+                    .await
+                    .map(|x| x.is_file() == info.is_file)
+                    .unwrap_or(false)
             {
                 Some(FoundWithPath(relative_path, info.is_file))
             } else if let Some(guid) = info.guid {

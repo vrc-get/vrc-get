@@ -35,12 +35,12 @@ pub use traits::RemotePackageDownloader;
 pub use package_json::PackageJson;
 pub use structs::setting::UserRepoSetting;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct PackageInfo<'a> {
     inner: PackageInfoInner<'a>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 enum PackageInfoInner<'a> {
     Remote(&'a PackageJson, &'a LocalCachedRepository),
     Local(&'a PackageJson, &'a Path),
@@ -55,13 +55,13 @@ impl<'a> PackageInfo<'a> {
         }
     }
 
-    pub(crate) fn remote(json: &'a PackageJson, repo: &'a LocalCachedRepository) -> Self {
+    pub fn remote(json: &'a PackageJson, repo: &'a LocalCachedRepository) -> Self {
         Self {
             inner: PackageInfoInner::Remote(json, repo),
         }
     }
 
-    pub(crate) fn local(json: &'a PackageJson, path: &'a Path) -> Self {
+    pub fn local(json: &'a PackageJson, path: &'a Path) -> Self {
         Self {
             inner: PackageInfoInner::Local(json, path),
         }

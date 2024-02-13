@@ -270,12 +270,24 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
         for (&name, info) in &self.dependencies {
             if !info.is_legacy() && info.touched {
                 if let Some(version) = &info.current {
-                    for (source, range) in &info.requirements {
-                        if !range.match_pre(version, info.allow_pre || self.allow_prerelease) {
-                            conflicts
-                                .entry(name.into())
-                                .or_default()
-                                .push((*source).into());
+                    let conflicts_with_this = info
+                        .requirements
+                        .iter()
+                        .filter(|(_, range)| {
+                            !range.match_pre(version, info.allow_pre || self.allow_prerelease)
+                        })
+                        .map(|(source, _)| *source)
+                        .collect::<Vec<_>>();
+
+                    if !conflicts_with_this.is_empty()
+                        && (info.using.is_some()
+                            || conflicts_with_this
+                                .iter()
+                                .any(|x| self.dependencies[*x].using.is_some()))
+                    {
+                        let vec = conflicts.entry(name.into()).or_default();
+                        for source in conflicts_with_this {
+                            vec.push(source.into())
                         }
                     }
                 }

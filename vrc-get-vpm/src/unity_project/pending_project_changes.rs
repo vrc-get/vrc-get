@@ -22,6 +22,7 @@ use std::path::{Path, PathBuf};
 /// - Apply collected changes
 ///
 /// This is done to ask users before removing packages
+#[derive(Debug)]
 pub struct PendingProjectChanges<'env> {
     pub(crate) package_changes: HashMap<Box<str>, PackageChange<'env>>,
 
@@ -32,6 +33,7 @@ pub struct PendingProjectChanges<'env> {
 }
 
 #[non_exhaustive]
+#[derive(Debug)]
 pub enum PackageChange<'env> {
     Install(Install<'env>),
     Remove(Remove<'env>),
@@ -53,6 +55,7 @@ impl<'env> PackageChange<'env> {
     }
 }
 
+#[derive(Debug)]
 pub struct Install<'env> {
     package: Option<PackageInfo<'env>>,
     add_to_locked: bool,
@@ -67,8 +70,13 @@ impl<'env> Install<'env> {
     pub fn is_adding_to_locked(&self) -> bool {
         self.add_to_locked
     }
+
+    pub fn to_dependencies(&self) -> Option<&DependencyRange> {
+        self.to_dependencies.as_ref()
+    }
 }
 
+#[derive(Debug)]
 pub struct Remove<'env> {
     reason: RemoveReason,
     _phantom: PhantomData<&'env ()>,
@@ -88,7 +96,7 @@ pub enum RemoveReason {
     Unused,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct ConflictInfo {
     conflicts_packages: Vec<Box<str>>,
     conflicts_with_unity: bool,
@@ -441,17 +449,6 @@ impl<'env> Builder<'env> {
             if !using_packages.contains(locked.name()) && removable.contains(locked.name()) {
                 self.remove_unused(locked.name().into());
             }
-        }
-    }
-}
-
-impl<'env> PendingProjectChanges<'env> {
-    pub(crate) fn empty() -> Self {
-        Self {
-            package_changes: Default::default(),
-            remove_legacy_files: vec![],
-            remove_legacy_folders: vec![],
-            conflicts: Default::default(),
         }
     }
 }

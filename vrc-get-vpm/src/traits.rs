@@ -2,7 +2,7 @@ use crate::io;
 use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::utils::MapResultExt;
-use crate::{Environment, PackageInfo, PackageJson, VersionSelector};
+use crate::{PackageInfo, PackageJson, VersionSelector};
 use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;
@@ -10,11 +10,7 @@ use indexmap::IndexMap;
 use std::convert::Infallible;
 use url::Url;
 
-mod seal {
-    pub trait Sealed {}
-}
-
-pub trait PackageCollection: seal::Sealed {
+pub trait PackageCollection {
     /// get all packages in the collection
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo>;
 
@@ -29,7 +25,7 @@ pub trait PackageCollection: seal::Sealed {
     ) -> Option<PackageInfo>;
 }
 
-pub trait EnvironmentIoHolder: seal::Sealed {
+pub trait EnvironmentIoHolder {
     type EnvironmentIo: EnvironmentIo;
     fn io(&self) -> &Self::EnvironmentIo;
 }
@@ -37,7 +33,7 @@ pub trait EnvironmentIoHolder: seal::Sealed {
 /// The trait for downloading remote packages.
 ///
 /// Caching packages is responsibility of this crate.
-pub trait RemotePackageDownloader: seal::Sealed {
+pub trait RemotePackageDownloader {
     type FileStream: AsyncRead + AsyncSeek + Unpin;
 
     /// Get package from remote server.
@@ -49,7 +45,7 @@ pub trait RemotePackageDownloader: seal::Sealed {
 }
 
 /// The HTTP Client.
-pub trait HttpClient: Sync + seal::Sealed {
+pub trait HttpClient: Sync {
     /// Get resource from the URL with specified headers
     ///
     /// Note: If remote server returns error status code, this function should return error.
@@ -149,10 +145,3 @@ impl HttpClient for Infallible {
         Ok(Some((io::empty(), None)))
     }
 }
-
-impl<T: HttpClient, IO: EnvironmentIo> seal::Sealed for Environment<T, IO> {}
-impl seal::Sealed for LocalCachedRepository {}
-impl seal::Sealed for crate::environment::UserPackageCollection {}
-impl seal::Sealed for crate::environment::RepoHolder {}
-impl seal::Sealed for reqwest::Client {}
-impl seal::Sealed for Infallible {}

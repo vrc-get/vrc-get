@@ -21,25 +21,30 @@ impl<IO: ProjectIo> UnityProject<IO> {
         }
 
         // VRCSDK2.dll is for SDK2
-        if file_exists(&self.io, "Assets/VRCSDK/Plugins/VRCSDK2.dll").await {
+        if self
+            .io
+            .is_file("Assets/VRCSDK/Plugins/VRCSDK2.dll".as_ref())
+            .await
+        {
             return Ok(ProjectType::LegacySdk2);
         }
 
         // VRCSDK3.dll is for SDK3 Worlds
-        if file_exists(&self.io, "Assets/VRCSDK/Plugins/VRCSDK3.dll").await {
+        if self
+            .io
+            .is_file("Assets/VRCSDK/Plugins/VRCSDK3.dll".as_ref())
+            .await
+        {
             return Ok(ProjectType::LegacyWorlds);
         }
 
         // VRCSDK3A.dll is for SDK3 Worlds
-        if file_exists(&self.io, "Assets/VRCSDK/Plugins/VRCSDK3A.dll").await {
+        if self
+            .io
+            .is_file("Assets/VRCSDK/Plugins/VRCSDK3A.dll".as_ref())
+            .await
+        {
             return Ok(ProjectType::LegacyAvatars);
-        }
-
-        async fn file_exists(io: &impl ProjectIo, path: &str) -> bool {
-            io.metadata(path.as_ref())
-                .await
-                .map(|x| x.is_file())
-                .unwrap_or(false)
         }
 
         Ok(ProjectType::Unknown)

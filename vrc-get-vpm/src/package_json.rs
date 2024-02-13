@@ -31,6 +31,51 @@ pub struct PackageJson {
     yanked: Option<serde_json::Value>,
 }
 
+/// Constructing PackageJson. Especially for testing.
+impl PackageJson {
+    pub fn new(name: impl Into<Box<str>>, version: Version) -> Self {
+        Self {
+            name: name.into(),
+            display_name: None,
+            description: None,
+            version,
+            vpm_dependencies: IndexMap::new(),
+            url: None,
+            unity: None,
+            legacy_folders: HashMap::new(),
+            legacy_files: HashMap::new(),
+            legacy_packages: Vec::new(),
+            #[cfg(feature = "experimental-yank")]
+            yanked: None,
+        }
+    }
+
+    pub fn add_vpm_dependency(mut self, name: impl Into<Box<str>>, range: &str) -> Self {
+        self.vpm_dependencies
+            .insert(name.into(), range.parse().unwrap());
+        self
+    }
+
+    pub fn add_legacy_package(mut self, name: impl Into<Box<str>>) -> Self {
+        self.legacy_packages.push(name.into());
+        self
+    }
+
+    pub fn add_legacy_folder(
+        mut self,
+        path: impl Into<Box<str>>,
+        guid: impl Into<Box<str>>,
+    ) -> Self {
+        self.legacy_folders.insert(path.into(), Some(guid.into()));
+        self
+    }
+
+    pub fn add_legacy_file(mut self, path: impl Into<Box<str>>, guid: impl Into<Box<str>>) -> Self {
+        self.legacy_files.insert(path.into(), Some(guid.into()));
+        self
+    }
+}
+
 impl PackageJson {
     pub fn name(&self) -> &str {
         &self.name

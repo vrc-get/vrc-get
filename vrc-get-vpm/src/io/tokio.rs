@@ -1,9 +1,8 @@
 use crate::io;
-use crate::io::{EnvironmentIo, FileSystemProjectIo, IoTrait, ProjectIo};
+use crate::io::{EnvironmentIo, FileSystemProjectIo, FileType, IoTrait, Metadata, ProjectIo};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::{OsStr, OsString};
-use std::fs::Metadata;
 use std::path::Path;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -191,7 +190,7 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
     }
 
     async fn metadata(&self, path: &Path) -> io::Result<Metadata> {
-        fs::metadata(self.resolve(path)?).await
+        fs::metadata(self.resolve(path)?).await.map(Into::into)
     }
 
     type DirEntry = DirEntry;
@@ -228,11 +227,19 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
     }
 
     async fn command_status(&self, command: &OsStr, args: &[&OsStr]) -> io::Result<io::ExitStatus> {
-        Command::new(command).args(args).status().await
+        Command::new(command)
+            .args(args)
+            .status()
+            .await
+            .map(Into::into)
     }
 
     async fn command_output(&self, command: &OsStr, args: &[&OsStr]) -> io::Result<io::Output> {
-        Command::new(command).args(args).output().await
+        Command::new(command)
+            .args(args)
+            .output()
+            .await
+            .map(Into::into)
     }
 }
 
@@ -274,11 +281,11 @@ impl super::DirEntry for DirEntry {
         self.inner.file_name()
     }
 
-    async fn file_type(&self) -> io::Result<std::fs::FileType> {
-        self.inner.file_type().await
+    async fn file_type(&self) -> io::Result<FileType> {
+        self.inner.file_type().await.map(Into::into)
     }
 
     async fn metadata(&self) -> io::Result<Metadata> {
-        self.inner.metadata().await
+        self.inner.metadata().await.map(Into::into)
     }
 }
