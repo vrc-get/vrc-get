@@ -55,6 +55,11 @@ impl PackageJson {
             .insert(name.into(), range.parse().unwrap());
         self
     }
+
+    pub fn add_legacy_package(mut self, name: impl Into<Box<str>>) -> Self {
+        self.legacy_packages.push(name.into());
+        self
+    }
 }
 
 impl PackageJson {
