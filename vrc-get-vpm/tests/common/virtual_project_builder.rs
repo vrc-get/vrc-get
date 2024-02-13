@@ -1,12 +1,14 @@
 use crate::common::VirtualFileSystem;
 use indexmap::IndexMap;
 use serde_json::json;
+use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
-use vrc_get_vpm::UnityProject;
+use vrc_get_vpm::{PackageJson, UnityProject};
 
 pub struct VirtualProjectBuilder {
     dependencies: IndexMap<String, Version>,
     locked: IndexMap<String, (Version, IndexMap<String, VersionRange>)>,
+    installed_package_jsons: IndexMap<String, String>,
 }
 
 impl VirtualProjectBuilder {
@@ -14,6 +16,7 @@ impl VirtualProjectBuilder {
         Self {
             dependencies: IndexMap::new(),
             locked: IndexMap::new(),
+            installed_package_jsons: IndexMap::new(),
         }
     }
 
@@ -33,6 +36,16 @@ impl VirtualProjectBuilder {
             .map(|(name, version)| (name.to_string(), version.parse().unwrap()))
             .collect();
         self.locked.insert(name.into(), (version, dependencies));
+        self
+    }
+
+    pub fn add_package_json(
+        &mut self,
+        name: &str,
+        package_json: impl Into<String>,
+    ) -> &mut VirtualProjectBuilder {
+        self.installed_package_jsons
+            .insert(name.into(), package_json.into());
         self
     }
 
@@ -73,6 +86,15 @@ impl VirtualProjectBuilder {
             vpm_manifest.to_string().as_bytes(),
         )
         .await?;
+
+        for (name, package_json) in &self.installed_package_jsons {
+            fs.add_file(
+                format!("Packages/{}/package.json", name).as_ref(),
+                package_json.as_bytes(),
+            )
+            .await?;
+        }
+
         UnityProject::load(fs).await
     }
 }
