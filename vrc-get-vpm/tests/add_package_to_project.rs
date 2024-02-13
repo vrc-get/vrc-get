@@ -3,6 +3,7 @@ use futures::executor::block_on;
 use std::collections::HashSet;
 use std::path::Path;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
+use vrc_get_vpm::unity_project::AddPackageErr;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageJson;
 
@@ -587,3 +588,35 @@ fn deny_absolute_legacy_assets() {
         assert_eq!(result.remove_legacy_files(), &[]);
     })
 }
+
+// region errors
+
+#[test]
+fn not_found_err() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
+            )
+            .build();
+
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
+
+        let err = project
+            .add_package_request(&collection, vec![avatars_package], false, false)
+            .await
+            .expect_err("should fail");
+
+        match &err {
+            AddPackageErr::DependencyNotFound { dependency_name } => {
+                assert_eq!(dependency_name.as_ref(), "com.vrchat.base");
+            }
+            _ => panic!("unexpected error: {:?}", err),
+        }
+    })
+}
+
+// endregion
