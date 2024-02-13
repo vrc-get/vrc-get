@@ -48,6 +48,12 @@ impl DependencyRange {
     }
 }
 
+impl Display for DependencyRange {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct VersionRange {
     comparators: Vec<ComparatorSet>,
