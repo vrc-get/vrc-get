@@ -60,6 +60,20 @@ impl PackageJson {
         self.legacy_packages.push(name.into());
         self
     }
+
+    pub fn add_legacy_folder(
+        mut self,
+        path: impl Into<Box<str>>,
+        guid: impl Into<Box<str>>,
+    ) -> Self {
+        self.legacy_folders.insert(path.into(), Some(guid.into()));
+        self
+    }
+
+    pub fn add_legacy_file(mut self, path: impl Into<Box<str>>, guid: impl Into<Box<str>>) -> Self {
+        self.legacy_files.insert(path.into(), Some(guid.into()));
+        self
+    }
 }
 
 impl PackageJson {
