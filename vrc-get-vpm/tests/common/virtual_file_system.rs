@@ -62,7 +62,9 @@ impl VirtualFileSystem {
                 }
                 Component::CurDir => continue,
                 Component::ParentDir => {
-                    result.pop();
+                    if result.pop().is_none() {
+                        panic!("accessing parent folder")
+                    }
                 }
                 Component::Normal(component) => result.push(component),
             }
