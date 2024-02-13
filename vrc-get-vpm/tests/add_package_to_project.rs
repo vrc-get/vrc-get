@@ -1,5 +1,6 @@
 use crate::common::{PackageCollectionBuilder, VirtualProjectBuilder};
 use futures::executor::block_on;
+use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
 use vrc_get_vpm::version::{DependencyRange, Version};
 use vrc_get_vpm::PackageJson;
 
@@ -241,5 +242,67 @@ fn install_already_installed_in_dependencies_to_dependencies() {
         assert_eq!(result.remove_legacy_folders().len(), 0);
         assert_eq!(result.remove_legacy_files().len(), 0);
         assert_eq!(result.conflicts().len(), 0);
+    })
+}
+
+#[test]
+fn transitive_unused_remove_with_upgrade() {
+    block_on(async {
+        // create minimum project
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.anatawa12.package", Version::new(1, 0, 0))
+            .add_locked(
+                "com.anatawa12.package",
+                Version::new(1, 0, 0),
+                &[("com.anatawa12.library", "1.0.0")],
+            )
+            .add_locked("com.anatawa12.library", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        // create package collection
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageJson::new(
+                "com.anatawa12.package",
+                Version::new(1, 1, 0),
+            ))
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 2);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        let package_change = result
+            .package_changes()
+            .get("com.anatawa12.package")
+            .unwrap();
+        let package_change = package_change
+            .as_install()
+            .expect("package is not installing");
+        assert!(package_change.is_adding_to_locked());
+        assert!(package_change.to_dependencies().is_none());
+        let package_pkg = package_change.install_package().expect("no package");
+        assert_eq!(package_pkg.name(), "com.anatawa12.package");
+        assert_eq!(package_pkg.version(), &Version::new(1, 1, 0));
+        assert_eq!(
+            package_pkg.package_json() as *const _,
+            package.package_json() as *const _
+        );
+
+        let avatars_change = result
+            .package_changes()
+            .get("com.anatawa12.library")
+            .unwrap();
+        let avatars_change = avatars_change.as_remove().expect("library is not removing");
+        assert_eq!(avatars_change.reason(), RemoveReason::Unused);
     })
 }
