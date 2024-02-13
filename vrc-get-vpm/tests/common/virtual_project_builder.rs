@@ -1,6 +1,7 @@
 use crate::common::VirtualFileSystem;
 use indexmap::IndexMap;
 use serde_json::json;
+use vrc_get_vpm::io::IoTrait;
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::{PackageJson, UnityProject};
@@ -8,7 +9,8 @@ use vrc_get_vpm::{PackageJson, UnityProject};
 pub struct VirtualProjectBuilder {
     dependencies: IndexMap<String, Version>,
     locked: IndexMap<String, (Version, IndexMap<String, VersionRange>)>,
-    installed_package_jsons: IndexMap<String, String>,
+    files: IndexMap<String, String>,
+    directories: Vec<String>,
 }
 
 impl VirtualProjectBuilder {
@@ -16,7 +18,8 @@ impl VirtualProjectBuilder {
         Self {
             dependencies: IndexMap::new(),
             locked: IndexMap::new(),
-            installed_package_jsons: IndexMap::new(),
+            files: IndexMap::new(),
+            directories: vec![],
         }
     }
 
@@ -39,13 +42,30 @@ impl VirtualProjectBuilder {
         self
     }
 
+    pub fn add_file(
+        &mut self,
+        path: impl Into<String>,
+        content: impl Into<Vec<u8>>,
+    ) -> &mut VirtualProjectBuilder {
+        self.files
+            .insert(path.into(), String::from_utf8(content.into()).unwrap());
+        self
+    }
+
+    pub fn add_dir(&mut self, path: impl Into<String>) -> &mut VirtualProjectBuilder {
+        self.directories.push(path.into());
+        self
+    }
+
     pub fn add_package_json(
         &mut self,
         name: &str,
         package_json: impl Into<String>,
     ) -> &mut VirtualProjectBuilder {
-        self.installed_package_jsons
-            .insert(name.into(), package_json.into());
+        self.files.insert(
+            format!("Packages/{}/package.json", name),
+            package_json.into(),
+        );
         self
     }
 
@@ -87,12 +107,12 @@ impl VirtualProjectBuilder {
         )
         .await?;
 
-        for (name, package_json) in &self.installed_package_jsons {
-            fs.add_file(
-                format!("Packages/{}/package.json", name).as_ref(),
-                package_json.as_bytes(),
-            )
-            .await?;
+        for (name, contents) in &self.files {
+            fs.add_file(name.as_ref(), contents.as_bytes()).await?;
+        }
+
+        for name in &self.directories {
+            fs.create_dir_all(name.as_ref()).await?;
         }
 
         UnityProject::load(fs).await
