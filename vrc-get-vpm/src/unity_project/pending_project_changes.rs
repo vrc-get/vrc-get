@@ -22,6 +22,7 @@ use std::path::{Path, PathBuf};
 /// - Apply collected changes
 ///
 /// This is done to ask users before removing packages
+#[derive(Debug)]
 pub struct PendingProjectChanges<'env> {
     pub(crate) package_changes: HashMap<Box<str>, PackageChange<'env>>,
 
@@ -32,6 +33,7 @@ pub struct PendingProjectChanges<'env> {
 }
 
 #[non_exhaustive]
+#[derive(Debug)]
 pub enum PackageChange<'env> {
     Install(Install<'env>),
     Remove(Remove<'env>),
@@ -53,6 +55,7 @@ impl<'env> PackageChange<'env> {
     }
 }
 
+#[derive(Debug)]
 pub struct Install<'env> {
     package: Option<PackageInfo<'env>>,
     add_to_locked: bool,
@@ -73,6 +76,7 @@ impl<'env> Install<'env> {
     }
 }
 
+#[derive(Debug)]
 pub struct Remove<'env> {
     reason: RemoveReason,
     _phantom: PhantomData<&'env ()>,
@@ -92,7 +96,7 @@ pub enum RemoveReason {
     Unused,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct ConflictInfo {
     conflicts_packages: Vec<Box<str>>,
     conflicts_with_unity: bool,
