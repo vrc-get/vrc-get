@@ -4,7 +4,7 @@ use serde_json::json;
 use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::UnityProject;
 
-pub(crate) struct VirtualProjectBuilder {
+pub struct VirtualProjectBuilder {
     dependencies: IndexMap<String, Version>,
     locked: IndexMap<String, (Version, IndexMap<String, VersionRange>)>,
 }

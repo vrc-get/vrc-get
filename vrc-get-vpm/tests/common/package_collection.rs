@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{PackageCollection as _, PackageInfo, PackageJson, VersionSelector};
 
-pub(crate) struct PackageCollectionBuilder {
+pub struct PackageCollectionBuilder {
     packages: Vec<(PackageJson, PathBuf)>,
 }
 
@@ -24,7 +24,7 @@ impl PackageCollectionBuilder {
     }
 }
 
-pub(crate) struct PackageCollection {
+pub struct PackageCollection {
     packages: Vec<(PackageJson, PathBuf)>,
 }
 

@@ -25,7 +25,7 @@ where
 /// The virtual file system is a TraitIo implementation for testing.
 ///
 /// This struct implements All EnvironmentIo and ProjectIo methods.
-pub(crate) struct VirtualFileSystem {
+pub struct VirtualFileSystem {
     root: DirectoryEntry,
 }
 
@@ -384,7 +384,7 @@ impl FileEntry {
     }
 }
 
-pub(crate) struct ReadDirStream {
+pub struct ReadDirStream {
     index: usize,
     dir: DirectoryEntry,
 }
@@ -410,7 +410,7 @@ impl Stream for ReadDirStream {
     }
 }
 
-pub(crate) struct DirEntry {
+pub struct DirEntry {
     name: OsString,
     metadata: Metadata,
 }
@@ -446,7 +446,7 @@ mod file_stream {
     use std::sync::{Arc, Mutex};
     use std::task::{Context, Poll};
 
-    pub(crate) struct FileStream {
+    pub struct FileStream {
         content: Arc<Mutex<Vec<u8>>>,
         position: usize,
     }
