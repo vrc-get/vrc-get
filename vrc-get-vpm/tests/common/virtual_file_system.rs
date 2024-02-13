@@ -58,7 +58,7 @@ impl VirtualFileSystem {
         for x in path.components() {
             match x {
                 Component::Prefix(_) | Component::RootDir => {
-                    return err(ErrorKind::InvalidInput, "absolute path")
+                    panic!("absolute path")
                 }
                 Component::CurDir => continue,
                 Component::ParentDir => {
