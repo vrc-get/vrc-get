@@ -25,6 +25,21 @@ pub fn assert_removed(result: &PendingProjectChanges, package: &str, reason: Rem
     assert_eq!(package_change.reason(), reason);
 }
 
+pub fn assert_install_only(result: &PendingProjectChanges, package: &PackageInfo) {
+    let change = result
+        .package_changes()
+        .get(package.name())
+        .expect("the package is not changed");
+    let install = change.as_install().expect("the package is not installing");
+    assert!(!install.is_adding_to_locked());
+    assert!(install.to_dependencies().is_none());
+    let installing = install.install_package().expect("not installing");
+    assert_eq!(
+        installing.package_json() as *const _,
+        package.package_json() as *const _
+    );
+}
+
 pub fn assert_installing_to_locked_only(result: &PendingProjectChanges, package: &PackageInfo) {
     let change = result
         .package_changes()
