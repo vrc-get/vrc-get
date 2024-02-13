@@ -559,3 +559,30 @@ fn deny_remove_parent_folders() {
         assert_eq!(result.remove_legacy_files(), &[]);
     })
 }
+
+#[test]
+fn deny_absolute_legacy_assets() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                    .add_legacy_folder("/", ""),
+            )
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_eq!(result.remove_legacy_folders(), &[]);
+        assert_eq!(result.remove_legacy_files(), &[]);
+    })
+}
