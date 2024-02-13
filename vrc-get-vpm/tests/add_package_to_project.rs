@@ -541,6 +541,7 @@ fn deny_remove_parent_folders() {
             .add(
                 PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
                     .add_legacy_folder("..", "")
+                    .add_legacy_folder("Assets/..", "")
                     .add_legacy_folder("", ""),
             )
             .build();
