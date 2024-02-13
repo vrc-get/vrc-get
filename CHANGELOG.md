@@ -49,7 +49,7 @@ The format is based on [Keep a Changelog].
 - `vrc-get repo remove` not working `#361`
 - `writing local repo cache 'Repos/vrc-curated.json'` error `#365`
 - Prompt is shown even if there is nothing to update `#393`
-- Conflict warning can be shown even if new conflicts are not caused `#393`
+- Conflict warning can be shown even if new conflicts are not caused `#393` `#400`
 - Directory traversal with `legacyFolders` and `legacyFiles` `#393`
 
 ### Security

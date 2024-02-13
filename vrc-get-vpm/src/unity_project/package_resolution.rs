@@ -125,6 +125,7 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
         for pkg in &this.pending_queue.pending_queue {
             this.dependencies.entry(pkg.name()).or_default().allow_pre = true;
         }
+        this.dependencies.insert("", DependencyInfo::default());
 
         this
     }
@@ -140,6 +141,11 @@ where
         range: &'a VersionRange,
         allow_pre: bool,
     ) {
+        self.dependencies
+            .get_mut("")
+            .unwrap()
+            .requirements
+            .insert(name, range);
         self.dependencies
             .insert(name, DependencyInfo::new_dependency(range, allow_pre));
     }

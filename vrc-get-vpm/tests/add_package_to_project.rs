@@ -719,4 +719,47 @@ fn conflict_already_conflicted_and_no_new_conflict() {
     })
 }
 
+#[test]
+fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dependency_range("com.vrchat.avatars", "~3.5.x")
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(3, 4, 2),
+                &[("com.vrchat.base", "3.4.2")],
+            )
+            .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.base", Version::new(3, 4, 2))
+                    .add_vpm_dependency("com.vrchat.avatars", "3.4.2"),
+            )
+            .add(PackageJson::new("com.vrchat.base", Version::new(3, 4, 2)))
+            .add(
+                PackageJson::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.avatars", "^3.3.0"),
+            )
+            .build();
+
+        let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
+
+        let resolve = project
+            .add_package_request(&collection, vec![tool], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(resolve.package_changes().len(), 1);
+        assert_eq!(resolve.remove_legacy_folders().len(), 0);
+        assert_eq!(resolve.remove_legacy_files().len(), 0);
+        assert_eq!(resolve.conflicts().len(), 0);
+
+        assert_installing_to_locked_only(&resolve, &tool);
+    })
+}
+
 // endregion
