@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog].
   - `vrc-get vcc unity add <path>` to add a unity to vcc's unity list `#382`
   - `vrc-get vcc unity remove <path>` to remove a unity from vcc's unity list `#382`
   - In addition, `vrc-get migrate unity 2022` command will get unity from the vcc's unity list `#382`
+- Tests for `vrc-get-vpm` module. `#393`
+  - For basic project operations, I added tests in `vrc-get-vpm` module.
 
 ### Changed
 
@@ -39,6 +41,9 @@ The format is based on [Keep a Changelog].
 - Warnings about index map `#350`
 - `vrc-get repo remove` not working `#361`
 - `writing local repo cache 'Repos/vrc-curated.json'` error `#365`
+- Prompt is shown even if there is nothing to update `#393`
+- Conflict warning can be shown even if new conflicts are not caused `#393`
+- Directory traversal with `legacyFolders` and `legacyFiles` `#393`
 
 ### Security
 
