@@ -4,6 +4,9 @@
 
 mod package_collection;
 mod virtual_file_system;
+mod virtual_project_builder;
 
 pub(crate) use package_collection::PackageCollection;
+pub(crate) use package_collection::PackageCollectionBuilder;
 pub(crate) use virtual_file_system::VirtualFileSystem;
+pub(crate) use virtual_project_builder::VirtualProjectBuilder;

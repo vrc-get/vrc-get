@@ -1,46 +1,26 @@
-use crate::common::{PackageCollection, VirtualFileSystem};
+use crate::common::{PackageCollectionBuilder, VirtualProjectBuilder};
 use futures::executor::block_on;
 use vrc_get_vpm::version::{DependencyRange, Version};
-use vrc_get_vpm::{PackageCollection as _, PackageJson, UnityProject, VersionSelector};
+use vrc_get_vpm::PackageJson;
 
 mod common;
 
 #[test]
 fn add_to_locked_only() {
     block_on(async {
-        // create minimum project
-        let project_fs = VirtualFileSystem::new();
-        project_fs
-            .add_file("Packages/vpm-manifest.json".as_ref(), br#"{}"#)
-            .await
-            .unwrap();
-        let project = UnityProject::load(project_fs).await.unwrap();
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
 
         // create package collection
-        let mut collection = PackageCollection::new();
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
-                .add_vpm_dependency("com.vrchat.base", "1.0.0".parse().unwrap()),
-        );
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)),
-        );
-
-        let avatars_package = collection
-            .find_package_by_name(
-                "com.vrchat.avatars",
-                VersionSelector::specific_version(&Version::new(1, 0, 0)),
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .unwrap();
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .build();
 
-        let base_package = collection
-            .find_package_by_name(
-                "com.vrchat.base",
-                VersionSelector::specific_version(&Version::new(1, 0, 0)),
-            )
-            .unwrap();
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
+        let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
 
         let result = project
             .add_package_request(&collection, vec![avatars_package], false, false)
@@ -84,38 +64,19 @@ fn add_to_locked_only() {
 fn add_to_dependencies() {
     block_on(async {
         // create minimum project
-        let project_fs = VirtualFileSystem::new();
-        project_fs
-            .add_file("Packages/vpm-manifest.json".as_ref(), br#"{}"#)
-            .await
-            .unwrap();
-        let project = UnityProject::load(project_fs).await.unwrap();
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
 
         // create package collection
-        let mut collection = PackageCollection::new();
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
-                .add_vpm_dependency("com.vrchat.base", "1.0.0".parse().unwrap()),
-        );
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)),
-        );
-
-        let avatars_package = collection
-            .find_package_by_name(
-                "com.vrchat.avatars",
-                VersionSelector::specific_version(&Version::new(1, 0, 0)),
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .unwrap();
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .build();
 
-        let base_package = collection
-            .find_package_by_name(
-                "com.vrchat.base",
-                VersionSelector::specific_version(&Version::new(1, 0, 0)),
-            )
-            .unwrap();
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
+        let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
 
         let result = project
             .add_package_request(&collection, vec![avatars_package], true, false)
@@ -163,51 +124,28 @@ fn add_to_dependencies() {
 fn install_already_installed_in_locked_to_locked() {
     block_on(async {
         // create minimum project
-        let project_fs = VirtualFileSystem::new();
-        project_fs
-            .add_file(
-                "Packages/vpm-manifest.json".as_ref(),
-                br#"{
-                "dependencies": {
-                    "com.vrchat.avatars": {
-                        "version": "1.0.0"
-                    }
-                },
-                "locked": {
-                    "com.vrchat.avatars": {
-                        "version": "1.0.0",
-                        "dependencies": {
-                            "com.vrchat.base": "1.0.0"
-                        }
-                    },
-                    "com.vrchat.base": {
-                        "version": "1.0.0"
-                    }
-                }
-            }"#,
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
             )
+            .add_locked("com.vrchat.base", Version::new(1, 0, 0), &[])
+            .build()
             .await
             .unwrap();
-        let project = UnityProject::load(project_fs).await.unwrap();
 
         // create package collection
-        let mut collection = PackageCollection::new();
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
-                .add_vpm_dependency("com.vrchat.base", "1.0.0".parse().unwrap()),
-        );
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)),
-        );
-
-        let avatars_package = collection
-            .find_package_by_name(
-                "com.vrchat.avatars",
-                VersionSelector::specific_version(&Version::new(1, 0, 0)),
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .unwrap();
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .build();
+
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
 
         let result = project
             .add_package_request(&collection, vec![avatars_package], false, false)
@@ -225,51 +163,28 @@ fn install_already_installed_in_locked_to_locked() {
 fn install_already_installed_in_locked_to_dependencies() {
     block_on(async {
         // create minimum project
-        let project_fs = VirtualFileSystem::new();
-        project_fs
-            .add_file(
-                "Packages/vpm-manifest.json".as_ref(),
-                br#"{
-                "dependencies": {
-                    "com.vrchat.avatars": {
-                        "version": "1.0.0"
-                    }
-                },
-                "locked": {
-                    "com.vrchat.avatars": {
-                        "version": "1.0.0",
-                        "dependencies": {
-                            "com.vrchat.base": "1.0.0"
-                        }
-                    },
-                    "com.vrchat.base": {
-                        "version": "1.0.0"
-                    }
-                }
-            }"#,
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
             )
+            .add_locked("com.vrchat.base", Version::new(1, 0, 0), &[])
+            .build()
             .await
             .unwrap();
-        let project = UnityProject::load(project_fs).await.unwrap();
 
         // create package collection
-        let mut collection = PackageCollection::new();
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
-                .add_vpm_dependency("com.vrchat.base", "1.0.0".parse().unwrap()),
-        );
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)),
-        );
-
-        let base_package = collection
-            .find_package_by_name(
-                "com.vrchat.base",
-                VersionSelector::specific_version(&Version::new(1, 0, 0)),
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .unwrap();
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .build();
+
+        let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
 
         let result = project
             .add_package_request(&collection, vec![base_package], true, false)
@@ -294,51 +209,28 @@ fn install_already_installed_in_locked_to_dependencies() {
 fn install_already_installed_in_dependencies_to_dependencies() {
     block_on(async {
         // create minimum project
-        let project_fs = VirtualFileSystem::new();
-        project_fs
-            .add_file(
-                "Packages/vpm-manifest.json".as_ref(),
-                br#"{
-                "dependencies": {
-                    "com.vrchat.avatars": {
-                        "version": "1.0.0"
-                    }
-                },
-                "locked": {
-                    "com.vrchat.avatars": {
-                        "version": "1.0.0",
-                        "dependencies": {
-                            "com.vrchat.base": "1.0.0"
-                        }
-                    },
-                    "com.vrchat.base": {
-                        "version": "1.0.0"
-                    }
-                }
-            }"#,
+        let project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(1, 0, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
             )
+            .add_locked("com.vrchat.base", Version::new(1, 0, 0), &[])
+            .build()
             .await
             .unwrap();
-        let project = UnityProject::load(project_fs).await.unwrap();
 
         // create package collection
-        let mut collection = PackageCollection::new();
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
-                .add_vpm_dependency("com.vrchat.base", "1.0.0".parse().unwrap()),
-        );
-        collection.add(
-            "Packages/com.vrchat.avatars",
-            PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)),
-        );
-
-        let avatars_package = collection
-            .find_package_by_name(
-                "com.vrchat.avatars",
-                VersionSelector::specific_version(&Version::new(1, 0, 0)),
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .unwrap();
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .build();
+
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
 
         let result = project
             .add_package_request(&collection, vec![avatars_package], true, false)

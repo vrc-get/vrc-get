@@ -1,17 +1,37 @@
 use std::path::PathBuf;
-use vrc_get_vpm::{PackageInfo, PackageJson, VersionSelector};
+use vrc_get_vpm::version::Version;
+use vrc_get_vpm::{PackageCollection as _, PackageInfo, PackageJson, VersionSelector};
+
+pub(crate) struct PackageCollectionBuilder {
+    packages: Vec<(PackageJson, PathBuf)>,
+}
+
+impl PackageCollectionBuilder {
+    pub fn new() -> Self {
+        Self { packages: vec![] }
+    }
+
+    pub fn add(mut self, json: PackageJson) -> PackageCollectionBuilder {
+        let path = format!("Packages/{}/{}", json.name(), json.version());
+        self.packages.push((json, path.into()));
+        self
+    }
+
+    pub fn build(self) -> PackageCollection {
+        PackageCollection {
+            packages: self.packages,
+        }
+    }
+}
 
 pub(crate) struct PackageCollection {
     packages: Vec<(PackageJson, PathBuf)>,
 }
 
 impl PackageCollection {
-    pub fn new() -> Self {
-        Self { packages: vec![] }
-    }
-
-    pub fn add(&mut self, path: impl Into<PathBuf>, json: PackageJson) {
-        self.packages.push((json, path.into()));
+    pub fn get_package(&self, name: &str, version: Version) -> PackageInfo {
+        self.find_package_by_name(name, VersionSelector::specific_version(&version))
+            .unwrap()
     }
 }
 

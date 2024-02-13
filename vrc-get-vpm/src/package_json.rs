@@ -50,8 +50,9 @@ impl PackageJson {
         }
     }
 
-    pub fn add_vpm_dependency(mut self, name: impl Into<Box<str>>, range: VersionRange) -> Self {
-        self.vpm_dependencies.insert(name.into(), range);
+    pub fn add_vpm_dependency(mut self, name: impl Into<Box<str>>, range: &str) -> Self {
+        self.vpm_dependencies
+            .insert(name.into(), range.parse().unwrap());
         self
     }
 }
