@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog].
     - Please add alternative repository to user repository and enable this feature to use alternative repository instead of official / curated repository.
   - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. `#362` `#365`
 - `vrc-get-litedb` crate which is NativeAOT based LiteDB wrapper for vrc-get `#320`
-- `vrc-get vcc` commands which is a command for vrc-get as a VCC project
+- `vrc-get vcc` commands which is a command for vrc-get as a VCC project `#369` `#396`
   - This feature is disabled by default. pass `--features experimental-vcc` to cargo to enable this feature. `#384` 
   - `vrc-get vcc project list` to list projects `#369`
   - `vrc-get vcc project add <path>` to add a project to project list `#369`

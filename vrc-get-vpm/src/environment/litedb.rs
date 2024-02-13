@@ -29,7 +29,7 @@ impl LiteDbConnectionHolder {
     }
 
     fn get(&self) -> Option<&DatabaseConnection> {
-        let ptr = self.ptr.load(std::sync::atomic::Ordering::SeqCst);
+        let ptr = self.ptr.load(std::sync::atomic::Ordering::Acquire);
         if ptr.is_null() {
             None
         } else {
@@ -49,8 +49,8 @@ impl LiteDbConnectionHolder {
         match self.ptr.compare_exchange(
             std::ptr::null_mut(),
             ptr,
-            std::sync::atomic::Ordering::SeqCst,
-            std::sync::atomic::Ordering::SeqCst,
+            std::sync::atomic::Ordering::AcqRel,
+            std::sync::atomic::Ordering::Acquire,
         ) {
             Ok(_) => {
                 // success means the value is used so return the value
