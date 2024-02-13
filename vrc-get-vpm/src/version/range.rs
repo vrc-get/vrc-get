@@ -33,7 +33,7 @@ impl DependencyRange {
         Some(full)
     }
 
-    pub(crate) fn matches(&self, version: &Version) -> bool {
+    pub fn matches(&self, version: &Version) -> bool {
         if let Some(single) = self.as_single_version() {
             &single <= version
         } else {

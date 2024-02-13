@@ -449,17 +449,6 @@ impl<'env> Builder<'env> {
     }
 }
 
-impl<'env> PendingProjectChanges<'env> {
-    pub(crate) fn empty() -> Self {
-        Self {
-            package_changes: Default::default(),
-            remove_legacy_files: vec![],
-            remove_legacy_folders: vec![],
-            conflicts: Default::default(),
-        }
-    }
-}
-
 impl PendingProjectChanges<'_> {
     pub fn package_changes(&self) -> &HashMap<Box<str>, PackageChange<'_>> {
         &self.package_changes
