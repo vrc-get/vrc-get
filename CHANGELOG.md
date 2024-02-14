@@ -51,6 +51,9 @@ The format is based on [Keep a Changelog].
 - Prompt is shown even if there is nothing to update `#393`
 - Conflict warning can be shown even if new conflicts are not caused `#393` `#400`
 - Directory traversal with `legacyFolders` and `legacyFiles` `#393`
+- You can add unused package to locked with `vrc-get upgrade` `#403`
+  - Now, vrc-get show you `Package <id> is not locked, so it cannot be upgraded` error.
+- Panic when upgrading unused package with `vrc-get upgrade` `#403`
 
 ### Security
 
