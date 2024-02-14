@@ -38,6 +38,10 @@ The format is based on [Keep a Changelog].
     - setting `"yanked": true` will make your package yanked and `"yanked": "reason"` tell the reason of yanking.
   - with `aliases` field, you can add aliases for `vrc-get i --name` described above `#399`
     - since `vrc-get i --name` is experimental, this feature is also experimental.
+- `zipSHA256` property support `#406`
+  - You can add `zipSHA256` property to `package.json` to specify SHA256 hash of the zip file.
+  - Currently `vrc-get` verifies the hash of the zip file when using cache as VCC does.
+  - I may add verification for downloaded zip file in the future.
 
 ### Changed
 - Improved confirmation behaviour about updating `dependencies` `#395`
