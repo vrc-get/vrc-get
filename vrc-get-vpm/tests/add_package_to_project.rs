@@ -660,7 +660,7 @@ fn updating_non_locked_package_should_cause_error() {
             .expect_err("should fail");
 
         match &err {
-            AddPackageErr::UpdateingNonLockedPackage { package_name } => {
+            AddPackageErr::UpgradingNonLockedPackage { package_name } => {
                 assert_eq!(package_name.as_ref(), "com.vrchat.avatars");
             }
             _ => panic!("unexpected error: {:?}", err),
