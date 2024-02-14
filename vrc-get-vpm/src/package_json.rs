@@ -26,6 +26,15 @@ pub struct PackageJson {
     #[serde(default)]
     legacy_packages: Vec<Box<str>>,
 
+    #[serde(rename = "vrc-get")]
+    #[serde(default)]
+    #[allow(dead_code)] // for now
+    vrc_get: VrcGetMeta,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct VrcGetMeta {
     #[cfg(feature = "experimental-yank")]
     #[serde(default)]
     yanked: Option<serde_json::Value>,
@@ -45,8 +54,7 @@ impl PackageJson {
             legacy_folders: HashMap::new(),
             legacy_files: HashMap::new(),
             legacy_packages: Vec::new(),
-            #[cfg(feature = "experimental-yank")]
-            yanked: None,
+            vrc_get: VrcGetMeta::default(),
         }
     }
 
@@ -119,7 +127,7 @@ impl PackageJson {
 
     #[cfg(feature = "experimental-yank")]
     pub fn is_yanked(&self) -> bool {
-        crate::utils::is_truthy(self.yanked.as_ref())
+        crate::utils::is_truthy(self.vrc_get.yanked.as_ref())
     }
 }
 
