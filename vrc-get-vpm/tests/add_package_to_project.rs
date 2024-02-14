@@ -155,6 +155,46 @@ fn install_already_installed_in_dependencies_to_dependencies() {
     })
 }
 
+#[test]
+fn upgrading_unused_packages() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+                &[("com.vrchat.base", "1.0.0")],
+            )
+            .add_locked("com.vrchat.base", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageJson::new("com.vrchat.avatars", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.1.0"),
+            )
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 1, 0)))
+            .build();
+
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 1, 0));
+        let base_package = collection.get_package("com.vrchat.base", Version::new(1, 1, 0));
+
+        let result = project
+            .add_package_request(&collection, vec![avatars_package], false, false)
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 2);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_installing_to_locked_only(&result, &avatars_package);
+        assert_installing_to_locked_only(&result, &base_package);
+    })
+}
+
 // endregion
 
 // region remove unused
