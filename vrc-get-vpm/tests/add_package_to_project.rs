@@ -619,6 +619,34 @@ fn not_found_err() {
     })
 }
 
+#[test]
+fn updating_non_locked_package_should_cause_error() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new().build().await.unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageJson::new(
+                "com.vrchat.avatars",
+                Version::new(1, 0, 0),
+            ))
+            .build();
+
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
+
+        let err = project
+            .add_package_request(&collection, vec![avatars_package], false, false)
+            .await
+            .expect_err("should fail");
+
+        match &err {
+            AddPackageErr::UpdateingNonLockedPackage { package_name } => {
+                assert_eq!(package_name.as_ref(), "com.vrchat.avatars");
+            }
+            _ => panic!("unexpected error: {:?}", err),
+        }
+    })
+}
+
 // endregion
 
 // region conflicts

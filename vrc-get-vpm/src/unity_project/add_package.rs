@@ -9,6 +9,7 @@ use std::fmt;
 #[non_exhaustive]
 pub enum AddPackageErr {
     DependencyNotFound { dependency_name: Box<str> },
+    UpdateingNonLockedPackage { package_name: Box<str> },
 }
 
 impl fmt::Display for AddPackageErr {
@@ -17,6 +18,10 @@ impl fmt::Display for AddPackageErr {
             AddPackageErr::DependencyNotFound { dependency_name } => write!(
                 f,
                 "Package {dependency_name} (maybe dependencies of the package) not found"
+            ),
+            AddPackageErr::UpdateingNonLockedPackage { package_name } => write!(
+                f,
+                "Package {package_name} is not locked, so it cannot be updated"
             ),
         }
     }
@@ -57,6 +62,13 @@ impl<IO: ProjectIo> UnityProject<IO> {
                         DependencyRange::version(request.version().clone()),
                     );
                 }
+            }
+
+            if !to_dependencies && self.manifest.get_locked(request.name()).is_none() {
+                // if package is not locked, it cannot be updated
+                return Err(AddPackageErr::UpdateingNonLockedPackage {
+                    package_name: request.name().into(),
+                });
             }
 
             if self
