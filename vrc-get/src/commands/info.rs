@@ -198,7 +198,6 @@ impl Package {
             .map(|x| PackageVersionInfo {
                 version: x.version(),
                 // since 1.5.0
-                #[cfg(feature = "experimental-yank")]
                 is_yanked: x.is_yanked(),
             })
             .collect();
@@ -211,7 +210,6 @@ impl Package {
         #[derive(Serialize)]
         struct PackageVersionInfo<'a> {
             version: &'a Version,
-            #[cfg(feature = "experimental-yank")]
             is_yanked: bool,
         }
 

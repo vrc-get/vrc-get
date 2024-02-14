@@ -28,14 +28,12 @@ pub struct PackageJson {
 
     #[serde(rename = "vrc-get")]
     #[serde(default)]
-    #[allow(dead_code)] // for now
     vrc_get: VrcGetMeta,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct VrcGetMeta {
-    #[cfg(feature = "experimental-yank")]
     #[serde(default)]
     yanked: Option<serde_json::Value>,
 }
@@ -125,7 +123,6 @@ impl PackageJson {
         self.unity.as_ref()
     }
 
-    #[cfg(feature = "experimental-yank")]
     pub fn is_yanked(&self) -> bool {
         crate::utils::is_truthy(self.vrc_get.yanked.as_ref())
     }

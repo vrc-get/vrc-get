@@ -42,7 +42,6 @@ native-tls = ["vrc-get-vpm/native-tls"]
 rustls = ["vrc-get-vpm/rustls"]
 
 experimental-vcc = ["vrc-get-vpm/experimental-project-management", "vrc-get-vpm/experimental-unity-management"]
-experimental-yank = ["vrc-get-vpm/experimental-yank"]
 
 # binstall support
 [package.metadata.binstall]

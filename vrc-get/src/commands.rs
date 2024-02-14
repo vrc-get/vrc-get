@@ -181,14 +181,11 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
     if !newly_installed.is_empty() {
         println!("You're installing the following packages:");
         for x in &newly_installed {
-            #[cfg(feature = "experimental-yank")]
             if x.is_yanked() {
                 println!("- {} version {} (yanked)", x.name(), x.version());
             } else {
                 println!("- {} version {}", x.name(), x.version());
             }
-            #[cfg(not(feature = "experimental-yank"))]
-            println!("- {} version {}", x.name(), x.version());
         }
     }
 

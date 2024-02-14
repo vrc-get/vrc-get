@@ -205,7 +205,6 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
     }
 }
 
-#[cfg(feature = "experimental-yank")]
 pub(crate) fn is_truthy(value: Option<&Value>) -> bool {
     // see https://developer.mozilla.org/en-US/docs/Glossary/Falsy
     match value {
