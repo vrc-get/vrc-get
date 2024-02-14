@@ -9,6 +9,8 @@ use vrc_get_vpm::PackageJson;
 
 mod common;
 
+// region basic operations
+
 #[test]
 fn add_to_locked_only() {
     block_on(async {
@@ -183,6 +185,10 @@ fn install_already_installed_in_dependencies_to_dependencies() {
         assert_eq!(result.conflicts().len(), 0);
     })
 }
+
+// endregion
+
+// region remove unused
 
 #[test]
 fn transitive_unused_remove_with_upgrade() {
@@ -388,6 +394,10 @@ fn remove_referenced_legacy_package_when_install() {
     })
 }
 
+// endregion
+
+//region legacy assets
+
 #[test]
 fn legacy_assets_by_path() {
     block_on(async {
@@ -588,6 +598,8 @@ fn deny_absolute_legacy_assets() {
         assert_eq!(result.remove_legacy_files(), &[]);
     })
 }
+
+//endregion
 
 // region errors
 
