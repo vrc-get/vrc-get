@@ -38,6 +38,8 @@ pub struct PackageJson {
 pub struct VrcGetMeta {
     #[serde(default)]
     yanked: YankState,
+    /// aliases for `vrc-get i --name <name> <version>` command.
+    aliases: Vec<Box<str>>,
 }
 
 /// Constructing PackageJson. Especially for testing.
@@ -127,6 +129,10 @@ impl PackageJson {
 
     pub fn is_yanked(&self) -> bool {
         self.vrc_get.yanked.is_yanked()
+    }
+
+    pub fn aliases(&self) -> &[Box<str>] {
+        self.vrc_get.aliases.as_slice()
     }
 }
 

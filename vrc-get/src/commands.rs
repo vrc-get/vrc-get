@@ -428,9 +428,14 @@ impl Install {
                     .collect::<String>()
             }
 
-            let lowercase_name = normalize_name(&name);
+            let normalized = normalize_name(&name);
             let packages = env.find_whole_all_packages(version_selector, |pkg| {
-                pkg.display_name().map(normalize_name).as_ref() == Some(&lowercase_name)
+                pkg.display_name().map(normalize_name).as_ref() == Some(&normalized)
+                    || pkg
+                        .aliases()
+                        .iter()
+                        .map(Box::as_ref)
+                        .any(|x| normalize_name(x) == normalized)
             });
             if packages.is_empty() {
                 exit_with!("no matching package not found")
