@@ -258,7 +258,9 @@ impl<'env> Builder<'env> {
                 PackageChange::Install(_) => {
                     panic!("INTERNAL ERROR: remove_unused for installed");
                 }
-                PackageChange::Remove(_) => {}
+                PackageChange::Remove(_) => {
+                    // already removed, do nothing
+                }
             },
             Entry::Vacant(e) => {
                 e.insert(PackageChange::Remove(Remove {
@@ -406,6 +408,14 @@ impl<'env> Builder<'env> {
             return;
         }
 
+        // copy to avoid borrow checker error
+        let installing_packages = self
+            .package_changes
+            .iter()
+            .filter(|(_, change)| change.as_install().is_some())
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+
         // collect packages that is used by dependencies or unlocked packages
         let using_packages = {
             let unlocked_dependencies = unity_project
@@ -422,7 +432,14 @@ impl<'env> Builder<'env> {
                     .is_none()
             });
 
-            mark_recursive(unlocked_dependencies.chain(dependencies), |dep_name| {
+            // keep installing packages even if the package is not used by any dependencies
+            let package_changes = installing_packages.iter().map(Box::as_ref);
+
+            let entry_points = unlocked_dependencies
+                .chain(dependencies)
+                .chain(package_changes);
+
+            mark_recursive(entry_points, |dep_name| {
                 if let Some(to_install) = self
                     .package_changes
                     .get(dep_name)
