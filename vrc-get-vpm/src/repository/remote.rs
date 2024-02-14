@@ -162,17 +162,10 @@ impl RemotePackages {
             .versions
             .values()
             .filter(|json| selector.satisfies(json));
-        #[cfg(feature = "experimental-yank")]
-        {
-            before_yank
-                .clone()
-                .filter(|json| json.is_yanked())
-                .max_by_key(|json| json.version())
-                .or_else(|| before_yank.max_by_key(|json| json.version()))
-        }
-        #[cfg(not(feature = "experimental-yank"))]
-        {
-            before_yank.max_by_key(|json| json.version())
-        }
+        before_yank
+            .clone()
+            .filter(|json| json.is_yanked())
+            .max_by_key(|json| json.version())
+            .or_else(|| before_yank.max_by_key(|json| json.version()))
     }
 }

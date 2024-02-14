@@ -181,14 +181,11 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
     if !newly_installed.is_empty() {
         println!("You're installing the following packages:");
         for x in &newly_installed {
-            #[cfg(feature = "experimental-yank")]
             if x.is_yanked() {
                 println!("- {} version {} (yanked)", x.name(), x.version());
             } else {
                 println!("- {} version {}", x.name(), x.version());
             }
-            #[cfg(not(feature = "experimental-yank"))]
-            println!("- {} version {}", x.name(), x.version());
         }
     }
 
@@ -431,9 +428,14 @@ impl Install {
                     .collect::<String>()
             }
 
-            let lowercase_name = normalize_name(&name);
+            let normalized = normalize_name(&name);
             let packages = env.find_whole_all_packages(version_selector, |pkg| {
-                pkg.display_name().map(normalize_name).as_ref() == Some(&lowercase_name)
+                pkg.display_name().map(normalize_name).as_ref() == Some(&normalized)
+                    || pkg
+                        .aliases()
+                        .iter()
+                        .map(Box::as_ref)
+                        .any(|x| normalize_name(x) == normalized)
             });
             if packages.is_empty() {
                 exit_with!("no matching package not found")

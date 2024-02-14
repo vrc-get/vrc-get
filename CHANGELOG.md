@@ -33,6 +33,11 @@ The format is based on [Keep a Changelog].
 - `vrc-get i --name <name>` to install package by name `#398`
   - Currently, name-based search ignores whitespace in the name.
   - This feature is experimental. Behavior may change in the future.
+- `vrc-get` property in `package.json` for extra metadata for vrc-get `#399`
+  - with `yanked` field, you can yank the package from the repository. `#399`
+    - setting `"yanked": true` will make your package yanked and `"yanked": "reason"` tell the reason of yanking.
+  - with `aliases` field, you can add aliases for `vrc-get i --name` described above `#399`
+    - since `vrc-get i --name` is experimental, this feature is also experimental.
 
 ### Changed
 - Improved confirmation behaviour about updating `dependencies` `#395`

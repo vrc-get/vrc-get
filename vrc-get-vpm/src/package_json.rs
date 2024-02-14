@@ -1,7 +1,9 @@
 use crate::version::{Version, VersionRange};
 use indexmap::IndexMap;
-use serde::Deserialize;
+use serde::de::Error;
+use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
+use std::fmt::Formatter;
 use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -26,9 +28,18 @@ pub struct PackageJson {
     #[serde(default)]
     legacy_packages: Vec<Box<str>>,
 
-    #[cfg(feature = "experimental-yank")]
+    #[serde(rename = "vrc-get")]
     #[serde(default)]
-    yanked: Option<serde_json::Value>,
+    vrc_get: VrcGetMeta,
+}
+
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct VrcGetMeta {
+    #[serde(default)]
+    yanked: YankState,
+    /// aliases for `vrc-get i --name <name> <version>` command.
+    aliases: Vec<Box<str>>,
 }
 
 /// Constructing PackageJson. Especially for testing.
@@ -45,8 +56,7 @@ impl PackageJson {
             legacy_folders: HashMap::new(),
             legacy_files: HashMap::new(),
             legacy_packages: Vec::new(),
-            #[cfg(feature = "experimental-yank")]
-            yanked: None,
+            vrc_get: VrcGetMeta::default(),
         }
     }
 
@@ -117,9 +127,12 @@ impl PackageJson {
         self.unity.as_ref()
     }
 
-    #[cfg(feature = "experimental-yank")]
     pub fn is_yanked(&self) -> bool {
-        crate::utils::is_truthy(self.yanked.as_ref())
+        self.vrc_get.yanked.is_yanked()
+    }
+
+    pub fn aliases(&self) -> &[Box<str>] {
+        self.vrc_get.aliases.as_slice()
     }
 }
 
@@ -139,9 +152,8 @@ impl PartialUnityVersion {
 impl<'de> Deserialize<'de> for PartialUnityVersion {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::de::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
-        use serde::de::Error;
         let s = String::deserialize(deserializer)?;
         if let Some((maj, min)) = s.split_once('.') {
             let major = maj.trim().parse::<u16>().map_err(Error::custom)?;
@@ -151,5 +163,74 @@ impl<'de> Deserialize<'de> for PartialUnityVersion {
             let major = s.trim().parse::<u16>().map_err(Error::custom)?;
             Ok(Self(major, 0))
         }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+enum YankState {
+    #[default]
+    NotYanked,
+    NoReason,
+    Reason(Box<str>),
+}
+
+impl YankState {
+    pub fn is_yanked(&self) -> bool {
+        match self {
+            YankState::NotYanked => false,
+            YankState::NoReason => true,
+            YankState::Reason(_) => true,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn reason(&self) -> Option<&str> {
+        match self {
+            YankState::Reason(s) => Some(s),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for YankState {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct VisitorImpl;
+        impl<'de> serde::de::Visitor<'de> for VisitorImpl {
+            type Value = YankState;
+
+            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+                formatter.write_str("a boolean or a string")
+            }
+
+            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                if v {
+                    Ok(YankState::NoReason)
+                } else {
+                    Ok(YankState::NotYanked)
+                }
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                Ok(YankState::Reason(v.into()))
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                Ok(YankState::Reason(v.into()))
+            }
+        }
+
+        deserializer.deserialize_any(VisitorImpl)
     }
 }

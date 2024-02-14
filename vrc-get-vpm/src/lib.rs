@@ -97,9 +97,16 @@ impl<'a> PackageInfo<'a> {
         self.package_json().unity()
     }
 
-    #[cfg(feature = "experimental-yank")]
     pub fn is_yanked(self) -> bool {
         self.package_json().is_yanked()
+    }
+
+    pub fn display_name(self) -> Option<&'a str> {
+        self.package_json().display_name()
+    }
+
+    pub fn aliases(self) -> &'a [Box<str>] {
+        self.package_json().aliases()
     }
 }
 

@@ -48,4 +48,3 @@ rustls = ["reqwest/rustls-tls-native-roots"]
 
 experimental-project-management = ["vrc-get-litedb"]
 experimental-unity-management = ["vrc-get-litedb"]
-experimental-yank = []
