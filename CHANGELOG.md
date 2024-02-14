@@ -42,6 +42,10 @@ The format is based on [Keep a Changelog].
   - You can add `zipSHA256` property to `package.json` to specify SHA256 hash of the zip file.
   - Currently `vrc-get` verifies the hash of the zip file when using cache as VCC does.
   - I may add verification for downloaded zip file in the future.
+- Better logging style `#407`
+  - Now, `vrc-get` uses our formatting style for logging if none of `RUST_LOG_STYLE` and `RUST_LOG` are set.
+  - This style is shorter than `env_logger`'s default style so better for default CLI usage.
+  - If you need more detailed logs, you can set `RUST_LOG` to get more detailed information.
 
 ### Changed
 - Improved confirmation behaviour about updating `dependencies` `#395`
