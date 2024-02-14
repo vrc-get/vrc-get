@@ -15,6 +15,7 @@ categories = ["command-line-utilities"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anstyle = "1.0.6"
 clap = { version = "4.5.0", features = ["derive"] }
 clap_complete = "4.5.0"
 color-print = "0.3.5"
