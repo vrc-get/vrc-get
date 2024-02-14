@@ -462,7 +462,8 @@ impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T
         ));
         let sha_path = zip_path.with_extension("zip.sha256");
 
-        if let Some(cache_file) = try_load_package_cache(&self.io, &zip_path, &sha_path, None).await
+        if let Some(cache_file) =
+            try_load_package_cache(&self.io, &zip_path, &sha_path, package.zip_sha_256()).await
         {
             Ok(cache_file)
         } else {
@@ -514,7 +515,7 @@ async fn try_load_package_cache<IO: EnvironmentIo>(
 
     let hex: [u8; 256 / 8] = FromHex::from_hex(buf).ok()?;
 
-    // is stored sha doesn't match sha in repo: current cache is invalid
+    // if stored sha doesn't match sha in repo: current cache is invalid
     if let Some(repo_hash) = sha256.and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok()) {
         if repo_hash != hex {
             return None;

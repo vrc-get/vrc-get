@@ -18,6 +18,9 @@ pub struct PackageJson {
     vpm_dependencies: IndexMap<Box<str>, VersionRange>,
     #[serde(default)]
     url: Option<Url>,
+    #[serde(default)]
+    #[serde(rename = "zipSHA256")]
+    zip_sha_256: Option<Box<str>>,
 
     unity: Option<PartialUnityVersion>,
 
@@ -57,6 +60,7 @@ impl PackageJson {
             legacy_files: HashMap::new(),
             legacy_packages: Vec::new(),
             vrc_get: VrcGetMeta::default(),
+            zip_sha_256: None,
         }
     }
 
@@ -121,6 +125,10 @@ impl PackageJson {
 
     pub fn url(&self) -> Option<&Url> {
         self.url.as_ref()
+    }
+
+    pub fn zip_sha_256(&self) -> Option<&str> {
+        self.zip_sha_256.as_deref()
     }
 
     pub fn unity(&self) -> Option<&PartialUnityVersion> {
