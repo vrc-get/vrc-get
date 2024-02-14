@@ -12,37 +12,6 @@ mod common;
 // region basic operations
 
 #[test]
-fn add_to_locked_only() {
-    block_on(async {
-        let project = VirtualProjectBuilder::new().build().await.unwrap();
-
-        let collection = PackageCollectionBuilder::new()
-            .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
-                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
-            )
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
-            .build();
-
-        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
-        let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
-
-        let result = project
-            .add_package_request(&collection, vec![avatars_package], false, false)
-            .await
-            .unwrap();
-
-        assert_eq!(result.package_changes().len(), 2);
-        assert_eq!(result.remove_legacy_folders().len(), 0);
-        assert_eq!(result.remove_legacy_files().len(), 0);
-        assert_eq!(result.conflicts().len(), 0);
-
-        assert_installing_to_locked_only(&result, &avatars_package);
-        assert_installing_to_locked_only(&result, &base_package);
-    })
-}
-
-#[test]
 fn add_to_dependencies() {
     block_on(async {
         let project = VirtualProjectBuilder::new().build().await.unwrap();
@@ -293,7 +262,7 @@ fn remove_legacy_package_when_install() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(&collection, vec![package], true, false)
             .await
             .unwrap();
 
@@ -302,7 +271,7 @@ fn remove_legacy_package_when_install() {
         assert_eq!(result.remove_legacy_files().len(), 0);
         assert_eq!(result.conflicts().len(), 0);
 
-        assert_installing_to_locked_only(&result, &package);
+        assert_installing_to_both(&result, &package);
         assert_removed(
             &result,
             "com.anatawa12.legacy-package",
@@ -376,7 +345,7 @@ fn remove_referenced_legacy_package_when_install() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(&collection, vec![package], true, false)
             .await
             .unwrap();
 
@@ -385,7 +354,7 @@ fn remove_referenced_legacy_package_when_install() {
         assert_eq!(result.remove_legacy_files().len(), 0);
         assert_eq!(result.conflicts().len(), 0);
 
-        assert_installing_to_locked_only(&result, &package);
+        assert_installing_to_both(&result, &package);
         assert_removed(
             &result,
             "com.anatawa12.legacy-package",
@@ -422,7 +391,7 @@ fn legacy_assets_by_path() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(&collection, vec![package], true, false)
             .await
             .unwrap();
 
@@ -481,7 +450,7 @@ fn legacy_assets_by_guid() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(&collection, vec![package], true, false)
             .await
             .unwrap();
 
@@ -531,7 +500,7 @@ fn deny_remove_files_not_in_assets_or_packages() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(&collection, vec![package], true, false)
             .await
             .unwrap();
 
@@ -560,7 +529,7 @@ fn deny_remove_parent_folders() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(&collection, vec![package], true, false)
             .await
             .unwrap();
 
@@ -587,7 +556,7 @@ fn deny_absolute_legacy_assets() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(&collection, vec![package], true, false)
             .await
             .unwrap();
 
@@ -618,7 +587,7 @@ fn not_found_err() {
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
 
         let err = project
-            .add_package_request(&collection, vec![avatars_package], false, false)
+            .add_package_request(&collection, vec![avatars_package], true, false)
             .await
             .expect_err("should fail");
 
@@ -695,7 +664,7 @@ fn conflict_requirements_of_installed_and_installing() {
         let base_1_1_0 = collection.get_package("com.vrchat.base", Version::new(1, 1, 0));
 
         let resolve = project
-            .add_package_request(&collection, vec![tool], false, false)
+            .add_package_request(&collection, vec![tool], true, false)
             .await
             .unwrap();
 
@@ -704,7 +673,7 @@ fn conflict_requirements_of_installed_and_installing() {
         assert_eq!(resolve.remove_legacy_files().len(), 0);
         assert_eq!(resolve.conflicts().len(), 1);
 
-        assert_installing_to_locked_only(&resolve, &tool);
+        assert_installing_to_both(&resolve, &tool);
         assert_installing_to_locked_only(&resolve, &base_1_1_0);
 
         let base_conflict = resolve.conflicts().get("com.vrchat.base").unwrap();
@@ -746,7 +715,7 @@ fn conflict_already_conflicted_and_no_new_conflict() {
         let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
 
         let resolve = project
-            .add_package_request(&collection, vec![tool], false, false)
+            .add_package_request(&collection, vec![tool], true, false)
             .await
             .unwrap();
 
@@ -755,7 +724,7 @@ fn conflict_already_conflicted_and_no_new_conflict() {
         assert_eq!(resolve.remove_legacy_files().len(), 0);
         assert_eq!(resolve.conflicts().len(), 0);
 
-        assert_installing_to_locked_only(&resolve, &tool);
+        assert_installing_to_both(&resolve, &tool);
     })
 }
 
@@ -789,7 +758,7 @@ fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
         let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
 
         let resolve = project
-            .add_package_request(&collection, vec![tool], false, false)
+            .add_package_request(&collection, vec![tool], true, false)
             .await
             .unwrap();
 
@@ -798,7 +767,7 @@ fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
         assert_eq!(resolve.remove_legacy_files().len(), 0);
         assert_eq!(resolve.conflicts().len(), 0);
 
-        assert_installing_to_locked_only(&resolve, &tool);
+        assert_installing_to_both(&resolve, &tool);
     })
 }
 
