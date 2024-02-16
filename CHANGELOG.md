@@ -8,67 +8,74 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Changelog `#351`
-  - I wrote changelog for all releases for all releases
-- global (whole-user) configuration for vrc-get `#352`
-  - create in the `%LOCALAPPDATA%/VRChatCreatorCompanion/vrc-get-settings.json` or `$XDG_DATA_HOME/VRChatCreatorCompanion/vrc-get-settings.json`
-  - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. `#362`
-- Feature to ignore official / curated repositories `#352`
-  - You can enable this feature in `vrc-get-settings.json` by setting `ignoreOfficialRepository` or `ignoreCuratedRepository` to true.
-  - This feature is replacement of `experimental-override-predefined` feature since 1.4.1.
-    - Please add alternative repository to user repository and enable this feature to use alternative repository instead of official / curated repository.
-  - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. `#362` `#365`
-- `vrc-get-litedb` crate which is NativeAOT based LiteDB wrapper for vrc-get `#320`
-- `vrc-get vcc` commands which is a command for vrc-get as a VCC project `#369` `#396`
-  - This feature is disabled by default. pass `--features experimental-vcc` to cargo to enable this feature. `#384` 
-  - `vrc-get vcc project list` to list projects `#369`
-  - `vrc-get vcc project add <path>` to add a project to project list `#369`
-  - `vrc-get vcc project remove <path>` to remove a project from project list `#369`
-  - `vrc-get vcc unity list` to list unity in vcc's unity list `#382`
-  - `vrc-get vcc unity add <path>` to add a unity to vcc's unity list `#382`
-  - `vrc-get vcc unity remove <path>` to remove a unity from vcc's unity list `#382`
-  - In addition, `vrc-get migrate unity 2022` command will get unity from the vcc's unity list `#382`
-- Tests for `vrc-get-vpm` module. `#393`
-  - For basic project operations, I added tests in `vrc-get-vpm` module.
-- `vrc-get i --name <name>` to install package by name `#398`
-  - Currently, name-based search ignores whitespace in the name.
-  - This feature is experimental. Behavior may change in the future.
-- `vrc-get` property in `package.json` for extra metadata for vrc-get `#399`
-  - with `yanked` field, you can yank the package from the repository. `#399`
-    - setting `"yanked": true` will make your package yanked and `"yanked": "reason"` tell the reason of yanking.
-  - with `aliases` field, you can add aliases for `vrc-get i --name` described above `#399`
-    - since `vrc-get i --name` is experimental, this feature is also experimental.
-- `zipSHA256` property support `#406`
-  - You can add `zipSHA256` property to `package.json` to specify SHA256 hash of the zip file.
-  - Currently `vrc-get` verifies the hash of the zip file when using cache as VCC does.
-  - I may add verification for downloaded zip file in the future.
-- Better logging style `#407`
-  - Now, `vrc-get` uses our formatting style for logging if none of `RUST_LOG_STYLE` and `RUST_LOG` are set.
-  - This style is shorter than `env_logger`'s default style so better for default CLI usage.
-  - If you need more detailed logs, you can set `RUST_LOG` to get more detailed information.
 
 ### Changed
-- Improved confirmation behaviour about updating `dependencies` `#395`
-  - Previously, the confirmation show nothing about updating `dependencies` since it's almost safe (just updating `vpm-manifest.json`).
-  - Since this release, `vrc-get` shows about what's updating `dependencies`
-  - In addition, if actual operaion is just updating `dependencies`, `vrc-get` will just show updates and apply changes without confirmation.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Warnings about index map `#350`
-- `vrc-get repo remove` not working `#361`
-- `writing local repo cache 'Repos/vrc-curated.json'` error `#365`
-- Prompt is shown even if there is nothing to update `#393`
-- Conflict warning can be shown even if new conflicts are not caused `#393` `#400`
-- Directory traversal with `legacyFolders` and `legacyFiles` `#393`
-- You can add unused package to locked with `vrc-get upgrade` `#403`
-  - Now, vrc-get show you `Package <id> is not locked, so it cannot be upgraded` error.
-- Panic when upgrading unused package with `vrc-get upgrade` `#403`
 
 ### Security
+
+## [] - 2024-02-16
+### Added
+- Changelog [`#351`](https://github.com/anatawa12/vrc-get/pull/351)
+  - I wrote changelog for all releases for all releases
+- global (whole-user) configuration for vrc-get [`#352`](https://github.com/anatawa12/vrc-get/pull/352)
+  - create in the `%LOCALAPPDATA%/VRChatCreatorCompanion/vrc-get-settings.json` or `$XDG_DATA_HOME/VRChatCreatorCompanion/vrc-get-settings.json`
+  - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. [`#362`](https://github.com/anatawa12/vrc-get/pull/362)
+- Feature to ignore official / curated repositories [`#352`](https://github.com/anatawa12/vrc-get/pull/352)
+  - You can enable this feature in `vrc-get-settings.json` by setting `ignoreOfficialRepository` or `ignoreCuratedRepository` to true.
+  - This feature is replacement of `experimental-override-predefined` feature since 1.4.1.
+    - Please add alternative repository to user repository and enable this feature to use alternative repository instead of official / curated repository.
+  - This feature is not stable yet. Using this feature will warn you about it and use at your own risk. [`#362`](https://github.com/anatawa12/vrc-get/pull/362) [`#365`](https://github.com/anatawa12/vrc-get/pull/365)
+- `vrc-get-litedb` crate which is NativeAOT based LiteDB wrapper for vrc-get [`#320`](https://github.com/anatawa12/vrc-get/pull/320)
+- `vrc-get vcc` commands which is a command for vrc-get as a VCC project [`#369`](https://github.com/anatawa12/vrc-get/pull/369) [`#396`](https://github.com/anatawa12/vrc-get/pull/396)
+  - This feature is disabled by default. pass `--features experimental-vcc` to cargo to enable this feature. [`#384`](https://github.com/anatawa12/vrc-get/pull/384) 
+  - `vrc-get vcc project list` to list projects [`#369`](https://github.com/anatawa12/vrc-get/pull/369)
+  - `vrc-get vcc project add <path>` to add a project to project list [`#369`](https://github.com/anatawa12/vrc-get/pull/369)
+  - `vrc-get vcc project remove <path>` to remove a project from project list [`#369`](https://github.com/anatawa12/vrc-get/pull/369)
+  - `vrc-get vcc unity list` to list unity in vcc's unity list [`#382`](https://github.com/anatawa12/vrc-get/pull/382)
+  - `vrc-get vcc unity add <path>` to add a unity to vcc's unity list [`#382`](https://github.com/anatawa12/vrc-get/pull/382)
+  - `vrc-get vcc unity remove <path>` to remove a unity from vcc's unity list [`#382`](https://github.com/anatawa12/vrc-get/pull/382)
+  - In addition, `vrc-get migrate unity 2022` command will get unity from the vcc's unity list [`#382`](https://github.com/anatawa12/vrc-get/pull/382)
+- Tests for `vrc-get-vpm` module. [`#393`](https://github.com/anatawa12/vrc-get/pull/393)
+  - For basic project operations, I added tests in `vrc-get-vpm` module.
+- `vrc-get i --name <name>` to install package by name [`#398`](https://github.com/anatawa12/vrc-get/pull/398)
+  - Currently, name-based search ignores whitespace in the name.
+  - This feature is experimental. Behavior may change in the future.
+- `vrc-get` property in `package.json` for extra metadata for vrc-get [`#399`](https://github.com/anatawa12/vrc-get/pull/399)
+  - with `yanked` field, you can yank the package from the repository. [`#399`](https://github.com/anatawa12/vrc-get/pull/399)
+    - setting `"yanked": true` will make your package yanked and `"yanked": "reason"` tell the reason of yanking.
+  - with `aliases` field, you can add aliases for `vrc-get i --name` described above [`#399`](https://github.com/anatawa12/vrc-get/pull/399)
+    - since `vrc-get i --name` is experimental, this feature is also experimental.
+- `zipSHA256` property support [`#406`](https://github.com/anatawa12/vrc-get/pull/406)
+  - You can add `zipSHA256` property to `package.json` to specify SHA256 hash of the zip file.
+  - Currently `vrc-get` verifies the hash of the zip file when using cache as VCC does.
+  - I may add verification for downloaded zip file in the future.
+- Better logging style [`#407`](https://github.com/anatawa12/vrc-get/pull/407)
+  - Now, `vrc-get` uses our formatting style for logging if none of `RUST_LOG_STYLE` and `RUST_LOG` are set.
+  - This style is shorter than `env_logger`'s default style so better for default CLI usage.
+  - If you need more detailed logs, you can set `RUST_LOG` to get more detailed information.
+
+### Changed
+- Improved confirmation behaviour about updating `dependencies` [`#395`](https://github.com/anatawa12/vrc-get/pull/395)
+  - Previously, the confirmation show nothing about updating `dependencies` since it's almost safe (just updating `vpm-manifest.json`).
+  - Since this release, `vrc-get` shows about what's updating `dependencies`
+  - In addition, if actual operaion is just updating `dependencies`, `vrc-get` will just show updates and apply changes without confirmation.
+
+### Fixed
+- Warnings about index map [`#350`](https://github.com/anatawa12/vrc-get/pull/350)
+- `vrc-get repo remove` not working [`#361`](https://github.com/anatawa12/vrc-get/pull/361)
+- `writing local repo cache 'Repos/vrc-curated.json'` error [`#365`](https://github.com/anatawa12/vrc-get/pull/365)
+- Prompt is shown even if there is nothing to update [`#393`](https://github.com/anatawa12/vrc-get/pull/393)
+- Conflict warning can be shown even if new conflicts are not caused [`#393`](https://github.com/anatawa12/vrc-get/pull/393) [`#400`](https://github.com/anatawa12/vrc-get/pull/400)
+- Directory traversal with `legacyFolders` and `legacyFiles` [`#393`](https://github.com/anatawa12/vrc-get/pull/393)
+- You can add unused package to locked with `vrc-get upgrade` [`#403`](https://github.com/anatawa12/vrc-get/pull/403)
+  - Now, vrc-get show you `Package <id> is not locked, so it cannot be upgraded` error.
+- Panic when upgrading unused package with `vrc-get upgrade` [`#403`](https://github.com/anatawa12/vrc-get/pull/403)
 
 ## [1.5.3] - 2024-02-03
 ### Fixed
@@ -120,15 +127,9 @@ The format is based on [Keep a Changelog].
 - Internally separated crate for `vrc-get` vpm client core [`#271`](https://github.com/anatawa12/vrc-get/pull/271)
 - `vrc-get resolve` now reports installed packages [`#273`](https://github.com/anatawa12/vrc-get/pull/273)
 
-### Deprecated
-
-### Removed
-
 ### Fixed
 - Some process are not in parallel [`#278`](https://github.com/anatawa12/vrc-get/pull/278)
 - Resolving prerelease packages from unlocked packages fails [`#284`](https://github.com/anatawa12/vrc-get/pull/284)
-
-### Security
 
 ## [1.4.0] - 2023-12-10
 ### Added
@@ -207,8 +208,6 @@ The format is based on [Keep a Changelog].
 ### Fixed
 - versions on `vrc-get repo packages` is not sorted [`#128`](https://github.com/anatawa12/vrc-get/pull/128)
 - `1.0.x` does not match `1.0.0-beta` [`#133`](https://github.com/anatawa12/vrc-get/pull/133)
-
-### Security
 
 ## [0.2.5] - 2023-04-16
 ### Changed
