@@ -753,6 +753,76 @@ fn updating_non_locked_package_should_cause_error() {
     })
 }
 
+#[test]
+fn downgrade_basic() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_locked("com.vrchat.base", Version::new(1, 1, 0), &[])
+            .add_dependency("com.vrchat.base", Version::new(1, 0, 0))
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .build();
+
+        let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(
+                &collection,
+                vec![base_package],
+                AddPackageOperation::Downgrade,
+                false,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_installing_to_locked_only(&result, &base_package);
+    })
+}
+
+#[test]
+fn downgrade_dependencies() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_locked("com.vrchat.base", Version::new(1, 1, 0), &[])
+            .add_dependency("com.vrchat.base", Version::new(1, 1, 0))
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .build();
+
+        let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(
+                &collection,
+                vec![base_package],
+                AddPackageOperation::Downgrade,
+                false,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_installing_to_both(&result, &base_package);
+    })
+}
+
 // endregion
 
 // region conflicts
