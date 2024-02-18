@@ -175,7 +175,13 @@ impl<IO: ProjectIo> UnityProject<IO> {
         }
 
         let result = package_resolution::collect_adding_packages(
-            self.manifest.dependencies(),
+            self.manifest.dependencies().map(|(name, original_range)| {
+                if let Some(new_range) = changes.get_dependencies(name) {
+                    (name, new_range)
+                } else {
+                    (name, original_range)
+                }
+            }),
             self.manifest.all_locked(),
             |pkg| self.manifest.get_locked(pkg),
             self.unity_version(),
