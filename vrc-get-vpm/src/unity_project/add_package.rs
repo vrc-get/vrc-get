@@ -3,6 +3,7 @@ use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::{package_resolution, PendingProjectChanges};
 use crate::version::DependencyRange;
 use crate::{PackageCollection, PackageInfo, UnityProject};
+use log::debug;
 use std::fmt;
 
 #[derive(Debug)]
@@ -57,6 +58,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
                     .unwrap_or(true);
 
                 if add_to_dependencies {
+                    debug!("Adding package {} to dependencies", request.name());
                     changes.add_to_dependencies(
                         request.name().into(),
                         DependencyRange::version(request.version().clone()),
@@ -77,7 +79,19 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 .map(|version| version.version() < request.version())
                 .unwrap_or(true)
             {
+                debug!(
+                    "Adding package {} to locked packages at version {}",
+                    request.name(),
+                    request.version()
+                );
                 adding_packages.push(request);
+            } else {
+                debug!(
+                    "Package {} is already locked at newer version than {}: version {}",
+                    request.name(),
+                    request.version(),
+                    self.manifest.get_locked(request.name()).unwrap().version()
+                );
             }
         }
 
