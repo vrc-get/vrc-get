@@ -18,7 +18,7 @@ use std::str::FromStr;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
-use vrc_get_vpm::unity_project::PendingProjectChanges;
+use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, UserRepoSetting, VersionSelector};
 
@@ -446,7 +446,12 @@ impl Install {
         };
 
         let changes = unity
-            .add_package_request(&env, packages, true, self.prerelease)
+            .add_package_request(
+                &env,
+                packages,
+                AddPackageOperation::InstallToDependencies,
+                self.prerelease,
+            )
             .await
             .exit_context("collecting packages to be installed");
 
@@ -692,7 +697,12 @@ impl Upgrade {
         };
 
         let changes = unity
-            .add_package_request(&env, updates, false, self.prerelease)
+            .add_package_request(
+                &env,
+                updates,
+                AddPackageOperation::UpgradeLocked,
+                self.prerelease,
+            )
             .await
             .exit_context("collecting packages to be upgraded");
 

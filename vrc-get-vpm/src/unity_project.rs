@@ -27,6 +27,7 @@ use std::path::{Path, PathBuf};
 use crate::io::{DirEntry, FileSystemProjectIo, ProjectIo};
 use crate::PackageJson;
 pub use add_package::AddPackageErr;
+pub use add_package::AddPackageOperation;
 pub use call_unity::ExecuteUnityError;
 pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use pending_project_changes::PendingProjectChanges;

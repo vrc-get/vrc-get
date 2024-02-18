@@ -1,5 +1,6 @@
 use crate::io::ProjectIo;
 use crate::unity_project::pending_project_changes::RemoveReason;
+use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::unity_project::{package_resolution, PendingProjectChanges};
 use crate::version::DependencyRange;
 use crate::{PackageCollection, PackageInfo, UnityProject};
@@ -30,6 +31,13 @@ impl fmt::Display for AddPackageErr {
 
 impl std::error::Error for AddPackageErr {}
 
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum AddPackageOperation {
+    InstallToDependencies,
+    UpgradeLocked,
+}
+
 // adding package
 impl<IO: ProjectIo> UnityProject<IO> {
     /// Creates a new `AddPackageRequest` to add the specified packages.
@@ -39,7 +47,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         &self,
         env: &'env impl PackageCollection,
         packages: Vec<PackageInfo<'env>>,
-        to_dependencies: bool,
+        operation: AddPackageOperation,
         allow_prerelease: bool,
     ) -> Result<PendingProjectChanges<'env>, AddPackageErr> {
         // if same or newer requested package is in locked dependencies,
@@ -49,49 +57,61 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let mut changes = super::pending_project_changes::Builder::new();
 
         for request in packages {
-            if to_dependencies {
-                let add_to_dependencies = self
-                    .manifest
-                    .get_dependency(request.name())
-                    .and_then(|range| range.as_single_version())
-                    .map(|full| &full < request.version())
-                    .unwrap_or(true);
+            match operation {
+                AddPackageOperation::InstallToDependencies => {
+                    let add_to_dependencies = self
+                        .manifest
+                        .get_dependency(request.name())
+                        .and_then(|range| range.as_single_version())
+                        .map(|full| &full < request.version())
+                        .unwrap_or(true);
 
-                if add_to_dependencies {
-                    debug!("Adding package {} to dependencies", request.name());
-                    changes.add_to_dependencies(
-                        request.name().into(),
-                        DependencyRange::version(request.version().clone()),
-                    );
+                    if add_to_dependencies {
+                        debug!("Adding package {} to dependencies", request.name());
+                        changes.add_to_dependencies(
+                            request.name().into(),
+                            DependencyRange::version(request.version().clone()),
+                        );
+                    }
+
+                    check_and_add_adding_package(request, &mut adding_packages, &self.manifest);
+                }
+                AddPackageOperation::UpgradeLocked => {
+                    if self.manifest.get_locked(request.name()).is_none() {
+                        // if package is not locked, it cannot be updated
+                        return Err(AddPackageErr::UpgradingNonLockedPackage {
+                            package_name: request.name().into(),
+                        });
+                    }
+
+                    check_and_add_adding_package(request, &mut adding_packages, &self.manifest);
                 }
             }
 
-            if !to_dependencies && self.manifest.get_locked(request.name()).is_none() {
-                // if package is not locked, it cannot be updated
-                return Err(AddPackageErr::UpgradingNonLockedPackage {
-                    package_name: request.name().into(),
-                });
-            }
-
-            if self
-                .manifest
-                .get_locked(request.name())
-                .map(|version| version.version() < request.version())
-                .unwrap_or(true)
-            {
-                debug!(
-                    "Adding package {} to locked packages at version {}",
-                    request.name(),
-                    request.version()
-                );
-                adding_packages.push(request);
-            } else {
-                debug!(
-                    "Package {} is already locked at newer version than {}: version {}",
-                    request.name(),
-                    request.version(),
-                    self.manifest.get_locked(request.name()).unwrap().version()
-                );
+            fn check_and_add_adding_package<'env>(
+                request: PackageInfo<'env>,
+                adding_packages: &mut Vec<PackageInfo<'env>>,
+                manifest: &VpmManifest,
+            ) {
+                if manifest
+                    .get_locked(request.name())
+                    .map(|version| version.version() < request.version())
+                    .unwrap_or(true)
+                {
+                    debug!(
+                        "Adding package {} to locked packages at version {}",
+                        request.name(),
+                        request.version()
+                    );
+                    adding_packages.push(request);
+                } else {
+                    debug!(
+                        "Package {} is already locked at newer version than {}: version {}",
+                        request.name(),
+                        request.version(),
+                        manifest.get_locked(request.name()).unwrap().version()
+                    );
+                }
             }
         }
 

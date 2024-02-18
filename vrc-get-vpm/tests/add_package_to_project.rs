@@ -3,7 +3,7 @@ use futures::executor::block_on;
 use std::collections::HashSet;
 use std::path::Path;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
-use vrc_get_vpm::unity_project::AddPackageErr;
+use vrc_get_vpm::unity_project::{AddPackageErr, AddPackageOperation};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageJson;
 
@@ -28,7 +28,12 @@ fn add_to_dependencies() {
         let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![avatars_package], true, false)
+            .add_package_request(
+                &collection,
+                vec![avatars_package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -68,7 +73,12 @@ fn install_already_installed_in_locked_to_locked() {
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![avatars_package], false, false)
+            .add_package_request(
+                &collection,
+                vec![avatars_package],
+                AddPackageOperation::UpgradeLocked,
+                false,
+            )
             .await
             .unwrap();
 
@@ -105,7 +115,12 @@ fn install_already_installed_in_locked_to_dependencies() {
         let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![base_package], true, false)
+            .add_package_request(
+                &collection,
+                vec![base_package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -144,7 +159,12 @@ fn install_already_installed_in_dependencies_to_dependencies() {
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![avatars_package], true, false)
+            .add_package_request(
+                &collection,
+                vec![avatars_package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -181,7 +201,12 @@ fn upgrading_unused_packages() {
         let base_package = collection.get_package("com.vrchat.base", Version::new(1, 1, 0));
 
         let result = project
-            .add_package_request(&collection, vec![avatars_package], false, false)
+            .add_package_request(
+                &collection,
+                vec![avatars_package],
+                AddPackageOperation::UpgradeLocked,
+                false,
+            )
             .await
             .unwrap();
 
@@ -224,7 +249,12 @@ fn transitive_unused_remove_with_upgrade() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::UpgradeLocked,
+                false,
+            )
             .await
             .unwrap();
 
@@ -268,7 +298,12 @@ fn do_not_remove_transitively_when_untouched() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::UpgradeLocked,
+                false,
+            )
             .await
             .unwrap();
 
@@ -302,7 +337,12 @@ fn remove_legacy_package_when_install() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], true, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -341,7 +381,12 @@ fn remove_legacy_package_when_upgrade() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], false, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::UpgradeLocked,
+                false,
+            )
             .await
             .unwrap();
 
@@ -385,7 +430,12 @@ fn remove_referenced_legacy_package_when_install() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 1, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], true, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -431,7 +481,12 @@ fn legacy_assets_by_path() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], true, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -490,7 +545,12 @@ fn legacy_assets_by_guid() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], true, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -540,7 +600,12 @@ fn deny_remove_files_not_in_assets_or_packages() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], true, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -569,7 +634,12 @@ fn deny_remove_parent_folders() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], true, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -596,7 +666,12 @@ fn deny_absolute_legacy_assets() {
         let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
 
         let result = project
-            .add_package_request(&collection, vec![package], true, false)
+            .add_package_request(
+                &collection,
+                vec![package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -627,7 +702,12 @@ fn not_found_err() {
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
 
         let err = project
-            .add_package_request(&collection, vec![avatars_package], true, false)
+            .add_package_request(
+                &collection,
+                vec![avatars_package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .expect_err("should fail");
 
@@ -655,7 +735,12 @@ fn updating_non_locked_package_should_cause_error() {
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
 
         let err = project
-            .add_package_request(&collection, vec![avatars_package], false, false)
+            .add_package_request(
+                &collection,
+                vec![avatars_package],
+                AddPackageOperation::UpgradeLocked,
+                false,
+            )
             .await
             .expect_err("should fail");
 
@@ -704,7 +789,12 @@ fn conflict_requirements_of_installed_and_installing() {
         let base_1_1_0 = collection.get_package("com.vrchat.base", Version::new(1, 1, 0));
 
         let resolve = project
-            .add_package_request(&collection, vec![tool], true, false)
+            .add_package_request(
+                &collection,
+                vec![tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -755,7 +845,12 @@ fn conflict_already_conflicted_and_no_new_conflict() {
         let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
 
         let resolve = project
-            .add_package_request(&collection, vec![tool], true, false)
+            .add_package_request(
+                &collection,
+                vec![tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
@@ -798,7 +893,12 @@ fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
         let tool = collection.get_package("com.anatawa12.tool", Version::new(1, 0, 0));
 
         let resolve = project
-            .add_package_request(&collection, vec![tool], true, false)
+            .add_package_request(
+                &collection,
+                vec![tool],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await
             .unwrap();
 
