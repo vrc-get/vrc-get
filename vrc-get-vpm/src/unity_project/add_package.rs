@@ -12,6 +12,8 @@ use std::fmt;
 pub enum AddPackageErr {
     DependencyNotFound { dependency_name: Box<str> },
     UpgradingNonLockedPackage { package_name: Box<str> },
+    DowngradingNonLockedPackage { package_name: Box<str> },
+    UpgradingWithDowngrade { package_name: Box<str> },
 }
 
 impl fmt::Display for AddPackageErr {
@@ -25,6 +27,14 @@ impl fmt::Display for AddPackageErr {
                 f,
                 "Package {package_name} is not locked, so it cannot be upgraded"
             ),
+            AddPackageErr::DowngradingNonLockedPackage { package_name } => write!(
+                f,
+                "Package {package_name} is not locked, so it cannot be downgraded"
+            ),
+            AddPackageErr::UpgradingWithDowngrade { package_name } => write!(
+                f,
+                "Package {package_name} is locked, so it cannot be downgraded"
+            ),
         }
     }
 }
@@ -36,6 +46,7 @@ impl std::error::Error for AddPackageErr {}
 pub enum AddPackageOperation {
     InstallToDependencies,
     UpgradeLocked,
+    Downgrade,
 }
 
 // adding package
@@ -85,6 +96,49 @@ impl<IO: ProjectIo> UnityProject<IO> {
                     }
 
                     check_and_add_adding_package(request, &mut adding_packages, &self.manifest);
+                }
+                AddPackageOperation::Downgrade => {
+                    let Some(locked_version) = self.manifest.get_locked(request.name()) else {
+                        // if package is not locked, it cannot be updated
+                        return Err(AddPackageErr::DowngradingNonLockedPackage {
+                            package_name: request.name().into(),
+                        });
+                    };
+
+                    if locked_version.version() < request.version() {
+                        // if the locked version is older than the requested version,
+                        // it cannot be downgraded
+                        return Err(AddPackageErr::UpgradingWithDowngrade {
+                            package_name: request.name().into(),
+                        });
+                    }
+
+                    let downgrade_dependencies = self
+                        .manifest
+                        .get_dependency(request.name())
+                        .map(|range| !range.matches(request.version()))
+                        .unwrap_or(false);
+
+                    if downgrade_dependencies {
+                        debug!(
+                            "Downgrading package {} to version {} in dependencies",
+                            request.name(),
+                            request.version()
+                        );
+                        // downgrade to >= requested version
+                        changes.add_to_dependencies(
+                            request.name().into(),
+                            DependencyRange::version(request.version().clone()),
+                        );
+                    }
+
+                    // always add to adding_packages since downloading
+                    debug!(
+                        "Adding package {} to locked packages at version {}",
+                        request.name(),
+                        request.version()
+                    );
+                    adding_packages.push(request);
                 }
             }
 
