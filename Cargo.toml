@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "build-check-static-link",
     "vrc-get",
+    "vrc-get-gui",
     "vrc-get-litedb",
     "vrc-get-vpm"
 ]

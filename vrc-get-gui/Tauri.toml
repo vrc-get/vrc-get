@@ -1,0 +1,60 @@
+[build]
+beforeBuildCommand = "npm install"
+beforeDevCommand = "npm run dev"
+devPath = "http://localhost:3000"
+distDir = "web/out"
+
+[package]
+productName = "vrc-get GUI"
+version = "0.1.0"
+
+[tauri]
+allowlist = { all = false }
+
+[tauri.security]
+# csp = 
+
+[tauri.updater]
+active = false
+
+[[tauri.windows]]
+title = "vrc-get GUI"
+
+fullscreen = false
+resizable = true
+height = 600
+width = 800
+
+[tauri.bundle]
+active = true
+targets = "all"
+longDescription = "vrc-get GUI is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
+shortDescription = "an alternative VCC"
+identifier = "com.anataw12.vrc-get"
+category = "DeveloperTool"
+copyright = "(c) anatawa12 and other contributors"
+
+externalBin = []
+icon = [
+    "icons/32x32.png",
+    "icons/128x128.png",
+    "icons/128x128@2x.png",
+    "icons/icon.icns",
+    "icons/icon.ico",
+]
+resources = []
+
+[tauri.bundle.deb]
+depends = []
+
+[tauri.bundle.macOS]
+#entitlements = "path to your entitlements file"
+exceptionDomain = ""
+frameworks = []
+providerShortName = "anatawa12"
+#signingIdentity = ''
+
+[tauri.bundle.windows]
+digestAlgorithm = "sha256"
+#timestampUrl =
+#certificateThumbprint =

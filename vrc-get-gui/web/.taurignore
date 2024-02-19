@@ -1,0 +1,10 @@
+*
+!/package.json
+
+# due to bug in tauri, I have to write */* recursively
+# https://github.com/tauri-apps/tauri/issues/8901
+*/*
+*/*/*
+*/*/*/*
+*/*/*/*/*
+*/*/*/*/*/*
