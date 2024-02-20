@@ -8,7 +8,7 @@ export function SideBar({className}: { className?: string }) {
 
 	return (
 		<Card className={`${className} w-auto max-w-[20rem] p-4 shadow-xl shadow-blue-gray-900/5 h-screen shrink-0`}>
-			<List>
+			<List className="min-w-[10rem]">
 				<ListItem>
 					<ListItemPrefix>
 						<ListBulletIcon className="h-5 w-5"/>
