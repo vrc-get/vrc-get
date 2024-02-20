@@ -19,6 +19,7 @@ active = false
 
 [[tauri.windows]]
 title = "vrc-get GUI"
+url = "/projects"
 
 fullscreen = false
 resizable = true
