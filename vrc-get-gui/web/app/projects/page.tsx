@@ -3,6 +3,7 @@
 import {
 	Button,
 	ButtonGroup,
+	Card,
 	IconButton,
 	Input,
 	Menu,
@@ -14,22 +15,123 @@ import {
 	Typography
 } from "@material-tailwind/react";
 import React from "react";
-import {ArrowPathIcon, ChevronDownIcon, MagnifyingGlassIcon} from "@heroicons/react/24/solid";
+import {
+	ArrowPathIcon,
+	ChevronDownIcon,
+	EllipsisHorizontalIcon,
+	GlobeAltIcon,
+	MagnifyingGlassIcon,
+	UserCircleIcon
+} from "@heroicons/react/24/solid";
 
 export default function Page() {
+	const TABLE_HEAD = [
+		"Name",
+		"Type",
+		"Unity",
+		"Last Modified",
+		"", // actions
+	];
+
+	// TODO: get data from backend and replace it
+	const TABLE_DATA = [
+		{name: "Test Project", path: "Path/to/Test Project", type: "Worlds", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+	]
+
+	const cellClass = "p-2.5";
+
 	return (
-		<div className="p-4">
-			<ProjectViewHeader/>
-			<main className="flex flex-col items-center justify-between">
-				TODO: list of projects
+		<div className="m-4 flex flex-col overflow-hidden w-full gap-3">
+			<ProjectViewHeader className={"flex-shrink-0"}/>
+			<main className="flex-shrink overflow-hidden flex">
+				<Card className="w-full overflow-x-auto overflow-y-scroll">
+					<table className="relative table-auto text-left">
+						<thead>
+						<tr>
+							{TABLE_HEAD.map((head, index) => (
+								<th key={index}
+										className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 ${cellClass}`}>
+									<Typography variant="small" className="font-normal leading-none">{head}</Typography>
+								</th>
+							))}
+						</tr>
+						</thead>
+						<tbody>
+						{TABLE_DATA.map((row, index) => {
+							const noGrowCellClass = `${cellClass} w-1`;
+							const typeIconClass = `w-5 h-5`;
+							return (
+								<tr key={index} className="even:bg-blue-gray-50/50">
+									<td className={cellClass}>
+										<div className="flex flex-col">
+											<Typography className="font-normal">
+												{row.name}
+											</Typography>
+											<Typography className="font-normal opacity-50 text-sm">
+												{row.path}
+											</Typography>
+										</div>
+									</td>
+									<td className={`${cellClass} w-[5em]`}>
+										<div className="flex flex-col">
+											<div className="flex justify-center items-center">
+												<Typography className="font-normal">
+													{row.type}
+												</Typography>
+											</div>
+											<div className="flex justify-center items-center">
+												{row.type === "Avatars" ? <UserCircleIcon className={typeIconClass}/> :
+													<GlobeAltIcon className={typeIconClass}/>}
+											</div>
+										</div>
+									</td>
+									<td className={noGrowCellClass}>
+										<Typography className="font-normal">
+											{row.unity}
+										</Typography>
+									</td>
+									<td className={noGrowCellClass}>
+										<Typography className="font-normal">
+											{row.lastModified}
+										</Typography>
+									</td>
+									<td className={noGrowCellClass}>
+										<div className="flex flex-row gap-2 max-w-min">
+											<Button>Open Unity</Button>
+											<Button color={"blue"}>Manage</Button>
+											<Button color={"green"}>Backup</Button>
+											<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
+												className={"size-5"}/></IconButton>
+										</div>
+									</td>
+								</tr>
+							)
+						})}
+						</tbody>
+					</table>
+				</Card>
 			</main>
 		</div>
 	);
 }
 
-function ProjectViewHeader() {
+function ProjectViewHeader({className}: { className?: string }) {
 	return (
-		<Navbar className="mx-auto px-4 py-2">
+		<Navbar className={`${className} mx-auto px-4 py-2`}>
 			<div className="container mx-auto flex flex-wrap items-center justify-between text-blue-gray-900 gap-2">
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					Projects

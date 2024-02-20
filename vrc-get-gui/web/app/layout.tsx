@@ -19,9 +19,9 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-		<body className={`${notoSansJP.className} w-screen h-screen flex flex-row overflow-hidden`}>
+		<body className={`${notoSansJP.className} w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
 		<SideBar className={"flex-grow-0 overflow-auto"}/>
-		<div className={"h-screen flex-grow overflow-auto"}>
+		<div className={"h-screen flex-grow overflow-auto flex"}>
 			{children}
 		</div>
 		</body>
