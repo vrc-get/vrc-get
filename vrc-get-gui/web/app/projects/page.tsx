@@ -20,7 +20,7 @@ import {
 	ChevronDownIcon,
 	EllipsisHorizontalIcon,
 	GlobeAltIcon,
-	MagnifyingGlassIcon,
+	MagnifyingGlassIcon, QuestionMarkCircleIcon,
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 
@@ -35,21 +35,21 @@ export default function Page() {
 
 	// TODO: get data from backend and replace it
 	const TABLE_DATA = [
-		{name: "Test Project", path: "Path/to/Test Project", type: "Worlds", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Worlds", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Unknown", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: true, type: "Worlds", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: true, type: "Unknown", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: true, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
 	]
 
 	const cellClass = "p-2.5";
@@ -86,16 +86,18 @@ export default function Page() {
 											</Typography>
 										</div>
 									</td>
-									<td className={`${cellClass} w-[5em]`}>
-										<div className="flex flex-col">
-											<div className="flex justify-center items-center">
+									<td className={`${cellClass} w-[8em]`}>
+										<div className="flex flex-row gap-2">
+											<div className="flex items-center">
+												{row.type === "Avatars" ? <UserCircleIcon className={typeIconClass}/> :
+													row.type === "Worlds" ? <GlobeAltIcon className={typeIconClass}/> :
+														<QuestionMarkCircleIcon className={typeIconClass}/>}
+											</div>
+											<div className="flex flex-col justify-center">
 												<Typography className="font-normal">
 													{row.type}
 												</Typography>
-											</div>
-											<div className="flex justify-center items-center">
-												{row.type === "Avatars" ? <UserCircleIcon className={typeIconClass}/> :
-													<GlobeAltIcon className={typeIconClass}/>}
+												{row.isLegacy && <Typography className="font-normal opacity-50 text-sm text-red-700">Legacy</Typography>}
 											</div>
 										</div>
 									</td>
