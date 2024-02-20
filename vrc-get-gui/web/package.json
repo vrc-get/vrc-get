@@ -15,9 +15,10 @@
     "react": "^18",
     "react-dom": "^18"
   },
+  "__comment": "we use react 18.2.19 due to bug. see https://github.com/creativetimofficial/material-tailwind/issues/528",
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^18",
+    "@types/react": "18.2.19",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
