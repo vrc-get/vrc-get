@@ -110,7 +110,7 @@ jobs:
         run: |
           # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
           unset CARGO_BUILD_TARGET
-          cargo run --bin build-check-static-link target/${{ matrix.triple }}/debug/vrc-get*
+          cargo run -p build-check-static-link target/${{ matrix.triple }}/debug/vrc-get*
 
   conclude:
     runs-on: ubuntu-latest
