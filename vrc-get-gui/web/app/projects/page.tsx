@@ -36,21 +36,126 @@ export default function Page() {
 
 	// TODO: get data from backend and replace it
 	const TABLE_DATA = [
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Worlds", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Unknown", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: true, type: "Worlds", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: true, type: "Unknown", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: true, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
-		{name: "Test Project", path: "Path/to/Test Project", isLegacy: false, type: "Avatars", unity: "2019.4.31f1", lastModified: "now"},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Worlds",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Unknown",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: true,
+			type: "Worlds",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: true,
+			type: "Unknown",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: true,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
+		{
+			name: "Test Project",
+			path: "Path/to/Test Project",
+			isLegacy: false,
+			type: "Avatars",
+			unity: "2019.4.31f1",
+			lastModified: "now"
+		},
 	]
 
 	const cellClass = "p-2.5";
@@ -98,7 +203,8 @@ export default function Page() {
 												<Typography className="font-normal">
 													{row.type}
 												</Typography>
-												{row.isLegacy && <Typography className="font-normal opacity-50 text-sm text-red-700">Legacy</Typography>}
+												{row.isLegacy &&
+													<Typography className="font-normal opacity-50 text-sm text-red-700">Legacy</Typography>}
 											</div>
 										</div>
 									</td>
@@ -115,7 +221,7 @@ export default function Page() {
 									<td className={noGrowCellClass}>
 										<div className="flex flex-row gap-2 max-w-min">
 											<Button>Open Unity</Button>
-											<Button color={"blue"}>Manage</Button>
+											<Button onClick={() => location.href = "/projects/manage"} color={"blue"}>Manage</Button>
 											<Button color={"green"}>Backup</Button>
 											<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
 												className={"size-5"}/></IconButton>
