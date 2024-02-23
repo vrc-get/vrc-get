@@ -20,7 +20,8 @@ import {
 	ChevronDownIcon,
 	EllipsisHorizontalIcon,
 	GlobeAltIcon,
-	MagnifyingGlassIcon, QuestionMarkCircleIcon,
+	MagnifyingGlassIcon,
+	QuestionMarkCircleIcon,
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 
@@ -175,23 +176,16 @@ function CreateProjectButton(
 		onAddExistingProject?: () => void
 	}>,
 ) {
-	const [opened, setOpened] = React.useState(false);
-
-	const onClickMore = (e: React.MouseEvent<HTMLButtonElement>) => {
-		e.stopPropagation()
-		setOpened((prev) => !prev)
-	};
-
 	return (
-		<Menu handler={(() => setOpened(false))} open={opened}>
-			<MenuHandler>
-				<ButtonGroup>
-					<Button className={"pl-4 pr-3"} onClick={onCreateNewProject}>Create New Project</Button>
-					<Button className={"pl-2 pr-2"} onClick={onClickMore}>
+		<Menu>
+			<ButtonGroup>
+				<Button className={"pl-4 pr-3"} onClick={onCreateNewProject}>Create New Project</Button>
+				<MenuHandler className={"pl-2 pr-2"}>
+					<Button>
 						<ChevronDownIcon className={"w-4 h-4"}/>
 					</Button>
-				</ButtonGroup>
-			</MenuHandler>
+				</MenuHandler>
+			</ButtonGroup>
 			<MenuList>
 				<MenuItem onClick={onAddExistingProject}>Add Existing Project</MenuItem>
 			</MenuList>
