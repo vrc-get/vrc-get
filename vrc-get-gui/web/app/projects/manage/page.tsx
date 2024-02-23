@@ -410,7 +410,7 @@ export default function Page() {
 				<div className={"flex-grow-0 flex-shrink-0"}>
 					<Select variant={'outlined'} value={"2019.4.31f1"} labelProps={{className: "hidden"}}
 									className="border-blue-gray-200">
-						{unityVersions.map(v => <Option value={v}>{v}</Option>)}
+						{unityVersions.map(v => <Option key={v} value={v}>{v}</Option>)}
 					</Select>
 				</div>
 			</Card>
@@ -452,7 +452,7 @@ export default function Page() {
 											{/* This is broken: popup is not shown out of the card */}
 											<Select value={row.installed ?? "Not Installed"} labelProps={{className: "hidden"}}
 															menuProps={{className: "z-20"}} className="border-blue-gray-200">
-												{row.versions.map(v => <Option value={v}>{v}</Option>)}
+												{row.versions.map(v => <Option key={v} value={v}>{v}</Option>)}
 											</Select>
 										</td>
 										<td className={noGrowCellClass}>
