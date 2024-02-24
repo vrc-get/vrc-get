@@ -26,6 +26,7 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import {environmentProjects, TauriProject, TauriProjectType} from "@/lib/generated/bindings";
 import {useQuery} from "@tanstack/react-query";
+import {useRouter} from "next/navigation";
 
 export default function Page() {
 	const result = useQuery({
@@ -139,6 +140,8 @@ function formatDateOffset(date: number) {
 }
 
 function ProjectRow({project}: { project: TauriProject }) {
+	const router = useRouter();
+
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = `w-5 h-5`;
@@ -192,7 +195,7 @@ function ProjectRow({project}: { project: TauriProject }) {
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
 					<Button>Open Unity</Button>
-					<Button onClick={() => location.href = "/projects/manage"} color={"blue"}>Manage</Button>
+					<Button onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)} color={"blue"}>Manage</Button>
 					<Button color={"green"}>Backup</Button>
 					<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
 						className={"size-5"}/></IconButton>
@@ -215,7 +218,7 @@ function ProjectViewHeader({className, refresh, search, setSearch}: {
 			</Typography>
 
 			<Tooltip content="Reflesh list of projects">
-				<IconButton variant={"text"} onClick={() => refresh()}>
+				<IconButton variant={"text"} onClick={() => refresh?.()}>
 					<ArrowPathIcon className={"w-5 h-5"}/>
 				</IconButton>
 			</Tooltip>

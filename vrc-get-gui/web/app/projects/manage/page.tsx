@@ -3,8 +3,10 @@
 import {
 	Button,
 	ButtonGroup,
-	Card, Checkbox,
-	IconButton, Input,
+	Card,
+	Checkbox,
+	IconButton,
+	Input,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -18,8 +20,22 @@ import React from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, MagnifyingGlassIcon,} from "@heroicons/react/24/solid";
 import {MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
+import {useSearchParams} from "next/navigation";
 
 export default function Page() {
+	const searchParams = useSearchParams();
+
+	const projectPath = searchParams.get("projectPath") ?? "";
+	const projectName = nameFromPath(projectPath);
+
+	function nameFromPath(path: string): string {
+		let indexOfSlash = path.lastIndexOf("/");
+		let indexOfBackSlash = path.lastIndexOf("\\");
+		let indexOfSeparator = Math.max(indexOfSlash, indexOfBackSlash);
+		if (indexOfSeparator == -1) return path;
+		return path.substring(indexOfSeparator + 1);
+	}
+
 	const TABLE_HEAD = [
 		"Package",
 		"Installed",
@@ -396,12 +412,12 @@ export default function Page() {
 
 	return (
 		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"}/>
+			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName}/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-					located at: <code className={"bg-gray-200 p-0.5"}>/path/to/project</code>
+				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
+					located at: <code className={"bg-gray-200 p-0.5"}>{projectPath}</code>
 				</Typography>
-				<div className={"flex-grow flex-shrink"}></div>
+				<div className={"flex-grow flex-shrink-0 w-2"}></div>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 					Unity Version:
 				</Typography>
@@ -419,7 +435,7 @@ export default function Page() {
 							Manage Packages
 						</Typography>
 
-						<Tooltip content="Reflesh list of projects">
+						<Tooltip content="Reflesh Packages">
 							<IconButton variant={"text"} onClick={() => console.log("click")} className={"flex-shrink-0"}>
 								<ArrowPathIcon className={"w-5 h-5"}/>
 							</IconButton>
@@ -448,19 +464,22 @@ export default function Page() {
 							<MenuList>
 								<MenuItem className="p-0">
 									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
-										<Checkbox ripple={false} containerProps={{ className: "p-0 rounded-none" }} className="hover:before:content-none"/>
+										<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+															className="hover:before:content-none"/>
 										Official
 									</label>
 								</MenuItem>
 								<MenuItem className="p-0">
 									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
-										<Checkbox ripple={false} containerProps={{ className: "p-0 rounded-none" }} className="hover:before:content-none"/>
+										<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+															className="hover:before:content-none"/>
 										Curated
 									</label>
 								</MenuItem>
 								<MenuItem className="p-0">
 									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
-										<Checkbox ripple={false} containerProps={{ className: "p-0 rounded-none" }} className="hover:before:content-none"/>
+										<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+															className="hover:before:content-none"/>
 										anatawa12
 									</label>
 								</MenuItem>
@@ -490,15 +509,15 @@ export default function Page() {
 	);
 }
 
-type PackageInfo = { 
-	installed: string | null; 
-	versions: string[]; 
-	displayName: string; 
-	id: string; 
+type PackageInfo = {
+	installed: string | null;
+	versions: string[];
+	displayName: string;
+	id: string;
 	source: string;
 };
 
-function PackageRow({pkg}: {pkg: PackageInfo}) {
+function PackageRow({pkg}: { pkg: PackageInfo }) {
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	return (
@@ -551,7 +570,7 @@ function PackageRow({pkg}: {pkg: PackageInfo}) {
 	);
 }
 
-function ProjectViewHeader({className}: { className?: string }) {
+function ProjectViewHeader({className, projectName}: { className?: string, projectName: string }) {
 	return (
 		<HNavBar className={className}>
 			<Tooltip content="Back to projects">
@@ -561,7 +580,7 @@ function ProjectViewHeader({className}: { className?: string }) {
 			</Tooltip>
 
 			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
-				Project Name
+				{projectName}
 			</Typography>
 
 			<div className="relative flex gap-2 w-max flex-grow">
