@@ -10,7 +10,6 @@ import {
 	MenuHandler,
 	MenuItem,
 	MenuList,
-	Navbar,
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
@@ -24,6 +23,7 @@ import {
 	QuestionMarkCircleIcon,
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
+import {HNavBar, VStack} from "@/components/layout";
 
 export default function Page() {
 	const TABLE_HEAD = [
@@ -35,7 +35,7 @@ export default function Page() {
 	];
 
 	// TODO: get data from backend and replace it
-	const TABLE_DATA = [
+	const TABLE_DATA: ProjectInfo[] = [
 		{
 			name: "Test Project",
 			path: "Path/to/Test Project",
@@ -158,10 +158,8 @@ export default function Page() {
 		},
 	]
 
-	const cellClass = "p-2.5";
-
 	return (
-		<div className="m-4 flex flex-col overflow-hidden w-full gap-3">
+		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"}/>
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll">
@@ -170,131 +168,129 @@ export default function Page() {
 						<tr>
 							{TABLE_HEAD.map((head, index) => (
 								<th key={index}
-										className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 ${cellClass}`}>
+										className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
 									<Typography variant="small" className="font-normal leading-none">{head}</Typography>
 								</th>
 							))}
 						</tr>
 						</thead>
 						<tbody>
-						{TABLE_DATA.map((row, index) => {
-							const noGrowCellClass = `${cellClass} w-1`;
-							const typeIconClass = `w-5 h-5`;
-							return (
-								<tr key={index} className="even:bg-blue-gray-50/50">
-									<td className={cellClass}>
-										<div className="flex flex-col">
-											<Typography className="font-normal">
-												{row.name}
-											</Typography>
-											<Typography className="font-normal opacity-50 text-sm">
-												{row.path}
-											</Typography>
-										</div>
-									</td>
-									<td className={`${cellClass} w-[8em]`}>
-										<div className="flex flex-row gap-2">
-											<div className="flex items-center">
-												{row.type === "Avatars" ? <UserCircleIcon className={typeIconClass}/> :
-													row.type === "Worlds" ? <GlobeAltIcon className={typeIconClass}/> :
-														<QuestionMarkCircleIcon className={typeIconClass}/>}
-											</div>
-											<div className="flex flex-col justify-center">
-												<Typography className="font-normal">
-													{row.type}
-												</Typography>
-												{row.isLegacy &&
-													<Typography className="font-normal opacity-50 text-sm text-red-700">Legacy</Typography>}
-											</div>
-										</div>
-									</td>
-									<td className={noGrowCellClass}>
-										<Typography className="font-normal">
-											{row.unity}
-										</Typography>
-									</td>
-									<td className={noGrowCellClass}>
-										<Typography className="font-normal">
-											{row.lastModified}
-										</Typography>
-									</td>
-									<td className={noGrowCellClass}>
-										<div className="flex flex-row gap-2 max-w-min">
-											<Button>Open Unity</Button>
-											<Button onClick={() => location.href = "/projects/manage"} color={"blue"}>Manage</Button>
-											<Button color={"green"}>Backup</Button>
-											<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
-												className={"size-5"}/></IconButton>
-										</div>
-									</td>
-								</tr>
-							)
-						})}
+						{TABLE_DATA.map((project) => <ProjectRow key={project.path} project={project}/>)}
 						</tbody>
 					</table>
 				</Card>
 			</main>
-		</div>
+		</VStack>
 	);
+}
+
+type ProjectInfo = {
+	name: string,
+	path: string,
+	isLegacy: boolean,
+	type: "Avatars" | "Worlds" | "Unknown",
+	unity: string,
+	lastModified: string,
+}
+
+function ProjectRow({project:row}: {project: ProjectInfo}) {
+	const cellClass = "p-2.5";
+	const noGrowCellClass = `${cellClass} w-1`;
+	const typeIconClass = `w-5 h-5`;
+
+	return (
+		<tr className="even:bg-blue-gray-50/50">
+			<td className={cellClass}>
+				<div className="flex flex-col">
+					<Typography className="font-normal">
+						{row.name}
+					</Typography>
+					<Typography className="font-normal opacity-50 text-sm">
+						{row.path}
+					</Typography>
+				</div>
+			</td>
+			<td className={`${cellClass} w-[8em]`}>
+				<div className="flex flex-row gap-2">
+					<div className="flex items-center">
+						{row.type === "Avatars" ? <UserCircleIcon className={typeIconClass}/> :
+							row.type === "Worlds" ? <GlobeAltIcon className={typeIconClass}/> :
+								<QuestionMarkCircleIcon className={typeIconClass}/>}
+					</div>
+					<div className="flex flex-col justify-center">
+						<Typography className="font-normal">
+							{row.type}
+						</Typography>
+						{row.isLegacy &&
+							<Typography className="font-normal opacity-50 text-sm text-red-700">Legacy</Typography>}
+					</div>
+				</div>
+			</td>
+			<td className={noGrowCellClass}>
+				<Typography className="font-normal">
+					{row.unity}
+				</Typography>
+			</td>
+			<td className={noGrowCellClass}>
+				<Typography className="font-normal">
+					{row.lastModified}
+				</Typography>
+			</td>
+			<td className={noGrowCellClass}>
+				<div className="flex flex-row gap-2 max-w-min">
+					<Button>Open Unity</Button>
+					<Button onClick={() => location.href = "/projects/manage"} color={"blue"}>Manage</Button>
+					<Button color={"green"}>Backup</Button>
+					<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
+						className={"size-5"}/></IconButton>
+				</div>
+			</td>
+		</tr>
+	)
 }
 
 function ProjectViewHeader({className}: { className?: string }) {
 	return (
-		<Navbar className={`${className} mx-auto px-4 py-2`}>
-			<div className="container mx-auto flex flex-wrap items-center justify-between text-blue-gray-900 gap-2">
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					Projects
-				</Typography>
+		<HNavBar className={className}>
+			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				Projects
+			</Typography>
 
-				<Tooltip content="Reflesh list of projects">
-					<IconButton variant={"text"} onClick={() => console.log("click")}>
-						<ArrowPathIcon className={"w-5 h-5"}/>
-					</IconButton>
-				</Tooltip>
+			<Tooltip content="Reflesh list of projects">
+				<IconButton variant={"text"} onClick={() => console.log("click")}>
+					<ArrowPathIcon className={"w-5 h-5"}/>
+				</IconButton>
+			</Tooltip>
 
-				<div className="relative flex gap-2 w-max flex-grow">
-					{/* The search box */}
-					<Input
-						type="search"
-						placeholder="Search"
-						containerProps={{
-							className: "min-w-[100px]",
-						}}
-						className=" !border-t-blue-gray-300 pl-9 placeholder:text-blue-gray-300 focus:!border-blue-gray-300"
-						labelProps={{
-							className: "before:content-none after:content-none",
-						}}
-					/>
-					<MagnifyingGlassIcon className="!absolute left-3 top-[13px]" width={13} height={14}/>
-				</div>
-
-				<CreateProjectButton
-					onAddExistingProject={() => console.log("add existing")}
-					onCreateNewProject={() => console.log("create new project")}/>
+			<div className="relative flex gap-2 w-max flex-grow">
+				{/* The search box */}
+				<Input
+					type="search"
+					placeholder="Search"
+					containerProps={{
+						className: "min-w-[100px]",
+					}}
+					className=" !border-t-blue-gray-300 pl-9 placeholder:text-blue-gray-300 focus:!border-blue-gray-300"
+					labelProps={{
+						className: "before:content-none after:content-none",
+					}}
+				/>
+				<MagnifyingGlassIcon className="!absolute left-3 top-[13px]" width={13} height={14}/>
 			</div>
-		</Navbar>
-	);
-}
 
-function CreateProjectButton(
-	{onCreateNewProject, onAddExistingProject}: Readonly<{
-		onCreateNewProject?: () => void,
-		onAddExistingProject?: () => void
-	}>,
-) {
-	return (
-		<Menu>
-			<ButtonGroup>
-				<Button className={"pl-4 pr-3"} onClick={onCreateNewProject}>Create New Project</Button>
-				<MenuHandler className={"pl-2 pr-2"}>
-					<Button>
-						<ChevronDownIcon className={"w-4 h-4"}/>
-					</Button>
-				</MenuHandler>
-			</ButtonGroup>
-			<MenuList>
-				<MenuItem onClick={onAddExistingProject}>Add Existing Project</MenuItem>
-			</MenuList>
-		</Menu>
+			<Menu>
+				<ButtonGroup>
+					<Button className={"pl-4 pr-3"}>Create New Project</Button>
+					<MenuHandler className={"pl-2 pr-2"}>
+						<Button>
+							<ChevronDownIcon className={"w-4 h-4"}/>
+						</Button>
+					</MenuHandler>
+				</ButtonGroup>
+				<MenuList>
+					<MenuItem>Add Existing Project</MenuItem>
+				</MenuList>
+			</Menu>
+		</HNavBar>
 	);
 }

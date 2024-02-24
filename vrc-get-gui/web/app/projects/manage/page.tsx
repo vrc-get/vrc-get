@@ -9,7 +9,6 @@ import {
 	MenuHandler,
 	MenuItem,
 	MenuList,
-	Navbar,
 	Option,
 	Select,
 	Tooltip,
@@ -18,6 +17,7 @@ import {
 import React from "react";
 import {ArrowLeftIcon, ChevronDownIcon,} from "@heroicons/react/24/solid";
 import {MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
+import {HNavBar, VStack} from "@/components/layout";
 
 export default function Page() {
 	const TABLE_HEAD = [
@@ -29,7 +29,7 @@ export default function Page() {
 	];
 
 	// TODO: get data from backend and replace it
-	const TABLE_DATA = [
+	const TABLE_DATA: PackageInfo[] = [
 		{
 			displayName: "Avatar Optimizer",
 			id: "com.anatawa12.avatar-optimizer",
@@ -244,7 +244,7 @@ export default function Page() {
 		},
 		{
 			displayName: "NDM Framework",
-			id: "dev.nadena.ndmf",
+			id: "dev.nadena.ndmf1",
 			versions: [
 				"1.0.0",
 				"1.0.1",
@@ -292,7 +292,7 @@ export default function Page() {
 		},
 		{
 			displayName: "NDM Framework",
-			id: "dev.nadena.ndmf",
+			id: "dev.nadena.ndmf2",
 			versions: [
 				"1.0.0",
 				"1.0.1",
@@ -316,7 +316,7 @@ export default function Page() {
 		},
 		{
 			displayName: "NDM Framework",
-			id: "dev.nadena.ndmf",
+			id: "dev.nadena.ndmf3",
 			versions: [
 				"1.0.0",
 				"1.0.1",
@@ -340,7 +340,7 @@ export default function Page() {
 		},
 		{
 			displayName: "NDM Framework",
-			id: "dev.nadena.ndmf",
+			id: "dev.nadena.ndmf4",
 			versions: [
 				"1.0.0",
 				"1.0.1",
@@ -364,7 +364,7 @@ export default function Page() {
 		},
 		{
 			displayName: "NDM Framework",
-			id: "dev.nadena.ndmf",
+			id: "dev.nadena.ndmf5",
 			versions: [
 				"1.0.0",
 				"1.0.1",
@@ -394,10 +394,8 @@ export default function Page() {
 		'2021.1.5f1',
 	];
 
-	const cellClass = "p-2.5";
-
 	return (
-		<div className="m-4 flex flex-col overflow-hidden w-full gap-3">
+		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"}/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
@@ -427,121 +425,115 @@ export default function Page() {
 							<tr>
 								{TABLE_HEAD.map((head, index) => (
 									<th key={index}
-											className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 ${cellClass}`}>
+											className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
 										<Typography variant="small" className="font-normal leading-none">{head}</Typography>
 									</th>
 								))}
 							</tr>
 							</thead>
 							<tbody>
-							{TABLE_DATA.map((row, index) => {
-								const noGrowCellClass = `${cellClass} w-1`;
-								return (
-									<tr key={index} className="even:bg-blue-gray-50/50">
-										<td className={cellClass}>
-											<div className="flex flex-col">
-												<Typography className="font-normal">
-													{row.displayName}
-												</Typography>
-												<Typography className="font-normal opacity-50 text-sm">
-													{row.id}
-												</Typography>
-											</div>
-										</td>
-										<td className={noGrowCellClass}>
-											{/* This is broken: popup is not shown out of the card */}
-											<Select value={row.installed ?? "Not Installed"} labelProps={{className: "hidden"}}
-															menuProps={{className: "z-20"}} className="border-blue-gray-200">
-												{row.versions.map(v => <Option key={v} value={v}>{v}</Option>)}
-											</Select>
-										</td>
-										<td className={noGrowCellClass}>
-											<Typography className="font-normal">
-												{row.versions[row.versions.length - 1]}
-											</Typography>
-										</td>
-										<td className={noGrowCellClass}>
-											<Typography className="font-normal">
-												{row.source}
-											</Typography>
-										</td>
-										<td className={noGrowCellClass}>
-											<div className="flex flex-row gap-2 max-w-min">
-												{
-													row.installed ? (
-														<Tooltip content={"Remove Package"}>
-															<IconButton variant={'text'}><MinusCircleIcon
-																className={"size-5 text-red-700"}/></IconButton>
-														</Tooltip>
-													) : (
-														<Tooltip content={"Add Package"}>
-															<IconButton variant={'text'}><PlusCircleIcon
-																className={"size-5 text-gray-800"}/></IconButton>
-														</Tooltip>
-													)
-												}
-											</div>
-										</td>
-									</tr>
-								)
-							})}
+							{TABLE_DATA.map((row, index) => (<PackageRow pkg={row} key={row.id}/>))}
 							</tbody>
 						</table>
 					</Card>
 				</Card>
 			</main>
-		</div>
+		</VStack>
+	);
+}
+
+type PackageInfo = { 
+	installed: string | null; 
+	versions: string[]; 
+	displayName: string; 
+	id: string; 
+	source: string;
+};
+
+function PackageRow({pkg}: {pkg: PackageInfo}) {
+	const cellClass = "p-2.5";
+	const noGrowCellClass = `${cellClass} w-1`;
+	return (
+		<tr className="even:bg-blue-gray-50/50">
+			<td className={cellClass}>
+				<div className="flex flex-col">
+					<Typography className="font-normal">
+						{pkg.displayName}
+					</Typography>
+					<Typography className="font-normal opacity-50 text-sm">
+						{pkg.id}
+					</Typography>
+				</div>
+			</td>
+			<td className={noGrowCellClass}>
+				{/* This is broken: popup is not shown out of the card */}
+				<Select value={pkg.installed ?? "Not Installed"} labelProps={{className: "hidden"}}
+								menuProps={{className: "z-20"}} className="border-blue-gray-200">
+					{pkg.versions.map(v => <Option key={v} value={v}>{v}</Option>)}
+				</Select>
+			</td>
+			<td className={noGrowCellClass}>
+				<Typography className="font-normal">
+					{pkg.versions[pkg.versions.length - 1]}
+				</Typography>
+			</td>
+			<td className={noGrowCellClass}>
+				<Typography className="font-normal">
+					{pkg.source}
+				</Typography>
+			</td>
+			<td className={noGrowCellClass}>
+				<div className="flex flex-row gap-2 max-w-min">
+					{
+						pkg.installed ? (
+							<Tooltip content={"Remove Package"}>
+								<IconButton variant={'text'}><MinusCircleIcon
+									className={"size-5 text-red-700"}/></IconButton>
+							</Tooltip>
+						) : (
+							<Tooltip content={"Add Package"}>
+								<IconButton variant={'text'}><PlusCircleIcon
+									className={"size-5 text-gray-800"}/></IconButton>
+							</Tooltip>
+						)
+					}
+				</div>
+			</td>
+		</tr>
 	);
 }
 
 function ProjectViewHeader({className}: { className?: string }) {
 	return (
-		<Navbar className={`${className} mx-auto px-4 py-2`}>
-			<div className="container mx-auto flex flex-wrap items-center justify-between text-blue-gray-900 gap-2">
-				<Tooltip content="Back to projects">
-					<IconButton variant={"text"} onClick={() => history.back()}>
-						<ArrowLeftIcon className={"w-5 h-5"}/>
-					</IconButton>
-				</Tooltip>
+		<HNavBar className={className}>
+			<Tooltip content="Back to projects">
+				<IconButton variant={"text"} onClick={() => history.back()}>
+					<ArrowLeftIcon className={"w-5 h-5"}/>
+				</IconButton>
+			</Tooltip>
 
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					Project Name
-				</Typography>
+			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				Project Name
+			</Typography>
 
-				<div className="relative flex gap-2 w-max flex-grow">
-				</div>
-
-				<OpenProjectButton
-					openUnity={() => console.log("create new project")}
-				/>
+			<div className="relative flex gap-2 w-max flex-grow">
 			</div>
-		</Navbar>
-	);
-}
 
-function OpenProjectButton(
-	{openUnity, openProjectFolder, makeBackup, removeProject}: Readonly<{
-		openUnity?: () => void,
-		openProjectFolder?: () => void,
-		makeBackup?: () => void
-		removeProject?: () => void
-	}>,
-) {
-	return (
-		<Menu>
-			<ButtonGroup>
-				<Button className={"pl-4 pr-3"} onClick={openUnity}>Open Unity</Button>
-				<MenuHandler className={"pl-2 pr-2"}>
-					<Button>
-						<ChevronDownIcon className={"w-4 h-4"}/>
-					</Button>
-				</MenuHandler>
-			</ButtonGroup>
-			<MenuList>
-				<MenuItem onClick={openProjectFolder}>Open Project Folder</MenuItem>
-				<MenuItem onClick={makeBackup}>Make Backup</MenuItem>
-				<MenuItem className={"bg-red-700 text-white"} onClick={removeProject}>Remove Project</MenuItem>
-			</MenuList>
-		</Menu>
+			<Menu>
+				<ButtonGroup>
+					<Button className={"pl-4 pr-3"}>Open Unity</Button>
+					<MenuHandler className={"pl-2 pr-2"}>
+						<Button>
+							<ChevronDownIcon className={"w-4 h-4"}/>
+						</Button>
+					</MenuHandler>
+				</ButtonGroup>
+				<MenuList>
+					<MenuItem>Open Project Folder</MenuItem>
+					<MenuItem>Make Backup</MenuItem>
+					<MenuItem className={"bg-red-700 text-white"}>Remove Project</MenuItem>
+				</MenuList>
+			</Menu>
+		</HNavBar>
 	);
 }
