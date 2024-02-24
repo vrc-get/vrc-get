@@ -13,7 +13,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React from "react";
+import React, {useEffect, useState} from "react";
 import {
 	ArrowPathIcon,
 	ChevronDownIcon,
@@ -24,6 +24,7 @@ import {
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 import {HNavBar, VStack} from "@/components/layout";
+import {environmentProjects, TauriProject, TauriProjectType} from "@/lib/generated/bindings";
 
 export default function Page() {
 	const TABLE_HEAD = [
@@ -34,129 +35,11 @@ export default function Page() {
 		"", // actions
 	];
 
-	// TODO: get data from backend and replace it
-	const TABLE_DATA: ProjectInfo[] = [
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Worlds",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Unknown",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: true,
-			type: "Worlds",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: true,
-			type: "Unknown",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: true,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-		{
-			name: "Test Project",
-			path: "Path/to/Test Project",
-			isLegacy: false,
-			type: "Avatars",
-			unity: "2019.4.31f1",
-			lastModified: "now"
-		},
-	]
+	const [projects, setProjects] = useState<TauriProject[]>([]);
+	useEffect(() => {
+		// TODO: loading animation and error handling
+		environmentProjects().then(setProjects);
+	});
 
 	return (
 		<VStack className={"m-4"}>
@@ -175,7 +58,7 @@ export default function Page() {
 						</tr>
 						</thead>
 						<tbody>
-						{TABLE_DATA.map((project) => <ProjectRow key={project.path} project={project}/>)}
+						{projects.map((project) => <ProjectRow key={project.path} project={project}/>)}
 						</tbody>
 					</table>
 				</Card>
@@ -184,57 +67,98 @@ export default function Page() {
 	);
 }
 
-type ProjectInfo = {
-	name: string,
-	path: string,
-	isLegacy: boolean,
-	type: "Avatars" | "Worlds" | "Unknown",
-	unity: string,
-	lastModified: string,
+const ProjectDisplayType: Record<TauriProjectType, "Avatars" | "Worlds" | "Unknown"> = {
+	"Unknown": "Unknown",
+	"LegacySdk2": "Unknown",
+	"LegacyWorlds": "Worlds",
+	"LegacyAvatars": "Avatars",
+	"UpmWorlds": "Worlds",
+	"UpmAvatars": "Avatars",
+	"UpmStarter": "Unknown",
+	"Worlds": "Worlds",
+	"Avatars": "Avatars",
+	"VpmStarter": "Unknown",
 }
 
-function ProjectRow({project:row}: {project: ProjectInfo}) {
+const LegacyProjectTypes = ["LegacySdk2", "LegacyWorlds", "LegacyAvatars", "UpmWorlds", "UpmAvatars", "UpmStarter"];
+
+const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {style: 'short'});
+
+function formatDateOffset(date: number) {
+	const now = Date.now();
+	const diff = now - date;
+
+	const PER_SECOND = 1000;
+	const PER_MINUTE = 60 * PER_SECOND;
+	const PER_HOUR = 60 * PER_MINUTE;
+	const PER_DAY = 24 * PER_HOUR;
+	const PER_WEEK = 7 * PER_DAY;
+	const PER_MONTH = 30 * PER_DAY;
+	const PER_YEAR = 365 * PER_DAY;
+
+	const diffAbs = Math.abs(diff);
+
+	if (diffAbs < 1000) return "just now";
+	if (diffAbs < PER_MINUTE) return relativeTimeFormat.format(Math.floor(diff / PER_SECOND), "second");
+	if (diffAbs < PER_HOUR) return relativeTimeFormat.format(Math.floor(diff / PER_MINUTE), "minute");
+	if (diffAbs < PER_DAY) return relativeTimeFormat.format(Math.floor(diff / PER_HOUR), "hour");
+	if (diffAbs < PER_WEEK) return relativeTimeFormat.format(Math.floor(diff / PER_DAY), "day");
+	if (diffAbs < PER_MONTH) return relativeTimeFormat.format(Math.floor(diff / PER_WEEK), "week");
+	if (diffAbs < PER_YEAR) return relativeTimeFormat.format(Math.floor(diff / PER_MONTH), "month");
+
+	return relativeTimeFormat.format(Math.floor(diff / PER_YEAR), "year");
+}
+
+function ProjectRow({project}: { project: TauriProject }) {
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = `w-5 h-5`;
+
+	const displayType = ProjectDisplayType[project.project_type] ?? "Unknown"
+	const isLegacy = LegacyProjectTypes.includes(project.project_type);
+	const lastModified = new Date(project.last_modified);
+	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, '0')}-${(lastModified.getMonth() + 1).toString().padStart(2, '0')}-${lastModified.getDate().toString().padStart(2, '0')} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
 
 	return (
 		<tr className="even:bg-blue-gray-50/50">
 			<td className={cellClass}>
 				<div className="flex flex-col">
 					<Typography className="font-normal">
-						{row.name}
+						{project.name}
 					</Typography>
 					<Typography className="font-normal opacity-50 text-sm">
-						{row.path}
+						{project.path}
 					</Typography>
 				</div>
 			</td>
 			<td className={`${cellClass} w-[8em]`}>
 				<div className="flex flex-row gap-2">
 					<div className="flex items-center">
-						{row.type === "Avatars" ? <UserCircleIcon className={typeIconClass}/> :
-							row.type === "Worlds" ? <GlobeAltIcon className={typeIconClass}/> :
+						{displayType === "Avatars" ? <UserCircleIcon className={typeIconClass}/> :
+							displayType === "Worlds" ? <GlobeAltIcon className={typeIconClass}/> :
 								<QuestionMarkCircleIcon className={typeIconClass}/>}
 					</div>
 					<div className="flex flex-col justify-center">
 						<Typography className="font-normal">
-							{row.type}
+							{displayType}
 						</Typography>
-						{row.isLegacy &&
-							<Typography className="font-normal opacity-50 text-sm text-red-700">Legacy</Typography>}
+						{isLegacy && <Typography className="font-normal opacity-50 text-sm text-red-700">Legacy</Typography>}
 					</div>
 				</div>
 			</td>
 			<td className={noGrowCellClass}>
 				<Typography className="font-normal">
-					{row.unity}
+					{project.unity}
 				</Typography>
 			</td>
 			<td className={noGrowCellClass}>
-				<Typography className="font-normal">
-					{row.lastModified}
-				</Typography>
+				<Tooltip content={lastModifiedHumanReadable}>
+					<time dateTime={lastModified.toISOString()}>
+						<Typography as={"time"} className="font-normal">
+							{formatDateOffset(project.last_modified)}
+						</Typography>
+					</time>
+				</Tooltip>
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">

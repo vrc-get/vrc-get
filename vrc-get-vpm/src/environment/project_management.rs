@@ -199,6 +199,10 @@ impl UserProject {
             .unwrap()
     }
 
+    pub fn crated_at(&self) -> DateTime {
+        self.project.created_at()
+    }
+
     pub fn last_modified(&self) -> DateTime {
         // TODO: provide our wrapper type
         self.project.last_modified()

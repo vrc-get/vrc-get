@@ -18,7 +18,10 @@ tauri-build = { version = "1.5.1", features = [ "config-toml" ] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.6.0", features = [ "config-toml" ] }
-vrc-get-vpm = { path = "../vrc-get-vpm" }
+vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
+reqwest = "0.11.24"
+specta = "1.0.5"
+tauri-specta = { version = "1.0.2", features = ["typescript"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
