@@ -2,6 +2,7 @@ import type {Metadata} from "next";
 import {Noto_Sans_JP} from "next/font/google";
 import "./globals.css";
 import {SideBar} from "@/components/SideBar";
+import {Providers} from "@/components/providers";
 
 const notoSansJP = Noto_Sans_JP({
 	subsets: ["latin"],
@@ -20,10 +21,12 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 		<body className={`${notoSansJP.className} w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
-		<SideBar className={"flex-grow-0 overflow-auto"}/>
-		<div className={"h-screen flex-grow overflow-auto flex"}>
-			{children}
-		</div>
+		<Providers>
+			<SideBar className={"flex-grow-0 overflow-auto"}/>
+			<div className={"h-screen flex-grow overflow-auto flex"}>
+				{children}
+			</div>
+		</Providers>
 		</body>
 		</html>
 	);

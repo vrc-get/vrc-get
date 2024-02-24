@@ -13,7 +13,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {useEffect, useState} from "react";
+import React from "react";
 import {
 	ArrowPathIcon,
 	ChevronDownIcon,
@@ -25,8 +25,31 @@ import {
 } from "@heroicons/react/24/solid";
 import {HNavBar, VStack} from "@/components/layout";
 import {environmentProjects, TauriProject, TauriProjectType} from "@/lib/generated/bindings";
+import {useQuery} from "@tanstack/react-query";
 
 export default function Page() {
+	const result = useQuery({
+		queryKey: ["projects"],
+		queryFn: environmentProjects,
+	});
+
+	return (
+		<VStack className={"m-4"}>
+			<ProjectViewHeader className={"flex-shrink-0"} refresh={() => result.refetch()}/>
+			<main className="flex-shrink overflow-hidden flex">
+				<Card className="w-full overflow-x-auto overflow-y-scroll">
+					{
+						result.status == "pending" ? "Loading..." :
+							result.status == "error" ? "Error Loading projects: " + result.error.message :
+								<ProjectsTable projects={result.data}/>
+					}
+				</Card>
+			</main>
+		</VStack>
+	);
+}
+
+function ProjectsTable({projects}: { projects: TauriProject[] }) {
 	const TABLE_HEAD = [
 		"Name",
 		"Type",
@@ -35,35 +58,22 @@ export default function Page() {
 		"", // actions
 	];
 
-	const [projects, setProjects] = useState<TauriProject[]>([]);
-	useEffect(() => {
-		// TODO: loading animation and error handling
-		environmentProjects().then(setProjects);
-	});
-
 	return (
-		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"}/>
-			<main className="flex-shrink overflow-hidden flex">
-				<Card className="w-full overflow-x-auto overflow-y-scroll">
-					<table className="relative table-auto text-left">
-						<thead>
-						<tr>
-							{TABLE_HEAD.map((head, index) => (
-								<th key={index}
-										className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-									<Typography variant="small" className="font-normal leading-none">{head}</Typography>
-								</th>
-							))}
-						</tr>
-						</thead>
-						<tbody>
-						{projects.map((project) => <ProjectRow key={project.path} project={project}/>)}
-						</tbody>
-					</table>
-				</Card>
-			</main>
-		</VStack>
+		<table className="relative table-auto text-left">
+			<thead>
+			<tr>
+				{TABLE_HEAD.map((head, index) => (
+					<th key={index}
+							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
+						<Typography variant="small" className="font-normal leading-none">{head}</Typography>
+					</th>
+				))}
+			</tr>
+			</thead>
+			<tbody>
+			{projects.map((project) => <ProjectRow key={project.path} project={project}/>)}
+			</tbody>
+		</table>
 	);
 }
 
@@ -173,7 +183,7 @@ function ProjectRow({project}: { project: TauriProject }) {
 	)
 }
 
-function ProjectViewHeader({className}: { className?: string }) {
+function ProjectViewHeader({className, refresh}: { className?: string, refresh?: () => void }) {
 	return (
 		<HNavBar className={className}>
 			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
@@ -181,7 +191,7 @@ function ProjectViewHeader({className}: { className?: string }) {
 			</Typography>
 
 			<Tooltip content="Reflesh list of projects">
-				<IconButton variant={"text"} onClick={() => console.log("click")}>
+				<IconButton variant={"text"} onClick={() => refresh()}>
 					<ArrowPathIcon className={"w-5 h-5"}/>
 				</IconButton>
 			</Tooltip>

@@ -131,13 +131,10 @@ async fn environment_projects(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<Vec<TauriProject>, RustError> {
     let mut state = state.lock().await;
-    let environment = match state.environment.as_mut() {
-        Some(s) => s,
-        None => {
-            state.environment = Some(new_environment().await?);
-            state.environment.as_mut().unwrap()
-        }
-    };
+    state.environment = Some(new_environment().await?);
+    let environment = state.environment.as_mut().unwrap();
+
+    println!("fetching projects");
 
     state.projects = environment.get_projects()?.into_boxed_slice();
     state.projects_version = state.projects_version.wrapping_add(1);
