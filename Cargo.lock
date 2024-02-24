@@ -118,6 +118,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "vrc-get-vpm",
 ]
 
 [[package]]
