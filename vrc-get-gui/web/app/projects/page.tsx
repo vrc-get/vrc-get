@@ -13,7 +13,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React from "react";
+import React, {useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
 	ChevronDownIcon,
@@ -33,15 +33,18 @@ export default function Page() {
 		queryFn: environmentProjects,
 	});
 
+	const [search, setSearch] = useState("");
+
 	return (
 		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"} refresh={() => result.refetch()}/>
+			<ProjectViewHeader className={"flex-shrink-0"} refresh={() => result.refetch()} search={search}
+												 setSearch={setSearch}/>
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll">
 					{
 						result.status == "pending" ? "Loading..." :
 							result.status == "error" ? "Error Loading projects: " + result.error.message :
-								<ProjectsTable projects={result.data}/>
+								<ProjectsTable projects={result.data} sorting={"lastModified"} search={search}/>
 					}
 				</Card>
 			</main>
@@ -49,7 +52,15 @@ export default function Page() {
 	);
 }
 
-function ProjectsTable({projects}: { projects: TauriProject[] }) {
+function ProjectsTable(
+	{
+		projects, sorting, search
+	}: {
+		projects: TauriProject[],
+		sorting: "lastModified",
+		search?: string
+	}
+) {
 	const TABLE_HEAD = [
 		"Name",
 		"Type",
@@ -57,6 +68,14 @@ function ProjectsTable({projects}: { projects: TauriProject[] }) {
 		"Last Modified",
 		"", // actions
 	];
+
+	const projectsShown = useMemo(() => {
+		let searched = projects.filter(project => project.name.toLowerCase().includes(search?.toLowerCase() ?? ""));
+		if (sorting === "lastModified") {
+			searched.sort((a, b) => b.last_modified - a.last_modified);
+		}
+		return searched;
+	}, [projects, sorting, search]);
 
 	return (
 		<table className="relative table-auto text-left">
@@ -71,7 +90,7 @@ function ProjectsTable({projects}: { projects: TauriProject[] }) {
 			</tr>
 			</thead>
 			<tbody>
-			{projects.map((project) => <ProjectRow key={project.path} project={project}/>)}
+			{projectsShown.map((project) => <ProjectRow key={project.path} project={project}/>)}
 			</tbody>
 		</table>
 	);
@@ -183,7 +202,12 @@ function ProjectRow({project}: { project: TauriProject }) {
 	)
 }
 
-function ProjectViewHeader({className, refresh}: { className?: string, refresh?: () => void }) {
+function ProjectViewHeader({className, refresh, search, setSearch}: {
+	className?: string,
+	refresh?: () => void,
+	search: string,
+	setSearch: (search: string) => void
+}) {
 	return (
 		<HNavBar className={className}>
 			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
@@ -208,6 +232,8 @@ function ProjectViewHeader({className, refresh}: { className?: string, refresh?:
 					labelProps={{
 						className: "before:content-none after:content-none",
 					}}
+					value={search}
+					onChange={(e) => setSearch(e.target.value)}
 				/>
 				<MagnifyingGlassIcon className="!absolute left-3 top-[13px]" width={13} height={14}/>
 			</div>
