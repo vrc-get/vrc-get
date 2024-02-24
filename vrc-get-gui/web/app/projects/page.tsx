@@ -5,7 +5,6 @@ import {
 	ButtonGroup,
 	Card,
 	IconButton,
-	Input,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -19,7 +18,6 @@ import {
 	ChevronDownIcon,
 	EllipsisHorizontalIcon,
 	GlobeAltIcon,
-	MagnifyingGlassIcon,
 	QuestionMarkCircleIcon,
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
@@ -27,6 +25,7 @@ import {HNavBar, VStack} from "@/components/layout";
 import {environmentProjects, TauriProject, TauriProjectType} from "@/lib/generated/bindings";
 import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
+import {SearchBox} from "@/components/SearchBox";
 
 export default function Page() {
 	const result = useQuery({
@@ -195,7 +194,8 @@ function ProjectRow({project}: { project: TauriProject }) {
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
 					<Button>Open Unity</Button>
-					<Button onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)} color={"blue"}>Manage</Button>
+					<Button onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
+									color={"blue"}>Manage</Button>
 					<Button color={"green"}>Backup</Button>
 					<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
 						className={"size-5"}/></IconButton>
@@ -223,23 +223,7 @@ function ProjectViewHeader({className, refresh, search, setSearch}: {
 				</IconButton>
 			</Tooltip>
 
-			<div className="relative flex gap-2 w-max flex-grow">
-				{/* The search box */}
-				<Input
-					type="search"
-					placeholder="Search"
-					containerProps={{
-						className: "min-w-[100px]",
-					}}
-					className=" !border-t-blue-gray-300 pl-9 placeholder:text-blue-gray-300 focus:!border-blue-gray-300"
-					labelProps={{
-						className: "before:content-none after:content-none",
-					}}
-					value={search}
-					onChange={(e) => setSearch(e.target.value)}
-				/>
-				<MagnifyingGlassIcon className="!absolute left-3 top-[13px]" width={13} height={14}/>
-			</div>
+			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
 
 			<Menu>
 				<ButtonGroup>

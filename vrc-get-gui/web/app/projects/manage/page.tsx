@@ -21,6 +21,7 @@ import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, MagnifyingGlassIcon,} fro
 import {MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
 import {useSearchParams} from "next/navigation";
+import {SearchBox} from "@/components/SearchBox";
 
 export default function Page() {
 	const searchParams = useSearchParams();
@@ -441,21 +442,7 @@ export default function Page() {
 							</IconButton>
 						</Tooltip>
 
-						<div className="relative flex gap-2 w-max flex-grow">
-							{/* The search box */}
-							<Input
-								type="search"
-								placeholder="Search"
-								containerProps={{
-									className: "min-w-[100px]",
-								}}
-								className=" !border-t-blue-gray-300 pl-9 placeholder:text-blue-gray-300 focus:!border-blue-gray-300"
-								labelProps={{
-									className: "before:content-none after:content-none",
-								}}
-							/>
-							<MagnifyingGlassIcon className="!absolute left-3 top-[13px]" width={13} height={14}/>
-						</div>
+						<SearchBox className={"w-max flex-grow"}/>
 
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>
