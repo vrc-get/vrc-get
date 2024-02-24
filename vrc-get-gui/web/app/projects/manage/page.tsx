@@ -3,8 +3,8 @@
 import {
 	Button,
 	ButtonGroup,
-	Card,
-	IconButton,
+	Card, Checkbox,
+	IconButton, Input,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -15,7 +15,7 @@ import {
 	Typography
 } from "@material-tailwind/react";
 import React from "react";
-import {ArrowLeftIcon, ChevronDownIcon,} from "@heroicons/react/24/solid";
+import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, MagnifyingGlassIcon,} from "@heroicons/react/24/solid";
 import {MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
 
@@ -413,11 +413,59 @@ export default function Page() {
 				</div>
 			</Card>
 			<main className="flex-shrink overflow-hidden flex">
-				<Card className="w-full p-2 flex-grow flex-shrink flex">
-					<div className={"flex flex-shrink-0 flex-grow-0 flex-row"}>
+				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex">
+					<div className={"flex flex-shrink-0 flex-grow-0 flex-row gap-2"}>
 						<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 							Manage Packages
 						</Typography>
+
+						<Tooltip content="Reflesh list of projects">
+							<IconButton variant={"text"} onClick={() => console.log("click")} className={"flex-shrink-0"}>
+								<ArrowPathIcon className={"w-5 h-5"}/>
+							</IconButton>
+						</Tooltip>
+
+						<div className="relative flex gap-2 w-max flex-grow">
+							{/* The search box */}
+							<Input
+								type="search"
+								placeholder="Search"
+								containerProps={{
+									className: "min-w-[100px]",
+								}}
+								className=" !border-t-blue-gray-300 pl-9 placeholder:text-blue-gray-300 focus:!border-blue-gray-300"
+								labelProps={{
+									className: "before:content-none after:content-none",
+								}}
+							/>
+							<MagnifyingGlassIcon className="!absolute left-3 top-[13px]" width={13} height={14}/>
+						</div>
+
+						<Menu dismiss={{itemPress: false}}>
+							<MenuHandler>
+								<Button className={"flex-shrink-0 p-3"}>Select Repositories</Button>
+							</MenuHandler>
+							<MenuList>
+								<MenuItem className="p-0">
+									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
+										<Checkbox ripple={false} containerProps={{ className: "p-0 rounded-none" }} className="hover:before:content-none"/>
+										Official
+									</label>
+								</MenuItem>
+								<MenuItem className="p-0">
+									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
+										<Checkbox ripple={false} containerProps={{ className: "p-0 rounded-none" }} className="hover:before:content-none"/>
+										Curated
+									</label>
+								</MenuItem>
+								<MenuItem className="p-0">
+									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
+										<Checkbox ripple={false} containerProps={{ className: "p-0 rounded-none" }} className="hover:before:content-none"/>
+										anatawa12
+									</label>
+								</MenuItem>
+							</MenuList>
+						</Menu>
 					</div>
 					<Card className="w-full overflow-x-auto overflow-y-scroll">
 						<table className="relative table-auto text-left">
