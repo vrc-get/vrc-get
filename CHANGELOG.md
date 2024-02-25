@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- projects migrated from `settings.json` to litedb does not have `UnityVersion` `#411`
 
 ### Security
 

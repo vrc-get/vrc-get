@@ -31,17 +31,18 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 async fn get_project_type(
                     io: &impl EnvironmentIo,
                     path: &Path,
-                ) -> io::Result<ProjectType> {
+                ) -> io::Result<(ProjectType, Option<UnityVersion>)> {
                     let project = UnityProject::load(io.new_project_io(path)).await?;
-                    project.detect_project_type().await
+                    let detected_type = project.detect_project_type().await?;
+                    Ok((detected_type, project.unity_version()))
                 }
+                let (project_type, unity_version) = get_project_type(&self.io, project.as_ref())
+                    .await
+                    .unwrap_or((ProjectType::Unknown, None));
                 db.insert_project(&Project::new(
                     (*project).into(),
-                    None,
-                    get_project_type(&self.io, project.as_ref())
-                        .await
-                        .unwrap_or(ProjectType::Unknown)
-                        .into(),
+                    unity_version.map(|x| x.to_string().into()),
+                    project_type.into(),
                 ))?;
             }
         }
