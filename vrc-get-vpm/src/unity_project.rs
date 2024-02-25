@@ -192,6 +192,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
         &self.unlocked_packages
     }
 
+    pub fn installed_packages(&self) -> impl Iterator<Item = (&str, &PackageJson)> {
+        self.installed_packages
+            .iter()
+            .map(|(key, value)| (key.as_ref(), value))
+    }
+
     pub fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
         self.installed_packages.get(name)
     }

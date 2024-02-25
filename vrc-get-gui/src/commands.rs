@@ -2,19 +2,24 @@ use serde::Serialize;
 use specta::specta;
 use std::io;
 use std::num::Wrapping;
+use std::path::PathBuf;
+use std::ptr::NonNull;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
 use vrc_get_vpm::environment::UserProject;
-use vrc_get_vpm::ProjectType;
+use vrc_get_vpm::io::DefaultProjectIo;
+use vrc_get_vpm::version::Version;
+use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, ProjectType, UnityProject};
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
-    generate_handler![environment_projects]
+    generate_handler![environment_projects, environment_packages, project_details]
 }
 
 #[cfg(debug_assertions)]
 pub(crate) fn export_ts() {
     tauri_specta::ts::export_with_cfg(
-        specta::collect_types![environment_projects].unwrap(),
+        specta::collect_types![environment_projects, environment_packages, project_details]
+            .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
         "web/lib/bindings.ts",
     )
@@ -45,8 +50,12 @@ impl From<io::Error> for RustError {
     }
 }
 
+unsafe impl Send for EnvironmentState {}
+unsafe impl Sync for EnvironmentState {}
+
 struct EnvironmentState {
     environment: EnvironmentHolder,
+    packages: Option<NonNull<[PackageInfo<'static>]>>, // null or reference to
     projects: Box<[UserProject]>,
     projects_version: Wrapping<u32>,
 }
@@ -64,11 +73,14 @@ impl EnvironmentHolder {
         }
     }
 
-    async fn get_environment_mut(&mut self) -> io::Result<&mut Environment> {
+    async fn get_environment_mut(&mut self, inc_version: bool) -> io::Result<&mut Environment> {
         if let Some(ref mut environment) = self.environment {
             println!("reloading settings files");
             // reload settings files
             environment.reload().await?;
+            if inc_version {
+                self.environment_version += Wrapping(1);
+            }
             Ok(environment)
         } else {
             self.environment = Some(new_environment().await?);
@@ -82,6 +94,7 @@ impl EnvironmentState {
     fn new() -> Self {
         Self {
             environment: EnvironmentHolder::new(),
+            packages: None,
             projects: Box::new([]),
             projects_version: Wrapping(0),
         }
@@ -159,7 +172,7 @@ async fn environment_projects(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<Vec<TauriProject>, RustError> {
     let mut state = state.lock().await;
-    let environment = state.environment.get_environment_mut().await?;
+    let environment = state.environment.get_environment_mut(false).await?;
 
     println!("migrating projects from settings.json");
     // migrate from settings json
@@ -180,4 +193,142 @@ async fn environment_projects(
         .collect::<Vec<_>>();
 
     Ok(vec)
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriVersion {
+    major: u64,
+    minor: u64,
+    patch: u64,
+    pre: String,
+    build: String,
+}
+
+impl From<&Version> for TauriVersion {
+    fn from(value: &Version) -> Self {
+        Self {
+            major: value.major,
+            minor: value.minor,
+            patch: value.patch,
+            pre: value.pre.as_str().to_string(),
+            build: value.build.as_str().to_string(),
+        }
+    }
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriBasePackageInfo {
+    name: String,
+    display_name: Option<String>,
+    version: TauriVersion,
+    unity: Option<(u16, u8)>,
+    is_yanked: bool,
+}
+
+impl TauriBasePackageInfo {
+    fn new(package: &PackageJson) -> Self {
+        Self {
+            name: package.name().to_string(),
+            display_name: package.display_name().map(|v| v.to_string()),
+            version: package.version().into(),
+            unity: package.unity().map(|v| (v.major(), v.minor())),
+            is_yanked: package.is_yanked(),
+        }
+    }
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriPackage {
+    env_version: u32,
+    index: usize,
+
+    #[serde(flatten)]
+    base: TauriBasePackageInfo,
+
+    source: TauriPackageSource,
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPackageSource {
+    LocalUser,
+    Remote { id: String, display_name: String },
+}
+
+impl TauriPackage {
+    fn new(env_version: u32, index: usize, package: &PackageInfo) -> Self {
+        let source = if let Some(repo) = package.repo() {
+            let id = repo.id().or(repo.url().map(|x| x.as_str())).unwrap();
+            TauriPackageSource::Remote {
+                id: id.to_string(),
+                display_name: repo.name().unwrap_or(id).to_string(),
+            }
+        } else {
+            TauriPackageSource::LocalUser
+        };
+
+        Self {
+            env_version,
+            index,
+            base: TauriBasePackageInfo::new(package.package_json()),
+            source,
+        }
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_packages(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<Vec<TauriPackage>, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(true).await?;
+
+    println!("loading package infos");
+    environment.load_package_infos(true).await?;
+
+    let packages = environment
+        .get_all_packages()
+        .collect::<Vec<_>>()
+        .into_boxed_slice();
+    if let Some(ptr) = env_state.packages {
+        unsafe { drop(Box::from_raw(ptr.as_ptr())) }
+    }
+    env_state.packages = NonNull::new(Box::into_raw(packages) as *mut _);
+    let packages = unsafe { &*env_state.packages.unwrap().as_ptr() };
+    let version = env_state.environment.environment_version.0;
+
+    Ok(packages
+        .iter()
+        .enumerate()
+        .map(|(index, value)| TauriPackage::new(version, index, value))
+        .collect::<Vec<_>>())
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriProjectDetails {
+    unity: Option<(u16, u8)>,
+    unity_str: String,
+    installed_packages: Vec<(String, TauriBasePackageInfo)>,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_details(project_path: String) -> Result<TauriProjectDetails, RustError> {
+    let unity_project =
+        UnityProject::load(DefaultProjectIo::new(PathBuf::from(project_path).into())).await?;
+
+    Ok(TauriProjectDetails {
+        unity: unity_project
+            .unity_version()
+            .map(|v| (v.major(), v.minor())),
+        unity_str: unity_project
+            .unity_version()
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "unknown".into()),
+        installed_packages: unity_project
+            .installed_packages()
+            .map(|(k, p)| (k.to_string(), TauriBasePackageInfo::new(p)))
+            .collect(),
+    })
 }

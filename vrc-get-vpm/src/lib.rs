@@ -67,6 +67,13 @@ impl<'a> PackageInfo<'a> {
         }
     }
 
+    pub fn repo(self) -> Option<&'a LocalCachedRepository> {
+        match self.inner {
+            PackageInfoInner::Remote(_, repo) => Some(repo),
+            PackageInfoInner::Local(_, _) => None,
+        }
+    }
+
     #[allow(unused)]
     pub fn is_remote(self) -> bool {
         matches!(self.inner, PackageInfoInner::Remote(_, _))

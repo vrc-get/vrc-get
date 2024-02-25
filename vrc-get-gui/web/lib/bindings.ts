@@ -14,5 +14,18 @@ export function environmentProjects() {
     return invoke()<TauriProject[]>("environment_projects")
 }
 
-export type TauriProjectType = "Unknown" | "LegacySdk2" | "LegacyWorlds" | "LegacyAvatars" | "UpmWorlds" | "UpmAvatars" | "UpmStarter" | "Worlds" | "Avatars" | "VpmStarter"
+export function environmentPackages() {
+    return invoke()<TauriPackage[]>("environment_packages")
+}
+
+export function projectDetails(projectPath: string) {
+    return invoke()<TauriProjectDetails>("project_details", { projectPath })
+}
+
+export type TauriPackage = ({ name: string; display_name: string | null; version: TauriVersion; unity: [number, number] | null; is_yanked: boolean }) & { env_version: number; index: number; source: TauriPackageSource }
 export type TauriProject = { list_version: number; index: number; name: string; path: string; project_type: TauriProjectType; unity: string; last_modified: number; created_at: number }
+export type TauriVersion = { major: number; minor: number; patch: number; pre: string; build: string }
+export type TauriPackageSource = "LocalUser" | { Remote: { id: string; display_name: string } }
+export type TauriProjectType = "Unknown" | "LegacySdk2" | "LegacyWorlds" | "LegacyAvatars" | "UpmWorlds" | "UpmAvatars" | "UpmStarter" | "Worlds" | "Avatars" | "VpmStarter"
+export type TauriProjectDetails = { unity: [number, number] | null; unity_str: string; installed_packages: ([string, TauriBasePackageInfo])[] }
+export type TauriBasePackageInfo = { name: string; display_name: string | null; version: TauriVersion; unity: [number, number] | null; is_yanked: boolean }

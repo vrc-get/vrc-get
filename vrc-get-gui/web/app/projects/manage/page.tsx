@@ -6,7 +6,6 @@ import {
 	Card,
 	Checkbox,
 	IconButton,
-	Input,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -16,12 +15,22 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React from "react";
-import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, MagnifyingGlassIcon,} from "@heroicons/react/24/solid";
+import React, {useMemo} from "react";
+import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon,} from "@heroicons/react/24/solid";
 import {MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
 import {useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
+import {useQueries} from "@tanstack/react-query";
+import {
+	environmentPackages,
+	projectDetails,
+	TauriBasePackageInfo,
+	TauriPackage,
+	TauriProjectDetails,
+	TauriVersion
+} from "@/lib/bindings";
+import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 
 export default function Page() {
 	const searchParams = useSearchParams();
@@ -36,6 +45,26 @@ export default function Page() {
 		if (indexOfSeparator == -1) return path;
 		return path.substring(indexOfSeparator + 1);
 	}
+
+	const [packagesResult, detailsResult] = useQueries({
+		queries: [
+			{
+				queryKey: ["environmentPackages"],
+				queryFn: environmentPackages,
+			},
+			{
+				queryKey: ["projectDetails", projectPath],
+				queryFn: () => projectDetails(projectPath),
+			},
+		]
+	});
+
+	const packageRows = useMemo(() => {
+		const packages = packagesResult.status == 'success' ? packagesResult.data : [];
+		const details = detailsResult.status == 'success' ? detailsResult.data : null;
+		// TODO: visible sources
+		return combinePackagesAndProjectDetails(packages, details, null);
+	}, [packagesResult, detailsResult]);
 
 	const TABLE_HEAD = [
 		"Package",
@@ -411,6 +440,11 @@ export default function Page() {
 		'2021.1.5f1',
 	];
 
+	const onRefresh = () => {
+		packagesResult.refetch();
+		detailsResult.refetch();
+	};
+
 	return (
 		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName}/>
@@ -437,7 +471,7 @@ export default function Page() {
 						</Typography>
 
 						<Tooltip content="Reflesh Packages">
-							<IconButton variant={"text"} onClick={() => console.log("click")} className={"flex-shrink-0"}>
+							<IconButton variant={"text"} onClick={onRefresh} className={"flex-shrink-0"}>
 								<ArrowPathIcon className={"w-5 h-5"}/>
 							</IconButton>
 						</Tooltip>
@@ -486,7 +520,7 @@ export default function Page() {
 							</tr>
 							</thead>
 							<tbody>
-							{TABLE_DATA.map((row, index) => (<PackageRow pkg={row} key={row.id}/>))}
+							{packageRows.map((row) => (<PackageRow pkg={row} key={row.id}/>))}
 							</tbody>
 						</table>
 					</Card>
@@ -494,6 +528,140 @@ export default function Page() {
 			</main>
 		</VStack>
 	);
+}
+
+interface PackageRowInfo {
+	id: string;
+	infoSource: TauriVersion;
+	displayName: string;
+	unityCompatible: Map<string, TauriBasePackageInfo>;
+	unityIncompatible: Map<string, TauriBasePackageInfo>;
+	sources: Set<string>;
+	installed: null | {
+		version: TauriVersion;
+		yanked: boolean;
+	};
+}
+
+const VRCSDK_PACKAGES = [
+	"com.vrchat.avatars",
+	"com.vrchat.worlds",
+	"com.vrchat.base"
+];
+
+function combinePackagesAndProjectDetails(
+	packages: TauriPackage[],
+	project: TauriProjectDetails | null,
+	// null: user local package
+	visibleSources: (string | null)[] | null,
+): PackageRowInfo[] {
+	const visibleSourcesSet = visibleSources ? new Set(visibleSources) : null;
+	const packagesTable = new Map<string, PackageRowInfo>();
+
+	function isUnityCompatible(pkg: TauriPackage, unityVersion: [number, number] | null) {
+		if (unityVersion == null) return true;
+		if (pkg.unity == null) return true;
+
+		// vrcsdk exceptions for unity version
+		if (VRCSDK_PACKAGES.includes(pkg.name)) {
+			if (pkg.version.major === 3 && pkg.version.minor <= 4) {
+				return unityVersion[0] === 2019;
+			}
+		} else if (pkg.name === "com.vrchat.core.vpm-resolver") {
+			if (pkg.version.major === 0 && pkg.version.minor === 1 && pkg.version.patch <= 26) {
+				return unityVersion[0] === 2019;
+			}
+		}
+
+		return compareUnityVersion(pkg.unity, unityVersion) <= 0;
+	}
+
+	function getRowInfo(pkg: TauriBasePackageInfo): PackageRowInfo {
+		let packageRowInfo = packagesTable.get(pkg.name);
+		if (packageRowInfo == null) {
+			packagesTable.set(pkg.name, packageRowInfo = {
+				id: pkg.name,
+				displayName: pkg.display_name ?? pkg.name,
+				infoSource: pkg.version,
+				unityCompatible: new Map(),
+				unityIncompatible: new Map(),
+				sources: new Set(),
+				installed: null,
+			});
+		}
+		return packageRowInfo;
+	}
+
+	const yankedVersions = new Set<`${string}:${string}`>();
+
+	for (const pkg of packages) {
+		// TODO: process include Pre-releases
+		if (pkg.version.pre) continue;
+
+		if (pkg.is_yanked) {
+			yankedVersions.add(`${pkg.name}:${toVersionString(pkg.version)}`);
+			continue;
+		}
+
+		// check the repository is visible
+		if (visibleSourcesSet) {
+			if (pkg.source === "LocalUser") {
+				if (!visibleSourcesSet.has(null)) continue;
+			} else if ('Remote' in pkg.source) {
+				if (!visibleSourcesSet.has(pkg.source.Remote.id)) continue;
+			}
+		}
+
+		const packageRowInfo = getRowInfo(pkg);
+
+		if (compareVersion(pkg.version, packageRowInfo.infoSource) > 0) {
+			// use display name from the latest version
+			packageRowInfo.infoSource = pkg.version;
+			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
+		}
+
+		if (project == null || isUnityCompatible(pkg, project.unity)) {
+			packageRowInfo.unityCompatible.set(toVersionString(pkg.version), pkg);
+		} else {
+			packageRowInfo.unityIncompatible.set(toVersionString(pkg.version), pkg);
+		}
+
+		if (pkg.source === "LocalUser") {
+			packageRowInfo.sources.add("User");
+		} else if ('Remote' in pkg.source) {
+			packageRowInfo.sources.add(pkg.source.Remote.display_name);
+		}
+	}
+
+	if (project) {
+		for (const [_, pkg] of project.installed_packages) {
+			const packageRowInfo = getRowInfo(pkg);
+
+			// if installed, use the installed version to get the display name
+			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
+			packageRowInfo.installed = {
+				version: pkg.version,
+				yanked: pkg.is_yanked || yankedVersions.has(`${pkg.name}:${toVersionString(pkg.version)}`),
+			};
+		}
+	}
+
+	// sort versions
+	for (let value of packagesTable.values()) {
+		value.unityCompatible = new Map([...value.unityCompatible].sort((a, b) => -compareVersion(a[1].version, b[1].version)));
+		value.unityIncompatible = new Map([...value.unityIncompatible].sort((a, b) => -compareVersion(a[1].version, b[1].version)));
+	}
+
+	const asArray = Array.from(packagesTable.values());
+
+	// put installed first
+	asArray.sort((a, b) => {
+		if (a.installed && !b.installed) return -1;
+		if (!a.installed && b.installed) return 1;
+		return 0;
+	});
+
+	return asArray;
 }
 
 type PackageInfo = {
@@ -504,12 +672,27 @@ type PackageInfo = {
 	source: string;
 };
 
-function PackageRow({pkg}: { pkg: PackageInfo }) {
+function PackageRow({pkg}: { pkg: PackageRowInfo }) {
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
+	const versionNames = [...pkg.unityCompatible.keys()];
+	const latestVersion = versionNames[0];
+
+	let installedInfo;
+	if (pkg.installed) {
+		const version = toVersionString(pkg.installed.version);
+		if (pkg.installed.yanked) {
+			installedInfo = `${version} (yanked)`
+		} else {
+			installedInfo = version;
+		}
+	} else {
+		installedInfo = "Not Installed";
+	}
+
 	return (
 		<tr className="even:bg-blue-gray-50/50">
-			<td className={cellClass}>
+			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis`}>
 				<div className="flex flex-col">
 					<Typography className="font-normal">
 						{pkg.displayName}
@@ -521,20 +704,35 @@ function PackageRow({pkg}: { pkg: PackageInfo }) {
 			</td>
 			<td className={noGrowCellClass}>
 				{/* This is broken: popup is not shown out of the card */}
-				<Select value={pkg.installed ?? "Not Installed"} labelProps={{className: "hidden"}}
-								menuProps={{className: "z-20"}} className="border-blue-gray-200">
-					{pkg.versions.map(v => <Option key={v} value={v}>{v}</Option>)}
+				{/* TODO: show incompatible versions */}
+				{/* TODO: install with selecting version */}
+				<Select value={installedInfo}
+								labelProps={{className: "hidden"}}
+								menuProps={{className: "z-20"}}
+								className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
+				>
+					{versionNames.map(v => <Option key={v} value={v}>{v}</Option>)}
 				</Select>
 			</td>
 			<td className={noGrowCellClass}>
 				<Typography className="font-normal">
-					{pkg.versions[pkg.versions.length - 1]}
+					{latestVersion}
 				</Typography>
 			</td>
-			<td className={noGrowCellClass}>
-				<Typography className="font-normal">
-					{pkg.source}
-				</Typography>
+			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
+				{
+					pkg.sources.size > 1 ? (
+						<Tooltip content={[...pkg.sources].join(", ")}>
+							<Typography className="font-normal">
+								Multiple Sources
+							</Typography>
+						</Tooltip>
+					) : (
+						<Typography className="font-normal">
+							{[...pkg.sources][0]}
+						</Typography>
+					)
+				}
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
