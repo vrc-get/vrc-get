@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog].
 
 ### Security
 
+## [] - 2024-02-25
+### Fixed
+- repositories with `vrc-get.yank` but without `vrc-get.aliases` not working
+
 ## [] - 2024-02-16
 ### Added
 - Changelog [`#351`](https://github.com/anatawa12/vrc-get/pull/351)
