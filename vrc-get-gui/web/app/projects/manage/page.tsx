@@ -94,7 +94,7 @@ function PageBody() {
 			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName}/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
-					located at: <code className={"bg-gray-200 p-0.5"}>{projectPath}</code>
+					located at: <code className={"bg-gray-200 p-0.5 whitespace-pre"}>{projectPath}</code>
 				</Typography>
 				<div className={"flex-grow flex-shrink-0 w-2"}></div>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
@@ -408,7 +408,7 @@ function ProjectViewHeader({className, projectName}: { className?: string, proje
 				</IconButton>
 			</Tooltip>
 
-			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 whitespace-pre">
 				{projectName}
 			</Typography>
 
