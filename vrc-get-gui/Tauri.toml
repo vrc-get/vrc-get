@@ -23,8 +23,8 @@ url = "/projects"
 
 fullscreen = false
 resizable = true
-height = 600
-width = 800
+height = 800
+width = 1000
 
 [tauri.bundle]
 active = true
