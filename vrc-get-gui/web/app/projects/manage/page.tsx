@@ -15,7 +15,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {useMemo} from "react";
+import React, {Suspense, useMemo} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon,} from "@heroicons/react/24/solid";
 import {MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
@@ -32,7 +32,11 @@ import {
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 
-export default function Page() {
+export default function Page(props: {}) {
+	return <Suspense><PageBody {...props}/></Suspense>
+}
+
+function PageBody() {
 	const searchParams = useSearchParams();
 
 	const projectPath = searchParams.get("projectPath") ?? "";
