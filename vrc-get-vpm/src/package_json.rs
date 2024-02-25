@@ -42,6 +42,7 @@ pub struct VrcGetMeta {
     #[serde(default)]
     yanked: YankState,
     /// aliases for `vrc-get i --name <name> <version>` command.
+    #[serde(default)]
     aliases: Vec<Box<str>>,
 }
 
