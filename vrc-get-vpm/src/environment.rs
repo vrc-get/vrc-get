@@ -80,6 +80,21 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             io,
         })
     }
+
+    /// Reload configuration files on the filesystem.
+    /// This doesn't update repository cache or user package cache.
+    /// Please call [`load_package_infos`] after this method.
+    ///
+    /// [`load_package_infos`]: Environment::load_package_infos
+    pub async fn reload(&mut self) -> io::Result<()> {
+        self.settings = Settings::load(&self.io).await?;
+        self.vrc_get_settings = VrcGetSettings::load(&self.io).await?;
+        #[cfg(feature = "vrc-get-litedb")]
+        {
+            self.litedb_connection = litedb::LiteDbConnectionHolder::new();
+        }
+        Ok(())
+    }
 }
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {

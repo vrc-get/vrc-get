@@ -131,8 +131,23 @@ async fn environment_projects(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<Vec<TauriProject>, RustError> {
     let mut state = state.lock().await;
-    state.environment = Some(new_environment().await?);
-    let environment = state.environment.as_mut().unwrap();
+    let environment = match state.environment.as_mut() {
+        Some(environment) => {
+            println!("reloading settings files");
+            // reload settings files
+            environment.reload().await?;
+
+            environment
+        }
+        None => {
+            state.environment = Some(new_environment().await?);
+            state.environment.as_mut().unwrap()
+        }
+    };
+
+    println!("migrating projects from settings.json");
+    // migrate from settings json
+    environment.migrate_from_settings_json().await?;
 
     println!("fetching projects");
 
