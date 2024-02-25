@@ -14,6 +14,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>true</InvariantGlobalization>
     <EnableDefaultItems>false</EnableDefaultItems>
+    <IlcGenerateWin32Resources>false</IlcGenerateWin32Resources>
   </PropertyGroup>
 
   <ItemGroup>
