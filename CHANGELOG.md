@@ -16,9 +16,12 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- repositories with `vrc-get.yank` but without `vrc-get.aliases` not working
 
 ### Security
+
+## [] - 2024-02-25
+### Fixed
+- repositories with `vrc-get.yank` but without `vrc-get.aliases` not working
 
 ## [] - 2024-02-16
 ### Added
