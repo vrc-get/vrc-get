@@ -15,7 +15,7 @@ pub(crate) fn export_ts() {
     tauri_specta::ts::export_with_cfg(
         specta::collect_types![environment_projects].unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
-        "web/lib/generated/bindings.ts",
+        "web/lib/bindings.ts",
     )
     .unwrap();
 }

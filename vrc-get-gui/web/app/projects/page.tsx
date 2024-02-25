@@ -22,7 +22,7 @@ import {
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 import {HNavBar, VStack} from "@/components/layout";
-import {environmentProjects, TauriProject, TauriProjectType} from "@/lib/generated/bindings";
+import {environmentProjects, TauriProject, TauriProjectType} from "@/lib/bindings";
 import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
