@@ -1,6 +1,7 @@
 use serde::Serialize;
 use specta::specta;
 use std::io;
+use std::num::Wrapping;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
 use vrc_get_vpm::environment::UserProject;
@@ -45,17 +46,44 @@ impl From<io::Error> for RustError {
 }
 
 struct EnvironmentState {
-    environment: Option<Environment>,
+    environment: EnvironmentHolder,
     projects: Box<[UserProject]>,
-    projects_version: u32,
+    projects_version: Wrapping<u32>,
+}
+
+struct EnvironmentHolder {
+    environment: Option<Environment>,
+    environment_version: Wrapping<u32>,
+}
+
+impl EnvironmentHolder {
+    fn new() -> Self {
+        Self {
+            environment: None,
+            environment_version: Wrapping(0),
+        }
+    }
+
+    async fn get_environment_mut(&mut self) -> io::Result<&mut Environment> {
+        if let Some(ref mut environment) = self.environment {
+            println!("reloading settings files");
+            // reload settings files
+            environment.reload().await?;
+            Ok(environment)
+        } else {
+            self.environment = Some(new_environment().await?);
+            self.environment_version += Wrapping(1);
+            Ok(self.environment.as_mut().unwrap())
+        }
+    }
 }
 
 impl EnvironmentState {
     fn new() -> Self {
         Self {
-            environment: None,
+            environment: EnvironmentHolder::new(),
             projects: Box::new([]),
-            projects_version: 0,
+            projects_version: Wrapping(0),
         }
     }
 }
@@ -131,19 +159,7 @@ async fn environment_projects(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<Vec<TauriProject>, RustError> {
     let mut state = state.lock().await;
-    let environment = match state.environment.as_mut() {
-        Some(environment) => {
-            println!("reloading settings files");
-            // reload settings files
-            environment.reload().await?;
-
-            environment
-        }
-        None => {
-            state.environment = Some(new_environment().await?);
-            state.environment.as_mut().unwrap()
-        }
-    };
+    let environment = state.environment.get_environment_mut().await?;
 
     println!("migrating projects from settings.json");
     // migrate from settings json
@@ -152,13 +168,15 @@ async fn environment_projects(
     println!("fetching projects");
 
     state.projects = environment.get_projects()?.into_boxed_slice();
-    state.projects_version = state.projects_version.wrapping_add(1);
+    state.projects_version += Wrapping(1);
+
+    let version = (state.environment.environment_version + state.projects_version).0;
 
     let vec = state
         .projects
         .iter()
         .enumerate()
-        .map(|(index, value)| TauriProject::new(state.projects_version, index, value))
+        .map(|(index, value)| TauriProject::new(version, index, value))
         .collect::<Vec<_>>();
 
     Ok(vec)
