@@ -456,7 +456,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             self.vrc_get_settings.save(&self.io),
         )
         .await
-        .map(|_| ())
+        .map(|_| ())?;
+
+        #[cfg(feature = "vrc-get-litedb")]
+        {
+            self.litedb_connection = litedb::LiteDbConnectionHolder::new();
+        }
+        Ok(())
     }
 }
 
