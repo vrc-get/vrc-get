@@ -22,7 +22,7 @@ import {
 } from "@material-tailwind/react";
 import React, {Suspense, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon,} from "@heroicons/react/24/solid";
-import {MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
+import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
 import {useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
@@ -646,6 +646,28 @@ function PackageRow(
 		installedInfo = <span className={"text-blue-gray-300"}>Not Installed</span>;
 	}
 
+	let latestInfo: React.ReactNode;
+	if (latestVersion) {
+		latestInfo = <Typography className="font-normal">{latestVersion}</Typography>;
+		if (pkg.installed) {
+			const compare = compareVersion(pkg.installed.version, pkg.unityCompatible.get(latestVersion)!.version);
+			if (compare >= 0) {
+				latestInfo = <Typography className="font-normal">{latestVersion}</Typography>;
+			} else {
+				latestInfo = (
+					<Button variant={"outlined"} color={"green"}
+									className={"text-left px-2 py-1 w-full h-full font-normal text-base"}
+									onClick={() => onInstallRequested(pkg.unityCompatible.get(latestVersion)!)}>
+						<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
+						{latestVersion}
+					</Button>
+				);
+			}
+		}
+	} else {
+		latestInfo = <Typography className="font-normal text-blue-gray-400">none</Typography>;
+	}
+
 	const onChange = (version: string) => {
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
@@ -688,11 +710,8 @@ function PackageRow(
 					{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 				</VGSelect>
 			</td>
-			<td className={noGrowCellClass}>
-				{
-					latestVersion ? <Typography className="font-normal">{latestVersion}</Typography>
-						: <Typography className="font-normal text-blue-gray-400">none</Typography>
-				}
+			<td className={`${cellClass} min-w-32 w-32`}>
+				{latestInfo}
 			</td>
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
 				{
