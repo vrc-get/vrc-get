@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use serde::Serialize;
 use specta::specta;
+use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
 
@@ -21,6 +22,7 @@ use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, ProjectType};
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
     generate_handler![
         environment_projects,
+        environment_add_project_with_picker,
         environment_packages,
         environment_repositories_info,
         environment_hide_repository,
@@ -40,6 +42,7 @@ pub(crate) fn export_ts() {
     tauri_specta::ts::export_with_cfg(
         specta::collect_types![
             environment_projects,
+            environment_add_project_with_picker,
             environment_packages,
             environment_repositories_info,
             environment_hide_repository,
@@ -276,6 +279,41 @@ async fn environment_projects(
         .collect::<Vec<_>>();
 
     Ok(vec)
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriAddProjectWithPickerResult {
+    NoFolderSelected,
+    InvalidFolderAsAProject,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_add_project_with_picker(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriAddProjectWithPickerResult, RustError> {
+    let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
+        return Ok(TauriAddProjectWithPickerResult::NoFolderSelected);
+    };
+
+    let Ok(project_path) = project_path.into_os_string().into_string() else {
+        return Ok(TauriAddProjectWithPickerResult::InvalidFolderAsAProject);
+    };
+
+    let unity_project = load_project(project_path).await?;
+    if !unity_project.is_valid().await {
+        return Ok(TauriAddProjectWithPickerResult::InvalidFolderAsAProject);
+    }
+
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    environment.add_project(&unity_project).await?;
+    environment.save().await?;
+
+    Ok(TauriAddProjectWithPickerResult::Successful)
 }
 
 #[derive(Serialize, specta::Type)]

@@ -23,12 +23,19 @@ import {
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 import {HNavBar, VStack} from "@/components/layout";
-import {environmentProjects, TauriProject, TauriProjectType, utilOpen} from "@/lib/bindings";
+import {
+	environmentAddProjectWithPicker,
+	environmentProjects,
+	TauriProject,
+	TauriProjectType,
+	utilOpen
+} from "@/lib/bindings";
 import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
+import {toast} from "react-toastify";
 
 export default function Page() {
 	const result = useQuery({
@@ -226,6 +233,29 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 	search: string,
 	setSearch: (search: string) => void
 }) {
+	const addProject = async () => {
+		try {
+			const result = await environmentAddProjectWithPicker();
+			switch (result) {
+				case "NoFolderSelected":
+					// no-op
+					break;
+				case "InvalidFolderAsAProject":
+					toast.error("Invalid folder selected as a project");
+					break;
+				case "Successful":
+					toast.success("Project added successfully");
+					refresh?.();
+					break;
+				default:
+					let _: never = result;
+			}
+		} catch (e) {
+			console.error("Error adding project", e);
+			toast.error((e as any).Unrecoverable ?? (e as any).message);
+		}
+	};
+
 	return (
 		<HNavBar className={className}>
 			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
@@ -250,7 +280,7 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 					</MenuHandler>
 				</ButtonGroup>
 				<MenuList>
-					<MenuItem onClick={unsupported("Add Project")}>Add Existing Project</MenuItem>
+					<MenuItem onClick={addProject}>Add Existing Project</MenuItem>
 				</MenuList>
 			</Menu>
 		</HNavBar>

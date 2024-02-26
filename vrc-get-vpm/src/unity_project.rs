@@ -146,7 +146,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 
     pub async fn is_valid(&self) -> bool {
-        self.unity_version.is_some() || self.manifest.has_any()
+        self.unity_version.is_some() && self.manifest.has_any()
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
