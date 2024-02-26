@@ -25,10 +25,8 @@ jobs:
             rustflags: "-C link-arg=-fuse-ld=lld"
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
-            rustflags: "-C target-feature=+crt-static"
-          - triple: aarch64-pc-windows-msvc
-            on: windows-latest
-            rustflags: "-C target-feature=+crt-static"
+          #- triple: aarch64-pc-windows-msvc
+          #  on: windows-latest
           - triple: x86_64-apple-darwin
             on: macos-latest
             # Arm64 runner on macOS is not available for open source repositories with macos-14!
@@ -39,7 +37,7 @@ jobs:
           - x86_64-unknown-linux-gnu
           #- aarch64-unknown-linux-gnu
           - x86_64-pc-windows-msvc
-          - aarch64-pc-windows-msvc
+          #- aarch64-pc-windows-msvc
           - x86_64-apple-darwin
           - aarch64-apple-darwin
 
