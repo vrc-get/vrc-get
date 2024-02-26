@@ -4,8 +4,14 @@ import {
 	Button,
 	ButtonGroup,
 	Card,
-	Checkbox, Dialog, DialogBody, DialogFooter, DialogHeader,
-	IconButton, List, ListItem,
+	Checkbox,
+	Dialog,
+	DialogBody,
+	DialogFooter,
+	DialogHeader,
+	IconButton,
+	List,
+	ListItem,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -28,15 +34,19 @@ import {
 	environmentPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
-	environmentShowRepository, projectApplyPendingChanges,
-	projectDetails, projectInstallPackage, projectRemovePackage,
+	environmentShowRepository,
+	projectApplyPendingChanges,
+	projectDetails,
+	projectInstallPackage,
+	projectRemovePackage,
 	TauriBasePackageInfo,
-	TauriPackage, TauriPendingProjectChanges,
+	TauriPackage,
+	TauriPendingProjectChanges,
 	TauriProjectDetails,
+	TauriUserRepository,
 	TauriVersion
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
-import {createWatcher} from "tailwindcss/src/oxide/cli/build/watching";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -91,7 +101,8 @@ function PageBody() {
 		const details = detailsResult.status == 'success' ? detailsResult.data : null;
 		const hiddenRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : [];
 		const hideUserPackages = repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false;
-		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages);
+		const definedRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories : [];
+		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages, definedRepositories);
 	}, [repositoriesInfo, packagesResult, detailsResult]);
 
 	const hiddenUserRepositories = useMemo(() => new Set(repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : []), [repositoriesInfo]);
@@ -127,7 +138,7 @@ function PageBody() {
 			setInstallStatus({status: "normal"});
 		}
 	}
-	
+
 	const onRemoveRequested = async (pkgId: string) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
@@ -274,7 +285,8 @@ function ProjectChangesDialog(
 	const unityConflicts = changes.conflicts.filter(([_, c]) => c.unity_conflict);
 
 	return (
-		<Dialog open handler={() => {}}>
+		<Dialog open handler={() => {
+		}}>
 			<DialogHeader>Apply Changes</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-gray-900"}>
@@ -349,7 +361,7 @@ function ProjectChangesDialog(
 								))}
 							</List>
 						</>
-					): null
+					) : null
 				}
 			</DialogBody>
 			<DialogFooter>
@@ -449,10 +461,10 @@ function combinePackagesAndProjectDetails(
 	packages: TauriPackage[],
 	project: TauriProjectDetails | null,
 	hiddenRepositories?: string[] | null,
-	hideLocalUserPackages?: boolean
+	hideLocalUserPackages?: boolean,
+	definedRepositories: TauriUserRepository[] = [],
 ): PackageRowInfo[] {
 	const hiddenRepositoriesSet = new Set(hiddenRepositories ?? []);
-	const packagesTable = new Map<string, PackageRowInfo>();
 
 	function isUnityCompatible(pkg: TauriPackage, unityVersion: [number, number] | null) {
 		if (unityVersion == null) return true;
@@ -472,7 +484,41 @@ function combinePackagesAndProjectDetails(
 		return compareUnityVersion(pkg.unity, unityVersion) <= 0;
 	}
 
-	function getRowInfo(pkg: TauriBasePackageInfo): PackageRowInfo {
+	const yankedVersions = new Set<`${string}:${string}`>();
+	const packagesPerRepository = new Map<string, TauriPackage[]>();
+	const userPackages: TauriPackage[] = [];
+
+	for (const pkg of packages) {
+		// TODO: process include Pre-releases
+		if (pkg.version.pre) continue;
+
+		if (pkg.is_yanked) {
+			yankedVersions.add(`${pkg.name}:${toVersionString(pkg.version)}`);
+			continue;
+		}
+
+		let packages: TauriPackage[]
+		// check the repository is visible
+		if (pkg.source === "LocalUser") {
+			if (hideLocalUserPackages) continue
+			packages = userPackages;
+		} else if ('Remote' in pkg.source) {
+			if (hiddenRepositoriesSet.has(pkg.source.Remote.id)) continue;
+
+			packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
+			packagesPerRepository.set(pkg.source.Remote.id, packages);
+		} else {
+			let never: never = pkg.source;
+			throw new Error("unreachable");
+		}
+
+		packages.push(pkg);
+
+	}
+
+	const packagesTable = new Map<string, PackageRowInfo>();
+
+	const getRowInfo = (pkg: TauriBasePackageInfo): PackageRowInfo => {
 		let packageRowInfo = packagesTable.get(pkg.name);
 		if (packageRowInfo == null) {
 			packagesTable.set(pkg.name, packageRowInfo = {
@@ -486,26 +532,9 @@ function combinePackagesAndProjectDetails(
 			});
 		}
 		return packageRowInfo;
-	}
+	};
 
-	const yankedVersions = new Set<`${string}:${string}`>();
-
-	for (const pkg of packages) {
-		// TODO: process include Pre-releases
-		if (pkg.version.pre) continue;
-
-		if (pkg.is_yanked) {
-			yankedVersions.add(`${pkg.name}:${toVersionString(pkg.version)}`);
-			continue;
-		}
-
-		// check the repository is visible
-		if (pkg.source === "LocalUser") {
-			if (hideLocalUserPackages) continue
-		} else if ('Remote' in pkg.source) {
-			if (hiddenRepositoriesSet.has(pkg.source.Remote.id)) continue;
-		}
-
+	function addPackage(pkg: TauriPackage) {
 		const packageRowInfo = getRowInfo(pkg);
 
 		if (compareVersion(pkg.version, packageRowInfo.infoSource) > 0) {
@@ -525,6 +554,24 @@ function combinePackagesAndProjectDetails(
 		} else if ('Remote' in pkg.source) {
 			packageRowInfo.sources.add(pkg.source.Remote.display_name);
 		}
+	}
+
+	// predefined repositories
+	packagesPerRepository.get("com.vrchat.repos.official")?.forEach(addPackage);
+	packagesPerRepository.get("com.vrchat.repos.curated")?.forEach(addPackage);
+	userPackages.forEach(addPackage);
+	packagesPerRepository.delete("com.vrchat.repos.official");
+	packagesPerRepository.delete("com.vrchat.repos.curated");
+
+	// for repositories
+	for (let definedRepository of definedRepositories) {
+		packagesPerRepository.get(definedRepository.id)?.forEach(addPackage);
+		packagesPerRepository.delete(definedRepository.id);
+	}
+
+	// in case of repository is not defined
+	for (let packages of packagesPerRepository.values()) {
+		packages.forEach(addPackage);
 	}
 
 	if (project) {
