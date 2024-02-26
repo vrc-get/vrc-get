@@ -47,6 +47,7 @@ import {
 	TauriVersion
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
+import {VGOption, VGSelect} from "@/lib/select";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -188,10 +189,10 @@ function PageBody() {
 					Unity Version:
 				</Typography>
 				<div className={"flex-grow-0 flex-shrink-0"}>
-					<Select variant={'outlined'} value={"2019.4.31f1"} labelProps={{className: "hidden"}}
-									className="border-blue-gray-200">
-						{unityVersions.map(v => <Option key={v} value={v}>{v}</Option>)}
-					</Select>
+					<VGSelect value={"2019.4.31f1"}
+										className="border-blue-gray-200">
+						{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+					</VGSelect>
 				</div>
 			</Card>
 			<main className="flex-shrink overflow-hidden flex">
@@ -649,8 +650,7 @@ function PackageRow(
 		installedInfo = notInstalled;
 	}
 
-	const onChange = (version: string | undefined) => {
-		if (!version) return;
+	const onChange = (version: string) => {
 		const pkgVersion = pkg.unityCompatible.get(version);
 		if (!pkgVersion) return;
 		onInstallRequested(pkgVersion);
@@ -680,20 +680,14 @@ function PackageRow(
 				</div>
 			</td>
 			<td className={noGrowCellClass}>
-				{/* This is broken: popup is not shown out of the card */}
 				{/* TODO: show incompatible versions */}
-				{/* TODO: install with selecting version */}
-				<Select value={installedInfo}
-								labelProps={{className: "hidden"}}
-								menuProps={{className: "z-20"}}
+				<VGSelect value={installedInfo}
 								className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
 								onChange={onChange}
-								selected={() => <>{installedInfo}</>}
 								disabled={locked}
 				>
-					{versionNames.map(v => <Option key={v} value={v}>{v}</Option>)}
-					<Option value={notInstalled} hidden>{notInstalled}</Option>
-				</Select>
+					{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+				</VGSelect>
 			</td>
 			<td className={noGrowCellClass}>
 				{
