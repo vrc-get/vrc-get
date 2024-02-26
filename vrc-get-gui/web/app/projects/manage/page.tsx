@@ -45,7 +45,7 @@ import {
 	TauriVersion, utilOpen
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
-import {VGOption, VGSelect} from "@/lib/select";
+import {VGOption, VGSelect} from "@/components/select";
 import {unsupported} from "@/lib/unsupported";
 
 export default function Page(props: {}) {

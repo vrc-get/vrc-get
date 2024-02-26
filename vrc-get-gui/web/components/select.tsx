@@ -95,17 +95,20 @@ export function VGSelect(
 	)
 }
 
-export function VGOption(
+export const VGOption = React.forwardRef(VGOptionImpl)
+
+function VGOptionImpl(
 	{
 		children,
 		value,
 	}: {
 		children: React.ReactNode,
 		value: string,
-	}
+	},
+	ref: React.Ref<HTMLButtonElement>
 ) {
 	const contextValue = useContext(SelectContext);
 	return (
-		<MenuItem onClick={() => contextValue?.onClick(value)}>{children}</MenuItem>
+		<MenuItem ref={ref} onClick={() => contextValue?.onClick(value)}>{children}</MenuItem>
 	)
 }
