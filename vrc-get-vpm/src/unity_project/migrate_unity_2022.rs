@@ -1,7 +1,7 @@
 use crate::io;
 use crate::io::ProjectIo;
 use crate::traits::EnvironmentIoHolder;
-use crate::unity_project::AddPackageErr;
+use crate::unity_project::{AddPackageErr, AddPackageOperation};
 use crate::version::UnityVersion;
 use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
 use log::warn;
@@ -107,7 +107,12 @@ where
     if !packages.is_empty() {
         // install packages
         let request = project
-            .add_package_request(env, packages, true, false)
+            .add_package_request(
+                env,
+                packages,
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
             .await?;
         project.apply_pending_changes(env, request).await?;
     }

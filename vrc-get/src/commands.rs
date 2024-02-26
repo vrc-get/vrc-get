@@ -18,7 +18,7 @@ use std::str::FromStr;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
-use vrc_get_vpm::unity_project::PendingProjectChanges;
+use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, UserRepoSetting, VersionSelector};
 
@@ -336,6 +336,7 @@ pub enum Command {
     Update(Update),
     Outdated(Outdated),
     Upgrade(Upgrade),
+    Downgrade(Downgrade),
     Search(Search),
     #[command(subcommand)]
     Repo(Repo),
@@ -357,6 +358,7 @@ multi_command!(Command is
     Update,
     Outdated,
     Upgrade,
+    Downgrade,
     Search,
     Repo,
     Info,
@@ -446,7 +448,12 @@ impl Install {
         };
 
         let changes = unity
-            .add_package_request(&env, packages, true, self.prerelease)
+            .add_package_request(
+                &env,
+                packages,
+                AddPackageOperation::InstallToDependencies,
+                self.prerelease,
+            )
             .await
             .exit_context("collecting packages to be installed");
 
@@ -692,7 +699,12 @@ impl Upgrade {
         };
 
         let changes = unity
-            .add_package_request(&env, updates, false, self.prerelease)
+            .add_package_request(
+                &env,
+                updates,
+                AddPackageOperation::UpgradeLocked,
+                self.prerelease,
+            )
             .await
             .exit_context("collecting packages to be upgraded");
 
@@ -721,6 +733,80 @@ impl Upgrade {
 
         for (name, version) in updates {
             println!("upgraded {} to {}", name, version);
+        }
+
+        save_unity(&mut unity).await;
+    }
+}
+
+/// Downgrade the specified package specified version.
+///
+/// With install command, you'll add to dependencies. With upgrade command,
+/// you'll upgrade dependencies or locked dependencies but not add to dependencies.
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Downgrade {
+    /// Name of Package
+    #[arg()]
+    name: String,
+    /// Version of package.
+    #[arg(id = "VERSION")]
+    version: Version,
+    /// Include prerelease
+    #[arg(long = "prerelease")]
+    prerelease: bool,
+
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<Box<Path>>,
+    #[command(flatten)]
+    env_args: EnvArgs,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
+}
+
+impl Downgrade {
+    pub async fn run(self) {
+        let env = load_env(&self.env_args).await;
+        let mut unity = load_unity(self.project).await;
+
+        let updates = vec![get_package(
+            &env,
+            &self.name,
+            VersionSelector::specific_version(&self.version),
+        )];
+
+        let changes = unity
+            .add_package_request(
+                &env,
+                updates,
+                AddPackageOperation::Downgrade,
+                self.prerelease,
+            )
+            .await
+            .exit_context("collecting packages to be upgraded");
+
+        print_prompt_install(&changes);
+
+        if require_prompt_for_install(&changes, self.name.as_str(), None) {
+            prompt_install(self.yes)
+        }
+
+        let downgrades = (changes.package_changes().iter())
+            .filter_map(|(_, x)| x.as_install())
+            .filter_map(|x| x.install_package())
+            .map(|x| (x.name().to_owned(), x.version().clone()))
+            .collect::<Vec<_>>();
+
+        unity
+            .apply_pending_changes(&env, changes)
+            .await
+            .exit_context("upgrading packages");
+
+        for (name, version) in downgrades {
+            println!("downgraded {} to {}", name, version);
         }
 
         save_unity(&mut unity).await;

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- `vrc-get downgrade` which is for downgrading package `#409`
 
 ### Changed
 
