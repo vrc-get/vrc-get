@@ -1,25 +1,44 @@
-use serde::Serialize;
-use specta::specta;
+use reqwest::Url;
 use std::io;
 use std::num::Wrapping;
 use std::path::PathBuf;
 use std::ptr::NonNull;
+
+use serde::Serialize;
+use specta::specta;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
+
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::io::DefaultProjectIo;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, ProjectType, UnityProject};
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
-    generate_handler![environment_projects, environment_packages, project_details]
+    generate_handler![
+        environment_projects,
+        environment_packages,
+        project_details,
+        environment_repositories_info,
+        environment_hide_repository,
+        environment_show_repository,
+        environment_set_hide_local_user_packages,
+    ]
 }
 
 #[cfg(debug_assertions)]
 pub(crate) fn export_ts() {
     tauri_specta::ts::export_with_cfg(
-        specta::collect_types![environment_projects, environment_packages, project_details]
-            .unwrap(),
+        specta::collect_types![
+            environment_projects,
+            environment_packages,
+            project_details,
+            environment_repositories_info,
+            environment_hide_repository,
+            environment_show_repository,
+            environment_set_hide_local_user_packages,
+        ]
+        .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
         "web/lib/bindings.ts",
     )
@@ -51,11 +70,13 @@ impl From<io::Error> for RustError {
 }
 
 unsafe impl Send for EnvironmentState {}
+
 unsafe impl Sync for EnvironmentState {}
 
 struct EnvironmentState {
     environment: EnvironmentHolder,
-    packages: Option<NonNull<[PackageInfo<'static>]>>, // null or reference to
+    packages: Option<NonNull<[PackageInfo<'static>]>>,
+    // null or reference to
     projects: Box<[UserProject]>,
     projects_version: Wrapping<u32>,
 }
@@ -304,6 +325,93 @@ async fn environment_packages(
         .enumerate()
         .map(|(index, value)| TauriPackage::new(version, index, value))
         .collect::<Vec<_>>())
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriUserRepository {
+    id: String,
+    display_name: String,
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriRepositoriesInfo {
+    user_repositories: Vec<TauriUserRepository>,
+    hidden_user_repositories: Vec<String>,
+    hide_local_user_packages: bool,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_repositories_info(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriRepositoriesInfo, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(true).await?;
+
+    Ok(TauriRepositoriesInfo {
+        user_repositories: environment
+            .get_user_repos()
+            .iter()
+            .map(|x| {
+                let id = x.id().or(x.url().map(Url::as_str)).unwrap();
+                TauriUserRepository {
+                    id: id.to_string(),
+                    display_name: x.name().unwrap_or(id).to_string(),
+                }
+            })
+            .collect(),
+        hidden_user_repositories: environment
+            .gui_hidden_repositories()
+            .map(Into::into)
+            .collect(),
+        hide_local_user_packages: environment.hide_local_user_packages(),
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_hide_repository(
+    state: State<'_, Mutex<EnvironmentState>>,
+    repository: String,
+) -> Result<(), RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(true).await?;
+    environment.add_gui_hidden_repositories(repository);
+    environment.save().await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_show_repository(
+    state: State<'_, Mutex<EnvironmentState>>,
+    repository: String,
+) -> Result<(), RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(true).await?;
+    environment.remove_gui_hidden_repositories(&repository);
+    environment.save().await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_hide_local_user_packages(
+    state: State<'_, Mutex<EnvironmentState>>,
+    value: bool,
+) -> Result<(), RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(true).await?;
+    environment.set_hide_local_user_packages(value);
+    environment.save().await?;
+
+    Ok(())
 }
 
 #[derive(Serialize, specta::Type)]

@@ -23,7 +23,11 @@ import {useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {useQueries} from "@tanstack/react-query";
 import {
+	environmentHideRepository,
 	environmentPackages,
+	environmentRepositoriesInfo,
+	environmentSetHideLocalUserPackages,
+	environmentShowRepository,
 	projectDetails,
 	TauriBasePackageInfo,
 	TauriPackage,
@@ -50,8 +54,12 @@ function PageBody() {
 		return path.substring(indexOfSeparator + 1);
 	}
 
-	const [packagesResult, detailsResult] = useQueries({
+	const [repositoriesInfo, packagesResult, detailsResult] = useQueries({
 		queries: [
+			{
+				queryKey: ["environmentRepositoriesInfo"],
+				queryFn: environmentRepositoriesInfo,
+			},
 			{
 				queryKey: ["environmentPackages"],
 				queryFn: environmentPackages,
@@ -66,9 +74,12 @@ function PageBody() {
 	const packageRows = useMemo(() => {
 		const packages = packagesResult.status == 'success' ? packagesResult.data : [];
 		const details = detailsResult.status == 'success' ? detailsResult.data : null;
-		// TODO: visible sources
-		return combinePackagesAndProjectDetails(packages, details, null);
-	}, [packagesResult, detailsResult]);
+		const hiddenRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : [];
+		const hideUserPackages = repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false;
+		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages);
+	}, [repositoriesInfo, packagesResult, detailsResult]);
+
+	const hiddenUserRepositories = useMemo(() => new Set(repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : []), [repositoriesInfo]);
 
 	const TABLE_HEAD = [
 		"Package",
@@ -87,6 +98,7 @@ function PageBody() {
 	const onRefresh = () => {
 		packagesResult.refetch();
 		detailsResult.refetch();
+		repositoriesInfo.refetch();
 	};
 
 	return (
@@ -126,28 +138,35 @@ function PageBody() {
 							<MenuHandler>
 								<Button className={"flex-shrink-0 p-3"}>Select Repositories</Button>
 							</MenuHandler>
-							<MenuList>
-								<MenuItem className="p-0">
-									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
-										<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-															className="hover:before:content-none"/>
-										Official
-									</label>
-								</MenuItem>
-								<MenuItem className="p-0">
-									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
-										<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-															className="hover:before:content-none"/>
-										Curated
-									</label>
-								</MenuItem>
-								<MenuItem className="p-0">
-									<label className={"flex cursor-pointer items-center gap-2 p-2"}>
-										<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-															className="hover:before:content-none"/>
-										anatawa12
-									</label>
-								</MenuItem>
+							<MenuList className={"max-h-96 w-64"}>
+								<RepositoryMenuItem
+									hiddenUserRepositories={hiddenUserRepositories}
+									repositoryName={"Official"}
+									repositoryId={"com.vrchat.repos.official"}
+									refetch={() => repositoriesInfo.refetch()}
+								/>
+								<RepositoryMenuItem
+									hiddenUserRepositories={hiddenUserRepositories}
+									repositoryName={"Curated"}
+									repositoryId={"com.vrchat.repos.curated"}
+									refetch={() => repositoriesInfo.refetch()}
+								/>
+								<UserLocalRepositoryMenuItem
+									hideUserLocalPackages={repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false}
+									refetch={() => repositoriesInfo.refetch()}
+								/>
+								<hr className="my-3"/>
+								{
+									repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories.map(repository => (
+										<RepositoryMenuItem
+											hiddenUserRepositories={hiddenUserRepositories}
+											repositoryName={repository.display_name}
+											repositoryId={repository.id}
+											refetch={() => repositoriesInfo.refetch()}
+											key={repository.id}
+										/>
+									)) : null
+								}
 							</MenuList>
 						</Menu>
 					</div>
@@ -174,6 +193,72 @@ function PageBody() {
 	);
 }
 
+function RepositoryMenuItem(
+	{
+		hiddenUserRepositories,
+		repositoryName,
+		repositoryId,
+		refetch,
+	}: {
+		hiddenUserRepositories: Set<string>,
+		repositoryName: string,
+		repositoryId: string,
+		refetch: () => void,
+	}
+) {
+	const selected = !hiddenUserRepositories.has(repositoryId);
+	const onChange = () => {
+		if (selected) {
+			environmentHideRepository(repositoryId).then(refetch);
+		} else {
+			environmentShowRepository(repositoryId).then(refetch);
+		}
+	};
+
+	return (
+		<MenuItem className="p-0">
+			<label className={"flex cursor-pointer items-center gap-2 p-2 whitespace-normal"}>
+				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+									checked={selected}
+									onChange={onChange}
+									className="hover:before:content-none"/>
+				{repositoryName}
+			</label>
+		</MenuItem>
+	)
+}
+
+function UserLocalRepositoryMenuItem(
+	{
+		hideUserLocalPackages,
+		refetch,
+	}: {
+		hideUserLocalPackages: boolean,
+		refetch: () => void,
+	}
+) {
+	const selected = !hideUserLocalPackages;
+	const onChange = () => {
+		if (selected) {
+			environmentSetHideLocalUserPackages(true).then(refetch);
+		} else {
+			environmentSetHideLocalUserPackages(false).then(refetch);
+		}
+	};
+
+	return (
+		<MenuItem className="p-0">
+			<label className={"flex cursor-pointer items-center gap-2 p-2"}>
+				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+									checked={selected}
+									onChange={onChange}
+									className="hover:before:content-none"/>
+				User Local
+			</label>
+		</MenuItem>
+	)
+}
+
 interface PackageRowInfo {
 	id: string;
 	infoSource: TauriVersion;
@@ -196,10 +281,10 @@ const VRCSDK_PACKAGES = [
 function combinePackagesAndProjectDetails(
 	packages: TauriPackage[],
 	project: TauriProjectDetails | null,
-	// null: user local package
-	visibleSources: (string | null)[] | null,
+	hiddenRepositories?: string[] | null,
+	hideLocalUserPackages?: boolean
 ): PackageRowInfo[] {
-	const visibleSourcesSet = visibleSources ? new Set(visibleSources) : null;
+	const hiddenRepositoriesSet = new Set(hiddenRepositories ?? []);
 	const packagesTable = new Map<string, PackageRowInfo>();
 
 	function isUnityCompatible(pkg: TauriPackage, unityVersion: [number, number] | null) {
@@ -248,12 +333,10 @@ function combinePackagesAndProjectDetails(
 		}
 
 		// check the repository is visible
-		if (visibleSourcesSet) {
-			if (pkg.source === "LocalUser") {
-				if (!visibleSourcesSet.has(null)) continue;
-			} else if ('Remote' in pkg.source) {
-				if (!visibleSourcesSet.has(pkg.source.Remote.id)) continue;
-			}
+		if (pkg.source === "LocalUser") {
+			if (hideLocalUserPackages) continue
+		} else if ('Remote' in pkg.source) {
+			if (hiddenRepositoriesSet.has(pkg.source.Remote.id)) continue;
 		}
 
 		const packageRowInfo = getRowInfo(pkg);
@@ -359,22 +442,27 @@ function PackageRow({pkg}: { pkg: PackageRowInfo }) {
 				</Select>
 			</td>
 			<td className={noGrowCellClass}>
-				<Typography className="font-normal">
-					{latestVersion}
-				</Typography>
+				{
+					latestVersion ? <Typography className="font-normal">{latestVersion}</Typography> 
+						: <Typography className="font-normal text-blue-gray-400">none</Typography>
+				}
 			</td>
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
 				{
-					pkg.sources.size > 1 ? (
+					pkg.sources.size == 0 ? (
+						<Typography className="font-normal text-blue-gray-400">
+							none
+						</Typography>
+					) : pkg.sources.size == 1 ? (
+						<Typography className="font-normal">
+							{[...pkg.sources][0]}
+						</Typography>
+					) : (
 						<Tooltip content={[...pkg.sources].join(", ")}>
 							<Typography className="font-normal">
 								Multiple Sources
 							</Typography>
 						</Tooltip>
-					) : (
-						<Typography className="font-normal">
-							{[...pkg.sources][0]}
-						</Typography>
 					)
 				}
 			</td>

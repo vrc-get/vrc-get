@@ -204,6 +204,33 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 }
 
+impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+    pub fn gui_hidden_repositories(&self) -> impl Iterator<Item = &str> {
+        self.vrc_get_settings
+            .gui_hidden_repositories()
+            .iter()
+            .map(|x| x.as_str())
+    }
+
+    pub fn add_gui_hidden_repositories(&mut self, repository: String) {
+        self.vrc_get_settings
+            .add_gui_hidden_repositories(repository);
+    }
+
+    pub fn remove_gui_hidden_repositories(&mut self, repository: &str) {
+        self.vrc_get_settings
+            .remove_gui_hidden_repositories(repository);
+    }
+
+    pub fn hide_local_user_packages(&self) -> bool {
+        self.vrc_get_settings.hide_local_user_packages()
+    }
+
+    pub fn set_hide_local_user_packages(&mut self, value: bool) {
+        self.vrc_get_settings.set_hide_local_user_packages(value);
+    }
+}
+
 impl<T: HttpClient, IO: EnvironmentIo> PackageCollection for Environment<T, IO> {
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
         self.repo_cache
