@@ -62,4 +62,15 @@ where
 
         Ok(())
     }
+
+    pub async fn launch_gui_unity_detached(&self, unity_executable: &Path) -> io::Result<()> {
+        self.io
+            .spawn_detached(
+                unity_executable.as_ref(),
+                &["-projectPath".as_ref(), self.project_dir().as_os_str()],
+            )
+            .await?;
+
+        Ok(())
+    }
 }

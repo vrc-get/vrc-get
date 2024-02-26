@@ -47,6 +47,7 @@ import {
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
 import {unsupported} from "@/lib/unsupported";
+import {openUnity} from "@/lib/open-unity";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -775,7 +776,7 @@ function ProjectViewHeader({className, projectName, projectPath}: { className?: 
 
 			<Menu>
 				<ButtonGroup>
-					<Button onClick={unsupported("Open Unity")} className={"pl-4 pr-3"}>Open Unity</Button>
+					<Button onClick={() => openUnity(projectPath)} className={"pl-4 pr-3"}>Open Unity</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>

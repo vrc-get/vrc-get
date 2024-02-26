@@ -28,6 +28,7 @@ import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {unsupported} from "@/lib/unsupported";
+import {openUnity} from "@/lib/open-unity";
 
 export default function Page() {
 	const result = useQuery({
@@ -199,7 +200,7 @@ function ProjectRow({project}: { project: TauriProject }) {
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
-					<Button onClick={unsupported("Open Unity")}>Open Unity</Button>
+					<Button onClick={() => openUnity(project.path)}>Open Unity</Button>
 					<Button onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
 									color={"blue"}>Manage</Button>
 					<Button onClick={unsupported("Backup")} color={"green"}>Backup</Button>

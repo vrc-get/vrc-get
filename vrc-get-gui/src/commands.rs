@@ -30,6 +30,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_install_package,
         project_remove_package,
         project_apply_pending_changes,
+        project_open_unity,
         util_open,
     ]
 }
@@ -48,6 +49,7 @@ pub(crate) fn export_ts() {
             project_install_package,
             project_remove_package,
             project_apply_pending_changes,
+            project_open_unity,
             util_open,
         ]
         .unwrap(),
@@ -697,6 +699,42 @@ async fn project_apply_pending_changes(
 
     unity_project.save().await?;
     Ok(())
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriOpenUnityResult {
+    NoUnityVersionForTheProject,
+    NoMatchingUnityFound,
+    Success,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_open_unity(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<TauriOpenUnityResult, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+    let unity_project = load_project(project_path).await?;
+
+    let Some(project_unity) = unity_project.unity_version() else {
+        return Ok(TauriOpenUnityResult::NoUnityVersionForTheProject);
+    };
+
+    for x in environment.get_unity_installations()? {
+        if let Some(version) = x.version() {
+            if version == project_unity {
+                unity_project
+                    .launch_gui_unity_detached(x.path().as_ref())
+                    .await?;
+                return Ok(TauriOpenUnityResult::Success);
+            }
+        }
+    }
+
+    Ok(TauriOpenUnityResult::NoMatchingUnityFound)
 }
 
 #[tauri::command]
