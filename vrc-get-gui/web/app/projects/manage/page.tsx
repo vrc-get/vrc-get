@@ -635,6 +635,7 @@ function PackageRow(
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
+	const incompatibleNames = [...pkg.unityIncompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
 
 	const notInstalled = "Not Installed";
@@ -651,14 +652,14 @@ function PackageRow(
 	}
 
 	const onChange = (version: string) => {
-		const pkgVersion = pkg.unityCompatible.get(version);
+		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
 		onInstallRequested(pkgVersion);
 	}
 
 	const installLatest = () => {
 		if (!latestVersion) return;
-		const latest = pkg.unityCompatible.get(latestVersion);
+		const latest = pkg.unityCompatible.get(latestVersion) ?? pkg.unityIncompatible.get(latestVersion);
 		if (!latest) return;
 		onInstallRequested(latest);
 	}
@@ -687,6 +688,9 @@ function PackageRow(
 								disabled={locked}
 				>
 					{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+					{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
+					<Typography className={"text-sm"}>Incompatibles</Typography>
+					{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 				</VGSelect>
 			</td>
 			<td className={noGrowCellClass}>
