@@ -29,7 +29,7 @@ import {
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
 	environmentShowRepository, projectApplyPendingChanges,
-	projectDetails, projectInstallPackage,
+	projectDetails, projectInstallPackage, projectRemovePackage,
 	TauriBasePackageInfo,
 	TauriPackage, TauriPendingProjectChanges,
 	TauriProjectDetails,
@@ -128,8 +128,16 @@ function PageBody() {
 		}
 	}
 	
-	const onRemoveRequested = (pkgId: string) => {
-		console.log("remove", pkgId);
+	const onRemoveRequested = async (pkgId: string) => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			console.log("remove", pkgId);
+			const changes = await projectRemovePackage(projectPath, pkgId);
+			setInstallStatus({status: "promptingChanges", changes});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+		}
 	}
 
 	const applyChanges = async (changes: TauriPendingProjectChanges) => {
@@ -231,7 +239,7 @@ function PageBody() {
 							<tbody>
 							{packageRows.map((row) => (
 								<PackageRow pkg={row} key={row.id}
-														locked={installingPackage}
+														locked={isLoading}
 														onInstallRequested={onInstallRequested}
 														onRemoveRequested={onRemoveRequested}/>
 							))}

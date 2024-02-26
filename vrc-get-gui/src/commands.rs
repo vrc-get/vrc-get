@@ -28,6 +28,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_set_hide_local_user_packages,
         project_details,
         project_install_package,
+        project_remove_package,
         project_apply_pending_changes,
     ]
 }
@@ -44,6 +45,7 @@ pub(crate) fn export_ts() {
             environment_set_hide_local_user_packages,
             project_details,
             project_install_package,
+            project_remove_package,
             project_apply_pending_changes,
         ]
         .unwrap(),
@@ -88,10 +90,8 @@ struct EnvironmentState {
     // null or reference to
     projects: Box<[UserProject]>,
     projects_version: Wrapping<u32>,
-    changes_info: Option<NonNull<PendingProjectChangesInfo<'static>>>,
+    changes_info: ChangesInfoHolder,
 }
-
-static CHANGES_GLOBAL_INDEXER: AtomicU32 = AtomicU32::new(0);
 
 struct PendingProjectChangesInfo<'env> {
     environment_version: u32,
@@ -129,6 +129,44 @@ impl EnvironmentHolder {
     }
 }
 
+struct ChangesInfoHolder {
+    changes_info: Option<NonNull<PendingProjectChangesInfo<'static>>>,
+}
+
+impl ChangesInfoHolder {
+    fn new() -> Self {
+        Self { changes_info: None }
+    }
+
+    fn update(
+        &mut self,
+        environment_version: u32,
+        changes: PendingProjectChanges<'_>,
+    ) -> TauriPendingProjectChanges {
+        static CHANGES_GLOBAL_INDEXER: AtomicU32 = AtomicU32::new(0);
+        let changes_version = CHANGES_GLOBAL_INDEXER.fetch_add(1, Ordering::SeqCst);
+
+        let result = TauriPendingProjectChanges::new(changes_version, &changes);
+
+        let changes_info = Box::new(PendingProjectChangesInfo {
+            environment_version,
+            changes_version,
+            changes,
+        });
+
+        if let Some(ptr) = self.changes_info.take() {
+            unsafe { drop(Box::from_raw(ptr.as_ptr())) }
+        }
+        self.changes_info = NonNull::new(Box::into_raw(changes_info) as *mut _);
+
+        result
+    }
+
+    fn take(&mut self) -> Option<PendingProjectChangesInfo> {
+        Some(*unsafe { Box::from_raw(self.changes_info.take()?.as_mut()) })
+    }
+}
+
 impl EnvironmentState {
     fn new() -> Self {
         Self {
@@ -136,7 +174,7 @@ impl EnvironmentState {
             packages: None,
             projects: Box::new([]),
             projects_version: Wrapping(0),
-            changes_info: None,
+            changes_info: ChangesInfoHolder::new(),
         }
     }
 }
@@ -602,23 +640,28 @@ async fn project_install_package(
         Err(e) => return Err(RustError::Unrecoverable(format!("{e}"))),
     };
 
-    let new_version = CHANGES_GLOBAL_INDEXER.fetch_add(1, Ordering::SeqCst);
+    Ok(env_state.changes_info.update(env_version, changes))
+}
 
-    let result = TauriPendingProjectChanges::new(new_version, &changes);
+#[tauri::command]
+#[specta::specta]
+async fn project_remove_package(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    name: String,
+) -> Result<TauriPendingProjectChanges, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let env_version = env_state.environment.environment_version.0;
 
-    let changes_info = Box::new(PendingProjectChangesInfo {
-        environment_version: env_version,
-        changes_version: new_version,
-        changes,
-    });
+    let unity_project = load_project(project_path).await?;
 
-    if let Some(ptr) = env_state.changes_info {
-        env_state.changes_info = None;
-        unsafe { drop(Box::from_raw(ptr.as_ptr())) }
-    }
-    env_state.changes_info = NonNull::new(Box::into_raw(changes_info) as *mut _);
+    let changes = match unity_project.remove_request(&[&name]).await {
+        Ok(request) => request,
+        Err(e) => return Err(RustError::Unrecoverable(format!("{e}"))),
+    };
 
-    Ok(result)
+    Ok(env_state.changes_info.update(env_version, changes))
 }
 
 #[tauri::command]
@@ -630,11 +673,10 @@ async fn project_apply_pending_changes(
 ) -> Result<(), RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
-    let changes = unsafe { Box::from_raw(env_state.changes_info.take().unwrap().as_mut()) };
+    let changes = env_state.changes_info.take().unwrap();
     if changes.changes_version != changes_version {
         return Err(RustError::Unrecoverable("changes version mismatch".into()));
     }
-    let changes = *changes;
     if changes.environment_version != env_state.environment.environment_version.0 {
         return Err(RustError::Unrecoverable(
             "environment version mismatch".into(),
