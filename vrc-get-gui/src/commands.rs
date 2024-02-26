@@ -30,6 +30,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_install_package,
         project_remove_package,
         project_apply_pending_changes,
+        util_open,
     ]
 }
 
@@ -47,6 +48,7 @@ pub(crate) fn export_ts() {
             project_install_package,
             project_remove_package,
             project_apply_pending_changes,
+            util_open,
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
@@ -694,5 +696,12 @@ async fn project_apply_pending_changes(
         .await?;
 
     unity_project.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn util_open(path: String) -> Result<(), RustError> {
+    open::that(path).map_err(|e| RustError::Unrecoverable(format!("{e}")))?;
     Ok(())
 }

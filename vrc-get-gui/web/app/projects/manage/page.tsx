@@ -42,7 +42,7 @@ import {
 	TauriPendingProjectChanges,
 	TauriProjectDetails,
 	TauriUserRepository,
-	TauriVersion
+	TauriVersion, utilOpen
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {VGOption, VGSelect} from "@/lib/select";
@@ -174,7 +174,7 @@ function PageBody() {
 
 	return (
 		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName}/>
+			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
 					located at: <code className={"bg-gray-200 p-0.5 whitespace-pre"}>{projectPath}</code>
@@ -754,7 +754,9 @@ function PackageRow(
 	);
 }
 
-function ProjectViewHeader({className, projectName}: { className?: string, projectName: string }) {
+function ProjectViewHeader({className, projectName, projectPath}: { className?: string, projectName: string, projectPath: string }) {
+	const openProjectFolder = () => utilOpen(projectPath);
+
 	return (
 		<HNavBar className={className}>
 			<Tooltip content="Back to projects">
@@ -780,7 +782,7 @@ function ProjectViewHeader({className, projectName}: { className?: string, proje
 					</MenuHandler>
 				</ButtonGroup>
 				<MenuList>
-					<MenuItem>Open Project Folder</MenuItem>
+					<MenuItem onClick={openProjectFolder}>Open Project Folder</MenuItem>
 					<MenuItem>Make Backup</MenuItem>
 					<MenuItem className={"bg-red-700 text-white"}>Remove Project</MenuItem>
 				</MenuList>

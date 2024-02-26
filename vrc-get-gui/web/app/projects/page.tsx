@@ -23,7 +23,7 @@ import {
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 import {HNavBar, VStack} from "@/components/layout";
-import {environmentProjects, TauriProject, TauriProjectType} from "@/lib/bindings";
+import {environmentProjects, TauriProject, TauriProjectType, utilOpen} from "@/lib/bindings";
 import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
@@ -153,6 +153,8 @@ function ProjectRow({project}: { project: TauriProject }) {
 	const lastModified = new Date(project.last_modified);
 	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, '0')}-${(lastModified.getMonth() + 1).toString().padStart(2, '0')}-${lastModified.getDate().toString().padStart(2, '0')} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
 
+	const openProjectFolder = () => utilOpen(project.path);
+
 	return (
 		<tr className="even:bg-blue-gray-50/50">
 			<td className={cellClass}>
@@ -200,8 +202,15 @@ function ProjectRow({project}: { project: TauriProject }) {
 					<Button onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
 									color={"blue"}>Manage</Button>
 					<Button color={"green"}>Backup</Button>
-					<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
-						className={"size-5"}/></IconButton>
+					<Menu>
+						<MenuHandler>
+							<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
+								className={"size-5"}/></IconButton>
+						</MenuHandler>
+						<MenuList>
+							<MenuItem onClick={openProjectFolder}>Open Project Folder</MenuItem>
+						</MenuList>
+					</Menu>
 				</div>
 			</td>
 		</tr>
