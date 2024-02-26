@@ -299,6 +299,7 @@ impl From<&Version> for TauriVersion {
 struct TauriBasePackageInfo {
     name: String,
     display_name: Option<String>,
+    aliases: Vec<String>,
     version: TauriVersion,
     unity: Option<(u16, u8)>,
     is_yanked: bool,
@@ -309,6 +310,7 @@ impl TauriBasePackageInfo {
         Self {
             name: package.name().to_string(),
             display_name: package.display_name().map(|v| v.to_string()),
+            aliases: package.aliases().iter().map(|v| v.to_string()).collect(),
             version: package.version().into(),
             unity: package.unity().map(|v| (v.major(), v.minor())),
             is_yanked: package.is_yanked(),

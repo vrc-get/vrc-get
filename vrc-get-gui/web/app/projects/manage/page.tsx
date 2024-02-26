@@ -95,8 +95,9 @@ function PageBody() {
 	});
 
 	const [installStatus, setInstallStatus] = useState<InstallStatus>({status: "normal"});
+	const [search, setSearch] = useState("");
 
-	const packageRows = useMemo(() => {
+	const packageRowsData = useMemo(() => {
 		const packages = packagesResult.status == 'success' ? packagesResult.data : [];
 		const details = detailsResult.status == 'success' ? detailsResult.data : null;
 		const hiddenRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : [];
@@ -104,6 +105,15 @@ function PageBody() {
 		const definedRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories : [];
 		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages, definedRepositories);
 	}, [repositoriesInfo, packagesResult, detailsResult]);
+
+	const packageRows = useMemo(() => {
+		if (search === "") return packageRowsData;
+		const searchLower = search.toLowerCase();
+		return packageRowsData.filter(row =>
+			row.displayName.toLowerCase().includes(searchLower)
+			|| row.id.toLowerCase().includes(searchLower)
+			|| row.aliases.some(alias => alias.toLowerCase().includes(searchLower)))
+	}, [packageRowsData, search]);
 
 	const hiddenUserRepositories = useMemo(() => new Set(repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : []), [repositoriesInfo]);
 
@@ -197,7 +207,7 @@ function PageBody() {
 							</IconButton>
 						</Tooltip>
 
-						<SearchBox className={"w-max flex-grow"}/>
+						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>
@@ -442,6 +452,7 @@ interface PackageRowInfo {
 	id: string;
 	infoSource: TauriVersion;
 	displayName: string;
+	aliases: string[];
 	unityCompatible: Map<string, TauriPackage>;
 	unityIncompatible: Map<string, TauriPackage>;
 	sources: Set<string>;
@@ -524,6 +535,7 @@ function combinePackagesAndProjectDetails(
 			packagesTable.set(pkg.name, packageRowInfo = {
 				id: pkg.name,
 				displayName: pkg.display_name ?? pkg.name,
+				aliases: pkg.aliases,
 				infoSource: pkg.version,
 				unityCompatible: new Map(),
 				unityIncompatible: new Map(),
@@ -541,6 +553,7 @@ function combinePackagesAndProjectDetails(
 			// use display name from the latest version
 			packageRowInfo.infoSource = pkg.version;
 			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
+			packageRowInfo.aliases = pkg.aliases;
 		}
 
 		if (project == null || isUnityCompatible(pkg, project.unity)) {
@@ -580,6 +593,7 @@ function combinePackagesAndProjectDetails(
 
 			// if installed, use the installed version to get the display name
 			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
+			packageRowInfo.aliases = [...pkg.aliases, ...packageRowInfo.aliases];
 			packageRowInfo.installed = {
 				version: pkg.version,
 				yanked: pkg.is_yanked || yankedVersions.has(`${pkg.name}:${toVersionString(pkg.version)}`),
