@@ -272,6 +272,13 @@ impl<'env> Builder<'env> {
         self
     }
 
+    pub(crate) fn get_dependencies(&self, name: &str) -> Option<&DependencyRange> {
+        self.package_changes
+            .get(name)
+            .and_then(|x| x.as_install())
+            .and_then(|x| x.to_dependencies.as_ref())
+    }
+
     pub(crate) fn get_installing(&self, name: &str) -> Option<PackageInfo<'env>> {
         self.package_changes
             .get(name)

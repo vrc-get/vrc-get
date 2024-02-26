@@ -34,8 +34,10 @@ impl From<AddPackageErr> for ResolvePackageErr {
             AddPackageErr::DependencyNotFound { dependency_name } => {
                 Self::DependencyNotFound { dependency_name }
             }
-            AddPackageErr::UpgradingNonLockedPackage { .. } => {
-                panic!("AddPackageErr::UpgradingNonLockedPackage should not be happened")
+            AddPackageErr::UpgradingNonLockedPackage { .. }
+            | AddPackageErr::DowngradingNonLockedPackage { .. }
+            | AddPackageErr::UpgradingWithDowngrade { .. } => {
+                panic!("{value:?} should not be happened")
             }
         }
     }
