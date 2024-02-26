@@ -3,6 +3,7 @@ use std::io;
 use std::num::Wrapping;
 use std::path::PathBuf;
 use std::ptr::NonNull;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use serde::Serialize;
 use specta::specta;
@@ -10,19 +11,24 @@ use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
 
 use vrc_get_vpm::environment::UserProject;
-use vrc_get_vpm::io::DefaultProjectIo;
+use vrc_get_vpm::unity_project::pending_project_changes::{
+    ConflictInfo, PackageChange, RemoveReason,
+};
+use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, ProjectType, UnityProject};
+use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, ProjectType};
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
     generate_handler![
         environment_projects,
         environment_packages,
-        project_details,
         environment_repositories_info,
         environment_hide_repository,
         environment_show_repository,
         environment_set_hide_local_user_packages,
+        project_details,
+        project_install_package,
+        project_apply_pending_changes,
     ]
 }
 
@@ -32,11 +38,13 @@ pub(crate) fn export_ts() {
         specta::collect_types![
             environment_projects,
             environment_packages,
-            project_details,
             environment_repositories_info,
             environment_hide_repository,
             environment_show_repository,
             environment_set_hide_local_user_packages,
+            project_details,
+            project_install_package,
+            project_apply_pending_changes,
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
@@ -50,6 +58,7 @@ pub(crate) fn new_env_state() -> impl Send + Sync + 'static {
 }
 
 type Environment = vrc_get_vpm::Environment<reqwest::Client, vrc_get_vpm::io::DefaultEnvironmentIo>;
+type UnityProject = vrc_get_vpm::UnityProject<vrc_get_vpm::io::DefaultProjectIo>;
 
 async fn new_environment() -> io::Result<Environment> {
     let client = reqwest::Client::new();
@@ -79,6 +88,15 @@ struct EnvironmentState {
     // null or reference to
     projects: Box<[UserProject]>,
     projects_version: Wrapping<u32>,
+    changes_info: Option<NonNull<PendingProjectChangesInfo<'static>>>,
+}
+
+static CHANGES_GLOBAL_INDEXER: AtomicU32 = AtomicU32::new(0);
+
+struct PendingProjectChangesInfo<'env> {
+    environment_version: u32,
+    changes_version: u32,
+    changes: PendingProjectChanges<'env>,
 }
 
 struct EnvironmentHolder {
@@ -118,6 +136,7 @@ impl EnvironmentState {
             packages: None,
             projects: Box::new([]),
             projects_version: Wrapping(0),
+            changes_info: None,
         }
     }
 }
@@ -314,6 +333,7 @@ async fn environment_packages(
         .collect::<Vec<_>>()
         .into_boxed_slice();
     if let Some(ptr) = env_state.packages {
+        env_state.packages = None; // avoid a double drop
         unsafe { drop(Box::from_raw(ptr.as_ptr())) }
     }
     env_state.packages = NonNull::new(Box::into_raw(packages) as *mut _);
@@ -421,11 +441,17 @@ struct TauriProjectDetails {
     installed_packages: Vec<(String, TauriBasePackageInfo)>,
 }
 
+async fn load_project(project_path: String) -> Result<UnityProject, RustError> {
+    Ok(UnityProject::load(vrc_get_vpm::io::DefaultProjectIo::new(
+        PathBuf::from(project_path).into(),
+    ))
+    .await?)
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn project_details(project_path: String) -> Result<TauriProjectDetails, RustError> {
-    let unity_project =
-        UnityProject::load(DefaultProjectIo::new(PathBuf::from(project_path).into())).await?;
+    let unity_project = load_project(project_path).await?;
 
     Ok(TauriProjectDetails {
         unity: unity_project
@@ -440,4 +466,189 @@ async fn project_details(project_path: String) -> Result<TauriProjectDetails, Ru
             .map(|(k, p)| (k.to_string(), TauriBasePackageInfo::new(p)))
             .collect(),
     })
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriPendingProjectChanges {
+    changes_version: u32,
+    package_changes: Vec<(String, TauriPackageChange)>,
+
+    remove_legacy_files: Vec<String>,
+    remove_legacy_folders: Vec<String>,
+
+    conflicts: Vec<(String, TauriConflictInfo)>,
+}
+
+impl TauriPendingProjectChanges {
+    fn new(version: u32, changes: &PendingProjectChanges) -> Self {
+        TauriPendingProjectChanges {
+            changes_version: version,
+            package_changes: changes
+                .package_changes()
+                .iter()
+                .filter_map(|(name, change)| Some((name.to_string(), change.try_into().ok()?)))
+                .collect(),
+            remove_legacy_files: changes
+                .remove_legacy_files()
+                .iter()
+                .map(|x| x.to_string_lossy().into_owned())
+                .collect(),
+            remove_legacy_folders: changes
+                .remove_legacy_folders()
+                .iter()
+                .map(|x| x.to_string_lossy().into_owned())
+                .collect(),
+            conflicts: changes
+                .conflicts()
+                .iter()
+                .map(|(name, info)| (name.to_string(), info.into()))
+                .collect(),
+        }
+    }
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPackageChange {
+    InstallNew(TauriBasePackageInfo),
+    Remove(TauriRemoveReason),
+}
+
+impl TryFrom<&PackageChange<'_>> for TauriPackageChange {
+    type Error = ();
+
+    fn try_from(value: &PackageChange) -> Result<Self, ()> {
+        Ok(match value {
+            PackageChange::Install(install) => TauriPackageChange::InstallNew(
+                TauriBasePackageInfo::new(install.install_package().ok_or(())?.package_json()),
+            ),
+            PackageChange::Remove(remove) => TauriPackageChange::Remove(remove.reason().into()),
+        })
+    }
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriRemoveReason {
+    Requested,
+    Legacy,
+    Unused,
+}
+
+impl From<RemoveReason> for TauriRemoveReason {
+    fn from(value: RemoveReason) -> Self {
+        match value {
+            RemoveReason::Requested => Self::Requested,
+            RemoveReason::Legacy => Self::Legacy,
+            RemoveReason::Unused => Self::Unused,
+        }
+    }
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriConflictInfo {
+    packages: Vec<String>,
+    unity_conflict: bool,
+}
+
+impl From<&ConflictInfo> for TauriConflictInfo {
+    fn from(value: &ConflictInfo) -> Self {
+        Self {
+            packages: value
+                .conflicting_packages()
+                .iter()
+                .map(|x| x.to_string())
+                .collect(),
+            unity_conflict: value.conflicts_with_unity(),
+        }
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_install_package(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    env_version: u32,
+    package_index: usize,
+) -> Result<TauriPendingProjectChanges, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    if env_state.environment.environment_version != Wrapping(env_version) {
+        return Err(RustError::Unrecoverable(
+            "environment version mismatch".into(),
+        ));
+    }
+
+    let environment = env_state.environment.get_environment_mut(false).await?;
+    let packages = unsafe { &*env_state.packages.unwrap().as_mut() };
+    let installing_package = packages[package_index];
+
+    let unity_project = load_project(project_path).await?;
+
+    let operation = if let Some(locked) = unity_project.get_locked(installing_package.name()) {
+        if installing_package.version() < locked.version() {
+            AddPackageOperation::Downgrade
+        } else {
+            AddPackageOperation::UpgradeLocked
+        }
+    } else {
+        AddPackageOperation::InstallToDependencies
+    };
+
+    let changes = match unity_project
+        .add_package_request(environment, vec![installing_package], operation, false)
+        .await
+    {
+        Ok(request) => request,
+        Err(e) => return Err(RustError::Unrecoverable(format!("{e}"))),
+    };
+
+    let new_version = CHANGES_GLOBAL_INDEXER.fetch_add(1, Ordering::SeqCst);
+
+    let result = TauriPendingProjectChanges::new(new_version, &changes);
+
+    let changes_info = Box::new(PendingProjectChangesInfo {
+        environment_version: env_version,
+        changes_version: new_version,
+        changes,
+    });
+
+    if let Some(ptr) = env_state.changes_info {
+        env_state.changes_info = None;
+        unsafe { drop(Box::from_raw(ptr.as_ptr())) }
+    }
+    env_state.changes_info = NonNull::new(Box::into_raw(changes_info) as *mut _);
+
+    Ok(result)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_apply_pending_changes(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    changes_version: u32,
+) -> Result<(), RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let changes = unsafe { Box::from_raw(env_state.changes_info.take().unwrap().as_mut()) };
+    if changes.changes_version != changes_version {
+        return Err(RustError::Unrecoverable("changes version mismatch".into()));
+    }
+    let changes = *changes;
+    if changes.environment_version != env_state.environment.environment_version.0 {
+        return Err(RustError::Unrecoverable(
+            "environment version mismatch".into(),
+        ));
+    }
+
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    let mut unity_project = load_project(project_path).await?;
+
+    unity_project
+        .apply_pending_changes(environment, changes.changes)
+        .await?;
+
+    unity_project.save().await?;
+    Ok(())
 }

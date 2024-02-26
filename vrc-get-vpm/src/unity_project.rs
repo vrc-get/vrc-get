@@ -169,7 +169,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         self.manifest.dependencies().map(|(name, _)| name)
     }
 
-    pub(crate) fn get_locked(&self, name: &str) -> Option<LockedDependencyInfo> {
+    pub fn get_locked(&self, name: &str) -> Option<LockedDependencyInfo> {
         self.manifest.get_locked(name)
     }
 

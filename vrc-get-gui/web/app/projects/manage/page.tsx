@@ -4,8 +4,8 @@ import {
 	Button,
 	ButtonGroup,
 	Card,
-	Checkbox,
-	IconButton,
+	Checkbox, Dialog, DialogBody, DialogFooter, DialogHeader,
+	IconButton, List, ListItem,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -16,7 +16,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {Suspense, useMemo} from "react";
+import React, {Suspense, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon,} from "@heroicons/react/24/solid";
 import {MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
@@ -28,17 +28,29 @@ import {
 	environmentPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
-	environmentShowRepository,
-	projectDetails,
+	environmentShowRepository, projectApplyPendingChanges,
+	projectDetails, projectInstallPackage,
 	TauriBasePackageInfo,
-	TauriPackage,
+	TauriPackage, TauriPendingProjectChanges,
 	TauriProjectDetails,
 	TauriVersion
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
+import {createWatcher} from "tailwindcss/src/oxide/cli/build/watching";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
+}
+
+type InstallStatus = {
+	status: "normal";
+} | {
+	status: "creatingChanges";
+} | {
+	status: "promptingChanges";
+	changes: TauriPendingProjectChanges;
+} | {
+	status: "applyingChanges";
 }
 
 function PageBody() {
@@ -72,6 +84,8 @@ function PageBody() {
 		]
 	});
 
+	const [installStatus, setInstallStatus] = useState<InstallStatus>({status: "normal"});
+
 	const packageRows = useMemo(() => {
 		const packages = packagesResult.status == 'success' ? packagesResult.data : [];
 		const details = detailsResult.status == 'success' ? detailsResult.data : null;
@@ -102,7 +116,36 @@ function PageBody() {
 		repositoriesInfo.refetch();
 	};
 
-	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching;
+	const onInstallRequested = async (pkg: TauriPackage) => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			console.log("install", pkg.name, pkg.version);
+			const changes = await projectInstallPackage(projectPath, pkg.env_version, pkg.index);
+			setInstallStatus({status: "promptingChanges", changes});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+		}
+	}
+	
+	const onRemoveRequested = (pkgId: string) => {
+		console.log("remove", pkgId);
+	}
+
+	const applyChanges = async (changes: TauriPendingProjectChanges) => {
+		try {
+			setInstallStatus({status: "applyingChanges"});
+			await projectApplyPendingChanges(projectPath, changes.changes_version);
+			setInstallStatus({status: "normal"});
+			detailsResult.refetch();
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+		}
+	}
+
+	const installingPackage = installStatus.status != "normal";
+	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage;
 
 	return (
 		<VStack className={"m-4"}>
@@ -186,13 +229,126 @@ function PageBody() {
 							</tr>
 							</thead>
 							<tbody>
-							{packageRows.map((row) => (<PackageRow pkg={row} key={row.id}/>))}
+							{packageRows.map((row) => (
+								<PackageRow pkg={row} key={row.id}
+														locked={installingPackage}
+														onInstallRequested={onInstallRequested}
+														onRemoveRequested={onRemoveRequested}/>
+							))}
 							</tbody>
 						</table>
 					</Card>
 				</Card>
+				{
+					installStatus.status === "promptingChanges" ? (
+						<ProjectChangesDialog changes={installStatus.changes}
+																	cancel={() => setInstallStatus({status: "normal"})}
+																	apply={() => applyChanges(installStatus.changes)}
+						/>
+					) : null
+				}
 			</main>
 		</VStack>
+	);
+}
+
+function ProjectChangesDialog(
+	{
+		changes,
+		cancel,
+		apply,
+	}: {
+		changes: TauriPendingProjectChanges,
+		cancel: () => void,
+		apply: () => void,
+	}) {
+	const versionConflicts = changes.conflicts.filter(([_, c]) => c.packages.length > 0);
+	const unityConflicts = changes.conflicts.filter(([_, c]) => c.unity_conflict);
+
+	return (
+		<Dialog open handler={() => {}}>
+			<DialogHeader>Apply Changes</DialogHeader>
+			<DialogBody>
+				<Typography className={"text-gray-900"}>
+					You're applying the following changes to the project
+				</Typography>
+				<List>
+					{changes.package_changes.map(([pkgId, pkgChange]) => {
+						if ('InstallNew' in pkgChange) {
+							return <ListItem key={pkgId}>
+								Install {pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name} version {toVersionString(pkgChange.InstallNew.version)}
+							</ListItem>
+						} else {
+							switch (pkgChange.Remove) {
+								case "Requested":
+									return <ListItem key={pkgId}>Remove {pkgId} since you requested.</ListItem>
+								case "Legacy":
+									return <ListItem key={pkgId}>Remove {pkgId} since it's a legacy package.</ListItem>
+								case "Unused":
+									return <ListItem key={pkgId}>Remove {pkgId} since it's unused.</ListItem>
+							}
+						}
+					})}
+				</List>
+				{
+					versionConflicts.length > 0 ? (
+						<>
+							<Typography className={"text-red-700"}>
+								There are version conflicts
+							</Typography>
+							<List>
+								{versionConflicts.map(([pkgId, conflict]) => (
+									<ListItem key={pkgId}>
+										{pkgId} conflicts with {conflict.packages.map(p => p).join(", ")}
+									</ListItem>
+								))}
+							</List>
+						</>
+					) : null
+				}
+				{
+					unityConflicts.length > 0 ? (
+						<>
+							<Typography className={"text-red-700"}>
+								There are unity version conflicts
+							</Typography>
+							<List>
+								{unityConflicts.map(([pkgId, _]) => (
+									<ListItem key={pkgId}>
+										{pkgId} does not support your unity version
+									</ListItem>
+								))}
+							</List>
+						</>
+					) : null
+				}
+				{
+					changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
+						<>
+							<Typography className={"text-red-700"}>
+								The following legacy files and folders will be removed
+							</Typography>
+							<List>
+								{changes.remove_legacy_files.map(f => (
+									<ListItem key={f}>
+										{f}
+									</ListItem>
+								))}
+								{changes.remove_legacy_folders.map(f => (
+									<ListItem key={f}>
+										{f}
+									</ListItem>
+								))}
+							</List>
+						</>
+					): null
+				}
+			</DialogBody>
+			<DialogFooter>
+				<Button onClick={cancel} className="mr-1">Cancel</Button>
+				<Button onClick={apply} color={"red"}>Apply</Button>
+			</DialogFooter>
+		</Dialog>
 	);
 }
 
@@ -266,8 +422,8 @@ interface PackageRowInfo {
 	id: string;
 	infoSource: TauriVersion;
 	displayName: string;
-	unityCompatible: Map<string, TauriBasePackageInfo>;
-	unityIncompatible: Map<string, TauriBasePackageInfo>;
+	unityCompatible: Map<string, TauriPackage>;
+	unityIncompatible: Map<string, TauriPackage>;
 	sources: Set<string>;
 	installed: null | {
 		version: TauriVersion;
@@ -394,21 +550,25 @@ function combinePackagesAndProjectDetails(
 	return asArray;
 }
 
-type PackageInfo = {
-	installed: string | null;
-	versions: string[];
-	displayName: string;
-	id: string;
-	source: string;
-};
-
-function PackageRow({pkg}: { pkg: PackageRowInfo }) {
+function PackageRow(
+	{
+		pkg,
+		locked,
+		onInstallRequested,
+		onRemoveRequested,
+	}: {
+		pkg: PackageRowInfo;
+		locked: boolean;
+		onInstallRequested: (pkg: TauriPackage) => void;
+		onRemoveRequested: (pkgId: string) => void;
+	}) {
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
-	const latestVersion = versionNames[0];
+	const latestVersion: string | undefined = versionNames[0];
 
-	let installedInfo;
+	const notInstalled = "Not Installed";
+	let installedInfo: string;
 	if (pkg.installed) {
 		const version = toVersionString(pkg.installed.version);
 		if (pkg.installed.yanked) {
@@ -417,8 +577,26 @@ function PackageRow({pkg}: { pkg: PackageRowInfo }) {
 			installedInfo = version;
 		}
 	} else {
-		installedInfo = "Not Installed";
+		installedInfo = notInstalled;
 	}
+
+	const onChange = (version: string | undefined) => {
+		if (!version) return;
+		const pkgVersion = pkg.unityCompatible.get(version);
+		if (!pkgVersion) return;
+		onInstallRequested(pkgVersion);
+	}
+
+	const installLatest = () => {
+		if (!latestVersion) return;
+		const latest = pkg.unityCompatible.get(latestVersion);
+		if (!latest) return;
+		onInstallRequested(latest);
+	}
+
+	const remove = () => {
+		onRemoveRequested(pkg.id);
+	};
 
 	return (
 		<tr className="even:bg-blue-gray-50/50">
@@ -440,8 +618,12 @@ function PackageRow({pkg}: { pkg: PackageRowInfo }) {
 								labelProps={{className: "hidden"}}
 								menuProps={{className: "z-20"}}
 								className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
+								onChange={onChange}
+								selected={() => <>{installedInfo}</>}
+								disabled={locked}
 				>
 					{versionNames.map(v => <Option key={v} value={v}>{v}</Option>)}
+					<Option value={notInstalled} hidden>{notInstalled}</Option>
 				</Select>
 			</td>
 			<td className={noGrowCellClass}>
@@ -474,12 +656,13 @@ function PackageRow({pkg}: { pkg: PackageRowInfo }) {
 					{
 						pkg.installed ? (
 							<Tooltip content={"Remove Package"}>
-								<IconButton variant={'text'}><MinusCircleIcon
+								<IconButton variant={'text'} disabled={locked} onClick={remove}><MinusCircleIcon
 									className={"size-5 text-red-700"}/></IconButton>
 							</Tooltip>
 						) : (
 							<Tooltip content={"Add Package"}>
-								<IconButton variant={'text'}><PlusCircleIcon
+								<IconButton variant={'text'} disabled={locked && !!latestVersion}
+														onClick={installLatest}><PlusCircleIcon
 									className={"size-5 text-gray-800"}/></IconButton>
 							</Tooltip>
 						)

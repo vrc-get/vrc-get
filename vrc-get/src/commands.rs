@@ -174,7 +174,6 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
             PackageChange::Remove(change) => {
                 removed.push((change.reason(), name));
             }
-            _ => {}
         }
     }
 
@@ -215,7 +214,6 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
                 RemoveReason::Requested => "requested",
                 RemoveReason::Legacy => "legacy",
                 RemoveReason::Unused => "unused",
-                _ => unreachable!(),
             };
             println!("- {} (removed since {})", name, reason_name);
         }

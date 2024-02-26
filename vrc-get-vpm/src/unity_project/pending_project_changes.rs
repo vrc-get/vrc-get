@@ -32,7 +32,6 @@ pub struct PendingProjectChanges<'env> {
     pub(crate) conflicts: HashMap<Box<str>, ConflictInfo>,
 }
 
-#[non_exhaustive]
 #[derive(Debug)]
 pub enum PackageChange<'env> {
     Install(Install<'env>),
@@ -88,7 +87,6 @@ impl<'env> Remove<'env> {
     }
 }
 
-#[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum RemoveReason {
     Requested,
