@@ -46,6 +46,7 @@ import {
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {VGOption, VGSelect} from "@/lib/select";
+import {unsupported} from "@/lib/unsupported";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -774,7 +775,7 @@ function ProjectViewHeader({className, projectName, projectPath}: { className?: 
 
 			<Menu>
 				<ButtonGroup>
-					<Button className={"pl-4 pr-3"}>Open Unity</Button>
+					<Button onClick={unsupported("Open Unity")} className={"pl-4 pr-3"}>Open Unity</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
@@ -783,8 +784,8 @@ function ProjectViewHeader({className, projectName, projectPath}: { className?: 
 				</ButtonGroup>
 				<MenuList>
 					<MenuItem onClick={openProjectFolder}>Open Project Folder</MenuItem>
-					<MenuItem>Make Backup</MenuItem>
-					<MenuItem className={"bg-red-700 text-white"}>Remove Project</MenuItem>
+					<MenuItem onClick={unsupported("Backup")}>Make Backup</MenuItem>
+					<MenuItem onClick={unsupported("Remove")} className={"bg-red-700 text-white"}>Remove Project</MenuItem>
 				</MenuList>
 			</Menu>
 		</HNavBar>

@@ -1,6 +1,7 @@
 import type {Metadata} from "next";
 import {Noto_Sans_JP} from "next/font/google";
 import "./globals.css";
+import 'react-toastify/dist/ReactToastify.css';
 import {SideBar} from "@/components/SideBar";
 import {Providers} from "@/components/providers";
 

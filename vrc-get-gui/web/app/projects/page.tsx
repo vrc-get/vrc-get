@@ -27,6 +27,7 @@ import {environmentProjects, TauriProject, TauriProjectType, utilOpen} from "@/l
 import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
+import {unsupported} from "@/lib/unsupported";
 
 export default function Page() {
 	const result = useQuery({
@@ -198,10 +199,10 @@ function ProjectRow({project}: { project: TauriProject }) {
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
-					<Button>Open Unity</Button>
+					<Button onClick={unsupported("Open Unity")}>Open Unity</Button>
 					<Button onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
 									color={"blue"}>Manage</Button>
-					<Button color={"green"}>Backup</Button>
+					<Button onClick={unsupported("Backup")} color={"green"}>Backup</Button>
 					<Menu>
 						<MenuHandler>
 							<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
@@ -240,7 +241,7 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 
 			<Menu>
 				<ButtonGroup>
-					<Button className={"pl-4 pr-3"}>Create New Project</Button>
+					<Button className={"pl-4 pr-3"} onClick={unsupported("Create Project")}>Create New Project</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
@@ -248,7 +249,7 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 					</MenuHandler>
 				</ButtonGroup>
 				<MenuList>
-					<MenuItem>Add Existing Project</MenuItem>
+					<MenuItem onClick={unsupported("Add Project")}>Add Existing Project</MenuItem>
 				</MenuList>
 			</Menu>
 		</HNavBar>
