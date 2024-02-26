@@ -85,6 +85,11 @@ pub trait IoTrait: Sync {
         command: &OsStr,
         args: &[&OsStr],
     ) -> impl Future<Output = Result<ExitStatus>> + Send;
+    fn spawn_detached(
+        &self,
+        command: &OsStr,
+        args: &[&OsStr],
+    ) -> impl Future<Output = Result<()>> + Send;
     fn command_output(
         &self,
         command: &OsStr,

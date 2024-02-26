@@ -234,6 +234,11 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
             .map(Into::into)
     }
 
+    async fn spawn_detached(&self, command: &OsStr, args: &[&OsStr]) -> io::Result<()> {
+        Command::new(command).args(args).spawn()?;
+        Ok(())
+    }
+
     async fn command_output(&self, command: &OsStr, args: &[&OsStr]) -> io::Result<io::Output> {
         Command::new(command)
             .args(args)

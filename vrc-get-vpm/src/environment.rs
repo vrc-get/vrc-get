@@ -80,6 +80,21 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             io,
         })
     }
+
+    /// Reload configuration files on the filesystem.
+    /// This doesn't update repository cache or user package cache.
+    /// Please call [`load_package_infos`] after this method.
+    ///
+    /// [`load_package_infos`]: Environment::load_package_infos
+    pub async fn reload(&mut self) -> io::Result<()> {
+        self.settings = Settings::load(&self.io).await?;
+        self.vrc_get_settings = VrcGetSettings::load(&self.io).await?;
+        #[cfg(feature = "vrc-get-litedb")]
+        {
+            self.litedb_connection = litedb::LiteDbConnectionHolder::new();
+        }
+        Ok(())
+    }
 }
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
@@ -186,6 +201,33 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             self.user_packages.try_add_package(&self.io, x).await?;
         }
         Ok(())
+    }
+}
+
+impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+    pub fn gui_hidden_repositories(&self) -> impl Iterator<Item = &str> {
+        self.vrc_get_settings
+            .gui_hidden_repositories()
+            .iter()
+            .map(|x| x.as_str())
+    }
+
+    pub fn add_gui_hidden_repositories(&mut self, repository: String) {
+        self.vrc_get_settings
+            .add_gui_hidden_repositories(repository);
+    }
+
+    pub fn remove_gui_hidden_repositories(&mut self, repository: &str) {
+        self.vrc_get_settings
+            .remove_gui_hidden_repositories(repository);
+    }
+
+    pub fn hide_local_user_packages(&self) -> bool {
+        self.vrc_get_settings.hide_local_user_packages()
+    }
+
+    pub fn set_hide_local_user_packages(&mut self, value: bool) {
+        self.vrc_get_settings.set_hide_local_user_packages(value);
     }
 }
 
@@ -441,7 +483,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             self.vrc_get_settings.save(&self.io),
         )
         .await
-        .map(|_| ())
+        .map(|_| ())?;
+
+        #[cfg(feature = "vrc-get-litedb")]
+        {
+            self.litedb_connection = litedb::LiteDbConnectionHolder::new();
+        }
+        Ok(())
     }
 }
 

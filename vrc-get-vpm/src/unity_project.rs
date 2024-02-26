@@ -146,7 +146,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 
     pub async fn is_valid(&self) -> bool {
-        self.unity_version.is_some() || self.manifest.has_any()
+        self.unity_version.is_some() && self.manifest.has_any()
     }
 
     pub async fn save(&mut self) -> io::Result<()> {
@@ -169,7 +169,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         self.manifest.dependencies().map(|(name, _)| name)
     }
 
-    pub(crate) fn get_locked(&self, name: &str) -> Option<LockedDependencyInfo> {
+    pub fn get_locked(&self, name: &str) -> Option<LockedDependencyInfo> {
         self.manifest.get_locked(name)
     }
 
@@ -191,6 +191,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
     pub fn unlocked_packages(&self) -> &[(Box<str>, Option<PackageJson>)] {
         &self.unlocked_packages
+    }
+
+    pub fn installed_packages(&self) -> impl Iterator<Item = (&str, &PackageJson)> {
+        self.installed_packages
+            .iter()
+            .map(|(key, value)| (key.as_ref(), value))
     }
 
     pub fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
