@@ -16,8 +16,6 @@ import {
 	MenuHandler,
 	MenuItem,
 	MenuList,
-	Option,
-	Select,
 	Spinner,
 	Tooltip,
 	Typography
@@ -189,7 +187,8 @@ function PageBody() {
 					Unity Version:
 				</Typography>
 				<div className={"flex-grow-0 flex-shrink-0"}>
-					<VGSelect value={"2019.4.31f1"}
+					<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
+						<span className={"text-blue-gray-300"}>Loading...</span>}
 										className="border-blue-gray-200">
 						{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 					</VGSelect>
@@ -638,8 +637,7 @@ function PackageRow(
 	const incompatibleNames = [...pkg.unityIncompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
 
-	const notInstalled = "Not Installed";
-	let installedInfo: string;
+	let installedInfo: React.ReactNode;
 	if (pkg.installed) {
 		const version = toVersionString(pkg.installed.version);
 		if (pkg.installed.yanked) {
@@ -648,7 +646,7 @@ function PackageRow(
 			installedInfo = version;
 		}
 	} else {
-		installedInfo = notInstalled;
+		installedInfo = <span className={"text-blue-gray-300"}>Not Installed</span>;
 	}
 
 	const onChange = (version: string) => {
@@ -683,9 +681,9 @@ function PackageRow(
 			<td className={noGrowCellClass}>
 				{/* TODO: show incompatible versions */}
 				<VGSelect value={installedInfo}
-								className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
-								onChange={onChange}
-								disabled={locked}
+									className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
+									onChange={onChange}
+									disabled={locked}
 				>
 					{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 					{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
