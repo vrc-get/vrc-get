@@ -687,7 +687,7 @@ function PackageRow(
 				>
 					{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 					{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
-					<Typography className={"text-sm"}>Incompatibles</Typography>
+					{incompatibleNames.length > 0 && <Typography className={"text-sm"}>Incompatibles</Typography>}
 					{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 				</VGSelect>
 			</td>
