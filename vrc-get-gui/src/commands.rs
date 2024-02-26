@@ -347,7 +347,7 @@ async fn environment_repositories_info(
 ) -> Result<TauriRepositoriesInfo, RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(true).await?;
+    let environment = env_state.environment.get_environment_mut(false).await?;
 
     Ok(TauriRepositoriesInfo {
         user_repositories: environment
@@ -377,7 +377,7 @@ async fn environment_hide_repository(
 ) -> Result<(), RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(true).await?;
+    let environment = env_state.environment.get_environment_mut(false).await?;
     environment.add_gui_hidden_repositories(repository);
     environment.save().await?;
 
@@ -392,7 +392,7 @@ async fn environment_show_repository(
 ) -> Result<(), RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(true).await?;
+    let environment = env_state.environment.get_environment_mut(false).await?;
     environment.remove_gui_hidden_repositories(&repository);
     environment.save().await?;
 
@@ -407,7 +407,7 @@ async fn environment_set_hide_local_user_packages(
 ) -> Result<(), RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(true).await?;
+    let environment = env_state.environment.get_environment_mut(false).await?;
     environment.set_hide_local_user_packages(value);
     environment.save().await?;
 
