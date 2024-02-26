@@ -9,6 +9,7 @@ import {
 	MenuHandler,
 	MenuItem,
 	MenuList,
+	Spinner,
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
@@ -37,8 +38,10 @@ export default function Page() {
 
 	return (
 		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"} refresh={() => result.refetch()} search={search}
-												 setSearch={setSearch}/>
+			<ProjectViewHeader className={"flex-shrink-0"}
+												 refresh={() => result.refetch()}
+												 isLoading={result.isFetching}
+												 search={search} setSearch={setSearch}/>
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll">
 					{
@@ -205,9 +208,10 @@ function ProjectRow({project}: { project: TauriProject }) {
 	)
 }
 
-function ProjectViewHeader({className, refresh, search, setSearch}: {
+function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 	className?: string,
 	refresh?: () => void,
+	isLoading?: boolean,
 	search: string,
 	setSearch: (search: string) => void
 }) {
@@ -218,8 +222,8 @@ function ProjectViewHeader({className, refresh, search, setSearch}: {
 			</Typography>
 
 			<Tooltip content="Reflesh list of projects">
-				<IconButton variant={"text"} onClick={() => refresh?.()}>
-					<ArrowPathIcon className={"w-5 h-5"}/>
+				<IconButton variant={"text"} onClick={() => refresh?.()} disabled={isLoading}>
+					{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 				</IconButton>
 			</Tooltip>
 

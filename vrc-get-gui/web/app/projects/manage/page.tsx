@@ -12,6 +12,7 @@ import {
 	MenuList,
 	Option,
 	Select,
+	Spinner,
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
@@ -101,6 +102,8 @@ function PageBody() {
 		repositoriesInfo.refetch();
 	};
 
+	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching;
+
 	return (
 		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName}/>
@@ -127,8 +130,8 @@ function PageBody() {
 						</Typography>
 
 						<Tooltip content="Reflesh Packages">
-							<IconButton variant={"text"} onClick={onRefresh} className={"flex-shrink-0"}>
-								<ArrowPathIcon className={"w-5 h-5"}/>
+							<IconButton variant={"text"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
+								{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 							</IconButton>
 						</Tooltip>
 
@@ -443,7 +446,7 @@ function PackageRow({pkg}: { pkg: PackageRowInfo }) {
 			</td>
 			<td className={noGrowCellClass}>
 				{
-					latestVersion ? <Typography className="font-normal">{latestVersion}</Typography> 
+					latestVersion ? <Typography className="font-normal">{latestVersion}</Typography>
 						: <Typography className="font-normal text-blue-gray-400">none</Typography>
 				}
 			</td>
