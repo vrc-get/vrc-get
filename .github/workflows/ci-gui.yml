@@ -60,7 +60,7 @@ jobs:
           target: ${{ matrix.triple }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ci-build-${{ matrix.triple }}
+          key: ci-build-gui-${{ matrix.triple }}
       - uses: taiki-e/install-action@v2
         with:
           tool: tauri-cli@1
