@@ -299,7 +299,7 @@ function ProjectChangesDialog(
 			<DialogHeader>Apply Changes</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-gray-900"}>
-					You're applying the following changes to the project
+					You&apos;re applying the following changes to the project
 				</Typography>
 				<List>
 					{changes.package_changes.map(([pkgId, pkgChange]) => {
@@ -312,9 +312,9 @@ function ProjectChangesDialog(
 								case "Requested":
 									return <ListItem key={pkgId}>Remove {pkgId} since you requested.</ListItem>
 								case "Legacy":
-									return <ListItem key={pkgId}>Remove {pkgId} since it's a legacy package.</ListItem>
+									return <ListItem key={pkgId}>Remove {pkgId} since it&apos;s a legacy package.</ListItem>
 								case "Unused":
-									return <ListItem key={pkgId}>Remove {pkgId} since it's unused.</ListItem>
+									return <ListItem key={pkgId}>Remove {pkgId} since it&apos;s unused.</ListItem>
 							}
 						}
 					})}
