@@ -124,11 +124,8 @@ function PageBody() {
 		"", // actions
 	];
 
-	const unityVersions = [
-		'2019.4.31f1',
-		'2020.3.14f1',
-		'2021.1.5f1',
-	];
+	// TODO: get installed unity versions and show them
+	const unityVersions: string[] = []
 
 	const onRefresh = () => {
 		packagesResult.refetch();
