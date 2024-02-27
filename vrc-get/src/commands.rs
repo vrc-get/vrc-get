@@ -12,7 +12,7 @@ use std::error::Error as StdError;
 use std::ffi::OsStr;
 use std::fmt::{Debug, Display};
 use std::num::NonZeroU32;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
@@ -995,13 +995,38 @@ impl RepoAdd {
                 .await
                 .exit_context("adding repository")
         } else {
-            env.add_local_repo(Path::new(&self.path_or_url), self.name.as_deref())
+            let cwd = env::current_dir().exit_context("getting current directory");
+            let joined = cwd.join(&self.path_or_url);
+            let normalized = normalize_path(&joined);
+            if !normalized.exists() {
+                exit_with!("path not found: {}", normalized.display());
+            }
+            env.add_local_repo(normalized.as_ref(), self.name.as_deref())
                 .exit_context("adding repository")
         }
 
         save_env(&mut env).await;
     }
 }
+
+fn normalize_path(input: &Path) -> PathBuf {
+    let mut result = PathBuf::with_capacity(input.as_os_str().len());
+
+    for component in input.components() {
+        match component {
+            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
+            Component::RootDir => result.push("/"),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                result.pop();
+            }
+            Component::Normal(_) => result.push(component.as_os_str()),
+        }
+    }
+
+    result
+}
+
 /// Remove repository with specified url, path or name
 #[derive(Parser)]
 #[command(author, version)]
