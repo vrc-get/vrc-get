@@ -66,8 +66,10 @@ jobs:
       - name: Setup
         run: ${{ matrix.setup }}
 
-      - name: Build
-        run: cargo tauri build --verbose --target ${{ matrix.triple }}
+      - uses: tauri-apps/tauri-action@v0
+        with:
+          tauriScript: cargo tauri
+          args: --target ${{ matrix.triple }}
 
       - name: Upload built binary
         uses: actions/upload-artifact@v4
