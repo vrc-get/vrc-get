@@ -132,15 +132,14 @@ jobs:
 
               sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
             rustflags: "-C link-arg=-fuse-ld=lld"
-            dist-paths: |
+            dist-path: |
               bundle/appimage/vrc-get-gui_${GUI_VERSION}_amd64.AppImage:vrc-get-gui-${GUI_VERSION}-x86_64.AppImage
 
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
-            dist-paths: |
+            dist-path: |
               vrc-get-gui.exe:vrc-get-gui-${GUI_VERSION}-x86_64.exe
               bundle/nsis/vrc-get-gui_${GUI_VERSION}_x64-setup.exe:vrc-get-gui-${GUI_VERSION}-x86_64-setup.exe
-
 
           - triple: x86_64-apple-darwin
             on: macos-latest
