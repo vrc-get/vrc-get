@@ -83,14 +83,14 @@ jobs:
         if: ${{ !steps.update-version.outputs.prerelease }}
         uses: anatawa12/sh-actions/changelog/prepare-release@master
         with:
-          version: ${{ env.VERSION }}
+          version: ${{ env.CLI_VERSION }}
           prerelease: ${{ env.PRERELEASE }}
           tag-prefix: v
           prerelease-note-heading: |
-            Version ${{ env.VERSION }}
+            Version ${{ env.CLI_VERSION }}
             ---
           release-note-heading: |
-            Version ${{ env.VERSION }}
+            Version ${{ env.CLI_VERSION }}
             ---
       - name: Upload CHANGELOG.md
         if: ${{ !steps.update-version.outputs.prerelease }}
