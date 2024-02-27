@@ -288,7 +288,7 @@ jobs:
           gh release create \
             --prerelease \
             ${{ !needs.pre-build.outputs.prerelease && '--notes-file changelog/release-note.md' || '' }} \
-            --verify-tag "v$GUI_VERSION" \
+            --verify-tag "gui-v$GUI_VERSION" \
             assets/*
 
           rm -rf outputs assets
