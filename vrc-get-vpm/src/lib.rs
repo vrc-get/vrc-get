@@ -35,6 +35,8 @@ pub use traits::RemotePackageDownloader;
 pub use package_json::PackageJson;
 pub use structs::setting::UserRepoSetting;
 
+pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 6);
+
 #[derive(Debug, Copy, Clone)]
 pub struct PackageInfo<'a> {
     inner: PackageInfoInner<'a>,

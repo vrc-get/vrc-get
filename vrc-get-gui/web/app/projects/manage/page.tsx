@@ -35,19 +35,23 @@ import {
 	environmentShowRepository,
 	projectApplyPendingChanges,
 	projectDetails,
+	projectFinalizeMigrationWithUnity2022,
 	projectInstallPackage,
+	projectMigrateProjectTo2022,
 	projectRemovePackage,
 	TauriBasePackageInfo,
 	TauriPackage,
 	TauriPendingProjectChanges,
 	TauriProjectDetails,
 	TauriUserRepository,
-	TauriVersion, utilOpen
+	TauriVersion,
+	utilOpen
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
+import {toast} from "react-toastify";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -62,6 +66,16 @@ type InstallStatus = {
 	changes: TauriPendingProjectChanges;
 } | {
 	status: "applyingChanges";
+} | {
+	status: "unity2022migration:confirm";
+} | {
+	status: "unity2022migration:confirmUnityVersionMismatch";
+	recommendedUnityVersion: string;
+	foundUnityVersion: string;
+} | {
+	status: "unity2022migration:updating";
+} | {
+	status: "unity2022migration:finalizing";
 }
 
 function PageBody() {
@@ -171,8 +185,102 @@ function PageBody() {
 		}
 	}
 
+	const requestMigrateProjectTo2022 = async () => {
+		setInstallStatus({status: "unity2022migration:confirm"});
+	}
+
+	const cancelMigrateProjectTo2022 = async () => {
+		setInstallStatus({status: "normal"});
+	}
+
+	const doMigrateProjectTo2022 = async (allowMismatch: boolean) => {
+		try {
+			setInstallStatus({status: "unity2022migration:updating"});
+			const migrationResult = await projectMigrateProjectTo2022(projectPath, allowMismatch);
+			switch (migrationResult.type) {
+				case "NoUnity2022Found":
+					toast.error("Failed to migrate project: Unity 2022 is not found");
+					setInstallStatus({status: "normal"});
+					return;
+				case "ConfirmNotExactlyRecommendedUnity2022":
+					setInstallStatus({
+						status: "unity2022migration:confirmUnityVersionMismatch",
+						recommendedUnityVersion: migrationResult.recommended,
+						foundUnityVersion: migrationResult.found,
+					});
+					return; // do rest after confirm
+				case "MigrationInVpmFinished":
+					break;
+				default:
+					const _: never = migrationResult;
+			}
+			setInstallStatus({status: "unity2022migration:finalizing"});
+			const finalizeResult = await projectFinalizeMigrationWithUnity2022(projectPath);
+			switch (finalizeResult.type) {
+				case "NoUnity2022Found":
+					toast.error("Failed to finalize the migration: Unity 2022 is not found");
+					break;
+				case "UnityExistsWithStatus":
+					toast.error(`Might be failed to finalize the migration: Unity 2022 is ${finalizeResult.status}`);
+					break;
+				case "FinishedSuccessfully":
+					toast.success("Migration to Unity 2022 is completed");
+					break;
+				default:
+					const _: never = finalizeResult;
+			}
+			setInstallStatus({status: "normal"});
+			detailsResult.refetch();
+		} catch (e) {
+			console.error(e);
+			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			setInstallStatus({status: "normal"});
+		}
+	};
+
 	const installingPackage = installStatus.status != "normal";
 	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage;
+
+	function checkIfMigrationTo2022Recommended(data: TauriProjectDetails) {
+		if (data.unity == null) return false;
+		// migrate if the project is using 2019 and has vrcsdk
+		if (data.unity[0] != 2019) return false;
+		return data.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id));
+	}
+
+	const isMigrationTo2022Recommended = detailsResult.status == 'success' && checkIfMigrationTo2022Recommended(detailsResult.data);
+
+	let dialogForState: React.ReactNode = null;
+
+	switch (installStatus.status) {
+		case "promptingChanges":
+			dialogForState = <ProjectChangesDialog
+				changes={installStatus.changes}
+				cancel={() => setInstallStatus({status: "normal"})}
+				apply={() => applyChanges(installStatus.changes)}
+			/>;
+			break;
+		case "unity2022migration:confirm":
+			dialogForState = <Unity2022MigrationConfirmMigrationDialog
+				cancel={cancelMigrateProjectTo2022}
+				doMigrate={() => doMigrateProjectTo2022(false)}
+			/>;
+			break;
+		case "unity2022migration:confirmUnityVersionMismatch":
+			dialogForState = <Unity2022MigrationUnityVersionMismatchDialog
+				recommendedUnityVersion={installStatus.recommendedUnityVersion}
+				foundUnityVersion={installStatus.foundUnityVersion}
+				cancel={cancelMigrateProjectTo2022}
+				doMigrate={() => doMigrateProjectTo2022(true)}
+			/>;
+			break;
+		case "unity2022migration:updating":
+			dialogForState = <Unity2022MigrationMigratingDialog/>;
+			break;
+		case "unity2022migration:finalizing":
+			dialogForState = <Unity2022MigrationCallingUnityForMigrationDialog/>;
+			break;
+	}
 
 	return (
 		<VStack className={"m-4"}>
@@ -193,6 +301,7 @@ function PageBody() {
 					</VGSelect>
 				</div>
 			</Card>
+			{isMigrationTo2022Recommended && <SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex">
 					<div className={"flex flex-shrink-0 flex-grow-0 flex-row gap-2"}>
@@ -267,16 +376,134 @@ function PageBody() {
 						</table>
 					</Card>
 				</Card>
-				{
-					installStatus.status === "promptingChanges" ? (
-						<ProjectChangesDialog changes={installStatus.changes}
-																	cancel={() => setInstallStatus({status: "normal"})}
-																	apply={() => applyChanges(installStatus.changes)}
-						/>
-					) : null
-				}
+				{dialogForState}
 			</main>
 		</VStack>
+	);
+}
+
+function SuggestMigrateTo2022Card(
+	{
+		disabled,
+		onMigrateRequested,
+	}: {
+		disabled?: boolean;
+		onMigrateRequested: () => void;
+	}
+) {
+	return (
+		<Card className={"flex-shrink-0 p-2 flex flex-row"}>
+			<Typography
+				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+				Your project is using Unity 2019 which is no longer supported by VRChat SDK.
+				It&apos;s recommended by VRChat to migrate project to Unity 2022.
+			</Typography>
+			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
+				Migrate Project
+			</Button>
+		</Card>
+	)
+}
+
+function Unity2022MigrationConfirmMigrationDialog(
+	{
+		cancel,
+		doMigrate,
+	}: {
+		cancel: () => void,
+		doMigrate: () => void,
+	}) {
+	return (
+		<Dialog open handler={() => {
+		}} className={"whitespace-normal"}>
+			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogBody>
+				<Typography className={"text-red-700"}>
+					Due to technical reasons, vrc-get only supports in-place migration for now.
+					In addition, project migration is experimental in vrc-get.
+				</Typography>
+				<Typography className={"text-red-700"}>
+					Please make backup of your project before migration.
+				</Typography>
+			</DialogBody>
+			<DialogFooter>
+				<Button onClick={cancel} className="mr-1">Cancel Migration</Button>
+				<Button onClick={doMigrate} color={"red"}>Migrate Project</Button>
+			</DialogFooter>
+		</Dialog>
+	);
+}
+
+function Unity2022MigrationUnityVersionMismatchDialog(
+	{
+		recommendedUnityVersion,
+		foundUnityVersion,
+		cancel,
+		doMigrate,
+	}: {
+		recommendedUnityVersion: string,
+		foundUnityVersion: string,
+		cancel: () => void,
+		doMigrate: () => void,
+	}) {
+	return (
+		<Dialog open handler={() => {
+		}} className={"whitespace-normal"}>
+			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogBody>
+				<Typography>
+					We could not find exactly recommended Unity 2022 version.
+				</Typography>
+				<Typography>
+					Recommended: {recommendedUnityVersion}
+				</Typography>
+				<Typography>
+					Found: {foundUnityVersion}
+				</Typography>
+				<Typography>
+					Do you want to continue?
+				</Typography>
+			</DialogBody>
+			<DialogFooter>
+				<Button onClick={cancel} className="mr-1">Cancel Migration</Button>
+				<Button onClick={doMigrate} color={"red"}>Continue Migration</Button>
+			</DialogFooter>
+		</Dialog>
+	);
+}
+
+function Unity2022MigrationMigratingDialog() {
+	return (
+		<Dialog open handler={() => {
+		}} className={"whitespace-normal"}>
+			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogBody>
+				<Typography>
+					Migrating Packages...
+				</Typography>
+				<Typography>
+					Please do not close the window.
+				</Typography>
+			</DialogBody>
+		</Dialog>
+	);
+}
+
+function Unity2022MigrationCallingUnityForMigrationDialog() {
+	return (
+		<Dialog open handler={() => {
+		}} className={"whitespace-normal"}>
+			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogBody>
+				<Typography>
+					Launching Unity 2022 in background for finalizing the migration...
+				</Typography>
+				<Typography>
+					Please do not close the window.
+				</Typography>
+			</DialogBody>
+		</Dialog>
 	);
 }
 
@@ -756,7 +983,11 @@ function PackageRow(
 	);
 }
 
-function ProjectViewHeader({className, projectName, projectPath}: { className?: string, projectName: string, projectPath: string }) {
+function ProjectViewHeader({className, projectName, projectPath}: {
+	className?: string,
+	projectName: string,
+	projectPath: string
+}) {
 	const openProjectFolder = () => utilOpen(projectPath);
 
 	return (
