@@ -15,9 +15,11 @@ use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
-use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
+use vrc_get_vpm::unity_project::{AddPackageOperation, ExecuteUnityError, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, ProjectType};
+use vrc_get_vpm::{
+    PackageCollection, PackageInfo, PackageJson, ProjectType, VRCHAT_RECOMMENDED_2022_UNITY,
+};
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
     generate_handler![
@@ -32,6 +34,8 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_install_package,
         project_remove_package,
         project_apply_pending_changes,
+        project_migrate_project_to_2022,
+        project_finalize_migration_with_unity_2022,
         project_open_unity,
         util_open,
     ]
@@ -52,6 +56,8 @@ pub(crate) fn export_ts() {
             project_install_package,
             project_remove_package,
             project_apply_pending_changes,
+            project_migrate_project_to_2022,
+            project_finalize_migration_with_unity_2022,
             project_open_unity,
             util_open,
         ]
@@ -737,6 +743,91 @@ async fn project_apply_pending_changes(
 
     unity_project.save().await?;
     Ok(())
+}
+
+#[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
+enum TauriMigrateProjectTo2022Result {
+    NoUnity2022Found,
+    ConfirmNotExactlyRecommendedUnity2022 { found: String, recommended: String },
+    MigrationInVpmFinished,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_migrate_project_to_2022(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    allow_mismatched_unity: bool,
+) -> Result<TauriMigrateProjectTo2022Result, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    let Some(found_unity) = environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
+    else {
+        return Ok(TauriMigrateProjectTo2022Result::NoUnity2022Found);
+    };
+
+    if !allow_mismatched_unity && found_unity.version().unwrap() != VRCHAT_RECOMMENDED_2022_UNITY {
+        return Ok(
+            TauriMigrateProjectTo2022Result::ConfirmNotExactlyRecommendedUnity2022 {
+                found: found_unity.version().unwrap().to_string(),
+                recommended: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
+            },
+        );
+    }
+
+    let mut unity_project = load_project(project_path).await?;
+
+    match unity_project.migrate_unity_2022(environment).await {
+        Ok(()) => {}
+        Err(e) => return Err(RustError::Unrecoverable(format!("{e}"))),
+    }
+
+    unity_project.save().await?;
+
+    Ok(TauriMigrateProjectTo2022Result::MigrationInVpmFinished)
+}
+
+#[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
+enum TauriFinalizeMigrationWithUnity2022 {
+    NoUnity2022Found,
+    UnityExistsWithStatus { status: String },
+    FinishedSuccessfully,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_finalize_migration_with_unity_2022(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<TauriFinalizeMigrationWithUnity2022, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    let Some(found_unity) = environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
+    else {
+        return Ok(TauriFinalizeMigrationWithUnity2022::NoUnity2022Found);
+    };
+
+    let mut unity_project = load_project(project_path).await?;
+
+    match unity_project.call_unity(found_unity.path().as_ref()).await {
+        Ok(()) => {}
+        Err(ExecuteUnityError::Io(e)) => return Err(RustError::Unrecoverable(format!("{e}"))),
+        Err(ExecuteUnityError::Unity(status)) => {
+            return Ok(TauriFinalizeMigrationWithUnity2022::UnityExistsWithStatus {
+                status: status.to_string(),
+            })
+        }
+    }
+
+    unity_project.save().await?;
+
+    Ok(TauriFinalizeMigrationWithUnity2022::FinishedSuccessfully)
 }
 
 #[derive(Serialize, specta::Type)]

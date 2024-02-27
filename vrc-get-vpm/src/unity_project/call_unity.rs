@@ -3,7 +3,6 @@ use crate::io::{FileSystemProjectIo, ProjectIo};
 use crate::UnityProject;
 use std::path::Path;
 
-#[non_exhaustive]
 #[derive(Debug)]
 pub enum ExecuteUnityError {
     Io(io::Error),
