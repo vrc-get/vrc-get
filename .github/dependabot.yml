@@ -5,3 +5,13 @@ updates:
     open-pull-requests-limit: 20
     schedule:
       interval: "weekly"
+  - package-ecosystem: github-actions
+    directory: "/"
+    open-pull-requests-limit: 20
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/vrc-get-gui/web"
+    open-pull-requests-limit: 20
+    schedule:
+      interval: "weekly"
