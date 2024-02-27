@@ -76,8 +76,9 @@ jobs:
       - name: Create Changelog
         id: changelog
         if: ${{ !steps.update-version.outputs.prerelease }}
-        uses: anatawa12/sh-actions/changelog/prepare-release@master #TODO
+        uses: anatawa12/sh-actions/changelog/prepare-release@master
         with:
+          path: CHANGELOG-gui.md
           version: ${{ env.GUI_VERSION }}
           prerelease: ${{ env.PRERELEASE }}
           tag-prefix: gui-v
