@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog].
 - `vrc-get downgrade` which is for downgrading package `#409`
 
 ### Changed
+- `vrc-get` will not search `Packages` folder for legacy assets with GUID `#439`
+  - Specifying `Packages/<package id>` folder as a legacy folder is still supported.
 
 ### Deprecated
 

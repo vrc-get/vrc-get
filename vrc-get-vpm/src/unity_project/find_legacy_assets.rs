@@ -152,11 +152,8 @@ async fn find_legacy_assets_by_guid(
         }
     }
 
-    let mut stream = pin!(walk_dir_relative(
-        io,
-        [PathBuf::from("Packages"), PathBuf::from("Assets")]
-    )
-    .filter_map(|x| get_guid(io, x)));
+    let mut stream =
+        pin!(walk_dir_relative(io, [PathBuf::from("Assets")]).filter_map(|x| get_guid(io, x)));
 
     while let Some((guid, is_file_actual, relative)) = stream.next().await {
         if let Some(&is_file) = find_guids.get(&guid) {
