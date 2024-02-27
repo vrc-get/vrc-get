@@ -118,6 +118,8 @@ jobs:
 
   build-rust:
     name: Build rust
+    environment:
+      name: actions-code-signing
     strategy:
       fail-fast: false
       matrix:
@@ -184,6 +186,14 @@ jobs:
         run: ${{ matrix.setup }}
 
       - uses: tauri-apps/tauri-action@v0
+        env:
+          # apple code signing
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tauriScript: cargo tauri
           args: --target ${{ matrix.triple }}
