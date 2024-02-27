@@ -5,7 +5,7 @@ devPath = "http://localhost:3000"
 distDir = "web/out"
 
 [package]
-productName = "vrc-get GUI"
+productName = "vrc-get-gui"
 version = "0.1.0"
 
 [tauri]
