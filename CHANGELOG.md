@@ -8,23 +8,30 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- `vrc-get downgrade` which is for downgrading package `#409`
 
 ### Changed
-- `vrc-get` will not search `Packages` folder for legacy assets with GUID `#439`
-  - Specifying `Packages/<package id>` folder as a legacy folder is still supported.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- projects migrated from `settings.json` to litedb does not have `UnityVersion` `#411`
-- `vrc-get repo add` adds a relative path to `settings.json` `#440`
-- `vrc-get repo add` accepts invalid path to the local repository `#440`
-- last modified on the vcc project database is not updated `#443`
 
 ### Security
+
+## [1.7.0] - 2024-02-27
+### Added
+- `vrc-get downgrade` which is for downgrading package [`#409`](https://github.com/anatawa12/vrc-get/pull/409)
+
+### Changed
+- `vrc-get` will not search `Packages` folder for legacy assets with GUID [`#439`](https://github.com/anatawa12/vrc-get/pull/439)
+  - Specifying `Packages/<package id>` folder as a legacy folder is still supported.
+
+### Fixed
+- projects migrated from `settings.json` to litedb does not have `UnityVersion` [`#411`](https://github.com/anatawa12/vrc-get/pull/411)
+- `vrc-get repo add` adds a relative path to `settings.json` [`#440`](https://github.com/anatawa12/vrc-get/pull/440)
+- `vrc-get repo add` accepts invalid path to the local repository [`#440`](https://github.com/anatawa12/vrc-get/pull/440)
+- last modified on the vcc project database is not updated [`#443`](https://github.com/anatawa12/vrc-get/pull/443)
 
 ## [1.6.1] - 2024-02-25
 ### Fixed
@@ -381,7 +388,8 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
-[Unreleased]: https://github.com/anatawa12/vrc-get/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/anatawa12/vrc-get/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/anatawa12/vrc-get/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/anatawa12/vrc-get/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/anatawa12/vrc-get/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/anatawa12/vrc-get/compare/v1.5.2...v1.5.3
