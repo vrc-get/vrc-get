@@ -268,6 +268,8 @@ async fn environment_projects(
     println!("migrating projects from settings.json");
     // migrate from settings json
     environment.migrate_from_settings_json().await?;
+    println!("syncing information with real projects");
+    environment.sync_with_real_projects().await?;
     environment.save().await?;
 
     println!("fetching projects");
