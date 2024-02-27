@@ -38,7 +38,7 @@ jobs:
       - name: Changelog check for CHANGELOG.md
         if: always() && !env.NO_CHANGELOG
         run: |
-          if ! grep -e '^CHANGELOG.md$|^CHANGELOG-gui.md$' < files.txt > /dev/null; then
+          if ! grep -Ee '^CHANGELOG.md$|^CHANGELOG-gui.md$' < files.txt > /dev/null; then
             echo "::error::CHANGELOG.md is not updated"
             exit 1
           fi
