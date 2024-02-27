@@ -6,3 +6,6 @@ release_changer = ["cargo:vrc-get-vpm"]
 
 [target.litedb]
 release_changer = ["cargo:vrc-get-litedb"]
+
+[target.gui]
+release_changer = ["cargo:vrc-get-gui"]
