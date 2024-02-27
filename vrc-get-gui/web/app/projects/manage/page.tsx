@@ -57,6 +57,14 @@ export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
 }
 
+type RequestedOperation = {
+	type: "install";
+	pkg: TauriPackage;
+} | {
+	type: "remove";
+	pkgId: string;
+}
+
 type InstallStatus = {
 	status: "normal";
 } | {
@@ -64,6 +72,7 @@ type InstallStatus = {
 } | {
 	status: "promptingChanges";
 	changes: TauriPendingProjectChanges;
+	requested: RequestedOperation;
 } | {
 	status: "applyingChanges";
 } | {
@@ -154,10 +163,11 @@ function PageBody() {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("install", pkg.name, pkg.version);
 			const changes = await projectInstallPackage(projectPath, pkg.env_version, pkg.index);
-			setInstallStatus({status: "promptingChanges", changes});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "install", pkg}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
+			toast.error((e as any).Unrecoverable ?? (e as any).message);
 		}
 	}
 
@@ -166,22 +176,42 @@ function PageBody() {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("remove", pkgId);
 			const changes = await projectRemovePackage(projectPath, pkgId);
-			setInstallStatus({status: "promptingChanges", changes});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "remove", pkgId}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
+			toast.error((e as any).Unrecoverable ?? (e as any).message);
 		}
 	}
 
-	const applyChanges = async (changes: TauriPendingProjectChanges) => {
+	const applyChanges = async (
+		{
+			changes,
+			requested,
+		}: {
+			changes: TauriPendingProjectChanges,
+			requested: RequestedOperation,
+		}) => {
 		try {
 			setInstallStatus({status: "applyingChanges"});
 			await projectApplyPendingChanges(projectPath, changes.changes_version);
 			setInstallStatus({status: "normal"});
 			detailsResult.refetch();
+
+			switch (requested.type) {
+				case "install":
+					toast.success(`Installed ${requested.pkg.display_name ?? requested.pkg.name} version ${toVersionString(requested.pkg.version)}`);
+					break;
+				case "remove":
+					toast.success(`Removed ${requested.pkgId}`);
+					break;
+				default:
+					let _: never = requested;
+			}
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
+			toast.error((e as any).Unrecoverable ?? (e as any).message);
 		}
 	}
 
@@ -257,7 +287,7 @@ function PageBody() {
 			dialogForState = <ProjectChangesDialog
 				changes={installStatus.changes}
 				cancel={() => setInstallStatus({status: "normal"})}
-				apply={() => applyChanges(installStatus.changes)}
+				apply={() => applyChanges(installStatus)}
 			/>;
 			break;
 		case "unity2022migration:confirm":
