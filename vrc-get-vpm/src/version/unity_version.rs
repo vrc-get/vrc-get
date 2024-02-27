@@ -25,7 +25,13 @@ pub struct UnityVersion {
 }
 
 impl UnityVersion {
-    pub fn new(major: u16, minor: u8, revision: u8, type_: ReleaseType, increment: u8) -> Self {
+    pub const fn new(
+        major: u16,
+        minor: u8,
+        revision: u8,
+        type_: ReleaseType,
+        increment: u8,
+    ) -> Self {
         Self {
             major,
             minor,
@@ -35,7 +41,7 @@ impl UnityVersion {
         }
     }
 
-    pub fn new_f1(major: u16, minor: u8, revision: u8) -> Self {
+    pub const fn new_f1(major: u16, minor: u8, revision: u8) -> Self {
         Self {
             major,
             minor,

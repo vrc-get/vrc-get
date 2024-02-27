@@ -1,8 +1,8 @@
-use crate::io;
 use crate::io::ProjectIo;
 use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
 use crate::version::UnityVersion;
+use crate::{io, VRCHAT_RECOMMENDED_2022_UNITY};
 use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
 use log::warn;
 
@@ -53,7 +53,6 @@ impl From<io::Error> for MigrateUnity2022Error {
 type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
 
 impl<IO: ProjectIo> UnityProject<IO> {
-    /// NOTE: This function will save manifest changes to disk immediately.
     pub async fn migrate_unity_2022<E>(&mut self, env: &E) -> Result
     where
         E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
@@ -94,7 +93,7 @@ where
     ];
     for package in migrating_packages {
         if project.get_locked(package).is_some() {
-            let unity_version = Some(UnityVersion::new_f1(2022, 3, 6));
+            let unity_version = Some(VRCHAT_RECOMMENDED_2022_UNITY);
             let Some(vrcsdk) = env
                 .find_package_by_name(package, VersionSelector::latest_for(unity_version, false))
             else {
