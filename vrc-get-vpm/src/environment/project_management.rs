@@ -2,7 +2,7 @@ use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
 use crate::utils::PathBufExt;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
-use futures::future::try_join_all;
+use futures::future::join_all;
 use log::error;
 use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
@@ -62,18 +62,32 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         let mut projects = db.get_projects()?;
 
-        let changed_projects = try_join_all(
+        let changed_projects = join_all(
             projects
                 .iter_mut()
                 .map(|x| update_project_with_actual_data(&self.io, x)),
         )
-        .await?;
+        .await;
 
         for project in changed_projects.iter().flatten() {
             db.update_project(project)?;
         }
 
         async fn update_project_with_actual_data<'a>(
+            io: &impl EnvironmentIo,
+            project: &'a mut Project,
+        ) -> Option<&'a Project> {
+            match update_project_with_actual_data_inner(io, project).await {
+                Ok(Some(project)) => Some(project),
+                Ok(None) => None,
+                Err(err) => {
+                    error!("Error updating project information: {}", err);
+                    None
+                }
+            }
+        }
+
+        async fn update_project_with_actual_data_inner<'a>(
             io: &impl EnvironmentIo,
             project: &'a mut Project,
         ) -> io::Result<Option<&'a Project>> {
