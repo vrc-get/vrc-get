@@ -23,7 +23,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - uses: anatawa12/something-releaser@v3
@@ -94,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pre-build]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: 'releasing'
           fetch-depth: 1
@@ -122,7 +122,7 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: 'releasing'
           fetch-depth: 2
@@ -165,7 +165,7 @@ jobs:
       - publish-crates-io
       - publish-to-github
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: 'releasing'
           fetch-depth: 2
