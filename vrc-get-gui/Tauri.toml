@@ -27,7 +27,12 @@ width = 1000
 
 [tauri.bundle]
 active = true
-targets = "all"
+targets = [
+    "appimage",
+    "nsis", #-setup.exe
+    "app", # needs for dmg
+    "dmg",
+]
 longDescription = "vrc-get GUI is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
 shortDescription = "an alternative VCC"
 identifier = "com.anataw12.vrc-get"
@@ -48,13 +53,9 @@ resources = []
 depends = []
 
 [tauri.bundle.macOS]
-#entitlements = "path to your entitlements file"
 exceptionDomain = ""
 frameworks = []
 providerShortName = "anatawa12"
-#signingIdentity = ''
 
 [tauri.bundle.windows]
 digestAlgorithm = "sha256"
-#timestampUrl =
-#certificateThumbprint =
