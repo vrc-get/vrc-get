@@ -107,6 +107,22 @@ async fn load_unity(path: Option<Box<Path>>) -> UnityProject {
         .exit_context("loading unity project")
 }
 
+#[cfg(feature = "experimental-vcc")]
+async fn update_project_last_modified(env: Environment, project_dir: &Path) {
+    async fn inner(mut env: Environment, project_dir: &Path) -> Result<(), std::io::Error> {
+        env.update_project_last_modified(project_dir)?;
+        env.save().await?;
+        Ok(())
+    }
+
+    if let Err(err) = inner(env, project_dir).await {
+        eprintln!("error updating project updated_at on vcc: {err}");
+    }
+}
+
+#[cfg(not(feature = "experimental-vcc"))]
+async fn update_project_last_modified(_: Environment, _: &Path) {}
+
 fn get_package<'env>(
     env: &'env Environment,
     name: &str,
@@ -467,6 +483,7 @@ impl Install {
             .exit_context("adding package");
 
         unity.save().await.exit_context("saving manifest file");
+        update_project_last_modified(env, unity.project_dir()).await;
     }
 }
 
@@ -549,6 +566,7 @@ impl Remove {
             .exit_context("removing packages");
 
         save_unity(&mut unity).await;
+        update_project_last_modified(env, unity.project_dir()).await;
     }
 }
 
@@ -734,6 +752,7 @@ impl Upgrade {
         }
 
         save_unity(&mut unity).await;
+        update_project_last_modified(env, unity.project_dir()).await;
     }
 }
 
@@ -808,6 +827,7 @@ impl Downgrade {
         }
 
         save_unity(&mut unity).await;
+        update_project_last_modified(env, unity.project_dir()).await;
     }
 }
 

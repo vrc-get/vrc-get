@@ -118,6 +118,28 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .collect())
     }
 
+    pub fn update_project_last_modified(&mut self, project_path: &Path) -> io::Result<()> {
+        let db = self.get_db()?;
+        let project_path = if project_path.is_absolute() {
+            normalize_path(project_path)
+        } else {
+            normalize_path(&std::env::current_dir().unwrap().joined(project_path))
+        };
+
+        let mut project = db.get_projects()?;
+        let Some(project) = project
+            .iter_mut()
+            .find(|x| Path::new(x.path()) == project_path)
+        else {
+            return Ok(());
+        };
+
+        project.set_last_modified(DateTime::now());
+        db.update_project(project)?;
+
+        Ok(())
+    }
+
     pub fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
         let db = self.get_db()?;
 
