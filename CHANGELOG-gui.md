@@ -8,7 +8,15 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Initial implementation
+- Initial implementation `#411`
+  - This includes the following features
+    - Load Project List from VCC's database
+    - Adding Existing Project
+    - List VPM Packages installed in the project
+    - Add / Remove VPM package to / from the project
+    - Open Unity
+- Changelog `#422`
+- Apple code signing `#422`
 
 ### Changed
 
