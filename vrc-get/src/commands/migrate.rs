@@ -1,4 +1,6 @@
-use crate::commands::{confirm_prompt, load_env, load_unity, EnvArgs, ResultExt};
+use crate::commands::{
+    confirm_prompt, load_env, load_unity, update_project_last_modified, EnvArgs, ResultExt,
+};
 use clap::{Parser, Subcommand};
 use log::{info, warn};
 use std::path::{Path, PathBuf};
@@ -86,6 +88,8 @@ impl Unity2022 {
             .await
             .exit_context("launching unity to finalize migration");
 
-        info!("Unity exited successfully. Migration finished.")
+        info!("Unity exited successfully. Migration finished.");
+
+        update_project_last_modified(env, project.project_dir()).await;
     }
 }

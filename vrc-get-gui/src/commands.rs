@@ -1,7 +1,7 @@
 use reqwest::Url;
 use std::io;
 use std::num::Wrapping;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -79,6 +79,18 @@ async fn new_environment() -> io::Result<Environment> {
     let client = reqwest::Client::new();
     let io = vrc_get_vpm::io::DefaultEnvironmentIo::new_default();
     Environment::load(Some(client), io).await
+}
+
+async fn update_project_last_modified(env: &mut Environment, project_dir: &Path) {
+    async fn inner(env: &mut Environment, project_dir: &Path) -> Result<(), io::Error> {
+        env.update_project_last_modified(project_dir)?;
+        env.save().await?;
+        Ok(())
+    }
+
+    if let Err(err) = inner(env, project_dir).await {
+        eprintln!("error updating project updated_at on vcc: {err}");
+    }
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -744,6 +756,7 @@ async fn project_apply_pending_changes(
         .await?;
 
     unity_project.save().await?;
+    update_project_last_modified(environment, unity_project.project_dir()).await;
     Ok(())
 }
 
@@ -788,6 +801,7 @@ async fn project_migrate_project_to_2022(
     }
 
     unity_project.save().await?;
+    update_project_last_modified(environment, unity_project.project_dir()).await;
 
     Ok(TauriMigrateProjectTo2022Result::MigrationInVpmFinished)
 }
