@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
     - Open Unity
 - Changelog `#422`
 - Apple code signing `#422`
+- Migrate vpm 2019 project to 2022 `#435`
 
 ### Changed
 
