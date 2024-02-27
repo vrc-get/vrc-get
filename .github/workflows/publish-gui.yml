@@ -286,6 +286,7 @@ jobs:
           # Always prerelease for now.
           gh release create \
             --prerelease \
+            --latest=false \
             ${{ !needs.pre-build.outputs.prerelease && '--notes-file changelog/release-note.md' || '' }} \
             --verify-tag "gui-v$GUI_VERSION" \
             assets/*
