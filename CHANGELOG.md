@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog].
 - projects migrated from `settings.json` to litedb does not have `UnityVersion` `#411`
 - `vrc-get repo add` adds a relative path to `settings.json` `#440`
 - `vrc-get repo add` accepts invalid path to the local repository `#440`
+- last modified on the vcc project database is not updated `#443`
 
 ### Security
 
