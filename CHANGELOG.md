@@ -376,6 +376,7 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
+[Unreleased]: https://github.com/anatawa12/vrc-get/compare/v1.6.1...HEAD
 [1.6.1]: https://github.com/anatawa12/vrc-get/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/anatawa12/vrc-get/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/anatawa12/vrc-get/compare/v1.5.2...v1.5.3
