@@ -47,6 +47,14 @@ If you're using [Homebrew](https://brew.sh/), you can easily install vrc-get.
 brew install vrc-get
 ```
 
+## Using MacPorts
+
+If you're using [MacPorts](https://www.macports.org/), you can easily install vrc-get with MacPorts.
+
+```
+sudo port install vrc-get
+```
+
 ## Using scoop
 
 If you're using [scoop](https://scoop.sh/), you can install from a scoop bucket.
