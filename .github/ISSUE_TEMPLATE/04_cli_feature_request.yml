@@ -7,8 +7,8 @@ body:
     attributes:
       label: Summary / 概要
       description: |
-      Please describe the suggestion.
-      どんな提案ですか?
+        Please describe the suggestion.
+        どんな提案ですか?
     validations:
       required: true
 
@@ -16,8 +16,8 @@ body:
     attributes:
       label: Purpose / 目的
       description: |
-      What problems or needs do you think this feature will solve?
-      その機能の追加によって、どんな問題やニーズが解決されそうですか?
+        What problems or needs do you think this feature will solve?
+        その機能の追加によって、どんな問題やニーズが解決されそうですか?
     validations:
       required: true
 

@@ -8,8 +8,8 @@ body:
     attributes:
       label: Summary / 概要
       description: |
-      Please describe the suggestion. If it is related to the UI, some figures should help to image it.
-      どんな提案ですか? UIに関するものであれば、図があると分かりやすいかもしれません。
+        Please describe the suggestion. If it is related to the UI, some figures should help to image it.
+        どんな提案ですか? UIに関するものであれば、図があると分かりやすいかもしれません。
     validations:
       required: true
 
@@ -17,8 +17,8 @@ body:
     attributes:
       label: Purpose / 目的
       description: |
-      What problems or needs do you think this feature will solve?
-      その機能の追加によって、どんな問題やニーズが解決されそうですか?
+        What problems or needs do you think this feature will solve?
+        その機能の追加によって、どんな問題やニーズが解決されそうですか?
     validations:
       required: true
 
