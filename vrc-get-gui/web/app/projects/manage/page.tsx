@@ -52,6 +52,7 @@ import {VGOption, VGSelect} from "@/components/select";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
 import {toast} from "react-toastify";
+import {nop} from "@/lib/nop";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -447,8 +448,7 @@ function Unity2022MigrationConfirmMigrationDialog(
 		doMigrate: () => void,
 	}) {
 	return (
-		<Dialog open handler={() => {
-		}} className={"whitespace-normal"}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-red-700"}>
@@ -480,8 +480,7 @@ function Unity2022MigrationUnityVersionMismatchDialog(
 		doMigrate: () => void,
 	}) {
 	return (
-		<Dialog open handler={() => {
-		}} className={"whitespace-normal"}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography>
@@ -507,8 +506,7 @@ function Unity2022MigrationUnityVersionMismatchDialog(
 
 function Unity2022MigrationMigratingDialog() {
 	return (
-		<Dialog open handler={() => {
-		}} className={"whitespace-normal"}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography>
@@ -524,8 +522,7 @@ function Unity2022MigrationMigratingDialog() {
 
 function Unity2022MigrationCallingUnityForMigrationDialog() {
 	return (
-		<Dialog open handler={() => {
-		}} className={"whitespace-normal"}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography>
@@ -560,8 +557,7 @@ function ProjectChangesDialog(
 	}, [packages]);
 
 	return (
-		<Dialog open className={""} handler={() => {
-		}}>
+		<Dialog open className={""} handler={nop}>
 			<DialogHeader>Apply Changes</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-gray-900"}>
