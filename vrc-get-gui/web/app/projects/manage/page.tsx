@@ -52,6 +52,7 @@ import {VGOption, VGSelect} from "@/components/select";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
 import {toast} from "react-toastify";
+import {nop} from "@/lib/nop";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -285,6 +286,7 @@ function PageBody() {
 	switch (installStatus.status) {
 		case "promptingChanges":
 			dialogForState = <ProjectChangesDialog
+				packages={packageRowsData}
 				changes={installStatus.changes}
 				cancel={() => setInstallStatus({status: "normal"})}
 				apply={() => applyChanges(installStatus)}
@@ -331,7 +333,8 @@ function PageBody() {
 					</VGSelect>
 				</div>
 			</Card>
-			{isMigrationTo2022Recommended && <SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
+			{isMigrationTo2022Recommended &&
+				<SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex">
 					<div className={"flex flex-shrink-0 flex-grow-0 flex-row gap-2"}>
@@ -445,8 +448,7 @@ function Unity2022MigrationConfirmMigrationDialog(
 		doMigrate: () => void,
 	}) {
 	return (
-		<Dialog open handler={() => {
-		}} className={"whitespace-normal"}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-red-700"}>
@@ -478,8 +480,7 @@ function Unity2022MigrationUnityVersionMismatchDialog(
 		doMigrate: () => void,
 	}) {
 	return (
-		<Dialog open handler={() => {
-		}} className={"whitespace-normal"}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography>
@@ -505,8 +506,7 @@ function Unity2022MigrationUnityVersionMismatchDialog(
 
 function Unity2022MigrationMigratingDialog() {
 	return (
-		<Dialog open handler={() => {
-		}} className={"whitespace-normal"}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography>
@@ -522,8 +522,7 @@ function Unity2022MigrationMigratingDialog() {
 
 function Unity2022MigrationCallingUnityForMigrationDialog() {
 	return (
-		<Dialog open handler={() => {
-		}} className={"whitespace-normal"}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography>
@@ -540,19 +539,25 @@ function Unity2022MigrationCallingUnityForMigrationDialog() {
 function ProjectChangesDialog(
 	{
 		changes,
+		packages,
 		cancel,
 		apply,
 	}: {
 		changes: TauriPendingProjectChanges,
+		packages: PackageRowInfo[],
 		cancel: () => void,
 		apply: () => void,
 	}) {
 	const versionConflicts = changes.conflicts.filter(([_, c]) => c.packages.length > 0);
 	const unityConflicts = changes.conflicts.filter(([_, c]) => c.unity_conflict);
 
+	const getPackageDisplayName = useMemo(() => {
+		const packagesById = new Map(packages.map(p => [p.id, p]));
+		return (pkgId: string) => packagesById.get(pkgId)?.displayName ?? pkgId;
+	}, [packages]);
+
 	return (
-		<Dialog open handler={() => {
-		}}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Apply Changes</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-gray-900"}>
@@ -567,11 +572,12 @@ function ProjectChangesDialog(
 						} else {
 							switch (pkgChange.Remove) {
 								case "Requested":
-									return <ListItem key={pkgId}>Remove {pkgId} since you requested.</ListItem>
+									return <ListItem key={pkgId}>Remove {getPackageDisplayName(pkgId)} since you requested.</ListItem>
 								case "Legacy":
-									return <ListItem key={pkgId}>Remove {pkgId} since it&apos;s a legacy package.</ListItem>
+									return <ListItem key={pkgId}>Remove {getPackageDisplayName(pkgId)} since it&apos;s a legacy
+										package.</ListItem>
 								case "Unused":
-									return <ListItem key={pkgId}>Remove {pkgId} since it&apos;s unused.</ListItem>
+									return <ListItem key={pkgId}>Remove {getPackageDisplayName(pkgId)} since it&apos;s unused.</ListItem>
 							}
 						}
 					})}
@@ -583,11 +589,14 @@ function ProjectChangesDialog(
 								There are version conflicts
 							</Typography>
 							<List>
-								{versionConflicts.map(([pkgId, conflict]) => (
-									<ListItem key={pkgId}>
-										{pkgId} conflicts with {conflict.packages.map(p => p).join(", ")}
-									</ListItem>
-								))}
+								{versionConflicts.map(([pkgId, conflict]) => {
+									return (
+										<ListItem key={pkgId}>
+											{getPackageDisplayName(pkgId)} conflicts
+											with {conflict.packages.map(p => getPackageDisplayName(p)).join(", ")}
+										</ListItem>
+									);
+								})}
 							</List>
 						</>
 					) : null
@@ -601,7 +610,7 @@ function ProjectChangesDialog(
 							<List>
 								{unityConflicts.map(([pkgId, _]) => (
 									<ListItem key={pkgId}>
-										{pkgId} does not support your unity version
+										{getPackageDisplayName(pkgId)} does not support your unity version
 									</ListItem>
 								))}
 							</List>
