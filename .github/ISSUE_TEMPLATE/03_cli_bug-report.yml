@@ -1,4 +1,4 @@
-name: [vrc-get (cli)] Bug Report
+name: "[vrc-get (cli)] Bug Report"
 description: Create a bug report of vrc-get | vrc-getのバグを報告する
 labels: ["bug", "vrc-get cli"]
 
