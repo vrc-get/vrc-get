@@ -286,7 +286,10 @@ async fn environment_projects(
 
     println!("fetching projects");
 
-    state.projects = environment.get_projects()?.into_boxed_slice();
+    let projects = environment.get_projects()?.into_boxed_slice();
+    environment.disconnect_litedb();
+
+    state.projects = projects;
     state.projects_version += Wrapping(1);
 
     let version = (state.environment.environment_version + state.projects_version).0;
@@ -828,6 +831,7 @@ async fn project_finalize_migration_with_unity_2022(
     else {
         return Ok(TauriFinalizeMigrationWithUnity2022::NoUnity2022Found);
     };
+    environment.disconnect_litedb();
 
     let mut unity_project = load_project(project_path).await?;
 
@@ -837,7 +841,7 @@ async fn project_finalize_migration_with_unity_2022(
         Err(ExecuteUnityError::Unity(status)) => {
             return Ok(TauriFinalizeMigrationWithUnity2022::UnityExistsWithStatus {
                 status: status.to_string(),
-            })
+            });
         }
     }
 
@@ -871,6 +875,8 @@ async fn project_open_unity(
     for x in environment.get_unity_installations()? {
         if let Some(version) = x.version() {
             if version == project_unity {
+                environment.disconnect_litedb();
+
                 unity_project
                     .launch_gui_unity_detached(x.path().as_ref())
                     .await?;
@@ -878,6 +884,8 @@ async fn project_open_unity(
             }
         }
     }
+
+    environment.disconnect_litedb();
 
     Ok(TauriOpenUnityResult::NoMatchingUnityFound)
 }
