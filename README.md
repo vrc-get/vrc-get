@@ -56,6 +56,15 @@ scoop bucket add xrtools "https://github.com/babo4d/scoop-xrtools"
 scoop install vrc-get
 ```
 
+## Using PKGBUILD from AUR
+
+If you're using Arch Linux, you can install from Arch User Repository.
+Please install with your favorite AUR helpers.
+
+```
+yay -S vrc-get
+```
+
 ## Using `cargo binstall`
 
 If you have [`cargo binstall`][cargo-binstall], installing using cargo binstall is the easy & fast way to install vrc-get.
