@@ -42,14 +42,13 @@ body:
       required: true
 
   - type: textarea
+    id: os
     attributes:
-      label: Platform / プラットフォーム
+      label: OS
       description: |
-        Which platform are you using?
-        どんなプラットフォームを使っていますか?
-      placeholder: |
-        OS: Windows 10 Pro 22H2 / macOS 14.3.1 など
-        CPU: Intel Core i9-10900K / Apple M1 Pro など
+        Which OS are you using?
+        使用しているOSは何ですか?
+      placeholder: Windows 10 Pro 22H2, macOS 14.3.1, etc.
     validations:
       required: true
 
