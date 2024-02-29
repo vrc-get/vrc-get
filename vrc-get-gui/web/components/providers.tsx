@@ -1,7 +1,7 @@
 "use client"
 
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import { ToastContainer } from 'react-toastify';
+import {ToastContainer} from 'react-toastify';
 
 const queryClient = new QueryClient();
 
@@ -19,6 +19,7 @@ export function Providers({children}: { children: React.ReactNode }) {
 				draggable
 				pauseOnHover
 				theme="light"
+				className={"whitespace-normal"}
 			/>
 			<QueryClientProvider client={queryClient}>
 				{children}
