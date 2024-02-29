@@ -1,0 +1,69 @@
+name: "[vrc-get-gui] Bug Report"
+description: Create a bug report of vrc-get-gui / vrc-get-guiのバグを報告する
+labels: ["bug", "vrc-get-gui"]
+projects: ["anatawa12/2"]
+
+body:
+  - type: textarea
+    attributes:
+      label: Description of the bug / バグの説明
+      description: |
+        Please describe the bug.
+        どんなバグですか?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce / 再現手順
+      placeholder: |
+        1. Go to '...' / 〇〇を開く
+        2. Click on '....' / 〇〇をクリックする
+        3. See error / エラーが表示される
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected Behavior / 想定される挙動
+      description: |
+        What you expected to happen?
+        本来どうあるべきですか?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Screenshots / スクリーンショット
+      description: |
+        If possible, add screenshots to help explain your problem.
+        状況の理解がしやすいように、可能であればスクリーンショットを貼って下さい。
+
+  - type: input
+    id: version
+    attributes:
+      label: Software Version / バージョン情報
+      description: |
+        What is the version of vrc-get-gui?
+        vrc-get-guiのバージョンは何ですか?
+      placeholder: 0.1.0-beta.3
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      description: |
+        Which OS are you using?
+        使用しているOSは何ですか?
+      placeholder: Windows 10 Pro 22H2, macOS 14.3.1, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context / 補足
+      description: |
+        Add any other context about the problem here.
+        補足したい内容があればここに書いて下さい。

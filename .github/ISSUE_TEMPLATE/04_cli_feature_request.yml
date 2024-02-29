@@ -1,0 +1,29 @@
+name: "[vrc-get (cli)] Feature Request"
+description: Suggest an idea for vrc-get / vrc-getに新しい機能を提案する
+labels: ["enhancement", "vrc-get cli"]
+
+body:
+  - type: textarea
+    attributes:
+      label: Summary / 概要
+      description: |
+        Please describe the suggestion.
+        どんな提案ですか?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Purpose / 目的
+      description: |
+        What problems or needs do you think this feature will solve?
+        その機能の追加によって、どんな問題やニーズが解決されそうですか?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context / 補足
+      description: |
+        Add any other context about the feature request here.
+        補足したい内容があればここに書いて下さい。
