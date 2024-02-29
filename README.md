@@ -37,9 +37,9 @@ For more details, please see --help
 - [x] `vrc-get repo cleanup` cleanup repo cache
 - [x] `vrc-get repo packages <NAME|url>` list packages in specified repository
 
-# Installation
+## Installation
 
-## Using homebrew
+### Using homebrew
 
 If you're using [Homebrew](https://brew.sh/), you can easily install vrc-get.
 
@@ -47,7 +47,7 @@ If you're using [Homebrew](https://brew.sh/), you can easily install vrc-get.
 brew install vrc-get
 ```
 
-## Using MacPorts
+### Using MacPorts
 
 If you're using [MacPorts](https://www.macports.org/), you can easily install vrc-get with MacPorts.
 
@@ -55,7 +55,7 @@ If you're using [MacPorts](https://www.macports.org/), you can easily install vr
 sudo port install vrc-get
 ```
 
-## Using scoop
+### Using scoop
 
 If you're using [scoop](https://scoop.sh/), you can install from a scoop bucket.
 
@@ -64,7 +64,7 @@ scoop bucket add xrtools "https://github.com/babo4d/scoop-xrtools"
 scoop install vrc-get
 ```
 
-## Using PKGBUILD from AUR
+### Using PKGBUILD from AUR
 
 If you're using Arch Linux, you can install from Arch User Repository.
 Please install with your favorite AUR helpers.
@@ -73,7 +73,7 @@ Please install with your favorite AUR helpers.
 yay -S vrc-get
 ```
 
-## Using `cargo binstall`
+### Using `cargo binstall`
 
 If you have [`cargo binstall`][cargo-binstall], installing using cargo binstall is the easy & fast way to install vrc-get.
 Cargo binstall will downloads & installs prebuilt vrc-get from GitHub.
@@ -82,7 +82,7 @@ Cargo binstall will downloads & installs prebuilt vrc-get from GitHub.
 cargo binstall vrc-get
 ```
 
-## Using `cargo`
+### Using `cargo`
 
 If you have [`cargo`][cargo], installing using cargo is an easy way to install vrc-get.
 
@@ -90,7 +90,7 @@ If you have [`cargo`][cargo], installing using cargo is an easy way to install v
 cargo install vrc-get
 ```
 
-## Prebuilt binaries
+### Prebuilt binaries
 
 There's prebuilt binaries on the [release] page.
 
@@ -105,7 +105,7 @@ and `crypt32.dll`, which is builtin dlls, are dynamically linked.
 For macOS, only `Security.framework`, `CoreFoundation.framework`, `libiconv.2.dylibs`, and `libSystem.B.dylibs`, 
 which are macOS-builtin dylibs, are dynamically linked.
 
-## For GitHub Actions
+### For GitHub Actions
 
 To use this tool to resolve(install) vpm dependencies, you can use 
 [`anatawa12/sh-actions/resolve-vpm-packages@master`][resolve-vpm-packages].
