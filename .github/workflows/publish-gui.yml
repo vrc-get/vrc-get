@@ -80,7 +80,9 @@ jobs:
         with:
           path: CHANGELOG-gui.md
           version: ${{ env.GUI_VERSION }}
-          prerelease: ${{ env.PRERELEASE }}
+          # use CHANGELOG-gui.md for all releases including beta for now
+          # there are several logics uses generated changelog, so remember to update them if you change this
+          prerelease: false # ${{ env.PRERELEASE }}
           tag-prefix: gui-v
           prerelease-note-heading: |
             Version ${{ env.GUI_VERSION }}
@@ -89,22 +91,22 @@ jobs:
             Version ${{ env.GUI_VERSION }}
             ---
       - name: Upload CHANGELOG.md
-        if: ${{ !steps.update-version.outputs.prerelease }}
+        # if: ${{ !steps.update-version.outputs.prerelease }}
         uses: actions/upload-artifact@v4
         with:
           name: CHANGELOG
           path: CHANGELOG.md
       - name: copy release note
-        if: ${{ !steps.update-version.outputs.prerelease }}
+        # if: ${{ !steps.update-version.outputs.prerelease }}
         run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
       - name: Upload release note
-        if: ${{ !steps.update-version.outputs.prerelease }}
+        # if: ${{ !steps.update-version.outputs.prerelease }}
         uses: actions/upload-artifact@v4
         with:
           name: release-note-for-release
           path: release-note.md
       - name: remove temp release note file
-        if: ${{ !steps.update-version.outputs.prerelease }}
+        # if: ${{ !steps.update-version.outputs.prerelease }}
         run: rm release-note.md
       # endregion changelog
 
@@ -163,7 +165,7 @@ jobs:
     env:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
-    needs: [pre-build]
+    needs: [ pre-build ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -231,7 +233,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: [pre-build, build-rust]
+    needs: [ pre-build, build-rust ]
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
@@ -260,7 +262,7 @@ jobs:
           merge-multiple: true
 
       - name: Download changelog
-        if: ${{ !needs.pre-build.outputs.prerelease }}
+        # if: ${{ !needs.pre-build.outputs.prerelease }}
         uses: actions/download-artifact@v4
         with:
           name: release-note-for-release
@@ -284,10 +286,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |-
           # Always prerelease for now.
+          # always generating notes file for now
+          # ${{ !needs.pre-build.outputs.prerelease && '--notes-file changelog/release-note.md' || '' }} \
           gh release create \
             --prerelease \
             --latest=false \
-            ${{ !needs.pre-build.outputs.prerelease && '--notes-file changelog/release-note.md' || '' }} \
+            --notes-file changelog/release-note.md \
             --verify-tag "gui-v$GUI_VERSION" \
             assets/*
 
@@ -307,7 +311,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - pre-build
       - build-rust
       - publish-to-github
