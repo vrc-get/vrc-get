@@ -1,0 +1,61 @@
+name: [vrc-get (cli)] Bug Report
+description: Create a bug report of vrc-get | vrc-getのバグを報告する
+labels: ["bug", "vrc-get cli"]
+
+body:
+  - type: textarea
+    attributes:
+      label: Description of the bug / バグの説明
+      description: |
+        Please describe the bug.
+        どんなバグですか?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce / 再現手順
+      placeholder: |
+        1. Run '...' / 〇〇を実行する
+        2. See error / エラーが表示される
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected Behavior / 想定される挙動
+      description: |
+        What you expected to happen?
+        本来どうあるべきですか?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Software Version / バージョン情報
+      description: |
+        What is the version of vrc-get?
+        vrc-getのバージョンは何ですか?
+      placeholder: 1.7.0
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Platform / プラットフォーム
+      description: |
+        Which platform are you using?
+        どんなプラットフォームを使っていますか?
+      placeholder: |
+        OS: Windows 10 Pro 22H2 / macOS 14.3.1 など
+        CPU: Intel Core i9-10900K / Apple M1 Pro など
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context / 補足
+      description: |
+        Add any other context about the problem here.
+        補足したい内容があればここに書いて下さい。
