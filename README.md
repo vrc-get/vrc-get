@@ -114,6 +114,11 @@ To use other commands, you can install `vpm-get` via [`anatawa12/sh-actions/setu
 
 For more details, please see README for each action.
 
+## GUI version of vrc-get
+
+Since later February 2024, vrc-get has experimental gui version.
+You can download beta versions of vrc-get from [releases page][vrc-get-gui-releases].
+
 [shields-github-deploy]: https://img.shields.io/github/deployments/anatawa12/vrc-get/master%20branch?label=github%20deployment
 [shields-crates-io-deploy]: https://img.shields.io/github/deployments/anatawa12/vrc-get/crates.io?label=crates.io%20deployment
 [shields-github-version]: https://img.shields.io/github/v/release/anatawa12/vrc-get
@@ -125,3 +130,4 @@ For more details, please see README for each action.
 [resolve-vpm-packages]: https://github.com/anatawa12/sh-actions/tree/master/resolve-vpm-packages
 [setup-vrc-get]: https://github.com/anatawa12/sh-actions/tree/master/setup-vrc-get
 [crates-io]: https://crates.io/crates/vrc-get
+[vrc-get-gui-releases]: https://github.com/anatawa12/vrc-get/releases?q=gui-v0
