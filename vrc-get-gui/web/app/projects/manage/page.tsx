@@ -557,7 +557,7 @@ function ProjectChangesDialog(
 	}, [packages]);
 
 	return (
-		<Dialog open className={""} handler={nop}>
+		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Apply Changes</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-gray-900"}>
