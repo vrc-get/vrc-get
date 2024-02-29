@@ -11,6 +11,7 @@ pub(super) struct LiteDbConnectionHolder {
 }
 
 unsafe impl Send for LiteDbConnectionHolder {}
+
 unsafe impl Sync for LiteDbConnectionHolder {}
 
 impl Debug for LiteDbConnectionHolder {
@@ -79,5 +80,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     // TODO?: use inner mutability to get the database connection?
     pub(super) fn get_db(&self) -> io::Result<&DatabaseConnection> {
         self.litedb_connection.connect(&self.io)
+    }
+
+    pub fn disconnect_litedb(&mut self) {
+        self.litedb_connection = LiteDbConnectionHolder::new();
     }
 }

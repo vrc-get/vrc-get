@@ -486,9 +486,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         .map(|_| ())?;
 
         #[cfg(feature = "vrc-get-litedb")]
-        {
-            self.litedb_connection = litedb::LiteDbConnectionHolder::new();
-        }
+        self.disconnect_litedb();
         Ok(())
     }
 }
