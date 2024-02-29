@@ -1,5 +1,5 @@
 name: "[vrc-get (cli)] Feature Request"
-description: Suggest an idea for vrc-get | vrc-getに新しい機能を提案する
+description: Suggest an idea for vrc-get / vrc-getに新しい機能を提案する
 labels: ["enhancement", "vrc-get cli"]
 
 body:

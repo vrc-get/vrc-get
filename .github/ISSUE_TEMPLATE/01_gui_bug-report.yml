@@ -1,5 +1,5 @@
 name: "[vrc-get-gui] Bug Report"
-description: Create a bug report of vrc-get-gui | vrc-get-guiのバグを報告する
+description: Create a bug report of vrc-get-gui / vrc-get-guiのバグを報告する
 labels: ["bug", "vrc-get-gui"]
 projects: ["anatawa12/2"]
 
