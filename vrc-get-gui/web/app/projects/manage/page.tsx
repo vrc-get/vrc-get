@@ -39,6 +39,7 @@ import {
 	projectInstallPackage,
 	projectMigrateProjectTo2022,
 	projectRemovePackage,
+	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
 	TauriPackage,
 	TauriPendingProjectChanges,
@@ -62,6 +63,8 @@ export default function Page(props: {}) {
 type RequestedOperation = {
 	type: "install";
 	pkg: TauriPackage;
+} | {
+	type: "upgradeAll";
 } | {
 	type: "remove";
 	pkgId: string;
@@ -173,6 +176,24 @@ function PageBody() {
 		}
 	}
 
+	const onUpgradeAllRequest = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			let packages: [number, number][] = [];
+			for (let packageRow of packageRows) {
+				if (packageRow.latest.status === "upgradable") {
+					packages.push([packageRow.latest.pkg.env_version, packageRow.latest.pkg.index]);
+				}
+			}
+			const changes = await projectUpgradeMultiplePackage(projectPath, packages);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toast.error((e as any).Unrecoverable ?? (e as any).message);
+		}
+	}
+
 	const onRemoveRequested = async (pkgId: string) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
@@ -206,6 +227,9 @@ function PageBody() {
 					break;
 				case "remove":
 					toast.success(`Removed ${requested.pkgId}`);
+					break;
+				case "upgradeAll":
+					toast.success("Upgraded all packages");
 					break;
 				default:
 					let _: never = requested;
@@ -350,6 +374,10 @@ function PageBody() {
 						</Tooltip>
 
 						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
+
+						{packageRows.some(row => row.latest.status === "upgradable") &&
+							<Button color={"green"} className={"flex-shrink-0 p-3"} onClick={onUpgradeAllRequest}>Upgrade
+								All</Button>}
 
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>
@@ -721,6 +749,11 @@ function UserLocalRepositoryMenuItem(
 	)
 }
 
+type PackageLatestInfo = { status: "none" } | { status: "contains", pkg: TauriPackage } | {
+	status: "upgradable",
+	pkg: TauriPackage
+};
+
 interface PackageRowInfo {
 	id: string;
 	infoSource: TauriVersion;
@@ -733,6 +766,7 @@ interface PackageRowInfo {
 		version: TauriVersion;
 		yanked: boolean;
 	};
+	latest: PackageLatestInfo;
 }
 
 const VRCSDK_PACKAGES = [
@@ -814,6 +848,7 @@ function combinePackagesAndProjectDetails(
 				unityIncompatible: new Map(),
 				sources: new Set(),
 				installed: null,
+				latest: {status: "none"},
 			});
 		}
 		return packageRowInfo;
@@ -860,6 +895,21 @@ function combinePackagesAndProjectDetails(
 		packages.forEach(addPackage);
 	}
 
+	// sort versions
+	for (let value of packagesTable.values()) {
+		value.unityCompatible = new Map([...value.unityCompatible].sort((a, b) => -compareVersion(a[1].version, b[1].version)));
+		value.unityIncompatible = new Map([...value.unityIncompatible].sort((a, b) => -compareVersion(a[1].version, b[1].version)));
+	}
+
+	// set latest info
+	for (let value of packagesTable.values()) {
+		const latestPackage = value.unityCompatible.values().next().value;
+		if (latestPackage) {
+			value.latest = {status: "contains", pkg: latestPackage};
+		}
+	}
+
+	// set installed info
 	if (project) {
 		for (const [_, pkg] of project.installed_packages) {
 			const packageRowInfo = getRowInfo(pkg);
@@ -871,13 +921,15 @@ function combinePackagesAndProjectDetails(
 				version: pkg.version,
 				yanked: pkg.is_yanked || yankedVersions.has(`${pkg.name}:${toVersionString(pkg.version)}`),
 			};
-		}
-	}
 
-	// sort versions
-	for (let value of packagesTable.values()) {
-		value.unityCompatible = new Map([...value.unityCompatible].sort((a, b) => -compareVersion(a[1].version, b[1].version)));
-		value.unityIncompatible = new Map([...value.unityIncompatible].sort((a, b) => -compareVersion(a[1].version, b[1].version)));
+			// if we have the latest version, check if it's upgradable
+			if (packageRowInfo.latest.status != "none") {
+				const compare = compareVersion(pkg.version, packageRowInfo.latest.pkg.version);
+				if (compare < 0) {
+					packageRowInfo.latest = {status: "upgradable", pkg: packageRowInfo.latest.pkg};
+				}
+			}
+		}
 	}
 
 	const asArray = Array.from(packagesTable.values());
@@ -910,40 +962,6 @@ function PackageRow(
 	const incompatibleNames = [...pkg.unityIncompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
 
-	let installedInfo: React.ReactNode;
-	if (pkg.installed) {
-		const version = toVersionString(pkg.installed.version);
-		if (pkg.installed.yanked) {
-			installedInfo = `${version} (yanked)`
-		} else {
-			installedInfo = version;
-		}
-	} else {
-		installedInfo = <span className={"text-blue-gray-300"}>Not Installed</span>;
-	}
-
-	let latestInfo: React.ReactNode;
-	if (latestVersion) {
-		latestInfo = <Typography className="font-normal">{latestVersion}</Typography>;
-		if (pkg.installed) {
-			const compare = compareVersion(pkg.installed.version, pkg.unityCompatible.get(latestVersion)!.version);
-			if (compare >= 0) {
-				latestInfo = <Typography className="font-normal">{latestVersion}</Typography>;
-			} else {
-				latestInfo = (
-					<Button variant={"outlined"} color={"green"}
-									className={"text-left px-2 py-1 w-full h-full font-normal text-base"}
-									onClick={() => onInstallRequested(pkg.unityCompatible.get(latestVersion)!)}>
-						<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
-						{latestVersion}
-					</Button>
-				);
-			}
-		}
-	} else {
-		latestInfo = <Typography className="font-normal text-blue-gray-400">none</Typography>;
-	}
-
 	const onChange = (version: string) => {
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
@@ -975,7 +993,7 @@ function PackageRow(
 			</td>
 			<td className={noGrowCellClass}>
 				{/* TODO: show incompatible versions */}
-				<VGSelect value={installedInfo}
+				<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
 									className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
 									onChange={onChange}
 									disabled={locked}
@@ -987,7 +1005,7 @@ function PackageRow(
 				</VGSelect>
 			</td>
 			<td className={`${cellClass} min-w-32 w-32`}>
-				{latestInfo}
+				<PackageLatestInfo info={pkg.latest} onInstallRequested={onInstallRequested}/>
 			</td>
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
 				{
@@ -1028,6 +1046,53 @@ function PackageRow(
 			</td>
 		</tr>
 	);
+}
+
+function PackageInstalledInfo(
+	{
+		pkg,
+	}: {
+		pkg: PackageRowInfo,
+	}
+) {
+	if (pkg.installed) {
+		const version = toVersionString(pkg.installed.version);
+		if (pkg.installed.yanked) {
+			return <Typography className={"text-red-700"}>{version} (yanked)</Typography>;
+		} else {
+			return <Typography>{version}</Typography>;
+		}
+	} else {
+		return <Typography className="text-blue-gray-400">none</Typography>;
+	}
+}
+
+function PackageLatestInfo(
+	{
+		info,
+		onInstallRequested,
+	}: {
+		info: PackageLatestInfo,
+		onInstallRequested: (pkg: TauriPackage) => void;
+	}
+) {
+	switch (info.status) {
+		case "none":
+			return <Typography className="font-normal text-blue-gray-400">none</Typography>;
+		case "contains":
+			return <Typography className="font-normal">{toVersionString(info.pkg.version)}</Typography>;
+		case "upgradable":
+			return (
+				<Button variant={"outlined"} color={"green"}
+								className={"text-left px-2 py-1 w-full h-full font-normal text-base"}
+								onClick={() => onInstallRequested(info.pkg)}>
+					<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
+					{toVersionString(info.pkg.version)}
+				</Button>
+			);
+		default:
+			let _: never = info;
+	}
 }
 
 function ProjectViewHeader({className, projectName, projectPath}: {
