@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- When you call `vrc-get vcc` without enabling `experimental-vcc` feature, it will show you a warning `#485`
 
 ### Deprecated
 

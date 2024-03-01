@@ -361,6 +361,9 @@ pub enum Command {
     #[cfg(feature = "experimental-vcc")]
     #[command(subcommand)]
     Vcc(vcc::Vcc),
+    #[cfg(not(feature = "experimental-vcc"))]
+    #[command(hide = true)]
+    Vcc(FakeVcc),
 
     Completion(Completion),
 }
@@ -377,7 +380,7 @@ multi_command!(Command is
     Repo,
     Info,
     Migrate,
-    #[cfg(feature = "experimental-vcc")] Vcc,
+    Vcc,
     Completion,
 );
 
@@ -1248,5 +1251,24 @@ impl Completion {
             bin_name,
             &mut std::io::stdout(),
         );
+    }
+}
+
+#[cfg(not(feature = "experimental-vcc"))]
+#[derive(Parser)]
+#[command(ignore_errors = true)]
+pub struct FakeVcc {
+    #[arg()]
+    args: Vec<String>,
+}
+
+#[cfg(not(feature = "experimental-vcc"))]
+impl FakeVcc {
+    pub async fn run(self) {
+        eprintln!("vrc-get vcc is not enabled in this build of vrc-get.");
+        eprintln!("experimental features are disabled for prebuilt binaries.");
+        eprintln!("If you want to use vrc-get vcc command, please install vrc-get with ");
+        eprintln!("cargo install --features experimental-vcc vrc-get");
+        exit(1);
     }
 }

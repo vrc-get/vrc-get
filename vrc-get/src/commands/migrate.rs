@@ -5,7 +5,6 @@ use clap::{Parser, Subcommand};
 use log::{info, warn};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use vrc_get_vpm::VRCHAT_RECOMMENDED_2022_UNITY;
 
 /// Migrate Unity Project
 #[derive(Subcommand)]
@@ -70,6 +69,7 @@ impl Unity2022 {
 
         #[cfg(feature = "experimental-vcc")]
         let unity = self.unity.unwrap_or_else(|| {
+            use vrc_get_vpm::VRCHAT_RECOMMENDED_2022_UNITY;
             let Some(found) = env.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
                 .exit_context("getting unity 2022 path") else {
                 exit_with!("Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option.")
