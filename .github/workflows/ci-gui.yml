@@ -2,15 +2,15 @@ name: CI (Build GUI)
 
 on:
   push:
-    branches: ["master"]
+    branches: [ "master" ]
   pull_request:
-    branches: ["master"]
+    branches: [ "master" ]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-gui:
     strategy:
       fail-fast: false
       matrix:
@@ -79,10 +79,10 @@ jobs:
             target/${{ matrix.triple }}/release/vrc-get*
             target/${{ matrix.triple }}/release/bundle/*/vrc-get*
 
-  conclude:
+  conclude-gui:
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [build]
+    needs: [ build-gui ]
     steps:
       - name: Conclude Tests
         env: { NEEDS: "${{ toJSON(needs) }}" }
