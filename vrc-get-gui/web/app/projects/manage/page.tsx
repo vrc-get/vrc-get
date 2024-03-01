@@ -53,7 +53,7 @@ import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
 import {toast} from "react-toastify";
 import {nop} from "@/lib/nop";
-import {shell} from "@tauri-apps/api";
+import {shellOpen} from "@/lib/shellOpen";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -574,7 +574,7 @@ function ProjectChangesDialog(
 							return <ListItem key={pkgId}>
 								Install {pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name} version {toVersionString(pkgChange.InstallNew.version)}
 								{changelogUrl != null &&
-									<Button className={"ml-1 px-2"} size={"sm"} onClick={() => shell.open(changelogUrl)}>See
+									<Button className={"ml-1 px-2"} size={"sm"} onClick={() => shellOpen(changelogUrl)}>See
 										Changelog</Button>}
 							</ListItem>
 						} else {
