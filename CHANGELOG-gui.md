@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
 - Link to changelog when install `#481`
   - This uses [`changelogUrl` of UPM Manifest][changelog-of-upm-manifest]. Please add `changelogUrl` to your vpm repository.
 - Upgrade all button `#483`
+- Add version information to the settings page `#484`
 
 [changelog-of-upm-manifest]: https://docs.unity3d.com/2022.3/Documentation/Manual/upm-manifestPkg.html#changelogUrl
 ### Changed

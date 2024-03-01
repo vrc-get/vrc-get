@@ -43,6 +43,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_open_unity,
         util_open,
         util_get_log_entries,
+        util_get_version,
     ]
 }
 
@@ -67,6 +68,7 @@ pub(crate) fn export_ts() {
             project_open_unity,
             util_open,
             util_get_log_entries,
+            util_get_version,
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
@@ -959,4 +961,10 @@ async fn util_open(path: String) -> Result<(), RustError> {
 #[specta::specta]
 fn util_get_log_entries() -> Vec<LogEntry> {
     crate::logging::get_log_entries()
+}
+
+#[tauri::command]
+#[specta::specta]
+fn util_get_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
 }
