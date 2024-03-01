@@ -39,6 +39,7 @@ import {
 	projectInstallPackage,
 	projectMigrateProjectTo2022,
 	projectRemovePackage,
+	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
 	TauriPackage,
 	TauriPendingProjectChanges,
@@ -62,6 +63,8 @@ export default function Page(props: {}) {
 type RequestedOperation = {
 	type: "install";
 	pkg: TauriPackage;
+} | {
+	type: "upgradeAll";
 } | {
 	type: "remove";
 	pkgId: string;
@@ -173,6 +176,24 @@ function PageBody() {
 		}
 	}
 
+	const onUpgradeAllRequest = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			let packages: [number, number][] = [];
+			for (let packageRow of packageRows) {
+				if (packageRow.latest.status === "upgradable") {
+					packages.push([packageRow.latest.pkg.env_version, packageRow.latest.pkg.index]);
+				}
+			}
+			const changes = await projectUpgradeMultiplePackage(projectPath, packages);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toast.error((e as any).Unrecoverable ?? (e as any).message);
+		}
+	}
+
 	const onRemoveRequested = async (pkgId: string) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
@@ -206,6 +227,9 @@ function PageBody() {
 					break;
 				case "remove":
 					toast.success(`Removed ${requested.pkgId}`);
+					break;
+				case "upgradeAll":
+					toast.success("Upgraded all packages");
 					break;
 				default:
 					let _: never = requested;
@@ -350,6 +374,10 @@ function PageBody() {
 						</Tooltip>
 
 						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
+
+						{packageRows.some(row => row.latest.status === "upgradable") &&
+							<Button color={"green"} className={"flex-shrink-0 p-3"} onClick={onUpgradeAllRequest}>Upgrade
+								All</Button>}
 
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>

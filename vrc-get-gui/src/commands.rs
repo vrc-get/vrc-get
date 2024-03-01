@@ -35,6 +35,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_set_hide_local_user_packages,
         project_details,
         project_install_package,
+        project_upgrade_multiple_package,
         project_remove_package,
         project_apply_pending_changes,
         project_migrate_project_to_2022,
@@ -58,6 +59,7 @@ pub(crate) fn export_ts() {
             environment_set_hide_local_user_packages,
             project_details,
             project_install_package,
+            project_upgrade_multiple_package,
             project_remove_package,
             project_apply_pending_changes,
             project_migrate_project_to_2022,
@@ -722,6 +724,50 @@ async fn project_install_package(
     };
 
     Ok(env_state.changes_info.update(env_version, changes))
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_upgrade_multiple_package(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    package_indices: Vec<(u32, usize)>,
+) -> Result<TauriPendingProjectChanges, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+
+    let current_env_version = env_state.environment.environment_version;
+
+    let environment = env_state.environment.get_environment_mut(false).await?;
+    let packages = unsafe { &*env_state.packages.unwrap().as_mut() };
+    let installing_packages = package_indices
+        .iter()
+        .map(|(env_version, index)| {
+            if current_env_version != Wrapping(*env_version) {
+                return Err(RustError::Unrecoverable(
+                    "environment version mismatch".into(),
+                ));
+            }
+
+            Ok(packages[*index])
+        })
+        .collect::<Result<_, _>>()?;
+
+    let unity_project = load_project(project_path).await?;
+
+    let operation = AddPackageOperation::UpgradeLocked;
+
+    let changes = match unity_project
+        .add_package_request(environment, installing_packages, operation, false)
+        .await
+    {
+        Ok(request) => request,
+        Err(e) => return Err(RustError::unrecoverable(e)),
+    };
+
+    Ok(env_state
+        .changes_info
+        .update(current_env_version.0, changes))
 }
 
 #[tauri::command]
