@@ -53,6 +53,7 @@ import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
 import {toast} from "react-toastify";
 import {nop} from "@/lib/nop";
+import {shell} from "@tauri-apps/api";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -566,8 +567,15 @@ function ProjectChangesDialog(
 				<List>
 					{changes.package_changes.map(([pkgId, pkgChange]) => {
 						if ('InstallNew' in pkgChange) {
+							let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
+							if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
+								changelogUrlTmp = null;
+							const changelogUrl = changelogUrlTmp;
 							return <ListItem key={pkgId}>
 								Install {pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name} version {toVersionString(pkgChange.InstallNew.version)}
+								{changelogUrl != null &&
+									<Button className={"ml-1 px-2"} size={"sm"} onClick={() => shell.open(changelogUrl)}>See
+										Changelog</Button>}
 							</ListItem>
 						} else {
 							switch (pkgChange.Remove) {
