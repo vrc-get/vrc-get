@@ -17,7 +17,7 @@ allowlist = { all = false }
 active = false
 
 [[tauri.windows]]
-title = "vrc-get GUI"
+title = "vrc-get-gui"
 url = "/projects"
 
 fullscreen = false
@@ -33,7 +33,7 @@ targets = [
     "app", # needs for dmg
     "dmg",
 ]
-longDescription = "vrc-get GUI is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
+longDescription = "vrc-get-gui is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
 shortDescription = "an alternative VCC"
 identifier = "com.anataw12.vrc-get"
 category = "DeveloperTool"
