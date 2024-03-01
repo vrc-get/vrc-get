@@ -11,6 +11,7 @@ use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
 
+use crate::logging::LogEntry;
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
@@ -38,6 +39,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_finalize_migration_with_unity_2022,
         project_open_unity,
         util_open,
+        util_get_log_entries,
     ]
 }
 
@@ -60,6 +62,7 @@ pub(crate) fn export_ts() {
             project_finalize_migration_with_unity_2022,
             project_open_unity,
             util_open,
+            util_get_log_entries,
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
@@ -895,4 +898,10 @@ async fn project_open_unity(
 async fn util_open(path: String) -> Result<(), RustError> {
     open::that(path).map_err(|e| RustError::Unrecoverable(format!("{e}")))?;
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+fn util_get_log_entries() -> Vec<LogEntry> {
+    crate::logging::get_log_entries()
 }
