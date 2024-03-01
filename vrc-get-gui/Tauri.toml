@@ -8,7 +8,9 @@ distDir = "web/out"
 productName = "vrc-get-gui"
 
 [tauri]
-allowlist = { all = false }
+
+[tauri.allowlist]
+shell = { open = "^(https?://\\w+).+" }
 
 [tauri.security]
 # csp = 

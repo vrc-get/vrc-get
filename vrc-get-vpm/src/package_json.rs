@@ -31,6 +31,9 @@ pub struct PackageJson {
     #[serde(default)]
     legacy_packages: Vec<Box<str>>,
 
+    #[serde(default)]
+    changelog_url: Option<Url>,
+
     #[serde(rename = "vrc-get")]
     #[serde(default)]
     vrc_get: VrcGetMeta,
@@ -62,6 +65,7 @@ impl PackageJson {
             legacy_packages: Vec::new(),
             vrc_get: VrcGetMeta::default(),
             zip_sha_256: None,
+            changelog_url: None,
         }
     }
 
@@ -130,6 +134,10 @@ impl PackageJson {
 
     pub fn zip_sha_256(&self) -> Option<&str> {
         self.zip_sha_256.as_deref()
+    }
+
+    pub fn changelog_url(&self) -> Option<&Url> {
+        self.changelog_url.as_ref()
     }
 
     pub fn unity(&self) -> Option<&PartialUnityVersion> {
