@@ -25,8 +25,8 @@ struct VpmDependency {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct VpmLockedDependency {
     pub version: Version,
-    #[serde(default, skip_serializing_if = "indexmap::IndexMap::is_empty")]
-    pub dependencies: IndexMap<Box<str>, VersionRange>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dependencies: Option<IndexMap<Box<str>, VersionRange>>,
 }
 
 #[derive(Debug)]
@@ -59,7 +59,7 @@ impl VpmManifest {
 
     pub(super) fn all_locked(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         self.controller.locked.iter().map(|(name, dep)| {
-            LockedDependencyInfo::new(name.as_ref(), &dep.version, &dep.dependencies)
+            LockedDependencyInfo::new(name.as_ref(), &dep.version, dep.dependencies.as_ref())
         })
     }
 
@@ -67,7 +67,9 @@ impl VpmManifest {
         self.controller
             .locked
             .get_key_value(package)
-            .map(|(package, x)| LockedDependencyInfo::new(package, &x.version, &x.dependencies))
+            .map(|(package, x)| {
+                LockedDependencyInfo::new(package, &x.version, x.dependencies.as_ref())
+            })
     }
 
     pub(super) fn add_dependency(&mut self, name: &str, version: DependencyRange) {
@@ -87,7 +89,7 @@ impl VpmManifest {
             name.into(),
             VpmLockedDependency {
                 version,
-                dependencies,
+                dependencies: Some(dependencies),
             },
         );
     }

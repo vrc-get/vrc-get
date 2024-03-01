@@ -18,6 +18,7 @@ use crate::version::{UnityVersion, Version, VersionRange};
 use futures::future::try_join;
 use futures::prelude::*;
 use indexmap::IndexMap;
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -184,7 +185,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
             .unlocked_packages
             .iter()
             .filter_map(|(_, json)| json.as_ref())
-            .map(|x| LockedDependencyInfo::new(x.name(), x.version(), x.vpm_dependencies()));
+            .map(|x| LockedDependencyInfo::new(x.name(), x.version(), Some(x.vpm_dependencies())));
 
         dependencies_locked.chain(dependencies_unlocked)
     }
@@ -237,12 +238,15 @@ impl<'a> LockedDependencyInfo<'a> {
     fn new(
         name: &'a str,
         version: &'a Version,
-        dependencies: &'a IndexMap<Box<str>, VersionRange>,
+        dependencies: Option<&'a IndexMap<Box<str>, VersionRange>>,
     ) -> Self {
+        lazy_static! {
+            static ref EMPTY_DEPENDENCIES: IndexMap<Box<str>, VersionRange> = IndexMap::new();
+        }
         Self {
             name,
             version,
-            dependencies,
+            dependencies: dependencies.unwrap_or(&*EMPTY_DEPENDENCIES),
         }
     }
 
