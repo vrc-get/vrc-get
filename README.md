@@ -7,7 +7,7 @@
 [![crates.io latest][shields-crates-io-version]][crates-io]
 
 Open Source command line client of VRChat Package Manager, 
-the main feature of VRChat Creator Companion (VCC), that supports Windows, Linux, and macOS.
+the main feature of VRChat Creator Companion (VCC), which supports Windows, Linux, and macOS.
 
 <small>This project is developed by community, not by VRChat.</small>
 
@@ -15,11 +15,11 @@ the main feature of VRChat Creator Companion (VCC), that supports Windows, Linux
 
 ### Initial goals
 
-- Provide Open Source command line client of VRChat Package Manager.
-- Provide more functionality for VPM than official vpm command.
+- Provide an open source command line client of VRChat Package Manager.
+- Provide more functionalities for VPM than official vpm commands can do.
 
 ### Additional goals since 2024
-- Provide better cross-platform Creator Companion
+- Provide a better cross-platform Creator Companion
 
 ## Commands
 
@@ -75,8 +75,8 @@ yay -S vrc-get
 
 ### Using `cargo binstall`
 
-If you have [`cargo binstall`][cargo-binstall], installing using cargo binstall is the easy & fast way to install vrc-get.
-Cargo binstall will downloads & installs prebuilt vrc-get from GitHub.
+If you have [`cargo binstall`][cargo-binstall], installing using cargo binstall is an easy & fast way to install vrc-get.
+Cargo binstall will download & install prebuilt vrc-get from GitHub.
 
 ```bash
 cargo binstall vrc-get
@@ -92,14 +92,14 @@ cargo install vrc-get
 
 ### Prebuilt binaries
 
-There's prebuilt binaries on the [release] page.
+There're prebuilt binaries on the [release] page.
 
-Download executable file for your platform and place to everywhere you want.
-There's no additional requirements for thise binaries. All binaries are compiled statically as possible.
+Download the executable file for your platform and place it to everywhere you want.
+There's no additional requirements for these binaries. All binaries are compiled statically as possible.
 
-For linux, it's a actually static linked executable.
+For Linux, it's actually a static linked executable.
 
-For windows, only `bcrypt.dll`, `ntdll.dll`, `kernel32.dll`, `advapi32.dll`, `ws2_32.dll`, `secur32.dll`, 
+For Windows, only `bcrypt.dll`, `ntdll.dll`, `kernel32.dll`, `advapi32.dll`, `ws2_32.dll`, `secur32.dll`, 
 and `crypt32.dll`, which is builtin dlls, are dynamically linked.
 
 For macOS, only `Security.framework`, `CoreFoundation.framework`, `libiconv.2.dylibs`, and `libSystem.B.dylibs`, 
@@ -116,7 +116,7 @@ For more details, please see README for each action.
 
 ## GUI version of vrc-get
 
-Since later February 2024, vrc-get has experimental gui version.
+Since later February 2024, an experimental gui version of vrc-get has been available.
 You can download beta versions of vrc-get from [releases page][vrc-get-gui-releases].
 
 [shields-github-deploy]: https://img.shields.io/github/deployments/anatawa12/vrc-get/master%20branch?label=github%20deployment
