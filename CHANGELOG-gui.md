@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Message protrudes from toasts or dialogs `#469`
+- Window name should be `vrc-get-gui` but was `vrc-get GUI` `#474`
 
 ### Security
 
