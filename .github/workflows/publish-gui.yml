@@ -75,7 +75,7 @@ jobs:
       # region changelog
       - name: Create Changelog
         id: changelog
-        if: ${{ !steps.update-version.outputs.prerelease }}
+        # if: ${{ !steps.update-version.outputs.prerelease }}
         uses: anatawa12/sh-actions/changelog/prepare-release@master
         with:
           path: CHANGELOG-gui.md
