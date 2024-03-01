@@ -5,14 +5,37 @@ import {HNavBar, VStack} from "@/components/layout";
 import React, {useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
 import {notoSansMono} from "@/app/fonts";
+import {listen} from '@tauri-apps/api/event';
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
 
 	useEffect(() => {
-		utilGetLogEntries().then(setLogEntries);
+		utilGetLogEntries().then(list => setLogEntries(list.toReversed()));
 	}, []);
-	// time: string; level: LogLevel; target: string; message: string
+
+	useEffect(() => {
+		let unlisten: (() => void) | undefined = undefined;
+		let unlistened = false;
+
+		listen("log", (event) => {
+			setLogEntries((entries) => {
+				const entry = event.payload as LogEntry;
+				return [entry, ...entries];
+			});
+		}).then((unlistenFn) => {
+			if (unlistened) {
+				unlistenFn();
+			} else {
+				unlisten = unlistenFn;
+			}
+		});
+
+		return () => {
+			unlisten?.();
+			unlistened = true;
+		};
+	}, []);
 
 	return (
 		<VStack className={"m-4"}>
