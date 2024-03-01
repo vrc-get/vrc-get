@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Empty `depeneencies` block of `locked` section in `vpm-manifest.json` is removed `#478`
+  - This follows the changed behavior of the official VPM command.
 
 ### Security
 

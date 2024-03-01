@@ -177,7 +177,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         for x in changes.get_all_installing() {
             virtual_locked_dependencies.insert(
                 x.name(),
-                LockedDependencyInfo::new(x.name(), x.version(), x.vpm_dependencies()),
+                LockedDependencyInfo::new(x.name(), x.version(), Some(x.vpm_dependencies())),
             );
         }
 
