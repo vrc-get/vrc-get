@@ -10,17 +10,22 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- When you call `vrc-get vcc` without enabling `experimental-vcc` feature, it will show you a warning `#485`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Empty `depeneencies` block of `locked` section in `vpm-manifest.json` is removed `#478`
-  - This follows the changed behavior of the official VPM command.
 
 ### Security
+
+## [1.7.1] - 2024-03-01
+### Changed
+- When you call `vrc-get vcc` without enabling `experimental-vcc` feature, it will show you a warning [`#485`](https://github.com/anatawa12/vrc-get/pull/485)
+
+### Fixed
+- Empty `depeneencies` block of `locked` section in `vpm-manifest.json` is removed [`#478`](https://github.com/anatawa12/vrc-get/pull/478)
+  - This follows the changed behavior of the official VPM command.
 
 ## [1.7.0] - 2024-02-27
 ### Added
@@ -391,7 +396,8 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
-[Unreleased]: https://github.com/anatawa12/vrc-get/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/anatawa12/vrc-get/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/anatawa12/vrc-get/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/anatawa12/vrc-get/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/anatawa12/vrc-get/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/anatawa12/vrc-get/compare/v1.5.3...v1.6.0
