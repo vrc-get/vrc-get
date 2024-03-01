@@ -3,6 +3,7 @@
 import {Card, List, ListItem, ListItemPrefix} from "@material-tailwind/react";
 import {Cog6ToothIcon, ListBulletIcon,} from "@heroicons/react/24/solid";
 import React from "react";
+import {Bars4Icon} from "@heroicons/react/24/outline";
 
 export function SideBar({className}: { className?: string }) {
 	"use client"
@@ -12,13 +13,14 @@ export function SideBar({className}: { className?: string }) {
 			<List className="min-w-[10rem]">
 				<SideBarItem href={"/projects"} text={"Projects"} icon={ListBulletIcon}/>
 				<SideBarItem href={"/settings"} text={"Settings"} icon={Cog6ToothIcon}/>
+				<SideBarItem href={"/log"} text={"Logs"} icon={Bars4Icon}/>
 			</List>
 		</Card>
 	);
 }
 
 function SideBarItem(
-	{href, text, icon}: { href: string, text: string, icon: React.ComponentType<{className?: string}> }
+	{href, text, icon}: { href: string, text: string, icon: React.ComponentType<{ className?: string }> }
 ) {
 	const IconElenment = icon;
 	return (

@@ -20,9 +20,13 @@ serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.6.0", features = [ "config-toml", "dialog" ] }
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
 reqwest = "0.11.24"
-specta = "1.0.5"
+specta = { version = "1.0.5", features = [ "chrono" ] }
 tauri-specta = { version = "1.0.2", features = ["typescript"] }
 open = "5.0.1"
+arc-swap = "1.6.0"
+log = { version = "0.4.21", features = [ "std" ] }
+chrono = { version = "0.4.34", features = [ "serde" ] }
+ringbuffer = "0.15.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

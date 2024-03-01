@@ -1,4 +1,6 @@
+use log::{error, info};
 use reqwest::Url;
+use std::fmt::Display;
 use std::io;
 use std::num::Wrapping;
 use std::path::{Path, PathBuf};
@@ -11,6 +13,7 @@ use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
 
+use crate::logging::LogEntry;
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
@@ -38,6 +41,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_finalize_migration_with_unity_2022,
         project_open_unity,
         util_open,
+        util_get_log_entries,
     ]
 }
 
@@ -60,6 +64,7 @@ pub(crate) fn export_ts() {
             project_finalize_migration_with_unity_2022,
             project_open_unity,
             util_open,
+            util_get_log_entries,
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
@@ -99,9 +104,16 @@ enum RustError {
     Unrecoverable(String),
 }
 
+impl RustError {
+    fn unrecoverable<T: Display>(value: T) -> Self {
+        error!("{value}");
+        Self::Unrecoverable(value.to_string())
+    }
+}
+
 impl From<io::Error> for RustError {
     fn from(value: io::Error) -> Self {
-        RustError::Unrecoverable(format!("io error: {value}"))
+        RustError::unrecoverable(format!("io error: {value}"))
     }
 }
 
@@ -139,7 +151,7 @@ impl EnvironmentHolder {
 
     async fn get_environment_mut(&mut self, inc_version: bool) -> io::Result<&mut Environment> {
         if let Some(ref mut environment) = self.environment {
-            println!("reloading settings files");
+            info!("reloading settings files");
             // reload settings files
             environment.reload().await?;
             if inc_version {
@@ -277,14 +289,14 @@ async fn environment_projects(
     let mut state = state.lock().await;
     let environment = state.environment.get_environment_mut(false).await?;
 
-    println!("migrating projects from settings.json");
+    info!("migrating projects from settings.json");
     // migrate from settings json
     environment.migrate_from_settings_json().await?;
-    println!("syncing information with real projects");
+    info!("syncing information with real projects");
     environment.sync_with_real_projects().await?;
     environment.save().await?;
 
-    println!("fetching projects");
+    info!("fetching projects");
 
     let projects = environment.get_projects()?.into_boxed_slice();
     environment.disconnect_litedb();
@@ -430,7 +442,7 @@ async fn environment_packages(
     let env_state = &mut *env_state;
     let environment = env_state.environment.get_environment_mut(true).await?;
 
-    println!("loading package infos");
+    info!("loading package infos");
     environment.load_package_infos(true).await?;
 
     let packages = environment
@@ -704,7 +716,7 @@ async fn project_install_package(
         .await
     {
         Ok(request) => request,
-        Err(e) => return Err(RustError::Unrecoverable(format!("{e}"))),
+        Err(e) => return Err(RustError::unrecoverable(e)),
     };
 
     Ok(env_state.changes_info.update(env_version, changes))
@@ -725,7 +737,7 @@ async fn project_remove_package(
 
     let changes = match unity_project.remove_request(&[&name]).await {
         Ok(request) => request,
-        Err(e) => return Err(RustError::Unrecoverable(format!("{e}"))),
+        Err(e) => return Err(RustError::unrecoverable(e)),
     };
 
     Ok(env_state.changes_info.update(env_version, changes))
@@ -742,12 +754,10 @@ async fn project_apply_pending_changes(
     let env_state = &mut *env_state;
     let changes = env_state.changes_info.take().unwrap();
     if changes.changes_version != changes_version {
-        return Err(RustError::Unrecoverable("changes version mismatch".into()));
+        return Err(RustError::unrecoverable("changes version mismatch"));
     }
     if changes.environment_version != env_state.environment.environment_version.0 {
-        return Err(RustError::Unrecoverable(
-            "environment version mismatch".into(),
-        ));
+        return Err(RustError::unrecoverable("environment version mismatch"));
     }
 
     let environment = env_state.environment.get_environment_mut(false).await?;
@@ -800,7 +810,7 @@ async fn project_migrate_project_to_2022(
 
     match unity_project.migrate_unity_2022(environment).await {
         Ok(()) => {}
-        Err(e) => return Err(RustError::Unrecoverable(format!("{e}"))),
+        Err(e) => return Err(RustError::unrecoverable(e)),
     }
 
     unity_project.save().await?;
@@ -837,7 +847,7 @@ async fn project_finalize_migration_with_unity_2022(
 
     match unity_project.call_unity(found_unity.path().as_ref()).await {
         Ok(()) => {}
-        Err(ExecuteUnityError::Io(e)) => return Err(RustError::Unrecoverable(format!("{e}"))),
+        Err(ExecuteUnityError::Io(e)) => return Err(RustError::unrecoverable(e)),
         Err(ExecuteUnityError::Unity(status)) => {
             return Ok(TauriFinalizeMigrationWithUnity2022::UnityExistsWithStatus {
                 status: status.to_string(),
@@ -893,6 +903,12 @@ async fn project_open_unity(
 #[tauri::command]
 #[specta::specta]
 async fn util_open(path: String) -> Result<(), RustError> {
-    open::that(path).map_err(|e| RustError::Unrecoverable(format!("{e}")))?;
+    open::that(path).map_err(RustError::unrecoverable)?;
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+fn util_get_log_entries() -> Vec<LogEntry> {
+    crate::logging::get_log_entries()
 }

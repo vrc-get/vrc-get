@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- See and save logs of the vrc-get-gui `#475` 
 
 ### Changed
 

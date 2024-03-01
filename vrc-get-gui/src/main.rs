@@ -4,6 +4,7 @@
 use tauri::Manager;
 
 mod commands;
+mod logging;
 
 // for clippy compatibility
 #[cfg(not(clippy))]
@@ -17,15 +18,19 @@ fn tauri_context() -> tauri::Context<tauri::utils::assets::EmbeddedAssets> {
 }
 
 fn main() {
+    logging::initialize_logger();
+
     #[cfg(debug_assertions)]
     commands::export_ts();
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .invoke_handler(commands::handlers())
         .setup(|app| {
             app.manage(commands::new_env_state());
             Ok(())
         })
-        .run(tauri_context())
-        .expect("error while running tauri application");
+        .build(tauri_context())
+        .expect("error while building tauri application");
+    logging::set_app_handle(app.handle());
+    app.run(|_, _| {})
 }
