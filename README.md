@@ -116,7 +116,7 @@ For more details, please see README for each action.
 
 ## GUI version of vrc-get
 
-Since later February 2024, vrc-get has had an experimental gui version.
+Since later February 2024, an experimental gui version of vrc-get has been available.
 You can download beta versions of vrc-get from [releases page][vrc-get-gui-releases].
 
 [shields-github-deploy]: https://img.shields.io/github/deployments/anatawa12/vrc-get/master%20branch?label=github%20deployment
