@@ -1,5 +1,4 @@
 use arc_swap::ArcSwapOption;
-use chrono::format::StrftimeItems;
 use log::{Log, Metadata, Record};
 use ringbuffer::{ConstGenericRingBuffer, RingBuffer};
 use serde::Serialize;
@@ -19,7 +18,9 @@ pub fn initialize_logger() {
     let env_io = DefaultEnvironmentIo::new_default();
     let log_folder = env_io.resolve("vrc-get-logs".as_ref());
     std::fs::create_dir_all(&log_folder).ok();
-    let timestamp = chrono::Utc::now().format("%+");
+    let timestamp = chrono::Utc::now()
+        .format("%Y-%m-%d_%H-%M-%S.%6f")
+        .to_string();
     let log_file = log_folder.join(format!("vrc-get-{}.log", timestamp));
     match std::fs::OpenOptions::new()
         .create(true)
@@ -101,12 +102,11 @@ impl LogEntry {
 
 impl Display for LogEntry {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        const FORMAT: StrftimeItems = StrftimeItems::new("%+");
-
         write!(
             f,
             "{} [{: >5}] {}: {}",
-            self.time.format_with_items(FORMAT),
+            self.time
+                .to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
             self.level,
             self.target,
             self.message
@@ -139,7 +139,7 @@ impl Log for Logger {
         // log to file
         if let Some(log_file) = &self.log_file {
             let mut log_file = log_file.lock().unwrap();
-            log_err(log_file.write_all(format!("{}", entry).as_bytes()));
+            log_err(writeln!(log_file, "{}", entry));
         }
 
         // add to buffer
