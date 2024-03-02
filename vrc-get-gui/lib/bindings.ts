@@ -83,19 +83,19 @@ export function utilGetVersion() {
 }
 
 export type TauriConflictInfo = { packages: string[]; unity_conflict: boolean }
-export type TauriFinalizeMigrationWithUnity2022 = { type: "NoUnity2022Found" } | { type: "UnityExistsWithStatus"; status: string } | { type: "FinishedSuccessfully" }
 export type TauriPackage = ({ name: string; display_name: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; is_yanked: boolean }) & { env_version: number; index: number; source: TauriPackageSource }
 export type TauriRepositoriesInfo = { user_repositories: TauriUserRepository[]; hidden_user_repositories: string[]; hide_local_user_packages: boolean; show_prerelease_packages: boolean }
 export type TauriProjectDetails = { unity: [number, number] | null; unity_str: string; installed_packages: ([string, TauriBasePackageInfo])[] }
-export type TauriMigrateProjectTo2022Result = { type: "NoUnity2022Found" } | { type: "ConfirmNotExactlyRecommendedUnity2022"; found: string; recommended: string } | { type: "MigrationInVpmFinished" }
+export type TauriFinalizeMigrationWithUnity2022 = { type: "NoUnity2022Found" } | { type: "UnityExistsWithStatus"; status: string } | { type: "FinishedSuccessfully" }
 export type TauriVersion = { major: number; minor: number; patch: number; pre: string; build: string }
 export type TauriBasePackageInfo = { name: string; display_name: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; is_yanked: boolean }
 export type TauriProjectType = "Unknown" | "LegacySdk2" | "LegacyWorlds" | "LegacyAvatars" | "UpmWorlds" | "UpmAvatars" | "UpmStarter" | "Worlds" | "Avatars" | "VpmStarter"
 export type TauriProject = { list_version: number; index: number; name: string; path: string; project_type: TauriProjectType; unity: string; last_modified: number; created_at: number }
 export type TauriPendingProjectChanges = { changes_version: number; package_changes: ([string, TauriPackageChange])[]; remove_legacy_files: string[]; remove_legacy_folders: string[]; conflicts: ([string, TauriConflictInfo])[] }
+export type TauriMigrateProjectTo2022Result = { type: "NoUnity2022Found" } | { type: "ConfirmNotExactlyRecommendedUnity2022"; found: string; recommended: string } | { type: "MigrationInVpmFinished" }
+export type TauriOpenUnityResult = "NoUnityVersionForTheProject" | "NoMatchingUnityFound" | "Success"
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string }
 export type TauriUserRepository = { id: string; display_name: string }
-export type TauriOpenUnityResult = "NoUnityVersionForTheProject" | "NoMatchingUnityFound" | "Success"
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidFolderAsAProject" | "Successful"
 export type TauriRemoveReason = "Requested" | "Legacy" | "Unused"
