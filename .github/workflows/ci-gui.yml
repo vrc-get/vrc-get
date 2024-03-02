@@ -59,16 +59,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ci-build-gui-${{ matrix.triple }}
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: tauri-cli@1
 
       - name: Setup
         run: ${{ matrix.setup }}
 
       - uses: tauri-apps/tauri-action@v0
         with:
-          tauriScript: cargo tauri
+          projectPath: vrc-get-gui
+          tauriScript: npm run tauri
           args: --target ${{ matrix.triple }}
 
       - name: Upload built binary

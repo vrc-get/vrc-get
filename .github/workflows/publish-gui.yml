@@ -182,9 +182,6 @@ jobs:
         with:
           cache-targets: false # for release build, do not cache build artifacts
           key: release-gui # there are no elements about build result, so it's ok to share between all builds
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: tauri-cli@1
 
       - name: Setup
         run: ${{ matrix.setup }}
@@ -199,7 +196,8 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tauriScript: cargo tauri
+          projectPath: vrc-get-gui
+          tauriScript: npm run tauri
           args: --target ${{ matrix.triple }}
 
       - name: Move artifacts

@@ -72,7 +72,7 @@ pub(crate) fn export_ts() {
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
-        "web/lib/bindings.ts",
+        "lib/bindings.ts",
     )
     .unwrap();
 }

@@ -1,1 +1,19 @@
-CHANGELOG.md
+# temporary files
+/.*/**
+/node_modules/**
+/out/**
+/.*
+
+# javascript part
+/app/**
+/components/**
+/lib/**
+/public/**
+/*.js
+/*.mjs
+/*.ts
+/*.tsx
+/*.json
+
+# documentation
+/*.md

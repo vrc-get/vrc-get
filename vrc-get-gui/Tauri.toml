@@ -2,7 +2,7 @@
 beforeBuildCommand = "npm run build"
 beforeDevCommand = "npm run dev"
 devPath = "http://localhost:3000"
-distDir = "web/out"
+distDir = "out"
 
 [package]
 productName = "vrc-get-gui"
