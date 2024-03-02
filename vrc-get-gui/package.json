@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "tauri": "tauri",
+    "tauri": "npm install && tauri",
     "dev": "next dev",
     "build": "npm install && next build",
     "start": "next start",
