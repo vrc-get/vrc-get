@@ -1186,11 +1186,7 @@ impl RepoPackages {
                     let mut versions = versions.all_versions().collect::<Vec<_>>();
                     versions.sort_by_key(|pkg| pkg.version());
                     for pkg in &versions {
-                        println!(
-                            "{}: {}",
-                            pkg.version(),
-                            pkg.url().map(|x| x.as_str()).unwrap_or("<no url>")
-                        );
+                        println!("{}: {}", pkg.version(), pkg.url().unwrap_or("<no url>"));
                     }
                     println!();
                 }

@@ -17,7 +17,7 @@ pub struct PackageJson {
     #[serde(default)]
     vpm_dependencies: IndexMap<Box<str>, VersionRange>,
     #[serde(default)]
-    url: Option<Url>,
+    url: Option<String>,
     #[serde(default)]
     #[serde(rename = "zipSHA256")]
     zip_sha_256: Option<Box<str>>,
@@ -128,8 +128,8 @@ impl PackageJson {
         self.description.as_deref()
     }
 
-    pub fn url(&self) -> Option<&Url> {
-        self.url.as_ref()
+    pub fn url(&self) -> Option<&str> {
+        self.url.as_deref()
     }
 
     pub fn zip_sha_256(&self) -> Option<&str> {
