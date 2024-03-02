@@ -65,6 +65,7 @@ jobs:
 
       - uses: tauri-apps/tauri-action@v0
         with:
+          projectPath: vrc-get-gui
           tauriScript: npm run tauri
           args: --target ${{ matrix.triple }}
 

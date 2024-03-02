@@ -196,6 +196,7 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
+          projectPath: vrc-get-gui
           tauriScript: npm run tauri
           args: --target ${{ matrix.triple }}
 
