@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- The version name is shown on the menu instead of settings page `#496`
 
 ### Deprecated
 
