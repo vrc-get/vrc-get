@@ -719,8 +719,15 @@ async fn project_install_package(
         AddPackageOperation::InstallToDependencies
     };
 
+    let allow_prerelease = environment.show_prerelease_packages();
+
     let changes = match unity_project
-        .add_package_request(environment, vec![installing_package], operation, false)
+        .add_package_request(
+            environment,
+            vec![installing_package],
+            operation,
+            allow_prerelease,
+        )
         .await
     {
         Ok(request) => request,
@@ -761,8 +768,15 @@ async fn project_upgrade_multiple_package(
 
     let operation = AddPackageOperation::UpgradeLocked;
 
+    let allow_prerelease = environment.show_prerelease_packages();
+
     let changes = match unity_project
-        .add_package_request(environment, installing_packages, operation, false)
+        .add_package_request(
+            environment,
+            installing_packages,
+            operation,
+            allow_prerelease,
+        )
         .await
     {
         Ok(request) => request,
