@@ -41,6 +41,10 @@ export function compareVersion(a: TauriVersion, b: TauriVersion) {
 	// fast path: exactly the same prerelease
 	if (a.pre === b.pre) return 0;
 
+	// if either has no prerelease, it comes later
+	if (a.pre === '') return 1;
+	if (b.pre === '') return -1;
+
 	const aPrerelease = a.pre.split('.');
 	const bPrerelease = b.pre.split('.');
 
@@ -55,7 +59,7 @@ export function compareVersion(a: TauriVersion, b: TauriVersion) {
 	return 0;
 }
 
-export function toVersionString(version: TauriVersion) : `${number}.${number}.${number}${`-${string}` | ''}${`+${string}` | ''}` {
+export function toVersionString(version: TauriVersion): `${number}.${number}.${number}${`-${string}` | ''}${`+${string}` | ''}` {
 	const versionString: `${number}.${number}.${number}` = `${version.major}.${version.minor}.${version.patch}`;
 	const withPre: `${number}.${number}.${number}${`-${string}` | ''}` = version.pre ? `${versionString}-${version.pre}` : versionString;
 	return version.build ? `${withPre}+${version.build}` : withPre;

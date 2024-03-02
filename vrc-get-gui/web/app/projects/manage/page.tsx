@@ -132,7 +132,8 @@ function PageBody() {
 		const hiddenRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : [];
 		const hideUserPackages = repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false;
 		const definedRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories : [];
-		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages, definedRepositories);
+		const showPrereleasePackages = repositoriesInfo.status == 'success' ? repositoriesInfo.data.show_prerelease_packages : false;
+		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages, definedRepositories, showPrereleasePackages);
 	}, [repositoriesInfo, packagesResult, detailsResult]);
 
 	const packageRows = useMemo(() => {
@@ -781,6 +782,7 @@ function combinePackagesAndProjectDetails(
 	hiddenRepositories?: string[] | null,
 	hideLocalUserPackages?: boolean,
 	definedRepositories: TauriUserRepository[] = [],
+	showPrereleasePackages: boolean = false,
 ): PackageRowInfo[] {
 	const hiddenRepositoriesSet = new Set(hiddenRepositories ?? []);
 
@@ -807,8 +809,7 @@ function combinePackagesAndProjectDetails(
 	const userPackages: TauriPackage[] = [];
 
 	for (const pkg of packages) {
-		// TODO: process include Pre-releases
-		if (pkg.version.pre) continue;
+		if (!showPrereleasePackages && pkg.version.pre) continue;
 
 		if (pkg.is_yanked) {
 			yankedVersions.add(`${pkg.name}:${toVersionString(pkg.version)}`);
@@ -1084,7 +1085,7 @@ function PackageLatestInfo(
 		case "upgradable":
 			return (
 				<Button variant={"outlined"} color={"green"}
-								className={"text-left px-2 py-1 w-full h-full font-normal text-base"}
+								className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case"}
 								onClick={() => onInstallRequested(info.pkg)}>
 					<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
 					{toVersionString(info.pkg.version)}

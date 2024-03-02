@@ -129,6 +129,14 @@ impl Settings {
         self.controller.as_mut().user_repos.push(repo);
     }
 
+    pub(crate) fn show_prerelease_packages(&self) -> bool {
+        self.controller.show_prerelease_packages
+    }
+
+    pub(crate) fn set_show_prerelease_packages(&mut self, value: bool) {
+        self.controller.as_mut().show_prerelease_packages = value;
+    }
+
     pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
         self.controller.save(io, JSON_PATH.as_ref()).await
     }
