@@ -477,6 +477,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
+    pub fn show_prerelease_packages(&self) -> bool {
+        self.settings.show_prerelease_packages()
+    }
+
+    pub fn set_show_prerelease_packages(&mut self, value: bool) {
+        self.settings.set_show_prerelease_packages(value);
+    }
+
     pub async fn save(&mut self) -> io::Result<()> {
         try_join(
             self.settings.save(&self.io),
