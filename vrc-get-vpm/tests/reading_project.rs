@@ -1,6 +1,6 @@
 use crate::common::VirtualProjectBuilder;
 use futures::executor::block_on;
-use vrc_get_vpm::version::{ReleaseType, UnityVersion};
+use vrc_get_vpm::version::{ReleaseType, UnityVersion, Version};
 
 mod common;
 
@@ -37,5 +37,32 @@ fn read_version_name() {
             project.unity_version(),
             Some(UnityVersion::new(2022, 3, 6, ReleaseType::Normal, 1))
         );
+    })
+}
+
+#[test]
+fn read_package_json_with_bad_url() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_locked("com.anatawa12.package", Version::new(1, 0, 0), &[])
+            .add_file(
+                "Packages/com.anatawa12.package/package.json",
+                r#"{
+                    "name": "com.anatawa12.package",
+                    "version": "1.0.0",
+                    "url": ""
+                }"#,
+            )
+            .build()
+            .await
+            .unwrap();
+
+        println!("{:?}", project.installed_packages().collect::<Vec<_>>());
+
+        let (_, package_json) = project
+            .installed_packages()
+            .find(|(name, _)| *name == "com.anatawa12.package")
+            .unwrap();
+        assert_eq!(package_json.name(), "com.anatawa12.package");
     })
 }
