@@ -162,7 +162,7 @@ jobs:
     env:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
-    needs: [pre-build]
+    needs: [ pre-build ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -212,7 +212,7 @@ jobs:
       name: crates.io
       url: https://crates.io/crates/vrc-get
     runs-on: ubuntu-latest
-    needs: [pre-build, build-rust]
+    needs: [ pre-build, build-rust ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -232,12 +232,13 @@ jobs:
 
   publish-to-homebrew:
     name: Publish to homebrew
-    if: ${{ !needs.pre-build.outputs.prerelease }}
+    if: false # disabled for now https://github.com/anatawa12/vrc-get/issues/488
+    # if: ${{ !needs.pre-build.outputs.prerelease }}
     environment:
       name: homebrew-core
       url: https://github.com/anatawa12/homebrew-core
     runs-on: macos-latest
-    needs: [pre-build, build-rust]
+    needs: [ pre-build, build-rust ]
     env:
       CLONE_TAP_TO: brew-tap
     steps:
@@ -281,7 +282,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: [pre-build, build-rust]
+    needs: [ pre-build, build-rust ]
     env:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
@@ -358,11 +359,11 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - pre-build
       - build-rust
       - publish-crates-io
-      - publish-to-homebrew
+      # - publish-to-homebrew
       - publish-to-github
     env:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
