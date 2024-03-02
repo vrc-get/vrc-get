@@ -1,11 +1,19 @@
-CHANGELOG.md
-*
-!/package.json
+# temporary files
+/.*/**
+/node_modules/**
+/out/**
+/.*
 
-# due to bug in tauri, I have to write */* recursively
-# https://github.com/tauri-apps/tauri/issues/8901
-*/*
-*/*/*
-*/*/*/*
-*/*/*/*/*
-*/*/*/*/*/*
+# javascript part
+/app/**
+/components/**
+/lib/**
+/public/**
+/*.js
+/*.mjs
+/*.ts
+/*.tsx
+/*.json
+
+# documentation
+/*.md
