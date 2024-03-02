@@ -8,21 +8,28 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Support for Show Prereleases `#495`
 
 ### Changed
-- The version name is shown on the menu instead of settings page `#496`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Fails to load package.json with invalid url in url field `#492`
-  - This makes `d4rkAvatarOptimizer` is recognized as not installed.
-- Log file is not saved on windows `#493`
 
 ### Security
+
+## [0.1.0-beta.5] - 2024-03-02
+### Added
+- Support for Show Prereleases [`#495`](https://github.com/anatawa12/vrc-get/pull/495)
+
+### Changed
+- The version name is shown on the menu instead of settings page [`#496`](https://github.com/anatawa12/vrc-get/pull/496)
+
+### Fixed
+- Fails to load package.json with invalid url in url field [`#492`](https://github.com/anatawa12/vrc-get/pull/492)
+  - This makes `d4rkAvatarOptimizer` is recognized as not installed.
+- Log file is not saved on windows [`#493`](https://github.com/anatawa12/vrc-get/pull/493)
 
 ## [0.1.0-beta.4] - 2024-03-01
 ### Added
@@ -50,6 +57,7 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.4...HEAD
+[Unreleased]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.5...HEAD
+[0.1.0-beta.5]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.4...gui-v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.3...gui-v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/anatawa12/vrc-get/releases/tag/gui-v0.1.0-beta.3
