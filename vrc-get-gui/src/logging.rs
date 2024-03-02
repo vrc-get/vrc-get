@@ -139,7 +139,7 @@ impl Log for Logger {
         // log to file
         if let Some(log_file) = &self.log_file {
             let mut log_file = log_file.lock().unwrap();
-            log_err(log_file.write_all(format!("{}", entry).as_bytes()));
+            log_err(writeln!(log_file, "{}", entry));
         }
 
         // add to buffer
