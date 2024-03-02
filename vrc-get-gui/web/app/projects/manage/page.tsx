@@ -1085,7 +1085,7 @@ function PackageLatestInfo(
 		case "upgradable":
 			return (
 				<Button variant={"outlined"} color={"green"}
-								className={"text-left px-2 py-1 w-full h-full font-normal text-base"}
+								className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case"}
 								onClick={() => onInstallRequested(info.pkg)}>
 					<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
 					{toVersionString(info.pkg.version)}
