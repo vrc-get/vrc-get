@@ -9,6 +9,8 @@
 /components/**
 /lib/**
 /public/**
+/build/**
+/scripts/**
 /*.js
 /*.mjs
 /*.ts

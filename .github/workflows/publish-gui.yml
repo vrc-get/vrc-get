@@ -182,6 +182,9 @@ jobs:
         with:
           cache-targets: false # for release build, do not cache build artifacts
           key: release-gui # there are no elements about build result, so it's ok to share between all builds
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
 
       - name: Setup
         run: ${{ matrix.setup }}

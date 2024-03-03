@@ -2,14 +2,12 @@
 name = "vrc-get-gui"
 version = "0.1.0-beta.5"
 description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
-default-run = "vrc-get-gui"
-edition = "2021"
-rust-version = "1.60"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+homepage.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 [build-dependencies]
 tauri-build = { version = "1.5.1", features = [ "config-toml" ] }

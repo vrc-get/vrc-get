@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Licenses page `#504`
+  - Currently under Settings page.
 
 ### Changed
 
