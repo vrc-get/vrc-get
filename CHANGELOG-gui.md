@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- We can click upgrade button while installing packages `#507`
 
 ### Security
 
