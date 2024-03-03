@@ -8,26 +8,33 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Licenses page `#504`
-  - Currently under Settings page.
-- Reinstall Packages `#508`
-  - Actually, this button is equivalent to `vrc-get resolve`.
-  - To add this button, Upgrade All button is moved into the dropdown menu.
 
 ### Changed
-- Improved logging `#505`
-- Improved indication for error `#512`
-- Show a project as not exists if the directory does not exist `#512`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- We can click upgrade button while installing packages `#507`
-- Packages for Avatars are shown if the project is Worlds project and vice versa `#510`
 
 ### Security
+
+## [0.1.0-beta.6] - 2024-03-03
+### Added
+- Licenses page [`#504`](https://github.com/anatawa12/vrc-get/pull/504)
+  - Currently under Settings page.
+- Reinstall Packages [`#508`](https://github.com/anatawa12/vrc-get/pull/508)
+  - Actually, this button is equivalent to `vrc-get resolve`.
+  - To add this button, Upgrade All button is moved into the dropdown menu.
+
+### Changed
+- Improved logging [`#505`](https://github.com/anatawa12/vrc-get/pull/505)
+- Improved indication for error [`#512`](https://github.com/anatawa12/vrc-get/pull/512)
+- Show a project as not exists if the directory does not exist [`#512`](https://github.com/anatawa12/vrc-get/pull/512)
+
+### Fixed
+- We can click upgrade button while installing packages [`#507`](https://github.com/anatawa12/vrc-get/pull/507)
+- Packages for Avatars are shown if the project is Worlds project and vice versa [`#510`](https://github.com/anatawa12/vrc-get/pull/510)
 
 ## [0.1.0-beta.5] - 2024-03-02
 ### Added
@@ -67,7 +74,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.5...HEAD
+[Unreleased]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.6...HEAD
+[0.1.0-beta.6]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.5...gui-v0.1.0-beta.6
 [0.1.0-beta.5]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.4...gui-v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.3...gui-v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/anatawa12/vrc-get/releases/tag/gui-v0.1.0-beta.3
