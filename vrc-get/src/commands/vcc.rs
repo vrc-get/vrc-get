@@ -52,7 +52,7 @@ impl ProjectList {
             .await
             .exit_context("migrating from settings.json");
 
-        env.sync_with_real_projects()
+        env.sync_with_real_projects(false)
             .await
             .exit_context("syncing with real projects");
 

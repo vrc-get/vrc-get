@@ -57,7 +57,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
-    pub async fn sync_with_real_projects(&mut self) -> io::Result<()> {
+    pub async fn sync_with_real_projects(&mut self, skip_not_found: bool) -> io::Result<()> {
         let db = self.get_db()?; // ensure the database connection is initialized
 
         let mut projects = db.get_projects()?;
@@ -65,7 +65,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let changed_projects = join_all(
             projects
                 .iter_mut()
-                .map(|x| update_project_with_actual_data(&self.io, x)),
+                .map(|x| update_project_with_actual_data(&self.io, x, skip_not_found)),
         )
         .await;
 
@@ -76,8 +76,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         async fn update_project_with_actual_data<'a>(
             io: &impl EnvironmentIo,
             project: &'a mut Project,
+            skip_not_found: bool,
         ) -> Option<&'a Project> {
-            match update_project_with_actual_data_inner(io, project).await {
+            match update_project_with_actual_data_inner(io, project, skip_not_found).await {
                 Ok(Some(project)) => Some(project),
                 Ok(None) => None,
                 Err(err) => {
@@ -90,11 +91,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         async fn update_project_with_actual_data_inner<'a>(
             io: &impl EnvironmentIo,
             project: &'a mut Project,
+            skip_not_found: bool,
         ) -> io::Result<Option<&'a Project>> {
             let path = project.path().as_ref();
 
             if !io.is_dir(path).await {
-                error!("Project {} not found", path.display());
+                if !skip_not_found {
+                    error!("Project {} not found", path.display());
+                }
                 return Ok(None);
             }
 

@@ -56,6 +56,7 @@ import {openUnity} from "@/lib/open-unity";
 import {toast} from "react-toastify";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
+import {toastThrownError} from "@/lib/toastThrownError";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -174,7 +175,7 @@ function PageBody() {
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
-			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			toastThrownError(e);
 		}
 	}
 
@@ -192,7 +193,7 @@ function PageBody() {
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
-			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			toastThrownError(e);
 		}
 	}
 
@@ -204,7 +205,7 @@ function PageBody() {
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
-			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			toastThrownError(e);
 		}
 	};
 
@@ -217,7 +218,7 @@ function PageBody() {
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
-			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			toastThrownError(e);
 		}
 	}
 
@@ -251,7 +252,7 @@ function PageBody() {
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
-			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			toastThrownError(e);
 		}
 	}
 
@@ -303,7 +304,7 @@ function PageBody() {
 			detailsResult.refetch();
 		} catch (e) {
 			console.error(e);
-			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			toastThrownError(e);
 			setInstallStatus({status: "normal"});
 		}
 	};

@@ -13,7 +13,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {useMemo, useState} from "react";
+import React, {Fragment, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
 	ChevronDownIcon,
@@ -36,6 +36,8 @@ import {SearchBox} from "@/components/SearchBox";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
 import {toast} from "react-toastify";
+import {toastThrownError} from "@/lib/toastThrownError";
+import {nop} from "@/lib/nop";
 
 export default function Page() {
 	const result = useQuery({
@@ -164,17 +166,29 @@ function ProjectRow({project}: { project: TauriProject }) {
 
 	const openProjectFolder = () => utilOpen(project.path);
 
+	const disabled = !project.is_exists;
+
+	const MayTooltip = disabled ? Tooltip : Fragment;
+
+	const RowButton = (props: React.ComponentProps<typeof Button>) => (
+		<MayTooltip content={"Project Folder does not exists"}>
+			<Button {...props} onClick={disabled ? nop : props.onClick}/>
+		</MayTooltip>
+	);
+
 	return (
-		<tr className="even:bg-blue-gray-50/50">
+		<tr className={`even:bg-blue-gray-50/50 ${disabled ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
-				<div className="flex flex-col">
-					<Typography className="font-normal">
-						{project.name}
-					</Typography>
-					<Typography className="font-normal opacity-50 text-sm">
-						{project.path}
-					</Typography>
-				</div>
+				<MayTooltip content={"Project Folder does not exists"}>
+					<div className="flex flex-col">
+						<Typography className="font-normal">
+							{project.name}
+						</Typography>
+						<Typography className="font-normal opacity-50 text-sm">
+							{project.path}
+						</Typography>
+					</div>
+				</MayTooltip>
 			</td>
 			<td className={`${cellClass} w-[8em]`}>
 				<div className="flex flex-row gap-2">
@@ -207,17 +221,17 @@ function ProjectRow({project}: { project: TauriProject }) {
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
-					<Button onClick={() => openUnity(project.path)}>Open Unity</Button>
-					<Button onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
-									color={"blue"}>Manage</Button>
-					<Button onClick={unsupported("Backup")} color={"green"}>Backup</Button>
+					<RowButton onClick={() => openUnity(project.path)}>Open Unity</RowButton>
+					<RowButton onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
+										 color={"blue"}>Manage</RowButton>
+					<RowButton onClick={unsupported("Backup")} color={"green"}>Backup</RowButton>
 					<Menu>
 						<MenuHandler>
 							<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
 								className={"size-5"}/></IconButton>
 						</MenuHandler>
 						<MenuList>
-							<MenuItem onClick={openProjectFolder}>Open Project Folder</MenuItem>
+							<MenuItem onClick={openProjectFolder} disabled={disabled}>Open Project Folder</MenuItem>
 						</MenuList>
 					</Menu>
 				</div>
@@ -252,7 +266,7 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 			}
 		} catch (e) {
 			console.error("Error adding project", e);
-			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			toastThrownError(e);
 		}
 	};
 

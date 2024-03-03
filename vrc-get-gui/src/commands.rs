@@ -235,6 +235,7 @@ struct TauriProject {
     unity: String,
     last_modified: u64,
     created_at: u64,
+    is_exists: bool,
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -270,6 +271,9 @@ impl From<ProjectType> for TauriProjectType {
 
 impl TauriProject {
     fn new(list_version: u32, index: usize, project: &UserProject) -> Self {
+        let is_exists = std::fs::metadata(project.path())
+            .map(|x| x.is_dir())
+            .unwrap_or(false);
         Self {
             list_version,
             index,
@@ -283,6 +287,7 @@ impl TauriProject {
                 .unwrap_or_else(|| "unknown".into()),
             last_modified: project.last_modified().as_millis_since_epoch(),
             created_at: project.crated_at().as_millis_since_epoch(),
+            is_exists,
         }
     }
 }
@@ -299,7 +304,7 @@ async fn environment_projects(
     // migrate from settings json
     environment.migrate_from_settings_json().await?;
     info!("syncing information with real projects");
-    environment.sync_with_real_projects().await?;
+    environment.sync_with_real_projects(true).await?;
     environment.save().await?;
 
     info!("fetching projects");
