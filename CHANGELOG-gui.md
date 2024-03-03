@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog].
 ### Added
 - Licenses page `#504`
   - Currently under Settings page.
+- Reinstall Packages `#508`
+  - Actually, this button is equivalent to `vrc-get resolve`.
+  - To add this button, Upgrade All button is moved into the dropdown menu.
 
 ### Changed
 - Improved logging `#505`
