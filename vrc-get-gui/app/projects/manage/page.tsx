@@ -21,7 +21,7 @@ import {
 	Typography
 } from "@material-tailwind/react";
 import React, {Suspense, useMemo, useState} from "react";
-import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon,} from "@heroicons/react/24/solid";
+import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
 import {useSearchParams} from "next/navigation";
@@ -39,6 +39,7 @@ import {
 	projectInstallPackage,
 	projectMigrateProjectTo2022,
 	projectRemovePackage,
+	projectResolve,
 	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
 	TauriPackage,
@@ -194,6 +195,18 @@ function PageBody() {
 			toast.error((e as any).Unrecoverable ?? (e as any).message);
 		}
 	}
+
+	const onResolveRequest = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			const changes = await projectResolve(projectPath);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toast.error((e as any).Unrecoverable ?? (e as any).message);
+		}
+	};
 
 	const onRemoveRequested = async (pkgId: string) => {
 		try {
@@ -376,10 +389,24 @@ function PageBody() {
 
 						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
-						{packageRows.some(row => row.latest.status === "upgradable") &&
-							<Button color={"green"} className={"flex-shrink-0 p-3"} onClick={onUpgradeAllRequest}
-											disabled={isLoading}>
-								Upgrade All</Button>}
+						<Menu>
+							<MenuHandler>
+								<IconButton variant={"text"}>
+									<EllipsisHorizontalIcon className={"size-5"}/>
+								</IconButton>
+							</MenuHandler>
+							<MenuList>
+								{packageRows.some(row => row.latest.status === "upgradable") &&
+									<MenuItem className={"p-3 text-green-700 focus:text-green-700"}
+														onClick={onUpgradeAllRequest}
+														disabled={isLoading}>
+										Upgrade All</MenuItem>}
+								<MenuItem className={"p-3"}
+													onClick={onResolveRequest}
+													disabled={isLoading}>
+									Reinstall All</MenuItem>
+							</MenuList>
+						</Menu>
 
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>
@@ -594,7 +621,7 @@ function ProjectChangesDialog(
 				<Typography className={"text-gray-900"}>
 					You&apos;re applying the following changes to the project
 				</Typography>
-				<List>
+				<List className={"overflow-y-auto max-h-[50vh]"}>
 					{changes.package_changes.map(([pkgId, pkgChange]) => {
 						if ('InstallNew' in pkgChange) {
 							let changelogUrlTmp = pkgChange.InstallNew.changelog_url;

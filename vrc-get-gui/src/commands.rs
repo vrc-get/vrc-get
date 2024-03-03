@@ -36,6 +36,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_details,
         project_install_package,
         project_upgrade_multiple_package,
+        project_resolve,
         project_remove_package,
         project_apply_pending_changes,
         project_migrate_project_to_2022,
@@ -61,6 +62,7 @@ pub(crate) fn export_ts() {
             project_details,
             project_install_package,
             project_upgrade_multiple_package,
+            project_resolve,
             project_remove_package,
             project_apply_pending_changes,
             project_migrate_project_to_2022,
@@ -779,6 +781,31 @@ async fn project_upgrade_multiple_package(
         )
         .await
     {
+        Ok(request) => request,
+        Err(e) => return Err(RustError::unrecoverable(e)),
+    };
+
+    Ok(env_state
+        .changes_info
+        .update(current_env_version.0, changes))
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_resolve(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<TauriPendingProjectChanges, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+
+    let current_env_version = env_state.environment.environment_version;
+
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    let unity_project = load_project(project_path).await?;
+
+    let changes = match unity_project.resolve_request(environment).await {
         Ok(request) => request,
         Err(e) => return Err(RustError::unrecoverable(e)),
     };
