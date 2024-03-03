@@ -18,7 +18,7 @@ pub fn initialize_logger() {
     let (sender, receiver) = mpsc::channel::<LogChannelMessage>();
     let logger = Logger { sender };
 
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(log::LevelFilter::Debug);
     log::set_boxed_logger(Box::new(logger)).expect("error while setting logger");
 
     start_logging_thread(receiver);
@@ -193,6 +193,7 @@ impl Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         // TODO: configurable
         metadata.level() <= log::Level::Info
+            || metadata.target().starts_with("vrc_get") && metadata.level() <= log::Level::Debug
     }
 
     fn log(&self, record: &Record) {
