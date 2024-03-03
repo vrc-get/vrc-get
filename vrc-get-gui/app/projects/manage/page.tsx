@@ -377,8 +377,9 @@ function PageBody() {
 						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
 						{packageRows.some(row => row.latest.status === "upgradable") &&
-							<Button color={"green"} className={"flex-shrink-0 p-3"} onClick={onUpgradeAllRequest}>Upgrade
-								All</Button>}
+							<Button color={"green"} className={"flex-shrink-0 p-3"} onClick={onUpgradeAllRequest}
+											disabled={isLoading}>
+								Upgrade All</Button>}
 
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>
@@ -1006,7 +1007,7 @@ function PackageRow(
 				</VGSelect>
 			</td>
 			<td className={`${cellClass} min-w-32 w-32`}>
-				<PackageLatestInfo info={pkg.latest} onInstallRequested={onInstallRequested}/>
+				<PackageLatestInfo info={pkg.latest} locked={locked} onInstallRequested={onInstallRequested}/>
 			</td>
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
 				{
@@ -1071,9 +1072,11 @@ function PackageInstalledInfo(
 function PackageLatestInfo(
 	{
 		info,
+		locked,
 		onInstallRequested,
 	}: {
 		info: PackageLatestInfo,
+		locked: boolean,
 		onInstallRequested: (pkg: TauriPackage) => void;
 	}
 ) {
@@ -1086,6 +1089,7 @@ function PackageLatestInfo(
 			return (
 				<Button variant={"outlined"} color={"green"}
 								className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case"}
+								disabled={locked}
 								onClick={() => onInstallRequested(info.pkg)}>
 					<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
 					{toVersionString(info.pkg.version)}
