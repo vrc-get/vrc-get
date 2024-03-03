@@ -1,11 +1,37 @@
 "use client"
 
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {ToastContainer} from 'react-toastify';
+import {toast, ToastContainer} from 'react-toastify';
+import {useEffect} from "react";
+import {listen} from "@tauri-apps/api/event";
+import {LogEntry} from "@/lib/bindings";
 
 const queryClient = new QueryClient();
 
 export function Providers({children}: { children: React.ReactNode }) {
+	useEffect(() => {
+		let unlisten: (() => void) | undefined = undefined;
+		let unlistened = false;
+
+		listen("log", (event) => {
+			const entry = event.payload as LogEntry;
+			if (entry.level === "Error") {
+				toast.error(entry.message);
+			}
+		}).then((unlistenFn) => {
+			if (unlistened) {
+				unlistenFn();
+			} else {
+				unlisten = unlistenFn;
+			}
+		});
+
+		return () => {
+			unlisten?.();
+			unlistened = true;
+		};
+	}, []);
+
 	return (
 		<>
 			<ToastContainer

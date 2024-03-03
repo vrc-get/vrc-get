@@ -36,6 +36,7 @@ import {SearchBox} from "@/components/SearchBox";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
 import {toast} from "react-toastify";
+import {toastThrownError} from "@/lib/toastThrownError";
 
 export default function Page() {
 	const result = useQuery({
@@ -252,7 +253,7 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 			}
 		} catch (e) {
 			console.error("Error adding project", e);
-			toast.error((e as any).Unrecoverable ?? (e as any).message);
+			toastThrownError(e);
 		}
 	};
 
