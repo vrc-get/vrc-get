@@ -87,7 +87,10 @@ type Environment = vrc_get_vpm::Environment<reqwest::Client, vrc_get_vpm::io::De
 type UnityProject = vrc_get_vpm::UnityProject<vrc_get_vpm::io::DefaultProjectIo>;
 
 async fn new_environment() -> io::Result<Environment> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent(concat!("vrc-get-litedb/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .expect("building client");
     let io = vrc_get_vpm::io::DefaultEnvironmentIo::new_default();
     Environment::load(Some(client), io).await
 }
