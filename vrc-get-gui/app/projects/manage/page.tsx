@@ -961,6 +961,47 @@ function combinePackagesAndProjectDetails(
 		}
 	}
 
+	const isAvatarsSdkInstalled = packagesTable.get("com.vrchat.avatars")?.installed != null;
+	const isWorldsSdkInstalled = packagesTable.get("com.vrchat.worlds")?.installed != null;
+	if (isAvatarsSdkInstalled != isWorldsSdkInstalled) {
+		// if either avatars or worlds sdk is installed, remove the packages for the other SDK.
+
+		// collect dependant packages
+		const dependantPackages = new Map<string, Set<string>>();
+		for (let pkg of packagesTable.values()) {
+			if (pkg.latest.status != "none") {
+				for (const dependency of pkg.latest.pkg.vpm_dependencies) {
+					if (!dependantPackages.has(dependency)) {
+						dependantPackages.set(dependency, new Set());
+					}
+					dependantPackages.get(dependency)!.add(pkg.id);
+				}
+			}
+		}
+
+		const toRemove = new Set<string>();
+
+		// remove the other SDK
+		if (isAvatarsSdkInstalled) {
+			toRemove.add("com.vrchat.worlds");
+		} else if (isWorldsSdkInstalled) {
+			toRemove.add("com.vrchat.avatars");
+		}
+
+		// update forAvatars and forWorlds recursively
+		while (toRemove.size > 0) {
+			const pkgId = [...toRemove].pop()!;
+			toRemove.delete(pkgId);
+
+			if (!packagesTable.delete(pkgId)) continue // already removed
+
+			const dependants = dependantPackages.get(pkgId);
+			if (dependants != null)
+				for (const dependant of dependants)
+					toRemove.add(dependant);
+		}
+	}
+
 	const asArray = Array.from(packagesTable.values());
 
 	// put installed first
