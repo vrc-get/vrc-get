@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Improved logging `#505`
+- Improved indication for error `#512`
+- Show a project as not exists if the directory does not exist `#512`
 
 ### Deprecated
 
