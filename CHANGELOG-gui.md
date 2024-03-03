@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
   - Currently under Settings page.
 
 ### Changed
+- Improved logging `#505`
 
 ### Deprecated
 
