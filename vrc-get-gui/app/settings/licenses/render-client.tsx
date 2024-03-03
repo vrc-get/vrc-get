@@ -25,13 +25,14 @@ export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 				</ul>
 			</Card>
 
-			{licenses.map(license => (
-				<Card className={"m-4 p-4"}>
+			{licenses.map((license, idx) => (
+				<Card className={"m-4 p-4"} key={idx}>
 					<Typography as={'h3'}>{license.name}</Typography>
 					<Typography as={'h4'}>Used by:</Typography>
 					<ul className={"ml-2"}>
 						{license.packages.map(pkg => (
-							<li><a onClick={() => shellOpen(pkg.url)}>{pkg.name} ({pkg.version})</a></li>
+							<li key={`${pkg.name}@${pkg.version}`}><a
+								onClick={() => shellOpen(pkg.url)}>{pkg.name} ({pkg.version})</a></li>
 						))}
 					</ul>
 					<Card className={"p-3 max-h-52 overflow-y-scroll"}>
