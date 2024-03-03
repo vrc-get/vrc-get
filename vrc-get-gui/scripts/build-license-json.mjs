@@ -3,10 +3,10 @@
  * This is based on the output of `cargo about generate --format=json` and `npx license-checker --production --json`.
  */
 import {promisify} from "node:util";
-import {execFile as execFileCallback} from "node:child_process";
+import {exec as execCallback} from "node:child_process";
 import {mkdir, readFile, writeFile} from "node:fs/promises";
 
-const execFile = promisify(execFileCallback);
+const exec = promisify(execCallback);
 
 /**
  * @interface CargoAbout
@@ -37,7 +37,7 @@ const execFile = promisify(execFileCallback);
  * @return {Promise<CargoAbout>}
  */
 async function callCargoAbout() {
-	const {stdout} = await execFile("cargo", ["about", "generate", "--format=json"], {
+	const {stdout} = await exec("cargo about generate --format=json", {
 		maxBuffer: Number.MAX_SAFE_INTEGER,
 		encoding: "utf8",
 	});
@@ -58,7 +58,7 @@ async function callCargoAbout() {
  * @return {Promise<LicenseChecker>}
  */
 async function callLicenseChecker() {
-	const {stdout} = await execFile("npx", ["license-checker", "--production", "--json"], {
+	const {stdout} = await exec("license-checker --production --json", {
 		encoding: "utf8",
 	});
 	return JSON.parse(stdout);
