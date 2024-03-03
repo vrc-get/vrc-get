@@ -230,50 +230,6 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
         run: cargo publish --package vrc-get --no-verify
 
-  publish-to-homebrew:
-    name: Publish to homebrew
-    if: false # disabled for now https://github.com/anatawa12/vrc-get/issues/488
-    # if: ${{ !needs.pre-build.outputs.prerelease }}
-    environment:
-      name: homebrew-core
-      url: https://github.com/anatawa12/homebrew-core
-    runs-on: macos-latest
-    needs: [ pre-build, build-rust ]
-    env:
-      CLONE_TAP_TO: brew-tap
-    steps:
-      #- uses: snow-actions/git-config-user@v1.0.0
-      - run: git config --global user.name "github-actions[bot]" &&
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: update brew
-        run: brew update && brew update
-
-      - name: checkout tap
-        uses: actions/checkout@v4
-        with:
-          repository: anatawa12/homebrew-core
-          path: ${{ env.CLONE_TAP_TO }}
-          token: ${{ secrets.BREW_GITHUB_PAT }}
-
-      - name: configure tap
-        run: |-
-          TAP_PATH="$(brew --repository "anatawa12/core")"
-          mkdir -p "$(dirname "$TAP_PATH")"
-          ln -s "$(readlink -f -- "$CLONE_TAP_TO")" "$TAP_PATH"
-          # configure 
-          cd "$CLONE_TAP_TO"
-          git remote set-head origin -a
-
-      - name: Create update pr for anatawa12/homebrew-core
-        env:
-          VERSION: ${{ needs.pre-build.outputs.cli-version }}
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.BREW_GITHUB_PAT }}
-        run: |-
-          brew bump-formula-pr \
-            anatawa12/core/vrc-get \
-            --url "https://github.com/anatawa12/vrc-get/archive/refs/tags/v${VERSION}.tar.gz"
-
   publish-to-github:
     name: Publish to GitHub
     environment:
@@ -363,7 +319,6 @@ jobs:
       - pre-build
       - build-rust
       - publish-crates-io
-      # - publish-to-homebrew
       - publish-to-github
     env:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
@@ -375,3 +330,17 @@ jobs:
           fetch-depth: 2
       - name: remove releasing branch
         run: git push --delete origin releasing
+
+  publish-to-homebrew:
+    name: Publish to homebrew
+    if: ${{ !needs.pre-build.outputs.prerelease }}
+    environment:
+      name: homebrew-core
+      url: https://github.com/homebrew/homebrew-core
+    runs-on: macos-latest
+    needs: [ pre-build, build-rust, publish-to-github ]
+    steps:
+      - uses: Homebrew/actions/bump-packages@master
+        with:
+          token: ${{ secrets.BREW_GITHUB_PAT }}
+          formulae: vrc-get
