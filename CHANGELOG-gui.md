@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - We can click upgrade button while installing packages `#507`
+- Packages for Avatars are shown if the project is Worlds project and vice versa `#510`
 
 ### Security
 
