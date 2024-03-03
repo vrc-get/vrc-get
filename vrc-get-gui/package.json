@@ -5,7 +5,9 @@
   "scripts": {
     "tauri": "npm install && tauri",
     "dev": "next dev",
-    "build": "npm install && next build",
+    "build": "npm install && npm run build:licenses && next build",
+    "build:next": "next build",
+    "build:licenses": "node ./scripts/build-licenses.js",
     "start": "next start",
     "lint": "next lint"
   },
