@@ -140,27 +140,27 @@ impl From<log::Level> for LogLevel {
 #[derive(Serialize, specta::Type, Clone)]
 pub(crate) struct LogEntry {
     #[serde(serialize_with = "to_rfc3339_micros")]
-    time: chrono::DateTime<chrono::Utc>,
+    time: chrono::DateTime<chrono::Local>,
     level: LogLevel,
     target: String,
     message: String,
 }
 
 fn to_rfc3339_micros<S>(
-    time: &chrono::DateTime<chrono::Utc>,
+    time: &chrono::DateTime<chrono::Local>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
-    time.to_rfc3339_opts(chrono::SecondsFormat::Micros, true)
+    time.to_rfc3339_opts(chrono::SecondsFormat::Micros, false)
         .serialize(serializer)
 }
 
 impl LogEntry {
     pub fn new(record: &Record) -> Self {
         LogEntry {
-            time: chrono::Utc::now(),
+            time: chrono::Local::now(),
             level: record.level().into(),
             target: record.target().to_string(),
             message: format!("{}", record.args()),
@@ -174,7 +174,7 @@ impl Display for LogEntry {
             f,
             "{} [{: >5}] {}: {}",
             self.time
-                .to_rfc3339_opts(chrono::SecondsFormat::Micros, true),
+                .to_rfc3339_opts(chrono::SecondsFormat::Micros, false),
             self.level,
             self.target,
             self.message
