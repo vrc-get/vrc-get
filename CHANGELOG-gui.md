@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Show unity log while migration `#519` 
+- MacOS build is now a universal binary `#520`
 
 ### Deprecated
 
