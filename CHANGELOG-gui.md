@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Show unity log while migration `#519` 
 
 ### Deprecated
 
