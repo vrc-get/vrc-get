@@ -12,13 +12,14 @@ use specta::specta;
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
+use tokio::process::Command;
 
 use crate::logging::LogEntry;
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
-use vrc_get_vpm::unity_project::{AddPackageOperation, ExecuteUnityError, PendingProjectChanges};
+use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
     PackageCollection, PackageInfo, PackageJson, ProjectType, VRCHAT_RECOMMENDED_2022_UNITY,
@@ -952,14 +953,20 @@ async fn project_finalize_migration_with_unity_2022(
 
     let mut unity_project = load_project(project_path).await?;
 
-    match unity_project.call_unity(found_unity.path().as_ref()).await {
-        Ok(()) => {}
-        Err(ExecuteUnityError::Io(e)) => return Err(RustError::unrecoverable(e)),
-        Err(ExecuteUnityError::Unity(status)) => {
-            return Ok(TauriFinalizeMigrationWithUnity2022::UnityExistsWithStatus {
-                status: status.to_string(),
-            });
-        }
+    let status = Command::new(found_unity.path())
+        .args([
+            "-quit".as_ref(),
+            "-batchmode".as_ref(),
+            "-projectPath".as_ref(),
+            unity_project.project_dir().as_os_str(),
+        ])
+        .status()
+        .await?;
+
+    if !status.success() {
+        return Ok(TauriFinalizeMigrationWithUnity2022::UnityExistsWithStatus {
+            status: status.to_string(),
+        });
     }
 
     unity_project.save().await?;
@@ -994,9 +1001,12 @@ async fn project_open_unity(
             if version == project_unity {
                 environment.disconnect_litedb();
 
-                unity_project
-                    .launch_gui_unity_detached(x.path().as_ref())
-                    .await?;
+                Command::new(x.path())
+                    .args([
+                        "-projectPath".as_ref(),
+                        unity_project.project_dir().as_os_str(),
+                    ])
+                    .spawn()?;
                 return Ok(TauriOpenUnityResult::Success);
             }
         }

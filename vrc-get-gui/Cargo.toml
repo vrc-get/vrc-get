@@ -25,6 +25,7 @@ arc-swap = "1.6.0"
 log = { version = "0.4.21", features = [ "std" ] }
 chrono = { version = "0.4.34", features = [ "serde" ] }
 ringbuffer = "0.15.0"
+tokio = { version = "1.36.0", features = ["process"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

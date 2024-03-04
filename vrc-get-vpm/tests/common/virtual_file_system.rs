@@ -201,14 +201,6 @@ impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
         ))
     }
 
-    async fn command_status(&self, _: &OsStr, _: &[&OsStr]) -> io::Result<ExitStatus> {
-        err(ErrorKind::Unsupported, "process")
-    }
-
-    async fn spawn_detached(&self, _: &OsStr, _: &[&OsStr]) -> io::Result<()> {
-        err(ErrorKind::Unsupported, "process")
-    }
-
     async fn command_output(&self, _: &OsStr, _: &[&OsStr]) -> io::Result<Output> {
         err(ErrorKind::Unsupported, "process")
     }
