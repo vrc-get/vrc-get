@@ -24,16 +24,18 @@ import React, {Fragment, Suspense, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
-import {useSearchParams} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {useQueries} from "@tanstack/react-query";
 import {
+	environmentCopyProjectForMigration,
 	environmentHideRepository,
 	environmentPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
 	environmentShowRepository,
 	projectApplyPendingChanges,
+	projectBeforeMigrateProjectTo2022,
 	projectDetails,
 	projectFinalizeMigrationWithUnity2022,
 	projectInstallPackage,
@@ -57,8 +59,7 @@ import {toast} from "react-toastify";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
 import {toastThrownError} from "@/lib/toastThrownError";
-import {listen} from "@tauri-apps/api/event";
-import {receiveLinesAndWaitForFinish, TauriFinalizeMigrationWithUnity2022Event} from "@/lib/migration-with-2022";
+import {receiveLinesAndWaitForFinish} from "@/lib/migration-with-2022";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -90,6 +91,9 @@ type InstallStatus = {
 	status: "unity2022migration:confirmUnityVersionMismatch";
 	recommendedUnityVersion: string;
 	foundUnityVersion: string;
+	inPlace: boolean;
+} | {
+	status: "unity2022migration:copyingProject";
 } | {
 	status: "unity2022migration:updating";
 } | {
@@ -99,6 +103,7 @@ type InstallStatus = {
 
 function PageBody() {
 	const searchParams = useSearchParams();
+	const router = useRouter();
 
 	const projectPath = searchParams.get("projectPath") ?? "";
 	const projectName = nameFromPath(projectPath);
@@ -267,11 +272,10 @@ function PageBody() {
 		setInstallStatus({status: "normal"});
 	}
 
-	const doMigrateProjectTo2022 = async (allowMismatch: boolean) => {
+	const doMigrateProjectTo2022 = async (allowMismatch: boolean, inPlace: boolean) => {
 		try {
-			setInstallStatus({status: "unity2022migration:updating"});
-			const migrationResult = await projectMigrateProjectTo2022(projectPath, allowMismatch);
-			switch (migrationResult.type) {
+			const preMigrationResult = await projectBeforeMigrateProjectTo2022(allowMismatch);
+			switch (preMigrationResult.type) {
 				case "NoUnity2022Found":
 					toast.error("Failed to migrate project: Unity 2022 is not found");
 					setInstallStatus({status: "normal"});
@@ -279,17 +283,28 @@ function PageBody() {
 				case "ConfirmNotExactlyRecommendedUnity2022":
 					setInstallStatus({
 						status: "unity2022migration:confirmUnityVersionMismatch",
-						recommendedUnityVersion: migrationResult.recommended,
-						foundUnityVersion: migrationResult.found,
+						recommendedUnityVersion: preMigrationResult.recommended,
+						foundUnityVersion: preMigrationResult.found,
+						inPlace,
 					});
 					return; // do rest after confirm
-				case "MigrationInVpmFinished":
+				case "ReadyToMigrate":
 					break;
 				default:
-					const _: never = migrationResult;
+					const _: never = preMigrationResult;
 			}
+			let migrateProjectPath;
+			if (inPlace) {
+				migrateProjectPath = projectPath;
+			} else {
+				// copy
+				setInstallStatus({status: "unity2022migration:copyingProject"});
+				migrateProjectPath = await environmentCopyProjectForMigration(projectPath);
+			}
+			setInstallStatus({status: "unity2022migration:updating"});
+			await projectMigrateProjectTo2022(migrateProjectPath);
 			setInstallStatus({status: "unity2022migration:finalizing", lines: []});
-			const finalizeResult = await projectFinalizeMigrationWithUnity2022(projectPath);
+			const finalizeResult = await projectFinalizeMigrationWithUnity2022(migrateProjectPath);
 			switch (finalizeResult.type) {
 				case "NoUnity2022Found":
 					toast.error("Failed to finalize the migration: Unity 2022 is not found");
@@ -309,13 +324,17 @@ function PageBody() {
 						})
 					});
 					toast.success("Project migrated to Unity 2022");
-					// TODO
 					break;
 				default:
 					const _: never = finalizeResult;
 			}
-			setInstallStatus({status: "normal"});
-			detailsResult.refetch();
+			if (inPlace) {
+				setInstallStatus({status: "normal"});
+				detailsResult.refetch();
+			} else {
+				setInstallStatus({status: "normal"});
+				router.replace(`/projects/manage?${new URLSearchParams({projectPath: migrateProjectPath})}`);
+			}
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);
@@ -349,7 +368,7 @@ function PageBody() {
 		case "unity2022migration:confirm":
 			dialogForState = <Unity2022MigrationConfirmMigrationDialog
 				cancel={cancelMigrateProjectTo2022}
-				doMigrate={() => doMigrateProjectTo2022(false)}
+				doMigrate={(inPlace) => doMigrateProjectTo2022(false, inPlace)}
 			/>;
 			break;
 		case "unity2022migration:confirmUnityVersionMismatch":
@@ -357,9 +376,11 @@ function PageBody() {
 				recommendedUnityVersion={installStatus.recommendedUnityVersion}
 				foundUnityVersion={installStatus.foundUnityVersion}
 				cancel={cancelMigrateProjectTo2022}
-				doMigrate={() => doMigrateProjectTo2022(true)}
+				doMigrate={() => doMigrateProjectTo2022(true, installStatus.inPlace)}
 			/>;
 			break;
+		case "unity2022migration:copyingProject":
+			dialogForState = <Unity2022MigrationCopyingDialog/>;
 		case "unity2022migration:updating":
 			dialogForState = <Unity2022MigrationMigratingDialog/>;
 			break;
@@ -518,15 +539,14 @@ function Unity2022MigrationConfirmMigrationDialog(
 		doMigrate,
 	}: {
 		cancel: () => void,
-		doMigrate: () => void,
+		doMigrate: (inPlace: boolean) => void,
 	}) {
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-red-700"}>
-					Due to technical reasons, vrc-get only supports in-place migration for now.
-					In addition, project migration is experimental in vrc-get.
+					Project migration is experimental in vrc-get.
 				</Typography>
 				<Typography className={"text-red-700"}>
 					Please make backup of your project before migration.
@@ -534,7 +554,8 @@ function Unity2022MigrationConfirmMigrationDialog(
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">Cancel Migration</Button>
-				<Button onClick={doMigrate} color={"red"}>Migrate Project</Button>
+				<Button onClick={() => doMigrate(false)} color={"red"} className="mr-1">Migrate a Copy</Button>
+				<Button onClick={() => doMigrate(true)} color={"red"}>Migrate in-place</Button>
 			</DialogFooter>
 		</Dialog>
 	);
@@ -573,6 +594,22 @@ function Unity2022MigrationUnityVersionMismatchDialog(
 				<Button onClick={cancel} className="mr-1">Cancel Migration</Button>
 				<Button onClick={doMigrate} color={"red"}>Continue Migration</Button>
 			</DialogFooter>
+		</Dialog>
+	);
+}
+
+function Unity2022MigrationCopyingDialog() {
+	return (
+		<Dialog open handler={nop} className={"whitespace-normal"}>
+			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogBody>
+				<Typography>
+					Copying Project...
+				</Typography>
+				<Typography>
+					Please do not close the window.
+				</Typography>
+			</DialogBody>
 		</Dialog>
 	);
 }

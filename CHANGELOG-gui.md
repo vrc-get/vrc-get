@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog].
 ## [Unreleased]
 ### Added
 - Remove Project `#521`
+- Migrate a Copy `#522`
 
 ### Changed
 - Show unity log while migration `#519` 
