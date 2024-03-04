@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- No user agent for http requests `#513`
 
 ### Security
 
