@@ -8,22 +8,29 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Remove Project `#521`
-- Migrate a Copy `#522`
 
 ### Changed
-- Show unity log while migration `#519` 
-- MacOS build is now a universal binary `#520`
-- Use local time for timestamp in log file `#523`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- No user agent for http requests `#513`
 
 ### Security
+
+## [0.1.0-beta.7] - 2024-03-04
+### Added
+- Remove Project [`#521`](https://github.com/anatawa12/vrc-get/pull/521)
+- Migrate a Copy [`#522`](https://github.com/anatawa12/vrc-get/pull/522)
+
+### Changed
+- Show unity log while migration [`#519`](https://github.com/anatawa12/vrc-get/pull/519) 
+- MacOS build is now a universal binary [`#520`](https://github.com/anatawa12/vrc-get/pull/520)
+- Use local time for timestamp in log file [`#523`](https://github.com/anatawa12/vrc-get/pull/523)
+
+### Fixed
+- No user agent for http requests [`#513`](https://github.com/anatawa12/vrc-get/pull/513)
 
 ## [0.1.0-beta.6] - 2024-03-03
 ### Added
@@ -80,7 +87,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.6...HEAD
+[Unreleased]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.7...HEAD
+[0.1.0-beta.7]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.6...gui-v0.1.0-beta.7
 [0.1.0-beta.6]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.5...gui-v0.1.0-beta.6
 [0.1.0-beta.5]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.4...gui-v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.3...gui-v0.1.0-beta.4
