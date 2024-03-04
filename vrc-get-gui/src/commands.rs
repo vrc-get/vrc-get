@@ -4,6 +4,7 @@ use std::fmt::Display;
 use std::io;
 use std::num::Wrapping;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -12,7 +13,8 @@ use specta::specta;
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
-use tokio::process::Command;
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::process::{Child, Command};
 
 use crate::logging::LogEntry;
 use vrc_get_vpm::environment::UserProject;
@@ -67,7 +69,7 @@ pub(crate) fn export_ts() {
             project_remove_package,
             project_apply_pending_changes,
             project_migrate_project_to_2022,
-            project_finalize_migration_with_unity_2022,
+            project_finalize_migration_with_unity_2022::<tauri::Wry>,
             project_open_unity,
             util_open,
             util_get_log_entries,
@@ -931,16 +933,29 @@ async fn project_migrate_project_to_2022(
 #[serde(tag = "type")]
 enum TauriFinalizeMigrationWithUnity2022 {
     NoUnity2022Found,
-    UnityExistsWithStatus { status: String },
+    MigrationStarted { event_name: String },
+}
+
+// keep in sync with lib/migration-with-2022.ts
+#[derive(Serialize, specta::Type, Clone)]
+#[serde(tag = "type")]
+enum TauriFinalizeMigrationWithUnity2022Event {
+    OutputLine { line: String },
+    ExistsWithNonZero { status: String },
     FinishedSuccessfully,
+    Failed,
 }
 
 #[tauri::command]
 #[specta::specta]
-async fn project_finalize_migration_with_unity_2022(
+async fn project_finalize_migration_with_unity_2022<R: Runtime>(
     state: State<'_, Mutex<EnvironmentState>>,
+    window: tauri::Window<R>,
     project_path: String,
 ) -> Result<TauriFinalizeMigrationWithUnity2022, RustError> {
+    static MIGRATION_EVENT_PREFIX: &str = "migrateTo2022:";
+    static MIGRATION_EVENT_COUNTER: AtomicU32 = AtomicU32::new(0);
+
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
     let environment = env_state.environment.get_environment_mut(false).await?;
@@ -951,27 +966,94 @@ async fn project_finalize_migration_with_unity_2022(
     };
     environment.disconnect_litedb();
 
-    let mut unity_project = load_project(project_path).await?;
+    let unity_project = load_project(project_path).await?;
 
-    let status = Command::new(found_unity.path())
+    let mut child = Command::new(found_unity.path())
         .args([
             "-quit".as_ref(),
             "-batchmode".as_ref(),
+            // https://docs.unity3d.com/Manual/EditorCommandLineArguments.html
+            "-logFile".as_ref(),
+            "-".as_ref(),
             "-projectPath".as_ref(),
             unity_project.project_dir().as_os_str(),
         ])
-        .status()
-        .await?;
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .stdin(Stdio::null())
+        .spawn()?;
 
-    if !status.success() {
-        return Ok(TauriFinalizeMigrationWithUnity2022::UnityExistsWithStatus {
-            status: status.to_string(),
-        });
+    let id = MIGRATION_EVENT_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let event_name = format!("{}{}", MIGRATION_EVENT_PREFIX, id);
+
+    // stdout and stderr
+    tokio::spawn(send_lines(
+        child.stdout.take().unwrap(),
+        window.clone(),
+        event_name.clone(),
+    ));
+    tokio::spawn(send_lines(
+        child.stderr.take().unwrap(),
+        window.clone(),
+        event_name.clone(),
+    ));
+    // process end
+    tokio::spawn(wait_send_exit_status(child, window, event_name.clone()));
+
+    async fn send_lines(
+        stdout: impl tokio::io::AsyncRead + Unpin,
+        window: tauri::Window<impl Runtime>,
+        event_name: String,
+    ) {
+        let stdout = BufReader::new(stdout);
+        let mut stdout = stdout.lines();
+        loop {
+            match stdout.next_line().await {
+                Err(e) => {
+                    error!("error reading unity output: {e}");
+                    break;
+                }
+                Ok(None) => break,
+                Ok(Some(line)) => {
+                    let line = line.trim().to_string();
+                    if let Err(e) = window.emit(
+                        &event_name,
+                        TauriFinalizeMigrationWithUnity2022Event::OutputLine { line },
+                    ) {
+                        match e {
+                            tauri::Error::WebviewNotFound => break,
+                            _ => error!("error sending stdout: {e}"),
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    unity_project.save().await?;
+    async fn wait_send_exit_status(
+        mut child: Child,
+        window: tauri::Window<impl Runtime>,
+        event_name: String,
+    ) {
+        let event = match child.wait().await {
+            Ok(status) => {
+                if status.success() {
+                    TauriFinalizeMigrationWithUnity2022Event::FinishedSuccessfully
+                } else {
+                    TauriFinalizeMigrationWithUnity2022Event::ExistsWithNonZero {
+                        status: status.to_string(),
+                    }
+                }
+            }
+            Err(e) => {
+                error!("error waiting for unity process: {e}");
+                TauriFinalizeMigrationWithUnity2022Event::Failed
+            }
+        };
+        window.emit(&event_name, event).unwrap();
+    }
 
-    Ok(TauriFinalizeMigrationWithUnity2022::FinishedSuccessfully)
+    Ok(TauriFinalizeMigrationWithUnity2022::MigrationStarted { event_name })
 }
 
 #[derive(Serialize, specta::Type)]
