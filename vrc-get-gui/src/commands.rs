@@ -1,5 +1,6 @@
 use log::{error, info};
 use reqwest::Url;
+use std::ffi::OsStr;
 use std::fmt::Display;
 use std::io;
 use std::num::Wrapping;
@@ -13,6 +14,7 @@ use specta::specta;
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, Invoke, Runtime, State};
+use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 
@@ -32,6 +34,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_projects,
         environment_add_project_with_picker,
         environment_remove_project,
+        environment_copy_project_for_migration,
         environment_packages,
         environment_repositories_info,
         environment_hide_repository,
@@ -43,6 +46,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_resolve,
         project_remove_package,
         project_apply_pending_changes,
+        project_before_migrate_project_to_2022,
         project_migrate_project_to_2022,
         project_finalize_migration_with_unity_2022,
         project_open_unity,
@@ -59,6 +63,7 @@ pub(crate) fn export_ts() {
             environment_projects,
             environment_add_project_with_picker,
             environment_remove_project,
+            environment_copy_project_for_migration,
             environment_packages,
             environment_repositories_info,
             environment_hide_repository,
@@ -70,6 +75,7 @@ pub(crate) fn export_ts() {
             project_resolve,
             project_remove_package,
             project_apply_pending_changes,
+            project_before_migrate_project_to_2022,
             project_migrate_project_to_2022,
             project_finalize_migration_with_unity_2022::<tauri::Wry>,
             project_open_unity,
@@ -125,8 +131,8 @@ impl RustError {
     }
 }
 
-impl From<io::Error> for RustError {
-    fn from(value: io::Error) -> Self {
+impl<E: Display> From<E> for RustError {
+    fn from(value: E) -> Self {
         RustError::unrecoverable(format!("io error: {value}"))
     }
 }
@@ -403,6 +409,90 @@ async fn environment_remove_project(
     }
 
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_copy_project_for_migration(
+    state: State<'_, Mutex<EnvironmentState>>,
+    source_path: String,
+) -> Result<String, RustError> {
+    async fn create_folder(folder: &Path, name: &OsStr) -> Option<String> {
+        let name = name.to_str().unwrap();
+        // first, try `-Migrated`
+        let new_path = folder.join(format!("{name}-Migrated"));
+        if let Ok(()) = tokio::fs::create_dir(&new_path).await {
+            return Some(new_path.into_os_string().into_string().unwrap());
+        }
+
+        for i in 1..100 {
+            let new_path = folder.join(format!("{name}-Migrated-{i}"));
+            if let Ok(()) = tokio::fs::create_dir(&new_path).await {
+                return Some(new_path.into_os_string().into_string().unwrap());
+            }
+        }
+
+        None
+    }
+
+    async fn copy_recursively(from: PathBuf, mut to: PathBuf) -> fs_extra::error::Result<u64> {
+        to.pop();
+        let mut options = fs_extra::dir::CopyOptions::new();
+        options.copy_inside = true;
+        match tokio::runtime::Handle::current()
+            .spawn_blocking(move || fs_extra::dir::copy(from, to, &options))
+            .await
+        {
+            Ok(r) => Ok(r?),
+            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "background task failed").into()),
+        }
+    }
+
+    let source_path_str = source_path;
+    let source_path = Path::new(&source_path_str);
+    let folder = source_path.parent().unwrap();
+    let name = source_path.file_name().unwrap();
+
+    let Some(new_path_str) = create_folder(folder, name).await else {
+        return Err(RustError::Unrecoverable(
+            "failed to create a new folder for migration".into(),
+        ));
+    };
+    let new_path = Path::new(&new_path_str);
+
+    info!("copying project for migration: {source_path_str} -> {new_path_str}");
+
+    let mut source_path_read = read_dir(source_path).await?;
+    while let Some(entry) = source_path_read.next_entry().await? {
+        if entry.file_name().to_ascii_lowercase() == "library"
+            || entry.file_name().to_ascii_lowercase() == "temp"
+        {
+            continue;
+        }
+
+        if entry.file_type().await?.is_dir() {
+            copy_recursively(entry.path(), new_path.join(entry.file_name()))
+                .await
+                .map_err(|e| format!("copying {}: {e}", entry.path().display()))?;
+        } else {
+            tokio::fs::copy(entry.path(), new_path.join(entry.file_name()))
+                .await
+                .map_err(|e| format!("copying {}: {e}", entry.path().display()))?;
+        }
+    }
+
+    info!("copied project for migration. adding to listing");
+
+    let unity_project = load_project(new_path_str.clone()).await?;
+
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    environment.add_project(&unity_project).await?;
+    environment.save().await?;
+
+    Ok(new_path_str)
 }
 
 #[derive(Serialize, specta::Type)]
@@ -922,10 +1012,37 @@ async fn project_apply_pending_changes(
 
 #[derive(Serialize, specta::Type)]
 #[serde(tag = "type")]
-enum TauriMigrateProjectTo2022Result {
+enum TauriBeforeMigrateProjectTo2022Result {
     NoUnity2022Found,
     ConfirmNotExactlyRecommendedUnity2022 { found: String, recommended: String },
-    MigrationInVpmFinished,
+    ReadyToMigrate,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_before_migrate_project_to_2022(
+    state: State<'_, Mutex<EnvironmentState>>,
+    allow_mismatched_unity: bool,
+) -> Result<TauriBeforeMigrateProjectTo2022Result, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    let Some(found_unity) = environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
+    else {
+        return Ok(TauriBeforeMigrateProjectTo2022Result::NoUnity2022Found);
+    };
+
+    if !allow_mismatched_unity && found_unity.version().unwrap() != VRCHAT_RECOMMENDED_2022_UNITY {
+        return Ok(
+            TauriBeforeMigrateProjectTo2022Result::ConfirmNotExactlyRecommendedUnity2022 {
+                found: found_unity.version().unwrap().to_string(),
+                recommended: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
+            },
+        );
+    }
+
+    Ok(TauriBeforeMigrateProjectTo2022Result::ReadyToMigrate)
 }
 
 #[tauri::command]
@@ -933,25 +1050,10 @@ enum TauriMigrateProjectTo2022Result {
 async fn project_migrate_project_to_2022(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
-    allow_mismatched_unity: bool,
-) -> Result<TauriMigrateProjectTo2022Result, RustError> {
+) -> Result<(), RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
     let environment = env_state.environment.get_environment_mut(false).await?;
-
-    let Some(found_unity) = environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
-    else {
-        return Ok(TauriMigrateProjectTo2022Result::NoUnity2022Found);
-    };
-
-    if !allow_mismatched_unity && found_unity.version().unwrap() != VRCHAT_RECOMMENDED_2022_UNITY {
-        return Ok(
-            TauriMigrateProjectTo2022Result::ConfirmNotExactlyRecommendedUnity2022 {
-                found: found_unity.version().unwrap().to_string(),
-                recommended: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
-            },
-        );
-    }
 
     let mut unity_project = load_project(project_path).await?;
 
@@ -963,7 +1065,7 @@ async fn project_migrate_project_to_2022(
     unity_project.save().await?;
     update_project_last_modified(environment, unity_project.project_dir()).await;
 
-    Ok(TauriMigrateProjectTo2022Result::MigrationInVpmFinished)
+    Ok(())
 }
 
 #[derive(Serialize, specta::Type)]
