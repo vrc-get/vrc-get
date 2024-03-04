@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 use log::{info, warn};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use tokio::process::Command;
 
 /// Migrate Unity Project
 #[derive(Subcommand)]
@@ -83,10 +84,20 @@ impl Unity2022 {
             PathBuf::from(found.path())
         });
 
-        project
-            .call_unity(&unity)
+        let status = Command::new(&unity)
+            .args([
+                "-quit".as_ref(),
+                "-batchmode".as_ref(),
+                "-projectPath".as_ref(),
+                project.project_dir().as_os_str(),
+            ])
+            .status()
             .await
             .exit_context("launching unity to finalize migration");
+
+        if !status.success() {
+            exit_with!("Unity exited with status {}", status);
+        }
 
         info!("Unity exited successfully. Migration finished.");
 

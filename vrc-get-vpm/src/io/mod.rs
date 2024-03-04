@@ -80,16 +80,6 @@ pub trait IoTrait: Sync {
     fn open(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
 
     // simple process operation.
-    fn command_status(
-        &self,
-        command: &OsStr,
-        args: &[&OsStr],
-    ) -> impl Future<Output = Result<ExitStatus>> + Send;
-    fn spawn_detached(
-        &self,
-        command: &OsStr,
-        args: &[&OsStr],
-    ) -> impl Future<Output = Result<()>> + Send;
     fn command_output(
         &self,
         command: &OsStr,

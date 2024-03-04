@@ -20,7 +20,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {Suspense, useMemo, useState} from "react";
+import React, {Fragment, Suspense, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
@@ -57,6 +57,8 @@ import {toast} from "react-toastify";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
 import {toastThrownError} from "@/lib/toastThrownError";
+import {listen} from "@tauri-apps/api/event";
+import {receiveLinesAndWaitForFinish, TauriFinalizeMigrationWithUnity2022Event} from "@/lib/migration-with-2022";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -92,6 +94,7 @@ type InstallStatus = {
 	status: "unity2022migration:updating";
 } | {
 	status: "unity2022migration:finalizing";
+	lines: [number, string][];
 }
 
 function PageBody() {
@@ -285,17 +288,28 @@ function PageBody() {
 				default:
 					const _: never = migrationResult;
 			}
-			setInstallStatus({status: "unity2022migration:finalizing"});
+			setInstallStatus({status: "unity2022migration:finalizing", lines: []});
 			const finalizeResult = await projectFinalizeMigrationWithUnity2022(projectPath);
 			switch (finalizeResult.type) {
 				case "NoUnity2022Found":
 					toast.error("Failed to finalize the migration: Unity 2022 is not found");
 					break;
-				case "UnityExistsWithStatus":
-					toast.error(`Might be failed to finalize the migration: Unity 2022 is ${finalizeResult.status}`);
-					break;
-				case "FinishedSuccessfully":
-					toast.success("Migration to Unity 2022 is completed");
+				case "MigrationStarted":
+					let lineNumber = 0;
+					await receiveLinesAndWaitForFinish(finalizeResult.event_name, lineString => {
+						setInstallStatus(prev => {
+							if (prev.status != "unity2022migration:finalizing") return prev;
+							lineNumber++;
+							let line: [number, string] = [lineNumber, lineString];
+							if (prev.lines.length > 200) {
+								return {...prev, lines: [...prev.lines.slice(1), line]};
+							} else {
+								return {...prev, lines: [...prev.lines, line]};
+							}
+						})
+					});
+					toast.success("Project migrated to Unity 2022");
+					// TODO
 					break;
 				default:
 					const _: never = finalizeResult;
@@ -350,7 +364,7 @@ function PageBody() {
 			dialogForState = <Unity2022MigrationMigratingDialog/>;
 			break;
 		case "unity2022migration:finalizing":
-			dialogForState = <Unity2022MigrationCallingUnityForMigrationDialog/>;
+			dialogForState = <Unity2022MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
 			break;
 	}
 
@@ -579,7 +593,19 @@ function Unity2022MigrationMigratingDialog() {
 	);
 }
 
-function Unity2022MigrationCallingUnityForMigrationDialog() {
+function Unity2022MigrationCallingUnityForMigrationDialog(
+	{
+		lines
+	}: {
+		lines: [number, string][]
+	}
+) {
+	const ref = React.useRef<HTMLDivElement>(null);
+
+	React.useEffect(() => {
+		ref.current?.scrollIntoView({behavior: "auto"});
+	}, [lines]);
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
@@ -590,6 +616,10 @@ function Unity2022MigrationCallingUnityForMigrationDialog() {
 				<Typography>
 					Please do not close the window.
 				</Typography>
+				<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
+					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
+					<div ref={ref}/>
+				</pre>
 			</DialogBody>
 		</Dialog>
 	);
