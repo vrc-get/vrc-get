@@ -2220,9 +2220,9 @@ dependencies = [
 
 [[package]]
 name = "open"
-version = "5.0.1"
+version = "5.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90878fb664448b54c4e592455ad02831e23a3f7e157374a8b95654731aac7349"
+checksum = "68b3fbb0d52bf0cbb5225ba3d2c303aa136031d43abff98284332a9981ecddec"
 dependencies = [
  "is-wsl",
  "libc",
@@ -4196,7 +4196,7 @@ dependencies = [
  "arc-swap",
  "chrono",
  "log",
- "open 5.0.1",
+ "open 5.1.1",
  "reqwest",
  "ringbuffer",
  "serde",
