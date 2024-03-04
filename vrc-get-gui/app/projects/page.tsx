@@ -4,6 +4,10 @@ import {
 	Button,
 	ButtonGroup,
 	Card,
+	Dialog,
+	DialogBody,
+	DialogFooter,
+	DialogHeader,
 	IconButton,
 	Menu,
 	MenuHandler,
@@ -25,7 +29,7 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import {
 	environmentAddProjectWithPicker,
-	environmentProjects,
+	environmentProjects, environmentRemoveProject,
 	TauriProject,
 	TauriProjectType,
 	utilOpen
@@ -46,19 +50,38 @@ export default function Page() {
 	});
 
 	const [search, setSearch] = useState("");
+	const [loadingOther, setLoadingOther] = useState(false);
+
+	const removeProject = async (project: TauriProject, directory: boolean) => {
+		setLoadingOther(true);
+		try {
+			await environmentRemoveProject(project.list_version, project.index, directory);
+			toast.success("Project removed successfully");
+		} finally {
+			setLoadingOther(false);
+		}
+		await result.refetch();
+	};
+
+	const loading = result.isFetching || loadingOther;
 
 	return (
 		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"}
 												 refresh={() => result.refetch()}
-												 isLoading={result.isFetching}
+												 isLoading={loading}
 												 search={search} setSearch={setSearch}/>
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll">
 					{
 						result.status == "pending" ? "Loading..." :
 							result.status == "error" ? "Error Loading projects: " + result.error.message :
-								<ProjectsTable projects={result.data} sorting={"lastModified"} search={search}/>
+								<ProjectsTable
+									projects={result.data}
+									sorting={"lastModified"}
+									search={search}
+									loading={loading}
+									removeProject={removeProject}/>
 					}
 				</Card>
 			</main>
@@ -68,11 +91,13 @@ export default function Page() {
 
 function ProjectsTable(
 	{
-		projects, sorting, search
+		projects, sorting, search, removeProject, loading,
 	}: {
 		projects: TauriProject[],
 		sorting: "lastModified",
-		search?: string
+		search?: string,
+		loading?: boolean,
+		removeProject?: (project: TauriProject, directory: boolean) => void,
 	}
 ) {
 	const TABLE_HEAD = [
@@ -104,7 +129,9 @@ function ProjectsTable(
 			</tr>
 			</thead>
 			<tbody>
-			{projectsShown.map((project) => <ProjectRow key={project.path} project={project}/>)}
+			{projectsShown.map((project) =>
+				<ProjectRow key={project.path} project={project} loading={loading}
+										removeProject={(x) => removeProject?.(project, x)}/>)}
 			</tbody>
 		</table>
 	);
@@ -152,8 +179,20 @@ function formatDateOffset(date: number) {
 	return relativeTimeFormat.format(Math.floor(diff / PER_YEAR), "year");
 }
 
-function ProjectRow({project}: { project: TauriProject }) {
+function ProjectRow(
+	{
+		project,
+		removeProject,
+		loading,
+	}: {
+		project: TauriProject;
+		removeProject?: (directory: boolean) => void;
+		loading?: boolean;
+	}
+) {
 	const router = useRouter();
+
+	const [removeDialogStatus, setRemoveDialogStatus] = useState<'normal' | 'confirm'>('normal');
 
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
@@ -166,18 +205,47 @@ function ProjectRow({project}: { project: TauriProject }) {
 
 	const openProjectFolder = () => utilOpen(project.path);
 
-	const disabled = !project.is_exists;
+	const startRemoveProject = () => setRemoveDialogStatus('confirm');
 
-	const MayTooltip = disabled ? Tooltip : Fragment;
+	const removed = !project.is_exists;
+
+	const MayTooltip = removed ? Tooltip : Fragment;
 
 	const RowButton = (props: React.ComponentProps<typeof Button>) => (
 		<MayTooltip content={"Project Folder does not exists"}>
-			<Button {...props} onClick={disabled ? nop : props.onClick}/>
+			<Button {...props} onClick={removed ? nop : props.onClick} disabled={loading}/>
 		</MayTooltip>
 	);
 
+	let dialogContent: React.ReactNode = null;
+	switch (removeDialogStatus) {
+		case "confirm":
+			const removeProjectButton = (directory: boolean) => {
+				setRemoveDialogStatus('normal');
+				removeProject?.(directory);
+			}
+			dialogContent = (
+				<Dialog open handler={nop} className={'whitespace-normal'}>
+					<DialogHeader>Remove Project</DialogHeader>
+					<DialogBody>
+						You're about to remove the project <strong>{project.name}</strong>. Are you sure?
+					</DialogBody>
+					<DialogFooter>
+						<Button onClick={() => setRemoveDialogStatus('normal')} className="mr-1">Cancel</Button>
+						<Button onClick={() => removeProjectButton(true)} color={"red"} className="mr-1 px-2"
+										disabled={!project.is_exists}>
+							Remove the Directory
+						</Button>
+						<Button onClick={() => removeProjectButton(false)} color={"red"} className="px-2">
+							Remove from the List
+						</Button>
+					</DialogFooter>
+				</Dialog>
+			);
+	}
+
 	return (
-		<tr className={`even:bg-blue-gray-50/50 ${disabled ? 'opacity-50' : ''}`}>
+		<tr className={`even:bg-blue-gray-50/50 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
 				<MayTooltip content={"Project Folder does not exists"}>
 					<div className="flex flex-col">
@@ -231,10 +299,14 @@ function ProjectRow({project}: { project: TauriProject }) {
 								className={"size-5"}/></IconButton>
 						</MenuHandler>
 						<MenuList>
-							<MenuItem onClick={openProjectFolder} disabled={disabled}>Open Project Folder</MenuItem>
+							<MenuItem onClick={openProjectFolder} disabled={removed || loading}>Open Project Folder</MenuItem>
+							<MenuItem onClick={startRemoveProject} disabled={loading} className={'text-red-700 focus:text-red-700'}>
+								Remove Project
+							</MenuItem>
 						</MenuList>
 					</Menu>
 				</div>
+				{dialogContent}
 			</td>
 		</tr>
 	)

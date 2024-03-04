@@ -31,6 +31,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
     generate_handler![
         environment_projects,
         environment_add_project_with_picker,
+        environment_remove_project,
         environment_packages,
         environment_repositories_info,
         environment_hide_repository,
@@ -57,6 +58,7 @@ pub(crate) fn export_ts() {
         specta::collect_types![
             environment_projects,
             environment_add_project_with_picker,
+            environment_remove_project,
             environment_packages,
             environment_repositories_info,
             environment_hide_repository,
@@ -366,6 +368,41 @@ async fn environment_add_project_with_picker(
     environment.save().await?;
 
     Ok(TauriAddProjectWithPickerResult::Successful)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_remove_project(
+    state: State<'_, Mutex<EnvironmentState>>,
+    list_version: u32,
+    index: usize,
+    directory: bool,
+) -> Result<(), RustError> {
+    let mut state = state.lock().await;
+    let state = &mut *state;
+    let version = (state.environment.environment_version + state.projects_version).0;
+    if list_version != version {
+        return Err(RustError::Unrecoverable(
+            "project list version mismatch".into(),
+        ));
+    }
+
+    let project = &state.projects[index];
+    let environment = state.environment.get_environment_mut(false).await?;
+    environment.remove_project(project)?;
+    environment.save().await?;
+
+    if directory {
+        let path = project.path();
+        info!("removing project directory: {path}");
+        if let Err(err) = tokio::fs::remove_dir_all(path).await {
+            error!("failed to remove project directory: {err}");
+        } else {
+            info!("removed project directory: {path}");
+        }
+    }
+
+    Ok(())
 }
 
 #[derive(Serialize, specta::Type)]
