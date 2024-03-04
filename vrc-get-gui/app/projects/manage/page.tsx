@@ -301,7 +301,7 @@ function PageBody() {
 							if (prev.status != "unity2022migration:finalizing") return prev;
 							lineNumber++;
 							let line: [number, string] = [lineNumber, lineString];
-							if (prev.lines.length > 1024) {
+							if (prev.lines.length > 200) {
 								return {...prev, lines: [...prev.lines.slice(1), line]};
 							} else {
 								return {...prev, lines: [...prev.lines, line]};
@@ -600,6 +600,12 @@ function Unity2022MigrationCallingUnityForMigrationDialog(
 		lines: [number, string][]
 	}
 ) {
+	const ref = React.useRef<HTMLDivElement>(null);
+
+	React.useEffect(() => {
+		ref.current?.scrollIntoView({behavior: "auto"});
+	}, [lines]);
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Unity Migration</DialogHeader>
@@ -612,6 +618,7 @@ function Unity2022MigrationCallingUnityForMigrationDialog(
 				</Typography>
 				<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
 					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
+					<div ref={ref}/>
 				</pre>
 			</DialogBody>
 		</Dialog>
