@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- The color of "Remove from the List" button is now default one. #524
+- The color of "Remove from the List" button is now default one. `#524`
 
 ### Deprecated
 
