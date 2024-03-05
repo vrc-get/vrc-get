@@ -236,7 +236,7 @@ function ProjectRow(
 										disabled={!project.is_exists}>
 							Remove the Directory
 						</Button>
-						<Button onClick={() => removeProjectButton(false)} color={"red"} className="px-2">
+						<Button onClick={() => removeProjectButton(false)} className="px-2">
 							Remove from the List
 						</Button>
 					</DialogFooter>
