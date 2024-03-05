@@ -232,12 +232,12 @@ function ProjectRow(
 					</DialogBody>
 					<DialogFooter>
 						<Button onClick={() => setRemoveDialogStatus('normal')} className="mr-1">Cancel</Button>
-						<Button onClick={() => removeProjectButton(true)} color={"red"} className="mr-1 px-2"
+						<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
+							Remove from the List
+						</Button>
+						<Button onClick={() => removeProjectButton(true)} color={"red"} className="px-2"
 										disabled={!project.is_exists}>
 							Remove the Directory
-						</Button>
-						<Button onClick={() => removeProjectButton(false)} className="px-2">
-							Remove from the List
 						</Button>
 					</DialogFooter>
 				</Dialog>
