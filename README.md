@@ -57,7 +57,7 @@ sudo port install vrc-get
 
 ### Using scoop
 
-If you're using [scoop](https://scoop.sh/), you can install from a scoop bucket.
+If you're using [scoop](https://scoop.sh/), you can install vrc-get from a scoop bucket.
 
 ```
 scoop bucket add xrtools "https://github.com/babo4d/scoop-xrtools"
@@ -66,8 +66,8 @@ scoop install vrc-get
 
 ### Using PKGBUILD from AUR
 
-If you're using Arch Linux, you can install from Arch User Repository.
-Please install with your favorite AUR helpers.
+If you're using Arch Linux, you can install vrc-get from Arch User Repository.
+Please use your favorite AUR helpers.
 
 ```
 yay -S vrc-get
@@ -75,7 +75,7 @@ yay -S vrc-get
 
 ### Using `cargo binstall`
 
-If you have [`cargo binstall`][cargo-binstall], installing using cargo binstall is an easy & fast way to install vrc-get.
+If you have [`cargo binstall`][cargo-binstall], installing with cargo binstall is an easy & fast way to install vrc-get.
 Cargo binstall will download & install prebuilt vrc-get from GitHub.
 
 ```bash
@@ -84,7 +84,7 @@ cargo binstall vrc-get
 
 ### Using `cargo`
 
-If you have [`cargo`][cargo], installing using cargo is an easy way to install vrc-get.
+If you have [`cargo`][cargo], installing with cargo is an easy way to install vrc-get.
 
 ```bash
 cargo install vrc-get
@@ -94,8 +94,8 @@ cargo install vrc-get
 
 There're prebuilt binaries on the [release] page.
 
-Download the executable file for your platform and place it to everywhere you want.
-There's no additional requirements for these binaries. All binaries are compiled statically as possible.
+Download the executable file for your platform and place it anywhere you want.
+There're no additional requirements for these binaries. All binaries are compiled statically as possible.
 
 For Linux, it's actually a static linked executable.
 
@@ -107,12 +107,12 @@ which are macOS-builtin dylibs, are dynamically linked.
 
 ### For GitHub Actions
 
-To use this tool to resolve(install) vpm dependencies, you can use 
+To use this tool to resolve(install) vpm dependencies, you have to use 
 [`anatawa12/sh-actions/resolve-vpm-packages@master`][resolve-vpm-packages].
 
-To use other commands, you can install `vpm-get` via [`anatawa12/sh-actions/setup-vrc-get@master`][setup-vrc-get].
+To use other commands, you have to install `vpm-get` via [`anatawa12/sh-actions/setup-vrc-get@master`][setup-vrc-get].
 
-For more details, please see README for each action.
+For more details, please refer to README for each action.
 
 ## GUI version of vrc-get
 
