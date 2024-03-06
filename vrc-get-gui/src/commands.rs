@@ -198,6 +198,7 @@ struct PendingProjectChangesInfo<'env> {
 
 struct EnvironmentHolder {
     environment: Option<Environment>,
+    last_update: Option<tokio::time::Instant>,
     environment_version: Wrapping<u32>,
 }
 
@@ -205,6 +206,7 @@ impl EnvironmentHolder {
     fn new() -> Self {
         Self {
             environment: None,
+            last_update: None,
             environment_version: Wrapping(0),
         }
     }
@@ -212,14 +214,21 @@ impl EnvironmentHolder {
     async fn get_environment_mut(&mut self, inc_version: bool) -> io::Result<&mut Environment> {
         if let Some(ref mut environment) = self.environment {
             info!("reloading settings files");
-            // reload settings files
-            environment.reload().await?;
+            if !self
+                .last_update
+                .map(|x| x.elapsed() < tokio::time::Duration::from_secs(1))
+                .unwrap_or(false)
+            {
+                // reload settings files
+                environment.reload().await?;
+            }
             if inc_version {
                 self.environment_version += Wrapping(1);
             }
             Ok(environment)
         } else {
             self.environment = Some(new_environment().await?);
+            self.last_update = Some(tokio::time::Instant::now());
             self.environment_version += Wrapping(1);
             Ok(self.environment.as_mut().unwrap())
         }
