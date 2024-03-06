@@ -11,7 +11,7 @@ updates:
     schedule:
       interval: "weekly"
   - package-ecosystem: "npm"
-    directory: "/vrc-get-gui/web"
+    directory: "/vrc-get-gui"
     open-pull-requests-limit: 20
     schedule:
       interval: "weekly"
