@@ -8,7 +8,7 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::{error, io};
-use vrc_get_vpm::io::{EnvironmentIo, ExitStatus, FileType, Metadata, Output, ProjectIo};
+use vrc_get_vpm::io::{EnvironmentIo, ExitStatus, FileType, Metadata, ProjectIo};
 
 pub(crate) use file_stream::*;
 
@@ -199,10 +199,6 @@ impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
                 .content
                 .clone(),
         ))
-    }
-
-    async fn command_output(&self, _: &OsStr, _: &[&OsStr]) -> io::Result<Output> {
-        err(ErrorKind::Unsupported, "process")
     }
 }
 

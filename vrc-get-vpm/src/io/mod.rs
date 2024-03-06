@@ -1,4 +1,4 @@
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
@@ -78,13 +78,6 @@ pub trait IoTrait: Sync {
     fn create_new(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn create(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn open(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
-
-    // simple process operation.
-    fn command_output(
-        &self,
-        command: &OsStr,
-        args: &[&OsStr],
-    ) -> impl Future<Output = Result<Output>> + Send;
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -205,23 +198,6 @@ impl std::fmt::Display for ExitStatus {
             ExitStatusEnum::Std(std) => std::fmt::Display::fmt(std, f),
             ExitStatusEnum::Custom { success: true, .. } => f.write_str("exits successfully"),
             ExitStatusEnum::Custom { success: false, .. } => f.write_str("exits non successfully"),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Output {
-    pub status: ExitStatus,
-    pub stdout: Vec<u8>,
-    pub stderr: Vec<u8>,
-}
-
-impl From<std::process::Output> for Output {
-    fn from(value: std::process::Output) -> Self {
-        Self {
-            status: value.status.into(),
-            stdout: value.stdout,
-            stderr: value.stderr,
         }
     }
 }

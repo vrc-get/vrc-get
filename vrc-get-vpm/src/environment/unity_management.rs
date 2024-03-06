@@ -1,12 +1,12 @@
-use crate::io::{EnvironmentIo, Output};
+use crate::io::EnvironmentIo;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
 use lazy_static::lazy_static;
 use log::info;
 use std::collections::HashSet;
-use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::str::from_utf8;
+use tokio::process::Command;
 use vrc_get_litedb::UnityVersion as DbUnityVersion;
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
@@ -36,10 +36,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             ));
         }
 
-        let output = self
-            .io
-            .command_output(path.as_ref(), &["-version".as_ref()])
-            .await?;
+        let output = Command::new(path).arg("-version").output().await?;
 
         if !output.status.success() {
             return Err(io::Error::new(
@@ -138,7 +135,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
     }
 
-    async fn find_unity_hub(&mut self) -> io::Result<Option<String>> {
+    pub async fn find_unity_hub(&mut self) -> io::Result<Option<String>> {
         let path = self.settings.unity_hub();
         if !path.is_empty() && self.io.is_file(path.as_ref()).await {
             // if configured one is valid path to file, return it
@@ -157,63 +154,11 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(None)
     }
 
-    async fn headless_unity_hub(&mut self, args: &[&OsStr]) -> io::Result<Output> {
-        let path = self.find_unity_hub().await?.ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotFound,
-                "Unity Hub not found and configured.",
-            )
-        })?;
-
-        let args = {
-            let mut vec = Vec::with_capacity(args.len() + 2);
-            if !cfg!(target_os = "linux") {
-                vec.push("--".as_ref());
-            }
-            vec.push("--headless".as_ref());
-            vec.extend_from_slice(args);
-            vec
-        };
-
-        self.io.command_output(path.as_ref(), &args).await
-    }
-
-    pub async fn get_unity_from_unity_hub(&mut self) -> io::Result<Vec<String>> {
-        let output = self
-            .headless_unity_hub(&["editors".as_ref(), "-i".as_ref()])
-            .await?;
-
-        if !output.status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Unity Hub failed to get installed unity versions",
-            ));
-        }
-
-        let stdout = from_utf8(&output.stdout).map_err(|_| {
-            io::Error::new(io::ErrorKind::InvalidInput, "invalid utf8 from unity hub")
-        })?;
-
-        let mut result = Vec::new();
-
-        for x in stdout.lines() {
-            if let Some((_version_and_arch, path)) = x.split_once("installed at") {
-                let path = path.trim();
-
-                result.push(path.to_string());
-            }
-        }
-
-        Ok(result)
-    }
-
-    pub async fn update_unity_from_unity_hub_and_fs(&mut self) -> io::Result<()> {
-        let paths_from_hub = self
-            .get_unity_from_unity_hub()
-            .await?
-            .into_iter()
-            .map(unity_path)
-            .collect::<HashSet<_>>();
+    pub async fn update_unity_from_unity_hub_and_fs(
+        &mut self,
+        paths_from_hub: impl IntoIterator<Item = PathBuf>,
+    ) -> io::Result<()> {
+        let paths_from_hub = paths_from_hub.into_iter().collect::<HashSet<_>>();
 
         let db = self.get_db()?;
 
@@ -244,18 +189,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
         }
 
-        return Ok(());
-
-        #[cfg(not(target_os = "macos"))]
-        fn unity_path(original: String) -> PathBuf {
-            PathBuf::from(original)
-        }
-
-        #[cfg(target_os = "macos")]
-        fn unity_path(original: String) -> PathBuf {
-            // on macos, unity hub returns path to app bundle folder, not the executable
-            PathBuf::from(original).join("Contents/MacOS/Unity")
-        }
+        Ok(())
     }
 }
 

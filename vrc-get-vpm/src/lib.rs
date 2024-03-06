@@ -23,6 +23,9 @@ mod utils;
 pub mod version;
 mod version_selector;
 
+#[cfg(feature = "unity-hub")]
+pub mod unity_hub;
+
 pub use environment::Environment;
 pub use unity_project::UnityProject;
 pub use version_selector::VersionSelector;
