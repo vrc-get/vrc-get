@@ -3,6 +3,8 @@
 
 use tauri::Manager;
 
+#[cfg(windows)]
+mod cmd_start;
 mod commands;
 mod logging;
 

@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Unity launched by vrc-get is shown as a part of vrc-get-gui `#530`
 
 ### Security
 

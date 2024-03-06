@@ -1222,12 +1222,27 @@ async fn project_open_unity(
             if version == project_unity {
                 environment.disconnect_litedb();
 
-                Command::new(x.path())
-                    .args([
-                        "-projectPath".as_ref(),
-                        unity_project.project_dir().as_os_str(),
-                    ])
-                    .spawn()?;
+                #[cfg(not(windows))]
+                {
+                    Command::new(x.path())
+                        .args([
+                            "-projectPath".as_ref(),
+                            unity_project.project_dir().as_os_str(),
+                        ])
+                        .spawn()?;
+                }
+                #[cfg(windows)]
+                {
+                    crate::cmd_start::start_command(
+                        "Unity".as_ref(),
+                        x.path().as_ref(),
+                        &[
+                            "-projectPath".as_ref(),
+                            unity_project.project_dir().as_os_str(),
+                        ],
+                    )
+                    .await?;
+                }
                 return Ok(TauriOpenUnityResult::Success);
             }
         }
