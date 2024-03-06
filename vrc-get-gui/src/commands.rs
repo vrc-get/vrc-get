@@ -13,7 +13,7 @@ use serde::Serialize;
 use specta::specta;
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
-use tauri::{generate_handler, Invoke, Runtime, State};
+use tauri::{generate_handler, App, Invoke, Manager, Runtime, State};
 use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
@@ -26,7 +26,8 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    PackageCollection, PackageInfo, PackageJson, ProjectType, VRCHAT_RECOMMENDED_2022_UNITY,
+    unity_hub, PackageCollection, PackageInfo, PackageJson, ProjectType,
+    VRCHAT_RECOMMENDED_2022_UNITY,
 };
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
@@ -92,6 +93,45 @@ pub(crate) fn export_ts() {
 
 pub(crate) fn new_env_state() -> impl Send + Sync + 'static {
     Mutex::new(EnvironmentState::new())
+}
+
+pub(crate) fn startup(_app: &mut App) {
+    let handle = _app.handle();
+    tauri::async_runtime::spawn(async move {
+        let state = handle.state();
+        if let Err(e) = update_unity_hub(state).await {
+            error!("failed to update unity from unity hub: {e}");
+        }
+    });
+
+    async fn update_unity_hub(state: State<'_, Mutex<EnvironmentState>>) -> Result<(), io::Error> {
+        let unity_hub_path = {
+            let mut guard = state.lock().await;
+            let environment = guard.environment.get_environment_mut(false).await?;
+            let Some(unity_hub_path) = environment.find_unity_hub().await? else {
+                error!("Unity Hub not found");
+                return Ok(());
+            };
+            environment.save().await?;
+            unity_hub_path
+        };
+
+        let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
+
+        {
+            let mut guard = state.lock().await;
+            let environment = guard.environment.get_environment_mut(false).await?;
+
+            environment
+                .update_unity_from_unity_hub_and_fs(paths_from_hub)
+                .await?;
+
+            environment.save().await?;
+        }
+
+        info!("finished updating unity from unity hub");
+        Ok(())
+    }
 }
 
 type Environment = vrc_get_vpm::Environment<reqwest::Client, vrc_get_vpm::io::DefaultEnvironmentIo>;

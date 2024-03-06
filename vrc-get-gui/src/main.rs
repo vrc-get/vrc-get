@@ -29,6 +29,7 @@ fn main() {
         .invoke_handler(commands::handlers())
         .setup(|app| {
             app.manage(commands::new_env_state());
+            commands::startup(app);
             Ok(())
         })
         .build(tauri_context())
