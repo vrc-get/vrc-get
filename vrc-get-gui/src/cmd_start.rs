@@ -21,7 +21,7 @@ pub(crate) async fn start_command(
     let percent_env_name = "PERCENT".encode_utf16().collect::<Vec<_>>();
 
     let mut cmd_args = Vec::new();
-    cmd_args.extend("/d /c start /d \"".encode_utf16());
+    cmd_args.extend("/d /c start /b \"".encode_utf16());
     cmd_args.extend(name.encode_wide());
     cmd_args.push(b'"' as u16);
     cmd_args.push(b' ' as u16);
@@ -94,16 +94,16 @@ const ESCAPE_CHARS: &[u16] = &[
 ];
 
 fn append_cmd_escaped(args: &mut Vec<u16>, arg: &[u16], percent_env_var_name: &[u16]) {
-    if arg.first() == Some('"'.into()) && arg.last() == Some('"'.into()) {
+    if arg.first().copied() == Some('"' as u16) && arg.last().copied() == Some('"' as u16) {
         // it's "-quoted, so we don't need to escape if there is no '"' inside
-        let contains_quote = arg.iter().filter(|x| x == '"' as u16).count() > 2;
+        let contains_quote = arg.iter().filter(|&&x| x == '"' as u16).count() > 2;
         if contains_quote {
             append_cmd_caret_escaped(args, arg, percent_env_var_name);
         } else {
             append_cmd_no_caret_escape(args, arg, percent_env_var_name);
         }
     } else if arg.iter().any(|x| ESCAPE_CHARS.contains(x)) {
-        if !arg.iter().any(|x| x == '"' as u16) {
+        if !arg.iter().any(|&x| x == '"' as u16) {
             // if contains escape chars but not ", we can use "-quoting
             args.push(b'"' as u16);
             append_cmd_no_caret_escape(args, arg, percent_env_var_name);

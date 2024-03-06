@@ -1235,8 +1235,8 @@ async fn project_open_unity(
                 {
                     crate::cmd_start::start_command(
                         "Unity".as_ref(),
-                        x.path(),
-                        [
+                        x.path().as_ref(),
+                        &[
                             "-projectPath".as_ref(),
                             unity_project.project_dir().as_os_str(),
                         ],
