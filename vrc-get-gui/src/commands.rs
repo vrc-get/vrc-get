@@ -41,6 +41,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_hide_repository,
         environment_show_repository,
         environment_set_hide_local_user_packages,
+        environment_get_settings,
         project_details,
         project_install_package,
         project_upgrade_multiple_package,
@@ -70,6 +71,7 @@ pub(crate) fn export_ts() {
             environment_hide_repository,
             environment_show_repository,
             environment_set_hide_local_user_packages,
+            environment_get_settings,
             project_details,
             project_install_package,
             project_upgrade_multiple_package,
@@ -752,6 +754,38 @@ async fn environment_set_hide_local_user_packages(
     environment.save().await?;
 
     Ok(())
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriEnvironmentSettings {
+    default_project_path: String,
+    project_backup_path: String,
+    unity_paths: Vec<(String, String, bool)>,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_get_settings(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriEnvironmentSettings, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+    Ok(TauriEnvironmentSettings {
+        default_project_path: environment.default_project_path().to_string(),
+        project_backup_path: environment.project_backup_path().to_string(),
+        unity_paths: environment
+            .get_unity_installations()?
+            .iter()
+            .filter_map(|unity| {
+                Some((
+                    unity.path().to_string(),
+                    unity.version()?.to_string(),
+                    unity.loaded_from_hub(),
+                ))
+            })
+            .collect(),
+    })
 }
 
 #[derive(Serialize, specta::Type)]

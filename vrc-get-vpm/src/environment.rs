@@ -485,6 +485,22 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         self.settings.set_show_prerelease_packages(value);
     }
 
+    pub fn default_project_path(&self) -> &str {
+        self.settings.default_project_path()
+    }
+
+    pub fn set_default_project_path(&mut self, value: &str) {
+        self.settings.set_default_project_path(value);
+    }
+
+    pub fn project_backup_path(&self) -> &str {
+        self.settings.project_backup_path()
+    }
+
+    pub fn set_project_backup_path(&mut self, value: &str) {
+        self.settings.set_project_backup_path(value);
+    }
+
     pub async fn save(&mut self) -> io::Result<()> {
         try_join(
             self.settings.save(&self.io),

@@ -137,6 +137,22 @@ impl Settings {
         self.controller.as_mut().show_prerelease_packages = value;
     }
 
+    pub(crate) fn default_project_path(&self) -> &str {
+        &self.controller.default_project_path
+    }
+
+    pub(crate) fn set_default_project_path(&mut self, value: &str) {
+        self.controller.as_mut().default_project_path = value.into();
+    }
+
+    pub(crate) fn project_backup_path(&self) -> &str {
+        &self.controller.project_backup_path
+    }
+
+    pub(crate) fn set_project_backup_path(&mut self, value: &str) {
+        self.controller.as_mut().project_backup_path = value.into();
+    }
+
     pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
         self.controller.save(io, JSON_PATH.as_ref()).await
     }
