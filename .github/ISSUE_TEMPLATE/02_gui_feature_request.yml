@@ -1,7 +1,7 @@
 name: "[vrc-get-gui] Feature Request"
 description: Suggest an idea for vrc-get-gui / vrc-get-guiに新しい機能を提案する
 labels: ["enhancement", "vrc-get-gui"]
-projects: ["anatawa12/2"]
+projects: ["vrc-get/1"]
 
 body:
   - type: textarea
