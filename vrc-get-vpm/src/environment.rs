@@ -153,14 +153,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         struct NewIdGetterImpl<'b>(&'b RepoHolder);
 
         impl<'b> settings::NewIdGetter for NewIdGetterImpl<'b> {
-            fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Option<&'a str> {
-                let loaded = self.0.get_repo(repo.local_path()).unwrap();
+            fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Result<Option<&'a str>, ()> {
+                let loaded = self.0.get_repo(repo.local_path()).ok_or(())?;
 
                 let id = loaded.id();
                 let url = loaded.url().map(Url::as_str);
                 let local_url = repo.url().map(Url::as_str);
 
-                id.or(url).or(local_url)
+                Ok(id.or(url).or(local_url))
             }
         }
 
