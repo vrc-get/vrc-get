@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Unity launched by vrc-get is shown as a part of vrc-get-gui `#530`
+- Fails to load all repositories if fails to load one repository `#551`
 
 ### Security
 

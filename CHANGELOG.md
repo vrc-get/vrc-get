@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
 ### Fixed
 - Fails to load package.json with invalid url in url field `#492`
   - This makes `d4rkAvatarOptimizer` is recognized as not installed.
+- Fails to load all repositories if fails to load one repository `#551`
 
 ### Security
 
