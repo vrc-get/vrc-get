@@ -6,7 +6,7 @@ use crate::repository::RemoteRepository;
 use crate::traits::HttpClient;
 use crate::utils::{read_json_file, to_vec_pretty_os_eol, try_load_json};
 use crate::{PackageCollection, PackageInfo, VersionSelector};
-use futures::future::try_join_all;
+use futures::future::join_all;
 use indexmap::IndexMap;
 use log::error;
 use std::collections::HashMap;
@@ -34,12 +34,17 @@ impl RepoHolder {
         io: &IO,
         sources: impl Iterator<Item = RepoSource<'a>>,
     ) -> io::Result<()> {
-        let repos = try_join_all(sources.map(|src| async move {
-            Self::load_repo_from_source(http, io, &src)
-                .await
-                .map(|v| v.map(|v| (v, src.cache_path().into())))
+        let repos = join_all(sources.map(|src| async move {
+            match Self::load_repo_from_source(http, io, &src).await {
+                Ok(Some(v)) => Some((v, src.cache_path().into())),
+                Ok(None) => None,
+                Err(e) => {
+                    error!("loading repo '{}': {}", src.cache_path().display(), e);
+                    None
+                }
+            }
         }))
-        .await?;
+        .await;
 
         for (repo, path) in repos.into_iter().flatten() {
             self.cached_repos_new.insert(path, repo);
