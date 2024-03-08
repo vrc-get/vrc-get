@@ -20,13 +20,14 @@ use tokio::process::{Child, Command};
 
 use crate::logging::LogEntry;
 use vrc_get_vpm::environment::UserProject;
+use vrc_get_vpm::io::EnvironmentIo;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    unity_hub, PackageCollection, PackageInfo, PackageJson, ProjectType,
+    unity_hub, EnvironmentIoHolder, PackageCollection, PackageInfo, PackageJson, ProjectType,
     VRCHAT_RECOMMENDED_2022_UNITY,
 };
 
@@ -42,6 +43,10 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_show_repository,
         environment_set_hide_local_user_packages,
         environment_get_settings,
+        environment_pick_unity_hub,
+        environment_pick_unity,
+        environment_pick_project_default_path,
+        environment_pick_project_backup_path,
         project_details,
         project_install_package,
         project_upgrade_multiple_package,
@@ -72,6 +77,10 @@ pub(crate) fn export_ts() {
             environment_show_repository,
             environment_set_hide_local_user_packages,
             environment_get_settings,
+            environment_pick_unity_hub,
+            environment_pick_unity,
+            environment_pick_project_default_path,
+            environment_pick_project_backup_path,
             project_details,
             project_install_package,
             project_upgrade_multiple_package,
@@ -395,7 +404,7 @@ async fn environment_projects(
 #[derive(Serialize, specta::Type)]
 enum TauriAddProjectWithPickerResult {
     NoFolderSelected,
-    InvalidFolderAsAProject,
+    InvalidSelection,
     Successful,
 }
 
@@ -409,12 +418,12 @@ async fn environment_add_project_with_picker(
     };
 
     let Ok(project_path) = project_path.into_os_string().into_string() else {
-        return Ok(TauriAddProjectWithPickerResult::InvalidFolderAsAProject);
+        return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     };
 
     let unity_project = load_project(project_path).await?;
     if !unity_project.is_valid().await {
-        return Ok(TauriAddProjectWithPickerResult::InvalidFolderAsAProject);
+        return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     }
 
     let mut env_state = state.lock().await;
@@ -760,6 +769,7 @@ async fn environment_set_hide_local_user_packages(
 struct TauriEnvironmentSettings {
     default_project_path: String,
     project_backup_path: String,
+    unity_hub: String,
     unity_paths: Vec<(String, String, bool)>,
 }
 
@@ -771,9 +781,13 @@ async fn environment_get_settings(
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
     let environment = env_state.environment.get_environment_mut(false).await?;
+
+    environment.find_unity_hub().await.ok();
+
     Ok(TauriEnvironmentSettings {
         default_project_path: environment.default_project_path().to_string(),
         project_backup_path: environment.project_backup_path().to_string(),
+        unity_hub: environment.unity_hub_path().to_string(),
         unity_paths: environment
             .get_unity_installations()?
             .iter()
@@ -786,6 +800,257 @@ async fn environment_get_settings(
             })
             .collect(),
     })
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPickUnityHubResult {
+    NoFolderSelected,
+    InvalidSelection,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_pick_unity_hub(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<crate::commands::TauriPickUnityHubResult, RustError> {
+    let Some(mut path) = ({
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        let mut unity_hub = Path::new(environment.unity_hub_path());
+
+        if cfg!(target_os = "macos") {
+            // for macos, select .app file instead of the executable binary inside it
+            if unity_hub.ends_with("Contents/MacOS/Unity Hub") {
+                unity_hub = unity_hub
+                    .parent()
+                    .unwrap()
+                    .parent()
+                    .unwrap()
+                    .parent()
+                    .unwrap();
+            }
+        }
+
+        let mut builder = FileDialogBuilder::new();
+
+        if unity_hub.parent().is_some() {
+            builder = builder
+                .set_directory(unity_hub.parent().unwrap())
+                .set_file_name(&unity_hub.file_name().unwrap().to_string_lossy());
+        }
+
+        if cfg!(target_os = "macos") {
+            builder = builder.add_filter("Application", &["app"]);
+        } else if cfg!(target_os = "windows") {
+            builder = builder.add_filter("Executable", &["exe"]);
+        } else if cfg!(target_os = "linux") {
+            // no extension for executable on linux
+        }
+
+        builder.pick_file()
+    }) else {
+        return Ok(TauriPickUnityHubResult::NoFolderSelected);
+    };
+
+    // validate / update the file
+    #[allow(clippy::if_same_then_else)]
+    if cfg!(target_os = "macos") {
+        if path.extension().map(|x| x.to_ascii_lowercase()).as_deref() == Some(OsStr::new("app")) {
+            // it's app bundle so select the executable inside it
+            path.push("Contents/MacOS/Unity Hub");
+            if !path.exists() {
+                return Ok(TauriPickUnityHubResult::InvalidSelection);
+            }
+        }
+    } else if cfg!(target_os = "windows") {
+        // no validation
+    } else if cfg!(target_os = "linux") {
+        // no validation
+    }
+
+    let Ok(path) = path.into_os_string().into_string() else {
+        return Ok(TauriPickUnityHubResult::InvalidSelection);
+    };
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        environment.set_unity_hub_path(&path);
+        environment.save().await?;
+    }
+
+    Ok(TauriPickUnityHubResult::Successful)
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPickUnityResult {
+    NoFolderSelected,
+    InvalidSelection,
+    AlreadyAdded,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_pick_unity(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriPickUnityResult, RustError> {
+    let Some(mut path) = ({
+        let mut builder = FileDialogBuilder::new();
+        if cfg!(target_os = "macos") {
+            builder = builder.add_filter("Application", &["app"]);
+        } else if cfg!(target_os = "windows") {
+            builder = builder.add_filter("Executable", &["exe"]);
+        } else if cfg!(target_os = "linux") {
+            // no extension for executable on linux
+        }
+
+        builder.pick_file()
+    }) else {
+        return Ok(TauriPickUnityResult::NoFolderSelected);
+    };
+
+    // validate / update the file
+    #[allow(clippy::if_same_then_else)]
+    if cfg!(target_os = "macos") {
+        if path.extension().map(|x| x.to_ascii_lowercase()).as_deref() == Some(OsStr::new("app")) {
+            // it's app bundle so select the executable inside it
+            path.push("Contents/MacOS/Unity");
+            if !path.exists() {
+                return Ok(TauriPickUnityResult::InvalidSelection);
+            }
+        }
+    } else if cfg!(target_os = "windows") {
+        // no validation
+    } else if cfg!(target_os = "linux") {
+        // no validation
+    }
+
+    let Ok(path) = path.into_os_string().into_string() else {
+        return Ok(TauriPickUnityResult::InvalidSelection);
+    };
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        match environment.add_unity_installation(&path).await {
+            Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                return Ok(TauriPickUnityResult::AlreadyAdded)
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::InvalidInput => {
+                return Ok(TauriPickUnityResult::InvalidSelection)
+            }
+            Err(e) => return Err(e.into()),
+            Ok(_) => {}
+        }
+        environment.save().await?;
+    }
+
+    Ok(TauriPickUnityResult::Successful)
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPickProjectDefaultPathResult {
+    NoFolderSelected,
+    InvalidSelection,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_pick_project_default_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriPickProjectDefaultPathResult, RustError> {
+    let Some(dir) = ({
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        // default path may not be exists so create here
+        // Note: keep in sync with vrc-get-vpm/src/environment/settings.rs
+        let mut default_path = environment.io().resolve("".as_ref());
+        default_path.pop();
+        default_path.push("VRChatProjects");
+        println!("default_path: {:?}", default_path.display());
+        if default_path.as_path() == Path::new(environment.default_project_path()) {
+            tokio::fs::create_dir_all(&default_path).await.ok();
+        }
+
+        FileDialogBuilder::new()
+            .set_directory(environment.default_project_path())
+            .pick_folder()
+    }) else {
+        return Ok(TauriPickProjectDefaultPathResult::NoFolderSelected);
+    };
+
+    let Ok(dir) = dir.into_os_string().into_string() else {
+        return Ok(TauriPickProjectDefaultPathResult::InvalidSelection);
+    };
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        environment.set_default_project_path(&dir);
+        environment.save().await?;
+    }
+
+    Ok(TauriPickProjectDefaultPathResult::Successful)
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPickProjectBackupPathResult {
+    NoFolderSelected,
+    InvalidSelection,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_pick_project_backup_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriPickProjectBackupPathResult, RustError> {
+    let Some(dir) = ({
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        // backup folder may not be exists so create here
+        // Note: keep in sync with vrc-get-vpm/src/environment/settings.rs
+        let default_path = environment.io().resolve("Project Backups".as_ref());
+        if default_path.as_path() == Path::new(environment.project_backup_path()) {
+            tokio::fs::create_dir_all(&default_path).await.ok();
+        }
+
+        FileDialogBuilder::new()
+            .set_directory(environment.project_backup_path())
+            .pick_folder()
+    }) else {
+        return Ok(TauriPickProjectBackupPathResult::NoFolderSelected);
+    };
+
+    let Ok(dir) = dir.into_os_string().into_string() else {
+        return Ok(TauriPickProjectBackupPathResult::InvalidSelection);
+    };
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        environment.set_project_backup_path(&dir);
+        environment.save().await?;
+    }
+
+    Ok(TauriPickProjectBackupPathResult::Successful)
 }
 
 #[derive(Serialize, specta::Type)]

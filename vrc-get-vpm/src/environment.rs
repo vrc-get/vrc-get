@@ -501,6 +501,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         self.settings.set_project_backup_path(value);
     }
 
+    pub fn unity_hub_path(&self) -> &str {
+        self.settings.unity_hub()
+    }
+
+    pub fn set_unity_hub_path(&mut self, value: &str) {
+        self.settings.set_unity_hub(value);
+    }
+
     pub async fn save(&mut self) -> io::Result<()> {
         try_join(
             self.settings.save(&self.io),

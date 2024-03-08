@@ -70,7 +70,24 @@ const JSON_PATH: &str = "settings.json";
 
 impl Settings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
-        let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
+        let mut parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
+
+        if parsed.project_backup_path.is_empty() {
+            // Note: keep in sync with vrc-get-gui/src/commands.rs
+            parsed.project_backup_path = io
+                .resolve("Project Backups".as_ref())
+                .to_string_lossy()
+                .into_owned()
+                .into();
+        }
+
+        if parsed.default_project_path.is_empty() {
+            // Note: keep in sync with vrc-get-gui/src/commands.rs
+            let mut path = io.resolve("".as_ref());
+            path.pop();
+            path.push("VRChatProjects");
+            parsed.default_project_path = path.to_string_lossy().into_owned().into();
+        }
 
         Ok(Self {
             controller: SaveController::new(parsed),
@@ -153,6 +170,14 @@ impl Settings {
         self.controller.as_mut().project_backup_path = value.into();
     }
 
+    pub(crate) fn unity_hub(&self) -> &str {
+        &self.controller.path_to_unity_hub
+    }
+
+    pub(crate) fn set_unity_hub(&mut self, path: &str) {
+        self.controller.as_mut().path_to_unity_hub = path.into();
+    }
+
     pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
         self.controller.save(io, JSON_PATH.as_ref()).await
     }
@@ -176,16 +201,5 @@ impl Settings {
             .as_mut()
             .user_projects
             .insert(0, path.into());
-    }
-}
-
-#[cfg(feature = "experimental-unity-management")]
-impl Settings {
-    pub(crate) fn unity_hub(&self) -> &str {
-        &self.controller.path_to_unity_hub
-    }
-
-    pub(crate) fn set_unity_hub(&mut self, path: &str) {
-        self.controller.as_mut().path_to_unity_hub = path.into();
     }
 }

@@ -199,7 +199,7 @@ pub struct UnityInstallation {
 }
 
 impl UnityInstallation {
-    pub fn new(inner: DbUnityVersion) -> Self {
+    pub(crate) fn new(inner: DbUnityVersion) -> Self {
         Self { inner }
     }
 
