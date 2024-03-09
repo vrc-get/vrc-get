@@ -4,7 +4,7 @@ use log::warn;
 use std::cmp::Reverse;
 use std::path::Path;
 use vrc_get_vpm::io::DefaultProjectIo;
-use vrc_get_vpm::UnityProject;
+use vrc_get_vpm::{unity_hub, UnityProject};
 
 /// Experimental VCC commands
 #[derive(Subcommand)]
@@ -252,7 +252,17 @@ impl UnityUpdate {
     pub async fn run(self) {
         let mut env = load_env(&self.env_args).await;
 
-        env.update_unity_from_unity_hub_and_fs()
+        let unity_hub_path = env
+            .find_unity_hub()
+            .await
+            .exit_context("loading unity hub path")
+            .unwrap_or_else(|| exit_with!("Unity Hub not found"));
+
+        let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref())
+            .await
+            .exit_context("loading unity list from unity hub");
+
+        env.update_unity_from_unity_hub_and_fs(paths_from_hub)
             .await
             .exit_context("updating unity from unity hub");
 

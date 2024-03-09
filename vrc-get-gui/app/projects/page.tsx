@@ -326,7 +326,7 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 				case "NoFolderSelected":
 					// no-op
 					break;
-				case "InvalidFolderAsAProject":
+				case "InvalidSelection":
 					toast.error("Invalid folder selected as a project");
 					break;
 				case "Successful":

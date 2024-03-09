@@ -1,5 +1,3 @@
-use log::{error, info};
-use reqwest::Url;
 use std::ffi::OsStr;
 use std::fmt::Display;
 use std::io;
@@ -9,25 +7,32 @@ use std::process::Stdio;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use indexmap::IndexMap;
+use log::{error, info};
+use reqwest::Url;
 use serde::Serialize;
-use specta::specta;
+use specta::{specta, DataType, DefOpts, ExportError, Type};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
-use tauri::{generate_handler, Invoke, Runtime, State};
+use tauri::{generate_handler, App, Invoke, Manager, Runtime, State};
 use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 
-use crate::logging::LogEntry;
 use vrc_get_vpm::environment::UserProject;
+use vrc_get_vpm::io::EnvironmentIo;
+use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    PackageCollection, PackageInfo, PackageJson, ProjectType, VRCHAT_RECOMMENDED_2022_UNITY,
+    unity_hub, EnvironmentIoHolder, PackageCollection, PackageInfo, PackageJson, ProjectType,
+    VersionSelector, VRCHAT_RECOMMENDED_2022_UNITY,
 };
+
+use crate::logging::LogEntry;
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
     generate_handler![
@@ -40,6 +45,14 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_hide_repository,
         environment_show_repository,
         environment_set_hide_local_user_packages,
+        environment_get_settings,
+        environment_pick_unity_hub,
+        environment_pick_unity,
+        environment_pick_project_default_path,
+        environment_pick_project_backup_path,
+        environment_download_repository,
+        environment_add_repository,
+        environment_remove_repository,
         project_details,
         project_install_package,
         project_upgrade_multiple_package,
@@ -69,6 +82,14 @@ pub(crate) fn export_ts() {
             environment_hide_repository,
             environment_show_repository,
             environment_set_hide_local_user_packages,
+            environment_get_settings,
+            environment_pick_unity_hub,
+            environment_pick_unity,
+            environment_pick_project_default_path,
+            environment_pick_project_backup_path,
+            environment_download_repository,
+            environment_add_repository,
+            environment_remove_repository,
             project_details,
             project_install_package,
             project_upgrade_multiple_package,
@@ -92,6 +113,45 @@ pub(crate) fn export_ts() {
 
 pub(crate) fn new_env_state() -> impl Send + Sync + 'static {
     Mutex::new(EnvironmentState::new())
+}
+
+pub(crate) fn startup(_app: &mut App) {
+    let handle = _app.handle();
+    tauri::async_runtime::spawn(async move {
+        let state = handle.state();
+        if let Err(e) = update_unity_hub(state).await {
+            error!("failed to update unity from unity hub: {e}");
+        }
+    });
+
+    async fn update_unity_hub(state: State<'_, Mutex<EnvironmentState>>) -> Result<(), io::Error> {
+        let unity_hub_path = {
+            let mut guard = state.lock().await;
+            let environment = guard.environment.get_environment_mut(false).await?;
+            let Some(unity_hub_path) = environment.find_unity_hub().await? else {
+                error!("Unity Hub not found");
+                return Ok(());
+            };
+            environment.save().await?;
+            unity_hub_path
+        };
+
+        let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
+
+        {
+            let mut guard = state.lock().await;
+            let environment = guard.environment.get_environment_mut(false).await?;
+
+            environment
+                .update_unity_from_unity_hub_and_fs(paths_from_hub)
+                .await?;
+
+            environment.save().await?;
+        }
+
+        info!("finished updating unity from unity hub");
+        Ok(())
+    }
 }
 
 type Environment = vrc_get_vpm::Environment<reqwest::Client, vrc_get_vpm::io::DefaultEnvironmentIo>;
@@ -158,6 +218,7 @@ struct PendingProjectChangesInfo<'env> {
 
 struct EnvironmentHolder {
     environment: Option<Environment>,
+    last_update: Option<tokio::time::Instant>,
     environment_version: Wrapping<u32>,
 }
 
@@ -165,6 +226,7 @@ impl EnvironmentHolder {
     fn new() -> Self {
         Self {
             environment: None,
+            last_update: None,
             environment_version: Wrapping(0),
         }
     }
@@ -172,14 +234,21 @@ impl EnvironmentHolder {
     async fn get_environment_mut(&mut self, inc_version: bool) -> io::Result<&mut Environment> {
         if let Some(ref mut environment) = self.environment {
             info!("reloading settings files");
-            // reload settings files
-            environment.reload().await?;
+            if !self
+                .last_update
+                .map(|x| x.elapsed() < tokio::time::Duration::from_secs(1))
+                .unwrap_or(false)
+            {
+                // reload settings files
+                environment.reload().await?;
+            }
             if inc_version {
                 self.environment_version += Wrapping(1);
             }
             Ok(environment)
         } else {
             self.environment = Some(new_environment().await?);
+            self.last_update = Some(tokio::time::Instant::now());
             self.environment_version += Wrapping(1);
             Ok(self.environment.as_mut().unwrap())
         }
@@ -344,7 +413,7 @@ async fn environment_projects(
 #[derive(Serialize, specta::Type)]
 enum TauriAddProjectWithPickerResult {
     NoFolderSelected,
-    InvalidFolderAsAProject,
+    InvalidSelection,
     Successful,
 }
 
@@ -358,12 +427,12 @@ async fn environment_add_project_with_picker(
     };
 
     let Ok(project_path) = project_path.into_os_string().into_string() else {
-        return Ok(TauriAddProjectWithPickerResult::InvalidFolderAsAProject);
+        return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     };
 
     let unity_project = load_project(project_path).await?;
     if !unity_project.is_valid().await {
-        return Ok(TauriAddProjectWithPickerResult::InvalidFolderAsAProject);
+        return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     }
 
     let mut env_state = state.lock().await;
@@ -619,6 +688,7 @@ async fn environment_packages(
 #[derive(Serialize, specta::Type)]
 struct TauriUserRepository {
     id: String,
+    url: Option<String>,
     display_name: String,
 }
 
@@ -647,6 +717,7 @@ async fn environment_repositories_info(
                 let id = x.id().or(x.url().map(Url::as_str)).unwrap();
                 TauriUserRepository {
                     id: id.to_string(),
+                    url: x.url().map(|x| x.to_string()),
                     display_name: x.name().unwrap_or(id).to_string(),
                 }
             })
@@ -703,6 +774,465 @@ async fn environment_set_hide_local_user_packages(
     environment.save().await?;
 
     Ok(())
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriEnvironmentSettings {
+    default_project_path: String,
+    project_backup_path: String,
+    unity_hub: String,
+    unity_paths: Vec<(String, String, bool)>,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_get_settings(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriEnvironmentSettings, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    environment.find_unity_hub().await.ok();
+
+    Ok(TauriEnvironmentSettings {
+        default_project_path: environment.default_project_path().to_string(),
+        project_backup_path: environment.project_backup_path().to_string(),
+        unity_hub: environment.unity_hub_path().to_string(),
+        unity_paths: environment
+            .get_unity_installations()?
+            .iter()
+            .filter_map(|unity| {
+                Some((
+                    unity.path().to_string(),
+                    unity.version()?.to_string(),
+                    unity.loaded_from_hub(),
+                ))
+            })
+            .collect(),
+    })
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPickUnityHubResult {
+    NoFolderSelected,
+    InvalidSelection,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_pick_unity_hub(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<crate::commands::TauriPickUnityHubResult, RustError> {
+    let Some(mut path) = ({
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        let mut unity_hub = Path::new(environment.unity_hub_path());
+
+        if cfg!(target_os = "macos") {
+            // for macos, select .app file instead of the executable binary inside it
+            if unity_hub.ends_with("Contents/MacOS/Unity Hub") {
+                unity_hub = unity_hub
+                    .parent()
+                    .unwrap()
+                    .parent()
+                    .unwrap()
+                    .parent()
+                    .unwrap();
+            }
+        }
+
+        let mut builder = FileDialogBuilder::new();
+
+        if unity_hub.parent().is_some() {
+            builder = builder
+                .set_directory(unity_hub.parent().unwrap())
+                .set_file_name(&unity_hub.file_name().unwrap().to_string_lossy());
+        }
+
+        if cfg!(target_os = "macos") {
+            builder = builder.add_filter("Application", &["app"]);
+        } else if cfg!(target_os = "windows") {
+            builder = builder.add_filter("Executable", &["exe"]);
+        } else if cfg!(target_os = "linux") {
+            // no extension for executable on linux
+        }
+
+        builder.pick_file()
+    }) else {
+        return Ok(TauriPickUnityHubResult::NoFolderSelected);
+    };
+
+    // validate / update the file
+    #[allow(clippy::if_same_then_else)]
+    if cfg!(target_os = "macos") {
+        if path.extension().map(|x| x.to_ascii_lowercase()).as_deref() == Some(OsStr::new("app")) {
+            // it's app bundle so select the executable inside it
+            path.push("Contents/MacOS/Unity Hub");
+            if !path.exists() {
+                return Ok(TauriPickUnityHubResult::InvalidSelection);
+            }
+        }
+    } else if cfg!(target_os = "windows") {
+        // no validation
+    } else if cfg!(target_os = "linux") {
+        // no validation
+    }
+
+    let Ok(path) = path.into_os_string().into_string() else {
+        return Ok(TauriPickUnityHubResult::InvalidSelection);
+    };
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        environment.set_unity_hub_path(&path);
+        environment.save().await?;
+    }
+
+    Ok(TauriPickUnityHubResult::Successful)
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPickUnityResult {
+    NoFolderSelected,
+    InvalidSelection,
+    AlreadyAdded,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_pick_unity(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriPickUnityResult, RustError> {
+    let Some(mut path) = ({
+        let mut builder = FileDialogBuilder::new();
+        if cfg!(target_os = "macos") {
+            builder = builder.add_filter("Application", &["app"]);
+        } else if cfg!(target_os = "windows") {
+            builder = builder.add_filter("Executable", &["exe"]);
+        } else if cfg!(target_os = "linux") {
+            // no extension for executable on linux
+        }
+
+        builder.pick_file()
+    }) else {
+        return Ok(TauriPickUnityResult::NoFolderSelected);
+    };
+
+    // validate / update the file
+    #[allow(clippy::if_same_then_else)]
+    if cfg!(target_os = "macos") {
+        if path.extension().map(|x| x.to_ascii_lowercase()).as_deref() == Some(OsStr::new("app")) {
+            // it's app bundle so select the executable inside it
+            path.push("Contents/MacOS/Unity");
+            if !path.exists() {
+                return Ok(TauriPickUnityResult::InvalidSelection);
+            }
+        }
+    } else if cfg!(target_os = "windows") {
+        // no validation
+    } else if cfg!(target_os = "linux") {
+        // no validation
+    }
+
+    let Ok(path) = path.into_os_string().into_string() else {
+        return Ok(TauriPickUnityResult::InvalidSelection);
+    };
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        match environment.add_unity_installation(&path).await {
+            Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                return Ok(TauriPickUnityResult::AlreadyAdded)
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::InvalidInput => {
+                return Ok(TauriPickUnityResult::InvalidSelection)
+            }
+            Err(e) => return Err(e.into()),
+            Ok(_) => {}
+        }
+        environment.save().await?;
+    }
+
+    Ok(TauriPickUnityResult::Successful)
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPickProjectDefaultPathResult {
+    NoFolderSelected,
+    InvalidSelection,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_pick_project_default_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriPickProjectDefaultPathResult, RustError> {
+    let Some(dir) = ({
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        // default path may not be exists so create here
+        // Note: keep in sync with vrc-get-vpm/src/environment/settings.rs
+        let mut default_path = environment.io().resolve("".as_ref());
+        default_path.pop();
+        default_path.push("VRChatProjects");
+        println!("default_path: {:?}", default_path.display());
+        if default_path.as_path() == Path::new(environment.default_project_path()) {
+            tokio::fs::create_dir_all(&default_path).await.ok();
+        }
+
+        FileDialogBuilder::new()
+            .set_directory(environment.default_project_path())
+            .pick_folder()
+    }) else {
+        return Ok(TauriPickProjectDefaultPathResult::NoFolderSelected);
+    };
+
+    let Ok(dir) = dir.into_os_string().into_string() else {
+        return Ok(TauriPickProjectDefaultPathResult::InvalidSelection);
+    };
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        environment.set_default_project_path(&dir);
+        environment.save().await?;
+    }
+
+    Ok(TauriPickProjectDefaultPathResult::Successful)
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriPickProjectBackupPathResult {
+    NoFolderSelected,
+    InvalidSelection,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_pick_project_backup_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriPickProjectBackupPathResult, RustError> {
+    let Some(dir) = ({
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        // backup folder may not be exists so create here
+        // Note: keep in sync with vrc-get-vpm/src/environment/settings.rs
+        let default_path = environment.io().resolve("Project Backups".as_ref());
+        if default_path.as_path() == Path::new(environment.project_backup_path()) {
+            tokio::fs::create_dir_all(&default_path).await.ok();
+        }
+
+        FileDialogBuilder::new()
+            .set_directory(environment.project_backup_path())
+            .pick_folder()
+    }) else {
+        return Ok(TauriPickProjectBackupPathResult::NoFolderSelected);
+    };
+
+    let Ok(dir) = dir.into_os_string().into_string() else {
+        return Ok(TauriPickProjectBackupPathResult::InvalidSelection);
+    };
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(false).await?;
+
+        environment.set_project_backup_path(&dir);
+        environment.save().await?;
+    }
+
+    Ok(TauriPickProjectBackupPathResult::Successful)
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriRemoteRepositoryInfo {
+    display_name: String,
+    id: String,
+    url: String,
+    packages: Vec<TauriBasePackageInfo>,
+}
+
+#[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
+enum TauriDownloadRepository {
+    BadUrl,
+    Duplicated,
+    DownloadError { message: String },
+    Success { value: TauriRemoteRepositoryInfo },
+}
+
+// workaround IndexMap v2 is not implemented in specta
+
+#[derive(serde::Deserialize)]
+#[serde(transparent)]
+struct IndexMapV2<K: std::hash::Hash + Eq, V>(IndexMap<K, V>);
+
+impl Type for IndexMapV2<Box<str>, Box<str>> {
+    fn inline(opts: DefOpts, generics: &[DataType]) -> Result<DataType, ExportError> {
+        Ok(DataType::Record(Box::new((
+            String::inline(
+                DefOpts {
+                    parent_inline: opts.parent_inline,
+                    type_map: opts.type_map,
+                },
+                generics,
+            )?,
+            String::inline(
+                DefOpts {
+                    parent_inline: opts.parent_inline,
+                    type_map: opts.type_map,
+                },
+                generics,
+            )?,
+        ))))
+    }
+
+    fn reference(opts: DefOpts, generics: &[DataType]) -> Result<DataType, ExportError> {
+        Ok(DataType::Record(Box::new((
+            String::reference(
+                DefOpts {
+                    parent_inline: opts.parent_inline,
+                    type_map: opts.type_map,
+                },
+                generics,
+            )?,
+            String::reference(
+                DefOpts {
+                    parent_inline: opts.parent_inline,
+                    type_map: opts.type_map,
+                },
+                generics,
+            )?,
+        ))))
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_download_repository(
+    state: State<'_, Mutex<EnvironmentState>>,
+    url: String,
+    headers: IndexMapV2<Box<str>, Box<str>>,
+) -> Result<TauriDownloadRepository, RustError> {
+    let url: Url = match url.parse() {
+        Err(_) => {
+            return Ok(TauriDownloadRepository::BadUrl);
+        }
+        Ok(url) => url,
+    };
+
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    for repo in environment.get_user_repos() {
+        if repo.url().map(|x| x.as_str()) == Some(url.as_str()) {
+            return Ok(TauriDownloadRepository::Duplicated);
+        }
+    }
+
+    let client = environment.http().unwrap();
+    let repo = match RemoteRepository::download(client, &url, &headers.0).await {
+        Ok((repo, _)) => repo,
+        Err(e) => {
+            return Ok(TauriDownloadRepository::DownloadError {
+                message: e.to_string(),
+            });
+        }
+    };
+
+    let url = repo.url().unwrap_or(&url).as_str();
+    let id = repo.id().unwrap_or(url);
+
+    for repo in environment.get_user_repos() {
+        if repo.id() == Some(id) {
+            return Ok(TauriDownloadRepository::Duplicated);
+        }
+    }
+
+    Ok(TauriDownloadRepository::Success {
+        value: TauriRemoteRepositoryInfo {
+            id: id.to_string(),
+            url: url.to_string(),
+            display_name: repo.name().unwrap_or(id).to_string(),
+            packages: repo
+                .get_packages()
+                .filter_map(|x| x.get_latest(VersionSelector::latest_for(None, true)))
+                .filter(|x| !x.is_yanked())
+                .map(TauriBasePackageInfo::new)
+                .collect(),
+        },
+    })
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriAddRepositoryResult {
+    BadUrl,
+    Success,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_add_repository(
+    state: State<'_, Mutex<EnvironmentState>>,
+    url: String,
+    headers: IndexMapV2<Box<str>, Box<str>>,
+) -> Result<TauriAddRepositoryResult, RustError> {
+    let url: Url = match url.parse() {
+        Err(_) => {
+            return Ok(TauriAddRepositoryResult::BadUrl);
+        }
+        Ok(url) => url,
+    };
+
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    environment.add_remote_repo(url, None, headers.0).await?;
+
+    environment.save().await?;
+
+    Ok(TauriAddRepositoryResult::Success)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_remove_repository(
+    state: State<'_, Mutex<EnvironmentState>>,
+    id: String,
+) -> Result<TauriAddRepositoryResult, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    environment
+        .remove_repo(|r| r.id() == Some(id.as_str()))
+        .await;
+
+    environment.save().await?;
+
+    Ok(TauriAddRepositoryResult::Success)
 }
 
 #[derive(Serialize, specta::Type)]
