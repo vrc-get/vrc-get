@@ -11,6 +11,7 @@ use either::Either;
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use pin_project_lite::pin_project;
+use serde_json::error::Category;
 use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
@@ -205,6 +206,25 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
     }
 }
 
+pub(crate) fn deserialize_json<T: serde::de::DeserializeOwned>(value: Value) -> io::Result<T> {
+    serde_path_to_error::deserialize(&value).map_err(to_io_err)
+}
+
+pub(crate) fn deserialize_json_slice<T: serde::de::DeserializeOwned>(
+    slice: &[u8],
+) -> io::Result<T> {
+    let mut deserializer = serde_json::Deserializer::from_slice(slice);
+    serde_path_to_error::deserialize(&mut deserializer).map_err(to_io_err)
+}
+
+pub(crate) fn to_io_err(err: serde_path_to_error::Error<serde_json::Error>) -> io::Error {
+    match err.inner().classify() {
+        Category::Io => err.into_inner().into(),
+        Category::Syntax | Category::Data => io::Error::new(io::ErrorKind::InvalidData, err),
+        Category::Eof => io::Error::new(io::ErrorKind::UnexpectedEof, err),
+    }
+}
+
 pub(crate) async fn read_json_file<T: serde::de::DeserializeOwned>(
     mut file: impl AsyncRead + Unpin,
     path: &Path,
@@ -215,7 +235,8 @@ pub(crate) async fn read_json_file<T: serde::de::DeserializeOwned>(
     let mut slice = vec.as_slice();
     slice = slice.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(slice);
 
-    match serde_json::from_slice::<T>(slice) {
+    let mut deserializer = serde_json::Deserializer::from_slice(slice);
+    match serde_path_to_error::deserialize(&mut deserializer) {
         Ok(loaded) => Ok(loaded),
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,

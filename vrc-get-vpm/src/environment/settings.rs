@@ -63,7 +63,7 @@ pub(crate) struct Settings {
 pub(crate) trait NewIdGetter {
     // I wanted to be closure but it looks not possible
     // https://users.rust-lang.org/t/any-way-to-return-an-closure-that-would-returns-a-reference-to-one-of-its-captured-variable/22652/2
-    fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Option<&'a str>;
+    fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Result<Option<&'a str>, ()>;
 }
 
 const JSON_PATH: &str = "settings.json";
@@ -89,11 +89,12 @@ impl Settings {
         self.controller.may_changing(|json| {
             let mut changed = false;
             for repo in &mut json.user_repos {
-                let id = new_id.new_id(repo);
-                if id != repo.id() {
-                    let owned = id.map(|x| x.into());
-                    repo.id = owned;
-                    changed = true;
+                if let Ok(id) = new_id.new_id(repo) {
+                    if id != repo.id() {
+                        let owned = id.map(|x| x.into());
+                        repo.id = owned;
+                        changed = true;
+                    }
                 }
             }
             changed

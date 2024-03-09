@@ -1,4 +1,5 @@
 use crate::traits::HttpClient;
+use crate::utils::{deserialize_json, deserialize_json_slice};
 use crate::version::Version;
 use crate::PackageJson;
 use crate::{io, VersionSelector};
@@ -31,9 +32,9 @@ struct ParsedRepository {
 }
 
 impl RemoteRepository {
-    pub fn parse(cache: JsonMap) -> serde_json::Result<Self> {
+    pub fn parse(cache: JsonMap) -> io::Result<Self> {
         Ok(Self {
-            parsed: serde_json::from_value(Value::Object(cache.clone()))?,
+            parsed: deserialize_json(Value::Object(cache.clone()))?,
             actual: cache,
         })
     }
@@ -67,7 +68,7 @@ impl RemoteRepository {
         let no_bom = bytes
             .strip_prefix(b"\xEF\xBB\xBF")
             .unwrap_or(bytes.as_ref());
-        let json = serde_json::from_slice(no_bom)?;
+        let json = deserialize_json_slice(no_bom)?;
 
         let mut repo = RemoteRepository::parse(json)?;
         repo.set_url_if_none(|| url.clone());
