@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 
 ### Security
 
+## [0.1.0-beta.12] - 2024-03-09
 ## [0.1.0-beta.11] - 2024-03-09
 ## [0.1.0-beta.10] - 2024-03-09
 ## [0.1.0-beta.9] - 2024-03-09
@@ -102,7 +103,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.11...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.12...HEAD
+[0.1.0-beta.12]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.11...gui-v0.1.0-beta.12
 [0.1.0-beta.11]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.10...gui-v0.1.0-beta.11
 [0.1.0-beta.10]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.9...gui-v0.1.0-beta.10
 [0.1.0-beta.9]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.8...gui-v0.1.0-beta.9
