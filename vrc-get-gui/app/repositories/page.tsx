@@ -9,7 +9,9 @@ import {
 	DialogFooter,
 	DialogHeader,
 	IconButton,
-	Input, List, ListItem,
+	Input,
+	List,
+	ListItem,
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
@@ -17,9 +19,11 @@ import {useQuery} from "@tanstack/react-query";
 import {
 	environmentAddRepository,
 	environmentDownloadRepository,
-	environmentHideRepository, environmentRemoveProject, environmentRemoveRepository,
+	environmentHideRepository,
+	environmentRemoveRepository,
 	environmentRepositoriesInfo,
-	environmentShowRepository, TauriRemoteRepositoryInfo,
+	environmentShowRepository,
+	TauriRemoteRepositoryInfo,
 	TauriUserRepository
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
@@ -28,7 +32,6 @@ import {XCircleIcon} from "@heroicons/react/24/outline";
 import {nop} from "@/lib/nop";
 import {toastThrownError} from "@/lib/toastThrownError";
 import {toast} from "react-toastify";
-import {set} from "yaml/dist/schema/yaml-1.1/set";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
