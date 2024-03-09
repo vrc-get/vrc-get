@@ -6,7 +6,8 @@ import {useQuery} from "@tanstack/react-query";
 import {
 	environmentGetSettings,
 	environmentPickProjectBackupPath,
-	environmentPickProjectDefaultPath, environmentPickUnity,
+	environmentPickProjectDefaultPath,
+	environmentPickUnity,
 	environmentPickUnityHub,
 	TauriEnvironmentSettings
 } from "@/lib/bindings";
@@ -37,7 +38,7 @@ export default function Page() {
 	}
 
 	return (
-		<VStack className={"m-4 overflow-y-auto"}>
+		<VStack className={"p-4 overflow-y-auto"}>
 			{body}
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>Licenses</h2>
