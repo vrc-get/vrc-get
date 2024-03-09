@@ -389,6 +389,7 @@ jobs:
       - name: Move updater.json
         run: |
           mkdir -p api/gui
+          rm public/api/gui/tauri-updater.json || true # remove old file if exists
           mv updater.json public/api/gui/tauri-updater.json
 
       - name: Commit
