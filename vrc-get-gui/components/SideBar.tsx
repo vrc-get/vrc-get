@@ -1,7 +1,7 @@
 "use client";
 
-import {Card, List, ListItem, ListItemPrefix, Typography} from "@material-tailwind/react";
-import {Cog6ToothIcon, ListBulletIcon,} from "@heroicons/react/24/solid";
+import {Card, List, ListItem, ListItemPrefix} from "@material-tailwind/react";
+import {CloudIcon, Cog6ToothIcon, ListBulletIcon} from "@heroicons/react/24/solid";
 import React from "react";
 import {Bars4Icon} from "@heroicons/react/24/outline";
 import {useQuery} from "@tanstack/react-query";
@@ -27,6 +27,7 @@ export function SideBar({className}: { className?: string }) {
 			<List className="min-w-[10rem] flex-grow">
 				<SideBarItem href={"/projects"} text={"Projects"} icon={ListBulletIcon}/>
 				<SideBarItem href={"/settings"} text={"Settings"} icon={Cog6ToothIcon}/>
+				<SideBarItem href={"/repositories"} text={"Repositories"} icon={CloudIcon}/>
 				<SideBarItem href={"/log"} text={"Logs"} icon={Bars4Icon}/>
 				<div className={'flex-grow'}/>
 				<ListItem className={"text-sm"}>v{currentVersion}</ListItem>

@@ -4202,6 +4202,7 @@ dependencies = [
  "arc-swap",
  "chrono",
  "fs_extra",
+ "indexmap 2.2.5",
  "log",
  "open 5.1.1",
  "reqwest",

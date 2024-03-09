@@ -509,6 +509,10 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         self.settings.set_unity_hub(value);
     }
 
+    pub fn http(&self) -> Option<&T> {
+        self.http.as_ref()
+    }
+
     pub async fn save(&mut self) -> io::Result<()> {
         try_join(
             self.settings.save(&self.io),

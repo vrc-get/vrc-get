@@ -1,5 +1,3 @@
-use log::{error, info};
-use reqwest::Url;
 use std::ffi::OsStr;
 use std::fmt::Display;
 use std::io;
@@ -9,8 +7,11 @@ use std::process::Stdio;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use indexmap::IndexMap;
+use log::{error, info};
+use reqwest::Url;
 use serde::Serialize;
-use specta::specta;
+use specta::{specta, DataType, DefOpts, ExportError, Type};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, App, Invoke, Manager, Runtime, State};
@@ -18,9 +19,9 @@ use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 
-use crate::logging::LogEntry;
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::io::EnvironmentIo;
+use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
@@ -28,8 +29,10 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
     unity_hub, EnvironmentIoHolder, PackageCollection, PackageInfo, PackageJson, ProjectType,
-    VRCHAT_RECOMMENDED_2022_UNITY,
+    VersionSelector, VRCHAT_RECOMMENDED_2022_UNITY,
 };
+
+use crate::logging::LogEntry;
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
     generate_handler![
@@ -47,6 +50,9 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_pick_unity,
         environment_pick_project_default_path,
         environment_pick_project_backup_path,
+        environment_download_repository,
+        environment_add_repository,
+        environment_remove_repository,
         project_details,
         project_install_package,
         project_upgrade_multiple_package,
@@ -81,6 +87,9 @@ pub(crate) fn export_ts() {
             environment_pick_unity,
             environment_pick_project_default_path,
             environment_pick_project_backup_path,
+            environment_download_repository,
+            environment_add_repository,
+            environment_remove_repository,
             project_details,
             project_install_package,
             project_upgrade_multiple_package,
@@ -679,6 +688,7 @@ async fn environment_packages(
 #[derive(Serialize, specta::Type)]
 struct TauriUserRepository {
     id: String,
+    url: Option<String>,
     display_name: String,
 }
 
@@ -707,6 +717,7 @@ async fn environment_repositories_info(
                 let id = x.id().or(x.url().map(Url::as_str)).unwrap();
                 TauriUserRepository {
                     id: id.to_string(),
+                    url: x.url().map(|x| x.to_string()),
                     display_name: x.name().unwrap_or(id).to_string(),
                 }
             })
@@ -1051,6 +1062,177 @@ async fn environment_pick_project_backup_path(
     }
 
     Ok(TauriPickProjectBackupPathResult::Successful)
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriRemoteRepositoryInfo {
+    display_name: String,
+    id: String,
+    url: String,
+    packages: Vec<TauriBasePackageInfo>,
+}
+
+#[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
+enum TauriDownloadRepository {
+    BadUrl,
+    Duplicated,
+    DownloadError { message: String },
+    Success { value: TauriRemoteRepositoryInfo },
+}
+
+// workaround IndexMap v2 is not implemented in specta
+
+#[derive(serde::Deserialize)]
+#[serde(transparent)]
+struct IndexMapV2<K: std::hash::Hash + Eq, V>(IndexMap<K, V>);
+
+impl Type for IndexMapV2<Box<str>, Box<str>> {
+    fn inline(opts: DefOpts, generics: &[DataType]) -> Result<DataType, ExportError> {
+        Ok(DataType::Record(Box::new((
+            String::inline(
+                DefOpts {
+                    parent_inline: opts.parent_inline,
+                    type_map: opts.type_map,
+                },
+                generics,
+            )?,
+            String::inline(
+                DefOpts {
+                    parent_inline: opts.parent_inline,
+                    type_map: opts.type_map,
+                },
+                generics,
+            )?,
+        ))))
+    }
+
+    fn reference(opts: DefOpts, generics: &[DataType]) -> Result<DataType, ExportError> {
+        Ok(DataType::Record(Box::new((
+            String::reference(
+                DefOpts {
+                    parent_inline: opts.parent_inline,
+                    type_map: opts.type_map,
+                },
+                generics,
+            )?,
+            String::reference(
+                DefOpts {
+                    parent_inline: opts.parent_inline,
+                    type_map: opts.type_map,
+                },
+                generics,
+            )?,
+        ))))
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_download_repository(
+    state: State<'_, Mutex<EnvironmentState>>,
+    url: String,
+    headers: IndexMapV2<Box<str>, Box<str>>,
+) -> Result<TauriDownloadRepository, RustError> {
+    let url: Url = match url.parse() {
+        Err(_) => {
+            return Ok(TauriDownloadRepository::BadUrl);
+        }
+        Ok(url) => url,
+    };
+
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    for repo in environment.get_user_repos() {
+        if repo.url().map(|x| x.as_str()) == Some(url.as_str()) {
+            return Ok(TauriDownloadRepository::Duplicated);
+        }
+    }
+
+    let client = environment.http().unwrap();
+    let repo = match RemoteRepository::download(client, &url, &headers.0).await {
+        Ok((repo, _)) => repo,
+        Err(e) => {
+            return Ok(TauriDownloadRepository::DownloadError {
+                message: e.to_string(),
+            });
+        }
+    };
+
+    let url = repo.url().unwrap_or(&url).as_str();
+    let id = repo.id().unwrap_or(url);
+
+    for repo in environment.get_user_repos() {
+        if repo.id() == Some(id) {
+            return Ok(TauriDownloadRepository::Duplicated);
+        }
+    }
+
+    Ok(TauriDownloadRepository::Success {
+        value: TauriRemoteRepositoryInfo {
+            id: id.to_string(),
+            url: url.to_string(),
+            display_name: repo.name().unwrap_or(id).to_string(),
+            packages: repo
+                .get_packages()
+                .filter_map(|x| x.get_latest(VersionSelector::latest_for(None, true)))
+                .filter(|x| !x.is_yanked())
+                .map(TauriBasePackageInfo::new)
+                .collect(),
+        },
+    })
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriAddRepositoryResult {
+    BadUrl,
+    Success,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_add_repository(
+    state: State<'_, Mutex<EnvironmentState>>,
+    url: String,
+    headers: IndexMapV2<Box<str>, Box<str>>,
+) -> Result<TauriAddRepositoryResult, RustError> {
+    let url: Url = match url.parse() {
+        Err(_) => {
+            return Ok(TauriAddRepositoryResult::BadUrl);
+        }
+        Ok(url) => url,
+    };
+
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    environment.add_remote_repo(url, None, headers.0).await?;
+
+    environment.save().await?;
+
+    Ok(TauriAddRepositoryResult::Success)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_remove_repository(
+    state: State<'_, Mutex<EnvironmentState>>,
+    id: String,
+) -> Result<TauriAddRepositoryResult, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(false).await?;
+
+    environment
+        .remove_repo(|r| r.id() == Some(id.as_str()))
+        .await;
+
+    environment.save().await?;
+
+    Ok(TauriAddRepositoryResult::Success)
 }
 
 #[derive(Serialize, specta::Type)]
