@@ -13,10 +13,13 @@ productName = "vrc-get-gui"
 shell = { open = "^(https?://\\w+).+" }
 
 [tauri.security]
-# csp = 
+# csp =
 
 [tauri.updater]
-active = false
+active = true
+endpoints = ["https://vrc-get.anatawa12.com/api/gui/tauri-updater.json"]
+dialog = true
+pubkey = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkyMjAzMkU2Q0ZGQjQ0MjYKUldRbVJQdlA1aklna2d2NnRoM3ZsT3lzWEQ3MC9zTGpaWVR4NGdQOXR0UGJaOHBlY2xCcFY5bHcK"
 
 [[tauri.windows]]
 title = "vrc-get-gui"
@@ -34,6 +37,8 @@ targets = [
     "nsis", #-setup.exe
     "app", # needs for dmg
     "dmg",
+
+    "updater", # auto update
 ]
 longDescription = "vrc-get-gui is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
 shortDescription = "an alternative VCC"

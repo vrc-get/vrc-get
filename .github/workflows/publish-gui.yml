@@ -126,6 +126,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # note: when you changed paths for tauri updater (which are files with .sig),
+          # remember keep in sync with build-updater-json
           - triple: x86_64-unknown-linux-gnu
             on: ubuntu-latest
             setup: |
@@ -137,11 +139,16 @@ jobs:
             dist-path: |
               bundle/appimage/vrc-get-gui_${GUI_VERSION}_amd64.AppImage:vrc-get-gui-${GUI_VERSION}-x86_64.AppImage
 
+              bundle/appimage/vrc-get-gui_${GUI_VERSION}_amd64.AppImage.tar.gz:vrc-get-gui-${GUI_VERSION}-x86_64.AppImage.tar.gz
+              bundle/appimage/vrc-get-gui_${GUI_VERSION}_amd64.AppImage.tar.gz.sig:vrc-get-gui-${GUI_VERSION}-x86_64.AppImage.tar.gz.sig
+
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
             dist-path: |
               vrc-get-gui.exe:vrc-get-gui-${GUI_VERSION}-x86_64.exe
               bundle/nsis/vrc-get-gui_${GUI_VERSION}_x64-setup.exe:vrc-get-gui-${GUI_VERSION}-x86_64-setup.exe
+              bundle/nsis/vrc-get-gui_${GUI_VERSION}_x64-setup.nsis.zip:vrc-get-gui-${GUI_VERSION}-x86_64-setup.nsis.zip
+              bundle/nsis/vrc-get-gui_${GUI_VERSION}_x64-setup.nsis.zip.sig:vrc-get-gui-${GUI_VERSION}-x86_64-setup.nsis.zip.sig
 
           - triple: universal-apple-darwin
             on: macos-14
@@ -150,6 +157,9 @@ jobs:
               rustup target add x86_64-apple-darwin
             dist-path: |
               bundle/dmg/vrc-get-gui_${GUI_VERSION}_universal.dmg:vrc-get-gui-${GUI_VERSION}-universal.dmg
+
+              bundle/macos/vrc-get-gui.app.tar.gz:bundle/macos/vrc-get-gui-${GUI_VERSION}-universal.app.tar.gz
+              bundle/macos/vrc-get-gui.app.tar.gz:bundle/macos/vrc-get-gui-${GUI_VERSION}-universal.app.tar.gz.sig
 
         triple:
           - x86_64-unknown-linux-gnu
@@ -193,6 +203,11 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+          # tauri updater signing
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        
         with:
           projectPath: vrc-get-gui
           tauriScript: npm run tauri
@@ -221,6 +236,33 @@ jobs:
           name: artifacts-${{ matrix.triple }}
           path: artifacts/*
 
+  build-updater-json:
+    runs-on: ubuntu-latest
+    needs: [ pre-build, build-rust ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 'releasing'
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: assets
+          pattern: artifacts-*
+          merge-multiple: true
+
+      - name: Run updater-json
+        env:
+          GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
+        run: cargo run -p build-updater-json
+
+      - name: Upload updater-json
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater.json
+          path: updater.json
+
   publish-to-github:
     name: Publish to GitHub
     environment:
@@ -229,7 +271,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: [ pre-build, build-rust ]
+    needs: [ pre-build, build-rust, build-updater-json ]
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
@@ -318,3 +360,52 @@ jobs:
           fetch-depth: 2
       - name: remove releasing branch
         run: git push --delete origin releasing
+
+  pull-request-to-website:
+    name: Create PullRequest to vrc-get.anatawa12.com for updater.json
+    runs-on: ubuntu-latest
+    needs: [ publish-to-github, build-updater-json ]
+    env:
+      GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          repository: 'vrc-get/vrc-get.anatawa12.com'
+          ref: 'master'
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: snow-actions/git-config-user@v1.0.0
+
+      - name: Download updater.json
+        uses: actions/download-artifact@v4
+        with:
+          name: updater.json
+          path: .
+      - name: Move updater.json
+        run: |
+          mkdir -p api/gui
+          mv updater.json public/api/gui/tauri-updater.json
+
+      - name: Commit
+        run: |-
+          BRANCH_NAME="update-tauri-updater-json-v$GUI_VERSION"
+          git switch -c "$BRANCH_NAME"
+          git add public/api/gui/tauri-updater.json
+          git commit -m "chore: update tauri-updater.json to v$GUI_VERSION"
+          git push -u origin "$BRANCH_NAME"
+
+      - name: Create Pull Request
+        run: |
+          BRANCH_NAME="update-tauri-updater-json-v$GUI_VERSION"
+
+          gh pr create \
+            --title "chore: update tauri-updater.json to v$GUI_VERSION" \
+            --body "update tauri-updater.json to v$GUI_VERSION" \
+            --base master \
+            --head "$BRANCH_NAME" \
+            --assignee anatawa12 \
