@@ -57,16 +57,20 @@ fn main() {
 
     let version = std::env::var("GUI_VERSION").expect("GUI_VERSION not set");
 
+    let base_url = DOWNLOAD_URL_BASE.replace("{version}", &version);
+
     // create platforms info
     let mut platforms = IndexMap::new();
     for (platform, file_name) in platform_file_name {
+        let file_name = file_name.replace("{version}", &version);
+
         std::fs::metadata(format!("assets/{file_name}"))
             .unwrap_or_else(|e| panic!("{}: {}", file_name, e));
 
         let signature = std::fs::read_to_string(format!("assets/{file_name}.sig"))
             .unwrap_or_else(|e| panic!("{}.sig: {}", file_name, e));
 
-        let url = format!("{}/{}", DOWNLOAD_URL_BASE, file_name).replace("{version}", &version);
+        let url = format!("{}/{}", base_url, file_name);
         platforms.insert(platform.to_string(), Platform { signature, url });
     }
 
