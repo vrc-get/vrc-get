@@ -375,7 +375,8 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
-          repositories: vrc-get/vrc-get.anatawa12.com
+          owner: vrc-get
+          repositories: vrc-get.anatawa12.com
       - uses: actions/checkout@v4
         with:
           repository: 'vrc-get/vrc-get.anatawa12.com'
