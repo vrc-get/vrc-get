@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog].
 ## [Unreleased]
 ### Added
 - Settings and Repositories page `#522`
+- Auto Update `#557`
 
 ### Changed
 - The color of "Remove from the List" button is now default one. `#524`
