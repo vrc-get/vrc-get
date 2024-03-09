@@ -21,7 +21,7 @@ struct Platform {
 fn main() {
     // consts
     const DOWNLOAD_URL_BASE: &str =
-        "https://github.com/vrc-get/vrc-get/releases/download/gui-{version}/";
+        "https://github.com/vrc-get/vrc-get/releases/download/gui-v{version}";
     let platform_file_name = [
         (
             "darwin-x86_64",
