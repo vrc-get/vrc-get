@@ -8,21 +8,28 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Settings and Repositories page `#522`
-- Auto Update `#557`
 
 ### Changed
-- The color of "Remove from the List" button is now default one. `#524`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Unity launched by vrc-get is shown as a part of vrc-get-gui `#530`
-- Fails to load all repositories if fails to load one repository `#551`
 
 ### Security
+
+## [0.1.0-beta.8] - 2024-03-09
+### Added
+- Settings and Repositories page [`#522`](https://github.com/vrc-get/vrc-get/pull/522)
+- Auto Update [`#557`](https://github.com/vrc-get/vrc-get/pull/557)
+
+### Changed
+- The color of "Remove from the List" button is now default one. [`#524`](https://github.com/vrc-get/vrc-get/pull/524)
+
+### Fixed
+- Unity launched by vrc-get is shown as a part of vrc-get-gui [`#530`](https://github.com/vrc-get/vrc-get/pull/530)
+- Fails to load all repositories if fails to load one repository [`#551`](https://github.com/vrc-get/vrc-get/pull/551)
 
 ## [0.1.0-beta.7] - 2024-03-04
 ### Added
@@ -92,7 +99,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.7...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.8...HEAD
+[0.1.0-beta.8]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.7...gui-v0.1.0-beta.8
 [0.1.0-beta.7]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.6...gui-v0.1.0-beta.7
 [0.1.0-beta.6]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.5...gui-v0.1.0-beta.6
 [0.1.0-beta.5]: https://github.com/anatawa12/vrc-get/compare/gui-v0.1.0-beta.4...gui-v0.1.0-beta.5
