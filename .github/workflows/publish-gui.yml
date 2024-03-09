@@ -158,8 +158,8 @@ jobs:
             dist-path: |
               bundle/dmg/vrc-get-gui_${GUI_VERSION}_universal.dmg:vrc-get-gui-${GUI_VERSION}-universal.dmg
 
-              bundle/macos/vrc-get-gui.app.tar.gz:bundle/macos/vrc-get-gui-${GUI_VERSION}-universal.app.tar.gz
-              bundle/macos/vrc-get-gui.app.tar.gz.sig:bundle/macos/vrc-get-gui-${GUI_VERSION}-universal.app.tar.gz.sig
+              bundle/macos/vrc-get-gui.app.tar.gz:vrc-get-gui-${GUI_VERSION}-universal.app.tar.gz
+              bundle/macos/vrc-get-gui.app.tar.gz.sig:vrc-get-gui-${GUI_VERSION}-universal.app.tar.gz.sig
 
         triple:
           - x86_64-unknown-linux-gnu
@@ -389,6 +389,7 @@ jobs:
       - name: Move updater.json
         run: |
           mkdir -p api/gui
+          rm public/api/gui/tauri-updater.json || true # remove old file if exists
           mv updater.json public/api/gui/tauri-updater.json
 
       - name: Commit
