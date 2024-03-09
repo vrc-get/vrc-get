@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "build-check-static-link",
+    "build-updater-json",
     "vrc-get",
     "vrc-get-gui",
     "vrc-get-litedb",

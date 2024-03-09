@@ -302,6 +302,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "build-updater-json"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "indexmap 2.2.5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
