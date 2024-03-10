@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Show "Not Selected" instead of "none" if the corresponding repositories are not selected `#568`
 
 ### Deprecated
 
