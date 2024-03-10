@@ -859,6 +859,7 @@ interface PackageRowInfo {
 	unityCompatible: Map<string, TauriPackage>;
 	unityIncompatible: Map<string, TauriPackage>;
 	sources: Set<string>;
+	isThereSource: boolean; // this will be true even if all sources are hidden
 	installed: null | {
 		version: TauriVersion;
 		yanked: boolean;
@@ -901,6 +902,7 @@ function combinePackagesAndProjectDetails(
 	}
 
 	const yankedVersions = new Set<`${string}:${string}`>();
+	const knownPackages = new Set<string>();
 	const packagesPerRepository = new Map<string, TauriPackage[]>();
 	const userPackages: TauriPackage[] = [];
 
@@ -911,6 +913,8 @@ function combinePackagesAndProjectDetails(
 			yankedVersions.add(`${pkg.name}:${toVersionString(pkg.version)}`);
 			continue;
 		}
+
+		knownPackages.add(pkg.name);
 
 		let packages: TauriPackage[]
 		// check the repository is visible
@@ -944,6 +948,7 @@ function combinePackagesAndProjectDetails(
 				unityCompatible: new Map(),
 				unityIncompatible: new Map(),
 				sources: new Set(),
+				isThereSource: false,
 				installed: null,
 				latest: {status: "none"},
 			});
@@ -953,6 +958,7 @@ function combinePackagesAndProjectDetails(
 
 	function addPackage(pkg: TauriPackage) {
 		const packageRowInfo = getRowInfo(pkg);
+		packageRowInfo.isThereSource = true;
 
 		if (compareVersion(pkg.version, packageRowInfo.infoSource) > 0) {
 			// use display name from the latest version
@@ -1018,6 +1024,7 @@ function combinePackagesAndProjectDetails(
 				version: pkg.version,
 				yanked: pkg.is_yanked || yankedVersions.has(`${pkg.name}:${toVersionString(pkg.version)}`),
 			};
+			packageRowInfo.isThereSource = knownPackages.has(pkg.name);
 
 			// if we have the latest version, check if it's upgradable
 			if (packageRowInfo.latest.status != "none") {
@@ -1148,9 +1155,15 @@ function PackageRow(
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
 				{
 					pkg.sources.size == 0 ? (
-						<Typography className="font-normal text-blue-gray-400">
-							none
-						</Typography>
+						pkg.isThereSource ? (
+							<Typography className="font-normal text-blue-gray-400">
+								Not Selected
+							</Typography>
+						) : (
+							<Typography className="font-normal text-blue-gray-400">
+								none
+							</Typography>
+						)
 					) : pkg.sources.size == 1 ? (
 						<Typography className="font-normal">
 							{[...pkg.sources][0]}
