@@ -57,7 +57,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn add_package_request<'env>(
         &self,
         env: &'env impl PackageCollection,
-        packages: Vec<PackageInfo<'env>>,
+        packages: &[PackageInfo<'env>],
         operation: AddPackageOperation,
         allow_prerelease: bool,
     ) -> Result<PendingProjectChanges<'env>, AddPackageErr> {
@@ -67,7 +67,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         let mut changes = super::pending_project_changes::Builder::new();
 
-        for request in packages {
+        for &request in packages {
             match operation {
                 AddPackageOperation::InstallToDependencies => {
                     let add_to_dependencies = self

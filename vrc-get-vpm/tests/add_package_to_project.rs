@@ -30,7 +30,7 @@ fn add_to_dependencies() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![avatars_package],
+                &[avatars_package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -75,7 +75,7 @@ fn install_already_installed_in_locked_to_locked() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![avatars_package],
+                &[avatars_package],
                 AddPackageOperation::UpgradeLocked,
                 false,
             )
@@ -117,7 +117,7 @@ fn install_already_installed_in_locked_to_dependencies() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![base_package],
+                &[base_package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -161,7 +161,7 @@ fn install_already_installed_in_dependencies_to_dependencies() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![avatars_package],
+                &[avatars_package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -203,7 +203,7 @@ fn upgrading_unused_packages() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![avatars_package],
+                &[avatars_package],
                 AddPackageOperation::UpgradeLocked,
                 false,
             )
@@ -251,7 +251,7 @@ fn transitive_unused_remove_with_upgrade() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::UpgradeLocked,
                 false,
             )
@@ -300,7 +300,7 @@ fn do_not_remove_transitively_when_untouched() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::UpgradeLocked,
                 false,
             )
@@ -339,7 +339,7 @@ fn remove_legacy_package_when_install() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -383,7 +383,7 @@ fn remove_legacy_package_when_upgrade() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::UpgradeLocked,
                 false,
             )
@@ -432,7 +432,7 @@ fn remove_referenced_legacy_package_when_install() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -483,7 +483,7 @@ fn legacy_assets_by_path() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -556,7 +556,7 @@ fn legacy_assets_by_guid() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -617,7 +617,7 @@ fn deny_remove_files_not_in_assets_or_packages() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -651,7 +651,7 @@ fn deny_remove_parent_folders() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -683,7 +683,7 @@ fn deny_absolute_legacy_assets() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![package],
+                &[package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -719,7 +719,7 @@ fn not_found_err() {
         let err = project
             .add_package_request(
                 &collection,
-                vec![avatars_package],
+                &[avatars_package],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -752,7 +752,7 @@ fn updating_non_locked_package_should_cause_error() {
         let err = project
             .add_package_request(
                 &collection,
-                vec![avatars_package],
+                &[avatars_package],
                 AddPackageOperation::UpgradeLocked,
                 false,
             )
@@ -787,7 +787,7 @@ fn downgrade_basic() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![base_package],
+                &[base_package],
                 AddPackageOperation::Downgrade,
                 false,
             )
@@ -822,7 +822,7 @@ fn downgrade_dependencies() {
         let result = project
             .add_package_request(
                 &collection,
-                vec![base_package],
+                &[base_package],
                 AddPackageOperation::Downgrade,
                 false,
             )
@@ -876,7 +876,7 @@ fn conflict_requirements_of_installed_and_installing() {
         let resolve = project
             .add_package_request(
                 &collection,
-                vec![tool],
+                &[tool],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -932,7 +932,7 @@ fn conflict_already_conflicted_and_no_new_conflict() {
         let resolve = project
             .add_package_request(
                 &collection,
-                vec![tool],
+                &[tool],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
@@ -980,7 +980,7 @@ fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
         let resolve = project
             .add_package_request(
                 &collection,
-                vec![tool],
+                &[tool],
                 AddPackageOperation::InstallToDependencies,
                 false,
             )

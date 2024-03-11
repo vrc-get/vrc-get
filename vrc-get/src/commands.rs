@@ -467,7 +467,7 @@ impl Install {
         let changes = unity
             .add_package_request(
                 &env,
-                packages,
+                &packages,
                 AddPackageOperation::InstallToDependencies,
                 self.prerelease,
             )
@@ -720,7 +720,7 @@ impl Upgrade {
         let changes = unity
             .add_package_request(
                 &env,
-                updates,
+                &updates,
                 AddPackageOperation::UpgradeLocked,
                 self.prerelease,
             )
@@ -792,7 +792,7 @@ impl Downgrade {
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
-        let updates = vec![get_package(
+        let updates = [get_package(
             &env,
             &self.name,
             VersionSelector::specific_version(&self.version),
@@ -801,7 +801,7 @@ impl Downgrade {
         let changes = unity
             .add_package_request(
                 &env,
-                updates,
+                &updates,
                 AddPackageOperation::Downgrade,
                 self.prerelease,
             )

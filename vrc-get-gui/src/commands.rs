@@ -1400,7 +1400,7 @@ async fn project_install_package(
     let changes = match unity_project
         .add_package_request(
             environment,
-            vec![installing_package],
+            &[installing_package],
             operation,
             allow_prerelease,
         )
@@ -1438,7 +1438,7 @@ async fn project_upgrade_multiple_package(
 
             Ok(packages[*index])
         })
-        .collect::<Result<_, _>>()?;
+        .collect::<Result<Vec<_>, _>>()?;
 
     let unity_project = load_project(project_path).await?;
 
@@ -1449,7 +1449,7 @@ async fn project_upgrade_multiple_package(
     let changes = match unity_project
         .add_package_request(
             environment,
-            installing_packages,
+            &installing_packages,
             operation,
             allow_prerelease,
         )
