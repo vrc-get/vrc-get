@@ -15,6 +15,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <EnableDefaultItems>false</EnableDefaultItems>
     <IlcGenerateWin32Resources>false</IlcGenerateWin32Resources>
+    <PublishAotUsingRuntimePack>true</PublishAotUsingRuntimePack>
   </PropertyGroup>
 
   <ItemGroup>
