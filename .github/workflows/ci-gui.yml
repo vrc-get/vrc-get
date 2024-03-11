@@ -74,17 +74,12 @@ jobs:
       - name: Setup
         run: ${{ matrix.setup }}
 
-      - name: Disable Updater
-        shell: bash
-        run: |
-          cp vrc-get-gui/Tauri.toml vrc-get-gui/Tauri.toml.bak
-          sed -E 's/^( *"updater")/#\1/' < vrc-get-gui/Tauri.toml.bak > vrc-get-gui/Tauri.toml
-
       - uses: tauri-apps/tauri-action@v0
         with:
           projectPath: vrc-get-gui
           tauriScript: npm run tauri
-          args: --target ${{ matrix.triple }}
+          args: |
+            --target ${{ matrix.triple }} -c '{"tauri":{"updater":{"active":false}}}'
 
       - name: Upload built binary
         uses: actions/upload-artifact@v4
