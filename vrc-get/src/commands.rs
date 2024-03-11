@@ -213,7 +213,7 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
 
     if !changes.remove_legacy_folders().is_empty() || !changes.remove_legacy_files().is_empty() {
         println!("You're removing the following legacy assets:");
-        for x in changes
+        for (x, _) in changes
             .remove_legacy_folders()
             .iter()
             .chain(changes.remove_legacy_files())

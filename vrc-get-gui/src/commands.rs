@@ -1292,12 +1292,12 @@ impl TauriPendingProjectChanges {
             remove_legacy_files: changes
                 .remove_legacy_files()
                 .iter()
-                .map(|x| x.to_string_lossy().into_owned())
+                .map(|(x, _)| x.to_string_lossy().into_owned())
                 .collect(),
             remove_legacy_folders: changes
                 .remove_legacy_folders()
                 .iter()
-                .map(|x| x.to_string_lossy().into_owned())
+                .map(|(x, _)| x.to_string_lossy().into_owned())
                 .collect(),
             conflicts: changes
                 .conflicts()

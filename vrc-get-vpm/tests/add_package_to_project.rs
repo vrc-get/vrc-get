@@ -499,8 +499,14 @@ fn legacy_assets_by_path() {
                 .iter()
                 .collect::<HashSet<_>>(),
             [
-                Path::new("Assets/LegacyFolder").into(),
-                Path::new("Packages/legacy.package").into()
+                (
+                    Path::new("Assets/LegacyFolder").into(),
+                    "com.anatawa12.package",
+                ),
+                (
+                    Path::new("Packages/legacy.package").into(),
+                    "com.anatawa12.package",
+                ),
             ]
             .iter()
             .collect::<HashSet<_>>()
@@ -508,9 +514,12 @@ fn legacy_assets_by_path() {
 
         assert_eq!(
             result.remove_legacy_files().iter().collect::<HashSet<_>>(),
-            [Path::new("Assets/LegacyAsset.cs").into()]
-                .iter()
-                .collect::<HashSet<_>>()
+            [(
+                Path::new("Assets/LegacyAsset.cs").into(),
+                "com.anatawa12.package",
+            )]
+            .iter()
+            .collect::<HashSet<_>>()
         );
     })
 }
@@ -562,16 +571,22 @@ fn legacy_assets_by_guid() {
                 .remove_legacy_folders()
                 .iter()
                 .collect::<HashSet<_>>(),
-            [Path::new("Assets/MovedLegacyFolder").into(),]
-                .iter()
-                .collect::<HashSet<_>>()
+            [(
+                Path::new("Assets/MovedLegacyFolder").into(),
+                "com.anatawa12.package",
+            )]
+            .iter()
+            .collect::<HashSet<_>>()
         );
 
         assert_eq!(
             result.remove_legacy_files().iter().collect::<HashSet<_>>(),
-            [Path::new("Assets/MovedLegacyAsset.cs").into()]
-                .iter()
-                .collect::<HashSet<_>>()
+            [(
+                Path::new("Assets/MovedLegacyAsset.cs").into(),
+                "com.anatawa12.package",
+            )]
+            .iter()
+            .collect::<HashSet<_>>()
         );
     })
 }
