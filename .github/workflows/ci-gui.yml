@@ -55,6 +55,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ci-build-gui-${{ matrix.triple }}
+      - name: Cache NPM and Next.js of gui
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ${{ github.workspace }}/vrc-get-gui/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-${{ hashFiles('vrc-get-gui/**/*.js', 'vrc-get-gui/**/*.jsx', 'vrc-get-gui/**/*.ts', 'vrc-get-gui/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-about
