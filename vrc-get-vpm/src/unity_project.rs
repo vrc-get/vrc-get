@@ -1,6 +1,7 @@
 mod add_package;
 mod find_legacy_assets;
 mod migrate_unity_2022;
+mod migrate_vpm;
 mod package_resolution;
 pub mod pending_project_changes;
 mod project_type;
@@ -29,6 +30,7 @@ use crate::PackageJson;
 pub use add_package::AddPackageErr;
 pub use add_package::AddPackageOperation;
 pub use migrate_unity_2022::MigrateUnity2022Error;
+pub use migrate_vpm::MigrateVpmError;
 pub use pending_project_changes::PendingProjectChanges;
 pub use resolve::ResolvePackageErr;
 

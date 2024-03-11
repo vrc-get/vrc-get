@@ -108,7 +108,7 @@ where
         let request = project
             .add_package_request(
                 env,
-                packages,
+                &packages,
                 AddPackageOperation::InstallToDependencies,
                 false,
             )

@@ -158,15 +158,21 @@ impl RemotePackages {
         self.versions.values()
     }
 
+    pub fn get_latest_may_yanked(&self, selector: VersionSelector) -> Option<&PackageJson> {
+        self.get_latest(selector).or_else(|| {
+            self.versions
+                .values()
+                .filter(|json| selector.satisfies(json))
+                .max_by_key(|json| json.version())
+        })
+    }
+
     pub fn get_latest(&self, selector: VersionSelector) -> Option<&PackageJson> {
-        let before_yank = self
-            .versions
+        self.versions
             .values()
-            .filter(|json| selector.satisfies(json));
-        before_yank
+            .filter(|json| selector.satisfies(json))
             .clone()
-            .filter(|json| json.is_yanked())
+            .filter(|json| !json.is_yanked())
             .max_by_key(|json| json.version())
-            .or_else(|| before_yank.max_by_key(|json| json.version()))
     }
 }

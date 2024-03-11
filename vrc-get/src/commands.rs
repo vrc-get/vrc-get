@@ -213,7 +213,7 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
 
     if !changes.remove_legacy_folders().is_empty() || !changes.remove_legacy_files().is_empty() {
         println!("You're removing the following legacy assets:");
-        for x in changes
+        for (x, _) in changes
             .remove_legacy_folders()
             .iter()
             .chain(changes.remove_legacy_files())
@@ -467,7 +467,7 @@ impl Install {
         let changes = unity
             .add_package_request(
                 &env,
-                packages,
+                &packages,
                 AddPackageOperation::InstallToDependencies,
                 self.prerelease,
             )
@@ -720,7 +720,7 @@ impl Upgrade {
         let changes = unity
             .add_package_request(
                 &env,
-                updates,
+                &updates,
                 AddPackageOperation::UpgradeLocked,
                 self.prerelease,
             )
@@ -792,7 +792,7 @@ impl Downgrade {
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
-        let updates = vec![get_package(
+        let updates = [get_package(
             &env,
             &self.name,
             VersionSelector::specific_version(&self.version),
@@ -801,7 +801,7 @@ impl Downgrade {
         let changes = unity
             .add_package_request(
                 &env,
-                updates,
+                &updates,
                 AddPackageOperation::Downgrade,
                 self.prerelease,
             )
@@ -1174,7 +1174,9 @@ impl RepoPackages {
     pub async fn run(self) {
         fn print_repo(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
-                if let Some(pkg) = versions.get_latest(VersionSelector::latest_for(None, true)) {
+                if let Some(pkg) =
+                    versions.get_latest_may_yanked(VersionSelector::latest_for(None, true))
+                {
                     if let Some(display_name) = pkg.display_name() {
                         println!("{} | {}", display_name, pkg.name());
                     } else {

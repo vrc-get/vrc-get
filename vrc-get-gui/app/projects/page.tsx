@@ -17,7 +17,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {Fragment, useMemo, useState} from "react";
+import React, {forwardRef, Fragment, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
 	ChevronDownIcon,
@@ -29,7 +29,10 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import {
 	environmentAddProjectWithPicker,
-	environmentProjects, environmentRemoveProject,
+	environmentCopyProjectForMigration,
+	environmentProjects,
+	environmentRemoveProject,
+	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectType,
 	utilOpen
@@ -81,6 +84,7 @@ export default function Page() {
 									sorting={"lastModified"}
 									search={search}
 									loading={loading}
+									refresh={() => result.refetch()}
 									removeProject={removeProject}/>
 					}
 				</Card>
@@ -91,13 +95,14 @@ export default function Page() {
 
 function ProjectsTable(
 	{
-		projects, sorting, search, removeProject, loading,
+		projects, sorting, search, removeProject, loading, refresh,
 	}: {
 		projects: TauriProject[],
 		sorting: "lastModified",
 		search?: string,
 		loading?: boolean,
 		removeProject?: (project: TauriProject, directory: boolean) => void,
+		refresh?: () => void,
 	}
 ) {
 	const TABLE_HEAD = [
@@ -130,7 +135,7 @@ function ProjectsTable(
 			</thead>
 			<tbody>
 			{projectsShown.map((project) =>
-				<ProjectRow key={project.path} project={project} loading={loading}
+				<ProjectRow key={project.path} project={project} loading={loading} refresh={refresh}
 										removeProject={(x) => removeProject?.(project, x)}/>)}
 			</tbody>
 		</table>
@@ -179,20 +184,34 @@ function formatDateOffset(date: number) {
 	return relativeTimeFormat.format(Math.floor(diff / PER_YEAR), "year");
 }
 
+type ProjectRowState = {
+	type: 'normal',
+} | {
+	type: 'remove:confirm',
+} | {
+	type: 'migrateVpm:confirm',
+} | {
+	type: 'migrateVpm:copyingProject',
+} | {
+	type: 'migrateVpm:updating',
+}
+
 function ProjectRow(
 	{
 		project,
 		removeProject,
 		loading,
+		refresh,
 	}: {
 		project: TauriProject;
 		removeProject?: (directory: boolean) => void;
 		loading?: boolean;
+		refresh?: () => void;
 	}
 ) {
 	const router = useRouter();
 
-	const [removeDialogStatus, setRemoveDialogStatus] = useState<'normal' | 'confirm'>('normal');
+	const [dialogStatus, setDialogStatus] = useState<ProjectRowState>({type: 'normal'});
 
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
@@ -205,23 +224,91 @@ function ProjectRow(
 
 	const openProjectFolder = () => utilOpen(project.path);
 
-	const startRemoveProject = () => setRemoveDialogStatus('confirm');
+	const startRemoveProject = () => setDialogStatus({type: 'remove:confirm'});
+
+	const startMigrateVpm = () => setDialogStatus({type: 'migrateVpm:confirm'});
+	const doMigrateVpm = async (inPlace: boolean) => {
+		setDialogStatus({type: 'normal'});
+		try {
+			let migrateProjectPath;
+			if (inPlace) {
+				migrateProjectPath = project.path;
+			} else {
+				// copy
+				setDialogStatus({type: "migrateVpm:copyingProject"});
+				migrateProjectPath = await environmentCopyProjectForMigration(project.path);
+			}
+			setDialogStatus({type: "migrateVpm:updating"});
+			await projectMigrateProjectToVpm(migrateProjectPath);
+			setDialogStatus({type: "normal"});
+			toast.success("Project migrated successfully");
+			refresh?.();
+		} catch (e) {
+			console.error("Error migrating project", e);
+			setDialogStatus({type: "normal"});
+			toastThrownError(e);
+		}
+
+	}
 
 	const removed = !project.is_exists;
 
 	const MayTooltip = removed ? Tooltip : Fragment;
 
-	const RowButton = (props: React.ComponentProps<typeof Button>) => (
-		<MayTooltip content={"Project Folder does not exists"}>
-			<Button {...props} onClick={removed ? nop : props.onClick} disabled={loading}/>
-		</MayTooltip>
-	);
+	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
+		if (removed) {
+			return <Tooltip content={"Project Folder does not exists"}>
+				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
+			</Tooltip>
+		} else {
+			return (
+				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`}
+								disabled={loading || props.disabled} ref={ref}/>
+			);
+		}
+	});
+
+	let manageButton;
+
+	switch (project.project_type) {
+		case "LegacySdk2":
+			manageButton =
+				<Tooltip content={"Legacy SDK2 project cannot be migrated automatically. Please migrate to SDK3 first."}>
+					<RowButton color={"light-green"} disabled>
+						Migrate
+					</RowButton>
+				</Tooltip>
+			break;
+		case "LegacyWorlds":
+		case "LegacyAvatars":
+			manageButton = <RowButton color={"light-green"} onClick={startMigrateVpm}>Migrate</RowButton>
+			break;
+		case "UpmWorlds":
+		case "UpmAvatars":
+		case "UpmStarter":
+			manageButton = <Tooltip content={"UPM-VCC projects are not supported"}>
+				<RowButton color={"blue"} disabled>
+					Manage
+				</RowButton>
+			</Tooltip>
+			break;
+		case "Unknown":
+		case "Worlds":
+		case "Avatars":
+		case "VpmStarter":
+			manageButton = <RowButton
+				onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
+				color={"blue"}>
+				Manage
+			</RowButton>
+			break;
+	}
 
 	let dialogContent: React.ReactNode = null;
-	switch (removeDialogStatus) {
-		case "confirm":
+	switch (dialogStatus.type) {
+		case "remove:confirm":
 			const removeProjectButton = (directory: boolean) => {
-				setRemoveDialogStatus('normal');
+				setDialogStatus({type: 'normal'});
 				removeProject?.(directory);
 			}
 			dialogContent = (
@@ -231,7 +318,7 @@ function ProjectRow(
 						You're about to remove the project <strong>{project.name}</strong>. Are you sure?
 					</DialogBody>
 					<DialogFooter>
-						<Button onClick={() => setRemoveDialogStatus('normal')} className="mr-1">Cancel</Button>
+						<Button onClick={() => setDialogStatus({type: 'normal'})} className="mr-1">Cancel</Button>
 						<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
 							Remove from the List
 						</Button>
@@ -242,6 +329,51 @@ function ProjectRow(
 					</DialogFooter>
 				</Dialog>
 			);
+			break;
+		case "migrateVpm:confirm":
+			dialogContent = (
+				<Dialog open handler={nop} className={"whitespace-normal"}>
+					<DialogHeader>VPM Migration</DialogHeader>
+					<DialogBody>
+						<Typography className={"text-red-700"}>
+							Project migration is experimental in vrc-get.
+						</Typography>
+						<Typography className={"text-red-700"}>
+							Please make backup of your project before migration.
+						</Typography>
+					</DialogBody>
+					<DialogFooter>
+						<Button onClick={() => setDialogStatus({type: "normal"})} className="mr-1">Cancel Migration</Button>
+						<Button onClick={() => doMigrateVpm(false)} color={"red"} className="mr-1">Migrate a Copy</Button>
+						<Button onClick={() => doMigrateVpm(true)} color={"red"}>Migrate in-place</Button>
+					</DialogFooter>
+				</Dialog>
+			);
+			break;
+		case "migrateVpm:copyingProject":
+			dialogContent = (
+				<Dialog open handler={nop} className={"whitespace-normal"}>
+					<DialogHeader>VPM Migration</DialogHeader>
+					<DialogBody>
+						<Typography>
+							Copying project for migration...
+						</Typography>
+					</DialogBody>
+				</Dialog>
+			);
+			break;
+		case "migrateVpm:updating":
+			dialogContent = (
+				<Dialog open handler={nop} className={"whitespace-normal"}>
+					<DialogHeader>VPM Migration</DialogHeader>
+					<DialogBody>
+						<Typography>
+							Migrating project...
+						</Typography>
+					</DialogBody>
+				</Dialog>
+			);
+			break;
 	}
 
 	return (
@@ -290,8 +422,7 @@ function ProjectRow(
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
 					<RowButton onClick={() => openUnity(project.path)}>Open Unity</RowButton>
-					<RowButton onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
-										 color={"blue"}>Manage</RowButton>
+					{manageButton}
 					<RowButton onClick={unsupported("Backup")} color={"green"}>Backup</RowButton>
 					<Menu>
 						<MenuHandler>

@@ -11,6 +11,14 @@ use std::convert::Infallible;
 use url::Url;
 
 pub trait PackageCollection {
+    /// get curated packages
+    fn get_curated_packages(
+        &self,
+        _version_selector: VersionSelector,
+    ) -> impl Iterator<Item = PackageInfo> {
+        [].into_iter()
+    }
+
     /// get all packages in the collection
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo>;
 

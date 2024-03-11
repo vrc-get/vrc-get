@@ -26,8 +26,8 @@ use std::path::{Path, PathBuf};
 pub struct PendingProjectChanges<'env> {
     pub(crate) package_changes: HashMap<Box<str>, PackageChange<'env>>,
 
-    pub(crate) remove_legacy_files: Vec<Box<Path>>,
-    pub(crate) remove_legacy_folders: Vec<Box<Path>>,
+    pub(crate) remove_legacy_files: Vec<(Box<Path>, &'env str)>,
+    pub(crate) remove_legacy_folders: Vec<(Box<Path>, &'env str)>,
 
     pub(crate) conflicts: HashMap<Box<str>, ConflictInfo>,
 }
@@ -480,11 +480,11 @@ impl PendingProjectChanges<'_> {
         &self.package_changes
     }
 
-    pub fn remove_legacy_files(&self) -> &[Box<Path>] {
+    pub fn remove_legacy_files(&self) -> &[(Box<Path>, &str)] {
         self.remove_legacy_files.as_slice()
     }
 
-    pub fn remove_legacy_folders(&self) -> &[Box<Path>] {
+    pub fn remove_legacy_folders(&self) -> &[(Box<Path>, &str)] {
         self.remove_legacy_folders.as_slice()
     }
 
@@ -534,8 +534,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         remove_assets(
             &self.io,
-            request.remove_legacy_files.iter().map(Box::as_ref),
-            request.remove_legacy_folders.iter().map(Box::as_ref),
+            request.remove_legacy_files.iter().map(|(p, _)| p.as_ref()),
+            request
+                .remove_legacy_folders
+                .iter()
+                .map(|(p, _)| p.as_ref()),
             remove_names.iter().map(Box::as_ref),
         )
         .await;

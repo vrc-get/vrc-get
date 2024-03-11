@@ -41,12 +41,36 @@ pub use structs::setting::UserRepoSetting;
 
 pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 6);
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {
     inner: PackageInfoInner<'a>,
 }
 
-#[derive(Debug, Copy, Clone)]
+impl std::fmt::Debug for PackageInfo<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        #[derive(Debug)]
+        enum SourceEnum<'a> {
+            Local(&'a Path),
+            Remote(&'a str),
+        }
+
+        let source = match self.inner {
+            PackageInfoInner::Remote(_, repo) => SourceEnum::Remote(
+                repo.id()
+                    .or(repo.url().map(url::Url::as_str))
+                    .unwrap_or("(unknown id)"),
+            ),
+            PackageInfoInner::Local(_, path) => SourceEnum::Local(path),
+        };
+
+        f.debug_struct("PackageInfo")
+            .field("json", &self.package_json())
+            .field("source", &source)
+            .finish()
+    }
+}
+
+#[derive(Copy, Clone)]
 enum PackageInfoInner<'a> {
     Remote(&'a PackageJson, &'a LocalCachedRepository),
     Local(&'a PackageJson, &'a Path),
