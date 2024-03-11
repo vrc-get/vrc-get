@@ -255,7 +255,7 @@ function ProjectRow(
 
 	const MayTooltip = removed ? Tooltip : Fragment;
 
-	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>((props, ref) => {
+	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
 		if (removed) {
 			return <Tooltip content={"Project Folder does not exists"}>
 				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
