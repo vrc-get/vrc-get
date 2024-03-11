@@ -13,7 +13,7 @@ readme.workspace = true
 [dependencies]
 
 [dependencies.object]
-version = "0.33.0"
+version = "0.34.0"
 default-features = false
 features = [
     "read_core",
