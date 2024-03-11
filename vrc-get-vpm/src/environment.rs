@@ -232,6 +232,22 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 }
 
 impl<T: HttpClient, IO: EnvironmentIo> PackageCollection for Environment<T, IO> {
+    fn get_curated_packages(
+        &self,
+        version_selector: VersionSelector,
+    ) -> impl Iterator<Item = PackageInfo> {
+        self.repo_cache
+            .get_repo(LOCAL_CURATED_PATH.as_ref())
+            .map(move |repo| {
+                repo.repo()
+                    .get_packages()
+                    .filter_map(move |x| x.get_latest(version_selector))
+                    .map(|json| PackageInfo::remote(json, repo))
+            })
+            .into_iter()
+            .flatten()
+    }
+
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
         self.repo_cache
             .get_all_packages()
