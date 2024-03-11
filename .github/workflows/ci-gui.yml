@@ -55,6 +55,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ci-build-gui-${{ matrix.triple }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.2xx
       - name: Cache NPM and Next.js of gui
         uses: actions/cache@v4
         with:
