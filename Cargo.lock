@@ -4277,7 +4277,7 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-litedb"
-version = "0.1.4-beta.0"
+version = "0.1.4"
 dependencies = [
  "ar",
  "hex",
