@@ -6,36 +6,44 @@ use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use hex::FromHex;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 
-pub(crate) struct LegacyAssets {
-    pub(crate) files: Vec<Box<Path>>,
-    pub(crate) folders: Vec<Box<Path>>,
+pub(crate) struct LegacyAssets<'a> {
+    pub(crate) files: Vec<(Box<Path>, &'a str)>,
+    pub(crate) folders: Vec<(Box<Path>, &'a str)>,
 }
 
-pub(crate) async fn collect_legacy_assets(
+pub(crate) async fn collect_legacy_assets<'a>(
     io: &impl ProjectIo,
-    packages: &[PackageInfo<'_>],
-) -> LegacyAssets {
-    let folders = packages
-        .iter()
-        .flat_map(|x| x.package_json().legacy_folders())
-        .map(|(path, guid)| {
-            DefinedLegacyInfo::new_dir(path, guid.as_deref().and_then(Guid::parse))
-        });
-    let files = packages
-        .iter()
-        .flat_map(|x| x.package_json().legacy_files())
-        .map(|(path, guid)| {
-            DefinedLegacyInfo::new_file(path, guid.as_deref().and_then(Guid::parse))
-        });
-    let assets = folders.chain(files);
+    packages: &[PackageInfo<'a>],
+) -> LegacyAssets<'a> {
+    let folders = packages.iter().flat_map(|pkg| {
+        let name = pkg.name();
+        pkg.package_json()
+            .legacy_folders()
+            .iter()
+            .map(|(path, guid)| {
+                DefinedLegacyInfo::new_dir(name, path, guid.as_deref().and_then(Guid::parse))
+            })
+    });
+    let files = packages.iter().flat_map(|pkg| {
+        let name = pkg.name();
+        pkg.package_json()
+            .legacy_files()
+            .iter()
+            .map(|(path, guid)| {
+                DefinedLegacyInfo::new_file(name, path, guid.as_deref().and_then(Guid::parse))
+            })
+    });
+    // I think collecting here is not required for implementing Send for collect_legacy_assets,
+    // but the compiler fails so collect it here.
+    let assets = folders.chain(files).collect::<Vec<_>>();
 
     let (mut found_files, mut found_folders, find_guids) =
-        find_legacy_assets_by_path(io, assets).await;
+        find_legacy_assets_by_path(io, assets.into_iter()).await;
 
     if !find_guids.is_empty() {
         find_legacy_assets_by_guid(io, find_guids, &mut found_files, &mut found_folders).await;
@@ -63,10 +71,14 @@ fn valid_path(path: &Path) -> bool {
     true
 }
 
-async fn find_legacy_assets_by_path(
+async fn find_legacy_assets_by_path<'a>(
     io: &impl ProjectIo,
-    assets: impl Iterator<Item = DefinedLegacyInfo<'_>>,
-) -> (HashSet<Box<Path>>, HashSet<Box<Path>>, HashMap<Guid, bool>) {
+    assets: impl Iterator<Item = DefinedLegacyInfo<'a>>,
+) -> (
+    HashMap<Box<Path>, &'a str>,
+    HashMap<Box<Path>, &'a str>,
+    HashMap<Guid, (&'a str, bool)>,
+) {
     use LegacySearchResult::*;
 
     let mut futures = pin!(assets
@@ -85,29 +97,33 @@ async fn find_legacy_assets_by_path(
                     .map(|x| x.is_file() == info.is_file)
                     .unwrap_or(false)
             {
-                Some(FoundWithPath(relative_path, info.is_file))
+                Some(FoundWithPath(
+                    info.package_name,
+                    relative_path,
+                    info.is_file,
+                ))
             } else if let Some(guid) = info.guid {
-                Some(SearchWithGuid(guid, info.is_file))
+                Some(SearchWithGuid(info.package_name, guid, info.is_file))
             } else {
                 None
             }
         })
         .collect::<FuturesUnordered<_>>());
 
-    let mut found_files = HashSet::new();
-    let mut found_folders = HashSet::new();
+    let mut found_files = HashMap::new();
+    let mut found_folders = HashMap::new();
     let mut find_guids = HashMap::new();
 
     while let Some(info) = futures.next().await {
         match info {
-            Some(FoundWithPath(relative_path, true)) => {
-                found_files.insert(relative_path);
+            Some(FoundWithPath(package_name, relative_path, true)) => {
+                found_files.insert(relative_path, package_name);
             }
-            Some(FoundWithPath(relative_path, false)) => {
-                found_folders.insert(relative_path);
+            Some(FoundWithPath(package_name, relative_path, false)) => {
+                found_folders.insert(relative_path, package_name);
             }
-            Some(SearchWithGuid(guid, is_file)) => {
-                find_guids.insert(guid, is_file);
+            Some(SearchWithGuid(package_name, guid, is_file)) => {
+                find_guids.insert(guid, (package_name, is_file));
             }
             None => (),
         }
@@ -131,11 +147,11 @@ async fn try_parse_meta(io: &impl ProjectIo, path: &Path) -> Option<Guid> {
     None
 }
 
-async fn find_legacy_assets_by_guid(
+async fn find_legacy_assets_by_guid<'a>(
     io: &impl ProjectIo,
-    mut find_guids: HashMap<Guid, bool>,
-    found_files: &mut HashSet<Box<Path>>,
-    found_folders: &mut HashSet<Box<Path>>,
+    mut find_guids: HashMap<Guid, (&'a str, bool)>,
+    found_files: &mut HashMap<Box<Path>, &'a str>,
+    found_folders: &mut HashMap<Box<Path>, &'a str>,
 ) {
     async fn get_guid<IO: ProjectIo>(io: &IO, relative: PathBuf) -> Option<(Guid, bool, PathBuf)> {
         if relative.extension() != Some(OsStr::new("meta")) {
@@ -156,13 +172,13 @@ async fn find_legacy_assets_by_guid(
         pin!(walk_dir_relative(io, [PathBuf::from("Assets")]).filter_map(|x| get_guid(io, x)));
 
     while let Some((guid, is_file_actual, relative)) = stream.next().await {
-        if let Some(&is_file) = find_guids.get(&guid) {
+        if let Some(&(package_name, is_file)) = find_guids.get(&guid) {
             if is_file_actual == is_file {
                 find_guids.remove(&guid);
                 if is_file {
-                    found_files.insert(relative.into_boxed_path());
+                    found_files.insert(relative.into_boxed_path(), package_name);
                 } else {
-                    found_folders.insert(relative.into_boxed_path());
+                    found_folders.insert(relative.into_boxed_path(), package_name);
                 }
             }
         }
@@ -170,22 +186,25 @@ async fn find_legacy_assets_by_guid(
 }
 
 struct DefinedLegacyInfo<'a> {
+    package_name: &'a str,
     path: &'a str,
     guid: Option<Guid>,
     is_file: bool,
 }
 
 impl<'a> DefinedLegacyInfo<'a> {
-    fn new_file(path: &'a str, guid: Option<Guid>) -> Self {
+    fn new_file(name: &'a str, path: &'a str, guid: Option<Guid>) -> Self {
         Self {
+            package_name: name,
             path,
             guid,
             is_file: true,
         }
     }
 
-    fn new_dir(path: &'a str, guid: Option<Guid>) -> Self {
+    fn new_dir(name: &'a str, path: &'a str, guid: Option<Guid>) -> Self {
         Self {
+            package_name: name,
             path,
             guid,
             is_file: false,
@@ -193,9 +212,9 @@ impl<'a> DefinedLegacyInfo<'a> {
     }
 }
 
-enum LegacySearchResult {
-    FoundWithPath(Box<Path>, bool),
-    SearchWithGuid(Guid, bool),
+enum LegacySearchResult<'a> {
+    FoundWithPath(&'a str, Box<Path>, bool),
+    SearchWithGuid(&'a str, Guid, bool),
 }
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]

@@ -62,6 +62,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_before_migrate_project_to_2022,
         project_migrate_project_to_2022,
         project_finalize_migration_with_unity_2022,
+        project_migrate_project_to_vpm,
         project_open_unity,
         util_open,
         util_get_log_entries,
@@ -99,6 +100,7 @@ pub(crate) fn export_ts() {
             project_before_migrate_project_to_2022,
             project_migrate_project_to_2022,
             project_finalize_migration_with_unity_2022::<tauri::Wry>,
+            project_migrate_project_to_vpm,
             project_open_unity,
             util_open,
             util_get_log_entries,
@@ -1292,12 +1294,12 @@ impl TauriPendingProjectChanges {
             remove_legacy_files: changes
                 .remove_legacy_files()
                 .iter()
-                .map(|x| x.to_string_lossy().into_owned())
+                .map(|(x, _)| x.to_string_lossy().into_owned())
                 .collect(),
             remove_legacy_folders: changes
                 .remove_legacy_folders()
                 .iter()
-                .map(|x| x.to_string_lossy().into_owned())
+                .map(|(x, _)| x.to_string_lossy().into_owned())
                 .collect(),
             conflicts: changes
                 .conflicts()
@@ -1400,7 +1402,7 @@ async fn project_install_package(
     let changes = match unity_project
         .add_package_request(
             environment,
-            vec![installing_package],
+            &[installing_package],
             operation,
             allow_prerelease,
         )
@@ -1438,7 +1440,7 @@ async fn project_upgrade_multiple_package(
 
             Ok(packages[*index])
         })
-        .collect::<Result<_, _>>()?;
+        .collect::<Result<Vec<_>, _>>()?;
 
     let unity_project = load_project(project_path).await?;
 
@@ -1449,7 +1451,7 @@ async fn project_upgrade_multiple_package(
     let changes = match unity_project
         .add_package_request(
             environment,
-            installing_packages,
+            &installing_packages,
             operation,
             allow_prerelease,
         )
@@ -1723,6 +1725,35 @@ async fn project_finalize_migration_with_unity_2022<R: Runtime>(
     }
 
     Ok(TauriFinalizeMigrationWithUnity2022::MigrationStarted { event_name })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_migrate_project_to_vpm(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<(), RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state.environment.get_environment_mut(true).await?;
+
+    info!("loading package infos");
+    environment.load_package_infos(true).await?;
+
+    let mut unity_project = load_project(project_path).await?;
+
+    match unity_project
+        .migrate_vpm(environment, environment.show_prerelease_packages())
+        .await
+    {
+        Ok(()) => {}
+        Err(e) => return Err(RustError::unrecoverable(e)),
+    }
+
+    unity_project.save().await?;
+    update_project_last_modified(environment, unity_project.project_dir()).await;
+
+    Ok(())
 }
 
 #[derive(Serialize, specta::Type)]
