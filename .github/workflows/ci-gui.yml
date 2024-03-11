@@ -55,6 +55,18 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ci-build-gui-${{ matrix.triple }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.2xx
+      - name: Cache NPM and Next.js of gui
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ${{ github.workspace }}/vrc-get-gui/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-${{ hashFiles('vrc-get-gui/**/*.js', 'vrc-get-gui/**/*.jsx', 'vrc-get-gui/**/*.ts', 'vrc-get-gui/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-about
@@ -62,17 +74,12 @@ jobs:
       - name: Setup
         run: ${{ matrix.setup }}
 
-      - name: Disable Updater
-        shell: bash
-        run: |
-          cp vrc-get-gui/Tauri.toml vrc-get-gui/Tauri.toml.bak
-          sed -E 's/^( *"updater")/#\1/' < vrc-get-gui/Tauri.toml.bak > vrc-get-gui/Tauri.toml
-
       - uses: tauri-apps/tauri-action@v0
         with:
           projectPath: vrc-get-gui
           tauriScript: npm run tauri
-          args: --target ${{ matrix.triple }}
+          args: |
+            --target ${{ matrix.triple }} -c '{"tauri":{"updater":{"active":false}}}'
 
       - name: Upload built binary
         uses: actions/upload-artifact@v4
