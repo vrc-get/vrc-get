@@ -13,9 +13,10 @@ use tokio::process::Command;
 pub enum Migrate {
     #[command(subcommand)]
     Unity(Unity),
+    Vpm(Vpm),
 }
 
-multi_command!(Migrate is Unity);
+multi_command!(Migrate is Unity, Vpm);
 
 #[derive(Subcommand)]
 #[command(author, version)]
@@ -26,6 +27,7 @@ pub enum Unity {
 
 multi_command!(Unity is Unity2022);
 
+/// Migrate your project to Unity 2022
 #[derive(Parser)]
 pub struct Unity2022 {
     /// Path to project dir. by default CWD or parents of CWD will be used
@@ -100,6 +102,42 @@ impl Unity2022 {
         }
 
         info!("Unity exited successfully. Migration finished.");
+
+        update_project_last_modified(env, project.project_dir()).await;
+    }
+}
+
+/// Migrate your legacy (unitypackage) VRCSDK project to VPM project
+#[derive(Parser)]
+pub struct Vpm {
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<Box<Path>>,
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl Vpm {
+    pub async fn run(self) {
+        warn!("migrate vpm is unstable command.");
+        println!("You're migrating your project to vpm in-place.");
+        println!("It's hard to undo this command.");
+        println!("You MUST create backup of your project before running this command.");
+        if !confirm_prompt("Do you want to continue?") {
+            exit(1);
+        }
+
+        let mut project = load_unity(self.project).await;
+        let env = load_env(&self.env_args).await;
+
+        project
+            .migrate_vpm(&env, false)
+            .await
+            .exit_context("migrating unity project");
+
+        project.save().await.exit_context("saving project");
+
+        info!("Migration finished.");
 
         update_project_last_modified(env, project.project_dir()).await;
     }
