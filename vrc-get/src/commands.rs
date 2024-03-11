@@ -1174,7 +1174,9 @@ impl RepoPackages {
     pub async fn run(self) {
         fn print_repo(packages: &RemoteRepository) {
             for versions in packages.get_packages() {
-                if let Some(pkg) = versions.get_latest(VersionSelector::latest_for(None, true)) {
+                if let Some(pkg) =
+                    versions.get_latest_may_yanked(VersionSelector::latest_for(None, true))
+                {
                     if let Some(display_name) = pkg.display_name() {
                         println!("{} | {}", display_name, pkg.name());
                     } else {
