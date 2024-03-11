@@ -49,9 +49,8 @@
       <_IlcFrameworkNativeLibraries Include="$(IlcFrameworkNativePath)*.lib" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(_IlcSdkNativeLibraries)" DestinationFolder="$(PublishDir)\sdk" UseSymbolicLinksIfPossible="true" />
-
-    <Copy SourceFiles="@(_IlcFrameworkNativeLibraries)" DestinationFolder="$(PublishDir)\framework" UseSymbolicLinksIfPossible="true" />
+    <Copy SourceFiles="@(_IlcSdkNativeLibraries)" DestinationFolder="$(PublishDir)\sdk"/>
+    <Copy SourceFiles="@(_IlcFrameworkNativeLibraries)" DestinationFolder="$(PublishDir)\framework"/>
   </Target>
 
 </Project>
