@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Migrate legacy VRCSDK3 project to VPM VRCSDK `#580`
 
 ### Changed
 - Show "Not Selected" instead of "none" if the corresponding repositories are not selected `#568`

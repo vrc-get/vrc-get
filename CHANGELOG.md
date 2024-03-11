@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Command to migrate a legacy VRCSDK3 project to VPM VRCSDK `#580`
+  - You can do with `vrc-get migrate vpm` command.
 
 ### Changed
 
