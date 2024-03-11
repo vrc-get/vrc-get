@@ -20,7 +20,7 @@ vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-manag
 reqwest = "0.11.25"
 specta = { version = "1.0.5", features = [ "chrono" ] }
 tauri-specta = { version = "1.0.2", features = ["typescript"] }
-open = "5.1.1"
+open = "5.1.2"
 arc-swap = "1.7.0"
 log = { version = "0.4.21", features = [ "std" ] }
 chrono = { version = "0.4.35", features = [ "serde" ] }

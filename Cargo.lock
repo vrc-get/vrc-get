@@ -2254,9 +2254,9 @@ dependencies = [
 
 [[package]]
 name = "open"
-version = "5.1.1"
+version = "5.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68b3fbb0d52bf0cbb5225ba3d2c303aa136031d43abff98284332a9981ecddec"
+checksum = "449f0ff855d85ddbf1edd5b646d65249ead3f5e422aaa86b7d2d0b049b103e32"
 dependencies = [
  "is-wsl",
  "libc",
@@ -4249,7 +4249,7 @@ dependencies = [
  "fs_extra",
  "indexmap 2.2.5",
  "log",
- "open 5.1.1",
+ "open 5.1.2",
  "reqwest",
  "ringbuffer",
  "serde",
