@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Legacy Projects cannot be added to VCC project list `#586`
+- Removing repository doesn't remove package from list `#587`
 
 ### Security
 

@@ -435,6 +435,10 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub async fn remove_repo(&mut self, condition: impl Fn(&UserRepoSetting) -> bool) -> usize {
         let removed = self.settings.retain_user_repos(|x| !condition(x));
 
+        for x in &removed {
+            self.repo_cache.remove_repo(x.local_path());
+        }
+
         join_all(removed.iter().map(|x| async move {
             match remove_file(x.local_path()) {
                 Ok(()) => (),
