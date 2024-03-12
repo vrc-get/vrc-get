@@ -1,7 +1,6 @@
 use crate::io::EnvironmentIo;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
-use lazy_static::lazy_static;
 use log::info;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -114,13 +113,40 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     fn default_unity_hub_path() -> &'static [&'static str] {
         // https://docs.unity3d.com/hub/manual/HubCLI.html
-        if cfg!(windows) {
-            &["C:\\Program Files\\Unity Hub\\Unity Hub.exe"]
-        } else if cfg!(target_os = "macos") {
+        #[cfg(windows)]
+        {
+            lazy_static::lazy_static! {
+                static ref INSTALLATIONS: &'static [&'static str] = {
+                    // https://github.com/vrc-get/vrc-get/issues/579
+                    if let Some(unity_hub_from_regi) =
+                        winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
+                            .open_subkey(r"Software\Unity Technologies\Hub")
+                            .ok()
+                            .and_then(|key| key.get_value("InstallPath").ok())
+                            .and_then(|str: std::ffi::OsString| str.into_string().ok())
+                            .map(|s| PathBuf::from(s))
+                            .map(|mut p| {
+                                p.push("Unity Hub.exe");
+                                p
+                            })
+                            .map(|p| p.into_os_string().into_string().unwrap()) {
+                        vec![unity_hub_from_regi.leak(), "C:\\Program Files\\Unity Hub\\Unity Hub.exe"].leak()
+                    } else {
+                        &["C:\\Program Files\\Unity Hub\\Unity Hub.exe"]
+                    }
+                };
+            }
+
+            INSTALLATIONS.as_ref()
+        }
+        #[cfg(target_os = "macos")]
+        {
             &["/Applications/Unity Hub.app/Contents/MacOS/Unity Hub"]
-        } else if cfg!(target_os = "linux") {
+        }
+        #[cfg(target_os = "linux")]
+        {
             // for linux,
-            lazy_static! {
+            lazy_static::lazy_static! {
                 static ref USER_INSTALLATION: String = {
                     let home = std::env::var("HOME").expect("HOME not set");
                     format!("{}/Applications/Unity Hub.AppImage", home)
@@ -130,8 +156,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
 
             INSTALLATIONS.as_ref()
-        } else {
-            &[]
         }
     }
 
