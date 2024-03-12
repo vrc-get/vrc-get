@@ -249,11 +249,9 @@ function RepositoryRow(
 				</label>
 			</td>
 			<td className={cellClass}>
-				<label htmlFor={id}>
-					<Typography className="font-normal">
-						{repo.url}
-					</Typography>
-				</label>
+				<Typography className="font-normal">
+					{repo.url}
+				</Typography>
 			</td>
 			<td className={`${cellClass} w-0`}>
 				<Tooltip content={"Remove Repository"}>
