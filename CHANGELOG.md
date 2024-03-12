@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
   - You can do with `vrc-get migrate vpm` command.
 
 ### Changed
+- vrc-get now finds unity hub from registry key `#590`
 
 ### Deprecated
 
