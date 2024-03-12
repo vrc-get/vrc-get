@@ -41,6 +41,7 @@ serde_path_to_error = "0.1.16"
 
 [target."cfg(windows)".dependencies]
 dirs-sys = "0.4.1"
+winreg = { version = "0.52.0", optional = true }
 
 [features]
 default = ["rustls"]
@@ -50,4 +51,4 @@ rustls = ["reqwest/rustls-tls-native-roots"]
 unity-hub = ["tokio"]
 
 experimental-project-management = ["vrc-get-litedb", 'unity-hub']
-experimental-unity-management = ["vrc-get-litedb"]
+experimental-unity-management = ["vrc-get-litedb", 'dep:winreg']

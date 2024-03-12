@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Show "Not Selected" instead of "none" if the corresponding repositories are not selected `#568`
+- vrc-get now finds unity hub from registry key `#590`
 
 ### Deprecated
 
