@@ -4240,7 +4240,7 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-gui"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "arc-swap",
  "chrono",

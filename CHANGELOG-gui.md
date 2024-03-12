@@ -8,21 +8,28 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Migrate legacy VRCSDK3 project to VPM VRCSDK `#580`
 
 ### Changed
-- Show "Not Selected" instead of "none" if the corresponding repositories are not selected `#568`
-- vrc-get now finds unity hub from registry key `#590`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Legacy Projects cannot be added to VCC project list `#586`
-- Removing repository doesn't remove package from list `#587`
 
 ### Security
+
+## [0.1.0-beta.13] - 2024-03-12
+### Added
+- Migrate legacy VRCSDK3 project to VPM VRCSDK [`#580`](https://github.com/vrc-get/vrc-get/pull/580)
+
+### Changed
+- Show "Not Selected" instead of "none" if the corresponding repositories are not selected [`#568`](https://github.com/vrc-get/vrc-get/pull/568)
+- vrc-get now finds unity hub from registry key [`#590`](https://github.com/vrc-get/vrc-get/pull/590)
+
+### Fixed
+- Legacy Projects cannot be added to VCC project list [`#586`](https://github.com/vrc-get/vrc-get/pull/586)
+- Removing repository doesn't remove package from list [`#587`](https://github.com/vrc-get/vrc-get/pull/587)
 
 ## [0.1.0-beta.12] - 2024-03-09
 ## [0.1.0-beta.11] - 2024-03-09
@@ -108,7 +115,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.12...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.13...HEAD
+[0.1.0-beta.13]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.12...gui-v0.1.0-beta.13
 [0.1.0-beta.12]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.11...gui-v0.1.0-beta.12
 [0.1.0-beta.11]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.10...gui-v0.1.0-beta.11
 [0.1.0-beta.10]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.9...gui-v0.1.0-beta.10
