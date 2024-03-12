@@ -237,9 +237,10 @@ jobs:
         
         with:
           projectPath: vrc-get-gui
-          tauriScript: npm run -- tauri
+          tauriScript: npm run tauri
           # disable beforeBuildCommand since we already build web
-          args: --target ${{ matrix.triple }} --config '{"build":{"beforeBuildCommand":null}}'
+          args: |
+            --target ${{ matrix.triple }} -c '{"build":{"beforeBuildCommand":null}}'
 
       - name: Move artifacts
         shell: bash
