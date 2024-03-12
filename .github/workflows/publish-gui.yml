@@ -118,6 +118,27 @@ jobs:
           git branch releasing
           git push -f -u origin releasing
 
+  build-web:
+    name: Build gui web
+    runs-on: ubuntu-latest
+    needs: [ pre-build ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 'releasing'
+          submodules: recursive
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+
+      - run: npm run build
+        working-directory: vrc-get-gui
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vrc-get-gui-web
+          path: vrc-get-gui/out
+
   build-rust:
     name: Build rust
     environment:
@@ -172,7 +193,7 @@ jobs:
     env:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
-    needs: [ pre-build ]
+    needs: [ pre-build, build-web ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -194,6 +215,12 @@ jobs:
       - name: Setup
         run: ${{ matrix.setup }}
 
+      - name: Download Web Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vrc-get-gui-web
+          path: vrc-get-gui/out
+
       - uses: tauri-apps/tauri-action@v0
         env:
           # apple code signing
@@ -210,8 +237,9 @@ jobs:
         
         with:
           projectPath: vrc-get-gui
-          tauriScript: npm run tauri
-          args: --target ${{ matrix.triple }}
+          tauriScript: npm run -- tauri
+          # disable beforeBuildCommand since we already build web
+          args: --target ${{ matrix.triple }} --config '{"build":{"beforeBuildCommand":null}}'
 
       - name: Move artifacts
         shell: bash

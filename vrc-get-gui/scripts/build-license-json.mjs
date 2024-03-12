@@ -5,8 +5,44 @@
 import {promisify} from "node:util";
 import {exec as execCallback} from "node:child_process";
 import {mkdir, readFile, writeFile} from "node:fs/promises";
+import {createHash} from "node:crypto";
 
 const exec = promisify(execCallback);
+
+async function shouldRebuild() {
+	async function readHashes() {
+		try {
+			return JSON.parse(await readFile("build/licenses.hashes.json", "utf8"));
+		} catch (e) {
+			console.error(e);
+			return {};
+		}
+	}
+
+	try {
+		const oldHashes = await readHashes();
+		const oldPackageLockHash = oldHashes.packageLockHash;
+		const oldCargoLockHash = oldHashes.cargoLockHash;
+
+		const packageLock = await readFile("package-lock.json", "utf8");
+		const packageLockHash = createHash("sha256").update(packageLock).digest("hex");
+		const cargoLock = await readFile("../Cargo.lock", "utf8");
+		const cargoLockHash = createHash("sha256").update(cargoLock).digest("hex");
+
+		console.log("Old package lock hash:", oldPackageLockHash);
+		console.log("New package lock hash:", packageLockHash);
+		console.log("Old cargo lock hash:", oldCargoLockHash);
+		console.log("New cargo lock hash:", cargoLockHash);
+
+		await mkdir("build", {recursive: true});
+		await writeFile("build/licenses.hashes.json", JSON.stringify({packageLockHash, cargoLockHash}));
+
+		return packageLockHash !== oldPackageLockHash || cargoLockHash !== oldCargoLockHash;
+	} catch (e) {
+		console.error(e);
+		return true
+	}
+}
 
 /**
  * @interface CargoAbout
@@ -87,6 +123,11 @@ async function licenseCheckerWithLicenseText() {
 		module.licenseText = file;
 	}));
 	return result;
+}
+
+if (!await shouldRebuild()) {
+	console.log("Cache matched, skipping");
+	process.exit(0);
 }
 
 /**
