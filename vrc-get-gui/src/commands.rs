@@ -117,6 +117,15 @@ pub(crate) fn new_env_state() -> impl Send + Sync + 'static {
     Mutex::new(EnvironmentState::new())
 }
 
+macro_rules! with_environment {
+    ($state: expr, |$environment: ident| $body: expr) => {{
+        let mut state = $state.lock().await;
+        let state = &mut *state;
+        let $environment = state.environment.get_environment_mut(false).await?;
+        $body
+    }};
+}
+
 pub(crate) fn startup(_app: &mut App) {
     let handle = _app.handle();
     tauri::async_runtime::spawn(async move {
@@ -127,29 +136,24 @@ pub(crate) fn startup(_app: &mut App) {
     });
 
     async fn update_unity_hub(state: State<'_, Mutex<EnvironmentState>>) -> Result<(), io::Error> {
-        let unity_hub_path = {
-            let mut guard = state.lock().await;
-            let environment = guard.environment.get_environment_mut(false).await?;
+        let unity_hub_path = with_environment!(&state, |environment| {
             let Some(unity_hub_path) = environment.find_unity_hub().await? else {
                 error!("Unity Hub not found");
                 return Ok(());
             };
             environment.save().await?;
             unity_hub_path
-        };
+        });
 
         let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
 
-        {
-            let mut guard = state.lock().await;
-            let environment = guard.environment.get_environment_mut(false).await?;
-
+        with_environment!(&state, |environment| {
             environment
                 .update_unity_from_unity_hub_and_fs(paths_from_hub)
                 .await?;
 
             environment.save().await?;
-        }
+        });
 
         info!("finished updating unity from unity hub");
         Ok(())
@@ -437,12 +441,10 @@ async fn environment_add_project_with_picker(
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     }
 
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-
-    environment.add_project(&unity_project).await?;
-    environment.save().await?;
+    with_environment!(&state, |environment| {
+        environment.add_project(&unity_project).await?;
+        environment.save().await?;
+    });
 
     Ok(TauriAddProjectWithPickerResult::Successful)
 }
@@ -556,12 +558,10 @@ async fn environment_copy_project_for_migration(
 
     let unity_project = load_project(new_path_str.clone()).await?;
 
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-
-    environment.add_project(&unity_project).await?;
-    environment.save().await?;
+    with_environment!(state, |environment| {
+        environment.add_project(&unity_project).await?;
+        environment.save().await?;
+    });
 
     Ok(new_path_str)
 }
@@ -707,29 +707,27 @@ struct TauriRepositoriesInfo {
 async fn environment_repositories_info(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriRepositoriesInfo, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-
-    Ok(TauriRepositoriesInfo {
-        user_repositories: environment
-            .get_user_repos()
-            .iter()
-            .map(|x| {
-                let id = x.id().or(x.url().map(Url::as_str)).unwrap();
-                TauriUserRepository {
-                    id: id.to_string(),
-                    url: x.url().map(|x| x.to_string()),
-                    display_name: x.name().unwrap_or(id).to_string(),
-                }
-            })
-            .collect(),
-        hidden_user_repositories: environment
-            .gui_hidden_repositories()
-            .map(Into::into)
-            .collect(),
-        hide_local_user_packages: environment.hide_local_user_packages(),
-        show_prerelease_packages: environment.show_prerelease_packages(),
+    with_environment!(&state, |environment| {
+        Ok(TauriRepositoriesInfo {
+            user_repositories: environment
+                .get_user_repos()
+                .iter()
+                .map(|x| {
+                    let id = x.id().or(x.url().map(Url::as_str)).unwrap();
+                    TauriUserRepository {
+                        id: id.to_string(),
+                        url: x.url().map(|x| x.to_string()),
+                        display_name: x.name().unwrap_or(id).to_string(),
+                    }
+                })
+                .collect(),
+            hidden_user_repositories: environment
+                .gui_hidden_repositories()
+                .map(Into::into)
+                .collect(),
+            hide_local_user_packages: environment.hide_local_user_packages(),
+            show_prerelease_packages: environment.show_prerelease_packages(),
+        })
     })
 }
 
@@ -739,13 +737,11 @@ async fn environment_hide_repository(
     state: State<'_, Mutex<EnvironmentState>>,
     repository: String,
 ) -> Result<(), RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-    environment.add_gui_hidden_repositories(repository);
-    environment.save().await?;
-
-    Ok(())
+    with_environment!(&state, |environment| {
+        environment.add_gui_hidden_repositories(repository);
+        environment.save().await?;
+        Ok(())
+    })
 }
 
 #[tauri::command]
@@ -754,13 +750,11 @@ async fn environment_show_repository(
     state: State<'_, Mutex<EnvironmentState>>,
     repository: String,
 ) -> Result<(), RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-    environment.remove_gui_hidden_repositories(&repository);
-    environment.save().await?;
-
-    Ok(())
+    with_environment!(&state, |environment| {
+        environment.remove_gui_hidden_repositories(&repository);
+        environment.save().await?;
+        Ok(())
+    })
 }
 
 #[tauri::command]
@@ -769,13 +763,11 @@ async fn environment_set_hide_local_user_packages(
     state: State<'_, Mutex<EnvironmentState>>,
     value: bool,
 ) -> Result<(), RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-    environment.set_hide_local_user_packages(value);
-    environment.save().await?;
-
-    Ok(())
+    with_environment!(&state, |environment| {
+        environment.set_hide_local_user_packages(value);
+        environment.save().await?;
+        Ok(())
+    })
 }
 
 #[derive(Serialize, specta::Type)]
@@ -791,27 +783,25 @@ struct TauriEnvironmentSettings {
 async fn environment_get_settings(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriEnvironmentSettings, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
+    with_environment!(&state, |environment| {
+        environment.find_unity_hub().await.ok();
 
-    environment.find_unity_hub().await.ok();
-
-    Ok(TauriEnvironmentSettings {
-        default_project_path: environment.default_project_path().to_string(),
-        project_backup_path: environment.project_backup_path().to_string(),
-        unity_hub: environment.unity_hub_path().to_string(),
-        unity_paths: environment
-            .get_unity_installations()?
-            .iter()
-            .filter_map(|unity| {
-                Some((
-                    unity.path().to_string(),
-                    unity.version()?.to_string(),
-                    unity.loaded_from_hub(),
-                ))
-            })
-            .collect(),
+        Ok(TauriEnvironmentSettings {
+            default_project_path: environment.default_project_path().to_string(),
+            project_backup_path: environment.project_backup_path().to_string(),
+            unity_hub: environment.unity_hub_path().to_string(),
+            unity_paths: environment
+                .get_unity_installations()?
+                .iter()
+                .filter_map(|unity| {
+                    Some((
+                        unity.path().to_string(),
+                        unity.version()?.to_string(),
+                        unity.loaded_from_hub(),
+                    ))
+                })
+                .collect(),
+        })
     })
 }
 
@@ -826,12 +816,8 @@ enum TauriPickUnityHubResult {
 #[specta::specta]
 async fn environment_pick_unity_hub(
     state: State<'_, Mutex<EnvironmentState>>,
-) -> Result<crate::commands::TauriPickUnityHubResult, RustError> {
-    let Some(mut path) = ({
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state.environment.get_environment_mut(false).await?;
-
+) -> Result<TauriPickUnityHubResult, RustError> {
+    let Some(mut path) = with_environment!(&state, |environment| {
         let mut unity_hub = Path::new(environment.unity_hub_path());
 
         if cfg!(target_os = "macos") {
@@ -888,14 +874,10 @@ async fn environment_pick_unity_hub(
         return Ok(TauriPickUnityHubResult::InvalidSelection);
     };
 
-    {
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state.environment.get_environment_mut(false).await?;
-
+    with_environment!(&state, |environment| {
         environment.set_unity_hub_path(&path);
         environment.save().await?;
-    }
+    });
 
     Ok(TauriPickUnityHubResult::Successful)
 }
@@ -948,11 +930,7 @@ async fn environment_pick_unity(
         return Ok(TauriPickUnityResult::InvalidSelection);
     };
 
-    {
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state.environment.get_environment_mut(false).await?;
-
+    with_environment!(&state, |environment| {
         match environment.add_unity_installation(&path).await {
             Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {
                 return Ok(TauriPickUnityResult::AlreadyAdded)
@@ -964,7 +942,7 @@ async fn environment_pick_unity(
             Ok(_) => {}
         }
         environment.save().await?;
-    }
+    });
 
     Ok(TauriPickUnityResult::Successful)
 }
@@ -981,11 +959,7 @@ enum TauriPickProjectDefaultPathResult {
 async fn environment_pick_project_default_path(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriPickProjectDefaultPathResult, RustError> {
-    let Some(dir) = ({
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state.environment.get_environment_mut(false).await?;
-
+    let Some(dir) = with_environment!(state, |environment| {
         // default path may not be exists so create here
         // Note: keep in sync with vrc-get-vpm/src/environment/settings.rs
         let mut default_path = environment.io().resolve("".as_ref());
@@ -1007,14 +981,10 @@ async fn environment_pick_project_default_path(
         return Ok(TauriPickProjectDefaultPathResult::InvalidSelection);
     };
 
-    {
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state.environment.get_environment_mut(false).await?;
-
+    with_environment!(&state, |environment| {
         environment.set_default_project_path(&dir);
         environment.save().await?;
-    }
+    });
 
     Ok(TauriPickProjectDefaultPathResult::Successful)
 }
@@ -1031,11 +1001,7 @@ enum TauriPickProjectBackupPathResult {
 async fn environment_pick_project_backup_path(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriPickProjectBackupPathResult, RustError> {
-    let Some(dir) = ({
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state.environment.get_environment_mut(false).await?;
-
+    let Some(dir) = with_environment!(state, |environment| {
         // backup folder may not be exists so create here
         // Note: keep in sync with vrc-get-vpm/src/environment/settings.rs
         let default_path = environment.io().resolve("Project Backups".as_ref());
@@ -1054,14 +1020,10 @@ async fn environment_pick_project_backup_path(
         return Ok(TauriPickProjectBackupPathResult::InvalidSelection);
     };
 
-    {
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state.environment.get_environment_mut(false).await?;
-
+    with_environment!(&state, |environment| {
         environment.set_project_backup_path(&dir);
         environment.save().await?;
-    }
+    });
 
     Ok(TauriPickProjectBackupPathResult::Successful)
 }
@@ -1143,47 +1105,45 @@ async fn environment_download_repository(
         Ok(url) => url,
     };
 
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-
-    for repo in environment.get_user_repos() {
-        if repo.url().map(|x| x.as_str()) == Some(url.as_str()) {
-            return Ok(TauriDownloadRepository::Duplicated);
+    with_environment!(state, |environment| {
+        for repo in environment.get_user_repos() {
+            if repo.url().map(|x| x.as_str()) == Some(url.as_str()) {
+                return Ok(TauriDownloadRepository::Duplicated);
+            }
         }
-    }
 
-    let client = environment.http().unwrap();
-    let repo = match RemoteRepository::download(client, &url, &headers.0).await {
-        Ok((repo, _)) => repo,
-        Err(e) => {
-            return Ok(TauriDownloadRepository::DownloadError {
-                message: e.to_string(),
-            });
+        let client = environment.http().unwrap();
+        let repo = match RemoteRepository::download(client, &url, &headers.0).await {
+            Ok((repo, _)) => repo,
+            Err(e) => {
+                return Ok(TauriDownloadRepository::DownloadError {
+                    message: e.to_string(),
+                });
+            }
+        };
+
+        let url = repo.url().unwrap_or(&url).as_str();
+        let id = repo.id().unwrap_or(url);
+
+        for repo in environment.get_user_repos() {
+            if repo.id() == Some(id) {
+                return Ok(TauriDownloadRepository::Duplicated);
+            }
         }
-    };
 
-    let url = repo.url().unwrap_or(&url).as_str();
-    let id = repo.id().unwrap_or(url);
-
-    for repo in environment.get_user_repos() {
-        if repo.id() == Some(id) {
-            return Ok(TauriDownloadRepository::Duplicated);
-        }
-    }
-
-    Ok(TauriDownloadRepository::Success {
-        value: TauriRemoteRepositoryInfo {
-            id: id.to_string(),
-            url: url.to_string(),
-            display_name: repo.name().unwrap_or(id).to_string(),
-            packages: repo
-                .get_packages()
-                .filter_map(|x| x.get_latest(VersionSelector::latest_for(None, true)))
-                .filter(|x| !x.is_yanked())
-                .map(TauriBasePackageInfo::new)
-                .collect(),
-        },
+        Ok(TauriDownloadRepository::Success {
+            value: TauriRemoteRepositoryInfo {
+                id: id.to_string(),
+                url: url.to_string(),
+                display_name: repo.name().unwrap_or(id).to_string(),
+                packages: repo
+                    .get_packages()
+                    .filter_map(|x| x.get_latest(VersionSelector::latest_for(None, true)))
+                    .filter(|x| !x.is_yanked())
+                    .map(TauriBasePackageInfo::new)
+                    .collect(),
+            },
+        })
     })
 }
 
@@ -1207,13 +1167,10 @@ async fn environment_add_repository(
         Ok(url) => url,
     };
 
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-
-    environment.add_remote_repo(url, None, headers.0).await?;
-
-    environment.save().await?;
+    with_environment!(&state, |environment| {
+        environment.add_remote_repo(url, None, headers.0).await?;
+        environment.save().await?;
+    });
 
     Ok(TauriAddRepositoryResult::Success)
 }
@@ -1223,18 +1180,16 @@ async fn environment_add_repository(
 async fn environment_remove_repository(
     state: State<'_, Mutex<EnvironmentState>>,
     id: String,
-) -> Result<TauriAddRepositoryResult, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
+) -> Result<(), RustError> {
+    with_environment!(state, |environment| {
+        environment
+            .remove_repo(|r| r.id() == Some(id.as_str()))
+            .await;
 
-    environment
-        .remove_repo(|r| r.id() == Some(id.as_str()))
-        .await;
+        environment.save().await?;
+    });
 
-    environment.save().await?;
-
-    Ok(TauriAddRepositoryResult::Success)
+    Ok(())
 }
 
 #[derive(Serialize, specta::Type)]
@@ -1556,25 +1511,26 @@ async fn project_before_migrate_project_to_2022(
     state: State<'_, Mutex<EnvironmentState>>,
     allow_mismatched_unity: bool,
 ) -> Result<TauriBeforeMigrateProjectTo2022Result, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
+    with_environment!(state, |environment| {
+        let Some(found_unity) =
+            environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
+        else {
+            return Ok(TauriBeforeMigrateProjectTo2022Result::NoUnity2022Found);
+        };
 
-    let Some(found_unity) = environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
-    else {
-        return Ok(TauriBeforeMigrateProjectTo2022Result::NoUnity2022Found);
-    };
+        if !allow_mismatched_unity
+            && found_unity.version().unwrap() != VRCHAT_RECOMMENDED_2022_UNITY
+        {
+            return Ok(
+                TauriBeforeMigrateProjectTo2022Result::ConfirmNotExactlyRecommendedUnity2022 {
+                    found: found_unity.version().unwrap().to_string(),
+                    recommended: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
+                },
+            );
+        }
 
-    if !allow_mismatched_unity && found_unity.version().unwrap() != VRCHAT_RECOMMENDED_2022_UNITY {
-        return Ok(
-            TauriBeforeMigrateProjectTo2022Result::ConfirmNotExactlyRecommendedUnity2022 {
-                found: found_unity.version().unwrap().to_string(),
-                recommended: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
-            },
-        );
-    }
-
-    Ok(TauriBeforeMigrateProjectTo2022Result::ReadyToMigrate)
+        Ok(TauriBeforeMigrateProjectTo2022Result::ReadyToMigrate)
+    })
 }
 
 #[tauri::command]
@@ -1583,21 +1539,19 @@ async fn project_migrate_project_to_2022(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
 ) -> Result<(), RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
+    with_environment!(state, |environment| {
+        let mut unity_project = load_project(project_path).await?;
 
-    let mut unity_project = load_project(project_path).await?;
+        match unity_project.migrate_unity_2022(environment).await {
+            Ok(()) => {}
+            Err(e) => return Err(RustError::unrecoverable(e)),
+        }
 
-    match unity_project.migrate_unity_2022(environment).await {
-        Ok(()) => {}
-        Err(e) => return Err(RustError::unrecoverable(e)),
-    }
+        unity_project.save().await?;
+        update_project_last_modified(environment, unity_project.project_dir()).await;
 
-    unity_project.save().await?;
-    update_project_last_modified(environment, unity_project.project_dir()).await;
-
-    Ok(())
+        Ok(())
+    })
 }
 
 #[derive(Serialize, specta::Type)]
@@ -1627,104 +1581,103 @@ async fn project_finalize_migration_with_unity_2022<R: Runtime>(
     static MIGRATION_EVENT_PREFIX: &str = "migrateTo2022:";
     static MIGRATION_EVENT_COUNTER: AtomicU32 = AtomicU32::new(0);
 
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
+    with_environment!(state, |environment| {
+        let Some(found_unity) =
+            environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
+        else {
+            return Ok(TauriFinalizeMigrationWithUnity2022::NoUnity2022Found);
+        };
+        environment.disconnect_litedb();
 
-    let Some(found_unity) = environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
-    else {
-        return Ok(TauriFinalizeMigrationWithUnity2022::NoUnity2022Found);
-    };
-    environment.disconnect_litedb();
+        let unity_project = load_project(project_path).await?;
 
-    let unity_project = load_project(project_path).await?;
+        let mut child = Command::new(found_unity.path())
+            .args([
+                "-quit".as_ref(),
+                "-batchmode".as_ref(),
+                // https://docs.unity3d.com/Manual/EditorCommandLineArguments.html
+                "-logFile".as_ref(),
+                "-".as_ref(),
+                "-projectPath".as_ref(),
+                unity_project.project_dir().as_os_str(),
+            ])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .stdin(Stdio::null())
+            .spawn()?;
 
-    let mut child = Command::new(found_unity.path())
-        .args([
-            "-quit".as_ref(),
-            "-batchmode".as_ref(),
-            // https://docs.unity3d.com/Manual/EditorCommandLineArguments.html
-            "-logFile".as_ref(),
-            "-".as_ref(),
-            "-projectPath".as_ref(),
-            unity_project.project_dir().as_os_str(),
-        ])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .stdin(Stdio::null())
-        .spawn()?;
+        let id = MIGRATION_EVENT_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let event_name = format!("{}{}", MIGRATION_EVENT_PREFIX, id);
 
-    let id = MIGRATION_EVENT_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let event_name = format!("{}{}", MIGRATION_EVENT_PREFIX, id);
+        // stdout and stderr
+        tokio::spawn(send_lines(
+            child.stdout.take().unwrap(),
+            window.clone(),
+            event_name.clone(),
+        ));
+        tokio::spawn(send_lines(
+            child.stderr.take().unwrap(),
+            window.clone(),
+            event_name.clone(),
+        ));
+        // process end
+        tokio::spawn(wait_send_exit_status(child, window, event_name.clone()));
 
-    // stdout and stderr
-    tokio::spawn(send_lines(
-        child.stdout.take().unwrap(),
-        window.clone(),
-        event_name.clone(),
-    ));
-    tokio::spawn(send_lines(
-        child.stderr.take().unwrap(),
-        window.clone(),
-        event_name.clone(),
-    ));
-    // process end
-    tokio::spawn(wait_send_exit_status(child, window, event_name.clone()));
-
-    async fn send_lines(
-        stdout: impl tokio::io::AsyncRead + Unpin,
-        window: tauri::Window<impl Runtime>,
-        event_name: String,
-    ) {
-        let stdout = BufReader::new(stdout);
-        let mut stdout = stdout.lines();
-        loop {
-            match stdout.next_line().await {
-                Err(e) => {
-                    error!("error reading unity output: {e}");
-                    break;
-                }
-                Ok(None) => break,
-                Ok(Some(line)) => {
-                    let line = line.trim().to_string();
-                    if let Err(e) = window.emit(
-                        &event_name,
-                        TauriFinalizeMigrationWithUnity2022Event::OutputLine { line },
-                    ) {
-                        match e {
-                            tauri::Error::WebviewNotFound => break,
-                            _ => error!("error sending stdout: {e}"),
+        async fn send_lines(
+            stdout: impl tokio::io::AsyncRead + Unpin,
+            window: tauri::Window<impl Runtime>,
+            event_name: String,
+        ) {
+            let stdout = BufReader::new(stdout);
+            let mut stdout = stdout.lines();
+            loop {
+                match stdout.next_line().await {
+                    Err(e) => {
+                        error!("error reading unity output: {e}");
+                        break;
+                    }
+                    Ok(None) => break,
+                    Ok(Some(line)) => {
+                        let line = line.trim().to_string();
+                        if let Err(e) = window.emit(
+                            &event_name,
+                            TauriFinalizeMigrationWithUnity2022Event::OutputLine { line },
+                        ) {
+                            match e {
+                                tauri::Error::WebviewNotFound => break,
+                                _ => error!("error sending stdout: {e}"),
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
-    async fn wait_send_exit_status(
-        mut child: Child,
-        window: tauri::Window<impl Runtime>,
-        event_name: String,
-    ) {
-        let event = match child.wait().await {
-            Ok(status) => {
-                if status.success() {
-                    TauriFinalizeMigrationWithUnity2022Event::FinishedSuccessfully
-                } else {
-                    TauriFinalizeMigrationWithUnity2022Event::ExistsWithNonZero {
-                        status: status.to_string(),
+        async fn wait_send_exit_status(
+            mut child: Child,
+            window: tauri::Window<impl Runtime>,
+            event_name: String,
+        ) {
+            let event = match child.wait().await {
+                Ok(status) => {
+                    if status.success() {
+                        TauriFinalizeMigrationWithUnity2022Event::FinishedSuccessfully
+                    } else {
+                        TauriFinalizeMigrationWithUnity2022Event::ExistsWithNonZero {
+                            status: status.to_string(),
+                        }
                     }
                 }
-            }
-            Err(e) => {
-                error!("error waiting for unity process: {e}");
-                TauriFinalizeMigrationWithUnity2022Event::Failed
-            }
-        };
-        window.emit(&event_name, event).unwrap();
-    }
+                Err(e) => {
+                    error!("error waiting for unity process: {e}");
+                    TauriFinalizeMigrationWithUnity2022Event::Failed
+                }
+            };
+            window.emit(&event_name, event).unwrap();
+        }
 
-    Ok(TauriFinalizeMigrationWithUnity2022::MigrationStarted { event_name })
+        Ok(TauriFinalizeMigrationWithUnity2022::MigrationStarted { event_name })
+    })
 }
 
 #[tauri::command]
@@ -1769,31 +1722,18 @@ async fn project_open_unity(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
 ) -> Result<TauriOpenUnityResult, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(false).await?;
-    let unity_project = load_project(project_path).await?;
+    with_environment!(&state, |environment| {
+        let unity_project = load_project(project_path).await?;
 
-    let Some(project_unity) = unity_project.unity_version() else {
-        return Ok(TauriOpenUnityResult::NoUnityVersionForTheProject);
-    };
+        let Some(project_unity) = unity_project.unity_version() else {
+            return Ok(TauriOpenUnityResult::NoUnityVersionForTheProject);
+        };
 
-    for x in environment.get_unity_installations()? {
-        if let Some(version) = x.version() {
-            if version == project_unity {
-                environment.disconnect_litedb();
+        for x in environment.get_unity_installations()? {
+            if let Some(version) = x.version() {
+                if version == project_unity {
+                    environment.disconnect_litedb();
 
-                #[cfg(not(windows))]
-                {
-                    Command::new(x.path())
-                        .args([
-                            "-projectPath".as_ref(),
-                            unity_project.project_dir().as_os_str(),
-                        ])
-                        .spawn()?;
-                }
-                #[cfg(windows)]
-                {
                     crate::cmd_start::start_command(
                         "Unity".as_ref(),
                         x.path().as_ref(),
@@ -1803,15 +1743,16 @@ async fn project_open_unity(
                         ],
                     )
                     .await?;
+
+                    return Ok(TauriOpenUnityResult::Success);
                 }
-                return Ok(TauriOpenUnityResult::Success);
             }
         }
-    }
 
-    environment.disconnect_litedb();
+        environment.disconnect_litedb();
 
-    Ok(TauriOpenUnityResult::NoMatchingUnityFound)
+        Ok(TauriOpenUnityResult::NoMatchingUnityFound)
+    })
 }
 
 #[tauri::command]
