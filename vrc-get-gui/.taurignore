@@ -1,3 +1,11 @@
+# everuthing except for rust files
+# https://github.com/tauri-apps/tauri/issues/9163 we cannot write /* and exclude few
+#/*
+#!/*.toml
+#!/*.rs
+#!/icons
+#!/src
+
 # temporary files
 /.*/**
 /node_modules/**

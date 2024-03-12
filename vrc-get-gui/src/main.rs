@@ -3,8 +3,10 @@
 
 use tauri::Manager;
 
-#[cfg(windows)]
+#[cfg_attr(windows, path = "cmd_start_win.rs")]
+#[cfg_attr(not(windows), path = "cmd_start_basic.rs")]
 mod cmd_start;
+
 mod commands;
 mod logging;
 
