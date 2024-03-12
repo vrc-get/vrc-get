@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Legacy Projects cannot be added to VCC project list `#586`
 
 ### Security
 
