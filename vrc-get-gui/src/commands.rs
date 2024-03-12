@@ -1320,6 +1320,27 @@ impl From<&ConflictInfo> for TauriConflictInfo {
     }
 }
 
+macro_rules! changes {
+    ($state: ident, $($env_version: ident, )? |$environment: pat_param, $packages: pat_param| $body: expr) => {{
+        let mut state = $state.lock().await;
+        let state = &mut *state;
+        let current_version = state.environment.environment_version.0;
+        $(
+        if current_version != $env_version {
+            return Err(RustError::Unrecoverable(
+                "environment version mismatch".into(),
+            ));
+        }
+        )?
+
+        let $environment = state.environment.get_environment_mut(false).await?;
+        let $packages = unsafe { &*state.packages.unwrap().as_mut() };
+        let changes = $body;
+
+        Ok(state.changes_info.update(current_version, changes))
+    }};
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn project_install_package(
@@ -1328,46 +1349,36 @@ async fn project_install_package(
     env_version: u32,
     package_index: usize,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    if env_state.environment.environment_version != Wrapping(env_version) {
-        return Err(RustError::Unrecoverable(
-            "environment version mismatch".into(),
-        ));
-    }
+    changes!(state, env_version, |environment, packages| {
+        let installing_package = packages[package_index];
 
-    let environment = env_state.environment.get_environment_mut(false).await?;
-    let packages = unsafe { &*env_state.packages.unwrap().as_mut() };
-    let installing_package = packages[package_index];
+        let unity_project = load_project(project_path).await?;
 
-    let unity_project = load_project(project_path).await?;
-
-    let operation = if let Some(locked) = unity_project.get_locked(installing_package.name()) {
-        if installing_package.version() < locked.version() {
-            AddPackageOperation::Downgrade
+        let operation = if let Some(locked) = unity_project.get_locked(installing_package.name()) {
+            if installing_package.version() < locked.version() {
+                AddPackageOperation::Downgrade
+            } else {
+                AddPackageOperation::UpgradeLocked
+            }
         } else {
-            AddPackageOperation::UpgradeLocked
+            AddPackageOperation::InstallToDependencies
+        };
+
+        let allow_prerelease = environment.show_prerelease_packages();
+
+        match unity_project
+            .add_package_request(
+                environment,
+                &[installing_package],
+                operation,
+                allow_prerelease,
+            )
+            .await
+        {
+            Ok(request) => request,
+            Err(e) => return Err(RustError::unrecoverable(e)),
         }
-    } else {
-        AddPackageOperation::InstallToDependencies
-    };
-
-    let allow_prerelease = environment.show_prerelease_packages();
-
-    let changes = match unity_project
-        .add_package_request(
-            environment,
-            &[installing_package],
-            operation,
-            allow_prerelease,
-        )
-        .await
-    {
-        Ok(request) => request,
-        Err(e) => return Err(RustError::unrecoverable(e)),
-    };
-
-    Ok(env_state.changes_info.update(env_version, changes))
+    })
 }
 
 #[tauri::command]
@@ -1375,50 +1386,34 @@ async fn project_install_package(
 async fn project_upgrade_multiple_package(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
-    package_indices: Vec<(u32, usize)>,
+    env_version: u32,
+    package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
+    changes!(state, env_version, |environment, packages| {
+        let installing_packages = package_indices
+            .iter()
+            .map(|index| packages[*index])
+            .collect::<Vec<_>>();
 
-    let current_env_version = env_state.environment.environment_version;
+        let unity_project = load_project(project_path).await?;
 
-    let environment = env_state.environment.get_environment_mut(false).await?;
-    let packages = unsafe { &*env_state.packages.unwrap().as_mut() };
-    let installing_packages = package_indices
-        .iter()
-        .map(|(env_version, index)| {
-            if current_env_version != Wrapping(*env_version) {
-                return Err(RustError::Unrecoverable(
-                    "environment version mismatch".into(),
-                ));
-            }
+        let operation = AddPackageOperation::UpgradeLocked;
 
-            Ok(packages[*index])
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+        let allow_prerelease = environment.show_prerelease_packages();
 
-    let unity_project = load_project(project_path).await?;
-
-    let operation = AddPackageOperation::UpgradeLocked;
-
-    let allow_prerelease = environment.show_prerelease_packages();
-
-    let changes = match unity_project
-        .add_package_request(
-            environment,
-            &installing_packages,
-            operation,
-            allow_prerelease,
-        )
-        .await
-    {
-        Ok(request) => request,
-        Err(e) => return Err(RustError::unrecoverable(e)),
-    };
-
-    Ok(env_state
-        .changes_info
-        .update(current_env_version.0, changes))
+        match unity_project
+            .add_package_request(
+                environment,
+                &installing_packages,
+                operation,
+                allow_prerelease,
+            )
+            .await
+        {
+            Ok(request) => request,
+            Err(e) => return Err(RustError::unrecoverable(e)),
+        }
+    })
 }
 
 #[tauri::command]
@@ -1427,23 +1422,14 @@ async fn project_resolve(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
+    changes!(state, |environment, _| {
+        let unity_project = load_project(project_path).await?;
 
-    let current_env_version = env_state.environment.environment_version;
-
-    let environment = env_state.environment.get_environment_mut(false).await?;
-
-    let unity_project = load_project(project_path).await?;
-
-    let changes = match unity_project.resolve_request(environment).await {
-        Ok(request) => request,
-        Err(e) => return Err(RustError::unrecoverable(e)),
-    };
-
-    Ok(env_state
-        .changes_info
-        .update(current_env_version.0, changes))
+        match unity_project.resolve_request(environment).await {
+            Ok(request) => request,
+            Err(e) => return Err(RustError::unrecoverable(e)),
+        }
+    })
 }
 
 #[tauri::command]
@@ -1453,18 +1439,14 @@ async fn project_remove_package(
     project_path: String,
     name: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let env_version = env_state.environment.environment_version.0;
+    changes!(state, |_, _| {
+        let unity_project = load_project(project_path).await?;
 
-    let unity_project = load_project(project_path).await?;
-
-    let changes = match unity_project.remove_request(&[&name]).await {
-        Ok(request) => request,
-        Err(e) => return Err(RustError::unrecoverable(e)),
-    };
-
-    Ok(env_state.changes_info.update(env_version, changes))
+        match unity_project.remove_request(&[&name]).await {
+            Ok(request) => request,
+            Err(e) => return Err(RustError::unrecoverable(e)),
+        }
+    })
 }
 
 #[tauri::command]

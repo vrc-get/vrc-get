@@ -190,13 +190,20 @@ function PageBody() {
 	const onUpgradeAllRequest = async () => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
-			let packages: [number, number][] = [];
+			let packages: number[] = [];
+			let envVersion: number | undefined = undefined;
 			for (let packageRow of packageRows) {
 				if (packageRow.latest.status === "upgradable") {
-					packages.push([packageRow.latest.pkg.env_version, packageRow.latest.pkg.index]);
+					if (envVersion == null) envVersion = packageRow.latest.pkg.env_version;
+					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
+					packages.push(packageRow.latest.pkg.index);
 				}
 			}
-			const changes = await projectUpgradeMultiplePackage(projectPath, packages);
+			if (envVersion == null) {
+				toast.error("No upgradable packages");
+				return;
+			}
+			const changes = await projectUpgradeMultiplePackage(projectPath, envVersion, packages);
 			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
 		} catch (e) {
 			console.error(e);
