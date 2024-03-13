@@ -12,8 +12,4 @@ This template has several changes to improve user experience.
   - Please note that iOS is not officially supported by VRChat, but I added this for future updates.
 - `productGuid` is randomly initialized on creation with `{vrc-get-productGUID}`.
 - `productName` is created with same name as folder name with `{vrc-get-productName}`.
-- For 2022 template, `StripUnusedMeshComponents` is disabled since some shader cause problem with this problem.
-  - https://issuetracker.unity3d.com/issues/uv1-data-is-lost-during-assetbundle-build-when-optimize-mesh-data-is-on
-  - It's fix in review for 2022.3.22f1 so when VRCSDK upgrades Unity to 2022.3.22f1 I'll set that to true.
-    m_PerPlatformDefaultQuality
 - For both unity versions, versions of some editor support packages are upgraded to a newer version.
