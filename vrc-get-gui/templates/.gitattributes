@@ -1,0 +1,10 @@
+*.mat eol=lf
+*.anim eol=lf
+*.unity eol=lf
+*.prefab eol=lf
+*.physicsMaterial2D eol=lf
+*.physicMaterial eol=lf
+*.asset eol=lf
+*.meta eol=lf
+*.controller eol=lf
+*.json eol=lf
