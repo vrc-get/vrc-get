@@ -1,6 +1,8 @@
+/*/*
+!/*/Assets
+/*/Assets/*
+!/*/Assets/.gitkeep
+!/*/Packages
 /*/Packages/*/
 /*/Packages/packages-lock.json
-/*/Library/
-/*/Temp/
-/*/*.sln
-/*/*.csproj
+!/*/ProjectSettings
