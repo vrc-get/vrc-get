@@ -629,7 +629,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     zip_path: &Path,
     sha_path: &Path,
     zip_file_name: &str,
-    url: &str,
+    url: &Url,
 ) -> io::Result<IO::FileStream> {
     let Some(http) = http else {
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
@@ -638,8 +638,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     // file not found: err
     let cache_file = io.create(zip_path).await?;
 
-    let url = Url::parse(url).map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
-    let mut response = pin!(http.get(&url, headers).await?);
+    let mut response = pin!(http.get(url, headers).await?);
 
     let mut writer = Sha256AsyncWrite::new(cache_file);
     io::copy(&mut response, &mut writer).await?;

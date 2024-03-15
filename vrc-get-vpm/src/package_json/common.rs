@@ -12,7 +12,7 @@ pub trait PackageJsonLike {
     fn legacy_packages(&self) -> &[Box<str>];
     fn display_name(&self) -> Option<&str>;
     fn description(&self) -> Option<&str>;
-    fn url(&self) -> Option<&str>;
+    fn url(&self) -> Option<&Url>;
     fn zip_sha_256(&self) -> Option<&str>;
     fn changelog_url(&self) -> Option<&Url>;
     fn unity(&self) -> Option<&PartialUnityVersion>;
@@ -59,7 +59,7 @@ macro_rules! impl_package_json {
             pub fn legacy_packages(&self) -> &[Box<str>] = |$v| $expr.legacy_packages.as_slice()
             pub fn display_name(&self) -> Option<&str> = |$v| $expr.display_name.as_deref()
             pub fn description(&self) -> Option<&str> = |$v| $expr.description.as_deref()
-            pub fn url(&self) -> Option<&str> = |$v| $expr.url.as_deref()
+            pub fn url(&self) -> Option<&Url> = |$v| $expr.url.as_ref()
             pub fn zip_sha_256(&self) -> Option<&str> = |$v| $expr.zip_sha_256.as_deref()
             pub fn changelog_url(&self) -> Option<&Url> = |$v| $expr.changelog_url.as_ref()
             pub fn unity(&self) -> Option<&PartialUnityVersion> = |$v| $expr.unity.as_ref()
@@ -94,7 +94,7 @@ macro_rules! package_json_struct {
             $optional_vis unity: Option<crate::PartialUnityVersion>,
 
             $(#[$optional])?
-            $optional_vis url: Option<String>,
+            $optional_vis url: Option<Url>,
             $(#[$optional])?
             #[serde(rename = "zipSHA256")]
             $optional_vis zip_sha_256: Option<Box<str>>,
