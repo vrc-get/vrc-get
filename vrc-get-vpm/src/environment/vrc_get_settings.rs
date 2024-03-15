@@ -18,7 +18,7 @@ pub(crate) struct VrcGetSettings {
     controller: SaveController<AsJson>,
 }
 
-const JSON_PATH: &str = "vrc-get-settings.json";
+const JSON_PATH: &str = "vrc-get/settings.json";
 
 impl VrcGetSettings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {

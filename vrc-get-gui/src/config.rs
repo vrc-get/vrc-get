@@ -23,6 +23,7 @@ pub struct GuiConfigHandler<'a> {
 impl GuiConfigHandler<'_> {
     pub async fn save(&self) -> io::Result<()> {
         let json = serde_json::to_string_pretty(&self.config)?;
+        tokio::fs::create_dir_all(self.path.parent().unwrap()).await?;
         tokio::fs::write(&self.path, json.as_bytes()).await
     }
 }
@@ -56,7 +57,7 @@ impl GuiConfigHolder {
         let (config, path) = if let Some((ref mut config, ref path)) = self.cached_value {
             (config, path)
         } else {
-            let path = io.resolve("vrc-get-gui-config.json".as_ref());
+            let path = io.resolve("vrc-get/gui-config.json".as_ref());
             let value = match io.open(&path).await {
                 Ok(mut file) => {
                     let mut buffer = Vec::new();
