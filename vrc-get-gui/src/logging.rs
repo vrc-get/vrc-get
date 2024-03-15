@@ -14,19 +14,22 @@ pub fn set_app_handle(handle: AppHandle) {
     APP_HANDLE.store(Some(Arc::new(handle)));
 }
 
-pub fn initialize_logger() {
+pub fn initialize_logger() -> DefaultEnvironmentIo {
     let (sender, receiver) = mpsc::channel::<LogChannelMessage>();
     let logger = Logger { sender };
 
     log::set_max_level(log::LevelFilter::Debug);
     log::set_boxed_logger(Box::new(logger)).expect("error while setting logger");
 
-    start_logging_thread(receiver);
+    let io = DefaultEnvironmentIo::new_default();
+
+    start_logging_thread(receiver, &io);
+
+    io
 }
 
-fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>) {
-    let env_io = DefaultEnvironmentIo::new_default();
-    let log_folder = env_io.resolve("vrc-get-logs".as_ref());
+fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>, io: &DefaultEnvironmentIo) {
+    let log_folder = io.resolve("vrc-get-logs".as_ref());
     std::fs::create_dir_all(&log_folder).ok();
     let timestamp = chrono::Utc::now()
         .format("%Y-%m-%d_%H-%M-%S.%6f")

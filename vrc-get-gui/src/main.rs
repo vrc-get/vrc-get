@@ -8,6 +8,7 @@ use tauri::Manager;
 mod cmd_start;
 
 mod commands;
+mod config;
 mod logging;
 mod templates;
 
@@ -23,15 +24,15 @@ fn tauri_context() -> tauri::Context<tauri::utils::assets::EmbeddedAssets> {
 }
 
 fn main() {
-    logging::initialize_logger();
+    let io = logging::initialize_logger();
 
     #[cfg(debug_assertions)]
     commands::export_ts();
 
     let app = tauri::Builder::default()
         .invoke_handler(commands::handlers())
-        .setup(|app| {
-            app.manage(commands::new_env_state());
+        .setup(move |app| {
+            app.manage(commands::new_env_state(io));
             commands::startup(app);
             Ok(())
         })

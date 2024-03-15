@@ -10,8 +10,12 @@ The format is based on [Keep a Changelog].
 ### Added
 - Create Project from Template `#594`
   - Please note that vrc-get uses our own templates for project creation.
+- Preserve window size `#607`
 
 ### Changed
+- vrc-get specific configuration is moved to `vrc-get/settings.json` `#607`
+  - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
+    to not dirty the folder, I moved the config file to `vrc-get` folder.
 
 ### Deprecated
 

@@ -1,7 +1,6 @@
 use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::{read_json_file, SaveController};
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// since this file is vrc-get specific, additional keys can be removed
@@ -12,10 +11,6 @@ struct AsJson {
     ignore_official_repository: bool,
     #[serde(default)]
     ignore_curated_repository: bool,
-    #[serde(default)]
-    gui_hidden_repositories: IndexSet<String>,
-    #[serde(default)]
-    hide_local_user_packages: bool,
 }
 
 #[derive(Debug)]
@@ -23,7 +18,7 @@ pub(crate) struct VrcGetSettings {
     controller: SaveController<AsJson>,
 }
 
-const JSON_PATH: &str = "vrc-get-settings.json";
+const JSON_PATH: &str = "vrc-get/settings.json";
 
 impl VrcGetSettings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
@@ -59,33 +54,6 @@ impl VrcGetSettings {
     #[allow(dead_code)]
     pub fn set_ignore_curated_repository(&mut self, value: bool) {
         self.controller.as_mut().ignore_curated_repository = value;
-    }
-    // hide_local_user_packages
-
-    pub fn gui_hidden_repositories(&self) -> &IndexSet<String> {
-        &self.controller.gui_hidden_repositories
-    }
-
-    pub fn add_gui_hidden_repositories(&mut self, repository: String) {
-        self.controller
-            .as_mut()
-            .gui_hidden_repositories
-            .insert(repository);
-    }
-
-    pub fn remove_gui_hidden_repositories(&mut self, repository: &str) {
-        self.controller
-            .as_mut()
-            .gui_hidden_repositories
-            .swap_remove(repository);
-    }
-
-    pub fn hide_local_user_packages(&self) -> bool {
-        self.controller.hide_local_user_packages
-    }
-
-    pub fn set_hide_local_user_packages(&mut self, value: bool) {
-        self.controller.as_mut().hide_local_user_packages = value;
     }
 
     pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {

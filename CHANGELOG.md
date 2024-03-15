@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - vrc-get now finds unity hub from registry key `#590`
+- vrc-get specific configuration is moved to `vrc-get/settings.json` `#607`
+  - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
+    to not dirty the folder, I moved the config file to `vrc-get` folder.
 
 ### Deprecated
 
