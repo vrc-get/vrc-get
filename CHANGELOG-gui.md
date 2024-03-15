@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Bad behaviors with unity 2018 `#605`
+- Bad behavior when trying installing the installed version `#608`
 
 ### Security
 
