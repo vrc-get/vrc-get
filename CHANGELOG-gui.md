@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Bad behaviors with unity 2018 `#605`
 
 ### Security
 

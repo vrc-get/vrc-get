@@ -4,8 +4,6 @@ use crate::{io, Environment, HttpClient};
 use log::info;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::str::from_utf8;
-use tokio::process::Command;
 use vrc_get_litedb::UnityVersion as DbUnityVersion;
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
@@ -19,54 +17,19 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .collect())
     }
 
-    pub async fn add_unity_installation(&mut self, path: &str) -> io::Result<UnityVersion> {
+    pub async fn add_unity_installation(
+        &mut self,
+        path: &str,
+        version: UnityVersion,
+    ) -> io::Result<()> {
         let db = self.get_db()?;
-
-        // first, check for duplicates
-        if db
-            .get_unity_versions()?
-            .into_vec()
-            .into_iter()
-            .any(|x| x.path() == path)
-        {
-            return Err(io::Error::new(
-                io::ErrorKind::AlreadyExists,
-                format!("unity installation at {} already exists", path),
-            ));
-        }
-
-        let output = Command::new(path).arg("-version").output().await?;
-
-        if !output.status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("invalid unity installation at {}", path),
-            ));
-        }
-
-        let stdout = &output.stdout[..];
-        let index = stdout
-            .iter()
-            .position(|&x| x == b' ')
-            .unwrap_or(stdout.len());
-
-        let version = from_utf8(&stdout[..index])
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid version"))?
-            .trim();
-
-        let version = UnityVersion::parse(version).ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("invalid version: {version}"),
-            )
-        })?;
 
         let installation =
             DbUnityVersion::new(path.into(), version.to_string().into_boxed_str(), false);
 
         db.insert_unity_version(&installation)?;
 
-        Ok(version)
+        Ok(())
     }
 
     pub async fn remove_unity_installation(&mut self, unity: &UnityInstallation) -> io::Result<()> {
@@ -180,9 +143,12 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
     pub async fn update_unity_from_unity_hub_and_fs(
         &mut self,
-        paths_from_hub: impl IntoIterator<Item = PathBuf>,
+        path_and_version_from_hub: &[(UnityVersion, PathBuf)],
     ) -> io::Result<()> {
-        let paths_from_hub = paths_from_hub.into_iter().collect::<HashSet<_>>();
+        let paths_from_hub = path_and_version_from_hub
+            .iter()
+            .map(|(_, path)| path.as_path())
+            .collect::<HashSet<_>>();
 
         let db = self.get_db()?;
 
@@ -206,10 +172,18 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
         }
 
-        for path in paths_from_hub {
-            if !installed.contains(&path) {
-                info!("Added Unity from Unity Hub: {}", path.display());
-                self.add_unity_installation(&path.to_string_lossy()).await?;
+        for &(version, ref path) in path_and_version_from_hub {
+            if !installed.contains(path) {
+                if version < UnityVersion::new_f1(2019, 4, 0) {
+                    info!(
+                        "Ignoring Unity from Unity Hub since old: {}",
+                        path.display()
+                    );
+                    continue;
+                }
+                info!("Adding Unity from Unity Hub: {}", path.display());
+                self.add_unity_installation(&path.to_string_lossy(), version)
+                    .await?;
             }
         }
 

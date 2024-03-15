@@ -196,12 +196,15 @@ impl UnityAdd {
     pub async fn run(self) {
         let mut env = load_env(&self.env_args).await;
 
-        let added = env
-            .add_unity_installation(self.path.as_ref())
+        let unity_version = vrc_get_vpm::unity::call_unity_for_version(self.path.as_ref().as_ref())
+            .await
+            .exit_context("calling unity for version");
+
+        env.add_unity_installation(self.path.as_ref(), unity_version)
             .await
             .exit_context("adding unity installation");
 
-        println!("Added version {} at {}", added, self.path);
+        println!("Added version {} at {}", unity_version, self.path);
 
         env.save().await.exit_context("saving environment");
     }
@@ -262,7 +265,7 @@ impl UnityUpdate {
             .await
             .exit_context("loading unity list from unity hub");
 
-        env.update_unity_from_unity_hub_and_fs(paths_from_hub)
+        env.update_unity_from_unity_hub_and_fs(&paths_from_hub)
             .await
             .exit_context("updating unity from unity hub");
 
