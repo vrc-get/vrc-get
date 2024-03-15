@@ -492,6 +492,19 @@ async fn environment_remove_project(
     Ok(())
 }
 
+async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result<u64> {
+    let mut options = fs_extra::dir::CopyOptions::new();
+    options.copy_inside = false;
+    options.content_only = true;
+    match tokio::runtime::Handle::current()
+        .spawn_blocking(move || fs_extra::dir::copy(from, to, &options))
+        .await
+    {
+        Ok(r) => Ok(r?),
+        Err(_) => Err(io::Error::new(io::ErrorKind::Other, "background task failed").into()),
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn environment_copy_project_for_migration(
@@ -514,19 +527,6 @@ async fn environment_copy_project_for_migration(
         }
 
         None
-    }
-
-    async fn copy_recursively(from: PathBuf, mut to: PathBuf) -> fs_extra::error::Result<u64> {
-        to.pop();
-        let mut options = fs_extra::dir::CopyOptions::new();
-        options.copy_inside = true;
-        match tokio::runtime::Handle::current()
-            .spawn_blocking(move || fs_extra::dir::copy(from, to, &options))
-            .await
-        {
-            Ok(r) => Ok(r?),
-            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "background task failed").into()),
-        }
     }
 
     let source_path_str = source_path;
@@ -1419,9 +1419,7 @@ async fn environment_create_project(
             archive.unpack(&path)?;
         }
         Template::Custom(template) => {
-            let mut options = fs_extra::dir::CopyOptions::new();
-            options.copy_inside = true;
-            fs_extra::dir::copy(template, &path, &options)?;
+            copy_recursively(template, path.clone()).await?;
         }
     }
 
