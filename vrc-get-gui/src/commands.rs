@@ -122,8 +122,8 @@ pub(crate) fn export_ts() {
     .unwrap();
 }
 
-pub(crate) fn new_env_state() -> impl Send + Sync + 'static {
-    Mutex::new(EnvironmentState::new())
+pub(crate) fn new_env_state(io: DefaultEnvironmentIo) -> impl Send + Sync + 'static {
+    Mutex::new(EnvironmentState::new(io))
 }
 
 macro_rules! with_environment {
@@ -327,8 +327,7 @@ impl ChangesInfoHolder {
 }
 
 impl EnvironmentState {
-    fn new() -> Self {
-        let io = DefaultEnvironmentIo::new_default();
+    fn new(io: DefaultEnvironmentIo) -> Self {
         Self {
             environment: EnvironmentHolder::new(),
             config: GuiConfigHolder::new(),
