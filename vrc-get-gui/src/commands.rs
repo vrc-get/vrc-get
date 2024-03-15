@@ -1420,6 +1420,9 @@ async fn environment_create_project(
         }
         Template::Custom(template) => {
             copy_recursively(template, path.clone()).await?;
+            // remove unnecessary package.json and README.md
+            tokio::fs::remove_file(path.join("package.json")).await.ok();
+            tokio::fs::remove_file(path.join("README.md")).await.ok();
         }
     }
 
