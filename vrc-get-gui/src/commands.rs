@@ -139,6 +139,15 @@ macro_rules! with_environment {
     }};
 }
 
+macro_rules! with_config {
+    ($state: expr, |$config: pat_param| $body: expr) => {{
+        let mut state = $state.lock().await;
+        let state = &mut *state;
+        let $config = state.config.load(&state.io).await?;
+        $body
+    }};
+}
+
 pub(crate) fn startup(_app: &mut App) {
     let handle = _app.handle();
     tauri::async_runtime::spawn(async move {
@@ -765,7 +774,7 @@ async fn environment_hide_repository(
     state: State<'_, Mutex<EnvironmentState>>,
     repository: String,
 ) -> Result<(), RustError> {
-    with_environment!(&state, |_, mut config| {
+    with_config!(&state, |mut config| {
         config.gui_hidden_repositories.insert(repository);
         config.save().await?;
         Ok(())
@@ -778,7 +787,7 @@ async fn environment_show_repository(
     state: State<'_, Mutex<EnvironmentState>>,
     repository: String,
 ) -> Result<(), RustError> {
-    with_environment!(&state, |_, mut config| {
+    with_config!(&state, |mut config| {
         config.gui_hidden_repositories.shift_remove(&repository);
         config.save().await?;
         Ok(())
