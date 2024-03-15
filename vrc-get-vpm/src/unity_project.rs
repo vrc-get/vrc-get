@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 // there are module for each complex operations.
 
 use crate::io::{DirEntry, FileSystemProjectIo, ProjectIo};
-use crate::PackageManifest;
+use crate::PackageJson;
 pub use add_package::AddPackageErr;
 pub use add_package::AddPackageOperation;
 pub use migrate_unity_2022::MigrateUnity2022Error;
@@ -44,8 +44,8 @@ pub struct UnityProject<IO: ProjectIo> {
     /// unity version parsed
     unity_version: Option<UnityVersion>,
     /// packages installed in the directory but not locked in vpm-manifest.json
-    unlocked_packages: Vec<(Box<str>, Option<PackageManifest>)>,
-    installed_packages: HashMap<Box<str>, PackageManifest>,
+    unlocked_packages: Vec<(Box<str>, Option<PackageJson>)>,
+    installed_packages: HashMap<Box<str>, PackageJson>,
 }
 
 // basic lifecycle
@@ -94,12 +94,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
     async fn try_read_unlocked_package(
         io: &IO,
         dir_entry: IO::DirEntry,
-    ) -> (Box<str>, Option<PackageManifest>) {
+    ) -> (Box<str>, Option<PackageJson>) {
         let name = dir_entry.file_name().to_string_lossy().into();
         let package_json_path = PathBuf::from("Packages")
             .joined(dir_entry.file_name())
             .joined("package.json");
-        let parsed = try_load_json::<PackageManifest>(io, &package_json_path)
+        let parsed = try_load_json::<PackageJson>(io, &package_json_path)
             .await
             .ok()
             .flatten();
@@ -190,21 +190,21 @@ impl<IO: ProjectIo> UnityProject<IO> {
         dependencies_locked.chain(dependencies_unlocked)
     }
 
-    pub fn unlocked_packages(&self) -> &[(Box<str>, Option<PackageManifest>)] {
+    pub fn unlocked_packages(&self) -> &[(Box<str>, Option<PackageJson>)] {
         &self.unlocked_packages
     }
 
-    pub fn installed_packages(&self) -> impl Iterator<Item = (&str, &PackageManifest)> {
+    pub fn installed_packages(&self) -> impl Iterator<Item = (&str, &PackageJson)> {
         self.installed_packages
             .iter()
             .map(|(key, value)| (key.as_ref(), value))
     }
 
-    pub fn get_installed_package(&self, name: &str) -> Option<&PackageManifest> {
+    pub fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
         self.installed_packages.get(name)
     }
 
-    pub fn all_installed_packages(&self) -> impl Iterator<Item = &PackageManifest> {
+    pub fn all_installed_packages(&self) -> impl Iterator<Item = &PackageJson> {
         self.installed_packages.values().chain(
             self.unlocked_packages
                 .iter()

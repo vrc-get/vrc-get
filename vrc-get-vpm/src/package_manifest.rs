@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::fmt::Formatter;
 use url::Url;
 
+// Note: please keep in sync with package_json
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageManifest {
@@ -39,15 +40,18 @@ pub struct PackageManifest {
     vrc_get: VrcGetMeta,
 }
 
+// Note: please keep in sync with package_json
 #[derive(Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct VrcGetMeta {
+struct VrcGetMeta {
     #[serde(default)]
     yanked: YankState,
     /// aliases for `vrc-get i --name <name> <version>` command.
     #[serde(default)]
     aliases: Vec<Box<str>>,
 }
+
+impl_package_json_like!(PackageManifest);
 
 /// Constructing PackageJson. Especially for testing.
 impl PackageManifest {
@@ -184,7 +188,7 @@ impl<'de> Deserialize<'de> for PartialUnityVersion {
 }
 
 #[derive(Debug, Clone, Default)]
-enum YankState {
+pub(crate) enum YankState {
     #[default]
     NotYanked,
     NoReason,
