@@ -1454,12 +1454,20 @@ async fn environment_create_project(
             }
         }
 
+        fn yaml_quote(value: &str) -> String {
+            let s = value
+                .replace('"', "\\\"")
+                .replace('\n', "\\n")
+                .replace('\r', "\\r");
+            format!("\"{}\"", s)
+        }
+
         set_value(
             &mut settings,
             "productGUID: ",
             &uuid::Uuid::new_v4().simple().to_string(),
         );
-        set_value(&mut settings, "productName: ", &project_name);
+        set_value(&mut settings, "productName: ", &yaml_quote(&project_name));
 
         settings_file.seek(std::io::SeekFrom::Start(0)).await?;
         settings_file.set_len(0).await?;
