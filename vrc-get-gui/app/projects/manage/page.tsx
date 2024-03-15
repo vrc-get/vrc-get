@@ -1115,6 +1115,7 @@ function PackageRow(
 	const latestVersion: string | undefined = versionNames[0];
 
 	const onChange = (version: string) => {
+		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
 		onInstallRequested(pkgVersion);
