@@ -1,5 +1,5 @@
 use crate::version::{UnityVersion, Version, VersionRange};
-use crate::{unity_compatible, PackageJson};
+use crate::{unity_compatible, PackageManifest};
 
 #[derive(Clone, Copy)]
 pub struct VersionSelector<'a> {
@@ -68,8 +68,8 @@ impl<'a> VersionSelector<'a> {
 }
 
 impl<'a> VersionSelector<'a> {
-    pub fn satisfies(&self, package: &PackageJson) -> bool {
-        fn unity_and_yank(package: &PackageJson, project_unity: Option<UnityVersion>) -> bool {
+    pub fn satisfies(&self, package: &PackageManifest) -> bool {
+        fn unity_and_yank(package: &PackageManifest, project_unity: Option<UnityVersion>) -> bool {
             if package.is_yanked() {
                 return false;
             }

@@ -34,7 +34,7 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    unity_hub, EnvironmentIoHolder, PackageCollection, PackageInfo, PackageJson, ProjectType,
+    unity_hub, EnvironmentIoHolder, PackageCollection, PackageInfo, PackageJsonLike, ProjectType,
     VersionSelector, VRCHAT_RECOMMENDED_2022_UNITY,
 };
 
@@ -709,7 +709,7 @@ struct TauriBasePackageInfo {
 }
 
 impl TauriBasePackageInfo {
-    fn new(package: &PackageJson) -> Self {
+    fn new(package: &impl PackageJsonLike) -> Self {
         Self {
             name: package.name().to_string(),
             display_name: package.display_name().map(|v| v.to_string()),

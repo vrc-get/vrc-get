@@ -2,7 +2,7 @@ use crate::io;
 use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::utils::MapResultExt;
-use crate::{PackageInfo, PackageJson, VersionSelector};
+use crate::{PackageInfo, PackageManifest, VersionSelector};
 use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;
@@ -48,7 +48,7 @@ pub trait RemotePackageDownloader {
     fn get_package(
         &self,
         repository: &LocalCachedRepository,
-        package: &PackageJson,
+        package: &PackageManifest,
     ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
 }
 

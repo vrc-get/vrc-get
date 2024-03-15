@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Fails to load package.json with invalid url in url field `#492`
+- Some embedded / installed vpm package is not recognized by vrc-get `#609`
   - This makes `d4rkAvatarOptimizer` is recognized as not installed.
 - Fails to load all repositories if fails to load one repository `#551`
 - Legacy Projects cannot be added to VCC project list `#586`

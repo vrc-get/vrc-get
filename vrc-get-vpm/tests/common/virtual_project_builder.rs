@@ -4,7 +4,7 @@ use serde_json::json;
 use vrc_get_vpm::io::IoTrait;
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
-use vrc_get_vpm::{PackageJson, UnityProject};
+use vrc_get_vpm::{PackageManifest, UnityProject};
 
 pub struct VirtualProjectBuilder {
     dependencies: IndexMap<String, String>,

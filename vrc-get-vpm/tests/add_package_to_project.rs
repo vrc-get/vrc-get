@@ -5,7 +5,7 @@ use std::path::Path;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
 use vrc_get_vpm::unity_project::{AddPackageErr, AddPackageOperation};
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::PackageJson;
+use vrc_get_vpm::PackageManifest;
 
 mod common;
 
@@ -18,10 +18,13 @@ fn add_to_dependencies() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
             .build();
 
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
@@ -64,10 +67,13 @@ fn install_already_installed_in_locked_to_locked() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
             .build();
 
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
@@ -106,10 +112,13 @@ fn install_already_installed_in_locked_to_dependencies() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
             .build();
 
         let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
@@ -150,10 +159,13 @@ fn install_already_installed_in_dependencies_to_dependencies() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
             .build();
 
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
@@ -191,10 +203,13 @@ fn upgrading_unused_packages() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 1, 0))
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 1, 0))
                     .add_vpm_dependency("com.vrchat.base", "1.1.0"),
             )
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 1, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
             .build();
 
         let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 1, 0));
@@ -240,7 +255,7 @@ fn transitive_unused_remove_with_upgrade() {
             .unwrap();
 
         let collection = PackageCollectionBuilder::new()
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.package",
                 Version::new(1, 1, 0),
             ))
@@ -289,7 +304,7 @@ fn do_not_remove_transitively_when_untouched() {
             .unwrap();
 
         let collection = PackageCollectionBuilder::new()
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.package",
                 Version::new(1, 1, 0),
             ))
@@ -329,7 +344,7 @@ fn remove_legacy_package_when_install() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 1, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 1, 0))
                     .add_legacy_package("com.anatawa12.legacy-package"),
             )
             .build();
@@ -373,7 +388,7 @@ fn remove_legacy_package_when_upgrade() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 1, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 1, 0))
                     .add_legacy_package("com.anatawa12.legacy-package"),
             )
             .build();
@@ -422,7 +437,7 @@ fn remove_referenced_legacy_package_when_install() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 1, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 1, 0))
                     .add_legacy_package("com.anatawa12.legacy-package"),
             )
             .build();
@@ -470,7 +485,7 @@ fn legacy_assets_by_path() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 0, 0))
                     .add_legacy_folder("Assets\\LegacyFolder", "")
                     .add_legacy_folder("Assets\\NotExists", "")
                     .add_legacy_folder("Packages\\legacy.package", "")
@@ -544,7 +559,7 @@ fn legacy_assets_by_guid() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 0, 0))
                     .add_legacy_folder("Assets\\LegacyFolder", "1c54b633da4d4d2abc01c6dedae67e09")
                     .add_legacy_folder("Assets\\NotExists", "62a9615044174c818622c19d0181d036")
                     .add_legacy_file("Assets\\LegacyAsset.cs", "ca06b0788d62432083b3577cc2346126"),
@@ -604,7 +619,7 @@ fn deny_remove_files_not_in_assets_or_packages() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 0, 0))
                     .add_legacy_folder("Assets1\\LegacyFolder", "")
                     .add_legacy_folder("Assets1\\NotExists", "")
                     .add_legacy_folder("Packages1\\legacy.package", "")
@@ -639,7 +654,7 @@ fn deny_remove_parent_folders() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 0, 0))
                     .add_legacy_folder("..", "")
                     .add_legacy_folder("Assets/..", "")
                     .add_legacy_folder("", ""),
@@ -673,7 +688,7 @@ fn deny_absolute_legacy_assets() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 0, 0))
                     .add_legacy_folder("/", ""),
             )
             .build();
@@ -709,7 +724,7 @@ fn not_found_err() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
             .build();
@@ -741,7 +756,7 @@ fn updating_non_locked_package_should_cause_error() {
         let project = VirtualProjectBuilder::new().build().await.unwrap();
 
         let collection = PackageCollectionBuilder::new()
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.vrchat.avatars",
                 Version::new(1, 0, 0),
             ))
@@ -779,7 +794,10 @@ fn downgrade_basic() {
             .unwrap();
 
         let collection = PackageCollectionBuilder::new()
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
             .build();
 
         let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
@@ -814,7 +832,10 @@ fn downgrade_dependencies() {
             .unwrap();
 
         let collection = PackageCollectionBuilder::new()
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
             .build();
 
         let base_package = collection.get_package("com.vrchat.base", Version::new(1, 0, 0));
@@ -859,13 +880,19 @@ fn conflict_requirements_of_installed_and_installing() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 1, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
             .add(
-                PackageJson::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "^1.1.0"),
             )
             .build();
@@ -916,13 +943,19 @@ fn conflict_already_conflicted_and_no_new_conflict() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "1.0.0"),
             )
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 0, 0)))
-            .add(PackageJson::new("com.vrchat.base", Version::new(1, 1, 0)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(1, 1, 0),
+            ))
             .add(
-                PackageJson::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.base", "^1.1.0"),
             )
             .build();
@@ -965,12 +998,15 @@ fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.vrchat.base", Version::new(3, 4, 2))
+                PackageManifest::new("com.vrchat.base", Version::new(3, 4, 2))
                     .add_vpm_dependency("com.vrchat.avatars", "3.4.2"),
             )
-            .add(PackageJson::new("com.vrchat.base", Version::new(3, 4, 2)))
+            .add(PackageManifest::new(
+                "com.vrchat.base",
+                Version::new(3, 4, 2),
+            ))
             .add(
-                PackageJson::new("com.anatawa12.tool", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.tool", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.vrchat.avatars", "^3.3.0"),
             )
             .build();

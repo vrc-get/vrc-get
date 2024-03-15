@@ -1,7 +1,7 @@
 use crate::common::*;
 use futures::executor::block_on;
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::PackageJson;
+use vrc_get_vpm::PackageManifest;
 
 mod common;
 
@@ -22,10 +22,10 @@ fn simple_resolve_fully_locked() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.anatawa12.library", "1.0.0"),
             )
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.library",
                 Version::new(1, 0, 0),
             ))
@@ -56,10 +56,10 @@ fn resolve_ranged() {
 
         let collection = PackageCollectionBuilder::new()
             .add(
-                PackageJson::new("com.anatawa12.package", Version::new(1, 0, 0))
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 0, 0))
                     .add_vpm_dependency("com.anatawa12.library", "1.0.0"),
             )
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.library",
                 Version::new(1, 0, 0),
             ))
@@ -100,7 +100,7 @@ fn resolve_dependencies_of_unlocked() {
             .unwrap();
 
         let collection = PackageCollectionBuilder::new()
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.library",
                 Version::new(1, 0, 0),
             ))
@@ -183,11 +183,11 @@ fn resolve_both_dependencies_of_unlocked_and_locked() {
             .unwrap();
 
         let collection = PackageCollectionBuilder::new()
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.library",
                 Version::new(1, 0, 0),
             ))
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.library2",
                 Version::new(1, 0, 0),
             ))
@@ -229,11 +229,11 @@ fn resolve_both_dependencies_of_unlocked_and_dependencies() {
             .unwrap();
 
         let collection = PackageCollectionBuilder::new()
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.library",
                 Version::new(1, 0, 0),
             ))
-            .add(PackageJson::new(
+            .add(PackageManifest::new(
                 "com.anatawa12.library2",
                 Version::new(1, 0, 0),
             ))
