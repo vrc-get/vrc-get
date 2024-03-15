@@ -1,4 +1,5 @@
 use crate::io;
+use crate::version::UnityVersion;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::Output;
@@ -19,7 +20,9 @@ async fn headless_unity_hub(unity_hub_path: &OsStr, args: &[&OsStr]) -> io::Resu
     Command::new(unity_hub_path).args(args).output().await
 }
 
-pub async fn get_unity_from_unity_hub(unity_hub_path: &OsStr) -> io::Result<Vec<PathBuf>> {
+pub async fn get_unity_from_unity_hub(
+    unity_hub_path: &OsStr,
+) -> io::Result<Vec<(UnityVersion, PathBuf)>> {
     let output = headless_unity_hub(unity_hub_path, &["editors".as_ref(), "-i".as_ref()]).await?;
 
     if !output.status.success() {
@@ -46,9 +49,18 @@ pub async fn get_unity_from_unity_hub(unity_hub_path: &OsStr) -> io::Result<Vec<
     }
 
     for x in stdout.lines() {
-        if let Some((_version_and_arch, path)) = x.split_once("installed at") {
-            result.push(unity_path(path.trim()));
-        }
+        let Some((version_and_arch, path)) = x.split_once("installed at") else {
+            continue;
+        };
+        let version = version_and_arch
+            .split_once(' ')
+            .map(|(v, _)| v)
+            .unwrap_or(version_and_arch);
+        let Some(version) = UnityVersion::parse(version) else {
+            continue;
+        };
+
+        result.push((version, unity_path(path.trim())));
     }
 
     Ok(result)

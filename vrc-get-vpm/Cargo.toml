@@ -49,6 +49,7 @@ native-tls = ["reqwest/native-tls-vendored"]
 rustls = ["reqwest/rustls-tls-native-roots"]
 
 unity-hub = ["tokio"]
+unity = ["tokio"]
 
-experimental-project-management = ["vrc-get-litedb", 'unity-hub']
+experimental-project-management = ["vrc-get-litedb", 'unity-hub', 'unity']
 experimental-unity-management = ["vrc-get-litedb", 'dep:winreg']
