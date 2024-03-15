@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog].
   - This makes `d4rkAvatarOptimizer` is recognized as not installed.
 - Fails to load all repositories if fails to load one repository `#551`
 - Legacy Projects cannot be added to VCC project list `#586`
+- Bad behaviors with unity 2018 `#605`
 
 ### Security
 
