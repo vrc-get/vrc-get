@@ -14,7 +14,10 @@ use serde::{Deserialize, Serialize};
 use specta::{specta, DataType, DefOpts, ExportError, Type};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
-use tauri::{generate_handler, App, Invoke, Manager, Runtime, State};
+use tauri::{
+    generate_handler, App, AppHandle, Invoke, LogicalSize, Manager, Runtime, State, Window,
+    WindowEvent,
+};
 use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
@@ -148,8 +151,8 @@ macro_rules! with_config {
     }};
 }
 
-pub(crate) fn startup(_app: &mut App) {
-    let handle = _app.handle();
+pub(crate) fn startup(app: &mut App) {
+    let handle = app.handle();
     tauri::async_runtime::spawn(async move {
         let state = handle.state();
         if let Err(e) = update_unity_hub(state).await {
@@ -157,7 +160,15 @@ pub(crate) fn startup(_app: &mut App) {
         }
     });
 
+    let handle = app.handle();
+    tauri::async_runtime::spawn(async move {
+        if let Err(e) = open_main(handle).await {
+            error!("failed to open main window: {e}");
+        }
+    });
+
     async fn update_unity_hub(state: State<'_, Mutex<EnvironmentState>>) -> Result<(), io::Error> {
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         let unity_hub_path = with_environment!(&state, |environment| {
             let Some(unity_hub_path) = environment.find_unity_hub().await? else {
                 error!("Unity Hub not found");
@@ -178,6 +189,68 @@ pub(crate) fn startup(_app: &mut App) {
         });
 
         info!("finished updating unity from unity hub");
+        Ok(())
+    }
+
+    async fn open_main(app: AppHandle) -> tauri::Result<()> {
+        let state: State<'_, Mutex<EnvironmentState>> = app.state();
+        let size = with_config!(state, |config| config.window_size);
+
+        let window = tauri::WindowBuilder::new(
+            &app,
+            "main", /* the unique window label */
+            tauri::WindowUrl::App("/projects".into()),
+        )
+        .title("vrc-get-gui")
+        .resizable(true)
+        .build()?;
+
+        window.set_size(LogicalSize {
+            width: size.width,
+            height: size.height,
+        })?;
+
+        let cloned = window.clone();
+
+        #[allow(clippy::single_match)]
+        window.on_window_event(move |e| match e {
+            WindowEvent::CloseRequested { .. } => {
+                if let Err(e) = on_close_requested(&cloned, app.clone()) {
+                    error!("failed to handle close requested: {e}");
+                }
+            }
+            _ => {}
+        });
+
+        fn on_close_requested(window: &Window, app: AppHandle) -> tauri::Result<()> {
+            let factor = window
+                .current_monitor()?
+                .map(|m| m.scale_factor())
+                .unwrap_or(1.0);
+            let size = window.inner_size()?.to_logical(factor);
+
+            if size.width > 0 && size.height > 0 && !window.is_maximized()? {
+                async fn set_size(
+                    state: State<'_, Mutex<EnvironmentState>>,
+                    size: LogicalSize<u32>,
+                ) -> tauri::Result<()> {
+                    with_config!(state, |mut config| {
+                        config.window_size.width = size.width;
+                        config.window_size.height = size.height;
+                        config.save().await?;
+                    });
+                    Ok(())
+                }
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = set_size(app.state(), size).await {
+                        error!("failed to save window size: {e}");
+                    }
+                });
+            }
+
+            Ok(())
+        }
+
         Ok(())
     }
 }

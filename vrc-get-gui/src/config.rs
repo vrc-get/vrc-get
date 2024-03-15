@@ -13,6 +13,23 @@ pub struct GuiConfig {
     pub gui_hidden_repositories: IndexSet<String>,
     #[serde(default)]
     pub hide_local_user_packages: bool,
+    #[serde(default)]
+    pub window_size: WindowSize,
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct WindowSize {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl Default for WindowSize {
+    fn default() -> Self {
+        WindowSize {
+            width: 1000,
+            height: 800,
+        }
+    }
 }
 
 pub struct GuiConfigHandler<'a> {
