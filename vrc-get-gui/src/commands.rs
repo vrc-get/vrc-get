@@ -16,7 +16,7 @@ use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{generate_handler, App, Invoke, Manager, Runtime, State};
 use tokio::fs::read_dir;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 
 use futures::prelude::*;
@@ -1424,6 +1424,48 @@ async fn environment_create_project(
             tokio::fs::remove_file(path.join("package.json")).await.ok();
             tokio::fs::remove_file(path.join("README.md")).await.ok();
         }
+    }
+
+    // update ProjectSettings.asset
+    {
+        let settings_path = path.join("ProjectSettings/ProjectSettings.asset");
+        let mut settings_file = tokio::fs::File::options()
+            .read(true)
+            .write(true)
+            .open(&settings_path)
+            .await?;
+
+        let mut settings = String::new();
+        settings_file.read_to_string(&mut settings).await?;
+
+        fn set_value(buffer: &mut String, finder: &str, value: &str) {
+            if let Some(pos) = buffer.find(finder) {
+                let before_ws = buffer[..pos]
+                    .chars()
+                    .last()
+                    .map(|x| x.is_ascii_whitespace())
+                    .unwrap_or(true);
+                if before_ws {
+                    if let Some(eol) = buffer[pos..].find('\n') {
+                        let eol = eol + pos;
+                        buffer.replace_range((pos + finder.len())..eol, value);
+                    }
+                }
+            }
+        }
+
+        set_value(
+            &mut settings,
+            "productGUID: ",
+            &uuid::Uuid::new_v4().simple().to_string(),
+        );
+        set_value(&mut settings, "productName: ", &project_name);
+
+        settings_file.seek(std::io::SeekFrom::Start(0)).await?;
+        settings_file.set_len(0).await?;
+        settings_file.write_all(settings.as_bytes()).await?;
+        settings_file.flush().await?;
+        drop(settings_file);
     }
 
     {

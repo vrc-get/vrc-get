@@ -10,6 +10,6 @@ This template has several changes to improve user experience.
 - new line for new scripts is OSNative instead of Windows since it is more common.
 - Configurations for iOS platform are included since there's code for iOS in the VRCSDK.
   - Please note that iOS is not officially supported by VRChat, but I added this for future updates.
-- `productGuid` is randomly initialized on creation with `{vrc-get-productGUID}`.
+- `productGuid` is randomly initialized on creation with `00000000000000000000000000000000`.
 - `productName` is created with same name as folder name with `{vrc-get-productName}`.
 - For both unity versions, versions of some editor support packages are upgraded to a newer version.
