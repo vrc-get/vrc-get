@@ -20,7 +20,9 @@ use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::{PackageCollection, PackageInfo, PackageJson, UserRepoSetting, VersionSelector};
+use vrc_get_vpm::{
+    PackageCollection, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
+};
 
 type Environment = vrc_get_vpm::Environment<Client, DefaultEnvironmentIo>;
 type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
@@ -857,7 +859,7 @@ impl Search {
             query.make_ascii_lowercase();
         }
 
-        fn search_targets(pkg: &PackageJson) -> Vec<String> {
+        fn search_targets(pkg: &PackageManifest) -> Vec<String> {
             let mut sources = Vec::with_capacity(3);
 
             sources.push(pkg.name().to_ascii_lowercase());

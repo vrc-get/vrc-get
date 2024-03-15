@@ -1,7 +1,7 @@
 use crate::traits::HttpClient;
 use crate::utils::{deserialize_json, deserialize_json_slice};
 use crate::version::Version;
-use crate::PackageJson;
+use crate::PackageManifest;
 use crate::{io, VersionSelector};
 use futures::prelude::*;
 use indexmap::IndexMap;
@@ -109,7 +109,7 @@ impl RemoteRepository {
         self.parsed.name.as_deref()
     }
 
-    pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageJson> {
+    pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageManifest> {
         self.parsed
             .packages
             .get(package)
@@ -122,7 +122,7 @@ impl RemoteRepository {
         self.parsed.packages.values()
     }
 
-    pub fn get_package_version(&self, name: &str, version: &Version) -> Option<&PackageJson> {
+    pub fn get_package_version(&self, name: &str, version: &Version) -> Option<&PackageManifest> {
         self.parsed.packages.get(name)?.versions.get(version)
     }
 }
@@ -150,15 +150,15 @@ impl<'de> Deserialize<'de> for RemoteRepository {
 #[derive(Deserialize, Debug, Clone)]
 pub struct RemotePackages {
     #[serde(default)]
-    versions: HashMap<Version, PackageJson>,
+    versions: HashMap<Version, PackageManifest>,
 }
 
 impl RemotePackages {
-    pub fn all_versions(&self) -> impl Iterator<Item = &PackageJson> {
+    pub fn all_versions(&self) -> impl Iterator<Item = &PackageManifest> {
         self.versions.values()
     }
 
-    pub fn get_latest_may_yanked(&self, selector: VersionSelector) -> Option<&PackageJson> {
+    pub fn get_latest_may_yanked(&self, selector: VersionSelector) -> Option<&PackageManifest> {
         self.get_latest(selector).or_else(|| {
             self.versions
                 .values()
@@ -167,7 +167,7 @@ impl RemotePackages {
         })
     }
 
-    pub fn get_latest(&self, selector: VersionSelector) -> Option<&PackageJson> {
+    pub fn get_latest(&self, selector: VersionSelector) -> Option<&PackageManifest> {
         self.versions
             .values()
             .filter(|json| selector.satisfies(json))

@@ -9,12 +9,12 @@ use std::path::Path;
 
 use indexmap::IndexMap;
 
-use crate::package_json::PartialUnityVersion;
+use crate::package_manifest::PartialUnityVersion;
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 pub mod environment;
 pub mod io;
-pub mod package_json;
+pub mod package_manifest;
 pub mod repository;
 mod structs;
 mod traits;
@@ -38,7 +38,7 @@ pub use traits::HttpClient;
 pub use traits::PackageCollection;
 pub use traits::RemotePackageDownloader;
 
-pub use package_json::PackageJson;
+pub use package_manifest::PackageManifest;
 pub use structs::setting::UserRepoSetting;
 
 pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 6);
@@ -74,12 +74,12 @@ impl std::fmt::Debug for PackageInfo<'_> {
 
 #[derive(Copy, Clone)]
 enum PackageInfoInner<'a> {
-    Remote(&'a PackageJson, &'a LocalCachedRepository),
-    Local(&'a PackageJson, &'a Path),
+    Remote(&'a PackageManifest, &'a LocalCachedRepository),
+    Local(&'a PackageManifest, &'a Path),
 }
 
 impl<'a> PackageInfo<'a> {
-    pub fn package_json(self) -> &'a PackageJson {
+    pub fn package_json(self) -> &'a PackageManifest {
         // this match will be removed in the optimized code because package.json is exists at first
         match self.inner {
             PackageInfoInner::Remote(pkg, _) => pkg,
@@ -87,13 +87,13 @@ impl<'a> PackageInfo<'a> {
         }
     }
 
-    pub fn remote(json: &'a PackageJson, repo: &'a LocalCachedRepository) -> Self {
+    pub fn remote(json: &'a PackageManifest, repo: &'a LocalCachedRepository) -> Self {
         Self {
             inner: PackageInfoInner::Remote(json, repo),
         }
     }
 
-    pub fn local(json: &'a PackageJson, path: &'a Path) -> Self {
+    pub fn local(json: &'a PackageManifest, path: &'a Path) -> Self {
         Self {
             inner: PackageInfoInner::Local(json, path),
         }
@@ -217,7 +217,7 @@ impl From<ProjectType> for vrc_get_litedb::ProjectType {
     }
 }
 
-fn unity_compatible(package: &PackageJson, unity: UnityVersion) -> bool {
+fn unity_compatible(package: &PackageManifest, unity: UnityVersion) -> bool {
     fn is_vrcsdk_for_2019(version: &Version) -> bool {
         version.major == 3 && version.minor <= 4
     }

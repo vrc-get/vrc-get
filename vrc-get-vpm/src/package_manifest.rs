@@ -8,7 +8,7 @@ use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct PackageJson {
+pub struct PackageManifest {
     name: Box<str>,
     #[serde(default)]
     display_name: Option<Box<str>>,
@@ -50,7 +50,7 @@ pub struct VrcGetMeta {
 }
 
 /// Constructing PackageJson. Especially for testing.
-impl PackageJson {
+impl PackageManifest {
     pub fn new(name: impl Into<Box<str>>, version: Version) -> Self {
         Self {
             name: name.into(),
@@ -95,7 +95,7 @@ impl PackageJson {
     }
 }
 
-impl PackageJson {
+impl PackageManifest {
     pub fn name(&self) -> &str {
         &self.name
     }

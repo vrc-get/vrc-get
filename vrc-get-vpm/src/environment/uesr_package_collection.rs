@@ -1,12 +1,12 @@
 use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::try_load_json;
-use crate::{PackageCollection, PackageInfo, PackageJson, VersionSelector};
+use crate::{PackageCollection, PackageInfo, PackageManifest, VersionSelector};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub(crate) struct UserPackageCollection {
-    user_packages: Vec<(PathBuf, PackageJson)>,
+    user_packages: Vec<(PathBuf, PackageManifest)>,
 }
 
 impl UserPackageCollection {
@@ -26,7 +26,7 @@ impl UserPackageCollection {
         folder: &Path,
     ) -> io::Result<()> {
         if let Some(package_json) =
-            try_load_json::<PackageJson>(io, &folder.join("package.json")).await?
+            try_load_json::<PackageManifest>(io, &folder.join("package.json")).await?
         {
             self.user_packages.push((folder.to_owned(), package_json));
         }
