@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Create Project from Template `#594`
+  - Please note that vrc-get uses our own templates for project creation.
 
 ### Changed
 
