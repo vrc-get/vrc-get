@@ -5,7 +5,9 @@ use log::info;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::str::from_utf8;
+use std::time::Duration;
 use tokio::process::Command;
+use tokio::time::timeout;
 use vrc_get_litedb::UnityVersion as DbUnityVersion;
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
@@ -35,7 +37,26 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             ));
         }
 
-        let output = Command::new(path).arg("-version").output().await?;
+        let output = match timeout(
+            Duration::from_secs(10),
+            Command::new(path)
+                .args([
+                    "-batchmode",
+                    "-quit",
+                    "-noUpm",
+                    "-nographics",
+                    "-projectPath",
+                    &format!("{}", uuid::Uuid::new_v4()),
+                    "-logfile",
+                ])
+                .output(),
+        )
+        .await
+        {
+            Err(timeout) => return Err(io::Error::new(io::ErrorKind::TimedOut, timeout)),
+            Ok(Err(err)) => return Err(err),
+            Ok(Ok(output)) => output,
+        };
 
         if !output.status.success() {
             return Err(io::Error::new(
@@ -208,7 +229,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         for path in paths_from_hub {
             if !installed.contains(&path) {
-                info!("Added Unity from Unity Hub: {}", path.display());
+                info!("Adding Unity from Unity Hub: {}", path.display());
                 self.add_unity_installation(&path.to_string_lossy()).await?;
             }
         }
