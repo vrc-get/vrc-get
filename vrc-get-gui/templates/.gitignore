@@ -1,0 +1,8 @@
+/*/*
+!/*/Assets
+/*/Assets/*
+!/*/Assets/.gitkeep
+!/*/Packages
+/*/Packages/*/
+/*/Packages/packages-lock.json
+!/*/ProjectSettings

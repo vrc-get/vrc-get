@@ -4244,7 +4244,9 @@ version = "0.1.0-beta.13"
 dependencies = [
  "arc-swap",
  "chrono",
+ "flate2",
  "fs_extra",
+ "futures",
  "indexmap 2.2.5",
  "log",
  "open 5.1.2",
@@ -4253,10 +4255,12 @@ dependencies = [
  "serde",
  "serde_json",
  "specta",
+ "tar",
  "tauri",
  "tauri-build",
  "tauri-specta",
  "tokio",
+ "uuid",
  "vrc-get-vpm",
 ]
 

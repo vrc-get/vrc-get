@@ -9,7 +9,7 @@ import classnames from "classnames";
 import {ChevronDownIcon} from "@heroicons/react/24/solid";
 
 interface SelectContext {
-	onClick(value: string): void;
+	onClick(value: any): void;
 }
 
 export const SelectContext = createContext<SelectContext | undefined>(undefined);
@@ -20,13 +20,15 @@ export function VGSelect(
 		disabled,
 		value,
 		className,
+		menuClassName,
 		onChange,
 	}: {
 		children: React.ReactNode,
 		disabled?: boolean,
 		value?: React.ReactNode,
 		className?: string,
-		onChange?: (value: string) => void,
+		menuClassName?: string,
+		onChange?: (value: any) => void,
 	}
 ) {
 	const [state, setState] = useState<string>("close");
@@ -37,7 +39,7 @@ export function VGSelect(
 	const {base, variants} = styles;
 
 	const contextValue: SelectContext = {
-		onClick(value: string) {
+		onClick(value: any) {
 			onChange?.(value);
 			setOpen(false);
 		}
@@ -87,7 +89,7 @@ export function VGSelect(
 						</button>
 					</MenuHandler>
 				</div>
-				<MenuList className={"max-h-96 overflow-y-scroll"}>
+				<MenuList className={`max-h-96 overflow-y-scroll ${menuClassName}`}>
 					{children}
 				</MenuList>
 			</Menu>
@@ -103,7 +105,7 @@ function VGOptionImpl(
 		value,
 	}: {
 		children: React.ReactNode,
-		value: string,
+		value: any,
 	},
 	ref: React.Ref<HTMLButtonElement>
 ) {

@@ -27,3 +27,6 @@
 
 # documentation
 /*.md
+
+# template
+/templates/**

@@ -9,6 +9,7 @@ import {
 	DialogFooter,
 	DialogHeader,
 	IconButton,
+	Input,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -17,7 +18,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {forwardRef, Fragment, useMemo, useState} from "react";
+import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
 	ChevronDownIcon,
@@ -29,11 +30,17 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import {
 	environmentAddProjectWithPicker,
+	environmentCheckProjectName,
 	environmentCopyProjectForMigration,
+	environmentCreateProject,
+	environmentPickProjectDefaultPath,
+	environmentProjectCreationInformation,
 	environmentProjects,
 	environmentRemoveProject,
 	projectMigrateProjectToVpm,
 	TauriProject,
+	TauriProjectDirCheckResult,
+	TauriProjectTemplate,
 	TauriProjectType,
 	utilOpen
 } from "@/lib/bindings";
@@ -45,6 +52,8 @@ import {openUnity} from "@/lib/open-unity";
 import {toast} from "react-toastify";
 import {toastThrownError} from "@/lib/toastThrownError";
 import {nop} from "@/lib/nop";
+import {useDebounce} from "@uidotdev/usehooks";
+import {VGOption, VGSelect} from "@/components/select";
 
 export default function Page() {
 	const result = useQuery({
@@ -54,6 +63,7 @@ export default function Page() {
 
 	const [search, setSearch] = useState("");
 	const [loadingOther, setLoadingOther] = useState(false);
+	const [createProjectState, setCreateProjectState] = useState<'normal' | 'creating'>('normal');
 
 	const removeProject = async (project: TauriProject, directory: boolean) => {
 		setLoadingOther(true);
@@ -66,12 +76,15 @@ export default function Page() {
 		await result.refetch();
 	};
 
+	const startCreateProject = () => setCreateProjectState('creating');
+
 	const loading = result.isFetching || loadingOther;
 
 	return (
 		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"}
 												 refresh={() => result.refetch()}
+												 startCreateProject={startCreateProject}
 												 isLoading={loading}
 												 search={search} setSearch={setSearch}/>
 			<main className="flex-shrink overflow-hidden flex">
@@ -88,6 +101,8 @@ export default function Page() {
 									removeProject={removeProject}/>
 					}
 				</Card>
+				{createProjectState === "creating" &&
+					<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
 			</main>
 		</VStack>
 	);
@@ -443,9 +458,10 @@ function ProjectRow(
 	)
 }
 
-function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
+function ProjectViewHeader({className, refresh, startCreateProject, isLoading, search, setSearch}: {
 	className?: string,
 	refresh?: () => void,
+	startCreateProject?: () => void
 	isLoading?: boolean,
 	search: string,
 	setSearch: (search: string) => void
@@ -489,7 +505,7 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 
 			<Menu>
 				<ButtonGroup>
-					<Button className={"pl-4 pr-3"} onClick={unsupported("Create Project")}>Create New Project</Button>
+					<Button className={"pl-4 pr-3"} onClick={startCreateProject}>Create New Project</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
@@ -502,4 +518,180 @@ function ProjectViewHeader({className, refresh, isLoading, search, setSearch}: {
 			</Menu>
 		</HNavBar>
 	);
+}
+
+type CreateProjectstate = 'loadingInitialInformation' | 'enteringInformation' | 'creating';
+
+function CreateProject(
+	{
+		close,
+		refetch,
+	}: {
+		close?: () => void,
+		refetch?: () => void,
+	}
+) {
+	const [state, setState] = useState<CreateProjectstate>('loadingInitialInformation');
+	const [projectNameCheckState, setProjectNameCheckState] = useState<'checking' | TauriProjectDirCheckResult>('Ok');
+
+	const [templates, setTemplates] = useState<TauriProjectTemplate[]>([]);
+	const [chosenTemplate, setChosenTemplate] = useState<TauriProjectTemplate>();
+	const [projectName, setProjectName] = useState("New Project");
+	const [projectLocation, setProjectLocation] = useState("");
+	const projectNameDebounced = useDebounce(projectName, 500);
+
+	useEffect(() => {
+		(async () => {
+			const information = await environmentProjectCreationInformation();
+			setTemplates(information.templates);
+			setChosenTemplate(information.templates[0]);
+			setProjectLocation(information.default_path);
+			setState('enteringInformation');
+		})();
+	}, []);
+
+	useEffect(() => {
+		let canceled = false;
+		(async () => {
+			try {
+				setProjectNameCheckState('checking');
+				const result = await environmentCheckProjectName(projectLocation, projectNameDebounced);
+				if (canceled) return;
+				setProjectNameCheckState(result);
+			} catch (e) {
+				console.error("Error checking project name", e);
+				toastThrownError(e);
+			}
+		})()
+		return () => {
+			canceled = true;
+		};
+	}, [projectNameDebounced, projectLocation]);
+
+	const selectProjectDefaultFolder = async () => {
+		try {
+			const result = await environmentPickProjectDefaultPath();
+			switch (result.type) {
+				case "NoFolderSelected":
+					// no-op
+					break;
+				case "InvalidSelection":
+					toast.error("Selected file is invalid as a Project Default Path");
+					break;
+				case "Successful":
+					setProjectLocation(result.new_path);
+					break;
+				default:
+					const _exhaustiveCheck: never = result;
+			}
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	};
+
+	const createProject = async () => {
+		try {
+			setState('creating');
+			await environmentCreateProject(projectLocation, projectName, chosenTemplate!);
+			toast.success("Project created successfully");
+			close?.();
+			refetch?.();
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+			close?.();
+		}
+	};
+
+	const checking = projectNameDebounced != projectName || projectNameCheckState === "checking";
+
+	let projectNameState: 'Ok' | 'warn' | 'err';
+	let projectNameCheck;
+
+	switch (projectNameCheckState) {
+		case "Ok":
+			projectNameCheck = "Project name is valid";
+			projectNameState = "Ok";
+			break;
+		case "InvalidNameForFolderName":
+			projectNameCheck = "Invalid Project Name";
+			projectNameState = "err";
+			break;
+		case "MayCompatibilityProblem":
+			projectNameCheck = "Using such a symbol may cause compatibility problem";
+			projectNameState = "warn";
+			break;
+		case "WideChar":
+			projectNameCheck = "Using mutlibyte characters may cause compatibility problem";
+			projectNameState = "warn";
+			break;
+		case "AlreadyExists":
+			projectNameCheck = "The folder already exists";
+			projectNameState = "err";
+			break;
+		case "checking":
+			projectNameCheck = <Spinner/>;
+			projectNameState = "Ok";
+			break;
+		default:
+			const _exhaustiveCheck: never = projectNameCheckState;
+			projectNameState = "err";
+	}
+	if (checking) projectNameCheck = <Spinner/>
+
+	let dialogBody;
+
+	switch (state) {
+		case "loadingInitialInformation":
+			dialogBody = <Spinner/>;
+			break;
+		case "enteringInformation":
+			dialogBody = <>
+				<VStack>
+					<div className={"flex gap-1"}>
+						<div className={"flex items-center"}>
+							<Typography as={"label"}>Template:</Typography>
+						</div>
+						<VGSelect menuClassName={"z-[19999]"} value={chosenTemplate?.name}
+											onChange={value => setChosenTemplate(value)}>
+							{templates.map(template =>
+								<VGOption value={template} key={`${template.type}:${template.name}`}>{template.name}</VGOption>)}
+						</VGSelect>
+					</div>
+					<Input label={"Project Name"} value={projectName} onChange={(e) => setProjectName(e.target.value)}/>
+					<div className={"flex gap-1"}>
+						<Input label={"Project Location"} value={projectLocation} disabled/>
+						<Button className={"px-4"} onClick={selectProjectDefaultFolder}>Select Folder</Button>
+					</div>
+					<Typography variant={"small"} className={"whitespace-normal"}>
+						Created project will be at <code>{projectLocation}/{projectName}</code>
+					</Typography>
+					<Typography variant={"small"} className={"whitespace-normal"}
+											color={projectNameState == "Ok" ? 'green' : projectNameState == "warn" ? 'yellow' : 'red'}>
+						{projectNameCheck}
+					</Typography>
+				</VStack>
+			</>;
+			break;
+		case "creating":
+			dialogBody = <>
+				<Spinner/>
+				<Typography>Creating project...</Typography>
+			</>;
+			break;
+	}
+
+	return <Dialog handler={nop} open>
+		<DialogHeader>Create New Project</DialogHeader>
+		<DialogBody>
+			{dialogBody}
+		</DialogBody>
+		<DialogFooter>
+			<div className={"flex gap-2"}>
+				<Button onClick={close} disabled={state == "creating"}>Cancel</Button>
+				<Button onClick={createProject} disabled={checking || projectNameState == "err"}>Create</Button>
+			</div>
+		</DialogFooter>
+	</Dialog>;
 }
