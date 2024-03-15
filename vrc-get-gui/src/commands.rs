@@ -8,9 +8,9 @@ use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use indexmap::IndexMap;
-use log::{error, info};
+use log::{error, info, warn};
 use reqwest::Url;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use specta::{specta, DataType, DefOpts, ExportError, Type};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
@@ -19,8 +19,10 @@ use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 
+use futures::prelude::*;
+
 use vrc_get_vpm::environment::UserProject;
-use vrc_get_vpm::io::EnvironmentIo;
+use vrc_get_vpm::io::{DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
@@ -53,6 +55,9 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_download_repository,
         environment_add_repository,
         environment_remove_repository,
+        environment_project_creation_information,
+        environment_check_project_name,
+        environment_create_project,
         project_details,
         project_install_package,
         project_upgrade_multiple_package,
@@ -91,6 +96,9 @@ pub(crate) fn export_ts() {
             environment_download_repository,
             environment_add_repository,
             environment_remove_repository,
+            environment_project_creation_information,
+            environment_check_project_name,
+            environment_create_project,
             project_details,
             project_install_package,
             project_upgrade_multiple_package,
@@ -948,10 +956,11 @@ async fn environment_pick_unity(
 }
 
 #[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
 enum TauriPickProjectDefaultPathResult {
     NoFolderSelected,
     InvalidSelection,
-    Successful,
+    Successful { new_path: String },
 }
 
 #[tauri::command]
@@ -986,7 +995,7 @@ async fn environment_pick_project_default_path(
         environment.save().await?;
     });
 
-    Ok(TauriPickProjectDefaultPathResult::Successful)
+    Ok(TauriPickProjectDefaultPathResult::Successful { new_path: dir })
 }
 
 #[derive(Serialize, specta::Type)]
@@ -1190,6 +1199,255 @@ async fn environment_remove_repository(
     });
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize, specta::Type)]
+#[serde(tag = "type")]
+enum TauriProjectTemplate {
+    Builtin { id: String, name: String },
+    Custom { name: String },
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriProjectCreationInformation {
+    templates: Vec<TauriProjectTemplate>,
+    default_path: String,
+}
+
+async fn load_user_templates(environment: &mut Environment) -> io::Result<Vec<String>> {
+    let io = environment.io();
+
+    let mut templates = Vec::<String>::new();
+
+    let path = io.resolve("Templates".as_ref());
+    let mut dir = io.read_dir("Templates".as_ref()).await?;
+    while let Some(dir) = dir.try_next().await? {
+        if !dir.file_type().await?.is_dir() {
+            continue;
+        }
+
+        let Ok(name) = dir.file_name().into_string() else {
+            continue;
+        };
+
+        let path = path.join(&name);
+
+        // check package.json
+        let Ok(pkg_json) = tokio::fs::metadata(path.join("package.json")).await else {
+            continue;
+        };
+        if !pkg_json.is_file() {
+            continue;
+        }
+
+        match UnityProject::load(DefaultProjectIo::new(path.into())).await {
+            Err(e) => {
+                warn!("failed to load user template {name}: {e}");
+            }
+            Ok(ref p) if !p.is_valid().await => {
+                warn!("failed to load user template {name}: invalid project");
+            }
+            Ok(_) => {}
+        }
+
+        templates.push(name)
+    }
+
+    Ok(templates)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_project_creation_information(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriProjectCreationInformation, RustError> {
+    with_environment!(state, |environment| {
+        let mut templates = crate::templates::TEMPLATES
+            .iter()
+            .map(|&(id, name, _)| TauriProjectTemplate::Builtin {
+                id: id.into(),
+                name: name.into(),
+            })
+            .collect::<Vec<_>>();
+
+        templates.extend(
+            load_user_templates(environment)
+                .await
+                .ok()
+                .into_iter()
+                .flatten()
+                .map(|name| TauriProjectTemplate::Custom { name }),
+        );
+
+        Ok(TauriProjectCreationInformation {
+            templates,
+            default_path: environment.default_project_path().to_string(),
+        })
+    })
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriProjectDirCheckResult {
+    // path related
+    InvalidNameForFolderName,
+    MayCompatibilityProblem,
+    WideChar,
+
+    AlreadyExists,
+    Ok,
+}
+
+static WINDOWS_RESERVED_NAMES: &[&str] = &[
+    "CON", "PRN", "AUX", "NUL", "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
+    "COM8", "COM9", "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+];
+
+static WINDOWS_RESERVED_CHARS: &[char] = &['/', '\\', '<', '>', ':', '"', '|', '?', '*'];
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_check_project_name(
+    base_path: String,
+    project_name: String,
+) -> Result<TauriProjectDirCheckResult, RustError> {
+    let project_name = project_name.trim();
+    let project_name_upper = project_name.to_ascii_uppercase();
+
+    if project_name.is_empty()
+        || project_name.len() > 255
+        || WINDOWS_RESERVED_NAMES.contains(&project_name_upper.as_str())
+        || project_name.contains(WINDOWS_RESERVED_CHARS)
+    {
+        return Ok(TauriProjectDirCheckResult::InvalidNameForFolderName);
+    }
+
+    let path = Path::new(&base_path).join(project_name);
+    if path.exists() {
+        return Ok(TauriProjectDirCheckResult::AlreadyExists);
+    }
+
+    if cfg!(target_os = "windows") {
+        if project_name.contains('%') {
+            return Ok(TauriProjectDirCheckResult::MayCompatibilityProblem);
+        }
+
+        if project_name.chars().any(|c| c as u32 > 0x7F) {
+            return Ok(TauriProjectDirCheckResult::WideChar);
+        }
+    }
+
+    Ok(TauriProjectDirCheckResult::Ok)
+}
+
+#[derive(Serialize, specta::Type)]
+enum TauriCreateProjectResult {
+    AlreadyExists,
+    TemplateNotFound,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_create_project(
+    state: State<'_, Mutex<EnvironmentState>>,
+    base_path: String,
+    project_name: String,
+    template: TauriProjectTemplate,
+) -> Result<TauriCreateProjectResult, RustError> {
+    enum Template {
+        Builtin(&'static [u8]),
+        Custom(PathBuf),
+    }
+
+    // first, check the template.
+    let template = match template {
+        TauriProjectTemplate::Builtin { id, .. } => {
+            let Some((_, _, template)) = crate::templates::TEMPLATES.iter().find(|x| x.0 == id)
+            else {
+                return Ok(TauriCreateProjectResult::TemplateNotFound);
+            };
+            Template::Builtin(template)
+        }
+        TauriProjectTemplate::Custom { name } => {
+            let template_path = with_environment!(state, |enviornment| {
+                enviornment
+                    .io()
+                    .resolve(format!("Templates/{name}").as_ref())
+            });
+            match tokio::fs::metadata(&template_path).await {
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+                    return Ok(TauriCreateProjectResult::TemplateNotFound);
+                }
+                Err(e) => {
+                    return Err(e.into());
+                }
+                Ok(ref meta) if !meta.is_dir() => {
+                    return Ok(TauriCreateProjectResult::TemplateNotFound);
+                }
+                Ok(_) => {}
+            }
+            Template::Custom(template_path)
+        }
+    };
+
+    let base_path = Path::new(&base_path);
+    let path = base_path.join(&project_name);
+    let path_str = path.to_str().unwrap();
+
+    // we split creating folder into two phases
+    // because we want to fail if the project folder already exists.
+
+    // create parent directory if not exists (unlikely to happen)
+    tokio::fs::create_dir_all(base_path).await?;
+
+    // create project directory
+    match tokio::fs::create_dir(&path).await {
+        Ok(()) => {}
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+            return Ok(TauriCreateProjectResult::AlreadyExists);
+        }
+        Err(e) => {
+            return Err(e.into());
+        }
+    }
+
+    // copy template contents to the project directory
+    match template {
+        Template::Builtin(tgz) => {
+            let tar = flate2::read::GzDecoder::new(std::io::Cursor::new(tgz));
+            let mut archive = tar::Archive::new(tar);
+            archive.unpack(&path)?;
+        }
+        Template::Custom(template) => {
+            let mut options = fs_extra::dir::CopyOptions::new();
+            options.copy_inside = true;
+            fs_extra::dir::copy(template, &path, &options)?;
+        }
+    }
+
+    {
+        let mut env_state = state.lock().await;
+        let env_state = &mut *env_state;
+        let environment = env_state.environment.get_environment_mut(true).await?;
+
+        info!("loading package infos");
+        environment.load_package_infos(true).await?;
+        environment.save().await?;
+
+        let mut unity_project = load_project(path_str.into()).await?;
+
+        // finally, resolve the project folder
+        let request = unity_project.resolve_request(environment).await?;
+        unity_project
+            .apply_pending_changes(environment, request)
+            .await?;
+        unity_project.save().await?;
+
+        // add the project to listing
+        environment.add_project(&unity_project).await?;
+        environment.save().await?;
+    }
+    Ok(TauriCreateProjectResult::Successful)
 }
 
 #[derive(Serialize, specta::Type)]

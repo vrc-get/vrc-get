@@ -112,7 +112,7 @@ function Settings(
 	const selectProjectDefaultFolder = async () => {
 		try {
 			const result = await environmentPickProjectDefaultPath();
-			switch (result) {
+			switch (result.type) {
 				case "NoFolderSelected":
 					// no-op
 					break;

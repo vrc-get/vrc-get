@@ -9,6 +9,7 @@ mod cmd_start;
 
 mod commands;
 mod logging;
+mod templates;
 
 // for clippy compatibility
 #[cfg(not(clippy))]
