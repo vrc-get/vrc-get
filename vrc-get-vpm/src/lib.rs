@@ -27,21 +27,20 @@ pub mod unity;
 #[cfg(feature = "unity-hub")]
 pub mod unity_hub;
 
-pub use environment::Environment;
-pub use unity_project::UnityProject;
-pub use version_selector::VersionSelector;
-
 use crate::repository::local::LocalCachedRepository;
+
+pub use environment::Environment;
+pub use package_json::PackageJson;
+pub use package_json::PackageJsonLike;
+pub use package_json::PackageManifest;
+pub use package_json::PartialUnityVersion;
+pub use structs::setting::UserRepoSetting;
 pub use traits::EnvironmentIoHolder;
 pub use traits::HttpClient;
 pub use traits::PackageCollection;
 pub use traits::RemotePackageDownloader;
-
-pub use package_json::package_json::PackageJson;
-pub use package_json::package_json_like::PackageJsonLike;
-pub use package_json::package_manifest::PackageManifest;
-pub use package_json::package_manifest::PartialUnityVersion;
-pub use structs::setting::UserRepoSetting;
+pub use unity_project::UnityProject;
+pub use version_selector::VersionSelector;
 
 pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 6);
 

@@ -12,17 +12,27 @@ pub struct PackageJson {
     inner: inner::PackageJson,
 }
 
+impl_package_json!(impl PackageJson = |value| value.inner);
+
 impl Debug for PackageJson {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.inner.fmt(f)
     }
 }
 
+impl<'de> Deserialize<'de> for PackageJson {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let inner = inner::PackageJson::deserialize(DedupForwarder::new(deserializer))?;
+        Ok(Self { inner })
+    }
+}
+
 mod inner {
-    use super::super::package_manifest::YankState;
+    use super::super::YankState;
     use crate::version::{Version, VersionRange};
-    use crate::PartialUnityVersion;
-    use indexmap::IndexMap;
     use serde::{Deserialize, Deserializer};
     use url::Url;
 
@@ -37,99 +47,13 @@ mod inner {
         }
     }
 
-    // Note: please keep in sync with package_manifest
-    #[derive(Deserialize, Debug, Clone)]
-    #[serde(rename_all = "camelCase")]
-    pub(super) struct PackageJson {
-        pub(super) name: Box<str>,
-        pub(super) version: Version,
-
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) display_name: Option<Box<str>>,
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) description: Option<Box<str>>,
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) vpm_dependencies: IndexMap<Box<str>, VersionRange>,
-
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) unity: Option<PartialUnityVersion>,
-
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) legacy_packages: Vec<Box<str>>,
-
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) changelog_url: Option<Url>,
-
-        #[serde(rename = "vrc-get")]
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) vrc_get: VrcGetMeta,
-    }
-
-    // Note: please keep in sync with package_manifest
-    #[derive(Deserialize, Debug, Clone, Default)]
-    #[serde(rename_all = "camelCase")]
-    pub(super) struct VrcGetMeta {
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) yanked: YankState,
-        /// aliases for `vrc-get i --name <name> <version>` command.
-        #[serde(default, deserialize_with = "default_if_err")]
-        pub(super) aliases: Vec<Box<str>>,
+    package_json_struct! {
+        pub(super) struct PackageJson {
+            pub(super) optional: #[serde(default, deserialize_with = "default_if_err")];
+            pub(super) required;
+        }
     }
 }
-
-impl<'de> Deserialize<'de> for PackageJson {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let inner = inner::PackageJson::deserialize(DedupForwarder::new(deserializer))?;
-        Ok(Self { inner })
-    }
-}
-
-impl PackageJson {
-    pub fn name(&self) -> &str {
-        &self.inner.name
-    }
-
-    pub fn version(&self) -> &Version {
-        &self.inner.version
-    }
-
-    pub fn vpm_dependencies(&self) -> &IndexMap<Box<str>, VersionRange> {
-        &self.inner.vpm_dependencies
-    }
-
-    pub fn legacy_packages(&self) -> &[Box<str>] {
-        self.inner.legacy_packages.as_slice()
-    }
-
-    pub fn display_name(&self) -> Option<&str> {
-        self.inner.display_name.as_deref()
-    }
-
-    pub fn description(&self) -> Option<&str> {
-        self.inner.description.as_deref()
-    }
-
-    pub fn changelog_url(&self) -> Option<&Url> {
-        self.inner.changelog_url.as_ref()
-    }
-
-    pub fn unity(&self) -> Option<&PartialUnityVersion> {
-        self.inner.unity.as_ref()
-    }
-
-    pub fn is_yanked(&self) -> bool {
-        self.inner.vrc_get.yanked.is_yanked()
-    }
-
-    pub fn aliases(&self) -> &[Box<str>] {
-        self.inner.vrc_get.aliases.as_slice()
-    }
-}
-
-impl_package_json_like!(PackageJson);
 
 #[test]
 fn deserialize_partially_bad() {
