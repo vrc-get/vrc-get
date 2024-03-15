@@ -10,7 +10,7 @@ use std::task::{Context, Poll};
 use tokio::fs;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DefaultEnvironmentIo {
     root: Box<Path>,
 }

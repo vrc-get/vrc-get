@@ -8,6 +8,7 @@ use tauri::Manager;
 mod cmd_start;
 
 mod commands;
+mod config;
 mod logging;
 mod templates;
 

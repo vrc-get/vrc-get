@@ -21,8 +21,9 @@ use tokio::process::{Child, Command};
 
 use futures::prelude::*;
 
+use crate::config::GuiConfigHolder;
 use vrc_get_vpm::environment::UserProject;
-use vrc_get_vpm::io::{DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
@@ -126,10 +127,14 @@ pub(crate) fn new_env_state() -> impl Send + Sync + 'static {
 }
 
 macro_rules! with_environment {
-    ($state: expr, |$environment: ident| $body: expr) => {{
+    ($state: expr, |$environment: pat_param$(, $config: pat_param)?| $body: expr) => {{
         let mut state = $state.lock().await;
         let state = &mut *state;
-        let $environment = state.environment.get_environment_mut(false).await?;
+        let $environment = state
+            .environment
+            .get_environment_mut(false, &state.io)
+            .await?;
+        $(let $config = state.config.load(&state.io).await?;)?
         $body
     }};
 }
@@ -168,16 +173,15 @@ pub(crate) fn startup(_app: &mut App) {
     }
 }
 
-type Environment = vrc_get_vpm::Environment<reqwest::Client, vrc_get_vpm::io::DefaultEnvironmentIo>;
-type UnityProject = vrc_get_vpm::UnityProject<vrc_get_vpm::io::DefaultProjectIo>;
+type Environment = vrc_get_vpm::Environment<reqwest::Client, DefaultEnvironmentIo>;
+type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
-async fn new_environment() -> io::Result<Environment> {
+async fn new_environment(io: &DefaultEnvironmentIo) -> io::Result<Environment> {
     let client = reqwest::Client::builder()
         .user_agent(concat!("vrc-get-litedb/", env!("CARGO_PKG_VERSION")))
         .build()
         .expect("building client");
-    let io = vrc_get_vpm::io::DefaultEnvironmentIo::new_default();
-    Environment::load(Some(client), io).await
+    Environment::load(Some(client), io.clone()).await
 }
 
 async fn update_project_last_modified(env: &mut Environment, project_dir: &Path) {
@@ -216,7 +220,9 @@ unsafe impl Send for EnvironmentState {}
 unsafe impl Sync for EnvironmentState {}
 
 struct EnvironmentState {
+    io: DefaultEnvironmentIo,
     environment: EnvironmentHolder,
+    config: GuiConfigHolder,
     packages: Option<NonNull<[PackageInfo<'static>]>>,
     // null or reference to
     projects: Box<[UserProject]>,
@@ -245,7 +251,11 @@ impl EnvironmentHolder {
         }
     }
 
-    async fn get_environment_mut(&mut self, inc_version: bool) -> io::Result<&mut Environment> {
+    async fn get_environment_mut(
+        &mut self,
+        inc_version: bool,
+        io: &DefaultEnvironmentIo,
+    ) -> io::Result<&mut Environment> {
         if let Some(ref mut environment) = self.environment {
             info!("reloading settings files");
             if !self
@@ -261,7 +271,7 @@ impl EnvironmentHolder {
             }
             Ok(environment)
         } else {
-            self.environment = Some(new_environment().await?);
+            self.environment = Some(new_environment(io).await?);
             self.last_update = Some(tokio::time::Instant::now());
             self.environment_version += Wrapping(1);
             Ok(self.environment.as_mut().unwrap())
@@ -309,12 +319,15 @@ impl ChangesInfoHolder {
 
 impl EnvironmentState {
     fn new() -> Self {
+        let io = DefaultEnvironmentIo::new_default();
         Self {
             environment: EnvironmentHolder::new(),
+            config: GuiConfigHolder::new(),
             packages: None,
             projects: Box::new([]),
             projects_version: Wrapping(0),
             changes_info: ChangesInfoHolder::new(),
+            io,
         }
     }
 }
@@ -395,7 +408,11 @@ async fn environment_projects(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<Vec<TauriProject>, RustError> {
     let mut state = state.lock().await;
-    let environment = state.environment.get_environment_mut(false).await?;
+    let state = &mut *state;
+    let environment = state
+        .environment
+        .get_environment_mut(false, &state.io)
+        .await?;
 
     info!("migrating projects from settings.json");
     // migrate from settings json
@@ -475,7 +492,10 @@ async fn environment_remove_project(
     }
 
     let project = &state.projects[index];
-    let environment = state.environment.get_environment_mut(false).await?;
+    let environment = state
+        .environment
+        .get_environment_mut(false, &state.io)
+        .await?;
     environment.remove_project(project)?;
     environment.save().await?;
 
@@ -671,7 +691,10 @@ async fn environment_packages(
 ) -> Result<Vec<TauriPackage>, RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(true).await?;
+    let environment = env_state
+        .environment
+        .get_environment_mut(true, &env_state.io)
+        .await?;
 
     info!("loading package infos");
     environment.load_package_infos(true).await?;
@@ -715,7 +738,7 @@ struct TauriRepositoriesInfo {
 async fn environment_repositories_info(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriRepositoriesInfo, RustError> {
-    with_environment!(&state, |environment| {
+    with_environment!(&state, |environment, config| {
         Ok(TauriRepositoriesInfo {
             user_repositories: environment
                 .get_user_repos()
@@ -729,11 +752,8 @@ async fn environment_repositories_info(
                     }
                 })
                 .collect(),
-            hidden_user_repositories: environment
-                .gui_hidden_repositories()
-                .map(Into::into)
-                .collect(),
-            hide_local_user_packages: environment.hide_local_user_packages(),
+            hidden_user_repositories: config.gui_hidden_repositories.iter().cloned().collect(),
+            hide_local_user_packages: config.hide_local_user_packages,
             show_prerelease_packages: environment.show_prerelease_packages(),
         })
     })
@@ -745,9 +765,9 @@ async fn environment_hide_repository(
     state: State<'_, Mutex<EnvironmentState>>,
     repository: String,
 ) -> Result<(), RustError> {
-    with_environment!(&state, |environment| {
-        environment.add_gui_hidden_repositories(repository);
-        environment.save().await?;
+    with_environment!(&state, |_, mut config| {
+        config.gui_hidden_repositories.insert(repository);
+        config.save().await?;
         Ok(())
     })
 }
@@ -758,9 +778,9 @@ async fn environment_show_repository(
     state: State<'_, Mutex<EnvironmentState>>,
     repository: String,
 ) -> Result<(), RustError> {
-    with_environment!(&state, |environment| {
-        environment.remove_gui_hidden_repositories(&repository);
-        environment.save().await?;
+    with_environment!(&state, |_, mut config| {
+        config.gui_hidden_repositories.shift_remove(&repository);
+        config.save().await?;
         Ok(())
     })
 }
@@ -771,9 +791,9 @@ async fn environment_set_hide_local_user_packages(
     state: State<'_, Mutex<EnvironmentState>>,
     value: bool,
 ) -> Result<(), RustError> {
-    with_environment!(&state, |environment| {
-        environment.set_hide_local_user_packages(value);
-        environment.save().await?;
+    with_environment!(&state, |_, mut config| {
+        config.hide_local_user_packages = value;
+        config.save().await?;
         Ok(())
     })
 }
@@ -1484,7 +1504,10 @@ async fn environment_create_project(
     {
         let mut env_state = state.lock().await;
         let env_state = &mut *env_state;
-        let environment = env_state.environment.get_environment_mut(true).await?;
+        let environment = env_state
+            .environment
+            .get_environment_mut(true, &env_state.io)
+            .await?;
 
         info!("loading package infos");
         environment.load_package_infos(true).await?;
@@ -1647,7 +1670,7 @@ macro_rules! changes {
         }
         )?
 
-        let $environment = state.environment.get_environment_mut(false).await?;
+        let $environment = state.environment.get_environment_mut(false, &state.io).await?;
         let $packages = unsafe { &*state.packages.unwrap().as_mut() };
         let changes = $body;
 
@@ -1780,7 +1803,10 @@ async fn project_apply_pending_changes(
         return Err(RustError::unrecoverable("environment version mismatch"));
     }
 
-    let environment = env_state.environment.get_environment_mut(false).await?;
+    let environment = env_state
+        .environment
+        .get_environment_mut(false, &env_state.io)
+        .await?;
 
     let mut unity_project = load_project(project_path).await?;
 
@@ -1984,7 +2010,10 @@ async fn project_migrate_project_to_vpm(
 ) -> Result<(), RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
-    let environment = env_state.environment.get_environment_mut(true).await?;
+    let environment = env_state
+        .environment
+        .get_environment_mut(true, &env_state.io)
+        .await?;
 
     info!("loading package infos");
     environment.load_package_infos(true).await?;
