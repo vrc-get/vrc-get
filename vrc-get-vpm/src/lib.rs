@@ -13,10 +13,7 @@ use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 pub mod environment;
 pub mod io;
-#[macro_use]
-mod package_json_like;
 mod package_json;
-mod package_manifest;
 pub mod repository;
 mod structs;
 mod traits;
@@ -40,10 +37,10 @@ pub use traits::HttpClient;
 pub use traits::PackageCollection;
 pub use traits::RemotePackageDownloader;
 
-pub use package_json::PackageJson;
-pub use package_json_like::PackageJsonLike;
-pub use package_manifest::PackageManifest;
-pub use package_manifest::PartialUnityVersion;
+pub use package_json::package_json::PackageJson;
+pub use package_json::package_json_like::PackageJsonLike;
+pub use package_json::package_manifest::PackageManifest;
+pub use package_json::package_manifest::PartialUnityVersion;
 pub use structs::setting::UserRepoSetting;
 
 pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 6);

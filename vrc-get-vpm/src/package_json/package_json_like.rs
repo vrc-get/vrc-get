@@ -1,5 +1,5 @@
-use crate::package_manifest::PartialUnityVersion;
 use crate::version::{Version, VersionRange};
+use crate::PartialUnityVersion;
 use indexmap::IndexMap;
 use url::Url;
 
@@ -18,7 +18,7 @@ pub trait PackageJsonLike {
 
 macro_rules! impl_package_json_like {
     ($t: ty) => {
-        impl $crate::package_json_like::PackageJsonLike for $t {
+        impl $crate::package_json::package_json_like::PackageJsonLike for $t {
             fn name(&self) -> &str {
                 self.name()
             }

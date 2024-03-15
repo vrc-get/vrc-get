@@ -19,7 +19,7 @@ impl Debug for PackageJson {
 }
 
 mod inner {
-    use crate::package_manifest::YankState;
+    use super::super::package_manifest::YankState;
     use crate::version::{Version, VersionRange};
     use crate::PartialUnityVersion;
     use indexmap::IndexMap;

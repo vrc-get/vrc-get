@@ -11,10 +11,12 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct PackageManifest {
     name: Box<str>,
+    version: Version,
+
     #[serde(default)]
     display_name: Option<Box<str>>,
+    #[serde(default)]
     description: Option<Box<str>>,
-    version: Version,
     #[serde(default)]
     vpm_dependencies: IndexMap<Box<str>, VersionRange>,
     #[serde(default)]
@@ -23,6 +25,7 @@ pub struct PackageManifest {
     #[serde(rename = "zipSHA256")]
     zip_sha_256: Option<Box<str>>,
 
+    #[serde(default)]
     unity: Option<PartialUnityVersion>,
 
     #[serde(default)]
