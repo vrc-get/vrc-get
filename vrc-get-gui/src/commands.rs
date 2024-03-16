@@ -205,6 +205,10 @@ pub(crate) fn startup(app: &mut App) {
         )
         .title("vrc-get-gui")
         .resizable(true)
+        .on_navigation(|url| {
+            url.scheme() == "tauri"
+                || (cfg!(debug_assertions) && url.host_str() == Some("localhost"))
+        })
         .build()?;
 
         window.set_size(LogicalSize {
