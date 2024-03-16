@@ -7,7 +7,6 @@ The format is based on [Keep a Changelog].
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
-
 ### Added
 
 ### Changed
@@ -18,13 +17,13 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
-- Not working on windows `#615`
-
 ### Security
 
-## [0.1.0-beta.14] - 2024-03-16
+## [0.1.0-beta.15] - 2024-03-16
 
-### Added
+- Not working on windows [`#615`](https://github.com/vrc-get/vrc-get/pull/615)
+
+## [0.1.0-beta.14] - 2024-03-16
 
 - Create Project from Template [`#594`](https://github.com/vrc-get/vrc-get/pull/594)
     - Please note that vrc-get uses our own templates for project creation.
@@ -32,14 +31,10 @@ The format is based on [Keep a Changelog].
 - Toggle show prerelease packages [`#610`](https://github.com/vrc-get/vrc-get/pull/610)
 - i18n support [`#612`](https://github.com/vrc-get/vrc-get/pull/612)
 
-### Changed
-
 - vrc-get specific configuration is moved
   to `vrc-get/settings.json` [`#607`](https://github.com/vrc-get/vrc-get/pull/607)
     - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
       to not dirty the folder, I moved the config file to `vrc-get` folder.
-
-### Fixed
 
 - Bad behaviors with unity 2018 [`#605`](https://github.com/vrc-get/vrc-get/pull/605)
 - Bad behavior when trying installing the installed version [`#608`](https://github.com/vrc-get/vrc-get/pull/608)
@@ -49,17 +44,11 @@ The format is based on [Keep a Changelog].
 
 ## [0.1.0-beta.13] - 2024-03-12
 
-### Added
-
 - Migrate legacy VRCSDK3 project to VPM VRCSDK [`#580`](https://github.com/vrc-get/vrc-get/pull/580)
-
-### Changed
 
 - Show "Not Selected" instead of "none" if the corresponding repositories are not
   selected [`#568`](https://github.com/vrc-get/vrc-get/pull/568)
 - vrc-get now finds unity hub from registry key [`#590`](https://github.com/vrc-get/vrc-get/pull/590)
-
-### Fixed
 
 - Legacy Projects cannot be added to VCC project list [`#586`](https://github.com/vrc-get/vrc-get/pull/586)
 - Removing repository doesn't remove package from list [`#587`](https://github.com/vrc-get/vrc-get/pull/587)
@@ -74,40 +63,26 @@ The format is based on [Keep a Changelog].
 
 ## [0.1.0-beta.8] - 2024-03-09
 
-### Added
-
 - Settings and Repositories page [`#522`](https://github.com/vrc-get/vrc-get/pull/522)
 - Auto Update [`#557`](https://github.com/vrc-get/vrc-get/pull/557)
 
-### Changed
-
 - The color of "Remove from the List" button is now default one. [`#524`](https://github.com/vrc-get/vrc-get/pull/524)
-
-### Fixed
 
 - Unity launched by vrc-get is shown as a part of vrc-get-gui [`#530`](https://github.com/vrc-get/vrc-get/pull/530)
 - Fails to load all repositories if fails to load one repository [`#551`](https://github.com/vrc-get/vrc-get/pull/551)
 
 ## [0.1.0-beta.7] - 2024-03-04
 
-### Added
-
 - Remove Project [`#521`](https://github.com/anatawa12/vrc-get/pull/521)
 - Migrate a Copy [`#522`](https://github.com/anatawa12/vrc-get/pull/522)
-
-### Changed
 
 - Show unity log while migration [`#519`](https://github.com/anatawa12/vrc-get/pull/519)
 - MacOS build is now a universal binary [`#520`](https://github.com/anatawa12/vrc-get/pull/520)
 - Use local time for timestamp in log file [`#523`](https://github.com/anatawa12/vrc-get/pull/523)
 
-### Fixed
-
 - No user agent for http requests [`#513`](https://github.com/anatawa12/vrc-get/pull/513)
 
 ## [0.1.0-beta.6] - 2024-03-03
-
-### Added
 
 - Licenses page [`#504`](https://github.com/anatawa12/vrc-get/pull/504)
     - Currently under Settings page.
@@ -115,13 +90,9 @@ The format is based on [Keep a Changelog].
     - Actually, this button is equivalent to `vrc-get resolve`.
     - To add this button, Upgrade All button is moved into the dropdown menu.
 
-### Changed
-
 - Improved logging [`#505`](https://github.com/anatawa12/vrc-get/pull/505)
 - Improved indication for error [`#512`](https://github.com/anatawa12/vrc-get/pull/512)
 - Show a project as not exists if the directory does not exist [`#512`](https://github.com/anatawa12/vrc-get/pull/512)
-
-### Fixed
 
 - We can click upgrade button while installing packages [`#507`](https://github.com/anatawa12/vrc-get/pull/507)
 - Packages for Avatars are shown if the project is Worlds project and vice
@@ -129,23 +100,15 @@ The format is based on [Keep a Changelog].
 
 ## [0.1.0-beta.5] - 2024-03-02
 
-### Added
-
 - Support for Show Prereleases [`#495`](https://github.com/anatawa12/vrc-get/pull/495)
 
-### Changed
-
 - The version name is shown on the menu instead of settings page [`#496`](https://github.com/anatawa12/vrc-get/pull/496)
-
-### Fixed
 
 - Fails to load package.json with invalid url in url field [`#492`](https://github.com/anatawa12/vrc-get/pull/492)
     - This makes `d4rkAvatarOptimizer` is recognized as not installed.
 - Log file is not saved on windows [`#493`](https://github.com/anatawa12/vrc-get/pull/493)
 
 ## [0.1.0-beta.4] - 2024-03-01
-
-### Added
 
 - See and save logs of the vrc-get-gui [`#475`](https://github.com/anatawa12/vrc-get/pull/475)
 - Link to changelog when install [`#481`](https://github.com/anatawa12/vrc-get/pull/481)
@@ -156,14 +119,10 @@ The format is based on [Keep a Changelog].
 
 [changelog-of-upm-manifest]: https://docs.unity3d.com/2022.3/Documentation/Manual/upm-manifestPkg.html#changelogUrl
 
-### Fixed
-
 - Message protrudes from toasts or dialogs [`#469`](https://github.com/anatawa12/vrc-get/pull/469)
 - Window name should be `vrc-get-gui` but was `vrc-get GUI` [`#474`](https://github.com/anatawa12/vrc-get/pull/474)
 
 ## [0.1.0-beta.3]
-
-### Added
 
 - Initial implementation [`#411`](https://github.com/anatawa12/vrc-get/pull/411)
     - This includes the following features
@@ -176,7 +135,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.14...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.15...HEAD
+[0.1.0-beta.15]: https://github.com/vrc-get/vrc-get/compare/gui-v...gui-v0.1.0-beta.15
 
 [0.1.0-beta.14]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.13...gui-v0.1.0-beta.14
 
