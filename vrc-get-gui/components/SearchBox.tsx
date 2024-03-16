@@ -1,15 +1,21 @@
 import {Input} from "@material-tailwind/react";
 import {MagnifyingGlassIcon} from "@heroicons/react/24/solid";
 import React from "react";
+import {useTranslation} from "react-i18next";
 
-export function SearchBox({className, value, onChange} : {className?: string, value?: string, onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void}) {
+export function SearchBox({className, value, onChange}: {
+	className?: string,
+	value?: string,
+	onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+}) {
+	const {t} = useTranslation();
+
 	return (
-
 		<div className={`relative flex gap-2 ${className}`}>
 			{/* The search box */}
 			<Input
 				type="search"
-				placeholder="Search"
+				placeholder={t("search...")}
 				containerProps={{
 					className: "min-w-[100px]",
 				}}

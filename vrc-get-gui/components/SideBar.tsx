@@ -6,9 +6,12 @@ import React from "react";
 import {Bars4Icon} from "@heroicons/react/24/outline";
 import {useQuery} from "@tanstack/react-query";
 import {utilGetVersion} from "@/lib/bindings";
+import {useTranslation} from "react-i18next";
 
 export function SideBar({className}: { className?: string }) {
 	"use client"
+
+	const {t} = useTranslation();
 
 	const currentVersionResult = useQuery({
 		queryKey: ["utilGetVersion"],
@@ -25,10 +28,10 @@ export function SideBar({className}: { className?: string }) {
 		<Card
 			className={`${className} w-auto max-w-[20rem] p-4 shadow-xl shadow-blue-gray-900/5 h-screen shrink-0`}>
 			<List className="min-w-[10rem] flex-grow">
-				<SideBarItem href={"/projects"} text={"Projects"} icon={ListBulletIcon}/>
-				<SideBarItem href={"/settings"} text={"Settings"} icon={Cog6ToothIcon}/>
-				<SideBarItem href={"/repositories"} text={"Repositories"} icon={CloudIcon}/>
-				<SideBarItem href={"/log"} text={"Logs"} icon={Bars4Icon}/>
+				<SideBarItem href={"/projects"} text={t("projects")} icon={ListBulletIcon}/>
+				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
+				<SideBarItem href={"/repositories"} text={t("repositories")} icon={CloudIcon}/>
+				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
 				<div className={'flex-grow'}/>
 				<ListItem className={"text-sm"}>v{currentVersion}</ListItem>
 			</List>

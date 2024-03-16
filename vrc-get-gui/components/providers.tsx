@@ -5,6 +5,8 @@ import {toast, ToastContainer} from 'react-toastify';
 import {useEffect} from "react";
 import {listen} from "@tauri-apps/api/event";
 import {LogEntry} from "@/lib/bindings";
+import i18next from "@/lib/i18n";
+import {I18nextProvider} from "react-i18next";
 
 const queryClient = new QueryClient();
 
@@ -48,7 +50,9 @@ export function Providers({children}: { children: React.ReactNode }) {
 				className={"whitespace-normal"}
 			/>
 			<QueryClientProvider client={queryClient}>
-				{children}
+				<I18nextProvider i18n={i18next}>
+					{children}
+				</I18nextProvider>
 			</QueryClientProvider>
 		</>
 	);
