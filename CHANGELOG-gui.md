@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
   - Please note that vrc-get uses our own templates for project creation.
 - Preserve window size `#607`
 - Toggle show prerelease packages `#610`
+- i18n support `#612`
 
 ### Changed
 - vrc-get specific configuration is moved to `vrc-get/settings.json` `#607`
