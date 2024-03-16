@@ -42,6 +42,8 @@ use crate::logging::LogEntry;
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
     generate_handler![
+        environment_language,
+        environment_set_language,
         environment_projects,
         environment_add_project_with_picker,
         environment_remove_project,
@@ -84,6 +86,8 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
 pub(crate) fn export_ts() {
     tauri_specta::ts::export_with_cfg(
         specta::collect_types![
+            environment_language,
+            environment_set_language,
             environment_projects,
             environment_add_project_with_picker,
             environment_remove_project,
@@ -488,6 +492,27 @@ impl TauriProject {
             is_exists,
         }
     }
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_language(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<String, RustError> {
+    with_config!(state, |config| Ok(config.language.clone()))
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_language(
+    state: State<'_, Mutex<EnvironmentState>>,
+    language: String,
+) -> Result<(), RustError> {
+    with_config!(state, |mut config| {
+        config.language = language;
+        config.save().await?;
+        Ok(())
+    })
 }
 
 #[tauri::command]

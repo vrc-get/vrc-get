@@ -19,3 +19,6 @@ i18next
 	})
 
 export default i18next;
+export const languages = [
+	"en",
+];

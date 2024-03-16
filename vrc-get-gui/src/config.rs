@@ -15,6 +15,12 @@ pub struct GuiConfig {
     pub hide_local_user_packages: bool,
     #[serde(default)]
     pub window_size: WindowSize,
+    #[serde(default = "language_default")]
+    pub language: String,
+}
+
+fn language_default() -> String {
+    "en".to_string()
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

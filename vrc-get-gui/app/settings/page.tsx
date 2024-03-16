@@ -9,6 +9,7 @@ import {
 	environmentPickProjectDefaultPath,
 	environmentPickUnity,
 	environmentPickUnityHub,
+	environmentSetLanguage,
 	environmentSetShowPrereleasePackages,
 	TauriEnvironmentSettings
 } from "@/lib/bindings";
@@ -16,6 +17,8 @@ import {VStack} from "@/components/layout";
 import React from "react";
 import {Trans, useTranslation} from "react-i18next";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import i18next, {languages} from "@/lib/i18n";
+import {VGOption, VGSelect} from "@/components/select";
 
 export default function Page() {
 	const {t} = useTranslation();
@@ -171,6 +174,13 @@ function Settings(
 		}
 	}
 
+	const changeLanguage = async (value: string) => {
+		await Promise.all([
+			i18next.changeLanguage(value),
+			environmentSetLanguage(value),
+		])
+	};
+
 	return (
 		<>
 			<Card className={"flex-shrink-0 p-4"}>
@@ -225,6 +235,18 @@ function Settings(
 				<label className={"flex items-center"}>
 					<Checkbox checked={settings.show_prerelease_packages} onChange={toggleShowPrereleasePackages}/>
 					{t("show prerelease packages")}
+				</label>
+			</Card>
+			<Card className={"flex-shrink-0 p-4"}>
+				<label className={"flex items-center"}>
+					<h2>{t("language")}: </h2>
+					<VGSelect value={t("langName", {lng: i18next.language})} onChange={changeLanguage} menuClassName={"w-96"}>
+						{
+							languages.map((lang) => (
+								<VGOption key={lang} value={lang}>{t("langName", {lng: lang})}</VGOption>
+							))
+						}
+					</VGSelect>
 				</label>
 			</Card>
 		</>

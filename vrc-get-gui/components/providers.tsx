@@ -4,7 +4,7 @@ import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {ToastContainer} from 'react-toastify';
 import {useEffect} from "react";
 import {listen} from "@tauri-apps/api/event";
-import {LogEntry} from "@/lib/bindings";
+import {environmentLanguage, LogEntry} from "@/lib/bindings";
 import i18next from "@/lib/i18n";
 import {I18nextProvider} from "react-i18next";
 import {toastError} from "@/lib/toast";
@@ -33,6 +33,10 @@ export function Providers({children}: { children: React.ReactNode }) {
 			unlisten?.();
 			unlistened = true;
 		};
+	}, []);
+
+	useEffect(() => {
+		environmentLanguage().then((lang) => i18next.changeLanguage(lang))
 	}, []);
 
 	return (
