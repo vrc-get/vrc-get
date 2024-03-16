@@ -8,28 +8,35 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Create Project from Template `#594`
-  - Please note that vrc-get uses our own templates for project creation.
-- Preserve window size `#607`
-- Toggle show prerelease packages `#610`
-- i18n support `#612`
 
 ### Changed
-- vrc-get specific configuration is moved to `vrc-get/settings.json` `#607`
-  - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
-    to not dirty the folder, I moved the config file to `vrc-get` folder.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Bad behaviors with unity 2018 `#605`
-- Bad behavior when trying installing the installed version `#608`
-- Some embedded / installed vpm package is not recognized by vrc-get `#609`
-- Http page can be opened in the browser `#611`
 
 ### Security
+
+## [0.1.0-beta.14] - 2024-03-16
+### Added
+- Create Project from Template [`#594`](https://github.com/vrc-get/vrc-get/pull/594)
+  - Please note that vrc-get uses our own templates for project creation.
+- Preserve window size [`#607`](https://github.com/vrc-get/vrc-get/pull/607)
+- Toggle show prerelease packages [`#610`](https://github.com/vrc-get/vrc-get/pull/610)
+- i18n support [`#612`](https://github.com/vrc-get/vrc-get/pull/612)
+
+### Changed
+- vrc-get specific configuration is moved to `vrc-get/settings.json` [`#607`](https://github.com/vrc-get/vrc-get/pull/607)
+  - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
+    to not dirty the folder, I moved the config file to `vrc-get` folder.
+
+### Fixed
+- Bad behaviors with unity 2018 [`#605`](https://github.com/vrc-get/vrc-get/pull/605)
+- Bad behavior when trying installing the installed version [`#608`](https://github.com/vrc-get/vrc-get/pull/608)
+- Some embedded / installed vpm package is not recognized by vrc-get [`#609`](https://github.com/vrc-get/vrc-get/pull/609)
+- Http page can be opened in the browser [`#611`](https://github.com/vrc-get/vrc-get/pull/611)
 
 ## [0.1.0-beta.13] - 2024-03-12
 ### Added
@@ -127,7 +134,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.13...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.14...HEAD
+[0.1.0-beta.14]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.13...gui-v0.1.0-beta.14
 [0.1.0-beta.13]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.12...gui-v0.1.0-beta.13
 [0.1.0-beta.12]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.11...gui-v0.1.0-beta.12
 [0.1.0-beta.11]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.10...gui-v0.1.0-beta.11
