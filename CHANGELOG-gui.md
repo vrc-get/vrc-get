@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog].
 - Create Project from Template `#594`
   - Please note that vrc-get uses our own templates for project creation.
 - Preserve window size `#607`
+- Toggle show prerelease packages `#610`
 
 ### Changed
 - vrc-get specific configuration is moved to `vrc-get/settings.json` `#607`
