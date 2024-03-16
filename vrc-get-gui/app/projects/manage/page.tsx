@@ -60,6 +60,7 @@ import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
 import {toastThrownError} from "@/lib/toastThrownError";
 import {receiveLinesAndWaitForFinish} from "@/lib/migration-with-2022";
+import {Trans, useTranslation} from "react-i18next";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -102,6 +103,7 @@ type InstallStatus = {
 }
 
 function PageBody() {
+	const {t} = useTranslation();
 	const searchParams = useSearchParams();
 	const router = useRouter();
 
@@ -158,10 +160,10 @@ function PageBody() {
 	const hiddenUserRepositories = useMemo(() => new Set(repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : []), [repositoriesInfo]);
 
 	const TABLE_HEAD = [
-		"Package",
-		"Installed",
-		"Latest",
-		"Source",
+		"package",
+		"installed",
+		"latest",
+		"source",
 		"", // actions
 	];
 
@@ -200,7 +202,7 @@ function PageBody() {
 				}
 			}
 			if (envVersion == null) {
-				toast.error("No upgradable packages");
+				toast.error(t("no upgradable packages"));
 				return;
 			}
 			const changes = await projectUpgradeMultiplePackage(projectPath, envVersion, packages);
@@ -253,13 +255,14 @@ function PageBody() {
 
 			switch (requested.type) {
 				case "install":
-					toast.success(`Installed ${requested.pkg.display_name ?? requested.pkg.name} version ${toVersionString(requested.pkg.version)}`);
+					toast.success(t("installed {{name}} version {{version}}",
+						{name: requested.pkg.display_name ?? requested.pkg.name, version: toVersionString(requested.pkg.version)}));
 					break;
 				case "remove":
-					toast.success(`Removed ${requested.pkgId}`);
+					toast.success(t("removed {{name}}", {name: requested.pkgId}));
 					break;
 				case "upgradeAll":
-					toast.success("Upgraded all packages");
+					toast.success(t("upgraded all packages"));
 					break;
 				default:
 					let _: never = requested;
@@ -284,7 +287,7 @@ function PageBody() {
 			const preMigrationResult = await projectBeforeMigrateProjectTo2022(allowMismatch);
 			switch (preMigrationResult.type) {
 				case "NoUnity2022Found":
-					toast.error("Failed to migrate project: Unity 2022 is not found");
+					toast.error(t("failed to migrate project: unity 2022 not found"));
 					setInstallStatus({status: "normal"});
 					return;
 				case "ConfirmNotExactlyRecommendedUnity2022":
@@ -314,7 +317,7 @@ function PageBody() {
 			const finalizeResult = await projectFinalizeMigrationWithUnity2022(migrateProjectPath);
 			switch (finalizeResult.type) {
 				case "NoUnity2022Found":
-					toast.error("Failed to finalize the migration: Unity 2022 is not found");
+					toast.error(t("failed to finalize the migration: unity 2022 not found"));
 					break;
 				case "MigrationStarted":
 					let lineNumber = 0;
@@ -330,7 +333,7 @@ function PageBody() {
 							}
 						})
 					});
-					toast.success("Project migrated to Unity 2022");
+					toast.success(t("the project is migrated to unity 2022"));
 					break;
 				default:
 					const _: never = finalizeResult;
@@ -401,11 +404,15 @@ function PageBody() {
 			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
-					located at: <code className={"bg-gray-200 p-0.5 whitespace-pre"}>{projectPath}</code>
+					<Trans
+						t={t}
+						i18nKey={"located at: <code>{{path}}</code>"}
+						components={{code: <code className={"bg-gray-200 p-0.5 whitespace-pre"}/>}}
+						values={{path: projectPath}}/>
 				</Typography>
 				<div className={"flex-grow flex-shrink-0 w-2"}></div>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-					Unity Version:
+					{t("unity version: ")}
 				</Typography>
 				<div className={"flex-grow-0 flex-shrink-0"}>
 					<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
@@ -421,7 +428,7 @@ function PageBody() {
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex">
 					<div className={"flex flex-shrink-0 flex-grow-0 flex-row gap-2"}>
 						<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-							Manage Packages
+							{t("manage packages")}
 						</Typography>
 
 						<Tooltip content="Reflesh Packages">
@@ -443,28 +450,28 @@ function PageBody() {
 									<MenuItem className={"p-3 text-green-700 focus:text-green-700"}
 														onClick={onUpgradeAllRequest}
 														disabled={isLoading}>
-										Upgrade All</MenuItem>}
+										{t("upgrade all")}</MenuItem>}
 								<MenuItem className={"p-3"}
 													onClick={onResolveRequest}
 													disabled={isLoading}>
-									Reinstall All</MenuItem>
+									{t("reinstall all")}</MenuItem>
 							</MenuList>
 						</Menu>
 
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>
-								<Button className={"flex-shrink-0 p-3"}>Select Repositories</Button>
+								<Button className={"flex-shrink-0 p-3"}>{t("select repositories")}</Button>
 							</MenuHandler>
 							<MenuList className={"max-h-96 w-64"}>
 								<RepositoryMenuItem
 									hiddenUserRepositories={hiddenUserRepositories}
-									repositoryName={"Official"}
+									repositoryName={t("official")}
 									repositoryId={"com.vrchat.repos.official"}
 									refetch={() => repositoriesInfo.refetch()}
 								/>
 								<RepositoryMenuItem
 									hiddenUserRepositories={hiddenUserRepositories}
-									repositoryName={"Curated"}
+									repositoryName={t("curated")}
 									repositoryId={"com.vrchat.repos.curated"}
 									refetch={() => repositoriesInfo.refetch()}
 								/>
@@ -494,7 +501,7 @@ function PageBody() {
 								{TABLE_HEAD.map((head, index) => (
 									<th key={index}
 											className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-										<Typography variant="small" className="font-normal leading-none">{head}</Typography>
+										<Typography variant="small" className="font-normal leading-none">{t(head)}</Typography>
 									</th>
 								))}
 							</tr>
@@ -525,16 +532,17 @@ function SuggestMigrateTo2022Card(
 		onMigrateRequested: () => void;
 	}
 ) {
+	const {t} = useTranslation();
+
 	return (
 		<Card className={"flex-shrink-0 p-2 flex flex-row"}>
 			<Typography
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
-				Your project is using Unity 2019 which is no longer supported by VRChat SDK.
-				It&apos;s recommended by VRChat to migrate project to Unity 2022.
+				{t("unity 2019 to 2022 migration suggestion")}
 			</Typography>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
-				Migrate Project
+				{t("migrate project")}
 			</Button>
 		</Card>
 	)
@@ -548,21 +556,23 @@ function Unity2022MigrationConfirmMigrationDialog(
 		cancel: () => void,
 		doMigrate: (inPlace: boolean) => void,
 	}) {
+	const {t} = useTranslation();
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogHeader>{t("unity migration")}</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-red-700"}>
-					Project migration is experimental in vrc-get.
+					{t("project migration is experimental in vrc-get.")}
 				</Typography>
 				<Typography className={"text-red-700"}>
-					Please make backup of your project before migration.
+					{t("please make backup of your project before migration.")}
 				</Typography>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">Cancel Migration</Button>
-				<Button onClick={() => doMigrate(false)} color={"red"} className="mr-1">Migrate a Copy</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>Migrate in-place</Button>
+				<Button onClick={cancel} className="mr-1">{t("cance;")}</Button>
+				<Button onClick={() => doMigrate(false)} color={"red"} className="mr-1">{t("migrate a copy")}</Button>
+				<Button onClick={() => doMigrate(true)} color={"red"}>{t("migrate in-place")}</Button>
 			</DialogFooter>
 		</Dialog>
 	);
@@ -580,41 +590,48 @@ function Unity2022MigrationUnityVersionMismatchDialog(
 		cancel: () => void,
 		doMigrate: () => void,
 	}) {
+	const {t} = useTranslation();
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogHeader>{t("unity migration")}</DialogHeader>
 			<DialogBody>
 				<Typography>
-					We could not find exactly recommended Unity 2022 version.
+					{t("we could not find unity exact recommended version of unity 2022")}
 				</Typography>
 				<Typography>
-					Recommended: {recommendedUnityVersion}
+					{t("recommended: {{version}}", {version: recommendedUnityVersion})}
 				</Typography>
 				<Typography>
-					Found: {foundUnityVersion}
+					{t("found: {{version}}", {version: foundUnityVersion})}
 				</Typography>
 				<Typography>
-					Do you want to continue?
+					{t("this may cause problems with VRChat SDK")}
+				</Typography>
+				<Typography>
+					{t("do you want to continue?")}
 				</Typography>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">Cancel Migration</Button>
-				<Button onClick={doMigrate} color={"red"}>Continue Migration</Button>
+				<Button onClick={cancel} className="mr-1">{t("cancel")}</Button>
+				<Button onClick={doMigrate} color={"red"}>{t("continue")}</Button>
 			</DialogFooter>
 		</Dialog>
 	);
 }
 
 function Unity2022MigrationCopyingDialog() {
+	const {t} = useTranslation();
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogHeader>{t("unity migration")}</DialogHeader>
 			<DialogBody>
 				<Typography>
-					Copying Project...
+					{t("copying project for migration...")}
 				</Typography>
 				<Typography>
-					Please do not close the window.
+					{t("please do not close the window")}
 				</Typography>
 			</DialogBody>
 		</Dialog>
@@ -622,15 +639,17 @@ function Unity2022MigrationCopyingDialog() {
 }
 
 function Unity2022MigrationMigratingDialog() {
+	const {t} = useTranslation();
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogHeader>{t("unity migration")}</DialogHeader>
 			<DialogBody>
 				<Typography>
-					Migrating Packages...
+					{t("migrating project...")}
 				</Typography>
 				<Typography>
-					Please do not close the window.
+					{t("please do not close the window")}
 				</Typography>
 			</DialogBody>
 		</Dialog>
@@ -644,6 +663,7 @@ function Unity2022MigrationCallingUnityForMigrationDialog(
 		lines: [number, string][]
 	}
 ) {
+	const {t} = useTranslation();
 	const ref = React.useRef<HTMLDivElement>(null);
 
 	React.useEffect(() => {
@@ -652,13 +672,13 @@ function Unity2022MigrationCallingUnityForMigrationDialog(
 
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>Unity Migration</DialogHeader>
+			<DialogHeader>{t("unity migration")}</DialogHeader>
 			<DialogBody>
 				<Typography>
-					Launching Unity 2022 in background for finalizing the migration...
+					{t("launching unity 2022 in background for finalizing the migration...")}
 				</Typography>
 				<Typography>
-					Please do not close the window.
+					{t("please do not close the window")}
 				</Typography>
 				<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
 					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
@@ -681,6 +701,7 @@ function ProjectChangesDialog(
 		cancel: () => void,
 		apply: () => void,
 	}) {
+	const {t} = useTranslation();
 	const versionConflicts = changes.conflicts.filter(([_, c]) => c.packages.length > 0);
 	const unityConflicts = changes.conflicts.filter(([_, c]) => c.unity_conflict);
 
@@ -694,7 +715,7 @@ function ProjectChangesDialog(
 			<DialogHeader>Apply Changes</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-gray-900"}>
-					You&apos;re applying the following changes to the project
+					{t("you're applying the following changes to the project")}
 				</Typography>
 				<List className={"overflow-y-auto max-h-[50vh]"}>
 					{changes.package_changes.map(([pkgId, pkgChange]) => {
@@ -704,20 +725,38 @@ function ProjectChangesDialog(
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
 							return <ListItem key={pkgId}>
-								Install {pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name} version {toVersionString(pkgChange.InstallNew.version)}
+								<Trans
+									t={t}
+									i18nKey={"install {{name}} version {{version}}"}
+									values={{
+										name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
+										version: toVersionString(pkgChange.InstallNew.version)
+									}}
+								/>
 								{changelogUrl != null &&
-									<Button className={"ml-1 px-2"} size={"sm"} onClick={() => shellOpen(changelogUrl)}>See
-										Changelog</Button>}
+									<Button className={"ml-1 px-2"} size={"sm"}
+													onClick={() => shellOpen(changelogUrl)}>{t("see changelog")}</Button>}
 							</ListItem>
 						} else {
 							switch (pkgChange.Remove) {
 								case "Requested":
-									return <ListItem key={pkgId}>Remove {getPackageDisplayName(pkgId)} since you requested.</ListItem>
+									return <ListItem key={pkgId}><Trans
+										t={t}
+										i18nKey={"remove {{name}} since you requested"}
+										values={{name: getPackageDisplayName(pkgId)}}/>
+									</ListItem>
 								case "Legacy":
-									return <ListItem key={pkgId}>Remove {getPackageDisplayName(pkgId)} since it&apos;s a legacy
-										package.</ListItem>
+									return <ListItem key={pkgId}><Trans
+										t={t}
+										i18nKey={"remove {{name}} since it's a legacy package"}
+										values={{name: getPackageDisplayName(pkgId)}}/>
+									</ListItem>
 								case "Unused":
-									return <ListItem key={pkgId}>Remove {getPackageDisplayName(pkgId)} since it&apos;s unused.</ListItem>
+									return <ListItem key={pkgId}><Trans
+										t={t}
+										i18nKey={"remove {{name}} since it's not used"}
+										values={{name: getPackageDisplayName(pkgId)}}/>
+									</ListItem>
 							}
 						}
 					})}
@@ -726,14 +765,20 @@ function ProjectChangesDialog(
 					versionConflicts.length > 0 ? (
 						<>
 							<Typography className={"text-red-700"}>
-								There are version conflicts
+								{t("there are version conflicts", {count: versionConflicts.length})}
 							</Typography>
 							<List>
 								{versionConflicts.map(([pkgId, conflict]) => {
 									return (
 										<ListItem key={pkgId}>
-											{getPackageDisplayName(pkgId)} conflicts
-											with {conflict.packages.map(p => getPackageDisplayName(p)).join(", ")}
+											<Trans
+												t={t}
+												i18nKey={"{{pkg}} conflicts with {{other}}"}
+												values={{
+													pkg: getPackageDisplayName(pkgId),
+													other: conflict.packages.map(p => getPackageDisplayName(p)).join(", ")
+												}}
+											/>
 										</ListItem>
 									);
 								})}
@@ -745,12 +790,16 @@ function ProjectChangesDialog(
 					unityConflicts.length > 0 ? (
 						<>
 							<Typography className={"text-red-700"}>
-								There are unity version conflicts
+								{t("there are unity version conflicts", {count: unityConflicts.length})}
 							</Typography>
 							<List>
 								{unityConflicts.map(([pkgId, _]) => (
 									<ListItem key={pkgId}>
-										{getPackageDisplayName(pkgId)} does not support your unity version
+										<Trans
+											t={t}
+											i18nKey={"{{pkg}} does not support your unity version"}
+											values={{pkg: getPackageDisplayName(pkgId)}}
+										/>
 									</ListItem>
 								))}
 							</List>
@@ -761,7 +810,7 @@ function ProjectChangesDialog(
 					changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
 						<>
 							<Typography className={"text-red-700"}>
-								The following legacy files and folders will be removed
+								{t("the following legacy files and folders will be removed")}
 							</Typography>
 							<List>
 								{changes.remove_legacy_files.map(f => (
@@ -780,8 +829,8 @@ function ProjectChangesDialog(
 				}
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">Cancel</Button>
-				<Button onClick={apply} color={"red"}>Apply</Button>
+				<Button onClick={cancel} className="mr-1">{t("cancel")}</Button>
+				<Button onClick={apply} color={"red"}>{t("apply")}</Button>
 			</DialogFooter>
 		</Dialog>
 	);
@@ -831,6 +880,7 @@ function UserLocalRepositoryMenuItem(
 		refetch: () => void,
 	}
 ) {
+	const {t} = useTranslation();
 	const selected = !hideUserLocalPackages;
 	const onChange = () => {
 		if (selected) {
@@ -847,7 +897,7 @@ function UserLocalRepositoryMenuItem(
 									checked={selected}
 									onChange={onChange}
 									className="hover:before:content-none"/>
-				User Local
+				{t("user local")}
 			</label>
 		</MenuItem>
 	)
@@ -1108,6 +1158,8 @@ function PackageRow(
 		onInstallRequested: (pkg: TauriPackage) => void;
 		onRemoveRequested: (pkgId: string) => void;
 	}) {
+	const {t} = useTranslation();
+
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
@@ -1153,7 +1205,7 @@ function PackageRow(
 				>
 					{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 					{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
-					{incompatibleNames.length > 0 && <Typography className={"text-sm"}>Incompatibles</Typography>}
+					{incompatibleNames.length > 0 && <Typography className={"text-sm"}>{t("incompatibles")}</Typography>}
 					{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 				</VGSelect>
 			</td>
@@ -1165,11 +1217,11 @@ function PackageRow(
 					pkg.sources.size == 0 ? (
 						pkg.isThereSource ? (
 							<Typography className="font-normal text-blue-gray-400">
-								Not Selected
+								{t("not selected")}
 							</Typography>
 						) : (
 							<Typography className="font-normal text-blue-gray-400">
-								none
+								{t("none")}
 							</Typography>
 						)
 					) : pkg.sources.size == 1 ? (
@@ -1179,7 +1231,7 @@ function PackageRow(
 					) : (
 						<Tooltip content={[...pkg.sources].join(", ")}>
 							<Typography className="font-normal">
-								Multiple Sources
+								{t("multiple sources")}
 							</Typography>
 						</Tooltip>
 					)
@@ -1214,15 +1266,17 @@ function PackageInstalledInfo(
 		pkg: PackageRowInfo,
 	}
 ) {
+	const {t} = useTranslation();
+
 	if (pkg.installed) {
 		const version = toVersionString(pkg.installed.version);
 		if (pkg.installed.yanked) {
-			return <Typography className={"text-red-700"}>{version} (yanked)</Typography>;
+			return <Typography className={"text-red-700"}>{version} {t("(yanked)")}</Typography>;
 		} else {
 			return <Typography>{version}</Typography>;
 		}
 	} else {
-		return <Typography className="text-blue-gray-400">none</Typography>;
+		return <Typography className="text-blue-gray-400">{t("none")}</Typography>;
 	}
 }
 
@@ -1237,9 +1291,11 @@ function PackageLatestInfo(
 		onInstallRequested: (pkg: TauriPackage) => void;
 	}
 ) {
+	const {t} = useTranslation();
+
 	switch (info.status) {
 		case "none":
-			return <Typography className="font-normal text-blue-gray-400">none</Typography>;
+			return <Typography className="font-normal text-blue-gray-400">{t("none")}</Typography>;
 		case "contains":
 			return <Typography className="font-normal">{toVersionString(info.pkg.version)}</Typography>;
 		case "upgradable":
@@ -1262,6 +1318,7 @@ function ProjectViewHeader({className, projectName, projectPath}: {
 	projectName: string,
 	projectPath: string
 }) {
+	const {t} = useTranslation();
 	const openProjectFolder = () => utilOpen(projectPath);
 
 	return (
@@ -1289,9 +1346,9 @@ function ProjectViewHeader({className, projectName, projectPath}: {
 					</MenuHandler>
 				</ButtonGroup>
 				<MenuList>
-					<MenuItem onClick={openProjectFolder}>Open Project Folder</MenuItem>
-					<MenuItem onClick={unsupported("Backup")}>Make Backup</MenuItem>
-					<MenuItem onClick={unsupported("Remove")} className={"bg-red-700 text-white"}>Remove Project</MenuItem>
+					<MenuItem onClick={openProjectFolder}>{t("open project folder")}</MenuItem>
+					<MenuItem onClick={unsupported("Backup")}>{t("make backup")}</MenuItem>
+					<MenuItem onClick={unsupported("Remove")} className={"bg-red-700 text-white"}>{t("remove project")}</MenuItem>
 				</MenuList>
 			</Menu>
 		</HNavBar>
