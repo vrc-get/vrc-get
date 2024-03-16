@@ -1,6 +1,6 @@
 "use client"
 
-import {Button, Card, Input, Typography} from "@material-tailwind/react";
+import {Button, Card, Checkbox, Input, Typography} from "@material-tailwind/react";
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
@@ -9,6 +9,7 @@ import {
 	environmentPickProjectDefaultPath,
 	environmentPickUnity,
 	environmentPickUnityHub,
+	environmentSetShowPrereleasePackages,
 	TauriEnvironmentSettings
 } from "@/lib/bindings";
 import {VStack} from "@/components/layout";
@@ -155,6 +156,16 @@ function Settings(
 		}
 	};
 
+	const toggleShowPrereleasePackages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		try {
+			await environmentSetShowPrereleasePackages(e.target.checked)
+			refetch()
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	}
+
 	return (
 		<>
 			<Card className={"flex-shrink-0 p-4"}>
@@ -201,6 +212,16 @@ function Settings(
 					<Input value={settings.project_backup_path} disabled/>
 					<Button className={"px-4"} onClick={selectProjectBackupFolder}>Select Folder</Button>
 				</div>
+			</Card>
+			<Card className={"flex-shrink-0 p-4"}>
+				<Typography className={"whitespace-normal"}>
+					Enabling Show Prerelease Packages will show prerelease packages in the package list.
+					In addition, prerelease packages will be used when resolving dependencies.
+				</Typography>
+				<label className={"flex items-center"}>
+					<Checkbox checked={settings.show_prerelease_packages} onChange={toggleShowPrereleasePackages}/>
+					Show Prerelease Packages
+				</label>
 			</Card>
 		</>
 	)
