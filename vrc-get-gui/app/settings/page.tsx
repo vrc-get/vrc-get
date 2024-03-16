@@ -13,10 +13,9 @@ import {
 	TauriEnvironmentSettings
 } from "@/lib/bindings";
 import {VStack} from "@/components/layout";
-import {toastThrownError} from "@/lib/toastThrownError";
 import React from "react";
-import {toast} from "react-toastify";
 import {Trans, useTranslation} from "react-i18next";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 
 export default function Page() {
 	const {t} = useTranslation();
@@ -75,10 +74,10 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error(t("selected file is invalid as a unity hub"));
+					toastError(t("selected file is invalid as a unity hub"));
 					break;
 				case "Successful":
-					toast.success(t("updated unity hub successfully!"));
+					toastSuccess(t("updated unity hub successfully!"));
 					refetch()
 					break;
 				default:
@@ -98,13 +97,13 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error(t("selected file is invalid as a unity"));
+					toastError(t("selected file is invalid as a unity"));
 					break;
 				case "AlreadyAdded":
-					toast.error(t("selected unity is already added"));
+					toastError(t("selected unity is already added"));
 					break;
 				case "Successful":
-					toast.success(t("added unity successfully!"));
+					toastSuccess(t("added unity successfully!"));
 					refetch()
 					break;
 				default:
@@ -124,10 +123,10 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error(t("selected directory is invalid as the project default path"));
+					toastError(t("selected directory is invalid as the project default path"));
 					break;
 				case "Successful":
-					toast.success(t("updated the project default path successfully!"));
+					toastSuccess(t("updated the project default path successfully!"));
 					refetch()
 					break;
 				default:
@@ -147,10 +146,10 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error(t("selected directory is invalid as a project backup path"));
+					toastError(t("selected directory is invalid as a project backup path"));
 					break;
 				case "Successful":
-					toast.success(t("updated the project backup path successfully!"));
+					toastSuccess(t("updated the project backup path successfully!"));
 					refetch()
 					break;
 				default:

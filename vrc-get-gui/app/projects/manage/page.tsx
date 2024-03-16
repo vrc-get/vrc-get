@@ -55,12 +55,11 @@ import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/versio
 import {VGOption, VGSelect} from "@/components/select";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
-import {toast} from "react-toastify";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
-import {toastThrownError} from "@/lib/toastThrownError";
 import {receiveLinesAndWaitForFinish} from "@/lib/migration-with-2022";
 import {Trans, useTranslation} from "react-i18next";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -202,7 +201,7 @@ function PageBody() {
 				}
 			}
 			if (envVersion == null) {
-				toast.error(t("no upgradable packages"));
+				toastError(t("no upgradable packages"));
 				return;
 			}
 			const changes = await projectUpgradeMultiplePackage(projectPath, envVersion, packages);
@@ -255,14 +254,14 @@ function PageBody() {
 
 			switch (requested.type) {
 				case "install":
-					toast.success(t("installed {{name}} version {{version}}",
+					toastSuccess(t("installed {{name}} version {{version}}",
 						{name: requested.pkg.display_name ?? requested.pkg.name, version: toVersionString(requested.pkg.version)}));
 					break;
 				case "remove":
-					toast.success(t("removed {{name}}", {name: requested.pkgId}));
+					toastSuccess(t("removed {{name}}", {name: requested.pkgId}));
 					break;
 				case "upgradeAll":
-					toast.success(t("upgraded all packages"));
+					toastSuccess(t("upgraded all packages"));
 					break;
 				default:
 					let _: never = requested;
@@ -287,7 +286,7 @@ function PageBody() {
 			const preMigrationResult = await projectBeforeMigrateProjectTo2022(allowMismatch);
 			switch (preMigrationResult.type) {
 				case "NoUnity2022Found":
-					toast.error(t("failed to migrate project: unity 2022 not found"));
+					toastError(t("failed to migrate project: unity 2022 not found"));
 					setInstallStatus({status: "normal"});
 					return;
 				case "ConfirmNotExactlyRecommendedUnity2022":
@@ -317,7 +316,7 @@ function PageBody() {
 			const finalizeResult = await projectFinalizeMigrationWithUnity2022(migrateProjectPath);
 			switch (finalizeResult.type) {
 				case "NoUnity2022Found":
-					toast.error(t("failed to finalize the migration: unity 2022 not found"));
+					toastError(t("failed to finalize the migration: unity 2022 not found"));
 					break;
 				case "MigrationStarted":
 					let lineNumber = 0;
@@ -333,7 +332,7 @@ function PageBody() {
 							}
 						})
 					});
-					toast.success(t("the project is migrated to unity 2022"));
+					toastSuccess(t("the project is migrated to unity 2022"));
 					break;
 				default:
 					const _: never = finalizeResult;

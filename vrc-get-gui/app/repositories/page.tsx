@@ -30,9 +30,8 @@ import {HNavBar, VStack} from "@/components/layout";
 import React, {Suspense, useMemo, useState} from "react";
 import {XCircleIcon} from "@heroicons/react/24/outline";
 import {nop} from "@/lib/nop";
-import {toastThrownError} from "@/lib/toastThrownError";
-import {toast} from "react-toastify";
 import {useTranslation} from "react-i18next";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -74,11 +73,11 @@ function PageBody() {
 			const info = await environmentDownloadRepository(url, headers);
 			switch (info.type) {
 				case "BadUrl":
-					toast.error(t("invalid url"));
+					toastError(t("invalid url"));
 					setState({type: 'normal'});
 					return;
 				case "DownloadError":
-					toast.error(t("failed to download the repository: {{message}}", {message: info.message}));
+					toastError(t("failed to download the repository: {{message}}", {message: info.message}));
 					setState({type: 'normal'});
 					return;
 				case "Duplicated":
@@ -127,7 +126,7 @@ function PageBody() {
 				try {
 					await environmentAddRepository(state.url, state.headers);
 					setState({type: 'normal'});
-					toast.success(t("added the repository successfully!"));
+					toastSuccess(t("added the repository successfully!"));
 					// noinspection ES6MissingAwait
 					result.refetch();
 				} catch (e) {

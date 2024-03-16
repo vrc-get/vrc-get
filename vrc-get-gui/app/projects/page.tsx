@@ -49,12 +49,11 @@ import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
-import {toast} from "react-toastify";
-import {toastThrownError} from "@/lib/toastThrownError";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
 import {VGOption, VGSelect} from "@/components/select";
 import {Trans, useTranslation} from "react-i18next";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 
 export default function Page() {
 	const {t} = useTranslation();
@@ -71,7 +70,7 @@ export default function Page() {
 		setLoadingOther(true);
 		try {
 			await environmentRemoveProject(project.list_version, project.index, directory);
-			toast.success("Project removed successfully");
+			toastSuccess("Project removed successfully");
 		} finally {
 			setLoadingOther(false);
 		}
@@ -261,7 +260,7 @@ function ProjectRow(
 			setDialogStatus({type: "migrateVpm:updating"});
 			await projectMigrateProjectToVpm(migrateProjectPath);
 			setDialogStatus({type: "normal"});
-			toast.success(t("project migrated successfully"));
+			toastSuccess(t("project migrated successfully"));
 			refresh?.();
 		} catch (e) {
 			console.error("Error migrating project", e);
@@ -484,10 +483,10 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error(t("invalid folder is selected"));
+					toastError(t("invalid folder is selected"));
 					break;
 				case "Successful":
-					toast.success(t("added project successfully"));
+					toastSuccess(t("added project successfully"));
 					refresh?.();
 					break;
 				default:
@@ -588,7 +587,7 @@ function CreateProject(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error(t("the selected directory is invalid"));
+					toastError(t("the selected directory is invalid"));
 					break;
 				case "Successful":
 					setProjectLocation(result.new_path);
@@ -606,7 +605,7 @@ function CreateProject(
 		try {
 			setState('creating');
 			await environmentCreateProject(projectLocation, projectName, chosenTemplate!);
-			toast.success("Project created successfully");
+			toastSuccess("Project created successfully");
 			close?.();
 			refetch?.();
 		} catch (e) {
