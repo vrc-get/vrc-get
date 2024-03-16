@@ -339,14 +339,15 @@ impl EnvironmentHolder {
         io: &DefaultEnvironmentIo,
     ) -> io::Result<&mut Environment> {
         if let Some(ref mut environment) = self.environment {
-            info!("reloading settings files");
             if !self
                 .last_update
                 .map(|x| x.elapsed() < tokio::time::Duration::from_secs(1))
                 .unwrap_or(false)
             {
+                info!("reloading settings files");
                 // reload settings files
                 environment.reload().await?;
+                self.last_update = Some(tokio::time::Instant::now());
             }
             if inc_version {
                 self.environment_version += Wrapping(1);
