@@ -56,6 +56,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_pick_unity,
         environment_pick_project_default_path,
         environment_pick_project_backup_path,
+        environment_set_show_prerelease_packages,
         environment_download_repository,
         environment_add_repository,
         environment_remove_repository,
@@ -97,6 +98,7 @@ pub(crate) fn export_ts() {
             environment_pick_unity,
             environment_pick_project_default_path,
             environment_pick_project_backup_path,
+            environment_set_show_prerelease_packages,
             environment_download_repository,
             environment_add_repository,
             environment_remove_repository,
@@ -886,6 +888,7 @@ struct TauriEnvironmentSettings {
     project_backup_path: String,
     unity_hub: String,
     unity_paths: Vec<(String, String, bool)>,
+    show_prerelease_packages: bool,
 }
 
 #[tauri::command]
@@ -911,6 +914,7 @@ async fn environment_get_settings(
                     ))
                 })
                 .collect(),
+            show_prerelease_packages: environment.show_prerelease_packages(),
         })
     })
 }
@@ -1142,6 +1146,19 @@ async fn environment_pick_project_backup_path(
     });
 
     Ok(TauriPickProjectBackupPathResult::Successful)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_show_prerelease_packages(
+    state: State<'_, Mutex<EnvironmentState>>,
+    value: bool,
+) -> Result<(), RustError> {
+    with_environment!(&state, |environment| {
+        environment.set_show_prerelease_packages(value);
+        environment.save().await?;
+        Ok(())
+    })
 }
 
 #[derive(Serialize, specta::Type)]
