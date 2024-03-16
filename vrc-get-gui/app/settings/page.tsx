@@ -9,15 +9,19 @@ import {
 	environmentPickProjectDefaultPath,
 	environmentPickUnity,
 	environmentPickUnityHub,
+	environmentSetLanguage,
 	environmentSetShowPrereleasePackages,
 	TauriEnvironmentSettings
 } from "@/lib/bindings";
 import {VStack} from "@/components/layout";
-import {toastThrownError} from "@/lib/toastThrownError";
 import React from "react";
-import {toast} from "react-toastify";
+import {Trans, useTranslation} from "react-i18next";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import i18next, {languages} from "@/lib/i18n";
+import {VGOption, VGSelect} from "@/components/select";
 
 export default function Page() {
+	const {t} = useTranslation();
 	const result = useQuery({
 		queryKey: ["environmentGetSettings"],
 		queryFn: environmentGetSettings
@@ -26,10 +30,10 @@ export default function Page() {
 	let body;
 	switch (result.status) {
 		case "error":
-			body = <Card className={"p-4"}>Error loading Settings</Card>;
+			body = <Card className={"p-4"}>{t("error loading settings")}</Card>;
 			break;
 		case "pending":
-			body = <Card className={"p-4"}>Loading...</Card>;
+			body = <Card className={"p-4"}>{t("loading...")}</Card>;
 			break;
 		case "success":
 			body = <Settings settings={result.data} refetch={result.refetch}/>;
@@ -44,8 +48,10 @@ export default function Page() {
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>Licenses</h2>
 				<Typography className={"whitespace-normal"}>
-					Click <Link href={"/settings/licenses"} className={"underline"}>here</Link> to view licenses of the projects
-					used in vrc-get-gui.
+					<Trans
+						i18nKey={"clock <l>here</l> to view licenses of the projects used in vrc-get-gui"}
+						components={{l: <Link href={"/settings/licenses"} className={"underline"}/>}}
+					/>
 				</Typography>
 			</Card>
 		</VStack>
@@ -61,6 +67,8 @@ function Settings(
 		refetch: () => void
 	}
 ) {
+	const {t} = useTranslation();
+
 	const selectUnityHub = async () => {
 		try {
 			const result = await environmentPickUnityHub();
@@ -69,10 +77,10 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error("Selected file is invalid as a Unity Hub");
+					toastError(t("selected file is invalid as a unity hub"));
 					break;
 				case "Successful":
-					toast.success("Updated Unity Hub successfully!");
+					toastSuccess(t("updated unity hub successfully!"));
 					refetch()
 					break;
 				default:
@@ -92,13 +100,13 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error("Selected file is invalid as a Unity");
+					toastError(t("selected file is invalid as a unity"));
 					break;
 				case "AlreadyAdded":
-					toast.error("Selected unity is already added");
+					toastError(t("selected unity is already added"));
 					break;
 				case "Successful":
-					toast.success("Updated Unity Hub successfully!");
+					toastSuccess(t("added unity successfully!"));
 					refetch()
 					break;
 				default:
@@ -118,10 +126,10 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error("Selected file is invalid as a Project Default Path");
+					toastError(t("selected directory is invalid as the project default path"));
 					break;
 				case "Successful":
-					toast.success("Updated Project Default Path successfully!");
+					toastSuccess(t("updated the project default path successfully!"));
 					refetch()
 					break;
 				default:
@@ -141,10 +149,10 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error("Selected file is invalid as a Project Backup Path");
+					toastError(t("selected directory is invalid as a project backup path"));
 					break;
 				case "Successful":
-					toast.success("Updated Project Backup Path successfully!");
+					toastSuccess(t("updated the project backup path successfully!"));
 					refetch()
 					break;
 				default:
@@ -166,61 +174,79 @@ function Settings(
 		}
 	}
 
+	const changeLanguage = async (value: string) => {
+		await Promise.all([
+			i18next.changeLanguage(value),
+			environmentSetLanguage(value),
+		])
+	};
+
 	return (
 		<>
 			<Card className={"flex-shrink-0 p-4"}>
-				<h1>Settings</h1>
+				<h1>{t("settings")}</h1>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
-				<h2 className={"pb-2"}>Unity Hub</h2>
+				<h2 className={"pb-2"}>{t("unity hub")}</h2>
 				<div className={"flex gap-1"}>
 					{
 						settings.unity_hub
 							? <Input value={settings.unity_hub} disabled/>
 							: <Input value={"Unity Hub Not Found"} disabled className={"text-red-900"}/>
 					}
-					<Button className={"px-4"} onClick={selectUnityHub}>Select</Button>
+					<Button className={"px-4"} onClick={selectUnityHub}>{t("select")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<div className={"pb-2 flex align-middle"}>
 					<div className={"flex-grow flex items-center"}>
-						<h2>Unity Installation</h2>
+						<h2>{t("unity installations")}</h2>
 					</div>
-					<Button onClick={addUnity} size={"sm"} className={"m-1"}>Add Unity</Button>
+					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{t("add unity")}</Button>
 				</div>
 				<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
 					<UnityTable unityPaths={settings.unity_paths}/>
 				</Card>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
-				<h2>Default Project Path</h2>
+				<h2>{t("default project path")}</h2>
 				<Typography className={"whitespace-normal"}>
-					The Default Project Path is the directory where vrc-get-gui will create new projects in.
+					{t("the default project path is the directory where new projects are created in.")}
 				</Typography>
 				<div className={"flex gap-1"}>
 					<Input value={settings.default_project_path} disabled/>
-					<Button className={"px-4"} onClick={selectProjectDefaultFolder}>Select Folder</Button>
+					<Button className={"px-4"} onClick={selectProjectDefaultFolder}>{t("select")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
-				<h2>Backup Path</h2>
+				<h2>{t("backup path")}</h2>
 				<Typography className={"whitespace-normal"}>
-					The Backup Path is the directory where vrc-get-gui will create backups zip of projects.
+					{t("the backup path is the directory where vrc-get-gui will create backup zips of the projects.")}
 				</Typography>
 				<div className={"flex gap-1"}>
 					<Input value={settings.project_backup_path} disabled/>
-					<Button className={"px-4"} onClick={selectProjectBackupFolder}>Select Folder</Button>
+					<Button className={"px-4"} onClick={selectProjectBackupFolder}>{t("select")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<Typography className={"whitespace-normal"}>
-					Enabling Show Prerelease Packages will show prerelease packages in the package list.
-					In addition, prerelease packages will be used when resolving dependencies.
+					{t("description for show prerelease packages")}
 				</Typography>
 				<label className={"flex items-center"}>
 					<Checkbox checked={settings.show_prerelease_packages} onChange={toggleShowPrereleasePackages}/>
-					Show Prerelease Packages
+					{t("show prerelease packages")}
+				</label>
+			</Card>
+			<Card className={"flex-shrink-0 p-4"}>
+				<label className={"flex items-center"}>
+					<h2>{t("language")}: </h2>
+					<VGSelect value={t("langName", {lng: i18next.language})} onChange={changeLanguage} menuClassName={"w-96"}>
+						{
+							languages.map((lang) => (
+								<VGOption key={lang} value={lang}>{t("langName", {lng: lang})}</VGOption>
+							))
+						}
+					</VGSelect>
 				</label>
 			</Card>
 		</>
@@ -234,7 +260,8 @@ function UnityTable(
 		unityPaths: [path: string, version: string, fromHub: boolean][]
 	}
 ) {
-	const UNITY_TABLE_HEAD = ["Unity Version", "Unity Path", "Source"];
+	const {t} = useTranslation();
+	const UNITY_TABLE_HEAD = ["unity version", "unity path", "source"];
 	return (
 		<table className="relative table-auto text-left">
 			<thead>
@@ -242,7 +269,7 @@ function UnityTable(
 				{UNITY_TABLE_HEAD.map((head, index) => (
 					<th key={index}
 							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{head}</Typography>
+						<Typography variant="small" className="font-normal leading-none">{t(head)}</Typography>
 					</th>
 				))}
 			</tr>
@@ -254,7 +281,7 @@ function UnityTable(
 						<td className={"p-2.5"}>{version}</td>
 						<td className={"p-2.5"}>{path}</td>
 						<td className={"p-2.5"}>
-							{isFromHub ? "Unity Hub" : "Manual"}
+							{isFromHub ? t("unity hub") : t("manual")}
 						</td>
 					</tr>
 				))

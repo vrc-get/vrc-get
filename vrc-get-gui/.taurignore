@@ -19,6 +19,7 @@
 /public/**
 /build/**
 /scripts/**
+/locales/**
 /*.js
 /*.mjs
 /*.ts

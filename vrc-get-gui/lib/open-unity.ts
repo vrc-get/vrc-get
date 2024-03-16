@@ -1,17 +1,18 @@
 import {projectOpenUnity} from "@/lib/bindings";
-import {toast} from "react-toastify";
+import i18next from "@/lib/i18n";
+import {toastError, toastNormal} from "@/lib/toast";
 
 export async function openUnity(projectPath: string) {
 	const result = await projectOpenUnity(projectPath);
 	switch (result) {
 		case "NoUnityVersionForTheProject":
-			toast.error("We couldn't detect suitable Unity version for the project.");
+			toastError(i18next.t("we couldn't detect suitable unity installations"));
 			break;
 		case "NoMatchingUnityFound":
-			toast.error("No matching Unity version found. Please install or add a Unity version to the VCC.");
+			toastError(i18next.t("no matching unity version found. please install or add add a unity version in the vrc-get-gui settings"));
 			break;
 		case "Success":
-			toast("Unity is opening...");
+			toastNormal(i18next.t("opening unity..."));
 			break;
 	}
 }

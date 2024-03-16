@@ -49,13 +49,14 @@ import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
-import {toast} from "react-toastify";
-import {toastThrownError} from "@/lib/toastThrownError";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
 import {VGOption, VGSelect} from "@/components/select";
+import {Trans, useTranslation} from "react-i18next";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 
 export default function Page() {
+	const {t} = useTranslation();
 	const result = useQuery({
 		queryKey: ["projects"],
 		queryFn: environmentProjects,
@@ -69,7 +70,7 @@ export default function Page() {
 		setLoadingOther(true);
 		try {
 			await environmentRemoveProject(project.list_version, project.index, directory);
-			toast.success("Project removed successfully");
+			toastSuccess("Project removed successfully");
 		} finally {
 			setLoadingOther(false);
 		}
@@ -90,8 +91,8 @@ export default function Page() {
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll">
 					{
-						result.status == "pending" ? "Loading..." :
-							result.status == "error" ? "Error Loading projects: " + result.error.message :
+						result.status == "pending" ? t("loading...") :
+							result.status == "error" ? t("error loading projects: {{msg}}", {msg: result.error.message}) :
 								<ProjectsTable
 									projects={result.data}
 									sorting={"lastModified"}
@@ -120,11 +121,13 @@ function ProjectsTable(
 		refresh?: () => void,
 	}
 ) {
+	const {t} = useTranslation();
+
 	const TABLE_HEAD = [
-		"Name",
-		"Type",
-		"Unity",
-		"Last Modified",
+		"name",
+		"type",
+		"unity",
+		"last modified",
 		"", // actions
 	];
 
@@ -143,7 +146,7 @@ function ProjectsTable(
 				{TABLE_HEAD.map((head, index) => (
 					<th key={index}
 							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{head}</Typography>
+						<Typography variant="small" className="font-normal leading-none">{t(head)}</Typography>
 					</th>
 				))}
 			</tr>
@@ -157,17 +160,17 @@ function ProjectsTable(
 	);
 }
 
-const ProjectDisplayType: Record<TauriProjectType, "Avatars" | "Worlds" | "Unknown"> = {
-	"Unknown": "Unknown",
-	"LegacySdk2": "Unknown",
-	"LegacyWorlds": "Worlds",
-	"LegacyAvatars": "Avatars",
-	"UpmWorlds": "Worlds",
-	"UpmAvatars": "Avatars",
-	"UpmStarter": "Unknown",
-	"Worlds": "Worlds",
-	"Avatars": "Avatars",
-	"VpmStarter": "Unknown",
+const ProjectDisplayType: Record<TauriProjectType, "avatars" | "worlds" | "unknown"> = {
+	"Unknown": "unknown",
+	"LegacySdk2": "unknown",
+	"LegacyWorlds": "worlds",
+	"LegacyAvatars": "avatars",
+	"UpmWorlds": "worlds",
+	"UpmAvatars": "avatars",
+	"UpmStarter": "unknown",
+	"Worlds": "worlds",
+	"Avatars": "avatars",
+	"VpmStarter": "unknown",
 }
 
 const LegacyProjectTypes = ["LegacySdk2", "LegacyWorlds", "LegacyAvatars", "UpmWorlds", "UpmAvatars", "UpmStarter"];
@@ -224,6 +227,7 @@ function ProjectRow(
 		refresh?: () => void;
 	}
 ) {
+	const {t} = useTranslation();
 	const router = useRouter();
 
 	const [dialogStatus, setDialogStatus] = useState<ProjectRowState>({type: 'normal'});
@@ -232,7 +236,7 @@ function ProjectRow(
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = `w-5 h-5`;
 
-	const displayType = ProjectDisplayType[project.project_type] ?? "Unknown"
+	const displayType = t(ProjectDisplayType[project.project_type] ?? "unknown")
 	const isLegacy = LegacyProjectTypes.includes(project.project_type);
 	const lastModified = new Date(project.last_modified);
 	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, '0')}-${(lastModified.getMonth() + 1).toString().padStart(2, '0')}-${lastModified.getDate().toString().padStart(2, '0')} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
@@ -256,7 +260,7 @@ function ProjectRow(
 			setDialogStatus({type: "migrateVpm:updating"});
 			await projectMigrateProjectToVpm(migrateProjectPath);
 			setDialogStatus({type: "normal"});
-			toast.success("Project migrated successfully");
+			toastSuccess(t("project migrated successfully"));
 			refresh?.();
 		} catch (e) {
 			console.error("Error migrating project", e);
@@ -272,7 +276,7 @@ function ProjectRow(
 
 	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
 		if (removed) {
-			return <Tooltip content={"Project Folder does not exists"}>
+			return <Tooltip content={t("project folder does not exist")}>
 				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
 			</Tooltip>
 		} else {
@@ -290,20 +294,20 @@ function ProjectRow(
 			manageButton =
 				<Tooltip content={"Legacy SDK2 project cannot be migrated automatically. Please migrate to SDK3 first."}>
 					<RowButton color={"light-green"} disabled>
-						Migrate
+						{t("migrate")}
 					</RowButton>
 				</Tooltip>
 			break;
 		case "LegacyWorlds":
 		case "LegacyAvatars":
-			manageButton = <RowButton color={"light-green"} onClick={startMigrateVpm}>Migrate</RowButton>
+			manageButton = <RowButton color={"light-green"} onClick={startMigrateVpm}>{t("migrate")}</RowButton>
 			break;
 		case "UpmWorlds":
 		case "UpmAvatars":
 		case "UpmStarter":
 			manageButton = <Tooltip content={"UPM-VCC projects are not supported"}>
 				<RowButton color={"blue"} disabled>
-					Manage
+					{t("manage")}
 				</RowButton>
 			</Tooltip>
 			break;
@@ -314,7 +318,7 @@ function ProjectRow(
 			manageButton = <RowButton
 				onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
 				color={"blue"}>
-				Manage
+				{t("manage")}
 			</RowButton>
 			break;
 	}
@@ -328,18 +332,21 @@ function ProjectRow(
 			}
 			dialogContent = (
 				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>Remove Project</DialogHeader>
+					<DialogHeader>{t("remove project")}</DialogHeader>
 					<DialogBody>
-						You're about to remove the project <strong>{project.name}</strong>. Are you sure?
+						<Trans i18nKey={"you're about to remove the project <strong>{{name}}</strong>"}
+									 values={{name: project.name}}
+									 components={{strong: <strong/>}}
+						/>
 					</DialogBody>
 					<DialogFooter>
-						<Button onClick={() => setDialogStatus({type: 'normal'})} className="mr-1">Cancel</Button>
+						<Button onClick={() => setDialogStatus({type: 'normal'})} className="mr-1">{t("cancel")}</Button>
 						<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
-							Remove from the List
+							{t("remove from the list")}
 						</Button>
 						<Button onClick={() => removeProjectButton(true)} color={"red"} className="px-2"
 										disabled={!project.is_exists}>
-							Remove the Directory
+							{t("remove the directory")}
 						</Button>
 					</DialogFooter>
 				</Dialog>
@@ -348,19 +355,19 @@ function ProjectRow(
 		case "migrateVpm:confirm":
 			dialogContent = (
 				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>VPM Migration</DialogHeader>
+					<DialogHeader>{t("vpm migration")}</DialogHeader>
 					<DialogBody>
 						<Typography className={"text-red-700"}>
-							Project migration is experimental in vrc-get.
+							{t("project migration is experimental in vrc-get.")}
 						</Typography>
 						<Typography className={"text-red-700"}>
-							Please make backup of your project before migration.
+							{t("please make backup of your project before migration.")}
 						</Typography>
 					</DialogBody>
 					<DialogFooter>
-						<Button onClick={() => setDialogStatus({type: "normal"})} className="mr-1">Cancel Migration</Button>
-						<Button onClick={() => doMigrateVpm(false)} color={"red"} className="mr-1">Migrate a Copy</Button>
-						<Button onClick={() => doMigrateVpm(true)} color={"red"}>Migrate in-place</Button>
+						<Button onClick={() => setDialogStatus({type: "normal"})} className="mr-1">{t("cancel")}</Button>
+						<Button onClick={() => doMigrateVpm(false)} color={"red"} className="mr-1">{t("migrate a copy")}</Button>
+						<Button onClick={() => doMigrateVpm(true)} color={"red"}>{t("migrate in-place")}</Button>
 					</DialogFooter>
 				</Dialog>
 			);
@@ -368,10 +375,10 @@ function ProjectRow(
 		case "migrateVpm:copyingProject":
 			dialogContent = (
 				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>VPM Migration</DialogHeader>
+					<DialogHeader>{t("vpm migration")}</DialogHeader>
 					<DialogBody>
 						<Typography>
-							Copying project for migration...
+							{t("copying project for migration...")}
 						</Typography>
 					</DialogBody>
 				</Dialog>
@@ -380,10 +387,10 @@ function ProjectRow(
 		case "migrateVpm:updating":
 			dialogContent = (
 				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>VPM Migration</DialogHeader>
+					<DialogHeader>{t("vpm migration")}</DialogHeader>
 					<DialogBody>
 						<Typography>
-							Migrating project...
+							{t("migrating project...")}
 						</Typography>
 					</DialogBody>
 				</Dialog>
@@ -394,7 +401,7 @@ function ProjectRow(
 	return (
 		<tr className={`even:bg-blue-gray-50/50 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
-				<MayTooltip content={"Project Folder does not exists"}>
+				<MayTooltip content={t("project folder does not exist")}>
 					<div className="flex flex-col">
 						<Typography className="font-normal">
 							{project.name}
@@ -416,7 +423,7 @@ function ProjectRow(
 						<Typography className="font-normal">
 							{displayType}
 						</Typography>
-						{isLegacy && <Typography className="font-normal opacity-50 text-sm text-red-700">Legacy</Typography>}
+						{isLegacy && <Typography className="font-normal opacity-50 text-sm text-red-700">{t("legacy")}</Typography>}
 					</div>
 				</div>
 			</td>
@@ -436,18 +443,18 @@ function ProjectRow(
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
-					<RowButton onClick={() => openUnity(project.path)}>Open Unity</RowButton>
+					<RowButton onClick={() => openUnity(project.path)}>{t("open unity")}</RowButton>
 					{manageButton}
-					<RowButton onClick={unsupported("Backup")} color={"green"}>Backup</RowButton>
+					<RowButton onClick={unsupported("Backup")} color={"green"}>{t("backup")}</RowButton>
 					<Menu>
 						<MenuHandler>
 							<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
 								className={"size-5"}/></IconButton>
 						</MenuHandler>
 						<MenuList>
-							<MenuItem onClick={openProjectFolder} disabled={removed || loading}>Open Project Folder</MenuItem>
+							<MenuItem onClick={openProjectFolder} disabled={removed || loading}>{t("open project folder")}</MenuItem>
 							<MenuItem onClick={startRemoveProject} disabled={loading} className={'text-red-700 focus:text-red-700'}>
-								Remove Project
+								{t("remove project")}
 							</MenuItem>
 						</MenuList>
 					</Menu>
@@ -466,6 +473,8 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 	search: string,
 	setSearch: (search: string) => void
 }) {
+	const {t} = useTranslation();
+
 	const addProject = async () => {
 		try {
 			const result = await environmentAddProjectWithPicker();
@@ -474,10 +483,10 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error("Invalid folder selected as a project");
+					toastError(t("invalid folder is selected"));
 					break;
 				case "Successful":
-					toast.success("Project added successfully");
+					toastSuccess(t("added project successfully"));
 					refresh?.();
 					break;
 				default:
@@ -492,7 +501,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 	return (
 		<HNavBar className={className}>
 			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
-				Projects
+				{t("projects")}
 			</Typography>
 
 			<Tooltip content="Reflesh list of projects">
@@ -505,7 +514,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 
 			<Menu>
 				<ButtonGroup>
-					<Button className={"pl-4 pr-3"} onClick={startCreateProject}>Create New Project</Button>
+					<Button className={"pl-4 pr-3"} onClick={startCreateProject}>{t("create new project")}</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
@@ -513,7 +522,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					</MenuHandler>
 				</ButtonGroup>
 				<MenuList>
-					<MenuItem onClick={addProject}>Add Existing Project</MenuItem>
+					<MenuItem onClick={addProject}>{t("add existing project")}</MenuItem>
 				</MenuList>
 			</Menu>
 		</HNavBar>
@@ -531,6 +540,8 @@ function CreateProject(
 		refetch?: () => void,
 	}
 ) {
+	const {t} = useTranslation();
+
 	const [state, setState] = useState<CreateProjectstate>('loadingInitialInformation');
 	const [projectNameCheckState, setProjectNameCheckState] = useState<'checking' | TauriProjectDirCheckResult>('Ok');
 
@@ -576,7 +587,7 @@ function CreateProject(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toast.error("Selected file is invalid as a Project Default Path");
+					toastError(t("the selected directory is invalid"));
 					break;
 				case "Successful":
 					setProjectLocation(result.new_path);
@@ -594,7 +605,7 @@ function CreateProject(
 		try {
 			setState('creating');
 			await environmentCreateProject(projectLocation, projectName, chosenTemplate!);
-			toast.success("Project created successfully");
+			toastSuccess("Project created successfully");
 			close?.();
 			refetch?.();
 		} catch (e) {
@@ -611,27 +622,27 @@ function CreateProject(
 
 	switch (projectNameCheckState) {
 		case "Ok":
-			projectNameCheck = "Project name is valid";
+			projectNameCheck = t("ready to create a project");
 			projectNameState = "Ok";
 			break;
 		case "InvalidNameForFolderName":
-			projectNameCheck = "Invalid Project Name";
+			projectNameCheck = t("invalid project name");
 			projectNameState = "err";
 			break;
 		case "MayCompatibilityProblem":
-			projectNameCheck = "Using such a symbol may cause compatibility problem";
+			projectNameCheck = t("using such a symbol may cause problems");
 			projectNameState = "warn";
 			break;
 		case "WideChar":
-			projectNameCheck = "Using mutlibyte characters may cause compatibility problem";
+			projectNameCheck = t("using multibyte characters may cause problems");
 			projectNameState = "warn";
 			break;
 		case "AlreadyExists":
-			projectNameCheck = "The folder already exists";
+			projectNameCheck = t("the directory already exists");
 			projectNameState = "err";
 			break;
 		case "checking":
-			projectNameCheck = <Spinner/>;
+			projectNameCheck = <><Spinner/> {t("checking the directory name...")}</>;
 			projectNameState = "Ok";
 			break;
 		default:
@@ -651,7 +662,7 @@ function CreateProject(
 				<VStack>
 					<div className={"flex gap-1"}>
 						<div className={"flex items-center"}>
-							<Typography as={"label"}>Template:</Typography>
+							<Typography as={"label"}>{t("template:")}</Typography>
 						</div>
 						<VGSelect menuClassName={"z-[19999]"} value={chosenTemplate?.name}
 											onChange={value => setChosenTemplate(value)}>
@@ -662,10 +673,14 @@ function CreateProject(
 					<Input label={"Project Name"} value={projectName} onChange={(e) => setProjectName(e.target.value)}/>
 					<div className={"flex gap-1"}>
 						<Input label={"Project Location"} value={projectLocation} disabled/>
-						<Button className={"px-4"} onClick={selectProjectDefaultFolder}>Select Folder</Button>
+						<Button className={"px-4"} onClick={selectProjectDefaultFolder}>{t("select directory")}</Button>
 					</div>
 					<Typography variant={"small"} className={"whitespace-normal"}>
-						Created project will be at <code>{projectLocation}/{projectName}</code>
+						<Trans
+							i18nKey={"the new project will be at <code>{{path}}</code>"}
+							components={{code: <code/>}}
+							values={{path: `${projectLocation}/${projectName}`}}
+						/>
 					</Typography>
 					<Typography variant={"small"} className={"whitespace-normal"}
 											color={projectNameState == "Ok" ? 'green' : projectNameState == "warn" ? 'yellow' : 'red'}>
@@ -677,20 +692,20 @@ function CreateProject(
 		case "creating":
 			dialogBody = <>
 				<Spinner/>
-				<Typography>Creating project...</Typography>
+				<Typography>{t("creating the project...")}</Typography>
 			</>;
 			break;
 	}
 
 	return <Dialog handler={nop} open>
-		<DialogHeader>Create New Project</DialogHeader>
+		<DialogHeader>{t("create new project")}</DialogHeader>
 		<DialogBody>
 			{dialogBody}
 		</DialogBody>
 		<DialogFooter>
 			<div className={"flex gap-2"}>
-				<Button onClick={close} disabled={state == "creating"}>Cancel</Button>
-				<Button onClick={createProject} disabled={checking || projectNameState == "err"}>Create</Button>
+				<Button onClick={close} disabled={state == "creating"}>{t("cancel")}</Button>
+				<Button onClick={createProject} disabled={checking || projectNameState == "err"}>{t("create")}</Button>
 			</div>
 		</DialogFooter>
 	</Dialog>;

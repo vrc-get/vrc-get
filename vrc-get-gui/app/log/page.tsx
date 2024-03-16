@@ -6,8 +6,10 @@ import React, {useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
 import {notoSansMono} from "@/app/fonts";
 import {listen} from '@tauri-apps/api/event';
+import {useTranslation} from "react-i18next";
 
 export default function Page() {
+	const {t} = useTranslation();
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
 
 	useEffect(() => {
@@ -41,7 +43,7 @@ export default function Page() {
 		<VStack className={"m-4"}>
 			<HNavBar className={"flex-shrink-0"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					Logs
+					{t("logs")}
 				</Typography>
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex flex-grow">
