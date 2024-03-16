@@ -139,5 +139,9 @@
     "unity version": "Unity Version",
     "unity path": "Unity Path",
     "manual": "Manual",
+    "{{name}} is not supported yet": "{{name}} is not supported yet",
+    "we couldn't detect suitable unity installations": "We couldn't detect suitable Unity installations",
+    "no matching unity version found. please install or add add a unity version in the vrc-get-gui settings": "No matching Unity version found. Please install or add add a Unity version in the vrc-get-gui settings",
+    "opening unity...": "Opening Unity...",
   },
 }
