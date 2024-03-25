@@ -23,7 +23,7 @@ reqwest = "0.11.26"
 specta = { version = "1.0.5", features = [ "chrono" ] }
 tauri-specta = { version = "1.0.2", features = ["typescript"] }
 open = "5.1.2"
-arc-swap = "1.7.0"
+arc-swap = "1.7.1"
 log = { version = "0.4.21", features = [ "std" ] }
 chrono = { version = "0.4.35", features = [ "serde" ] }
 ringbuffer = "0.15.0"
