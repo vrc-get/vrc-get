@@ -3,7 +3,7 @@
     "langName": "日本語",
     "projects": "プロジェクト",
     "settings": "設定",
-    "repositories": "VPMリポジトリ",
+    "vpm repositories": "VPMリポジトリ",
     "logs": "ログ",
     "search": "検索",
     "search...": "入力して検索...",
