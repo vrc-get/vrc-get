@@ -70,7 +70,7 @@ export default function Page() {
 		setLoadingOther(true);
 		try {
 			await environmentRemoveProject(project.list_version, project.index, directory);
-			toastSuccess("Project removed successfully");
+			toastSuccess(t("project removed successfully"));
 		} finally {
 			setLoadingOther(false);
 		}
@@ -605,7 +605,7 @@ function CreateProject(
 		try {
 			setState('creating');
 			await environmentCreateProject(projectLocation, projectName, chosenTemplate!);
-			toastSuccess("Project created successfully");
+			toastSuccess(t("project created successfully"));
 			close?.();
 			refetch?.();
 		} catch (e) {

@@ -49,7 +49,7 @@ export default function Page() {
 				<h2>Licenses</h2>
 				<Typography className={"whitespace-normal"}>
 					<Trans
-						i18nKey={"clock <l>here</l> to view licenses of the projects used in vrc-get-gui"}
+						i18nKey={"click <l>here</l> to view licenses of the projects used in vrc-get-gui"}
 						components={{l: <Link href={"/settings/licenses"} className={"underline"}/>}}
 					/>
 				</Typography>
