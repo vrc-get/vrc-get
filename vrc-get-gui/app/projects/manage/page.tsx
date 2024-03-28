@@ -725,7 +725,7 @@ function ProjectChangesDialog(
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
 							return <ListItem key={pkgId}>
-								{tc("install {{name}} version {{version}}", {
+								{tc("install <b>{{name}}</b> version {{version}}", {
 									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
 									version: toVersionString(pkgChange.InstallNew.version),
 								})}
@@ -737,11 +737,12 @@ function ProjectChangesDialog(
 							const name = getPackageDisplayName(pkgId);
 							switch (pkgChange.Remove) {
 								case "Requested":
-									return <ListItem key={pkgId}>{tc("remove {{name}} since you requested", {name})}</ListItem>
+									return <ListItem key={pkgId}>{tc("remove <b>{{name}}</b> since you requested", {name})}</ListItem>
 								case "Legacy":
-									return <ListItem key={pkgId}>{tc("remove {{name}} since it's a legacy package", {name})}</ListItem>
+									return <ListItem
+										key={pkgId}>{tc("remove <b>{{name}}</b> since it's a legacy package", {name})}</ListItem>
 								case "Unused":
-									return <ListItem key={pkgId}>{tc("remove {{name}} since it's not used", {name})}</ListItem>
+									return <ListItem key={pkgId}>{tc("remove <b>{{name}}</b> since it's not used", {name})}</ListItem>
 							}
 						}
 					})}
@@ -756,7 +757,7 @@ function ProjectChangesDialog(
 								{versionConflicts.map(([pkgId, conflict]) => {
 									return (
 										<ListItem key={pkgId}>
-											{tc("{{pkg}} conflicts with {{other}}", {
+											{tc("<b>{{pkg}}</b> conflicts with <b>{{other}}</b>", {
 												pkg: getPackageDisplayName(pkgId),
 												other: conflict.packages.map(p => getPackageDisplayName(p)).join(", ")
 											})}
@@ -776,7 +777,7 @@ function ProjectChangesDialog(
 							<List>
 								{unityConflicts.map(([pkgId, _]) => (
 									<ListItem key={pkgId}>
-										{tc("{{pkg}} does not support your unity version", {pkg: getPackageDisplayName(pkgId)})}
+										{tc("<b>{{pkg}}</b> does not support your unity version", {pkg: getPackageDisplayName(pkgId)})}
 									</ListItem>
 								))}
 							</List>

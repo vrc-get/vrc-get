@@ -23,6 +23,7 @@ i18next
 			transKeepBasicHtmlNodesFor: [
 				'br',
 				'strong',
+				'b',
 				'i',
 				'code',
 			]
