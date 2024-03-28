@@ -207,7 +207,7 @@ fn normalize_path(input: &Path) -> PathBuf {
     for component in input.components() {
         match component {
             Component::Prefix(prefix) => result.push(prefix.as_os_str()),
-            Component::RootDir => result.push("/"),
+            Component::RootDir => result.push(component.as_os_str()),
             Component::CurDir => {}
             Component::ParentDir => {
                 result.pop();
