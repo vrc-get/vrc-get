@@ -612,6 +612,19 @@ function CreateProject(
 			const _exhaustiveCheck: never = projectNameCheckState;
 			projectNameState = "err";
 	}
+
+	let projectNameStateClass;
+	switch (projectNameState) {
+		case "Ok":
+			projectNameStateClass = "text-green-700";
+			break;
+		case "warn":
+			projectNameStateClass = "text-yellow-900";
+			break;
+		case "err":
+			projectNameStateClass = "text-red";
+	}
+
 	if (checking) projectNameCheck = <Spinner/>
 
 	let dialogBody;
@@ -645,8 +658,7 @@ function CreateProject(
 							values={{path: `${projectLocation}/${projectName}`}}
 						/>
 					</Typography>
-					<Typography variant={"small"} className={"whitespace-normal"}
-											color={projectNameState == "Ok" ? 'green' : projectNameState == "warn" ? 'yellow' : 'red'}>
+					<Typography variant={"small"} className={`whitespace-normal ${projectNameStateClass}`}>
 						{projectNameCheck}
 					</Typography>
 				</VStack>
