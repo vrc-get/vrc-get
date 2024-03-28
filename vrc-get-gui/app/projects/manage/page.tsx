@@ -569,7 +569,7 @@ function Unity2022MigrationConfirmMigrationDialog(
 				</Typography>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{t("cance;")}</Button>
+				<Button onClick={cancel} className="mr-1">{t("cancel")}</Button>
 				<Button onClick={() => doMigrate(false)} color={"red"} className="mr-1">{t("migrate a copy")}</Button>
 				<Button onClick={() => doMigrate(true)} color={"red"}>{t("migrate in-place")}</Button>
 			</DialogFooter>
@@ -711,7 +711,7 @@ function ProjectChangesDialog(
 
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>Apply Changes</DialogHeader>
+			<DialogHeader>{t("apply changes")}</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-gray-900"}>
 					{t("you're applying the following changes to the project")}
@@ -1337,7 +1337,7 @@ function ProjectViewHeader({className, projectName, projectPath}: {
 
 			<Menu>
 				<ButtonGroup>
-					<Button onClick={() => openUnity(projectPath)} className={"pl-4 pr-3"}>Open Unity</Button>
+					<Button onClick={() => openUnity(projectPath)} className={"pl-4 pr-3"}>{t("open unity")}</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>

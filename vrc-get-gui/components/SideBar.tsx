@@ -30,7 +30,7 @@ export function SideBar({className}: { className?: string }) {
 			<List className="min-w-[10rem] flex-grow">
 				<SideBarItem href={"/projects"} text={t("projects")} icon={ListBulletIcon}/>
 				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
-				<SideBarItem href={"/repositories"} text={t("repositories")} icon={CloudIcon}/>
+				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
 				<div className={'flex-grow'}/>
 				<ListItem className={"text-sm"}>v{currentVersion}</ListItem>
