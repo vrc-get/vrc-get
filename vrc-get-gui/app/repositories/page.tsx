@@ -353,7 +353,7 @@ function Confirming(
 			<DialogBody className={"max-h-[50vh] overflow-y-auto"}>
 				<Typography>{tc("name: {{name}}", {name: repo.display_name})}</Typography>
 				<Typography>{tc("url: {{url}}", {url: repo.url})}</Typography>
-				<Typography>{tc("packages: ")}</Typography>
+				<Typography>{tc("packages:")}</Typography>
 				<ul className={"list-disc pl-6"}>
 					{
 						repo.packages.map((info, idx) => (
