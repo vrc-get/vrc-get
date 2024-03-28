@@ -726,11 +726,11 @@ function ProjectChangesDialog(
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>Apply Changes</DialogHeader>
-			<DialogBody>
+			<DialogBody className={"overflow-y-auto max-h-[50vh]"}>
 				<Typography className={"text-gray-900"}>
 					{t("you're applying the following changes to the project")}
 				</Typography>
-				<List className={"overflow-y-auto max-h-[50vh]"}>
+				<List>
 					{changes.package_changes.map(([pkgId, pkgChange]) => {
 						if ('InstallNew' in pkgChange) {
 							let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
