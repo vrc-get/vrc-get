@@ -7,6 +7,7 @@ import {Bars4Icon} from "@heroicons/react/24/outline";
 import {useQuery} from "@tanstack/react-query";
 import {utilGetVersion} from "@/lib/bindings";
 import {useTranslation} from "react-i18next";
+import {useRouter} from "next/navigation";
 
 export function SideBar({className}: { className?: string }) {
 	"use client"
@@ -42,9 +43,10 @@ export function SideBar({className}: { className?: string }) {
 function SideBarItem(
 	{href, text, icon}: { href: string, text: string, icon: React.ComponentType<{ className?: string }> }
 ) {
+	const router = useRouter();
 	const IconElenment = icon;
 	return (
-		<ListItem onClick={() => location.href = href}>
+		<ListItem onClick={() => router.push(href)}>
 			<ListItemPrefix>
 				<IconElenment className="h-5 w-5"/>
 			</ListItemPrefix>
