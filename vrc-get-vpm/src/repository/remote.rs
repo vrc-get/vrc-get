@@ -28,7 +28,7 @@ struct ParsedRepository {
     #[serde(default)]
     id: Option<Box<str>>,
     #[serde(default)]
-    packages: HashMap<Box<str>, RemotePackages>,
+    packages: IndexMap<Box<str>, RemotePackages>,
 }
 
 impl RemoteRepository {
