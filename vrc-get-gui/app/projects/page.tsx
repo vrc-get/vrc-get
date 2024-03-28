@@ -140,7 +140,7 @@ function ProjectsTable(
 			</thead>
 			<tbody>
 			{projectsShown.map((project) =>
-				<ProjectRow key={project.path} project={project} loading={loading} refresh={refresh} onRemoved={onRemoved}/>)}
+				<ProjectRow key={project.index} project={project} loading={loading} refresh={refresh} onRemoved={onRemoved}/>)}
 			</tbody>
 		</table>
 	);
