@@ -236,7 +236,8 @@ function ProjectRow(
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = `w-5 h-5`;
 
-	const displayType = t(ProjectDisplayType[project.project_type] ?? "unknown")
+	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
+	const displayType = t(projectTypeKind)
 	const isLegacy = LegacyProjectTypes.includes(project.project_type);
 	const lastModified = new Date(project.last_modified);
 	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, '0')}-${(lastModified.getMonth() + 1).toString().padStart(2, '0')}-${lastModified.getDate().toString().padStart(2, '0')} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
@@ -415,8 +416,8 @@ function ProjectRow(
 			<td className={`${cellClass} w-[8em]`}>
 				<div className="flex flex-row gap-2">
 					<div className="flex items-center">
-						{displayType === "Avatars" ? <UserCircleIcon className={typeIconClass}/> :
-							displayType === "Worlds" ? <GlobeAltIcon className={typeIconClass}/> :
+						{projectTypeKind === "avatars" ? <UserCircleIcon className={typeIconClass}/> :
+							projectTypeKind === "worlds" ? <GlobeAltIcon className={typeIconClass}/> :
 								<QuestionMarkCircleIcon className={typeIconClass}/>}
 					</div>
 					<div className="flex flex-col justify-center">
