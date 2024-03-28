@@ -1,9 +1,10 @@
-import {OsType, type} from '@tauri-apps/api/os';
+import type {OsType} from '@tauri-apps/api/os';
 
 let osType: OsType | null = null;
 
-(() => {
-	type().then((osType_) => osType = osType_).catch(e => console.error(e));
+(async () => {
+	const os = await import('@tauri-apps/api/os');
+	osType = await os.type();
 })();
 
 export function isWindows() {
