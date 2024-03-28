@@ -61,6 +61,7 @@ import {receiveLinesAndWaitForFinish} from "@/lib/migration-with-2022";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
+import {nameFromPath} from "@/lib/os";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -110,14 +111,6 @@ function PageBody() {
 
 	const projectPath = searchParams.get("projectPath") ?? "";
 	const projectName = nameFromPath(projectPath);
-
-	function nameFromPath(path: string): string {
-		let indexOfSlash = path.lastIndexOf("/");
-		let indexOfBackSlash = path.lastIndexOf("\\");
-		let indexOfSeparator = Math.max(indexOfSlash, indexOfBackSlash);
-		if (indexOfSeparator == -1) return path;
-		return path.substring(indexOfSeparator + 1);
-	}
 
 	const [repositoriesInfo, packagesResult, detailsResult] = useQueries({
 		queries: [
