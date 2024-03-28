@@ -45,7 +45,7 @@ export default function Page() {
 		<VStack className={"p-4 overflow-y-auto"}>
 			{body}
 			<Card className={"flex-shrink-0 p-4"}>
-				<h2>Licenses</h2>
+				<h2>{tc("licenses")}</h2>
 				<Typography className={"whitespace-normal"}>
 					{tc("click <l>here</l> to view licenses of the projects used in vrc-get-gui", {}, {
 						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
