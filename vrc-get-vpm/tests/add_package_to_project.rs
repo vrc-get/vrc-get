@@ -713,6 +713,96 @@ fn deny_absolute_legacy_assets() {
     })
 }
 
+#[test]
+fn do_not_remove_legacy_files_that_guid_mismatches() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dir("Assets/LegacyGuidMismatchFolder")
+            .add_file(
+                "Assets/LegacyGuidMismatchFolder.meta",
+                "guid: 75ead46ee7514680afd1ed9008423371",
+            )
+            .add_dir("Assets/LegacyGuidMatchFolder")
+            .add_file(
+                "Assets/LegacyGuidMatchFolder.meta",
+                "guid: cbac8a2877e64d75af9b3b61fe946b40",
+            )
+            .add_file("Assets/LegacyGuidMismatchAsset.cs", "// empty file")
+            .add_file(
+                "Assets/LegacyGuidMismatchAsset.cs.meta",
+                "guid: 85cc942c4a8a487ebe7df9937d15bdf8",
+            )
+            .add_file("Assets/LegacyGuidMatchAsset.cs", "// empty file")
+            .add_file(
+                "Assets/LegacyGuidMatchAsset.cs.meta",
+                "guid: 85cc942c4a8a487ebe7df9937d15bdf8",
+            )
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.anatawa12.package", Version::new(1, 0, 0))
+                    .add_legacy_folder(
+                        "Assets\\LegacyGuidMismatchFolder",
+                        "39bfddf4f3ac48c6845997a81fc5262c",
+                    )
+                    .add_legacy_folder(
+                        "Assets\\LegacyGuidMatchFolder",
+                        "cbac8a2877e64d75af9b3b61fe946b40",
+                    )
+                    .add_legacy_folder(
+                        "Packages\\LegacyGuidMismatchAsset.cs",
+                        "417a8085479b433792a67b2dfefb1982",
+                    )
+                    .add_legacy_file(
+                        "Assets\\LegacyGuidMatchAsset.cs",
+                        "85cc942c4a8a487ebe7df9937d15bdf8",
+                    ),
+            )
+            .build();
+
+        let package = collection.get_package("com.anatawa12.package", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(
+                &collection,
+                &[package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_eq!(
+            result
+                .remove_legacy_folders()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [(
+                Path::new("Assets/LegacyGuidMatchFolder").into(),
+                "com.anatawa12.package",
+            ),]
+            .iter()
+            .collect::<HashSet<_>>()
+        );
+
+        assert_eq!(
+            result.remove_legacy_files().iter().collect::<HashSet<_>>(),
+            [(
+                Path::new("Assets/LegacyGuidMatchAsset.cs").into(),
+                "com.anatawa12.package",
+            )]
+            .iter()
+            .collect::<HashSet<_>>()
+        );
+    })
+}
+
 //endregion
 
 // region errors
