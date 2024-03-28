@@ -592,7 +592,10 @@ async fn environment_add_project_with_picker(
 
     with_environment!(&state, |environment| {
         let projects = environment.get_projects()?;
-        if projects.iter().any(|x| x.path() == project_path) {
+        if projects
+            .iter()
+            .any(|x| Path::new(x.path()) == Path::new(&project_path))
+        {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
         environment.add_project(&unity_project).await?;
