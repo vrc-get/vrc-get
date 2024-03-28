@@ -84,7 +84,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 to_install.push(
                     env.find_package_by_name(
                         name,
-                        VersionSelector::range_for(self.unity_version(), &range.as_range()),
+                        VersionSelector::range_for(
+                            self.unity_version(),
+                            &range.as_range(),
+                            range.as_range().contains_pre(),
+                        ),
                     )
                     .ok_or_else(|| AddPackageErr::DependencyNotFound {
                         dependency_name: name.into(),
@@ -155,12 +159,17 @@ impl<IO: ProjectIo> UnityProject<IO> {
             .unlocked_packages
             .iter()
             .filter_map(|(_, pkg)| pkg.as_ref())
-            .flat_map(|pkg| pkg.vpm_dependencies());
+            .flat_map(|pkg| {
+                pkg.vpm_dependencies()
+                    .into_iter()
+                    .map(|(k, v)| (k, v, pkg.version().is_pre()))
+            });
 
         let unlocked_dependencies_versions = dependencies_of_unlocked_packages
-            .filter(|(k, _)| self.manifest.get_locked(k.as_ref()).is_none()) // skip if already installed to locked
-            .filter(|(k, _)| changes.get_installing(k).is_none()) // skip if we're installing
-            .filter(|(k, _)| !unlocked_names.contains(k.as_ref())) // skip if already installed as unlocked
+            .filter(|(k, _, _)| self.manifest.get_locked(k.as_ref()).is_none()) // skip if already installed to locked
+            .filter(|(k, _, _)| changes.get_installing(k).is_none()) // skip if we're installing
+            .filter(|(k, _, _)| !unlocked_names.contains(k.as_ref())) // skip if already installed as unlocked
+            .map(|(k, r, pre)| (k, (r, pre)))
             .into_group_map();
 
         if unlocked_dependencies_versions.is_empty() {
@@ -183,10 +192,16 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         let unlocked_dependencies = unlocked_dependencies_versions
             .into_iter()
-            .map(|(pkg_name, ranges)| {
+            .map(|(pkg_name, packages)| {
+                let ranges = packages
+                    .iter()
+                    .map(|(range, _)| range)
+                    .copied()
+                    .collect::<Vec<_>>();
+                let allow_prerelease = packages.iter().any(|(_, pre)| *pre);
                 env.find_package_by_name(
                     pkg_name,
-                    VersionSelector::ranges_for(self.unity_version, &ranges),
+                    VersionSelector::ranges_for(self.unity_version, &ranges, allow_prerelease),
                 )
                 .ok_or_else(|| AddPackageErr::DependencyNotFound {
                     dependency_name: pkg_name.clone(),

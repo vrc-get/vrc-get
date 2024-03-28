@@ -16,10 +16,12 @@ enum SelectorInner<'a> {
     Range {
         project_unity: Option<UnityVersion>,
         range: &'a VersionRange,
+        allow_prerelease: bool,
     },
     Ranges {
         project_unity: Option<UnityVersion>,
         ranges: &'a [&'a VersionRange],
+        allow_prerelease: bool,
     },
 }
 
@@ -39,20 +41,30 @@ impl<'a> VersionSelector<'a> {
         }
     }
 
-    pub fn range_for(unity_version: Option<UnityVersion>, range: &'a VersionRange) -> Self {
+    pub fn range_for(
+        unity_version: Option<UnityVersion>,
+        range: &'a VersionRange,
+        allow_prerelease: bool,
+    ) -> Self {
         Self {
             inner: SelectorInner::Range {
                 project_unity: unity_version,
                 range,
+                allow_prerelease,
             },
         }
     }
 
-    pub fn ranges_for(unity_version: Option<UnityVersion>, ranges: &'a [&'a VersionRange]) -> Self {
+    pub fn ranges_for(
+        unity_version: Option<UnityVersion>,
+        ranges: &'a [&'a VersionRange],
+        allow_prerelease: bool,
+    ) -> Self {
         Self {
             inner: SelectorInner::Ranges {
                 project_unity: unity_version,
                 ranges,
+                allow_prerelease,
             },
         }
     }
@@ -96,12 +108,19 @@ impl<'a> VersionSelector<'a> {
             SelectorInner::Range {
                 range,
                 project_unity,
-            } => range.matches(package.version()) && unity_and_yank(package, project_unity),
+                allow_prerelease,
+            } => {
+                range.match_pre(package.version(), allow_prerelease)
+                    && unity_and_yank(package, project_unity)
+            }
             SelectorInner::Ranges {
                 ranges,
                 project_unity,
+                allow_prerelease,
             } => {
-                ranges.iter().all(|x| x.matches(package.version()))
+                ranges
+                    .iter()
+                    .all(|x| x.match_pre(package.version(), allow_prerelease))
                     && unity_and_yank(package, project_unity)
             }
         }
