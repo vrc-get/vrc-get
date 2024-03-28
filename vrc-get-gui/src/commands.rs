@@ -599,6 +599,13 @@ async fn environment_add_project_with_picker(
     Ok(TauriAddProjectWithPickerResult::Successful)
 }
 
+async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
+    tokio::runtime::Handle::current()
+        .spawn_blocking(move || trash::delete(path))
+        .await
+        .unwrap()
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn environment_remove_project(
@@ -627,7 +634,8 @@ async fn environment_remove_project(
     if directory {
         let path = project.path();
         info!("removing project directory: {path}");
-        if let Err(err) = tokio::fs::remove_dir_all(path).await {
+
+        if let Err(err) = trash_delete(PathBuf::from(path)).await {
             error!("failed to remove project directory: {err}");
         } else {
             info!("removed project directory: {path}");
@@ -656,7 +664,7 @@ async fn environment_remove_project_by_path(
 
         if directory {
             info!("removing project directory: {path}");
-            if let Err(err) = tokio::fs::remove_dir_all(&path).await {
+            if let Err(err) = trash_delete(PathBuf::from(&path)).await {
                 error!("failed to remove project directory: {err}");
             } else {
                 info!("removed project directory: {path}");
