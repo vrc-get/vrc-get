@@ -571,7 +571,7 @@ function CreateProject(
 		try {
 			setState('creating');
 			await environmentCreateProject(projectLocation, projectName, chosenTemplate!);
-			toastSuccess("Project created successfully");
+			toastSuccess(t("project created successfully"));
 			close?.();
 			refetch?.();
 		} catch (e) {

@@ -56,7 +56,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 					} else {
 						await environmentRemoveProjectByPath(project.path, directory);
 					}
-					toastSuccess("Project removed successfully");
+					toastSuccess(t("project removed successfully"));
 					setState({type: 'idle'});
 				} finally {
 					onRemoved?.();
