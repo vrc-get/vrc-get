@@ -683,7 +683,8 @@ function CreateProject(
 		<DialogFooter>
 			<div className={"flex gap-2"}>
 				<Button onClick={close} disabled={state == "creating"}>{t("cancel")}</Button>
-				<Button onClick={createProject} disabled={checking || projectNameState == "err"}>{t("create")}</Button>
+				<Button onClick={createProject}
+								disabled={state == "creating" || checking || projectNameState == "err"}>{t("create")}</Button>
 			</div>
 		</DialogFooter>
 	</Dialog>;
