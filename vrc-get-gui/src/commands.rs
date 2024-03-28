@@ -297,14 +297,17 @@ async fn update_project_last_modified(env: &mut Environment, project_dir: &Path)
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[specta(export)]
+#[serde(tag = "type")]
 enum RustError {
-    Unrecoverable(String),
+    Unrecoverable { message: String },
 }
 
 impl RustError {
     fn unrecoverable<T: Display>(value: T) -> Self {
         error!("{value}");
-        Self::Unrecoverable(value.to_string())
+        Self::Unrecoverable {
+            message: value.to_string(),
+        }
     }
 }
 
@@ -618,9 +621,7 @@ async fn environment_remove_project(
     let state = &mut *state;
     let version = (state.environment.environment_version + state.projects_version).0;
     if list_version != version {
-        return Err(RustError::Unrecoverable(
-            "project list version mismatch".into(),
-        ));
+        return Err(RustError::unrecoverable("project list version mismatch"));
     }
 
     let project = &state.projects[index];
@@ -718,8 +719,8 @@ async fn environment_copy_project_for_migration(
     let name = source_path.file_name().unwrap();
 
     let Some(new_path_str) = create_folder(folder, name).await else {
-        return Err(RustError::Unrecoverable(
-            "failed to create a new folder for migration".into(),
+        return Err(RustError::unrecoverable(
+            "failed to create a new folder for migration",
         ));
     };
     let new_path = Path::new(&new_path_str);
@@ -1842,9 +1843,7 @@ macro_rules! changes {
         let current_version = state.environment.environment_version.0;
         $(
         if current_version != $env_version {
-            return Err(RustError::Unrecoverable(
-                "environment version mismatch".into(),
-            ));
+            return Err(RustError::unrecoverable("environment version mismatch"));
         }
         )?
 

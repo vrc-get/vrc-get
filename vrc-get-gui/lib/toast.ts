@@ -22,7 +22,7 @@ export function toastThrownError(error: any) {
 			toastError(error);
 			break;
 		case 'object':
-			if ('Unrecoverable' in error) return; // should be handled by log toast
+			if ('type' in error && error.type === "Unrecoverable") return; // should be handled by log toast
 			if (error instanceof Error || 'message' in error) {
 				toastError(error.message);
 			} else {
