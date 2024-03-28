@@ -149,5 +149,7 @@
     "we couldn't detect suitable unity installations": "We couldn't detect suitable Unity installations",
     "no matching unity version found. please install or add a unity version in the vrc-get-gui settings": "No matching Unity version found. Please install or add a Unity version in the vrc-get-gui settings",
     "opening unity...": "Opening Unity...",
+    "selecting file or folder": "Selecting file or folder",
+    "please select a file or folder": "Please select a file or folder",
   },
 }

@@ -146,5 +146,7 @@
     "we couldn't detect suitable unity installations": "プロジェクトのUnityバージョン指定が不正です。",
     "no matching unity version found. please install or add a unity version in the vrc-get-gui settings": "対応したバージョンのUnityを見つけることが出来ませんでした。該当するUnityをインストールするか、vrc-get-guiに登録してください。",
     "opening unity...": "Unityを起動中...",
+    "selecting file or folder": "ファイルまたはフォルダを選択",
+    "please select a file or folder": "ファイルまたはフォルダを選択してください",
   },
 }

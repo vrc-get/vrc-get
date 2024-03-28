@@ -54,6 +54,7 @@ import {VGOption, VGSelect} from "@/components/select";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
+import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 
 export default function Page() {
 	const result = useQuery({
@@ -432,9 +433,11 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 	search: string,
 	setSearch: (search: string) => void
 }) {
+	const [addProjectWithPicker, dialog] = useFilePickerFunction(environmentAddProjectWithPicker);
+
 	const addProject = async () => {
 		try {
-			const result = await environmentAddProjectWithPicker();
+			const result = await addProjectWithPicker();
 			switch (result) {
 				case "NoFolderSelected":
 					// no-op
@@ -485,6 +488,8 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					<MenuItem onClick={addProject}>{tc("add existing project")}</MenuItem>
 				</MenuList>
 			</Menu>
+
+			{dialog}
 		</HNavBar>
 	);
 }
@@ -508,6 +513,8 @@ function CreateProject(
 	const [projectName, setProjectName] = useState("New Project");
 	const [projectLocation, setProjectLocation] = useState("");
 	const projectNameDebounced = useDebounce(projectName, 500);
+
+	const [pickProjectDefaultPath, dialog] = useFilePickerFunction(environmentPickProjectDefaultPath);
 
 	useEffect(() => {
 		(async () => {
@@ -539,7 +546,7 @@ function CreateProject(
 
 	const selectProjectDefaultFolder = async () => {
 		try {
-			const result = await environmentPickProjectDefaultPath();
+			const result = await pickProjectDefaultPath();
 			switch (result.type) {
 				case "NoFolderSelected":
 					// no-op
@@ -675,5 +682,6 @@ function CreateProject(
 								disabled={state == "creating" || checking || projectNameState == "err"}>{tc("create")}</Button>
 			</div>
 		</DialogFooter>
+		{dialog}
 	</Dialog>;
 }

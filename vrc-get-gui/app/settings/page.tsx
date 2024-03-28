@@ -18,6 +18,7 @@ import React from "react";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
 import {VGOption, VGSelect} from "@/components/select";
+import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 
 export default function Page() {
 	const result = useQuery({
@@ -64,9 +65,14 @@ function Settings(
 		refetch: () => void
 	}
 ) {
+	const [pickUnity, unityDialog] = useFilePickerFunction(environmentPickUnity);
+	const [pickUnityHub, unityHubDialog] = useFilePickerFunction(environmentPickUnityHub);
+	const [pickProjectDefaultPath, projectDefaultDialog] = useFilePickerFunction(environmentPickProjectDefaultPath);
+	const [pickProjectBackupPath, projectBackupDialog] = useFilePickerFunction(environmentPickProjectBackupPath);
+
 	const selectUnityHub = async () => {
 		try {
-			const result = await environmentPickUnityHub();
+			const result = await pickUnityHub();
 			switch (result) {
 				case "NoFolderSelected":
 					// no-op
@@ -89,7 +95,7 @@ function Settings(
 
 	const addUnity = async () => {
 		try {
-			const result = await environmentPickUnity();
+			const result = await pickUnity();
 			switch (result) {
 				case "NoFolderSelected":
 					// no-op
@@ -115,7 +121,7 @@ function Settings(
 
 	const selectProjectDefaultFolder = async () => {
 		try {
-			const result = await environmentPickProjectDefaultPath();
+			const result = await pickProjectDefaultPath();
 			switch (result.type) {
 				case "NoFolderSelected":
 					// no-op
@@ -138,7 +144,7 @@ function Settings(
 
 	const selectProjectBackupFolder = async () => {
 		try {
-			const result = await environmentPickProjectBackupPath();
+			const result = await pickProjectBackupPath();
 			switch (result) {
 				case "NoFolderSelected":
 					// no-op
@@ -244,6 +250,10 @@ function Settings(
 					</VGSelect>
 				</label>
 			</Card>
+			{unityDialog}
+			{unityHubDialog}
+			{projectDefaultDialog}
+			{projectBackupDialog}
 		</>
 	)
 }
