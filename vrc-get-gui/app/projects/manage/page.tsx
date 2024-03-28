@@ -1202,9 +1202,11 @@ function PackageRow(
 							</Typography>
 						)
 					) : pkg.sources.size == 1 ? (
-						<Typography className="font-normal">
-							{[...pkg.sources][0]}
-						</Typography>
+						<Tooltip content={[...pkg.sources][0]}>
+							<Typography className="overflow-hidden overflow-ellipsis font-normal">
+								{[...pkg.sources][0]}
+							</Typography>
+						</Tooltip>
 					) : (
 						<Tooltip content={[...pkg.sources].join(", ")}>
 							<Typography className="font-normal">
