@@ -27,6 +27,7 @@
     "cancel": "Cancel",
     "remove from the list": "Remove from the list",
     "remove the directory": "Remove the directory",
+    "Removing the project...": "Removing the project...",
     "vpm migration": "VPM migration",
     "project migration is experimental in vrc-get.": "Project migration is experimental in vrc-get.",
     "please make backup of your project before migration.": "Please make backup of your project before migration.",

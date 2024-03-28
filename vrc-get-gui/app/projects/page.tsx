@@ -54,6 +54,7 @@ import {useDebounce} from "@uidotdev/usehooks";
 import {VGOption, VGSelect} from "@/components/select";
 import {Trans, useTranslation} from "react-i18next";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import {useRemoveProjectModal} from "@/lib/remove-project";
 
 export default function Page() {
 	const {t} = useTranslation();
@@ -65,17 +66,6 @@ export default function Page() {
 	const [search, setSearch] = useState("");
 	const [loadingOther, setLoadingOther] = useState(false);
 	const [createProjectState, setCreateProjectState] = useState<'normal' | 'creating'>('normal');
-
-	const removeProject = async (project: TauriProject, directory: boolean) => {
-		setLoadingOther(true);
-		try {
-			await environmentRemoveProject(project.list_version, project.index, directory);
-			toastSuccess("Project removed successfully");
-		} finally {
-			setLoadingOther(false);
-		}
-		await result.refetch();
-	};
 
 	const startCreateProject = () => setCreateProjectState('creating');
 
@@ -99,7 +89,8 @@ export default function Page() {
 									search={search}
 									loading={loading}
 									refresh={() => result.refetch()}
-									removeProject={removeProject}/>
+									onRemoved={() => result.refetch()}
+								/>
 					}
 				</Card>
 				{createProjectState === "creating" &&
@@ -111,13 +102,13 @@ export default function Page() {
 
 function ProjectsTable(
 	{
-		projects, sorting, search, removeProject, loading, refresh,
+		projects, sorting, search, onRemoved, loading, refresh,
 	}: {
 		projects: TauriProject[],
 		sorting: "lastModified",
 		search?: string,
 		loading?: boolean,
-		removeProject?: (project: TauriProject, directory: boolean) => void,
+		onRemoved?: () => void;
 		refresh?: () => void,
 	}
 ) {
@@ -153,8 +144,7 @@ function ProjectsTable(
 			</thead>
 			<tbody>
 			{projectsShown.map((project) =>
-				<ProjectRow key={project.path} project={project} loading={loading} refresh={refresh}
-										removeProject={(x) => removeProject?.(project, x)}/>)}
+				<ProjectRow key={project.path} project={project} loading={loading} refresh={refresh} onRemoved={onRemoved}/>)}
 			</tbody>
 		</table>
 	);
@@ -205,8 +195,6 @@ function formatDateOffset(date: number) {
 type ProjectRowState = {
 	type: 'normal',
 } | {
-	type: 'remove:confirm',
-} | {
 	type: 'migrateVpm:confirm',
 } | {
 	type: 'migrateVpm:copyingProject',
@@ -217,12 +205,12 @@ type ProjectRowState = {
 function ProjectRow(
 	{
 		project,
-		removeProject,
+		onRemoved,
 		loading,
 		refresh,
 	}: {
 		project: TauriProject;
-		removeProject?: (directory: boolean) => void;
+		onRemoved?: () => void;
 		loading?: boolean;
 		refresh?: () => void;
 	}
@@ -231,6 +219,7 @@ function ProjectRow(
 	const router = useRouter();
 
 	const [dialogStatus, setDialogStatus] = useState<ProjectRowState>({type: 'normal'});
+	const removeProjectModal = useRemoveProjectModal({onRemoved});
 
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
@@ -243,8 +232,6 @@ function ProjectRow(
 	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, '0')}-${(lastModified.getMonth() + 1).toString().padStart(2, '0')}-${lastModified.getDate().toString().padStart(2, '0')} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
 
 	const openProjectFolder = () => utilOpen(project.path);
-
-	const startRemoveProject = () => setDialogStatus({type: 'remove:confirm'});
 
 	const startMigrateVpm = () => setDialogStatus({type: 'migrateVpm:confirm'});
 	const doMigrateVpm = async (inPlace: boolean) => {
@@ -326,33 +313,6 @@ function ProjectRow(
 
 	let dialogContent: React.ReactNode = null;
 	switch (dialogStatus.type) {
-		case "remove:confirm":
-			const removeProjectButton = (directory: boolean) => {
-				setDialogStatus({type: 'normal'});
-				removeProject?.(directory);
-			}
-			dialogContent = (
-				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{t("remove project")}</DialogHeader>
-					<DialogBody>
-						<Trans i18nKey={"you're about to remove the project <strong>{{name}}</strong>"}
-									 values={{name: project.name}}
-									 components={{strong: <strong/>}}
-						/>
-					</DialogBody>
-					<DialogFooter>
-						<Button onClick={() => setDialogStatus({type: 'normal'})} className="mr-1">{t("cancel")}</Button>
-						<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
-							{t("remove from the list")}
-						</Button>
-						<Button onClick={() => removeProjectButton(true)} color={"red"} className="px-2"
-										disabled={!project.is_exists}>
-							{t("remove the directory")}
-						</Button>
-					</DialogFooter>
-				</Dialog>
-			);
-			break;
 		case "migrateVpm:confirm":
 			dialogContent = (
 				<Dialog open handler={nop} className={"whitespace-normal"}>
@@ -454,13 +414,15 @@ function ProjectRow(
 						</MenuHandler>
 						<MenuList>
 							<MenuItem onClick={openProjectFolder} disabled={removed || loading}>{t("open project folder")}</MenuItem>
-							<MenuItem onClick={startRemoveProject} disabled={loading} className={'text-red-700 focus:text-red-700'}>
+							<MenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
+												className={'text-red-700 focus:text-red-700'}>
 								{t("remove project")}
 							</MenuItem>
 						</MenuList>
 					</Menu>
 				</div>
 				{dialogContent}
+				{removeProjectModal.dialog}
 			</td>
 		</tr>
 	)
