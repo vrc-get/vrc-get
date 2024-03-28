@@ -1,9 +1,9 @@
 import React, {ReactNode, useState} from "react";
 import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
-import {Trans, useTranslation} from "react-i18next";
 import {environmentRemoveProject, environmentRemoveProjectByPath, TauriProject} from "@/lib/bindings";
 import {toastSuccess} from "@/lib/toast";
+import {tc, tt} from "@/lib/i18n";
 
 // string if remove project by path
 type Project = TauriProject | {
@@ -32,8 +32,6 @@ type Result = {
 }
 
 export function useRemoveProjectModal({onRemoved}: Params): Result {
-	const {t} = useTranslation();
-
 	const [state, setState] = useState<State>({type: 'idle'});
 
 	const cancel = () => setState({type: 'idle'});
@@ -52,11 +50,13 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 				setState({type: 'removing'});
 				try {
 					if ('list_version' in project) {
+						console.log("remove with index")
 						await environmentRemoveProject(project.list_version, project.index, directory);
 					} else {
+						console.log("remove with path")
 						await environmentRemoveProjectByPath(project.path, directory);
 					}
-					toastSuccess(t("project removed successfully"));
+					toastSuccess(tt("project removed successfully"));
 					setState({type: 'idle'});
 				} finally {
 					onRemoved?.();
@@ -65,21 +65,18 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 
 			dialog = (
 				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{t("remove project")}</DialogHeader>
+					<DialogHeader>{tc("remove project")}</DialogHeader>
 					<DialogBody>
-						<Trans i18nKey={"you're about to remove the project <strong>{{name}}</strong>"}
-									 values={{name: project.name}}
-									 components={{strong: <strong/>}}
-						/>
+						{tc("you're about to remove the project <strong>{{name}}</strong>", {name: project.name})}
 					</DialogBody>
 					<DialogFooter>
-						<Button onClick={cancel} className="mr-1">{t("cancel")}</Button>
+						<Button onClick={cancel} className="mr-1">{tc("cancel")}</Button>
 						<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
-							{t("remove from the list")}
+							{tc("remove from the list")}
 						</Button>
 						<Button onClick={() => removeProjectButton(true)} color={"red"} className="px-2"
 										disabled={!project.is_exists}>
-							{t("remove the directory")}
+							{tc("remove the directory")}
 						</Button>
 					</DialogFooter>
 				</Dialog>
@@ -88,17 +85,17 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 		case "removing":
 			dialog = (
 				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{t("remove project")}</DialogHeader>
+					<DialogHeader>{tc("remove project")}</DialogHeader>
 					<DialogBody>
-						<Trans i18nKey={"Removing the project..."}/>
+						{tc("Removing the project...")}
 					</DialogBody>
 					<DialogFooter>
-						<Button className="mr-1" disabled>{t("cancel")}</Button>
+						<Button className="mr-1" disabled>{tc("cancel")}</Button>
 						<Button className="mr-1 px-2" disabled>
-							{t("remove from the list")}
+							{tc("remove from the list")}
 						</Button>
 						<Button color={"red"} className="px-2" disabled>
-							{t("remove the directory")}
+							{tc("remove the directory")}
 						</Button>
 					</DialogFooter>
 				</Dialog>
