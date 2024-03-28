@@ -12,6 +12,8 @@ use std::ffi::{OsStr, OsString};
 use std::os::windows::prelude::*;
 use tokio::process::Command;
 
+const DETACHED_PROCESS: u32 = 0x00000008;
+
 pub(crate) async fn start_command(
     name: &OsStr,
     path: &OsStr,
@@ -47,6 +49,7 @@ pub(crate) async fn start_command(
     // execute
     let status = Command::new("cmd.exe")
         .raw_arg(OsString::from_wide(&cmd_args))
+        .creation_flags(DETACHED_PROCESS)
         .status()
         .await?;
 
