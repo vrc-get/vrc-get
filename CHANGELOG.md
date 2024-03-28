@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog].
 - vrc-get specific configuration is moved to `vrc-get/settings.json` `#607`
   - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
     to not dirty the folder, I moved the config file to `vrc-get` folder.
+- Legacy Assets are not removed if the specified GUID does not match with the actual GUID `#677`
+  - This follows VCC 2.3.0 beta behavior.
 
 ### Deprecated
 

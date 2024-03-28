@@ -7,7 +7,7 @@ use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use hex::FromHex;
 use std::collections::HashMap;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 
@@ -96,6 +96,7 @@ async fn find_legacy_assets_by_path<'a>(
                     .await
                     .map(|x| x.is_file() == info.is_file)
                     .unwrap_or(false)
+                && check_guid(io, relative_path.as_ref(), info.guid).await
             {
                 Some(FoundWithPath(
                     info.package_name,
@@ -130,6 +131,17 @@ async fn find_legacy_assets_by_path<'a>(
     }
 
     (found_files, found_folders, find_guids)
+}
+
+async fn check_guid(io: &impl ProjectIo, path: &Path, guid: Option<Guid>) -> bool {
+    if let Some(guid) = guid {
+        let mut path = OsString::from(path);
+        path.push(".meta");
+        if let Some(actual_guid) = try_parse_meta(io, path.as_ref()).await {
+            return actual_guid == guid;
+        }
+    }
+    true
 }
 
 async fn try_parse_meta(io: &impl ProjectIo, path: &Path) -> Option<Guid> {
