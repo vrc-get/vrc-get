@@ -703,6 +703,10 @@ function ProjectChangesDialog(
 		return (pkgId: string) => packagesById.get(pkgId)?.displayName ?? pkgId;
 	}, [packages]);
 
+	const TypographyItem = ({children}: { children: React.ReactNode }) => (
+		<ListItem><Typography>{children}</Typography></ListItem>
+	);
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>{tc("apply changes")}</DialogHeader>
@@ -718,10 +722,10 @@ function ProjectChangesDialog(
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
 							return <ListItem key={pkgId}>
-								{tc("install <b>{{name}}</b> version {{version}}", {
+								<Typography>{tc("install <b>{{name}}</b> version {{version}}", {
 									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
 									version: toVersionString(pkgChange.InstallNew.version),
-								})}
+								})}</Typography>
 								{changelogUrl != null &&
 									<Button className={"ml-1 px-2"} size={"sm"}
 													onClick={() => shellOpen(changelogUrl)}>{tc("see changelog")}</Button>}
@@ -730,12 +734,17 @@ function ProjectChangesDialog(
 							const name = getPackageDisplayName(pkgId);
 							switch (pkgChange.Remove) {
 								case "Requested":
-									return <ListItem key={pkgId}>{tc("remove <b>{{name}}</b> since you requested", {name})}</ListItem>
+									return <TypographyItem key={pkgId}>
+										{tc("remove <b>{{name}}</b> since you requested", {name})}
+									</TypographyItem>
 								case "Legacy":
-									return <ListItem
-										key={pkgId}>{tc("remove <b>{{name}}</b> since it's a legacy package", {name})}</ListItem>
+									return <TypographyItem key={pkgId}>
+										{tc("remove <b>{{name}}</b> since it's a legacy package", {name})}
+									</TypographyItem>
 								case "Unused":
-									return <ListItem key={pkgId}>{tc("remove <b>{{name}}</b> since it's not used", {name})}</ListItem>
+									return <TypographyItem key={pkgId}>
+										{tc("remove <b>{{name}}</b> since it's not used", {name})}
+									</TypographyItem>
 							}
 						}
 					})}
@@ -749,12 +758,12 @@ function ProjectChangesDialog(
 							<List>
 								{versionConflicts.map(([pkgId, conflict]) => {
 									return (
-										<ListItem key={pkgId}>
+										<TypographyItem key={pkgId}>
 											{tc("<b>{{pkg}}</b> conflicts with <b>{{other}}</b>", {
 												pkg: getPackageDisplayName(pkgId),
 												other: conflict.packages.map(p => getPackageDisplayName(p)).join(", ")
 											})}
-										</ListItem>
+										</TypographyItem>
 									);
 								})}
 							</List>
@@ -769,9 +778,9 @@ function ProjectChangesDialog(
 							</Typography>
 							<List>
 								{unityConflicts.map(([pkgId, _]) => (
-									<ListItem key={pkgId}>
+									<TypographyItem key={pkgId}>
 										{tc("<b>{{pkg}}</b> does not support your unity version", {pkg: getPackageDisplayName(pkgId)})}
-									</ListItem>
+									</TypographyItem>
 								))}
 							</List>
 						</>
@@ -785,14 +794,14 @@ function ProjectChangesDialog(
 							</Typography>
 							<List>
 								{changes.remove_legacy_files.map(f => (
-									<ListItem key={f}>
+									<TypographyItem key={f}>
 										{f}
-									</ListItem>
+									</TypographyItem>
 								))}
 								{changes.remove_legacy_folders.map(f => (
-									<ListItem key={f}>
+									<TypographyItem key={f}>
 										{f}
-									</ListItem>
+									</TypographyItem>
 								))}
 							</List>
 						</>
