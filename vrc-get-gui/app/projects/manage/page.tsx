@@ -60,6 +60,7 @@ import {shellOpen} from "@/lib/shellOpen";
 import {receiveLinesAndWaitForFinish} from "@/lib/migration-with-2022";
 import {Trans, useTranslation} from "react-i18next";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import {useRemoveProjectModal} from "@/lib/remove-project";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -105,6 +106,8 @@ function PageBody() {
 	const {t} = useTranslation();
 	const searchParams = useSearchParams();
 	const router = useRouter();
+
+	const projectRemoveModal = useRemoveProjectModal({onRemoved: () => router.back()});
 
 	const projectPath = searchParams.get("projectPath") ?? "";
 	const projectName = nameFromPath(projectPath);
@@ -174,6 +177,14 @@ function PageBody() {
 		detailsResult.refetch();
 		repositoriesInfo.refetch();
 	};
+
+	const onRemoveProject = () => {
+		projectRemoveModal.startRemove({
+			path: projectPath,
+			name: projectName,
+			is_exists: true,
+		})
+	}
 
 	const onInstallRequested = async (pkg: TauriPackage) => {
 		try {
@@ -390,6 +401,7 @@ function PageBody() {
 			break;
 		case "unity2022migration:copyingProject":
 			dialogForState = <Unity2022MigrationCopyingDialog/>;
+			break
 		case "unity2022migration:updating":
 			dialogForState = <Unity2022MigrationMigratingDialog/>;
 			break;
@@ -400,7 +412,8 @@ function PageBody() {
 
 	return (
 		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}/>
+			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}
+												 onRemove={onRemoveProject}/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
 					<Trans
@@ -517,6 +530,7 @@ function PageBody() {
 					</Card>
 				</Card>
 				{dialogForState}
+				{projectRemoveModal.dialog}
 			</main>
 		</VStack>
 	);
@@ -1312,10 +1326,11 @@ function PackageLatestInfo(
 	}
 }
 
-function ProjectViewHeader({className, projectName, projectPath}: {
+function ProjectViewHeader({className, projectName, projectPath, onRemove}: {
 	className?: string,
 	projectName: string,
 	projectPath: string
+	onRemove?: () => void
 }) {
 	const {t} = useTranslation();
 	const openProjectFolder = () => utilOpen(projectPath);
@@ -1347,7 +1362,7 @@ function ProjectViewHeader({className, projectName, projectPath}: {
 				<MenuList>
 					<MenuItem onClick={openProjectFolder}>{t("open project folder")}</MenuItem>
 					<MenuItem onClick={unsupported("Backup")}>{t("make backup")}</MenuItem>
-					<MenuItem onClick={unsupported("Remove")} className={"bg-red-700 text-white"}>{t("remove project")}</MenuItem>
+					<MenuItem onClick={onRemove} className={"bg-red-700 text-white"}>{t("remove project")}</MenuItem>
 				</MenuList>
 			</Menu>
 		</HNavBar>

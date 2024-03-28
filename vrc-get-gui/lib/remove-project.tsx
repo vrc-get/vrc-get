@@ -2,14 +2,21 @@ import React, {ReactNode, useState} from "react";
 import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {Trans, useTranslation} from "react-i18next";
-import {environmentRemoveProject, TauriProject} from "@/lib/bindings";
+import {environmentRemoveProject, environmentRemoveProjectByPath, TauriProject} from "@/lib/bindings";
 import {toastSuccess} from "@/lib/toast";
+
+// string if remove project by path
+type Project = TauriProject | {
+	path: string,
+	name: string,
+	is_exists: boolean,
+};
 
 type State = {
 	type: 'idle',
 } | {
 	type: 'confirm',
-	project: TauriProject,
+	project: Project,
 } | {
 	type: 'removing',
 }
@@ -20,7 +27,7 @@ type Params = {
 }
 
 type Result = {
-	startRemove: (project: TauriProject) => void,
+	startRemove: (project: Project) => void,
 	dialog: ReactNode,
 }
 
@@ -30,7 +37,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 	const [state, setState] = useState<State>({type: 'idle'});
 
 	const cancel = () => setState({type: 'idle'});
-	const startRemove = (project: TauriProject) => setState({type: 'confirm', project});
+	const startRemove = (project: Project) => setState({type: 'confirm', project});
 
 	let dialog: ReactNode = null;
 
@@ -40,10 +47,15 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 		case "confirm":
 			const project = state.project;
 
+
 			const removeProjectButton = async (directory: boolean) => {
 				setState({type: 'removing'});
 				try {
-					await environmentRemoveProject(project.list_version, project.index, directory);
+					if ('list_version' in project) {
+						await environmentRemoveProject(project.list_version, project.index, directory);
+					} else {
+						await environmentRemoveProjectByPath(project.path, directory);
+					}
 					toastSuccess("Project removed successfully");
 					setState({type: 'idle'});
 				} finally {

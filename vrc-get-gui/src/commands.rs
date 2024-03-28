@@ -47,6 +47,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_projects,
         environment_add_project_with_picker,
         environment_remove_project,
+        environment_remove_project_by_path,
         environment_copy_project_for_migration,
         environment_packages,
         environment_repositories_info,
@@ -91,6 +92,7 @@ pub(crate) fn export_ts() {
             environment_projects,
             environment_add_project_with_picker,
             environment_remove_project,
+            environment_remove_project_by_path,
             environment_copy_project_for_migration,
             environment_packages,
             environment_repositories_info,
@@ -628,6 +630,36 @@ async fn environment_remove_project(
     }
 
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_remove_project_by_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+    path: String,
+    directory: bool,
+) -> Result<(), RustError> {
+    with_environment!(&state, |environment| {
+        let projects: Vec<vrc_get_vpm::environment::UserProject> = environment.get_projects()?;
+
+        if let Some(x) = projects.iter().find(|x| x.path() == path) {
+            environment.remove_project(x)?;
+            environment.save().await?;
+        } else {
+            environment.disconnect_litedb();
+        }
+
+        if directory {
+            info!("removing project directory: {path}");
+            if let Err(err) = tokio::fs::remove_dir_all(&path).await {
+                error!("failed to remove project directory: {err}");
+            } else {
+                info!("removed project directory: {path}");
+            }
+        }
+
+        Ok(())
+    })
 }
 
 async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result<u64> {
