@@ -452,6 +452,9 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					toastSuccess(t("added project successfully"));
 					refresh?.();
 					break;
+				case "AlreadyAdded":
+					toastError(t("the project is already added"));
+					break;
 				default:
 					let _: never = result;
 			}

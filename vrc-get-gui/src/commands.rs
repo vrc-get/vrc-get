@@ -565,6 +565,7 @@ async fn environment_projects(
 enum TauriAddProjectWithPickerResult {
     NoFolderSelected,
     InvalidSelection,
+    AlreadyAdded,
     Successful,
 }
 
@@ -581,12 +582,16 @@ async fn environment_add_project_with_picker(
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     };
 
-    let unity_project = load_project(project_path).await?;
+    let unity_project = load_project(project_path.clone()).await?;
     if !unity_project.is_valid().await {
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     }
 
     with_environment!(&state, |environment| {
+        let projects = environment.get_projects()?;
+        if projects.iter().any(|x| x.path() == project_path) {
+            return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
+        }
         environment.add_project(&unity_project).await?;
         environment.save().await?;
     });
