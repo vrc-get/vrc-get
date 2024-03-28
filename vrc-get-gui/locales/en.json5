@@ -120,7 +120,7 @@
     "ok": "OK",
     "name: {{name}}": "Name: {{name}}",
     "url: {{url}}": "URL: {{url}}",
-    "packages": "Packages",
+    "packages:": "Packages:",
     "error loading settings": "Error loading settings",
     "licenses": "Licenses",
     "click <l>here</l> to view licenses of the projects used in vrc-get-gui": "Click <l>here</l> to view licenses of the projects used in vrc-get-gui",

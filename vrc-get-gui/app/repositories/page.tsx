@@ -350,17 +350,17 @@ function Confirming(
 ) {
 	return (
 		<>
-			<DialogBody>
+			<DialogBody className={"max-h-[50vh] overflow-y-auto"}>
 				<Typography>{tc("name: {{name}}", {name: repo.display_name})}</Typography>
 				<Typography>{tc("url: {{url}}", {url: repo.url})}</Typography>
-				<Typography>{tc("packages")}</Typography>
-				<List className={"max-h-[50vh] overflow-y-auto"}>
+				<Typography>{tc("packages: ")}</Typography>
+				<ul className={"list-disc pl-6"}>
 					{
 						repo.packages.map((info, idx) => (
-							<ListItem key={idx}>{info.display_name ?? info.name}</ListItem>
+							<li key={idx}>{info.display_name ?? info.name}</li>
 						))
 					}
-				</List>
+				</ul>
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel}>{tc("cancel")}</Button>

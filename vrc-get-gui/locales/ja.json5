@@ -117,7 +117,7 @@
     "ok": "OK",
     "name: {{name}}": "リポジトリ名: {{name}}",
     "url: {{url}}": "URL: {{url}}",
-    "packages": "パッケージ",
+    "packages:": "パッケージ:",
     "error loading settings": "設定の読み込みに失敗しました。",
     "licenses": "ライセンス",
     "click <l>here</l> to view licenses of the projects used in vrc-get-gui": "vrc-get-guiで利用しているプロジェクトのライセンスを表示するには、<l>ここをクリック</l>",
