@@ -511,7 +511,8 @@ function CreateProject(
 
 	const [templates, setTemplates] = useState<TauriProjectTemplate[]>([]);
 	const [chosenTemplate, setChosenTemplate] = useState<TauriProjectTemplate>();
-	const [projectName, setProjectName] = useState("New Project");
+	const [projectNameRaw, setProjectName] = useState("New Project");
+	const projectName = projectNameRaw.trim();
 	const [projectLocation, setProjectLocation] = useState("");
 	const projectNameDebounced = useDebounce(projectName, 500);
 
@@ -649,7 +650,7 @@ function CreateProject(
 								<VGOption value={template} key={`${template.type}:${template.name}`}>{template.name}</VGOption>)}
 						</VGSelect>
 					</div>
-					<Input label={"Project Name"} value={projectName} onChange={(e) => setProjectName(e.target.value)}/>
+					<Input label={"Project Name"} value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
 					<div className={"flex gap-1"}>
 						<Input label={"Project Location"} value={projectLocation} disabled/>
 						<Button className={"px-4"} onClick={selectProjectDefaultFolder}>{tc("select directory")}</Button>
