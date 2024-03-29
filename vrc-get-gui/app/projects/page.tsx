@@ -656,7 +656,11 @@ function CreateProject(
 						<Button className={"px-4"} onClick={selectProjectDefaultFolder}>{tc("select directory")}</Button>
 					</div>
 					<Typography variant={"small"} className={"whitespace-normal"}>
-						{tc("the new project will be at <code>{{path}}</code>", {path: `${projectLocation}${pathSeparator()}${projectName}`})}
+						{tc("the new project will be at <code>{{path}}</code>", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {
+							components: {
+								code: <code className={"whitespace-pre"}/>
+							}
+						})}
 					</Typography>
 					<Typography variant={"small"} className={`whitespace-normal ${projectNameStateClass}`}>
 						{projectNameCheck}
