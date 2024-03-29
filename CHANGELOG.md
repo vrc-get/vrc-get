@@ -30,8 +30,8 @@ The format is based on [Keep a Changelog].
 - Prerelease packages are installed if the version range contains prerelease `#676`
   - To fix this problem, automatic allow prerelease rule is a bit changed.
   - For resolving dependencies in `vpm-manifest.json`, prerelease is used if version range contains prerelease.
-  - For resolving dependencies of packages, prerelease is used if the dependant package is prerelease, and matching version is not found without prereleases.
-  - This does not change behavior with `--prerelease` option
+  - For resolving dependencies of packages, prerelease is used if the dependant package is prerelease, and matching version is only contained in prereleases.
+  - This does not change behavior of `--prerelease` option
 
 ### Security
 

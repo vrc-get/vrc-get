@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Package names on the Apply Changes dialog are now bold `#676`
-- Deleting a project folder moves the project folder to trach instead of hard deleting `#676`
+- Deleting a project now moves its folder to trash instead of hard deleting `#676`
 
 ### Deprecated
 
@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - World icon does not appear in the project list `#625`
-- Remove button on the manage project page is not working `#676`
+- Remove project button on the manage project page is not working `#676`
 - Project name warning is too bright `#676`
 - Unable to touch any buttons if Apply Changes dialog is long `#676`
 - The package order is not deterministic `#676`
