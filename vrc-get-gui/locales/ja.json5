@@ -43,6 +43,7 @@
     "open project folder": "プロジェクトフォルダを開く",
     "invalid folder is selected": "不正なフォルダが選択されました。",
     "added project successfully": "プロジェクトを追加しました。",
+    "the project is already added": "このプロジェクトは既に追加されています。",
     "the selected directory is invalid": "選択されたディレクトリは不正です。",
     "ready to create a project": "プロジェクトが作成可能です！",
     "invalid project name": "プロジェクト名が不正です。",

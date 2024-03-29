@@ -43,6 +43,7 @@
     "open project folder": "Open project folder",
     "invalid folder is selected": "Invalid folder is selected",
     "added project successfully": "Added project successfully",
+    "the project is already added": "The project is already added.",
     "the selected directory is invalid": "The selected directory is invalid",
     "ready to create a project": "Ready to create a project",
     "invalid project name": "Invalid project name",
