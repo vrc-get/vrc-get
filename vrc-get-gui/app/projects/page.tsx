@@ -626,7 +626,7 @@ function CreateProject(
 			projectNameStateClass = "text-yellow-900";
 			break;
 		case "err":
-			projectNameStateClass = "text-red";
+			projectNameStateClass = "text-red-900";
 	}
 
 	if (checking) projectNameCheck = <Spinner/>
