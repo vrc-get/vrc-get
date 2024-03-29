@@ -791,6 +791,7 @@ struct TauriBasePackageInfo {
     unity: Option<(u16, u8)>,
     changelog_url: Option<String>,
     vpm_dependencies: Vec<String>,
+    legacy_packages: Vec<String>,
     is_yanked: bool,
 }
 
@@ -806,6 +807,11 @@ impl TauriBasePackageInfo {
             vpm_dependencies: package
                 .vpm_dependencies()
                 .keys()
+                .map(|x| x.to_string())
+                .collect(),
+            legacy_packages: package
+                .legacy_packages()
+                .iter()
                 .map(|x| x.to_string())
                 .collect(),
             is_yanked: package.is_yanked(),
@@ -1789,7 +1795,7 @@ impl TauriPendingProjectChanges {
 
 #[derive(Serialize, specta::Type)]
 enum TauriPackageChange {
-    InstallNew(TauriBasePackageInfo),
+    InstallNew(Box<TauriBasePackageInfo>),
     Remove(TauriRemoveReason),
 }
 
@@ -1799,7 +1805,8 @@ impl TryFrom<&PackageChange<'_>> for TauriPackageChange {
     fn try_from(value: &PackageChange) -> Result<Self, ()> {
         Ok(match value {
             PackageChange::Install(install) => TauriPackageChange::InstallNew(
-                TauriBasePackageInfo::new(install.install_package().ok_or(())?.package_json()),
+                TauriBasePackageInfo::new(install.install_package().ok_or(())?.package_json())
+                    .into(),
             ),
             PackageChange::Remove(remove) => TauriPackageChange::Remove(remove.reason().into()),
         })

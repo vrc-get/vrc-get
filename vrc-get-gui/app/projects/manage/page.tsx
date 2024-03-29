@@ -1113,6 +1113,14 @@ function combinePackagesAndProjectDetails(
 		}
 	}
 
+	if (project) {
+		for (const [_, pkg] of project.installed_packages) {
+			for (const legacyPackage of pkg.legacy_packages) {
+				packagesTable.delete(legacyPackage);
+			}
+		}
+	}
+
 	const asArray = Array.from(packagesTable.values());
 
 	// put installed first
