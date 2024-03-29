@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog].
 - Japanese Localization `#674`
 
 ### Changed
-- Package names on the Apply Changes dialog are now bold `#676`
+- Package names on the Apply Changes dialog and a few other texts are now bold `#676`
 - Deleting a project now moves its folder to trash instead of hard deleting `#676`
 
 ### Deprecated
