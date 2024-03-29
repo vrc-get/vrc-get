@@ -27,7 +27,7 @@
     "cancel": "キャンセル",
     "remove from the list": "リストから削除する",
     "remove the directory": "プロジェクトのファイルも削除する",
-    "Removing the project...": "プロジェクトを削除中...",
+    "removing the project...": "プロジェクトを削除中...",
     "project removed successfully": "プロジェクトを削除しました。",
     "vpm migration": "レガシープロジェクトを移行",
     "project migration is experimental in vrc-get.": "プロジェクト移行はvrc-getにおける実験的な機能です。",

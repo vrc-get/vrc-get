@@ -89,7 +89,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 				<Dialog open handler={nop} className={'whitespace-normal'}>
 					<DialogHeader>{tc("remove project")}</DialogHeader>
 					<DialogBody>
-						{tc("Removing the project...")}
+						{tc("removing the project...")}
 					</DialogBody>
 					<DialogFooter>
 						<Button className="mr-1" disabled>{tc("cancel")}</Button>
