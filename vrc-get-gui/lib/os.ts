@@ -1,14 +1,10 @@
-import type {OsType} from '@tauri-apps/api/os';
-
-let osType: OsType | null = null;
-
-(async () => {
-	const os = await import('@tauri-apps/api/os');
-	osType = await os.type();
-})();
+let isWindowsCache: boolean | undefined
 
 export function isWindows() {
-	return osType === 'Windows_NT';
+	if (isWindowsCache === undefined) {
+		isWindowsCache = navigator.userAgent.toLowerCase().includes("windows nt")
+	}
+	return isWindowsCache;
 }
 
 export function pathSeparators(): string[] {
