@@ -67,7 +67,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 				<Dialog open handler={nop} className={'whitespace-normal'}>
 					<DialogHeader>{tc("remove project")}</DialogHeader>
 					<DialogBody>
-						<Typography>
+						<Typography className={"font-normal"}>
 							{tc("you're about to remove the project <strong>{{name}}</strong>", {name: project.name})}
 						</Typography>
 					</DialogBody>
