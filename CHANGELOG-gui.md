@@ -8,35 +8,42 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Japanese Localization `#674`
 
 ### Changed
-- Package names on the Apply Changes dialog and a few other texts are now bold `#676`
-- Deleting a project now moves its folder to trash instead of hard deleting `#676`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- World icon does not appear in the project list `#625`
-- Remove project button on the manage project page is not working `#676`
-- Project name warning is too bright `#676`
-- Unable to touch any buttons if Apply Changes dialog is long `#676`
-- The package order is not deterministic `#676`
-- Path separator is not correct on windows `#676`
-- Same project can be added multiple times `#676`
-- Create button on the creating project dialog is not disabled `#676`
-- We can control the web ui while file picker is open `#676`
-- Unrecoverable error when trying to add a non-project folder `#676`
-- Prerelease packages can be installed if version range has prerelease while the option is off `#676`
-- Handling whitespaces in the path of the project is not correct `#676`
-- We could not add a unity manually `#676`
-- Legacy packages of installed packages are shown `#676`
-- False positive conflicts with legacy packages `#676`
-- Package order on the Apply Changes dialog is not deterministic `#676`
 
 ### Security
+
+## [0.1.0-beta.16] - 2024-03-29
+### Added
+- Japanese Localization [`#674`](https://github.com/vrc-get/vrc-get/pull/674)
+
+### Changed
+- Package names on the Apply Changes dialog and a few other texts are now bold [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Deleting a project now moves its folder to trash instead of hard deleting [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+
+### Fixed
+- World icon does not appear in the project list [`#625`](https://github.com/vrc-get/vrc-get/pull/625)
+- Remove project button on the manage project page is not working [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Project name warning is too bright [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Unable to touch any buttons if Apply Changes dialog is long [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- The package order is not deterministic [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Path separator is not correct on windows [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Same project can be added multiple times [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Create button on the creating project dialog is not disabled [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- We can control the web ui while file picker is open [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Unrecoverable error when trying to add a non-project folder [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Prerelease packages can be installed if version range has prerelease while the option is off [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Handling whitespaces in the path of the project is not correct [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- We could not add a unity manually [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Legacy packages of installed packages are shown [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- False positive conflicts with legacy packages [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Package order on the Apply Changes dialog is not deterministic [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 
 ## [0.1.0-beta.15] - 2024-03-16
 
@@ -154,7 +161,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.15...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.16...HEAD
+[0.1.0-beta.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.15...gui-v0.1.0-beta.16
 [0.1.0-beta.15]: https://github.com/vrc-get/vrc-get/compare/gui-v...gui-v0.1.0-beta.15
 
 [0.1.0-beta.14]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.13...gui-v0.1.0-beta.14
