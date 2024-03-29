@@ -44,7 +44,7 @@ import {
 	projectResolve,
 	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
-	TauriPackage,
+	TauriPackage, TauriPackageChange,
 	TauriPendingProjectChanges,
 	TauriProjectDetails,
 	TauriUserRepository,
@@ -707,6 +707,8 @@ function ProjectChangesDialog(
 		<ListItem><Typography className={"font-normal"}>{children}</Typography></ListItem>
 	);
 
+	const packageChangesSorted = changes.package_changes.sort(comparePackageChange);
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>{tc("apply changes")}</DialogHeader>
@@ -715,7 +717,7 @@ function ProjectChangesDialog(
 					{tc("you're applying the following changes to the project")}
 				</Typography>
 				<List>
-					{changes.package_changes.map(([pkgId, pkgChange]) => {
+					{packageChangesSorted.map(([pkgId, pkgChange]) => {
 						if ('InstallNew' in pkgChange) {
 							let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
 							if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
@@ -814,6 +816,25 @@ function ProjectChangesDialog(
 			</DialogFooter>
 		</Dialog>
 	);
+}
+
+function comparePackageChange([aName, aChange]: [string, TauriPackageChange], [bName, bChange]: [string, TauriPackageChange]): number {
+	const aType = packageChangesType(aChange);
+	const bType = packageChangesType(bChange);
+	if (aType !== bType) return aType - bType;
+	return aName.localeCompare(bName);
+}
+
+function packageChangesType(pkgChange: TauriPackageChange): 0 | 1 | 2 | 3 {
+	if ('InstallNew' in pkgChange) return 0;
+	switch (pkgChange.Remove) {
+		case "Requested":
+			return 1;
+		case "Legacy":
+			return 2;
+		case "Unused":
+			return 3;
+	}
 }
 
 function RepositoryMenuItem(
