@@ -30,8 +30,8 @@ import {HNavBar, VStack} from "@/components/layout";
 import React, {Suspense, useMemo, useState} from "react";
 import {XCircleIcon} from "@heroicons/react/24/outline";
 import {nop} from "@/lib/nop";
-import {useTranslation} from "react-i18next";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import {tc, tt} from "@/lib/i18n";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -53,7 +53,6 @@ type State = {
 }
 
 function PageBody() {
-	const {t} = useTranslation();
 	const [state, setState] = useState<State>({type: 'normal'});
 
 	const result = useQuery({
@@ -73,11 +72,11 @@ function PageBody() {
 			const info = await environmentDownloadRepository(url, headers);
 			switch (info.type) {
 				case "BadUrl":
-					toastError(t("invalid url"));
+					toastError(tt("invalid url"));
 					setState({type: 'normal'});
 					return;
 				case "DownloadError":
-					toastError(t("failed to download the repository: {{message}}", {message: info.message}));
+					toastError(tt("failed to download the repository: {{message}}", {message: info.message}));
 					setState({type: 'normal'});
 					return;
 				case "Duplicated":
@@ -126,7 +125,7 @@ function PageBody() {
 				try {
 					await environmentAddRepository(state.url, state.headers);
 					setState({type: 'normal'});
-					toastSuccess(t("added the repository successfully!"));
+					toastSuccess(tt("added the repository successfully!"));
 					// noinspection ES6MissingAwait
 					result.refetch();
 				} catch (e) {
@@ -140,15 +139,15 @@ function PageBody() {
 			const _exhaustiveCheck: never = state;
 	}
 	const dialog = dialogBody ?
-		<Dialog handler={nop} open><DialogHeader>{t("add repository")}</DialogHeader>{dialogBody}</Dialog> : null;
+		<Dialog handler={nop} open><DialogHeader>{tc("add repository")}</DialogHeader>{dialogBody}</Dialog> : null;
 
 	return (
 		<VStack className={"p-4 overflow-y-auto"}>
 			<HNavBar className={"flex-shrink-0"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					{t("community repositories")}
+					{tc("community repositories")}
 				</Typography>
-				<Button onClick={() => setState({type: 'enteringRepositoryInfo'})}>{t("add repository")}</Button>
+				<Button onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("add repository")}</Button>
 			</HNavBar>
 			<main className="flex-shrink flex-grow overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll">
@@ -178,7 +177,6 @@ function RepositoryTable(
 		refetch: () => void,
 	}
 ) {
-	const {t} = useTranslation();
 	const TABLE_HEAD = [
 		"", // checkbox
 		"name",
@@ -193,7 +191,7 @@ function RepositoryTable(
 				{TABLE_HEAD.map((head, index) => (
 					<th key={index}
 							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{t(head)}</Typography>
+						<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
 					</th>
 				))}
 			</tr>
@@ -277,23 +275,21 @@ function EnteringRepositoryInfo(
 		addRepository: (url: string) => void,
 	}
 ) {
-	const {t} = useTranslation();
-
 	const [url, setUrl] = useState("");
 
 	return (
 		<>
 			<DialogBody>
 				<Typography>
-					{t("enter information about the repository")}
+					{tc("enter information about the repository")}
 				</Typography>
 				<Input type={"url"} label={"URL"} value={url} onChange={e => setUrl(e.target.value)}
 							 placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
 				{/* TODO: headers */}
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel}>{t("cancel")}</Button>
-				<Button onClick={() => addRepository(url)} className={"ml-2"}>{t("add repository")}</Button>
+				<Button onClick={cancel}>{tc("cancel")}</Button>
+				<Button onClick={() => addRepository(url)} className={"ml-2"}>{tc("add repository")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -306,17 +302,15 @@ function LoadingRepository(
 		cancel: () => void,
 	}
 ) {
-	const {t} = useTranslation();
-
 	return (
 		<>
 			<DialogBody>
 				<Typography>
-					{t("downloading the repository")}
+					{tc("downloading the repository")}
 				</Typography>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel}>{t("cancel")}</Button>
+				<Button onClick={cancel}>{tc("cancel")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -329,17 +323,15 @@ function Duplicated(
 		cancel: () => void,
 	}
 ) {
-	const {t} = useTranslation();
-
 	return (
 		<>
 			<DialogBody>
 				<Typography>
-					{t("the repository is already added.")}
+					{tc("the repository is already added.")}
 				</Typography>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel}>{t("ok")}</Button>
+				<Button onClick={cancel}>{tc("ok")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -356,25 +348,23 @@ function Confirming(
 		add: () => void,
 	}
 ) {
-	const {t} = useTranslation();
-
 	return (
 		<>
-			<DialogBody>
-				<Typography>{t("name: {{name}}", {name: repo.display_name})}</Typography>
-				<Typography>{t("url: {{url}}", {url: repo.url})}</Typography>
-				<Typography>{t("packages")}</Typography>
-				<List className={"max-h-[50vh] overflow-y-auto"}>
+			<DialogBody className={"max-h-[50vh] overflow-y-auto font-normal"}>
+				<Typography className={"font-normal"}>{tc("name: <b>{{name}}</b>", {name: repo.display_name})}</Typography>
+				<Typography className={"font-normal"}>{tc("url: {{url}}", {url: repo.url})}</Typography>
+				<Typography className={"font-normal"}>{tc("packages:")}</Typography>
+				<ul className={"list-disc pl-6"}>
 					{
 						repo.packages.map((info, idx) => (
-							<ListItem key={idx}>{info.display_name ?? info.name}</ListItem>
+							<li key={idx}>{info.display_name ?? info.name}</li>
 						))
 					}
-				</List>
+				</ul>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel}>{t("cancel")}</Button>
-				<Button onClick={add} className={"ml-2"}>{t("add repository")}</Button>
+				<Button onClick={cancel}>{tc("cancel")}</Button>
+				<Button onClick={add} className={"ml-2"}>{tc("add repository")}</Button>
 			</DialogFooter>
 		</>
 	);

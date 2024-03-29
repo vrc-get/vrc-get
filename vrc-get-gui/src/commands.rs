@@ -47,6 +47,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_projects,
         environment_add_project_with_picker,
         environment_remove_project,
+        environment_remove_project_by_path,
         environment_copy_project_for_migration,
         environment_packages,
         environment_repositories_info,
@@ -91,6 +92,7 @@ pub(crate) fn export_ts() {
             environment_projects,
             environment_add_project_with_picker,
             environment_remove_project,
+            environment_remove_project_by_path,
             environment_copy_project_for_migration,
             environment_packages,
             environment_repositories_info,
@@ -295,14 +297,17 @@ async fn update_project_last_modified(env: &mut Environment, project_dir: &Path)
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[specta(export)]
+#[serde(tag = "type")]
 enum RustError {
-    Unrecoverable(String),
+    Unrecoverable { message: String },
 }
 
 impl RustError {
     fn unrecoverable<T: Display>(value: T) -> Self {
         error!("{value}");
-        Self::Unrecoverable(value.to_string())
+        Self::Unrecoverable {
+            message: value.to_string(),
+        }
     }
 }
 
@@ -563,6 +568,7 @@ async fn environment_projects(
 enum TauriAddProjectWithPickerResult {
     NoFolderSelected,
     InvalidSelection,
+    AlreadyAdded,
     Successful,
 }
 
@@ -579,17 +585,31 @@ async fn environment_add_project_with_picker(
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     };
 
-    let unity_project = load_project(project_path).await?;
+    let unity_project = load_project(project_path.clone()).await?;
     if !unity_project.is_valid().await {
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     }
 
     with_environment!(&state, |environment| {
+        let projects = environment.get_projects()?;
+        if projects
+            .iter()
+            .any(|x| Path::new(x.path()) == Path::new(&project_path))
+        {
+            return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
+        }
         environment.add_project(&unity_project).await?;
         environment.save().await?;
     });
 
     Ok(TauriAddProjectWithPickerResult::Successful)
+}
+
+async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
+    tokio::runtime::Handle::current()
+        .spawn_blocking(move || trash::delete(path))
+        .await
+        .unwrap()
 }
 
 #[tauri::command]
@@ -604,9 +624,7 @@ async fn environment_remove_project(
     let state = &mut *state;
     let version = (state.environment.environment_version + state.projects_version).0;
     if list_version != version {
-        return Err(RustError::Unrecoverable(
-            "project list version mismatch".into(),
-        ));
+        return Err(RustError::unrecoverable("project list version mismatch"));
     }
 
     let project = &state.projects[index];
@@ -620,7 +638,8 @@ async fn environment_remove_project(
     if directory {
         let path = project.path();
         info!("removing project directory: {path}");
-        if let Err(err) = tokio::fs::remove_dir_all(path).await {
+
+        if let Err(err) = trash_delete(PathBuf::from(path)).await {
             error!("failed to remove project directory: {err}");
         } else {
             info!("removed project directory: {path}");
@@ -628,6 +647,36 @@ async fn environment_remove_project(
     }
 
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_remove_project_by_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+    path: String,
+    directory: bool,
+) -> Result<(), RustError> {
+    with_environment!(&state, |environment| {
+        let projects: Vec<vrc_get_vpm::environment::UserProject> = environment.get_projects()?;
+
+        if let Some(x) = projects.iter().find(|x| x.path() == path) {
+            environment.remove_project(x)?;
+            environment.save().await?;
+        } else {
+            environment.disconnect_litedb();
+        }
+
+        if directory {
+            info!("removing project directory: {path}");
+            if let Err(err) = trash_delete(PathBuf::from(&path)).await {
+                error!("failed to remove project directory: {err}");
+            } else {
+                info!("removed project directory: {path}");
+            }
+        }
+
+        Ok(())
+    })
 }
 
 async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result<u64> {
@@ -673,8 +722,8 @@ async fn environment_copy_project_for_migration(
     let name = source_path.file_name().unwrap();
 
     let Some(new_path_str) = create_folder(folder, name).await else {
-        return Err(RustError::Unrecoverable(
-            "failed to create a new folder for migration".into(),
+        return Err(RustError::unrecoverable(
+            "failed to create a new folder for migration",
         ));
     };
     let new_path = Path::new(&new_path_str);
@@ -742,6 +791,7 @@ struct TauriBasePackageInfo {
     unity: Option<(u16, u8)>,
     changelog_url: Option<String>,
     vpm_dependencies: Vec<String>,
+    legacy_packages: Vec<String>,
     is_yanked: bool,
 }
 
@@ -757,6 +807,11 @@ impl TauriBasePackageInfo {
             vpm_dependencies: package
                 .vpm_dependencies()
                 .keys()
+                .map(|x| x.to_string())
+                .collect(),
+            legacy_packages: package
+                .legacy_packages()
+                .iter()
                 .map(|x| x.to_string())
                 .collect(),
             is_yanked: package.is_yanked(),
@@ -1081,13 +1136,16 @@ async fn environment_pick_unity(
     let unity_version = vrc_get_vpm::unity::call_unity_for_version(path.as_ref()).await?;
 
     with_environment!(&state, |environment| {
+        for x in environment.get_unity_installations()? {
+            if x.path() == path {
+                return Ok(TauriPickUnityResult::AlreadyAdded);
+            }
+        }
+
         match environment
             .add_unity_installation(&path, unity_version)
             .await
         {
-            Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {
-                return Ok(TauriPickUnityResult::AlreadyAdded)
-            }
             Err(ref e) if e.kind() == io::ErrorKind::InvalidInput => {
                 return Ok(TauriPickUnityResult::InvalidSelection)
             }
@@ -1737,7 +1795,7 @@ impl TauriPendingProjectChanges {
 
 #[derive(Serialize, specta::Type)]
 enum TauriPackageChange {
-    InstallNew(TauriBasePackageInfo),
+    InstallNew(Box<TauriBasePackageInfo>),
     Remove(TauriRemoveReason),
 }
 
@@ -1747,7 +1805,8 @@ impl TryFrom<&PackageChange<'_>> for TauriPackageChange {
     fn try_from(value: &PackageChange) -> Result<Self, ()> {
         Ok(match value {
             PackageChange::Install(install) => TauriPackageChange::InstallNew(
-                TauriBasePackageInfo::new(install.install_package().ok_or(())?.package_json()),
+                TauriBasePackageInfo::new(install.install_package().ok_or(())?.package_json())
+                    .into(),
             ),
             PackageChange::Remove(remove) => TauriPackageChange::Remove(remove.reason().into()),
         })
@@ -1797,9 +1856,7 @@ macro_rules! changes {
         let current_version = state.environment.environment_version.0;
         $(
         if current_version != $env_version {
-            return Err(RustError::Unrecoverable(
-                "environment version mismatch".into(),
-            ));
+            return Err(RustError::unrecoverable("environment version mismatch"));
         }
         )?
 

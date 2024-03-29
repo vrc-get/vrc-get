@@ -57,23 +57,33 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let mut installed_packages = HashMap::new();
         let mut unlocked_packages = vec![];
 
-        let mut dir_reading = io.read_dir("Packages".as_ref()).await?;
-        while let Some(dir_entry) = dir_reading.try_next().await? {
-            if !dir_entry.file_type().await?.is_dir() {
-                continue;
+        match io.read_dir("Packages".as_ref()).await {
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+                log::error!("Packages directory not found");
             }
-            let read = Self::try_read_unlocked_package(&io, dir_entry).await;
-            let mut is_installed = false;
-            if let Some(parsed) = &read.1 {
-                if parsed.name() == read.0.as_ref() && manifest.get_locked(parsed.name()).is_some()
-                {
-                    is_installed = true;
+            Err(e) => {
+                return Err(e);
+            }
+            Ok(mut dir_reading) => {
+                while let Some(dir_entry) = dir_reading.try_next().await? {
+                    if !dir_entry.file_type().await?.is_dir() {
+                        continue;
+                    }
+                    let read = Self::try_read_unlocked_package(&io, dir_entry).await;
+                    let mut is_installed = false;
+                    if let Some(parsed) = &read.1 {
+                        if parsed.name() == read.0.as_ref()
+                            && manifest.get_locked(parsed.name()).is_some()
+                        {
+                            is_installed = true;
+                        }
+                    }
+                    if is_installed {
+                        installed_packages.insert(read.0, read.1.unwrap());
+                    } else {
+                        unlocked_packages.push(read);
+                    }
                 }
-            }
-            if is_installed {
-                installed_packages.insert(read.0, read.1.unwrap());
-            } else {
-                unlocked_packages.push(read);
             }
         }
 

@@ -29,6 +29,12 @@ The format is based on [Keep a Changelog].
 - Fails to load all repositories if fails to load one repository `#551`
 - Legacy Projects cannot be added to VCC project list `#586`
 - Bad behaviors with unity 2018 `#605`
+- Prerelease packages are installed if the version range contains prerelease `#676`
+  - To fix this problem, automatic allow prerelease rule is a bit changed.
+  - For resolving dependencies in `vpm-manifest.json`, prerelease is used if version range contains prerelease.
+  - For resolving dependencies of packages, prerelease is used if the dependant package is prerelease and the matching version is only contained in prereleases.
+  - This does not change behavior of `--prerelease` option.
+- False positive conflicts with legacy packages `#676`
 
 ### Security
 

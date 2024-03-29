@@ -279,6 +279,12 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
                     let conflicts_with_this = info
                         .requirements
                         .iter()
+                        .filter(|(&source, _)| {
+                            self.dependencies
+                                .get(source)
+                                .map(|x| !x.is_legacy())
+                                .unwrap_or_default()
+                        })
                         .filter(|(_, range)| {
                             !range.match_pre(version, info.allow_pre || self.allow_prerelease)
                         })
@@ -385,20 +391,38 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
                 log::debug!("processing package {name}: dependency {dependency} version {range}");
 
                 if context.should_add_package(dependency, range) {
-                    let found = env
-                        .find_package_by_name(
+                    fn get_package<'env>(
+                        env: &'env impl PackageCollection,
+                        dependency: &str,
+                        unity_version: Option<UnityVersion>,
+                        range: &VersionRange,
+                        allow_prerelease: bool,
+                    ) -> Option<PackageInfo<'env>> {
+                        env.find_package_by_name(
                             dependency,
-                            VersionSelector::range_for(unity_version, range),
+                            VersionSelector::range_for(unity_version, range, allow_prerelease),
                         )
                         .or_else(|| {
                             env.find_package_by_name(
                                 dependency,
-                                VersionSelector::range_for(None, range),
+                                VersionSelector::range_for(None, range, allow_prerelease),
                             )
                         })
-                        .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                            dependency_name: dependency.clone(),
-                        })?;
+                    }
+
+                    let mut found;
+                    if allow_prerelease {
+                        found = get_package(env, dependency, unity_version, range, true);
+                    } else {
+                        found = get_package(env, dependency, unity_version, range, false);
+                        if found.is_none() && x.version().is_pre() {
+                            found = get_package(env, dependency, None, range, true);
+                        }
+                    }
+
+                    let found = found.ok_or_else(|| AddPackageErr::DependencyNotFound {
+                        dependency_name: dependency.clone(),
+                    })?;
 
                     // remove existing if existing
                     context.pending_queue.add_pending_package(found);
