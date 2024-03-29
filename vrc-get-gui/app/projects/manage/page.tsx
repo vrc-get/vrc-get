@@ -1193,23 +1193,23 @@ function PackageRow(
 				{
 					pkg.sources.size == 0 ? (
 						pkg.isThereSource ? (
-							<Typography className="font-normal text-blue-gray-400">
+							<Typography className="text-blue-gray-400">
 								{tc("not selected")}
 							</Typography>
 						) : (
-							<Typography className="font-normal text-blue-gray-400">
+							<Typography className="text-blue-gray-400">
 								{tc("none")}
 							</Typography>
 						)
 					) : pkg.sources.size == 1 ? (
 						<Tooltip content={[...pkg.sources][0]}>
-							<Typography className="overflow-hidden overflow-ellipsis font-normal">
+							<Typography className="overflow-hidden overflow-ellipsis">
 								{[...pkg.sources][0]}
 							</Typography>
 						</Tooltip>
 					) : (
 						<Tooltip content={[...pkg.sources].join(", ")}>
-							<Typography className="font-normal">
+							<Typography>
 								{tc("multiple sources")}
 							</Typography>
 						</Tooltip>
@@ -1270,9 +1270,9 @@ function PackageLatestInfo(
 ) {
 	switch (info.status) {
 		case "none":
-			return <Typography className="font-normal text-blue-gray-400">{tc("none")}</Typography>;
+			return <Typography className="text-blue-gray-400">{tc("none")}</Typography>;
 		case "contains":
-			return <Typography className="font-normal">{toVersionString(info.pkg.version)}</Typography>;
+			return <Typography>{toVersionString(info.pkg.version)}</Typography>;
 		case "upgradable":
 			return (
 				<Button variant={"outlined"} color={"green"}

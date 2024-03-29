@@ -8,6 +8,7 @@ import {environmentLanguage, LogEntry} from "@/lib/bindings";
 import i18next from "@/lib/i18n";
 import {I18nextProvider} from "react-i18next";
 import {toastError} from "@/lib/toast";
+import {ThemeProvider} from "@material-tailwind/react";
 
 const queryClient = new QueryClient();
 
@@ -56,7 +57,15 @@ export function Providers({children}: { children: React.ReactNode }) {
 			/>
 			<QueryClientProvider client={queryClient}>
 				<I18nextProvider i18n={i18next}>
-					{children}
+					<ThemeProvider value={{
+						Typography: {
+							styles: {
+								font: 'normal'
+							}
+						}
+					}}>
+						{children as any}
+					</ThemeProvider>
 				</I18nextProvider>
 			</QueryClientProvider>
 		</>
