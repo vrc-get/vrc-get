@@ -279,6 +279,12 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
                     let conflicts_with_this = info
                         .requirements
                         .iter()
+                        .filter(|(&source, _)| {
+                            self.dependencies
+                                .get(source)
+                                .map(|x| !x.is_legacy())
+                                .unwrap_or_default()
+                        })
                         .filter(|(_, range)| {
                             !range.match_pre(version, info.allow_pre || self.allow_prerelease)
                         })
