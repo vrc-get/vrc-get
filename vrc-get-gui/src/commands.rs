@@ -1130,13 +1130,16 @@ async fn environment_pick_unity(
     let unity_version = vrc_get_vpm::unity::call_unity_for_version(path.as_ref()).await?;
 
     with_environment!(&state, |environment| {
+        for x in environment.get_unity_installations()? {
+            if x.path() == path {
+                return Ok(TauriPickUnityResult::AlreadyAdded);
+            }
+        }
+
         match environment
             .add_unity_installation(&path, unity_version)
             .await
         {
-            Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {
-                return Ok(TauriPickUnityResult::AlreadyAdded)
-            }
             Err(ref e) if e.kind() == io::ErrorKind::InvalidInput => {
                 return Ok(TauriPickUnityResult::InvalidSelection)
             }
