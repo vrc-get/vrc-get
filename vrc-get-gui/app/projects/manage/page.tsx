@@ -704,7 +704,7 @@ function ProjectChangesDialog(
 	}, [packages]);
 
 	const TypographyItem = ({children}: { children: React.ReactNode }) => (
-		<ListItem><Typography>{children}</Typography></ListItem>
+		<ListItem><Typography className={"font-normal"}>{children}</Typography></ListItem>
 	);
 
 	return (
@@ -722,7 +722,7 @@ function ProjectChangesDialog(
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
 							return <ListItem key={pkgId}>
-								<Typography>{tc("install <b>{{name}}</b> version {{version}}", {
+								<Typography className={"font-normal"}>{tc("install <b>{{name}}</b> version {{version}}", {
 									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
 									version: toVersionString(pkgChange.InstallNew.version),
 								})}</Typography>
