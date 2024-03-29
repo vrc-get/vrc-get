@@ -599,10 +599,10 @@ function Unity2022MigrationUnityVersionMismatchDialog(
 					{tc("we could not find unity exact recommended version of unity 2022")}
 				</Typography>
 				<Typography>
-					{tc("recommended: {{version}}", {version: recommendedUnityVersion})}
+					{tc("recommended: <b>{{version}}</b>", {version: recommendedUnityVersion})}
 				</Typography>
 				<Typography>
-					{tc("found: {{version}}", {version: foundUnityVersion})}
+					{tc("found: <b>{{version}}</b>", {version: foundUnityVersion})}
 				</Typography>
 				<Typography>
 					{tc("this may cause problems with VRChat SDK")}
