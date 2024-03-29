@@ -364,7 +364,7 @@ function ProjectRow(
 						<Typography className="font-normal">
 							{project.name}
 						</Typography>
-						<Typography className="font-normal opacity-50 text-sm">
+						<Typography className="font-normal opacity-50 text-sm whitespace-pre">
 							{project.path}
 						</Typography>
 					</div>
