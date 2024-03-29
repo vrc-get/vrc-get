@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog].
 - We could not add a unity manually `#676`
 - Legacy packages of installed packages are shown `#676`
 - False positive conflicts with legacy packages `#676`
+- Package order on the Apply Changes dialog is not deterministic `#676`
 
 ### Security
 
