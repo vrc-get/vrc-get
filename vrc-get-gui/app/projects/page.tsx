@@ -361,7 +361,7 @@ function ProjectRow(
 			<td className={cellClass}>
 				<MayTooltip content={tc("project folder does not exist")}>
 					<div className="flex flex-col">
-						<Typography className="font-normal">
+						<Typography className="font-normal whitespace-pre">
 							{project.name}
 						</Typography>
 						<Typography className="font-normal opacity-50 text-sm whitespace-pre">
