@@ -7,6 +7,7 @@ use tokio::process::Command;
 pub async fn call_unity_for_version(path: &Path) -> io::Result<UnityVersion> {
     let output = Command::new(path)
         .args([
+            "-version",
             "-batchmode",
             "-quit",
             "-noUpm",
