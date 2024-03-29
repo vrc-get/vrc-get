@@ -30,6 +30,10 @@ The format is based on [Keep a Changelog].
 - We can control the web ui while file picker is open `#676`
 - Unrecoverable error when trying to add a non-project folder `#676`
 - Prerelease packages can be installed if version range has prerelease while the option is off `#676`
+- Handling whitespaces in the path of the project is not correct `#676`
+- We could not add a unity manually `#676`
+- Legacy packages of installed packages are shown `#676`
+- False positive conflicts with legacy packages `#676`
 
 ### Security
 

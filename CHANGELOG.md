@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog].
   - For resolving dependencies in `vpm-manifest.json`, prerelease is used if version range contains prerelease.
   - For resolving dependencies of packages, prerelease is used if the dependant package is prerelease and the matching version is only contained in prereleases.
   - This does not change behavior of `--prerelease` option.
+- False positive conflicts with legacy packages `#676`
 
 ### Security
 
