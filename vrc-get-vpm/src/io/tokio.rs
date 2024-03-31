@@ -184,6 +184,10 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
         fs::remove_file(self.resolve(path)?).await
     }
 
+    async fn remove_dir(&self, path: &Path) -> io::Result<()> {
+        fs::remove_dir(self.resolve(path)?).await
+    }
+
     async fn remove_dir_all(&self, path: &Path) -> io::Result<()> {
         fs::remove_dir_all(self.resolve(path)?).await
     }

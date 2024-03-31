@@ -558,6 +558,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
             .remove_dir_all(REMOVE_PKG_TEMP_DIR.as_ref())
             .await
             .ok();
+        // remove temp dir also if it's empty
+        self.io.remove_dir("Temp".as_ref()).await.ok();
 
         remove_assets(
             &self.io,

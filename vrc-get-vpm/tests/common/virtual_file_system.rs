@@ -117,6 +117,18 @@ impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
         Ok(())
     }
 
+    async fn remove_dir(&self, path: &Path) -> io::Result<()> {
+        let Some((dir_path, last)) = self.resolve2(path)? else {
+            return err(ErrorKind::PermissionDenied, "removing root");
+        };
+        self.root
+            .get_folder(&dir_path)
+            .await?
+            .remove_dir_all(last)
+            .await?;
+        Ok(())
+    }
+
     async fn remove_dir_all(&self, path: &Path) -> io::Result<()> {
         let Some((dir_path, last)) = self.resolve2(path)? else {
             return err(ErrorKind::PermissionDenied, "removing root");
@@ -374,6 +386,20 @@ impl DirectoryEntry {
             Entry::Occupied(mut e) => {
                 e.get_mut().as_file()?;
                 Ok(e.shift_remove().into_file().unwrap())
+            }
+            Entry::Vacant(_) => err(ErrorKind::NotFound, "file not found"),
+        }
+    }
+
+    async fn remove_dir(&self, name: &OsStr) -> io::Result<DirectoryEntry> {
+        let mut backed = self.backed.lock().unwrap();
+        match backed.entry(name.to_os_string()) {
+            Entry::Occupied(mut e) => {
+                let as_dir = e.get_mut().as_directory()?;
+                if !as_dir.backed.lock().unwrap().is_empty() {
+                    return err(ErrorKind::Other, "directory not empty"); // DirectoryNotEmpty is unstable
+                }
+                Ok(e.shift_remove().into_directory().unwrap())
             }
             Entry::Vacant(_) => err(ErrorKind::NotFound, "file not found"),
         }
