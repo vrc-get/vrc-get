@@ -2264,7 +2264,7 @@ async fn project_open_unity(
             }
         }
 
-        environment.disconnect_litedb();
+        update_project_last_modified(environment, unity_project.project_dir()).await;
 
         Ok(TauriOpenUnityResult::NoMatchingUnityFound)
     })
