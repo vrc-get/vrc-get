@@ -160,6 +160,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
         self.unity_version.is_some()
     }
 
+    pub fn io(&self) -> &IO {
+        &self.io
+    }
+
     pub async fn save(&mut self) -> io::Result<()> {
         try_join(
             self.manifest.save(&self.io),
