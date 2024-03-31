@@ -8,35 +8,42 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Command to migrate a legacy VRCSDK3 project to VPM VRCSDK `#580`
-  - You can do with `vrc-get migrate vpm` command.
 
 ### Changed
-- vrc-get now finds unity hub from registry key `#590`
-- vrc-get specific configuration is moved to `vrc-get/settings.json` `#607`
-  - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
-    to not dirty the folder, I moved the config file to `vrc-get` folder.
-- Legacy Assets are not removed if the specified GUID does not match with the actual GUID `#677`
-  - This follows VCC 2.3.0 beta behavior.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Some embedded / installed vpm package is not recognized by vrc-get `#609`
+
+### Security
+
+## [1.8.0] - 2024-03-31
+### Added
+- Command to migrate a legacy VRCSDK3 project to VPM VRCSDK [`#580`](https://github.com/vrc-get/vrc-get/pull/580)
+  - You can do with `vrc-get migrate vpm` command.
+
+### Changed
+- vrc-get now finds unity hub from registry key [`#590`](https://github.com/vrc-get/vrc-get/pull/590)
+- vrc-get specific configuration is moved to `vrc-get/settings.json` [`#607`](https://github.com/vrc-get/vrc-get/pull/607)
+  - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
+    to not dirty the folder, I moved the config file to `vrc-get` folder.
+- Legacy Assets are not removed if the specified GUID does not match with the actual GUID [`#677`](https://github.com/vrc-get/vrc-get/pull/677)
+  - This follows VCC 2.3.0 beta behavior.
+
+### Fixed
+- Some embedded / installed vpm package is not recognized by vrc-get [`#609`](https://github.com/vrc-get/vrc-get/pull/609)
   - This makes `d4rkAvatarOptimizer` is recognized as not installed.
-- Fails to load all repositories if fails to load one repository `#551`
-- Legacy Projects cannot be added to VCC project list `#586`
-- Bad behaviors with unity 2018 `#605`
-- Prerelease packages are installed if the version range contains prerelease `#676`
+- Fails to load all repositories if fails to load one repository [`#551`](https://github.com/vrc-get/vrc-get/pull/551)
+- Legacy Projects cannot be added to VCC project list [`#586`](https://github.com/vrc-get/vrc-get/pull/586)
+- Bad behaviors with unity 2018 [`#605`](https://github.com/vrc-get/vrc-get/pull/605)
+- Prerelease packages are installed if the version range contains prerelease [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
   - To fix this problem, automatic allow prerelease rule is a bit changed.
   - For resolving dependencies in `vpm-manifest.json`, prerelease is used if version range contains prerelease.
   - For resolving dependencies of packages, prerelease is used if the dependant package is prerelease and the matching version is only contained in prereleases.
   - This does not change behavior of `--prerelease` option.
-- False positive conflicts with legacy packages `#676`
-
-### Security
+- False positive conflicts with legacy packages [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 
 ## [1.7.1] - 2024-03-01
 ### Changed
@@ -415,7 +422,8 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
-[Unreleased]: https://github.com/anatawa12/vrc-get/compare/v1.7.1...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/vrc-get/vrc-get/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/anatawa12/vrc-get/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/anatawa12/vrc-get/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/anatawa12/vrc-get/compare/v1.6.0...v1.6.1
