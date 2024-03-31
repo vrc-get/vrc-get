@@ -530,7 +530,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
         self.manifest
             .remove_packages(remove_names.iter().map(Box::as_ref));
 
-        let remove_temp_dir = format!("Temp/vrc-get/{}", uuid::Uuid::new_v4());
+        static REMOVE_PKG_TEMP_DIR: &str = "Temp/vrc-get";
+        let remove_temp_dir = format!("{}/{}", REMOVE_PKG_TEMP_DIR, uuid::Uuid::new_v4());
         let remove_temp_dir = Path::new(&remove_temp_dir);
 
         self.io.create_dir_all(remove_temp_dir).await?;
@@ -553,6 +554,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
         }
 
         self.io.remove_dir_all(remove_temp_dir).await.ok();
+        self.io
+            .remove_dir_all(REMOVE_PKG_TEMP_DIR.as_ref())
+            .await
+            .ok();
 
         remove_assets(
             &self.io,
