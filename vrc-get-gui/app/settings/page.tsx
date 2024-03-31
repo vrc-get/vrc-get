@@ -241,7 +241,7 @@ function Settings(
 			<Card className={"flex-shrink-0 p-4"}>
 				<label className={"flex items-center"}>
 					<h2>{tc("language")}: </h2>
-					<VGSelect value={tc("langName", {lng: i18next.language})} onChange={changeLanguage} menuClassName={"w-96"}>
+					<VGSelect value={tc("langName")} onChange={changeLanguage} menuClassName={"w-96"}>
 						{
 							languages.map((lang) => (
 								<VGOption key={lang} value={lang}>{tc("langName", {lng: lang})}</VGOption>

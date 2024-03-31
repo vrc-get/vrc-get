@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Shown language name is not changed `#694` 
 
 ### Security
 
