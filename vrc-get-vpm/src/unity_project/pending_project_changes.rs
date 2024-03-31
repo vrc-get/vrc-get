@@ -628,6 +628,16 @@ async fn move_packages_to_temp<'a>(
             }
         }
 
+        match io.remove_dir_all(package_dir).await {
+            Ok(()) => {}
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                return Ok(false);
+            }
+            Err(err) => {
+                return Err(err);
+            }
+        }
+
         Ok(true)
     }
 }
