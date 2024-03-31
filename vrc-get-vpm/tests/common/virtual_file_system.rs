@@ -2,6 +2,7 @@ use futures::Stream;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use std::ffi::{OsStr, OsString};
+use std::future::Future;
 use std::io::ErrorKind;
 use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
@@ -125,6 +126,35 @@ impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
             .await?
             .remove_dir_all(last)
             .await?;
+        Ok(())
+    }
+
+    async fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+        let Some((from_dir, from_last)) = self.resolve2(from)? else {
+            return err(ErrorKind::PermissionDenied, "moving root");
+        };
+        let Some((to_dir, to_last)) = self.resolve2(to)? else {
+            return err(ErrorKind::PermissionDenied, "moving to root");
+        };
+
+        let from_dir = self.root.get_folder(&from_dir).await?;
+        let to_dir = self.root.get_folder(&to_dir).await?;
+
+        let mut from_dir = from_dir.backed.lock().unwrap();
+        let mut to_dir = to_dir.backed.lock().unwrap();
+
+        let from_entry = match from_dir.entry(from_last.to_os_string()) {
+            Entry::Occupied(e) => e,
+            Entry::Vacant(_) => return err(ErrorKind::NotFound, "file not found"),
+        };
+
+        let to_entry = match to_dir.entry(to_last.to_os_string()) {
+            Entry::Occupied(_) => return err(ErrorKind::AlreadyExists, "file exists"),
+            Entry::Vacant(e) => e,
+        };
+
+        to_entry.insert(from_entry.shift_remove());
+
         Ok(())
     }
 

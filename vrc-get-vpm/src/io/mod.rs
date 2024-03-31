@@ -48,6 +48,7 @@ pub trait IoTrait: Sync {
     fn write(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
     fn remove_file(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn remove_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
+    fn rename(&self, from: &Path, to: &Path) -> impl Future<Output = Result<()>> + Send;
     fn metadata(&self, path: &Path) -> impl Future<Output = Result<Metadata>> + Send;
 
     type DirEntry: DirEntry;
