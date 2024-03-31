@@ -1283,6 +1283,13 @@ fn rollback_error_in_error() {
             .metadata("Packages/com.vrchat.avatars/package.json".as_ref())
             .await
             .unwrap();
+
+        project
+            .io()
+            .metadata("Temp/vrc-get".as_ref())
+            .await
+            .unwrap_err();
+        project.io().metadata("Temp".as_ref()).await.unwrap_err();
     })
 }
 

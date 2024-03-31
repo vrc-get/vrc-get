@@ -493,6 +493,9 @@ impl PendingProjectChanges<'_> {
     }
 }
 
+static TEMP_DIR: &str = "Temp";
+static PKG_TEMP_DIR: &str = "Temp/vrc-get";
+
 impl<IO: ProjectIo> UnityProject<IO> {
     /// Applies the changes specified in `AddPackageRequest` to the project.
     pub async fn apply_pending_changes<'env, Env: RemotePackageDownloader + EnvironmentIoHolder>(
@@ -530,8 +533,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         self.manifest
             .remove_packages(remove_names.iter().map(Box::as_ref));
 
-        static REMOVE_PKG_TEMP_DIR: &str = "Temp/vrc-get";
-        let remove_temp_dir = format!("{}/{}", REMOVE_PKG_TEMP_DIR, uuid::Uuid::new_v4());
+        let remove_temp_dir = format!("{}/{}", PKG_TEMP_DIR, uuid::Uuid::new_v4());
         let remove_temp_dir = Path::new(&remove_temp_dir);
 
         self.io.create_dir_all(remove_temp_dir).await?;
@@ -554,12 +556,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
         }
 
         self.io.remove_dir_all(remove_temp_dir).await.ok();
-        self.io
-            .remove_dir_all(REMOVE_PKG_TEMP_DIR.as_ref())
-            .await
-            .ok();
+        self.io.remove_dir_all(PKG_TEMP_DIR.as_ref()).await.ok();
         // remove temp dir also if it's empty
-        self.io.remove_dir("Temp".as_ref()).await.ok();
+        self.io.remove_dir(TEMP_DIR.as_ref()).await.ok();
 
         remove_assets(
             &self.io,
@@ -622,6 +621,9 @@ async fn restore_remove(io: &impl ProjectIo, temp_dir: &Path, names: impl Iterat
         let package_dir = Path::new(&package_dir);
         io.rename(&temp_dir.join(name), package_dir).await.ok();
     }
+    io.remove_dir(temp_dir).await.ok();
+    io.remove_dir(PKG_TEMP_DIR.as_ref()).await.ok();
+    io.remove_dir(TEMP_DIR.as_ref()).await.ok();
 }
 
 async fn install_packages<Env: RemotePackageDownloader + EnvironmentIoHolder>(
