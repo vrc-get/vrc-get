@@ -149,7 +149,7 @@ where
 pub(crate) fn walk_dir_relative<IO: IoTrait>(
     io: &IO,
     paths: impl IntoIterator<Item = PathBuf>,
-) -> impl Stream<Item = PathBuf> + '_ {
+) -> impl Stream<Item = (PathBuf, IO::DirEntry)> + '_ {
     type FutureResult<IO> = Either<
         io::Result<(<IO as IoTrait>::ReadDirStream, PathBuf)>,
         io::Result<
@@ -201,7 +201,7 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
                     let new_relative_path = dir_relative.join(entry.file_name());
                     futures.push(Either::Left(read_dir_phase(io, new_relative_path.clone()).map(FutureResult::<IO>::Left)));
                     futures.push(Either::Right(next_phase(read_dir_iter, dir_relative).map(FutureResult::<IO>::Right)));
-                    yield new_relative_path;
+                    yield (new_relative_path, entry);
                 },
             }
         }
