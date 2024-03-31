@@ -1,5 +1,5 @@
 use futures::Stream;
-use indexmap::map::Entry;
+use indexmap::map::Entry as IndexEntry;
 use indexmap::IndexMap;
 use std::ffi::{OsStr, OsString};
 use std::future::Future;
@@ -9,7 +9,7 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::{error, io};
-use vrc_get_vpm::io::{EnvironmentIo, ExitStatus, FileType, Metadata, ProjectIo};
+use vrc_get_vpm::io::{EnvironmentIo, ExitStatus, FileType, IoTrait, Metadata, ProjectIo};
 
 pub(crate) use file_stream::*;
 
@@ -167,19 +167,26 @@ impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
         let to_dir = self.root.get_folder(&to_dir).await?;
 
         let mut from_dir = from_dir.backed.lock().unwrap();
-        let mut to_dir = to_dir.backed.lock().unwrap();
 
         let from_entry = match from_dir.entry(from_last.to_os_string()) {
             Entry::Occupied(e) => e,
             Entry::Vacant(_) => return err(ErrorKind::NotFound, "file not found"),
         };
 
+        let original = from_entry.shift_remove();
+
+        drop(from_dir);
+
+        let mut to_dir = to_dir.backed.lock().unwrap();
+
         let to_entry = match to_dir.entry(to_last.to_os_string()) {
             Entry::Occupied(_) => return err(ErrorKind::AlreadyExists, "file exists"),
             Entry::Vacant(e) => e,
         };
 
-        to_entry.insert(from_entry.shift_remove());
+        to_entry.insert(original);
+
+        drop(to_dir);
 
         Ok(())
     }
@@ -327,13 +334,101 @@ impl FileSystemEntry {
 
 #[derive(Clone)]
 struct DirectoryEntry {
-    backed: Arc<Mutex<IndexMap<OsString, FileSystemEntry>>>,
+    backed: Arc<Mutex<DirectoryContent>>,
+}
+
+struct DirectoryContent {
+    content: IndexMap<OsString, Option<FileSystemEntry>>,
+}
+
+impl DirectoryContent {
+    fn new() -> Self {
+        Self {
+            content: IndexMap::new(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.content.is_empty() || self.content.values().all(Option::is_none)
+    }
+
+    fn get(&self, name: &OsStr) -> Option<&FileSystemEntry> {
+        self.content.get(name)?.as_ref()
+    }
+
+    fn entry(&mut self, name: OsString) -> Entry {
+        Entry::new(self.content.entry(name))
+    }
+
+    fn last(&self) -> Option<(&OsString, &FileSystemEntry)> {
+        self.content
+            .iter()
+            .rev()
+            .find_map(|(k, v)| v.as_ref().map(|v| (k, v)))
+    }
+
+    fn remove_last(&mut self) {
+        if let Some(slot) = self.content.values_mut().rev().find(|v| v.is_some()) {
+            *slot = None;
+        }
+    }
+
+    fn get_index_internal(&self, index: usize) -> Option<(&OsString, Option<&FileSystemEntry>)> {
+        self.content.get_index(index).map(|(k, v)| (k, v.as_ref()))
+    }
+}
+
+enum Entry<'a> {
+    Occupied(OccupiedEntry<'a>),
+    Vacant(VacantEntry<'a>),
+}
+
+impl<'a> Entry<'a> {
+    fn new(entry: IndexEntry<'a, OsString, Option<FileSystemEntry>>) -> Self {
+        match entry {
+            IndexEntry::Occupied(e) => match e.get() {
+                Some(_) => Entry::Occupied(OccupiedEntry(e)),
+                None => Entry::Vacant(VacantEntry::Occupied(e)),
+            },
+            IndexEntry::Vacant(e) => Entry::Vacant(VacantEntry::Vacant(e)),
+        }
+    }
+}
+
+struct OccupiedEntry<'a>(indexmap::map::OccupiedEntry<'a, OsString, Option<FileSystemEntry>>);
+
+impl<'a> OccupiedEntry<'a> {
+    fn into_mut(self) -> &'a mut FileSystemEntry {
+        self.0.into_mut().as_mut().unwrap()
+    }
+
+    fn shift_remove(self) -> FileSystemEntry {
+        self.0.into_mut().take().unwrap()
+    }
+
+    fn get_mut(&mut self) -> &mut FileSystemEntry {
+        self.0.get_mut().as_mut().unwrap()
+    }
+}
+
+enum VacantEntry<'a> {
+    Occupied(indexmap::map::OccupiedEntry<'a, OsString, Option<FileSystemEntry>>),
+    Vacant(indexmap::map::VacantEntry<'a, OsString, Option<FileSystemEntry>>),
+}
+
+impl<'a> VacantEntry<'a> {
+    fn insert(self, entry: FileSystemEntry) -> &'a mut FileSystemEntry {
+        match self {
+            VacantEntry::Occupied(e) => e.into_mut().insert(entry),
+            VacantEntry::Vacant(e) => e.insert(Some(entry)).as_mut().unwrap(),
+        }
+    }
 }
 
 impl DirectoryEntry {
     fn new() -> Self {
         Self {
-            backed: Arc::new(Mutex::new(IndexMap::new())),
+            backed: Arc::new(Mutex::new(DirectoryContent::new())),
         }
     }
 
@@ -444,8 +539,7 @@ impl DirectoryEntry {
                 }
                 FileSystemEntry::Directory(d) => d.clear()?,
             }
-            let last = backed.len() - 1;
-            backed.swap_remove_index(last);
+            backed.remove_last();
         }
         Ok(())
     }
@@ -506,13 +600,22 @@ impl Stream for ReadDirStream {
 
     fn poll_next(mut self: Pin<&mut Self>, _: &mut Context) -> Poll<Option<Self::Item>> {
         let locked = self.dir.backed.lock().unwrap();
-        let Some((name, entry)) = locked.get_index(self.index) else {
-            return Poll::Ready(None);
-        };
-        let entry = DirEntry::new(name, entry.metadata());
-        drop(locked);
-        self.index += 1;
-        Poll::Ready(Some(Ok(entry)))
+        let mut index = self.index;
+        loop {
+            let Some((name, entry)) = locked.get_index_internal(index) else {
+                drop(locked);
+                self.index = index;
+                return Poll::Ready(None);
+            };
+            index += 1;
+            let Some(entry) = entry else {
+                continue;
+            };
+            let entry = DirEntry::new(name, entry.metadata());
+            drop(locked);
+            self.index = index;
+            return Poll::Ready(Some(Ok(entry)));
+        }
     }
 }
 
