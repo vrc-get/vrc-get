@@ -333,7 +333,8 @@ jobs:
 
   publish-to-homebrew:
     name: Publish to homebrew
-    if: ${{ !needs.pre-build.outputs.prerelease }}
+    # vrc-get is on autobump list https://github.com/Homebrew/homebrew-core/blame/master/.github/autobump.txt
+    if: false # ${{ !needs.pre-build.outputs.prerelease }}
     environment:
       name: homebrew-core
       url: https://github.com/homebrew/homebrew-core
