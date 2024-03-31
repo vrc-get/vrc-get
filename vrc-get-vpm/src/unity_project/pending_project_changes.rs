@@ -1,19 +1,21 @@
 use crate::io;
-use crate::io::ProjectIo;
+use crate::io::{DirEntry, ProjectIo};
 use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
-use crate::utils::{copy_recursive, extract_zip};
+use crate::utils::{copy_recursive, extract_zip, walk_dir_relative};
 use crate::version::DependencyRange;
 use crate::{
     unity_compatible, PackageInfo, PackageInfoInner, RemotePackageDownloader, UnityProject,
 };
 use either::Either;
 use futures::future::{join, join_all, try_join_all};
+use futures::prelude::*;
 use log::debug;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
+use std::pin::pin;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -574,6 +576,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 }
 
+static REMOVED_FILE_PREFIX: &str = ".__removed_";
+
 async fn move_packages_to_temp<'a>(
     io: &impl ProjectIo,
     names: impl Iterator<Item = &'a str>,
@@ -606,12 +610,25 @@ async fn move_packages_to_temp<'a>(
     async fn move_package(io: &impl ProjectIo, name: &str, temp_dir: &Path) -> io::Result<bool> {
         let package_dir = format!("Packages/{}", name);
         let package_dir = Path::new(&package_dir);
+        let copied_dir = temp_dir.join(name);
 
-        match io.rename(package_dir, &temp_dir.join(name)).await {
-            Ok(()) => Ok(true),
-            Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(false),
-            Err(err) => Err(err),
+        io.create_dir_all(&copied_dir).await?;
+        let mut iterator = pin!(walk_dir_relative(io, vec![package_dir.into()]));
+        while let Some((original, entry)) = iterator.next().await {
+            let relative = original.strip_prefix(package_dir).unwrap();
+            let mut moved = copied_dir.join(relative);
+            if entry.file_type().await?.is_dir() {
+                io.create_dir_all(&moved).await?;
+            } else {
+                if let Some(name) = original.file_name().unwrap().to_str() {
+                    moved.pop();
+                    moved.push(format!("{}{}", REMOVED_FILE_PREFIX, name));
+                }
+                io.rename(&original, &moved).await?;
+            }
         }
+
+        Ok(true)
     }
 }
 
@@ -620,6 +637,23 @@ async fn restore_remove(io: &impl ProjectIo, temp_dir: &Path, names: impl Iterat
         let package_dir = format!("Packages/{}", name);
         let package_dir = Path::new(&package_dir);
         io.rename(&temp_dir.join(name), package_dir).await.ok();
+
+        let mut iterator = pin!(walk_dir_relative(io, vec![package_dir.into()]));
+        while let Some((original, entry)) = iterator.next().await {
+            if entry
+                .file_type()
+                .await
+                .map(|x| !x.is_dir())
+                .unwrap_or(false)
+            {
+                if let Some(name) = original.file_name().unwrap().to_str() {
+                    if let Some(stripped) = name.strip_prefix(REMOVED_FILE_PREFIX) {
+                        let moved = original.parent().unwrap().join(stripped);
+                        io.rename(&original, &moved).await.ok();
+                    }
+                }
+            }
+        }
     }
     io.remove_dir(temp_dir).await.ok();
     io.remove_dir(PKG_TEMP_DIR.as_ref()).await.ok();
