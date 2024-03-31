@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Shown language name is not changed `#694` 
+- Installing package while Unity can be failed `#696`
 
 ### Security
 
