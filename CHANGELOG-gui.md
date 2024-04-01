@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Update last modified on open unity `#697
 
 ### Deprecated
 
