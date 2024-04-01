@@ -1,14 +1,15 @@
 use futures::Stream;
-use indexmap::map::Entry;
+use indexmap::map::Entry as IndexEntry;
 use indexmap::IndexMap;
 use std::ffi::{OsStr, OsString};
+use std::future::Future;
 use std::io::ErrorKind;
 use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::{error, io};
-use vrc_get_vpm::io::{EnvironmentIo, ExitStatus, FileType, Metadata, ProjectIo};
+use vrc_get_vpm::io::{EnvironmentIo, ExitStatus, FileType, IoTrait, Metadata, ProjectIo};
 
 pub(crate) use file_stream::*;
 
@@ -47,6 +48,20 @@ impl VirtualFileSystem {
             .await?
             .set_content(content)
             .await;
+        Ok(())
+    }
+
+    pub async fn deny_deletion(&self, path: &Path) -> io::Result<()> {
+        let Some((dir_path, last)) = self.resolve2(path)? else {
+            return err(IS_DIRECTORY, "is directory");
+        };
+        self.root
+            .get_folder(&dir_path)
+            .await?
+            .get(last)
+            .await?
+            .as_file()?
+            .deny_deletion();
         Ok(())
     }
 }
@@ -116,6 +131,18 @@ impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
         Ok(())
     }
 
+    async fn remove_dir(&self, path: &Path) -> io::Result<()> {
+        let Some((dir_path, last)) = self.resolve2(path)? else {
+            return err(ErrorKind::PermissionDenied, "removing root");
+        };
+        self.root
+            .get_folder(&dir_path)
+            .await?
+            .remove_dir_all(last)
+            .await?;
+        Ok(())
+    }
+
     async fn remove_dir_all(&self, path: &Path) -> io::Result<()> {
         let Some((dir_path, last)) = self.resolve2(path)? else {
             return err(ErrorKind::PermissionDenied, "removing root");
@@ -125,6 +152,42 @@ impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
             .await?
             .remove_dir_all(last)
             .await?;
+        Ok(())
+    }
+
+    async fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+        let Some((from_dir, from_last)) = self.resolve2(from)? else {
+            return err(ErrorKind::PermissionDenied, "moving root");
+        };
+        let Some((to_dir, to_last)) = self.resolve2(to)? else {
+            return err(ErrorKind::PermissionDenied, "moving to root");
+        };
+
+        let from_dir = self.root.get_folder(&from_dir).await?;
+        let to_dir = self.root.get_folder(&to_dir).await?;
+
+        let mut from_dir = from_dir.backed.lock().unwrap();
+
+        let from_entry = match from_dir.entry(from_last.to_os_string()) {
+            Entry::Occupied(e) => e,
+            Entry::Vacant(_) => return err(ErrorKind::NotFound, "file not found"),
+        };
+
+        let original = from_entry.shift_remove();
+
+        drop(from_dir);
+
+        let mut to_dir = to_dir.backed.lock().unwrap();
+
+        let to_entry = match to_dir.entry(to_last.to_os_string()) {
+            Entry::Occupied(_) => return err(ErrorKind::AlreadyExists, "file exists"),
+            Entry::Vacant(e) => e,
+        };
+
+        to_entry.insert(original);
+
+        drop(to_dir);
+
         Ok(())
     }
 
@@ -271,13 +334,101 @@ impl FileSystemEntry {
 
 #[derive(Clone)]
 struct DirectoryEntry {
-    backed: Arc<Mutex<IndexMap<OsString, FileSystemEntry>>>,
+    backed: Arc<Mutex<DirectoryContent>>,
+}
+
+struct DirectoryContent {
+    content: IndexMap<OsString, Option<FileSystemEntry>>,
+}
+
+impl DirectoryContent {
+    fn new() -> Self {
+        Self {
+            content: IndexMap::new(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.content.is_empty() || self.content.values().all(Option::is_none)
+    }
+
+    fn get(&self, name: &OsStr) -> Option<&FileSystemEntry> {
+        self.content.get(name)?.as_ref()
+    }
+
+    fn entry(&mut self, name: OsString) -> Entry {
+        Entry::new(self.content.entry(name))
+    }
+
+    fn last(&self) -> Option<(&OsString, &FileSystemEntry)> {
+        self.content
+            .iter()
+            .rev()
+            .find_map(|(k, v)| v.as_ref().map(|v| (k, v)))
+    }
+
+    fn remove_last(&mut self) {
+        if let Some(slot) = self.content.values_mut().rev().find(|v| v.is_some()) {
+            *slot = None;
+        }
+    }
+
+    fn get_index_internal(&self, index: usize) -> Option<(&OsString, Option<&FileSystemEntry>)> {
+        self.content.get_index(index).map(|(k, v)| (k, v.as_ref()))
+    }
+}
+
+enum Entry<'a> {
+    Occupied(OccupiedEntry<'a>),
+    Vacant(VacantEntry<'a>),
+}
+
+impl<'a> Entry<'a> {
+    fn new(entry: IndexEntry<'a, OsString, Option<FileSystemEntry>>) -> Self {
+        match entry {
+            IndexEntry::Occupied(e) => match e.get() {
+                Some(_) => Entry::Occupied(OccupiedEntry(e)),
+                None => Entry::Vacant(VacantEntry::Occupied(e)),
+            },
+            IndexEntry::Vacant(e) => Entry::Vacant(VacantEntry::Vacant(e)),
+        }
+    }
+}
+
+struct OccupiedEntry<'a>(indexmap::map::OccupiedEntry<'a, OsString, Option<FileSystemEntry>>);
+
+impl<'a> OccupiedEntry<'a> {
+    fn into_mut(self) -> &'a mut FileSystemEntry {
+        self.0.into_mut().as_mut().unwrap()
+    }
+
+    fn shift_remove(self) -> FileSystemEntry {
+        self.0.into_mut().take().unwrap()
+    }
+
+    fn get_mut(&mut self) -> &mut FileSystemEntry {
+        self.0.get_mut().as_mut().unwrap()
+    }
+}
+
+enum VacantEntry<'a> {
+    Occupied(indexmap::map::OccupiedEntry<'a, OsString, Option<FileSystemEntry>>),
+    Vacant(indexmap::map::VacantEntry<'a, OsString, Option<FileSystemEntry>>),
+}
+
+impl<'a> VacantEntry<'a> {
+    fn insert(self, entry: FileSystemEntry) -> &'a mut FileSystemEntry {
+        match self {
+            VacantEntry::Occupied(e) => e.into_mut().insert(entry),
+            VacantEntry::Vacant(e) => e.insert(Some(entry)).as_mut().unwrap(),
+        }
+    }
 }
 
 impl DirectoryEntry {
     fn new() -> Self {
         Self {
-            backed: Arc::new(Mutex::new(IndexMap::new())),
+            backed: Arc::new(Mutex::new(DirectoryContent::new())),
         }
     }
 
@@ -342,8 +493,25 @@ impl DirectoryEntry {
         let mut backed = self.backed.lock().unwrap();
         match backed.entry(name.to_os_string()) {
             Entry::Occupied(mut e) => {
-                e.get_mut().as_file()?;
+                let file = e.get_mut().as_file()?;
+                if !file.can_remove() {
+                    return err(ErrorKind::PermissionDenied, "file is locked");
+                }
                 Ok(e.shift_remove().into_file().unwrap())
+            }
+            Entry::Vacant(_) => err(ErrorKind::NotFound, "file not found"),
+        }
+    }
+
+    async fn remove_dir(&self, name: &OsStr) -> io::Result<DirectoryEntry> {
+        let mut backed = self.backed.lock().unwrap();
+        match backed.entry(name.to_os_string()) {
+            Entry::Occupied(mut e) => {
+                let as_dir = e.get_mut().as_directory()?;
+                if !as_dir.backed.lock().unwrap().is_empty() {
+                    return err(ErrorKind::Other, "directory not empty"); // DirectoryNotEmpty is unstable
+                }
+                Ok(e.shift_remove().into_directory().unwrap())
             }
             Entry::Vacant(_) => err(ErrorKind::NotFound, "file not found"),
         }
@@ -353,28 +521,66 @@ impl DirectoryEntry {
         let mut backed = self.backed.lock().unwrap();
         match backed.entry(name.to_os_string()) {
             Entry::Occupied(mut e) => {
-                e.get_mut().as_directory()?;
+                e.get_mut().as_directory()?.clear()?;
                 Ok(e.shift_remove().into_directory().unwrap())
             }
             Entry::Vacant(_) => err(ErrorKind::NotFound, "file not found"),
         }
     }
+
+    fn clear(&self) -> io::Result<()> {
+        let mut backed = self.backed.lock().unwrap();
+        while let Some((_, child)) = backed.last() {
+            match child {
+                FileSystemEntry::File(f) => {
+                    if !f.can_remove() {
+                        return err(ErrorKind::PermissionDenied, "file is locked");
+                    }
+                }
+                FileSystemEntry::Directory(d) => d.clear()?,
+            }
+            backed.remove_last();
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
 struct FileEntry {
-    content: Arc<Mutex<Vec<u8>>>,
+    content: Arc<Mutex<FileContent>>,
+}
+
+struct FileContent {
+    content: Vec<u8>,
+    locked: bool,
+}
+
+impl FileContent {
+    fn new() -> Self {
+        Self {
+            content: Vec::new(),
+            locked: false,
+        }
+    }
 }
 
 impl FileEntry {
     fn new() -> Self {
         Self {
-            content: Arc::new(Mutex::new(Vec::new())),
+            content: Arc::new(Mutex::new(FileContent::new())),
         }
     }
 
     pub(crate) async fn set_content(&self, content: &[u8]) {
-        *self.content.lock().unwrap() = content.to_vec();
+        self.content.lock().unwrap().content = content.to_vec();
+    }
+
+    pub(crate) fn deny_deletion(&self) {
+        self.content.lock().unwrap().locked = true;
+    }
+
+    pub(crate) fn can_remove(&self) -> bool {
+        !self.content.lock().unwrap().locked
     }
 }
 
@@ -394,13 +600,22 @@ impl Stream for ReadDirStream {
 
     fn poll_next(mut self: Pin<&mut Self>, _: &mut Context) -> Poll<Option<Self::Item>> {
         let locked = self.dir.backed.lock().unwrap();
-        let Some((name, entry)) = locked.get_index(self.index) else {
-            return Poll::Ready(None);
-        };
-        let entry = DirEntry::new(name, entry.metadata());
-        drop(locked);
-        self.index += 1;
-        Poll::Ready(Some(Ok(entry)))
+        let mut index = self.index;
+        loop {
+            let Some((name, entry)) = locked.get_index_internal(index) else {
+                drop(locked);
+                self.index = index;
+                return Poll::Ready(None);
+            };
+            index += 1;
+            let Some(entry) = entry else {
+                continue;
+            };
+            let entry = DirEntry::new(name, entry.metadata());
+            drop(locked);
+            self.index = index;
+            return Poll::Ready(Some(Ok(entry)));
+        }
     }
 }
 
@@ -433,6 +648,7 @@ impl vrc_get_vpm::io::DirEntry for DirEntry {
 }
 
 mod file_stream {
+    use crate::common::virtual_file_system::FileContent;
     use futures::{AsyncRead, AsyncSeek, AsyncWrite};
     use std::io;
     use std::io::{ErrorKind, SeekFrom};
@@ -441,12 +657,12 @@ mod file_stream {
     use std::task::{Context, Poll};
 
     pub struct FileStream {
-        content: Arc<Mutex<Vec<u8>>>,
+        content: Arc<Mutex<FileContent>>,
         position: usize,
     }
 
     impl FileStream {
-        pub(crate) fn new(content: Arc<Mutex<Vec<u8>>>) -> Self {
+        pub(super) fn new(content: Arc<Mutex<FileContent>>) -> Self {
             Self {
                 content,
                 position: 0,
@@ -483,9 +699,14 @@ mod file_stream {
 
                     let lock = self.content.clone();
                     let guard = lock.lock().unwrap();
-                    self.position = guard.len().checked_add_signed(offset).ok_or_else(|| {
-                        io::Error::new(ErrorKind::InvalidInput, "invalid position")
-                    })?;
+                    self.position =
+                        guard
+                            .content
+                            .len()
+                            .checked_add_signed(offset)
+                            .ok_or_else(|| {
+                                io::Error::new(ErrorKind::InvalidInput, "invalid position")
+                            })?;
                     Poll::Ready(Ok(self.position as u64))
                 }
             }
@@ -500,10 +721,10 @@ mod file_stream {
         ) -> Poll<io::Result<usize>> {
             let lock = self.content.clone();
             let guard = lock.lock().unwrap();
-            let len = guard.len();
+            let len = guard.content.len();
             let remaining = len - self.position;
             let to_copy = buf.len().min(remaining);
-            buf[..to_copy].copy_from_slice(&guard[self.position..][..to_copy]);
+            buf[..to_copy].copy_from_slice(&guard.content[self.position..][..to_copy]);
             self.position += to_copy;
             Poll::Ready(Ok(to_copy))
         }
@@ -518,10 +739,10 @@ mod file_stream {
             let lock = self.content.clone();
             let mut guard = lock.lock().unwrap();
             let new_len = self.position + buf.len();
-            if new_len > guard.len() {
-                guard.resize(new_len, 0);
+            if new_len > guard.content.len() {
+                guard.content.resize(new_len, 0);
             }
-            guard[self.position..][..buf.len()].copy_from_slice(buf);
+            guard.content[self.position..][..buf.len()].copy_from_slice(buf);
 
             Poll::Ready(Ok(buf.len()))
         }

@@ -3,11 +3,13 @@
 #![allow(unused_imports)]
 
 mod package_collection;
+mod virtual_environment;
 mod virtual_file_system;
 mod virtual_project_builder;
 
 pub use package_collection::PackageCollection;
 pub use package_collection::PackageCollectionBuilder;
+pub use virtual_environment::VirtualEnvironment;
 pub use virtual_file_system::VirtualFileSystem;
 pub use virtual_project_builder::VirtualProjectBuilder;
 

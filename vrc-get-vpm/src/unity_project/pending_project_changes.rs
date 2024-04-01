@@ -1,19 +1,21 @@
 use crate::io;
-use crate::io::ProjectIo;
+use crate::io::{DirEntry, ProjectIo};
 use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
-use crate::utils::{copy_recursive, extract_zip};
+use crate::utils::{copy_recursive, extract_zip, walk_dir_relative};
 use crate::version::DependencyRange;
 use crate::{
     unity_compatible, PackageInfo, PackageInfoInner, RemotePackageDownloader, UnityProject,
 };
 use either::Either;
-use futures::future::{join3, join_all, try_join_all};
+use futures::future::{join, join_all, try_join_all};
+use futures::prelude::*;
 use log::debug;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
+use std::pin::pin;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -493,6 +495,9 @@ impl PendingProjectChanges<'_> {
     }
 }
 
+static TEMP_DIR: &str = "Temp";
+static PKG_TEMP_DIR: &str = "Temp/vrc-get";
+
 impl<IO: ProjectIo> UnityProject<IO> {
     /// Applies the changes specified in `AddPackageRequest` to the project.
     pub async fn apply_pending_changes<'env, Env: RemotePackageDownloader + EnvironmentIoHolder>(
@@ -530,7 +535,32 @@ impl<IO: ProjectIo> UnityProject<IO> {
         self.manifest
             .remove_packages(remove_names.iter().map(Box::as_ref));
 
-        install_packages(&self.io, env, &installs).await?;
+        let remove_temp_dir = format!("{}/{}", PKG_TEMP_DIR, uuid::Uuid::new_v4());
+        let remove_temp_dir = Path::new(&remove_temp_dir);
+
+        self.io.create_dir_all(remove_temp_dir).await?;
+
+        let removed = move_packages_to_temp(
+            &self.io,
+            (remove_names.iter().map(Box::as_ref)).chain(installs.iter().map(|x| x.name())),
+            remove_temp_dir,
+        )
+        .await?;
+
+        match install_packages(&self.io, env, &installs).await {
+            Ok(()) => {}
+            Err(err) => {
+                // restore moved packages
+                restore_remove(&self.io, remove_temp_dir, removed.iter().copied()).await;
+
+                return Err(err);
+            }
+        }
+
+        self.io.remove_dir_all(remove_temp_dir).await.ok();
+        self.io.remove_dir_all(PKG_TEMP_DIR.as_ref()).await.ok();
+        // remove temp dir also if it's empty
+        self.io.remove_dir(TEMP_DIR.as_ref()).await.ok();
 
         remove_assets(
             &self.io,
@@ -539,12 +569,105 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 .remove_legacy_folders
                 .iter()
                 .map(|(p, _)| p.as_ref()),
-            remove_names.iter().map(Box::as_ref),
         )
         .await;
 
         Ok(())
     }
+}
+
+static REMOVED_FILE_PREFIX: &str = ".__removed_";
+
+async fn move_packages_to_temp<'a>(
+    io: &impl ProjectIo,
+    names: impl Iterator<Item = &'a str>,
+    temp_dir: &Path,
+) -> io::Result<Vec<&'a str>> {
+    // it's expected to cheap to rename (link) packages to temp dir,
+    // so we do it sequentially for simplicity
+
+    let mut moved = Vec::new();
+
+    for name in names {
+        match move_package(io, name, temp_dir).await {
+            Ok(true) => {
+                moved.push(name);
+            }
+            Ok(false) => {
+                // package not found, do nothing
+            }
+            Err(err) => {
+                // restore moved packages as possible
+                restore_remove(io, temp_dir, moved.iter().copied()).await;
+
+                return Err(err);
+            }
+        }
+    }
+
+    return Ok(moved);
+
+    async fn move_package(io: &impl ProjectIo, name: &str, temp_dir: &Path) -> io::Result<bool> {
+        let package_dir = format!("Packages/{}", name);
+        let package_dir = Path::new(&package_dir);
+        let copied_dir = temp_dir.join(name);
+
+        io.create_dir_all(&copied_dir).await?;
+        let mut iterator = pin!(walk_dir_relative(io, vec![package_dir.into()]));
+        while let Some((original, entry)) = iterator.next().await {
+            let relative = original.strip_prefix(package_dir).unwrap();
+            let mut moved = copied_dir.join(relative);
+            if entry.file_type().await?.is_dir() {
+                io.create_dir_all(&moved).await?;
+            } else {
+                if let Some(name) = original.file_name().unwrap().to_str() {
+                    moved.pop();
+                    moved.push(format!("{}{}", REMOVED_FILE_PREFIX, name));
+                }
+                io.rename(&original, &moved).await?;
+            }
+        }
+
+        match io.remove_dir_all(package_dir).await {
+            Ok(()) => {}
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                return Ok(false);
+            }
+            Err(err) => {
+                return Err(err);
+            }
+        }
+
+        Ok(true)
+    }
+}
+
+async fn restore_remove(io: &impl ProjectIo, temp_dir: &Path, names: impl Iterator<Item = &str>) {
+    for name in names {
+        let package_dir = format!("Packages/{}", name);
+        let package_dir = Path::new(&package_dir);
+        io.rename(&temp_dir.join(name), package_dir).await.ok();
+
+        let mut iterator = pin!(walk_dir_relative(io, vec![package_dir.into()]));
+        while let Some((original, entry)) = iterator.next().await {
+            if entry
+                .file_type()
+                .await
+                .map(|x| !x.is_dir())
+                .unwrap_or(false)
+            {
+                if let Some(name) = original.file_name().unwrap().to_str() {
+                    if let Some(stripped) = name.strip_prefix(REMOVED_FILE_PREFIX) {
+                        let moved = original.parent().unwrap().join(stripped);
+                        io.rename(&original, &moved).await.ok();
+                    }
+                }
+            }
+        }
+    }
+    io.remove_dir(temp_dir).await.ok();
+    io.remove_dir(PKG_TEMP_DIR.as_ref()).await.ok();
+    io.remove_dir(TEMP_DIR.as_ref()).await.ok();
 }
 
 async fn install_packages<Env: RemotePackageDownloader + EnvironmentIoHolder>(
@@ -567,17 +690,13 @@ async fn remove_assets(
     io: &impl ProjectIo,
     legacy_files: impl Iterator<Item = &Path>,
     legacy_folders: impl Iterator<Item = &Path>,
-    legacy_packages: impl Iterator<Item = &str>,
 ) {
-    join3(
+    join(
         join_all(legacy_files.map(|relative| async move {
             remove_file(io, relative).await;
         })),
         join_all(legacy_folders.map(|relative| async move {
             remove_folder(io, relative).await;
-        })),
-        join_all(legacy_packages.map(|name| async move {
-            remove_package(io, name).await;
         })),
     )
     .await;
@@ -607,16 +726,6 @@ async fn remove_assets(
         }
         remove_meta_file(io, path.to_owned()).await;
     }
-
-    async fn remove_package(io: &impl ProjectIo, name: &str) {
-        if let Some(err) = io
-            .remove_dir_all(format!("Packages/{}", name).as_ref())
-            .await
-            .err()
-        {
-            log::error!("error removing legacy package {}: {}", name, err);
-        }
-    }
 }
 
 pub(crate) async fn add_package<Env: RemotePackageDownloader + EnvironmentIoHolder>(
@@ -631,13 +740,11 @@ pub(crate) async fn add_package<Env: RemotePackageDownloader + EnvironmentIoHold
             let zip_file = env.get_package(user_repo, package).await?;
 
             // remove dest folder before extract if exists
-            io.remove_dir_all(&dest_folder).await.ok();
             extract_zip(zip_file, io, &dest_folder).await?;
 
             Ok(())
         }
         PackageInfoInner::Local(_, path) => {
-            io.remove_dir_all(&dest_folder).await.ok();
             copy_recursive(env.io(), path.into(), io, dest_folder).await?;
             Ok(())
         }

@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Installing package while Unity can be failed `#696`
 
 ### Security
 

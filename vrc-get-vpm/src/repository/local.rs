@@ -11,7 +11,7 @@ pub struct LocalCachedRepository {
     headers: IndexMap<Box<str>, Box<str>>,
     #[serde(rename = "vrc-get")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub vrc_get: Option<VrcGetMeta>,
+    pub(crate) vrc_get: Option<VrcGetMeta>,
 }
 
 impl LocalCachedRepository {

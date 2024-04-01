@@ -1,7 +1,9 @@
 use common::*;
 use futures::executor::block_on;
 use std::collections::HashSet;
+use std::io;
 use std::path::Path;
+use vrc_get_vpm::io::IoTrait;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
 use vrc_get_vpm::unity_project::{AddPackageErr, AddPackageOperation};
 use vrc_get_vpm::version::Version;
@@ -1119,6 +1121,175 @@ fn conflict_requirements_of_installed_and_installing_related_to_dependencies() {
         assert_eq!(resolve.conflicts().len(), 0);
 
         assert_installing_to_both(&resolve, &tool);
+    })
+}
+
+// endregion
+
+// region rollback on error
+
+#[test]
+fn no_temp_folder_after_add() {
+    block_on(async {
+        let mut project = VirtualProjectBuilder::new()
+            .add_dependency_range("com.vrchat.avatars", "~3.5.x")
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(3, 4, 2),
+                &[("com.vrchat.base", "3.4.2")],
+            )
+            .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
+            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file("Packages/com.vrchat.avatars/content.txt", "text")
+            .build()
+            .await
+            .unwrap();
+
+        let env_vfs = VirtualFileSystem::new();
+        let env = VirtualEnvironment::new(env_vfs);
+
+        let resolve = project
+            .remove_request(&["com.vrchat.avatars"])
+            .await
+            .unwrap();
+
+        project.apply_pending_changes(&env, resolve).await.unwrap();
+
+        assert_eq!(
+            project
+                .io()
+                .metadata("Temp".as_ref())
+                .await
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::NotFound
+        );
+        assert_eq!(
+            project
+                .io()
+                .metadata("Packages/com.vrchat.avatars".as_ref())
+                .await
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::NotFound
+        );
+    })
+}
+
+#[test]
+fn locked_in_package_folder() {
+    block_on(async {
+        let mut project = VirtualProjectBuilder::new()
+            .add_dependency_range("com.vrchat.avatars", "~3.5.x")
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(3, 4, 2),
+                &[("com.vrchat.base", "3.4.2")],
+            )
+            .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
+            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file("Packages/com.vrchat.avatars/content.txt", "text")
+            .build()
+            .await
+            .unwrap();
+
+        project
+            .io()
+            .deny_deletion("Packages/com.vrchat.avatars/content.txt".as_ref())
+            .await
+            .unwrap();
+
+        let env_vfs = VirtualFileSystem::new();
+        let env = VirtualEnvironment::new(env_vfs);
+
+        let resolve = project
+            .remove_request(&["com.vrchat.avatars"])
+            .await
+            .unwrap();
+
+        project.apply_pending_changes(&env, resolve).await.unwrap();
+
+        assert_eq!(
+            project
+                .io()
+                .metadata("Packages/com.vrchat.avatars".as_ref())
+                .await
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::NotFound
+        );
+        project.io().metadata("Temp".as_ref()).await.unwrap();
+        project
+            .io()
+            .metadata("Temp/vrc-get".as_ref())
+            .await
+            .unwrap();
+    })
+}
+
+#[test]
+fn rollback_error_in_error() {
+    block_on(async {
+        let mut project = VirtualProjectBuilder::new()
+            .add_dependency_range("com.vrchat.avatars", "~3.5.x")
+            .add_locked("com.vrchat.avatars", Version::new(3, 4, 2), &[])
+            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file("Packages/com.vrchat.avatars/content.txt", "text")
+            .build()
+            .await
+            .unwrap();
+
+        project
+            .io()
+            .deny_deletion("Packages/com.vrchat.avatars/content.txt".as_ref())
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.avatars",
+                Version::new(3, 5, 0),
+            ))
+            .build();
+
+        let package = collection.get_package("com.vrchat.avatars", Version::new(3, 5, 0));
+
+        let env_vfs = VirtualFileSystem::new();
+        let env = VirtualEnvironment::new(env_vfs);
+
+        let resolve = project
+            .add_package_request(
+                &collection,
+                &[package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        project
+            .apply_pending_changes(&env, resolve)
+            .await
+            .unwrap_err();
+
+        project
+            .io()
+            .metadata("Packages/com.vrchat.avatars/content.txt".as_ref())
+            .await
+            .unwrap();
+
+        project
+            .io()
+            .metadata("Packages/com.vrchat.avatars/package.json".as_ref())
+            .await
+            .unwrap();
+
+        project
+            .io()
+            .metadata("Temp/vrc-get".as_ref())
+            .await
+            .unwrap_err();
+        project.io().metadata("Temp".as_ref()).await.unwrap_err();
     })
 }
 

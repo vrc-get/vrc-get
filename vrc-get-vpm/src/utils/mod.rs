@@ -149,7 +149,7 @@ where
 pub(crate) fn walk_dir_relative<IO: IoTrait>(
     io: &IO,
     paths: impl IntoIterator<Item = PathBuf>,
-) -> impl Stream<Item = PathBuf> + '_ {
+) -> impl Stream<Item = (PathBuf, IO::DirEntry)> + '_ {
     type FutureResult<IO> = Either<
         io::Result<(<IO as IoTrait>::ReadDirStream, PathBuf)>,
         io::Result<
@@ -165,16 +165,29 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
         io: &IO,
         relative: PathBuf,
     ) -> io::Result<(IO::ReadDirStream, PathBuf)> {
-        Ok((io.read_dir(&relative).await?, relative))
+        log::trace!("s:read_dir_phase: {:?}", relative);
+        match io.read_dir(&relative).await {
+            Ok(result) => {
+                log::trace!("e:read_dir_phase: {:?}", relative);
+                Ok((result, relative))
+            }
+            Err(e) => {
+                log::trace!("e:read_dir_phase: {:?}: {e:?}", relative);
+                Err(e)
+            }
+        }
     }
 
     async fn next_phase<IO: IoTrait>(
         mut read_dir: IO::ReadDirStream,
         relative: PathBuf,
     ) -> io::Result<Option<(IO::ReadDirStream, PathBuf, IO::DirEntry)>> {
+        log::trace!("s:next_phase: {:?}", relative);
         if let Some(entry) = read_dir.try_next().await? {
+            log::trace!("e:next_phase: {:?}: {:?}", relative, entry.file_name());
             Ok(Some((read_dir, relative, entry)))
         } else {
+            log::trace!("e:next_phase: {:?}", relative);
             Ok(None)
         }
     }
@@ -198,10 +211,19 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
                 Some(Either::Right(Err(_))) => continue,
                 Some(Either::Right(Ok(None))) => continue,
                 Some(Either::Right(Ok(Some((read_dir_iter, dir_relative, entry))))) => {
+                    let entry: IO::DirEntry = entry;
                     let new_relative_path = dir_relative.join(entry.file_name());
-                    futures.push(Either::Left(read_dir_phase(io, new_relative_path.clone()).map(FutureResult::<IO>::Left)));
+                    match entry.file_type().now_or_never() {
+                        Some(Ok(file_type)) if !file_type.is_dir() => {
+                            // the entry is known to be a file
+                        },
+                        _ => {
+                            futures.push(Either::Left(read_dir_phase(io, new_relative_path.clone()).map(FutureResult::<IO>::Left)));
+                        },
+                    }
                     futures.push(Either::Right(next_phase(read_dir_iter, dir_relative).map(FutureResult::<IO>::Right)));
-                    yield new_relative_path;
+                    log::trace!("yield: {:?}", new_relative_path);
+                    yield (new_relative_path, entry);
                 },
             }
         }
