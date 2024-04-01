@@ -10,17 +10,22 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- Update last modified on open unity `#697
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Shown language name is not changed `#694` 
-- Installing package while Unity can be failed `#696`
 
 ### Security
+
+## [0.1.0-beta.17] - 2024-04-01
+### Changed
+- Update last modified on open unity `#697
+
+### Fixed
+- Shown language name is not changed [`#694`](https://github.com/vrc-get/vrc-get/pull/694) 
+- Installing package while Unity can be failed [`#696`](https://github.com/vrc-get/vrc-get/pull/696)
 
 ## [0.1.0-beta.16] - 2024-03-29
 ### Added
@@ -164,7 +169,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.16...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.17...HEAD
+[0.1.0-beta.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.16...gui-v0.1.0-beta.17
 [0.1.0-beta.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.15...gui-v0.1.0-beta.16
 [0.1.0-beta.15]: https://github.com/vrc-get/vrc-get/compare/gui-v...gui-v0.1.0-beta.15
 
