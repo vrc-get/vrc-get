@@ -24,7 +24,7 @@ hex = "0.4.3"
 indexmap = { version = "2.2.6", features = ["serde"] }
 itertools = "0.12.1"
 log = "0.4.21"
-pin-project-lite = "0.2.13"
+pin-project-lite = "0.2.14"
 reqwest = { version = "0.12.2", features = ["stream"], default-features = false }
 serde = { version = "1.0.197", features = ["derive", "rc"] }
 serde_json = { version = "1.0.115", features = ["preserve_order"] }
