@@ -24,7 +24,7 @@ jobs:
   sync-repo:
     name: Sync winget-pkgs repo
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment || "winget-pkgs" }}
+    environment: ${{ inputs.environment || 'winget-pkgs' }}
     steps:
       - run: gh repo sync anatawa12-bot/winget-pkgs -b master
         env:
@@ -34,7 +34,7 @@ jobs:
     name: Publish winget package
     needs: sync-repo
     runs-on: windows-latest
-    environment: ${{ inputs.environment || "winget-pkgs" }}
+    environment: ${{ inputs.environment || 'winget-pkgs' }}
     steps:
       - name: Submit package to Windows Package Manager Community Repository
         env:
