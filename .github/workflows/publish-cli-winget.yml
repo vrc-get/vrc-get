@@ -1,0 +1,51 @@
+name: Publish to WinGet (CLI)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: The version to publish.
+        required: true
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        description: The version to publish.
+        required: true
+      environment:
+        type: string
+        description: The environment to publish to.
+    secrets:
+      WINGET_PAT:
+        required: true
+
+jobs:
+  sync-repo:
+    name: Sync winget-pkgs repo
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || "winget-pkgs" }}
+    steps:
+      - run: gh repo sync anatawa12-bot/winget-pkgs -b master
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_PAT }}
+
+  winget:
+    name: Publish winget package
+    needs: sync-repo
+    runs-on: windows-latest
+    environment: ${{ inputs.environment || "winget-pkgs" }}
+    steps:
+      - name: Submit package to Windows Package Manager Community Repository
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}
+          CLI_VERSION: ${{ inputs.version }}
+        run: |
+          # Update package using wingetcreate
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe update "anatawa12.vrc-get" \
+            --version "$env:CLI_VERSION" \
+            --urls "https://github.com/vrc-get/vrc-get/releases/download/v$env:CLI_VERSION/aarch64-pc-windows-msvc-vrc-get.exe" \
+            --urls "https://github.com/vrc-get/vrc-get/releases/download/v$env:CLI_VERSION/x86_64-pc-windows-msvc-vrc-get.exe" \
+            --submit \
+            --token "$env:WINGET_PAT"

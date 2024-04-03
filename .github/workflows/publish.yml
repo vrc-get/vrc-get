@@ -345,3 +345,15 @@ jobs:
         with:
           token: ${{ secrets.BREW_GITHUB_PAT }}
           formulae: vrc-get
+
+  publish-to-winget:
+    name: Publish to winget
+    if: ${{ !needs.pre-build.outputs.prerelease }}
+    needs: [ pre-build, publish-to-github ]
+
+    uses: vrc-get/vrc-get/.github/workflows/publish-cli-winget.yml@master
+    with:
+      version: ${{ needs.pre-build.outputs.cli-version }}
+      environment: winget-pkgs
+    secrets:
+      WINGET_PAT: ${{ secrets.WINGET_PAT }}
