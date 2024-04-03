@@ -59,6 +59,14 @@ If you're using [MacPorts], you can easily install vrc-get with MacPorts.
 sudo port install vrc-get
 ```
 
+### Using winget
+
+If you're using modern Windows, you can install vrc-get with [winget].
+
+```pwsh
+winget install anatawa12.vrc-get
+```
+
 ### Using scoop
 
 <!-- TODO: update when published to official repository -->
@@ -141,6 +149,7 @@ See [README of vrc-get-gui][vrc-get-gui] for more details.
 [Homebrew]: https://brew.sh
 [MacPorts]: https://www.macports.org
 [scoop]: https://scoop.sh
+[winget]: https://learn.microsoft.com/windows/package-manager/
 
 [vrc-get-gui]: ./vrc-get-gui/README.md
 
