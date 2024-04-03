@@ -2107,6 +2107,7 @@ async fn project_finalize_migration_with_unity_2022<R: Runtime>(
             .args([
                 "-quit".as_ref(),
                 "-batchmode".as_ref(),
+                "-ignorecompilererrors".as_ref(),
                 // https://docs.unity3d.com/Manual/EditorCommandLineArguments.html
                 "-logFile".as_ref(),
                 "-".as_ref(),

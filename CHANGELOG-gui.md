@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Unity 2022 Migration can be fails with Compilation Error `#712`
 
 ### Security
 
