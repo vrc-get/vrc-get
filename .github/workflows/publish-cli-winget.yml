@@ -43,9 +43,12 @@ jobs:
         run: |
           # Update package using wingetcreate
           Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
-          .\wingetcreate.exe update "anatawa12.vrc-get" \
-            --version "$env:CLI_VERSION" \
-            --urls "https://github.com/vrc-get/vrc-get/releases/download/v$env:CLI_VERSION/aarch64-pc-windows-msvc-vrc-get.exe" \
-            --urls "https://github.com/vrc-get/vrc-get/releases/download/v$env:CLI_VERSION/x86_64-pc-windows-msvc-vrc-get.exe" \
-            --submit \
+
+          # Update package
+          # the pwsh uses ` for escape character
+          .\wingetcreate.exe update "anatawa12.vrc-get" `
+            --version "$env:CLI_VERSION" `
+            --urls "https://github.com/vrc-get/vrc-get/releases/download/v$env:CLI_VERSION/aarch64-pc-windows-msvc-vrc-get.exe" `
+            --urls "https://github.com/vrc-get/vrc-get/releases/download/v$env:CLI_VERSION/x86_64-pc-windows-msvc-vrc-get.exe" `
+            --submit `
             --token "$env:WINGET_PAT"
