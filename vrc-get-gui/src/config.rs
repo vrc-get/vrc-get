@@ -17,10 +17,16 @@ pub struct GuiConfig {
     pub window_size: WindowSize,
     #[serde(default = "language_default")]
     pub language: String,
+    #[serde(default = "backup_default")]
+    pub backup_format: String,
 }
 
 fn language_default() -> String {
     "en".to_string()
+}
+
+fn backup_default() -> String {
+    "default".to_string()
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

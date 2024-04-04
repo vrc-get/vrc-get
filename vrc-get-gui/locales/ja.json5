@@ -150,5 +150,7 @@
     "opening unity...": "Unityを起動中...",
     "selecting file or folder": "ファイルまたはフォルダを選択",
     "please select a file or folder": "ファイルまたはフォルダを選択してください。",
+    "backup project": "バックアップを作成",
+    "creating a backup...": "バックアップを作成中...",
   },
 }

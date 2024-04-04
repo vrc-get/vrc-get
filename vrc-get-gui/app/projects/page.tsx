@@ -35,7 +35,7 @@ import {
 	environmentCreateProject,
 	environmentPickProjectDefaultPath,
 	environmentProjectCreationInformation,
-	environmentProjects,
+	environmentProjects, projectCreateBackup,
 	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectDirCheckResult,
@@ -51,11 +51,12 @@ import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
 import {VGOption, VGSelect} from "@/components/select";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {pathSeparator} from "@/lib/os";
+import {useBackupProjectModal} from "@/lib/backup-project";
 
 export default function Page() {
 	const result = useQuery({
@@ -217,6 +218,7 @@ function ProjectRow(
 
 	const [dialogStatus, setDialogStatus] = useState<ProjectRowState>({type: 'normal'});
 	const removeProjectModal = useRemoveProjectModal({onRemoved});
+	const backupProjectModal = useBackupProjectModal();
 
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
@@ -404,7 +406,7 @@ function ProjectRow(
 				<div className="flex flex-row gap-2 max-w-min">
 					<RowButton onClick={() => openUnity(project.path)}>{tc("open unity")}</RowButton>
 					{manageButton}
-					<RowButton onClick={unsupported("Backup")} color={"green"}>{tc("backup")}</RowButton>
+					<RowButton onClick={() => backupProjectModal.startBackup(project)} color={"green"}>{tc("backup")}</RowButton>
 					<Menu>
 						<MenuHandler>
 							<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
@@ -421,6 +423,7 @@ function ProjectRow(
 				</div>
 				{dialogContent}
 				{removeProjectModal.dialog}
+				{backupProjectModal.dialog}
 			</td>
 		</tr>
 	)

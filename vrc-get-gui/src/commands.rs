@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::io;
 use std::num::Wrapping;
 use std::path::{Path, PathBuf};
+use std::pin::pin;
 use std::process::Stdio;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -77,6 +78,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_finalize_migration_with_unity_2022,
         project_migrate_project_to_vpm,
         project_open_unity,
+        project_create_backup,
         util_open,
         util_get_log_entries,
         util_get_version,
@@ -122,6 +124,7 @@ pub(crate) fn export_ts() {
             project_finalize_migration_with_unity_2022::<tauri::Wry>,
             project_migrate_project_to_vpm,
             project_open_unity,
+            project_create_backup,
             util_open,
             util_get_log_entries,
             util_get_version,
@@ -2268,6 +2271,195 @@ async fn project_open_unity(
 
         Ok(TauriOpenUnityResult::NoMatchingUnityFound)
     })
+}
+
+#[tauri::command]
+#[specta::specta]
+#[allow(dead_code, unused_variables)]
+async fn project_create_backup(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<(), RustError> {
+    let (backup_dir, backup_format) = with_environment!(&state, |environment, config| {
+        let backup_path = environment.project_backup_path();
+        let backup_format = config.backup_format.to_ascii_lowercase();
+        (backup_path.to_string(), backup_format)
+    });
+
+    let project_name = Path::new(&project_path)
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap();
+
+    let backup_name = format!(
+        "{project_name}-{timestamp}",
+        project_name = project_name,
+        timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S"),
+    );
+
+    fn folder_stream(
+        path_buf: PathBuf,
+    ) -> impl Stream<Item = io::Result<(String, tokio::fs::DirEntry)>> {
+        async_stream::stream! {
+            let mut stack = Vec::new();
+            stack.push((String::from(""), tokio::fs::read_dir(&path_buf).await?));
+
+            while let Some((dir, read_dir)) = stack.last_mut() {
+                if let Some(entry) = read_dir.next_entry().await? {
+                    let Ok(file_name) = entry.file_name().into_string() else {
+                        // non-utf8 file name
+                        warn!("skipping non-utf8 file name: {}", entry.path().display());
+                        continue;
+                    };
+                    log::trace!("process: {dir}{file_name}");
+
+                    if entry.file_type().await?.is_dir() {
+                        let lower_name = file_name.to_ascii_lowercase();
+                        if dir.is_empty() {
+                            match lower_name.as_str() {
+                                "library" | "logs" | "obj" | "temp" => {
+                                    continue;
+                                }
+                                lower_name => {
+                                    // some people uses multple library folder to speed up switch platform
+                                    if lower_name.starts_with("library") {
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+                        if lower_name.as_str() == ".git" {
+                            // any .git folder should be ignored
+                            continue;
+                        }
+
+                        let new_dir_relative = format!("{dir}{file_name}/");
+                        let new_read_dir = tokio::fs::read_dir(path_buf.join(&new_dir_relative)).await?;
+
+                        stack.push((new_dir_relative.clone(), new_read_dir));
+
+                        yield Ok((new_dir_relative, entry))
+                    } else {
+                        let new_relative = format!("{dir}{file_name}");
+                        yield Ok((new_relative, entry))
+                    }
+                } else {
+                    log::trace!("read_end: {dir}");
+                    stack.pop();
+                    continue;
+                };
+            }
+        }
+    }
+
+    async fn create_zip(
+        backup_dir: &str,
+        backup_name: &str,
+        project_path: &Path,
+        compression: async_zip::Compression,
+        deflate_option: async_zip::DeflateOption,
+    ) -> Result<(), RustError> {
+        let backup_path = Path::new(backup_dir)
+            .join(backup_name)
+            .with_extension("zip");
+
+        let mut file = tokio::fs::File::create(&backup_path).await?;
+        let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
+
+        let mut stream = pin!(folder_stream(PathBuf::from(project_path)));
+
+        while let Some((relative, entry)) = stream.try_next().await? {
+            let mut file_type = entry.file_type().await?;
+            if file_type.is_symlink() {
+                file_type = match tokio::fs::metadata(entry.path()).await {
+                    Ok(metadata) => metadata.file_type(),
+                    Err(ref e) if e.kind() == io::ErrorKind::NotFound => continue,
+                    Err(e) => return Err(e.into()),
+                };
+            }
+            if file_type.is_dir() {
+                writer
+                    .write_entry_whole(
+                        async_zip::ZipEntryBuilder::new(
+                            relative.into(),
+                            async_zip::Compression::Stored,
+                        ),
+                        b"",
+                    )
+                    .await?;
+            } else {
+                let file = tokio::fs::read(entry.path()).await?;
+                writer
+                    .write_entry_whole(
+                        async_zip::ZipEntryBuilder::new(relative.into(), compression)
+                            .deflate_option(deflate_option),
+                        file.as_ref(),
+                    )
+                    .await?;
+            }
+        }
+
+        writer.close().await?;
+        file.flush().await?;
+        drop(file);
+        Ok(())
+    }
+
+    log::info!("backup project: {project_name} with {backup_format}");
+    let timer = std::time::Instant::now();
+
+    match backup_format.as_str() {
+        "default" | "zip-store" => {
+            create_zip(
+                &backup_dir,
+                &backup_name,
+                project_path.as_ref(),
+                async_zip::Compression::Stored,
+                async_zip::DeflateOption::Normal,
+            )
+            .await?;
+        }
+        "zip-fast" => {
+            create_zip(
+                &backup_dir,
+                &backup_name,
+                project_path.as_ref(),
+                async_zip::Compression::Deflate,
+                async_zip::DeflateOption::Other(1),
+            )
+            .await?;
+        }
+        "zip-best" => {
+            create_zip(
+                &backup_dir,
+                &backup_name,
+                project_path.as_ref(),
+                async_zip::Compression::Deflate,
+                async_zip::DeflateOption::Other(9),
+            )
+            .await?;
+        }
+        backup_format => {
+            warn!("unknown backup format: {backup_format}, using zip-fast");
+
+            create_zip(
+                &backup_dir,
+                &backup_name,
+                project_path.as_ref(),
+                async_zip::Compression::Deflate,
+                async_zip::DeflateOption::Other(1),
+            )
+            .await?;
+        }
+    }
+
+    log::info!(
+        "backup project: {project_name} done in {:?}",
+        timer.elapsed()
+    );
+
+    Ok(())
 }
 
 #[tauri::command]
