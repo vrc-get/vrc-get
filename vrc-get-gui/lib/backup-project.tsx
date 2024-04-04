@@ -41,6 +41,7 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			setState({type: 'idle'});
 		} catch (e) {
 			console.error("Error creating backup", e);
+			setState({type: 'idle'});
 			toastThrownError(e);
 		}
 	};
