@@ -61,6 +61,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_pick_project_default_path,
         environment_pick_project_backup_path,
         environment_set_show_prerelease_packages,
+        environment_set_backup_format,
         environment_download_repository,
         environment_add_repository,
         environment_remove_repository,
@@ -107,6 +108,7 @@ pub(crate) fn export_ts() {
             environment_pick_project_default_path,
             environment_pick_project_backup_path,
             environment_set_show_prerelease_packages,
+            environment_set_backup_format,
             environment_download_repository,
             environment_add_repository,
             environment_remove_repository,
@@ -981,6 +983,7 @@ struct TauriEnvironmentSettings {
     unity_hub: String,
     unity_paths: Vec<(String, String, bool)>,
     show_prerelease_packages: bool,
+    backup_format: String,
 }
 
 #[tauri::command]
@@ -988,7 +991,7 @@ struct TauriEnvironmentSettings {
 async fn environment_get_settings(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriEnvironmentSettings, RustError> {
-    with_environment!(&state, |environment| {
+    with_environment!(&state, |environment, config| {
         environment.find_unity_hub().await.ok();
 
         Ok(TauriEnvironmentSettings {
@@ -1007,6 +1010,7 @@ async fn environment_get_settings(
                 })
                 .collect(),
             show_prerelease_packages: environment.show_prerelease_packages(),
+            backup_format: config.backup_format.to_string(),
         })
     })
 }
@@ -1252,6 +1256,20 @@ async fn environment_set_show_prerelease_packages(
     with_environment!(&state, |environment| {
         environment.set_show_prerelease_packages(value);
         environment.save().await?;
+        Ok(())
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_backup_format(
+    state: State<'_, Mutex<EnvironmentState>>,
+    backup_format: String,
+) -> Result<(), RustError> {
+    with_config!(&state, |mut config| {
+        info!("setting backup_format to {backup_format}");
+        config.backup_format = backup_format;
+        config.save().await?;
         Ok(())
     })
 }
