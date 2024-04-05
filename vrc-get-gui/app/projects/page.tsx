@@ -220,7 +220,8 @@ function ProjectsTable(
 		return searched;
 	}, [projects, sorting, search]);
 
-	const thClass = `sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`;
+	const thClass = `sticky top-0 z-10 border-b border-blue-gray-100 p-2.5`;
+	const iconClass = `size-3 invisible project-table-header-chevron-up-down`;
 
 	const setSorting = async (simpleSorting: SimpleSorting) => {
 		let newSorting: Sorting;
@@ -241,54 +242,49 @@ function ProjectsTable(
 		}
 	}
 
+	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-blue-100" : "bg-blue-gray-50";
+	const icon = (target: SimpleSorting) =>
+		sorting === target ? <ChevronDownIcon className={"size-3"}/>
+			: sorting === `${target}Reversed` ? <ChevronUpIcon className={"size-3"}/>
+				: <ChevronUpDownIcon className={iconClass}/>;
+
 	return (
 		<table className="relative table-auto text-left">
 			<thead>
 			<tr>
-				<th className={thClass}>
+				<th className={`${thClass} bg-blue-gray-50`}>
 					<StarIcon className={"size-4"}/>
 				</th>
-				<th className={thClass}>
-					<button className={"flex w-full"} onClick={() => setSorting("name")}>
-						{
-							sorting === "name" ? <ChevronDownIcon className={"size-3"}/>
-								: sorting === "nameReversed" ? <ChevronUpIcon className={"size-3"}/>
-									: <ChevronUpDownIcon className={"size-3"}/>
-						}
+				<th
+					className={`${thClass} ${headerBg('name')}`}>
+					<button className={"flex w-full project-table-button"}
+									onClick={() => setSorting("name")}>
+						{icon("name")}
 						<Typography variant="small" className="font-normal leading-none">{tc("name")}</Typography>
 					</button>
 				</th>
-				<th className={thClass}>
-					<button className={"flex w-full"} onClick={() => setSorting("type")}>
-						{
-							sorting === "type" ? <ChevronDownIcon className={"size-3"}/>
-								: sorting === "typeReversed" ? <ChevronUpIcon className={"size-3"}/>
-									: <ChevronUpDownIcon className={"size-3"}/>
-						}
+				<th
+					className={`${thClass} ${headerBg('type')}`}>
+					<button className={"flex w-full project-table-button"} onClick={() => setSorting("type")}>
+						{icon("type")}
 						<Typography variant="small" className="font-normal leading-none">{tc("type")}</Typography>
 					</button>
 				</th>
-				<th className={thClass}>
-					<button className={"flex w-full"} onClick={() => setSorting("unity")}>
-						{
-							sorting === "unity" ? <ChevronDownIcon className={"size-3"}/>
-								: sorting === "unityReversed" ? <ChevronUpIcon className={"size-3"}/>
-									: <ChevronUpDownIcon className={"size-3"}/>
-						}
+				<th
+					className={`${thClass} ${headerBg('unity')}`}>
+					<button className={"flex w-full project-table-button"} onClick={() => setSorting("unity")}>
+						{icon("unity")}
 						<Typography variant="small" className="font-normal leading-none">{tc("unity")}</Typography>
 					</button>
 				</th>
-				<th className={thClass}>
-					<button className={"flex w-full"} onClick={() => setSorting("lastModified")}>
-						{
-							sorting === "lastModified" ? <ChevronDownIcon className={"size-3"}/>
-								: sorting === "lastModifiedReversed" ? <ChevronUpIcon className={"size-3"}/>
-									: <ChevronUpDownIcon className={"size-3"}/>
-						}
+				<th
+					className={`${thClass} ${headerBg('lastModified')}`}>
+					<button className={"flex w-full project-table-button"} onClick={() => setSorting("lastModified")}>
+						{icon("lastModified")}
 						<Typography variant="small" className="font-normal leading-none">{tc("last modified")}</Typography>
 					</button>
 				</th>
-				<th className={thClass}></th>
+				<th className={`${thClass} bg-blue-gray-50`}></th>
 			</tr>
 			</thead>
 			<tbody>
