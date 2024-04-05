@@ -21,7 +21,7 @@ import {
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
-	ChevronDownIcon,
+	ChevronDownIcon, ChevronUpDownIcon,
 	EllipsisHorizontalIcon,
 	GlobeAltIcon,
 	QuestionMarkCircleIcon, StarIcon,
@@ -56,8 +56,10 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {pathSeparator} from "@/lib/os";
+import {ChevronUpIcon} from "@heroicons/react/24/outline";
 
-type Sorting = "lastModified";
+type SimpleSorting = "lastModified" | "name";
+type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
 
 export default function Page() {
 	const result = useQuery({
@@ -87,7 +89,6 @@ export default function Page() {
 							result.status == "error" ? tc("error loading projects: {{msg}}", {msg: result.error.message}) :
 								<ProjectsTable
 									projects={result.data}
-									sorting={"lastModified"}
 									search={search}
 									loading={loading}
 									refresh={() => result.refetch()}
@@ -104,29 +105,31 @@ export default function Page() {
 
 function ProjectsTable(
 	{
-		projects, sorting, search, onRemoved, loading, refresh,
+		projects, search, onRemoved, loading, refresh,
 	}: {
 		projects: TauriProject[],
-		sorting: Sorting,
 		search?: string,
 		loading?: boolean,
 		onRemoved?: () => void;
 		refresh?: () => void,
 	}
 ) {
-	const TABLE_HEAD = [
-		"name",
-		"type",
-		"unity",
-		"last modified",
-		"", // actions
-	];
+	const [sorting, setSortingState] = useState<Sorting>("lastModified");
 
 	const projectsShown = useMemo(() => {
 		let searched = projects.filter(project => project.name.toLowerCase().includes(search?.toLowerCase() ?? ""));
 		switch (sorting) {
 			case "lastModified":
 				searched.sort((a, b) => b.last_modified - a.last_modified);
+				break;
+			case "lastModifiedReversed":
+				searched.sort((a, b) => a.last_modified - b.last_modified);
+				break;
+			case "name":
+				searched.sort((a, b) => a.name.localeCompare(b.name));
+				break;
+			case "nameReversed":
+				searched.sort((a, b) => b.name.localeCompare(a.name));
 				break;
 			default:
 				let _: never = sorting;
@@ -139,19 +142,52 @@ function ProjectsTable(
 		return searched;
 	}, [projects, sorting, search]);
 
+	const thClass = `sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`;
+
+	const setSorting = (simpleSorting: SimpleSorting) => {
+		if (sorting === simpleSorting) {
+			setSortingState(`${simpleSorting}Reversed`);
+		} else if (sorting === `${simpleSorting}Reversed`) {
+			setSortingState(simpleSorting);
+		} else {
+			setSortingState(simpleSorting);
+		}
+	}
+
 	return (
 		<table className="relative table-auto text-left">
 			<thead>
 			<tr>
-				<th className={`sticky top-0 z-10 text-center border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
+				<th className={thClass}>
 					<StarIcon className={"size-4"}/>
 				</th>
-				{TABLE_HEAD.map((head, index) => (
-					<th key={index}
-							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
-					</th>
-				))}
+				<th className={thClass}>
+					<button className={"flex w-full"} onClick={() => setSorting("name")}>
+						{
+							sorting === "name" ? <ChevronDownIcon className={"size-3"}/>
+								: sorting === "nameReversed" ? <ChevronUpIcon className={"size-3"}/>
+									: <ChevronUpDownIcon className={"size-3"}/>
+						}
+						<Typography variant="small" className="font-normal leading-none">{tc("name")}</Typography>
+					</button>
+				</th>
+				<th className={thClass}>
+					<Typography variant="small" className="font-normal leading-none">{tc("type")}</Typography>
+				</th>
+				<th className={thClass}>
+					<Typography variant="small" className="font-normal leading-none">{tc("unity")}</Typography>
+				</th>
+				<th className={thClass}>
+					<button className={"flex w-full"} onClick={() => setSorting("lastModified")}>
+						{
+							sorting === "lastModified" ? <ChevronDownIcon className={"size-3"}/>
+								: sorting === "lastModifiedReversed" ? <ChevronUpIcon className={"size-3"}/>
+									: <ChevronUpDownIcon className={"size-3"}/>
+						}
+						<Typography variant="small" className="font-normal leading-none">{tc("last modified")}</Typography>
+					</button>
+				</th>
+				<th className={thClass}></th>
 			</tr>
 			</thead>
 			<tbody>
@@ -383,7 +419,8 @@ function ProjectRow(
 		<tr className={`even:bg-blue-gray-50/50 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
 				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-									checked={project.favorite} onClick={onToggleFavorite}
+									checked={project.favorite}
+									onChange={onToggleFavorite}
 									disabled={removed || loading}
 									className="hover:before:content-none"/>
 			</td>
