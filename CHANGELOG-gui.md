@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Favorite project and sort by name `#717`
 
 ### Changed
 
