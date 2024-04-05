@@ -17,10 +17,16 @@ pub struct GuiConfig {
     pub window_size: WindowSize,
     #[serde(default = "language_default")]
     pub language: String,
+    #[serde(default = "project_sorting_default")]
+    pub project_sorting: String,
 }
 
 fn language_default() -> String {
     "en".to_string()
+}
+
+fn project_sorting_default() -> String {
+    "lastModified".to_string()
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

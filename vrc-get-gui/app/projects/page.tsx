@@ -33,9 +33,12 @@ import {
 	environmentCheckProjectName,
 	environmentCopyProjectForMigration,
 	environmentCreateProject,
+	environmentGetProjectSorting,
 	environmentPickProjectDefaultPath,
 	environmentProjectCreationInformation,
-	environmentProjects, environmentSetFavoriteProject,
+	environmentProjects,
+	environmentSetFavoriteProject,
+	environmentSetProjectSorting,
 	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectDirCheckResult,
@@ -58,8 +61,17 @@ import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {pathSeparator} from "@/lib/os";
 import {ChevronUpIcon} from "@heroicons/react/24/outline";
 
-type SimpleSorting = "lastModified" | "name";
+const sortings = [
+	"lastModified",
+	"name",
+] as const;
+
+type SimpleSorting = (typeof sortings)[number];
 type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
+
+function isSorting(s: string): s is Sorting {
+	return sortings.some(sorting => sorting === s || `${sorting}Reversed` === s);
+}
 
 export default function Page() {
 	const result = useQuery({
@@ -116,6 +128,18 @@ function ProjectsTable(
 ) {
 	const [sorting, setSortingState] = useState<Sorting>("lastModified");
 
+	useEffect(() => {
+		(async () => {
+			let newSorting = await environmentGetProjectSorting();
+			if (newSorting === null) newSorting = "lastModified";
+			if (!isSorting(newSorting)) {
+				setSortingState("lastModified");
+			} else {
+				setSortingState(newSorting);
+			}
+		})()
+	}, []);
+
 	const projectsShown = useMemo(() => {
 		let searched = projects.filter(project => project.name.toLowerCase().includes(search?.toLowerCase() ?? ""));
 		switch (sorting) {
@@ -144,13 +168,22 @@ function ProjectsTable(
 
 	const thClass = `sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`;
 
-	const setSorting = (simpleSorting: SimpleSorting) => {
+	const setSorting = async (simpleSorting: SimpleSorting) => {
+		let newSorting: Sorting;
 		if (sorting === simpleSorting) {
-			setSortingState(`${simpleSorting}Reversed`);
+			newSorting = `${simpleSorting}Reversed`;
 		} else if (sorting === `${simpleSorting}Reversed`) {
-			setSortingState(simpleSorting);
+			newSorting = simpleSorting;
 		} else {
-			setSortingState(simpleSorting);
+			newSorting = simpleSorting;
+		}
+		setSortingState(newSorting);
+
+		try {
+			await environmentSetProjectSorting(newSorting);
+		} catch (e) {
+			console.error("Error setting project sorting", e);
+			toastThrownError(e);
 		}
 	}
 

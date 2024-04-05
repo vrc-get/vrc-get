@@ -50,6 +50,8 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_remove_project_by_path,
         environment_copy_project_for_migration,
         environment_set_favorite_project,
+        environment_get_project_sorting,
+        environment_set_project_sorting,
         environment_packages,
         environment_repositories_info,
         environment_hide_repository,
@@ -96,6 +98,8 @@ pub(crate) fn export_ts() {
             environment_remove_project_by_path,
             environment_copy_project_for_migration,
             environment_set_favorite_project,
+            environment_get_project_sorting,
+            environment_set_project_sorting,
             environment_packages,
             environment_repositories_info,
             environment_hide_repository,
@@ -790,6 +794,27 @@ async fn environment_set_favorite_project(
     environment.save().await?;
 
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_get_project_sorting(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<String, RustError> {
+    with_config!(state, |config| Ok(config.project_sorting.clone()))
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_project_sorting(
+    state: State<'_, Mutex<EnvironmentState>>,
+    sorting: String,
+) -> Result<(), RustError> {
+    with_config!(state, |mut config| {
+        config.project_sorting = sorting;
+        config.save().await?;
+        Ok(())
+    })
 }
 
 #[derive(Serialize, specta::Type)]
