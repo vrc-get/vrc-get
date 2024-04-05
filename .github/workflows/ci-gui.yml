@@ -75,6 +75,12 @@ jobs:
       - name: Setup
         run: ${{ matrix.setup }}
 
+      - name: add commit hash to version name
+        shell: bash
+        run: |
+          cp vrc-get-gui/Cargo.toml vrc-get-gui/Cargo.toml.bak
+          sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/Cargo.toml.bak > vrc-get-gui/Cargo.toml
+
       - uses: tauri-apps/tauri-action@v0
         with:
           projectPath: vrc-get-gui
