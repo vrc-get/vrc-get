@@ -1,14 +1,10 @@
 import React, {ReactNode, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Typography} from "@material-tailwind/react";
+import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
+import {projectStartCreateBackup, TauriProject} from "@/lib/bindings";
+import {toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
+import {tc} from "@/lib/i18n";
+import {emit, listen, UnlistenFn} from "@tauri-apps/api/event";
 import {nop} from "@/lib/nop";
-import {
-	environmentRemoveProject,
-	environmentRemoveProjectByPath,
-	projectCreateBackup,
-	TauriProject
-} from "@/lib/bindings";
-import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
-import {tc, tt} from "@/lib/i18n";
 
 // string if remove project by path
 type Project = TauriProject | {
@@ -20,6 +16,7 @@ type State = {
 	type: 'idle',
 } | {
 	type: 'backing-up',
+	channel: string,
 }
 
 type Params = {}
@@ -32,12 +29,31 @@ type Result = {
 export function useBackupProjectModal(_: Params = {}): Result {
 	const [state, setState] = useState<State>({type: 'idle'});
 
-	const cancel = () => toastError("cancel unsupported");
 	const startBackup = async (project: Project) => {
 		try {
-			setState({type: 'backing-up'});
-			await projectCreateBackup(project.path);
-			toastSuccess("Backup created successfully");
+			const channel = await projectStartCreateBackup(project.path);
+			setState({type: 'backing-up', channel});
+			const cancelled = await new Promise<boolean>((resolve, reject) => {
+				let finishedListener: UnlistenFn | undefined;
+				let failedListener: UnlistenFn | undefined;
+				let canceledListener: UnlistenFn | undefined;
+
+				const unlistenAll = <T, >(result: T) => {
+					finishedListener?.();
+					failedListener?.();
+					canceledListener?.();
+					return result;
+				}
+
+				listen(`${channel}:canceled`, () => unlistenAll(resolve(true))).then((listener) => canceledListener = listener);
+				listen(`${channel}:finished`, () => unlistenAll(resolve(false))).then((listener) => finishedListener = listener);
+				listen(`${channel}:failed`, (e) => unlistenAll(reject(e.payload))).then((listener) => failedListener = listener);
+			})
+			if (cancelled) {
+				toastNormal("Backup cancelled");
+			} else {
+				toastSuccess("Backup created successfully");
+			}
 			setState({type: 'idle'});
 		} catch (e) {
 			console.error("Error creating backup", e);
@@ -52,14 +68,15 @@ export function useBackupProjectModal(_: Params = {}): Result {
 		case "idle":
 			break;
 		case "backing-up":
+			const cancel = () => emit(`${state.channel}:cancel`);
 			dialog = (
-				<Dialog open handler={cancel} className={'whitespace-normal'}>
+				<Dialog open handler={nop} className={'whitespace-normal'}>
 					<DialogHeader>{tc("backup project")}</DialogHeader>
 					<DialogBody>
 						{tc("creating a backup...")}
 					</DialogBody>
 					<DialogFooter>
-						<Button className="mr-1" onClick={cancel} disabled>{tc("cancel")}</Button>
+						<Button className="mr-1" onClick={cancel}>{tc("cancel")}</Button>
 					</DialogFooter>
 				</Dialog>
 			);
