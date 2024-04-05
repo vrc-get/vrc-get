@@ -8,8 +8,6 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Backup Project `#714`
-- Favorite project and sort by name `#717`
 
 ### Changed
 
@@ -18,9 +16,16 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Unity 2022 Migration can be fails with Compilation Error `#712`
 
 ### Security
+
+## [0.1.0-beta.18] - 2024-04-05
+### Added
+- Backup Project [`#714`](https://github.com/vrc-get/vrc-get/pull/714)
+- Favorite project and sort by name [`#717`](https://github.com/vrc-get/vrc-get/pull/717)
+
+### Fixed
+- Unity 2022 Migration can be fails with Compilation Error [`#712`](https://github.com/vrc-get/vrc-get/pull/712)
 
 ## [0.1.0-beta.17] - 2024-04-01
 ### Changed
@@ -172,7 +177,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.17...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.18...HEAD
+[0.1.0-beta.18]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.17...gui-v0.1.0-beta.18
 [0.1.0-beta.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.16...gui-v0.1.0-beta.17
 [0.1.0-beta.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.15...gui-v0.1.0-beta.16
 [0.1.0-beta.15]: https://github.com/vrc-get/vrc-get/compare/gui-v...gui-v0.1.0-beta.15
