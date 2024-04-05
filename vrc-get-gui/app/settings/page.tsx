@@ -8,7 +8,7 @@ import {
 	environmentPickProjectBackupPath,
 	environmentPickProjectDefaultPath,
 	environmentPickUnity,
-	environmentPickUnityHub,
+	environmentPickUnityHub, environmentSetBackupFormat,
 	environmentSetLanguage,
 	environmentSetShowPrereleasePackages,
 	TauriEnvironmentSettings
@@ -165,6 +165,16 @@ function Settings(
 		}
 	};
 
+	const setBackupFormat = async (format: string) => {
+		try {
+			await environmentSetBackupFormat(format)
+			refetch()
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	}
+
 	const toggleShowPrereleasePackages = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		try {
 			await environmentSetShowPrereleasePackages(e.target.checked)
@@ -220,7 +230,8 @@ function Settings(
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("backup path")}</h2>
+				<h2>{tc("backup")}</h2>
+				<h3>{tc("backup path")}</h3>
 				<Typography className={"whitespace-normal"}>
 					{tc("the backup path is the directory where vrc-get-gui will create backup zips of the projects.")}
 				</Typography>
@@ -228,6 +239,15 @@ function Settings(
 					<Input value={settings.project_backup_path} disabled/>
 					<Button className={"px-4"} onClick={selectProjectBackupFolder}>{tc("select")}</Button>
 				</div>
+				<label className={"flex items-center"}>
+					<h3>{tc("backup archive format:")}</h3>
+					<VGSelect value={tc("backup_format:" + settings.backup_format)} onChange={setBackupFormat}>
+						<VGOption value={"default"}>{tc("backup_format:default")}</VGOption>
+						<VGOption value={"zip-store"}>{tc("backup_format:zip-store")}</VGOption>
+						<VGOption value={"zip-fast"}>{tc("backup_format:zip-fast")}</VGOption>
+						<VGOption value={"zip-best"}>{tc("backup_format:zip-best")}</VGOption>
+					</VGSelect>
+				</label>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<Typography className={"whitespace-normal"}>

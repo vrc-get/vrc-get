@@ -1,11 +1,17 @@
 use std::ffi::OsStr;
 use std::fmt::Display;
 use std::io;
+use std::mem::ManuallyDrop;
 use std::num::Wrapping;
+use std::ops::DerefMut;
 use std::path::{Path, PathBuf};
+use std::pin::{pin, Pin};
 use std::process::Stdio;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
+use std::sync::Mutex as StdMutex;
+use std::task::{Context, Poll};
 
 use indexmap::IndexMap;
 use log::{error, info, warn};
@@ -15,8 +21,8 @@ use specta::{specta, DataType, DefOpts, ExportError, Type};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{
-    generate_handler, App, AppHandle, Invoke, LogicalSize, Manager, Runtime, State, Window,
-    WindowEvent,
+    generate_handler, App, AppHandle, EventHandler, Invoke, LogicalSize, Manager, Runtime, State,
+    Window, WindowEvent,
 };
 use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader};
@@ -40,7 +46,7 @@ use vrc_get_vpm::{
 
 use crate::logging::LogEntry;
 
-pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'static {
+pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
     generate_handler![
         environment_language,
         environment_set_language,
@@ -63,6 +69,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         environment_pick_project_default_path,
         environment_pick_project_backup_path,
         environment_set_show_prerelease_packages,
+        environment_set_backup_format,
         environment_download_repository,
         environment_add_repository,
         environment_remove_repository,
@@ -80,6 +87,7 @@ pub(crate) fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) + Send + Sync + 'stat
         project_finalize_migration_with_unity_2022,
         project_migrate_project_to_vpm,
         project_open_unity,
+        project_start_create_backup,
         util_open,
         util_get_log_entries,
         util_get_version,
@@ -111,6 +119,7 @@ pub(crate) fn export_ts() {
             environment_pick_project_default_path,
             environment_pick_project_backup_path,
             environment_set_show_prerelease_packages,
+            environment_set_backup_format,
             environment_download_repository,
             environment_add_repository,
             environment_remove_repository,
@@ -128,6 +137,7 @@ pub(crate) fn export_ts() {
             project_finalize_migration_with_unity_2022::<tauri::Wry>,
             project_migrate_project_to_vpm,
             project_open_unity,
+            project_start_create_backup,
             util_open,
             util_get_log_entries,
             util_get_version,
@@ -1034,6 +1044,7 @@ struct TauriEnvironmentSettings {
     unity_hub: String,
     unity_paths: Vec<(String, String, bool)>,
     show_prerelease_packages: bool,
+    backup_format: String,
 }
 
 #[tauri::command]
@@ -1041,7 +1052,7 @@ struct TauriEnvironmentSettings {
 async fn environment_get_settings(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriEnvironmentSettings, RustError> {
-    with_environment!(&state, |environment| {
+    with_environment!(&state, |environment, config| {
         environment.find_unity_hub().await.ok();
 
         Ok(TauriEnvironmentSettings {
@@ -1060,6 +1071,7 @@ async fn environment_get_settings(
                 })
                 .collect(),
             show_prerelease_packages: environment.show_prerelease_packages(),
+            backup_format: config.backup_format.to_string(),
         })
     })
 }
@@ -1305,6 +1317,20 @@ async fn environment_set_show_prerelease_packages(
     with_environment!(&state, |environment| {
         environment.set_show_prerelease_packages(value);
         environment.save().await?;
+        Ok(())
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_backup_format(
+    state: State<'_, Mutex<EnvironmentState>>,
+    backup_format: String,
+) -> Result<(), RustError> {
+    with_config!(&state, |mut config| {
+        info!("setting backup_format to {backup_format}");
+        config.backup_format = backup_format;
+        config.save().await?;
         Ok(())
     })
 }
@@ -2325,6 +2351,320 @@ async fn project_open_unity(
 
         Ok(TauriOpenUnityResult::NoMatchingUnityFound)
     })
+}
+
+#[tauri::command]
+#[specta::specta]
+#[allow(dead_code, unused_variables)]
+async fn project_start_create_backup(
+    state: State<'_, Mutex<EnvironmentState>>,
+    window: Window,
+    project_path: String,
+) -> Result<String, RustError> {
+    let (backup_dir, backup_format) = with_environment!(&state, |environment, config| {
+        let backup_path = environment.project_backup_path();
+        let backup_format = config.backup_format.to_ascii_lowercase();
+        (backup_path.to_string(), backup_format)
+    });
+
+    let project_name = Path::new(&project_path)
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap();
+
+    let backup_name = format!(
+        "{project_name}-{timestamp}",
+        project_name = project_name,
+        timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S"),
+    );
+
+    fn folder_stream(
+        path_buf: PathBuf,
+    ) -> impl Stream<Item = io::Result<(String, tokio::fs::DirEntry)>> {
+        async_stream::stream! {
+            let mut stack = Vec::new();
+            stack.push((String::from(""), tokio::fs::read_dir(&path_buf).await?));
+
+            while let Some((dir, read_dir)) = stack.last_mut() {
+                if let Some(entry) = read_dir.next_entry().await? {
+                    let Ok(file_name) = entry.file_name().into_string() else {
+                        // non-utf8 file name
+                        warn!("skipping non-utf8 file name: {}", entry.path().display());
+                        continue;
+                    };
+                    log::trace!("process: {dir}{file_name}");
+
+                    if entry.file_type().await?.is_dir() {
+                        let lower_name = file_name.to_ascii_lowercase();
+                        if dir.is_empty() {
+                            match lower_name.as_str() {
+                                "library" | "logs" | "obj" | "temp" => {
+                                    continue;
+                                }
+                                lower_name => {
+                                    // some people uses multple library folder to speed up switch platform
+                                    if lower_name.starts_with("library") {
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+                        if lower_name.as_str() == ".git" {
+                            // any .git folder should be ignored
+                            continue;
+                        }
+
+                        let new_dir_relative = format!("{dir}{file_name}/");
+                        let new_read_dir = tokio::fs::read_dir(path_buf.join(&new_dir_relative)).await?;
+
+                        stack.push((new_dir_relative.clone(), new_read_dir));
+
+                        yield Ok((new_dir_relative, entry))
+                    } else {
+                        let new_relative = format!("{dir}{file_name}");
+                        yield Ok((new_relative, entry))
+                    }
+                } else {
+                    log::trace!("read_end: {dir}");
+                    stack.pop();
+                    continue;
+                };
+            }
+        }
+    }
+
+    async fn create_zip(
+        backup_path: &Path,
+        project_path: &Path,
+        compression: async_zip::Compression,
+        deflate_option: async_zip::DeflateOption,
+    ) -> Result<(), RustError> {
+        let mut file = tokio::fs::File::create(&backup_path).await?;
+        let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
+
+        let mut stream = pin!(folder_stream(PathBuf::from(project_path)));
+
+        while let Some((relative, entry)) = stream.try_next().await? {
+            let mut file_type = entry.file_type().await?;
+            if file_type.is_symlink() {
+                file_type = match tokio::fs::metadata(entry.path()).await {
+                    Ok(metadata) => metadata.file_type(),
+                    Err(ref e) if e.kind() == io::ErrorKind::NotFound => continue,
+                    Err(e) => return Err(e.into()),
+                };
+            }
+            if file_type.is_dir() {
+                writer
+                    .write_entry_whole(
+                        async_zip::ZipEntryBuilder::new(
+                            relative.into(),
+                            async_zip::Compression::Stored,
+                        ),
+                        b"",
+                    )
+                    .await?;
+            } else {
+                let file = tokio::fs::read(entry.path()).await?;
+                writer
+                    .write_entry_whole(
+                        async_zip::ZipEntryBuilder::new(relative.into(), compression)
+                            .deflate_option(deflate_option),
+                        file.as_ref(),
+                    )
+                    .await?;
+            }
+        }
+
+        writer.close().await?;
+        file.flush().await?;
+        drop(file);
+        Ok(())
+    }
+
+    fn remove_on_cancel<'a, T>(
+        path: &'a Path,
+        task: impl Future<Output = T> + 'a,
+    ) -> impl Future<Output = T> + 'a {
+        struct Task<'a, Fut> {
+            task: ManuallyDrop<Fut>,
+            path: &'a Path,
+            finished: std::sync::atomic::AtomicBool,
+        }
+
+        impl<Fut> Future for Task<'_, Fut>
+        where
+            Fut: Future,
+        {
+            type Output = Fut::Output;
+
+            fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                let this = unsafe { self.get_unchecked_mut() };
+                let task = unsafe { Pin::new_unchecked(this.task.deref_mut()) };
+
+                match task.poll(cx) {
+                    Poll::Ready(x) => {
+                        this.finished.store(true, Ordering::Relaxed);
+                        Poll::Ready(x)
+                    }
+                    Poll::Pending => Poll::Pending,
+                }
+            }
+        }
+
+        impl<Fut> Drop for Task<'_, Fut> {
+            fn drop(&mut self) {
+                unsafe {
+                    // SAFETY: Drop::drop will be called only once
+                    ManuallyDrop::drop(&mut self.task);
+                }
+                if !self.finished.load(Ordering::Relaxed) {
+                    let _ = std::fs::remove_file(self.path);
+                }
+            }
+        }
+
+        Task {
+            task: ManuallyDrop::new(task),
+            path,
+            finished: std::sync::atomic::AtomicBool::new(false),
+        }
+    }
+
+    log::info!("backup project: {project_name} with {backup_format}");
+    let timer = std::time::Instant::now();
+
+    let backup_path;
+
+    let backup_task: Pin<Box<dyn Future<Output = Result<(), RustError>> + Send>> =
+        match backup_format.as_str() {
+            "default" | "zip-store" => {
+                backup_path = Path::new(&backup_dir)
+                    .join(&backup_name)
+                    .with_extension("zip");
+                Box::pin(async move {
+                    remove_on_cancel(
+                        &backup_path,
+                        create_zip(
+                            &backup_path,
+                            project_path.as_ref(),
+                            async_zip::Compression::Stored,
+                            async_zip::DeflateOption::Normal,
+                        ),
+                    )
+                    .await
+                })
+            }
+            "zip-fast" => {
+                backup_path = Path::new(&backup_dir)
+                    .join(&backup_name)
+                    .with_extension("zip");
+                Box::pin(async move {
+                    remove_on_cancel(
+                        &backup_path,
+                        create_zip(
+                            &backup_path,
+                            project_path.as_ref(),
+                            async_zip::Compression::Deflate,
+                            async_zip::DeflateOption::Other(1),
+                        ),
+                    )
+                    .await
+                })
+            }
+            "zip-best" => {
+                backup_path = Path::new(&backup_dir)
+                    .join(&backup_name)
+                    .with_extension("zip");
+                Box::pin(async move {
+                    remove_on_cancel(
+                        &backup_path,
+                        create_zip(
+                            &backup_path,
+                            project_path.as_ref(),
+                            async_zip::Compression::Deflate,
+                            async_zip::DeflateOption::Other(9),
+                        ),
+                    )
+                    .await
+                })
+            }
+            backup_format => {
+                warn!("unknown backup format: {backup_format}, using zip-fast");
+
+                backup_path = Path::new(&backup_dir)
+                    .join(&backup_name)
+                    .with_extension("zip");
+
+                Box::pin(async move {
+                    remove_on_cancel(
+                        &backup_path,
+                        create_zip(
+                            &backup_path,
+                            project_path.as_ref(),
+                            async_zip::Compression::Deflate,
+                            async_zip::DeflateOption::Other(1),
+                        ),
+                    )
+                    .await
+                })
+            }
+        };
+
+    static BACKUP_EVENT_PREFIX: &str = "migrateTo2022:";
+    static BACKUP_EVENT_COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    let common_event_prefix = format!(
+        "{}{}",
+        BACKUP_EVENT_PREFIX,
+        BACKUP_EVENT_COUNTER.fetch_add(1, Ordering::Relaxed)
+    );
+
+    let window_handle = window.clone();
+    let event_prefix = common_event_prefix.clone();
+    let event_handler_slot = Arc::new(StdMutex::<Option<EventHandler>>::new(None));
+
+    let backup_name_1 = backup_name.clone();
+    let event_handler_slot_1 = event_handler_slot.clone();
+
+    let handle = tokio::spawn(async move {
+        match backup_task.await {
+            Ok(()) => {
+                info!(
+                    "backup project {backup_name_1} done in {:?}",
+                    timer.elapsed()
+                );
+                window_handle
+                    .emit(&format!("{event_prefix}:finished"), ())
+                    .ok();
+            }
+            Err(e) => {
+                window_handle
+                    .emit(&format!("{event_prefix}:failed"), e)
+                    .ok();
+            }
+        }
+        if let Ok(guard) = event_handler_slot_1.lock() {
+            if let Some(&handler) = guard.as_ref() {
+                window_handle.unlisten(handler);
+            }
+        }
+    });
+
+    let event_prefix = common_event_prefix.clone();
+    let window_handle = window.clone();
+    *event_handler_slot.lock().unwrap() = Some(window.listen(
+        format!("{common_event_prefix}:cancel"),
+        move |event| {
+            info!("backup project {backup_name} canceled");
+            window_handle
+                .emit(&format!("{event_prefix}:canceled"), ())
+                .ok();
+            handle.abort();
+        },
+    ));
+
+    Ok(common_event_prefix)
 }
 
 #[tauri::command]

@@ -53,7 +53,6 @@ import {
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
-import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
@@ -62,6 +61,7 @@ import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
+import {useBackupProjectModal} from "@/lib/backup-project";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -108,6 +108,7 @@ function PageBody() {
 	const router = useRouter();
 
 	const projectRemoveModal = useRemoveProjectModal({onRemoved: () => router.back()});
+	const backupProjectModal = useBackupProjectModal();
 
 	const projectPath = searchParams.get("projectPath") ?? "";
 	const projectName = nameFromPath(projectPath);
@@ -175,6 +176,13 @@ function PageBody() {
 			path: projectPath,
 			name: projectName,
 			is_exists: true,
+		})
+	}
+
+	const onBackupProject = () => {
+		backupProjectModal.startBackup({
+			path: projectPath,
+			name: projectName,
 		})
 	}
 
@@ -405,7 +413,7 @@ function PageBody() {
 	return (
 		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}
-												 onRemove={onRemoveProject}/>
+												 onRemove={onRemoveProject} onBackup={onBackupProject}/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
 					{tc("located at: <code>{{path}}</code>",
@@ -523,6 +531,7 @@ function PageBody() {
 				</Card>
 				{dialogForState}
 				{projectRemoveModal.dialog}
+				{backupProjectModal.dialog}
 			</main>
 		</VStack>
 	);
@@ -1317,11 +1326,12 @@ function PackageLatestInfo(
 	}
 }
 
-function ProjectViewHeader({className, projectName, projectPath, onRemove}: {
+function ProjectViewHeader({className, projectName, projectPath, onRemove, onBackup}: {
 	className?: string,
 	projectName: string,
 	projectPath: string
-	onRemove?: () => void
+	onRemove?: () => void,
+	onBackup?: () => void,
 }) {
 	const openProjectFolder = () => utilOpen(projectPath);
 
@@ -1351,7 +1361,7 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove}: {
 				</ButtonGroup>
 				<MenuList>
 					<MenuItem onClick={openProjectFolder}>{tc("open project folder")}</MenuItem>
-					<MenuItem onClick={unsupported("Backup")}>{tc("make backup")}</MenuItem>
+					<MenuItem onClick={onBackup}>{tc("make backup")}</MenuItem>
 					<MenuItem onClick={onRemove} className={"bg-red-700 text-white"}>{tc("remove project")}</MenuItem>
 				</MenuList>
 			</Menu>

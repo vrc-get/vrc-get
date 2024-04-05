@@ -4452,6 +4452,8 @@ name = "vrc-get-gui"
 version = "0.1.0-beta.17"
 dependencies = [
  "arc-swap",
+ "async-stream",
+ "async_zip",
  "chrono",
  "flate2",
  "fs_extra",
