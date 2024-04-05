@@ -3,7 +3,8 @@
 import {
 	Button,
 	ButtonGroup,
-	Card, Checkbox,
+	Card,
+	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
@@ -21,10 +22,12 @@ import {
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
-	ChevronDownIcon, ChevronUpDownIcon,
+	ChevronDownIcon,
+	ChevronUpDownIcon,
 	EllipsisHorizontalIcon,
 	GlobeAltIcon,
-	QuestionMarkCircleIcon, StarIcon,
+	QuestionMarkCircleIcon,
+	StarIcon,
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 import {HNavBar, VStack} from "@/components/layout";
@@ -53,7 +56,7 @@ import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
 import {VGOption, VGSelect} from "@/components/select";
-import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
