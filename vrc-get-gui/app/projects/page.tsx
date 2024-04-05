@@ -60,10 +60,13 @@ import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {pathSeparator} from "@/lib/os";
 import {ChevronUpIcon} from "@heroicons/react/24/outline";
+import {compareUnityVersionString} from "@/lib/version";
 
 const sortings = [
 	"lastModified",
 	"name",
+	"unity",
+	"type",
 ] as const;
 
 type SimpleSorting = (typeof sortings)[number];
@@ -115,6 +118,45 @@ export default function Page() {
 	);
 }
 
+function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 1 {
+	if (a === b) return 0;
+
+	// legacy unknown
+	if (a === "LegacySdk2") return 1;
+	if (b === "LegacySdk2") return -1;
+	if (a === "UpmStarter") return 1;
+	if (b === "UpmStarter") return -1;
+
+	// legacy worlds 
+	if (a === "LegacyWorlds") return 1;
+	if (b === "LegacyWorlds") return -1;
+	if (a === "UpmWorlds") return 1;
+	if (b === "UpmWorlds") return -1;
+
+	// legacy avatars
+	if (a === "LegacyAvatars") return 1;
+	if (b === "LegacyAvatars") return -1;
+	if (a === "UpmAvatars") return 1;
+	if (b === "UpmAvatars") return -1;
+
+	// unknown
+	if (a === "Unknown") return 1;
+	if (b === "Unknown") return -1;
+	if (a === "VpmStarter") return 1;
+	if (b === "VpmStarter") return -1;
+
+	// worlds
+	if (a === "Worlds") return 1;
+	if (b === "Worlds") return -1;
+
+	// avatars
+	if (a === "Avatars") return 1;
+	if (b === "Avatars") return -1;
+
+	let _: never = a;
+	return 0;
+}
+
 function ProjectsTable(
 	{
 		projects, search, onRemoved, loading, refresh,
@@ -154,6 +196,18 @@ function ProjectsTable(
 				break;
 			case "nameReversed":
 				searched.sort((a, b) => b.name.localeCompare(a.name));
+				break;
+			case "type":
+				searched.sort((a, b) => compareProjectType(a.project_type, b.project_type));
+				break;
+			case "typeReversed":
+				searched.sort((a, b) => compareProjectType(b.project_type, a.project_type));
+				break;
+			case "unity":
+				searched.sort((a, b) => compareUnityVersionString(a.unity, b.unity));
+				break;
+			case "unityReversed":
+				searched.sort((a, b) => compareUnityVersionString(b.unity, a.unity));
 				break;
 			default:
 				let _: never = sorting;
@@ -205,10 +259,24 @@ function ProjectsTable(
 					</button>
 				</th>
 				<th className={thClass}>
-					<Typography variant="small" className="font-normal leading-none">{tc("type")}</Typography>
+					<button className={"flex w-full"} onClick={() => setSorting("type")}>
+						{
+							sorting === "type" ? <ChevronDownIcon className={"size-3"}/>
+								: sorting === "typeReversed" ? <ChevronUpIcon className={"size-3"}/>
+									: <ChevronUpDownIcon className={"size-3"}/>
+						}
+						<Typography variant="small" className="font-normal leading-none">{tc("type")}</Typography>
+					</button>
 				</th>
 				<th className={thClass}>
-					<Typography variant="small" className="font-normal leading-none">{tc("unity")}</Typography>
+					<button className={"flex w-full"} onClick={() => setSorting("unity")}>
+						{
+							sorting === "unity" ? <ChevronDownIcon className={"size-3"}/>
+								: sorting === "unityReversed" ? <ChevronUpIcon className={"size-3"}/>
+									: <ChevronUpDownIcon className={"size-3"}/>
+						}
+						<Typography variant="small" className="font-normal leading-none">{tc("unity")}</Typography>
+					</button>
 				</th>
 				<th className={thClass}>
 					<button className={"flex w-full"} onClick={() => setSorting("lastModified")}>
