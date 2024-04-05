@@ -3,7 +3,7 @@
 import {
 	Button,
 	ButtonGroup,
-	Card,
+	Card, Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
@@ -24,7 +24,7 @@ import {
 	ChevronDownIcon,
 	EllipsisHorizontalIcon,
 	GlobeAltIcon,
-	QuestionMarkCircleIcon,
+	QuestionMarkCircleIcon, StarIcon,
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 import {HNavBar, VStack} from "@/components/layout";
@@ -35,7 +35,7 @@ import {
 	environmentCreateProject,
 	environmentPickProjectDefaultPath,
 	environmentProjectCreationInformation,
-	environmentProjects,
+	environmentProjects, environmentSetFavoriteProject,
 	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectDirCheckResult,
@@ -56,6 +56,8 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {pathSeparator} from "@/lib/os";
+
+type Sorting = "lastModified";
 
 export default function Page() {
 	const result = useQuery({
@@ -105,7 +107,7 @@ function ProjectsTable(
 		projects, sorting, search, onRemoved, loading, refresh,
 	}: {
 		projects: TauriProject[],
-		sorting: "lastModified",
+		sorting: Sorting,
 		search?: string,
 		loading?: boolean,
 		onRemoved?: () => void;
@@ -122,9 +124,18 @@ function ProjectsTable(
 
 	const projectsShown = useMemo(() => {
 		let searched = projects.filter(project => project.name.toLowerCase().includes(search?.toLowerCase() ?? ""));
-		if (sorting === "lastModified") {
-			searched.sort((a, b) => b.last_modified - a.last_modified);
+		switch (sorting) {
+			case "lastModified":
+				searched.sort((a, b) => b.last_modified - a.last_modified);
+				break;
+			default:
+				let _: never = sorting;
 		}
+		searched.sort((a, b) => {
+			if (a.favorite && !b.favorite) return -1;
+			if (!a.favorite && b.favorite) return 1;
+			return 0;
+		})
 		return searched;
 	}, [projects, sorting, search]);
 
@@ -132,6 +143,9 @@ function ProjectsTable(
 		<table className="relative table-auto text-left">
 			<thead>
 			<tr>
+				<th className={`sticky top-0 z-10 text-center border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
+					<StarIcon className={"size-4"}/>
+				</th>
 				{TABLE_HEAD.map((head, index) => (
 					<th key={index}
 							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
@@ -252,7 +266,16 @@ function ProjectRow(
 			setDialogStatus({type: "normal"});
 			toastThrownError(e);
 		}
+	}
 
+	const onToggleFavorite = async () => {
+		try {
+			await environmentSetFavoriteProject(project.list_version, project.index, !project.favorite);
+			refresh?.();
+		} catch (e) {
+			console.error("Error migrating project", e);
+			toastThrownError(e);
+		}
 	}
 
 	const removed = !project.is_exists;
@@ -359,6 +382,12 @@ function ProjectRow(
 	return (
 		<tr className={`even:bg-blue-gray-50/50 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
+				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+									checked={project.favorite} onClick={onToggleFavorite}
+									disabled={removed || loading}
+									className="hover:before:content-none"/>
+			</td>
+			<td className={cellClass}>
 				<MayTooltip content={tc("project folder does not exist")}>
 					<div className="flex flex-col">
 						<Typography className="font-normal whitespace-pre">
@@ -411,7 +440,8 @@ function ProjectRow(
 								className={"size-5"}/></IconButton>
 						</MenuHandler>
 						<MenuList>
-							<MenuItem onClick={openProjectFolder} disabled={removed || loading}>{tc("open project folder")}</MenuItem>
+							<MenuItem onClick={openProjectFolder}
+												disabled={removed || loading}>{tc("open project folder")}</MenuItem>
 							<MenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
 												className={'text-red-700 focus:text-red-700'}>
 								{tc("remove project")}

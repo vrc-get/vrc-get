@@ -158,6 +158,10 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
+    pub fn update_project(&mut self, project: &UserProject) -> io::Result<()> {
+        Ok(self.get_db()?.update_project(&project.project)?)
+    }
+
     pub fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
         let db = self.get_db()?;
 
@@ -259,5 +263,9 @@ impl UserProject {
 
     pub fn favorite(&self) -> bool {
         self.project.favorite()
+    }
+
+    pub fn set_favorite(&mut self, favorite: bool) {
+        self.project.set_favorite(favorite);
     }
 }
