@@ -35,7 +35,7 @@ import {
 	environmentCreateProject,
 	environmentPickProjectDefaultPath,
 	environmentProjectCreationInformation,
-	environmentProjects, projectCreateBackup,
+	environmentProjects,
 	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectDirCheckResult,
@@ -46,7 +46,6 @@ import {
 import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
-import {unsupported} from "@/lib/unsupported";
 import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
