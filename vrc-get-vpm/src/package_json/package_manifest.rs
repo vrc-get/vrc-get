@@ -29,6 +29,7 @@ impl PackageManifest {
             legacy_folders: HashMap::new(),
             legacy_files: HashMap::new(),
             legacy_packages: Vec::new(),
+            headers: IndexMap::new(),
             vrc_get: VrcGetMeta::default(),
             zip_sha_256: None,
             changelog_url: None,

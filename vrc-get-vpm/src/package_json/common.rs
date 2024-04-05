@@ -10,6 +10,7 @@ pub trait PackageJsonLike {
     fn legacy_folders(&self) -> &std::collections::HashMap<Box<str>, Option<Box<str>>>;
     fn legacy_files(&self) -> &std::collections::HashMap<Box<str>, Option<Box<str>>>;
     fn legacy_packages(&self) -> &[Box<str>];
+    fn headers(&self) -> &IndexMap<Box<str>, Box<str>>;
     fn display_name(&self) -> Option<&str>;
     fn description(&self) -> Option<&str>;
     fn url(&self) -> Option<&Url>;
@@ -57,6 +58,7 @@ macro_rules! impl_package_json {
             pub fn legacy_folders(&self) -> &std::collections::HashMap<Box<str>, Option<Box<str>>> = |$v| &$expr.legacy_folders
             pub fn legacy_files(&self) -> &std::collections::HashMap<Box<str>, Option<Box<str>>> = |$v| &$expr.legacy_files
             pub fn legacy_packages(&self) -> &[Box<str>] = |$v| $expr.legacy_packages.as_slice()
+            pub fn headers(&self) -> &IndexMap<Box<str>, Box<str>> = |$v| &$expr.headers
             pub fn display_name(&self) -> Option<&str> = |$v| $expr.display_name.as_deref()
             pub fn description(&self) -> Option<&str> = |$v| $expr.description.as_deref()
             pub fn url(&self) -> Option<&Url> = |$v| $expr.url.as_ref()
@@ -108,6 +110,9 @@ macro_rules! package_json_struct {
             $optional_vis legacy_files: std::collections::HashMap<Box<str>, Option<Box<str>>>,
             $(#[$optional])?
             $optional_vis legacy_packages: Vec<Box<str>>,
+
+            $(#[$optional])?
+            $optional_vis headers: indexmap::IndexMap<Box<str>, Box<str>>,
 
             $(#[$optional])?
             $optional_vis changelog_url: Option<Url>,
