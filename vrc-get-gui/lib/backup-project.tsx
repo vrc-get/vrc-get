@@ -33,7 +33,7 @@ export function useBackupProjectModal(_: Params = {}): Result {
 		try {
 			const channel = await projectStartCreateBackup(project.path);
 			setState({type: 'backing-up', channel});
-			const cancelled = await new Promise<boolean>((resolve, reject) => {
+			const canceled = await new Promise<boolean>((resolve, reject) => {
 				let finishedListener: UnlistenFn | undefined;
 				let failedListener: UnlistenFn | undefined;
 				let canceledListener: UnlistenFn | undefined;
@@ -49,8 +49,8 @@ export function useBackupProjectModal(_: Params = {}): Result {
 				listen(`${channel}:finished`, () => unlistenAll(resolve(false))).then((listener) => finishedListener = listener);
 				listen(`${channel}:failed`, (e) => unlistenAll(reject(e.payload))).then((listener) => failedListener = listener);
 			})
-			if (cancelled) {
-				toastNormal(tt("backup cancelled"));
+			if (canceled) {
+				toastNormal(tt("backup canceled"));
 			} else {
 				toastSuccess(tt("backup created successfully"));
 			}

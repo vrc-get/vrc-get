@@ -157,7 +157,7 @@
     "please select a file or folder": "ファイルまたはフォルダを選択してください。",
     "backup project": "バックアップを作成",
     "creating a backup...": "バックアップを作成中...",
-    "backup cancelled": "バックアップをキャンセルしました。",
+    "backup canceled": "バックアップをキャンセルしました。",
     "backup created successfully": "バックアップを作成しました。",
   },
 }
