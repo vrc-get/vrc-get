@@ -184,9 +184,10 @@ function ProjectsTable(
 
 	const projectsShown = useMemo(() => {
 		let searched = projects.filter(project => project.name.toLowerCase().includes(search?.toLowerCase() ?? ""));
+		searched.sort((a, b) => b.last_modified - a.last_modified);
 		switch (sorting) {
 			case "lastModified":
-				searched.sort((a, b) => b.last_modified - a.last_modified);
+				// already sorted
 				break;
 			case "lastModifiedReversed":
 				searched.sort((a, b) => a.last_modified - b.last_modified);
