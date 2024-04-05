@@ -30,3 +30,7 @@ body {
 		text-wrap: balance;
 	}
 }
+
+.project-table-button:hover .project-table-header-chevron-up-down {
+	visibility: visible;
+}

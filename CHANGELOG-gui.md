@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog].
 ## [Unreleased]
 ### Added
 - Backup Project `#714`
+- Favorite project and sort by name `#717`
 
 ### Changed
 

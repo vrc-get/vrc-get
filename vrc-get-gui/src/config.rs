@@ -19,6 +19,8 @@ pub struct GuiConfig {
     pub language: String,
     #[serde(default = "backup_default")]
     pub backup_format: String,
+    #[serde(default = "project_sorting_default")]
+    pub project_sorting: String,
 }
 
 fn language_default() -> String {
@@ -27,6 +29,10 @@ fn language_default() -> String {
 
 fn backup_default() -> String {
     "default".to_string()
+}
+
+fn project_sorting_default() -> String {
+    "lastModified".to_string()
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

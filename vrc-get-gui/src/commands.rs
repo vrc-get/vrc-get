@@ -55,6 +55,9 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         environment_remove_project,
         environment_remove_project_by_path,
         environment_copy_project_for_migration,
+        environment_set_favorite_project,
+        environment_get_project_sorting,
+        environment_set_project_sorting,
         environment_packages,
         environment_repositories_info,
         environment_hide_repository,
@@ -102,6 +105,9 @@ pub(crate) fn export_ts() {
             environment_remove_project,
             environment_remove_project_by_path,
             environment_copy_project_for_migration,
+            environment_set_favorite_project,
+            environment_get_project_sorting,
+            environment_set_project_sorting,
             environment_packages,
             environment_repositories_info,
             environment_hide_repository,
@@ -457,6 +463,7 @@ struct TauriProject {
     unity: String,
     last_modified: u64,
     created_at: u64,
+    favorite: bool,
     is_exists: bool,
 }
 
@@ -509,6 +516,7 @@ impl TauriProject {
                 .unwrap_or_else(|| "unknown".into()),
             last_modified: project.last_modified().as_millis_since_epoch(),
             created_at: project.crated_at().as_millis_since_epoch(),
+            favorite: project.favorite(),
             is_exists,
         }
     }
@@ -769,6 +777,54 @@ async fn environment_copy_project_for_migration(
     });
 
     Ok(new_path_str)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_favorite_project(
+    state: State<'_, Mutex<EnvironmentState>>,
+    list_version: u32,
+    index: usize,
+    favorite: bool,
+) -> Result<(), RustError> {
+    let mut state = state.lock().await;
+    let state = &mut *state;
+    let version = (state.environment.environment_version + state.projects_version).0;
+    if list_version != version {
+        return Err(RustError::unrecoverable("project list version mismatch"));
+    }
+
+    let project = &mut state.projects[index];
+    project.set_favorite(favorite);
+    let environment = state
+        .environment
+        .get_environment_mut(false, &state.io)
+        .await?;
+    environment.update_project(project)?;
+    environment.save().await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_get_project_sorting(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<String, RustError> {
+    with_config!(state, |config| Ok(config.project_sorting.clone()))
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_project_sorting(
+    state: State<'_, Mutex<EnvironmentState>>,
+    sorting: String,
+) -> Result<(), RustError> {
+    with_config!(state, |mut config| {
+        config.project_sorting = sorting;
+        config.save().await?;
+        Ok(())
+    })
 }
 
 #[derive(Serialize, specta::Type)]

@@ -4,6 +4,7 @@ import {
 	Button,
 	ButtonGroup,
 	Card,
+	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
@@ -22,9 +23,11 @@ import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
 	ChevronDownIcon,
+	ChevronUpDownIcon,
 	EllipsisHorizontalIcon,
 	GlobeAltIcon,
 	QuestionMarkCircleIcon,
+	StarIcon,
 	UserCircleIcon
 } from "@heroicons/react/24/solid";
 import {HNavBar, VStack} from "@/components/layout";
@@ -33,9 +36,12 @@ import {
 	environmentCheckProjectName,
 	environmentCopyProjectForMigration,
 	environmentCreateProject,
+	environmentGetProjectSorting,
 	environmentPickProjectDefaultPath,
 	environmentProjectCreationInformation,
 	environmentProjects,
+	environmentSetFavoriteProject,
+	environmentSetProjectSorting,
 	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectDirCheckResult,
@@ -50,12 +56,28 @@ import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
 import {VGOption, VGSelect} from "@/components/select";
-import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {pathSeparator} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
+import {ChevronUpIcon} from "@heroicons/react/24/outline";
+import {compareUnityVersionString} from "@/lib/version";
+
+const sortings = [
+	"lastModified",
+	"name",
+	"unity",
+	"type",
+] as const;
+
+type SimpleSorting = (typeof sortings)[number];
+type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
+
+function isSorting(s: string): s is Sorting {
+	return sortings.some(sorting => sorting === s || `${sorting}Reversed` === s);
+}
 
 export default function Page() {
 	const result = useQuery({
@@ -85,7 +107,6 @@ export default function Page() {
 							result.status == "error" ? tc("error loading projects: {{msg}}", {msg: result.error.message}) :
 								<ProjectsTable
 									projects={result.data}
-									sorting={"lastModified"}
 									search={search}
 									loading={loading}
 									refresh={() => result.refetch()}
@@ -100,44 +121,174 @@ export default function Page() {
 	);
 }
 
+function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 1 {
+	if (a === b) return 0;
+
+	// legacy unknown
+	if (a === "LegacySdk2") return 1;
+	if (b === "LegacySdk2") return -1;
+	if (a === "UpmStarter") return 1;
+	if (b === "UpmStarter") return -1;
+
+	// legacy worlds 
+	if (a === "LegacyWorlds") return 1;
+	if (b === "LegacyWorlds") return -1;
+	if (a === "UpmWorlds") return 1;
+	if (b === "UpmWorlds") return -1;
+
+	// legacy avatars
+	if (a === "LegacyAvatars") return 1;
+	if (b === "LegacyAvatars") return -1;
+	if (a === "UpmAvatars") return 1;
+	if (b === "UpmAvatars") return -1;
+
+	// unknown
+	if (a === "Unknown") return 1;
+	if (b === "Unknown") return -1;
+	if (a === "VpmStarter") return 1;
+	if (b === "VpmStarter") return -1;
+
+	// worlds
+	if (a === "Worlds") return 1;
+	if (b === "Worlds") return -1;
+
+	// avatars
+	if (a === "Avatars") return 1;
+	if (b === "Avatars") return -1;
+
+	let _: never = a;
+	return 0;
+}
+
 function ProjectsTable(
 	{
-		projects, sorting, search, onRemoved, loading, refresh,
+		projects, search, onRemoved, loading, refresh,
 	}: {
 		projects: TauriProject[],
-		sorting: "lastModified",
 		search?: string,
 		loading?: boolean,
 		onRemoved?: () => void;
 		refresh?: () => void,
 	}
 ) {
-	const TABLE_HEAD = [
-		"name",
-		"type",
-		"unity",
-		"last modified",
-		"", // actions
-	];
+	const [sorting, setSortingState] = useState<Sorting>("lastModified");
+
+	useEffect(() => {
+		(async () => {
+			let newSorting = await environmentGetProjectSorting();
+			if (newSorting === null) newSorting = "lastModified";
+			if (!isSorting(newSorting)) {
+				setSortingState("lastModified");
+			} else {
+				setSortingState(newSorting);
+			}
+		})()
+	}, []);
 
 	const projectsShown = useMemo(() => {
 		let searched = projects.filter(project => project.name.toLowerCase().includes(search?.toLowerCase() ?? ""));
-		if (sorting === "lastModified") {
-			searched.sort((a, b) => b.last_modified - a.last_modified);
+		searched.sort((a, b) => b.last_modified - a.last_modified);
+		switch (sorting) {
+			case "lastModified":
+				// already sorted
+				break;
+			case "lastModifiedReversed":
+				searched.sort((a, b) => a.last_modified - b.last_modified);
+				break;
+			case "name":
+				searched.sort((a, b) => a.name.localeCompare(b.name));
+				break;
+			case "nameReversed":
+				searched.sort((a, b) => b.name.localeCompare(a.name));
+				break;
+			case "type":
+				searched.sort((a, b) => compareProjectType(a.project_type, b.project_type));
+				break;
+			case "typeReversed":
+				searched.sort((a, b) => compareProjectType(b.project_type, a.project_type));
+				break;
+			case "unity":
+				searched.sort((a, b) => compareUnityVersionString(a.unity, b.unity));
+				break;
+			case "unityReversed":
+				searched.sort((a, b) => compareUnityVersionString(b.unity, a.unity));
+				break;
+			default:
+				let _: never = sorting;
 		}
+		searched.sort((a, b) => {
+			if (a.favorite && !b.favorite) return -1;
+			if (!a.favorite && b.favorite) return 1;
+			return 0;
+		})
 		return searched;
 	}, [projects, sorting, search]);
+
+	const thClass = `sticky top-0 z-10 border-b border-blue-gray-100 p-2.5`;
+	const iconClass = `size-3 invisible project-table-header-chevron-up-down`;
+
+	const setSorting = async (simpleSorting: SimpleSorting) => {
+		let newSorting: Sorting;
+		if (sorting === simpleSorting) {
+			newSorting = `${simpleSorting}Reversed`;
+		} else if (sorting === `${simpleSorting}Reversed`) {
+			newSorting = simpleSorting;
+		} else {
+			newSorting = simpleSorting;
+		}
+		setSortingState(newSorting);
+
+		try {
+			await environmentSetProjectSorting(newSorting);
+		} catch (e) {
+			console.error("Error setting project sorting", e);
+			toastThrownError(e);
+		}
+	}
+
+	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-blue-100" : "bg-blue-gray-50";
+	const icon = (target: SimpleSorting) =>
+		sorting === target ? <ChevronDownIcon className={"size-3"}/>
+			: sorting === `${target}Reversed` ? <ChevronUpIcon className={"size-3"}/>
+				: <ChevronUpDownIcon className={iconClass}/>;
 
 	return (
 		<table className="relative table-auto text-left">
 			<thead>
 			<tr>
-				{TABLE_HEAD.map((head, index) => (
-					<th key={index}
-							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
-					</th>
-				))}
+				<th className={`${thClass} bg-blue-gray-50`}>
+					<StarIcon className={"size-4"}/>
+				</th>
+				<th
+					className={`${thClass} ${headerBg('name')}`}>
+					<button className={"flex w-full project-table-button"}
+									onClick={() => setSorting("name")}>
+						{icon("name")}
+						<Typography variant="small" className="font-normal leading-none">{tc("name")}</Typography>
+					</button>
+				</th>
+				<th
+					className={`${thClass} ${headerBg('type')}`}>
+					<button className={"flex w-full project-table-button"} onClick={() => setSorting("type")}>
+						{icon("type")}
+						<Typography variant="small" className="font-normal leading-none">{tc("type")}</Typography>
+					</button>
+				</th>
+				<th
+					className={`${thClass} ${headerBg('unity')}`}>
+					<button className={"flex w-full project-table-button"} onClick={() => setSorting("unity")}>
+						{icon("unity")}
+						<Typography variant="small" className="font-normal leading-none">{tc("unity")}</Typography>
+					</button>
+				</th>
+				<th
+					className={`${thClass} ${headerBg('lastModified')}`}>
+					<button className={"flex w-full project-table-button"} onClick={() => setSorting("lastModified")}>
+						{icon("lastModified")}
+						<Typography variant="small" className="font-normal leading-none">{tc("last modified")}</Typography>
+					</button>
+				</th>
+				<th className={`${thClass} bg-blue-gray-50`}></th>
 			</tr>
 			</thead>
 			<tbody>
@@ -253,7 +404,16 @@ function ProjectRow(
 			setDialogStatus({type: "normal"});
 			toastThrownError(e);
 		}
+	}
 
+	const onToggleFavorite = async () => {
+		try {
+			await environmentSetFavoriteProject(project.list_version, project.index, !project.favorite);
+			refresh?.();
+		} catch (e) {
+			console.error("Error migrating project", e);
+			toastThrownError(e);
+		}
 	}
 
 	const removed = !project.is_exists;
@@ -360,6 +520,13 @@ function ProjectRow(
 	return (
 		<tr className={`even:bg-blue-gray-50/50 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
+				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+									checked={project.favorite}
+									onChange={onToggleFavorite}
+									disabled={removed || loading}
+									className="hover:before:content-none"/>
+			</td>
+			<td className={cellClass}>
 				<MayTooltip content={tc("project folder does not exist")}>
 					<div className="flex flex-col">
 						<Typography className="font-normal whitespace-pre">
@@ -412,7 +579,8 @@ function ProjectRow(
 								className={"size-5"}/></IconButton>
 						</MenuHandler>
 						<MenuList>
-							<MenuItem onClick={openProjectFolder} disabled={removed || loading}>{tc("open project folder")}</MenuItem>
+							<MenuItem onClick={openProjectFolder}
+												disabled={removed || loading}>{tc("open project folder")}</MenuItem>
 							<MenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
 												className={'text-red-700 focus:text-red-700'}>
 								{tc("remove project")}
