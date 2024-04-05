@@ -160,5 +160,7 @@
     "please select a file or folder": "Please select a file or folder",
     "backup project": "Backup Project",
     "creating a backup...": "Creating a backup...",
+    "backup cancelled": "Backup cancelled",
+    "backup created successfully": "Backup created successfully",
   },
 }
