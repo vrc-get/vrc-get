@@ -437,7 +437,7 @@ function PageBody() {
 			{isMigrationTo2022Recommended &&
 				<SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
 			<main className="flex-shrink overflow-hidden flex">
-				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex">
+				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
 					<div className={"flex flex-shrink-0 flex-grow-0 flex-row gap-2"}>
 						<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 							{tc("manage packages")}
