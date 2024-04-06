@@ -455,9 +455,9 @@ function EnteringRepositoryInfo(
 						</table>
 					</div>
 				</details>
-				{foundHeaderNameError && <Typography className={"text-red-700"}>{tc("header name is invalid.")}</Typography>}
-				{foundHeaderValueError && <Typography className={"text-red-700"}>{tc("header value is invalid.")}</Typography>}
-				{foundDuplicateHeader && <Typography className={"text-red-700"}>{tc("header name is duplicated.")}</Typography>}
+				{foundHeaderNameError && <Typography className={"text-red-700"}>{tc("header name is invalid")}</Typography>}
+				{foundHeaderValueError && <Typography className={"text-red-700"}>{tc("header value is invalid")}</Typography>}
+				{foundDuplicateHeader && <Typography className={"text-red-700"}>{tc("header name is duplicated")}</Typography>}
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel}>{tc("cancel")}</Button>
