@@ -314,9 +314,7 @@ const ProjectDisplayType: Record<TauriProjectType, "avatars" | "worlds" | "unkno
 
 const LegacyProjectTypes = ["LegacySdk2", "LegacyWorlds", "LegacyAvatars", "UpmWorlds", "UpmAvatars", "UpmStarter"];
 
-const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {style: 'short'});
-
-function formatDateOffset(date: number) {
+function formatDateOffset(date: number): React.ReactNode {
 	const now = Date.now();
 	const diff = now - date;
 
@@ -330,15 +328,14 @@ function formatDateOffset(date: number) {
 
 	const diffAbs = Math.abs(diff);
 
-	if (diffAbs < 1000) return "just now";
-	if (diffAbs < PER_MINUTE) return relativeTimeFormat.format(Math.floor(diff / PER_SECOND), "second");
-	if (diffAbs < PER_HOUR) return relativeTimeFormat.format(Math.floor(diff / PER_MINUTE), "minute");
-	if (diffAbs < PER_DAY) return relativeTimeFormat.format(Math.floor(diff / PER_HOUR), "hour");
-	if (diffAbs < PER_WEEK) return relativeTimeFormat.format(Math.floor(diff / PER_DAY), "day");
-	if (diffAbs < PER_MONTH) return relativeTimeFormat.format(Math.floor(diff / PER_WEEK), "week");
-	if (diffAbs < PER_YEAR) return relativeTimeFormat.format(Math.floor(diff / PER_MONTH), "month");
+	if (diffAbs < PER_MINUTE) return tc("moments ago");
+	if (diffAbs < PER_HOUR) return tc("{{count}} minutes ago", {count: Math.floor(diff / PER_MINUTE)});
+	if (diffAbs < PER_DAY) return tc("{{count}} hours ago", {count: Math.floor(diff / PER_HOUR)});
+	if (diffAbs < PER_WEEK) return tc("{{count}} days ago", {count: Math.floor(diff / PER_DAY)});
+	if (diffAbs < PER_MONTH) return tc("{{count}} weeks ago", {count: Math.floor(diff / PER_WEEK)});
+	if (diffAbs < PER_YEAR) return tc("{{count}} months ago", {count: Math.floor(diff / PER_MONTH)});
 
-	return relativeTimeFormat.format(Math.floor(diff / PER_YEAR), "year");
+	return tc("{{count}} years ago", {count: Math.floor(diff / PER_YEAR)});
 }
 
 type ProjectRowState = {
@@ -438,7 +435,7 @@ function ProjectRow(
 	switch (project.project_type) {
 		case "LegacySdk2":
 			manageButton =
-				<Tooltip content={"Legacy SDK2 project cannot be migrated automatically. Please migrate to SDK3 first."}>
+				<Tooltip content={tc("legacy sdk2 migration tooltip")}>
 					<RowButton color={"light-green"} disabled>
 						{tc("migrate")}
 					</RowButton>
@@ -451,7 +448,7 @@ function ProjectRow(
 		case "UpmWorlds":
 		case "UpmAvatars":
 		case "UpmStarter":
-			manageButton = <Tooltip content={"UPM-VCC projects are not supported"}>
+			manageButton = <Tooltip content={tc("git-vcc projects are not supported")}>
 				<RowButton color={"blue"} disabled>
 					{tc("manage")}
 				</RowButton>
@@ -638,7 +635,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 				{tc("projects")}
 			</Typography>
 
-			<Tooltip content="Reflesh list of projects">
+			<Tooltip content={tc("refresh projects")}>
 				<IconButton variant={"text"} onClick={() => refresh?.()} disabled={isLoading}>
 					{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 				</IconButton>

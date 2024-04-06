@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Last Modified row is not localized `#723`
 
 ### Security
 
