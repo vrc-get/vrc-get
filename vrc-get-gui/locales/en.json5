@@ -132,7 +132,7 @@
     "back to projects": "back to projects",
     "invalid url": "The URL is invalid",
     "failed to download the repository: {{message}}": "Failed to download the repository: {{message}}",
-    "added the repository successfully": "Added the repository successfully",
+    "added the repository successfully!": "Added the repository successfully!",
     "community repositories": "Community Repositories",
     "add repository": "Add Repository",
     "url": "URL",
