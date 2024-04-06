@@ -113,7 +113,7 @@
     "add repository": "リポジトリを追加",
     "url": "URL",
     "remove repository": "リポジトリを削除",
-    "do you want to remove the repository <b>{{name}}</b>?": "<b>{{name}}</b> を削除しますか？",
+    "do you want to remove the repository <b>{{name}}</b>?": "リポジトリ <b>{{name}}</b> を削除しますか？",
     "remove": "削除",
     "enter information about the repository": "リポジトリ情報を入力",
     "headers": "ヘッダー",
