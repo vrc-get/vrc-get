@@ -451,7 +451,7 @@ function ProjectRow(
 		case "UpmWorlds":
 		case "UpmAvatars":
 		case "UpmStarter":
-			manageButton = <Tooltip content={tc("upm-vcc projects are not supported")}>
+			manageButton = <Tooltip content={tc("git-vcc projects are not supported")}>
 				<RowButton color={"blue"} disabled>
 					{tc("manage")}
 				</RowButton>
@@ -638,7 +638,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 				{tc("projects")}
 			</Typography>
 
-			<Tooltip content={tc("refresh list of projects")}>
+			<Tooltip content={tc("refresh projects")}>
 				<IconButton variant={"text"} onClick={() => refresh?.()} disabled={isLoading}>
 					{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 				</IconButton>
