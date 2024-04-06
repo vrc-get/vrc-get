@@ -111,6 +111,7 @@
     "multiple sources": "複数ソース",
     "remove package": "パッケージを削除",
     "add package": "パッケージを追加",
+    "upgrade package": "パッケージを更新",
     "(yanked)": "(取り下げ済み)",
     "back to projects": "プロジェクト一覧に戻る",
     "invalid url": "不正なURLです。",

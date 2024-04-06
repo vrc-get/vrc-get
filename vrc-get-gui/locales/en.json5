@@ -114,6 +114,7 @@
     "multiple sources": "Multiple sources",
     "remove package": "Remove Package",
     "add package": "Add Package",
+    "upgrade package": "Upgrade Package",
     "(yanked)": "(yanked)",
     "back to projects": "back to projects",
     "invalid url": "The URL is invalid",
