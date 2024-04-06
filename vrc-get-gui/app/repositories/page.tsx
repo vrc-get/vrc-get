@@ -228,6 +228,8 @@ function RepositoryRow(
 	const cellClass = "p-2.5";
 	const id = `repository-${repo.id}`;
 
+	const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+
 	const selected = !hiddenUserRepos.has(repo.id);
 	const onChange = () => {
 		if (selected) {
@@ -235,6 +237,24 @@ function RepositoryRow(
 		} else {
 			environmentShowRepository(repo.id).then(refetch);
 		}
+	}
+
+	let dialog;
+	if (removeDialogOpen) {
+		dialog = <Dialog handler={nop} open>
+			<DialogHeader>{tc("remove repository")}</DialogHeader>
+			<DialogBody>
+				<Typography
+					className={"whitespace-normal font-normal"}>{tc("do you want to remove the repository <b>{{name}}</b>?", {name: repo.display_name})}</Typography>
+			</DialogBody>
+			<DialogFooter>
+				<Button onClick={() => setRemoveDialogOpen(false)}>{tc("cancel")}</Button>
+				<Button onClick={() => {
+					remove();
+					setRemoveDialogOpen(false);
+				}} className={"ml-2"}>{tc("remove repository")}</Button>
+			</DialogFooter>
+		</Dialog>;
 	}
 
 	return (
@@ -257,11 +277,12 @@ function RepositoryRow(
 			</td>
 			<td className={`${cellClass} w-0`}>
 				<Tooltip content={"Remove Repository"}>
-					<IconButton onClick={remove} variant={"text"}>
+					<IconButton onClick={() => setRemoveDialogOpen(true)} variant={"text"}>
 						<XCircleIcon className={"size-5 text-red-700"}/>
 					</IconButton>
 				</Tooltip>
 			</td>
+			{dialog}
 		</tr>
 	)
 }
