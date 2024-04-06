@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog].
 
 ## [0.1.0-beta.17] - 2024-04-01
 ### Changed
-- Update last modified on open unity [`#697`](https://github.com/vrc-get/vrc-get/pull/697)
+- Update last modified on open Unity [`#697`](https://github.com/vrc-get/vrc-get/pull/697)
 
 ### Fixed
 - Shown language name is not changed [`#694`](https://github.com/vrc-get/vrc-get/pull/694) 
