@@ -225,23 +225,27 @@ function Settings(
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("backup")}</h2>
-				<h3>{tc("backup path")}</h3>
-				<Typography className={"whitespace-normal"}>
-					{tc("the backup path is the directory where vrc-get-gui will create backup zips of the projects.")}
-				</Typography>
-				<div className={"flex gap-1"}>
-					<Input className="flex-auto" value={settings.project_backup_path} disabled/>
-					<Button className={"flex-none px-4"} onClick={selectProjectBackupFolder}>{tc("select")}</Button>
+				<div className="mt-2">
+					<h3>{tc("backup path")}</h3>
+					<Typography className={"whitespace-normal"}>
+						{tc("the backup path is the directory where vrc-get-gui will create backup zips of the projects.")}
+					</Typography>
+					<div className={"flex gap-1"}>
+						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
+						<Button className={"flex-none px-4"} onClick={selectProjectBackupFolder}>{tc("select")}</Button>
+					</div>
 				</div>
-				<label className={"flex items-center"}>
-					<h3>{tc("backup archive format:")}</h3>
-					<VGSelect value={tc("backup_format:" + settings.backup_format)} onChange={setBackupFormat}>
-						<VGOption value={"default"}>{tc("backup_format:default")}</VGOption>
-						<VGOption value={"zip-store"}>{tc("backup_format:zip-store")}</VGOption>
-						<VGOption value={"zip-fast"}>{tc("backup_format:zip-fast")}</VGOption>
-						<VGOption value={"zip-best"}>{tc("backup_format:zip-best")}</VGOption>
-					</VGSelect>
-				</label>
+				<div className="mt-2">
+					<label className={"flex items-center"}>
+						<h3>{tc("backup archive format:")}</h3>
+						<VGSelect value={tc("backup_format:" + settings.backup_format)} onChange={setBackupFormat}>
+							<VGOption value={"default"}>{tc("backup_format:default")}</VGOption>
+							<VGOption value={"zip-store"}>{tc("backup_format:zip-store")}</VGOption>
+							<VGOption value={"zip-fast"}>{tc("backup_format:zip-fast")}</VGOption>
+							<VGOption value={"zip-best"}>{tc("backup_format:zip-best")}</VGOption>
+						</VGSelect>
+					</label>
+				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<Typography className={"whitespace-normal"}>
