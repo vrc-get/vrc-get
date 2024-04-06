@@ -26,11 +26,11 @@ The format is based on [Keep a Changelog].
 - Favorite project and sort by name [`#717`](https://github.com/vrc-get/vrc-get/pull/717)
 
 ### Fixed
-- Unity 2022 Migration can be fails with Compilation Error [`#712`](https://github.com/vrc-get/vrc-get/pull/712)
+- Unity 2022 Migration can fail with Compilation Error [`#712`](https://github.com/vrc-get/vrc-get/pull/712)
 
 ## [0.1.0-beta.17] - 2024-04-01
 ### Changed
-- Update last modified on open unity `#697
+- Update last modified on open Unity [`#697`](https://github.com/vrc-get/vrc-get/pull/697)
 
 ### Fixed
 - Shown language name is not changed [`#694`](https://github.com/vrc-get/vrc-get/pull/694) 
@@ -48,23 +48,23 @@ The format is based on [Keep a Changelog].
 - World icon does not appear in the project list [`#625`](https://github.com/vrc-get/vrc-get/pull/625)
 - Remove project button on the manage project page is not working [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - Project name warning is too bright [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
-- Unable to touch any buttons if Apply Changes dialog is long [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Unable to touch any button if Apply Changes dialog is long [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - The package order is not deterministic [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
-- Path separator is not correct on windows [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- Path separator is not correct on Windows [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - Same project can be added multiple times [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - Create button on the creating project dialog is not disabled [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
-- We can control the web ui while file picker is open [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- We can control the web ui while file picker is opened [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - Unrecoverable error when trying to add a non-project folder [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - Prerelease packages can be installed if version range has prerelease while the option is off [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - Handling whitespaces in the path of the project is not correct [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
-- We could not add a unity manually [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
+- We could not add a Unity manually [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - Legacy packages of installed packages are shown [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - False positive conflicts with legacy packages [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 - Package order on the Apply Changes dialog is not deterministic [`#676`](https://github.com/vrc-get/vrc-get/pull/676)
 
 ## [0.1.0-beta.15] - 2024-03-16
 
-- Not working on windows [`#615`](https://github.com/vrc-get/vrc-get/pull/615)
+- Not working on Windows [`#615`](https://github.com/vrc-get/vrc-get/pull/615)
 
 ## [0.1.0-beta.14] - 2024-03-16
 
@@ -79,7 +79,7 @@ The format is based on [Keep a Changelog].
     - This is done because we separated file for vrc-get-gui config file, and we may have more in the future os
       to not dirty the folder, I moved the config file to `vrc-get` folder.
 
-- Bad behaviors with unity 2018 [`#605`](https://github.com/vrc-get/vrc-get/pull/605)
+- Bad behaviors with Unity 2018 [`#605`](https://github.com/vrc-get/vrc-get/pull/605)
 - Bad behavior when trying installing the installed version [`#608`](https://github.com/vrc-get/vrc-get/pull/608)
 - Some embedded / installed vpm package is not recognized by
   vrc-get [`#609`](https://github.com/vrc-get/vrc-get/pull/609)
