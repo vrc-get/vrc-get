@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- GUI Style improvement `#722`
+- GUI Style improvement `#722` `#721`
 
 ### Deprecated
 
