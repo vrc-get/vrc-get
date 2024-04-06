@@ -2,6 +2,7 @@ use arc_swap::ArcSwapOption;
 use log::{Log, Metadata, Record};
 use ringbuffer::{ConstGenericRingBuffer, RingBuffer};
 use serde::Serialize;
+use std::cmp::Reverse;
 use std::fmt::{Display, Formatter};
 use std::io::Write as _;
 use std::sync::{mpsc, Arc, Mutex};
@@ -131,7 +132,7 @@ fn remove_old_logs(log_folder: std::path::PathBuf) {
             }
         })
         .collect::<Vec<_>>();
-    log_files.sort_by_key(|(name, _)| name.clone());
+    log_files.sort_by_key(|(name, _)| Reverse(name.clone()));
 
     static MAX_LOGS: usize = 30;
 

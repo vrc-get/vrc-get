@@ -8,11 +8,10 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Remove old log files `#721`
+- Remove old log files `#721` `#729`
 
 ### Changed
-- GUI Style improvement `#722` `#721`
-- Changed Loading display on Project Page `#637`
+- GUI Style improvement `#722` `#721` `#720` `#730`
 
 ### Deprecated
 
