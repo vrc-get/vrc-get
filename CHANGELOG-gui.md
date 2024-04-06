@@ -8,9 +8,11 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Add repository with headers `#725`
 
 ### Changed
 - GUI Style improvement `#722` `#721`
+- Confirm when removing repository `#725`
 
 ### Deprecated
 
