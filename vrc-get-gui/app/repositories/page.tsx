@@ -278,7 +278,7 @@ function RepositoryRow(
 				</Typography>
 			</td>
 			<td className={`${cellClass} w-0`}>
-				<Tooltip content={"Remove Repository"}>
+				<Tooltip content={tc("remove repository")}>
 					<IconButton onClick={() => setRemoveDialogOpen(true)} variant={"text"}>
 						<XCircleIcon className={"size-5 text-red-700"}/>
 					</IconButton>
