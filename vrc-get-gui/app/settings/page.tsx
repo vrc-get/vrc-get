@@ -13,7 +13,7 @@ import {
 	environmentSetShowPrereleasePackages,
 	TauriEnvironmentSettings
 } from "@/lib/bindings";
-import {VStack} from "@/components/layout";
+import {HNavBar, VStack} from "@/components/layout";
 import React from "react";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
@@ -42,16 +42,13 @@ export default function Page() {
 	}
 
 	return (
-		<VStack className={"p-4 overflow-y-auto"}>
-			{body}
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("licenses")}</h2>
-				<Typography className={"whitespace-normal"}>
-					{tc("click <l>here</l> to view licenses of the projects used in vrc-get-gui", {}, {
-						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
-					})}
+		<VStack className={"p-4"}>
+			<HNavBar className={"flex-shrink-0"}>
+				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+					{tc("settings")}
 				</Typography>
-			</Card>
+			</HNavBar>
+			{body}
 		</VStack>
 	);
 }
@@ -193,10 +190,7 @@ function Settings(
 	};
 
 	return (
-		<>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h1>{tc("settings")}</h1>
-			</Card>
+		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2 className={"pb-2"}>{tc("unity hub")}</h2>
 				<div className={"flex gap-1"}>
@@ -274,7 +268,15 @@ function Settings(
 			{unityHubDialog}
 			{projectDefaultDialog}
 			{projectBackupDialog}
-		</>
+			<Card className={"flex-shrink-0 p-4"}>
+				<h2>{tc("licenses")}</h2>
+				<Typography className={"whitespace-normal"}>
+					{tc("click <l>here</l> to view licenses of the projects used in vrc-get-gui", {}, {
+						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
+					})}
+				</Typography>
+			</Card>
+		</main>
 	)
 }
 
