@@ -236,15 +236,15 @@ function Settings(
 					</div>
 				</div>
 				<div className="mt-2">
-				<label className={"flex items-center"}>
-					<h3>{tc("backup archive format:")}</h3>
-					<VGSelect value={tc("backup_format:" + settings.backup_format)} onChange={setBackupFormat}>
-						<VGOption value={"default"}>{tc("backup_format:default")}</VGOption>
-						<VGOption value={"zip-store"}>{tc("backup_format:zip-store")}</VGOption>
-						<VGOption value={"zip-fast"}>{tc("backup_format:zip-fast")}</VGOption>
-						<VGOption value={"zip-best"}>{tc("backup_format:zip-best")}</VGOption>
-					</VGSelect>
-				</label>
+					<label className={"flex items-center"}>
+						<h3>{tc("backup archive format:")}</h3>
+						<VGSelect value={tc("backup_format:" + settings.backup_format)} onChange={setBackupFormat}>
+							<VGOption value={"default"}>{tc("backup_format:default")}</VGOption>
+							<VGOption value={"zip-store"}>{tc("backup_format:zip-store")}</VGOption>
+							<VGOption value={"zip-fast"}>{tc("backup_format:zip-fast")}</VGOption>
+							<VGOption value={"zip-best"}>{tc("backup_format:zip-best")}</VGOption>
+						</VGSelect>
+					</label>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
