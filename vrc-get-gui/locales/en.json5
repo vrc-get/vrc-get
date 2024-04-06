@@ -21,7 +21,7 @@
     "error loading projects: {{msg}}": "Error loading projects: {{msg}}",
     "project migrated successfully": "Project migrated successfully",
     "project folder does not exist": "Project folder does not exist",
-    "legacy sdk2 migration tooltip": "Legacy SDK2 project cannot be migrated automatically. Please migrate to SDK3 manually first.",
+    "legacy sdk2 migration tooltip": "Legacy SDK2 project cannot be migrated automatically.<br>Please migrate to SDK3 manually first.",
     "migrate": "Migrate",
     "upm-vcc projects are not supported": "UPM-VCC projects are not supported",
     "manage": "Manage",
