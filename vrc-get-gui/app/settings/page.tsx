@@ -202,10 +202,10 @@ function Settings(
 				<div className={"flex gap-1"}>
 					{
 						settings.unity_hub
-							? <Input value={settings.unity_hub} disabled/>
-							: <Input value={"Unity Hub Not Found"} disabled className={"text-red-900"}/>
+							? <Input className="flex-auto" value={settings.unity_hub} disabled/>
+							: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-red-900"}/>
 					}
-					<Button className={"px-4"} onClick={selectUnityHub}>{tc("select")}</Button>
+					<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("select")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
@@ -225,8 +225,8 @@ function Settings(
 					{tc("the default project path is the directory where new projects are created in.")}
 				</Typography>
 				<div className={"flex gap-1"}>
-					<Input value={settings.default_project_path} disabled/>
-					<Button className={"px-4"} onClick={selectProjectDefaultFolder}>{tc("select")}</Button>
+					<Input className="flex-auto" value={settings.default_project_path} disabled/>
+					<Button className={"flex-none px-4"} onClick={selectProjectDefaultFolder}>{tc("select")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
@@ -236,8 +236,8 @@ function Settings(
 					{tc("the backup path is the directory where vrc-get-gui will create backup zips of the projects.")}
 				</Typography>
 				<div className={"flex gap-1"}>
-					<Input value={settings.project_backup_path} disabled/>
-					<Button className={"px-4"} onClick={selectProjectBackupFolder}>{tc("select")}</Button>
+					<Input className="flex-auto" value={settings.project_backup_path} disabled/>
+					<Button className={"flex-none px-4"} onClick={selectProjectBackupFolder}>{tc("select")}</Button>
 				</div>
 				<label className={"flex items-center"}>
 					<h3>{tc("backup archive format:")}</h3>
