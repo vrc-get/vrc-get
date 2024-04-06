@@ -1,8 +1,8 @@
-use std::cmp::Reverse;
 use arc_swap::ArcSwapOption;
 use log::{Log, Metadata, Record};
 use ringbuffer::{ConstGenericRingBuffer, RingBuffer};
 use serde::Serialize;
+use std::cmp::Reverse;
 use std::fmt::{Display, Formatter};
 use std::io::Write as _;
 use std::sync::{mpsc, Arc, Mutex};
