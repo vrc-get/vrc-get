@@ -443,7 +443,7 @@ function PageBody() {
 							{tc("manage packages")}
 						</Typography>
 
-						<Tooltip content="Reflesh Packages">
+						<Tooltip content={tc("refresh packages")}>
 							<IconButton variant={"text"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
 								{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 							</IconButton>
@@ -1258,12 +1258,12 @@ function PackageRow(
 				<div className="flex flex-row gap-2 max-w-min">
 					{
 						pkg.installed ? (
-							<Tooltip content={"Remove Package"}>
+							<Tooltip content={tc("remove package")}>
 								<IconButton variant={'text'} disabled={locked} onClick={remove}><MinusCircleIcon
 									className={"size-5 text-red-700"}/></IconButton>
 							</Tooltip>
 						) : (
-							<Tooltip content={"Add Package"}>
+							<Tooltip content={tc("add package")}>
 								<IconButton variant={'text'} disabled={locked && !!latestVersion}
 														onClick={installLatest}><PlusCircleIcon
 									className={"size-5 text-gray-800"}/></IconButton>
@@ -1337,7 +1337,7 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove, onBac
 
 	return (
 		<HNavBar className={className}>
-			<Tooltip content="Back to projects">
+			<Tooltip content={tc("back to projects")}>
 				<IconButton variant={"text"} onClick={() => history.back()}>
 					<ArrowLeftIcon className={"w-5 h-5"}/>
 				</IconButton>

@@ -438,7 +438,7 @@ function ProjectRow(
 	switch (project.project_type) {
 		case "LegacySdk2":
 			manageButton =
-				<Tooltip content={"Legacy SDK2 project cannot be migrated automatically. Please migrate to SDK3 first."}>
+				<Tooltip content={tc("legacy sdk2 migration tooltip")}>
 					<RowButton color={"light-green"} disabled>
 						{tc("migrate")}
 					</RowButton>
@@ -451,7 +451,7 @@ function ProjectRow(
 		case "UpmWorlds":
 		case "UpmAvatars":
 		case "UpmStarter":
-			manageButton = <Tooltip content={"UPM-VCC projects are not supported"}>
+			manageButton = <Tooltip content={tc("upm-vcc projects are not supported")}>
 				<RowButton color={"blue"} disabled>
 					{tc("manage")}
 				</RowButton>
@@ -638,7 +638,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 				{tc("projects")}
 			</Typography>
 
-			<Tooltip content="Reflesh list of projects">
+			<Tooltip content={tc("refresh list of projects")}>
 				<IconButton variant={"text"} onClick={() => refresh?.()} disabled={isLoading}>
 					{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 				</IconButton>
