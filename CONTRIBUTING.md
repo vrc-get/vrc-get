@@ -25,6 +25,8 @@ You can work on any OS system but this repository uses
 
 For Windows machines, you need to setup so your current user can create symbolic links. Refer to this documentation page <https://github.com/git-for-windows/git/wiki/Symbolic-Links>
 
-To setup your project, use the following command to clone with submodules and symbolic links enabled.
+To setup your project, use the following commands.
 
-`git clone --recurse-submodules -c core.symlinks=true https://github.com/vrc-get/vrc-get`
+```bash
+git clone --recurse-submodules https://github.com/vrc-get/vrc-get
+```
