@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - GUI Style improvement `#722` `#721`
+- Changed Loading display on Project Page `#637`
 
 ### Deprecated
 
