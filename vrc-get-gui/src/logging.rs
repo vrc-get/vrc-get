@@ -57,6 +57,94 @@ fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>, io: &Defaul
             logging_thread_main(receiver, log_file);
         })
         .expect("error while starting logging thread");
+
+    std::thread::Builder::new()
+        .name("remove-old-logs".to_string())
+        .spawn(move || remove_old_logs(log_folder))
+        .expect("error while starting remove-old-logs thread");
+}
+
+fn is_log_file_name(name: &str) -> bool {
+    // vrc-get-yyyy-mm-dd_hh-mm-ss.ssssss.log
+    if name.len() != "vrc-get-yyyy-mm-dd_hh-mm-ss.ssssss.log".len() {
+        return false;
+    }
+    let Some(name) = name.strip_prefix("vrc-get-") else {
+        return false;
+    };
+    let Some(name) = name.strip_suffix(".log") else {
+        return false;
+    };
+
+    //              00000000001111111111222222
+    //              01234567890123456789012345
+    // now, name is yyyy-mm-dd_hh-mm-ss.ssssss
+    let name = name.as_bytes();
+    let Ok(name) = <&[u8; 26]>::try_from(name) else {
+        return false;
+    };
+
+    if name[4] != b'-'
+        || name[7] != b'-'
+        || name[10] != b'_'
+        || name[13] != b'-'
+        || name[16] != b'-'
+        || name[19] != b'.'
+    {
+        return false;
+    }
+
+    name[0..4].iter().all(u8::is_ascii_digit)
+        && name[5..7].iter().all(u8::is_ascii_digit)
+        && name[8..10].iter().all(u8::is_ascii_digit)
+        && name[11..13].iter().all(u8::is_ascii_digit)
+        && name[14..16].iter().all(u8::is_ascii_digit)
+        && name[17..19].iter().all(u8::is_ascii_digit)
+        && name[20..26].iter().all(u8::is_ascii_digit)
+}
+
+fn remove_old_logs(log_folder: std::path::PathBuf) {
+    let read_dir = match std::fs::read_dir(&log_folder) {
+        Ok(read_dir) => read_dir,
+        Err(e) => {
+            log::error!("error while reading log folder: {}", e);
+            return;
+        }
+    };
+
+    let entries = match read_dir.collect::<Result<Vec<_>, _>>() {
+        Ok(entries) => entries,
+        Err(e) => {
+            log::error!("error while reading log folder: {}", e);
+            return;
+        }
+    };
+
+    let mut log_files = entries
+        .into_iter()
+        .filter_map(|entry| {
+            let name = entry.file_name().into_string().ok()?;
+            if is_log_file_name(&name) {
+                Some((name, entry))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    log_files.sort_by_key(|(name, _)| name.clone());
+
+    static MAX_LOGS: usize = 30;
+
+    for (name, _) in log_files.iter().take(MAX_LOGS) {
+        log::debug!("log to keep: {}", name);
+    }
+
+    for (name, _) in log_files.iter().skip(MAX_LOGS) {
+        match std::fs::remove_file(log_folder.join(name)) {
+            Ok(()) => log::debug!("removed old log: {}", name),
+            Err(e) => log::debug!("error while removing old log: {}: {}", name, e),
+        }
+    }
 }
 
 fn logging_thread_main(

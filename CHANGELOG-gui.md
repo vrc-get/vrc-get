@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Remove old log files `#721`
 
 ### Changed
 - GUI Style improvement `#722` `#721`
