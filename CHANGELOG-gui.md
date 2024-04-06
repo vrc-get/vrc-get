@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog].
 - Remove old log files `#721`
 
 ### Changed
-- GUI Style improvement `#722` `#721`
+- GUI Style improvement `#722` `#721` `#720`
 
 ### Deprecated
 
