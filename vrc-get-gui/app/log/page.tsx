@@ -46,7 +46,7 @@ export default function Page() {
 				</Typography>
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex flex-grow">
-				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre ${notoSansMono.className}`}>
+				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre ${notoSansMono.className} shadow-none`}>
 					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
 				</Card>
 			</main>

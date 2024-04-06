@@ -150,7 +150,7 @@ function PageBody() {
 				<Button onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("add repository")}</Button>
 			</HNavBar>
 			<main className="flex-shrink flex-grow overflow-hidden flex">
-				<Card className="w-full overflow-x-auto overflow-y-scroll">
+				<Card className="w-full overflow-x-auto overflow-y-scroll shadow-none">
 					<RepositoryTable
 						userRepos={result.data?.user_repositories || []}
 						hiddenUserRepos={hiddenUserRepos}

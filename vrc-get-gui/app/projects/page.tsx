@@ -101,7 +101,7 @@ export default function Page() {
 												 isLoading={loading}
 												 search={search} setSearch={setSearch}/>
 			<main className="flex-shrink overflow-hidden flex">
-				<Card className="w-full overflow-x-auto overflow-y-scroll">
+				<Card className="w-full overflow-x-auto overflow-y-scroll shadow-none">
 					{
 						result.status == "pending" ? tc("loading...") :
 							result.status == "error" ? tc("error loading projects: {{msg}}", {msg: result.error.message}) :
