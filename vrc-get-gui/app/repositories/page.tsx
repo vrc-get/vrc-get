@@ -135,7 +135,7 @@ function PageBody() {
 					setState({type: 'normal'});
 				}
 			}
-			dialogBody = <Confirming repo={state.repo} cancel={cancel} add={doAddRepository}/>;
+			dialogBody = <Confirming repo={state.repo} headers={state.headers} cancel={cancel} add={doAddRepository}/>;
 			break;
 		default:
 			const _exhaustiveCheck: never = state;
@@ -514,8 +514,10 @@ function Confirming(
 		repo,
 		cancel,
 		add,
+		headers,
 	}: {
 		repo: TauriRemoteRepositoryInfo,
+		headers: { [key: string]: string },
 		cancel: () => void,
 		add: () => void,
 	}
@@ -525,6 +527,18 @@ function Confirming(
 			<DialogBody className={"max-h-[50vh] overflow-y-auto font-normal"}>
 				<Typography className={"font-normal"}>{tc("name: <b>{{name}}</b>", {name: repo.display_name})}</Typography>
 				<Typography className={"font-normal"}>{tc("url: {{url}}", {url: repo.url})}</Typography>
+				{Object.keys(headers).length > 0 && (
+					<>
+						<Typography className={"font-normal"}>{tc("headers:")}</Typography>
+						<ul className={"list-disc pl-6"}>
+							{
+								Object.entries(headers).map(([key, value], idx) => (
+									<li key={idx}>{key}: {value}</li>
+								))
+							}
+						</ul>
+					</>
+				)}
 				<Typography className={"font-normal"}>{tc("packages:")}</Typography>
 				<ul className={"list-disc pl-6"}>
 					{
