@@ -129,7 +129,6 @@
     "url": "URL",
     "remove repository": "VPMリポジトリを削除",
     "do you want to remove the repository <b>{{name}}</b>?": "VPMリポジトリ <b>{{name}}</b> を削除しますか？",
-    "remove": "削除",
     "enter information about the repository": "リポジトリ情報を入力",
     "headers": "ヘッダー",
     "header name": "ヘッダー名",

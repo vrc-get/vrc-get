@@ -138,7 +138,6 @@
     "url": "URL",
     "remove repository": "Remove Repository",
     "do you want to remove the repository <b>{{name}}</b>?": "Do you want to remove the repository <b>{{name}}</b>?",
-    "remove": "Remove",
     "enter information about the repository": "Enter information about the repository",
     "headers": "Headers",
     "header name": "Header Name",
