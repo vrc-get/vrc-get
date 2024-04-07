@@ -393,7 +393,7 @@ function EnteringRepositoryInfo(
 				<Input type={"url"} label={"URL"} value={url} onChange={e => setUrl(e.target.value)}
 							 placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
 				<details>
-					<Typography as={"summary"} className={"font-bold"}>{tc("headers")}</Typography>
+					<summary className={"font-bold"}>{tc("headers")}</summary>
 					<div className={"w-full max-h-[50vh] overflow-y-auto"}>
 						<table className={"w-full"}>
 							<thead>
