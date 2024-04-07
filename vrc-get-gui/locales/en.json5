@@ -147,6 +147,7 @@
     "header name is invalid": "Header name is invalid",
     "header value is invalid": "Header value is invalid",
     "header name is duplicated": "Header name is duplicated",
+    "headers:": "Headers:",
     "downloading the repository": "Downloading the repository...",
     "the repository is already added.": "The repository is already added.",
     "ok": "OK",

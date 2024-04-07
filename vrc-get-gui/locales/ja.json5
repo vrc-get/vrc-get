@@ -138,6 +138,7 @@
     "header name is invalid": "ヘッダー名が不正です。",
     "header value is invalid": "ヘッダーの値が不正です。",
     "header name is duplicated": "ヘッダー名が重複しています。",
+    "headers:": "ヘッダー:",
     "downloading the repository": "リポジトリ情報をダウンロード中...",
     "the repository is already added.": "このVPMリポジトリは既に登録されています。",
     "ok": "OK",
