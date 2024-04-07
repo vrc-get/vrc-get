@@ -2,6 +2,6 @@
 
 The open-source VPM client library in Rust for vrc-get.
 
-Since VPM itself is not stable, this library is also not stable.
+Since VPM itself is not stable, this library is not stable either.
 
-This library is pre-development state.
+This library is under pre-development.

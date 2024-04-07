@@ -7,7 +7,7 @@ This package is a part of the [vrc-get] project and based on [simplified fork of
 ## Building 
 
 Since this module uses [NativeAOT], 
-You have to install the .NET 8.0 SDK and requirements for NativeAOT to build this module.
+you have to install .NET 8.0 SDK and requirements for NativeAOT to build this module.
 
 [LiteDB]: https://github.com/mbdavid/LiteDB
 [VCC 2.2.0]: https://vcc.docs.vrchat.com/news/release-2.2.0
