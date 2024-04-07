@@ -11,10 +11,10 @@ Each of them is defined in the project folder.
 
 ## Projects
 
-- [vrc-get CLI](vrc-get\README.md)
-- [vrc-get LiteDB](vrc-get-litedb\README.md)
-- [vrc-get GUI](vrc-get-gui\README.md)
-- [vrc-get VPM](vrc-get-vpm\README.md)
+- [vrc-get CLI](vrc-get/README.md)
+- [vrc-get LiteDB](vrc-get-litedb/README.md)
+- [vrc-get GUI](vrc-get-gui/README.md)
+- [vrc-get VPM](vrc-get-vpm/README.md)
 
 ## Configuration requirements
 
