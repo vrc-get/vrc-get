@@ -8,21 +8,28 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Remove old log files `#721` `#729`
-- Add repository with headers `#725`
 
 ### Changed
-- GUI Style improvement `#722` `#721` `#720` `#730` `#731` `#739`
-- Confirm when removing repository `#725`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Last Modified row is not localized `#723`
 
 ### Security
+
+## [0.1.0-beta.19] - 2024-04-07
+### Added
+- Remove old log files [`#721`](https://github.com/vrc-get/vrc-get/pull/721) [`#729`](https://github.com/vrc-get/vrc-get/pull/729)
+- Add repository with headers [`#725`](https://github.com/vrc-get/vrc-get/pull/725)
+
+### Changed
+- GUI Style improvement [`#722`](https://github.com/vrc-get/vrc-get/pull/722) [`#721`](https://github.com/vrc-get/vrc-get/pull/721) [`#720`](https://github.com/vrc-get/vrc-get/pull/720) [`#730`](https://github.com/vrc-get/vrc-get/pull/730) [`#731`](https://github.com/vrc-get/vrc-get/pull/731) [`#739`](https://github.com/vrc-get/vrc-get/pull/739)
+- Confirm when removing repository [`#725`](https://github.com/vrc-get/vrc-get/pull/725)
+
+### Fixed
+- Last Modified row is not localized [`#723`](https://github.com/vrc-get/vrc-get/pull/723)
 
 ## [0.1.0-beta.18] - 2024-04-05
 ### Added
@@ -182,7 +189,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.18...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.19...HEAD
+[0.1.0-beta.19]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.18...gui-v0.1.0-beta.19
 [0.1.0-beta.18]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.17...gui-v0.1.0-beta.18
 [0.1.0-beta.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.16...gui-v0.1.0-beta.17
 [0.1.0-beta.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.15...gui-v0.1.0-beta.16
