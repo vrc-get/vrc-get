@@ -1,5 +1,5 @@
-use crate::io;
 use crate::io::EnvironmentIo;
+use crate::package_manifest::LooseManifest;
 use crate::utils::try_load_json;
 use crate::{PackageCollection, PackageInfo, PackageManifest, VersionSelector};
 use std::path::{Path, PathBuf};
@@ -20,17 +20,18 @@ impl UserPackageCollection {
         self.user_packages.clear();
     }
 
-    pub(crate) async fn try_add_package(
-        &mut self,
-        io: &impl EnvironmentIo,
-        folder: &Path,
-    ) -> io::Result<()> {
-        if let Some(package_json) =
-            try_load_json::<PackageManifest>(io, &folder.join("package.json")).await?
-        {
-            self.user_packages.push((folder.to_owned(), package_json));
+    pub(crate) async fn try_add_package(&mut self, io: &impl EnvironmentIo, folder: &Path) {
+        match try_load_json::<LooseManifest>(io, &folder.join("package.json")).await {
+            Ok(Some(LooseManifest(package_json))) => {
+                self.user_packages.push((folder.to_owned(), package_json));
+            }
+            Ok(None) => {
+                log::warn!("package.json not found in {}", folder.display());
+            }
+            Err(e) => {
+                log::warn!("Failed to load package.json in {}: {}", folder.display(), e);
+            }
         }
-        Ok(())
     }
 }
 
