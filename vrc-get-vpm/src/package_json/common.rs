@@ -75,10 +75,13 @@ macro_rules! package_json_struct {
         $vis:vis struct $name: ident {
             $optional_vis:vis optional$(: #[$optional: meta])?;
             $required_vis:vis required$(: #[$required: meta])?;
+            $vrc_get_vis:vis vrc_get$(: #[$vrc_get: meta])?;
+        }
+        $(#[$vr_get_meta:meta])*
+        $vrc_get_struct_vis:vis struct $vrc_get_meta_name:ident {
+            $vrc_get_optional_vis:vis optional$(: #[$vrc_get_optional: meta])?;
         }
     } => {
-        #[derive(Deserialize, Debug, Clone)]
-        #[serde(rename_all = "camelCase")]
         $(#[$meta])*
         $vis struct $name {
             $(#[$required])?
@@ -112,20 +115,18 @@ macro_rules! package_json_struct {
             $(#[$optional])?
             $optional_vis changelog_url: Option<Url>,
 
-            #[serde(rename = "vrc-get")]
-            $(#[$optional])?
-            $optional_vis vrc_get: VrcGetMeta,
+            $(#[$vrc_get])?
+            $vrc_get_vis vrc_get: $vrc_get_meta_name,
         }
 
         // Note: please keep in sync with package_manifest
-        #[derive(Deserialize, Debug, Clone, Default)]
-        #[serde(rename_all = "camelCase")]
-        pub(crate) struct VrcGetMeta {
-            $(#[$optional])?
-            pub(super) yanked: YankState,
+        $(#[$vr_get_meta])*
+        $vrc_get_struct_vis struct $vrc_get_meta_name {
+            $(#[$vrc_get_optional])?
+            $vrc_get_optional_vis yanked: YankState,
             /// aliases for `vrc-get i --name <name> <version>` command.
-            $(#[$optional])?
-            pub(super) aliases: Vec<Box<str>>,
+            $(#[$vrc_get_optional])?
+            $vrc_get_optional_vis aliases: Vec<Box<str>>,
         }
     };
 }

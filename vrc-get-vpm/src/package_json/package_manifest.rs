@@ -1,15 +1,25 @@
+use std::collections::HashMap;
+
+use indexmap::IndexMap;
+use serde::Deserialize;
+use url::Url;
+
 use crate::package_json::yank_state::YankState;
 use crate::version::{Version, VersionRange};
 use crate::PartialUnityVersion;
-use indexmap::IndexMap;
-use serde::Deserialize;
-use std::collections::HashMap;
-use url::Url;
 
 package_json_struct! {
+    #[derive(Deserialize, Debug, Clone)]
+    #[serde(rename_all = "camelCase")]
     pub struct PackageManifest {
         optional: #[serde(default)];
         required;
+        vrc_get: #[serde(rename = "vrc-get")];
+    }
+    #[derive(Deserialize, Debug, Clone, Default)]
+    #[serde(rename_all = "camelCase")]
+    pub struct VrcGetMeta {
+        optional: #[serde(default)];
     }
 }
 

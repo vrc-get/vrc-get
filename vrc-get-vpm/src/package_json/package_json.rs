@@ -48,9 +48,17 @@ mod inner {
     }
 
     package_json_struct! {
+        #[derive(Deserialize, Debug, Clone)]
+        #[serde(rename_all = "camelCase")]
         pub(super) struct PackageJson {
             pub(super) optional: #[serde(default, deserialize_with = "default_if_err")];
             pub(super) required;
+            pub(super) vrc_get: #[serde(rename = "vrc-get")];
+        }
+        #[derive(Deserialize, Debug, Clone, Default)]
+        #[serde(rename_all = "camelCase")]
+        pub(super) struct VrcGetMeta {
+            pub(super) optional: #[serde(default, deserialize_with = "default_if_err")];
         }
     }
 }
