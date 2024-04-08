@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Relax validation for `package.json` for local user packages `#750`
 
 ### Deprecated
 
