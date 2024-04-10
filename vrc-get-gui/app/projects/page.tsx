@@ -104,7 +104,8 @@ export default function Page() {
 				<Card className="w-full overflow-x-auto overflow-y-auto shadow-none">
 					{
 						result.status == "pending" ? <Card className={"p-4"}>{tc("loading...")}</Card> :
-							result.status == "error" ? <Card className={"p-4"}>{tc("error loading projects: {{msg}}", {msg: result.error.message})}</Card> :
+							result.status == "error" ?
+								<Card className={"p-4"}>{tc("error loading projects: {{msg}}", {msg: result.error.message})}</Card> :
 								<ProjectsTable
 									projects={result.data}
 									search={search}
@@ -521,7 +522,8 @@ function ProjectRow(
 									checked={project.favorite}
 									onChange={onToggleFavorite}
 									disabled={removed || loading}
-									className="hover:before:content-none"/>
+									icon={<StarIcon className={"size-3"}/>}
+									className="hover:before:content-none before:transition-none border-none"/>
 			</td>
 			<td className={cellClass}>
 				<MayTooltip content={tc("project folder does not exist")}>
