@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Bulk uppgrade, install, and remove packages `#752`
 
 ### Changed
 - Relax validation for `package.json` for local user packages `#750`
