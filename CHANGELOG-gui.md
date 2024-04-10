@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
 ### Changed
 - Relax validation for `package.json` for local user packages `#750`
 - Use star instead of check on the favorite row in the project list `#755`
+- Moved the `Upgrade All` button to front `#757`
 
 ### Deprecated
 
