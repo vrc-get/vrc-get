@@ -31,3 +31,7 @@
 
 # template
 /templates/**
+
+# icons
+/app-icon.afdesign
+/app-icon.png
