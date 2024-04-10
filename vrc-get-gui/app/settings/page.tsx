@@ -19,6 +19,7 @@ import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
 import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
+import {emit} from "@tauri-apps/api/event";
 
 export default function Page() {
 	const result = useQuery({
@@ -272,6 +273,12 @@ function Settings(
 			{unityHubDialog}
 			{projectDefaultDialog}
 			{projectBackupDialog}
+			<Card className={"flex-shrink-0 p-4"}>
+				<h2>{tc("check for updates")}</h2>
+				<div>
+					<Button onClick={() => emit("tauri://update")}>{tc("check for updates")}</Button>
+				</div>
+			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("licenses")}</h2>
 				<Typography className={"whitespace-normal"}>
