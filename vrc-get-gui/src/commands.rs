@@ -78,9 +78,10 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         environment_create_project,
         project_details,
         project_install_package,
+        project_install_multiple_package,
         project_upgrade_multiple_package,
         project_resolve,
-        project_remove_package,
+        project_remove_packages,
         project_apply_pending_changes,
         project_before_migrate_project_to_2022,
         project_migrate_project_to_2022,
@@ -128,9 +129,10 @@ pub(crate) fn export_ts() {
             environment_create_project,
             project_details,
             project_install_package,
+            project_install_multiple_package,
             project_upgrade_multiple_package,
             project_resolve,
-            project_remove_package,
+            project_remove_packages,
             project_apply_pending_changes,
             project_before_migrate_project_to_2022,
             project_migrate_project_to_2022,
@@ -1992,6 +1994,41 @@ async fn project_install_package(
 
 #[tauri::command]
 #[specta::specta]
+async fn project_install_multiple_package(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    env_version: u32,
+    package_indices: Vec<usize>,
+) -> Result<TauriPendingProjectChanges, RustError> {
+    changes!(state, env_version, |environment, packages| {
+        let installing_packages = package_indices
+            .iter()
+            .map(|index| packages[*index])
+            .collect::<Vec<_>>();
+
+        let unity_project = load_project(project_path).await?;
+
+        let operation = AddPackageOperation::InstallToDependencies;
+
+        let allow_prerelease = environment.show_prerelease_packages();
+
+        match unity_project
+            .add_package_request(
+                environment,
+                &installing_packages,
+                operation,
+                allow_prerelease,
+            )
+            .await
+        {
+            Ok(request) => request,
+            Err(e) => return Err(RustError::unrecoverable(e)),
+        }
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
 async fn project_upgrade_multiple_package(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
@@ -2043,15 +2080,17 @@ async fn project_resolve(
 
 #[tauri::command]
 #[specta::specta]
-async fn project_remove_package(
+async fn project_remove_packages(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
-    name: String,
+    names: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     changes!(state, |_, _| {
         let unity_project = load_project(project_path).await?;
 
-        match unity_project.remove_request(&[&name]).await {
+        let names = names.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+
+        match unity_project.remove_request(&names).await {
             Ok(request) => request,
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
