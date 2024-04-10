@@ -20,7 +20,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {Fragment, Suspense, useMemo, useState} from "react";
+import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
@@ -38,11 +38,11 @@ import {
 	projectBeforeMigrateProjectTo2022,
 	projectDetails,
 	projectFinalizeMigrationWithUnity2022,
+	projectInstallMultiplePackage,
 	projectInstallPackage,
 	projectMigrateProjectTo2022,
 	projectRemovePackages,
 	projectResolve,
-	projectInstallMultiplePackage,
 	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
 	TauriPackage,
@@ -144,14 +144,17 @@ function PageBody() {
 			{
 				queryKey: ["environmentRepositoriesInfo"],
 				queryFn: environmentRepositoriesInfo,
+				refetchOnWindowFocus: false,
 			},
 			{
 				queryKey: ["environmentPackages"],
 				queryFn: environmentPackages,
+				refetchOnWindowFocus: false,
 			},
 			{
 				queryKey: ["projectDetails", projectPath],
 				queryFn: () => projectDetails(projectPath),
+				refetchOnWindowFocus: false,
 			},
 		]
 	});
@@ -169,7 +172,11 @@ function PageBody() {
 		const definedRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories : [];
 		const showPrereleasePackages = repositoriesInfo.status == 'success' ? repositoriesInfo.data.show_prerelease_packages : false;
 		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages, definedRepositories, showPrereleasePackages);
-	}, [repositoriesInfo, packagesResult, detailsResult]);
+	}, [
+		repositoriesInfo.status, repositoriesInfo.data,
+		packagesResult.status, packagesResult.data,
+		detailsResult.status, detailsResult.data,
+	]);
 
 	const packageRows = useMemo(() => {
 		if (search === "") return packageRowsData;
@@ -223,7 +230,7 @@ function PageBody() {
 		})
 	}
 
-	const onInstallRequested = async (pkg: TauriPackage) => {
+	const onInstallRequested = useCallback(async (pkg: TauriPackage) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("install", pkg.name, pkg.version);
@@ -234,7 +241,7 @@ function PageBody() {
 			setInstallStatus({status: "normal"});
 			toastThrownError(e);
 		}
-	}
+	}, [projectPath]);
 
 	const onUpgradeAllRequest = async () => {
 		try {
@@ -273,7 +280,7 @@ function PageBody() {
 		}
 	};
 
-	const onRemoveRequested = async (pkgId: string) => {
+	const onRemoveRequested = useCallback(async (pkgId: string) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("remove", pkgId);
@@ -284,7 +291,7 @@ function PageBody() {
 			setInstallStatus({status: "normal"});
 			toastThrownError(e);
 		}
-	}
+	}, [projectPath]);
 
 	const onUpgradeBulkRequested = async () => {
 		try {
@@ -315,6 +322,7 @@ function PageBody() {
 			toastThrownError(e);
 		}
 	};
+
 	const onInstallBulkRequested = async () => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
@@ -356,6 +364,20 @@ function PageBody() {
 			toastThrownError(e);
 		}
 	};
+
+	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
+		const possibleUpdate: PackageBulkUpdateMode | 'nothing' = bulkUpdateModeForPackage(row);
+
+		if (possibleUpdate == 'nothing') return;
+		setBulkUpdatePackageIds(prev => {
+			if (prev.some(([id, _]) => id === row.id)) return prev;
+			return [...prev, [row.id, possibleUpdate]];
+		});
+	}, []);
+
+	const removeBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
+		setBulkUpdatePackageIds(prev => prev.filter(([id, _]) => id !== row.id));
+	}, [setBulkUpdatePackageIds]);
 
 	const applyChanges = async (
 		{
@@ -642,19 +664,11 @@ function PageBody() {
 														locked={isLoading}
 														onInstallRequested={onInstallRequested}
 														onRemoveRequested={onRemoveRequested}
-														bulkUpdateMode={bulkUpdateMode}
 														bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
-														addBulkUpdatePackage={(mode) => {
-															setBulkUpdatePackageIds(prev => {
-																if (prev.some(([id, _]) => id === row.id)) return prev;
-																return [...prev, [row.id, mode]];
-															});
-														}}
-														removeBulkUpdatePackage={() => {
-															setBulkUpdatePackageIds(prev => prev.filter(([id, _]) => id !== row.id));
-														}}
-								/>
-							))}
+														bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
+														addBulkUpdatePackage={addBulkUpdatePackage}
+														removeBulkUpdatePackage={removeBulkUpdatePackage}
+								/>))}
 							</tbody>
 						</table>
 					</Card>
@@ -1334,14 +1348,14 @@ function combinePackagesAndProjectDetails(
 	return asArray;
 }
 
-function PackageRow(
+const PackageRow = memo(function PackageRow(
 	{
 		pkg,
 		locked,
 		onInstallRequested,
 		onRemoveRequested,
-		bulkUpdateMode,
 		bulkUpdateSelected,
+		bulkUpdateAvailable,
 		addBulkUpdatePackage,
 		removeBulkUpdatePackage,
 	}: {
@@ -1349,24 +1363,21 @@ function PackageRow(
 		locked: boolean;
 		onInstallRequested: (pkg: TauriPackage) => void;
 		onRemoveRequested: (pkgId: string) => void;
-		bulkUpdateMode: BulkUpdateMode;
 		bulkUpdateSelected: boolean;
-		addBulkUpdatePackage: (mode: PackageBulkUpdateMode) => void;
-		removeBulkUpdatePackage: () => void;
+		bulkUpdateAvailable: boolean;
+		addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
+		removeBulkUpdatePackage: (pkg: PackageRowInfo) => void;
 	}) {
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
-	const incompatibleNames = [...pkg.unityIncompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
-
-	const onChange = (version: string) => {
+	useCallback((version: string) => {
 		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
 		onInstallRequested(pkgVersion);
-	}
-
+	}, [onInstallRequested, pkg.installed]);
 	const installLatest = () => {
 		if (!latestVersion) return;
 		const latest = pkg.unityCompatible.get(latestVersion) ?? pkg.unityIncompatible.get(latestVersion);
@@ -1378,28 +1389,11 @@ function PackageRow(
 		onRemoveRequested(pkg.id);
 	};
 
-	let possibleUpdate: PackageBulkUpdateMode | 'nothing';
-	if (pkg.installed) {
-		if (pkg.latest.status === "upgradable") {
-			possibleUpdate = "upgradeOrRemove";
-		} else {
-			possibleUpdate = "remove";
-		}
-	} else {
-		if (pkg.latest.status !== "none") {
-			possibleUpdate = "install";
-		} else {
-			possibleUpdate = "nothing";
-		}
-	}
-
-	const bulkUpdateAvailable = canBulkUpdate(bulkUpdateMode, possibleUpdate);
-
 	const onClickBulkUpdate = () => {
 		if (bulkUpdateSelected) {
-			removeBulkUpdatePackage();
-		} else if (possibleUpdate != "nothing") {
-			addBulkUpdatePackage(possibleUpdate);
+			removeBulkUpdatePackage(pkg);
+		} else {
+			addBulkUpdatePackage(pkg);
 		}
 	}
 
@@ -1423,17 +1417,7 @@ function PackageRow(
 				</div>
 			</td>
 			<td className={noGrowCellClass}>
-				{/* TODO: show incompatible versions */}
-				<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
-									className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
-									onChange={onChange}
-									disabled={locked}
-				>
-					{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-					{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
-					{incompatibleNames.length > 0 && <Typography className={"text-sm"}>{tc("incompatibles")}</Typography>}
-					{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-				</VGSelect>
+				<PackageVersionSelector pkg={pkg} onInstallRequested={onInstallRequested} locked={locked}/>
 			</td>
 			<td className={`${cellClass} min-w-32 w-32`}>
 				<PackageLatestInfo info={pkg.latest} locked={locked} onInstallRequested={onInstallRequested}/>
@@ -1485,7 +1469,58 @@ function PackageRow(
 			</td>
 		</tr>
 	);
+});
+
+function bulkUpdateModeForPackage(pkg: PackageRowInfo): PackageBulkUpdateMode | 'nothing' {
+	if (pkg.installed) {
+		if (pkg.latest.status === "upgradable") {
+			return "upgradeOrRemove";
+		} else {
+			return "remove";
+		}
+	} else {
+		if (pkg.latest.status !== "none") {
+			return "install";
+		} else {
+			return "nothing";
+		}
+	}
 }
+
+const PackageVersionSelector = memo(function PackageVersionSelector(
+	{
+		pkg,
+		onInstallRequested,
+		locked,
+	}: {
+		pkg: PackageRowInfo;
+		onInstallRequested: (pkg: TauriPackage) => void;
+		locked: boolean;
+	}
+) {
+	const onChange = useCallback((version: string) => {
+		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
+		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
+		if (!pkgVersion) return;
+		onInstallRequested(pkgVersion);
+	}, [onInstallRequested, pkg.installed]);
+
+	const versionNames = [...pkg.unityCompatible.keys()];
+	const incompatibleNames = [...pkg.unityIncompatible.keys()];
+
+	return (
+		<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
+							className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
+							onChange={onChange}
+							disabled={locked}
+		>
+			{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+			{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
+			{incompatibleNames.length > 0 && <Typography className={"text-sm"}>{tc("incompatibles")}</Typography>}
+			{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+		</VGSelect>
+	);
+})
 
 function canBulkUpdate(bulkUpdateMode: BulkUpdateMode, possibleUpdate: PackageBulkUpdateMode | 'nothing'): boolean {
 	if (possibleUpdate === "nothing") return false;
