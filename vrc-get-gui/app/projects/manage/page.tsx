@@ -451,6 +451,14 @@ function PageBody() {
 
 						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
+						{packageRows.some(row => row.latest.status === "upgradable") &&
+							<Button className={"flex-shrink-0"}
+											onClick={onUpgradeAllRequest}
+											disabled={isLoading}
+											color={"green"}>
+								{tc("upgrade all")}
+							</Button>}
+
 						<Menu>
 							<MenuHandler>
 								<IconButton variant={"text"}>
@@ -458,11 +466,6 @@ function PageBody() {
 								</IconButton>
 							</MenuHandler>
 							<MenuList>
-								{packageRows.some(row => row.latest.status === "upgradable") &&
-									<MenuItem className={"p-3 text-green-700 focus:text-green-700"}
-														onClick={onUpgradeAllRequest}
-														disabled={isLoading}>
-										{tc("upgrade all")}</MenuItem>}
 								<MenuItem className={"p-3"}
 													onClick={onResolveRequest}
 													disabled={isLoading}>
