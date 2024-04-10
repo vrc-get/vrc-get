@@ -7,7 +7,7 @@ use futures::prelude::*;
 use std::path::{Component, Path};
 
 pub(crate) async fn extract_zip(
-    mut zip_file: impl AsyncRead + AsyncSeek + Unpin,
+    mut zip_file: impl AsyncBufRead + AsyncSeek + Unpin,
     io: &impl ProjectIo,
     dest_folder: &Path,
 ) -> io::Result<()> {

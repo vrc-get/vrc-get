@@ -17,7 +17,7 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 async-stream = "0.3.5"
-async_zip = { version = "0.0.16", features = ["deflate", "tokio", "deflate64"] }
+async_zip = { version = "0.0.17", features = ["deflate", "tokio", "deflate64"] }
 either = "1.10.0"
 futures = "0.3.30"
 hex = "0.4.3"
