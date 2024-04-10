@@ -9,7 +9,7 @@ export async function openUnity(projectPath: string) {
 			toastError(i18next.t("we couldn't detect suitable unity installations"));
 			break;
 		case "NoMatchingUnityFound":
-			toastError(i18next.t("no matching unity version found. please install or add a unity version in the vrc-get-gui settings"));
+			toastError(i18next.t("no matching unity version found. please install or add a unity version in the alcom settings"));
 			break;
 		case "Success":
 			toastNormal(i18next.t("opening unity..."));

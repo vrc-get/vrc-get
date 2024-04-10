@@ -5,7 +5,7 @@ devPath = "http://localhost:3000"
 distDir = "out"
 
 [package]
-productName = "vrc-get-gui"
+productName = "ALCOM"
 
 [tauri]
 
@@ -31,7 +31,7 @@ targets = [
 
     "updater", # auto update
 ]
-longDescription = "vrc-get-gui is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
+longDescription = "ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
 shortDescription = "an alternative VCC"
 identifier = "com.anataw12.vrc-get"
 category = "DeveloperTool"
