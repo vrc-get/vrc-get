@@ -155,6 +155,7 @@
     "url: {{url}}": "URL: {{url}}",
     "packages:": "Packages:",
     "error loading settings": "Error loading settings",
+    "check for updates": "Check for Updates",
     "licenses": "Licenses",
     "click <l>here</l> to view licenses of the projects used in vrc-get-gui": "Click <l>here</l> to view licenses of the projects used in vrc-get-gui",
     "selected file is invalid as a unity hub": "Selected file is invalid as a Unity Hub",
