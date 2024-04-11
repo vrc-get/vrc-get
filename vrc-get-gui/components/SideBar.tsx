@@ -8,6 +8,7 @@ import {useQuery} from "@tanstack/react-query";
 import {utilGetVersion} from "@/lib/bindings";
 import {useTranslation} from "react-i18next";
 import {useRouter} from "next/navigation";
+import {toastNormal} from "@/lib/toast";
 
 export function SideBar({className}: { className?: string }) {
 	"use client"
@@ -25,6 +26,13 @@ export function SideBar({className}: { className?: string }) {
 
 	const currentVersion = currentVersionResult.status == "success" ? currentVersionResult.data : "Loading...";
 
+	const copyVersionName = () => {
+		if (currentVersionResult.status == "success") {
+			navigator.clipboard.writeText(currentVersionResult.data);
+			toastNormal(t("copied version name"));
+		}
+	};
+
 	return (
 		<Card
 			className={`${className} w-auto max-w-[20rem] p-2 shadow-xl shadow-blue-gray-900/5 ml-4 my-4 shrink-0`}>
@@ -34,7 +42,7 @@ export function SideBar({className}: { className?: string }) {
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
 				<div className={'flex-grow'}/>
-				<ListItem className={"text-sm"}>v{currentVersion}</ListItem>
+				<ListItem className={"text-sm"} onClick={copyVersionName}>v{currentVersion}</ListItem>
 			</List>
 		</Card>
 	);
