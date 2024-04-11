@@ -729,15 +729,15 @@ function BulkUpdateCard(
 
 	return (
 		<Card className={"flex-shrink-0 p-2 flex flex-row gap-2 bg-blue-gray-50 flex-wrap"}>
-			<Button disabled={disabled || !canInstall} onClick={bulkInstallAll}>
+			{canInstall && <Button disabled={disabled} onClick={bulkInstallAll}>
 				{tc("install selected")}
-			</Button>
-			<Button disabled={disabled || !canUpgrade} onClick={bulkUpgradeAll} color={"green"}>
+			</Button>}
+			{canUpgrade && <Button disabled={disabled} onClick={bulkUpgradeAll} color={"green"}>
 				{tc("upgrade selected")}
-			</Button>
-			<Button disabled={disabled || !canRemove} onClick={bulkRemoveAll} color={"red"}>
+			</Button>}
+			{canRemove && <Button disabled={disabled} onClick={bulkRemoveAll} color={"red"}>
 				{tc("uninstall selected")}
-			</Button>
+			</Button>}
 			<Button disabled={disabled} onClick={cancel}>
 				{tc("clear selection")}
 			</Button>
