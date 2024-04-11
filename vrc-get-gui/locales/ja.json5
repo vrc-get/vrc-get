@@ -147,6 +147,7 @@
     "url: {{url}}": "URL: {{url}}",
     "packages:": "パッケージ:",
     "error loading settings": "設定の読み込みに失敗しました。",
+    "check for updates": "アップデートを確認",
     "licenses": "ライセンス",
     "click <l>here</l> to view licenses of the projects used in vrc-get-gui": "vrc-get-guiで利用しているプロジェクトのライセンスを表示するには、<l>ここをクリック</l>",
     "selected file is invalid as a unity hub": "選択されたファイルはUnity Hubではありません。",

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Check for update button on the settings page `#762`
 - Click version name to copy version name `#761`
 
 ### Changed
