@@ -14,7 +14,7 @@ export function useFilePickerFunction<A extends unknown[], R>(
 		} finally {
 			setIsPicking(false);
 		}
-	}, [setIsPicking]);
+	}, [setIsPicking, f]);
 
 	let dialog = <Dialog open={isPicking} handler={nop}>
 		<DialogHeader>{tc("selecting file or folder")}</DialogHeader>

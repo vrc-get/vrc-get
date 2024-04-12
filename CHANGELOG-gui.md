@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 - Check for update button on the settings page `#762`
 - Click version name to copy version name `#761`
+- Bulk uppgrade, install, and remove packages `#752`
 
 ### Changed
 - Relax validation for `package.json` for local user packages `#750`

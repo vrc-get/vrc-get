@@ -20,7 +20,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {Fragment, Suspense, useMemo, useState} from "react";
+import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
@@ -38,13 +38,15 @@ import {
 	projectBeforeMigrateProjectTo2022,
 	projectDetails,
 	projectFinalizeMigrationWithUnity2022,
+	projectInstallMultiplePackage,
 	projectInstallPackage,
 	projectMigrateProjectTo2022,
-	projectRemovePackage,
+	projectRemovePackages,
 	projectResolve,
 	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
-	TauriPackage, TauriPackageChange,
+	TauriPackage,
+	TauriPackageChange,
 	TauriPendingProjectChanges,
 	TauriProjectDetails,
 	TauriUserRepository,
@@ -103,6 +105,27 @@ type InstallStatus = {
 	lines: [number, string][];
 }
 
+type BulkUpdateMode = 'install' | 'upgradeOrRemove' | 'remove' | 'upgrade' | 'any';
+type PackageBulkUpdateMode = 'install' | 'upgradeOrRemove' | 'remove';
+
+function updateModeFromPackageModes(map: PackageBulkUpdateMode[]): BulkUpdateMode {
+	const asSet = new Set(map);
+
+	if (asSet.size == 0) {
+		return 'any';
+	}
+	if (asSet.size == 1) {
+		return [...asSet][0];
+	}
+	if (asSet.size == 2) {
+		if (asSet.has('remove') && asSet.has('upgradeOrRemove')) {
+			return 'remove';
+		}
+	}
+
+	return "any";
+}
+
 function PageBody() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
@@ -113,25 +136,33 @@ function PageBody() {
 	const projectPath = searchParams.get("projectPath") ?? "";
 	const projectName = nameFromPath(projectPath);
 
+	// repositoriesInfo: list of repositories and their visibility
+	// packagesResult: list of packages
+	// detailsResult: project details including installed packages
 	const [repositoriesInfo, packagesResult, detailsResult] = useQueries({
 		queries: [
 			{
 				queryKey: ["environmentRepositoriesInfo"],
 				queryFn: environmentRepositoriesInfo,
+				refetchOnWindowFocus: false,
 			},
 			{
 				queryKey: ["environmentPackages"],
 				queryFn: environmentPackages,
+				refetchOnWindowFocus: false,
 			},
 			{
 				queryKey: ["projectDetails", projectPath],
 				queryFn: () => projectDetails(projectPath),
+				refetchOnWindowFocus: false,
 			},
 		]
 	});
 
 	const [installStatus, setInstallStatus] = useState<InstallStatus>({status: "normal"});
 	const [search, setSearch] = useState("");
+	const [bulkUpdatePackageIds, setBulkUpdatePackageIds] = useState<[id: string, mode: PackageBulkUpdateMode][]>([]);
+	const bulkUpdateMode = useMemo(() => updateModeFromPackageModes(bulkUpdatePackageIds.map(([_, mode]) => mode)), [bulkUpdatePackageIds]);
 
 	const packageRowsData = useMemo(() => {
 		const packages = packagesResult.status == 'success' ? packagesResult.data : [];
@@ -141,7 +172,11 @@ function PageBody() {
 		const definedRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories : [];
 		const showPrereleasePackages = repositoriesInfo.status == 'success' ? repositoriesInfo.data.show_prerelease_packages : false;
 		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages, definedRepositories, showPrereleasePackages);
-	}, [repositoriesInfo, packagesResult, detailsResult]);
+	}, [
+		repositoriesInfo.status, repositoriesInfo.data,
+		packagesResult.status, packagesResult.data,
+		detailsResult.status, detailsResult.data,
+	]);
 
 	const packageRows = useMemo(() => {
 		if (search === "") return packageRowsData;
@@ -159,17 +194,26 @@ function PageBody() {
 		"installed",
 		"latest",
 		"source",
-		"", // actions
 	];
 
 	// TODO: get installed unity versions and show them
 	const unityVersions: string[] = []
 
 	const onRefresh = () => {
+		setBulkUpdatePackageIds([]);
 		packagesResult.refetch();
 		detailsResult.refetch();
 		repositoriesInfo.refetch();
 	};
+
+	const onRefreshRepositories = () => {
+		repositoriesInfo.refetch();
+	}
+
+	const onRefreshProject = () => {
+		detailsResult.refetch();
+		setBulkUpdatePackageIds([]);
+	}
 
 	const onRemoveProject = () => {
 		projectRemoveModal.startRemove({
@@ -186,7 +230,7 @@ function PageBody() {
 		})
 	}
 
-	const onInstallRequested = async (pkg: TauriPackage) => {
+	const onInstallRequested = useCallback(async (pkg: TauriPackage) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("install", pkg.name, pkg.version);
@@ -197,7 +241,7 @@ function PageBody() {
 			setInstallStatus({status: "normal"});
 			toastThrownError(e);
 		}
-	}
+	}, [projectPath]);
 
 	const onUpgradeAllRequest = async () => {
 		try {
@@ -236,18 +280,104 @@ function PageBody() {
 		}
 	};
 
-	const onRemoveRequested = async (pkgId: string) => {
+	const onRemoveRequested = useCallback(async (pkgId: string) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("remove", pkgId);
-			const changes = await projectRemovePackage(projectPath, pkgId);
+			const changes = await projectRemovePackages(projectPath, [pkgId]);
 			setInstallStatus({status: "promptingChanges", changes, requested: {type: "remove", pkgId}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
 			toastThrownError(e);
 		}
-	}
+	}, [projectPath]);
+
+	const onUpgradeBulkRequested = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			let packageIds = new Set(bulkUpdatePackageIds.map(([id, mode]) => id));
+			let packages: number[] = [];
+			let envVersion: number | undefined = undefined;
+			for (let packageRow of packageRows) {
+				if (packageIds.has(packageRow.id)) {
+					if (packageRow.latest.status !== "upgradable")
+						throw new Error("Package is not upgradable");
+
+					if (envVersion == null) envVersion = packageRow.latest.pkg.env_version;
+					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
+
+					packages.push(packageRow.latest.pkg.index);
+				}
+			}
+			if (envVersion == null) {
+				toastError(tt("no upgradable packages"));
+				return;
+			}
+			const changes = await projectUpgradeMultiplePackage(projectPath, envVersion, packages);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toastThrownError(e);
+		}
+	};
+
+	const onInstallBulkRequested = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			let packageIds = new Set(bulkUpdatePackageIds.map(([id, mode]) => id));
+			let packages: number[] = [];
+			let envVersion: number | undefined = undefined;
+			for (let packageRow of packageRows) {
+				if (packageIds.has(packageRow.id)) {
+					if (packageRow.latest.status !== "contains")
+						throw new Error("Package is not installable");
+
+					if (envVersion == null) envVersion = packageRow.latest.pkg.env_version;
+					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
+
+					packages.push(packageRow.latest.pkg.index);
+				}
+			}
+			if (envVersion == null) {
+				toastError(tt("no upgradable packages"));
+				return;
+			}
+			const changes = await projectInstallMultiplePackage(projectPath, envVersion, packages);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toastThrownError(e);
+		}
+	};
+
+	const onRemoveBulkRequested = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			const changes = await projectRemovePackages(projectPath, bulkUpdatePackageIds.map(([id, mode]) => id));
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toastThrownError(e);
+		}
+	};
+
+	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
+		const possibleUpdate: PackageBulkUpdateMode | 'nothing' = bulkUpdateModeForPackage(row);
+
+		if (possibleUpdate == 'nothing') return;
+		setBulkUpdatePackageIds(prev => {
+			if (prev.some(([id, _]) => id === row.id)) return prev;
+			return [...prev, [row.id, possibleUpdate]];
+		});
+	}, []);
+
+	const removeBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
+		setBulkUpdatePackageIds(prev => prev.filter(([id, _]) => id !== row.id));
+	}, [setBulkUpdatePackageIds]);
 
 	const applyChanges = async (
 		{
@@ -261,7 +391,7 @@ function PageBody() {
 			setInstallStatus({status: "applyingChanges"});
 			await projectApplyPendingChanges(projectPath, changes.changes_version);
 			setInstallStatus({status: "normal"});
-			detailsResult.refetch();
+			onRefreshProject();
 
 			switch (requested.type) {
 				case "install":
@@ -482,17 +612,17 @@ function PageBody() {
 									hiddenUserRepositories={hiddenUserRepositories}
 									repositoryName={tt("official")}
 									repositoryId={"com.vrchat.repos.official"}
-									refetch={() => repositoriesInfo.refetch()}
+									refetch={onRefreshRepositories}
 								/>
 								<RepositoryMenuItem
 									hiddenUserRepositories={hiddenUserRepositories}
 									repositoryName={tt("curated")}
 									repositoryId={"com.vrchat.repos.curated"}
-									refetch={() => repositoriesInfo.refetch()}
+									refetch={onRefreshRepositories}
 								/>
 								<UserLocalRepositoryMenuItem
 									hideUserLocalPackages={repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false}
-									refetch={() => repositoriesInfo.refetch()}
+									refetch={onRefreshRepositories}
 								/>
 								<hr className="my-3"/>
 								{
@@ -501,7 +631,7 @@ function PageBody() {
 											hiddenUserRepositories={hiddenUserRepositories}
 											repositoryName={repository.display_name}
 											repositoryId={repository.id}
-											refetch={() => repositoriesInfo.refetch()}
+											refetch={onRefreshRepositories}
 											key={repository.id}
 										/>
 									)) : null
@@ -509,16 +639,26 @@ function PageBody() {
 							</MenuList>
 						</Menu>
 					</div>
+					<BulkUpdateCard
+						disabled={isLoading} bulkUpdateMode={bulkUpdateMode}
+						bulkUpgradeAll={onUpgradeBulkRequested}
+						bulkRemoveAll={onRemoveBulkRequested}
+						bulkInstallAll={onInstallBulkRequested}
+						cancel={() => setBulkUpdatePackageIds([])}
+					/>
 					<Card className="w-full overflow-x-auto overflow-y-scroll">
 						<table className="relative table-auto text-left">
 							<thead>
 							<tr>
+								<th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50`}>
+								</th>
 								{TABLE_HEAD.map((head, index) => (
 									<th key={index}
 											className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
 										<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
 									</th>
 								))}
+								<th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}/>
 							</tr>
 							</thead>
 							<tbody>
@@ -526,8 +666,12 @@ function PageBody() {
 								<PackageRow pkg={row} key={row.id}
 														locked={isLoading}
 														onInstallRequested={onInstallRequested}
-														onRemoveRequested={onRemoveRequested}/>
-							))}
+														onRemoveRequested={onRemoveRequested}
+														bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
+														bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
+														addBulkUpdatePackage={addBulkUpdatePackage}
+														removeBulkUpdatePackage={removeBulkUpdatePackage}
+								/>))}
 							</tbody>
 						</table>
 					</Card>
@@ -558,6 +702,47 @@ function SuggestMigrateTo2022Card(
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
 				{tc("migrate project")}
+			</Button>
+		</Card>
+	)
+}
+
+function BulkUpdateCard(
+	{
+		disabled,
+		bulkUpdateMode,
+		bulkUpgradeAll,
+		bulkRemoveAll,
+		bulkInstallAll,
+		cancel,
+	}: {
+		disabled: boolean;
+		bulkUpdateMode: BulkUpdateMode;
+		bulkUpgradeAll?: () => void;
+		bulkRemoveAll?: () => void;
+		bulkInstallAll?: () => void;
+		cancel?: () => void;
+	}
+) {
+	if (bulkUpdateMode == 'any') return null;
+
+	const canInstall = bulkUpdateMode == 'install';
+	const canUpgrade = bulkUpdateMode == 'upgrade' || bulkUpdateMode == 'upgradeOrRemove';
+	const canRemove = bulkUpdateMode == 'remove' || bulkUpdateMode == 'upgradeOrRemove';
+
+	return (
+		<Card className={"flex-shrink-0 p-2 flex flex-row gap-2 bg-blue-gray-50 flex-wrap"}>
+			{canInstall && <Button disabled={disabled} onClick={bulkInstallAll}>
+				{tc("install selected")}
+			</Button>}
+			{canUpgrade && <Button disabled={disabled} onClick={bulkUpgradeAll} color={"green"}>
+				{tc("upgrade selected")}
+			</Button>}
+			{canRemove && <Button disabled={disabled} onClick={bulkRemoveAll} color={"red"}>
+				{tc("uninstall selected")}
+			</Button>}
+			<Button disabled={disabled} onClick={cancel}>
+				{tc("clear selection")}
 			</Button>
 		</Card>
 	)
@@ -1166,31 +1351,36 @@ function combinePackagesAndProjectDetails(
 	return asArray;
 }
 
-function PackageRow(
+const PackageRow = memo(function PackageRow(
 	{
 		pkg,
 		locked,
 		onInstallRequested,
 		onRemoveRequested,
+		bulkUpdateSelected,
+		bulkUpdateAvailable,
+		addBulkUpdatePackage,
+		removeBulkUpdatePackage,
 	}: {
 		pkg: PackageRowInfo;
 		locked: boolean;
 		onInstallRequested: (pkg: TauriPackage) => void;
 		onRemoveRequested: (pkgId: string) => void;
+		bulkUpdateSelected: boolean;
+		bulkUpdateAvailable: boolean;
+		addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
+		removeBulkUpdatePackage: (pkg: PackageRowInfo) => void;
 	}) {
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
-	const incompatibleNames = [...pkg.unityIncompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
-
-	const onChange = (version: string) => {
+	useCallback((version: string) => {
 		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
 		onInstallRequested(pkgVersion);
-	}
-
+	}, [onInstallRequested, pkg.installed]);
 	const installLatest = () => {
 		if (!latestVersion) return;
 		const latest = pkg.unityCompatible.get(latestVersion) ?? pkg.unityIncompatible.get(latestVersion);
@@ -1202,8 +1392,23 @@ function PackageRow(
 		onRemoveRequested(pkg.id);
 	};
 
+	const onClickBulkUpdate = () => {
+		if (bulkUpdateSelected) {
+			removeBulkUpdatePackage(pkg);
+		} else {
+			addBulkUpdatePackage(pkg);
+		}
+	}
+
 	return (
 		<tr className="even:bg-blue-gray-50/50">
+			<td className={`${cellClass} w-1`}>
+				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+									checked={bulkUpdateSelected}
+									onChange={onClickBulkUpdate}
+									disabled={locked || !bulkUpdateAvailable}
+									className="hover:before:content-none"/>
+			</td>
 			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis`}>
 				<div className="flex flex-col">
 					<Typography className="font-normal">
@@ -1215,17 +1420,7 @@ function PackageRow(
 				</div>
 			</td>
 			<td className={noGrowCellClass}>
-				{/* TODO: show incompatible versions */}
-				<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
-									className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
-									onChange={onChange}
-									disabled={locked}
-				>
-					{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-					{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
-					{incompatibleNames.length > 0 && <Typography className={"text-sm"}>{tc("incompatibles")}</Typography>}
-					{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-				</VGSelect>
+				<PackageVersionSelector pkg={pkg} onInstallRequested={onInstallRequested} locked={locked}/>
 			</td>
 			<td className={`${cellClass} min-w-32 w-32`}>
 				<PackageLatestInfo info={pkg.latest} locked={locked} onInstallRequested={onInstallRequested}/>
@@ -1277,6 +1472,67 @@ function PackageRow(
 			</td>
 		</tr>
 	);
+});
+
+function bulkUpdateModeForPackage(pkg: PackageRowInfo): PackageBulkUpdateMode | 'nothing' {
+	if (pkg.installed) {
+		if (pkg.latest.status === "upgradable") {
+			return "upgradeOrRemove";
+		} else {
+			return "remove";
+		}
+	} else {
+		if (pkg.latest.status !== "none") {
+			return "install";
+		} else {
+			return "nothing";
+		}
+	}
+}
+
+const PackageVersionSelector = memo(function PackageVersionSelector(
+	{
+		pkg,
+		onInstallRequested,
+		locked,
+	}: {
+		pkg: PackageRowInfo;
+		onInstallRequested: (pkg: TauriPackage) => void;
+		locked: boolean;
+	}
+) {
+	const onChange = useCallback((version: string) => {
+		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
+		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
+		if (!pkgVersion) return;
+		onInstallRequested(pkgVersion);
+	}, [onInstallRequested, pkg.installed]);
+
+	const versionNames = [...pkg.unityCompatible.keys()];
+	const incompatibleNames = [...pkg.unityIncompatible.keys()];
+
+	return (
+		<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
+							className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
+							onChange={onChange}
+							disabled={locked}
+		>
+			{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+			{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
+			{incompatibleNames.length > 0 && <Typography className={"text-sm"}>{tc("incompatibles")}</Typography>}
+			{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+		</VGSelect>
+	);
+})
+
+function canBulkUpdate(bulkUpdateMode: BulkUpdateMode, possibleUpdate: PackageBulkUpdateMode | 'nothing'): boolean {
+	if (possibleUpdate === "nothing") return false;
+	if (bulkUpdateMode === "any") return true;
+	if (bulkUpdateMode === possibleUpdate) return true;
+	if (bulkUpdateMode === "upgradeOrRemove" && possibleUpdate === "remove") return true;
+	if (bulkUpdateMode === "upgrade" && possibleUpdate === "upgradeOrRemove") return true;
+	if (bulkUpdateMode === "remove" && possibleUpdate === "upgradeOrRemove") return true;
+	return false;
 }
 
 function PackageInstalledInfo(
