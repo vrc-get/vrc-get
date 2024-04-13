@@ -143,6 +143,7 @@ licenseNames.set("MIT", "MIT License");
 licenseNames.set("ISC", "ISC License");
 licenseNames.set("Apache-2.0", "Apache License 2.0");
 licenseNames.set("MPL-2.0", "Mozilla Public License 2.0");
+licenseNames.set("OFL-1.1", "BSD 2-Clause License");
 
 licenseNames.set("OpenSSL", "OpenSSL License");
 licenseNames.set("CC-BY-4.0", "Creative Commons Attribution 4.0");
@@ -222,6 +223,39 @@ for (let license of cargoAbout.licenses) {
 			url: usedBy.crate.repository ?? `https://crates.io/crates/${usedBy.crate.name}`,
 		});
 	}
+}
+
+// other third-party things
+{
+	// Anton font
+	const licenseId = "OFL-1.1";
+	const licenseByText = licenses.get(licenseId) ?? new Map();
+	licenses.set(licenseId, licenseByText);
+
+	const licenseText = await readFile("third-party/Anton-Regular-OFL.txt", 'utf-8');
+	const packagesOfTheLicense = licenseByText.get(licenseText) ?? [];
+	licenseByText.set(licenseText, packagesOfTheLicense);
+	packagesOfTheLicense.push({
+		name: "Anton font",
+		version: "1.0.0",
+		url: "https://fonts.google.com/specimen/Anton",
+	});
+}
+
+{
+	// The logo
+	const licenseId = "CC-BY-4.0";
+	const licenseByText = licenses.get(licenseId) ?? new Map();
+	licenses.set(licenseId, licenseByText);
+
+	const licenseText = await readFile("icon-LICENSE", 'utf-8');
+	const packagesOfTheLicense = licenseByText.get(licenseText) ?? [];
+	licenseByText.set(licenseText, packagesOfTheLicense);
+	packagesOfTheLicense.push({
+		name: "ALCOM Icon",
+		version: "1.0.0",
+		url: "https://github.com/vrc-get/vrc-get",
+	});
 }
 
 // finally, put to array
