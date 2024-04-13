@@ -191,5 +191,6 @@
     "creating a backup...": "バックアップを作成中...",
     "backup canceled": "バックアップをキャンセルしました。",
     "backup created successfully": "バックアップを作成しました。",
+    "language": "言語設定(Language)",
   },
 }
