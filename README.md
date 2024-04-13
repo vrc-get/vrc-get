@@ -131,7 +131,7 @@ For more details, please refer to README for each action.
 ## GUI version of vrc-get
 
 Since late February 2024, an experimental gui version of vrc-get has been available.
-See [README of vrc-get-gui][vrc-get-gui] for more details.
+See [README of ALCOM][alcom] for more details.
 
 [shields-github-deploy]: https://img.shields.io/github/deployments/anatawa12/vrc-get/master%20branch?label=github%20deployment
 [shields-crates-io-deploy]: https://img.shields.io/github/deployments/anatawa12/vrc-get/crates.io?label=crates.io%20deployment
@@ -151,7 +151,7 @@ See [README of vrc-get-gui][vrc-get-gui] for more details.
 [scoop]: https://scoop.sh
 [winget]: https://learn.microsoft.com/windows/package-manager/
 
-[vrc-get-gui]: ./vrc-get-gui/README.md
+[alcom]: ./vrc-get-gui/README.md
 
 [release-vrc-get]: https://github.com/anatawa12/vrc-get/releases/latest
 [resolve-vpm-packages]: https://github.com/anatawa12/sh-actions/tree/master/resolve-vpm-packages
