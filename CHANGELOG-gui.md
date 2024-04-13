@@ -8,15 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Check for update button on the settings page `#762`
-- Click version name to copy version name `#761`
-- Bulk uppgrade, install, and remove packages `#752`
 
 ### Changed
-- Relax validation for `package.json` for local user packages `#750`
-- Use star instead of check on the favorite row in the project list `#755`
-- Moved the `Upgrade All` button to front `#757`
-- Renamed the Application to ALCOM `#760`
 
 ### Deprecated
 
@@ -25,6 +18,18 @@ The format is based on [Keep a Changelog].
 ### Fixed
 
 ### Security
+
+## [0.1.0-beta.20] - 2024-04-13
+### Added
+- Check for update button on the settings page [`#762`](https://github.com/vrc-get/vrc-get/pull/762)
+- Click version name to copy version name [`#761`](https://github.com/vrc-get/vrc-get/pull/761)
+- Bulk uppgrade, install, and remove packages [`#752`](https://github.com/vrc-get/vrc-get/pull/752)
+
+### Changed
+- Relax validation for `package.json` for local user packages [`#750`](https://github.com/vrc-get/vrc-get/pull/750)
+- Use star instead of check on the favorite row in the project list [`#755`](https://github.com/vrc-get/vrc-get/pull/755)
+- Moved the `Upgrade All` button to front [`#757`](https://github.com/vrc-get/vrc-get/pull/757)
+- Renamed the Application to ALCOM [`#760`](https://github.com/vrc-get/vrc-get/pull/760)
 
 ## [0.1.0-beta.19] - 2024-04-07
 ### Added
@@ -196,7 +201,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.19...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.20...HEAD
+[0.1.0-beta.20]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.19...gui-v0.1.0-beta.20
 [0.1.0-beta.19]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.18...gui-v0.1.0-beta.19
 [0.1.0-beta.18]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.17...gui-v0.1.0-beta.18
 [0.1.0-beta.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.16...gui-v0.1.0-beta.17
