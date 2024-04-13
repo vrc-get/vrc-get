@@ -32,7 +32,7 @@ targets = [
     "updater", # auto update
 ]
 longDescription = "ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
-shortDescription = "an alternative VCC"
+shortDescription = "ALCOM - Alternative Creator Companion"
 identifier = "com.anataw12.vrc-get"
 category = "DeveloperTool"
 copyright = "(c) anatawa12 and other contributors"
