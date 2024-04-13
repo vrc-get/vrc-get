@@ -229,7 +229,7 @@ function Settings(
 				<div className="mt-2">
 					<h3>{tc("backup path")}</h3>
 					<Typography className={"whitespace-normal"}>
-						{tc("the backup path is the directory where vrc-get-gui will create backup zips of the projects.")}
+						{tc("the backup path is the directory where alcom will create backup zips of the projects.")}
 					</Typography>
 					<div className={"flex gap-1"}>
 						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
@@ -282,7 +282,7 @@ function Settings(
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("licenses")}</h2>
 				<Typography className={"whitespace-normal"}>
-					{tc("click <l>here</l> to view licenses of the projects used in vrc-get-gui", {}, {
+					{tc("click <l>here</l> to view licenses of the projects used in alcom", {}, {
 						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
 					})}
 				</Typography>
