@@ -343,7 +343,7 @@ function EnteringRepositoryInfo(
 			//   ; field-value   = ([\x21-\x7E\x80-\xFF]([\t\x20-\x7E\x80-\xFF]+[\x21-\x7E\x80-\xFF])?)*
 			//   ;               = [\t\x20-\x7E\x80-\xFF]* in trimmed value
 
-			// in vrc-get-gui, non-ascii characters are encoded as utf-8 so any non-ascii characters are fit in [\x80-\xFF]
+			// in vrc-get, non-ascii characters are encoded as utf-8 so any non-ascii characters are fit in [\x80-\xFF]
 			if (!trimedValue.match(/^[\t\x20-\x7E\u0080-\uFFFF]*$/)) {
 				foundHeaderValueError = true;
 			}

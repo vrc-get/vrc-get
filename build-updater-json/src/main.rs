@@ -23,34 +23,12 @@ fn main() {
     const DOWNLOAD_URL_BASE: &str =
         "https://github.com/vrc-get/vrc-get/releases/download/gui-v{version}";
     let platform_file_name = [
-        (
-            "darwin-x86_64",
-            "vrc-get-gui-{version}-universal.app.tar.gz",
-        ),
-        (
-            "darwin-aarch64",
-            "vrc-get-gui-{version}-universal.app.tar.gz",
-        ),
-        (
-            "linux-x86_64",
-            "vrc-get-gui-{version}-x86_64.AppImage.tar.gz",
-        ),
-        /*
-        (
-            "linux-aarch64",
-            "vrc-get-gui-{version}-aarch64.AppImage.tar.gz",
-        ),
-        */
-        (
-            "windows-x86_64",
-            "vrc-get-gui-{version}-x86_64-setup.nsis.zip",
-        ),
-        /*
-        (
-            "windows-aarch64",
-            "vrc-get-gui-{version}-aarch64-setup.nsis.zip",
-        ),
-        */
+        ("darwin-x86_64", "ALCOM-{version}-universal.app.tar.gz"),
+        ("darwin-aarch64", "ALCOM-{version}-universal.app.tar.gz"),
+        ("linux-x86_64", "alcom-{version}-x86_64.AppImage.tar.gz"),
+        //("linux-aarch64", "alcom-{version}-aarch64.AppImage.tar.gz"),
+        ("windows-x86_64", "ALCOM-{version}-x86_64-setup.nsis.zip"),
+        //("windows-aarch64", "ALCOM-{version}-aarch64-setup.nsis.zip"),
     ]
     .into_iter()
     .collect::<IndexMap<_, _>>();

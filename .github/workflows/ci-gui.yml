@@ -97,7 +97,11 @@ jobs:
           name: ${{ matrix.triple }}
           path: |
             target/${{ matrix.triple }}/release/vrc-get*
+            target/${{ matrix.triple }}/release/ALCOM*
+            target/${{ matrix.triple }}/release/alcom*
             target/${{ matrix.triple }}/release/bundle/*/vrc-get*
+            target/${{ matrix.triple }}/release/bundle/*/ALCOM*
+            target/${{ matrix.triple }}/release/bundle/*/alcom*
 
   conclude-gui:
     runs-on: ubuntu-latest

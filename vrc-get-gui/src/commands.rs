@@ -227,7 +227,7 @@ pub(crate) fn startup(app: &mut App) {
             "main", /* the unique window label */
             tauri::WindowUrl::App("/projects".into()),
         )
-        .title("vrc-get-gui")
+        .title("ALCOM")
         .resizable(true)
         .on_navigation(|url| {
             if cfg!(debug_assertions) {
