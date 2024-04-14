@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Window size is not preserved when the app is closed with command + q `#769`
 
 ### Security
 

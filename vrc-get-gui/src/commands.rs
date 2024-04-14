@@ -247,42 +247,44 @@ pub(crate) fn startup(app: &mut App) {
 
         let cloned = window.clone();
 
+        let resize_debounce: std::sync::Mutex<Option<tauri::async_runtime::JoinHandle<()>>> =
+            std::sync::Mutex::new(None);
+
         #[allow(clippy::single_match)]
         window.on_window_event(move |e| match e {
-            WindowEvent::CloseRequested { .. } => {
-                if let Err(e) = on_close_requested(&cloned, app.clone()) {
-                    error!("failed to handle close requested: {e}");
+            WindowEvent::Resized(size) => {
+                let logical = size
+                    .to_logical::<u32>(cloned.current_monitor().unwrap().unwrap().scale_factor());
+
+                let mut resize_debounce = resize_debounce.lock().unwrap();
+
+                if let Some(resize_debounce) = resize_debounce.as_ref() {
+                    resize_debounce.abort();
                 }
+
+                let cloned = cloned.clone();
+
+                *resize_debounce = Some(tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+                    if let Err(e) = save_window_size(cloned.state(), logical).await {
+                        error!("failed to save window size: {e}");
+                    }
+                }));
             }
             _ => {}
         });
 
-        fn on_close_requested(window: &Window, app: AppHandle) -> tauri::Result<()> {
-            let factor = window
-                .current_monitor()?
-                .map(|m| m.scale_factor())
-                .unwrap_or(1.0);
-            let size = window.inner_size()?.to_logical(factor);
-
-            if size.width > 0 && size.height > 0 && !window.is_maximized()? {
-                async fn set_size(
-                    state: State<'_, Mutex<EnvironmentState>>,
-                    size: LogicalSize<u32>,
-                ) -> tauri::Result<()> {
-                    with_config!(state, |mut config| {
-                        config.window_size.width = size.width;
-                        config.window_size.height = size.height;
-                        config.save().await?;
-                    });
-                    Ok(())
-                }
-                tauri::async_runtime::spawn(async move {
-                    if let Err(e) = set_size(app.state(), size).await {
-                        error!("failed to save window size: {e}");
-                    }
-                });
-            }
-
+        async fn save_window_size(
+            state: State<'_, Mutex<EnvironmentState>>,
+            size: LogicalSize<u32>,
+        ) -> tauri::Result<()> {
+            info!("saving window size: {}x{}", size.width, size.height);
+            with_config!(state, |mut config| {
+                config.window_size.width = size.width;
+                config.window_size.height = size.height;
+                config.save().await?;
+            });
             Ok(())
         }
 
