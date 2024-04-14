@@ -2,6 +2,7 @@ import i18next, {t as i18nextt} from "i18next";
 import {initReactI18next} from "react-i18next";
 import enJson from "@/locales/en.json5";
 import jaJson from "@/locales/ja.json5";
+import zh_cnJson from "@/locales/zh_cn.json5";
 import {tc as tcOriginal} from "@/components/VGTrans";
 
 i18next
@@ -10,6 +11,7 @@ i18next
 		resources: {
 			en: enJson,
 			ja: jaJson,
+			zh_cn: zh_cnJson,
 		},
 		lng: "en",
 		fallbackLng: "en",
@@ -34,6 +36,7 @@ export default i18next;
 export const languages = [
 	"en",
 	"ja",
+	"zh_cn",
 ];
 
 export const tc = tcOriginal;
