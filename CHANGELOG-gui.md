@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Simplified Chinese localisation `#765`
+- Simplified Chinese localization `#765`
   - Thank you [@lonelyicer](https://github.com/lonelyicer)!
 
 ### Changed
@@ -18,8 +18,8 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Window size is not preserved when the app is closed with command + q `#769`
-- panic with relative paths `#770`
+- Window size is not preserved when the app is closed with command + Q in macOS `#769`
+- Panic with relative paths `#770`
 - Update last modified on open Unity not working `#775`
 
 ### Security
@@ -28,13 +28,13 @@ The format is based on [Keep a Changelog].
 ### Added
 - Check for update button on the settings page [`#762`](https://github.com/vrc-get/vrc-get/pull/762)
 - Click version name to copy version name [`#761`](https://github.com/vrc-get/vrc-get/pull/761)
-- Bulk uppgrade, install, and remove packages [`#752`](https://github.com/vrc-get/vrc-get/pull/752)
+- Bulk upgrade, install, and remove packages [`#752`](https://github.com/vrc-get/vrc-get/pull/752)
 
 ### Changed
 - Relax validation for `package.json` for local user packages [`#750`](https://github.com/vrc-get/vrc-get/pull/750)
 - Use star instead of check on the favorite row in the project list [`#755`](https://github.com/vrc-get/vrc-get/pull/755)
 - Moved the `Upgrade All` button to front [`#757`](https://github.com/vrc-get/vrc-get/pull/757)
-- Renamed the Application to ALCOM [`#760`](https://github.com/vrc-get/vrc-get/pull/760)
+- Renamed the application to ALCOM [`#760`](https://github.com/vrc-get/vrc-get/pull/760)
 
 ## [0.1.0-beta.19] - 2024-04-07
 ### Added
