@@ -10,6 +10,14 @@ use vrc_get_litedb::{DateTime, Project};
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub async fn migrate_from_settings_json(&mut self) -> io::Result<()> {
+        // remove relative paths
+        let removed = self
+            .settings
+            .retain_user_projects(|x| Path::new(x).is_absolute());
+        if !removed.is_empty() {
+            error!("Removed relative paths: {:?}", removed);
+        }
+
         let db = self.get_db()?; // ensure the database connection is initialized
 
         let projects = self
