@@ -2371,7 +2371,7 @@ async fn project_open_unity(
         for x in environment.get_unity_installations()? {
             if let Some(version) = x.version() {
                 if version == project_unity {
-                    environment.disconnect_litedb();
+                    update_project_last_modified(environment, unity_project.project_dir()).await;
 
                     crate::cmd_start::start_command(
                         "Unity".as_ref(),
@@ -2388,7 +2388,7 @@ async fn project_open_unity(
             }
         }
 
-        update_project_last_modified(environment, unity_project.project_dir()).await;
+        environment.disconnect_litedb();
 
         Ok(TauriOpenUnityResult::NoMatchingUnityFound)
     })
