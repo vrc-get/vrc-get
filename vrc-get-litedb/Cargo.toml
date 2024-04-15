@@ -34,4 +34,4 @@ rand = "0.8.5"
 
 [build-dependencies]
 ar = "0.9.0"
-object = { version = "0.34.0", default-features = false, features = ["macho"] }
+object = { version = "0.35.0", default-features = false, features = ["macho"] }
