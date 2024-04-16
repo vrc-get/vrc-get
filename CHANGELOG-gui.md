@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog].
 - Window size is not preserved when the app is closed with command + q `#769`
 - panic with relative paths `#770`
 - Update last modified on open Unity not working `#775`
+- Multiple instances can be launched `#791`
 
 ### Security
 
