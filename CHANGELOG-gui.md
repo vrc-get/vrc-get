@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog].
 - Simplified Chinese localization `#765`
   - Thank you [@lonelyicer](https://github.com/lonelyicer)!
 - Improved handling for unlocked packages `#790`
+- locale detection `#771`
 
 ### Changed
 
