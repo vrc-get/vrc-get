@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog].
 - Window size is not preserved when the app is closed with command + Q in macOS `#769`
 - Panic with relative paths `#770`
 - Update last modified on open Unity not working `#775`
+- Multiple instances can be launched `#791`
 
 ### Security
 
