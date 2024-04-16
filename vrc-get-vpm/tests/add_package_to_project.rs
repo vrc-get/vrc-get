@@ -1139,7 +1139,10 @@ fn no_temp_folder_after_add() {
                 &[("com.vrchat.base", "3.4.2")],
             )
             .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
-            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file(
+                "Packages/com.vrchat.avatars/package.json",
+                r#"{"name":"com.vrchat.avatars","version":"3.4.2"}"#,
+            )
             .add_file("Packages/com.vrchat.avatars/content.txt", "text")
             .build()
             .await
@@ -1187,7 +1190,10 @@ fn locked_in_package_folder() {
                 &[("com.vrchat.base", "3.4.2")],
             )
             .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
-            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file(
+                "Packages/com.vrchat.avatars/package.json",
+                r#"{"name":"com.vrchat.avatars","version":"3.4.2"}"#,
+            )
             .add_file("Packages/com.vrchat.avatars/content.txt", "text")
             .build()
             .await
@@ -1233,7 +1239,10 @@ fn rollback_error_in_error() {
         let mut project = VirtualProjectBuilder::new()
             .add_dependency_range("com.vrchat.avatars", "~3.5.x")
             .add_locked("com.vrchat.avatars", Version::new(3, 4, 2), &[])
-            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file(
+                "Packages/com.vrchat.avatars/package.json",
+                r#"{"name":"com.vrchat.avatars","version":"3.4.2"}"#,
+            )
             .add_file("Packages/com.vrchat.avatars/content.txt", "text")
             .build()
             .await
