@@ -1139,7 +1139,10 @@ fn no_temp_folder_after_add() {
                 &[("com.vrchat.base", "3.4.2")],
             )
             .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
-            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file(
+                "Packages/com.vrchat.avatars/package.json",
+                r#"{"name":"com.vrchat.avatars","version":"3.4.2"}"#,
+            )
             .add_file("Packages/com.vrchat.avatars/content.txt", "text")
             .build()
             .await
@@ -1187,7 +1190,10 @@ fn locked_in_package_folder() {
                 &[("com.vrchat.base", "3.4.2")],
             )
             .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
-            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file(
+                "Packages/com.vrchat.avatars/package.json",
+                r#"{"name":"com.vrchat.avatars","version":"3.4.2"}"#,
+            )
             .add_file("Packages/com.vrchat.avatars/content.txt", "text")
             .build()
             .await
@@ -1233,7 +1239,10 @@ fn rollback_error_in_error() {
         let mut project = VirtualProjectBuilder::new()
             .add_dependency_range("com.vrchat.avatars", "~3.5.x")
             .add_locked("com.vrchat.avatars", Version::new(3, 4, 2), &[])
-            .add_file("Packages/com.vrchat.avatars/package.json", "{}")
+            .add_file(
+                "Packages/com.vrchat.avatars/package.json",
+                r#"{"name":"com.vrchat.avatars","version":"3.4.2"}"#,
+            )
             .add_file("Packages/com.vrchat.avatars/content.txt", "text")
             .build()
             .await
@@ -1290,6 +1299,96 @@ fn rollback_error_in_error() {
             .await
             .unwrap_err();
         project.io().metadata("Temp".as_ref()).await.unwrap_err();
+    })
+}
+
+// endregion
+
+// region unlocked
+
+#[test]
+fn install_depends_on_unlocked() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_file(
+                "Packages/base/package.json",
+                r#"{"name":"com.vrchat.base","version":"1.0.0"}"#,
+            )
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 0, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.0.0"),
+            )
+            .build();
+
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(
+                &collection,
+                &[avatars_package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        assert_installing_to_both(&result, &avatars_package);
+    })
+}
+
+#[test]
+fn install_conflict_with_unlocked() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_file(
+                "Packages/base/package.json",
+                r#"{"name":"com.vrchat.base","version":"1.0.0"}"#,
+            )
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.vrchat.avatars", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.vrchat.base", "1.1.0"),
+            )
+            .build();
+
+        let avatars_package = collection.get_package("com.vrchat.avatars", Version::new(1, 1, 0));
+
+        let result = project
+            .add_package_request(
+                &collection,
+                &[avatars_package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 1);
+
+        assert_installing_to_both(&result, &avatars_package);
+
+        let base_conflict = result.conflicts().get("com.vrchat.base").unwrap();
+        assert_eq!(
+            base_conflict.conflicting_packages(),
+            &["com.vrchat.avatars".into()]
+        )
     })
 }
 

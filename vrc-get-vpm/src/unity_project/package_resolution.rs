@@ -1,7 +1,7 @@
 use crate::traits::PackageCollection;
 use crate::unity_project::{AddPackageErr, LockedDependencyInfo};
 use crate::version::{DependencyRange, UnityVersion, Version, VersionRange};
-use crate::{PackageInfo, VersionSelector};
+use crate::{PackageInfo, PackageManifest, VersionSelector};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 struct PackageQueue<'a> {
@@ -36,6 +36,7 @@ where
     allow_prerelease: bool,
     pub pending_queue: PackageQueue<'env>,
     dependencies: HashMap<&'a str, DependencyInfo<'env, 'a>>,
+    unlocked_names: HashSet<&'a str>,
 }
 
 struct Legacy<'env>(&'env [Box<str>]);
@@ -56,7 +57,7 @@ struct DependencyInfo<'env, 'a> {
     dependencies: HashSet<&'a str>,
 
     modern_packages: HashSet<&'a str>,
-    legacy_packages: Legacy<'env>,
+    legacy_packages: Legacy<'a>,
 
     allow_pre: bool,
     touched: bool,
@@ -120,6 +121,7 @@ impl<'env, 'a> ResolutionContext<'env, 'a> {
             dependencies: HashMap::new(),
             pending_queue: PackageQueue::new(packages),
             allow_prerelease,
+            unlocked_names: HashSet::new(),
         };
 
         for pkg in &this.pending_queue.pending_queue {
@@ -148,6 +150,40 @@ where
             .insert(name, range);
         self.dependencies
             .insert(name, DependencyInfo::new_dependency(range, allow_pre));
+    }
+
+    pub(crate) fn add_unlocked_name(&mut self, name: &'a str) {
+        self.unlocked_names.insert(name);
+    }
+
+    pub(crate) fn add_unlocked_manifest(&mut self, manifest: &'a PackageManifest) {
+        let info = self.dependencies.entry(manifest.name()).or_default();
+        info.set_using_info(
+            manifest.version(),
+            manifest
+                .vpm_dependencies()
+                .keys()
+                .map(|x| x.as_ref())
+                .collect(),
+        );
+
+        info.legacy_packages = Legacy(manifest.legacy_packages());
+
+        for legacy in manifest.legacy_packages() {
+            self.dependencies
+                .entry(legacy)
+                .or_default()
+                .modern_packages
+                .insert(manifest.name());
+        }
+
+        for (dependency, range) in manifest.vpm_dependencies() {
+            self.dependencies
+                .entry(dependency)
+                .or_default()
+                .requirements
+                .insert(manifest.name(), range);
+        }
     }
 
     pub(crate) fn add_locked_dependency(
@@ -192,11 +228,15 @@ where
             return false;
         }
 
+        if self.unlocked_names.contains(package.name()) {
+            return false;
+        }
+
+        entry.touched = true;
         let vpm_dependencies = &package.vpm_dependencies();
         let legacy_packages = package.legacy_packages();
         let name = package.name();
 
-        entry.touched = true;
         entry.current = Some(package.version());
         entry.using = Some(package);
 
@@ -242,6 +282,16 @@ where
         let entry = self.dependencies.get(name).unwrap();
 
         if entry.is_legacy() {
+            log::debug!(
+                "processing package {name}: dependency {name} version {range}: legacy package"
+            );
+            return false;
+        }
+
+        if self.unlocked_names.contains(name) {
+            log::debug!(
+                "processing package {name}: dependency {name} version {range}: unlocked package"
+            );
             return false;
         }
 
@@ -336,9 +386,11 @@ pub struct PackageResolutionResult<'env> {
     pub found_legacy_packages: Vec<Box<str>>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn collect_adding_packages<'a, 'env>(
     dependencies: impl Iterator<Item = (&'a str, &'a DependencyRange)>,
     locked_dependencies: impl Iterator<Item = LockedDependencyInfo<'a>>,
+    unlocked_packages: &'a [(Box<str>, Option<PackageManifest>)],
     get_locked: impl Fn(&str) -> Option<LockedDependencyInfo<'a>>,
     unity_version: Option<UnityVersion>,
     env: &'env impl PackageCollection,
@@ -378,6 +430,15 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
     // then, add locked dependencies info
     for locked in locked_dependencies {
         context.add_locked_dependency(locked, env);
+    }
+
+    // add unlocked packages
+    for (unlocked_name, unlocked_manifest) in unlocked_packages {
+        context.add_unlocked_name(unlocked_name.as_ref());
+        if let Some(unlocked_package) = unlocked_manifest {
+            context.add_unlocked_name(unlocked_package.name());
+            context.add_unlocked_manifest(unlocked_package);
+        }
     }
 
     while let Some(x) = context.pending_queue.next_package() {
