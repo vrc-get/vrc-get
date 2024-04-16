@@ -8,10 +8,6 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Simplified Chinese localization `#765`
-  - Thank you [@lonelyicer](https://github.com/lonelyicer)!
-- Improved handling for unlocked packages `#790`
-- locale detection `#771`
 
 ### Changed
 
@@ -20,12 +16,21 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Window size is not preserved when the app is closed with command + Q in macOS `#769`
-- Panic with relative paths `#770`
-- Update last modified on open Unity not working `#775`
-- Multiple instances can be launched `#791`
 
 ### Security
+
+## [0.1.0-beta.21] - 2024-04-16
+### Added
+- Simplified Chinese localization [`#765`](https://github.com/vrc-get/vrc-get/pull/765)
+  - Thank you [@lonelyicer](https://github.com/lonelyicer)!
+- Improved handling for unlocked packages [`#790`](https://github.com/vrc-get/vrc-get/pull/790)
+- locale detection [`#771`](https://github.com/vrc-get/vrc-get/pull/771)
+
+### Fixed
+- Window size is not preserved when the app is closed with command + Q in macOS [`#769`](https://github.com/vrc-get/vrc-get/pull/769)
+- Panic with relative paths [`#770`](https://github.com/vrc-get/vrc-get/pull/770)
+- Update last modified on open Unity not working [`#775`](https://github.com/vrc-get/vrc-get/pull/775)
+- Multiple instances can be launched [`#791`](https://github.com/vrc-get/vrc-get/pull/791)
 
 ## [0.1.0-beta.20] - 2024-04-13
 ### Added
@@ -209,7 +214,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.20...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.21...HEAD
+[0.1.0-beta.21]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.20...gui-v0.1.0-beta.21
 [0.1.0-beta.20]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.19...gui-v0.1.0-beta.20
 [0.1.0-beta.19]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.18...gui-v0.1.0-beta.19
 [0.1.0-beta.18]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.17...gui-v0.1.0-beta.18
