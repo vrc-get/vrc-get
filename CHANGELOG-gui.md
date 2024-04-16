@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 - Simplified Chinese localisation `#765`
   - Thank you [@lonelyicer](https://github.com/lonelyicer)!
+- Improved handling for unlocked packages `#790`
 
 ### Changed
 

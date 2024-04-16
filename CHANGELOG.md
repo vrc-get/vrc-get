@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Relax validation for `package.json` for local user packages `#750`
+- Improved handling for unlocked packages `#790`
 
 ### Deprecated
 
