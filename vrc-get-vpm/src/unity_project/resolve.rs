@@ -107,6 +107,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
             self.manifest.all_locked(),
+            &self.unlocked_packages,
             |pkg| self.manifest.get_locked(pkg),
             self.unity_version(),
             env,
@@ -216,6 +217,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
             virtual_locked_dependencies.values().cloned(),
+            &self.unlocked_packages,
             |pkg| virtual_locked_dependencies.get(pkg).cloned(),
             self.unity_version(),
             env,

@@ -183,6 +183,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 }
             }),
             self.manifest.all_locked(),
+            &self.unlocked_packages,
             |pkg| self.manifest.get_locked(pkg),
             self.unity_version(),
             env,
