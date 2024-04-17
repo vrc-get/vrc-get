@@ -21,8 +21,8 @@ use specta::{specta, DataType, DefOpts, ExportError, Type};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{
-    generate_handler, App, AppHandle, EventHandler, Invoke, LogicalSize, Manager, Runtime, State,
-    Window, WindowEvent,
+    generate_handler, App, AppHandle, EventHandler, Invoke, LogicalSize, Manager, State, Window,
+    WindowEvent,
 };
 use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader};
@@ -136,7 +136,7 @@ pub(crate) fn export_ts() {
             project_apply_pending_changes,
             project_before_migrate_project_to_2022,
             project_migrate_project_to_2022,
-            project_finalize_migration_with_unity_2022::<tauri::Wry>,
+            project_finalize_migration_with_unity_2022,
             project_migrate_project_to_vpm,
             project_open_unity,
             project_start_create_backup,
@@ -2217,9 +2217,9 @@ enum TauriFinalizeMigrationWithUnity2022Event {
 
 #[tauri::command]
 #[specta::specta]
-async fn project_finalize_migration_with_unity_2022<R: Runtime>(
+async fn project_finalize_migration_with_unity_2022(
     state: State<'_, Mutex<EnvironmentState>>,
-    window: tauri::Window<R>,
+    window: Window,
     project_path: String,
 ) -> Result<TauriFinalizeMigrationWithUnity2022, RustError> {
     static MIGRATION_EVENT_PREFIX: &str = "migrateTo2022:";
@@ -2270,7 +2270,7 @@ async fn project_finalize_migration_with_unity_2022<R: Runtime>(
 
         async fn send_lines(
             stdout: impl tokio::io::AsyncRead + Unpin,
-            window: tauri::Window<impl Runtime>,
+            window: Window,
             event_name: String,
         ) {
             let stdout = BufReader::new(stdout);
@@ -2298,11 +2298,7 @@ async fn project_finalize_migration_with_unity_2022<R: Runtime>(
             }
         }
 
-        async fn wait_send_exit_status(
-            mut child: Child,
-            window: tauri::Window<impl Runtime>,
-            event_name: String,
-        ) {
+        async fn wait_send_exit_status(mut child: Child, window: Window, event_name: String) {
             let event = match child.wait().await {
                 Ok(status) => {
                     if status.success() {
