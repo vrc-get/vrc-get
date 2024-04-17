@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- bad behaviors with minimizing the window `#798`
 
 ### Security
 

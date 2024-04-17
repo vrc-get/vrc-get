@@ -240,10 +240,13 @@ pub(crate) fn startup(app: &mut App) {
         })
         .build()?;
 
-        window.set_size(LogicalSize {
-            width: size.width,
-            height: size.height,
-        })?;
+        // keep original size if it's too small
+        if size.width > 100 && size.height > 100 {
+            window.set_size(LogicalSize {
+                width: size.width,
+                height: size.height,
+            })?;
+        }
 
         let cloned = window.clone();
 
@@ -255,6 +258,12 @@ pub(crate) fn startup(app: &mut App) {
             WindowEvent::Resized(size) => {
                 let logical = size
                     .to_logical::<u32>(cloned.current_monitor().unwrap().unwrap().scale_factor());
+
+                if logical.width < 100 || logical.height < 100 {
+                    // ignore too small sizes
+                    // this is generally caused by the window being minimized
+                    return;
+                }
 
                 let mut resize_debounce = resize_debounce.lock().unwrap();
 
