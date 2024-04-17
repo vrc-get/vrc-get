@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - bad behaviors with minimizing the window `#798`
+- error if backup folder is not exists `#799`
+- unable to control if error occurs while backup is in progress `#799`
 
 ### Security
 

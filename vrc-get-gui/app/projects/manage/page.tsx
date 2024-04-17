@@ -58,12 +58,12 @@ import {VGOption, VGSelect} from "@/components/select";
 import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
-import {receiveLinesAndWaitForFinish} from "@/lib/migration-with-2022";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
+import {callAsyncCommand} from "@/lib/call-async-command";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -454,25 +454,29 @@ function PageBody() {
 			setInstallStatus({status: "unity2022migration:updating"});
 			await projectMigrateProjectTo2022(migrateProjectPath);
 			setInstallStatus({status: "unity2022migration:finalizing", lines: []});
-			const finalizeResult = await projectFinalizeMigrationWithUnity2022(migrateProjectPath);
+			let lineNumber = 0;
+			let [__, promise] = callAsyncCommand(projectFinalizeMigrationWithUnity2022, [migrateProjectPath], lineString => {
+				setInstallStatus(prev => {
+					if (prev.status != "unity2022migration:finalizing") return prev;
+					lineNumber++;
+					let line: [number, string] = [lineNumber, lineString];
+					if (prev.lines.length > 200) {
+						return {...prev, lines: [...prev.lines.slice(1), line]};
+					} else {
+						return {...prev, lines: [...prev.lines, line]};
+					}
+				})
+			});
+			const finalizeResult = await promise;
+			if (finalizeResult == 'cancelled') {
+				throw new Error("unexpectedly cancelled");
+			}
 			switch (finalizeResult.type) {
 				case "NoUnity2022Found":
 					toastError(tt("failed to finalize the migration: unity 2022 not found"));
 					break;
-				case "MigrationStarted":
-					let lineNumber = 0;
-					await receiveLinesAndWaitForFinish(finalizeResult.event_name, lineString => {
-						setInstallStatus(prev => {
-							if (prev.status != "unity2022migration:finalizing") return prev;
-							lineNumber++;
-							let line: [number, string] = [lineNumber, lineString];
-							if (prev.lines.length > 200) {
-								return {...prev, lines: [...prev.lines.slice(1), line]};
-							} else {
-								return {...prev, lines: [...prev.lines, line]};
-							}
-						})
-					});
+				case "ExistsWithNonZero":
+				case "FinishedSuccessfully":
 					toastSuccess(tt("the project is migrated to unity 2022"));
 					break;
 				default:
