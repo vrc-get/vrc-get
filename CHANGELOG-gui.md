@@ -10,21 +10,26 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- Reduced network load by reducing fetching remote repository `#800`
-  - Remote repositories will not be fetched for 5 minutes after the last fetch.
-  - Please click the refresh button on the package page if you want to fetch the remote repository immediately.
-- Preserve if fullscreen `#801`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- bad behaviors with minimizing the window `#798`
-- error if backup folder is not exists `#799`
-- unable to control if error occurs while backup is in progress `#799`
 
 ### Security
+
+## [0.1.0-rc.0] - 2024-04-18
+### Changed
+- Reduced network load by reducing fetching remote repository [`#800`](https://github.com/vrc-get/vrc-get/pull/800)
+  - Remote repositories will not be fetched for 5 minutes after the last fetch.
+  - Please click the refresh button on the package page if you want to fetch the remote repository immediately.
+- Preserve if fullscreen [`#801`](https://github.com/vrc-get/vrc-get/pull/801)
+
+### Fixed
+- bad behaviors with minimizing the window [`#798`](https://github.com/vrc-get/vrc-get/pull/798)
+- error if backup folder is not exists [`#799`](https://github.com/vrc-get/vrc-get/pull/799)
+- unable to control if error occurs while backup is in progress [`#799`](https://github.com/vrc-get/vrc-get/pull/799)
 
 ## [0.1.0-beta.21] - 2024-04-16
 ### Added
@@ -221,7 +226,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.21...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-rc.0...HEAD
+[0.1.0-rc.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.21...gui-v0.1.0-rc.0
 [0.1.0-beta.21]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.20...gui-v0.1.0-beta.21
 [0.1.0-beta.20]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.19...gui-v0.1.0-beta.20
 [0.1.0-beta.19]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.18...gui-v0.1.0-beta.19
