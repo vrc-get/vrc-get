@@ -218,7 +218,8 @@ pub(crate) fn startup(app: &mut App) {
 
     async fn open_main(app: AppHandle) -> tauri::Result<()> {
         let state: State<'_, Mutex<EnvironmentState>> = app.state();
-        let size = with_config!(state, |config| config.window_size);
+        let (size, fullscreen) =
+            with_config!(state, |config| (config.window_size, config.fullscreen));
 
         let window = tauri::WindowBuilder::new(
             &app,
@@ -246,6 +247,8 @@ pub(crate) fn startup(app: &mut App) {
             })?;
         }
 
+        window.set_fullscreen(fullscreen)?;
+
         let cloned = window.clone();
 
         let resize_debounce: std::sync::Mutex<Option<tauri::async_runtime::JoinHandle<()>>> =
@@ -263,6 +266,8 @@ pub(crate) fn startup(app: &mut App) {
                     return;
                 }
 
+                let fullscreen = cloned.is_fullscreen().unwrap();
+
                 let mut resize_debounce = resize_debounce.lock().unwrap();
 
                 if let Some(resize_debounce) = resize_debounce.as_ref() {
@@ -274,7 +279,7 @@ pub(crate) fn startup(app: &mut App) {
                 *resize_debounce = Some(tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-                    if let Err(e) = save_window_size(cloned.state(), logical).await {
+                    if let Err(e) = save_window_size(cloned.state(), logical, fullscreen).await {
                         error!("failed to save window size: {e}");
                     }
                 }));
@@ -285,11 +290,20 @@ pub(crate) fn startup(app: &mut App) {
         async fn save_window_size(
             state: State<'_, Mutex<EnvironmentState>>,
             size: LogicalSize<u32>,
+            fullscreen: bool,
         ) -> tauri::Result<()> {
-            info!("saving window size: {}x{}", size.width, size.height);
+            info!(
+                "saving window size: {}x{}, full: {}",
+                size.width, size.height, fullscreen
+            );
             with_config!(state, |mut config| {
-                config.window_size.width = size.width;
-                config.window_size.height = size.height;
+                if fullscreen {
+                    config.fullscreen = true;
+                } else {
+                    config.fullscreen = false;
+                    config.window_size.width = size.width;
+                    config.window_size.height = size.height;
+                }
                 config.save().await?;
             });
             Ok(())
