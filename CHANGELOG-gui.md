@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog].
 - Reduced network load by reducing fetching remote repository `#800`
   - Remote repositories will not be fetched for 5 minutes after the last fetch.
   - Please click the refresh button on the package page if you want to fetch the remote repository immediately.
+- Preserve if fullscreen `#801`
 
 ### Deprecated
 
