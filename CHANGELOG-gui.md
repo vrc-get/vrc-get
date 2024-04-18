@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Reduced network load by reducing fetching remote repository `#800`
+  - Remote repositories will not be fetched for 5 minutes after the last fetch.
+  - Please click the refresh button on the package page if you want to fetch the remote repository immediately.
 
 ### Deprecated
 
