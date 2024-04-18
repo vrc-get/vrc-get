@@ -31,6 +31,7 @@ import {
 	environmentCopyProjectForMigration,
 	environmentHideRepository,
 	environmentPackages,
+	environmentRefetchPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
 	environmentShowRepository,
@@ -160,6 +161,7 @@ function PageBody() {
 	});
 
 	const [installStatus, setInstallStatus] = useState<InstallStatus>({status: "normal"});
+	const [manualRefetching, setManualRefething] = useState<boolean>(false);
 	const [search, setSearch] = useState("");
 	const [bulkUpdatePackageIds, setBulkUpdatePackageIds] = useState<[id: string, mode: PackageBulkUpdateMode][]>([]);
 	const bulkUpdateMode = useMemo(() => updateModeFromPackageModes(bulkUpdatePackageIds.map(([_, mode]) => mode)), [bulkUpdatePackageIds]);
@@ -199,11 +201,17 @@ function PageBody() {
 	// TODO: get installed unity versions and show them
 	const unityVersions: string[] = []
 
-	const onRefresh = () => {
+	const onRefresh = async () => {
 		setBulkUpdatePackageIds([]);
-		packagesResult.refetch();
-		detailsResult.refetch();
-		repositoriesInfo.refetch();
+		try {
+			setManualRefething(true);
+			await environmentRefetchPackages();
+			packagesResult.refetch();
+			detailsResult.refetch();
+			repositoriesInfo.refetch();
+		} finally {
+			setManualRefething(false);
+		}
 	};
 
 	const onRefreshRepositories = () => {
@@ -497,7 +505,7 @@ function PageBody() {
 	};
 
 	const installingPackage = installStatus.status != "normal";
-	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage;
+	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage || manualRefetching;
 
 	function checkIfMigrationTo2022Recommended(data: TauriProjectDetails) {
 		if (data.unity == null) return false;

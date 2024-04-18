@@ -54,6 +54,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         environment_set_favorite_project,
         environment_get_project_sorting,
         environment_set_project_sorting,
+        environment_refetch_packages,
         environment_packages,
         environment_repositories_info,
         environment_hide_repository,
@@ -105,6 +106,7 @@ pub(crate) fn export_ts() {
             environment_set_favorite_project,
             environment_get_project_sorting,
             environment_set_project_sorting,
+            environment_refetch_packages,
             environment_packages,
             environment_repositories_info,
             environment_hide_repository,
@@ -157,7 +159,7 @@ macro_rules! with_environment {
         let state = &mut *state;
         let $environment = state
             .environment
-            .get_environment_mut(false, &state.io)
+            .get_environment_mut(UpdateRepositoryMode::None, &state.io)
             .await?;
         $(let $config = state.config.load(&state.io).await?;)?
         $body
@@ -367,6 +369,7 @@ struct EnvironmentHolder {
     environment: Option<Environment>,
     last_update: Option<tokio::time::Instant>,
     environment_version: Wrapping<u32>,
+    last_repository_update: Option<tokio::time::Instant>,
 }
 
 impl EnvironmentHolder {
@@ -375,12 +378,13 @@ impl EnvironmentHolder {
             environment: None,
             last_update: None,
             environment_version: Wrapping(0),
+            last_repository_update: None,
         }
     }
 
     async fn get_environment_mut(
         &mut self,
-        inc_version: bool,
+        update_repository: UpdateRepositoryMode,
         io: &DefaultEnvironmentIo,
     ) -> io::Result<&mut Environment> {
         if let Some(ref mut environment) = self.environment {
@@ -394,17 +398,57 @@ impl EnvironmentHolder {
                 environment.reload().await?;
                 self.last_update = Some(tokio::time::Instant::now());
             }
-            if inc_version {
-                self.environment_version += Wrapping(1);
+
+            // outdated after 5 min
+            const OUTDATED: tokio::time::Duration = tokio::time::Duration::from_secs(60 * 5);
+
+            match update_repository {
+                UpdateRepositoryMode::None => {}
+                UpdateRepositoryMode::Force => {
+                    self.last_repository_update = Some(tokio::time::Instant::now());
+                    self.environment_version += Wrapping(1);
+                    info!("loading package infos");
+                    environment.load_package_infos(true).await?;
+                }
+                UpdateRepositoryMode::IfOutdatedOrNecessary => {
+                    if self
+                        .last_repository_update
+                        .map(|x| x.elapsed() > OUTDATED)
+                        .unwrap_or(true)
+                    {
+                        self.last_repository_update = Some(tokio::time::Instant::now());
+                        self.environment_version += Wrapping(1);
+                        info!("loading package infos");
+                        environment.load_package_infos(true).await?;
+                    }
+                }
             }
+
             Ok(environment)
         } else {
             self.environment = Some(new_environment(io).await?);
             self.last_update = Some(tokio::time::Instant::now());
-            self.environment_version += Wrapping(1);
-            Ok(self.environment.as_mut().unwrap())
+            let environment = self.environment.as_mut().unwrap();
+
+            match update_repository {
+                UpdateRepositoryMode::None => {}
+                UpdateRepositoryMode::Force | UpdateRepositoryMode::IfOutdatedOrNecessary => {
+                    self.last_repository_update = Some(tokio::time::Instant::now());
+                    self.environment_version += Wrapping(1);
+                    info!("loading package infos");
+                    environment.load_package_infos(true).await?;
+                }
+            }
+
+            Ok(environment)
         }
     }
+}
+
+enum UpdateRepositoryMode {
+    None,
+    Force,
+    IfOutdatedOrNecessary,
 }
 
 struct ChangesInfoHolder {
@@ -561,7 +605,7 @@ async fn environment_projects(
     let state = &mut *state;
     let environment = state
         .environment
-        .get_environment_mut(false, &state.io)
+        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
         .await?;
 
     info!("migrating projects from settings.json");
@@ -657,7 +701,7 @@ async fn environment_remove_project(
     let project = &state.projects[index];
     let environment = state
         .environment
-        .get_environment_mut(false, &state.io)
+        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
         .await?;
     environment.remove_project(project)?;
     environment.save().await?;
@@ -807,7 +851,7 @@ async fn environment_set_favorite_project(
     project.set_favorite(favorite);
     let environment = state
         .environment
-        .get_environment_mut(false, &state.io)
+        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
         .await?;
     environment.update_project(project)?;
     environment.save().await?;
@@ -934,6 +978,21 @@ impl TauriPackage {
 
 #[tauri::command]
 #[specta::specta]
+async fn environment_refetch_packages(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<(), RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    env_state
+        .environment
+        .get_environment_mut(UpdateRepositoryMode::Force, &env_state.io)
+        .await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 async fn environment_packages(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<Vec<TauriPackage>, RustError> {
@@ -941,11 +1000,8 @@ async fn environment_packages(
     let env_state = &mut *env_state;
     let environment = env_state
         .environment
-        .get_environment_mut(true, &env_state.io)
+        .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
         .await?;
-
-    info!("loading package infos");
-    environment.load_package_infos(true).await?;
 
     let packages = environment
         .get_all_packages()
@@ -1788,12 +1844,8 @@ async fn environment_create_project(
         let env_state = &mut *env_state;
         let environment = env_state
             .environment
-            .get_environment_mut(true, &env_state.io)
+            .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
             .await?;
-
-        info!("loading package infos");
-        environment.load_package_infos(true).await?;
-        environment.save().await?;
 
         let mut unity_project = load_project(path_str.into()).await?;
 
@@ -1951,7 +2003,7 @@ macro_rules! changes {
         }
         )?
 
-        let $environment = state.environment.get_environment_mut(false, &state.io).await?;
+        let $environment = state.environment.get_environment_mut(UpdateRepositoryMode::None, &state.io).await?;
         let $packages = unsafe { &*state.packages.unwrap().as_mut() };
         let changes = $body;
 
@@ -2123,7 +2175,7 @@ async fn project_apply_pending_changes(
 
     let environment = env_state
         .environment
-        .get_environment_mut(false, &env_state.io)
+        .get_environment_mut(UpdateRepositoryMode::None, &env_state.io)
         .await?;
 
     let mut unity_project = load_project(project_path).await?;
@@ -2297,11 +2349,8 @@ async fn project_migrate_project_to_vpm(
     let env_state = &mut *env_state;
     let environment = env_state
         .environment
-        .get_environment_mut(true, &env_state.io)
+        .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
         .await?;
-
-    info!("loading package infos");
-    environment.load_package_infos(true).await?;
 
     let mut unity_project = load_project(project_path).await?;
 
