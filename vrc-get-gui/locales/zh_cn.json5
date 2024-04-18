@@ -112,7 +112,7 @@
     "you're applying the following changes to the project": "您正在对项目进行以下更改",
     "see changelog": "查看更新日志",
     "apply changes": "应用更改",
-    "install <b>{{name}}</b> version {{version}}": "安装 <b>{{name}</b> 版本 {{version}}",
+    "install <b>{{name}}</b> version {{version}}": "安装 <b>{{name}}</b> 版本 {{version}}",
     "remove <b>{{name}}</b> since you requested": "根据您的要求，删除 <b>{{name}}</b>",
     "remove <b>{{name}}</b> since it's a legacy package": "删除 <b>{{name}}</b>，因为它是一个旧版软件包",
     "remove <b>{{name}}</b> since it's not used": "删除 <b>{{name}}</b> 因为它未被使用",
