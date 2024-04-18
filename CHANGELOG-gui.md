@@ -27,9 +27,9 @@ The format is based on [Keep a Changelog].
 - Preserve if fullscreen [`#801`](https://github.com/vrc-get/vrc-get/pull/801)
 
 ### Fixed
-- bad behaviors with minimizing the window [`#798`](https://github.com/vrc-get/vrc-get/pull/798)
-- error if backup folder is not exists [`#799`](https://github.com/vrc-get/vrc-get/pull/799)
-- unable to control if error occurs while backup is in progress [`#799`](https://github.com/vrc-get/vrc-get/pull/799)
+- Bad behaviors with minimizing the window [`#798`](https://github.com/vrc-get/vrc-get/pull/798)
+- Error if backup folder does not exist [`#799`](https://github.com/vrc-get/vrc-get/pull/799)
+- Unable to control if error occurs while backup is in progress [`#799`](https://github.com/vrc-get/vrc-get/pull/799)
 
 ## [0.1.0-beta.21] - 2024-04-16
 ### Added
