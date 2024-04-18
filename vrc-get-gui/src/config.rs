@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuiConfig {
     #[serde(default)]
@@ -15,6 +15,8 @@ pub struct GuiConfig {
     pub hide_local_user_packages: bool,
     #[serde(default)]
     pub window_size: WindowSize,
+    #[serde(default)]
+    pub fullscreen: bool,
     #[serde(default = "language_default")]
     pub language: String,
     #[serde(default = "backup_default")]
@@ -23,7 +25,47 @@ pub struct GuiConfig {
     pub project_sorting: String,
 }
 
+impl Default for GuiConfig {
+    fn default() -> Self {
+        GuiConfig {
+            gui_hidden_repositories: IndexSet::new(),
+            hide_local_user_packages: false,
+            window_size: WindowSize::default(),
+            fullscreen: false,
+            language: language_default(),
+            backup_format: backup_default(),
+            project_sorting: project_sorting_default(),
+        }
+    }
+}
+
+impl GuiConfig {
+    fn fix_defaults(&mut self) {
+        if self.language.is_empty() {
+            self.language = language_default();
+        }
+        if self.backup_format.is_empty() {
+            self.backup_format = backup_default();
+        }
+        if self.project_sorting.is_empty() {
+            self.project_sorting = project_sorting_default();
+        }
+    }
+}
+
 fn language_default() -> String {
+    for locale in sys_locale::get_locales() {
+        if locale.starts_with("en") {
+            return "en".to_string();
+        }
+        if locale.starts_with("ja") {
+            return "ja".to_string();
+        }
+        if locale.starts_with("zh") {
+            return "zh_cn".to_string();
+        }
+    }
+
     "en".to_string()
 }
 
@@ -97,7 +139,9 @@ impl GuiConfigHolder {
                 Ok(mut file) => {
                     let mut buffer = Vec::new();
                     file.read_to_end(&mut buffer).await?;
-                    serde_json::from_slice(&buffer)?
+                    let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
+                    loaded.fix_defaults();
+                    loaded
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => GuiConfig::default(),
                 Err(e) => return Err(e),

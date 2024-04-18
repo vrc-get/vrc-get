@@ -30,6 +30,17 @@ fn main() {
     commands::export_ts();
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            log::info!("single instance remote procedure, {argv:?}, {cwd}");
+            if let Some(window) = app.get_window("main") {
+                if let Err(e) = window.unminimize() {
+                    log::error!("error while unminimize: {}", e);
+                }
+                if let Err(e) = window.set_focus() {
+                    log::error!("error while setting focus: {}", e);
+                }
+            }
+        }))
         .invoke_handler(commands::handlers())
         .setup(move |app| {
             app.manage(commands::new_env_state(io));

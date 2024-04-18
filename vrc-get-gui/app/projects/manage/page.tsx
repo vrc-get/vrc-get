@@ -31,6 +31,7 @@ import {
 	environmentCopyProjectForMigration,
 	environmentHideRepository,
 	environmentPackages,
+	environmentRefetchPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
 	environmentShowRepository,
@@ -58,12 +59,12 @@ import {VGOption, VGSelect} from "@/components/select";
 import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
-import {receiveLinesAndWaitForFinish} from "@/lib/migration-with-2022";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
+import {callAsyncCommand} from "@/lib/call-async-command";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -160,6 +161,7 @@ function PageBody() {
 	});
 
 	const [installStatus, setInstallStatus] = useState<InstallStatus>({status: "normal"});
+	const [manualRefetching, setManualRefething] = useState<boolean>(false);
 	const [search, setSearch] = useState("");
 	const [bulkUpdatePackageIds, setBulkUpdatePackageIds] = useState<[id: string, mode: PackageBulkUpdateMode][]>([]);
 	const bulkUpdateMode = useMemo(() => updateModeFromPackageModes(bulkUpdatePackageIds.map(([_, mode]) => mode)), [bulkUpdatePackageIds]);
@@ -199,11 +201,17 @@ function PageBody() {
 	// TODO: get installed unity versions and show them
 	const unityVersions: string[] = []
 
-	const onRefresh = () => {
+	const onRefresh = async () => {
 		setBulkUpdatePackageIds([]);
-		packagesResult.refetch();
-		detailsResult.refetch();
-		repositoriesInfo.refetch();
+		try {
+			setManualRefething(true);
+			await environmentRefetchPackages();
+			packagesResult.refetch();
+			detailsResult.refetch();
+			repositoriesInfo.refetch();
+		} finally {
+			setManualRefething(false);
+		}
 	};
 
 	const onRefreshRepositories = () => {
@@ -454,25 +462,29 @@ function PageBody() {
 			setInstallStatus({status: "unity2022migration:updating"});
 			await projectMigrateProjectTo2022(migrateProjectPath);
 			setInstallStatus({status: "unity2022migration:finalizing", lines: []});
-			const finalizeResult = await projectFinalizeMigrationWithUnity2022(migrateProjectPath);
+			let lineNumber = 0;
+			let [__, promise] = callAsyncCommand(projectFinalizeMigrationWithUnity2022, [migrateProjectPath], lineString => {
+				setInstallStatus(prev => {
+					if (prev.status != "unity2022migration:finalizing") return prev;
+					lineNumber++;
+					let line: [number, string] = [lineNumber, lineString];
+					if (prev.lines.length > 200) {
+						return {...prev, lines: [...prev.lines.slice(1), line]};
+					} else {
+						return {...prev, lines: [...prev.lines, line]};
+					}
+				})
+			});
+			const finalizeResult = await promise;
+			if (finalizeResult == 'cancelled') {
+				throw new Error("unexpectedly cancelled");
+			}
 			switch (finalizeResult.type) {
 				case "NoUnity2022Found":
 					toastError(tt("failed to finalize the migration: unity 2022 not found"));
 					break;
-				case "MigrationStarted":
-					let lineNumber = 0;
-					await receiveLinesAndWaitForFinish(finalizeResult.event_name, lineString => {
-						setInstallStatus(prev => {
-							if (prev.status != "unity2022migration:finalizing") return prev;
-							lineNumber++;
-							let line: [number, string] = [lineNumber, lineString];
-							if (prev.lines.length > 200) {
-								return {...prev, lines: [...prev.lines.slice(1), line]};
-							} else {
-								return {...prev, lines: [...prev.lines, line]};
-							}
-						})
-					});
+				case "ExistsWithNonZero":
+				case "FinishedSuccessfully":
 					toastSuccess(tt("the project is migrated to unity 2022"));
 					break;
 				default:
@@ -493,7 +505,7 @@ function PageBody() {
 	};
 
 	const installingPackage = installStatus.status != "normal";
-	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage;
+	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage || manualRefetching;
 
 	function checkIfMigrationTo2022Recommended(data: TauriProjectDetails) {
 		if (data.unity == null) return false;
@@ -544,31 +556,33 @@ function PageBody() {
 		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}
 												 onRemove={onRemoveProject} onBackup={onBackupProject}/>
-			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
+			<Card className={"flex-shrink-0 p-2 flex flex-row flex-wrap"}>
+				<Typography className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
 					{tc("located at: <code>{{path}}</code>",
 						{path: projectPath},
 						{
 							components: {code: <code className={"bg-gray-200 p-0.5 whitespace-pre"}/>}
 						})}
 				</Typography>
-				<div className={"flex-grow flex-shrink-0 w-2"}></div>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-					{tc("unity version: ")}
-				</Typography>
-				<div className={"flex-grow-0 flex-shrink-0"}>
-					<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
-						<span className={"text-blue-gray-300"}>Loading...</span>}
-										className="border-blue-gray-200">
-						{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-					</VGSelect>
+				<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>
+				<div className="flex-grow-0 flex-shrink-0 flex flex-row">
+					<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
+						{tc("unity version: ")}
+					</Typography>
+					<div className={"flex-grow-0 flex-shrink-0"}>
+						<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
+							<span className={"text-blue-gray-300"}>Loading...</span>}
+											className="border-blue-gray-200">
+							{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+						</VGSelect>
+					</div>
 				</div>
 			</Card>
 			{isMigrationTo2022Recommended &&
 				<SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
-					<div className={"flex flex-shrink-0 flex-grow-0 flex-row gap-2"}>
+					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
 						<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 							{tc("manage packages")}
 						</Typography>
@@ -591,7 +605,7 @@ function PageBody() {
 
 						<Menu>
 							<MenuHandler>
-								<IconButton variant={"text"}>
+								<IconButton variant={"text"} className={'flex-shrink-0'}>
 									<EllipsisHorizontalIcon className={"size-5"}/>
 								</IconButton>
 							</MenuHandler>

@@ -8,8 +8,6 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Simplified Chinese localisation `#765`
-  - Thank you [@lonelyicer](https://github.com/lonelyicer)!
 
 ### Changed
 
@@ -18,23 +16,47 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Window size is not preserved when the app is closed with command + q `#769`
-- panic with relative paths `#770`
-- Update last modified on open Unity not working `#775`
+- Impossible to control some portion if the window is narrow `#805`
 
 ### Security
+
+## [0.1.0] - 2024-04-18
+## [0.1.0-rc.0] - 2024-04-18
+### Changed
+- Reduced network load by reducing fetching remote repository [`#800`](https://github.com/vrc-get/vrc-get/pull/800)
+  - Remote repositories will not be fetched for 5 minutes after the last fetch.
+  - Please click the refresh button on the package page if you want to fetch the remote repository immediately.
+- Preserve if fullscreen [`#801`](https://github.com/vrc-get/vrc-get/pull/801)
+
+### Fixed
+- Bad behaviors with minimizing the window [`#798`](https://github.com/vrc-get/vrc-get/pull/798)
+- Error if backup folder does not exist [`#799`](https://github.com/vrc-get/vrc-get/pull/799)
+- Unable to control if error occurs while backup is in progress [`#799`](https://github.com/vrc-get/vrc-get/pull/799)
+
+## [0.1.0-beta.21] - 2024-04-16
+### Added
+- Simplified Chinese localization [`#765`](https://github.com/vrc-get/vrc-get/pull/765)
+  - Thank you [@lonelyicer](https://github.com/lonelyicer)!
+- Improved handling for unlocked packages [`#790`](https://github.com/vrc-get/vrc-get/pull/790)
+- locale detection [`#771`](https://github.com/vrc-get/vrc-get/pull/771)
+
+### Fixed
+- Window size is not preserved when the app is closed with command + Q in macOS [`#769`](https://github.com/vrc-get/vrc-get/pull/769)
+- Panic with relative paths [`#770`](https://github.com/vrc-get/vrc-get/pull/770)
+- Update last modified on open Unity not working [`#775`](https://github.com/vrc-get/vrc-get/pull/775)
+- Multiple instances can be launched [`#791`](https://github.com/vrc-get/vrc-get/pull/791)
 
 ## [0.1.0-beta.20] - 2024-04-13
 ### Added
 - Check for update button on the settings page [`#762`](https://github.com/vrc-get/vrc-get/pull/762)
 - Click version name to copy version name [`#761`](https://github.com/vrc-get/vrc-get/pull/761)
-- Bulk uppgrade, install, and remove packages [`#752`](https://github.com/vrc-get/vrc-get/pull/752)
+- Bulk upgrade, install, and remove packages [`#752`](https://github.com/vrc-get/vrc-get/pull/752)
 
 ### Changed
 - Relax validation for `package.json` for local user packages [`#750`](https://github.com/vrc-get/vrc-get/pull/750)
 - Use star instead of check on the favorite row in the project list [`#755`](https://github.com/vrc-get/vrc-get/pull/755)
 - Moved the `Upgrade All` button to front [`#757`](https://github.com/vrc-get/vrc-get/pull/757)
-- Renamed the Application to ALCOM [`#760`](https://github.com/vrc-get/vrc-get/pull/760)
+- Renamed the application to ALCOM [`#760`](https://github.com/vrc-get/vrc-get/pull/760)
 
 ## [0.1.0-beta.19] - 2024-04-07
 ### Added
@@ -206,7 +228,10 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.20...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0...HEAD
+[0.1.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-rc.0...gui-v0.1.0
+[0.1.0-rc.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.21...gui-v0.1.0-rc.0
+[0.1.0-beta.21]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.20...gui-v0.1.0-beta.21
 [0.1.0-beta.20]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.19...gui-v0.1.0-beta.20
 [0.1.0-beta.19]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.18...gui-v0.1.0-beta.19
 [0.1.0-beta.18]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.17...gui-v0.1.0-beta.18
