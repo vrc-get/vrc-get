@@ -556,31 +556,33 @@ function PageBody() {
 		<VStack className={"m-4"}>
 			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}
 												 onRemove={onRemoveProject} onBackup={onBackupProject}/>
-			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
+			<Card className={"flex-shrink-0 p-2 flex flex-row flex-wrap"}>
+				<Typography className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
 					{tc("located at: <code>{{path}}</code>",
 						{path: projectPath},
 						{
 							components: {code: <code className={"bg-gray-200 p-0.5 whitespace-pre"}/>}
 						})}
 				</Typography>
-				<div className={"flex-grow flex-shrink-0 w-2"}></div>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-					{tc("unity version: ")}
-				</Typography>
-				<div className={"flex-grow-0 flex-shrink-0"}>
-					<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
-						<span className={"text-blue-gray-300"}>Loading...</span>}
-										className="border-blue-gray-200">
-						{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-					</VGSelect>
+				<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>
+				<div className="flex-grow-0 flex-shrink-0 flex flex-row">
+					<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
+						{tc("unity version: ")}
+					</Typography>
+					<div className={"flex-grow-0 flex-shrink-0"}>
+						<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
+							<span className={"text-blue-gray-300"}>Loading...</span>}
+											className="border-blue-gray-200">
+							{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+						</VGSelect>
+					</div>
 				</div>
 			</Card>
 			{isMigrationTo2022Recommended &&
 				<SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
-					<div className={"flex flex-shrink-0 flex-grow-0 flex-row gap-2"}>
+					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
 						<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 							{tc("manage packages")}
 						</Typography>
@@ -603,7 +605,7 @@ function PageBody() {
 
 						<Menu>
 							<MenuHandler>
-								<IconButton variant={"text"}>
+								<IconButton variant={"text"} className={'flex-shrink-0'}>
 									<EllipsisHorizontalIcon className={"size-5"}/>
 								</IconButton>
 							</MenuHandler>
