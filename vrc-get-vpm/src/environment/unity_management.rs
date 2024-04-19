@@ -114,8 +114,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                     let home = std::env::var("HOME").expect("HOME not set");
                     format!("{}/Applications/Unity Hub.AppImage", home)
                 };
-                static ref INSTALLATIONS: [&'static str; 2] =
-                    [&USER_INSTALLATION, "/usr/bin/unity-hub"];
+                static ref INSTALLATIONS: [&'static str; 3] =
+                    [&USER_INSTALLATION, "/usr/bin/unity-hub", "/opt/unityhub/unityhub"];
             }
 
             INSTALLATIONS.as_ref()
