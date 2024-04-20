@@ -23,6 +23,7 @@ import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
 import { loadOSApi } from "@/lib/os";
+import Table from "@/components/Table";
 
 export default function Page() {
 	const result = useQuery({
@@ -228,9 +229,16 @@ function Settings(
 					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("add unity")}</Button>
 				</HSectionRow>
 				<HSectionRow>
-					<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
-						<UnityTable unityPaths={settings.unity_paths}/>
-					</Card>
+					<Table
+						className="w-full min-h-[20vh] max-h-[30vh] overflow-y-auto"
+						layout={["auto", "2fr", "auto"]}
+						header={[tc("settings:unity:version"), tc("settings:unity:path"), tc("general:source")]}
+						rows={settings.unity_paths.map((path) => ([
+							path[1],
+							path[0],
+							path[2] ? tc("settings:unity hub") : tc("settings:unity:source:manual")
+						]))}
+					/>
 				</HSectionRow>
 			</HSection>
 			<HSection>
@@ -285,10 +293,10 @@ function Settings(
 			</HSection>
 			<HSection>
 				<HSectionTitle>
-					{tc("language")}
+					{tc("settings:language")}
 				</HSectionTitle>
 				<HSectionRow>
-					<VGSelect value={tc("langName")} onChange={changeLanguage} menuClassName={"w-96"}>
+					<VGSelect value={tc("settings:langName")} onChange={changeLanguage} menuClassName={"w-96"}>
 						{
 							languages.map((lang) => (
 								<VGOption key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</VGOption>
@@ -328,42 +336,5 @@ function Settings(
 			{projectDefaultDialog}
 			{projectBackupDialog}
 		</>
-	)
-}
-
-function UnityTable(
-	{
-		unityPaths,
-	}: {
-		unityPaths: [path: string, version: string, fromHub: boolean][]
-	}
-) {
-	const UNITY_TABLE_HEAD = ["settings:unity:version", "settings:unity:path", "general:source"];
-	return (
-		<table className="relative table-auto text-left">
-			<thead>
-			<tr>
-				{UNITY_TABLE_HEAD.map((head, index) => (
-					<th key={index}
-							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
-					</th>
-				))}
-			</tr>
-			</thead>
-			<tbody>
-			{
-				unityPaths.map(([path, version, isFromHub]) => (
-					<tr key={path}>
-						<td className={"p-2.5"}>{version}</td>
-						<td className={"p-2.5"}>{path}</td>
-						<td className={"p-2.5"}>
-							{isFromHub ? tc("settings:unity hub") : tc("settings:unity:source:manual")}
-						</td>
-					</tr>
-				))
-			}
-			</tbody>
-		</table>
 	)
 }
