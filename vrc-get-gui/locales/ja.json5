@@ -76,7 +76,6 @@
     "installed {{name}} version {{version}}": "{{name}} バージョン {{version}} をインストールしました。",
     "removed {{name}}": "{{name}} をアンインストールしました。",
     "upgraded all packages": "すべてのパッケージを更新しました。",
-    "applied changes in bulk": "パッケージの一括変更を適用しました。",
     "migrate project": "プロジェクトを移行",
     "failed to migrate project: unity 2022 not found": "プロジェクト移行に失敗しました: Unity 2022がありません",
     "failed to finalize the migration: unity 2022 not found": "プロジェクト移行の完了処理を行えませんでした: Unity 2022がありません",

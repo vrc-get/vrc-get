@@ -82,7 +82,6 @@
     "installed {{name}} version {{version}}": "已安装 {{name}} 版本 {{version}}",
     "removed {{name}}": "已删除 {{name}}",
     "upgraded all packages": "升级所有软件包",
-    "applied changes in bulk": "批量应用变化。",
     "migrate project": "迁移项目",
     "failed to migrate project: unity 2022 not found": "迁移项目失败： 未找到 Unity 2022",
     "failed to finalize the migration: unity 2022 not found": "未能完成迁移： 未找到 Unity 2022",
