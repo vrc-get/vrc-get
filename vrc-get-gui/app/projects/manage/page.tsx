@@ -78,6 +78,8 @@ type RequestedOperation = {
 } | {
 	type: "remove";
 	pkgId: string;
+} | {
+	type: "appliedBulkChanges"
 }
 
 type InstallStatus = {
@@ -353,7 +355,7 @@ function PageBody() {
 				return;
 			}
 			const changes = await projectInstallMultiplePackage(projectPath, envVersion, packages);
-			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "appliedBulkChanges"}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
@@ -365,7 +367,7 @@ function PageBody() {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			const changes = await projectRemovePackages(projectPath, bulkUpdatePackageIds.map(([id, mode]) => id));
-			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "appliedBulkChanges"}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
@@ -411,6 +413,9 @@ function PageBody() {
 					break;
 				case "upgradeAll":
 					toastSuccess(tt("upgraded all packages"));
+					break;
+				case "appliedBulkChanges":
+					toastSuccess(tt("applied changes in bulk"));
 					break;
 				default:
 					let _: never = requested;

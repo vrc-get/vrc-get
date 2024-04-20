@@ -82,6 +82,7 @@
     "installed {{name}} version {{version}}": "Installed {{name}} version {{version}}",
     "removed {{name}}": "Removed {{name}}",
     "upgraded all packages": "Upgraded all packages",
+    "applied changes in bulk": "Applied changes in bulk",
     "migrate project": "Migrate Project",
     "failed to migrate project: unity 2022 not found": "Failed to migrate project: Unity 2022 not found",
     "failed to finalize the migration: unity 2022 not found": "Failed to finalize the migration: Unity 2022 not found",
