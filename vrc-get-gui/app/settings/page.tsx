@@ -21,7 +21,7 @@ import i18next, {languages, tc, tt} from "@/lib/i18n";
 import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
-import { open } from '@tauri-apps/api/shell';
+import { open as shellOpen } from '@tauri-apps/api/shell';
 import {type as osType, platform as osPlatform, version as osVersion, arch as osArch} from '@tauri-apps/api/os';
 
 export default function Page() {
@@ -202,7 +202,7 @@ function Settings(
 		url.searchParams.append("version", appVersion)
 		url.searchParams.append("version", appVersion)
 
-		open(url.toString())
+		shellOpen(url.toString())
 	}
 
 
