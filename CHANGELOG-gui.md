@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Impossible to control some portion if the window is narrow `#805`
+- Reorder Sidebar menu for clearer organization `#820`
 
 ### Security
 
