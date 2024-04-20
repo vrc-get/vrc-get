@@ -9,8 +9,6 @@ import {utilGetVersion} from "@/lib/bindings";
 import {useTranslation} from "react-i18next";
 import {useRouter} from "next/navigation";
 import {toastNormal} from "@/lib/toast";
-import i18next, { tc } from "@/lib/i18n";
-import { open } from '@tauri-apps/api/shell';
 
 export function SideBar({className}: { className?: string }) {
 	"use client"
@@ -35,12 +33,6 @@ export function SideBar({className}: { className?: string }) {
 		}
 	};
 
-	const reportIssue = () => {
-		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new?assignees=&labels=bug%2Cvrc-get-gui&projects=vrc-get%2F1&template=01_gui_bug-report.yml")
-
-		open(url.toString())
-	}
-
 	return (
 		<Card
 			className={`${className} w-auto max-w-[20rem] p-2 shadow-xl shadow-blue-gray-900/5 ml-4 my-4 shrink-0`}>
@@ -51,7 +43,6 @@ export function SideBar({className}: { className?: string }) {
 				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
 				<div className={'flex-grow'}/>
 				<ListItem className={"text-sm"} onClick={copyVersionName}>v{currentVersion}</ListItem>
-				<ListItem className={"text-sm"} onClick={reportIssue}>{tc("report an issue")}</ListItem>
 			</List>
 		</Card>
 	);

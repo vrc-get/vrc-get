@@ -11,7 +11,8 @@ import {
 	environmentPickUnityHub, environmentSetBackupFormat,
 	environmentSetLanguage,
 	environmentSetShowPrereleasePackages,
-	TauriEnvironmentSettings
+	TauriEnvironmentSettings,
+	utilGetVersion,
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
 import React from "react";
@@ -20,6 +21,8 @@ import i18next, {languages, tc, tt} from "@/lib/i18n";
 import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
+import { open } from '@tauri-apps/api/shell';
+import {type as osType, platform as osPlatform, version as osVersion, arch as osArch} from '@tauri-apps/api/os';
 
 export default function Page() {
 	const result = useQuery({
@@ -190,6 +193,19 @@ function Settings(
 		])
 	};
 
+	const reportIssue = async () => {
+		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
+		url.searchParams.append("labels", "bug,vrc-get-gui")
+		url.searchParams.append("template", "01_gui_bug-report.yml")
+		url.searchParams.append("os", `${await osType()} - ${await osPlatform()} - ${await osVersion()} - ${await osArch()}`)
+		const appVersion = await utilGetVersion();
+		url.searchParams.append("version", appVersion)
+		url.searchParams.append("version", appVersion)
+
+		open(url.toString())
+	}
+
+
 	return (
 		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
 			<Card className={"flex-shrink-0 p-4"}>
@@ -277,6 +293,12 @@ function Settings(
 				<h2>{tc("check for updates")}</h2>
 				<div>
 					<Button onClick={() => emit("tauri://update")}>{tc("check for updates")}</Button>
+				</div>
+			</Card>
+			<Card className={"flex-shrink-0 p-4"}>
+				<h2>{tc("report an issue")}</h2>
+				<div>
+				<Button onClick={reportIssue}>{tc("open an issue")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
