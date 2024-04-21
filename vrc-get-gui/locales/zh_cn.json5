@@ -188,7 +188,7 @@
     "show prerelease packages": "显示预发布软件包",
     "unity version": "Unity 版本",
     "unity path": "Unity 路径",
-    "manual": "手动",
+    "manual": "手动安装",
     "{{name}} is not supported yet": "{{name}} 尚未支持",
     "we couldn't detect suitable unity installations": "我们无法检测到合适的已安装的 Unity ",
     "no matching unity version found. please install or add a unity version in the alcom settings": "未找到匹配的 Unity 版本。请在 ALCOM 设置中安装或添加 Unity 版本",
