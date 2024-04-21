@@ -26,14 +26,14 @@ import {
 	TauriRemoteRepositoryInfo,
 	TauriUserRepository
 } from "@/lib/bindings";
-import {HNavBar, VStack} from "@/components/layout";
+import {HContent, HNavBar, HSection, VStack} from "@/components/layout";
 import React, {Suspense, useMemo, useState} from "react";
 import {MinusCircleIcon, PlusCircleIcon, XCircleIcon} from "@heroicons/react/24/outline";
 import {nop} from "@/lib/nop";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
 import {InputNoLabel} from "@/components/InputNoLabel";
-import {loadManifestWithRetries} from "next/dist/server/load-components";
+import Table from "@/components/Table";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -143,25 +143,85 @@ function PageBody() {
 	const dialog = dialogBody ?
 		<Dialog handler={nop} open><DialogHeader>{tc("vpm repositories:button:add repository")}</DialogHeader>{dialogBody}</Dialog> : null;
 
+	const [removeDialogOpen, setRemoveDialogOpen] = useState("");
+
+
 	return (
 		<VStack className={"p-4 overflow-y-auto"}>
 			<HNavBar className={"flex-shrink-0"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				<Typography variant="h4" className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("vpm repositories:community repositories")}
 				</Typography>
 				<Button onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("vpm repositories:button:add repository")}</Button>
 			</HNavBar>
-			<main className="flex-shrink flex-grow overflow-hidden flex">
-				<Card className="w-full overflow-x-auto overflow-y-scroll shadow-none">
-					<RepositoryTable
-						userRepos={result.data?.user_repositories || []}
-						hiddenUserRepos={hiddenUserRepos}
-						removeRepository={removeRepository}
-						refetch={() => result.refetch()}
+			<HContent>
+				<HSection>
+					<Table
+						header={["", tc("vpm repositories:community repositories"), tc("vpm repositories:url"), ""]}
+						layout={["auto", "1fr", "1fr", "auto"]}
+						rows={(result.data?.user_repositories ?? []).map((repo, repoIndex) => {
+							const id = `repository-${repo.id}`;
+											
+							const selected = !hiddenUserRepos.has(repo.id);
+							const onChange = () => {
+								if (selected) {
+									environmentHideRepository(repo.id).then(() => result.refetch());
+								} else {
+									environmentShowRepository(repo.id).then(() => result.refetch());
+								}
+							}
+
+							let localDialog
+							if (removeDialogOpen === repo.id) {
+								localDialog = <Dialog handler={nop} open>
+									<DialogHeader>{tc("remove repository")}</DialogHeader>
+									<DialogBody>
+										<Typography
+											className={"whitespace-normal font-normal"}>{tc("do you want to remove the repository <b>{{name}}</b>?", {name: repo.display_name})}</Typography>
+									</DialogBody>
+									<DialogFooter>
+										<Button onClick={() => setRemoveDialogOpen("")}>{tc("cancel")}</Button>
+										<Button onClick={() => {
+											removeRepository(repo.id)
+											setRemoveDialogOpen("");
+										}} className={"ml-2"}>{tc("remove repository")}</Button>
+									</DialogFooter>
+								</Dialog>;
+							}
+						
+						
+							return [
+								(<Checkbox
+									key={`checkbox-${repoIndex}`}
+									ripple={false}
+									containerProps={{className: "p-0 rounded-none"}}
+									id={id}
+									checked={selected}
+									onChange={onChange}
+								/>),
+								(<Typography
+									key={`display-${repoIndex}`}
+								>
+									{repo.display_name}
+								</Typography>),
+								(<Typography key={`url-${repoIndex}`} className="font-normal">
+									{repo.url}
+								</Typography>),
+								(<>
+								<Tooltip key={`remove-${repoIndex}`} content={tc("remove repository")}>
+									<IconButton variant={"text"} onClick={() =>setRemoveDialogOpen(repo.id)}>
+										<XCircleIcon className={"size-5 text-red-700"}/>
+									</IconButton>
+								</Tooltip>
+								{localDialog}
+								</>
+								)
+							]
+						})}
 					/>
 					{dialog}
-				</Card>
-			</main>
+				</HSection>
+			</HContent>
 		</VStack>
 	);
 }

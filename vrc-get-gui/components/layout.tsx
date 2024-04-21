@@ -21,7 +21,7 @@ export function HNavBar({className, children}: { className?: string, children: R
 	)
 }
 
-export function HContent({className, children}: { className?: string, children: React.ReactNode }) {
+export function HContent({className, children}: { className?: string, children?: React.ReactNode }) {
 	return (
 	<div className={"flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow " + className}>
 		{children}
@@ -29,7 +29,7 @@ export function HContent({className, children}: { className?: string, children: 
 	)
 }
 
-export function HSection({className, children}: { className?: string, children: React.ReactNode }) {
+export function HSection({className, children}: { className?: string, children?: React.ReactNode }) {
 	return (
 		<Card className={"p-4 flex flex-col gap-2 " + className}>
 			{children}
@@ -37,7 +37,7 @@ export function HSection({className, children}: { className?: string, children: 
 	)
 }
 
-export function HSectionRow({className, children}: { className?: string, children: React.ReactNode }) {
+export function HSectionRow({className, children}: { className?: string, children?: React.ReactNode }) {
 	return (
 		<div className={"flex gap-1 items-center " + className}>
 			{children}
@@ -45,19 +45,19 @@ export function HSectionRow({className, children}: { className?: string, childre
 	)
 }
 
-export function HSectionTitle({className, children}: { className?: string, children: React.ReactNode }) {
+export function HSectionTitle({className, children}: { className?: string, children?: React.ReactNode }) {
 	return (
 		<Typography variant="h4" className={"block " + className}>{children}</Typography>
 	)
 }
 
-export function HSectionSubTitle({className, children}: { className?: string, children: React.ReactNode }) {
+export function HSectionSubTitle({className, children}: { className?: string, children?: React.ReactNode }) {
 	return (
 		<Typography variant="h5" className={"block font-normal " + className}>{children}</Typography>
 	)
 }
 
-export function HSectionText({className, children}: { className?: string, children: React.ReactNode }) {
+export function HSectionText({className, children}: { className?: string, children?: React.ReactNode }) {
 	return (
 		<Typography variant="paragraph" className={"block text-wrap " + className}>{children}</Typography>
 	)
