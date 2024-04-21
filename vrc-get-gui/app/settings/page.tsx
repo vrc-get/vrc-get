@@ -213,7 +213,7 @@ function Settings(
 	return (
 		<>
 			<HSection>
-				<HSectionTitle>{tc("unity hub")}</HSectionTitle>
+				<HSectionTitle>{tc("settings:unity hub")}</HSectionTitle>
 				<HSectionRow>
 						{
 							settings.unity_hub
@@ -225,7 +225,7 @@ function Settings(
 			</HSection>
 			<HSection>
 				<HSectionRow>
-					<HSectionTitle className="flex-grow">{tc("unity installations")}</HSectionTitle>
+					<HSectionTitle className="flex-grow">{tc("settings:unity installations")}</HSectionTitle>
 					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("add unity")}</Button>
 				</HSectionRow>
 				<HSectionRow>
@@ -233,17 +233,17 @@ function Settings(
 						className="w-full min-h-[20vh] max-h-[30vh] overflow-y-auto"
 						layout={["auto", "2fr", "auto"]}
 						header={[tc("settings:unity:version"), tc("settings:unity:path"), tc("general:source")]}
-						rows={settings.unity_paths.map((path) => ([
-							path[1],
-							path[0],
-							path[2] ? tc("settings:unity hub") : tc("settings:unity:source:manual")
+						rows={settings.unity_paths.map((path, pathIndex) => ([
+							(<Typography key={`version-${pathIndex}`} variant="paragraph" className="text-ellipsis">{path[1]}</Typography>),
+							(<Typography key={`path-${pathIndex}`} variant="paragraph" className="text-ellipsis">{path[0]}</Typography>),
+							(<Typography key={`source-${pathIndex}`} variant="paragraph" className="text-ellipsis">{path[2] ? tc("settings:unity hub") : tc("settings:unity:source:manual")}</Typography>),
 						]))}
 					/>
 				</HSectionRow>
 			</HSection>
 			<HSection>
 				<HSectionTitle>
-					{tc("default project path")}
+					{tc("settings:default project path")}
 				</HSectionTitle>
 				<HSectionSubTitle>
 					{tc("the default project path is the directory where new projects are created in.")}

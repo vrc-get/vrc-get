@@ -47,13 +47,13 @@ export function HSectionRow({className, children}: { className?: string, childre
 
 export function HSectionTitle({className, children}: { className?: string, children: React.ReactNode }) {
 	return (
-		<Typography variant="h4" className={"block text-wrap " + className}>{children}</Typography>
+		<Typography variant="h4" className={"block " + className}>{children}</Typography>
 	)
 }
 
 export function HSectionSubTitle({className, children}: { className?: string, children: React.ReactNode }) {
 	return (
-		<Typography variant="h5" className={"block font-normal text-wrap " + className}>{children}</Typography>
+		<Typography variant="h5" className={"block font-normal " + className}>{children}</Typography>
 	)
 }
 
