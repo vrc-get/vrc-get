@@ -22,7 +22,7 @@ import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
-import {type as osType, platform as osPlatform, version as osVersion, arch as osArch} from '@tauri-apps/api/os';
+import { loadOSApi } from "@/lib/os";
 
 export default function Page() {
 	const result = useQuery({
@@ -197,7 +197,8 @@ function Settings(
 		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
 		url.searchParams.append("labels", "bug,vrc-get-gui")
 		url.searchParams.append("template", "01_gui_bug-report.yml")
-		url.searchParams.append("os", `${await osType()} - ${await osPlatform()} - ${await osVersion()} - ${await osArch()}`)
+		const osApi = await loadOSApi();
+		url.searchParams.append("os", `${await osApi.type()} - ${await osApi.platform()} - ${await osApi.version()} - ${await osApi.arch()}`)
 		const appVersion = await utilGetVersion();
 		url.searchParams.append("version", appVersion)
 		url.searchParams.append("version", appVersion)
