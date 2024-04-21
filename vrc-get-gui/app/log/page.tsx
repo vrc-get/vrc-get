@@ -64,6 +64,26 @@ export default function Page() {
 }
 
 function logEntryToText(entry: LogEntry) {
-	return `${entry.time} [${entry.level.padStart(5, ' ')}] ${entry.target}: ${entry.message}`;
+	const level = entry.level
+	let levelClassName;
+	switch(level){
+		case "Debug":
+			levelClassName = "bg-blue-600"
+			break
+		case "Info":
+			levelClassName = "bg-green-600"
+			break
+		case "Warn":
+			levelClassName = "bg-orange-600"
+			break
+		case "Error":
+			levelClassName = "bg-red-600"
+			break
+		default:
+			levelClassName = "bg-inherit"
+	}
+
+	// Using a blank character to get space within a span component
+	return (<><span className={`mr-1 ${levelClassName}`}>⠀</span>{entry.time} [{level}] {entry.target}: {entry.message}</>)
 }
 
