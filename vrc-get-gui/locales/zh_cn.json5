@@ -46,7 +46,7 @@
     "remove the directory": "删除目录",
     "removing the project...": "删除项目中...",
     "project removed successfully": "项目删除成功",
-    "vpm migration": "VPM 迁移",
+    "vpm migration": "迁移旧版项目",
     "project migration is experimental in vrc-get.": "在 vrc-get 中，项目迁移是试验性的。",
     "please make backup of your project before migration.": "请在迁移前备份您的项目。",
     "migrate a copy": "迁移副本",
