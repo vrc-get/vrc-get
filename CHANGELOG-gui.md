@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Impossible to control some portion if the window is narrow `#805`
+- Added dedicated messages for bulk actions in manage packages page `#819`
 
 ### Security
 
