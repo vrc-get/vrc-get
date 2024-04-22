@@ -14,4 +14,4 @@ readme.workspace = true
 chrono = { version = "0.4.38", default-features = false, features = ["now", "serde"] }
 indexmap = { version = "2.2.6", features = ["serde"] }
 serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.115"
+serde_json = "1.0.116"
