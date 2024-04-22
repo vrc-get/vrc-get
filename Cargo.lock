@@ -620,9 +620,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.37"
+version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a0d04d43504c61aa6c7531f1871dd0d418d91130162063b789da00fd7057a5e"
+checksum = "a21f936df1771bf62b77f047b726c4625ff2e8aa607c01ec06e5a05bd8463401"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -3412,9 +3412,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.3"
+version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e6cc1e89e689536eb5aeede61520e874df5a4707df811cd5da4aa5fbb2aae19"
+checksum = "566cafdd92868e0939d3fb961bd0dc25fcfaaed179291093b3d43e6b3150ea10"
 dependencies = [
  "base64 0.22.0",
  "bytes",
@@ -4936,7 +4936,7 @@ dependencies = [
  "indexmap 2.2.6",
  "itertools 0.12.1",
  "log",
- "reqwest 0.12.3",
+ "reqwest 0.12.4",
  "serde",
  "serde_json",
  "tokio",
@@ -4957,7 +4957,7 @@ dependencies = [
  "indexmap 2.2.6",
  "log",
  "open 5.1.2",
- "reqwest 0.12.3",
+ "reqwest 0.12.4",
  "ringbuffer",
  "serde",
  "serde_json",
@@ -5014,7 +5014,7 @@ dependencies = [
  "lazy_static",
  "log",
  "pin-project-lite",
- "reqwest 0.12.3",
+ "reqwest 0.12.4",
  "serde",
  "serde_json",
  "serde_path_to_error",
