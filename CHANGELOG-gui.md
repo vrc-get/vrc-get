@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 - `/opt/unityhub/unityhub` to the unity hub search path `#812`
   - The path is the default path for official apt distribution
+- Issue Report button feature in Settings `#821`
 
 ### Changed
 

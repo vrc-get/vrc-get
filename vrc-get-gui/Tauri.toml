@@ -11,6 +11,7 @@ productName = "ALCOM"
 
 [tauri.allowlist]
 shell = { open = "^(https?://\\w+).+" }
+os.all = true
 
 [tauri.security]
 # csp =
