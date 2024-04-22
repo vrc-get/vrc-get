@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Impossible to control some portion if the window is narrow `#805`
+- Background is black if dark mode `#811`
+  - Plaease wait a while for the dark mode support
 
 ### Security
 
