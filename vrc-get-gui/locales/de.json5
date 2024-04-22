@@ -185,7 +185,7 @@
     "backup_format:zip-store": "Unkomprimierte zip (Schnell)",
     "backup_format:zip-fast": "Leicht komprimierte zip (Langsam)",
     "backup_format:zip-best": "Stark komprimierte zip (Am langsamsten)",
-    "description for show prerelease packages": "Aktiviere Vorschau-Pakete um diese in der Paketliste anzuzeigen. Diese werden auch bei der Auflösung von Abhängigkeiten verwendet.",
+    "description for show prerelease packages": "Aktiviere Vorschau-Pakete, um diese in der Paketliste anzuzeigen. Diese werden auch bei der Auflösung von Abhängigkeiten verwendet.",
     "show prerelease packages": "Zeige Vorschau-Pakete",
     "unity version": "Unity Version",
     "unity path": "Unity Pfad",
@@ -201,5 +201,7 @@
     "backup canceled": "Backup abgebrochen",
     "backup created successfully": "Backup erfolgreich erstellt",
     "language": "Sprache",
+    "report an issue": "Problembehandlung",
+    "open an issue": "Fehler melden",
   },
 }
