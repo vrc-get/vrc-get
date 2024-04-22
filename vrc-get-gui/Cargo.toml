@@ -25,7 +25,7 @@ tauri-specta = { version = "1.0.2", features = ["typescript"] }
 open = "5.1.2"
 arc-swap = "1.7.1"
 log = { version = "0.4.21", features = [ "std" ] }
-chrono = { version = "0.4.37", features = [ "serde" ] }
+chrono = { version = "0.4.38", features = [ "serde" ] }
 ringbuffer = "0.15.0"
 tokio = { version = "1.37.0", features = ["process"] }
 fs_extra = "1.3.0"
