@@ -1,5 +1,10 @@
 let isWindowsCache: boolean | undefined
 
+export async function loadOSApi(){
+	const osApi = await import('@tauri-apps/api/os')
+	return osApi
+}
+
 export function isWindows() {
 	if (isWindowsCache === undefined) {
 		isWindowsCache = navigator.userAgent.toLowerCase().includes("windows nt")

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 - `/opt/unityhub/unityhub` to the unity hub search path `#812`
   - The path is the default path for official apt distribution
+- Issue Report button feature in Settings `#821`
 - German translation `#824`
 
 ### Changed
@@ -21,6 +22,8 @@ The format is based on [Keep a Changelog].
 ### Fixed
 - Impossible to control some portion if the window is narrow `#805`
 - Reorder Sidebar menu for clearer organization `#820`
+- Background is black if dark mode `#811`
+  - Plaease wait a while for the dark mode support
 
 ### Security
 
