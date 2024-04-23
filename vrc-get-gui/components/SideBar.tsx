@@ -29,7 +29,7 @@ export function SideBar({className}: { className?: string }) {
 	const copyVersionName = () => {
 		if (currentVersionResult.status == "success") {
 			navigator.clipboard.writeText(currentVersionResult.data);
-			toastNormal(t("copied version name"));
+			toastNormal(t("sidebar:toast:version copied"));
 		}
 	};
 
