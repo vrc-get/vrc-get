@@ -775,10 +775,7 @@ function Unity2022MigrationConfirmMigrationDialog(
 			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
 			<DialogBody>
 				<Typography className={"text-red-700"}>
-					{tc("projects:dialog:vpm migrate description 1")}
-				</Typography>
-				<Typography className={"text-red-700"}>
-					{tc("projects:dialog:vpm migrate description 2")}
+					{tc("projects:dialog:vpm migrate description")}
 				</Typography>
 			</DialogBody>
 			<DialogFooter>
@@ -816,10 +813,7 @@ function Unity2022MigrationUnityVersionMismatchDialog(
 					{tc("projects:manage:dialog:found unity version", {version: foundUnityVersion})}
 				</Typography>
 				<Typography>
-					{tc("projects:manage:dialog:exact version unity not found description 1")}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:exact version unity not found description 2")}
+					{tc("projects:manage:dialog:exact version unity not found description")}
 				</Typography>
 			</DialogBody>
 			<DialogFooter>

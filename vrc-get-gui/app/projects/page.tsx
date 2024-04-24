@@ -475,10 +475,7 @@ function ProjectRow(
 					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
 					<DialogBody>
 						<Typography className={"text-red-700"}>
-							{tc("projects:dialog:vpm migrate description 1")}
-						</Typography>
-						<Typography className={"text-red-700"}>
-							{tc("projects:dialog:vpm migrate description 2")}
+							{tc("projects:dialog:vpm migrate description")}
 						</Typography>
 					</DialogBody>
 					<DialogFooter>
