@@ -74,11 +74,11 @@ function PageBody() {
 			const info = await environmentDownloadRepository(url, headers);
 			switch (info.type) {
 				case "BadUrl":
-					toastError(tt("invalid url"));
+					toastError(tt("vpm repositories:toast:invalid url"));
 					setState({type: 'normal'});
 					return;
 				case "DownloadError":
-					toastError(tt("failed to download the repository: {{message}}", {message: info.message}));
+					toastError(tt("vpm repositories:toast:load failed", {message: info.message}));
 					setState({type: 'normal'});
 					return;
 				case "Duplicated":
@@ -127,7 +127,7 @@ function PageBody() {
 				try {
 					await environmentAddRepository(state.url, state.headers);
 					setState({type: 'normal'});
-					toastSuccess(tt("added the repository successfully!"));
+					toastSuccess(tt("vpm repositories:toast:repository added"));
 					// noinspection ES6MissingAwait
 					result.refetch();
 				} catch (e) {
@@ -141,15 +141,15 @@ function PageBody() {
 			const _exhaustiveCheck: never = state;
 	}
 	const dialog = dialogBody ?
-		<Dialog handler={nop} open><DialogHeader>{tc("add repository")}</DialogHeader>{dialogBody}</Dialog> : null;
+		<Dialog handler={nop} open><DialogHeader>{tc("vpm repositories:button:add repository")}</DialogHeader>{dialogBody}</Dialog> : null;
 
 	return (
 		<VStack className={"p-4 overflow-y-auto"}>
 			<HNavBar className={"flex-shrink-0"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					{tc("community repositories")}
+					{tc("vpm repositories:community repositories")}
 				</Typography>
-				<Button onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("add repository")}</Button>
+				<Button onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("vpm repositories:button:add repository")}</Button>
 			</HNavBar>
 			<main className="flex-shrink flex-grow overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll shadow-none">
@@ -181,8 +181,8 @@ function RepositoryTable(
 ) {
 	const TABLE_HEAD = [
 		"", // checkbox
-		"name",
-		"url",
+		"general:name",
+		"vpm repositories:url",
 		"", // actions
 	];
 
@@ -244,17 +244,17 @@ function RepositoryRow(
 	let dialog;
 	if (removeDialogOpen) {
 		dialog = <Dialog handler={nop} open>
-			<DialogHeader>{tc("remove repository")}</DialogHeader>
+			<DialogHeader>{tc("vpm repositories:remove repository")}</DialogHeader>
 			<DialogBody>
 				<Typography
-					className={"whitespace-normal font-normal"}>{tc("do you want to remove the repository <b>{{name}}</b>?", {name: repo.display_name})}</Typography>
+					className={"whitespace-normal font-normal"}>{tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}</Typography>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={() => setRemoveDialogOpen(false)}>{tc("cancel")}</Button>
+				<Button onClick={() => setRemoveDialogOpen(false)}>{tc("general:button:cancel")}</Button>
 				<Button onClick={() => {
 					remove();
 					setRemoveDialogOpen(false);
-				}} className={"ml-2"}>{tc("remove repository")}</Button>
+				}} className={"ml-2"}>{tc("vpm repositories:remove repository")}</Button>
 			</DialogFooter>
 		</Dialog>;
 	}
@@ -278,7 +278,7 @@ function RepositoryRow(
 				</Typography>
 			</td>
 			<td className={`${cellClass} w-0`}>
-				<Tooltip content={tc("remove repository")}>
+				<Tooltip content={tc("vpm repositories:remove repository")}>
 					<IconButton onClick={() => setRemoveDialogOpen(true)} variant={"text"}>
 						<XCircleIcon className={"size-5 text-red-700"}/>
 					</IconButton>
@@ -388,18 +388,18 @@ function EnteringRepositoryInfo(
 		<>
 			<DialogBody>
 				<Typography className={'font-normal'}>
-					{tc("enter information about the repository")}
+					{tc("vpm repositories:dialog:enter repository info")}
 				</Typography>
-				<Input type={"url"} label={"URL"} value={url} onChange={e => setUrl(e.target.value)}
+				<Input type={"vpm repositories:url"} label={"URL"} value={url} onChange={e => setUrl(e.target.value)}
 							 placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
 				<details>
-					<summary className={"font-bold"}>{tc("headers")}</summary>
+					<summary className={"font-bold"}>{tc("vpm repositories:dialog:headers")}</summary>
 					<div className={"w-full max-h-[50vh] overflow-y-auto"}>
 						<table className={"w-full"}>
 							<thead>
 							<tr>
-								<th className={"sticky top-0 z-10 bg-white"}>{tc("header name")}</th>
-								<th className={"sticky top-0 z-10 bg-white"}>{tc("header value")}</th>
+								<th className={"sticky top-0 z-10 bg-white"}>{tc("vpm repositories:dialog:header name")}</th>
+								<th className={"sticky top-0 z-10 bg-white"}>{tc("vpm repositories:dialog:header value")}</th>
 								<th className={"sticky top-0 z-10 bg-white"}></th>
 							</tr>
 							</thead>
@@ -437,12 +437,12 @@ function EnteringRepositoryInfo(
 											/>
 										</td>
 										<td className={"w-20"}>
-											<Tooltip content={tc("add header")} className={"z-[19999]"}>
+											<Tooltip content={tc("vpm repositories:tooltip:add header")} className={"z-[19999]"}>
 												<IconButton variant={"text"} onClick={addHeader}>
 													<PlusCircleIcon color={"green"} className={"size-5"}/>
 												</IconButton>
 											</Tooltip>
-											<Tooltip content={tc("remove header")} className={"z-[19999]"}>
+											<Tooltip content={tc("vpm repositories:tooltip:remove header")} className={"z-[19999]"}>
 												<IconButton variant={"text"} onClick={() => removeHeader(idx)}>
 													<MinusCircleIcon color={"red"} className={"size-5"}/>
 												</IconButton>
@@ -455,13 +455,13 @@ function EnteringRepositoryInfo(
 						</table>
 					</div>
 				</details>
-				{foundHeaderNameError && <Typography className={"text-red-700"}>{tc("header name is invalid")}</Typography>}
-				{foundHeaderValueError && <Typography className={"text-red-700"}>{tc("header value is invalid")}</Typography>}
-				{foundDuplicateHeader && <Typography className={"text-red-700"}>{tc("header name is duplicated")}</Typography>}
+				{foundHeaderNameError && <Typography className={"text-red-700"}>{tc("vpm repositories:hint:invalid header names")}</Typography>}
+				{foundHeaderValueError && <Typography className={"text-red-700"}>{tc("vpm repositories:hint:invalid header values")}</Typography>}
+				{foundDuplicateHeader && <Typography className={"text-red-700"}>{tc("vpm repositories:hint:duplicate headers")}</Typography>}
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel}>{tc("cancel")}</Button>
-				<Button onClick={onAddRepository} className={"ml-2"} disabled={hasError}>{tc("add repository")}</Button>
+				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
+				<Button onClick={onAddRepository} className={"ml-2"} disabled={hasError}>{tc("vpm repositories:button:add repository")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -478,11 +478,11 @@ function LoadingRepository(
 		<>
 			<DialogBody>
 				<Typography>
-					{tc("downloading the repository")}
+					{tc("vpm repositories:dialog:downloading...")}
 				</Typography>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel}>{tc("cancel")}</Button>
+				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -499,11 +499,11 @@ function Duplicated(
 		<>
 			<DialogBody>
 				<Typography>
-					{tc("the repository is already added.")}
+					{tc("vpm repositories:dialog:already added")}
 				</Typography>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel}>{tc("ok")}</Button>
+				<Button onClick={cancel}>{tc("general:button:ok")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -525,11 +525,11 @@ function Confirming(
 	return (
 		<>
 			<DialogBody className={"max-h-[50vh] overflow-y-auto font-normal"}>
-				<Typography className={"font-normal"}>{tc("name: <b>{{name}}</b>", {name: repo.display_name})}</Typography>
-				<Typography className={"font-normal"}>{tc("url: {{url}}", {url: repo.url})}</Typography>
+				<Typography className={"font-normal"}>{tc("vpm repositories:dialog:name", {name: repo.display_name})}</Typography>
+				<Typography className={"font-normal"}>{tc("vpm repositories:dialog:url", {url: repo.url})}</Typography>
 				{Object.keys(headers).length > 0 && (
 					<>
-						<Typography className={"font-normal"}>{tc("headers:")}</Typography>
+						<Typography className={"font-normal"}>{tc("vpm repositories:dialog:headers")}</Typography>
 						<ul className={"list-disc pl-6"}>
 							{
 								Object.entries(headers).map(([key, value], idx) => (
@@ -539,7 +539,7 @@ function Confirming(
 						</ul>
 					</>
 				)}
-				<Typography className={"font-normal"}>{tc("packages:")}</Typography>
+				<Typography className={"font-normal"}>{tc("vpm repositories:dialog:packages")}</Typography>
 				<ul className={"list-disc pl-6"}>
 					{
 						repo.packages.map((info, idx) => (
@@ -549,8 +549,8 @@ function Confirming(
 				</ul>
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel}>{tc("cancel")}</Button>
-				<Button onClick={add} className={"ml-2"}>{tc("add repository")}</Button>
+				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
+				<Button onClick={add} className={"ml-2"}>{tc("vpm repositories:button:add repository")}</Button>
 			</DialogFooter>
 		</>
 	);
