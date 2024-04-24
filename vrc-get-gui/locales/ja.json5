@@ -6,7 +6,6 @@
     "vpm repositories": "VPMリポジトリ",
     "logs": "ログ",
     "sidebar:toast:version copied": "バージョン情報をコピーしました。",
-    "search": "検索",
     "search:placeholder": "入力して検索...",
     "projects:tooltip:refresh": "プロジェクトリストを再読み込み",
     "projects:create new project": "プロジェクトを作成",
