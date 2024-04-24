@@ -198,7 +198,7 @@
     "projects:toast:backup canceled": "Backup abgebrochen",
     "projects:toast:backup success": "Backup erfolgreich erstellt",
     "settings:language": "Sprache",
-    "report an issue": "Problembehandlung (unreleased tag)",
-    "open an issue": "Fehler melden (unreleased tag)",
+    "settings:report issue": "Problembehandlung",
+    "settings:button:open issue": "Fehler melden",
   },
 }
