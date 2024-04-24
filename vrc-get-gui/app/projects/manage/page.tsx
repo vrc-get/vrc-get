@@ -929,7 +929,7 @@ function ProjectChangesDialog(
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
 							return <ListItem key={pkgId}>
-								<Typography className={"font-normal"}>{tc("projects:manage:dialog:install target", {
+								<Typography className={"font-normal"}>{tc("projects:manage:dialog:install package", {
 									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
 									version: toVersionString(pkgChange.InstallNew.version),
 								})}</Typography>
@@ -942,15 +942,15 @@ function ProjectChangesDialog(
 							switch (pkgChange.Remove) {
 								case "Requested":
 									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall target as requested", {name})}
+										{tc("projects:manage:dialog:uninstall package as requested", {name})}
 									</TypographyItem>
 								case "Legacy":
 									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall target as legacy", {name})}
+										{tc("projects:manage:dialog:uninstall package as legacy", {name})}
 									</TypographyItem>
 								case "Unused":
 									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall target as unused", {name})}
+										{tc("projects:manage:dialog:uninstall package as unused", {name})}
 									</TypographyItem>
 							}
 						}
