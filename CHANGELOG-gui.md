@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog].
 - Background is black if dark mode `#811`
   - Plaease wait a while for the dark mode support
 - Added dedicated messages for bulk actions in manage packages page `#819`
-  - Added german translation for those.
+  - Added german translation for those. `#841`
 
 ### Security
 
