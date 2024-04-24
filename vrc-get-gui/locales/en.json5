@@ -66,7 +66,6 @@
     "projects:hint:project already exists": "The directory already exists.",
     "projects:hint:checking name...": "Checking the directory name...",
     "projects:template": "Template:",
-    "projects:button:select directory": "Select directory",
     "projects:hint:path of creating project": "The new project will be at <code>{{path}}</code>",
     "projects:creating project...": "Creating the project...",
     "projects:button:create": "Create",

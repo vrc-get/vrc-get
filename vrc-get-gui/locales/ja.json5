@@ -60,7 +60,6 @@
     "projects:hint:project already exists": "そのディレクトリは既に存在しています。",
     "projects:hint:checking name...": "ディレクトリの名前を確認中...",
     "projects:template": "テンプレート:",
-    "projects:button:select directory": "ディレクトリを選択",
     "projects:hint:path of creating project": "新しいプロジェクトは <code>{{path}}</code> に保存されます。",
     "projects:creating project...": "プロジェクトを作成中...",
     "projects:button:create": "作成する",

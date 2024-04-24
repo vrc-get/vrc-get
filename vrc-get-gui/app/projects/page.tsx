@@ -819,7 +819,7 @@ function CreateProject(
 					<Input label={"Project Name"} value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
 					<div className={"flex gap-1"}>
 						<Input className="flex-auto" label={"Project Location"} value={projectLocation} disabled/>
-						<Button className="flex-none px-4" onClick={selectProjectDefaultFolder}>{tc("projects:button:select directory")}</Button>
+						<Button className="flex-none px-4" onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
 					</div>
 					<Typography variant={"small"} className={"whitespace-normal"}>
 						{tc("projects:hint:path of creating project", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {
