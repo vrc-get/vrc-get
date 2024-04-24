@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog].
 - Reorder Sidebar menu for clearer organization `#820`
 - Background is black if dark mode `#811`
   - Plaease wait a while for the dark mode support
+- Added dedicated messages for bulk actions in manage packages page `#819`
 
 ### Security
 

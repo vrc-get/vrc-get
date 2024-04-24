@@ -71,6 +71,8 @@
     "projects:manage:toast:package installed": "{{name}} バージョン {{version}} をインストールしました。",
     "projects:manage:toast:package removed": "{{name}} をアンインストールしました。",
     "projects:manage:toast:all packages upgraded": "すべてのパッケージを更新しました。",
+    "projects:manage:toast:selected packages installed": "選択されたパッケージをインストールしました。",
+    "projects:manage:toast:selected packages removed": "選択されたパッケージをアンイストールしました。",
     "projects:manage:button:unity migrate": "プロジェクトを移行",
     "projects:toast:unity migrate failed by unity not found": "プロジェクト移行に失敗しました: Unity 2022がありません",
     "projects:toast:unity migration finalize failed by unity not found": "プロジェクト移行の完了処理を行えませんでした: Unity 2022がありません",
