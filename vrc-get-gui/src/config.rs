@@ -58,6 +58,9 @@ fn language_default() -> String {
         if locale.starts_with("en") {
             return "en".to_string();
         }
+        if locale.starts_with("de") {
+            return "de".to_string();
+        }
         if locale.starts_with("ja") {
             return "ja".to_string();
         }
