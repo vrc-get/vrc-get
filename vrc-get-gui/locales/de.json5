@@ -67,7 +67,6 @@
     "projects:hint:project already exists": "Es existiert bereits ein Projekt mit diesem Namen",
     "projects:hint:checking name...": "Prüfe Verzeichnisname...",
     "projects:template": "Vorlage:",
-    "projects:button:select directory": "Verzeichnis auswählen",
     "projects:hint:path of creating project": "Das Projekt wird sich hier befinden: <code>{{path}}</code>",
     "projects:creating project...": "Erstelle Projekt...",
     "projects:button:create": "Erstellen",
