@@ -35,9 +35,9 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			setState({type: 'backing-up', cancel});
 			const channel = await promise;
 			if (channel == 'cancelled') {
-				toastNormal(tt("backup canceled"));
+				toastNormal(tt("projects:toast:backup canceled"));
 			} else {
-				toastSuccess(tt("backup created successfully"));
+				toastSuccess(tt("projects:toast:backup success"));
 			}
 			setState({type: 'idle'});
 		} catch (e) {
@@ -55,12 +55,12 @@ export function useBackupProjectModal(_: Params = {}): Result {
 		case "backing-up":
 			dialog = (
 				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{tc("backup project")}</DialogHeader>
+					<DialogHeader>{tc("projects:dialog:backup header")}</DialogHeader>
 					<DialogBody>
-						{tc("creating a backup...")}
+						{tc("projects:dialog:creating backup...")}
 					</DialogBody>
 					<DialogFooter>
-						<Button className="mr-1" onClick={state.cancel}>{tc("cancel")}</Button>
+						<Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
 					</DialogFooter>
 				</Dialog>
 			);

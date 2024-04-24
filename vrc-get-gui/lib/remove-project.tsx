@@ -56,7 +56,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 						console.log("remove with path")
 						await environmentRemoveProjectByPath(project.path, directory);
 					}
-					toastSuccess(tt("project removed successfully"));
+					toastSuccess(tt("projects:toast:project removed"));
 					setState({type: 'idle'});
 				} finally {
 					onRemoved?.();
@@ -65,20 +65,20 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 
 			dialog = (
 				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{tc("remove project")}</DialogHeader>
+					<DialogHeader>{tc("projects:remove project")}</DialogHeader>
 					<DialogBody>
 						<Typography className={"font-normal"}>
-							{tc("you're about to remove the project <strong>{{name}}</strong>", {name: project.name})}
+							{tc("projects:dialog:warn remove project", {name: project.name})}
 						</Typography>
 					</DialogBody>
 					<DialogFooter>
-						<Button onClick={cancel} className="mr-1">{tc("cancel")}</Button>
+						<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 						<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
-							{tc("remove from the list")}
+							{tc("projects:button:remove from list")}
 						</Button>
 						<Button onClick={() => removeProjectButton(true)} color={"red"} className="px-2"
 										disabled={!project.is_exists}>
-							{tc("remove the directory")}
+							{tc("projects:button:remove directory")}
 						</Button>
 					</DialogFooter>
 				</Dialog>
@@ -87,17 +87,17 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 		case "removing":
 			dialog = (
 				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{tc("remove project")}</DialogHeader>
+					<DialogHeader>{tc("projects:remove project")}</DialogHeader>
 					<DialogBody>
-						{tc("removing the project...")}
+						{tc("projects:dialog:removing...")}
 					</DialogBody>
 					<DialogFooter>
-						<Button className="mr-1" disabled>{tc("cancel")}</Button>
+						<Button className="mr-1" disabled>{tc("general:button:cancel")}</Button>
 						<Button className="mr-1 px-2" disabled>
-							{tc("remove from the list")}
+							{tc("projects:button:remove from list")}
 						</Button>
 						<Button color={"red"} className="px-2" disabled>
-							{tc("remove the directory")}
+							{tc("projects:button:remove directory")}
 						</Button>
 					</DialogFooter>
 				</Dialog>
