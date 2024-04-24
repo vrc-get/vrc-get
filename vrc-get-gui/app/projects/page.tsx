@@ -775,7 +775,7 @@ function CreateProject(
 			projectNameState = "err";
 			break;
 		case "checking":
-			projectNameCheck = <><Spinner/> {tc("projects:hint:checking name...")}</>;
+			projectNameCheck = <Spinner/>;
 			projectNameState = "Ok";
 			break;
 		default:

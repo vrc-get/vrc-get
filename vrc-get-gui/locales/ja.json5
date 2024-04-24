@@ -58,7 +58,6 @@
     "projects:hint:warn symbol in project name": "そのような記号を使用すると問題が発生する可能性があります。",
     "projects:hint:warn multibyte char in project name": "マルチバイト文字を使用すると問題が発生する可能性があります。",
     "projects:hint:project already exists": "そのディレクトリは既に存在しています。",
-    "projects:hint:checking name...": "ディレクトリの名前を確認中...",
     "projects:template": "テンプレート:",
     "projects:hint:path of creating project": "新しいプロジェクトは <code>{{path}}</code> に保存されます。",
     "projects:creating project...": "プロジェクトを作成中...",

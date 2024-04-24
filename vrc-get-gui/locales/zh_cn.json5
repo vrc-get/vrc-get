@@ -64,7 +64,6 @@
     "projects:hint:warn symbol in project name": "使用这样的符号可能会导致问题",
     "projects:hint:warn multibyte char in project name": "使用多字节字符可能会导致问题",
     "projects:hint:project already exists": "目录已存在",
-    "projects:hint:checking name...": "检查目录名称中...",
     "projects:template": "模板:",
     "projects:hint:path of creating project": "新项目将位于 <code>{{path}}</code>",
     "projects:creating project...": "创建项目中...",
