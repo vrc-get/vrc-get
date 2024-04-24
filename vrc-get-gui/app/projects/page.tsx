@@ -610,7 +610,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					// no-op
 					break;
 				case "InvalidSelection":
-					toastError(tt("projects:toast:invalid directory"));
+					toastError(tt("general:toast:invalid directory"));
 					break;
 				case "Successful":
 					toastSuccess(tt("projects:toast:project added"));
@@ -720,7 +720,7 @@ function CreateProject(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toastError(tt("projects:toast:invalid directory"));
+					toastError(tt("general:toast:invalid directory"));
 					break;
 				case "Successful":
 					setProjectLocation(result.new_path);

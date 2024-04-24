@@ -128,7 +128,7 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toastError(tt("settings:toast:invalid default project path"));
+					toastError(tt("general:toast:invalid directory"));
 					break;
 				case "Successful":
 					toastSuccess(tt("settings:toast:default project path updated"));
@@ -151,7 +151,7 @@ function Settings(
 					// no-op
 					break;
 				case "InvalidSelection":
-					toastError(tt("settings:toast:invalid backup path"));
+					toastError(tt("general:toast:invalid directory"));
 					break;
 				case "Successful":
 					toastSuccess(tt("settings:toast:backup path updated"));
