@@ -417,10 +417,10 @@ function PageBody() {
 					toastSuccess(tt("projects:manage:toast:all packages upgraded"));
 					break;
 				case "bulkInstalled":
-					toastSuccess(tt("bulkInstalled"));
+					toastSuccess(tt("projects:manage:toast:selected packages installed"));
 					break;
 				case "bulkRemoved":
-					toastSuccess(tt("bulkRemoved"));
+					toastSuccess(tt("projects:manage:toast:selected packages removed"));
 					break;
 				default:
 					let _: never = requested;
