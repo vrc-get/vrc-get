@@ -297,9 +297,9 @@ function Settings(
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("report an issue")}</h2>
+				<h2>{tc("settings:report issue")}</h2>
 				<div>
-				<Button onClick={reportIssue}>{tc("open an issue")}</Button>
+				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
