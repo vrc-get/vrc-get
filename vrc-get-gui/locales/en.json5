@@ -198,5 +198,7 @@
     "projects:toast:backup canceled": "Backup was canceled",
     "projects:toast:backup success": "Backup was created successfully.",
     "settings:language": "Language",
+    "report an issue": "Report an issue",
+    "open an issue": "Open an issue",
   },
 }
