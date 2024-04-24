@@ -997,7 +997,7 @@ function ProjectChangesDialog(
 					changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
 						<>
 							<Typography className={"text-red-700"}>
-								{tc("projects:manage:dialog:files and folders are removed as legacy")}
+								{tc("projects:manage:dialog:files and directories are removed as legacy")}
 							</Typography>
 							<List>
 								{changes.remove_legacy_files.map(f => (
@@ -1629,7 +1629,7 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove, onBac
 					</MenuHandler>
 				</ButtonGroup>
 				<MenuList>
-					<MenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open folder")}</MenuItem>
+					<MenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</MenuItem>
 					<MenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</MenuItem>
 					<MenuItem onClick={onRemove} className={"bg-red-700 text-white"}>{tc("projects:remove project")}</MenuItem>
 				</MenuList>

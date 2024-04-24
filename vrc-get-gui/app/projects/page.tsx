@@ -420,7 +420,7 @@ function ProjectRow(
 
 	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
 		if (removed) {
-			return <Tooltip content={tt("projects:tooltip:no folder")}>
+			return <Tooltip content={tt("projects:tooltip:no directory")}>
 				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
 			</Tooltip>
 		} else {
@@ -523,7 +523,7 @@ function ProjectRow(
 									className="hover:before:content-none before:transition-none border-none"/>
 			</td>
 			<td className={cellClass}>
-				<MayTooltip content={tc("projects:tooltip:no folder")}>
+				<MayTooltip content={tc("projects:tooltip:no directory")}>
 					<div className="flex flex-col">
 						<Typography className="font-normal whitespace-pre">
 							{project.name}
@@ -576,7 +576,7 @@ function ProjectRow(
 						</MenuHandler>
 						<MenuList>
 							<MenuItem onClick={openProjectFolder}
-												disabled={removed || loading}>{tc("projects:menuitem:open folder")}</MenuItem>
+												disabled={removed || loading}>{tc("projects:menuitem:open directory")}</MenuItem>
 							<MenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
 												className={'text-red-700 focus:text-red-700'}>
 								{tc("projects:remove project")}
@@ -610,7 +610,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					// no-op
 					break;
 				case "InvalidSelection":
-					toastError(tt("projects:toast:invalid folder"));
+					toastError(tt("projects:toast:invalid directory"));
 					break;
 				case "Successful":
 					toastSuccess(tt("projects:toast:project added"));
