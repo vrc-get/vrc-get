@@ -39,6 +39,7 @@ async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
 async-stream = "0.3.5"
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 sys-locale = "0.3.1"
+log-panics = { version = "2", features = ["with-backtrace"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
