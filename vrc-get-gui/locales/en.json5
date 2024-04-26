@@ -124,7 +124,7 @@
     "vpm repositories:source:local": "User Local",
     "projects:manage:incompatible packages": "Incompatibles",
     "projects:manage:source not selected": "Not selected",
-    "projects:manage:none": "None",
+    "projects:manage:none": "none",
     "projects:manage:multiple sources": "Multiple sources",
     "projects:manage:tooltip:remove packages": "Remove Package",
     "projects:manage:tooltip:add package": "Add Package",
