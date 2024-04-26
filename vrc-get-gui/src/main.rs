@@ -26,6 +26,9 @@ fn tauri_context() -> tauri::Context<tauri::utils::assets::EmbeddedAssets> {
 fn main() {
     let io = logging::initialize_logger();
 
+    // logger is now initialized, we can use log for panics
+    log_panics::init();
+
     #[cfg(debug_assertions)]
     commands::export_ts();
 
