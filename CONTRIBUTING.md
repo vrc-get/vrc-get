@@ -9,6 +9,9 @@ This project is based on
 By that mean, some dependencies are required to work with.
 Each of them is defined in the project folder.
 
+In addition, each project has its own contribution guidelines.
+Please refer `CONTRIBUTING.md` file in the project folder.
+
 ## Projects
 
 - [vrc-get CLI](vrc-get/README.md)
