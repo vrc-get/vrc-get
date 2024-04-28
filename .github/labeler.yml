@@ -1,0 +1,4 @@
+localization:
+  - changed-files:
+    - any-glob-to-all-files:
+      - 'vrc-get-gui/locales/*.json5'
