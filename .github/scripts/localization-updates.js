@@ -118,7 +118,6 @@ ${dataJsonLinePrefix}${JSON.stringify(newData)}
 		const newExcessKeysStr = newlyAddedExtraKeys.length === 0 ? 'nothing' : newlyAddedExtraKeys.map(key => `- \`${key}\``).join('\n');
 
 		const text = `
-NOTE: this is test comment.
 There are new missing / excess keys in the translation. Please update the translation!
 
 **New Missing Keys:**
