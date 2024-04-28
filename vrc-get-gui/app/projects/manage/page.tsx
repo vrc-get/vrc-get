@@ -29,7 +29,6 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {useQueries} from "@tanstack/react-query";
 import {
-	environmentCopyProjectForMigration,
 	environmentHideRepository,
 	environmentPackages,
 	environmentRefetchPackages,
@@ -38,11 +37,9 @@ import {
 	environmentShowRepository,
 	environmentUnityVersions,
 	projectApplyPendingChanges,
-	projectCallUnityForMigration,
 	projectDetails,
 	projectInstallMultiplePackage,
 	projectInstallPackage,
-	projectMigrateProjectTo2022,
 	projectRemovePackages,
 	projectResolve,
 	projectUpgradeMultiplePackage,
@@ -58,19 +55,18 @@ import {
 import {
 	compareUnityVersion,
 	compareVersion,
-	parseUnityVersion,
 	toVersionString
 } from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
 import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
-import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
-import {callAsyncCommand} from "@/lib/call-async-command";
+import {useUnityMigration} from "@/app/projects/manage/unity-migration";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -100,20 +96,6 @@ type InstallStatus = {
 	requested: RequestedOperation;
 } | {
 	status: "applyingChanges";
-} | {
-	status: "unity2022migration:confirm";
-} | {
-	status: "unity2022migration:selectUnityVersion";
-	versionMismatch: boolean;
-	unityVersions: [path: string, version: string, fromHub: boolean][];
-	inPlace: boolean;
-} | {
-	status: "unity2022migration:copyingProject";
-} | {
-	status: "unity2022migration:updating";
-} | {
-	status: "unity2022migration:finalizing";
-	lines: [number, string][];
 }
 
 type BulkUpdateMode = 'install' | 'upgradeOrRemove' | 'remove' | 'upgrade' | 'any';
@@ -443,127 +425,7 @@ function PageBody() {
 		}
 	}
 
-	const requestMigrateProjectTo2022 = async () => {
-		setInstallStatus({status: "unity2022migration:confirm"});
-	}
-
-	const cancelMigrateProjectTo2022 = async () => {
-		setInstallStatus({status: "normal"});
-	}
-
-	type FindUnity2022Result = {
-		type: "NoUnity2022";
-	} | {
-		type: "ExactMatches";
-		paths: [path: string, version: string, fromHub: boolean][];
-	} | {
-		type: "NonExactMatches";
-		paths: [path: string, version: string, fromHub: boolean][];
-	}
-
-	function findUnity2022ForMigration(): FindUnity2022Result | null {
-		if (unityVersionsResult.status != 'success') return null;
-		const unityVersions = unityVersionsResult.data;
-		const unity2022 = unityVersions.unity_paths.filter(([_p, v, _]) => parseUnityVersion(v)?.major == 2022);
-		if (unity2022.length == 0) return {type: "NoUnity2022"};
-		const exactMatches = unity2022.filter(([_p, v, _]) => v == unityVersionsResult.data.recommended_version);
-		if (exactMatches.length != 0) return {type: "ExactMatches", paths: exactMatches};
-		return {type: "NonExactMatches", paths: unity2022};
-	}
-
-	const startMigrateProjectTo2022 = async (inPlace: boolean) => {
-		try {
-			const findUnity2022Result = findUnity2022ForMigration();
-			if (findUnity2022Result == null) throw new Error("unexpectedly null");
-			switch (findUnity2022Result.type) {
-				case "NoUnity2022":
-					toastError(tt("projects:toast:unity migrate failed by unity not found"));
-					setInstallStatus({status: "normal"});
-					return;
-				case "ExactMatches":
-					if (findUnity2022Result.paths.length == 1) {
-						// noinspection ES6MissingAwait
-						continueMigrateProjectTo2022(inPlace, findUnity2022Result.paths[0][0]);
-					} else {
-						setInstallStatus({
-							status: "unity2022migration:selectUnityVersion",
-							versionMismatch: false,
-							unityVersions: findUnity2022Result.paths,
-							inPlace,
-						})
-					}
-					break;
-				case "NonExactMatches":
-					setInstallStatus({
-						status: "unity2022migration:selectUnityVersion",
-						versionMismatch: true,
-						unityVersions: findUnity2022Result.paths,
-						inPlace,
-					});
-					break;
-				default:
-					const _: never = findUnity2022Result;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-			setInstallStatus({status: "normal"});
-		}
-	}
-
-	const continueMigrateProjectTo2022 = async (inPlace: boolean, unityPath: string) => {
-		try {
-			let migrateProjectPath;
-			if (inPlace) {
-				migrateProjectPath = projectPath;
-			} else {
-				// copy
-				setInstallStatus({status: "unity2022migration:copyingProject"});
-				migrateProjectPath = await environmentCopyProjectForMigration(projectPath);
-			}
-			setInstallStatus({status: "unity2022migration:updating"});
-			await projectMigrateProjectTo2022(migrateProjectPath);
-			setInstallStatus({status: "unity2022migration:finalizing", lines: []});
-			let lineNumber = 0;
-			let [__, promise] = callAsyncCommand(projectCallUnityForMigration, [migrateProjectPath, unityPath], lineString => {
-				setInstallStatus(prev => {
-					if (prev.status != "unity2022migration:finalizing") return prev;
-					lineNumber++;
-					let line: [number, string] = [lineNumber, lineString];
-					if (prev.lines.length > 200) {
-						return {...prev, lines: [...prev.lines.slice(1), line]};
-					} else {
-						return {...prev, lines: [...prev.lines, line]};
-					}
-				})
-			});
-			const finalizeResult = await promise;
-			if (finalizeResult == 'cancelled') {
-				throw new Error("unexpectedly cancelled");
-			}
-			switch (finalizeResult.type) {
-				case "ExistsWithNonZero":
-					toastError(tt("projects:toast:unity exits with non-zero"));
-					break;
-				case "FinishedSuccessfully":
-					toastSuccess(tt("projects:toast:unity migrated"));
-					break;
-				default:
-					const _: never = finalizeResult;
-			}
-			if (inPlace) {
-				setInstallStatus({status: "normal"});
-				detailsResult.refetch();
-			} else {
-				setInstallStatus({status: "normal"});
-				router.replace(`/projects/manage?${new URLSearchParams({projectPath: migrateProjectPath})}`);
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-			setInstallStatus({status: "normal"});
-		}
-	};
+	const unity2022Migration = useUnityMigration({projectPath, unityVersions: unityVersionsResult.data});
 
 	const installingPackage = installStatus.status != "normal";
 	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || unityVersionsResult.isLoading || installingPackage || manualRefetching;
@@ -587,29 +449,6 @@ function PageBody() {
 				cancel={() => setInstallStatus({status: "normal"})}
 				apply={() => applyChanges(installStatus)}
 			/>;
-			break;
-		case "unity2022migration:confirm":
-			dialogForState = <Unity2022MigrationConfirmMigrationDialog
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(inPlace) => startMigrateProjectTo2022(inPlace)}
-			/>;
-			break;
-		case "unity2022migration:selectUnityVersion":
-			dialogForState = <Unity2022MigrationSelectUnityVersionDialog
-				dueToMismatch={installStatus.versionMismatch}
-				unityVersions={installStatus.unityVersions}
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(unityPath) => continueMigrateProjectTo2022(installStatus.inPlace, unityPath)}
-			/>;
-			break;
-		case "unity2022migration:copyingProject":
-			dialogForState = <Unity2022MigrationCopyingDialog/>;
-			break
-		case "unity2022migration:updating":
-			dialogForState = <Unity2022MigrationMigratingDialog/>;
-			break;
-		case "unity2022migration:finalizing":
-			dialogForState = <Unity2022MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
 			break;
 	}
 
@@ -640,7 +479,8 @@ function PageBody() {
 				</div>
 			</Card>
 			{isMigrationTo2022Recommended &&
-				<SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
+				<SuggestMigrateTo2022Card disabled={isLoading}
+																	onMigrateRequested={unity2022Migration.requestMigrateProjectTo2022}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
 					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
@@ -752,6 +592,7 @@ function PageBody() {
 					</Card>
 				</Card>
 				{dialogForState}
+				{unity2022Migration.dialog}
 				{projectRemoveModal.dialog}
 				{backupProjectModal.dialog}
 			</main>
@@ -821,142 +662,6 @@ function BulkUpdateCard(
 			</Button>
 		</Card>
 	)
-}
-
-function Unity2022MigrationConfirmMigrationDialog(
-	{
-		cancel,
-		doMigrate,
-	}: {
-		cancel: () => void,
-		doMigrate: (inPlace: boolean) => void,
-	}) {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography className={"text-red-700"}>
-					{tc("projects:dialog:vpm migrate description")}
-				</Typography>
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate(false)} color={"red"}
-								className="mr-1">{tc("projects:button:migrate copy")}</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
-			</DialogFooter>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationSelectUnityVersionDialog(
-	{
-		dueToMismatch,
-		unityVersions,
-		cancel,
-		doMigrate,
-	}: {
-		dueToMismatch: boolean,
-		unityVersions: [path: string, version: string, boolean][],
-		cancel: () => void,
-		doMigrate: (unityPath: string) => void,
-	}) {
-	const name = useState(() => `unity2022migration-select-unity-version-${Math.random().toString(36).slice(2)}-radio`)[0];
-
-	const [selectedUnityPath, setSelectedUnityPath] = useState<string | null>(null);
-
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{dueToMismatch
-						? tc("projects:manage:dialog:exact version unity not found")
-						: tc("projects:manage:dialog:multiple unity found")}
-				</Typography>
-				<Typography>
-					{dueToMismatch && tc("projects:manage:dialog:exact version unity not found description")}
-				</Typography>
-				{unityVersions.map(([path, version, _]) =>
-					<Radio
-						key={path} name={name} label={`${version} (${path})`}
-						checked={selectedUnityPath == path}
-						onChange={() => setSelectedUnityPath(path)}
-					/>)}
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button
-					onClick={() => doMigrate(selectedUnityPath!)} color={"red"}
-					disabled={selectedUnityPath == null}
-				>{tc("projects:manage:button:continue")}</Button>
-			</DialogFooter>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationCopyingDialog() {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("projects:pre-migrate copying...")}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:do not close")}
-				</Typography>
-			</DialogBody>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationMigratingDialog() {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("projects:migrating...")}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:do not close")}
-				</Typography>
-			</DialogBody>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationCallingUnityForMigrationDialog(
-	{
-		lines
-	}: {
-		lines: [number, string][]
-	}
-) {
-	const ref = React.useRef<HTMLDivElement>(null);
-
-	React.useEffect(() => {
-		ref.current?.scrollIntoView({behavior: "auto"});
-	}, [lines]);
-
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("projects:manage:dialog:unity migrate finalizing...")}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:do not close")}
-				</Typography>
-				<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
-					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
-					<div ref={ref}/>
-				</pre>
-			</DialogBody>
-		</Dialog>
-	);
 }
 
 function ProjectChangesDialog(
