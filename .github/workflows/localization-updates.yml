@@ -1,0 +1,22 @@
+name: Track Localization Changes
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    if: github.repository == 'vrc-get/vrc-get'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+      - run: npm ci --production
+        working-directory: .github/scripts
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const script = require('./.github/scripts/localization-updates.js')
+            await script({github, context})
