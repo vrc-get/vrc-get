@@ -174,17 +174,17 @@ function PageBody() {
 							let localDialog
 							if (removeDialogOpen === repo.id) {
 								localDialog = <Dialog handler={nop} open>
-									<DialogHeader>{tc("remove repository")}</DialogHeader>
+									<DialogHeader>{tc("vpm repositories:remove repository")}</DialogHeader>
 									<DialogBody>
 										<Typography
-											className={"whitespace-normal font-normal"}>{tc("do you want to remove the repository <b>{{name}}</b>?", {name: repo.display_name})}</Typography>
+											className={"whitespace-normal font-normal"}>{tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}</Typography>
 									</DialogBody>
 									<DialogFooter>
-										<Button onClick={() => setRemoveDialogOpen("")}>{tc("cancel")}</Button>
+										<Button onClick={() => setRemoveDialogOpen("")}>{tc("general:button:cancel")}</Button>
 										<Button onClick={() => {
 											removeRepository(repo.id)
 											setRemoveDialogOpen("");
-										}} className={"ml-2"}>{tc("remove repository")}</Button>
+										}} className={"ml-2"}>{tc("vpm repositories:remove repository")}</Button>
 									</DialogFooter>
 								</Dialog>;
 							}
@@ -208,7 +208,7 @@ function PageBody() {
 									{repo.url}
 								</Typography>),
 								(<>
-								<Tooltip key={`remove-${repoIndex}`} content={tc("remove repository")}>
+								<Tooltip key={`remove-${repoIndex}`} content={tc("vpm repositories:remove repository")}>
 									<IconButton variant={"text"} onClick={() =>setRemoveDialogOpen(repo.id)}>
 										<XCircleIcon className={"size-5 text-red-700"}/>
 									</IconButton>
@@ -224,129 +224,6 @@ function PageBody() {
 			</HContent>
 		</VStack>
 	);
-}
-
-function RepositoryTable(
-	{
-		userRepos,
-		hiddenUserRepos,
-		removeRepository,
-		refetch,
-	}: {
-		userRepos: TauriUserRepository[],
-		hiddenUserRepos: Set<string>,
-		removeRepository: (id: string) => void,
-		refetch: () => void,
-	}
-) {
-	const TABLE_HEAD = [
-		"", // checkbox
-		"general:name",
-		"vpm repositories:url",
-		"", // actions
-	];
-
-	return (
-		<table className="relative table-auto text-left">
-			<thead>
-			<tr>
-				{TABLE_HEAD.map((head, index) => (
-					<th key={index}
-							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
-					</th>
-				))}
-			</tr>
-			</thead>
-			<tbody>
-			{
-				userRepos.map((repo) =>
-					<RepositoryRow
-						key={repo.id}
-						repo={repo}
-						hiddenUserRepos={hiddenUserRepos}
-						remove={() => removeRepository(repo.id)}
-						refetch={refetch}
-					/>)
-			}
-			</tbody>
-		</table>
-	);
-}
-
-function RepositoryRow(
-	{
-		repo,
-		hiddenUserRepos,
-		remove,
-		refetch,
-	}: {
-		repo: TauriUserRepository,
-		hiddenUserRepos: Set<string>,
-		remove: () => void,
-		refetch: () => void,
-	}
-) {
-	const cellClass = "p-2.5";
-	const id = `repository-${repo.id}`;
-
-	const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
-
-	const selected = !hiddenUserRepos.has(repo.id);
-	const onChange = () => {
-		if (selected) {
-			environmentHideRepository(repo.id).then(refetch);
-		} else {
-			environmentShowRepository(repo.id).then(refetch);
-		}
-	}
-
-	let dialog;
-	if (removeDialogOpen) {
-		dialog = <Dialog handler={nop} open>
-			<DialogHeader>{tc("vpm repositories:remove repository")}</DialogHeader>
-			<DialogBody>
-				<Typography
-					className={"whitespace-normal font-normal"}>{tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}</Typography>
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={() => setRemoveDialogOpen(false)}>{tc("general:button:cancel")}</Button>
-				<Button onClick={() => {
-					remove();
-					setRemoveDialogOpen(false);
-				}} className={"ml-2"}>{tc("vpm repositories:remove repository")}</Button>
-			</DialogFooter>
-		</Dialog>;
-	}
-
-	return (
-		<tr className="even:bg-blue-gray-50/50">
-			<td className={cellClass}>
-				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}} id={id}
-									checked={selected} onChange={onChange}/>
-			</td>
-			<td className={cellClass}>
-				<label htmlFor={id}>
-					<Typography className="font-normal">
-						{repo.display_name}
-					</Typography>
-				</label>
-			</td>
-			<td className={cellClass}>
-				<Typography className="font-normal">
-					{repo.url}
-				</Typography>
-			</td>
-			<td className={`${cellClass} w-0`}>
-				<Tooltip content={tc("vpm repositories:remove repository")}>
-					<IconButton onClick={() => setRemoveDialogOpen(true)} variant={"text"}>
-						<XCircleIcon className={"size-5 text-red-700"}/>
-					</IconButton>
-				</Tooltip>
-			</td>
-			{dialog}
-		</tr>
-	)
 }
 
 let globalHeaderId = 0;

@@ -42,6 +42,19 @@ export const languages = [
 	"zh_cn",
 ];
 
-export const tc = tcOriginal;
+/**
+ * Enriched the tc function to ensure the new prefix system is used
+ */
+export const tc: typeof tcOriginal = (key, values, props) => {
+	if (!Array.isArray(key)){
+		if (!key.includes(":")){
+			console.warn(`I18N key doesn't contain ':', needs to be migrated. => "${key}"`)
+		}
+		else if (key.split(" ").length > 4){
+			console.warn(`I18N key look like a full sentense, needs to be migrated. => "${key}"`)
+		}
+	}
+	return tcOriginal(key, values, props);
+};
 
 export const tt = i18nextt;
