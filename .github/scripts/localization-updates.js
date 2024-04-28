@@ -75,7 +75,7 @@ async function processOneLocale(github, owner, repo, number, replyToId, localeId
 	const extraKeys = transKeys.filter(key => !enKeys.includes(key));
 
 	const missingKeysStr = missingKeys.length === 0 ? 'nothing' : missingKeys.map(key => `- \`${key}\``).join('\n');
-	const excessKeysStr = missingKeys.length === 0 ? 'nothing' : extraKeys.map(key => `- \`${key}\``).join('\n');
+	const excessKeysStr = extraKeys.length === 0 ? 'nothing' : extraKeys.map(key => `- \`${key}\``).join('\n');
 
 	const newData = {
 		missingKeys,
