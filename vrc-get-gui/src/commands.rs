@@ -23,7 +23,7 @@ use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 
-use async_command::{async_command, immediate, AsyncCallResult, AsyncCommandContext, With};
+use async_command::{async_command, AsyncCallResult, AsyncCommandContext, With};
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 use vrc_get_vpm::repository::RemoteRepository;
@@ -81,9 +81,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         project_resolve,
         project_remove_packages,
         project_apply_pending_changes,
-        project_before_migrate_project_to_2022,
         project_migrate_project_to_2022,
-        project_finalize_migration_with_unity_2022,
+        project_call_unity_for_migration,
         project_migrate_project_to_vpm,
         project_open_unity,
         project_create_backup,
@@ -134,9 +133,8 @@ pub(crate) fn export_ts() {
             project_resolve,
             project_remove_packages,
             project_apply_pending_changes,
-            project_before_migrate_project_to_2022,
             project_migrate_project_to_2022,
-            project_finalize_migration_with_unity_2022,
+            project_call_unity_for_migration,
             project_migrate_project_to_vpm,
             project_open_unity,
             project_create_backup,
@@ -2236,42 +2234,6 @@ async fn project_apply_pending_changes(
     Ok(())
 }
 
-#[derive(Serialize, specta::Type)]
-#[serde(tag = "type")]
-enum TauriBeforeMigrateProjectTo2022Result {
-    NoUnity2022Found,
-    ConfirmNotExactlyRecommendedUnity2022 { found: String, recommended: String },
-    ReadyToMigrate,
-}
-
-#[tauri::command]
-#[specta::specta]
-async fn project_before_migrate_project_to_2022(
-    state: State<'_, Mutex<EnvironmentState>>,
-    allow_mismatched_unity: bool,
-) -> Result<TauriBeforeMigrateProjectTo2022Result, RustError> {
-    with_environment!(state, |environment| {
-        let Some(found_unity) =
-            environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
-        else {
-            return Ok(TauriBeforeMigrateProjectTo2022Result::NoUnity2022Found);
-        };
-
-        if !allow_mismatched_unity
-            && found_unity.version().unwrap() != VRCHAT_RECOMMENDED_2022_UNITY
-        {
-            return Ok(
-                TauriBeforeMigrateProjectTo2022Result::ConfirmNotExactlyRecommendedUnity2022 {
-                    found: found_unity.version().unwrap().to_string(),
-                    recommended: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
-                },
-            );
-        }
-
-        Ok(TauriBeforeMigrateProjectTo2022Result::ReadyToMigrate)
-    })
-}
-
 #[tauri::command]
 #[specta::specta]
 async fn project_migrate_project_to_2022(
@@ -2296,8 +2258,7 @@ async fn project_migrate_project_to_2022(
 #[derive(Serialize, specta::Type, Clone)]
 #[serde(tag = "type")]
 #[allow(dead_code)]
-enum TauriFinalizeMigrationWithUnity2022Result {
-    NoUnity2022Found,
+enum TauriCallUnityForMigrationResult {
     ExistsWithNonZero { status: String },
     FinishedSuccessfully,
 }
@@ -2305,28 +2266,17 @@ enum TauriFinalizeMigrationWithUnity2022Result {
 #[allow(dead_code)]
 #[tauri::command]
 #[specta::specta]
-async fn project_finalize_migration_with_unity_2022(
-    state: State<'_, Mutex<EnvironmentState>>,
+async fn project_call_unity_for_migration(
     window: Window,
     channel: String,
     project_path: String,
-) -> Result<AsyncCallResult<String, TauriFinalizeMigrationWithUnity2022Result>, RustError> {
+    unity_path: String,
+) -> Result<AsyncCallResult<String, TauriCallUnityForMigrationResult>, RustError> {
     async_command(channel, window, async {
-        let found_unity = with_environment!(state, |environment| {
-            let Some(found_unity) =
-                environment.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)?
-            else {
-                return immediate(TauriFinalizeMigrationWithUnity2022Result::NoUnity2022Found);
-            };
-            environment.disconnect_litedb();
-
-            found_unity
-        });
-
         let unity_project = load_project(project_path).await?;
 
         With::<String>::continue_async(move |context| async move {
-            let mut child = Command::new(found_unity.path())
+            let mut child = Command::new(unity_path)
                 .args([
                     "-quit".as_ref(),
                     "-batchmode".as_ref(),
@@ -2350,13 +2300,11 @@ async fn project_finalize_migration_with_unity_2022(
             let status = child.wait().await?;
 
             return if status.success() {
-                Ok(TauriFinalizeMigrationWithUnity2022Result::FinishedSuccessfully)
+                Ok(TauriCallUnityForMigrationResult::FinishedSuccessfully)
             } else {
-                Ok(
-                    TauriFinalizeMigrationWithUnity2022Result::ExistsWithNonZero {
-                        status: status.to_string(),
-                    },
-                )
+                Ok(TauriCallUnityForMigrationResult::ExistsWithNonZero {
+                    status: status.to_string(),
+                })
             };
 
             async fn send_lines(

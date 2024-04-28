@@ -16,6 +16,7 @@ import {
 	MenuHandler,
 	MenuItem,
 	MenuList,
+	Radio,
 	Spinner,
 	Tooltip,
 	Typography
@@ -34,11 +35,11 @@ import {
 	environmentRefetchPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
-	environmentShowRepository, environmentUnityVersions,
+	environmentShowRepository,
+	environmentUnityVersions,
 	projectApplyPendingChanges,
-	projectBeforeMigrateProjectTo2022,
+	projectCallUnityForMigration,
 	projectDetails,
-	projectFinalizeMigrationWithUnity2022,
 	projectInstallMultiplePackage,
 	projectInstallPackage,
 	projectMigrateProjectTo2022,
@@ -54,12 +55,17 @@ import {
 	TauriVersion,
 	utilOpen
 } from "@/lib/bindings";
-import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
+import {
+	compareUnityVersion,
+	compareVersion,
+	parseUnityVersion,
+	toVersionString
+} from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
 import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
@@ -97,9 +103,9 @@ type InstallStatus = {
 } | {
 	status: "unity2022migration:confirm";
 } | {
-	status: "unity2022migration:confirmUnityVersionMismatch";
-	recommendedUnityVersion: string;
-	foundUnityVersion: string;
+	status: "unity2022migration:selectUnityVersion";
+	versionMismatch: boolean;
+	unityVersions: [path: string, version: string, fromHub: boolean][];
 	inPlace: boolean;
 } | {
 	status: "unity2022migration:copyingProject";
@@ -445,27 +451,68 @@ function PageBody() {
 		setInstallStatus({status: "normal"});
 	}
 
-	const doMigrateProjectTo2022 = async (allowMismatch: boolean, inPlace: boolean) => {
+	type FindUnity2022Result = {
+		type: "NoUnity2022";
+	} | {
+		type: "ExactMatches";
+		paths: [path: string, version: string, fromHub: boolean][];
+	} | {
+		type: "NonExactMatches";
+		paths: [path: string, version: string, fromHub: boolean][];
+	}
+
+	function findUnity2022ForMigration(): FindUnity2022Result | null {
+		if (unityVersionsResult.status != 'success') return null;
+		const unityVersions = unityVersionsResult.data;
+		const unity2022 = unityVersions.unity_paths.filter(([_p, v, _]) => parseUnityVersion(v)?.major == 2022);
+		if (unity2022.length == 0) return {type: "NoUnity2022"};
+		const exactMatches = unity2022.filter(([_p, v, _]) => v == unityVersionsResult.data.recommended_version);
+		if (exactMatches.length != 0) return {type: "ExactMatches", paths: exactMatches};
+		return {type: "NonExactMatches", paths: unity2022};
+	}
+
+	const startMigrateProjectTo2022 = async (inPlace: boolean) => {
 		try {
-			const preMigrationResult = await projectBeforeMigrateProjectTo2022(allowMismatch);
-			switch (preMigrationResult.type) {
-				case "NoUnity2022Found":
+			const findUnity2022Result = findUnity2022ForMigration();
+			if (findUnity2022Result == null) throw new Error("unexpectedly null");
+			switch (findUnity2022Result.type) {
+				case "NoUnity2022":
 					toastError(tt("projects:toast:unity migrate failed by unity not found"));
 					setInstallStatus({status: "normal"});
 					return;
-				case "ConfirmNotExactlyRecommendedUnity2022":
+				case "ExactMatches":
+					if (findUnity2022Result.paths.length == 1) {
+						// noinspection ES6MissingAwait
+						continueMigrateProjectTo2022(inPlace, findUnity2022Result.paths[0][0]);
+					} else {
+						setInstallStatus({
+							status: "unity2022migration:selectUnityVersion",
+							versionMismatch: false,
+							unityVersions: findUnity2022Result.paths,
+							inPlace,
+						})
+					}
+					break;
+				case "NonExactMatches":
 					setInstallStatus({
-						status: "unity2022migration:confirmUnityVersionMismatch",
-						recommendedUnityVersion: preMigrationResult.recommended,
-						foundUnityVersion: preMigrationResult.found,
+						status: "unity2022migration:selectUnityVersion",
+						versionMismatch: true,
+						unityVersions: findUnity2022Result.paths,
 						inPlace,
 					});
-					return; // do rest after confirm
-				case "ReadyToMigrate":
 					break;
 				default:
-					const _: never = preMigrationResult;
+					const _: never = findUnity2022Result;
 			}
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+			setInstallStatus({status: "normal"});
+		}
+	}
+
+	const continueMigrateProjectTo2022 = async (inPlace: boolean, unityPath: string) => {
+		try {
 			let migrateProjectPath;
 			if (inPlace) {
 				migrateProjectPath = projectPath;
@@ -478,7 +525,7 @@ function PageBody() {
 			await projectMigrateProjectTo2022(migrateProjectPath);
 			setInstallStatus({status: "unity2022migration:finalizing", lines: []});
 			let lineNumber = 0;
-			let [__, promise] = callAsyncCommand(projectFinalizeMigrationWithUnity2022, [migrateProjectPath], lineString => {
+			let [__, promise] = callAsyncCommand(projectCallUnityForMigration, [migrateProjectPath, unityPath], lineString => {
 				setInstallStatus(prev => {
 					if (prev.status != "unity2022migration:finalizing") return prev;
 					lineNumber++;
@@ -495,10 +542,9 @@ function PageBody() {
 				throw new Error("unexpectedly cancelled");
 			}
 			switch (finalizeResult.type) {
-				case "NoUnity2022Found":
-					toastError(tt("projects:toast:unity migration finalize failed by unity not found"));
-					break;
 				case "ExistsWithNonZero":
+					toastError(tt("projects:toast:unity exits with non-zero"));
+					break;
 				case "FinishedSuccessfully":
 					toastSuccess(tt("projects:toast:unity migrated"));
 					break;
@@ -545,15 +591,15 @@ function PageBody() {
 		case "unity2022migration:confirm":
 			dialogForState = <Unity2022MigrationConfirmMigrationDialog
 				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(inPlace) => doMigrateProjectTo2022(false, inPlace)}
+				doMigrate={(inPlace) => startMigrateProjectTo2022(inPlace)}
 			/>;
 			break;
-		case "unity2022migration:confirmUnityVersionMismatch":
-			dialogForState = <Unity2022MigrationUnityVersionMismatchDialog
-				recommendedUnityVersion={installStatus.recommendedUnityVersion}
-				foundUnityVersion={installStatus.foundUnityVersion}
+		case "unity2022migration:selectUnityVersion":
+			dialogForState = <Unity2022MigrationSelectUnityVersionDialog
+				dueToMismatch={installStatus.versionMismatch}
+				unityVersions={installStatus.unityVersions}
 				cancel={cancelMigrateProjectTo2022}
-				doMigrate={() => doMigrateProjectTo2022(true, installStatus.inPlace)}
+				doMigrate={(unityPath) => continueMigrateProjectTo2022(installStatus.inPlace, unityPath)}
 			/>;
 			break;
 		case "unity2022migration:copyingProject":
@@ -803,38 +849,47 @@ function Unity2022MigrationConfirmMigrationDialog(
 	);
 }
 
-function Unity2022MigrationUnityVersionMismatchDialog(
+function Unity2022MigrationSelectUnityVersionDialog(
 	{
-		recommendedUnityVersion,
-		foundUnityVersion,
+		dueToMismatch,
+		unityVersions,
 		cancel,
 		doMigrate,
 	}: {
-		recommendedUnityVersion: string,
-		foundUnityVersion: string,
+		dueToMismatch: boolean,
+		unityVersions: [path: string, version: string, boolean][],
 		cancel: () => void,
-		doMigrate: () => void,
+		doMigrate: (unityPath: string) => void,
 	}) {
+	const name = useState(() => `unity2022migration-select-unity-version-${Math.random().toString(36).slice(2)}-radio`)[0];
+
+	const [selectedUnityPath, setSelectedUnityPath] = useState<string | null>(null);
+
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
 			<DialogBody>
 				<Typography>
-					{tc("projects:manage:dialog:exact version unity not found")}
+					{dueToMismatch
+						? tc("projects:manage:dialog:exact version unity not found")
+						: tc("projects:manage:dialog:multiple unity found")}
 				</Typography>
 				<Typography>
-					{tc("projects:manage:dialog:recommended unity version", {version: recommendedUnityVersion})}
+					{dueToMismatch && tc("projects:manage:dialog:exact version unity not found description")}
 				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:found unity version", {version: foundUnityVersion})}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:exact version unity not found description")}
-				</Typography>
+				{unityVersions.map(([path, version, _]) =>
+					<Radio
+						key={path} name={name} label={`${version} (${path})`}
+						checked={selectedUnityPath == path}
+						onChange={() => setSelectedUnityPath(path)}
+					/>)}
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={doMigrate} color={"red"}>{tc("projects:manage:button:continue")}</Button>
+				<Button
+					onClick={() => doMigrate(selectedUnityPath!)} color={"red"}
+					disabled={selectedUnityPath == null}
+				>{tc("projects:manage:button:continue")}</Button>
 			</DialogFooter>
 		</Dialog>
 	);
