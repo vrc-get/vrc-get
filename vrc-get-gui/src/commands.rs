@@ -60,6 +60,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         environment_hide_repository,
         environment_show_repository,
         environment_set_hide_local_user_packages,
+        environment_unity_versions,
         environment_get_settings,
         environment_pick_unity_hub,
         environment_pick_unity,
@@ -112,6 +113,7 @@ pub(crate) fn export_ts() {
             environment_hide_repository,
             environment_show_repository,
             environment_set_hide_local_user_packages,
+            environment_unity_versions,
             environment_get_settings,
             environment_pick_unity_hub,
             environment_pick_unity,
@@ -1113,6 +1115,37 @@ async fn environment_set_hide_local_user_packages(
         config.hide_local_user_packages = value;
         config.save().await?;
         Ok(())
+    })
+}
+
+#[derive(Serialize, specta::Type)]
+struct TauriUnityVersions {
+    unity_paths: Vec<(String, String, bool)>,
+    recommended_version: String,
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_unity_versions(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriUnityVersions, RustError> {
+    with_environment!(&state, |environment| {
+        environment.find_unity_hub().await.ok();
+
+        Ok(TauriUnityVersions {
+            unity_paths: environment
+                .get_unity_installations()?
+                .iter()
+                .filter_map(|unity| {
+                    Some((
+                        unity.path().to_string(),
+                        unity.version()?.to_string(),
+                        unity.loaded_from_hub(),
+                    ))
+                })
+                .collect(),
+            recommended_version: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
+        })
     })
 }
 

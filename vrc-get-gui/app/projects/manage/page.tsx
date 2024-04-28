@@ -34,7 +34,7 @@ import {
 	environmentRefetchPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
-	environmentShowRepository,
+	environmentShowRepository, environmentUnityVersions,
 	projectApplyPendingChanges,
 	projectBeforeMigrateProjectTo2022,
 	projectDetails,
@@ -144,7 +144,7 @@ function PageBody() {
 	// repositoriesInfo: list of repositories and their visibility
 	// packagesResult: list of packages
 	// detailsResult: project details including installed packages
-	const [repositoriesInfo, packagesResult, detailsResult] = useQueries({
+	const [repositoriesInfo, packagesResult, detailsResult, unityVersionsResult] = useQueries({
 		queries: [
 			{
 				queryKey: ["environmentRepositoriesInfo"],
@@ -160,6 +160,10 @@ function PageBody() {
 				queryKey: ["projectDetails", projectPath],
 				queryFn: () => projectDetails(projectPath),
 				refetchOnWindowFocus: false,
+			},
+			{
+				queryKey: ["environmentUnityVersions"],
+				queryFn: () => environmentUnityVersions(),
 			},
 		]
 	});
@@ -213,6 +217,7 @@ function PageBody() {
 			packagesResult.refetch();
 			detailsResult.refetch();
 			repositoriesInfo.refetch();
+			unityVersionsResult.refetch();
 		} finally {
 			setManualRefething(false);
 		}
@@ -515,7 +520,7 @@ function PageBody() {
 	};
 
 	const installingPackage = installStatus.status != "normal";
-	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage || manualRefetching;
+	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || unityVersionsResult.isLoading || installingPackage || manualRefetching;
 
 	function checkIfMigrationTo2022Recommended(data: TauriProjectDetails) {
 		if (data.unity == null) return false;
@@ -790,7 +795,8 @@ function Unity2022MigrationConfirmMigrationDialog(
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate(false)} color={"red"} className="mr-1">{tc("projects:button:migrate copy")}</Button>
+				<Button onClick={() => doMigrate(false)} color={"red"}
+								className="mr-1">{tc("projects:button:migrate copy")}</Button>
 				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
 			</DialogFooter>
 		</Dialog>
@@ -1537,7 +1543,8 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 		>
 			{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 			{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
-			{incompatibleNames.length > 0 && <Typography className={"text-sm"}>{tc("projects:manage:incompatible packages")}</Typography>}
+			{incompatibleNames.length > 0 &&
+				<Typography className={"text-sm"}>{tc("projects:manage:incompatible packages")}</Typography>}
 			{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 		</VGSelect>
 	);
@@ -1631,7 +1638,8 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove, onBac
 
 			<Menu>
 				<ButtonGroup>
-					<Button onClick={() => openUnity(projectPath)} className={"pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
+					<Button onClick={() => openUnity(projectPath)}
+									className={"pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
