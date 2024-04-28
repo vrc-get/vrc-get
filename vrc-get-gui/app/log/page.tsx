@@ -1,7 +1,7 @@
 "use client";
 
 import {Card, Typography} from "@material-tailwind/react";
-import {HNavBar, VStack} from "@/components/layout";
+import {HContent, HNavBar, HSection, HSectionText, VStack} from "@/components/layout";
 import React, {useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
 import {notoSansMono} from "@/app/fonts";
@@ -41,15 +41,24 @@ export default function Page() {
 	return (
 		<VStack className={"m-4"}>
 			<HNavBar className={"flex-shrink-0"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				<Typography variant="h4" className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("logs")}
 				</Typography>
 			</HNavBar>
-			<main className="flex-shrink overflow-hidden flex flex-grow">
+			<HContent>
+				<HSection className="overflow-x-auto">
+					{logEntries.map((entry, i) => (
+						<HSectionText className="text-nowrap" key={i}>
+							{logEntryToText(entry)}
+						</HSectionText>
+					))}
+				</HSection>
+			</HContent>
+			{/* <main className="flex-shrink overflow-hidden flex flex-grow">
 				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre ${notoSansMono.className} shadow-none`}>
-					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
+				{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
 				</Card>
-			</main>
+			</main> */}
 		</VStack>
 	);
 }

@@ -14,7 +14,7 @@ import {
 	TauriEnvironmentSettings,
 	utilGetVersion,
 } from "@/lib/bindings";
-import {HNavBar, VStack} from "@/components/layout";
+import {HNavBar, VStack, HContent, HSection, HSectionTitle, HSectionRow, HSectionSubTitle, HSectionText} from "@/components/layout";
 import React from "react";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
@@ -39,7 +39,7 @@ export default function Page() {
 			body = <Card className={"p-4"}>{tc("general:loading...")}</Card>;
 			break;
 		case "success":
-			body = <Settings settings={result.data} refetch={result.refetch}/>;
+			body = <Settings settings={result.data} refetch={result.refetch} />
 			break;
 		default:
 			const _exhaustiveCheck: never = result;
@@ -48,11 +48,13 @@ export default function Page() {
 	return (
 		<VStack className={"p-4"}>
 			<HNavBar className={"flex-shrink-0"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				<Typography variant="h4" className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("settings")}
 				</Typography>
 			</HNavBar>
-			{body}
+			<HContent>
+				{body}
+			</HContent>
 		</VStack>
 	);
 }
@@ -208,109 +210,124 @@ function Settings(
 
 
 	return (
-		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2 className={"pb-2"}>{tc("settings:unity hub")}</h2>
-				<div className={"flex gap-1"}>
-					{
-						settings.unity_hub
-							? <Input className="flex-auto" value={settings.unity_hub} disabled/>
-							: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-red-900"}/>
-					}
-					<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("general:button:select")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<div className={"pb-2 flex align-middle"}>
-					<div className={"flex-grow flex items-center"}>
-						<h2>{tc("settings:unity installations")}</h2>
-					</div>
-					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
-				</div>
-				<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
-					<UnityTable unityPaths={settings.unity_paths}/>
-				</Card>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:default project path")}</h2>
-				<Typography className={"whitespace-normal"}>
-					{tc("settings:default project path description")}
-				</Typography>
-				<div className={"flex gap-1"}>
+		<>
+			<HSection>
+				<HSectionTitle>{tc("unity hub")}</HSectionTitle>
+				<HSectionRow>
+						{
+							settings.unity_hub
+								? <Input className="flex-auto" value={settings.unity_hub} disabled/>
+								: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-red-900"}/>
+						}
+					<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("select")}</Button>
+				</HSectionRow>
+			</HSection>
+			<HSection>
+				<HSectionRow>
+					<HSectionTitle className="flex-grow">{tc("unity installations")}</HSectionTitle>
+					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("add unity")}</Button>
+				</HSectionRow>
+				<HSectionRow>
+					<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
+						<UnityTable unityPaths={settings.unity_paths}/>
+					</Card>
+				</HSectionRow>
+			</HSection>
+			<HSection>
+				<HSectionTitle>
+					{tc("default project path")}
+				</HSectionTitle>
+				<HSectionSubTitle>
+					{tc("the default project path is the directory where new projects are created in.")}
+				</HSectionSubTitle>
+				<HSectionRow>
 					<Input className="flex-auto" value={settings.default_project_path} disabled/>
-					<Button className={"flex-none px-4"} onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("projects:backup")}</h2>
-				<div className="mt-2">
-					<h3>{tc("settings:backup:path")}</h3>
-					<Typography className={"whitespace-normal"}>
-						{tc("settings:backup:path description")}
-					</Typography>
-					<div className={"flex gap-1"}>
-						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
-						<Button className={"flex-none px-4"} onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
-					</div>
-				</div>
-				<div className="mt-2">
-					<label className={"flex items-center"}>
-						<h3>{tc("settings:backup:format")}</h3>
-						<VGSelect value={tc("settings:backup:format:" + settings.backup_format)} onChange={setBackupFormat}>
-							<VGOption value={"default"}>{tc("settings:backup:format:default")}</VGOption>
-							<VGOption value={"zip-store"}>{tc("settings:backup:format:zip-store")}</VGOption>
-							<VGOption value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</VGOption>
-							<VGOption value={"zip-best"}>{tc("settings:backup:format:zip-best")}</VGOption>
-						</VGSelect>
-					</label>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<Typography className={"whitespace-normal"}>
-					{tc("settings:show prerelease description")}
-				</Typography>
-				<label className={"flex items-center"}>
+					<Button className={"flex-none px-4"} onClick={selectProjectDefaultFolder}>{tc("select")}</Button>
+				</HSectionRow>
+			</HSection>
+			<HSection>
+				<HSectionTitle>
+					{tc("backup")}
+				</HSectionTitle>
+				<HSectionSubTitle>
+					{tc("backup path")}
+				</HSectionSubTitle>
+				<HSectionText>
+					{tc("the backup path is the directory where alcom will create backup zips of the projects.")}
+				</HSectionText>
+				<HSectionRow>
+					<Input className="flex-auto" value={settings.project_backup_path} disabled/>
+					<Button className={"flex-none px-4"} onClick={selectProjectBackupFolder}>{tc("select")}</Button>
+				</HSectionRow>
+				<HSectionRow>
+					<HSectionSubTitle>
+						{tc("Backup archive format")} :
+					</HSectionSubTitle>
+					<VGSelect value={tc("backup_format:" + settings.backup_format)} onChange={setBackupFormat}>
+						<VGOption value={"default"}>{tc("backup_format:default")}</VGOption>
+						<VGOption value={"zip-store"}>{tc("backup_format:zip-store")}</VGOption>
+						<VGOption value={"zip-fast"}>{tc("backup_format:zip-fast")}</VGOption>
+						<VGOption value={"zip-best"}>{tc("backup_format:zip-best")}</VGOption>
+					</VGSelect>
+				</HSectionRow>
+			</HSection>
+			<HSection>
+				<HSectionTitle>
+					{tc("Prerelease packages")}
+				</HSectionTitle>
+				<HSectionText>
+					{tc("description for show prerelease packages")}
+				</HSectionText>
+				<HSectionRow>
 					<Checkbox checked={settings.show_prerelease_packages} onChange={toggleShowPrereleasePackages}/>
-					{tc("settings:show prerelease")}
-				</label>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<label className={"flex items-center"}>
-					<h2>{tc("settings:language")}: </h2>
-					<VGSelect value={tc("settings:langName")} onChange={changeLanguage} menuClassName={"w-96"}>
+					{tc("show prerelease packages")}
+				</HSectionRow>
+			</HSection>
+			<HSection>
+				<HSectionTitle>
+					{tc("language")}
+				</HSectionTitle>
+				<HSectionRow>
+					<VGSelect value={tc("langName")} onChange={changeLanguage} menuClassName={"w-96"}>
 						{
 							languages.map((lang) => (
 								<VGOption key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</VGOption>
 							))
 						}
 					</VGSelect>
-				</label>
-			</Card>
+				</HSectionRow>
+			</HSection>
+			<HSection>
+				<HSectionTitle>
+					{tc("check for updates")}
+				</HSectionTitle>
+				<HSectionRow>
+					<Button onClick={() => emit("tauri://update")}>{tc("check for updates")}</Button>
+				</HSectionRow>
+			</HSection>
+			<HSection className={"flex-shrink-0 p-4"}>
+				<HSectionTitle>
+					{tc("settings:report issue")}
+				</HSectionTitle>
+				<HSectionRow>
+					<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
+				</HSectionRow>
+			</HSection>
+			<HSection>
+				<HSectionTitle>
+					{tc("licenses")}
+				</HSectionTitle>
+				<HSectionText>
+					{tc("click <l>here</l> to view licenses of the projects used in alcom", {}, {
+						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
+					})}
+				</HSectionText>
+			</HSection>
 			{unityDialog}
 			{unityHubDialog}
 			{projectDefaultDialog}
 			{projectBackupDialog}
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:check update")}</h2>
-				<div>
-					<Button onClick={() => emit("tauri://update")}>{tc("settings:check update")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:report issue")}</h2>
-				<div>
-				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:licenses")}</h2>
-				<Typography className={"whitespace-normal"}>
-					{tc("settings:licenses description", {}, {
-						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
-					})}
-				</Typography>
-			</Card>
-		</main>
+		</>
 	)
 }
 
