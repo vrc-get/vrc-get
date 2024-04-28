@@ -16,7 +16,7 @@ const Table = (
     if (!layout){
         layout = Array(header.length).fill(0).map(_ => "auto")
     }
-    return (<div className={`grid rounded-xl border border-blue-gray-100 ${className}`} style={{gridTemplateColumns: layout.join(" ") }}>
+    return (<div className={`grid overflow-x-auto rounded-xl border border-blue-gray-100 ${className}`} style={{gridTemplateColumns: layout.join(" ") }}>
         {/* Header */}
         {header.map((headerItem, headerIndex) => (<div
             key={headerIndex}

@@ -158,7 +158,7 @@ function PageBody() {
 				<HSection>
 					<Table
 						header={["", tc("vpm repositories:community repositories"), tc("vpm repositories:url"), ""]}
-						layout={["auto", "1fr", "1fr", "auto"]}
+						layout={["50px", "1fr", "1fr", "50px"]}
 						rows={(result.data?.user_repositories ?? []).map((repo, repoIndex) => {
 							const id = `repository-${repo.id}`;
 											
