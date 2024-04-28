@@ -34,3 +34,28 @@ If you want to add a new language, it will follow the following steps.
 
    For this process, please enable "Allow Edits from Maintainers" in the pull request.
 10. The maintainer of the project will merge the pull request.
+
+Notes for maintainer:
+
+Maintainer have to get the node id for github discussions comment.
+
+It's format like `DC_kwDOIza9ks4AjSve` and the random-like part is base64 encoded message pack of `[0, <repo id>, <comment id>]`. (`[0, 590790034, 9252424]`)
+
+```bash
+gh api graphql -f query='
+  query {
+    repository(owner: "vrc-get", name: "vrc-get") {
+      discussion(number: <number>) {
+        body
+        id
+        comments(first: 1) {
+          nodes {
+            body
+            id
+          }
+        }
+      }
+    }
+  }
+'
+```
