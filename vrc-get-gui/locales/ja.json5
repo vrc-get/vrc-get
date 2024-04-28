@@ -186,5 +186,7 @@
     "projects:toast:backup canceled": "バックアップをキャンセルしました。",
     "projects:toast:backup success": "バックアップを作成しました。",
     "settings:language": "言語設定(Language)",
+    "settings:report issue": "問題を報告する",
+    "settings:button:open issue": "Issueを作成",
   },
 }
