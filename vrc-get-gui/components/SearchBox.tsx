@@ -16,7 +16,7 @@ export function SearchBox({className, value, onChange}: {
 			<InputNoLabel
 				type="search"
 				placeholder={t("search:placeholder")}
-				className={"pl-9"}
+				className={"pl-9 placeholder:opacity-100"}
 				value={value}
 				onChange={onChange}
 			/>
