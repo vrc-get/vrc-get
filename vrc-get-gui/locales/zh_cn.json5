@@ -106,7 +106,7 @@
     "projects:manage:dialog:confirm changes description": "您正在对项目进行以下更改",
     "projects:manage:button:see changelog": "查看更新日志",
     "projects:manage:button:apply changes": "应用更改",
-    "projects:manage:dialog:install package": "安装 <b>{{name}</b> 版本 {{version}}",
+    "projects:manage:dialog:install package": "安装 <b>{{name}}</b> 版本 {{version}}",
     "projects:manage:dialog:uninstall package as requested": "根据您的要求，删除 <b>{{name}}</b>",
     "projects:manage:dialog:uninstall package as legacy": "删除 <b>{{name}}</b>，因为它是一个旧版软件包",
     "projects:manage:dialog:uninstall package as unused": "删除 <b>{{name}}</b> 因为它未被使用",
