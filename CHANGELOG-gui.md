@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
   - The path is the default path for official apt distribution
 - Issue Report button feature in Settings `#821`
 - German translation `#824`
+- SDK2 Project is now shown as type "SDK2" `#869`
 
 ### Changed
 
