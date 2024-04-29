@@ -300,9 +300,9 @@ function ProjectsTable(
 	);
 }
 
-const ProjectDisplayType: Record<TauriProjectType, "avatars" | "worlds" | "unknown"> = {
+const ProjectDisplayType: Record<TauriProjectType, "avatars" | "worlds" | "sdk2" | "unknown"> = {
 	"Unknown": "unknown",
-	"LegacySdk2": "unknown",
+	"LegacySdk2": "sdk2",
 	"LegacyWorlds": "worlds",
 	"LegacyAvatars": "avatars",
 	"UpmWorlds": "worlds",
