@@ -17,7 +17,7 @@ tauri-build = { version = "1.5.1", features = [ "config-toml" ] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.6.1", features = [ "os-all", "updater", "shell-open", "config-toml", "dialog" ] }
+tauri = { version = "1.6.2", features = [ "os-all", "updater", "shell-open", "config-toml", "dialog" ] }
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
 reqwest = "0.12.4"
 specta = { version = "1.0.5", features = [ "chrono" ] }
