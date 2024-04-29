@@ -18,7 +18,7 @@
     "@tauri-apps/api": "^1.5.4",
     "@uidotdev/usehooks": "^2.4.1",
     "classnames": "^2.5.1",
-    "i18next": "^23.11.2",
+    "i18next": "^23.11.3",
     "next": "14.2.2",
     "react": "^18",
     "react-dom": "^18",
