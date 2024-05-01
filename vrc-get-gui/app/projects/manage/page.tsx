@@ -610,7 +610,7 @@ function SuggestMigrateTo2022Card(
 	}
 ) {
 	return (
-		<Card className={"flex-shrink-0 p-2 flex flex-row"}>
+		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
 			<Typography
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest unity migrate")}

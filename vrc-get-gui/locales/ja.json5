@@ -22,6 +22,7 @@
     "projects:last modified:months": "{{count}}ヶ月前",
     "projects:last modified:years": "{{count}}年前",
     "projects:type:unknown": "不明",
+    "projects:type:sdk2": "SDK2",
     "projects:type:worlds": "ワールド",
     "projects:type:avatars": "アバター",
     "general:loading...": "読込中...",

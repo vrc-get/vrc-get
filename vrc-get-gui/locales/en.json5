@@ -28,6 +28,7 @@
     "projects:last modified:years_one": "{{count}} year ago",
     "projects:last modified:years_other": "{{count}} years ago",
     "projects:type:unknown": "Unknown",
+    "projects:type:sdk2": "SDK2",
     "projects:type:worlds": "Worlds",
     "projects:type:avatars": "Avatars",
     "general:loading...": "Loading...",
