@@ -175,6 +175,29 @@ macro_rules! with_config {
     }};
 }
 
+trait WindowExt {
+    fn make_fullscreen_ish(&self) -> tauri::Result<()>;
+    fn is_fullscreen_ish(&self) -> tauri::Result<bool>;
+}
+
+impl WindowExt for Window {
+    fn make_fullscreen_ish(&self) -> tauri::Result<()> {
+        if cfg!(windows) {
+            self.maximize()
+        } else {
+            self.set_fullscreen(true)
+        }
+    }
+
+    fn is_fullscreen_ish(&self) -> tauri::Result<bool> {
+        if cfg!(windows) {
+            self.is_maximized()
+        } else {
+            self.is_fullscreen()
+        }
+    }
+}
+
 pub(crate) fn startup(app: &mut App) {
     let handle = app.handle();
     tauri::async_runtime::spawn(async move {
@@ -247,7 +270,9 @@ pub(crate) fn startup(app: &mut App) {
             })?;
         }
 
-        window.set_fullscreen(fullscreen)?;
+        if fullscreen {
+            window.make_fullscreen_ish()?;
+        }
 
         let cloned = window.clone();
 
@@ -266,7 +291,7 @@ pub(crate) fn startup(app: &mut App) {
                     return;
                 }
 
-                let fullscreen = cloned.is_fullscreen().unwrap();
+                let fullscreen = cloned.is_fullscreen_ish().unwrap();
 
                 let mut resize_debounce = resize_debounce.lock().unwrap();
 
