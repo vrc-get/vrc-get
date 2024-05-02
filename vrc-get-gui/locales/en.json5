@@ -190,6 +190,7 @@
     "settings:unity:path": "Unity Path",
     "settings:unity:source:manual": "Manual",
     "general:toast:not supported": "{{name}} is not supported yet.",
+    "general:not implemented": "Not Implemented",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
     "projects:toast:match version unity not found": "No matching Unity version found. Please install Unity in your computer or add a Unity version in the ALCOM settings",
     "projects:toast:opening unity...": "Opening Unity...",

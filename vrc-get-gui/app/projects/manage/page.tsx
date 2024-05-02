@@ -492,7 +492,8 @@ function PageBody() {
 						<VGSelect value={detailsResult.status == 'success' ? (detailsResult.data.unity_str ?? "unknown") :
 							<span className={"text-blue-gray-300"}>Loading...</span>}
 											className="border-blue-gray-200">
-							{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+							{/*unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)*/}
+							<VGOption value={""}>{tc("general:not implemented")}</VGOption>
 						</VGSelect>
 					</div>
 				</div>
