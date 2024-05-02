@@ -63,7 +63,11 @@ export function useUnity2022Migration(
 	const [installStatus, setInstallStatus] = React.useState<State2022>({state: "normal"});
 
 	const requestMigrateProjectTo2022 = async () => {
-		setInstallStatus({state: "confirm"});
+		const unityFound = findRecommendedUnity(unityVersions);
+		if (unityFound.length == 0)
+			setInstallStatus({state: "noExactUnity2022"});
+		else
+			setInstallStatus({state: "confirm"});
 	}
 
 	const startMigrateProjectTo2022 = async (inPlace: boolean) => {
@@ -342,7 +346,11 @@ export function useUnity2022PatchMigration(
 	const [installStatus, setInstallStatus] = React.useState<State2022Patch>({state: "normal"});
 
 	const requestMigrate = async () => {
-		setInstallStatus({state: "confirm"});
+		const unityFound = findRecommendedUnity(unityVersions);
+		if (unityFound.length == 0)
+			setInstallStatus({state: "noExactUnity2022"});
+		else
+			setInstallStatus({state: "confirm"});
 	}
 
 	const startMigrateProjectTo2022 = async () => {
