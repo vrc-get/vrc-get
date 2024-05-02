@@ -716,7 +716,7 @@ fn deny_absolute_legacy_assets() {
 }
 
 #[test]
-fn do_not_remove_legacy_files_that_guid_mismatches() {
+fn do_remove_legacy_files_that_guid_mismatches() {
     block_on(async {
         let project = VirtualProjectBuilder::new()
             .add_dir("Assets/LegacyGuidMismatchFolder")
@@ -754,8 +754,8 @@ fn do_not_remove_legacy_files_that_guid_mismatches() {
                         "Assets\\LegacyGuidMatchFolder",
                         "cbac8a2877e64d75af9b3b61fe946b40",
                     )
-                    .add_legacy_folder(
-                        "Packages\\LegacyGuidMismatchAsset.cs",
+                    .add_legacy_file(
+                        "Assets\\LegacyGuidMismatchAsset.cs",
                         "417a8085479b433792a67b2dfefb1982",
                     )
                     .add_legacy_file(
@@ -785,23 +785,74 @@ fn do_not_remove_legacy_files_that_guid_mismatches() {
                 .remove_legacy_folders()
                 .iter()
                 .collect::<HashSet<_>>(),
-            [(
-                Path::new("Assets/LegacyGuidMatchFolder").into(),
-                "com.anatawa12.package",
-            ),]
+            [
+                (
+                    Path::new("Assets/LegacyGuidMatchFolder").into(),
+                    "com.anatawa12.package",
+                ),
+                (
+                    Path::new("Assets/LegacyGuidMismatchFolder").into(),
+                    "com.anatawa12.package",
+                ),
+            ]
             .iter()
             .collect::<HashSet<_>>()
         );
 
         assert_eq!(
             result.remove_legacy_files().iter().collect::<HashSet<_>>(),
-            [(
-                Path::new("Assets/LegacyGuidMatchAsset.cs").into(),
-                "com.anatawa12.package",
-            )]
+            [
+                (
+                    Path::new("Assets/LegacyGuidMatchAsset.cs").into(),
+                    "com.anatawa12.package",
+                ),
+                (
+                    Path::new("Assets/LegacyGuidMismatchAsset.cs").into(),
+                    "com.anatawa12.package",
+                ),
+            ]
             .iter()
             .collect::<HashSet<_>>()
         );
+    })
+}
+
+#[test]
+fn do_not_remove_udonsharp_folder_if_guid_mismatch() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_dir("Assets/UdonSharp")
+            .add_file(
+                "Assets/UdonSharp.meta",
+                "guid: e2095dec983b4d9481723c263fd5b6c0",
+            )
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(
+                PackageManifest::new("com.vrchat.worlds", Version::new(1, 0, 0))
+                    .add_legacy_folder("Assets\\UdonSharp", "b031f928e5c709b4887f6513084aaa51"),
+            )
+            .build();
+
+        let package = collection.get_package("com.vrchat.worlds", Version::new(1, 0, 0));
+
+        let result = project
+            .add_package_request(
+                &collection,
+                &[package],
+                AddPackageOperation::InstallToDependencies,
+                false,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.package_changes().len(), 1);
+        assert_eq!(result.conflicts().len(), 0);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
     })
 }
 
