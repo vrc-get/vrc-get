@@ -47,7 +47,7 @@ import {
 	TauriPackage,
 	TauriPackageChange,
 	TauriPendingProjectChanges,
-	TauriProjectDetails,
+	TauriProjectDetails, TauriUnityVersions,
 	TauriUserRepository,
 	TauriVersion,
 	utilOpen
@@ -66,7 +66,7 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
-import {useUnity2022Migration} from "@/app/projects/manage/unity-migration";
+import {useUnity2022Migration, useUnity2022PatchMigration} from "@/app/projects/manage/unity-migration";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -426,6 +426,7 @@ function PageBody() {
 	}
 
 	const unity2022Migration = useUnity2022Migration({projectPath, unityVersions: unityVersionsResult.data});
+	const unity2022PatchMigration = useUnity2022PatchMigration({projectPath, unityVersions: unityVersionsResult.data});
 
 	const installingPackage = installStatus.status != "normal";
 	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || unityVersionsResult.isLoading || installingPackage || manualRefetching;
@@ -437,7 +438,18 @@ function PageBody() {
 		return data.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id));
 	}
 
+	function checkIf2022PatchMigrationRecommended(data: TauriProjectDetails, unityData: TauriUnityVersions) {
+		if (!data.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id))) return false;
+
+		if (data.unity == null) return false;
+		if (data.unity[0] != 2022) return false;
+		// unity patch is 2022.
+		return data.unity_str != unityData.recommended_version;
+	}
+
 	const isMigrationTo2022Recommended = detailsResult.status == 'success' && checkIfMigrationTo2022Recommended(detailsResult.data);
+	const is2022PatchMigrationRecommended = detailsResult.status == 'success' && unityVersionsResult.status == 'success'
+		&& checkIf2022PatchMigrationRecommended(detailsResult.data, unityVersionsResult.data);
 
 	let dialogForState: React.ReactNode = null;
 
@@ -481,6 +493,9 @@ function PageBody() {
 			{isMigrationTo2022Recommended &&
 				<SuggestMigrateTo2022Card disabled={isLoading}
 																	onMigrateRequested={unity2022Migration.requestMigrateProjectTo2022}/>}
+			{is2022PatchMigrationRecommended &&
+				<Suggest2022PatchMigrationCard disabled={isLoading}
+																			 onMigrateRequested={unity2022PatchMigration.requestMigrate}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
 					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
@@ -593,6 +608,7 @@ function PageBody() {
 				</Card>
 				{dialogForState}
 				{unity2022Migration.dialog}
+				{unity2022PatchMigration.dialog}
 				{projectRemoveModal.dialog}
 				{backupProjectModal.dialog}
 			</main>
@@ -614,6 +630,29 @@ function SuggestMigrateTo2022Card(
 			<Typography
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest unity migrate")}
+			</Typography>
+			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
+				{tc("projects:manage:button:unity migrate")}
+			</Button>
+		</Card>
+	)
+}
+
+function Suggest2022PatchMigrationCard(
+	{
+		disabled,
+		onMigrateRequested,
+	}: {
+		disabled?: boolean;
+		onMigrateRequested: () => void;
+	}
+) {
+	return (
+		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
+			<Typography
+				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+				{tc("projects:manage:suggest unity patch migration")}
 			</Typography>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>

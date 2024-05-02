@@ -34,7 +34,7 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
     unity_hub, EnvironmentIoHolder, PackageCollection, PackageInfo, PackageManifest, ProjectType,
-    VersionSelector, VRCHAT_RECOMMENDED_2022_UNITY,
+    VersionSelector, VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK,
 };
 
 use crate::config::GuiConfigHolder;
@@ -1120,6 +1120,7 @@ async fn environment_set_hide_local_user_packages(
 struct TauriUnityVersions {
     unity_paths: Vec<(String, String, bool)>,
     recommended_version: String,
+    install_recommended_version_link: String,
 }
 
 #[tauri::command]
@@ -1143,6 +1144,7 @@ async fn environment_unity_versions(
                 })
                 .collect(),
             recommended_version: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
+            install_recommended_version_link: VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK.to_string(),
         })
     })
 }
