@@ -58,7 +58,7 @@ import {
 	toVersionString
 } from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
-import {openUnity} from "@/lib/open-unity";
+import {useOpenUnity} from "@/lib/use-open-unity";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
@@ -466,8 +466,15 @@ function PageBody() {
 
 	return (
 		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}
-												 onRemove={onRemoveProject} onBackup={onBackupProject}/>
+			<ProjectViewHeader
+				className={"flex-shrink-0"}
+				projectName={projectName}
+				projectPath={projectPath}
+				unityVersion={detailsResult.data?.unity_str ?? null}
+				unityVersions={unityVersionsResult?.data}
+				onRemove={onRemoveProject}
+				onBackup={onBackupProject}
+			/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row flex-wrap"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
 					{tc("projects:manage:project location",
@@ -482,7 +489,7 @@ function PageBody() {
 						{tc("projects:manage:unity version")}
 					</Typography>
 					<div className={"flex-grow-0 flex-shrink-0"}>
-						<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
+						<VGSelect value={detailsResult.status == 'success' ? (detailsResult.data.unity_str ?? "unknown") :
 							<span className={"text-blue-gray-300"}>Loading...</span>}
 											className="border-blue-gray-200">
 							{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
@@ -1411,13 +1418,16 @@ function PackageLatestInfo(
 	}
 }
 
-function ProjectViewHeader({className, projectName, projectPath, onRemove, onBackup}: {
+function ProjectViewHeader({className, projectName, projectPath, unityVersion, unityVersions, onRemove, onBackup}: {
 	className?: string,
 	projectName: string,
 	projectPath: string
+	unityVersion: string | null,
+	unityVersions: TauriUnityVersions | undefined,
 	onRemove?: () => void,
 	onBackup?: () => void,
 }) {
+	const openUnity = useOpenUnity(unityVersions);
 	const openProjectFolder = () => utilOpen(projectPath);
 
 	return (
@@ -1437,7 +1447,7 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove, onBac
 
 			<Menu>
 				<ButtonGroup>
-					<Button onClick={() => openUnity(projectPath)}
+					<Button onClick={() => openUnity.openUnity(projectPath, unityVersion)}
 									className={"pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
@@ -1451,6 +1461,7 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove, onBac
 					<MenuItem onClick={onRemove} className={"bg-red-700 text-white"}>{tc("projects:remove project")}</MenuItem>
 				</MenuList>
 			</Menu>
+			{openUnity.dialog}
 		</HNavBar>
 	);
 }

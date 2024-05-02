@@ -1913,7 +1913,7 @@ async fn environment_create_project(
 #[derive(Serialize, specta::Type)]
 struct TauriProjectDetails {
     unity: Option<(u16, u8)>,
-    unity_str: String,
+    unity_str: Option<String>,
     installed_packages: Vec<(String, TauriBasePackageInfo)>,
 }
 
@@ -1933,10 +1933,7 @@ async fn project_details(project_path: String) -> Result<TauriProjectDetails, Ru
         unity: unity_project
             .unity_version()
             .map(|v| (v.major(), v.minor())),
-        unity_str: unity_project
-            .unity_version()
-            .map(|v| v.to_string())
-            .unwrap_or_else(|| "unknown".into()),
+        unity_str: unity_project.unity_version().map(|v| v.to_string()),
         installed_packages: unity_project
             .installed_packages()
             .map(|(k, p)| (k.to_string(), TauriBasePackageInfo::new(p)))
@@ -2365,50 +2362,17 @@ async fn project_migrate_project_to_vpm(
     Ok(())
 }
 
-#[derive(Serialize, specta::Type)]
-enum TauriOpenUnityResult {
-    NoUnityVersionForTheProject,
-    NoMatchingUnityFound,
-    Success,
-}
-
 #[tauri::command]
 #[specta::specta]
-async fn project_open_unity(
-    state: State<'_, Mutex<EnvironmentState>>,
-    project_path: String,
-) -> Result<TauriOpenUnityResult, RustError> {
-    with_environment!(&state, |environment| {
-        let unity_project = load_project(project_path).await?;
+async fn project_open_unity(project_path: String, unity_path: String) -> Result<(), RustError> {
+    crate::cmd_start::start_command(
+        "Unity".as_ref(),
+        unity_path.as_ref(),
+        &["-projectPath".as_ref(), OsStr::new(project_path.as_str())],
+    )
+    .await?;
 
-        let Some(project_unity) = unity_project.unity_version() else {
-            return Ok(TauriOpenUnityResult::NoUnityVersionForTheProject);
-        };
-
-        for x in environment.get_unity_installations()? {
-            if let Some(version) = x.version() {
-                if version == project_unity {
-                    update_project_last_modified(environment, unity_project.project_dir()).await;
-
-                    crate::cmd_start::start_command(
-                        "Unity".as_ref(),
-                        x.path().as_ref(),
-                        &[
-                            "-projectPath".as_ref(),
-                            unity_project.project_dir().as_os_str(),
-                        ],
-                    )
-                    .await?;
-
-                    return Ok(TauriOpenUnityResult::Success);
-                }
-            }
-        }
-
-        environment.disconnect_litedb();
-
-        Ok(TauriOpenUnityResult::NoMatchingUnityFound)
-    })
+    Ok(())
 }
 
 fn folder_stream(

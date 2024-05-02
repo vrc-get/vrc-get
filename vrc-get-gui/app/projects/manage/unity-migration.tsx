@@ -6,21 +6,15 @@ import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
 	environmentCopyProjectForMigration,
 	projectCallUnityForMigration,
-	projectMigrateProjectTo2022
+	projectMigrateProjectTo2022, TauriUnityVersions
 } from "@/lib/bindings";
 import {callAsyncCommand} from "@/lib/call-async-command";
 import {useRouter} from "next/navigation";
 import {shellOpen} from "@/lib/shellOpen";
 
-interface UnityVersions {
-	unity_paths: [string, string, boolean][],
-	recommended_version: string,
-	install_recommended_version_link: string,
-}
-
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
-function findRecommendedUnity(unityVersions?: UnityVersions): UnityInstallation[] {
+function findRecommendedUnity(unityVersions?: TauriUnityVersions): UnityInstallation[] {
 	if (unityVersions == null) return [];
 	return unityVersions.unity_paths.filter(([_p, v, _]) => v == unityVersions.recommended_version);
 }
@@ -55,7 +49,7 @@ export function useUnity2022Migration(
 		unityVersions,
 	}: {
 		projectPath: string,
-		unityVersions?: UnityVersions,
+		unityVersions?: TauriUnityVersions,
 	}
 ): Result2022 {
 	const router = useRouter();
@@ -231,7 +225,7 @@ function MigrationSelectUnityVersionDialog(
 		cancel,
 		doMigrate,
 	}: {
-		unityVersions: [path: string, version: string, boolean][],
+		unityVersions: UnityInstallation[],
 		cancel: () => void,
 		doMigrate: (unityPath: string) => void,
 	}) {
@@ -338,7 +332,7 @@ export function useUnity2022PatchMigration(
 		unityVersions,
 	}: {
 		projectPath: string,
-		unityVersions?: UnityVersions,
+		unityVersions?: TauriUnityVersions,
 	}
 ): Result2022Patch {
 	const router = useRouter();

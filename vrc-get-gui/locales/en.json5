@@ -98,6 +98,7 @@
     "projects:manage:suggest unity patch migration": "Your project is using a bit older version of Unity 2022. VRChat recommend you to migrate your project newer version of Unity 2022.",
     "projects:manage:dialog:unity migrate header": "Unity Migration",
     "projects:manage:dialog:multiple unity found": "Multiple Unity installations of the version were found.",
+    "projects:manage:dialog:select unity header": "Select Unity",
     "projects:manage:button:continue": "Continue",
     "projects:manage:dialog:do not close": "Do not close the window.",
     "projects:manage:dialog:unity migrate finalizing...": "Launching Unity 2022 in background to finalize the migration...",
