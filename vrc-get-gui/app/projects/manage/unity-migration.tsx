@@ -2,7 +2,6 @@ import React, {Fragment, useState} from "react";
 import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio, Typography} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {tc, tt} from "@/lib/i18n";
-import {parseUnityVersion} from "@/lib/version";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
 	environmentCopyProjectForMigration,
@@ -13,13 +12,27 @@ import {callAsyncCommand} from "@/lib/call-async-command";
 import {useRouter} from "next/navigation";
 import {shellOpen} from "@/lib/shellOpen";
 
+interface UnityVersions {
+	unity_paths: [string, string, boolean][],
+	recommended_version: string,
+	install_recommended_version_link: string,
+}
+
+type UnityInstallation = [path: string, version: string, fromHub: boolean];
+
+function findRecommendedUnity(unityVersions?: UnityVersions): UnityInstallation[] {
+	if (unityVersions == null) return [];
+	return unityVersions.unity_paths.filter(([_p, v, _]) => v == unityVersions.recommended_version);
+}
+
 type State2022 = {
 	state: "normal";
 } | {
 	state: "confirm";
 } | {
+	state: "noExactUnity2022";
+} | {
 	state: "selectUnityVersion";
-	versionMismatch: boolean;
 	unityVersions: [path: string, version: string, fromHub: boolean][];
 	inPlace: boolean;
 } | {
@@ -42,34 +55,12 @@ export function useUnity2022Migration(
 		unityVersions,
 	}: {
 		projectPath: string,
-		unityVersions?: {
-			unity_paths: [string, string, boolean][],
-			recommended_version: string,
-		},
+		unityVersions?: UnityVersions,
 	}
 ): Result2022 {
 	const router = useRouter();
 
 	const [installStatus, setInstallStatus] = React.useState<State2022>({state: "normal"});
-
-	type FindUnity2022Result = {
-		type: "NoUnity2022";
-	} | {
-		type: "ExactMatches";
-		paths: [path: string, version: string, fromHub: boolean][];
-	} | {
-		type: "NonExactMatches";
-		paths: [path: string, version: string, fromHub: boolean][];
-	}
-
-	function findUnity2022ForMigration(): FindUnity2022Result | null {
-		if (unityVersions == null) return null;
-		const unity2022 = unityVersions.unity_paths.filter(([_p, v, _]) => parseUnityVersion(v)?.major == 2022);
-		if (unity2022.length == 0) return {type: "NoUnity2022"};
-		const exactMatches = unity2022.filter(([_p, v, _]) => v == unityVersions.recommended_version);
-		if (exactMatches.length != 0) return {type: "ExactMatches", paths: exactMatches};
-		return {type: "NonExactMatches", paths: unity2022};
-	}
 
 	const requestMigrateProjectTo2022 = async () => {
 		setInstallStatus({state: "confirm"});
@@ -77,36 +68,19 @@ export function useUnity2022Migration(
 
 	const startMigrateProjectTo2022 = async (inPlace: boolean) => {
 		try {
-			const findUnity2022Result = findUnity2022ForMigration();
-			if (findUnity2022Result == null) throw new Error("unexpectedly null");
-			switch (findUnity2022Result.type) {
-				case "NoUnity2022":
-					toastError(tt("projects:toast:unity migrate failed by unity not found"));
-					setInstallStatus({state: "normal"});
-					return;
-				case "ExactMatches":
-					if (findUnity2022Result.paths.length == 1) {
-						// noinspection ES6MissingAwait
-						continueMigrateProjectTo2022(inPlace, findUnity2022Result.paths[0][0]);
-					} else {
-						setInstallStatus({
-							state: "selectUnityVersion",
-							versionMismatch: false,
-							unityVersions: findUnity2022Result.paths,
-							inPlace,
-						})
-					}
+			const unityFound = findRecommendedUnity(unityVersions);
+			if (unityFound == null) throw new Error("unexpectedly null");
+			switch (unityFound.length) {
+				case 0:
+					setInstallStatus({state: "noExactUnity2022"});
 					break;
-				case "NonExactMatches":
-					setInstallStatus({
-						state: "selectUnityVersion",
-						versionMismatch: true,
-						unityVersions: findUnity2022Result.paths,
-						inPlace,
-					});
+				case 1:
+					// noinspection ES6MissingAwait
+					continueMigrateProjectTo2022(inPlace, unityFound[0][0]);
 					break;
 				default:
-					const _: never = findUnity2022Result;
+					setInstallStatus({state: "selectUnityVersion", inPlace, unityVersions: unityFound});
+					break;
 			}
 		} catch (e) {
 			console.error(e);
@@ -187,7 +161,6 @@ export function useUnity2022Migration(
 			break;
 		case "selectUnityVersion":
 			dialogBodyForState = <MigrationSelectUnityVersionDialog
-				dueToMismatch={installStatus.versionMismatch}
 				unityVersions={installStatus.unityVersions}
 				cancel={cancelMigrateProjectTo2022}
 				doMigrate={(unityPath) => continueMigrateProjectTo2022(installStatus.inPlace, unityPath)}
@@ -198,6 +171,13 @@ export function useUnity2022Migration(
 			break
 		case "updating":
 			dialogBodyForState = <MigrationMigratingDialog/>;
+			break;
+		case "noExactUnity2022":
+			dialogBodyForState = <NoExactUnity2022Dialog
+				expectedVersion={unityVersions!.recommended_version}
+				installWithUnityHubLink={unityVersions!.install_recommended_version_link}
+				close={cancelMigrateProjectTo2022}
+			/>;
 			break;
 		case "finalizing":
 			dialogBodyForState = <MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
@@ -243,12 +223,10 @@ function MigrationConfirmMigrationDialog(
 
 function MigrationSelectUnityVersionDialog(
 	{
-		dueToMismatch,
 		unityVersions,
 		cancel,
 		doMigrate,
 	}: {
-		dueToMismatch: boolean,
 		unityVersions: [path: string, version: string, boolean][],
 		cancel: () => void,
 		doMigrate: (unityPath: string) => void,
@@ -261,12 +239,7 @@ function MigrationSelectUnityVersionDialog(
 		<>
 			<DialogBody>
 				<Typography>
-					{dueToMismatch
-						? tc("projects:manage:dialog:exact version unity not found")
-						: tc("projects:manage:dialog:multiple unity found")}
-				</Typography>
-				<Typography>
-					{dueToMismatch && tc("projects:manage:dialog:exact version unity not found description")}
+					{tc("projects:manage:dialog:multiple unity found")}
 				</Typography>
 				{unityVersions.map(([path, version, _]) =>
 					<Radio
@@ -361,34 +334,12 @@ export function useUnity2022PatchMigration(
 		unityVersions,
 	}: {
 		projectPath: string,
-		unityVersions?: {
-			unity_paths: [string, string, boolean][],
-			recommended_version: string,
-			install_recommended_version_link: string,
-		},
+		unityVersions?: UnityVersions,
 	}
 ): Result2022Patch {
 	const router = useRouter();
 
 	const [installStatus, setInstallStatus] = React.useState<State2022Patch>({state: "normal"});
-
-	type FindUnity2022Result = {
-		type: "NoUnity2022";
-	} | {
-		type: "ExactMatches";
-		paths: [path: string, version: string, fromHub: boolean][];
-	} | {
-		type: "NotFound";
-	}
-
-	function findUnity2022ForPatchMigration(): FindUnity2022Result | null {
-		if (unityVersions == null) return null;
-		const unity2022 = unityVersions.unity_paths.filter(([_p, v, _]) => parseUnityVersion(v)?.major == 2022);
-		if (unity2022.length == 0) return {type: "NoUnity2022"};
-		const exactMatches = unity2022.filter(([_p, v, _]) => v == unityVersions.recommended_version);
-		if (exactMatches.length != 0) return {type: "ExactMatches", paths: exactMatches};
-		return {type: "NotFound"};
-	}
 
 	const requestMigrate = async () => {
 		setInstallStatus({state: "confirm"});
@@ -396,29 +347,19 @@ export function useUnity2022PatchMigration(
 
 	const startMigrateProjectTo2022 = async () => {
 		try {
-			const findUnity2022Result = findUnity2022ForPatchMigration();
-			if (findUnity2022Result == null) throw new Error("unexpectedly null");
-			switch (findUnity2022Result.type) {
-				case "NoUnity2022":
-					toastError(tt("projects:toast:unity migrate failed by unity not found"));
-					setInstallStatus({state: "normal"});
-					return;
-				case "ExactMatches":
-					if (findUnity2022Result.paths.length == 1) {
-						// noinspection ES6MissingAwait
-						continueMigrateProjectTo2022(findUnity2022Result.paths[0][0]);
-					} else {
-						setInstallStatus({
-							state: "selectUnityVersion",
-							unityVersions: findUnity2022Result.paths,
-						})
-					}
-					break;
-				case "NotFound":
+			const unityFound = findRecommendedUnity(unityVersions);
+			if (unityFound == null) throw new Error("unexpectedly null");
+			switch (unityFound.length) {
+				case 0:
 					setInstallStatus({state: "noExactUnity2022"});
 					break;
+				case 1:
+					// noinspection ES6MissingAwait
+					continueMigrateProjectTo2022(unityFound[0][0]);
+					break;
 				default:
-					const _: never = findUnity2022Result;
+					setInstallStatus({state: "selectUnityVersion", unityVersions: unityFound});
+					break;
 			}
 		} catch (e) {
 			console.error(e);
@@ -486,7 +427,6 @@ export function useUnity2022PatchMigration(
 			break;
 		case "selectUnityVersion":
 			dialogBodyForState = <MigrationSelectUnityVersionDialog
-				dueToMismatch={false}
 				unityVersions={installStatus.unityVersions}
 				cancel={cancelMigrateProjectTo2022}
 				doMigrate={(unityPath) => continueMigrateProjectTo2022(unityPath)}
