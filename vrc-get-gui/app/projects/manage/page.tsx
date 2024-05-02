@@ -499,10 +499,10 @@ function PageBody() {
 			</Card>
 			{isMigrationTo2022Recommended &&
 				<SuggestMigrateTo2022Card disabled={isLoading}
-																	onMigrateRequested={unity2022Migration.requestMigrateProjectTo2022}/>}
+																	onMigrateRequested={unity2022Migration.request}/>}
 			{is2022PatchMigrationRecommended &&
 				<Suggest2022PatchMigrationCard disabled={isLoading}
-																			 onMigrateRequested={unity2022PatchMigration.requestMigrate}/>}
+																			 onMigrateRequested={unity2022PatchMigration.request}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
 					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>

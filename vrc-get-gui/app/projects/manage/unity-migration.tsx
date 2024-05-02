@@ -20,7 +20,86 @@ function findRecommendedUnity(unityVersions?: TauriUnityVersions): UnityInstalla
 	return unityVersions.unity_paths.filter(([_p, v, _]) => v == unityVersions.recommended_version);
 }
 
-type State2022 = {
+export function useUnity2022Migration(
+	{
+		projectPath,
+		unityVersions,
+	}: {
+		projectPath: string,
+		unityVersions?: TauriUnityVersions,
+	}
+): Result {
+	return useMigrationInternal({
+		projectPath,
+		unityVersions,
+		updateProjectPreUnityLaunch: async (project) => await projectMigrateProjectTo2022(project),
+		ConfirmComponent: MigrationConfirmMigrationDialog,
+	});
+}
+
+function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
+	return (
+		<>
+			<DialogBody>
+				<Typography className={"text-red-700"}>
+					{tc("projects:dialog:vpm migrate description")}
+				</Typography>
+			</DialogBody>
+			<DialogFooter>
+				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+				<Button onClick={() => doMigrate(false)} color={"red"}
+								className="mr-1">{tc("projects:button:migrate copy")}</Button>
+				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
+			</DialogFooter>
+		</>
+	);
+}
+
+export function useUnity2022PatchMigration(
+	{
+		projectPath,
+		unityVersions,
+	}: {
+		projectPath: string,
+		unityVersions?: TauriUnityVersions,
+	}
+): Result {
+	return useMigrationInternal({
+		projectPath,
+		unityVersions,
+		updateProjectPreUnityLaunch: async () => {
+		}, // nothing pre-launch
+
+		ConfirmComponent: MigrationConfirmMigrationPatchDialog,
+	});
+}
+
+function MigrationConfirmMigrationPatchDialog(
+	{
+		unity,
+		cancel,
+		doMigrate,
+	}: {
+		unity: string,
+		cancel: () => void,
+		doMigrate: (inPlace: boolean) => void,
+	}) {
+	return (
+		<>
+			<DialogBody>
+				<Typography className={"text-red-700"}>
+					{tc("projects:dialog:migrate unity2022 patch description", {unity})}
+				</Typography>
+			</DialogBody>
+			<DialogFooter>
+				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
+			</DialogFooter>
+		</>
+	);
+}
+
+type StateInternal = {
 	state: "normal";
 } | {
 	state: "confirm";
@@ -35,26 +114,38 @@ type State2022 = {
 	lines: [number, string][];
 }
 
-type Result2022 = {
+type Result = {
 	dialog: React.ReactNode;
-	requestMigrateProjectTo2022: () => void;
+	request: () => void;
 }
 
-export function useUnity2022Migration(
+type ConfirmProps = {
+	unity: string,
+	cancel: () => void,
+	doMigrate: (inPlace: boolean) => void,
+}
+
+function useMigrationInternal(
 	{
 		projectPath,
 		unityVersions,
+		updateProjectPreUnityLaunch,
+
+		ConfirmComponent,
 	}: {
 		projectPath: string,
 		unityVersions?: TauriUnityVersions,
+		updateProjectPreUnityLaunch: (projectPath: string) => Promise<unknown>,
+
+		ConfirmComponent: React.ComponentType<ConfirmProps>,
 	}
-): Result2022 {
+): Result {
 	const router = useRouter();
 	const unitySelector = useUnitySelectorDialog();
 
-	const [installStatus, setInstallStatus] = React.useState<State2022>({state: "normal"});
+	const [installStatus, setInstallStatus] = React.useState<StateInternal>({state: "normal"});
 
-	const requestMigrateProjectTo2022 = async () => {
+	const request = async () => {
 		const unityFound = findRecommendedUnity(unityVersions);
 		if (unityFound.length == 0)
 			setInstallStatus({state: "noExactUnity2022"});
@@ -100,7 +191,7 @@ export function useUnity2022Migration(
 				migrateProjectPath = await environmentCopyProjectForMigration(projectPath);
 			}
 			setInstallStatus({state: "updating"});
-			await projectMigrateProjectTo2022(migrateProjectPath);
+			await updateProjectPreUnityLaunch(migrateProjectPath);
 			setInstallStatus({state: "finalizing", lines: []});
 			let lineNumber = 0;
 			let [__, promise] = callAsyncCommand(projectCallUnityForMigration, [migrateProjectPath, unityPath], lineString => {
@@ -154,9 +245,10 @@ export function useUnity2022Migration(
 			dialogBodyForState = null;
 			break;
 		case "confirm":
-			dialogBodyForState = <MigrationConfirmMigrationDialog
+			dialogBodyForState = <ConfirmComponent
+				unity={unityVersions!.recommended_version}
 				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(inPlace) => startMigrateProjectTo2022(inPlace)}
+				doMigrate={startMigrateProjectTo2022}
 			/>;
 			break;
 		case "copyingProject":
@@ -188,34 +280,8 @@ export function useUnity2022Migration(
 					{dialogBodyForState}
 				</Dialog>}
 		</>,
-		requestMigrateProjectTo2022,
+		request,
 	};
-}
-
-
-function MigrationConfirmMigrationDialog(
-	{
-		cancel,
-		doMigrate,
-	}: {
-		cancel: () => void,
-		doMigrate: (inPlace: boolean) => void,
-	}) {
-	return (
-		<>
-			<DialogBody>
-				<Typography className={"text-red-700"}>
-					{tc("projects:dialog:vpm migrate description")}
-				</Typography>
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate(false)} color={"red"}
-								className="mr-1">{tc("projects:button:migrate copy")}</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
-			</DialogFooter>
-		</>
-	);
 }
 
 function MigrationCopyingDialog() {
@@ -265,182 +331,6 @@ function MigrationCallingUnityForMigrationDialog(
 			<div ref={ref}/>
 				</pre>
 	</DialogBody>;
-}
-
-
-type State2022Patch = {
-	state: "normal";
-} | {
-	state: "confirm";
-} | {
-	state: "noExactUnity2022";
-} | {
-	state: "finalizing";
-	lines: [number, string][];
-}
-
-type Result2022Patch = {
-	dialog: React.ReactNode;
-	requestMigrate: () => void;
-}
-
-export function useUnity2022PatchMigration(
-	{
-		projectPath,
-		unityVersions,
-	}: {
-		projectPath: string,
-		unityVersions?: TauriUnityVersions,
-	}
-): Result2022Patch {
-	const router = useRouter();
-	const unitySelector = useUnitySelectorDialog();
-
-	const [installStatus, setInstallStatus] = React.useState<State2022Patch>({state: "normal"});
-
-	const requestMigrate = async () => {
-		const unityFound = findRecommendedUnity(unityVersions);
-		if (unityFound.length == 0)
-			setInstallStatus({state: "noExactUnity2022"});
-		else
-			setInstallStatus({state: "confirm"});
-	}
-
-	const startMigrateProjectTo2022 = async () => {
-		try {
-			const unityFound = findRecommendedUnity(unityVersions);
-			if (unityFound == null) throw new Error("unexpectedly null");
-			switch (unityFound.length) {
-				case 0:
-					setInstallStatus({state: "noExactUnity2022"});
-					break;
-				case 1:
-					// noinspection ES6MissingAwait
-					continueMigrateProjectTo2022(unityFound[0][0]);
-					break;
-				default:
-					const selected = await unitySelector.select(unityFound);
-					if (selected == null)
-						setInstallStatus({state: "normal"});
-					else
-						// noinspection ES6MissingAwait
-						continueMigrateProjectTo2022(selected);
-					break;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-			setInstallStatus({state: "normal"});
-		}
-	}
-
-	const continueMigrateProjectTo2022 = async (unityPath: string) => {
-		try {
-			let migrateProjectPath = projectPath;
-			setInstallStatus({state: "finalizing", lines: []});
-			let lineNumber = 0;
-			let [__, promise] = callAsyncCommand(projectCallUnityForMigration, [migrateProjectPath, unityPath], lineString => {
-				setInstallStatus(prev => {
-					if (prev.state != "finalizing") return prev;
-					lineNumber++;
-					let line: [number, string] = [lineNumber, lineString];
-					if (prev.lines.length > 200) {
-						return {...prev, lines: [...prev.lines.slice(1), line]};
-					} else {
-						return {...prev, lines: [...prev.lines, line]};
-					}
-				})
-			});
-			const finalizeResult = await promise;
-			if (finalizeResult == 'cancelled') {
-				throw new Error("unexpectedly cancelled");
-			}
-			switch (finalizeResult.type) {
-				case "ExistsWithNonZero":
-					toastError(tt("projects:toast:unity exits with non-zero"));
-					break;
-				case "FinishedSuccessfully":
-					toastSuccess(tt("projects:toast:unity migrated"));
-					break;
-				default:
-					const _: never = finalizeResult;
-			}
-			setInstallStatus({state: "normal"});
-			router.refresh();
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-			setInstallStatus({state: "normal"});
-		}
-	};
-
-	const cancelMigrateProjectTo2022 = async () => {
-		setInstallStatus({state: "normal"});
-	}
-
-	let dialogBodyForState: React.ReactNode = null;
-
-	switch (installStatus.state) {
-		case "normal":
-			dialogBodyForState = null;
-			break;
-		case "confirm":
-			dialogBodyForState = <MigrationConfirmMigrationPatchDialog
-				unity={unityVersions!.recommended_version}
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={startMigrateProjectTo2022}
-			/>;
-			break;
-		case "noExactUnity2022":
-			dialogBodyForState = <NoExactUnity2022Dialog
-				expectedVersion={unityVersions!.recommended_version}
-				installWithUnityHubLink={unityVersions!.install_recommended_version_link}
-				close={cancelMigrateProjectTo2022}
-			/>;
-			break;
-		case "finalizing":
-			dialogBodyForState = <MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
-			break;
-		default:
-			const _: never = installStatus;
-	}
-
-	return {
-		dialog: <>
-			{unitySelector.dialog}
-			{dialogBodyForState == null ? null :
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-					{dialogBodyForState}
-				</Dialog>}
-		</>,
-		requestMigrate,
-	};
-}
-
-function MigrationConfirmMigrationPatchDialog(
-	{
-		unity,
-		cancel,
-		doMigrate,
-	}: {
-		unity: string,
-		cancel: () => void,
-		doMigrate: () => void,
-	}) {
-	return (
-		<>
-			<DialogBody>
-				<Typography className={"text-red-700"}>
-					{tc("projects:dialog:migrate unity2022 patch description", {unity})}
-				</Typography>
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate()} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
-			</DialogFooter>
-		</>
-	);
 }
 
 function NoExactUnity2022Dialog(
