@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog].
 - Issue Report button feature in Settings `#821`
 - German translation `#824`
 - SDK2 Project is now shown as type "SDK2" `#869`
+- Select Unity Path if there are two or more Unity of the same version installed `#863`
+  - Currently, ALCOM will ask every time you open Unity. In the feature we will save the selection.
+- Unity 2022 patch version migration `#863`
 
 ### Changed
 
