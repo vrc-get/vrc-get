@@ -11,6 +11,7 @@ import {
 import {callAsyncCommand} from "@/lib/call-async-command";
 import {useRouter} from "next/navigation";
 import {shellOpen} from "@/lib/shellOpen";
+import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
@@ -25,10 +26,6 @@ type State2022 = {
 	state: "confirm";
 } | {
 	state: "noExactUnity2022";
-} | {
-	state: "selectUnityVersion";
-	unityVersions: [path: string, version: string, fromHub: boolean][];
-	inPlace: boolean;
 } | {
 	state: "copyingProject";
 } | {
@@ -53,6 +50,7 @@ export function useUnity2022Migration(
 	}
 ): Result2022 {
 	const router = useRouter();
+	const unitySelector = useUnitySelectorDialog();
 
 	const [installStatus, setInstallStatus] = React.useState<State2022>({state: "normal"});
 
@@ -67,7 +65,6 @@ export function useUnity2022Migration(
 	const startMigrateProjectTo2022 = async (inPlace: boolean) => {
 		try {
 			const unityFound = findRecommendedUnity(unityVersions);
-			if (unityFound == null) throw new Error("unexpectedly null");
 			switch (unityFound.length) {
 				case 0:
 					setInstallStatus({state: "noExactUnity2022"});
@@ -77,7 +74,12 @@ export function useUnity2022Migration(
 					continueMigrateProjectTo2022(inPlace, unityFound[0][0]);
 					break;
 				default:
-					setInstallStatus({state: "selectUnityVersion", inPlace, unityVersions: unityFound});
+					const selected = await unitySelector.select(unityFound);
+					if (selected == null)
+						setInstallStatus({state: "normal"});
+					else
+						// noinspection ES6MissingAwait
+						continueMigrateProjectTo2022(inPlace, selected);
 					break;
 			}
 		} catch (e) {
@@ -157,13 +159,6 @@ export function useUnity2022Migration(
 				doMigrate={(inPlace) => startMigrateProjectTo2022(inPlace)}
 			/>;
 			break;
-		case "selectUnityVersion":
-			dialogBodyForState = <MigrationSelectUnityVersionDialog
-				unityVersions={installStatus.unityVersions}
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(unityPath) => continueMigrateProjectTo2022(installStatus.inPlace, unityPath)}
-			/>;
-			break;
 		case "copyingProject":
 			dialogBodyForState = <MigrationCopyingDialog/>;
 			break
@@ -185,10 +180,14 @@ export function useUnity2022Migration(
 	}
 
 	return {
-		dialog: dialogBodyForState == null ? null : <Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			{dialogBodyForState}
-		</Dialog>,
+		dialog: <>
+			{unitySelector.dialog}
+			{dialogBodyForState == null ? null :
+				<Dialog open handler={nop} className={"whitespace-normal"}>
+					<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
+					{dialogBodyForState}
+				</Dialog>}
+		</>,
 		requestMigrateProjectTo2022,
 	};
 }
@@ -214,44 +213,6 @@ function MigrationConfirmMigrationDialog(
 				<Button onClick={() => doMigrate(false)} color={"red"}
 								className="mr-1">{tc("projects:button:migrate copy")}</Button>
 				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
-			</DialogFooter>
-		</>
-	);
-}
-
-function MigrationSelectUnityVersionDialog(
-	{
-		unityVersions,
-		cancel,
-		doMigrate,
-	}: {
-		unityVersions: UnityInstallation[],
-		cancel: () => void,
-		doMigrate: (unityPath: string) => void,
-	}) {
-	const name = useState(() => `unity2022migration-select-unity-version-${Math.random().toString(36).slice(2)}-radio`)[0];
-
-	const [selectedUnityPath, setSelectedUnityPath] = useState<string | null>(null);
-
-	return (
-		<>
-			<DialogBody>
-				<Typography>
-					{tc("projects:manage:dialog:multiple unity found")}
-				</Typography>
-				{unityVersions.map(([path, version, _]) =>
-					<Radio
-						key={path} name={name} label={`${version} (${path})`}
-						checked={selectedUnityPath == path}
-						onChange={() => setSelectedUnityPath(path)}
-					/>)}
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button
-					onClick={() => doMigrate(selectedUnityPath!)} color={"red"}
-					disabled={selectedUnityPath == null}
-				>{tc("projects:manage:button:continue")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -312,9 +273,6 @@ type State2022Patch = {
 } | {
 	state: "confirm";
 } | {
-	state: "selectUnityVersion";
-	unityVersions: [path: string, version: string, fromHub: boolean][];
-} | {
 	state: "noExactUnity2022";
 } | {
 	state: "finalizing";
@@ -336,6 +294,7 @@ export function useUnity2022PatchMigration(
 	}
 ): Result2022Patch {
 	const router = useRouter();
+	const unitySelector = useUnitySelectorDialog();
 
 	const [installStatus, setInstallStatus] = React.useState<State2022Patch>({state: "normal"});
 
@@ -360,7 +319,12 @@ export function useUnity2022PatchMigration(
 					continueMigrateProjectTo2022(unityFound[0][0]);
 					break;
 				default:
-					setInstallStatus({state: "selectUnityVersion", unityVersions: unityFound});
+					const selected = await unitySelector.select(unityFound);
+					if (selected == null)
+						setInstallStatus({state: "normal"});
+					else
+						// noinspection ES6MissingAwait
+						continueMigrateProjectTo2022(selected);
 					break;
 			}
 		} catch (e) {
@@ -427,13 +391,6 @@ export function useUnity2022PatchMigration(
 				doMigrate={startMigrateProjectTo2022}
 			/>;
 			break;
-		case "selectUnityVersion":
-			dialogBodyForState = <MigrationSelectUnityVersionDialog
-				unityVersions={installStatus.unityVersions}
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(unityPath) => continueMigrateProjectTo2022(unityPath)}
-			/>;
-			break;
 		case "noExactUnity2022":
 			dialogBodyForState = <NoExactUnity2022Dialog
 				expectedVersion={unityVersions!.recommended_version}
@@ -449,10 +406,14 @@ export function useUnity2022PatchMigration(
 	}
 
 	return {
-		dialog: dialogBodyForState == null ? null : <Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			{dialogBodyForState}
-		</Dialog>,
+		dialog: <>
+			{unitySelector.dialog}
+			{dialogBodyForState == null ? null :
+				<Dialog open handler={nop} className={"whitespace-normal"}>
+					<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
+					{dialogBodyForState}
+				</Dialog>}
+		</>,
 		requestMigrate,
 	};
 }
