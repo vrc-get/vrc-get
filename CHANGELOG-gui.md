@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog].
 - Added dedicated messages for bulk actions in manage packages page `#819`
 - Panics are ignored `#846`
   - From this version, panics will be logged to error logs instead of stderr.
+- Maximized is not saved on windows `#902`
 
 ### Security
 
