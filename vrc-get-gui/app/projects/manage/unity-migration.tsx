@@ -12,7 +12,7 @@ import {
 import {callAsyncCommand} from "@/lib/call-async-command";
 import {useRouter} from "next/navigation";
 
-type State = {
+type State2022 = {
 	state: "normal";
 } | {
 	state: "confirm";
@@ -30,12 +30,12 @@ type State = {
 	lines: [number, string][];
 }
 
-type Result = {
+type Result2022 = {
 	dialog: React.ReactNode;
 	requestMigrateProjectTo2022: () => void;
 }
 
-export function useUnityMigration(
+export function useUnity2022Migration(
 	{
 		projectPath,
 		unityVersions,
@@ -46,10 +46,10 @@ export function useUnityMigration(
 			recommended_version: string,
 		},
 	}
-): Result {
+): Result2022 {
 	const router = useRouter();
 
-	const [installStatus, setInstallStatus] = React.useState<State>({state: "normal"});
+	const [installStatus, setInstallStatus] = React.useState<State2022>({state: "normal"});
 
 	type FindUnity2022Result = {
 		type: "NoUnity2022";
@@ -73,7 +73,7 @@ export function useUnityMigration(
 	const requestMigrateProjectTo2022 = async () => {
 		setInstallStatus({state: "confirm"});
 	}
- 
+
 	const startMigrateProjectTo2022 = async (inPlace: boolean) => {
 		try {
 			const findUnity2022Result = findUnity2022ForMigration();
@@ -179,13 +179,13 @@ export function useUnityMigration(
 			dialogBodyForState = null;
 			break;
 		case "confirm":
-			dialogBodyForState = <Unity2022MigrationConfirmMigrationDialog
+			dialogBodyForState = <MigrationConfirmMigrationDialog
 				cancel={cancelMigrateProjectTo2022}
 				doMigrate={(inPlace) => startMigrateProjectTo2022(inPlace)}
 			/>;
 			break;
 		case "selectUnityVersion":
-			dialogBodyForState = <Unity2022MigrationSelectUnityVersionDialog
+			dialogBodyForState = <MigrationSelectUnityVersionDialog
 				dueToMismatch={installStatus.versionMismatch}
 				unityVersions={installStatus.unityVersions}
 				cancel={cancelMigrateProjectTo2022}
@@ -193,13 +193,13 @@ export function useUnityMigration(
 			/>;
 			break;
 		case "copyingProject":
-			dialogBodyForState = <Unity2022MigrationCopyingDialog/>;
+			dialogBodyForState = <MigrationCopyingDialog/>;
 			break
 		case "updating":
-			dialogBodyForState = <Unity2022MigrationMigratingDialog/>;
+			dialogBodyForState = <MigrationMigratingDialog/>;
 			break;
 		case "finalizing":
-			dialogBodyForState = <Unity2022MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
+			dialogBodyForState = <MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
 			break;
 		default:
 			const _: never = installStatus;
@@ -215,7 +215,7 @@ export function useUnityMigration(
 }
 
 
-function Unity2022MigrationConfirmMigrationDialog(
+function MigrationConfirmMigrationDialog(
 	{
 		cancel,
 		doMigrate,
@@ -240,7 +240,7 @@ function Unity2022MigrationConfirmMigrationDialog(
 	);
 }
 
-function Unity2022MigrationSelectUnityVersionDialog(
+function MigrationSelectUnityVersionDialog(
 	{
 		dueToMismatch,
 		unityVersions,
@@ -285,7 +285,7 @@ function Unity2022MigrationSelectUnityVersionDialog(
 	);
 }
 
-function Unity2022MigrationCopyingDialog() {
+function MigrationCopyingDialog() {
 	return <DialogBody>
 		<Typography>
 			{tc("projects:pre-migrate copying...")}
@@ -296,7 +296,7 @@ function Unity2022MigrationCopyingDialog() {
 	</DialogBody>;
 }
 
-function Unity2022MigrationMigratingDialog() {
+function MigrationMigratingDialog() {
 	return <DialogBody>
 		<Typography>
 			{tc("projects:migrating...")}
@@ -307,7 +307,7 @@ function Unity2022MigrationMigratingDialog() {
 	</DialogBody>;
 }
 
-function Unity2022MigrationCallingUnityForMigrationDialog(
+function MigrationCallingUnityForMigrationDialog(
 	{
 		lines
 	}: {

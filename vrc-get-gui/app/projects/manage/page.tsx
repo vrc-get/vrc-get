@@ -66,7 +66,7 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
-import {useUnityMigration} from "@/app/projects/manage/unity-migration";
+import {useUnity2022Migration} from "@/app/projects/manage/unity-migration";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -425,7 +425,7 @@ function PageBody() {
 		}
 	}
 
-	const unity2022Migration = useUnityMigration({projectPath, unityVersions: unityVersionsResult.data});
+	const unity2022Migration = useUnity2022Migration({projectPath, unityVersions: unityVersionsResult.data});
 
 	const installingPackage = installStatus.status != "normal";
 	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || unityVersionsResult.isLoading || installingPackage || manualRefetching;
