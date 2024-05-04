@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog].
 - SDK2 Project is now shown as type "SDK2" `#869`
 - Legacy Assets are remove even if the specified GUID does not match with the actual GUID `#901`
   - This follows VCC 2.3.0 beta 3 behavior.
+- Added a French language translation `#904`
 
 ### Changed
 
