@@ -1,5 +1,7 @@
 # Contributing
 
+**Please read [../CONTRIBUTING.md#configuration-requirements](../CONTRIBUTING.md#configuration-requirements) first!**
+
 ## Localizing
 
 This project is internationalized, so when you add some text contents to the project, 
