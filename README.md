@@ -162,3 +162,8 @@ See [README of ALCOM][alcom] for more details.
 [homebrew-vrc-get]: https://formulae.brew.sh/formula/vrc-get
 [macports-vrc-get]: https://ports.macports.org/port/vrc-get
 [scoop-vrc-get]: https://github.com/babo4d/scoop-xrtools/blob/master/bucket/vrc-get.json
+
+## Contribution
+
+- For how to contribute vrc-get: [CONTRIBUTING.md](CONTRIBUTING.md)
+- For how to contribute localization to ALCOM (vrc-get-gui): [vrc-get-gui/CONTRIBUTING.md](vrc-get-gui/CONTRIBUTING.md) (**Please read [CONTRIBUTING.md#configuration-requirements](CONTRIBUTING.md#configuration-requirements) first before you read [vrc-get-gui/CONTRIBUTING.md](vrc-get-gui/CONTRIBUTING.md)!**)

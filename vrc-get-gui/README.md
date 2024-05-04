@@ -37,3 +37,7 @@ npm run tauri build
 ALCOM is currently based on tauri and next.js.
 
 Run `npm run tauri dev` to start the development server and gui.
+
+## Contribution
+
+For how to contribute localization to ALCOM (vrc-get-gui): [CONTRIBUTING.md](CONTRIBUTING.md) (**Please read [../CONTRIBUTING.md#configuration-requirements](.../CONTRIBUTING.md#configuration-requirements) first before you read [CONTRIBUTING.md](CONTRIBUTING.md)!**)
