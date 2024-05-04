@@ -31,5 +31,5 @@ For Windows machines, you need to setup so your current user can create symbolic
 To setup your project, use the following commands.
 
 ```bash
-git clone --recurse-submodules -c core.symlinks=true https://github.com/vrc-get/vrc-get.git
+git clone --recurse-submodules https://github.com/vrc-get/vrc-get.git
 ```
