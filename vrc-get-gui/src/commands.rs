@@ -1558,6 +1558,10 @@ async fn environment_add_repository(
         environment.save().await?;
     });
 
+    // force update repository
+    let mut state = state.lock().await;
+    state.environment.last_repository_update = None;
+
     Ok(TauriAddRepositoryResult::Success)
 }
 
