@@ -53,7 +53,7 @@
     "projects:pre-migrate copying...": "复制项目以进行迁移...",
     "projects:migrating...": "迁移项目中...",
     "projects:type:legacy": "旧版",
-    "projects:button:open unity": "打开 Unity",
+    "projects:button:open unity": "使用 Unity 打开",
     "projects:backup": "备份",
     "projects:menuitem:backup": "生成备份",
     "projects:menuitem:open directory": "打开项目文件夹",
