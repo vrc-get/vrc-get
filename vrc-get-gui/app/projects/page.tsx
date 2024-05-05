@@ -42,6 +42,7 @@ import {
 	environmentProjects,
 	environmentSetFavoriteProject,
 	environmentSetProjectSorting,
+	environmentUnityVersions,
 	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectDirCheckResult,
@@ -52,7 +53,6 @@ import {
 import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
-import {openUnity} from "@/lib/open-unity";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
 import {VGOption, VGSelect} from "@/components/select";
@@ -64,6 +64,7 @@ import {pathSeparator} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
 import {ChevronUpIcon} from "@heroicons/react/24/outline";
 import {compareUnityVersionString} from "@/lib/version";
+import {useOpenUnity, OpenUnityFunction} from "@/lib/use-open-unity";
 
 const sortings = [
 	"lastModified",
@@ -84,10 +85,15 @@ export default function Page() {
 		queryKey: ["projects"],
 		queryFn: environmentProjects,
 	});
+	const unityVersionsResult = useQuery({
+		queryKey: ["unityVersions"],
+		queryFn: () => environmentUnityVersions(),
+	});
 
 	const [search, setSearch] = useState("");
 	const [loadingOther, setLoadingOther] = useState(false);
 	const [createProjectState, setCreateProjectState] = useState<'normal' | 'creating'>('normal');
+	const openUnity = useOpenUnity(unityVersionsResult?.data);
 
 	const startCreateProject = () => setCreateProjectState('creating');
 
@@ -110,6 +116,7 @@ export default function Page() {
 									projects={result.data}
 									search={search}
 									loading={loading}
+									openUnity={openUnity.openUnity}
 									refresh={() => result.refetch()}
 									onRemoved={() => result.refetch()}
 								/>
@@ -117,6 +124,7 @@ export default function Page() {
 				</Card>
 				{createProjectState === "creating" &&
 					<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
+				{openUnity.dialog}
 			</main>
 		</VStack>
 	);
@@ -163,9 +171,10 @@ function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 
 
 function ProjectsTable(
 	{
-		projects, search, onRemoved, loading, refresh,
+		projects, search, onRemoved, loading, refresh, openUnity,
 	}: {
 		projects: TauriProject[],
+		openUnity: OpenUnityFunction,
 		search?: string,
 		loading?: boolean,
 		onRemoved?: () => void;
@@ -294,7 +303,8 @@ function ProjectsTable(
 			</thead>
 			<tbody>
 			{projectsShown.map((project) =>
-				<ProjectRow key={project.index} project={project} loading={loading} refresh={refresh} onRemoved={onRemoved}/>)}
+				<ProjectRow key={project.index} project={project} loading={loading} refresh={refresh} onRemoved={onRemoved}
+										openUnity={openUnity}/>)}
 			</tbody>
 		</table>
 	);
@@ -352,11 +362,13 @@ type ProjectRowState = {
 function ProjectRow(
 	{
 		project,
+		openUnity,
 		onRemoved,
 		loading,
 		refresh,
 	}: {
 		project: TauriProject;
+		openUnity: OpenUnityFunction;
 		onRemoved?: () => void;
 		loading?: boolean;
 		refresh?: () => void;
@@ -444,7 +456,8 @@ function ProjectRow(
 			break;
 		case "LegacyWorlds":
 		case "LegacyAvatars":
-			manageButton = <RowButton color={"light-green"} onClick={startMigrateVpm}>{tc("projects:button:migrate")}</RowButton>
+			manageButton =
+				<RowButton color={"light-green"} onClick={startMigrateVpm}>{tc("projects:button:migrate")}</RowButton>
 			break;
 		case "UpmWorlds":
 		case "UpmAvatars":
@@ -479,8 +492,10 @@ function ProjectRow(
 						</Typography>
 					</DialogBody>
 					<DialogFooter>
-						<Button onClick={() => setDialogStatus({type: "normal"})} className="mr-1">{tc("general:button:cancel")}</Button>
-						<Button onClick={() => doMigrateVpm(false)} color={"red"} className="mr-1">{tc("projects:button:migrate copy")}</Button>
+						<Button onClick={() => setDialogStatus({type: "normal"})}
+										className="mr-1">{tc("general:button:cancel")}</Button>
+						<Button onClick={() => doMigrateVpm(false)} color={"red"}
+										className="mr-1">{tc("projects:button:migrate copy")}</Button>
 						<Button onClick={() => doMigrateVpm(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
 					</DialogFooter>
 				</Dialog>
@@ -546,7 +561,8 @@ function ProjectRow(
 							{displayType}
 						</Typography>
 						{isLegacy &&
-							<Typography className="font-normal opacity-50 text-sm text-red-700">{tc("projects:type:legacy")}</Typography>}
+							<Typography
+								className="font-normal opacity-50 text-sm text-red-700">{tc("projects:type:legacy")}</Typography>}
 					</div>
 				</div>
 			</td>
@@ -566,9 +582,11 @@ function ProjectRow(
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
-					<RowButton onClick={() => openUnity(project.path)}>{tc("projects:button:open unity")}</RowButton>
+					<RowButton
+						onClick={() => openUnity(project.path, project.unity)}>{tc("projects:button:open unity")}</RowButton>
 					{manageButton}
-					<RowButton onClick={() => backupProjectModal.startBackup(project)} color={"green"}>{tc("projects:backup")}</RowButton>
+					<RowButton onClick={() => backupProjectModal.startBackup(project)}
+										 color={"green"}>{tc("projects:backup")}</RowButton>
 					<Menu>
 						<MenuHandler>
 							<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
@@ -819,7 +837,8 @@ function CreateProject(
 					<Input label={"Project Name"} value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
 					<div className={"flex gap-1"}>
 						<Input className="flex-auto" label={"Project Location"} value={projectLocation} disabled/>
-						<Button className="flex-none px-4" onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
+						<Button className="flex-none px-4"
+										onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
 					</div>
 					<Typography variant={"small"} className={"whitespace-normal"}>
 						{tc("projects:hint:path of creating project", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {

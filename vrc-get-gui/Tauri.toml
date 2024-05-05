@@ -10,7 +10,7 @@ productName = "ALCOM"
 [tauri]
 
 [tauri.allowlist]
-shell = { open = "^(https?://\\w+).+" }
+shell = { open = "^((https|unityhub)?://\\w+).+" }
 os.all = true
 
 [tauri.security]

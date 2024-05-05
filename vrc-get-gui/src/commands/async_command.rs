@@ -98,6 +98,7 @@ where
     Ok(AsyncCallResult::Started {})
 }
 
+#[allow(dead_code)]
 pub(crate) fn immediate<R, AsyncFn>(value: R) -> Result<ImplResult<R, AsyncFn>, RustError> {
     Ok(ImplResult::Immediate(value))
 }

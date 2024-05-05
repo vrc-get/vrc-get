@@ -16,6 +16,7 @@ import {
 	MenuHandler,
 	MenuItem,
 	MenuList,
+	Radio,
 	Spinner,
 	Tooltip,
 	Typography
@@ -28,20 +29,17 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {useQueries} from "@tanstack/react-query";
 import {
-	environmentCopyProjectForMigration,
 	environmentHideRepository,
 	environmentPackages,
 	environmentRefetchPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
 	environmentShowRepository,
+	environmentUnityVersions,
 	projectApplyPendingChanges,
-	projectBeforeMigrateProjectTo2022,
 	projectDetails,
-	projectFinalizeMigrationWithUnity2022,
 	projectInstallMultiplePackage,
 	projectInstallPackage,
-	projectMigrateProjectTo2022,
 	projectRemovePackages,
 	projectResolve,
 	projectUpgradeMultiplePackage,
@@ -49,14 +47,18 @@ import {
 	TauriPackage,
 	TauriPackageChange,
 	TauriPendingProjectChanges,
-	TauriProjectDetails,
+	TauriProjectDetails, TauriUnityVersions,
 	TauriUserRepository,
 	TauriVersion,
 	utilOpen
 } from "@/lib/bindings";
-import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
+import {
+	compareUnityVersion,
+	compareVersion,
+	toVersionString
+} from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
-import {openUnity} from "@/lib/open-unity";
+import {useOpenUnity} from "@/lib/use-open-unity";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
@@ -64,7 +66,7 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
-import {callAsyncCommand} from "@/lib/call-async-command";
+import {useUnity2022Migration, useUnity2022PatchMigration} from "@/app/projects/manage/unity-migration";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -94,20 +96,6 @@ type InstallStatus = {
 	requested: RequestedOperation;
 } | {
 	status: "applyingChanges";
-} | {
-	status: "unity2022migration:confirm";
-} | {
-	status: "unity2022migration:confirmUnityVersionMismatch";
-	recommendedUnityVersion: string;
-	foundUnityVersion: string;
-	inPlace: boolean;
-} | {
-	status: "unity2022migration:copyingProject";
-} | {
-	status: "unity2022migration:updating";
-} | {
-	status: "unity2022migration:finalizing";
-	lines: [number, string][];
 }
 
 type BulkUpdateMode = 'install' | 'upgradeOrRemove' | 'remove' | 'upgrade' | 'any';
@@ -144,7 +132,7 @@ function PageBody() {
 	// repositoriesInfo: list of repositories and their visibility
 	// packagesResult: list of packages
 	// detailsResult: project details including installed packages
-	const [repositoriesInfo, packagesResult, detailsResult] = useQueries({
+	const [repositoriesInfo, packagesResult, detailsResult, unityVersionsResult] = useQueries({
 		queries: [
 			{
 				queryKey: ["environmentRepositoriesInfo"],
@@ -160,6 +148,10 @@ function PageBody() {
 				queryKey: ["projectDetails", projectPath],
 				queryFn: () => projectDetails(projectPath),
 				refetchOnWindowFocus: false,
+			},
+			{
+				queryKey: ["environmentUnityVersions"],
+				queryFn: () => environmentUnityVersions(),
 			},
 		]
 	});
@@ -213,6 +205,7 @@ function PageBody() {
 			packagesResult.refetch();
 			detailsResult.refetch();
 			repositoriesInfo.refetch();
+			unityVersionsResult.refetch();
 		} finally {
 			setManualRefething(false);
 		}
@@ -432,90 +425,11 @@ function PageBody() {
 		}
 	}
 
-	const requestMigrateProjectTo2022 = async () => {
-		setInstallStatus({status: "unity2022migration:confirm"});
-	}
-
-	const cancelMigrateProjectTo2022 = async () => {
-		setInstallStatus({status: "normal"});
-	}
-
-	const doMigrateProjectTo2022 = async (allowMismatch: boolean, inPlace: boolean) => {
-		try {
-			const preMigrationResult = await projectBeforeMigrateProjectTo2022(allowMismatch);
-			switch (preMigrationResult.type) {
-				case "NoUnity2022Found":
-					toastError(tt("projects:toast:unity migrate failed by unity not found"));
-					setInstallStatus({status: "normal"});
-					return;
-				case "ConfirmNotExactlyRecommendedUnity2022":
-					setInstallStatus({
-						status: "unity2022migration:confirmUnityVersionMismatch",
-						recommendedUnityVersion: preMigrationResult.recommended,
-						foundUnityVersion: preMigrationResult.found,
-						inPlace,
-					});
-					return; // do rest after confirm
-				case "ReadyToMigrate":
-					break;
-				default:
-					const _: never = preMigrationResult;
-			}
-			let migrateProjectPath;
-			if (inPlace) {
-				migrateProjectPath = projectPath;
-			} else {
-				// copy
-				setInstallStatus({status: "unity2022migration:copyingProject"});
-				migrateProjectPath = await environmentCopyProjectForMigration(projectPath);
-			}
-			setInstallStatus({status: "unity2022migration:updating"});
-			await projectMigrateProjectTo2022(migrateProjectPath);
-			setInstallStatus({status: "unity2022migration:finalizing", lines: []});
-			let lineNumber = 0;
-			let [__, promise] = callAsyncCommand(projectFinalizeMigrationWithUnity2022, [migrateProjectPath], lineString => {
-				setInstallStatus(prev => {
-					if (prev.status != "unity2022migration:finalizing") return prev;
-					lineNumber++;
-					let line: [number, string] = [lineNumber, lineString];
-					if (prev.lines.length > 200) {
-						return {...prev, lines: [...prev.lines.slice(1), line]};
-					} else {
-						return {...prev, lines: [...prev.lines, line]};
-					}
-				})
-			});
-			const finalizeResult = await promise;
-			if (finalizeResult == 'cancelled') {
-				throw new Error("unexpectedly cancelled");
-			}
-			switch (finalizeResult.type) {
-				case "NoUnity2022Found":
-					toastError(tt("projects:toast:unity migration finalize failed by unity not found"));
-					break;
-				case "ExistsWithNonZero":
-				case "FinishedSuccessfully":
-					toastSuccess(tt("projects:toast:unity migrated"));
-					break;
-				default:
-					const _: never = finalizeResult;
-			}
-			if (inPlace) {
-				setInstallStatus({status: "normal"});
-				detailsResult.refetch();
-			} else {
-				setInstallStatus({status: "normal"});
-				router.replace(`/projects/manage?${new URLSearchParams({projectPath: migrateProjectPath})}`);
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-			setInstallStatus({status: "normal"});
-		}
-	};
+	const unity2022Migration = useUnity2022Migration({projectPath, unityVersions: unityVersionsResult.data});
+	const unity2022PatchMigration = useUnity2022PatchMigration({projectPath, unityVersions: unityVersionsResult.data});
 
 	const installingPackage = installStatus.status != "normal";
-	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage || manualRefetching;
+	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || unityVersionsResult.isLoading || installingPackage || manualRefetching;
 
 	function checkIfMigrationTo2022Recommended(data: TauriProjectDetails) {
 		if (data.unity == null) return false;
@@ -524,7 +438,18 @@ function PageBody() {
 		return data.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id));
 	}
 
+	function checkIf2022PatchMigrationRecommended(data: TauriProjectDetails, unityData: TauriUnityVersions) {
+		if (!data.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id))) return false;
+
+		if (data.unity == null) return false;
+		if (data.unity[0] != 2022) return false;
+		// unity patch is 2022.
+		return data.unity_str != unityData.recommended_version;
+	}
+
 	const isMigrationTo2022Recommended = detailsResult.status == 'success' && checkIfMigrationTo2022Recommended(detailsResult.data);
+	const is2022PatchMigrationRecommended = detailsResult.status == 'success' && unityVersionsResult.status == 'success'
+		&& checkIf2022PatchMigrationRecommended(detailsResult.data, unityVersionsResult.data);
 
 	let dialogForState: React.ReactNode = null;
 
@@ -537,35 +462,19 @@ function PageBody() {
 				apply={() => applyChanges(installStatus)}
 			/>;
 			break;
-		case "unity2022migration:confirm":
-			dialogForState = <Unity2022MigrationConfirmMigrationDialog
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(inPlace) => doMigrateProjectTo2022(false, inPlace)}
-			/>;
-			break;
-		case "unity2022migration:confirmUnityVersionMismatch":
-			dialogForState = <Unity2022MigrationUnityVersionMismatchDialog
-				recommendedUnityVersion={installStatus.recommendedUnityVersion}
-				foundUnityVersion={installStatus.foundUnityVersion}
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={() => doMigrateProjectTo2022(true, installStatus.inPlace)}
-			/>;
-			break;
-		case "unity2022migration:copyingProject":
-			dialogForState = <Unity2022MigrationCopyingDialog/>;
-			break
-		case "unity2022migration:updating":
-			dialogForState = <Unity2022MigrationMigratingDialog/>;
-			break;
-		case "unity2022migration:finalizing":
-			dialogForState = <Unity2022MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
-			break;
 	}
 
 	return (
 		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}
-												 onRemove={onRemoveProject} onBackup={onBackupProject}/>
+			<ProjectViewHeader
+				className={"flex-shrink-0"}
+				projectName={projectName}
+				projectPath={projectPath}
+				unityVersion={detailsResult.data?.unity_str ?? null}
+				unityVersions={unityVersionsResult?.data}
+				onRemove={onRemoveProject}
+				onBackup={onBackupProject}
+			/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row flex-wrap"}>
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
 					{tc("projects:manage:project location",
@@ -580,16 +489,21 @@ function PageBody() {
 						{tc("projects:manage:unity version")}
 					</Typography>
 					<div className={"flex-grow-0 flex-shrink-0"}>
-						<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
+						<VGSelect value={detailsResult.status == 'success' ? (detailsResult.data.unity_str ?? "unknown") :
 							<span className={"text-blue-gray-300"}>Loading...</span>}
 											className="border-blue-gray-200">
-							{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+							{/*unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)*/}
+							<VGOption value={""}>{tc("general:not implemented")}</VGOption>
 						</VGSelect>
 					</div>
 				</div>
 			</Card>
 			{isMigrationTo2022Recommended &&
-				<SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
+				<SuggestMigrateTo2022Card disabled={isLoading}
+																	onMigrateRequested={unity2022Migration.request}/>}
+			{is2022PatchMigrationRecommended &&
+				<Suggest2022PatchMigrationCard disabled={isLoading}
+																			 onMigrateRequested={unity2022PatchMigration.request}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
 					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
@@ -701,6 +615,8 @@ function PageBody() {
 					</Card>
 				</Card>
 				{dialogForState}
+				{unity2022Migration.dialog}
+				{unity2022PatchMigration.dialog}
 				{projectRemoveModal.dialog}
 				{backupProjectModal.dialog}
 			</main>
@@ -722,6 +638,29 @@ function SuggestMigrateTo2022Card(
 			<Typography
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest unity migrate")}
+			</Typography>
+			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
+				{tc("projects:manage:button:unity migrate")}
+			</Button>
+		</Card>
+	)
+}
+
+function Suggest2022PatchMigrationCard(
+	{
+		disabled,
+		onMigrateRequested,
+	}: {
+		disabled?: boolean;
+		onMigrateRequested: () => void;
+	}
+) {
+	return (
+		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
+			<Typography
+				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+				{tc("projects:manage:suggest unity patch migration")}
 			</Typography>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
@@ -770,132 +709,6 @@ function BulkUpdateCard(
 			</Button>
 		</Card>
 	)
-}
-
-function Unity2022MigrationConfirmMigrationDialog(
-	{
-		cancel,
-		doMigrate,
-	}: {
-		cancel: () => void,
-		doMigrate: (inPlace: boolean) => void,
-	}) {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography className={"text-red-700"}>
-					{tc("projects:dialog:vpm migrate description")}
-				</Typography>
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate(false)} color={"red"} className="mr-1">{tc("projects:button:migrate copy")}</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
-			</DialogFooter>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationUnityVersionMismatchDialog(
-	{
-		recommendedUnityVersion,
-		foundUnityVersion,
-		cancel,
-		doMigrate,
-	}: {
-		recommendedUnityVersion: string,
-		foundUnityVersion: string,
-		cancel: () => void,
-		doMigrate: () => void,
-	}) {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("projects:manage:dialog:exact version unity not found")}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:recommended unity version", {version: recommendedUnityVersion})}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:found unity version", {version: foundUnityVersion})}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:exact version unity not found description")}
-				</Typography>
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={doMigrate} color={"red"}>{tc("projects:manage:button:continue")}</Button>
-			</DialogFooter>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationCopyingDialog() {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("projects:pre-migrate copying...")}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:do not close")}
-				</Typography>
-			</DialogBody>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationMigratingDialog() {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("projects:migrating...")}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:do not close")}
-				</Typography>
-			</DialogBody>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationCallingUnityForMigrationDialog(
-	{
-		lines
-	}: {
-		lines: [number, string][]
-	}
-) {
-	const ref = React.useRef<HTMLDivElement>(null);
-
-	React.useEffect(() => {
-		ref.current?.scrollIntoView({behavior: "auto"});
-	}, [lines]);
-
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("projects:manage:dialog:unity migrate finalizing...")}
-				</Typography>
-				<Typography>
-					{tc("projects:manage:dialog:do not close")}
-				</Typography>
-				<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
-					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
-					<div ref={ref}/>
-				</pre>
-			</DialogBody>
-		</Dialog>
-	);
 }
 
 function ProjectChangesDialog(
@@ -1537,7 +1350,8 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 		>
 			{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 			{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
-			{incompatibleNames.length > 0 && <Typography className={"text-sm"}>{tc("projects:manage:incompatible packages")}</Typography>}
+			{incompatibleNames.length > 0 &&
+				<Typography className={"text-sm"}>{tc("projects:manage:incompatible packages")}</Typography>}
 			{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 		</VGSelect>
 	);
@@ -1605,13 +1419,16 @@ function PackageLatestInfo(
 	}
 }
 
-function ProjectViewHeader({className, projectName, projectPath, onRemove, onBackup}: {
+function ProjectViewHeader({className, projectName, projectPath, unityVersion, unityVersions, onRemove, onBackup}: {
 	className?: string,
 	projectName: string,
 	projectPath: string
+	unityVersion: string | null,
+	unityVersions: TauriUnityVersions | undefined,
 	onRemove?: () => void,
 	onBackup?: () => void,
 }) {
+	const openUnity = useOpenUnity(unityVersions);
 	const openProjectFolder = () => utilOpen(projectPath);
 
 	return (
@@ -1631,7 +1448,8 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove, onBac
 
 			<Menu>
 				<ButtonGroup>
-					<Button onClick={() => openUnity(projectPath)} className={"pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
+					<Button onClick={() => openUnity.openUnity(projectPath, unityVersion)}
+									className={"pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
@@ -1644,6 +1462,7 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove, onBac
 					<MenuItem onClick={onRemove} className={"bg-red-700 text-white"}>{tc("projects:remove project")}</MenuItem>
 				</MenuList>
 			</Menu>
+			{openUnity.dialog}
 		</HNavBar>
 	);
 }

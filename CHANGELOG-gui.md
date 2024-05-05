@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog].
 - Issue Report button feature in Settings `#821`
 - German translation `#824`
 - SDK2 Project is now shown as type "SDK2" `#869`
+- Select Unity Path if there are two or more Unity of the same version installed `#863`
+  - Currently, ALCOM will ask every time you open Unity. We will implement saving the selection in the future.
+- Unity 2022 patch version migration `#863`
 - Legacy Assets are remove even if the specified GUID does not match with the actual GUID `#901`
   - This follows VCC 2.3.0 beta 3 behavior.
 
@@ -30,6 +33,7 @@ The format is based on [Keep a Changelog].
 - Added dedicated messages for bulk actions in manage packages page `#819`
 - Panics are ignored `#846`
   - From this version, panics will be logged to error logs instead of stderr.
+- We cannot see packages from newly added repository just after adding repository `#903`
 
 ### Security
 
