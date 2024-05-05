@@ -116,7 +116,7 @@ interface UnityVersion {
 	increment: number;
 }
 
-function parseUnityVersion(version: string): UnityVersion | null {
+export function parseUnityVersion(version: string): UnityVersion | null {
 	let match = version.match(/^(\d+)\.(\d+)\.(\d+)([abfcpx])(\d+)$/);
 	if (!match) {
 		match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
