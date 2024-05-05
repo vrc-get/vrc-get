@@ -102,7 +102,7 @@
     "projects:manage:button:continue": "Continue",
     "projects:manage:dialog:do not close": "Do not close the window.",
     "projects:manage:dialog:unity migrate finalizing...": "Launching Unity 2022 in background to finalize the migration...",
-    "projects:dialog:migrate unity2022 patch description": "The project will be migrated to {{unity}}.",
+    "projects:dialog:migrate unity2022 patch description": "The project will be migrated to Unity {{unity}}.",
     "projects:manage:dialog:exact version unity not found for patch migration description": "We could not find exact recommended version of Unity 2022 for patch migration.<br>Please install Unity {{unity}} with Unity Hub and restart ALCOM.",
     "projects:manage:dialog:open unity hub": "Open Unity Hub",
     "general:button:close": "Close",
