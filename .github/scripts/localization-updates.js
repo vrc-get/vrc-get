@@ -26,6 +26,11 @@ module.exports = async ({github, context}) => {
 			discussionNumber: 888,
 			replyId: 'DC_kwDOIza9ks4AjUwo',
 		},
+		{
+			id: 'fr',
+			discussionNumber: 909,
+			replyId: 'DC_kwDOIza9ks4Aji4V',
+		},
 	];
 
 	for (const locale of locales) {
