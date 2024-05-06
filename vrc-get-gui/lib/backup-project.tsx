@@ -37,7 +37,7 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			if (channel == 'cancelled') {
 				toastNormal(tt("projects:toast:backup canceled"));
 			} else {
-				toastSuccess(tt("projects:toast:backup success"));
+				toastSuccess(tt("projects:toast:backup succeeded"));
 			}
 			setState({type: 'idle'});
 		} catch (e) {

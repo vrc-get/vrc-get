@@ -68,7 +68,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 					<DialogHeader>{tc("projects:remove project")}</DialogHeader>
 					<DialogBody>
 						<Typography className={"font-normal"}>
-							{tc("projects:dialog:warn remove project", {name: project.name})}
+							{tc("projects:dialog:warn removing project", {name: project.name})}
 						</Typography>
 					</DialogBody>
 					<DialogFooter>

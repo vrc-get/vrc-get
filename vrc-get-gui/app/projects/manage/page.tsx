@@ -637,7 +637,7 @@ function SuggestMigrateTo2022Card(
 		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
 			<Typography
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
-				{tc("projects:manage:suggest unity migrate")}
+				{tc("projects:manage:suggest unity migration")}
 			</Typography>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
