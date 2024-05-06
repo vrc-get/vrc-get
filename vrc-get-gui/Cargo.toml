@@ -34,7 +34,7 @@ futures = "0.3.30"
 tar = "0.4.40"
 flate2 = "1.0.29"
 uuid = { version = "1.8.0", features = ["v4"] }
-trash = "4.1.0"
+trash = "4.1.1"
 async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
 async-stream = "0.3.5"
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
