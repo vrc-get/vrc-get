@@ -40,8 +40,8 @@ pub use traits::RemotePackageDownloader;
 pub use unity_project::UnityProject;
 pub use version_selector::VersionSelector;
 
-pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 6);
-pub const VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK: &str = "unityhub://2022.3.6f1/b9e6e7e9fa2d";
+pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 22);
+pub const VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK: &str = "unityhub://2022.3.22f1/887be4894c44";
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {
