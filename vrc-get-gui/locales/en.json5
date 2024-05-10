@@ -94,6 +94,8 @@
     "projects:manage:button:select repositories": "Select Repositories",
     "vpm repositories:source:official": "Official",
     "vpm repositories:source:curated": "Curated",
+    "projects:manage:suggest resolve": "Your project does not installed some packages required by the project. It's highly recommended to resolve packages.",
+    "projects:manage:button:resolve": "Resolve",
     "projects:manage:suggest unity migration": "Your project is using Unity 2019 which is no longer supported by VRChat SDK. VRChat recommends you migrate your project to Unity 2022.",
     "projects:manage:suggest unity patch migration": "Your project is using a bit older version of Unity 2022. VRChat recommends you migrate your project to newer version of Unity 2022.",
     "projects:manage:dialog:unity migrate header": "Unity Migration",

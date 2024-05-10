@@ -21,7 +21,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
+import React, {Fragment, memo, Suspense, useCallback, useEffect, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
@@ -447,6 +447,7 @@ function PageBody() {
 		return data.unity_str != unityData.recommended_version;
 	}
 
+	const isResolveRecommended = detailsResult?.data?.should_resolve;
 	const isMigrationTo2022Recommended = detailsResult.status == 'success' && checkIfMigrationTo2022Recommended(detailsResult.data);
 	const is2022PatchMigrationRecommended = detailsResult.status == 'success' && unityVersionsResult.status == 'success'
 		&& checkIf2022PatchMigrationRecommended(detailsResult.data, unityVersionsResult.data);
@@ -498,6 +499,10 @@ function PageBody() {
 					</div>
 				</div>
 			</Card>
+			{isResolveRecommended &&
+				<SuggestResolveProjectCard disabled={isLoading}
+																	 onResolveRequested={onResolveRequest}/>
+			}
 			{isMigrationTo2022Recommended &&
 				<SuggestMigrateTo2022Card disabled={isLoading}
 																	onMigrateRequested={unity2022Migration.request}/>}
@@ -622,6 +627,29 @@ function PageBody() {
 			</main>
 		</VStack>
 	);
+}
+
+function SuggestResolveProjectCard(
+	{
+		disabled,
+		onResolveRequested,
+	}: {
+		disabled?: boolean;
+		onResolveRequested: () => void;
+	}
+) {
+	return (
+		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
+			<Typography
+				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+				{tc("projects:manage:suggest resolve")}
+			</Typography>
+			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<Button variant={"text"} color={"red"} onClick={onResolveRequested} disabled={disabled}>
+				{tc("projects:manage:button:resolve")}
+			</Button>
+		</Card>
+	)
 }
 
 function SuggestMigrateTo2022Card(
