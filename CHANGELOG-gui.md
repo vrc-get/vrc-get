@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Unity version used in template is not updated `#933`
+  - We upgraded Unity to 2022.3.22f1
 
 ### Security
 
