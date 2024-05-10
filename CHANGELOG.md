@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog].
 - Improved handling for unlocked packages `#790`
 - Legacy Assets are remove even if the specified GUID does not match with the actual GUID `#901`
   - This follows VCC 2.3.0 beta 3 behavior.
+- Updated the recommended Unity 2022 version to 2022.3.22f1 `#928`
 
 ### Deprecated
 
