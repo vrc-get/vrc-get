@@ -44,6 +44,50 @@ impl From<AddPackageErr> for ResolvePackageErr {
 }
 
 impl<IO: ProjectIo> UnityProject<IO> {
+    /// Returns whether the project should be resolved.
+    ///
+    /// The project will be resolved if: (not exhaustive)
+    /// - some packages defined in `locked` section are missing
+    /// - some packages defined in `dependencies` section are missing
+    /// - some dependencies of unlocked packages are missing
+    pub fn should_resolve(&self) -> bool {
+        // check locked packages
+        for locked in self.manifest.all_locked() {
+            if self.installed_packages.get(locked.name()).is_none() {
+                return true;
+            }
+        }
+
+        // check dependencies
+        for (dependency, _) in self.manifest.dependencies() {
+            if self.manifest.get_locked(dependency).is_none() {
+                return true;
+            }
+        }
+
+        // check dependencies of unlocked packages
+        let all_installed_names = (self.manifest.all_locked().map(|x| x.name()))
+            .chain(
+                self.unlocked_packages()
+                    .iter()
+                    .filter_map(|(_, pkg)| pkg.as_ref())
+                    .map(|x| x.name()),
+            )
+            .collect::<HashSet<_>>();
+        for (_, pkg) in self.unlocked_packages() {
+            if let Some(pkg) = pkg {
+                for (dependency, _) in pkg.vpm_dependencies() {
+                    if !all_installed_names.contains(dependency.as_ref()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // all packages are installed! no need to resolve
+        false
+    }
+
     pub async fn resolve_request<'env>(
         &self,
         env: &'env impl PackageCollection,
