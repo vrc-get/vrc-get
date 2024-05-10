@@ -45,6 +45,7 @@ pub struct UnityProject<IO: ProjectIo> {
     unity_version: Option<UnityVersion>,
     /// packages installed in the directory but not locked in vpm-manifest.json
     unlocked_packages: Vec<(Box<str>, Option<PackageManifest>)>,
+    /// packages installed in the directory and licked in vpm-manifest.json
     installed_packages: HashMap<Box<str>, PackageManifest>,
 }
 
