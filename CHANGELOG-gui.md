@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog].
   - This follows VCC 2.3.0 beta 3 behavior.
 - Added a French language translation `#904`
 - Updated the recommended Unity 2022 version to 2022.3.22f1 `#928`
+- Resolve suggestion `#930`
 
 ### Changed
 
