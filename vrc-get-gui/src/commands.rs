@@ -2326,6 +2326,7 @@ async fn project_call_unity_for_migration(
                         }
                         Ok(None) => break,
                         Ok(Some(line)) => {
+                            log::debug!(target: "vrc_get_gui::unity", "{line}");
                             let line = line.trim().to_string();
                             if let Err(e) = context.emit(line) {
                                 error!("error sending stdout: {e}")
