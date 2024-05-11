@@ -146,7 +146,6 @@
     "vpm repositories:hint:invalid header names": "Le nom du header est invalide.",
     "vpm repositories:hint:invalid header values": "La valeur du header est invalide.",
     "vpm repositories:hint:duplicate headers": "Le nom du header dupliqué.",
-    "vpm repositories:dialog:headers": "Headers:",
     "vpm repositories:dialog:downloading...": "Téléchargement du dépot...",
     "vpm repositories:dialog:already added": "Ce dépot a déja été ajouté.",
     "general:button:ok": "OK",
@@ -198,10 +197,9 @@
     "projects:toast:unity exits with non-zero": "Unity s'est fermé avec un code d'erreur différent de zéro.",
     "projects:manage:suggest unity patch migration": "Votre projet utilise une vieille version de Unity 2022. VRChat vous recommande de migrer votre projet vers la version la plus récente de Unity 2022.",
     "projects:manage:dialog:multiple unity found": "Plusieurs installations identiques de cette version de Unity ont été trouvés.",
-    "projects:manage:dialog:multiple unity found": "Multiple Unity installations of the version were found.",
     "projects:manage:dialog:select unity header": "Sélectionner Unity",
     "projects:dialog:migrate unity2022 patch description": "Votre projet sera migré vers Unity {{unity}}.",
     "projects:manage:dialog:exact version unity not found for patch migration description": "Nous n'avons pas trouvé la version recommandée pour Unity 2022 dédié au patch de migration.<br>Installez Unity {{unity}} avec le Unity Hub et redémarrez ALCOM.",
-    "projects:manage:dialog:open unity hub": "Ouvrir Unity Hub",
-  },
+    "projects:manage:dialog:open unity hub": "Ouvrir Unity Hub"
+  }
 }
