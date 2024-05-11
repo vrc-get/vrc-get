@@ -234,7 +234,7 @@ pub(crate) fn startup(app: &mut App) {
             } else if cfg!(windows) {
                 url.scheme() == "https" && url.host_str() == Some("tauri.localhost")
             } else {
-                url.scheme() == "tauri"
+                url.scheme() == "tauri" || (url.scheme() == "https" && url.host_str() == Some("accounts.crowdin.com"))
             }
         })
         .build()?;
