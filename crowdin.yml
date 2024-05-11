@@ -1,5 +1,8 @@
 pull_request_title: 'chore: sync translations from crowdin'
 pull_request_labels:
-    - translations
+  - translations
 commit_message: 'chore: synced translations from crowdin [skip ci]'
-append_commit_message: false
+append_commit_message: 
+files:
+  - source: /vrc-get-gui/locales/en.json
+    translation: /vrc-get-gui/locales/%two_letters_code%.json
