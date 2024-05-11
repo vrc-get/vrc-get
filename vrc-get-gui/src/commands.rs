@@ -1167,7 +1167,7 @@ async fn environment_get_settings(
     with_environment!(&state, |environment, config| {
         environment.find_unity_hub().await.ok();
 
-        Ok(TauriEnvironmentSettings {
+        let settings = TauriEnvironmentSettings {
             default_project_path: environment.default_project_path().to_string(),
             project_backup_path: environment.project_backup_path().to_string(),
             unity_hub: environment.unity_hub_path().to_string(),
@@ -1184,7 +1184,9 @@ async fn environment_get_settings(
                 .collect(),
             show_prerelease_packages: environment.show_prerelease_packages(),
             backup_format: config.backup_format.to_string(),
-        })
+        };
+        environment.disconnect_litedb();
+        Ok(settings)
     })
 }
 
