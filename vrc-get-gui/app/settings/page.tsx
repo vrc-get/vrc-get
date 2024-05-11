@@ -187,10 +187,16 @@ function Settings(
 	}
 
 	const changeLanguage = async (value: string) => {
+		const previousLanguage = i18next.language
+
 		await Promise.all([
 			i18next.changeLanguage(value),
 			environmentSetLanguage(value),
 		])
+
+		if (previousLanguage === 'ach_ug' || value === 'ach_ug') {
+			location.reload()
+		}
 	};
 
 	const reportIssue = async () => {
@@ -280,7 +286,7 @@ function Settings(
 					<VGSelect value={tc("settings:langName")} onChange={changeLanguage} menuClassName={"w-96"}>
 						{
 							languages.map((lang) => (
-								<VGOption key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</VGOption>
+								<VGOption key={lang} value={lang}>{lang === 'ach_ug' ? 'Help translate ALCOM' : tc("settings:langName", {lng: lang})}</VGOption>
 							))
 						}
 					</VGSelect>
