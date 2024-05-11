@@ -94,7 +94,7 @@
     "projects:manage:button:select repositories": "Paketquellen filtern",
     "vpm repositories:source:official": "Offiziell",
     "vpm repositories:source:curated": "Geprüft",
-    "projects:manage:suggest resolve": "Das Projekt benötigt Pakete welche nicht installiert sind. Es wird empfohlen diese zu installieren.",
+    "projects:manage:suggest resolve": "Das Projekt benötigt Pakete, welche nicht installiert sind. Es wird empfohlen diese zu installieren.",
     "projects:manage:button:resolve": "Pakete Installieren",
     "projects:manage:suggest unity migration": "Das Projekt verwendet Unity 2019, welches nicht mehr vom VRChat SDK unterstützt wird. Es wird empfohlen zu Unity 2022 zu migrieren.",
     "projects:manage:suggest unity patch migration": "Das Projekt verwendet einen älteren Unity 2022 patch. VRChat empfiehlt zu einer neueren Version von Unity 2022 zu migrieren.",
