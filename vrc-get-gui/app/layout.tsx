@@ -4,6 +4,7 @@ import "./globals.css";
 import 'react-toastify/dist/ReactToastify.css';
 import {SideBar} from "@/components/SideBar";
 import {Providers} from "@/components/providers";
+import CrowdinInContext from "@/components/CrowdinInContext";
 
 const notoSansJP = Noto_Sans_JP({
 	subsets: ["latin"],
@@ -21,6 +22,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
+		<CrowdinInContext/>
 		<body className={`${notoSansJP.className} w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
 		<Providers>
 			<SideBar className={"flex-grow-0 overflow-auto"}/>
