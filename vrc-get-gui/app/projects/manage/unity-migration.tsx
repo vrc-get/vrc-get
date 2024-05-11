@@ -24,15 +24,18 @@ export function useUnity2022Migration(
 	{
 		projectPath,
 		unityVersions,
+		refresh,
 	}: {
 		projectPath: string,
 		unityVersions?: TauriUnityVersions,
+		refresh?: () => void,
 	}
 ): Result {
 	return useMigrationInternal({
 		projectPath,
 		unityVersions,
 		updateProjectPreUnityLaunch: async (project) => await projectMigrateProjectTo2022(project),
+		refresh,
 		ConfirmComponent: MigrationConfirmMigrationDialog,
 	});
 }
@@ -59,9 +62,11 @@ export function useUnity2022PatchMigration(
 	{
 		projectPath,
 		unityVersions,
+		refresh,
 	}: {
 		projectPath: string,
 		unityVersions?: TauriUnityVersions,
+		refresh?: () => void,
 	}
 ): Result {
 	return useMigrationInternal({
@@ -69,6 +74,7 @@ export function useUnity2022PatchMigration(
 		unityVersions,
 		updateProjectPreUnityLaunch: async () => {
 		}, // nothing pre-launch
+		refresh,
 
 		ConfirmComponent: MigrationConfirmMigrationPatchDialog,
 	});
@@ -130,12 +136,14 @@ function useMigrationInternal(
 		projectPath,
 		unityVersions,
 		updateProjectPreUnityLaunch,
+		refresh,
 
 		ConfirmComponent,
 	}: {
 		projectPath: string,
 		unityVersions?: TauriUnityVersions,
 		updateProjectPreUnityLaunch: (projectPath: string) => Promise<unknown>,
+		refresh?: () => void,
 
 		ConfirmComponent: React.ComponentType<ConfirmProps>,
 	}
@@ -222,7 +230,7 @@ function useMigrationInternal(
 			}
 			if (inPlace) {
 				setInstallStatus({state: "normal"});
-				router.refresh();
+				refresh?.();
 			} else {
 				setInstallStatus({state: "normal"});
 				router.replace(`/projects/manage?${new URLSearchParams({projectPath: migrateProjectPath})}`);

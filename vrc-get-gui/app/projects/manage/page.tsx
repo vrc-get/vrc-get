@@ -16,12 +16,11 @@ import {
 	MenuHandler,
 	MenuItem,
 	MenuList,
-	Radio,
 	Spinner,
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {Fragment, memo, Suspense, useCallback, useEffect, useMemo, useState} from "react";
+import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
@@ -47,16 +46,13 @@ import {
 	TauriPackage,
 	TauriPackageChange,
 	TauriPendingProjectChanges,
-	TauriProjectDetails, TauriUnityVersions,
+	TauriProjectDetails,
+	TauriUnityVersions,
 	TauriUserRepository,
 	TauriVersion,
 	utilOpen
 } from "@/lib/bindings";
-import {
-	compareUnityVersion,
-	compareVersion,
-	toVersionString
-} from "@/lib/version";
+import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
 import {useOpenUnity} from "@/lib/use-open-unity";
 import {nop} from "@/lib/nop";
@@ -425,8 +421,16 @@ function PageBody() {
 		}
 	}
 
-	const unity2022Migration = useUnity2022Migration({projectPath, unityVersions: unityVersionsResult.data});
-	const unity2022PatchMigration = useUnity2022PatchMigration({projectPath, unityVersions: unityVersionsResult.data});
+	const unity2022Migration = useUnity2022Migration({
+		projectPath,
+		unityVersions: unityVersionsResult.data,
+		refresh: onRefresh
+	});
+	const unity2022PatchMigration = useUnity2022PatchMigration({
+		projectPath,
+		unityVersions: unityVersionsResult.data,
+		refresh: onRefresh
+	});
 
 	const installingPackage = installStatus.status != "normal";
 	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || unityVersionsResult.isLoading || installingPackage || manualRefetching;
