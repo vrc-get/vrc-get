@@ -202,6 +202,6 @@
     "projects:toast:backup succeeded": "备份创建成功",
     "settings:language": "界面语言(Language)",
     "settings:report issue": "报告问题",
-    "settings:button:open issue": "在 GitHub 上创建问题",
-  },
+    "settings:button:open issue": "在 GitHub 上创建问题"
+  }
 }

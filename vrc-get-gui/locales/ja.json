@@ -144,7 +144,6 @@
     "vpm repositories:hint:invalid header names": "ヘッダー名が不正です。",
     "vpm repositories:hint:invalid header values": "ヘッダーの値が不正です。",
     "vpm repositories:hint:duplicate headers": "ヘッダー名が重複しています。",
-    "vpm repositories:dialog:headers": "ヘッダー:",
     "vpm repositories:dialog:downloading...": "リポジトリ情報をダウンロード中...",
     "vpm repositories:dialog:already added": "このVPMリポジトリは既に登録されています。",
     "general:button:ok": "OK",
@@ -193,6 +192,6 @@
     "projects:toast:backup succeeded": "バックアップを作成しました。",
     "settings:language": "言語設定(Language)",
     "settings:report issue": "問題を報告する",
-    "settings:button:open issue": "Issueを作成",
-  },
+    "settings:button:open issue": "Issueを作成"
+  }
 }

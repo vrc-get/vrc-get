@@ -123,7 +123,6 @@
     "projects:manage:dialog:unity version conflicts_one": "Es gibt ein Unity Versionskonflikt",
     "projects:manage:dialog:unity version conflicts_other": "Es gibt mehrere Unity Versionskonflikte",
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> unterstützt deine Unity Version nicht.",
-    // TODO: plurals
     "projects:manage:dialog:files and directories are removed as legacy": "Die folgenden veralteten Daten und Ordner werden entfernt",
     "projects:manage:button:apply": "Anwenden",
     "vpm repositories:source:local": "Benutzerdefiniert",
@@ -153,7 +152,6 @@
     "vpm repositories:hint:invalid header names": "Headername ist ungültig",
     "vpm repositories:hint:invalid header values": "Headerwert ist ungültig",
     "vpm repositories:hint:duplicate headers": "Headername existiert bereits",
-    "vpm repositories:dialog:headers": "Header",
     "vpm repositories:dialog:downloading...": "Lade Paketquelle...",
     "vpm repositories:dialog:already added": "Diese Paketquelle wurde bereits hinzugefügt.",
     "general:button:ok": "OK",
@@ -202,6 +200,6 @@
     "projects:toast:backup succeeded": "Backup erfolgreich erstellt",
     "settings:language": "Sprache",
     "settings:report issue": "Problembehandlung",
-    "settings:button:open issue": "Fehler melden",
-  },
+    "settings:button:open issue": "Fehler melden"
+  }
 }
