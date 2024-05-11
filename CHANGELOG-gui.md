@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Project page is not refreshed after unity patch migration `#941`
+- VCC Crashes after opening settings page `#942`
 
 ### Security
 
