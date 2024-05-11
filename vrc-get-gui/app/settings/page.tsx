@@ -210,7 +210,7 @@ function Settings(
 	return (
 		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
 			<Card className={"flex-shrink-0 p-4"}>
-				<h2 className={"pb-2"}>{tc("settings:unity hub")}</h2>
+				<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
 				<div className={"flex gap-1"}>
 					{
 						settings.unity_hub
@@ -341,7 +341,7 @@ function UnityTable(
 						<td className={"p-2.5"}>{version}</td>
 						<td className={"p-2.5"}>{path}</td>
 						<td className={"p-2.5"}>
-							{isFromHub ? tc("settings:unity hub") : tc("settings:unity:source:manual")}
+							{isFromHub ? tc("settings:unity:source:unity hub") : tc("settings:unity:source:manual")}
 						</td>
 					</tr>
 				))
