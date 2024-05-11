@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Project page is not refreshed after unity patch migration `#941`
 
 ### Security
 
