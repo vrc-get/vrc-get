@@ -232,7 +232,9 @@ pub(crate) fn startup(app: &mut App) {
             if cfg!(debug_assertions) {
                 url.host_str() == Some("localhost")
             } else if cfg!(windows) {
-                url.scheme() == "https" && url.host_str() == Some("tauri.localhost")
+                url.scheme() == "https"
+                    && (url.host_str() == Some("tauri.localhost")
+                        || url.host_str() == Some("accounts.crowdin.com"))
             } else {
                 url.scheme() == "tauri"
                     || (url.scheme() == "https" && url.host_str() == Some("accounts.crowdin.com"))
