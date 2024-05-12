@@ -35,7 +35,7 @@
     "projects:tooltip:git-vcc not supported": "git-VCCのプロジェクトはサポートされていません。",
     "projects:button:manage": "管理",
     "projects:remove project": "プロジェクトを削除",
-    "projects:dialog:warn removing project": "プロジェクト <strong>{{name}}</strong> を削除します。<br>ファイルを削除した場合は復元出来ません。よろしいですか？",
+    "projects:dialog:warn removing project": "プロジェクト <strong>{{name}}</strong> をリストから削除してもよろしいですか？<br>なお、ファイルを削除する場合はゴミ箱に移動されます。",
     "general:button:cancel": "キャンセル",
     "projects:button:remove from list": "リストから削除する",
     "projects:button:remove directory": "プロジェクトのファイルも削除する",
