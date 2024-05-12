@@ -29,7 +29,7 @@
     "projects:error:load error": "プロジェクトリストの読込中にエラーが発生しました: {{msg}}",
     "projects:toast:unity exits with non-zero": "Unityが0以外の終了コードで終了しました。",
     "projects:toast:project migrated": "プロジェクト移行に成功しました。",
-    "projects:tooltip:no directory": "元の場所でプロジェクトが見つかりませんでした。",
+    "projects:tooltip:no directory": "プロジェクトが見つかりませんでした。",
     "projects:tooltip:sdk2 migration hint": "SDK2のプロジェクトを自動で移行することは出来ません。<br>先に手動でSDK3へ移行してください。",
     "projects:button:migrate": "移行",
     "projects:tooltip:git-vcc not supported": "git-VCCのプロジェクトはサポートされていません。",
