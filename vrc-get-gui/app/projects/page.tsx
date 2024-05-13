@@ -690,6 +690,8 @@ function CreateProject(
 		refetch?: () => void,
 	}
 ) {
+	const router = useRouter();
+
 	const [state, setState] = useState<CreateProjectstate>('loadingInitialInformation');
 	const [projectNameCheckState, setProjectNameCheckState] = useState<'checking' | TauriProjectDirCheckResult>('Ok');
 
@@ -793,6 +795,8 @@ function CreateProject(
 			toastSuccess(tt("projects:toast:project created"));
 			close?.();
 			refetch?.();
+			const projectPath = `${projectLocation}${pathSeparator()}${projectName}`;
+			router.push(`/projects/manage?${new URLSearchParams({projectPath})}`);
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);
