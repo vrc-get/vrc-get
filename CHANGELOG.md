@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
   - This follows VCC 2.3.0 beta 3 behavior.
 - Updated the recommended Unity 2022 version to 2022.3.22f1 `#928`
 - Support repositories with bad packages `#954`
+- Use url in settings.json to load remote repository `#955`
 
 ### Deprecated
 

@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Support repositories with bad packages `#954`
+- Use url in settings.json to load remote repository `#955`
 
 ### Deprecated
 
