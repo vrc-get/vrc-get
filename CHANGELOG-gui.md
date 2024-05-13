@@ -8,22 +8,29 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Template for unity 2022.3.6f1 `#956`
 
 ### Changed
-- Support repositories with bad packages `#954`
-- Use url in settings.json to load remote repository `#955`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Project page is not refreshed after unity patch migration `#941`
-- VCC Crashes after opening settings page `#942`
-- Resolve needed check ignores legacy packages `#952`
 
 ### Security
+
+## [0.1.3] - 2024-05-13
+### Added
+- Template for unity 2022.3.6f1 [`#956`](https://github.com/vrc-get/vrc-get/pull/956)
+
+### Changed
+- Support repositories with bad packages [`#954`](https://github.com/vrc-get/vrc-get/pull/954)
+- Use url in settings.json to load remote repository [`#955`](https://github.com/vrc-get/vrc-get/pull/955)
+
+### Fixed
+- Project page is not refreshed after unity patch migration [`#941`](https://github.com/vrc-get/vrc-get/pull/941)
+- VCC Crashes after opening settings page [`#942`](https://github.com/vrc-get/vrc-get/pull/942)
+- Resolve needed check ignores legacy packages [`#952`](https://github.com/vrc-get/vrc-get/pull/952)
 
 ## [0.1.2] - 2024-05-10
 ### Fixed
@@ -264,7 +271,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.2...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.3...HEAD
+[0.1.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.2...gui-v0.1.3
 [0.1.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.1...gui-v0.1.2
 [0.1.1]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0...gui-v0.1.1
 [0.1.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-rc.0...gui-v0.1.0
