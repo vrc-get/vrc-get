@@ -22,7 +22,7 @@ module.exports = async ({github, context}) => {
 			replyId: 'DC_kwDOIza9ks4AjS5I',
 		},
 		{
-			id: 'zh_cn',
+			id: 'zh_hans',
 			discussionNumber: 888,
 			replyId: 'DC_kwDOIza9ks4AjUwo',
 		},
