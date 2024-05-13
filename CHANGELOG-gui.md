@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Support repositories with bad packages `#954`
 
 ### Deprecated
 
