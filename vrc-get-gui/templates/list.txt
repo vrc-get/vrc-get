@@ -1,5 +1,5 @@
-avatars-2022:Avatars 2022
-worlds-2022:Worlds 2022
+avatars-2022:Avatars 2022.3.22f1
+worlds-2022:Worlds 2022.3.22f1
 avatars-2022.3.6:Avatars 2022.3.6f1
 worlds-2022.3.6:Worlds 2022.3.6f1
 avatars-2019:Avatars 2019
