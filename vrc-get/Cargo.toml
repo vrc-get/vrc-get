@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get"
-version = "1.8.1-beta.0"
+version = "1.8.1"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
@@ -29,7 +29,7 @@ serde_json = { version = "1.0.116", features = ["preserve_order"] }
 tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros", "fs"] }
 
 [dependencies.vrc-get-vpm]
-version = "0.0.12-beta.0"
+version = "0.0.12"
 path = "../vrc-get-vpm"
 features = ["tokio"]
 default-features = false
