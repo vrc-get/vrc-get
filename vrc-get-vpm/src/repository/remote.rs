@@ -5,6 +5,7 @@ use crate::PackageManifest;
 use crate::{io, VersionSelector};
 use futures::prelude::*;
 use indexmap::IndexMap;
+use serde::de::{DeserializeSeed, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -28,6 +29,7 @@ struct ParsedRepository {
     #[serde(default)]
     id: Option<Box<str>>,
     #[serde(default)]
+    #[serde(deserialize_with = "deserialize_packages")]
     packages: IndexMap<Box<str>, RemotePackages>,
 }
 
@@ -147,9 +149,39 @@ impl<'de> Deserialize<'de> for RemoteRepository {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+fn deserialize_packages<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<IndexMap<Box<str>, RemotePackages>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct VisitorImpl;
+
+    impl<'de> Visitor<'de> for VisitorImpl {
+        type Value = IndexMap<Box<str>, RemotePackages>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a map of package names to package versions")
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+        {
+            let mut packages = IndexMap::new();
+            while let Some(name) = map.next_key::<Box<str>>()? {
+                let versions = map.next_value_seed(PackageNameToRemotePackages(&name))?;
+                packages.insert(name, versions);
+            }
+            Ok(packages)
+        }
+    }
+
+    deserializer.deserialize_map(VisitorImpl)
+}
+
+#[derive(Debug, Clone)]
 pub struct RemotePackages {
-    #[serde(default)]
     versions: HashMap<Version, PackageManifest>,
 }
 
@@ -174,5 +206,103 @@ impl RemotePackages {
             .clone()
             .filter(|json| !json.is_yanked())
             .max_by_key(|json| json.version())
+    }
+}
+
+struct PackageNameToRemotePackages<'a>(&'a str);
+
+impl<'de, 'a> DeserializeSeed<'de> for PackageNameToRemotePackages<'a> {
+    type Value = RemotePackages;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct VisitorImpl<'a>(&'a str);
+
+        impl<'de, 'a> Visitor<'de> for VisitorImpl<'a> {
+            type Value = RemotePackages;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a map of package versions")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut versions = HashMap::new();
+                while let Some(key) = map.next_key::<&'de str>()? {
+                    if key == "versions" {
+                        versions = map.next_value_seed(PackageNameToVersions(self.0))?;
+                    }
+                }
+                Ok(RemotePackages { versions })
+            }
+        }
+
+        deserializer.deserialize_struct("RemotePackages", &["versions"], VisitorImpl(self.0))
+    }
+}
+
+struct PackageNameToVersions<'a>(&'a str);
+
+impl<'de, 'a> DeserializeSeed<'de> for PackageNameToVersions<'a> {
+    type Value = HashMap<Version, PackageManifest>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct VisitorImpl<'a>(&'a str);
+
+        impl<'de, 'a> Visitor<'de> for VisitorImpl<'a> {
+            type Value = HashMap<Version, PackageManifest>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a map of versions to package manifests")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut versions = HashMap::new();
+                while let Some(version) = map.next_key::<Version>()? {
+                    let manifest = map.next_value_seed(ErrorProofManifest(self.0, &version))?;
+                    if let Some(manifest) = manifest {
+                        versions.insert(version, manifest);
+                    }
+                }
+                Ok(versions)
+            }
+        }
+
+        deserializer.deserialize_map(VisitorImpl(self.0))
+    }
+}
+
+struct ErrorProofManifest<'a>(&'a str, &'a Version);
+
+impl<'de, 'a> DeserializeSeed<'de> for ErrorProofManifest<'a> {
+    type Value = Option<PackageManifest>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = serde_value::Value::deserialize(deserializer)?;
+        match PackageManifest::deserialize(value) {
+            Ok(manifest) => Ok(Some(manifest)),
+            Err(err) => {
+                log::warn!(
+                    "Error deserializing package manifest for {}@{}: {}",
+                    self.0,
+                    self.1,
+                    err
+                );
+                Ok(None)
+            }
+        }
     }
 }
