@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Rename templates for unity 2022.3.22f1 temporarily `#965`
 
 ### Deprecated
 
