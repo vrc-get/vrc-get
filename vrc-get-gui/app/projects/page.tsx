@@ -690,11 +690,26 @@ function CreateProject(
 		refetch?: () => void,
 	}
 ) {
+	const router = useRouter();
+
 	const [state, setState] = useState<CreateProjectstate>('loadingInitialInformation');
 	const [projectNameCheckState, setProjectNameCheckState] = useState<'checking' | TauriProjectDirCheckResult>('Ok');
 
-	const [templates, setTemplates] = useState<TauriProjectTemplate[]>([]);
-	const [chosenTemplate, setChosenTemplate] = useState<TauriProjectTemplate>();
+	type CustomTemplate = TauriProjectTemplate & { type: 'Custom' };
+
+	const templateUnityVersions = [
+		'2022.3.22f1',
+		'2022.3.6f1',
+		'2019.4.31f1',
+	] as const;
+	const latestUnityVersion = templateUnityVersions[0];
+
+	const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+
+	const [templateType, setTemplateType] = useState<'avatars' | 'worlds' | 'custom'>('avatars');
+	const [unityVersion, setUnityVersion] = useState<(typeof templateUnityVersions)[number]>(latestUnityVersion);
+	const [customTemplate, setCustomTemplate] = useState<CustomTemplate>();
+
 	const [projectNameRaw, setProjectName] = useState("New Project");
 	const projectName = projectNameRaw.trim();
 	const [projectLocation, setProjectLocation] = useState("");
@@ -705,8 +720,9 @@ function CreateProject(
 	useEffect(() => {
 		(async () => {
 			const information = await environmentProjectCreationInformation();
-			setTemplates(information.templates);
-			setChosenTemplate(information.templates[0]);
+			const customTemplates = information.templates.filter((template): template is CustomTemplate => template.type === "Custom");
+			setCustomTemplates(customTemplates);
+			setCustomTemplate(customTemplates[0]);
 			setProjectLocation(information.default_path);
 			setState('enteringInformation');
 		})();
@@ -755,10 +771,32 @@ function CreateProject(
 	const createProject = async () => {
 		try {
 			setState('creating');
-			await environmentCreateProject(projectLocation, projectName, chosenTemplate!);
+			let template: TauriProjectTemplate;
+			switch (templateType) {
+				case "avatars":
+				case "worlds":
+					template = {
+						type: "Builtin",
+						id: `${templateType}-${unityVersion}`,
+						name: `${templateType}-${unityVersion}`,
+					}
+					break;
+				case "custom":
+					if (customTemplate === undefined)
+						throw new Error("Custom template not selected");
+					template = customTemplate;
+					break;
+				default:
+					const _exhaustiveCheck: never = templateType;
+					template = _exhaustiveCheck;
+					break;
+			}
+			await environmentCreateProject(projectLocation, projectName, template);
 			toastSuccess(tt("projects:toast:project created"));
 			close?.();
 			refetch?.();
+			const projectPath = `${projectLocation}${pathSeparator()}${projectName}`;
+			router.push(`/projects/manage?${new URLSearchParams({projectPath})}`);
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);
@@ -822,18 +860,49 @@ function CreateProject(
 			dialogBody = <Spinner/>;
 			break;
 		case "enteringInformation":
+			const renderUnityVersion = (unityVersion: string) => {
+				if (unityVersion === latestUnityVersion) {
+					return <>{unityVersion} <span className={"text-green-700"}>{tc("projects:latest")}</span></>
+				} else {
+					return unityVersion;
+				}
+			}
 			dialogBody = <>
 				<VStack>
 					<div className={"flex gap-1"}>
 						<div className={"flex items-center"}>
-							<Typography as={"label"}>{tc("projects:template")}</Typography>
+							<Typography as={"label"}>{tc("projects:template:type")}</Typography>
 						</div>
-						<VGSelect menuClassName={"z-[19999]"} value={chosenTemplate?.name}
-											onChange={value => setChosenTemplate(value)}>
-							{templates.map(template =>
-								<VGOption value={template} key={`${template.type}:${template.name}`}>{template.name}</VGOption>)}
+						<VGSelect menuClassName={"z-[19999]"} value={tc(`projects:type:${templateType}`)}
+											onChange={value => setTemplateType(value)}>
+							<VGOption value={"avatars"}>{tc("projects:type:avatars")}</VGOption>
+							<VGOption value={"worlds"}>{tc("projects:type:worlds")}</VGOption>
+							<VGOption value={"custom"} disabled={customTemplates.length == 0}>{tc("projects:type:custom")}</VGOption>
 						</VGSelect>
 					</div>
+					{templateType !== "custom" ? (
+						<div className={"flex gap-1"}>
+							<div className={"flex items-center"}>
+								<Typography as={"label"}>{tc("projects:template:unity version")}</Typography>
+							</div>
+							<VGSelect menuClassName={"z-[19999]"} value={renderUnityVersion(unityVersion)}
+												onChange={value => setUnityVersion(value)}>
+								{templateUnityVersions.map(unityVersion =>
+									<VGOption value={unityVersion} key={unityVersion}>{renderUnityVersion(unityVersion)}</VGOption>)}
+							</VGSelect>
+						</div>
+					) : (
+						<div className={"flex gap-1"}>
+							<div className={"flex items-center"}>
+								<Typography as={"label"}>{tc("projects:template")}</Typography>
+							</div>
+							<VGSelect menuClassName={"z-[19999]"} value={customTemplate?.name}
+												onChange={value => setCustomTemplate(value)}>
+								{customTemplates.map(template =>
+									<VGOption value={template} key={template.name}>{template.name}</VGOption>)}
+							</VGSelect>
+						</div>
+					)}
 					<Input label={"Project Name"} value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
 					<div className={"flex gap-1"}>
 						<Input className="flex-auto" label={"Project Location"} value={projectLocation} disabled/>

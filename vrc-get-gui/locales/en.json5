@@ -31,6 +31,8 @@
     "projects:type:sdk2": "SDK2",
     "projects:type:worlds": "Worlds",
     "projects:type:avatars": "Avatars",
+    // "custom" is for new project type
+    "projects:type:custom": "Custom",
     "general:loading...": "Loading...",
     "projects:error:load error": "Error loading projects: {{msg}}",
     "projects:toast:unity exits with non-zero": "Unity exited with non-zero code.",
@@ -67,6 +69,9 @@
     "projects:hint:warn multibyte char in project name": "Using multibyte characters may cause problems.",
     "projects:hint:project already exists": "The directory already exists.",
     "projects:template": "Template:",
+    "projects:template:type": "Type:",
+    "projects:latest": "Latest",
+    "projects:template:unity version": "Unity Version:",
     "projects:hint:path of creating project": "The new project will be at <code>{{path}}</code>.",
     "projects:creating project...": "Creating the project...",
     "projects:button:create": "Create",

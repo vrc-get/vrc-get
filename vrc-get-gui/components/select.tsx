@@ -103,14 +103,16 @@ function VGOptionImpl(
 	{
 		children,
 		value,
+		disabled,
 	}: {
 		children: React.ReactNode,
 		value: any,
+		disabled?: boolean,
 	},
 	ref: React.Ref<HTMLButtonElement>
 ) {
 	const contextValue = useContext(SelectContext);
 	return (
-		<MenuItem ref={ref} onClick={() => contextValue?.onClick(value)}>{children}</MenuItem>
+		<MenuItem ref={ref} disabled={disabled} onClick={() => contextValue?.onClick(value)}>{children}</MenuItem>
 	)
 }

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Improved project Template selection `#967`
 
 ### Deprecated
 
