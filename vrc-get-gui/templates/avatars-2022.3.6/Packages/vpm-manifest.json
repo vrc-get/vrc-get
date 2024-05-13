@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "com.vrchat.avatars": {
+      "version": "3.x"
+    }
+  }
+}
