@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Template for unity 2022.3.6f1 `#956`
 
 ### Changed
 - Support repositories with bad packages `#954`
