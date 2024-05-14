@@ -44,6 +44,9 @@ impl GuiConfig {
         if self.language.is_empty() {
             self.language = language_default();
         }
+        if self.language == "zh_cn" {
+            self.language = "zh_hans".to_string();
+        }
         if self.backup_format.is_empty() {
             self.backup_format = backup_default();
         }
@@ -65,7 +68,7 @@ fn language_default() -> String {
             return "ja".to_string();
         }
         if locale.starts_with("zh") {
-            return "zh_cn".to_string();
+            return "zh_hans".to_string();
         }
     }
 
