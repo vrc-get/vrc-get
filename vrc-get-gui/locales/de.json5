@@ -31,6 +31,8 @@
     "projects:type:sdk2": "SDK2",
     "projects:type:worlds": "Welt",
     "projects:type:avatars": "Avatar",
+    // "custom" is for new project type
+    "projects:type:custom": "Eigene Vorlagen",
     "general:loading...": "Laden...",
     "projects:error:load error": "Fehler beim Laden der Projekte: {{msg}}",
     "projects:toast:unity exits with non-zero": "Unity wurde mit Fehlercode non-zero geschlossen.",
@@ -67,6 +69,9 @@
     "projects:hint:warn multibyte char in project name": "Multibyte Symbole wie z.B. Umlaute könnten Probleme verursachen",
     "projects:hint:project already exists": "Es existiert bereits ein Projekt mit diesem Namen",
     "projects:template": "Vorlage:",
+    "projects:template:type": "Typ:",
+    "projects:latest": "Neueste",
+    "projects:template:unity version": "Unity Version:",
     "projects:hint:path of creating project": "Das Projekt wird sich hier befinden: <code>{{path}}</code>",
     "projects:creating project...": "Erstelle Projekt...",
     "projects:button:create": "Erstellen",
