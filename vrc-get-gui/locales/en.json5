@@ -31,8 +31,7 @@
     "projects:type:sdk2": "SDK2",
     "projects:type:worlds": "Worlds",
     "projects:type:avatars": "Avatars",
-    // "custom" is for new project type
-    "projects:type:custom": "Custom",
+    "projects:type:custom": "Custom Template",
     "general:loading...": "Loading...",
     "projects:error:load error": "Error loading projects: {{msg}}",
     "projects:toast:unity exits with non-zero": "Unity exited with non-zero code.",
