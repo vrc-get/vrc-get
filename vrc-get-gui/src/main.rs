@@ -50,6 +50,8 @@ fn main() {
         .setup(move |app| {
             app.manage(commands::new_env_state(io));
             commands::startup(app);
+            // process args
+            process_args(&std::env::args().collect::<Vec<_>>());
             Ok(())
         })
         .build(tauri_context())
@@ -62,6 +64,45 @@ fn main() {
 
     logging::set_app_handle(app.handle());
     app.run(|_, _| {})
+}
+
+fn process_args(args: &[String]) {
+    if args.len() <= 1 {
+        // no additional args
+        return;
+    }
+
+    if args.len() == 2 {
+        // we have a single argument. it might be a deep link
+        let arg = &args[1];
+        if arg.starts_with("vcc://") {
+            process_deep_link_string(arg);
+        }
+    }
+
+    match args[1].as_str() {
+        "link" => {
+            let Some(url) = args.get(2) else {
+                log::error!("link command requires a URL argument");
+                return;
+            };
+            process_deep_link_string(url);
+        }
+        _ => {
+            log::error!("Unknown command: {}", args[1]);
+        }
+    }
+
+    fn process_deep_link_string(url: &str) {
+        match url::Url::parse(url) {
+            Ok(url) => {
+                deep_link_support::on_deep_link(url);
+            }
+            Err(e) => {
+                log::error!("Failed to parse deep link: {}", e);
+            }
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
