@@ -58,3 +58,6 @@ providerShortName = "anatawa12"
 
 [tauri.bundle.windows]
 digestAlgorithm = "sha256"
+
+[tauri.bundle.windows.nsis]
+installMode = 'both'
