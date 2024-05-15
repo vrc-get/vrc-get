@@ -112,17 +112,16 @@ pub async fn deep_link_install_vcc() {
 // for windows, install to registry
 pub async fn deep_link_install_vcc() {
     fn impl_() -> std::io::Result<()> {
-        use winreg::reg_key;
-
-        let exe = std::env::current_exe()?.to_string_lossy();
+        let exe = std::env::current_exe()?;
+        let exe = exe.to_string_lossy();
 
         let (key, _) = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
             .create_subkey("Software\\Classes\\vcc")?;
         key.set_value("URL Protocol", &"")?;
         let (default_icon, _) = key.create_subkey("DefaultIcon")?;
-        default_icon.set_value("", format!("\"{exe}\",0"))?;
+        default_icon.set_value("", &format!("\"{exe}\",0"))?;
         let (command, _) = key.create_subkey("shell\\open\\command")?;
-        command.set_value("", format!("\"{exe}\" link \"%1\""))?;
+        command.set_value("", &format!("\"{exe}\" link \"%1\""))?;
         Ok(())
     }
 
