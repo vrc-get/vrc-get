@@ -146,7 +146,7 @@ pub async fn deep_link_install_vcc(app: AppHandle) {
     let desktop_file =
         applications_dir.join(format!("{app_id}.desktop", app_id = "com.anataw12.vrc_get"));
 
-    let Some(appimage_path) = app.env().appimage.as_ref().and_then(|x| x.to_str()) else {
+    let Some(appimage_path) = app.env().appimage.and_then(|x| x.into_string().ok()) else {
         log::error!("Failed to get appimage path");
         return;
     };
@@ -161,7 +161,7 @@ Terminal=false
 MimeType=x-scheme-handler/vcc
 Categories=Utility;
 "#,
-        appimage_path = escape(appimage_path)
+        appimage_path = escape(&appimage_path)
     );
 
     if let Err(e) = tokio::fs::create_dir_all(&applications_dir).await {
