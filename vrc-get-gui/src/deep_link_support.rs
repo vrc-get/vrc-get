@@ -104,6 +104,7 @@ pub fn deep_link_take_add_repository() -> Option<AddRepositoryInfo> {
 #[cfg(target_os = "macos")]
 pub async fn deep_link_install_vcc() {
     // for macos, nothing to do!
+    log::error!("deep_link_install_vcc is not supported on macos");
 }
 
 #[tauri::command]

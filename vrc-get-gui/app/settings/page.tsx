@@ -9,7 +9,8 @@ import {
 	environmentPickProjectBackupPath,
 	environmentPickProjectDefaultPath,
 	environmentPickUnity,
-	environmentPickUnityHub, environmentSetBackupFormat,
+	environmentPickUnityHub,
+	environmentSetBackupFormat,
 	environmentSetLanguage,
 	environmentSetShowPrereleasePackages,
 	TauriEnvironmentSettings,
@@ -24,6 +25,7 @@ import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
 import {loadOSApi} from "@/lib/os";
+import {OsType, type as fetchOsType} from "@tauri-apps/api/os";
 
 export default function Page() {
 	const result = useQuery({
@@ -71,6 +73,14 @@ function Settings(
 	const [pickUnityHub, unityHubDialog] = useFilePickerFunction(environmentPickUnityHub);
 	const [pickProjectDefaultPath, projectDefaultDialog] = useFilePickerFunction(environmentPickProjectDefaultPath);
 	const [pickProjectBackupPath, projectBackupDialog] = useFilePickerFunction(environmentPickProjectBackupPath);
+
+	const [osType, setOsType] = React.useState<OsType>("Windows_NT");
+
+	React.useEffect(() => {
+		(async () => {
+			setOsType(await fetchOsType());
+		})();
+	}, [])
 
 	const selectUnityHub = async () => {
 		try {
@@ -309,7 +319,7 @@ function Settings(
 					<Button onClick={() => emit("tauri://update")}>{tc("settings:check update")}</Button>
 				</div>
 			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
+			{osType != "Darwin" && <Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:vcc scheme")}</h2>
 				<Typography className={"whitespace-normal"}>
 					{tc("settings:vcc scheme description")}
@@ -317,7 +327,7 @@ function Settings(
 				<div>
 					<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
 				</div>
-			</Card>
+			</Card>}
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:report issue")}</h2>
 				<div>
