@@ -9,7 +9,9 @@ mod cmd_start;
 
 mod commands;
 mod config;
+mod deep_link_support;
 mod logging;
+mod specta;
 mod templates;
 
 // for clippy compatibility
@@ -53,8 +55,10 @@ fn main() {
         .build(tauri_context())
         .expect("error while building tauri application");
 
+    // deep link support
     #[cfg(target_os = "macos")]
     objc_patch::patch_delegate();
+    deep_link_support::set_app_handle(app.handle());
 
     logging::set_app_handle(app.handle());
     app.run(|_, _| {})
@@ -122,6 +126,9 @@ mod objc_patch {
         };
         for x in urls {
             log::debug!("URL: {x}");
+            if x.scheme() == "vcc" {
+                crate::deep_link_support::on_deep_link(x);
+            }
         }
     }
 

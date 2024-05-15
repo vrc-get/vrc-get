@@ -17,6 +17,7 @@ import {
 } from "@material-tailwind/react";
 import {useQuery} from "@tanstack/react-query";
 import {
+	deepLinkHasAddRepository, deepLinkTakeAddRepository,
 	environmentAddRepository,
 	environmentDownloadRepository,
 	environmentHideRepository,
@@ -27,13 +28,14 @@ import {
 	TauriUserRepository
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
-import React, {Suspense, useMemo, useState} from "react";
+import React, {Suspense, useCallback, useEffect, useMemo, useState} from "react";
 import {MinusCircleIcon, PlusCircleIcon, XCircleIcon} from "@heroicons/react/24/outline";
 import {nop} from "@/lib/nop";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
 import {InputNoLabel} from "@/components/InputNoLabel";
 import {loadManifestWithRetries} from "next/dist/server/load-components";
+import {useTauriListen} from "@/lib/use-tauri-listen";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -68,7 +70,7 @@ function PageBody() {
 		setState({type: 'normal'});
 	}
 
-	async function addRepository(url: string, headers: { [key: string]: string }) {
+	const addRepository = useCallback(async function addRepository(url: string, headers: { [key: string]: string }) {
 		try {
 			setState({type: 'loadingRepository'});
 			const info = await environmentDownloadRepository(url, headers);
@@ -94,7 +96,7 @@ function PageBody() {
 			toastThrownError(e);
 			setState({type: 'normal'});
 		}
-	}
+	}, []);
 
 	async function removeRepository(id: string) {
 		try {
@@ -104,6 +106,24 @@ function PageBody() {
 			toastThrownError(e);
 		}
 	}
+
+	const processDeepLink = useCallback(async function processDeepLink() {
+		const data = await deepLinkTakeAddRepository();
+		if (data == null) return;
+		await addRepository(data.url, data.headers);
+	}, [addRepository]);
+
+	useTauriListen<null>("deep-link-add-repository", useCallback((_) => {
+		// noinspection JSIgnoredPromiseFromCall
+		processDeepLink()
+	}, [processDeepLink]));
+
+	useEffect(() => {
+		// noinspection JSIgnoredPromiseFromCall
+		processDeepLink()
+		// Only for initial load
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	let dialogBody;
 	switch (state.type) {
@@ -141,7 +161,8 @@ function PageBody() {
 			const _exhaustiveCheck: never = state;
 	}
 	const dialog = dialogBody ?
-		<Dialog handler={nop} open><DialogHeader>{tc("vpm repositories:button:add repository")}</DialogHeader>{dialogBody}</Dialog> : null;
+		<Dialog handler={nop} open><DialogHeader>{tc("vpm repositories:button:add repository")}</DialogHeader>{dialogBody}
+		</Dialog> : null;
 
 	return (
 		<VStack className={"p-4 overflow-y-auto"}>
@@ -149,7 +170,8 @@ function PageBody() {
 				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("vpm repositories:community repositories")}
 				</Typography>
-				<Button onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("vpm repositories:button:add repository")}</Button>
+				<Button
+					onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("vpm repositories:button:add repository")}</Button>
 			</HNavBar>
 			<main className="flex-shrink flex-grow overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll shadow-none">
@@ -455,13 +477,17 @@ function EnteringRepositoryInfo(
 						</table>
 					</div>
 				</details>
-				{foundHeaderNameError && <Typography className={"text-red-700"}>{tc("vpm repositories:hint:invalid header names")}</Typography>}
-				{foundHeaderValueError && <Typography className={"text-red-700"}>{tc("vpm repositories:hint:invalid header values")}</Typography>}
-				{foundDuplicateHeader && <Typography className={"text-red-700"}>{tc("vpm repositories:hint:duplicate headers")}</Typography>}
+				{foundHeaderNameError &&
+					<Typography className={"text-red-700"}>{tc("vpm repositories:hint:invalid header names")}</Typography>}
+				{foundHeaderValueError &&
+					<Typography className={"text-red-700"}>{tc("vpm repositories:hint:invalid header values")}</Typography>}
+				{foundDuplicateHeader &&
+					<Typography className={"text-red-700"}>{tc("vpm repositories:hint:duplicate headers")}</Typography>}
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
-				<Button onClick={onAddRepository} className={"ml-2"} disabled={hasError}>{tc("vpm repositories:button:add repository")}</Button>
+				<Button onClick={onAddRepository} className={"ml-2"}
+								disabled={hasError}>{tc("vpm repositories:button:add repository")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -525,7 +551,8 @@ function Confirming(
 	return (
 		<>
 			<DialogBody className={"max-h-[50vh] overflow-y-auto font-normal"}>
-				<Typography className={"font-normal"}>{tc("vpm repositories:dialog:name", {name: repo.display_name})}</Typography>
+				<Typography
+					className={"font-normal"}>{tc("vpm repositories:dialog:name", {name: repo.display_name})}</Typography>
 				<Typography className={"font-normal"}>{tc("vpm repositories:dialog:url", {url: repo.url})}</Typography>
 				{Object.keys(headers).length > 0 && (
 					<>
