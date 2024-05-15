@@ -4,6 +4,7 @@ import {Button, Card, Checkbox, Input, Typography} from "@material-tailwind/reac
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
+	deepLinkInstallVcc,
 	environmentGetSettings,
 	environmentPickProjectBackupPath,
 	environmentPickProjectDefaultPath,
@@ -22,7 +23,7 @@ import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
-import { loadOSApi } from "@/lib/os";
+import {loadOSApi} from "@/lib/os";
 
 export default function Page() {
 	const result = useQuery({
@@ -206,6 +207,16 @@ function Settings(
 		shellOpen(url.toString())
 	}
 
+	const installVccProtocol = async () => {
+		try {
+			await deepLinkInstallVcc();
+			toastSuccess(tt("settings:toast:vcc protocol installed"));
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	}
+
 
 	return (
 		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
@@ -238,7 +249,8 @@ function Settings(
 				</Typography>
 				<div className={"flex gap-1"}>
 					<Input className="flex-auto" value={settings.default_project_path} disabled/>
-					<Button className={"flex-none px-4"} onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
+					<Button className={"flex-none px-4"}
+									onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
@@ -250,7 +262,8 @@ function Settings(
 					</Typography>
 					<div className={"flex gap-1"}>
 						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
-						<Button className={"flex-none px-4"} onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
+						<Button className={"flex-none px-4"}
+										onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
 					</div>
 				</div>
 				<div className="mt-2">
@@ -297,9 +310,18 @@ function Settings(
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
+				<h2>{tc("settings:vcc scheme")}</h2>
+				<Typography className={"whitespace-normal"}>
+					{tc("settings:vcc scheme description")}
+				</Typography>
+				<div>
+					<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
+				</div>
+			</Card>
+			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:report issue")}</h2>
 				<div>
-				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
+					<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
