@@ -45,6 +45,7 @@ fn main() {
                     log::error!("error while setting focus: {}", e);
                 }
             }
+            process_args(&argv);
         }))
         .invoke_handler(commands::handlers())
         .setup(move |app| {
