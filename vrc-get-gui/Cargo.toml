@@ -41,6 +41,11 @@ tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-wo
 sys-locale = "0.3.1"
 log-panics = { version = "2", features = ["with-backtrace"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2.7"
+cocoa = "0.24"
+url = "2.5.0"
+
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
