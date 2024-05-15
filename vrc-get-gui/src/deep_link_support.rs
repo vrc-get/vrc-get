@@ -133,8 +133,62 @@ pub async fn deep_link_install_vcc() {
 #[tauri::command]
 #[specta::specta]
 #[cfg(target_os = "linux")]
-pub async fn deep_link_install_vcc() {
-    log::error!("linux not supported yet")
+pub async fn deep_link_install_vcc(app: AppHandle) {
+    // for linux, create a desktop entry
+    // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
+
+    let Some(home_dir) = dirs_next::data_dir() else {
+        log::error!("Failed to get XDG_DATA_HOME");
+        return;
+    };
+    let applications_dir = home_dir.join("applications");
+    let desktop_file =
+        applications_dir.join(format!("{app_id}.desktop", app_id = "com.anataw12.vrc_get"));
+
+    let Some(appimage_path) = app.env().appimage.as_ref().and_then(|x| x.to_str()) else {
+        log::error!("Failed to get appimage path");
+        return;
+    };
+
+    let contents = format!(
+        r#"[Desktop Entry]
+Type=Application
+Name=ALCOM
+Exec="{appimage_path}" link %u
+NoDisplay=true
+Terminal=false
+MimeType=x-scheme-handler/vcc
+Categories=Utility;
+"#,
+        appimage_path = escape(appimage_path)
+    );
+
+    if let Err(e) = tokio::fs::create_dir_all(&applications_dir).await {
+        log::error!("Failed to create applications directory: {}", e);
+        return;
+    }
+
+    if let Err(e) = tokio::fs::write(&desktop_file, &contents).await {
+        log::error!("Failed to write desktop file: {}", e);
+        return;
+    }
+
+    log::info!("Desktop file created: {}", desktop_file.display());
+
+    if let Err(e) = tokio::process::Command::new("update-desktop-database")
+        .status()
+        .await
+    {
+        log::error!("Failed to call update-desktop-database: {}", e);
+        return;
+    }
+
+    fn escape(s: &str) -> String {
+        s.replace(r#"\"#, r#"\\\\"#)
+            .replace(r#"`"#, r#"\\`"#)
+            .replace(r#"$"#, r#"\\$"#)
+            .replace(r#"""#, r#"\\""#)
+    }
 }
 
 #[cfg(test)]

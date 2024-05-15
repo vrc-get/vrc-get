@@ -5010,6 +5010,7 @@ dependencies = [
  "async_zip",
  "chrono",
  "cocoa",
+ "dirs-next",
  "flate2",
  "fs_extra",
  "futures",
