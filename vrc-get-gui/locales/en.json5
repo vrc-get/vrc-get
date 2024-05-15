@@ -199,7 +199,7 @@
     "settings:vcc scheme": "<code>vcc:</code> URL Scheme Handler",
     "settings:vcc scheme description": "The <code>vcc:</code> URL scheme is used to open VCC to add a repository from web browsers.<br>As an alternative to the VCC, you can use ALCOM as an application to add repository from web browser.<br>It's automatically registered for macOS, but for other platforms, you need to register it manually.",
     "settings:register vcc scheme": "Register ALCOM as <code>vcc:</code> URL Scheme Handler",
-    "settings:toast:vcc protocol installed": "ALCOM was registered as the <code>vcc:</code> URL scheme handler.",
+    "settings:toast:vcc scheme installed": "ALCOM was registered as the <code>vcc:</code> URL scheme handler.",
     "general:toast:not supported": "{{name}} is not supported yet.",
     "general:not implemented": "Not Implemented",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
