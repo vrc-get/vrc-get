@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Impossible to install for machine (for Windows) `#976`
 
 ### Security
 
