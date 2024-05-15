@@ -210,7 +210,7 @@ function Settings(
 	const installVccProtocol = async () => {
 		try {
 			await deepLinkInstallVcc();
-			toastSuccess(tt("settings:toast:vcc protocol installed"));
+			toastSuccess(tc("settings:toast:vcc protocol installed"));
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e)
