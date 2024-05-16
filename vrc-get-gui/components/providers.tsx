@@ -2,39 +2,50 @@
 
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {ToastContainer} from 'react-toastify';
-import {useEffect, useState} from "react";
-import {listen} from "@tauri-apps/api/event";
-import {environmentLanguage, LogEntry} from "@/lib/bindings";
+import {useCallback, useEffect, useState} from "react";
+import {deepLinkHasAddRepository, environmentLanguage, LogEntry} from "@/lib/bindings";
 import i18next from "@/lib/i18n";
 import {I18nextProvider} from "react-i18next";
-import {toastError} from "@/lib/toast";
+import {toastError, toastNormal} from "@/lib/toast";
 import {ThemeProvider} from "@material-tailwind/react";
+import {useTauriListen} from "@/lib/use-tauri-listen";
+import {usePathname, useRouter} from "next/navigation";
 
 const queryClient = new QueryClient();
 
 export function Providers({children}: { children: React.ReactNode }) {
+	const router = useRouter();
+	const pathname = usePathname();
+
+	useTauriListen<LogEntry>("log", useCallback((event) => {
+		const entry = event.payload as LogEntry;
+		if (entry.level === "Error") {
+			toastError(entry.message);
+		}
+	}, []))
+
+	const moveToRepositories = useCallback(() => {
+		if (location.pathname != "/repositories") {
+			router.push("/repositories");
+		}
+	}, [router]);
+
+	useTauriListen<null>("deep-link-add-repository", useCallback((_) => {
+		moveToRepositories();
+	}, [moveToRepositories]));
+
 	useEffect(() => {
-		let unlisten: (() => void) | undefined = undefined;
-		let unlistened = false;
-
-		listen("log", (event) => {
-			const entry = event.payload as LogEntry;
-			if (entry.level === "Error") {
-				toastError(entry.message);
+		let cancel = false;
+		deepLinkHasAddRepository().then((has) => {
+			if (cancel) return;
+			if (has) {
+				moveToRepositories();
 			}
-		}).then((unlistenFn) => {
-			if (unlistened) {
-				unlistenFn();
-			} else {
-				unlisten = unlistenFn;
-			}
-		});
-
+		})
 		return () => {
-			unlisten?.();
-			unlistened = true;
-		};
-	}, []);
+			cancel = true;
+		}
+	}, [moveToRepositories]);
 
 	useEffect(() => {
 		environmentLanguage().then((lang) => i18next.changeLanguage(lang))
