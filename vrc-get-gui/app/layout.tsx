@@ -15,7 +15,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
+		<html>
 		<body className={`font-sans w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
 		<Providers>
 			<SideBar className={"flex-grow-0 overflow-auto"}/>
