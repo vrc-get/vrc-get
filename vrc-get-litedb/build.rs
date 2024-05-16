@@ -279,7 +279,8 @@ fn create_libbootstrapperdll_a(obj: &Path, folder: &Path, target_info: &TargetIn
 fn create_libbootstrapperdll_lib(obj: &Path, folder: &Path, _target_info: &TargetInformation) {
     let lib_path = folder.join("bootstrapperdll.lib");
 
-    Command::new("lib")
+    cc::windows_registry::find(std::env::var("TARGET").unwrap().as_str(), "lib.exe")
+        .expect("finding lib.exe")
         .arg(format!("/out:{}", lib_path.to_str().unwrap()))
         .arg(obj)
         .status()

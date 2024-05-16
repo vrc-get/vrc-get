@@ -5051,6 +5051,7 @@ name = "vrc-get-litedb"
 version = "0.1.5-beta.0"
 dependencies = [
  "ar",
+ "cc",
  "hex",
  "object 0.35.0",
  "once_cell",
