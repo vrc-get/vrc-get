@@ -16,7 +16,6 @@ pub struct DatabaseConnection {
 
 impl DatabaseConnection {
     pub(crate) fn connect(string: &ConnectionString) -> Result<DatabaseConnection> {
-        crate::bootstrapper::initialize();
         unsafe {
             vrc_get_litedb_database_connection_new(&ConnectionStringFFI::from(string))
                 .into_result()
