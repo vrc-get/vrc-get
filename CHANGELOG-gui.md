@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Impossible to install for machine (for Windows) `#976`
+- Japanese variant of CJK Ideograph is used for Simplified Chinese `#980`
+  - Since this version, ALCOM will always use `system-ui` font for all languages.
 
 ### Security
 

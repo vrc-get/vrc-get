@@ -2,7 +2,7 @@
 
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {ToastContainer} from 'react-toastify';
-import {useCallback, useEffect} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {deepLinkHasAddRepository, environmentLanguage, LogEntry} from "@/lib/bindings";
 import i18next from "@/lib/i18n";
 import {I18nextProvider} from "react-i18next";
@@ -51,6 +51,14 @@ export function Providers({children}: { children: React.ReactNode }) {
 		environmentLanguage().then((lang) => i18next.changeLanguage(lang))
 	}, []);
 
+	const [language, setLanguage] = useState(i18next.language);
+
+	useEffect(() => {
+		const changeLanguage = (newLang: string) => setLanguage(newLang);
+		i18next.on("languageChanged", changeLanguage);
+		return () => i18next.off("languageChanged", changeLanguage);
+	}, []);
+
 	return (
 		<>
 			<ToastContainer
@@ -75,7 +83,9 @@ export function Providers({children}: { children: React.ReactNode }) {
 							}
 						}
 					}}>
-						{children as any}
+						{<div lang={language} className="contents">
+							{children}
+						</div> as any}
 					</ThemeProvider>
 				</I18nextProvider>
 			</QueryClientProvider>
