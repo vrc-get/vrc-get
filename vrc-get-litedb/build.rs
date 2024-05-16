@@ -65,9 +65,8 @@ fn main() {
         patch_mach_o_from_archive(&dotnet_built, &patched);
         println!("cargo:rustc-link-lib=static:+verbatim=vrc-get-litedb-patched.a");
     } else {
-        // use +whole-archive to not remove sections
         println!(
-            "cargo:rustc-link-lib=static:+verbatim,+whole-archive={}",
+            "cargo:rustc-link-lib=static:+verbatim={}",
             dotnet_built.file_name().unwrap().to_string_lossy()
         );
     }
@@ -82,13 +81,8 @@ fn main() {
     }
 
     if target_info.family == TargetFamily::Linux {
-        // for linux, we have to keep a modules section manually.
-        cc::Build::new()
-            .file("keep_modules_section.c")
-            .out_dir(patched_lib_folder)
-            .cargo_metadata(false)
-            .compile("keep_modules_section");
-        println!("cargo:rustc-link-lib=static:+whole-archive=keep_modules_section");
+        // start stop gc is not supported by dotnet.
+        println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
     }
 
     let common_libs: &[&str] = &[
