@@ -81,6 +81,16 @@ fn main() {
         remove_libunwind(&before, &patched);
     }
 
+    if target_info.family == TargetFamily::Linux {
+        // for linux, we have to keep a modules section manually.
+        cc::Build::new()
+            .file("keep_modules_section.c")
+            .out_dir(patched_lib_folder)
+            .cargo_metadata(false)
+            .compile("keep_modules_section");
+        println!("cargo:rustc-link-lib=static:+whole-archive=keep_modules_section");
+    }
+
     let common_libs: &[&str] = &[
         //"static=Runtime.ServerGC",
         "static=Runtime.WorkstationGC",
