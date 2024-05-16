@@ -9,7 +9,7 @@ pub struct Error {
 
 impl Error {
     pub(crate) unsafe fn from_ffi(error: ErrorFFI) -> Self {
-        let message = str::from_boxed_utf8_unchecked(error.message.into_boxed_byte_slice());
+        let message = str::from_boxed_utf8_unchecked(error.message.into_boxed_slice());
         if error.code == i32::MIN {
             // -1 means unexpected error in C# code so panic here
             panic!("{}", message);
@@ -117,5 +117,17 @@ impl From<Error> for std::io::Error {
         };
 
         Self::new(kind, value)
+    }
+}
+
+impl From<bson::de::Error> for Error {
+    fn from(_: bson::de::Error) -> Self {
+        todo!()
+    }
+}
+
+impl From<bson::ser::Error> for Error {
+    fn from(_: bson::ser::Error) -> Self {
+        todo!()
     }
 }
