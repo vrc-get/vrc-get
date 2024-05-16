@@ -12,7 +12,12 @@ fn main() {
     println!("cargo:rerun-if-changed=dotnet/src");
     println!("cargo:rerun-if-changed=dotnet/LiteDB/LiteDB");
 
-    // currently this code is only tested on macOS.
+    // Note for users of this library:
+    // The NativeAOT does not support start-stop-gc so you have to disable it.
+    if std::env::var("TARGET").unwrap().contains("linux") {
+        // start stop gc is not supported by dotnet.
+        println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
+    }
 
     let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
     let target_info = TargetInformation::from_triple(std::env::var("TARGET").unwrap().as_str());
@@ -78,11 +83,6 @@ fn main() {
         let before = dotnet_sdk_folder.join(lib_name);
         let patched = patched_lib_folder.join(lib_name);
         remove_libunwind(&before, &patched);
-    }
-
-    if target_info.family == TargetFamily::Linux {
-        // start stop gc is not supported by dotnet.
-        println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
     }
 
     let common_libs: &[&str] = &[
