@@ -9,11 +9,10 @@ use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use futures::prelude::*;
-use indexmap::IndexMap;
 use log::{error, info, warn};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use specta::{specta, DataType, DefOpts, ExportError, Type};
+use specta::specta;
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::Mutex;
 use tauri::{
@@ -39,6 +38,7 @@ use vrc_get_vpm::{
 
 use crate::config::GuiConfigHolder;
 use crate::logging::LogEntry;
+use crate::specta::IndexMapV2;
 
 mod async_command;
 
@@ -89,6 +89,9 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         util_open,
         util_get_log_entries,
         util_get_version,
+        crate::deep_link_support::deep_link_has_add_repository,
+        crate::deep_link_support::deep_link_take_add_repository,
+        crate::deep_link_support::deep_link_install_vcc,
     ]
 }
 
@@ -141,6 +144,9 @@ pub(crate) fn export_ts() {
             util_open,
             util_get_log_entries,
             util_get_version,
+            crate::deep_link_support::deep_link_has_add_repository,
+            crate::deep_link_support::deep_link_take_add_repository,
+            crate::deep_link_support::deep_link_install_vcc,
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
@@ -1467,50 +1473,6 @@ enum TauriDownloadRepository {
 }
 
 // workaround IndexMap v2 is not implemented in specta
-
-#[derive(serde::Deserialize)]
-#[serde(transparent)]
-struct IndexMapV2<K: std::hash::Hash + Eq, V>(IndexMap<K, V>);
-
-impl Type for IndexMapV2<Box<str>, Box<str>> {
-    fn inline(opts: DefOpts, generics: &[DataType]) -> Result<DataType, ExportError> {
-        Ok(DataType::Record(Box::new((
-            String::inline(
-                DefOpts {
-                    parent_inline: opts.parent_inline,
-                    type_map: opts.type_map,
-                },
-                generics,
-            )?,
-            String::inline(
-                DefOpts {
-                    parent_inline: opts.parent_inline,
-                    type_map: opts.type_map,
-                },
-                generics,
-            )?,
-        ))))
-    }
-
-    fn reference(opts: DefOpts, generics: &[DataType]) -> Result<DataType, ExportError> {
-        Ok(DataType::Record(Box::new((
-            String::reference(
-                DefOpts {
-                    parent_inline: opts.parent_inline,
-                    type_map: opts.type_map,
-                },
-                generics,
-            )?,
-            String::reference(
-                DefOpts {
-                    parent_inline: opts.parent_inline,
-                    type_map: opts.type_map,
-                },
-                generics,
-            )?,
-        ))))
-    }
-}
 
 #[tauri::command]
 #[specta::specta]

@@ -1,18 +1,18 @@
-import {toast} from "react-toastify";
+import {toast, ToastContent} from "react-toastify";
 
-export function toastNormal(message: string) {
+export function toastNormal(message: ToastContent) {
 	toast(message, {
 		pauseOnFocusLoss: false,
 	});
 }
 
-export function toastSuccess(message: string) {
+export function toastSuccess(message: ToastContent) {
 	toast.success(message, {
 		pauseOnFocusLoss: false,
 	});
 }
 
-export function toastError(message: string) {
+export function toastError(message: ToastContent) {
 	toast.error(message);
 }
 
