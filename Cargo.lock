@@ -2766,15 +2766,6 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7090bae93f8585aad99e595b7073c5de9ba89fbd6b4e9f0cdd7a10177273ac8"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "object"
 version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8ec7ab813848ba4522158d5517a6093db1ded27575b070f4177b8d12b41db5e"
@@ -5114,15 +5105,18 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-litedb"
-version = "0.1.4"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49fc55286729f06810d732ae3d74d86f78031be8061f46e1e7499c068014aa7b"
+checksum = "c6d3b22367458ac41c3d3182b9272ac4093614c0226f334d5b9b36079778a582"
 dependencies = [
  "ar",
+ "bson",
+ "cc",
  "hex",
- "object 0.34.0",
+ "object 0.35.0",
  "once_cell",
  "rand 0.8.5",
+ "serde",
 ]
 
 [[package]]
@@ -5145,6 +5139,7 @@ version = "0.0.13-beta.0"
 dependencies = [
  "async-stream",
  "async_zip",
+ "bson",
  "dirs-sys",
  "either",
  "enum-map",
@@ -5160,12 +5155,13 @@ dependencies = [
  "serde-value",
  "serde_json",
  "serde_path_to_error",
+ "serde_repr",
  "sha2",
  "tokio",
  "tokio-util",
  "url",
  "uuid",
- "vrc-get-litedb 0.1.4",
+ "vrc-get-litedb 0.2.0",
  "winreg 0.52.0",
 ]
 
