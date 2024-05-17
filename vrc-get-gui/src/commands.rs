@@ -528,8 +528,8 @@ struct TauriProject {
     path: String,
     project_type: TauriProjectType,
     unity: String,
-    last_modified: u64,
-    created_at: u64,
+    last_modified: i64,
+    created_at: i64,
     favorite: bool,
     is_exists: bool,
 }
@@ -581,8 +581,8 @@ impl TauriProject {
                 .unity_version()
                 .map(|v| v.to_string())
                 .unwrap_or_else(|| "unknown".into()),
-            last_modified: project.last_modified().as_millis_since_epoch(),
-            created_at: project.crated_at().as_millis_since_epoch(),
+            last_modified: project.last_modified().timestamp_millis(),
+            created_at: project.crated_at().timestamp_millis(),
             favorite: project.favorite(),
             is_exists,
         }

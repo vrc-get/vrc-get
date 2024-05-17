@@ -1,7 +1,9 @@
-use serde::{Serialize, Serializer};
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
+
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct UnityVersion {
@@ -120,6 +122,16 @@ impl Serialize for UnityVersion {
         S: Serializer,
     {
         serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for UnityVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        UnityVersion::parse(&String::deserialize(deserializer)?)
+            .ok_or_else(|| D::Error::custom("invalid unity version"))
     }
 }
 

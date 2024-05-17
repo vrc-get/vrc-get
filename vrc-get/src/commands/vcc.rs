@@ -58,7 +58,7 @@ impl ProjectList {
 
         let mut projects = env.get_projects().exit_context("getting projects");
 
-        projects.sort_by_key(|x| Reverse(x.last_modified().as_millis_since_epoch()));
+        projects.sort_by_key(|x| Reverse(x.last_modified().timestamp_millis()));
 
         for project in projects.iter() {
             let path = project.path();

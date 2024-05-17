@@ -1,20 +1,17 @@
 use crate::io::EnvironmentIo;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
+use bson::oid::ObjectId;
 use log::info;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use vrc_get_litedb::UnityVersion as DbUnityVersion;
+
+pub(crate) static COLLECTION: &str = "unityVersions";
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub fn get_unity_installations(&self) -> io::Result<Vec<UnityInstallation>> {
-        Ok(self
-            .get_db()?
-            .get_unity_versions()?
-            .into_vec()
-            .into_iter()
-            .map(UnityInstallation::new)
-            .collect())
+        Ok(self.get_db()?.get_values(COLLECTION)?)
     }
 
     pub async fn add_unity_installation(
@@ -24,16 +21,15 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     ) -> io::Result<()> {
         let db = self.get_db()?;
 
-        let installation =
-            DbUnityVersion::new(path.into(), version.to_string().into_boxed_str(), false);
+        let installation = UnityInstallation::new(path.into(), Some(version), false);
 
-        db.insert_unity_version(&installation)?;
+        db.insert(COLLECTION, &installation)?;
 
         Ok(())
     }
 
     pub async fn remove_unity_installation(&mut self, unity: &UnityInstallation) -> io::Result<()> {
-        self.get_db()?.delete_unity_version(unity.inner.id())?;
+        self.get_db()?.delete(COLLECTION, unity.id)?;
 
         Ok(())
     }
@@ -154,11 +150,11 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         let mut installed = HashSet::new();
 
-        for mut in_db in db.get_unity_versions()?.into_vec() {
+        for mut in_db in db.get_values::<UnityInstallation>(COLLECTION)? {
             if !self.io.is_file(in_db.path().as_ref()).await {
                 // if the unity editor not found, remove it from the db
                 info!("Removed Unity that is not exists: {}", in_db.path());
-                db.delete_unity_version(in_db.id())?;
+                db.delete(COLLECTION, in_db.id)?;
                 continue;
             }
 
@@ -167,8 +163,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             let exists_in_hub = paths_from_hub.contains(Path::new(in_db.path()));
 
             if exists_in_hub != in_db.loaded_from_hub() {
-                in_db.set_loaded_from_hub(exists_in_hub);
-                db.update_unity_version(&in_db)?;
+                in_db.loaded_from_hub = exists_in_hub;
+                db.update(COLLECTION, &in_db)?;
             }
         }
 
@@ -192,24 +188,37 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 }
 
 #[allow(dead_code)]
+#[derive(Serialize, Deserialize)]
 pub struct UnityInstallation {
-    inner: DbUnityVersion,
+    #[serde(rename = "_id")]
+    id: ObjectId,
+    #[serde(rename = "Path")]
+    path: Box<str>,
+    #[serde(rename = "Version")]
+    version: Option<UnityVersion>,
+    #[serde(rename = "LoadedFromHub")]
+    loaded_from_hub: bool,
 }
 
 impl UnityInstallation {
-    pub(crate) fn new(inner: DbUnityVersion) -> Self {
-        Self { inner }
+    fn new(path: Box<str>, version: Option<UnityVersion>, loaded_from_hub: bool) -> Self {
+        Self {
+            id: ObjectId::new(),
+            path,
+            version,
+            loaded_from_hub,
+        }
     }
 
     pub fn path(&self) -> &str {
-        self.inner.path()
+        &self.path
     }
 
     pub fn version(&self) -> Option<UnityVersion> {
-        self.inner.version().and_then(UnityVersion::parse)
+        self.version
     }
 
     pub fn loaded_from_hub(&self) -> bool {
-        self.inner.loaded_from_hub()
+        self.loaded_from_hub
     }
 }
