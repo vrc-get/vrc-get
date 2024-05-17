@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- `vcc://` support `#978`
+  - This is enabled by default for macOS and you have to enable manually on Settings page for windows and linux.
 
 ### Changed
 - Improved project Template selection `#967`
@@ -18,6 +20,8 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Impossible to install for machine (for Windows) `#976`
+- Japanese variant of CJK Ideograph is used for Simplified Chinese `#980`
+  - Since this version, ALCOM will always use `system-ui` font for all languages.
 
 ### Security
 

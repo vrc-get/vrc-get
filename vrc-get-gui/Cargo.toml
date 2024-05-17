@@ -40,6 +40,15 @@ async-stream = "0.3.5"
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 sys-locale = "0.3.1"
 log-panics = { version = "2", features = ["with-backtrace"] }
+url = "2.5.0"
+dirs-next = "2.0.0"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.52.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2.7"
+cocoa = "0.24"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

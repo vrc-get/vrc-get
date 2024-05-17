@@ -5009,12 +5009,15 @@ dependencies = [
  "async-stream",
  "async_zip",
  "chrono",
+ "cocoa",
+ "dirs-next",
  "flate2",
  "fs_extra",
  "futures",
  "indexmap 2.2.6",
  "log",
  "log-panics",
+ "objc",
  "open 5.1.2",
  "reqwest 0.12.4",
  "ringbuffer",
@@ -5029,8 +5032,10 @@ dependencies = [
  "tauri-specta",
  "tokio",
  "trash",
+ "url",
  "uuid",
  "vrc-get-vpm",
+ "winreg 0.52.0",
 ]
 
 [[package]]
