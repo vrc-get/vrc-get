@@ -18,9 +18,10 @@ pub struct DatabaseConnection {
 impl DatabaseConnection {
     pub(crate) fn connect(string: &ConnectionString) -> Result<DatabaseConnection> {
         unsafe {
-            vrc_get_litedb_database_connection_new(&ConnectionStringFFI::from(string))
-                .into_result()
-                .map(|ptr| DatabaseConnection { ptr })
+            Ok(DatabaseConnection {
+                ptr: vrc_get_litedb_database_connection_new(&ConnectionStringFFI::from(string))
+                    .into_result()?,
+            })
         }
     }
 
@@ -60,12 +61,12 @@ impl DatabaseConnection {
         T: Serialize,
     {
         unsafe {
-            vrc_get_litedb_database_connection_update(
+            Ok(vrc_get_litedb_database_connection_update(
                 self.ptr.get(),
                 FFISlice::from_byte_slice(collection_name.as_ref()),
                 FFISlice::from_byte_slice(&bson::to_vec(data)?),
             )
-            .into_result()
+            .into_result()?)
         }
     }
 
@@ -74,23 +75,23 @@ impl DatabaseConnection {
         T: Serialize,
     {
         unsafe {
-            vrc_get_litedb_database_connection_insert(
+            Ok(vrc_get_litedb_database_connection_insert(
                 self.ptr.get(),
                 FFISlice::from_byte_slice(collection_name.as_ref()),
                 FFISlice::from_byte_slice(&bson::to_vec(data)?),
             )
-            .into_result()
+            .into_result()?)
         }
     }
 
     pub fn delete(&self, collection_name: &str, id: ObjectId) -> Result<()> {
         unsafe {
-            vrc_get_litedb_database_connection_delete(
+            Ok(vrc_get_litedb_database_connection_delete(
                 self.ptr.get(),
                 FFISlice::from_byte_slice(collection_name.as_ref()),
                 id.to_ffi(),
             )
-            .into_result()
+            .into_result()?)
         }
     }
 }
