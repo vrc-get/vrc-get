@@ -24,7 +24,7 @@ impl DatabaseConnection {
         }
     }
 
-    pub fn get_values<T>(&self, collection_name: &str) -> Result<Box<[T]>>
+    pub fn get_values<T>(&self, collection_name: &str) -> Result<Vec<T>>
     where
         T: DeserializeOwned,
     {
@@ -51,7 +51,7 @@ impl DatabaseConnection {
 
             vecs.iter()
                 .map(|b| Ok(bson::from_slice(b)?))
-                .collect::<Result<Box<[T]>>>()
+                .collect::<Result<Vec<T>>>()
         }
     }
 
