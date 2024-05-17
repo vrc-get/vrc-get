@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 - `vcc://` support `#978`
   - This is enabled by default for macOS and you have to enable manually on Settings page for windows and linux.
+- per-package `headers` field support `#718`
 
 ### Changed
 - Improved project Template selection `#967`

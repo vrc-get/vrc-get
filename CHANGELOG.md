@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Per-package `headers` field support `#718`
+  - Since this is adding support for missing features, I treat this as a bugfix and not bump minor version.
 
 ### Changed
 
