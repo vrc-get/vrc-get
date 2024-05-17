@@ -171,12 +171,12 @@ mod tests {
 
 #[cfg(test)]
 mod project_op_tests {
-    use crate::project::Project;
-    use crate::project::ProjectType;
-    use bson::DateTime;
+    use bson::{DateTime, Document};
 
     use super::tests::*;
     use super::*;
+
+    static COLLECTION: &str = "projects";
 
     macro_rules! temp_path {
         ($name: literal) => {
@@ -194,15 +194,14 @@ mod project_op_tests {
         let new_last_modified = DateTime::from_millis(1707061524000);
 
         let mut project = connection
-            .get_projects()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
             .into_iter()
-            .find(|x| x.id() == find)
+            .find(|x| x.get_object_id("_id").unwrap() == find)
             .unwrap();
-        project.set_last_modified(new_last_modified);
+        project.insert("LastModified", new_last_modified);
 
-        connection.update_project(&project).unwrap();
+        connection.update(COLLECTION, &project).unwrap();
 
         drop(connection);
 
@@ -211,15 +210,17 @@ mod project_op_tests {
             .connect()
             .unwrap();
         let project = connection
-            .get_projects()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
             .into_iter()
-            .find(|x| x.id() == find)
+            .find(|x| x.get_object_id("_id").unwrap() == find)
             .unwrap();
         drop(connection);
 
-        assert_eq!(project.last_modified(), new_last_modified);
+        assert_eq!(
+            project.get_datetime("LastModified").unwrap(),
+            &new_last_modified
+        );
 
         // teardown
         std::fs::remove_file(copied).ok();
@@ -231,13 +232,20 @@ mod project_op_tests {
         std::fs::remove_file(copied).ok();
         std::fs::copy(TEST_DB_PATH, copied).unwrap();
         let connection = ConnectionString::new(copied).connect().unwrap();
-        let new_project = Project::new(
-            "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\NewProject".into(),
-            Some("2022.3.6f1".into()),
-            ProjectType::WORLDS,
-        );
+        let path = "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\NewProject";
+        let now = DateTime::now();
+        let new_id = ObjectId::new();
+        let new_project = bson::doc! {
+            "_id": new_id,
+            "Path": path,
+            "Type": 7, // WORLDS
+            "UnityVersion": "2022.3.6f1",
+            "Favorite": false,
+            "CreatedAt": now,
+            "LastModified": now,
+        };
 
-        connection.insert_project(&new_project).unwrap();
+        connection.insert(COLLECTION, &new_project).unwrap();
 
         drop(connection);
 
@@ -247,18 +255,16 @@ mod project_op_tests {
             .unwrap();
 
         let found_project = connection
-            .get_projects()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
             .into_iter()
-            .find(|x| x.id() == new_project.id())
+            .find(|x| x.get_object_id("_id").unwrap() == new_id)
             .unwrap();
         drop(connection);
 
-        assert_eq!(found_project.path(), new_project.path());
-        assert_eq!(found_project.path(), new_project.path());
-        assert_eq!(found_project.created_at(), new_project.created_at());
-        assert_eq!(found_project.last_modified(), new_project.last_modified());
+        assert_eq!(found_project.get_str("Path").unwrap(), path);
+        assert_eq!(found_project.get_datetime("CreatedAt").unwrap(), &now);
+        assert_eq!(found_project.get_datetime("LastModified").unwrap(), &now);
 
         // teardown
         std::fs::remove_file(copied).ok();
@@ -273,13 +279,12 @@ mod project_op_tests {
         let project_id = ObjectId::from_bytes(*b"\x65\xbe\x38\xdf\xcb\xac\x18\x12\x6a\x69\x4a\xb2");
 
         assert!(connection
-            .get_projects()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
-            .into_iter()
-            .any(|x| x.id() == project_id));
+            .iter()
+            .any(|x| x.get_object_id("_id").unwrap() == project_id));
 
-        connection.delete_project(project_id).unwrap();
+        connection.delete(COLLECTION, project_id).unwrap();
 
         drop(connection);
 
@@ -289,11 +294,10 @@ mod project_op_tests {
             .unwrap();
 
         assert!(!connection
-            .get_projects()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
-            .into_iter()
-            .any(|x| x.id() == project_id));
+            .iter()
+            .any(|x| x.get_object_id("_id").unwrap() == project_id));
 
         drop(connection);
 
@@ -308,7 +312,7 @@ mod project_op_tests {
             .connect()
             .unwrap();
 
-        let projects = connection.get_projects().unwrap();
+        let projects = connection.get_values(COLLECTION).unwrap();
 
         assert_eq!(projects.len(), 12);
 
@@ -317,7 +321,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbe\x38\xdf\xcb\xac\x18\x12\x6a\x69\x4a\xb2"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2022 worlds",
-            ProjectType::WORLDS,
+            7, // WORLDS
             Some("2022.3.6f1"),
             DateTime::from_millis(1706965215802),
             DateTime::from_millis(1706965215802),
@@ -328,7 +332,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbe\x38\xf3\xcb\xac\x18\x12\x6a\x69\x4a\xb3"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2022 avatars",
-            ProjectType::AVATARS,
+            8, // AVATARS
             Some("2022.3.6f1"),
             DateTime::from_millis(1706965235809),
             DateTime::from_millis(1706965235809),
@@ -339,7 +343,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbe\x39\x1e\xcb\xac\x18\x12\x6a\x69\x4a\xb4"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 avatars",
-            ProjectType::AVATARS,
+            8, // AVATARS
             Some("2019.4.31f1"),
             DateTime::from_millis(1706965278760),
             DateTime::from_millis(1706965278760),
@@ -350,7 +354,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbe\x39\x4b\xcb\xac\x18\x12\x6a\x69\x4a\xb5"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 worlds",
-            ProjectType::WORLDS,
+            7, // WORLDS
             Some("2019.4.31f1"),
             DateTime::from_millis(1706965323189),
             DateTime::from_millis(1706965323189),
@@ -361,7 +365,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbe\x3d\x65\xcb\xac\x18\x12\x6a\x69\x4a\xb7"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 unknown",
-            ProjectType::UNKNOWN,
+            0, // UNKNOWN
             Some("2019.4.31f1"),
             DateTime::from_millis(1706966373502),
             DateTime::from_millis(1706966373502),
@@ -372,7 +376,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbe\x3f\x75\xcb\xac\x18\x12\x6a\x69\x4a\xb8"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 legacy avatars",
-            ProjectType::LEGACY_AVATARS,
+            3, // LEGACY_AVATARS
             Some("2019.4.31f1"),
             DateTime::from_millis(1706966901992),
             DateTime::from_millis(1706966901992),
@@ -383,7 +387,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbe\x3f\xff\x98\x54\xf5\x0f\xad\xcd\x90\xbc"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 legacy worlds",
-            ProjectType::LEGACY_WORLDS,
+            2, // LEGACY_WORLDS
             Some("2019.4.31f1"),
             DateTime::from_millis(1706967039336),
             DateTime::from_millis(1706967039336),
@@ -394,7 +398,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbe\x40\x44\x98\x54\xf5\x0f\xad\xcd\x90\xbd"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 vpm starter",
-            ProjectType::VPM_STARTER,
+            9, // VPM_STARTER
             Some("2019.4.31f1"),
             DateTime::from_millis(1706967108890),
             DateTime::from_millis(1706967108890),
@@ -405,7 +409,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbf\x19\xd6\x76\x97\xf9\x11\x92\x96\x36\xa8"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 sdk2",
-            ProjectType::LEGACY_SDK2,
+            1, // LEGACY_SDK2
             Some("2019.4.31f1"),
             DateTime::from_millis(1707022806319),
             DateTime::from_millis(1707022806319),
@@ -416,7 +420,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbf\x2e\x42\xcd\x9c\x24\x05\x3d\xee\xe1\xbe"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 upm avatars",
-            ProjectType::UPM_AVATARS,
+            5, // UPM_AVATARS
             Some("2019.4.31f1"),
             DateTime::from_millis(1707028034808),
             DateTime::from_millis(1707028034808),
@@ -427,7 +431,7 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbf\x2e\x4f\xcd\x9c\x24\x05\x3d\xee\xe1\xbf"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 upm worlds",
-            ProjectType::UPM_WORLDS,
+            4, // UPM_WORLDS
             Some("2019.4.31f1"),
             DateTime::from_millis(1707028047363),
             DateTime::from_millis(1707028047363),
@@ -438,39 +442,46 @@ mod project_op_tests {
             &projects,
             ObjectId::from_bytes(*b"\x65\xbf\x2e\x56\xcd\x9c\x24\x05\x3d\xee\xe1\xc0"),
             "C:\\Users\\anata\\AppData\\Local\\VRChatProjects\\VCC Config Test 2019 upm starter",
-            ProjectType::UPM_STARTER,
+            6, // UPM_STARTER
             Some("2019.4.31f1"),
             DateTime::from_millis(1707028054259),
             DateTime::from_millis(1707028054259),
         );
 
         fn check_exists(
-            projects: &[Project],
+            projects: &[Document],
             id: ObjectId,
             path: &str,
-            type_: ProjectType,
+            type_: i32,
             unity_version: Option<&str>,
             created_at: DateTime,
             last_modified: DateTime,
         ) {
-            let project = projects.iter().find(|x| x.id() == id).expect("not found");
+            let project = projects
+                .iter()
+                .find(|x| x.get_object_id("_id").unwrap() == id)
+                .expect("not found");
 
-            assert_eq!(project.path(), path);
-            assert_eq!(project.unity_version(), unity_version);
-            assert!(!project.favorite());
-            assert_eq!(project.created_at(), created_at);
-            assert_eq!(project.last_modified(), last_modified);
-            assert_eq!(project.project_type(), type_);
+            assert_eq!(project.get_str("Path").unwrap(), path);
+            assert_eq!(project.get_i32("Type").unwrap(), type_);
+            assert_eq!(project.get_str("UnityVersion").ok(), unity_version);
+            assert!(!project.get_bool("Favorite").unwrap());
+            assert_eq!(project.get_datetime("CreatedAt").unwrap(), &created_at);
+            assert_eq!(
+                project.get_datetime("LastModified").unwrap(),
+                &last_modified
+            );
         }
     }
 }
 
 #[cfg(test)]
 mod unity_versions_op_tests {
-    use crate::unity_version::UnityVersion;
-
     use super::tests::*;
     use super::*;
+    use bson::{doc, Document};
+
+    static COLLECTION: &str = "unityVersions";
 
     macro_rules! temp_path {
         ($name: literal) => {
@@ -487,17 +498,16 @@ mod unity_versions_op_tests {
         let find = ObjectId::from_bytes(*b"\x65\xbe\x38\xa0\xcb\xac\x18\x12\x6a\x69\x4a\xb1");
 
         let mut version = connection
-            .get_unity_versions()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
             .into_iter()
-            .find(|x| x.id() == find)
+            .find(|x| x.get_object_id("_id").unwrap() == find)
             .unwrap();
 
-        assert!(version.loaded_from_hub());
-        version.set_loaded_from_hub(false);
+        assert!(version.get_bool("LoadedFromHub").unwrap());
+        version.insert("LoadedFromHub", false);
 
-        connection.update_unity_version(&version).unwrap();
+        connection.update(COLLECTION, &version).unwrap();
 
         drop(connection);
 
@@ -506,15 +516,14 @@ mod unity_versions_op_tests {
             .connect()
             .unwrap();
         let version = connection
-            .get_unity_versions()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
             .into_iter()
-            .find(|x| x.id() == find)
+            .find(|x| x.get_object_id("_id").unwrap() == find)
             .unwrap();
         drop(connection);
 
-        assert!(!version.loaded_from_hub());
+        assert!(!version.get_bool("LoadedFromHub").unwrap());
 
         // teardown
         std::fs::remove_file(copied).ok();
@@ -526,13 +535,18 @@ mod unity_versions_op_tests {
         std::fs::remove_file(copied).ok();
         std::fs::copy(TEST_DB_PATH, copied).unwrap();
         let connection = ConnectionString::new(copied).connect().unwrap();
-        let new_version = UnityVersion::new(
-            "C:\\Program Files\\Unity\\Hub\\Editor\\2022.3.19f1\\Editor\\Unity.exe".into(),
-            "2022.3.6f1".into(),
-            false,
-        );
+        let new_id = ObjectId::new();
+        let new_path = "C:\\Program Files\\Unity\\Hub\\Editor\\2022.3.19f1\\Editor\\Unity.exe";
+        let new_version = "2022.3.6f1";
+        let new_loaded_from_hub = false;
+        let new_document = doc! {
+            "_id": new_id,
+            "Path": new_path,
+            "Version": new_version,
+            "LoadedFromHub": new_loaded_from_hub,
+        };
 
-        connection.insert_unity_version(&new_version).unwrap();
+        connection.insert(COLLECTION, &new_document).unwrap();
 
         drop(connection);
 
@@ -542,19 +556,18 @@ mod unity_versions_op_tests {
             .unwrap();
 
         let found_project = connection
-            .get_unity_versions()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
             .into_iter()
-            .find(|x| x.id() == new_version.id())
+            .find(|x| x.get_object_id("_id").unwrap() == new_id)
             .unwrap();
         drop(connection);
 
-        assert_eq!(found_project.path(), new_version.path());
-        assert_eq!(found_project.version(), new_version.version());
+        assert_eq!(found_project.get_str("Path").unwrap(), new_path);
+        assert_eq!(found_project.get_str("Version").unwrap(), new_version);
         assert_eq!(
-            found_project.loaded_from_hub(),
-            new_version.loaded_from_hub()
+            found_project.get_bool("LoadedFromHub").unwrap(),
+            new_loaded_from_hub
         );
 
         // teardown
@@ -570,13 +583,12 @@ mod unity_versions_op_tests {
         let project_id = ObjectId::from_bytes(*b"\x65\xbe\x38\xa0\xcb\xac\x18\x12\x6a\x69\x4a\xb1");
 
         assert!(connection
-            .get_unity_versions()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
             .into_iter()
-            .any(|x| x.id() == project_id));
+            .any(|x| x.get_object_id("_id").unwrap() == project_id));
 
-        connection.delete_unity_version(project_id).unwrap();
+        connection.delete(COLLECTION, project_id).unwrap();
 
         drop(connection);
 
@@ -586,11 +598,10 @@ mod unity_versions_op_tests {
             .unwrap();
 
         assert!(!connection
-            .get_unity_versions()
+            .get_values::<Document>(COLLECTION)
             .unwrap()
-            .into_vec()
             .into_iter()
-            .any(|x| x.id() == project_id));
+            .any(|x| x.get_object_id("_id").unwrap() == project_id));
 
         drop(connection);
 
@@ -605,7 +616,7 @@ mod unity_versions_op_tests {
             .connect()
             .unwrap();
 
-        let versions = connection.get_unity_versions().unwrap();
+        let versions = connection.get_values(COLLECTION).unwrap();
 
         assert_eq!(versions.len(), 2);
 
@@ -625,12 +636,15 @@ mod unity_versions_op_tests {
             "2019.4.31f1",
         );
 
-        fn check_exists(versions: &[UnityVersion], id: ObjectId, path: &str, version: &str) {
-            let project = versions.iter().find(|x| x.id() == id).expect("not found");
+        fn check_exists(versions: &[Document], id: ObjectId, path: &str, version: &str) {
+            let project = versions
+                .iter()
+                .find(|x| x.get_object_id("_id").unwrap() == id)
+                .expect("not found");
 
-            assert_eq!(project.path(), path);
-            assert_eq!(project.version(), Some(version));
-            assert!(project.loaded_from_hub());
+            assert_eq!(project.get_str("Path").unwrap(), path);
+            assert_eq!(project.get_str("Version").unwrap(), version);
+            assert!(project.get_bool("LoadedFromHub").unwrap());
         }
     }
 }
