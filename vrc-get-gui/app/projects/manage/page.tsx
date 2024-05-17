@@ -528,28 +528,6 @@ function PageBody() {
 
 						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
-						{packageRows.some(row => row.latest.status === "upgradable") &&
-							<Button className={"flex-shrink-0"}
-											onClick={onUpgradeAllRequest}
-											disabled={isLoading}
-											color={"green"}>
-								{tc("projects:manage:button:upgrade all")}
-							</Button>}
-
-						<Menu>
-							<MenuHandler>
-								<IconButton variant={"text"} className={'flex-shrink-0'}>
-									<EllipsisHorizontalIcon className={"size-5"}/>
-								</IconButton>
-							</MenuHandler>
-							<MenuList>
-								<MenuItem className={"p-3"}
-													onClick={onResolveRequest}
-													disabled={isLoading}>
-									{tc("projects:manage:button:reinstall all")}</MenuItem>
-							</MenuList>
-						</Menu>
-
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>
 								<Button className={"flex-shrink-0 p-3"}>{tc("projects:manage:button:select repositories")}</Button>
@@ -583,6 +561,28 @@ function PageBody() {
 										/>
 									)) : null
 								}
+							</MenuList>
+						</Menu>
+
+						{packageRows.some(row => row.latest.status === "upgradable") &&
+							<Button className={"flex-shrink-0"}
+											onClick={onUpgradeAllRequest}
+											disabled={isLoading}
+											color={"green"}>
+								{tc("projects:manage:button:upgrade all")}
+							</Button>}
+
+						<Menu>
+							<MenuHandler>
+								<IconButton variant={"text"} className={'flex-shrink-0'}>
+									<EllipsisHorizontalIcon className={"size-5"}/>
+								</IconButton>
+							</MenuHandler>
+							<MenuList>
+								<MenuItem className={"p-3"}
+													onClick={onResolveRequest}
+													disabled={isLoading}>
+									{tc("projects:manage:button:reinstall all")}</MenuItem>
 							</MenuList>
 						</Menu>
 					</div>
