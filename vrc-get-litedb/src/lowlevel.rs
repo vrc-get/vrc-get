@@ -1,5 +1,6 @@
 //! This module contains low-level functions for interacting with the C# code
 
+use bson::oid::ObjectId;
 use std::alloc::Layout;
 use std::num::NonZeroIsize;
 use std::ptr::null_mut;
@@ -28,49 +29,25 @@ impl GcHandle {
     }
 }
 
-pub(crate) trait FromFFI {
-    type FFIType;
-
-    unsafe fn from_ffi(ffi: Self::FFIType) -> Self;
-}
-
-impl FromFFI for Box<str> {
-    type FFIType = FFISlice;
-
-    unsafe fn from_ffi(ffi: FFISlice) -> Self {
-        std::str::from_boxed_utf8_unchecked(ffi.into_boxed_byte_slice())
-    }
-}
-
-impl FromFFI for Option<Box<str>> {
-    type FFIType = FFISlice;
-
-    unsafe fn from_ffi(ffi: FFISlice) -> Self {
-        FFISlice::into_boxed_byte_slice_option(ffi).map(|x| std::str::from_boxed_utf8_unchecked(x))
-    }
-}
-
 pub(crate) trait ToFFI {
     type FFIType;
 
     unsafe fn to_ffi(&self) -> Self::FFIType;
 }
 
-impl ToFFI for str {
-    type FFIType = FFISlice;
-
-    unsafe fn to_ffi(&self) -> Self::FFIType {
-        FFISlice::from_byte_slice(self.as_ref())
-    }
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ObjectIdFFI {
+    bytes: [u8; 12],
 }
 
-impl ToFFI for Option<&str> {
-    type FFIType = FFISlice;
+impl ToFFI for ObjectId {
+    type FFIType = ObjectIdFFI;
 
     unsafe fn to_ffi(&self) -> Self::FFIType {
-        self.map(str::as_bytes)
-            .map(FFISlice::from_byte_slice)
-            .unwrap_or_else(FFISlice::null)
+        ObjectIdFFI {
+            bytes: self.bytes(),
+        }
     }
 }
 
@@ -121,7 +98,7 @@ impl<T> FFISlice<T> {
     /// the length is correct, the pointer is allocated with `Box`,
     /// and there are no other box instance for the same pointer.
     #[must_use = "call `drop(Box::as_boxed_byte_slice(slice))` if you intend to drop the `Box`"]
-    pub unsafe fn into_boxed_byte_slice(self) -> Box<[T]> {
+    pub unsafe fn into_boxed_slice(self) -> Box<[T]> {
         let slice_ptr = std::ptr::slice_from_raw_parts_mut(self.ptr, self.len);
         Box::from_raw(slice_ptr)
     }
@@ -130,11 +107,11 @@ impl<T> FFISlice<T> {
     /// the length is correct, the pointer is allocated with `Box`,
     /// and there are no other box instance for the same pointer.
     #[must_use = "call `drop(Box::as_boxed_byte_slice(slice))` if you intend to drop the `Box`"]
-    pub unsafe fn into_boxed_byte_slice_option(self) -> Option<Box<[T]>> {
+    pub unsafe fn into_boxed_slice_option(self) -> Option<Box<[T]>> {
         if self.ptr.is_null() {
             return None;
         }
-        Some(self.into_boxed_byte_slice())
+        Some(self.into_boxed_slice())
     }
 }
 
@@ -172,7 +149,7 @@ mod tests {
         unsafe {
             let slice = test_returns_hello_csharp();
             assert_eq!(slice.as_byte_slice(), b"Hello, C#!");
-            drop(FFISlice::into_boxed_byte_slice(slice));
+            drop(FFISlice::into_boxed_slice(slice));
         }
     }
 

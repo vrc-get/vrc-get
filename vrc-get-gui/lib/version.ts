@@ -74,3 +74,85 @@ export function compareUnityVersion(a: [number, number], b: [number, number]) {
 
 	return 0;
 }
+
+export function compareUnityVersionString(a: string, b: string): 0 | 1 | -1 {
+	if (a === b) return 0;
+
+	const aParsed = parseUnityVersion(a);
+	const bParsed = parseUnityVersion(b);
+
+	if (!aParsed && !bParsed) {
+		const cmp = a.localeCompare(b);
+		return cmp < 0 ? -1 : cmp > 0 ? 1 : 0;
+	} else if (!aParsed) {
+		return 1;
+	} else if (!bParsed) {
+		return -1;
+	}
+
+	if (aParsed.major < bParsed.major) return -1;
+	if (aParsed.major > bParsed.major) return 1;
+
+	if (aParsed.minor < bParsed.minor) return -1;
+	if (aParsed.minor > bParsed.minor) return 1;
+
+	if (aParsed.patch < bParsed.patch) return -1;
+	if (aParsed.patch > bParsed.patch) return 1;
+
+	const channelCmp = compareUnityChannel(aParsed.channel, bParsed.channel);
+	if (channelCmp !== 0) return channelCmp;
+
+	if (aParsed.increment < bParsed.increment) return -1;
+	if (aParsed.increment > bParsed.increment) return 1;
+
+	return 0;
+}
+
+interface UnityVersion {
+	major: number;
+	minor: number;
+	patch: number;
+	channel: 'a' | 'b' | 'f' | 'c' | 'p' | 'x';
+	increment: number;
+}
+
+export function parseUnityVersion(version: string): UnityVersion | null {
+	let match = version.match(/^(\d+)\.(\d+)\.(\d+)([abfcpx])(\d+)$/);
+	if (!match) {
+		match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
+		if (!match) {
+			return null;
+		}
+	}
+	return {
+		major: parseInt(match[1], 10),
+		minor: parseInt(match[2], 10),
+		patch: parseInt(match[3], 10),
+		channel: (match[4] || 'f') as UnityVersion['channel'],
+		increment: parseInt(match[5] || '1', 10)
+	};
+}
+
+function compareUnityChannel(a: UnityVersion['channel'], b: UnityVersion['channel']) {
+	if (a == 'c') a = 'f';
+	if (b == 'c') b = 'f';
+
+	if (a === b) return 0;
+
+	if (a === 'a') return -1;
+	if (b === 'a') return 1;
+
+	if (a === 'b') return -1;
+	if (b === 'b') return 1;
+
+	if (a === 'f') return -1;
+	if (b === 'f') return 1;
+
+	if (a === 'p') return 1;
+	if (b === 'p') return -1;
+
+	if (a === 'x') return -1;
+	if (b === 'x') return 1;
+
+	return 0;
+}

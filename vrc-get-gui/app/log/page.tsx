@@ -2,11 +2,11 @@
 
 import {Card, Typography} from "@material-tailwind/react";
 import {HNavBar, VStack} from "@/components/layout";
-import React, {useEffect} from "react";
+import React, {useCallback, useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
 import {notoSansMono} from "@/app/fonts";
-import {listen} from '@tauri-apps/api/event';
 import {tc} from "@/lib/i18n";
+import {useTauriListen} from "@/lib/use-tauri-listen";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
@@ -15,28 +15,12 @@ export default function Page() {
 		utilGetLogEntries().then(list => setLogEntries(list.toReversed()));
 	}, []);
 
-	useEffect(() => {
-		let unlisten: (() => void) | undefined = undefined;
-		let unlistened = false;
-
-		listen("log", (event) => {
-			setLogEntries((entries) => {
-				const entry = event.payload as LogEntry;
-				return [entry, ...entries];
-			});
-		}).then((unlistenFn) => {
-			if (unlistened) {
-				unlistenFn();
-			} else {
-				unlisten = unlistenFn;
-			}
+	useTauriListen<LogEntry>("log", useCallback((event) => {
+		setLogEntries((entries) => {
+			const entry = event.payload as LogEntry;
+			return [entry, ...entries];
 		});
-
-		return () => {
-			unlisten?.();
-			unlistened = true;
-		};
-	}, []);
+	}, []));
 
 	return (
 		<VStack className={"m-4"}>
@@ -46,7 +30,7 @@ export default function Page() {
 				</Typography>
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex flex-grow">
-				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre ${notoSansMono.className}`}>
+				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre font-mono shadow-none`}>
 					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
 				</Card>
 			</main>

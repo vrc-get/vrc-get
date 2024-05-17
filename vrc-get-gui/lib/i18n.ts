@@ -1,16 +1,24 @@
 import i18next, {t as i18nextt} from "i18next";
 import {initReactI18next} from "react-i18next";
 import enJson from "@/locales/en.json5";
+import deJson from "@/locales/de.json5";
 import jaJson from "@/locales/ja.json5";
+import zh_hansJson from "@/locales/zh_hans.json5";
+import frJson from "@/locales/fr.json5";
 import {tc as tcOriginal} from "@/components/VGTrans";
+
+const languageResources = {
+	en: enJson,
+	de: deJson,
+	ja: jaJson,
+	fr: frJson,
+	zh_hans: zh_hansJson,
+}
 
 i18next
 	.use(initReactI18next)
 	.init({
-		resources: {
-			en: enJson,
-			ja: jaJson,
-		},
+		resources: languageResources,
 		lng: "en",
 		fallbackLng: "en",
 		nsSeparator: '::',
@@ -31,10 +39,7 @@ i18next
 	})
 
 export default i18next;
-export const languages = [
-	"en",
-	"ja",
-];
+export const languages = Object.keys(languageResources);
 
 export const tc = tcOriginal;
 

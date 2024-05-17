@@ -14,11 +14,11 @@ export function useFilePickerFunction<A extends unknown[], R>(
 		} finally {
 			setIsPicking(false);
 		}
-	}, [setIsPicking]);
+	}, [setIsPicking, f]);
 
 	let dialog = <Dialog open={isPicking} handler={nop}>
-		<DialogHeader>{tc("selecting file or folder")}</DialogHeader>
-		<DialogBody>{tc("please select a file or folder")}</DialogBody>
+		<DialogHeader>{tc("general:dialog:select file or directory header")}</DialogHeader>
+		<DialogBody>{tc("general:dialog:select file or directory")}</DialogBody>
 	</Dialog>;
 
 	return [result, dialog];

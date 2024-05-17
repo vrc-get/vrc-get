@@ -10,6 +10,14 @@ use vrc_get_litedb::{DateTime, Project};
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub async fn migrate_from_settings_json(&mut self) -> io::Result<()> {
+        // remove relative paths
+        let removed = self
+            .settings
+            .retain_user_projects(|x| Path::new(x).is_absolute());
+        if !removed.is_empty() {
+            error!("Removed relative paths: {:?}", removed);
+        }
+
         let db = self.get_db()?; // ensure the database connection is initialized
 
         let projects = self
@@ -158,6 +166,10 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
+    pub fn update_project(&mut self, project: &UserProject) -> io::Result<()> {
+        Ok(self.get_db()?.update_project(&project.project)?)
+    }
+
     pub fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
         let db = self.get_db()?;
 
@@ -259,5 +271,9 @@ impl UserProject {
 
     pub fn favorite(&self) -> bool {
         self.project.favorite()
+    }
+
+    pub fn set_favorite(&mut self, favorite: bool) {
+        self.project.set_favorite(favorite);
     }
 }

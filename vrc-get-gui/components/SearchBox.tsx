@@ -1,7 +1,7 @@
-import {Input} from "@material-tailwind/react";
 import {MagnifyingGlassIcon} from "@heroicons/react/24/solid";
 import React from "react";
 import {useTranslation} from "react-i18next";
+import {InputNoLabel} from "@/components/InputNoLabel";
 
 export function SearchBox({className, value, onChange}: {
 	className?: string,
@@ -13,16 +13,10 @@ export function SearchBox({className, value, onChange}: {
 	return (
 		<div className={`relative flex gap-2 ${className}`}>
 			{/* The search box */}
-			<Input
+			<InputNoLabel
 				type="search"
-				placeholder={t("search...")}
-				containerProps={{
-					className: "min-w-[100px]",
-				}}
-				className=" !border-t-blue-gray-300 pl-9 placeholder:text-blue-gray-300 focus:!border-blue-gray-300"
-				labelProps={{
-					className: "before:content-none after:content-none",
-				}}
+				placeholder={t("search:placeholder")}
+				className={"pl-9 placeholder:opacity-100"}
 				value={value}
 				onChange={onChange}
 			/>

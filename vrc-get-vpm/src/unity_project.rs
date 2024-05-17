@@ -10,11 +10,11 @@ mod resolve;
 mod upm_manifest;
 mod vpm_manifest;
 
-use crate::io;
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{try_load_json, PathBufExt};
 use crate::version::{UnityVersion, Version, VersionRange};
+use crate::{io, PackageManifest};
 use futures::future::try_join;
 use futures::prelude::*;
 use indexmap::IndexMap;
@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 // there are module for each complex operations.
 
 use crate::io::{DirEntry, FileSystemProjectIo, ProjectIo};
-use crate::PackageJson;
+use crate::package_manifest::LooseManifest;
 pub use add_package::AddPackageErr;
 pub use add_package::AddPackageOperation;
 pub use migrate_unity_2022::MigrateUnity2022Error;
@@ -44,8 +44,9 @@ pub struct UnityProject<IO: ProjectIo> {
     /// unity version parsed
     unity_version: Option<UnityVersion>,
     /// packages installed in the directory but not locked in vpm-manifest.json
-    unlocked_packages: Vec<(Box<str>, Option<PackageJson>)>,
-    installed_packages: HashMap<Box<str>, PackageJson>,
+    unlocked_packages: Vec<(Box<str>, Option<PackageManifest>)>,
+    /// packages installed in the directory and licked in vpm-manifest.json
+    installed_packages: HashMap<Box<str>, PackageManifest>,
 }
 
 // basic lifecycle
@@ -104,16 +105,16 @@ impl<IO: ProjectIo> UnityProject<IO> {
     async fn try_read_unlocked_package(
         io: &IO,
         dir_entry: IO::DirEntry,
-    ) -> (Box<str>, Option<PackageJson>) {
+    ) -> (Box<str>, Option<PackageManifest>) {
         let name = dir_entry.file_name().to_string_lossy().into();
         let package_json_path = PathBuf::from("Packages")
             .joined(dir_entry.file_name())
             .joined("package.json");
-        let parsed = try_load_json::<PackageJson>(io, &package_json_path)
+        let parsed = try_load_json::<LooseManifest>(io, &package_json_path)
             .await
             .ok()
             .flatten();
-        (name, parsed)
+        (name, parsed.map(|x| x.0))
     }
 
     async fn try_read_unity_version(io: &IO) -> Option<UnityVersion> {
@@ -204,21 +205,21 @@ impl<IO: ProjectIo> UnityProject<IO> {
         dependencies_locked.chain(dependencies_unlocked)
     }
 
-    pub fn unlocked_packages(&self) -> &[(Box<str>, Option<PackageJson>)] {
+    pub fn unlocked_packages(&self) -> &[(Box<str>, Option<PackageManifest>)] {
         &self.unlocked_packages
     }
 
-    pub fn installed_packages(&self) -> impl Iterator<Item = (&str, &PackageJson)> {
+    pub fn installed_packages(&self) -> impl Iterator<Item = (&str, &PackageManifest)> {
         self.installed_packages
             .iter()
             .map(|(key, value)| (key.as_ref(), value))
     }
 
-    pub fn get_installed_package(&self, name: &str) -> Option<&PackageJson> {
+    pub fn get_installed_package(&self, name: &str) -> Option<&PackageManifest> {
         self.installed_packages.get(name)
     }
 
-    pub fn all_installed_packages(&self) -> impl Iterator<Item = &PackageJson> {
+    pub fn all_installed_packages(&self) -> impl Iterator<Item = &PackageManifest> {
         self.installed_packages.values().chain(
             self.unlocked_packages
                 .iter()

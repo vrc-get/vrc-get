@@ -1,16 +1,16 @@
-# vrc-get-gui (experimental)
+# ALCOM (experimental)
 
-This folder contains the experimental GUI version of vrc-get.
+This folder contains the experimental GUI version of vrc-get, ALCOM.
 
 ## Installation
 
-The recommended way to install vrc-get-gui is download from [GitHub Releases][vrc-get-gui-releases].
+The recommended way to install ALCOM is download from [GitHub Releases][alcom-releases].
 
-[vrc-get-gui-releases]: https://github.com/anatawa12/vrc-get/releases?q=gui-v0
+[alcom-releases]: https://github.com/anatawa12/vrc-get/releases?q=gui-v0
 
 ## Requirements (building)
 
-To build vrc-get-gui, you need to have the following installed:
+To build ALCOM, you need to have the following installed:
 
 - [Node.js] v20 (to build the web part of the project)
 - [npm] (to install the dependencies of the web part)
@@ -34,6 +34,10 @@ npm run tauri build
 
 ## Development
 
-vrc-get-gui is currently based on tauri and next.js.
+ALCOM is currently based on tauri and next.js.
 
 Run `npm run tauri dev` to start the development server and gui.
+
+## Contribution
+
+For how to contribute localization to ALCOM (vrc-get-gui): [CONTRIBUTING.md](CONTRIBUTING.md) (**Please read [../CONTRIBUTING.md#configuration-requirements](../CONTRIBUTING.md#configuration-requirements) first before you read [CONTRIBUTING.md](CONTRIBUTING.md)!**)

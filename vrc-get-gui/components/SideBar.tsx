@@ -8,6 +8,7 @@ import {useQuery} from "@tanstack/react-query";
 import {utilGetVersion} from "@/lib/bindings";
 import {useTranslation} from "react-i18next";
 import {useRouter} from "next/navigation";
+import {toastNormal} from "@/lib/toast";
 
 export function SideBar({className}: { className?: string }) {
 	"use client"
@@ -25,16 +26,23 @@ export function SideBar({className}: { className?: string }) {
 
 	const currentVersion = currentVersionResult.status == "success" ? currentVersionResult.data : "Loading...";
 
+	const copyVersionName = () => {
+		if (currentVersionResult.status == "success") {
+			navigator.clipboard.writeText(currentVersionResult.data);
+			toastNormal(t("sidebar:toast:version copied"));
+		}
+	};
+
 	return (
 		<Card
-			className={`${className} w-auto max-w-[20rem] p-4 shadow-xl shadow-blue-gray-900/5 h-screen shrink-0`}>
+			className={`${className} w-auto max-w-[20rem] p-2 shadow-xl shadow-blue-gray-900/5 ml-4 my-4 shrink-0`}>
 			<List className="min-w-[10rem] flex-grow">
 				<SideBarItem href={"/projects"} text={t("projects")} icon={ListBulletIcon}/>
-				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
+				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
 				<div className={'flex-grow'}/>
-				<ListItem className={"text-sm"}>v{currentVersion}</ListItem>
+				<ListItem className={"text-sm"} onClick={copyVersionName}>v{currentVersion}</ListItem>
 			</List>
 		</Card>
 	);

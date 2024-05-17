@@ -5,12 +5,13 @@ devPath = "http://localhost:3000"
 distDir = "out"
 
 [package]
-productName = "vrc-get-gui"
+productName = "ALCOM"
 
 [tauri]
 
 [tauri.allowlist]
-shell = { open = "^(https?://\\w+).+" }
+shell = { open = "^((https|unityhub)?://\\w+).+" }
+os.all = true
 
 [tauri.security]
 # csp =
@@ -31,8 +32,8 @@ targets = [
 
     "updater", # auto update
 ]
-longDescription = "vrc-get-gui is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
-shortDescription = "an alternative VCC"
+longDescription = "ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
+shortDescription = "ALCOM - Alternative Creator Companion"
 identifier = "com.anataw12.vrc-get"
 category = "DeveloperTool"
 copyright = "(c) anatawa12 and other contributors"
@@ -57,3 +58,6 @@ providerShortName = "anatawa12"
 
 [tauri.bundle.windows]
 digestAlgorithm = "sha256"
+
+[tauri.bundle.windows.nsis]
+installMode = 'both'

@@ -13,7 +13,7 @@ use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
 pub mod environment;
 pub mod io;
-mod package_json;
+mod package_manifest;
 pub mod repository;
 mod structs;
 mod traits;
@@ -30,10 +30,8 @@ pub mod unity_hub;
 use crate::repository::local::LocalCachedRepository;
 
 pub use environment::Environment;
-pub use package_json::PackageJson;
-pub use package_json::PackageJsonLike;
-pub use package_json::PackageManifest;
-pub use package_json::PartialUnityVersion;
+pub use package_manifest::PackageManifest;
+pub use package_manifest::PartialUnityVersion;
 pub use structs::setting::UserRepoSetting;
 pub use traits::EnvironmentIoHolder;
 pub use traits::HttpClient;
@@ -42,7 +40,8 @@ pub use traits::RemotePackageDownloader;
 pub use unity_project::UnityProject;
 pub use version_selector::VersionSelector;
 
-pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 6);
+pub const VRCHAT_RECOMMENDED_2022_UNITY: UnityVersion = UnityVersion::new_f1(2022, 3, 22);
+pub const VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK: &str = "unityhub://2022.3.22f1/887be4894c44";
 
 #[derive(Copy, Clone)]
 pub struct PackageInfo<'a> {

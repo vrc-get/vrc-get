@@ -190,6 +190,31 @@ impl Settings {
         &self.controller.user_projects
     }
 
+    pub(crate) fn retain_user_projects(
+        &mut self,
+        mut f: impl FnMut(&str) -> bool,
+    ) -> Vec<Box<str>> {
+        let mut removed = Vec::new();
+
+        // awaiting extract_if but not stable yet so use cloned method
+        self.controller.may_changing(|json| {
+            let cloned = json.user_projects.to_vec();
+            json.user_projects.clear();
+
+            for element in cloned {
+                if f(element.as_ref()) {
+                    json.user_projects.push(element);
+                } else {
+                    removed.push(element);
+                }
+            }
+
+            !removed.is_empty()
+        });
+
+        removed
+    }
+
     pub(crate) fn remove_user_project(&mut self, path: &str) {
         self.controller
             .as_mut()

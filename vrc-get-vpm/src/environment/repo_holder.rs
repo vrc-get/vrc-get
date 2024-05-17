@@ -77,11 +77,11 @@ impl RepoHolder {
         remote_url: &Url,
     ) -> io::Result<LocalCachedRepository> {
         if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(io, path).await? {
-            if let (Some(client), Some(remote_url)) = (client, loaded.url().map(|x| x.to_owned())) {
+            if let Some(client) = client {
                 // if it's possible to download remote repo, try to update with that
                 match RemoteRepository::download_with_etag(
                     client,
-                    &remote_url,
+                    remote_url,
                     loaded.headers(),
                     loaded.vrc_get.as_ref().map(|x| x.etag.as_ref()),
                 )

@@ -1,3 +1,8 @@
+use std::collections::{HashMap, HashSet};
+use std::fmt;
+
+use itertools::Itertools;
+
 use crate::io::ProjectIo;
 use crate::unity_project::{
     package_resolution, pending_project_changes, AddPackageErr, LockedDependencyInfo,
@@ -5,9 +10,6 @@ use crate::unity_project::{
 };
 use crate::version::DependencyRange;
 use crate::{PackageCollection, UnityProject, VersionSelector};
-use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
-use std::fmt;
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -44,6 +46,69 @@ impl From<AddPackageErr> for ResolvePackageErr {
 }
 
 impl<IO: ProjectIo> UnityProject<IO> {
+    /// Returns whether the project should be resolved.
+    ///
+    /// The project will be resolved if: (not exhaustive)
+    /// - some packages defined in `locked` section are missing
+    /// - some packages defined in `dependencies` section are missing
+    /// - some dependencies of unlocked packages are missing
+    pub fn should_resolve(&self) -> bool {
+        let mut installed_or_legacy = HashSet::<&str>::new();
+
+        // check locked packages
+        for locked in self.manifest.all_locked() {
+            let Some(installed) = self.installed_packages.get(locked.name()) else {
+                return true;
+            };
+            if installed.version() != locked.version() {
+                return true;
+            }
+            installed_or_legacy.insert(locked.name());
+            for legacy in installed.legacy_packages() {
+                installed_or_legacy.insert(legacy.as_ref());
+            }
+        }
+
+        // add legacy packages of unlocked packages to installed_or_legacy
+        for (_, pkg) in self.unlocked_packages() {
+            if let Some(pkg) = pkg {
+                for legacy in pkg.legacy_packages() {
+                    installed_or_legacy.insert(legacy.as_ref());
+                }
+            }
+        }
+
+        // check dependencies
+        for (dependency, _) in self.manifest.dependencies() {
+            if !installed_or_legacy.contains(dependency) {
+                return true;
+            }
+        }
+
+        // add unlocked packages to installed_or_legacy
+        // we won't include unlocked package for checking packages in vpm-manifest,
+        // so we add after checking locked and dependencies
+        for (_, pkg) in self.unlocked_packages() {
+            if let Some(pkg) = pkg {
+                installed_or_legacy.insert(pkg.name());
+            }
+        }
+
+        // check dependencies of unlocked packages
+        for (_, pkg) in self.unlocked_packages() {
+            if let Some(pkg) = pkg {
+                for (dependency, _) in pkg.vpm_dependencies() {
+                    if !installed_or_legacy.contains(dependency.as_ref()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // all packages are installed! no need to resolve
+        false
+    }
+
     pub async fn resolve_request<'env>(
         &self,
         env: &'env impl PackageCollection,
@@ -107,6 +172,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
             self.manifest.all_locked(),
+            &self.unlocked_packages,
             |pkg| self.manifest.get_locked(pkg),
             self.unity_version(),
             env,
@@ -216,6 +282,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
             virtual_locked_dependencies.values().cloned(),
+            &self.unlocked_packages,
             |pkg| virtual_locked_dependencies.get(pkg).cloned(),
             self.unity_version(),
             env,

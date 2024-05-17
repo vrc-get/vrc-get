@@ -738,6 +738,7 @@ pub(crate) async fn add_package<Env: RemotePackageDownloader + EnvironmentIoHold
     match package.inner {
         PackageInfoInner::Remote(package, user_repo) => {
             let zip_file = env.get_package(user_repo, package).await?;
+            let zip_file = io::BufReader::new(zip_file);
 
             // remove dest folder before extract if exists
             extract_zip(zip_file, io, &dest_folder).await?;

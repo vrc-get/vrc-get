@@ -20,7 +20,7 @@ import {
 	Tooltip,
 	Typography
 } from "@material-tailwind/react";
-import React, {Fragment, Suspense, useMemo, useState} from "react";
+import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
@@ -28,40 +28,41 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {useQueries} from "@tanstack/react-query";
 import {
-	environmentCopyProjectForMigration,
 	environmentHideRepository,
 	environmentPackages,
+	environmentRefetchPackages,
 	environmentRepositoriesInfo,
 	environmentSetHideLocalUserPackages,
 	environmentShowRepository,
+	environmentUnityVersions,
 	projectApplyPendingChanges,
-	projectBeforeMigrateProjectTo2022,
 	projectDetails,
-	projectFinalizeMigrationWithUnity2022,
+	projectInstallMultiplePackage,
 	projectInstallPackage,
-	projectMigrateProjectTo2022,
-	projectRemovePackage,
+	projectRemovePackages,
 	projectResolve,
 	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
-	TauriPackage, TauriPackageChange,
+	TauriPackage,
+	TauriPackageChange,
 	TauriPendingProjectChanges,
 	TauriProjectDetails,
+	TauriUnityVersions,
 	TauriUserRepository,
 	TauriVersion,
 	utilOpen
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
-import {unsupported} from "@/lib/unsupported";
-import {openUnity} from "@/lib/open-unity";
+import {useOpenUnity} from "@/lib/use-open-unity";
 import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
-import {receiveLinesAndWaitForFinish} from "@/lib/migration-with-2022";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
+import {useBackupProjectModal} from "@/lib/backup-project";
+import {useUnity2022Migration, useUnity2022PatchMigration} from "@/app/projects/manage/unity-migration";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -75,6 +76,10 @@ type RequestedOperation = {
 } | {
 	type: "remove";
 	pkgId: string;
+} | {
+	type: "bulkInstalled"
+} | {
+	type: "bulkRemoved"
 }
 
 type InstallStatus = {
@@ -87,20 +92,27 @@ type InstallStatus = {
 	requested: RequestedOperation;
 } | {
 	status: "applyingChanges";
-} | {
-	status: "unity2022migration:confirm";
-} | {
-	status: "unity2022migration:confirmUnityVersionMismatch";
-	recommendedUnityVersion: string;
-	foundUnityVersion: string;
-	inPlace: boolean;
-} | {
-	status: "unity2022migration:copyingProject";
-} | {
-	status: "unity2022migration:updating";
-} | {
-	status: "unity2022migration:finalizing";
-	lines: [number, string][];
+}
+
+type BulkUpdateMode = 'install' | 'upgradeOrRemove' | 'remove' | 'upgrade' | 'any';
+type PackageBulkUpdateMode = 'install' | 'upgradeOrRemove' | 'remove';
+
+function updateModeFromPackageModes(map: PackageBulkUpdateMode[]): BulkUpdateMode {
+	const asSet = new Set(map);
+
+	if (asSet.size == 0) {
+		return 'any';
+	}
+	if (asSet.size == 1) {
+		return [...asSet][0];
+	}
+	if (asSet.size == 2) {
+		if (asSet.has('remove') && asSet.has('upgradeOrRemove')) {
+			return 'remove';
+		}
+	}
+
+	return "any";
 }
 
 function PageBody() {
@@ -108,29 +120,43 @@ function PageBody() {
 	const router = useRouter();
 
 	const projectRemoveModal = useRemoveProjectModal({onRemoved: () => router.back()});
+	const backupProjectModal = useBackupProjectModal();
 
 	const projectPath = searchParams.get("projectPath") ?? "";
 	const projectName = nameFromPath(projectPath);
 
-	const [repositoriesInfo, packagesResult, detailsResult] = useQueries({
+	// repositoriesInfo: list of repositories and their visibility
+	// packagesResult: list of packages
+	// detailsResult: project details including installed packages
+	const [repositoriesInfo, packagesResult, detailsResult, unityVersionsResult] = useQueries({
 		queries: [
 			{
 				queryKey: ["environmentRepositoriesInfo"],
 				queryFn: environmentRepositoriesInfo,
+				refetchOnWindowFocus: false,
 			},
 			{
 				queryKey: ["environmentPackages"],
 				queryFn: environmentPackages,
+				refetchOnWindowFocus: false,
 			},
 			{
 				queryKey: ["projectDetails", projectPath],
 				queryFn: () => projectDetails(projectPath),
+				refetchOnWindowFocus: false,
+			},
+			{
+				queryKey: ["environmentUnityVersions"],
+				queryFn: () => environmentUnityVersions(),
 			},
 		]
 	});
 
 	const [installStatus, setInstallStatus] = useState<InstallStatus>({status: "normal"});
+	const [manualRefetching, setManualRefething] = useState<boolean>(false);
 	const [search, setSearch] = useState("");
+	const [bulkUpdatePackageIds, setBulkUpdatePackageIds] = useState<[id: string, mode: PackageBulkUpdateMode][]>([]);
+	const bulkUpdateMode = useMemo(() => updateModeFromPackageModes(bulkUpdatePackageIds.map(([_, mode]) => mode)), [bulkUpdatePackageIds]);
 
 	const packageRowsData = useMemo(() => {
 		const packages = packagesResult.status == 'success' ? packagesResult.data : [];
@@ -140,7 +166,11 @@ function PageBody() {
 		const definedRepositories = repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories : [];
 		const showPrereleasePackages = repositoriesInfo.status == 'success' ? repositoriesInfo.data.show_prerelease_packages : false;
 		return combinePackagesAndProjectDetails(packages, details, hiddenRepositories, hideUserPackages, definedRepositories, showPrereleasePackages);
-	}, [repositoriesInfo, packagesResult, detailsResult]);
+	}, [
+		repositoriesInfo.status, repositoriesInfo.data,
+		packagesResult.status, packagesResult.data,
+		detailsResult.status, detailsResult.data,
+	]);
 
 	const packageRows = useMemo(() => {
 		if (search === "") return packageRowsData;
@@ -154,21 +184,37 @@ function PageBody() {
 	const hiddenUserRepositories = useMemo(() => new Set(repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : []), [repositoriesInfo]);
 
 	const TABLE_HEAD = [
-		"package",
-		"installed",
-		"latest",
-		"source",
-		"", // actions
+		"projects:manage:package",
+		"projects:manage:installed",
+		"projects:manage:latest",
+		"general:source",
 	];
 
 	// TODO: get installed unity versions and show them
 	const unityVersions: string[] = []
 
-	const onRefresh = () => {
-		packagesResult.refetch();
-		detailsResult.refetch();
-		repositoriesInfo.refetch();
+	const onRefresh = async () => {
+		setBulkUpdatePackageIds([]);
+		try {
+			setManualRefething(true);
+			await environmentRefetchPackages();
+			packagesResult.refetch();
+			detailsResult.refetch();
+			repositoriesInfo.refetch();
+			unityVersionsResult.refetch();
+		} finally {
+			setManualRefething(false);
+		}
 	};
+
+	const onRefreshRepositories = () => {
+		repositoriesInfo.refetch();
+	}
+
+	const onRefreshProject = () => {
+		detailsResult.refetch();
+		setBulkUpdatePackageIds([]);
+	}
 
 	const onRemoveProject = () => {
 		projectRemoveModal.startRemove({
@@ -178,7 +224,14 @@ function PageBody() {
 		})
 	}
 
-	const onInstallRequested = async (pkg: TauriPackage) => {
+	const onBackupProject = () => {
+		backupProjectModal.startBackup({
+			path: projectPath,
+			name: projectName,
+		})
+	}
+
+	const onInstallRequested = useCallback(async (pkg: TauriPackage) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("install", pkg.name, pkg.version);
@@ -189,7 +242,7 @@ function PageBody() {
 			setInstallStatus({status: "normal"});
 			toastThrownError(e);
 		}
-	}
+	}, [projectPath]);
 
 	const onUpgradeAllRequest = async () => {
 		try {
@@ -204,7 +257,7 @@ function PageBody() {
 				}
 			}
 			if (envVersion == null) {
-				toastError(tt("no upgradable packages"));
+				toastError(tt("projects:manage:toast:no upgradable"));
 				return;
 			}
 			const changes = await projectUpgradeMultiplePackage(projectPath, envVersion, packages);
@@ -228,18 +281,104 @@ function PageBody() {
 		}
 	};
 
-	const onRemoveRequested = async (pkgId: string) => {
+	const onRemoveRequested = useCallback(async (pkgId: string) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("remove", pkgId);
-			const changes = await projectRemovePackage(projectPath, pkgId);
+			const changes = await projectRemovePackages(projectPath, [pkgId]);
 			setInstallStatus({status: "promptingChanges", changes, requested: {type: "remove", pkgId}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
 			toastThrownError(e);
 		}
-	}
+	}, [projectPath]);
+
+	const onUpgradeBulkRequested = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			let packageIds = new Set(bulkUpdatePackageIds.map(([id, mode]) => id));
+			let packages: number[] = [];
+			let envVersion: number | undefined = undefined;
+			for (let packageRow of packageRows) {
+				if (packageIds.has(packageRow.id)) {
+					if (packageRow.latest.status !== "upgradable")
+						throw new Error("Package is not upgradable");
+
+					if (envVersion == null) envVersion = packageRow.latest.pkg.env_version;
+					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
+
+					packages.push(packageRow.latest.pkg.index);
+				}
+			}
+			if (envVersion == null) {
+				toastError(tt("projects:manage:toast:no upgradable"));
+				return;
+			}
+			const changes = await projectUpgradeMultiplePackage(projectPath, envVersion, packages);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toastThrownError(e);
+		}
+	};
+
+	const onInstallBulkRequested = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			let packageIds = new Set(bulkUpdatePackageIds.map(([id, mode]) => id));
+			let packages: number[] = [];
+			let envVersion: number | undefined = undefined;
+			for (let packageRow of packageRows) {
+				if (packageIds.has(packageRow.id)) {
+					if (packageRow.latest.status !== "contains")
+						throw new Error("Package is not installable");
+
+					if (envVersion == null) envVersion = packageRow.latest.pkg.env_version;
+					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
+
+					packages.push(packageRow.latest.pkg.index);
+				}
+			}
+			if (envVersion == null) {
+				toastError(tt("projects:manage:toast:no upgradable"));
+				return;
+			}
+			const changes = await projectInstallMultiplePackage(projectPath, envVersion, packages);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "bulkInstalled"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toastThrownError(e);
+		}
+	};
+
+	const onRemoveBulkRequested = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			const changes = await projectRemovePackages(projectPath, bulkUpdatePackageIds.map(([id, mode]) => id));
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "bulkRemoved"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toastThrownError(e);
+		}
+	};
+
+	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
+		const possibleUpdate: PackageBulkUpdateMode | 'nothing' = bulkUpdateModeForPackage(row);
+
+		if (possibleUpdate == 'nothing') return;
+		setBulkUpdatePackageIds(prev => {
+			if (prev.some(([id, _]) => id === row.id)) return prev;
+			return [...prev, [row.id, possibleUpdate]];
+		});
+	}, []);
+
+	const removeBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
+		setBulkUpdatePackageIds(prev => prev.filter(([id, _]) => id !== row.id));
+	}, [setBulkUpdatePackageIds]);
 
 	const applyChanges = async (
 		{
@@ -253,18 +392,24 @@ function PageBody() {
 			setInstallStatus({status: "applyingChanges"});
 			await projectApplyPendingChanges(projectPath, changes.changes_version);
 			setInstallStatus({status: "normal"});
-			detailsResult.refetch();
+			onRefreshProject();
 
 			switch (requested.type) {
 				case "install":
-					toastSuccess(tt("installed {{name}} version {{version}}",
+					toastSuccess(tt("projects:manage:toast:package installed",
 						{name: requested.pkg.display_name ?? requested.pkg.name, version: toVersionString(requested.pkg.version)}));
 					break;
 				case "remove":
-					toastSuccess(tt("removed {{name}}", {name: requested.pkgId}));
+					toastSuccess(tt("projects:manage:toast:package removed", {name: requested.pkgId}));
 					break;
 				case "upgradeAll":
-					toastSuccess(tt("upgraded all packages"));
+					toastSuccess(tt("projects:manage:toast:all packages upgraded"));
+					break;
+				case "bulkInstalled":
+					toastSuccess(tt("projects:manage:toast:selected packages installed"));
+					break;
+				case "bulkRemoved":
+					toastSuccess(tt("projects:manage:toast:selected packages removed"));
 					break;
 				default:
 					let _: never = requested;
@@ -276,86 +421,19 @@ function PageBody() {
 		}
 	}
 
-	const requestMigrateProjectTo2022 = async () => {
-		setInstallStatus({status: "unity2022migration:confirm"});
-	}
-
-	const cancelMigrateProjectTo2022 = async () => {
-		setInstallStatus({status: "normal"});
-	}
-
-	const doMigrateProjectTo2022 = async (allowMismatch: boolean, inPlace: boolean) => {
-		try {
-			const preMigrationResult = await projectBeforeMigrateProjectTo2022(allowMismatch);
-			switch (preMigrationResult.type) {
-				case "NoUnity2022Found":
-					toastError(tt("failed to migrate project: unity 2022 not found"));
-					setInstallStatus({status: "normal"});
-					return;
-				case "ConfirmNotExactlyRecommendedUnity2022":
-					setInstallStatus({
-						status: "unity2022migration:confirmUnityVersionMismatch",
-						recommendedUnityVersion: preMigrationResult.recommended,
-						foundUnityVersion: preMigrationResult.found,
-						inPlace,
-					});
-					return; // do rest after confirm
-				case "ReadyToMigrate":
-					break;
-				default:
-					const _: never = preMigrationResult;
-			}
-			let migrateProjectPath;
-			if (inPlace) {
-				migrateProjectPath = projectPath;
-			} else {
-				// copy
-				setInstallStatus({status: "unity2022migration:copyingProject"});
-				migrateProjectPath = await environmentCopyProjectForMigration(projectPath);
-			}
-			setInstallStatus({status: "unity2022migration:updating"});
-			await projectMigrateProjectTo2022(migrateProjectPath);
-			setInstallStatus({status: "unity2022migration:finalizing", lines: []});
-			const finalizeResult = await projectFinalizeMigrationWithUnity2022(migrateProjectPath);
-			switch (finalizeResult.type) {
-				case "NoUnity2022Found":
-					toastError(tt("failed to finalize the migration: unity 2022 not found"));
-					break;
-				case "MigrationStarted":
-					let lineNumber = 0;
-					await receiveLinesAndWaitForFinish(finalizeResult.event_name, lineString => {
-						setInstallStatus(prev => {
-							if (prev.status != "unity2022migration:finalizing") return prev;
-							lineNumber++;
-							let line: [number, string] = [lineNumber, lineString];
-							if (prev.lines.length > 200) {
-								return {...prev, lines: [...prev.lines.slice(1), line]};
-							} else {
-								return {...prev, lines: [...prev.lines, line]};
-							}
-						})
-					});
-					toastSuccess(tt("the project is migrated to unity 2022"));
-					break;
-				default:
-					const _: never = finalizeResult;
-			}
-			if (inPlace) {
-				setInstallStatus({status: "normal"});
-				detailsResult.refetch();
-			} else {
-				setInstallStatus({status: "normal"});
-				router.replace(`/projects/manage?${new URLSearchParams({projectPath: migrateProjectPath})}`);
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-			setInstallStatus({status: "normal"});
-		}
-	};
+	const unity2022Migration = useUnity2022Migration({
+		projectPath,
+		unityVersions: unityVersionsResult.data,
+		refresh: onRefresh
+	});
+	const unity2022PatchMigration = useUnity2022PatchMigration({
+		projectPath,
+		unityVersions: unityVersionsResult.data,
+		refresh: onRefresh
+	});
 
 	const installingPackage = installStatus.status != "normal";
-	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || installingPackage;
+	const isLoading = packagesResult.isFetching || detailsResult.isFetching || repositoriesInfo.isFetching || unityVersionsResult.isLoading || installingPackage || manualRefetching;
 
 	function checkIfMigrationTo2022Recommended(data: TauriProjectDetails) {
 		if (data.unity == null) return false;
@@ -364,7 +442,19 @@ function PageBody() {
 		return data.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id));
 	}
 
+	function checkIf2022PatchMigrationRecommended(data: TauriProjectDetails, unityData: TauriUnityVersions) {
+		if (!data.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id))) return false;
+
+		if (data.unity == null) return false;
+		if (data.unity[0] != 2022) return false;
+		// unity patch is 2022.
+		return data.unity_str != unityData.recommended_version;
+	}
+
+	const isResolveRecommended = detailsResult?.data?.should_resolve;
 	const isMigrationTo2022Recommended = detailsResult.status == 'success' && checkIfMigrationTo2022Recommended(detailsResult.data);
+	const is2022PatchMigrationRecommended = detailsResult.status == 'success' && unityVersionsResult.status == 'success'
+		&& checkIf2022PatchMigrationRecommended(detailsResult.data, unityVersionsResult.data);
 
 	let dialogForState: React.ReactNode = null;
 
@@ -377,65 +467,60 @@ function PageBody() {
 				apply={() => applyChanges(installStatus)}
 			/>;
 			break;
-		case "unity2022migration:confirm":
-			dialogForState = <Unity2022MigrationConfirmMigrationDialog
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(inPlace) => doMigrateProjectTo2022(false, inPlace)}
-			/>;
-			break;
-		case "unity2022migration:confirmUnityVersionMismatch":
-			dialogForState = <Unity2022MigrationUnityVersionMismatchDialog
-				recommendedUnityVersion={installStatus.recommendedUnityVersion}
-				foundUnityVersion={installStatus.foundUnityVersion}
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={() => doMigrateProjectTo2022(true, installStatus.inPlace)}
-			/>;
-			break;
-		case "unity2022migration:copyingProject":
-			dialogForState = <Unity2022MigrationCopyingDialog/>;
-			break
-		case "unity2022migration:updating":
-			dialogForState = <Unity2022MigrationMigratingDialog/>;
-			break;
-		case "unity2022migration:finalizing":
-			dialogForState = <Unity2022MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
-			break;
 	}
 
 	return (
 		<VStack className={"m-4"}>
-			<ProjectViewHeader className={"flex-shrink-0"} projectName={projectName} projectPath={projectPath}
-												 onRemove={onRemoveProject}/>
-			<Card className={"flex-shrink-0 p-2 flex flex-row"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden">
-					{tc("located at: <code>{{path}}</code>",
+			<ProjectViewHeader
+				className={"flex-shrink-0"}
+				projectName={projectName}
+				projectPath={projectPath}
+				unityVersion={detailsResult.data?.unity_str ?? null}
+				unityVersions={unityVersionsResult?.data}
+				onRemove={onRemoveProject}
+				onBackup={onBackupProject}
+			/>
+			<Card className={"flex-shrink-0 p-2 flex flex-row flex-wrap"}>
+				<Typography className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
+					{tc("projects:manage:project location",
 						{path: projectPath},
 						{
 							components: {code: <code className={"bg-gray-200 p-0.5 whitespace-pre"}/>}
 						})}
 				</Typography>
-				<div className={"flex-grow flex-shrink-0 w-2"}></div>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-					{tc("unity version: ")}
-				</Typography>
-				<div className={"flex-grow-0 flex-shrink-0"}>
-					<VGSelect value={detailsResult.status == 'success' ? detailsResult.data.unity_str :
-						<span className={"text-blue-gray-300"}>Loading...</span>}
-										className="border-blue-gray-200">
-						{unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-					</VGSelect>
+				<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>
+				<div className="flex-grow-0 flex-shrink-0 flex flex-row">
+					<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
+						{tc("projects:manage:unity version")}
+					</Typography>
+					<div className={"flex-grow-0 flex-shrink-0"}>
+						<VGSelect value={detailsResult.status == 'success' ? (detailsResult.data.unity_str ?? "unknown") :
+							<span className={"text-blue-gray-300"}>Loading...</span>}
+											className="border-blue-gray-200">
+							{/*unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)*/}
+							<VGOption value={""}>{tc("general:not implemented")}</VGOption>
+						</VGSelect>
+					</div>
 				</div>
 			</Card>
+			{isResolveRecommended &&
+				<SuggestResolveProjectCard disabled={isLoading}
+																	 onResolveRequested={onResolveRequest}/>
+			}
 			{isMigrationTo2022Recommended &&
-				<SuggestMigrateTo2022Card disabled={isLoading} onMigrateRequested={requestMigrateProjectTo2022}/>}
+				<SuggestMigrateTo2022Card disabled={isLoading}
+																	onMigrateRequested={unity2022Migration.request}/>}
+			{is2022PatchMigrationRecommended &&
+				<Suggest2022PatchMigrationCard disabled={isLoading}
+																			 onMigrateRequested={unity2022PatchMigration.request}/>}
 			<main className="flex-shrink overflow-hidden flex">
-				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex">
-					<div className={"flex flex-shrink-0 flex-grow-0 flex-row gap-2"}>
+				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
+					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
 						<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-							{tc("manage packages")}
+							{tc("projects:manage:manage packages")}
 						</Typography>
 
-						<Tooltip content="Reflesh Packages">
+						<Tooltip content={tc("projects:manage:tooltip:refresh packages")}>
 							<IconButton variant={"text"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
 								{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 							</IconButton>
@@ -443,45 +528,48 @@ function PageBody() {
 
 						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
+						{packageRows.some(row => row.latest.status === "upgradable") &&
+							<Button className={"flex-shrink-0"}
+											onClick={onUpgradeAllRequest}
+											disabled={isLoading}
+											color={"green"}>
+								{tc("projects:manage:button:upgrade all")}
+							</Button>}
+
 						<Menu>
 							<MenuHandler>
-								<IconButton variant={"text"}>
+								<IconButton variant={"text"} className={'flex-shrink-0'}>
 									<EllipsisHorizontalIcon className={"size-5"}/>
 								</IconButton>
 							</MenuHandler>
 							<MenuList>
-								{packageRows.some(row => row.latest.status === "upgradable") &&
-									<MenuItem className={"p-3 text-green-700 focus:text-green-700"}
-														onClick={onUpgradeAllRequest}
-														disabled={isLoading}>
-										{tc("upgrade all")}</MenuItem>}
 								<MenuItem className={"p-3"}
 													onClick={onResolveRequest}
 													disabled={isLoading}>
-									{tc("reinstall all")}</MenuItem>
+									{tc("projects:manage:button:reinstall all")}</MenuItem>
 							</MenuList>
 						</Menu>
 
 						<Menu dismiss={{itemPress: false}}>
 							<MenuHandler>
-								<Button className={"flex-shrink-0 p-3"}>{tc("select repositories")}</Button>
+								<Button className={"flex-shrink-0 p-3"}>{tc("projects:manage:button:select repositories")}</Button>
 							</MenuHandler>
 							<MenuList className={"max-h-96 w-64"}>
 								<RepositoryMenuItem
 									hiddenUserRepositories={hiddenUserRepositories}
-									repositoryName={tt("official")}
+									repositoryName={tt("vpm repositories:source:official")}
 									repositoryId={"com.vrchat.repos.official"}
-									refetch={() => repositoriesInfo.refetch()}
+									refetch={onRefreshRepositories}
 								/>
 								<RepositoryMenuItem
 									hiddenUserRepositories={hiddenUserRepositories}
-									repositoryName={tt("curated")}
+									repositoryName={tt("vpm repositories:source:curated")}
 									repositoryId={"com.vrchat.repos.curated"}
-									refetch={() => repositoriesInfo.refetch()}
+									refetch={onRefreshRepositories}
 								/>
 								<UserLocalRepositoryMenuItem
 									hideUserLocalPackages={repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false}
-									refetch={() => repositoriesInfo.refetch()}
+									refetch={onRefreshRepositories}
 								/>
 								<hr className="my-3"/>
 								{
@@ -490,7 +578,7 @@ function PageBody() {
 											hiddenUserRepositories={hiddenUserRepositories}
 											repositoryName={repository.display_name}
 											repositoryId={repository.id}
-											refetch={() => repositoriesInfo.refetch()}
+											refetch={onRefreshRepositories}
 											key={repository.id}
 										/>
 									)) : null
@@ -498,16 +586,26 @@ function PageBody() {
 							</MenuList>
 						</Menu>
 					</div>
+					<BulkUpdateCard
+						disabled={isLoading} bulkUpdateMode={bulkUpdateMode}
+						bulkUpgradeAll={onUpgradeBulkRequested}
+						bulkRemoveAll={onRemoveBulkRequested}
+						bulkInstallAll={onInstallBulkRequested}
+						cancel={() => setBulkUpdatePackageIds([])}
+					/>
 					<Card className="w-full overflow-x-auto overflow-y-scroll">
 						<table className="relative table-auto text-left">
 							<thead>
 							<tr>
+								<th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50`}>
+								</th>
 								{TABLE_HEAD.map((head, index) => (
 									<th key={index}
 											className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
 										<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
 									</th>
 								))}
+								<th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}/>
 							</tr>
 							</thead>
 							<tbody>
@@ -515,17 +613,47 @@ function PageBody() {
 								<PackageRow pkg={row} key={row.id}
 														locked={isLoading}
 														onInstallRequested={onInstallRequested}
-														onRemoveRequested={onRemoveRequested}/>
-							))}
+														onRemoveRequested={onRemoveRequested}
+														bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
+														bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
+														addBulkUpdatePackage={addBulkUpdatePackage}
+														removeBulkUpdatePackage={removeBulkUpdatePackage}
+								/>))}
 							</tbody>
 						</table>
 					</Card>
 				</Card>
 				{dialogForState}
+				{unity2022Migration.dialog}
+				{unity2022PatchMigration.dialog}
 				{projectRemoveModal.dialog}
+				{backupProjectModal.dialog}
 			</main>
 		</VStack>
 	);
+}
+
+function SuggestResolveProjectCard(
+	{
+		disabled,
+		onResolveRequested,
+	}: {
+		disabled?: boolean;
+		onResolveRequested: () => void;
+	}
+) {
+	return (
+		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
+			<Typography
+				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+				{tc("projects:manage:suggest resolve")}
+			</Typography>
+			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<Button variant={"text"} color={"red"} onClick={onResolveRequested} disabled={disabled}>
+				{tc("projects:manage:button:resolve")}
+			</Button>
+		</Card>
+	)
 }
 
 function SuggestMigrateTo2022Card(
@@ -538,149 +666,81 @@ function SuggestMigrateTo2022Card(
 	}
 ) {
 	return (
-		<Card className={"flex-shrink-0 p-2 flex flex-row"}>
+		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
 			<Typography
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
-				{tc("unity 2019 to 2022 migration suggestion")}
+				{tc("projects:manage:suggest unity migration")}
 			</Typography>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
-				{tc("migrate project")}
+				{tc("projects:manage:button:unity migrate")}
 			</Button>
 		</Card>
 	)
 }
 
-function Unity2022MigrationConfirmMigrationDialog(
+function Suggest2022PatchMigrationCard(
 	{
-		cancel,
-		doMigrate,
+		disabled,
+		onMigrateRequested,
 	}: {
-		cancel: () => void,
-		doMigrate: (inPlace: boolean) => void,
-	}) {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("unity migration")}</DialogHeader>
-			<DialogBody>
-				<Typography className={"text-red-700"}>
-					{tc("project migration is experimental in vrc-get.")}
-				</Typography>
-				<Typography className={"text-red-700"}>
-					{tc("please make backup of your project before migration.")}
-				</Typography>
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("cancel")}</Button>
-				<Button onClick={() => doMigrate(false)} color={"red"} className="mr-1">{tc("migrate a copy")}</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("migrate in-place")}</Button>
-			</DialogFooter>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationUnityVersionMismatchDialog(
-	{
-		recommendedUnityVersion,
-		foundUnityVersion,
-		cancel,
-		doMigrate,
-	}: {
-		recommendedUnityVersion: string,
-		foundUnityVersion: string,
-		cancel: () => void,
-		doMigrate: () => void,
-	}) {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("unity migration")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("we could not find unity exact recommended version of unity 2022")}
-				</Typography>
-				<Typography>
-					{tc("recommended: <b>{{version}}</b>", {version: recommendedUnityVersion})}
-				</Typography>
-				<Typography>
-					{tc("found: <b>{{version}}</b>", {version: foundUnityVersion})}
-				</Typography>
-				<Typography>
-					{tc("this may cause problems with VRChat SDK")}
-				</Typography>
-				<Typography>
-					{tc("do you want to continue?")}
-				</Typography>
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("cancel")}</Button>
-				<Button onClick={doMigrate} color={"red"}>{tc("continue")}</Button>
-			</DialogFooter>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationCopyingDialog() {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("unity migration")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("copying project for migration...")}
-				</Typography>
-				<Typography>
-					{tc("please do not close the window")}
-				</Typography>
-			</DialogBody>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationMigratingDialog() {
-	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("unity migration")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("migrating project...")}
-				</Typography>
-				<Typography>
-					{tc("please do not close the window")}
-				</Typography>
-			</DialogBody>
-		</Dialog>
-	);
-}
-
-function Unity2022MigrationCallingUnityForMigrationDialog(
-	{
-		lines
-	}: {
-		lines: [number, string][]
+		disabled?: boolean;
+		onMigrateRequested: () => void;
 	}
 ) {
-	const ref = React.useRef<HTMLDivElement>(null);
+	return (
+		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
+			<Typography
+				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+				{tc("projects:manage:suggest unity patch migration")}
+			</Typography>
+			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
+				{tc("projects:manage:button:unity migrate")}
+			</Button>
+		</Card>
+	)
+}
 
-	React.useEffect(() => {
-		ref.current?.scrollIntoView({behavior: "auto"});
-	}, [lines]);
+function BulkUpdateCard(
+	{
+		disabled,
+		bulkUpdateMode,
+		bulkUpgradeAll,
+		bulkRemoveAll,
+		bulkInstallAll,
+		cancel,
+	}: {
+		disabled: boolean;
+		bulkUpdateMode: BulkUpdateMode;
+		bulkUpgradeAll?: () => void;
+		bulkRemoveAll?: () => void;
+		bulkInstallAll?: () => void;
+		cancel?: () => void;
+	}
+) {
+	if (bulkUpdateMode == 'any') return null;
+
+	const canInstall = bulkUpdateMode == 'install';
+	const canUpgrade = bulkUpdateMode == 'upgrade' || bulkUpdateMode == 'upgradeOrRemove';
+	const canRemove = bulkUpdateMode == 'remove' || bulkUpdateMode == 'upgradeOrRemove';
 
 	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("unity migration")}</DialogHeader>
-			<DialogBody>
-				<Typography>
-					{tc("launching unity 2022 in background for finalizing the migration...")}
-				</Typography>
-				<Typography>
-					{tc("please do not close the window")}
-				</Typography>
-				<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
-					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
-					<div ref={ref}/>
-				</pre>
-			</DialogBody>
-		</Dialog>
-	);
+		<Card className={"flex-shrink-0 p-2 flex flex-row gap-2 bg-blue-gray-50 flex-wrap"}>
+			{canInstall && <Button disabled={disabled} onClick={bulkInstallAll}>
+				{tc("projects:manage:button:install selected")}
+			</Button>}
+			{canUpgrade && <Button disabled={disabled} onClick={bulkUpgradeAll} color={"green"}>
+				{tc("projects:manage:button:upgrade selected")}
+			</Button>}
+			{canRemove && <Button disabled={disabled} onClick={bulkRemoveAll} color={"red"}>
+				{tc("projects:manage:button:uninstall selected")}
+			</Button>}
+			<Button disabled={disabled} onClick={cancel}>
+				{tc("projects:manage:button:clear selection")}
+			</Button>
+		</Card>
+	)
 }
 
 function ProjectChangesDialog(
@@ -711,10 +771,10 @@ function ProjectChangesDialog(
 
 	return (
 		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("apply changes")}</DialogHeader>
+			<DialogHeader>{tc("projects:manage:button:apply changes")}</DialogHeader>
 			<DialogBody className={"overflow-y-auto max-h-[50vh]"}>
 				<Typography className={"text-gray-900"}>
-					{tc("you're applying the following changes to the project")}
+					{tc("projects:manage:dialog:confirm changes description")}
 				</Typography>
 				<List>
 					{packageChangesSorted.map(([pkgId, pkgChange]) => {
@@ -724,28 +784,28 @@ function ProjectChangesDialog(
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
 							return <ListItem key={pkgId}>
-								<Typography className={"font-normal"}>{tc("install <b>{{name}}</b> version {{version}}", {
+								<Typography className={"font-normal"}>{tc("projects:manage:dialog:install package", {
 									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
 									version: toVersionString(pkgChange.InstallNew.version),
 								})}</Typography>
 								{changelogUrl != null &&
 									<Button className={"ml-1 px-2"} size={"sm"}
-													onClick={() => shellOpen(changelogUrl)}>{tc("see changelog")}</Button>}
+													onClick={() => shellOpen(changelogUrl)}>{tc("projects:manage:button:see changelog")}</Button>}
 							</ListItem>
 						} else {
 							const name = getPackageDisplayName(pkgId);
 							switch (pkgChange.Remove) {
 								case "Requested":
 									return <TypographyItem key={pkgId}>
-										{tc("remove <b>{{name}}</b> since you requested", {name})}
+										{tc("projects:manage:dialog:uninstall package as requested", {name})}
 									</TypographyItem>
 								case "Legacy":
 									return <TypographyItem key={pkgId}>
-										{tc("remove <b>{{name}}</b> since it's a legacy package", {name})}
+										{tc("projects:manage:dialog:uninstall package as legacy", {name})}
 									</TypographyItem>
 								case "Unused":
 									return <TypographyItem key={pkgId}>
-										{tc("remove <b>{{name}}</b> since it's not used", {name})}
+										{tc("projects:manage:dialog:uninstall package as unused", {name})}
 									</TypographyItem>
 							}
 						}
@@ -755,13 +815,13 @@ function ProjectChangesDialog(
 					versionConflicts.length > 0 ? (
 						<>
 							<Typography className={"text-red-700"}>
-								{tc("there are version conflicts", {count: versionConflicts.length})}
+								{tc("projects:manage:dialog:package version conflicts", {count: versionConflicts.length})}
 							</Typography>
 							<List>
 								{versionConflicts.map(([pkgId, conflict]) => {
 									return (
 										<TypographyItem key={pkgId}>
-											{tc("<b>{{pkg}}</b> conflicts with <b>{{other}}</b>", {
+											{tc("projects:manage:dialog:conflicts with", {
 												pkg: getPackageDisplayName(pkgId),
 												other: conflict.packages.map(p => getPackageDisplayName(p)).join(", ")
 											})}
@@ -776,12 +836,12 @@ function ProjectChangesDialog(
 					unityConflicts.length > 0 ? (
 						<>
 							<Typography className={"text-red-700"}>
-								{tc("there are unity version conflicts", {count: unityConflicts.length})}
+								{tc("projects:manage:dialog:unity version conflicts", {count: unityConflicts.length})}
 							</Typography>
 							<List>
 								{unityConflicts.map(([pkgId, _]) => (
 									<TypographyItem key={pkgId}>
-										{tc("<b>{{pkg}}</b> does not support your unity version", {pkg: getPackageDisplayName(pkgId)})}
+										{tc("projects:manage:dialog:package not supported your unity", {pkg: getPackageDisplayName(pkgId)})}
 									</TypographyItem>
 								))}
 							</List>
@@ -792,7 +852,7 @@ function ProjectChangesDialog(
 					changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
 						<>
 							<Typography className={"text-red-700"}>
-								{tc("the following legacy files and folders will be removed")}
+								{tc("projects:manage:dialog:files and directories are removed as legacy")}
 							</Typography>
 							<List>
 								{changes.remove_legacy_files.map(f => (
@@ -811,8 +871,8 @@ function ProjectChangesDialog(
 				}
 			</DialogBody>
 			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("cancel")}</Button>
-				<Button onClick={apply} color={"red"}>{tc("apply")}</Button>
+				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+				<Button onClick={apply} color={"red"}>{tc("projects:manage:button:apply")}</Button>
 			</DialogFooter>
 		</Dialog>
 	);
@@ -897,7 +957,7 @@ function UserLocalRepositoryMenuItem(
 									checked={selected}
 									onChange={onChange}
 									className="hover:before:content-none"/>
-				{tc("user local")}
+				{tc("vpm repositories:source:local")}
 			</label>
 		</MenuItem>
 	)
@@ -1154,31 +1214,36 @@ function combinePackagesAndProjectDetails(
 	return asArray;
 }
 
-function PackageRow(
+const PackageRow = memo(function PackageRow(
 	{
 		pkg,
 		locked,
 		onInstallRequested,
 		onRemoveRequested,
+		bulkUpdateSelected,
+		bulkUpdateAvailable,
+		addBulkUpdatePackage,
+		removeBulkUpdatePackage,
 	}: {
 		pkg: PackageRowInfo;
 		locked: boolean;
 		onInstallRequested: (pkg: TauriPackage) => void;
 		onRemoveRequested: (pkgId: string) => void;
+		bulkUpdateSelected: boolean;
+		bulkUpdateAvailable: boolean;
+		addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
+		removeBulkUpdatePackage: (pkg: PackageRowInfo) => void;
 	}) {
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
-	const incompatibleNames = [...pkg.unityIncompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
-
-	const onChange = (version: string) => {
+	useCallback((version: string) => {
 		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
 		onInstallRequested(pkgVersion);
-	}
-
+	}, [onInstallRequested, pkg.installed]);
 	const installLatest = () => {
 		if (!latestVersion) return;
 		const latest = pkg.unityCompatible.get(latestVersion) ?? pkg.unityIncompatible.get(latestVersion);
@@ -1190,8 +1255,23 @@ function PackageRow(
 		onRemoveRequested(pkg.id);
 	};
 
+	const onClickBulkUpdate = () => {
+		if (bulkUpdateSelected) {
+			removeBulkUpdatePackage(pkg);
+		} else {
+			addBulkUpdatePackage(pkg);
+		}
+	}
+
 	return (
 		<tr className="even:bg-blue-gray-50/50">
+			<td className={`${cellClass} w-1`}>
+				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
+									checked={bulkUpdateSelected}
+									onChange={onClickBulkUpdate}
+									disabled={locked || !bulkUpdateAvailable}
+									className="hover:before:content-none"/>
+			</td>
 			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis`}>
 				<div className="flex flex-col">
 					<Typography className="font-normal">
@@ -1203,17 +1283,7 @@ function PackageRow(
 				</div>
 			</td>
 			<td className={noGrowCellClass}>
-				{/* TODO: show incompatible versions */}
-				<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
-									className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
-									onChange={onChange}
-									disabled={locked}
-				>
-					{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-					{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
-					{incompatibleNames.length > 0 && <Typography className={"text-sm"}>{tc("incompatibles")}</Typography>}
-					{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-				</VGSelect>
+				<PackageVersionSelector pkg={pkg} onInstallRequested={onInstallRequested} locked={locked}/>
 			</td>
 			<td className={`${cellClass} min-w-32 w-32`}>
 				<PackageLatestInfo info={pkg.latest} locked={locked} onInstallRequested={onInstallRequested}/>
@@ -1223,11 +1293,11 @@ function PackageRow(
 					pkg.sources.size == 0 ? (
 						pkg.isThereSource ? (
 							<Typography className="text-blue-gray-400">
-								{tc("not selected")}
+								{tc("projects:manage:source not selected")}
 							</Typography>
 						) : (
 							<Typography className="text-blue-gray-400">
-								{tc("none")}
+								{tc("projects:manage:none")}
 							</Typography>
 						)
 					) : pkg.sources.size == 1 ? (
@@ -1239,7 +1309,7 @@ function PackageRow(
 					) : (
 						<Tooltip content={[...pkg.sources].join(", ")}>
 							<Typography>
-								{tc("multiple sources")}
+								{tc("projects:manage:multiple sources")}
 							</Typography>
 						</Tooltip>
 					)
@@ -1249,12 +1319,12 @@ function PackageRow(
 				<div className="flex flex-row gap-2 max-w-min">
 					{
 						pkg.installed ? (
-							<Tooltip content={"Remove Package"}>
+							<Tooltip content={tc("projects:manage:tooltip:remove packages")}>
 								<IconButton variant={'text'} disabled={locked} onClick={remove}><MinusCircleIcon
 									className={"size-5 text-red-700"}/></IconButton>
 							</Tooltip>
 						) : (
-							<Tooltip content={"Add Package"}>
+							<Tooltip content={tc("projects:manage:tooltip:add package")}>
 								<IconButton variant={'text'} disabled={locked && !!latestVersion}
 														onClick={installLatest}><PlusCircleIcon
 									className={"size-5 text-gray-800"}/></IconButton>
@@ -1265,6 +1335,68 @@ function PackageRow(
 			</td>
 		</tr>
 	);
+});
+
+function bulkUpdateModeForPackage(pkg: PackageRowInfo): PackageBulkUpdateMode | 'nothing' {
+	if (pkg.installed) {
+		if (pkg.latest.status === "upgradable") {
+			return "upgradeOrRemove";
+		} else {
+			return "remove";
+		}
+	} else {
+		if (pkg.latest.status !== "none") {
+			return "install";
+		} else {
+			return "nothing";
+		}
+	}
+}
+
+const PackageVersionSelector = memo(function PackageVersionSelector(
+	{
+		pkg,
+		onInstallRequested,
+		locked,
+	}: {
+		pkg: PackageRowInfo;
+		onInstallRequested: (pkg: TauriPackage) => void;
+		locked: boolean;
+	}
+) {
+	const onChange = useCallback((version: string) => {
+		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
+		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
+		if (!pkgVersion) return;
+		onInstallRequested(pkgVersion);
+	}, [onInstallRequested, pkg.installed]);
+
+	const versionNames = [...pkg.unityCompatible.keys()];
+	const incompatibleNames = [...pkg.unityIncompatible.keys()];
+
+	return (
+		<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
+							className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
+							onChange={onChange}
+							disabled={locked}
+		>
+			{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+			{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
+			{incompatibleNames.length > 0 &&
+				<Typography className={"text-sm"}>{tc("projects:manage:incompatible packages")}</Typography>}
+			{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
+		</VGSelect>
+	);
+})
+
+function canBulkUpdate(bulkUpdateMode: BulkUpdateMode, possibleUpdate: PackageBulkUpdateMode | 'nothing'): boolean {
+	if (possibleUpdate === "nothing") return false;
+	if (bulkUpdateMode === "any") return true;
+	if (bulkUpdateMode === possibleUpdate) return true;
+	if (bulkUpdateMode === "upgradeOrRemove" && possibleUpdate === "remove") return true;
+	if (bulkUpdateMode === "upgrade" && possibleUpdate === "upgradeOrRemove") return true;
+	if (bulkUpdateMode === "remove" && possibleUpdate === "upgradeOrRemove") return true;
+	return false;
 }
 
 function PackageInstalledInfo(
@@ -1277,12 +1409,12 @@ function PackageInstalledInfo(
 	if (pkg.installed) {
 		const version = toVersionString(pkg.installed.version);
 		if (pkg.installed.yanked) {
-			return <Typography className={"text-red-700"}>{version} {tc("(yanked)")}</Typography>;
+			return <Typography className={"text-red-700"}>{version} {tc("projects:manage:yanked")}</Typography>;
 		} else {
 			return <Typography>{version}</Typography>;
 		}
 	} else {
-		return <Typography className="text-blue-gray-400">{tc("none")}</Typography>;
+		return <Typography className="text-blue-gray-400">{tc("projects:manage:none")}</Typography>;
 	}
 }
 
@@ -1299,35 +1431,41 @@ function PackageLatestInfo(
 ) {
 	switch (info.status) {
 		case "none":
-			return <Typography className="text-blue-gray-400">{tc("none")}</Typography>;
+			return <Typography className="text-blue-gray-400">{tc("projects:manage:none")}</Typography>;
 		case "contains":
 			return <Typography>{toVersionString(info.pkg.version)}</Typography>;
 		case "upgradable":
 			return (
-				<Button variant={"outlined"} color={"green"}
-								className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case"}
-								disabled={locked}
-								onClick={() => onInstallRequested(info.pkg)}>
-					<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
-					{toVersionString(info.pkg.version)}
-				</Button>
+				<Tooltip content={tc("projects:manage:tooltip:upgrade package")}>
+					<Button variant={"outlined"} color={"green"}
+									className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case"}
+									disabled={locked}
+									onClick={() => onInstallRequested(info.pkg)}>
+						<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
+						{toVersionString(info.pkg.version)}
+					</Button>
+				</Tooltip>
 			);
 		default:
 			let _: never = info;
 	}
 }
 
-function ProjectViewHeader({className, projectName, projectPath, onRemove}: {
+function ProjectViewHeader({className, projectName, projectPath, unityVersion, unityVersions, onRemove, onBackup}: {
 	className?: string,
 	projectName: string,
 	projectPath: string
-	onRemove?: () => void
+	unityVersion: string | null,
+	unityVersions: TauriUnityVersions | undefined,
+	onRemove?: () => void,
+	onBackup?: () => void,
 }) {
+	const openUnity = useOpenUnity(unityVersions);
 	const openProjectFolder = () => utilOpen(projectPath);
 
 	return (
 		<HNavBar className={className}>
-			<Tooltip content="Back to projects">
+			<Tooltip content={tc("projects:manage:tooltip:back to projects")}>
 				<IconButton variant={"text"} onClick={() => history.back()}>
 					<ArrowLeftIcon className={"w-5 h-5"}/>
 				</IconButton>
@@ -1342,7 +1480,8 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove}: {
 
 			<Menu>
 				<ButtonGroup>
-					<Button onClick={() => openUnity(projectPath)} className={"pl-4 pr-3"}>{tc("open unity")}</Button>
+					<Button onClick={() => openUnity.openUnity(projectPath, unityVersion)}
+									className={"pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
@@ -1350,11 +1489,12 @@ function ProjectViewHeader({className, projectName, projectPath, onRemove}: {
 					</MenuHandler>
 				</ButtonGroup>
 				<MenuList>
-					<MenuItem onClick={openProjectFolder}>{tc("open project folder")}</MenuItem>
-					<MenuItem onClick={unsupported("Backup")}>{tc("make backup")}</MenuItem>
-					<MenuItem onClick={onRemove} className={"bg-red-700 text-white"}>{tc("remove project")}</MenuItem>
+					<MenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</MenuItem>
+					<MenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</MenuItem>
+					<MenuItem onClick={onRemove} className={"bg-red-700 text-white"}>{tc("projects:remove project")}</MenuItem>
 				</MenuList>
 			</Menu>
+			{openUnity.dialog}
 		</HNavBar>
 	);
 }

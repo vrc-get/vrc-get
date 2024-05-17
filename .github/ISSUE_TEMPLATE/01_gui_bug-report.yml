@@ -1,7 +1,7 @@
-name: "[vrc-get-gui] Bug Report"
-description: Create a bug report of vrc-get-gui / vrc-get-guiのバグを報告する
-labels: ["bug", "vrc-get-gui"]
-projects: ["vrc-get/1"]
+name: "[ALCOM] Bug Report"
+description: Create a bug report of ALCOM / ALCOMのバグを報告する
+labels: [ "bug", "vrc-get-gui" ]
+projects: [ "vrc-get/1" ]
 
 body:
   - type: textarea
@@ -44,9 +44,9 @@ body:
     attributes:
       label: Software Version / バージョン情報
       description: |
-        What is the version of vrc-get-gui?
-        vrc-get-guiのバージョンは何ですか?
-      placeholder: 0.1.0-beta.3
+        What is the version of ALCOM?
+        ALCOMのバージョンは何ですか?
+      placeholder: 0.1.0-beta.20
     validations:
       required: true
 
