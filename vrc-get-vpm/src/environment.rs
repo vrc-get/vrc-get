@@ -544,10 +544,23 @@ impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T
         } else {
             self.io.create_dir_all(zip_path.parent().unwrap()).await?;
 
+            let new_headers = IndexMap::from_iter(
+                (repository
+                    .headers()
+                    .iter()
+                    .map(|(k, v)| (k.as_ref(), v.as_ref())))
+                .chain(
+                    package
+                        .headers()
+                        .iter()
+                        .map(|(k, v)| (k.as_ref(), v.as_ref())),
+                ),
+            );
+
             Ok(download_package_zip(
                 self.http.as_ref(),
                 &self.io,
-                repository.headers(),
+                &new_headers,
                 &zip_path,
                 &sha_path,
                 &zip_file_name,
@@ -625,7 +638,7 @@ async fn try_load_package_cache<IO: EnvironmentIo>(
 async fn download_package_zip<IO: EnvironmentIo>(
     http: Option<&impl HttpClient>,
     io: &IO,
-    headers: &IndexMap<Box<str>, Box<str>>,
+    headers: &IndexMap<&str, &str>,
     zip_path: &Path,
     sha_path: &Path,
     zip_file_name: &str,

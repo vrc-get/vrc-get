@@ -60,7 +60,7 @@ pub trait HttpClient: Sync {
     fn get(
         &self,
         url: &Url,
-        headers: &IndexMap<Box<str>, Box<str>>,
+        headers: &IndexMap<&str, &str>,
     ) -> impl Future<Output = io::Result<impl AsyncRead + Send>> + Send;
 
     /// Get resource from the URL with specified headers and etag
@@ -79,17 +79,13 @@ pub trait HttpClient: Sync {
 }
 
 impl HttpClient for reqwest::Client {
-    async fn get(
-        &self,
-        url: &Url,
-        headers: &IndexMap<Box<str>, Box<str>>,
-    ) -> io::Result<impl AsyncRead> {
+    async fn get(&self, url: &Url, headers: &IndexMap<&str, &str>) -> io::Result<impl AsyncRead> {
         // file not found: err
 
         let mut request = self.get(url.to_owned());
 
-        for (name, header) in headers {
-            request = request.header(name.as_ref(), header.as_ref());
+        for (&name, &header) in headers {
+            request = request.header(name, header);
         }
 
         Ok(request
@@ -140,7 +136,7 @@ impl HttpClient for reqwest::Client {
 }
 
 impl HttpClient for Infallible {
-    async fn get(&self, _: &Url, _: &IndexMap<Box<str>, Box<str>>) -> io::Result<impl AsyncRead> {
+    async fn get(&self, _: &Url, _: &IndexMap<&str, &str>) -> io::Result<impl AsyncRead> {
         Ok(io::empty())
     }
 
