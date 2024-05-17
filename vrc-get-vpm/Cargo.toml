@@ -35,7 +35,7 @@ uuid = { version = "1.8.0", features = ["v4"] }
 lazy_static = "1.4.0"
 enum-map = "2.7.3"
 
-vrc-get-litedb = { path = "../vrc-get-litedb", optional = true }
+vrc-get-litedb = { version = "0.2.0", optional = true }
 tokio = { version = "1.37.0", features = ["fs", "process"], optional = true }
 serde_path_to_error = "0.1.16"
 serde-value = "0.7.0"
