@@ -8,6 +8,7 @@ use std::fmt::Display;
 use std::path::Path;
 
 use indexmap::IndexMap;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use version::{ReleaseType, UnityVersion, Version, VersionRange};
 
@@ -149,18 +150,19 @@ impl<'a> PackageInfo<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 pub enum ProjectType {
-    Unknown,
-    LegacySdk2,
-    LegacyWorlds,
-    LegacyAvatars,
-    UpmWorlds,
-    UpmAvatars,
-    UpmStarter,
-    Worlds,
-    Avatars,
-    VpmStarter,
+    Unknown = 0,
+    LegacySdk2 = 1,
+    LegacyWorlds = 2,
+    LegacyAvatars = 3,
+    UpmWorlds = 4,
+    UpmAvatars = 5,
+    UpmStarter = 6,
+    Worlds = 7,
+    Avatars = 8,
+    VpmStarter = 9,
 }
 
 impl Display for ProjectType {
@@ -176,43 +178,6 @@ impl Display for ProjectType {
             Self::Worlds => f.write_str("Worlds"),
             Self::Avatars => f.write_str("Avatars"),
             Self::VpmStarter => f.write_str("VPM Starter"),
-        }
-    }
-}
-
-#[cfg(feature = "vrc-get-litedb")]
-impl From<vrc_get_litedb::ProjectType> for ProjectType {
-    fn from(value: vrc_get_litedb::ProjectType) -> Self {
-        match value {
-            vrc_get_litedb::ProjectType::LEGACY_SDK2 => Self::LegacySdk2,
-            vrc_get_litedb::ProjectType::LEGACY_WORLDS => Self::LegacyWorlds,
-            vrc_get_litedb::ProjectType::LEGACY_AVATARS => Self::LegacyAvatars,
-            vrc_get_litedb::ProjectType::UPM_WORLDS => Self::UpmWorlds,
-            vrc_get_litedb::ProjectType::UPM_AVATARS => Self::UpmAvatars,
-            vrc_get_litedb::ProjectType::UPM_STARTER => Self::UpmStarter,
-            vrc_get_litedb::ProjectType::WORLDS => Self::Worlds,
-            vrc_get_litedb::ProjectType::AVATARS => Self::Avatars,
-            vrc_get_litedb::ProjectType::VPM_STARTER => Self::VpmStarter,
-            vrc_get_litedb::ProjectType::UNKNOWN => Self::Unknown,
-            _ => Self::Unknown,
-        }
-    }
-}
-
-#[cfg(feature = "vrc-get-litedb")]
-impl From<ProjectType> for vrc_get_litedb::ProjectType {
-    fn from(value: ProjectType) -> Self {
-        match value {
-            ProjectType::LegacySdk2 => Self::LEGACY_SDK2,
-            ProjectType::LegacyWorlds => Self::LEGACY_WORLDS,
-            ProjectType::LegacyAvatars => Self::LEGACY_AVATARS,
-            ProjectType::UpmWorlds => Self::UPM_WORLDS,
-            ProjectType::UpmAvatars => Self::UPM_AVATARS,
-            ProjectType::UpmStarter => Self::UPM_STARTER,
-            ProjectType::Worlds => Self::WORLDS,
-            ProjectType::Avatars => Self::AVATARS,
-            ProjectType::VpmStarter => Self::VPM_STARTER,
-            ProjectType::Unknown => Self::UNKNOWN,
         }
     }
 }
