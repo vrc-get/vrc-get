@@ -534,6 +534,7 @@ struct TauriProject {
     path: String,
     project_type: TauriProjectType,
     unity: String,
+    unity_revision: Option<String>,
     last_modified: i64,
     created_at: i64,
     favorite: bool,
@@ -587,6 +588,7 @@ impl TauriProject {
                 .unity_version()
                 .map(|v| v.to_string())
                 .unwrap_or_else(|| "unknown".into()),
+            unity_revision: project.unity_revision().map(|x| x.to_string()),
             last_modified: project.last_modified().timestamp_millis(),
             created_at: project.crated_at().timestamp_millis(),
             favorite: project.favorite(),
