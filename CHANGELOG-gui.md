@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog].
 ### Changed
 - Improved project Template selection `#967`
 - Ask installing unity for a project if not installed `#988`
+- Removed Visual Scripting from dependencies of template projects `#991`
 
 ### Deprecated
 
