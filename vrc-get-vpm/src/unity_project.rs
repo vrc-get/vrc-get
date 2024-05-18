@@ -141,41 +141,44 @@ impl<IO: ProjectIo> UnityProject<IO> {
             return (None, None);
         };
 
-        let unity_version = Self::try_read_editor_version(buffer.as_str());
-        let revision = Self::try_read_revision(buffer.as_str());
+        let unity_version = match Self::find_attribute(buffer.as_str(), "m_EditorVersion:") {
+            None => None,
+            Some(version_info) => {
+                let parsed = UnityVersion::parse(version_info);
+                if parsed.is_none() {
+                    log::error!("failed to parse m_EditorVersion in ProjectVersion.txt");
+                }
+                parsed
+            }
+        };
 
-        if unity_version.is_none() {
-            log::error!("failed to parse m_EditorVersion in ProjectVersion.txt");
-        }
-
-        if revision.is_none() {
-            log::error!("failed to parse m_EditorVersionWithRevision in ProjectVersion.txt");
-        }
+        let revision = match Self::find_attribute(buffer.as_str(), "m_EditorVersionWithRevision:") {
+            None => None,
+            Some(version_info) => {
+                let parsed = Self::parse_version_with_revision(version_info);
+                if parsed.is_none() {
+                    log::error!(
+                        "failed to parse m_EditorVersionWithRevision in ProjectVersion.txt"
+                    );
+                }
+                parsed
+            }
+        };
 
         (unity_version, revision.map(|x| x.to_string()))
     }
 
-    fn try_read_editor_version(buffer: &str) -> Option<UnityVersion> {
-        let (_, version_info) = buffer.split_once("m_EditorVersion:")?;
-
+    fn find_attribute<'a>(buffer: &'a str, attribute: &str) -> Option<&'a str> {
+        let (_, version_info) = buffer.split_once(attribute)?;
         let version_info_end = version_info
             .find(|x: char| x == '\r' || x == '\n')
             .unwrap_or(version_info.len());
         let version_info = &version_info[..version_info_end];
         let version_info = version_info.trim();
-
-        UnityVersion::parse(version_info)
+        Some(version_info)
     }
 
-    fn try_read_revision(buffer: &str) -> Option<&str> {
-        let (_, version_info) = buffer.split_once("m_EditorVersionWithRevision:")?;
-
-        let version_info_end = version_info
-            .find(|x: char| x == '\r' || x == '\n')
-            .unwrap_or(version_info.len());
-        let version_info = &version_info[..version_info_end];
-        let version_info = version_info.trim();
-
+    fn parse_version_with_revision(version_info: &str) -> Option<&str> {
         let (_version, revision) = version_info.split_once('(')?;
         let (revision, _) = revision.split_once(')')?;
 
