@@ -583,7 +583,7 @@ function ProjectRow(
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
 					<RowButton
-						onClick={() => openUnity(project.path, project.unity)}>{tc("projects:button:open unity")}</RowButton>
+						onClick={() => openUnity(project.path, project.unity, project.unity_revision)}>{tc("projects:button:open unity")}</RowButton>
 					{manageButton}
 					<RowButton onClick={() => backupProjectModal.startBackup(project)}
 										 color={"green"}>{tc("projects:backup")}</RowButton>

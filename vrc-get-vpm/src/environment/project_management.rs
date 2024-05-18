@@ -43,18 +43,25 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 async fn get_project_type(
                     io: &impl EnvironmentIo,
                     path: &Path,
-                ) -> io::Result<(ProjectType, Option<UnityVersion>)> {
+                ) -> io::Result<(ProjectType, Option<UnityVersion>, Option<String>)>
+                {
                     let project = UnityProject::load(io.new_project_io(path)).await?;
                     let detected_type = project.detect_project_type().await?;
-                    Ok((detected_type, project.unity_version()))
+                    Ok((
+                        detected_type,
+                        project.unity_version(),
+                        project.unity_revision().map(|x| x.to_owned()),
+                    ))
                 }
-                let (project_type, unity_version) = get_project_type(&self.io, project.as_ref())
-                    .await
-                    .unwrap_or((ProjectType::Unknown, None));
-                db.insert(
-                    COLLECTION,
-                    &UserProject::new((*project).into(), unity_version, project_type),
-                )?;
+                let (project_type, unity_version, unity_revision) =
+                    get_project_type(&self.io, project.as_ref())
+                        .await
+                        .unwrap_or((ProjectType::Unknown, None, None));
+                let mut project = UserProject::new((*project).into(), unity_version, project_type);
+                if let (Some(unity), Some(revision)) = (unity_version, unity_revision) {
+                    project.set_unity_revision(unity, revision);
+                }
+                db.insert(COLLECTION, &project)?;
             }
         }
 
@@ -117,9 +124,19 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
             let loaded_project = UnityProject::load(io.new_project_io(path)).await?;
             if let Some(unity_version) = loaded_project.unity_version() {
-                if project.unity_version() != Some(unity_version) {
-                    changed = true;
-                    project.unity_version = Some(unity_version);
+                if let Some(revision) = loaded_project.unity_revision() {
+                    if Some(unity_version) != project.unity_version()
+                        || Some(revision) != project.unity_revision()
+                    {
+                        changed = true;
+                        project.set_unity_revision(unity_version, revision.to_owned());
+                    }
+                } else {
+                    #[allow(clippy::collapsible_else_if)]
+                    if project.unity_version() != Some(unity_version) {
+                        changed = true;
+                        project.set_unity_version(unity_version);
+                    }
                 }
             }
 
@@ -193,10 +210,15 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             io::ErrorKind::InvalidData,
             "project has no unity version",
         ))?;
+        let unity_revision = project.unity_revision().ok_or(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "project has no unity revision",
+        ))?;
 
         let project_type = project.detect_project_type().await?;
 
-        let new_project = UserProject::new(path.into(), Some(unity_version), project_type);
+        let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
+        new_project.set_unity_revision(unity_version, unity_revision.to_owned());
 
         self.get_db()?.insert(COLLECTION, &new_project)?;
         self.settings.add_user_project(path);
@@ -229,7 +251,7 @@ pub struct UserProject {
     id: ObjectId,
     #[serde(rename = "Path")]
     path: Box<str>,
-    #[serde(rename = "UnityVersion")]
+    #[serde(default, rename = "UnityVersion")]
     unity_version: Option<UnityVersion>,
     #[serde(rename = "CreatedAt")]
     created_at: DateTime,
@@ -239,6 +261,16 @@ pub struct UserProject {
     project_type: ProjectType,
     #[serde(rename = "Favorite")]
     favorite: bool,
+    #[serde(default, rename = "vrc-get")]
+    vrc_get: Option<VrcGetMeta>,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct VrcGetMeta {
+    #[serde(default)]
+    cached_unity_version: Option<UnityVersion>,
+    #[serde(default)]
+    unity_revision: Option<String>,
 }
 
 impl UserProject {
@@ -252,6 +284,7 @@ impl UserProject {
             last_modified: now,
             project_type,
             favorite: false,
+            vrc_get: None,
         }
     }
 
@@ -289,5 +322,27 @@ impl UserProject {
 
     pub fn set_favorite(&mut self, favorite: bool) {
         self.favorite = favorite;
+    }
+
+    pub fn set_unity_version(&mut self, unity_version: UnityVersion) {
+        self.unity_version = Some(unity_version);
+        if let Some(vrc_get) = self.vrc_get.as_mut() {
+            vrc_get.cached_unity_version = Some(unity_version);
+            vrc_get.unity_revision = None;
+        }
+    }
+
+    pub fn set_unity_revision(&mut self, unity_version: UnityVersion, unity_revision: String) {
+        self.unity_version = Some(unity_version);
+        let vrc_get = self.vrc_get.get_or_insert_with(Default::default);
+        vrc_get.cached_unity_version = Some(unity_version);
+        vrc_get.unity_revision = Some(unity_revision);
+    }
+
+    pub fn unity_revision(&self) -> Option<&str> {
+        self.vrc_get
+            .as_ref()
+            .filter(|x| x.cached_unity_version == self.unity_version)
+            .and_then(|x| x.unity_revision.as_deref())
     }
 }

@@ -476,6 +476,7 @@ function PageBody() {
 				projectName={projectName}
 				projectPath={projectPath}
 				unityVersion={detailsResult.data?.unity_str ?? null}
+				unityRevision={detailsResult.data?.unity_revision ?? null}
 				unityVersions={unityVersionsResult?.data}
 				onRemove={onRemoveProject}
 				onBackup={onBackupProject}
@@ -1451,11 +1452,21 @@ function PackageLatestInfo(
 	}
 }
 
-function ProjectViewHeader({className, projectName, projectPath, unityVersion, unityVersions, onRemove, onBackup}: {
+function ProjectViewHeader({
+														 className,
+														 projectName,
+														 projectPath,
+														 unityVersion,
+														 unityRevision,
+														 unityVersions,
+														 onRemove,
+														 onBackup
+													 }: {
 	className?: string,
 	projectName: string,
 	projectPath: string
 	unityVersion: string | null,
+	unityRevision: string | null,
 	unityVersions: TauriUnityVersions | undefined,
 	onRemove?: () => void,
 	onBackup?: () => void,
@@ -1480,7 +1491,7 @@ function ProjectViewHeader({className, projectName, projectPath, unityVersion, u
 
 			<Menu>
 				<ButtonGroup>
-					<Button onClick={() => openUnity.openUnity(projectPath, unityVersion)}
+					<Button onClick={() => openUnity.openUnity(projectPath, unityVersion, unityRevision)}
 									className={"pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
 					<MenuHandler className={"pl-2 pr-2"}>
 						<Button>
