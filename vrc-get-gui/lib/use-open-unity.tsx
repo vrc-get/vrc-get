@@ -1,19 +1,32 @@
 import {projectOpenUnity, TauriUnityVersions} from "@/lib/bindings";
-import i18next from "@/lib/i18n";
+import i18next, {tc} from "@/lib/i18n";
 import {toastError, toastNormal} from "@/lib/toast";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
+import {shellOpen} from "@/lib/shellOpen";
+import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Typography} from "@material-tailwind/react";
+import React from "react";
+import {nop} from "@/lib/nop";
 
-export type OpenUnityFunction = (projectPath: string, unityVersion: string | null) => void;
+export type OpenUnityFunction = (projectPath: string, unityVersion: string | null, unityRevision?: string | null) => void;
 
 export type Result = {
 	dialog: React.ReactNode;
 	openUnity: OpenUnityFunction;
 }
 
+type StateInternal = {
+	state: "normal";
+} | {
+	state: "suggest-unity-hub";
+	unityVersion: string;
+	unityHubLink: string;
+}
+
 export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Result {
 	const unitySelector = useUnitySelectorDialog();
+	const [installStatus, setInstallStatus] = React.useState<StateInternal>({state: "normal"});
 
-	const openUnity = async (projectPath: string, unityVersion: string | null) => {
+	const openUnity = async (projectPath: string, unityVersion: string | null, unityRevision?: string | null) => {
 		if (unityVersion == null) {
 			toastError(i18next.t("projects:toast:invalid project unity version"));
 			return;
@@ -27,7 +40,15 @@ export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Res
 
 		switch (foundVersions.length) {
 			case 0:
-				toastError(i18next.t("projects:toast:match version unity not found"));
+				if (unityRevision) {
+					setInstallStatus({
+						state: "suggest-unity-hub",
+						unityVersion: unityVersion,
+						unityHubLink: `unityhub://${unityVersion}/${unityRevision}`,
+					});
+				} else {
+					toastError(i18next.t("projects:toast:match version unity not found"));
+				}
 				return;
 			case 1:
 				toastNormal(i18next.t("projects:toast:opening unity..."));
@@ -41,5 +62,49 @@ export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Res
 		}
 	}
 
-	return {dialog: unitySelector.dialog, openUnity};
+	const thisDialog = installStatus.state === "suggest-unity-hub" ? <UnityInstallWindow
+		expectedVersion={installStatus.unityVersion}
+		installWithUnityHubLink={installStatus.unityHubLink}
+		close={() => setInstallStatus({state: "normal"})}
+	/> : null;
+
+	const dialog = <>
+		{unitySelector.dialog}
+		{thisDialog}
+	</>
+
+	return {dialog, openUnity};
 }
+
+
+function UnityInstallWindow(
+	{
+		expectedVersion,
+		installWithUnityHubLink,
+		close,
+	}: {
+		expectedVersion: string,
+		installWithUnityHubLink: string,
+		close: () => void
+	}) {
+	const openUnityHub = async () => {
+		console.log("openUnityHub", installWithUnityHubLink)
+		await shellOpen(installWithUnityHubLink);
+	}
+
+	return <Dialog open handler={nop}>
+		<DialogHeader>
+			{tc("projects:manage:dialog:unity not found")}
+		</DialogHeader>
+		<DialogBody>
+			<Typography>
+				{tc("projects:manage:dialog:unity version of the project not found", {unity: expectedVersion})}
+			</Typography>
+		</DialogBody>
+		<DialogFooter className={"gap-2"}>
+			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
+			<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
+		</DialogFooter>
+	</Dialog>;
+}
+

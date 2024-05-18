@@ -98,6 +98,8 @@
     "projects:manage:button:select repositories": "Select Repositories",
     "vpm repositories:source:official": "Official",
     "vpm repositories:source:curated": "Curated",
+    "projects:manage:dialog:unity not found": "Unity was not found",
+    "projects:manage:dialog:unity version of the project not found": "The project is using Unity {{unity}} but it was not found.<br>Please install Unity {{unity}} with Unity Hub and restart ALCOM.",
     "projects:manage:suggest resolve": "Some required packages for this project are not installed.<br>It is strongly recommended to install the packages.",
     "projects:manage:button:resolve": "Install Packages",
     "projects:manage:suggest unity migration": "Your project is using Unity 2019 which is no longer supported by VRChat SDK. VRChat recommends you migrate your project to Unity 2022.",

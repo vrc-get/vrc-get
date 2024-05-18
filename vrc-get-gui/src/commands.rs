@@ -1882,6 +1882,7 @@ async fn environment_create_project(
 struct TauriProjectDetails {
     unity: Option<(u16, u8)>,
     unity_str: Option<String>,
+    unity_revision: Option<String>,
     installed_packages: Vec<(String, TauriBasePackageInfo)>,
     should_resolve: bool,
 }
@@ -1903,6 +1904,7 @@ async fn project_details(project_path: String) -> Result<TauriProjectDetails, Ru
             .unity_version()
             .map(|v| (v.major(), v.minor())),
         unity_str: unity_project.unity_version().map(|v| v.to_string()),
+        unity_revision: unity_project.unity_revision().map(|x| x.to_string()),
         installed_packages: unity_project
             .installed_packages()
             .map(|(k, p)| (k.to_string(), TauriBasePackageInfo::new(p)))
