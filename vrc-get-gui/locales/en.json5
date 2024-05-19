@@ -205,7 +205,7 @@
     "general:toast:not supported": "{{name}} is not supported yet.",
     "general:not implemented": "Not Implemented",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
-    "projects:toast:match version unity not found": "No matching Unity version found. Please install Unity in your computer or add a Unity version in the ALCOM settings.",
+    "projects:toast:match version unity not found": "Unity {{unity}} is not found. Please install Unity in your computer or add a Unity version in the ALCOM settings.",
     "projects:toast:opening unity...": "Opening Unity...",
     "general:dialog:select file or directory header": "Selecting file or directory.",
     "general:dialog:select file or directory": "Please select a file or directory.",

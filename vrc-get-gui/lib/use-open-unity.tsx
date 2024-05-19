@@ -32,7 +32,7 @@ export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Res
 			return;
 		}
 		if (unityVersions == null) {
-			toastError(i18next.t("projects:toast:match version unity not found"));
+			toastError(i18next.t("projects:toast:match version unity not found", {unity: unityVersion}));
 			return;
 		}
 
@@ -47,7 +47,7 @@ export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Res
 						unityHubLink: `unityhub://${unityVersion}/${unityRevision}`,
 					});
 				} else {
-					toastError(i18next.t("projects:toast:match version unity not found"));
+					toastError(i18next.t("projects:toast:match version unity not found", {unity: unityVersion}));
 				}
 				return;
 			case 1:
