@@ -92,6 +92,8 @@
     "projects:manage:button:select repositories": "VPMリポジトリを選択",
     "vpm repositories:source:official": "Official",
     "vpm repositories:source:curated": "Curated",
+    "projects:manage:dialog:unity not found": "Unityが見つかりません",
+    "projects:manage:dialog:unity version of the project not found": "このプロジェクトで使用されているUnity {{unity}}が見つかりませんでした。<br>Unity HubでUnity {{unity}}をインストールし、ALCOMを再起動してください。",
     "projects:manage:suggest resolve": "このプロジェクトに必要なパッケージの一部がインストールされていません。不足しているパッケージをインストールすることを強くお勧めします。",
     "projects:manage:button:resolve": "パッケージをインストール",
     "projects:manage:suggest unity migration": "このプロジェクトは、VRChat SDKによるサポートが終了したUnity 2019を使用しています。VRChatはUnity 2022に移行することを推奨しています。",
