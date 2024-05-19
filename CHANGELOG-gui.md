@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 - Ask installing unity for a project if not installed `#988`
 - Removed Visual Scripting from dependencies of template projects `#991`
 - Support more legacy browsers `#994`
+- Improved UI with narrow windows `#1003`
 
 ### Deprecated
 
