@@ -486,7 +486,7 @@ function PageBody() {
 					{tc("projects:manage:project location",
 						{path: projectPath},
 						{
-							components: {code: <code className={"bg-gray-200 p-0.5 whitespace-pre"}/>}
+							components: {path: <span className={"p-0.5 font-path whitespace-pre bg-gray-100"}/>}
 						})}
 				</Typography>
 				<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>

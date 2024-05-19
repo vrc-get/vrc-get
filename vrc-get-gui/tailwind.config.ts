@@ -16,7 +16,8 @@ const config: Config = {
 			},
 			fontFamily: {
 				sans: ["system-ui"],
-				mono: ["monospace"],
+				path: ["system-ui"],
+				mono: ["consolas", "monospace"],
 			}
 		},
 	},

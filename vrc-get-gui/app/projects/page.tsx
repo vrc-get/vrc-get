@@ -912,7 +912,7 @@ function CreateProject(
 					<Typography variant={"small"} className={"whitespace-normal"}>
 						{tc("projects:hint:path of creating project", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {
 							components: {
-								code: <code className={"whitespace-pre"}/>
+								path: <span className={"p-0.5 font-path whitespace-pre bg-gray-100"}/>
 							}
 						})}
 					</Typography>
