@@ -2339,7 +2339,15 @@ async fn project_migrate_project_to_vpm(
 
 #[tauri::command]
 #[specta::specta]
-async fn project_open_unity(project_path: String, unity_path: String) -> Result<(), RustError> {
+async fn project_open_unity(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    unity_path: String,
+) -> Result<(), RustError> {
+    with_environment!(&state, |environment| {
+        update_project_last_modified(environment, project_path.as_ref()).await;
+    });
+
     crate::cmd_start::start_command(
         "Unity".as_ref(),
         unity_path.as_ref(),
