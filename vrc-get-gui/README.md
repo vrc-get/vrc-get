@@ -6,7 +6,10 @@ This folder contains the experimental GUI version of vrc-get, ALCOM.
 
 The recommended way to install ALCOM is download from [GitHub Releases][alcom-releases].
 
+If you want, you may download the HEAD build from [GitHub Actions][alcom-nightly]
+
 [alcom-releases]: https://github.com/anatawa12/vrc-get/releases?q=gui-v0
+[alcom-nightly]: https://github.com/vrc-get/vrc-get/actions/workflows/ci-gui.yml?query=branch%3Amaster
 
 ## Requirements (building)
 
