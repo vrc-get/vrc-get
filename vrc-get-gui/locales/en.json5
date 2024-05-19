@@ -216,5 +216,6 @@
     "settings:language": "Language",
     "settings:report issue": "Report an Issue",
     "settings:button:open issue": "Open an Issue",
+    "new key": "new value",
   },
 }
