@@ -1215,6 +1215,17 @@ function combinePackagesAndProjectDetails(
 	return asArray;
 }
 
+function LocalizationPackageSource({sourceName}: {sourceName: string}){
+	switch (sourceName) {
+		case "Official":
+			return tc("vpm repositories:source:official");
+		case "Curated":
+			return tc("vpm repositories:source:curated");
+		default:
+			return sourceName;
+	}
+}
+
 const PackageRow = memo(function PackageRow(
 	{
 		pkg,
@@ -1304,7 +1315,7 @@ const PackageRow = memo(function PackageRow(
 					) : pkg.sources.size == 1 ? (
 						<Tooltip content={[...pkg.sources][0]}>
 							<Typography className="overflow-hidden overflow-ellipsis">
-								{[...pkg.sources][0]}
+								<LocalizationPackageSource sourceName={[...pkg.sources][0]} />
 							</Typography>
 						</Tooltip>
 					) : (
