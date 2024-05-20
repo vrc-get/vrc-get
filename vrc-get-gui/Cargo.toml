@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get-gui"
-version = "0.1.4-beta.0"
+version = "0.1.4"
 description = "A Tauri App"
 
 homepage.workspace = true

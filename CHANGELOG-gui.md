@@ -8,29 +8,36 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- `vcc://` support `#978`
-  - This is enabled by default for macOS and you have to enable manually on Settings page for windows and linux.
-- per-package `headers` field support `#718`
 
 ### Changed
-- Improved project Template selection `#967`
-- Ask installing unity for a project if not installed `#988`
-- Removed Visual Scripting from dependencies of template projects `#991`
-- Support more legacy browsers `#994`
-- Improved UI with narrow windows `#1003`
-- Make package name gray-outed if not installed `#1018`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Impossible to install for machine (for Windows) `#976`
-- Japanese variant of CJK Ideograph is used for Simplified Chinese `#980`
-  - Since this version, ALCOM will always use `system-ui` font for all languages.
-- Last modified is not updated on opening unity again `#995`
 
 ### Security
+
+## [0.1.4] - 2024-05-20
+### Added
+- `vcc://` support [`#978`](https://github.com/vrc-get/vrc-get/pull/978)
+  - This is enabled by default for macOS and you have to enable manually on Settings page for windows and linux.
+- per-package `headers` field support [`#718`](https://github.com/vrc-get/vrc-get/pull/718)
+
+### Changed
+- Improved project Template selection [`#967`](https://github.com/vrc-get/vrc-get/pull/967)
+- Ask installing unity for a project if not installed [`#988`](https://github.com/vrc-get/vrc-get/pull/988)
+- Removed Visual Scripting from dependencies of template projects [`#991`](https://github.com/vrc-get/vrc-get/pull/991)
+- Support more legacy browsers [`#994`](https://github.com/vrc-get/vrc-get/pull/994)
+- Improved UI with narrow windows [`#1003`](https://github.com/vrc-get/vrc-get/pull/1003)
+- Make package name gray-outed if not installed [`#1018`](https://github.com/vrc-get/vrc-get/pull/1018)
+
+### Fixed
+- Impossible to install for machine (for Windows) [`#976`](https://github.com/vrc-get/vrc-get/pull/976)
+- Japanese variant of CJK Ideograph is used for Simplified Chinese [`#980`](https://github.com/vrc-get/vrc-get/pull/980)
+  - Since this version, ALCOM will always use `system-ui` font for all languages.
+- Last modified is not updated on opening unity again [`#995`](https://github.com/vrc-get/vrc-get/pull/995)
 
 ## [0.1.3] - 2024-05-13
 ### Added
@@ -284,7 +291,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.3...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.4...HEAD
+[0.1.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.3...gui-v0.1.4
 [0.1.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.2...gui-v0.1.3
 [0.1.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.1...gui-v0.1.2
 [0.1.1]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0...gui-v0.1.1
