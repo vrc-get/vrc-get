@@ -196,7 +196,7 @@
     "general:toast:not supported": "{{name}}はまだ実装されていません。",
     "general:not implemented": "未実装です",
     "projects:toast:invalid project unity version": "プロジェクトのUnityバージョン指定が不正です。",
-    "projects:toast:match version unity not found": "対応したバージョンのUnityを見つけることが出来ませんでした。該当するUnityをインストールするか、ALCOMに登録してください。",
+    "projects:toast:match version unity not found": "Unity {{unity}}が見つかりませんでした。該当するUnityをインストールするか、ALCOMに登録してください。",
     "projects:toast:opening unity...": "Unityを起動中...",
     "general:dialog:select file or directory header": "ファイルまたはディレクトリを選択",
     "general:dialog:select file or directory": "ファイルまたはディレクトリを選択してください。",
