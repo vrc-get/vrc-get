@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
 - Removed Visual Scripting from dependencies of template projects `#991`
 - Support more legacy browsers `#994`
 - Improved UI with narrow windows `#1003`
+- Make package name gray-outed if not installed `#1018`
 
 ### Deprecated
 
