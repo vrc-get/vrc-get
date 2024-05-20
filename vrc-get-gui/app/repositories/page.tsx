@@ -1,17 +1,14 @@
 "use client"
 
+import {Button} from "@/components/ui/button";
 import {
-	Button,
 	Card,
 	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
 	DialogHeader,
-	IconButton,
 	Input,
-	List,
-	ListItem,
 	Tooltip,
 } from "@material-tailwind/react";
 import {useQuery} from "@tanstack/react-query";
@@ -300,9 +297,9 @@ function RepositoryRow(
 			</td>
 			<td className={`${cellClass} w-0`}>
 				<Tooltip content={tc("vpm repositories:remove repository")}>
-					<IconButton onClick={() => setRemoveDialogOpen(true)} variant={"text"}>
+					<Button onClick={() => setRemoveDialogOpen(true)} variant={"ghost"}>
 						<XCircleIcon className={"size-5 text-red-700"}/>
-					</IconButton>
+					</Button>
 				</Tooltip>
 			</td>
 			{dialog}
@@ -459,14 +456,14 @@ function EnteringRepositoryInfo(
 										</td>
 										<td className={"w-20"}>
 											<Tooltip content={tc("vpm repositories:tooltip:add header")} className={"z-[19999]"}>
-												<IconButton variant={"text"} onClick={addHeader}>
+												<Button variant={"ghost"} onClick={addHeader}>
 													<PlusCircleIcon color={"green"} className={"size-5"}/>
-												</IconButton>
+												</Button>
 											</Tooltip>
 											<Tooltip content={tc("vpm repositories:tooltip:remove header")} className={"z-[19999]"}>
-												<IconButton variant={"text"} onClick={() => removeHeader(idx)}>
+												<Button variant={"ghost"} onClick={() => removeHeader(idx)}>
 													<MinusCircleIcon color={"red"} className={"size-5"}/>
-												</IconButton>
+												</Button>
 											</Tooltip>
 										</td>
 									</tr>

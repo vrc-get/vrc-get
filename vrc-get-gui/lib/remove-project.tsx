@@ -1,5 +1,6 @@
 import React, {ReactNode, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {environmentRemoveProject, environmentRemoveProjectByPath, TauriProject} from "@/lib/bindings";
 import {toastSuccess} from "@/lib/toast";
@@ -76,7 +77,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 						<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
 							{tc("projects:button:remove from list")}
 						</Button>
-						<Button onClick={() => removeProjectButton(true)} color={"red"} className="px-2"
+						<Button onClick={() => removeProjectButton(true)} variant={"destructive"} className="px-2"
 										disabled={!project.is_exists}>
 							{tc("projects:button:remove directory")}
 						</Button>
@@ -96,7 +97,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 						<Button className="mr-1 px-2" disabled>
 							{tc("projects:button:remove from list")}
 						</Button>
-						<Button color={"red"} className="px-2" disabled>
+						<Button variant={"destructive"} className="px-2" disabled>
 							{tc("projects:button:remove directory")}
 						</Button>
 					</DialogFooter>

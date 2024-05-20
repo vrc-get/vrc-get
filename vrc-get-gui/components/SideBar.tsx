@@ -1,6 +1,7 @@
 "use client";
 
-import {Card, List, ListItem, ListItemPrefix} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {Card} from "@material-tailwind/react";
 import {CloudIcon, Cog6ToothIcon, ListBulletIcon} from "@heroicons/react/24/solid";
 import React from "react";
 import {Bars4Icon} from "@heroicons/react/24/outline";
@@ -36,14 +37,14 @@ export function SideBar({className}: { className?: string }) {
 	return (
 		<Card
 			className={`${className} w-auto max-w-[20rem] p-2 shadow-xl shadow-blue-gray-900/5 ml-4 my-4 shrink-0`}>
-			<List className="min-w-[10rem] flex-grow">
+			<div className="flex flex-col gap-1 p-2 min-w-[10rem] flex-grow">
 				<SideBarItem href={"/projects"} text={t("projects")} icon={ListBulletIcon}/>
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
 				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
 				<div className={'flex-grow'}/>
-				<ListItem className={"text-sm"} onClick={copyVersionName}>v{currentVersion}</ListItem>
-			</List>
+				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card"} onClick={copyVersionName}>v{currentVersion}</Button>
+			</div>
 		</Card>
 	);
 }
@@ -54,11 +55,11 @@ function SideBarItem(
 	const router = useRouter();
 	const IconElenment = icon;
 	return (
-		<ListItem onClick={() => router.push(href)}>
-			<ListItemPrefix>
-				<IconElenment className="h-5 w-5"/>
-			</ListItemPrefix>
-			{text}
-		</ListItem>
+    <Button variant={"ghost"} className={"justify-start"} onClick={() => router.push(href)}>
+      <div className={"mr-4"}>
+        <IconElenment className="h-5 w-5" />
+      </div>
+      {text}
+    </Button>
 	);
 }

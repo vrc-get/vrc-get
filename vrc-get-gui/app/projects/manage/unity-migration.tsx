@@ -1,5 +1,6 @@
 import React, {Fragment, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogBody, DialogFooter, DialogHeader, Radio} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {tc, tt} from "@/lib/i18n";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
@@ -50,9 +51,9 @@ function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate(false)} color={"red"}
+				<Button onClick={() => doMigrate(false)} variant={"destructive"}
 								className="mr-1">{tc("projects:button:migrate copy")}</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
+				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -99,7 +100,7 @@ function MigrationConfirmMigrationPatchDialog(
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
+				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
 			</DialogFooter>
 		</>
 	);

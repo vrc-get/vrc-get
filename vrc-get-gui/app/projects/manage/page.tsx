@@ -1,17 +1,13 @@
 "use client"
 
+import {Button} from "@/components/ui/button";
 import {
-	Button,
-	ButtonGroup,
 	Card,
 	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
 	DialogHeader,
-	IconButton,
-	List,
-	ListItem,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -521,9 +517,9 @@ function PageBody() {
 						</p>
 
 						<Tooltip content={tc("projects:manage:tooltip:refresh packages")}>
-							<IconButton variant={"text"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
+							<Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
 								{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-							</IconButton>
+							</Button>
 						</Tooltip>
 
 						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
@@ -532,15 +528,15 @@ function PageBody() {
 							<Button className={"flex-shrink-0"}
 											onClick={onUpgradeAllRequest}
 											disabled={isLoading}
-											color={"green"}>
+											variant={"success"}>
 								{tc("projects:manage:button:upgrade all")}
 							</Button>}
 
 						<Menu>
 							<MenuHandler>
-								<IconButton variant={"text"} className={'flex-shrink-0'}>
+								<Button variant={"ghost"} className={'flex-shrink-0'}>
 									<EllipsisHorizontalIcon className={"size-5"}/>
-								</IconButton>
+								</Button>
 							</MenuHandler>
 							<MenuList>
 								<MenuItem className={"p-3"}
@@ -649,7 +645,7 @@ function SuggestResolveProjectCard(
 				{tc("projects:manage:suggest resolve")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
-			<Button variant={"text"} color={"red"} onClick={onResolveRequested} disabled={disabled}>
+			<Button variant={"ghost"} className={"hover:bg-destructive/10 hover:text-destructive text-destructive"} onClick={onResolveRequested} disabled={disabled}>
 				{tc("projects:manage:button:resolve")}
 			</Button>
 		</Card>
@@ -672,7 +668,7 @@ function SuggestMigrateTo2022Card(
 				{tc("projects:manage:suggest unity migration")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
-			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
+			<Button variant={"ghost"} className={"hover:bg-destructive/10 hover:text-destructive text-destructive"} onClick={onMigrateRequested} disabled={disabled}>
 				{tc("projects:manage:button:unity migrate")}
 			</Button>
 		</Card>
@@ -695,7 +691,7 @@ function Suggest2022PatchMigrationCard(
 				{tc("projects:manage:suggest unity patch migration")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
-			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
+			<Button variant={"ghost"} className={"hover:bg-destructive/10 hover:text-destructive text-destructive"} onClick={onMigrateRequested} disabled={disabled}>
 				{tc("projects:manage:button:unity migrate")}
 			</Button>
 		</Card>
@@ -730,10 +726,10 @@ function BulkUpdateCard(
 			{canInstall && <Button disabled={disabled} onClick={bulkInstallAll}>
 				{tc("projects:manage:button:install selected")}
 			</Button>}
-			{canUpgrade && <Button disabled={disabled} onClick={bulkUpgradeAll} color={"green"}>
+			{canUpgrade && <Button disabled={disabled} onClick={bulkUpgradeAll} variant={"success"}>
 				{tc("projects:manage:button:upgrade selected")}
 			</Button>}
-			{canRemove && <Button disabled={disabled} onClick={bulkRemoveAll} color={"red"}>
+			{canRemove && <Button disabled={disabled} onClick={bulkRemoveAll} variant={"destructive"}>
 				{tc("projects:manage:button:uninstall selected")}
 			</Button>}
 			<Button disabled={disabled} onClick={cancel}>
@@ -764,7 +760,7 @@ function ProjectChangesDialog(
 	}, [packages]);
 
 	const TypographyItem = ({children}: { children: React.ReactNode }) => (
-		<ListItem><p className={"font-normal"}>{children}</p></ListItem>
+		<div className={"p-3"}><p className={"font-normal"}>{children}</p></div>
 	);
 
 	const packageChangesSorted = changes.package_changes.sort(comparePackageChange);
@@ -776,14 +772,14 @@ function ProjectChangesDialog(
 				<p className={"text-gray-900"}>
 					{tc("projects:manage:dialog:confirm changes description")}
 				</p>
-				<List>
+				<div className={"flex flex-col gap-1 p-2"}>
 					{packageChangesSorted.map(([pkgId, pkgChange]) => {
 						if ('InstallNew' in pkgChange) {
 							let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
 							if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
-							return <ListItem key={pkgId}>
+							return <div key={pkgId} className={"p-3"}>
 								<p className={"font-normal"}>{tc("projects:manage:dialog:install package", {
 									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
 									version: toVersionString(pkgChange.InstallNew.version),
@@ -791,7 +787,7 @@ function ProjectChangesDialog(
 								{changelogUrl != null &&
 									<Button className={"ml-1 px-2"} size={"sm"}
 													onClick={() => shellOpen(changelogUrl)}>{tc("projects:manage:button:see changelog")}</Button>}
-							</ListItem>
+							</div>
 						} else {
 							const name = getPackageDisplayName(pkgId);
 							switch (pkgChange.Remove) {
@@ -810,14 +806,14 @@ function ProjectChangesDialog(
 							}
 						}
 					})}
-				</List>
+				</div>
 				{
 					versionConflicts.length > 0 ? (
 						<>
 							<p className={"text-red-700"}>
 								{tc("projects:manage:dialog:package version conflicts", {count: versionConflicts.length})}
 							</p>
-							<List>
+							<div className={"flex flex-col gap-1 p-2"}>
 								{versionConflicts.map(([pkgId, conflict]) => {
 									return (
 										<TypographyItem key={pkgId}>
@@ -828,7 +824,7 @@ function ProjectChangesDialog(
 										</TypographyItem>
 									);
 								})}
-							</List>
+							</div>
 						</>
 					) : null
 				}
@@ -838,13 +834,13 @@ function ProjectChangesDialog(
 							<p className={"text-red-700"}>
 								{tc("projects:manage:dialog:unity version conflicts", {count: unityConflicts.length})}
 							</p>
-							<List>
+							<div className={"flex flex-col gap-1 p-2"}>
 								{unityConflicts.map(([pkgId, _]) => (
 									<TypographyItem key={pkgId}>
 										{tc("projects:manage:dialog:package not supported your unity", {pkg: getPackageDisplayName(pkgId)})}
 									</TypographyItem>
 								))}
-							</List>
+							</div>
 						</>
 					) : null
 				}
@@ -854,7 +850,7 @@ function ProjectChangesDialog(
 							<p className={"text-red-700"}>
 								{tc("projects:manage:dialog:files and directories are removed as legacy")}
 							</p>
-							<List>
+							<div className={"flex flex-col gap-1 p-2"}>
 								{changes.remove_legacy_files.map(f => (
 									<TypographyItem key={f}>
 										{f}
@@ -865,14 +861,14 @@ function ProjectChangesDialog(
 										{f}
 									</TypographyItem>
 								))}
-							</List>
+							</div>
 						</>
 					) : null
 				}
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={apply} color={"red"}>{tc("projects:manage:button:apply")}</Button>
+				<Button onClick={apply} variant={"destructive"}>{tc("projects:manage:button:apply")}</Button>
 			</DialogFooter>
 		</Dialog>
 	);
@@ -1320,14 +1316,14 @@ const PackageRow = memo(function PackageRow(
 					{
 						pkg.installed ? (
 							<Tooltip content={tc("projects:manage:tooltip:remove packages")}>
-								<IconButton variant={'text'} disabled={locked} onClick={remove}><MinusCircleIcon
-									className={"size-5 text-red-700"}/></IconButton>
+								<Button variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
+									className={"size-5 text-red-700"}/></Button>
 							</Tooltip>
 						) : (
 							<Tooltip content={tc("projects:manage:tooltip:add package")}>
-								<IconButton variant={'text'} disabled={locked && !!latestVersion}
+								<Button variant={'ghost'} disabled={locked && !!latestVersion}
 														onClick={installLatest}><PlusCircleIcon
-									className={"size-5 text-gray-800"}/></IconButton>
+									className={"size-5 text-gray-800"}/></Button>
 							</Tooltip>
 						)
 					}
@@ -1437,8 +1433,8 @@ function PackageLatestInfo(
 		case "upgradable":
 			return (
 				<Tooltip content={tc("projects:manage:tooltip:upgrade package")}>
-					<Button variant={"outlined"} color={"green"}
-									className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case"}
+					<Button variant={"outline"}
+									className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
 									disabled={locked}
 									onClick={() => onInstallRequested(info.pkg)}>
 						<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
@@ -1476,9 +1472,9 @@ function ProjectViewHeader({
 	return (
 		<HNavBar className={className}>
 			<Tooltip content={tc("projects:manage:tooltip:back to projects")}>
-				<IconButton variant={"text"} onClick={() => history.back()}>
+				<Button variant={"ghost"} onClick={() => history.back()}>
 					<ArrowLeftIcon className={"w-5 h-5"}/>
-				</IconButton>
+				</Button>
 			</Tooltip>
 
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 whitespace-pre">
@@ -1489,15 +1485,15 @@ function ProjectViewHeader({
 			</div>
 
 			<Menu>
-				<ButtonGroup>
+				<div className={"flex divide-x"}>
 					<Button onClick={() => openUnity.openUnity(projectPath, unityVersion, unityRevision)}
-									className={"pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
-					<MenuHandler className={"pl-2 pr-2"}>
+									className={"rounded-r-none pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
+					<MenuHandler className={"rounded-l-none pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
 						</Button>
 					</MenuHandler>
-				</ButtonGroup>
+				</div>
 				<MenuList>
 					<MenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</MenuItem>
 					<MenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</MenuItem>

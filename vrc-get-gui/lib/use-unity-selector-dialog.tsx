@@ -1,5 +1,6 @@
 import React, {useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogBody, DialogFooter, DialogHeader, Radio} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {tc} from "@/lib/i18n";
 

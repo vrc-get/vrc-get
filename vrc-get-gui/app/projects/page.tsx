@@ -1,15 +1,13 @@
 "use client"
 
+import {Button} from "@/components/ui/button";
 import {
-	Button,
-	ButtonGroup,
 	Card,
 	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
 	DialogHeader,
-	IconButton,
 	Input,
 	Menu,
 	MenuHandler,
@@ -448,7 +446,7 @@ function ProjectRow(
 		case "LegacySdk2":
 			manageButton =
 				<Tooltip content={tc("projects:tooltip:sdk2 migration hint")}>
-					<RowButton color={"light-green"} disabled>
+					<RowButton variant={"success"} disabled>
 						{tc("projects:button:migrate")}
 					</RowButton>
 				</Tooltip>
@@ -456,13 +454,13 @@ function ProjectRow(
 		case "LegacyWorlds":
 		case "LegacyAvatars":
 			manageButton =
-				<RowButton color={"light-green"} onClick={startMigrateVpm}>{tc("projects:button:migrate")}</RowButton>
+				<RowButton variant={"success"} onClick={startMigrateVpm}>{tc("projects:button:migrate")}</RowButton>
 			break;
 		case "UpmWorlds":
 		case "UpmAvatars":
 		case "UpmStarter":
 			manageButton = <Tooltip content={tc("projects:tooltip:git-vcc not supported")}>
-				<RowButton color={"blue"} disabled>
+				<RowButton variant={"info"} disabled>
 					{tc("projects:button:manage")}
 				</RowButton>
 			</Tooltip>
@@ -473,7 +471,7 @@ function ProjectRow(
 		case "VpmStarter":
 			manageButton = <RowButton
 				onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
-				color={"blue"}>
+				variant={"info"}>
 				{tc("projects:button:manage")}
 			</RowButton>
 			break;
@@ -493,9 +491,9 @@ function ProjectRow(
 					<DialogFooter>
 						<Button onClick={() => setDialogStatus({type: "normal"})}
 										className="mr-1">{tc("general:button:cancel")}</Button>
-						<Button onClick={() => doMigrateVpm(false)} color={"red"}
+						<Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
 										className="mr-1">{tc("projects:button:migrate copy")}</Button>
-						<Button onClick={() => doMigrateVpm(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
+						<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
 					</DialogFooter>
 				</Dialog>
 			);
@@ -585,11 +583,11 @@ function ProjectRow(
 						onClick={() => openUnity(project.path, project.unity, project.unity_revision)}>{tc("projects:button:open unity")}</RowButton>
 					{manageButton}
 					<RowButton onClick={() => backupProjectModal.startBackup(project)}
-										 color={"green"}>{tc("projects:backup")}</RowButton>
+										 variant={"success"}>{tc("projects:backup")}</RowButton>
 					<Menu>
 						<MenuHandler>
-							<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
-								className={"size-5"}/></IconButton>
+							<Button variant="ghost" className={"hover:bg-info/10 hover:text-info text-info"}><EllipsisHorizontalIcon
+								className={"size-5"}/></Button>
 						</MenuHandler>
 						<MenuList>
 							<MenuItem onClick={openProjectFolder}
@@ -651,23 +649,23 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 				{tc("projects")}
 
 			<Tooltip content={tc("projects:tooltip:refresh")}>
-				<IconButton variant={"text"} onClick={() => refresh?.()} disabled={isLoading}>
+				<Button variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
 					{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-				</IconButton>
+				</Button>
 			</Tooltip>
 			</p>
 
 			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
 
 			<Menu>
-				<ButtonGroup>
-					<Button className={"pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
-					<MenuHandler className={"pl-2 pr-2"}>
-						<Button>
-							<ChevronDownIcon className={"w-4 h-4"}/>
-						</Button>
-					</MenuHandler>
-				</ButtonGroup>
+        <div className={"flex divide-x"}>
+          <Button className={"rounded-r-none pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
+          <MenuHandler className={"rounded-l-none pl-2 pr-2"}>
+            <Button>
+              <ChevronDownIcon className={"w-4 h-4"}/>
+            </Button>
+          </MenuHandler>
+        </div>
 				<MenuList>
 					<MenuItem onClick={addProject}>{tc("projects:add existing project")}</MenuItem>
 				</MenuList>

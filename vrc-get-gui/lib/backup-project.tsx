@@ -1,5 +1,6 @@
 import React, {ReactNode, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
 import {projectCreateBackup, TauriProject} from "@/lib/bindings";
 import {toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";

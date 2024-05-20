@@ -3,7 +3,8 @@ import i18next, {tc} from "@/lib/i18n";
 import {toastError, toastNormal} from "@/lib/toast";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
 import {shellOpen} from "@/lib/shellOpen";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
 import React from "react";
 import {nop} from "@/lib/nop";
 
