@@ -1,5 +1,5 @@
 import React, {Fragment, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio, Typography} from "@material-tailwind/react";
+import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {tc, tt} from "@/lib/i18n";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
@@ -44,9 +44,9 @@ function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
 	return (
 		<>
 			<DialogBody>
-				<Typography className={"text-red-700"}>
+				<p className={"text-red-700"}>
 					{tc("projects:dialog:vpm migrate description")}
-				</Typography>
+				</p>
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
@@ -93,9 +93,9 @@ function MigrationConfirmMigrationPatchDialog(
 	return (
 		<>
 			<DialogBody>
-				<Typography className={"text-red-700"}>
+				<p className={"text-red-700"}>
 					{tc("projects:dialog:migrate unity2022 patch description", {unity})}
-				</Typography>
+				</p>
 			</DialogBody>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
@@ -294,23 +294,23 @@ function useMigrationInternal(
 
 function MigrationCopyingDialog() {
 	return <DialogBody>
-		<Typography>
+		<p>
 			{tc("projects:pre-migrate copying...")}
-		</Typography>
-		<Typography>
+		</p>
+		<p>
 			{tc("projects:manage:dialog:do not close")}
-		</Typography>
+		</p>
 	</DialogBody>;
 }
 
 function MigrationMigratingDialog() {
 	return <DialogBody>
-		<Typography>
+		<p>
 			{tc("projects:migrating...")}
-		</Typography>
-		<Typography>
+		</p>
+		<p>
 			{tc("projects:manage:dialog:do not close")}
-		</Typography>
+		</p>
 	</DialogBody>;
 }
 
@@ -328,12 +328,12 @@ function MigrationCallingUnityForMigrationDialog(
 	}, [lines]);
 
 	return <DialogBody>
-		<Typography>
+		<p>
 			{tc("projects:manage:dialog:unity migrate finalizing...")}
-		</Typography>
-		<Typography>
+		</p>
+		<p>
 			{tc("projects:manage:dialog:do not close")}
-		</Typography>
+		</p>
 		<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
 					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
 			<div ref={ref}/>
@@ -358,9 +358,9 @@ function NoExactUnity2022Dialog(
 
 	return <>
 		<DialogBody>
-			<Typography>
+			<p>
 				{tc("projects:manage:dialog:exact version unity not found for patch migration description", {unity: expectedVersion})}
-			</Typography>
+			</p>
 		</DialogBody>
 		<DialogFooter className={"gap-2"}>
 			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>

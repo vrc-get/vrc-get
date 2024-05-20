@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio, Typography} from "@material-tailwind/react";
+import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {tc} from "@/lib/i18n";
 
@@ -69,9 +69,9 @@ function SelectUnityVersionDialog(
 	return (
 		<>
 			<DialogBody>
-				<Typography>
+				<p>
 					{tc("projects:manage:dialog:multiple unity found")}
-				</Typography>
+				</p>
 				{unityVersions.map(([path, version, _]) =>
 					<Radio
 						key={path} name={name} label={`${version} (${path})`}

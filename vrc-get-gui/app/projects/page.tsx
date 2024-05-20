@@ -17,7 +17,6 @@ import {
 	MenuList,
 	Spinner,
 	Tooltip,
-	Typography
 } from "@material-tailwind/react";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
@@ -274,28 +273,28 @@ function ProjectsTable(
 					<button className={"flex w-full project-table-button"}
 									onClick={() => setSorting("name")}>
 						{icon("name")}
-						<Typography variant="small" className="font-normal leading-none">{tc("general:name")}</Typography>
+						<small className="font-normal leading-none">{tc("general:name")}</small>
 					</button>
 				</th>
 				<th
 					className={`${thClass} ${headerBg('type')}`}>
 					<button className={"flex w-full project-table-button"} onClick={() => setSorting("type")}>
 						{icon("type")}
-						<Typography variant="small" className="font-normal leading-none">{tc("projects:type")}</Typography>
+						<small className="font-normal leading-none">{tc("projects:type")}</small>
 					</button>
 				</th>
 				<th
 					className={`${thClass} ${headerBg('unity')}`}>
 					<button className={"flex w-full project-table-button"} onClick={() => setSorting("unity")}>
 						{icon("unity")}
-						<Typography variant="small" className="font-normal leading-none">{tc("projects:unity")}</Typography>
+						<small className="font-normal leading-none">{tc("projects:unity")}</small>
 					</button>
 				</th>
 				<th
 					className={`${thClass} ${headerBg('lastModified')}`}>
 					<button className={"flex w-full project-table-button"} onClick={() => setSorting("lastModified")}>
 						{icon("lastModified")}
-						<Typography variant="small" className="font-normal leading-none">{tc("projects:last modified")}</Typography>
+						<small className="font-normal leading-none">{tc("projects:last modified")}</small>
 					</button>
 				</th>
 				<th className={`${thClass} bg-blue-gray-50`}></th>
@@ -487,9 +486,9 @@ function ProjectRow(
 				<Dialog open handler={nop} className={"whitespace-normal"}>
 					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
 					<DialogBody>
-						<Typography className={"text-red-700"}>
+						<p className={"text-red-700"}>
 							{tc("projects:dialog:vpm migrate description")}
-						</Typography>
+						</p>
 					</DialogBody>
 					<DialogFooter>
 						<Button onClick={() => setDialogStatus({type: "normal"})}
@@ -506,9 +505,9 @@ function ProjectRow(
 				<Dialog open handler={nop} className={"whitespace-normal"}>
 					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
 					<DialogBody>
-						<Typography>
+						<p>
 							{tc("projects:pre-migrate copying...")}
-						</Typography>
+						</p>
 					</DialogBody>
 				</Dialog>
 			);
@@ -518,9 +517,9 @@ function ProjectRow(
 				<Dialog open handler={nop} className={"whitespace-normal"}>
 					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
 					<DialogBody>
-						<Typography>
+						<p>
 							{tc("projects:migrating...")}
-						</Typography>
+						</p>
 					</DialogBody>
 				</Dialog>
 			);
@@ -540,12 +539,12 @@ function ProjectRow(
 			<td className={cellClass}>
 				<MayTooltip content={tc("projects:tooltip:no directory")}>
 					<div className="flex flex-col">
-						<Typography className="font-normal whitespace-pre">
+						<p className="font-normal whitespace-pre">
 							{project.name}
-						</Typography>
-						<Typography className="font-normal opacity-50 text-sm whitespace-pre">
+						</p>
+						<p className="font-normal opacity-50 text-sm whitespace-pre">
 							{project.path}
-						</Typography>
+						</p>
 					</div>
 				</MayTooltip>
 			</td>
@@ -557,26 +556,26 @@ function ProjectRow(
 								<QuestionMarkCircleIcon className={typeIconClass}/>}
 					</div>
 					<div className="flex flex-col justify-center">
-						<Typography className="font-normal">
+						<p className="font-normal">
 							{displayType}
-						</Typography>
+						</p>
 						{isLegacy &&
-							<Typography
-								className="font-normal opacity-50 text-sm text-red-700">{tc("projects:type:legacy")}</Typography>}
+							<p
+								className="font-normal opacity-50 text-sm text-red-700">{tc("projects:type:legacy")}</p>}
 					</div>
 				</div>
 			</td>
 			<td className={noGrowCellClass}>
-				<Typography className="font-normal">
+				<p className="font-normal">
 					{project.unity}
-				</Typography>
+				</p>
 			</td>
 			<td className={noGrowCellClass}>
 				<Tooltip content={lastModifiedHumanReadable}>
 					<time dateTime={lastModified.toISOString()}>
-						<Typography as={"time"} className="font-normal">
+						<time className="font-normal">
 							{formatDateOffset(project.last_modified)}
-						</Typography>
+						</time>
 					</time>
 				</Tooltip>
 			</td>
@@ -648,15 +647,15 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 
 	return (
 		<HNavBar className={className}>
-			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+			<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 				{tc("projects")}
-			</Typography>
 
 			<Tooltip content={tc("projects:tooltip:refresh")}>
 				<IconButton variant={"text"} onClick={() => refresh?.()} disabled={isLoading}>
 					{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 				</IconButton>
 			</Tooltip>
+			</p>
 
 			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
 
@@ -871,7 +870,7 @@ function CreateProject(
 				<VStack>
 					<div className={"flex gap-1"}>
 						<div className={"flex items-center"}>
-							<Typography as={"label"}>{tc("projects:template:type")}</Typography>
+							<label>{tc("projects:template:type")}</label>
 						</div>
 						<VGSelect menuClassName={"z-[19999]"} value={tc(`projects:type:${templateType}`)}
 											onChange={value => setTemplateType(value)}>
@@ -883,7 +882,7 @@ function CreateProject(
 					{templateType !== "custom" ? (
 						<div className={"flex gap-1"}>
 							<div className={"flex items-center"}>
-								<Typography as={"label"}>{tc("projects:template:unity version")}</Typography>
+								<label>{tc("projects:template:unity version")}</label>
 							</div>
 							<VGSelect menuClassName={"z-[19999]"} value={renderUnityVersion(unityVersion)}
 												onChange={value => setUnityVersion(value)}>
@@ -894,7 +893,7 @@ function CreateProject(
 					) : (
 						<div className={"flex gap-1"}>
 							<div className={"flex items-center"}>
-								<Typography as={"label"}>{tc("projects:template")}</Typography>
+								<label>{tc("projects:template")}</label>
 							</div>
 							<VGSelect menuClassName={"z-[19999]"} value={customTemplate?.name}
 												onChange={value => setCustomTemplate(value)}>
@@ -909,23 +908,23 @@ function CreateProject(
 						<Button className="flex-none px-4"
 										onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
 					</div>
-					<Typography variant={"small"} className={"whitespace-normal"}>
+					<small className={"whitespace-normal"}>
 						{tc("projects:hint:path of creating project", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {
 							components: {
 								path: <span className={"p-0.5 font-path whitespace-pre bg-gray-100"}/>
 							}
 						})}
-					</Typography>
-					<Typography variant={"small"} className={`whitespace-normal ${projectNameStateClass}`}>
+					</small>
+					<small className={`whitespace-normal ${projectNameStateClass}`}>
 						{projectNameCheck}
-					</Typography>
+					</small>
 				</VStack>
 			</>;
 			break;
 		case "creating":
 			dialogBody = <>
 				<Spinner/>
-				<Typography>{tc("projects:creating project...")}</Typography>
+				<p>{tc("projects:creating project...")}</p>
 			</>;
 			break;
 	}

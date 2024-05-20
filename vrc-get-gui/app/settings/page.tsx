@@ -1,6 +1,6 @@
 "use client"
 
-import {Button, Card, Checkbox, Input, Typography} from "@material-tailwind/react";
+import {Button, Card, Checkbox, Input} from "@material-tailwind/react";
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
@@ -51,9 +51,9 @@ export default function Page() {
 	return (
 		<VStack className={"p-4"}>
 			<HNavBar className={"flex-shrink-0"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("settings")}
-				</Typography>
+				</p>
 			</HNavBar>
 			{body}
 		</VStack>
@@ -255,9 +255,9 @@ function Settings(
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:default project path")}</h2>
-				<Typography className={"whitespace-normal"}>
+				<p className={"whitespace-normal"}>
 					{tc("settings:default project path description")}
-				</Typography>
+				</p>
 				<div className={"flex gap-1"}>
 					<Input className="flex-auto" value={settings.default_project_path} disabled/>
 					<Button className={"flex-none px-4"}
@@ -268,9 +268,9 @@ function Settings(
 				<h2>{tc("projects:backup")}</h2>
 				<div className="mt-2">
 					<h3>{tc("settings:backup:path")}</h3>
-					<Typography className={"whitespace-normal"}>
+					<p className={"whitespace-normal"}>
 						{tc("settings:backup:path description")}
-					</Typography>
+					</p>
 					<div className={"flex gap-1"}>
 						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
 						<Button className={"flex-none px-4"}
@@ -290,9 +290,9 @@ function Settings(
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
-				<Typography className={"whitespace-normal"}>
+				<p className={"whitespace-normal"}>
 					{tc("settings:show prerelease description")}
-				</Typography>
+				</p>
 				<label className={"flex items-center"}>
 					<Checkbox checked={settings.show_prerelease_packages} onChange={toggleShowPrereleasePackages}/>
 					{tc("settings:show prerelease")}
@@ -322,9 +322,9 @@ function Settings(
 			</Card>
 			{osType != "Darwin" && <Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:vcc scheme")}</h2>
-				<Typography className={"whitespace-normal"}>
+				<p className={"whitespace-normal"}>
 					{tc("settings:vcc scheme description")}
-				</Typography>
+				</p>
 				<div>
 					<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
 				</div>
@@ -337,11 +337,11 @@ function Settings(
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:licenses")}</h2>
-				<Typography className={"whitespace-normal"}>
+				<p className={"whitespace-normal"}>
 					{tc("settings:licenses description", {}, {
 						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
 					})}
-				</Typography>
+				</p>
 			</Card>
 		</main>
 	)
@@ -362,7 +362,7 @@ function UnityTable(
 				{UNITY_TABLE_HEAD.map((head, index) => (
 					<th key={index}
 							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
+						<small className="font-normal leading-none">{tc(head)}</small>
 					</th>
 				))}
 			</tr>

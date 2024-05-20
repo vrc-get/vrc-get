@@ -18,7 +18,6 @@ import {
 	MenuList,
 	Spinner,
 	Tooltip,
-	Typography
 } from "@material-tailwind/react";
 import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
@@ -482,18 +481,18 @@ function PageBody() {
 				onBackup={onBackupProject}
 			/>
 			<Card className={"flex-shrink-0 p-2 flex flex-row flex-wrap"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
+				<p className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
 					{tc("projects:manage:project location",
 						{path: projectPath},
 						{
 							components: {path: <span className={"p-0.5 font-path whitespace-pre bg-gray-100"}/>}
 						})}
-				</Typography>
+				</p>
 				<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>
 				<div className="flex-grow-0 flex-shrink-0 flex flex-row">
-					<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
+					<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 						{tc("projects:manage:unity version")}
-					</Typography>
+					</p>
 					<div className={"flex-grow-0 flex-shrink-0"}>
 						<VGSelect value={detailsResult.status == 'success' ? (detailsResult.data.unity_str ?? "unknown") :
 							<span className={"text-blue-gray-300"}>Loading...</span>}
@@ -517,9 +516,9 @@ function PageBody() {
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
 					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
-						<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
+						<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 							{tc("projects:manage:manage packages")}
-						</Typography>
+						</p>
 
 						<Tooltip content={tc("projects:manage:tooltip:refresh packages")}>
 							<IconButton variant={"text"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
@@ -603,7 +602,7 @@ function PageBody() {
 								{TABLE_HEAD.map((head, index) => (
 									<th key={index}
 											className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-										<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
+										<small className="font-normal leading-none">{tc(head)}</small>
 									</th>
 								))}
 								<th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}/>
@@ -645,10 +644,10 @@ function SuggestResolveProjectCard(
 ) {
 	return (
 		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<Typography
+			<p
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest resolve")}
-			</Typography>
+			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onResolveRequested} disabled={disabled}>
 				{tc("projects:manage:button:resolve")}
@@ -668,10 +667,10 @@ function SuggestMigrateTo2022Card(
 ) {
 	return (
 		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<Typography
+			<p
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest unity migration")}
-			</Typography>
+			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
 				{tc("projects:manage:button:unity migrate")}
@@ -691,10 +690,10 @@ function Suggest2022PatchMigrationCard(
 ) {
 	return (
 		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<Typography
+			<p
 				className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest unity patch migration")}
-			</Typography>
+			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
 			<Button variant={"text"} color={"red"} onClick={onMigrateRequested} disabled={disabled}>
 				{tc("projects:manage:button:unity migrate")}
@@ -765,7 +764,7 @@ function ProjectChangesDialog(
 	}, [packages]);
 
 	const TypographyItem = ({children}: { children: React.ReactNode }) => (
-		<ListItem><Typography className={"font-normal"}>{children}</Typography></ListItem>
+		<ListItem><p className={"font-normal"}>{children}</p></ListItem>
 	);
 
 	const packageChangesSorted = changes.package_changes.sort(comparePackageChange);
@@ -774,9 +773,9 @@ function ProjectChangesDialog(
 		<Dialog open handler={nop} className={"whitespace-normal"}>
 			<DialogHeader>{tc("projects:manage:button:apply changes")}</DialogHeader>
 			<DialogBody className={"overflow-y-auto max-h-[50vh]"}>
-				<Typography className={"text-gray-900"}>
+				<p className={"text-gray-900"}>
 					{tc("projects:manage:dialog:confirm changes description")}
-				</Typography>
+				</p>
 				<List>
 					{packageChangesSorted.map(([pkgId, pkgChange]) => {
 						if ('InstallNew' in pkgChange) {
@@ -785,10 +784,10 @@ function ProjectChangesDialog(
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
 							return <ListItem key={pkgId}>
-								<Typography className={"font-normal"}>{tc("projects:manage:dialog:install package", {
+								<p className={"font-normal"}>{tc("projects:manage:dialog:install package", {
 									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
 									version: toVersionString(pkgChange.InstallNew.version),
-								})}</Typography>
+								})}</p>
 								{changelogUrl != null &&
 									<Button className={"ml-1 px-2"} size={"sm"}
 													onClick={() => shellOpen(changelogUrl)}>{tc("projects:manage:button:see changelog")}</Button>}
@@ -815,9 +814,9 @@ function ProjectChangesDialog(
 				{
 					versionConflicts.length > 0 ? (
 						<>
-							<Typography className={"text-red-700"}>
+							<p className={"text-red-700"}>
 								{tc("projects:manage:dialog:package version conflicts", {count: versionConflicts.length})}
-							</Typography>
+							</p>
 							<List>
 								{versionConflicts.map(([pkgId, conflict]) => {
 									return (
@@ -836,9 +835,9 @@ function ProjectChangesDialog(
 				{
 					unityConflicts.length > 0 ? (
 						<>
-							<Typography className={"text-red-700"}>
+							<p className={"text-red-700"}>
 								{tc("projects:manage:dialog:unity version conflicts", {count: unityConflicts.length})}
-							</Typography>
+							</p>
 							<List>
 								{unityConflicts.map(([pkgId, _]) => (
 									<TypographyItem key={pkgId}>
@@ -852,9 +851,9 @@ function ProjectChangesDialog(
 				{
 					changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
 						<>
-							<Typography className={"text-red-700"}>
+							<p className={"text-red-700"}>
 								{tc("projects:manage:dialog:files and directories are removed as legacy")}
-							</Typography>
+							</p>
 							<List>
 								{changes.remove_legacy_files.map(f => (
 									<TypographyItem key={f}>
@@ -1275,12 +1274,12 @@ const PackageRow = memo(function PackageRow(
 			</td>
 			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis`}>
 				<div className="flex flex-col">
-					<Typography className="font-normal">
+					<p className="font-normal">
 						{pkg.displayName}
-					</Typography>
-					<Typography className="font-normal opacity-50 text-sm">
+					</p>
+					<p className="font-normal opacity-50 text-sm">
 						{pkg.id}
-					</Typography>
+					</p>
 				</div>
 			</td>
 			<td className={noGrowCellClass}>
@@ -1293,25 +1292,25 @@ const PackageRow = memo(function PackageRow(
 				{
 					pkg.sources.size == 0 ? (
 						pkg.isThereSource ? (
-							<Typography className="text-blue-gray-400">
+							<p className="text-blue-gray-400">
 								{tc("projects:manage:source not selected")}
-							</Typography>
+							</p>
 						) : (
-							<Typography className="text-blue-gray-400">
+							<p className="text-blue-gray-400">
 								{tc("projects:manage:none")}
-							</Typography>
+							</p>
 						)
 					) : pkg.sources.size == 1 ? (
 						<Tooltip content={[...pkg.sources][0]}>
-							<Typography className="overflow-hidden overflow-ellipsis">
+							<p className="overflow-hidden overflow-ellipsis">
 								{[...pkg.sources][0]}
-							</Typography>
+							</p>
 						</Tooltip>
 					) : (
 						<Tooltip content={[...pkg.sources].join(", ")}>
-							<Typography>
+							<p>
 								{tc("projects:manage:multiple sources")}
-							</Typography>
+							</p>
 						</Tooltip>
 					)
 				}
@@ -1384,7 +1383,7 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 			{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 			{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
 			{incompatibleNames.length > 0 &&
-				<Typography className={"text-sm"}>{tc("projects:manage:incompatible packages")}</Typography>}
+				<p className={"text-sm"}>{tc("projects:manage:incompatible packages")}</p>}
 			{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
 		</VGSelect>
 	);
@@ -1410,12 +1409,12 @@ function PackageInstalledInfo(
 	if (pkg.installed) {
 		const version = toVersionString(pkg.installed.version);
 		if (pkg.installed.yanked) {
-			return <Typography className={"text-red-700"}>{version} {tc("projects:manage:yanked")}</Typography>;
+			return <p className={"text-red-700"}>{version} {tc("projects:manage:yanked")}</p>;
 		} else {
-			return <Typography>{version}</Typography>;
+			return <p>{version}</p>;
 		}
 	} else {
-		return <Typography className="text-blue-gray-400">{tc("projects:manage:none")}</Typography>;
+		return <p className="text-blue-gray-400">{tc("projects:manage:none")}</p>;
 	}
 }
 
@@ -1432,9 +1431,9 @@ function PackageLatestInfo(
 ) {
 	switch (info.status) {
 		case "none":
-			return <Typography className="text-blue-gray-400">{tc("projects:manage:none")}</Typography>;
+			return <p className="text-blue-gray-400">{tc("projects:manage:none")}</p>;
 		case "contains":
-			return <Typography>{toVersionString(info.pkg.version)}</Typography>;
+			return <p>{toVersionString(info.pkg.version)}</p>;
 		case "upgradable":
 			return (
 				<Tooltip content={tc("projects:manage:tooltip:upgrade package")}>
@@ -1482,9 +1481,9 @@ function ProjectViewHeader({
 				</IconButton>
 			</Tooltip>
 
-			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0 whitespace-pre">
+			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 whitespace-pre">
 				{projectName}
-			</Typography>
+			</p>
 
 			<div className="relative flex gap-2 w-max flex-grow">
 			</div>

@@ -1,5 +1,5 @@
 import React, {ReactNode, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Typography} from "@material-tailwind/react";
+import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {environmentRemoveProject, environmentRemoveProjectByPath, TauriProject} from "@/lib/bindings";
 import {toastSuccess} from "@/lib/toast";
@@ -67,9 +67,9 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 				<Dialog open handler={nop} className={'whitespace-normal'}>
 					<DialogHeader>{tc("projects:remove project")}</DialogHeader>
 					<DialogBody>
-						<Typography className={"font-normal"}>
+						<p className={"font-normal"}>
 							{tc("projects:dialog:warn removing project", {name: project.name})}
-						</Typography>
+						</p>
 					</DialogBody>
 					<DialogFooter>
 						<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
