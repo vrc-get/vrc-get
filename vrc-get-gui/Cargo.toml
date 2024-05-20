@@ -48,7 +48,7 @@ winreg = "0.52.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2.7"
-cocoa = "0.24"
+cocoa = "0.25"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
