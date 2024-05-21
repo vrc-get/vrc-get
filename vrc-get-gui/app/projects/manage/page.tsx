@@ -2,8 +2,8 @@
 
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader, CardContent} from "@/components/ui/card";
+import {Checkbox} from "@/components/ui/checkbox";
 import {
-	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
@@ -922,9 +922,8 @@ function RepositoryMenuItem(
 	return (
 		<MenuItem className="p-0">
 			<label className={"flex cursor-pointer items-center gap-2 p-2 whitespace-normal"}>
-				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-									checked={selected}
-									onChange={onChange}
+				<Checkbox checked={selected}
+									onCheckedChange={onChange}
 									className="hover:before:content-none"/>
 				{repositoryName}
 			</label>
@@ -953,9 +952,8 @@ function UserLocalRepositoryMenuItem(
 	return (
 		<MenuItem className="p-0">
 			<label className={"flex cursor-pointer items-center gap-2 p-2"}>
-				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-									checked={selected}
-									onChange={onChange}
+				<Checkbox checked={selected}
+									onCheckedChange={onChange}
 									className="hover:before:content-none"/>
 				{tc("vpm repositories:source:local")}
 			</label>
@@ -1266,9 +1264,8 @@ const PackageRow = memo(function PackageRow(
 	return (
 		<tr className="even:bg-blue-gray-50/50">
 			<td className={`${cellClass} w-1`}>
-				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-									checked={bulkUpdateSelected}
-									onChange={onClickBulkUpdate}
+				<Checkbox checked={bulkUpdateSelected}
+									onCheckedChange={onClickBulkUpdate}
 									disabled={locked || !bulkUpdateAvailable}
 									className="hover:before:content-none"/>
 			</td>

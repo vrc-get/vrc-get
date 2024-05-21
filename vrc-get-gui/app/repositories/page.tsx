@@ -2,9 +2,9 @@
 
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
+import {Checkbox} from "@/components/ui/checkbox";
 import {Input} from "@/components/ui/input";
 import {
-	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
@@ -282,8 +282,8 @@ function RepositoryRow(
 	return (
 		<tr className="even:bg-blue-gray-50/50">
 			<td className={cellClass}>
-				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}} id={id}
-									checked={selected} onChange={onChange}/>
+				<Checkbox id={id}
+									checked={selected} onCheckedChange={onChange}/>
 			</td>
 			<td className={cellClass}>
 				<label htmlFor={id}>

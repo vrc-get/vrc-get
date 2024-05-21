@@ -2,9 +2,9 @@
 
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
+import {Checkbox} from "@/components/ui/checkbox";
 import {Input} from "@/components/ui/input";
 import {
-	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
@@ -529,12 +529,15 @@ function ProjectRow(
 	return (
 		<tr className={`even:bg-blue-gray-50/50 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
-				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-									checked={project.favorite}
-									onChange={onToggleFavorite}
-									disabled={removed || loading}
-									icon={<StarIcon className={"size-3"}/>}
-									className="hover:before:content-none before:transition-none border-none"/>
+        <div className={"relative inline-flex"}>
+          <Checkbox checked={project.favorite}
+                    onCheckedChange={onToggleFavorite}
+                    disabled={removed || loading}
+                    className="hover:before:content-none before:transition-none border-none !text-primary peer"/>
+          <span className={"text-primary-foreground opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
+            <StarIcon className={"size-3"} />
+          </span>
+        </div>
 			</td>
 			<td className={cellClass}>
 				<MayTooltip content={tc("projects:tooltip:no directory")}>

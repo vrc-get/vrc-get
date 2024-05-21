@@ -2,8 +2,8 @@
 
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
+import {Checkbox} from "@/components/ui/checkbox";
 import {Input} from "@/components/ui/input";
-import {Checkbox} from "@material-tailwind/react";
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
@@ -191,10 +191,10 @@ function Settings(
 		}
 	}
 
-	const toggleShowPrereleasePackages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
 		try {
-			await environmentSetShowPrereleasePackages(e.target.checked)
-			refetch()
+      await environmentSetShowPrereleasePackages(e===true)
+      refetch()
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e)
@@ -299,7 +299,9 @@ function Settings(
 					{tc("settings:show prerelease description")}
 				</p>
 				<label className={"flex items-center"}>
-					<Checkbox checked={settings.show_prerelease_packages} onChange={toggleShowPrereleasePackages}/>
+          <div className={"p-3"}>
+            <Checkbox checked={settings.show_prerelease_packages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
+          </div>
 					{tc("settings:show prerelease")}
 				</label>
 			</Card>
