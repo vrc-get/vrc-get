@@ -16,9 +16,12 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Fails to load installed unity versions if Unity 2018 is installed `#1024`
 
 ### Security
+
+## [0.1.6] - 2024-05-21
+### Fixed
+- Fails to load installed unity versions if Unity 2018 is installed [`#1024`](https://github.com/vrc-get/vrc-get/pull/1024)
 
 ## [0.1.5] - 2024-05-21
 ### Removed
@@ -297,7 +300,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.5...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.6...HEAD
+[0.1.6]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.5...gui-v0.1.6
 [0.1.5]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.4...gui-v0.1.5
 [0.1.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.3...gui-v0.1.4
 [0.1.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.2...gui-v0.1.3
