@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog].
 ### Deprecated
 
 ### Removed
+- Support perMachine install `#1021`
+  - Due to problems of tauri updater and installer, it's not good to support perMachine for now.
 
 ### Fixed
 
