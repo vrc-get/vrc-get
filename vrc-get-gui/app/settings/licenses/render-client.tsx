@@ -1,6 +1,6 @@
 "use client";
 
-import {Card} from "@material-tailwind/react";
+import {Card} from "@/components/ui/card";
 import Link from "next/link";
 import {Licenses} from "@/lib/licenses";
 import {shellOpen} from "@/lib/shellOpen";

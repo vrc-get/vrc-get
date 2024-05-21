@@ -1,7 +1,7 @@
 "use client";
 
 import {Button} from "@/components/ui/button";
-import {Card} from "@material-tailwind/react";
+import {Card} from "@/components/ui/card";
 import {CloudIcon, Cog6ToothIcon, ListBulletIcon} from "@heroicons/react/24/solid";
 import React from "react";
 import {Bars4Icon} from "@heroicons/react/24/outline";
@@ -36,7 +36,7 @@ export function SideBar({className}: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} w-auto max-w-[20rem] p-2 shadow-xl shadow-blue-gray-900/5 ml-4 my-4 shrink-0`}>
+			className={`${className} flex w-auto max-w-[20rem] p-2 shadow-xl shadow-blue-gray-900/5 ml-4 my-4 shrink-0`}>
 			<div className="flex flex-col gap-1 p-2 min-w-[10rem] flex-grow">
 				<SideBarItem href={"/projects"} text={t("projects")} icon={ListBulletIcon}/>
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>

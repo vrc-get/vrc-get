@@ -1,8 +1,8 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
+import {Card, CardHeader, CardContent} from "@/components/ui/card";
 import {
-	Card,
 	Checkbox,
 	Dialog,
 	DialogBody,
@@ -510,114 +510,118 @@ function PageBody() {
 				<Suggest2022PatchMigrationCard disabled={isLoading}
 																			 onMigrateRequested={unity2022PatchMigration.request}/>}
 			<main className="flex-shrink overflow-hidden flex">
-				<Card className="w-full p-2 gap-2 flex-grow flex-shrink flex shadow-none">
-					<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
-						<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-							{tc("projects:manage:manage packages")}
-						</p>
+				<Card className="flex-grow flex-shrink flex shadow-none">
+          <CardHeader className="w-full p-2 gap-2">
+            <div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
+              <p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
+                {tc("projects:manage:manage packages")}
+              </p>
 
-						<Tooltip content={tc("projects:manage:tooltip:refresh packages")}>
-							<Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
-								{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-							</Button>
-						</Tooltip>
+              <Tooltip content={tc("projects:manage:tooltip:refresh packages")}>
+                <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
+                  {isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+                </Button>
+              </Tooltip>
 
-						<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
+              <SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
-						{packageRows.some(row => row.latest.status === "upgradable") &&
-							<Button className={"flex-shrink-0"}
-											onClick={onUpgradeAllRequest}
-											disabled={isLoading}
-											variant={"success"}>
-								{tc("projects:manage:button:upgrade all")}
-							</Button>}
+              {packageRows.some(row => row.latest.status === "upgradable") &&
+                <Button className={"flex-shrink-0"}
+                        onClick={onUpgradeAllRequest}
+                        disabled={isLoading}
+                        variant={"success"}>
+                  {tc("projects:manage:button:upgrade all")}
+                </Button>}
 
-						<Menu>
-							<MenuHandler>
-								<Button variant={"ghost"} className={'flex-shrink-0'}>
-									<EllipsisHorizontalIcon className={"size-5"}/>
-								</Button>
-							</MenuHandler>
-							<MenuList>
-								<MenuItem className={"p-3"}
-													onClick={onResolveRequest}
-													disabled={isLoading}>
-									{tc("projects:manage:button:reinstall all")}</MenuItem>
-							</MenuList>
-						</Menu>
+              <Menu>
+                <MenuHandler>
+                  <Button variant={"ghost"} className={'flex-shrink-0'}>
+                    <EllipsisHorizontalIcon className={"size-5"}/>
+                  </Button>
+                </MenuHandler>
+                <MenuList>
+                  <MenuItem className={"p-3"}
+                            onClick={onResolveRequest}
+                            disabled={isLoading}>
+                    {tc("projects:manage:button:reinstall all")}</MenuItem>
+                </MenuList>
+              </Menu>
 
-						<Menu dismiss={{itemPress: false}}>
-							<MenuHandler>
-								<Button className={"flex-shrink-0 p-3"}>{tc("projects:manage:button:select repositories")}</Button>
-							</MenuHandler>
-							<MenuList className={"max-h-96 w-64"}>
-								<RepositoryMenuItem
-									hiddenUserRepositories={hiddenUserRepositories}
-									repositoryName={tt("vpm repositories:source:official")}
-									repositoryId={"com.vrchat.repos.official"}
-									refetch={onRefreshRepositories}
-								/>
-								<RepositoryMenuItem
-									hiddenUserRepositories={hiddenUserRepositories}
-									repositoryName={tt("vpm repositories:source:curated")}
-									repositoryId={"com.vrchat.repos.curated"}
-									refetch={onRefreshRepositories}
-								/>
-								<UserLocalRepositoryMenuItem
-									hideUserLocalPackages={repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false}
-									refetch={onRefreshRepositories}
-								/>
-								<hr className="my-3"/>
-								{
-									repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories.map(repository => (
-										<RepositoryMenuItem
-											hiddenUserRepositories={hiddenUserRepositories}
-											repositoryName={repository.display_name}
-											repositoryId={repository.id}
-											refetch={onRefreshRepositories}
-											key={repository.id}
-										/>
-									)) : null
-								}
-							</MenuList>
-						</Menu>
-					</div>
-					<BulkUpdateCard
-						disabled={isLoading} bulkUpdateMode={bulkUpdateMode}
-						bulkUpgradeAll={onUpgradeBulkRequested}
-						bulkRemoveAll={onRemoveBulkRequested}
-						bulkInstallAll={onInstallBulkRequested}
-						cancel={() => setBulkUpdatePackageIds([])}
-					/>
-					<Card className="w-full overflow-x-auto overflow-y-scroll">
-						<table className="relative table-auto text-left">
-							<thead>
-							<tr>
-								<th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50`}>
-								</th>
-								{TABLE_HEAD.map((head, index) => (
-									<th key={index}
-											className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-										<small className="font-normal leading-none">{tc(head)}</small>
-									</th>
-								))}
-								<th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}/>
-							</tr>
-							</thead>
-							<tbody>
-							{packageRows.map((row) => (
-								<PackageRow pkg={row} key={row.id}
-														locked={isLoading}
-														onInstallRequested={onInstallRequested}
-														onRemoveRequested={onRemoveRequested}
-														bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
-														bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
-														addBulkUpdatePackage={addBulkUpdatePackage}
-														removeBulkUpdatePackage={removeBulkUpdatePackage}
-								/>))}
-							</tbody>
-						</table>
-					</Card>
+              <Menu dismiss={{itemPress: false}}>
+                <MenuHandler>
+                  <Button className={"flex-shrink-0 p-3"}>{tc("projects:manage:button:select repositories")}</Button>
+                </MenuHandler>
+                <MenuList className={"max-h-96 w-64"}>
+                  <RepositoryMenuItem
+                    hiddenUserRepositories={hiddenUserRepositories}
+                    repositoryName={tt("vpm repositories:source:official")}
+                    repositoryId={"com.vrchat.repos.official"}
+                    refetch={onRefreshRepositories}
+                  />
+                  <RepositoryMenuItem
+                    hiddenUserRepositories={hiddenUserRepositories}
+                    repositoryName={tt("vpm repositories:source:curated")}
+                    repositoryId={"com.vrchat.repos.curated"}
+                    refetch={onRefreshRepositories}
+                  />
+                  <UserLocalRepositoryMenuItem
+                    hideUserLocalPackages={repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false}
+                    refetch={onRefreshRepositories}
+                  />
+                  <hr className="my-3"/>
+                  {
+                    repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories.map(repository => (
+                      <RepositoryMenuItem
+                        hiddenUserRepositories={hiddenUserRepositories}
+                        repositoryName={repository.display_name}
+                        repositoryId={repository.id}
+                        refetch={onRefreshRepositories}
+                        key={repository.id}
+                      />
+                    )) : null
+                  }
+                </MenuList>
+              </Menu>
+            </div>
+            <BulkUpdateCard
+              disabled={isLoading} bulkUpdateMode={bulkUpdateMode}
+              bulkUpgradeAll={onUpgradeBulkRequested}
+              bulkRemoveAll={onRemoveBulkRequested}
+              bulkInstallAll={onInstallBulkRequested}
+              cancel={() => setBulkUpdatePackageIds([])}
+            />
+            <Card className="w-full overflow-x-auto overflow-y-scroll">
+              <CardHeader>
+              <table className="relative table-auto text-left">
+                <thead>
+                <tr>
+                  <th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50`}>
+                  </th>
+                  {TABLE_HEAD.map((head, index) => (
+                    <th key={index}
+                        className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
+                      <small className="font-normal leading-none">{tc(head)}</small>
+                    </th>
+                  ))}
+                  <th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}/>
+                </tr>
+                </thead>
+                <tbody>
+                {packageRows.map((row) => (
+                  <PackageRow pkg={row} key={row.id}
+                              locked={isLoading}
+                              onInstallRequested={onInstallRequested}
+                              onRemoveRequested={onRemoveRequested}
+                              bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
+                              bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
+                              addBulkUpdatePackage={addBulkUpdatePackage}
+                              removeBulkUpdatePackage={removeBulkUpdatePackage}
+                  />))}
+                </tbody>
+              </table>
+              </CardHeader>
+            </Card>
+          </CardHeader>
 				</Card>
 				{dialogForState}
 				{unity2022Migration.dialog}

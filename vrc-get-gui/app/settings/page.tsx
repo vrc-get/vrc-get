@@ -1,7 +1,8 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
-import {Card, Checkbox, Input} from "@material-tailwind/react";
+import {Card, CardHeader} from "@/components/ui/card";
+import {Checkbox, Input} from "@material-tailwind/react";
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
@@ -251,7 +252,9 @@ function Settings(
 					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
 				</div>
 				<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
-					<UnityTable unityPaths={settings.unity_paths}/>
+          <CardHeader>
+            <UnityTable unityPaths={settings.unity_paths}/>
+          </CardHeader>
 				</Card>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>

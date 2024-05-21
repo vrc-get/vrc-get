@@ -1,8 +1,8 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
+import {Card, CardHeader} from "@/components/ui/card";
 import {
-	Card,
 	Checkbox,
 	Dialog,
 	DialogBody,
@@ -171,13 +171,15 @@ function PageBody() {
 			</HNavBar>
 			<main className="flex-shrink flex-grow overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll shadow-none">
-					<RepositoryTable
-						userRepos={result.data?.user_repositories || []}
-						hiddenUserRepos={hiddenUserRepos}
-						removeRepository={removeRepository}
-						refetch={() => result.refetch()}
-					/>
-					{dialog}
+          <CardHeader>
+            <RepositoryTable
+              userRepos={result.data?.user_repositories || []}
+              hiddenUserRepos={hiddenUserRepos}
+              removeRepository={removeRepository}
+              refetch={() => result.refetch()}
+            />
+            {dialog}
+          </CardHeader>
 				</Card>
 			</main>
 		</VStack>

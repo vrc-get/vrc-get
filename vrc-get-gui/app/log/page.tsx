@@ -1,6 +1,6 @@
 "use client";
 
-import {Card} from "@material-tailwind/react";
+import {Card} from "@/components/ui/card";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {useCallback, useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";

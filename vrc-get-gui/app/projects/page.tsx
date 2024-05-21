@@ -1,8 +1,8 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
+import {Card, CardHeader} from "@/components/ui/card";
 import {
-	Card,
 	Checkbox,
 	Dialog,
 	DialogBody,
@@ -105,19 +105,21 @@ export default function Page() {
 												 search={search} setSearch={setSearch}/>
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-auto shadow-none">
-					{
-						result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
-							result.status == "error" ?
-								<Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
-								<ProjectsTable
-									projects={result.data}
-									search={search}
-									loading={loading}
-									openUnity={openUnity.openUnity}
-									refresh={() => result.refetch()}
-									onRemoved={() => result.refetch()}
-								/>
-					}
+          <CardHeader>
+            {
+              result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
+                result.status == "error" ?
+                  <Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
+                  <ProjectsTable
+                    projects={result.data}
+                    search={search}
+                    loading={loading}
+                    openUnity={openUnity.openUnity}
+                    refresh={() => result.refetch()}
+                    onRemoved={() => result.refetch()}
+                  />
+            }
+          </CardHeader>
 				</Card>
 				{createProjectState === "creating" &&
 					<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
