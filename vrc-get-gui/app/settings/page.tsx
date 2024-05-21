@@ -2,7 +2,8 @@
 
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
-import {Checkbox, Input} from "@material-tailwind/react";
+import {Input} from "@/components/ui/input";
+import {Checkbox} from "@material-tailwind/react";
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {

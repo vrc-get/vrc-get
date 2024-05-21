@@ -2,13 +2,13 @@
 
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
+import {Input} from "@/components/ui/input";
 import {
 	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
 	DialogHeader,
-	Input,
 	Tooltip,
 } from "@material-tailwind/react";
 import {useQuery} from "@tanstack/react-query";
@@ -410,7 +410,7 @@ function EnteringRepositoryInfo(
 				<p className={'font-normal'}>
 					{tc("vpm repositories:dialog:enter repository info")}
 				</p>
-				<Input type={"vpm repositories:url"} label={"URL"} value={url} onChange={e => setUrl(e.target.value)}
+				<Input type={"vpm repositories:url"} value={url} onChange={e => setUrl(e.target.value)}
 							 placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
 				<details>
 					<summary className={"font-bold"}>{tc("vpm repositories:dialog:headers")}</summary>

@@ -2,13 +2,13 @@
 
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
+import {Input} from "@/components/ui/input";
 import {
 	Checkbox,
 	Dialog,
 	DialogBody,
 	DialogFooter,
 	DialogHeader,
-	Input,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -902,9 +902,9 @@ function CreateProject(
 							</VGSelect>
 						</div>
 					)}
-					<Input label={"Project Name"} value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
+					<Input value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
 					<div className={"flex gap-1"}>
-						<Input className="flex-auto" label={"Project Location"} value={projectLocation} disabled/>
+						<Input className="flex-auto" value={projectLocation} disabled/>
 						<Button className="flex-none px-4"
 										onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
 					</div>
