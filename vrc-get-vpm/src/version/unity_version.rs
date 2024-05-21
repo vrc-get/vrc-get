@@ -81,6 +81,18 @@ impl UnityVersion {
         }
     }
 
+    // expects major.minor.revision
+    pub fn parse_no_type_increment(input: &str) -> Option<Self> {
+        let (major, rest) = input.split_once('.')?;
+        let major = u16::from_str(major).ok()?;
+        let (minor, rest) = rest.split_once('.')?;
+        let minor = u8::from_str(minor).ok()?;
+        let revision = rest;
+        let revision = u8::from_str(revision).ok()?;
+
+        Some(Self::new_f1(major, minor, revision))
+    }
+
     pub fn major(self) -> u16 {
         self.major
     }

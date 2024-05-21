@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Fails to load installed unity versions if Unity 2018 is installed `#1024`
 
 ### Security
 
