@@ -14,12 +14,15 @@ The format is based on [Keep a Changelog].
 ### Deprecated
 
 ### Removed
-- Support perMachine install `#1021`
-  - Due to problems of tauri updater and installer, it's not good to support perMachine for now.
 
 ### Fixed
 
 ### Security
+
+## [0.1.5] - 2024-05-21
+### Removed
+- Support perMachine install [`#1021`](https://github.com/vrc-get/vrc-get/pull/1021)
+  - Due to problems of tauri updater and installer, it's not good to support perMachine for now.
 
 ## [0.1.4] - 2024-05-20
 ### Added
@@ -293,7 +296,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.4...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.5...HEAD
+[0.1.5]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.4...gui-v0.1.5
 [0.1.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.3...gui-v0.1.4
 [0.1.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.2...gui-v0.1.3
 [0.1.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.1...gui-v0.1.2
