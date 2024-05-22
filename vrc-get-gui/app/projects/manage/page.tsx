@@ -3,6 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader, CardContent} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {
 	Dialog,
 	DialogBody,
@@ -13,7 +14,6 @@ import {
 	MenuItem,
 	MenuList,
 	Spinner,
-	Tooltip,
 } from "@material-tailwind/react";
 import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
@@ -517,11 +517,16 @@ function PageBody() {
                 {tc("projects:manage:manage packages")}
               </p>
 
-              <Tooltip content={tc("projects:manage:tooltip:refresh packages")}>
-                <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
-                  {isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-                </Button>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
+                      {isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{tc("projects:manage:tooltip:refresh packages")}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
               <SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
@@ -1298,17 +1303,27 @@ const PackageRow = memo(function PackageRow(
 							</p>
 						)
 					) : pkg.sources.size == 1 ? (
-						<Tooltip content={[...pkg.sources][0]}>
-							<p className="overflow-hidden overflow-ellipsis">
-								{[...pkg.sources][0]}
-							</p>
-						</Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <p className="overflow-hidden overflow-ellipsis">
+                    {[...pkg.sources][0]}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>{[ ...pkg.sources][0] }</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 					) : (
-						<Tooltip content={[...pkg.sources].join(", ")}>
-							<p>
-								{tc("projects:manage:multiple sources")}
-							</p>
-						</Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <p>
+                    {tc("projects:manage:multiple sources")}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>{ [...pkg.sources].join(", ") }</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 					)
 				}
 			</td>
@@ -1316,16 +1331,26 @@ const PackageRow = memo(function PackageRow(
 				<div className="flex flex-row gap-2 max-w-min">
 					{
 						pkg.installed ? (
-							<Tooltip content={tc("projects:manage:tooltip:remove packages")}>
-								<Button variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
-									className={"size-5 text-red-700"}/></Button>
-							</Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Button variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
+                      className={"size-5 text-red-700"}/></Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{tc("projects:manage:tooltip:remove packages")}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 						) : (
-							<Tooltip content={tc("projects:manage:tooltip:add package")}>
-								<Button variant={'ghost'} disabled={locked && !!latestVersion}
-														onClick={installLatest}><PlusCircleIcon
-									className={"size-5 text-gray-800"}/></Button>
-							</Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Button variant={'ghost'} disabled={locked && !!latestVersion}
+                                onClick={installLatest}><PlusCircleIcon
+                      className={"size-5 text-gray-800"}/></Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{tc("projects:manage:tooltip:add package")}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 						)
 					}
 				</div>
@@ -1433,15 +1458,20 @@ function PackageLatestInfo(
 			return <p>{toVersionString(info.pkg.version)}</p>;
 		case "upgradable":
 			return (
-				<Tooltip content={tc("projects:manage:tooltip:upgrade package")}>
-					<Button variant={"outline"}
-									className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
-									disabled={locked}
-									onClick={() => onInstallRequested(info.pkg)}>
-						<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
-						{toVersionString(info.pkg.version)}
-					</Button>
-				</Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button variant={"outline"}
+                      className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
+                      disabled={locked}
+                      onClick={() => onInstallRequested(info.pkg)}>
+                <ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
+                {toVersionString(info.pkg.version)}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{tc("projects:manage:tooltip:upgrade package")}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 			);
 		default:
 			let _: never = info;
@@ -1472,11 +1502,16 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar className={className}>
-			<Tooltip content={tc("projects:manage:tooltip:back to projects")}>
-				<Button variant={"ghost"} onClick={() => history.back()}>
-					<ArrowLeftIcon className={"w-5 h-5"}/>
-				</Button>
-			</Tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <Button variant={"ghost"} onClick={() => history.back()}>
+              <ArrowLeftIcon className={"w-5 h-5"}/>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{tc("projects:manage:tooltip:back to projects")}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 whitespace-pre">
 				{projectName}

@@ -4,12 +4,12 @@ import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Input} from "@/components/ui/input";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {
 	Dialog,
 	DialogBody,
 	DialogFooter,
 	DialogHeader,
-	Tooltip,
 } from "@material-tailwind/react";
 import {useQuery} from "@tanstack/react-query";
 import {
@@ -298,11 +298,16 @@ function RepositoryRow(
 				</p>
 			</td>
 			<td className={`${cellClass} w-0`}>
-				<Tooltip content={tc("vpm repositories:remove repository")}>
-					<Button onClick={() => setRemoveDialogOpen(true)} variant={"ghost"}>
-						<XCircleIcon className={"size-5 text-red-700"}/>
-					</Button>
-				</Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button onClick={() => setRemoveDialogOpen(true)} variant={"ghost"}>
+                <XCircleIcon className={"size-5 text-red-700"}/>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{tc("vpm repositories:remove repository")}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 			</td>
 			{dialog}
 		</tr>
@@ -457,16 +462,26 @@ function EnteringRepositoryInfo(
 											/>
 										</td>
 										<td className={"w-20"}>
-											<Tooltip content={tc("vpm repositories:tooltip:add header")} className={"z-[19999]"}>
-												<Button variant={"ghost"} onClick={addHeader}>
-													<PlusCircleIcon color={"green"} className={"size-5"}/>
-												</Button>
-											</Tooltip>
-											<Tooltip content={tc("vpm repositories:tooltip:remove header")} className={"z-[19999]"}>
-												<Button variant={"ghost"} onClick={() => removeHeader(idx)}>
-													<MinusCircleIcon color={"red"} className={"size-5"}/>
-												</Button>
-											</Tooltip>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Button variant={"ghost"} onClick={addHeader}>
+                              <PlusCircleIcon color={"green"} className={"size-5"}/>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{tc("vpm repositories:tooltip:add header")} className={"z-[19999]"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Button variant={"ghost"} onClick={() => removeHeader(idx)}>
+                              <MinusCircleIcon color={"red"} className={"size-5"}/>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{tc("vpm repositories:tooltip:remove header")} className={"z-[19999]"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 										</td>
 									</tr>
 								))
