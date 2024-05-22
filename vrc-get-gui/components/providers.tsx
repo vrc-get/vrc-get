@@ -71,7 +71,7 @@ export function Providers({children}: { children: React.ReactNode }) {
 				pauseOnFocusLoss
 				draggable
 				pauseOnHover
-				theme="light"
+				theme="colored"
 				className={"whitespace-normal"}
 			/>
 			<QueryClientProvider client={queryClient}>
