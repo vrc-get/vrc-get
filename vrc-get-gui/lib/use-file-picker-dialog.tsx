@@ -1,6 +1,5 @@
 import {ReactNode, useCallback, useState} from "react";
-import {Dialog, DialogBody, DialogHeader} from "@material-tailwind/react";
-import {nop} from "@/lib/nop";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
 import {tc} from "@/lib/i18n";
 
 export function useFilePickerFunction<A extends unknown[], R>(
@@ -16,9 +15,11 @@ export function useFilePickerFunction<A extends unknown[], R>(
 		}
 	}, [setIsPicking, f]);
 
-	let dialog = <Dialog open={isPicking} handler={nop}>
-		<DialogHeader>{tc("general:dialog:select file or directory header")}</DialogHeader>
-		<DialogBody>{tc("general:dialog:select file or directory")}</DialogBody>
+	let dialog = <Dialog open={isPicking}>
+    <DialogContent>
+      <DialogTitle>{tc("general:dialog:select file or directory header")}</DialogTitle>
+      <div>{tc("general:dialog:select file or directory")}</div>
+    </DialogContent>
 	</Dialog>;
 
 	return [result, dialog];

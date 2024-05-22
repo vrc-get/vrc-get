@@ -1,7 +1,7 @@
 import React, {Fragment, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogBody, DialogFooter, DialogHeader, Radio} from "@material-tailwind/react";
-import {nop} from "@/lib/nop";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Radio} from "@material-tailwind/react";
 import {tc, tt} from "@/lib/i18n";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
@@ -44,17 +44,17 @@ export function useUnity2022Migration(
 function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
 	return (
 		<>
-			<DialogBody>
-				<p className={"text-red-700"}>
+			<div>
+				<p className={"text-destructive"}>
 					{tc("projects:dialog:vpm migrate description")}
 				</p>
-			</DialogBody>
-			<DialogFooter>
+			</div>
+			<div className={"wl-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button onClick={() => doMigrate(false)} variant={"destructive"}
 								className="mr-1">{tc("projects:button:migrate copy")}</Button>
 				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-			</DialogFooter>
+			</div>
 		</>
 	);
 }
@@ -93,15 +93,15 @@ function MigrationConfirmMigrationPatchDialog(
 	}) {
 	return (
 		<>
-			<DialogBody>
-				<p className={"text-red-700"}>
+			<div>
+				<p className={"text-destructive"}>
 					{tc("projects:dialog:migrate unity2022 patch description", {unity})}
 				</p>
-			</DialogBody>
-			<DialogFooter>
+			</div>
+			<div className={"wl-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-			</DialogFooter>
+			</div>
 		</>
 	);
 }
@@ -284,9 +284,11 @@ function useMigrationInternal(
 		dialog: <>
 			{unitySelector.dialog}
 			{dialogBodyForState == null ? null :
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
-					{dialogBodyForState}
+				<Dialog open>
+          <DialogContent className={"whitespace-normal leading-relaxed"}>
+            <DialogTitle>{tc("projects:manage:dialog:unity migrate header")}</DialogTitle>
+            {dialogBodyForState}
+          </DialogContent>
 				</Dialog>}
 		</>,
 		request,
@@ -294,25 +296,25 @@ function useMigrationInternal(
 }
 
 function MigrationCopyingDialog() {
-	return <DialogBody>
+	return <div>
 		<p>
 			{tc("projects:pre-migrate copying...")}
 		</p>
 		<p>
 			{tc("projects:manage:dialog:do not close")}
 		</p>
-	</DialogBody>;
+	</div>;
 }
 
 function MigrationMigratingDialog() {
-	return <DialogBody>
+	return <div>
 		<p>
 			{tc("projects:migrating...")}
 		</p>
 		<p>
 			{tc("projects:manage:dialog:do not close")}
 		</p>
-	</DialogBody>;
+	</div>;
 }
 
 function MigrationCallingUnityForMigrationDialog(
@@ -328,18 +330,18 @@ function MigrationCallingUnityForMigrationDialog(
 		ref.current?.scrollIntoView({behavior: "auto"});
 	}, [lines]);
 
-	return <DialogBody>
+	return <div>
 		<p>
 			{tc("projects:manage:dialog:unity migrate finalizing...")}
 		</p>
 		<p>
 			{tc("projects:manage:dialog:do not close")}
 		</p>
-		<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
+		<pre className={"overflow-y-auto h-[50vh] bg-secondary text-secondary-foreground text-sm"}>
 					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
 			<div ref={ref}/>
 				</pre>
-	</DialogBody>;
+	</div>;
 }
 
 function NoExactUnity2022Dialog(
@@ -358,14 +360,14 @@ function NoExactUnity2022Dialog(
 	}
 
 	return <>
-		<DialogBody>
+		<div>
 			<p>
 				{tc("projects:manage:dialog:exact version unity not found for patch migration description", {unity: expectedVersion})}
 			</p>
-		</DialogBody>
-		<DialogFooter className={"gap-2"}>
+		</div>
+		<div className={"wl-auto gap-2"}>
 			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
 			<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
-		</DialogFooter>
+		</div>
 	</>;
 }

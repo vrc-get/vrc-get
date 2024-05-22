@@ -3,13 +3,10 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {
-	Dialog,
-	DialogBody,
-	DialogFooter,
-	DialogHeader,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -501,51 +498,57 @@ function ProjectRow(
 	switch (dialogStatus.type) {
 		case "migrateVpm:confirm":
 			dialogContent = (
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
-					<DialogBody>
-						<p className={"text-red-700"}>
-							{tc("projects:dialog:vpm migrate description")}
-						</p>
-					</DialogBody>
-					<DialogFooter>
-						<Button onClick={() => setDialogStatus({type: "normal"})}
-										className="mr-1">{tc("general:button:cancel")}</Button>
-						<Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
-										className="mr-1">{tc("projects:button:migrate copy")}</Button>
-						<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-					</DialogFooter>
+				<Dialog open>
+          <DialogContent className={"whitespace-normal"}>
+            <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+            <div>
+              <p className={"text-destructive"}>
+                {tc("projects:dialog:vpm migrate description")}
+              </p>
+            </div>
+            <div>
+              <Button onClick={() => setDialogStatus({type: "normal"})}
+                      className="mr-1">{tc("general:button:cancel")}</Button>
+              <Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
+                      className="mr-1">{tc("projects:button:migrate copy")}</Button>
+              <Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
+            </div>
+          </DialogContent>
 				</Dialog>
 			);
 			break;
 		case "migrateVpm:copyingProject":
 			dialogContent = (
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
-					<DialogBody>
-						<p>
-							{tc("projects:pre-migrate copying...")}
-						</p>
-					</DialogBody>
+				<Dialog open>
+          <DialogContent className={"whitespace-normal"}>
+            <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+            <div>
+              <p>
+                {tc("projects:pre-migrate copying...")}
+              </p>
+            </div>
+          </DialogContent>
 				</Dialog>
 			);
 			break;
 		case "migrateVpm:updating":
 			dialogContent = (
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
-					<DialogBody>
-						<p>
-							{tc("projects:migrating...")}
-						</p>
-					</DialogBody>
+				<Dialog open>
+          <DialogContent className={"whitespace-normal"}>
+            <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+            <div>
+              <p>
+                {tc("projects:migrating...")}
+              </p>
+            </div>
+          </DialogContent>
 				</Dialog>
 			);
 			break;
 	}
 
 	return (
-		<tr className={`even:bg-blue-gray-50/50 ${(removed || loading) ? 'opacity-50' : ''}`}>
+		<tr className={`even:bg-primary/5 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
         <div className={"relative inline-flex"}>
           <Checkbox checked={project.favorite}
@@ -965,18 +968,18 @@ function CreateProject(
 			break;
 	}
 
-	return <Dialog handler={nop} open>
-		<DialogHeader>{tc("projects:create new project")}</DialogHeader>
-		<DialogBody>
-			{dialogBody}
-		</DialogBody>
-		<DialogFooter>
-			<div className={"flex gap-2"}>
-				<Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
-				<Button onClick={createProject}
-								disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
-			</div>
-		</DialogFooter>
-		{dialog}
+	return <Dialog open>
+    <DialogContent>
+      <DialogTitle>{tc("projects:create new project")}</DialogTitle>
+      <div>
+        {dialogBody}
+      </div>
+      <div className={"flex gap-2 ml-auto"}>
+        <Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
+        <Button onClick={createProject}
+                disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
+      </div>
+      {dialog}
+    </DialogContent>
 	</Dialog>;
 }

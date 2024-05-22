@@ -4,9 +4,8 @@ import {toastError, toastNormal} from "@/lib/toast";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
 import {shellOpen} from "@/lib/shellOpen";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
 import React from "react";
-import {nop} from "@/lib/nop";
 
 export type OpenUnityFunction = (projectPath: string, unityVersion: string | null, unityRevision?: string | null) => void;
 
@@ -93,19 +92,21 @@ function UnityInstallWindow(
 		await shellOpen(installWithUnityHubLink);
 	}
 
-	return <Dialog open handler={nop}>
-		<DialogHeader>
-			{tc("projects:manage:dialog:unity not found")}
-		</DialogHeader>
-		<DialogBody>
-			<p>
-				{tc("projects:manage:dialog:unity version of the project not found", {unity: expectedVersion})}
-			</p>
-		</DialogBody>
-		<DialogFooter className={"gap-2"}>
-			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
-			<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
-		</DialogFooter>
+	return <Dialog open>
+    <DialogContent>
+      <DialogTitle>
+        {tc("projects:manage:dialog:unity not found")}
+      </DialogTitle>
+      <div>
+        <p>
+          {tc("projects:manage:dialog:unity version of the project not found", {unity: expectedVersion})}
+        </p>
+      </div>
+      <div className={"wl-auto gap-2"}>
+        <Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
+        <Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
+      </div>
+    </DialogContent>
 	</Dialog>;
 }
 

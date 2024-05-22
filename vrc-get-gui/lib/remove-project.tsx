@@ -1,7 +1,6 @@
 import React, {ReactNode, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
-import {nop} from "@/lib/nop";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
 import {environmentRemoveProject, environmentRemoveProjectByPath, TauriProject} from "@/lib/bindings";
 import {toastSuccess} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
@@ -65,42 +64,46 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 			}
 
 			dialog = (
-				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{tc("projects:remove project")}</DialogHeader>
-					<DialogBody>
-						<p className={"font-normal"}>
-							{tc("projects:dialog:warn removing project", {name: project.name})}
-						</p>
-					</DialogBody>
-					<DialogFooter>
-						<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-						<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
-							{tc("projects:button:remove from list")}
-						</Button>
-						<Button onClick={() => removeProjectButton(true)} variant={"destructive"} className="px-2"
-										disabled={!project.is_exists}>
-							{tc("projects:button:remove directory")}
-						</Button>
-					</DialogFooter>
+				<Dialog open>
+          <DialogContent className={'whitespace-normal'}>
+            <DialogTitle>{tc("projects:remove project")}</DialogTitle>
+            <div>
+              <p className={"font-normal"}>
+                {tc("projects:dialog:warn removing project", {name: project.name})}
+              </p>
+            </div>
+            <div className={"wl-auto"}>
+              <Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+              <Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
+                {tc("projects:button:remove from list")}
+              </Button>
+              <Button onClick={() => removeProjectButton(true)} variant={"destructive"} className="px-2"
+                      disabled={!project.is_exists}>
+                {tc("projects:button:remove directory")}
+              </Button>
+            </div>
+          </DialogContent>
 				</Dialog>
 			);
 			break;
 		case "removing":
 			dialog = (
-				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{tc("projects:remove project")}</DialogHeader>
-					<DialogBody>
-						{tc("projects:dialog:removing...")}
-					</DialogBody>
-					<DialogFooter>
-						<Button className="mr-1" disabled>{tc("general:button:cancel")}</Button>
-						<Button className="mr-1 px-2" disabled>
-							{tc("projects:button:remove from list")}
-						</Button>
-						<Button variant={"destructive"} className="px-2" disabled>
-							{tc("projects:button:remove directory")}
-						</Button>
-					</DialogFooter>
+				<Dialog open>
+          <DialogContent className={'whitespace-normal'}>
+            <DialogContent>{tc("projects:remove project")}</DialogContent>
+            <div>
+              {tc("projects:dialog:removing...")}
+            </div>
+            <div className={"wl-auto"}>
+              <Button className="mr-1" disabled>{tc("general:button:cancel")}</Button>
+              <Button className="mr-1 px-2" disabled>
+                {tc("projects:button:remove from list")}
+              </Button>
+              <Button variant={"destructive"} className="px-2" disabled>
+                {tc("projects:button:remove directory")}
+              </Button>
+            </div>
+          </DialogContent>
 				</Dialog>
 			);
 			break;

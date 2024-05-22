@@ -1,6 +1,7 @@
 import React, {useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogBody, DialogFooter, DialogHeader, Radio} from "@material-tailwind/react";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Radio} from "@material-tailwind/react";
 import {nop} from "@/lib/nop";
 import {tc} from "@/lib/i18n";
 
@@ -37,13 +38,15 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 				setInstallStatus({state: "normal"});
 				installStatus.resolve(unityPath);
 			};
-			dialog = <Dialog open handler={nop} className={"whitespace-normal"}>
-				<DialogHeader>{tc("projects:manage:dialog:select unity header")}</DialogHeader>
-				<SelectUnityVersionDialog
-					unityVersions={installStatus.unityVersions}
-					cancel={() => resolveWrapper(null)}
-					onSelect={(unityPath) => resolveWrapper(unityPath)}
-				/>
+			dialog = <Dialog open>
+        <DialogContent className={"whitespace-normal"}>
+          <DialogTitle>{tc("projects:manage:dialog:select unity header")}</DialogTitle>
+          <SelectUnityVersionDialog
+            unityVersions={installStatus.unityVersions}
+            cancel={() => resolveWrapper(null)}
+            onSelect={(unityPath) => resolveWrapper(unityPath)}
+          />
+        </DialogContent>
 			</Dialog>;
 			break;
 		default:
@@ -69,7 +72,7 @@ function SelectUnityVersionDialog(
 
 	return (
 		<>
-			<DialogBody>
+			<div>
 				<p>
 					{tc("projects:manage:dialog:multiple unity found")}
 				</p>
@@ -79,14 +82,14 @@ function SelectUnityVersionDialog(
 						checked={selectedUnityPath == path}
 						onChange={() => setSelectedUnityPath(path)}
 					/>)}
-			</DialogBody>
-			<DialogFooter>
+			</div>
+			<div className={"wl-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button
 					onClick={() => onSelect(selectedUnityPath!)}
 					disabled={selectedUnityPath == null}
 				>{tc("projects:manage:button:continue")}</Button>
-			</DialogFooter>
+			</div>
 		</>
 	);
 }

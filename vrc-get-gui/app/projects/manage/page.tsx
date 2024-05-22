@@ -3,12 +3,9 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader, CardContent} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {
-	Dialog,
-	DialogBody,
-	DialogFooter,
-	DialogHeader,
 	Menu,
 	MenuHandler,
 	MenuItem,
@@ -50,7 +47,6 @@ import {
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {VGOption, VGSelect} from "@/components/select";
 import {useOpenUnity} from "@/lib/use-open-unity";
-import {nop} from "@/lib/nop";
 import {shellOpen} from "@/lib/shellOpen";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
@@ -775,110 +771,112 @@ function ProjectChangesDialog(
 	const packageChangesSorted = changes.package_changes.sort(comparePackageChange);
 
 	return (
-		<Dialog open handler={nop} className={"whitespace-normal"}>
-			<DialogHeader>{tc("projects:manage:button:apply changes")}</DialogHeader>
-			<DialogBody className={"overflow-y-auto max-h-[50vh]"}>
-				<p className={"text-gray-900"}>
-					{tc("projects:manage:dialog:confirm changes description")}
-				</p>
-				<div className={"flex flex-col gap-1 p-2"}>
-					{packageChangesSorted.map(([pkgId, pkgChange]) => {
-						if ('InstallNew' in pkgChange) {
-							let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
-							if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
-								changelogUrlTmp = null;
-							const changelogUrl = changelogUrlTmp;
-							return <div key={pkgId} className={"p-3"}>
-								<p className={"font-normal"}>{tc("projects:manage:dialog:install package", {
-									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
-									version: toVersionString(pkgChange.InstallNew.version),
-								})}</p>
-								{changelogUrl != null &&
-									<Button className={"ml-1 px-2"} size={"sm"}
-													onClick={() => shellOpen(changelogUrl)}>{tc("projects:manage:button:see changelog")}</Button>}
-							</div>
-						} else {
-							const name = getPackageDisplayName(pkgId);
-							switch (pkgChange.Remove) {
-								case "Requested":
-									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall package as requested", {name})}
-									</TypographyItem>
-								case "Legacy":
-									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall package as legacy", {name})}
-									</TypographyItem>
-								case "Unused":
-									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall package as unused", {name})}
-									</TypographyItem>
-							}
-						}
-					})}
-				</div>
-				{
-					versionConflicts.length > 0 ? (
-						<>
-							<p className={"text-red-700"}>
-								{tc("projects:manage:dialog:package version conflicts", {count: versionConflicts.length})}
-							</p>
-							<div className={"flex flex-col gap-1 p-2"}>
-								{versionConflicts.map(([pkgId, conflict]) => {
-									return (
-										<TypographyItem key={pkgId}>
-											{tc("projects:manage:dialog:conflicts with", {
-												pkg: getPackageDisplayName(pkgId),
-												other: conflict.packages.map(p => getPackageDisplayName(p)).join(", ")
-											})}
-										</TypographyItem>
-									);
-								})}
-							</div>
-						</>
-					) : null
-				}
-				{
-					unityConflicts.length > 0 ? (
-						<>
-							<p className={"text-red-700"}>
-								{tc("projects:manage:dialog:unity version conflicts", {count: unityConflicts.length})}
-							</p>
-							<div className={"flex flex-col gap-1 p-2"}>
-								{unityConflicts.map(([pkgId, _]) => (
-									<TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:package not supported your unity", {pkg: getPackageDisplayName(pkgId)})}
-									</TypographyItem>
-								))}
-							</div>
-						</>
-					) : null
-				}
-				{
-					changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
-						<>
-							<p className={"text-red-700"}>
-								{tc("projects:manage:dialog:files and directories are removed as legacy")}
-							</p>
-							<div className={"flex flex-col gap-1 p-2"}>
-								{changes.remove_legacy_files.map(f => (
-									<TypographyItem key={f}>
-										{f}
-									</TypographyItem>
-								))}
-								{changes.remove_legacy_folders.map(f => (
-									<TypographyItem key={f}>
-										{f}
-									</TypographyItem>
-								))}
-							</div>
-						</>
-					) : null
-				}
-			</DialogBody>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={apply} variant={"destructive"}>{tc("projects:manage:button:apply")}</Button>
-			</DialogFooter>
+		<Dialog open>
+      <DialogContent className={"whitespace-normal"}>
+        <DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
+        <div className={"overflow-y-auto max-h-[50vh]"}>
+          <p>
+            {tc("projects:manage:dialog:confirm changes description")}
+          </p>
+          <div className={"flex flex-col gap-1 p-2"}>
+            {packageChangesSorted.map(([pkgId, pkgChange]) => {
+              if ('InstallNew' in pkgChange) {
+                let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
+                if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
+                  changelogUrlTmp = null;
+                const changelogUrl = changelogUrlTmp;
+                return <div key={pkgId} className={"p-3"}>
+                  <p className={"font-normal"}>{tc("projects:manage:dialog:install package", {
+                    name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
+                    version: toVersionString(pkgChange.InstallNew.version),
+                  })}</p>
+                  {changelogUrl != null &&
+                    <Button className={"ml-1 px-2"} size={"sm"}
+                            onClick={() => shellOpen(changelogUrl)}>{tc("projects:manage:button:see changelog")}</Button>}
+                </div>
+              } else {
+                const name = getPackageDisplayName(pkgId);
+                switch (pkgChange.Remove) {
+                  case "Requested":
+                    return <TypographyItem key={pkgId}>
+                      {tc("projects:manage:dialog:uninstall package as requested", {name})}
+                    </TypographyItem>
+                  case "Legacy":
+                    return <TypographyItem key={pkgId}>
+                      {tc("projects:manage:dialog:uninstall package as legacy", {name})}
+                    </TypographyItem>
+                  case "Unused":
+                    return <TypographyItem key={pkgId}>
+                      {tc("projects:manage:dialog:uninstall package as unused", {name})}
+                    </TypographyItem>
+                }
+              }
+            })}
+          </div>
+          {
+            versionConflicts.length > 0 ? (
+              <>
+                <p className={"text-red-700"}>
+                  {tc("projects:manage:dialog:package version conflicts", {count: versionConflicts.length})}
+                </p>
+                <div className={"flex flex-col gap-1 p-2"}>
+                  {versionConflicts.map(([pkgId, conflict]) => {
+                    return (
+                      <TypographyItem key={pkgId}>
+                        {tc("projects:manage:dialog:conflicts with", {
+                          pkg: getPackageDisplayName(pkgId),
+                          other: conflict.packages.map(p => getPackageDisplayName(p)).join(", ")
+                        })}
+                      </TypographyItem>
+                    );
+                  })}
+                </div>
+              </>
+            ) : null
+          }
+          {
+            unityConflicts.length > 0 ? (
+              <>
+                <p className={"text-red-700"}>
+                  {tc("projects:manage:dialog:unity version conflicts", {count: unityConflicts.length})}
+                </p>
+                <div className={"flex flex-col gap-1 p-2"}>
+                  {unityConflicts.map(([pkgId, _]) => (
+                    <TypographyItem key={pkgId}>
+                      {tc("projects:manage:dialog:package not supported your unity", {pkg: getPackageDisplayName(pkgId)})}
+                    </TypographyItem>
+                  ))}
+                </div>
+              </>
+            ) : null
+          }
+          {
+            changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
+              <>
+                <p className={"text-red-700"}>
+                  {tc("projects:manage:dialog:files and directories are removed as legacy")}
+                </p>
+                <div className={"flex flex-col gap-1 p-2"}>
+                  {changes.remove_legacy_files.map(f => (
+                    <TypographyItem key={f}>
+                      {f}
+                    </TypographyItem>
+                  ))}
+                  {changes.remove_legacy_folders.map(f => (
+                    <TypographyItem key={f}>
+                      {f}
+                    </TypographyItem>
+                  ))}
+                </div>
+              </>
+            ) : null
+          }
+        </div>
+        <div className={"wl-auto"}>
+          <Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+          <Button onClick={apply} variant={"destructive"}>{tc("projects:manage:button:apply")}</Button>
+        </div>
+      </DialogContent>
 		</Dialog>
 	);
 }
