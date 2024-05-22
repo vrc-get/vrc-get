@@ -469,7 +469,7 @@ function EnteringRepositoryInfo(
                               <PlusCircleIcon color={"green"} className={"size-5"}/>
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>{tc("vpm repositories:tooltip:add header")} className={"z-[19999]"}</TooltipContent>
+                          <TooltipContent className={"z-[19999]"}>{tc("vpm repositories:tooltip:add header")}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                       <TooltipProvider>
@@ -479,7 +479,7 @@ function EnteringRepositoryInfo(
                               <MinusCircleIcon color={"red"} className={"size-5"}/>
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>{tc("vpm repositories:tooltip:remove header")} className={"z-[19999]"}</TooltipContent>
+                          <TooltipContent className={"z-[19999]"}>{tc("vpm repositories:tooltip:remove header")}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
 										</td>
