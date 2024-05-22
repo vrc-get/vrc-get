@@ -517,7 +517,7 @@ function PageBody() {
 
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
                       {isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
                     </Button>
@@ -1333,7 +1333,7 @@ const PackageRow = memo(function PackageRow(
 						pkg.installed ? (
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <Button variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
                       className={"size-5 text-red-700"}/></Button>
                   </TooltipTrigger>
@@ -1343,7 +1343,7 @@ const PackageRow = memo(function PackageRow(
 						) : (
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <Button variant={'ghost'} disabled={locked && !!latestVersion}
                                 onClick={installLatest}><PlusCircleIcon
                       className={"size-5 text-gray-800"}/></Button>
@@ -1460,7 +1460,7 @@ function PackageLatestInfo(
 			return (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <Button variant={"outline"}
                       className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
                       disabled={locked}
@@ -1504,7 +1504,7 @@ function ProjectViewHeader({
 		<HNavBar className={className}>
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger asChild>
             <Button variant={"ghost"} onClick={() => history.back()}>
               <ArrowLeftIcon className={"w-5 h-5"}/>
             </Button>

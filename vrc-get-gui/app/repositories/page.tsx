@@ -300,7 +300,7 @@ function RepositoryRow(
 			<td className={`${cellClass} w-0`}>
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <Button onClick={() => setRemoveDialogOpen(true)} variant={"ghost"}>
                 <XCircleIcon className={"size-5 text-destructive"}/>
               </Button>
@@ -464,7 +464,7 @@ function EnteringRepositoryInfo(
                     <td className={"w-20"}>
                       <TooltipProvider>
                         <Tooltip>
-                          <TooltipTrigger>
+                          <TooltipTrigger asChild>
                             <Button variant={"ghost"} onClick={addHeader}>
                               <PlusCircleIcon color={"green"} className={"size-5"}/>
                             </Button>
@@ -474,7 +474,7 @@ function EnteringRepositoryInfo(
                       </TooltipProvider>
                       <TooltipProvider>
                         <Tooltip>
-                          <TooltipTrigger>
+                          <TooltipTrigger asChild>
                             <Button variant={"ghost"} onClick={() => removeHeader(idx)}>
                               <MinusCircleIcon color={"red"} className={"size-5"}/>
                             </Button>

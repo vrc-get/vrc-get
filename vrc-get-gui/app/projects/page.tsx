@@ -431,7 +431,7 @@ function ProjectRow(
 			return (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
             </TooltipTrigger>
             <TooltipContent>{tt("projects:tooltip:no directory")}</TooltipContent>
@@ -453,7 +453,7 @@ function ProjectRow(
 			manageButton =
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <RowButton variant={"success"} disabled>
                 {tc("projects:button:migrate")}
               </RowButton>
@@ -473,7 +473,7 @@ function ProjectRow(
 			manageButton =
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <RowButton variant={"info"} disabled>
                 {tc("projects:button:manage")}
               </RowButton>
@@ -686,7 +686,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger asChild>
             <Button variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
               {isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
             </Button>
