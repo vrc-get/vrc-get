@@ -4,12 +4,14 @@ import {Button} from "@/components/ui/button";
 import {Card, CardHeader, CardContent} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {
-	Menu,
-	MenuHandler,
-	MenuItem,
-	MenuList,
 	Spinner,
 } from "@material-tailwind/react";
 import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
@@ -534,25 +536,25 @@ function PageBody() {
                   {tc("projects:manage:button:upgrade all")}
                 </Button>}
 
-              <Menu>
-                <MenuHandler>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button variant={"ghost"} className={'flex-shrink-0'}>
                     <EllipsisHorizontalIcon className={"size-5"}/>
                   </Button>
-                </MenuHandler>
-                <MenuList>
-                  <MenuItem className={"p-3"}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem className={"p-3"}
                             onClick={onResolveRequest}
                             disabled={isLoading}>
-                    {tc("projects:manage:button:reinstall all")}</MenuItem>
-                </MenuList>
-              </Menu>
+                    {tc("projects:manage:button:reinstall all")}</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-              <Menu dismiss={{itemPress: false}}>
-                <MenuHandler>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button className={"flex-shrink-0 p-3"}>{tc("projects:manage:button:select repositories")}</Button>
-                </MenuHandler>
-                <MenuList className={"max-h-96 w-64"}>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className={"max-h-96 w-64"}>
                   <RepositoryMenuItem
                     hiddenUserRepositories={hiddenUserRepositories}
                     repositoryName={tt("vpm repositories:source:official")}
@@ -581,8 +583,8 @@ function PageBody() {
                       />
                     )) : null
                   }
-                </MenuList>
-              </Menu>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <BulkUpdateCard
               disabled={isLoading} bulkUpdateMode={bulkUpdateMode}
@@ -923,14 +925,14 @@ function RepositoryMenuItem(
 	};
 
 	return (
-		<MenuItem className="p-0">
+		<DropdownMenuItem className="p-0" onSelect={ (e) => { e.preventDefault() } }>
 			<label className={"flex cursor-pointer items-center gap-2 p-2 whitespace-normal"}>
 				<Checkbox checked={selected}
 									onCheckedChange={onChange}
 									className="hover:before:content-none"/>
 				{repositoryName}
 			</label>
-		</MenuItem>
+		</DropdownMenuItem>
 	)
 }
 
@@ -953,14 +955,14 @@ function UserLocalRepositoryMenuItem(
 	};
 
 	return (
-		<MenuItem className="p-0">
+		<DropdownMenuItem className="p-0" onSelect={ (e) => { e.preventDefault() } }>
 			<label className={"flex cursor-pointer items-center gap-2 p-2"}>
 				<Checkbox checked={selected}
 									onCheckedChange={onChange}
 									className="hover:before:content-none"/>
 				{tc("vpm repositories:source:local")}
 			</label>
-		</MenuItem>
+		</DropdownMenuItem>
 	)
 }
 
@@ -1518,22 +1520,22 @@ function ProjectViewHeader({
 			<div className="relative flex gap-2 w-max flex-grow">
 			</div>
 
-			<Menu>
+			<DropdownMenu>
 				<div className={"flex divide-x"}>
 					<Button onClick={() => openUnity.openUnity(projectPath, unityVersion, unityRevision)}
 									className={"rounded-r-none pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
-					<MenuHandler className={"rounded-l-none pl-2 pr-2"}>
+					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
 						</Button>
-					</MenuHandler>
+					</DropdownMenuTrigger>
 				</div>
-				<MenuList>
-					<MenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</MenuItem>
-					<MenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</MenuItem>
-					<MenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>{tc("projects:remove project")}</MenuItem>
-				</MenuList>
-			</Menu>
+				<DropdownMenuContent>
+					<DropdownMenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
+					<DropdownMenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</DropdownMenuItem>
+					<DropdownMenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>{tc("projects:remove project")}</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 			{openUnity.dialog}
 		</HNavBar>
 	);

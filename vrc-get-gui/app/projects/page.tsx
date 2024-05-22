@@ -4,15 +4,15 @@ import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {Input} from "@/components/ui/input";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
-import {
-	Menu,
-	MenuHandler,
-	MenuItem,
-	MenuList,
-	Spinner,
-} from "@material-tailwind/react";
+import {Spinner} from "@material-tailwind/react";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
@@ -620,20 +620,20 @@ function ProjectRow(
 					{manageButton}
 					<RowButton onClick={() => backupProjectModal.startBackup(project)}
 										 variant={"success"}>{tc("projects:backup")}</RowButton>
-					<Menu>
-						<MenuHandler>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" className={"hover:bg-info/10 hover:text-info text-info"}><EllipsisHorizontalIcon
 								className={"size-5"}/></Button>
-						</MenuHandler>
-						<MenuList>
-							<MenuItem onClick={openProjectFolder}
-												disabled={removed || loading}>{tc("projects:menuitem:open directory")}</MenuItem>
-							<MenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
+						</DropdownMenuTrigger>
+						<DropdownMenuContent>
+							<DropdownMenuItem onClick={openProjectFolder}
+												disabled={removed || loading}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
 												className={'text-destructive focus:text-destructive'}>
 								{tc("projects:remove project")}
-							</MenuItem>
-						</MenuList>
-					</Menu>
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 				{dialogContent}
 				{removeProjectModal.dialog}
@@ -698,19 +698,19 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 
 			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
 
-			<Menu>
+			<DropdownMenu>
         <div className={"flex divide-x"}>
           <Button className={"rounded-r-none pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
-          <MenuHandler className={"rounded-l-none pl-2 pr-2"}>
+          <DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
             <Button>
               <ChevronDownIcon className={"w-4 h-4"}/>
             </Button>
-          </MenuHandler>
+          </DropdownMenuTrigger>
         </div>
-				<MenuList>
-					<MenuItem onClick={addProject}>{tc("projects:add existing project")}</MenuItem>
-				</MenuList>
-			</Menu>
+				<DropdownMenuContent>
+					<DropdownMenuItem onClick={addProject}>{tc("projects:add existing project")}</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 
 			{dialog}
 		</HNavBar>

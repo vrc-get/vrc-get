@@ -1,7 +1,14 @@
 // based on https://github.com/creativetimofficial/material-tailwind/blob/main/packages/material-tailwind-react/src/components/Select/index.tsx#L298
 
 import React, {createContext, useContext, useState} from "react";
-import {Menu, MenuHandler, MenuItem, MenuList, useTheme} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {useTheme} from "@material-tailwind/react";
 import findMatch from "@material-tailwind/react/utils/findMatch";
 import objectsToString from "@material-tailwind/react/utils/objectsToString";
 import {twMerge} from "tailwind-merge";
@@ -78,21 +85,21 @@ export function VGSelect(
 
 	return (
 		<SelectContext.Provider value={contextValue}>
-			<Menu open={open} handler={() => setOpen(!open)}>
+			<DropdownMenu open={open} onOpenChange={() => setOpen(!open)}>
 				<div className={containerClasses}>
-					<MenuHandler>
-						<button className={selectClasses} disabled={disabled}>
+					<DropdownMenuTrigger asChild className={"lowercase"}>
+						<Button className={selectClasses} disabled={disabled}>
 							<span className={buttonContentClasses}>{value}</span>
 							<div className={arrowClasses}>
 								<ChevronDownIcon className="size-3"/>
 							</div>
-						</button>
-					</MenuHandler>
+						</Button>
+					</DropdownMenuTrigger>
 				</div>
-				<MenuList className={`max-h-96 overflow-y-scroll ${menuClassName}`}>
+				<DropdownMenuContent className={`max-h-96 overflow-y-scroll ${menuClassName}`}>
 					{children}
-				</MenuList>
-			</Menu>
+				</DropdownMenuContent>
+			</DropdownMenu>
 		</SelectContext.Provider>
 	)
 }
@@ -109,10 +116,10 @@ function VGOptionImpl(
 		value: any,
 		disabled?: boolean,
 	},
-	ref: React.Ref<HTMLButtonElement>
+	ref: React.Ref<HTMLDivElement>
 ) {
 	const contextValue = useContext(SelectContext);
 	return (
-		<MenuItem ref={ref} disabled={disabled} onClick={() => contextValue?.onClick(value)}>{children}</MenuItem>
+		<DropdownMenuItem ref={ref} disabled={disabled} onClick={() => contextValue?.onClick(value)}>{children}</DropdownMenuItem>
 	)
 }
