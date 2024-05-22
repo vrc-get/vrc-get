@@ -233,7 +233,7 @@ function ProjectsTable(
 		return searched;
 	}, [projects, sorting, search]);
 
-	const thClass = `sticky top-0 z-10 border-b border-blue-gray-100 p-2.5`;
+	const thClass = `sticky top-0 z-10 border-b border-info/40 p-2.5`;
 	const iconClass = `size-3 invisible project-table-header-chevron-up-down`;
 
 	const setSorting = async (simpleSorting: SimpleSorting) => {
@@ -255,7 +255,7 @@ function ProjectsTable(
 		}
 	}
 
-	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-blue-100" : "bg-blue-gray-50";
+	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-info/40" : "bg-secondary";
 	const icon = (target: SimpleSorting) =>
 		sorting === target ? <ChevronDownIcon className={"size-3"}/>
 			: sorting === `${target}Reversed` ? <ChevronUpIcon className={"size-3"}/>
@@ -265,7 +265,7 @@ function ProjectsTable(
 		<table className="relative table-auto text-left">
 			<thead>
 			<tr>
-				<th className={`${thClass} bg-blue-gray-50`}>
+				<th className={`${thClass} bg-secondary`}>
 					<StarIcon className={"size-4"}/>
 				</th>
 				<th
@@ -297,7 +297,7 @@ function ProjectsTable(
 						<small className="font-normal leading-none">{tc("projects:last modified")}</small>
 					</button>
 				</th>
-				<th className={`${thClass} bg-blue-gray-50`}></th>
+				<th className={`${thClass} bg-secondary`}></th>
 			</tr>
 			</thead>
 			<tbody>
@@ -587,7 +587,7 @@ function ProjectRow(
 						</p>
 						{isLegacy &&
 							<p
-								className="font-normal opacity-50 text-sm text-red-700">{tc("projects:type:legacy")}</p>}
+								className="font-normal opacity-50 text-sm text-destructive">{tc("projects:type:legacy")}</p>}
 					</div>
 				</div>
 			</td>
@@ -626,7 +626,7 @@ function ProjectRow(
 							<MenuItem onClick={openProjectFolder}
 												disabled={removed || loading}>{tc("projects:menuitem:open directory")}</MenuItem>
 							<MenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
-												className={'text-red-700 focus:text-red-700'}>
+												className={'text-destructive focus:text-destructive'}>
 								{tc("projects:remove project")}
 							</MenuItem>
 						</MenuList>
@@ -877,13 +877,13 @@ function CreateProject(
 	let projectNameStateClass;
 	switch (projectNameState) {
 		case "Ok":
-			projectNameStateClass = "text-green-700";
+			projectNameStateClass = "text-success";
 			break;
 		case "warn":
-			projectNameStateClass = "text-yellow-900";
+			projectNameStateClass = "text-warning";
 			break;
 		case "err":
-			projectNameStateClass = "text-red-900";
+			projectNameStateClass = "text-destructive";
 	}
 
 	if (checking) projectNameCheck = <Spinner/>
@@ -897,7 +897,7 @@ function CreateProject(
 		case "enteringInformation":
 			const renderUnityVersion = (unityVersion: string) => {
 				if (unityVersion === latestUnityVersion) {
-					return <>{unityVersion} <span className={"text-green-700"}>{tc("projects:latest")}</span></>
+					return <>{unityVersion} <span className={"text-success"}>{tc("projects:latest")}</span></>
 				} else {
 					return unityVersion;
 				}
@@ -947,7 +947,7 @@ function CreateProject(
 					<small className={"whitespace-normal"}>
 						{tc("projects:hint:path of creating project", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {
 							components: {
-								path: <span className={"p-0.5 font-path whitespace-pre bg-gray-100"}/>
+								path: <span className={"p-0.5 font-path whitespace-pre bg-secondary"}/>
 							}
 						})}
 					</small>

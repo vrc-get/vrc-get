@@ -212,7 +212,7 @@ function RepositoryTable(
 			<tr>
 				{TABLE_HEAD.map((head, index) => (
 					<th key={index}
-							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
+							className={`sticky top-0 z-10 border-b border-info/40 bg-secondary p-2.5`}>
 						<small className="font-normal leading-none">{tc(head)}</small>
 					</th>
 				))}
@@ -280,7 +280,7 @@ function RepositoryRow(
 	}
 
 	return (
-		<tr className="even:bg-blue-gray-50/50">
+		<tr className="even:bg-primary/5">
 			<td className={cellClass}>
 				<Checkbox id={id}
 									checked={selected} onCheckedChange={onChange}/>
@@ -302,7 +302,7 @@ function RepositoryRow(
           <Tooltip>
             <TooltipTrigger>
               <Button onClick={() => setRemoveDialogOpen(true)} variant={"ghost"}>
-                <XCircleIcon className={"size-5 text-red-700"}/>
+                <XCircleIcon className={"size-5 text-destructive"}/>
               </Button>
             </TooltipTrigger>
             <TooltipContent>{tc("vpm repositories:remove repository")}</TooltipContent>

@@ -481,7 +481,7 @@ function PageBody() {
 					{tc("projects:manage:project location",
 						{path: projectPath},
 						{
-							components: {path: <span className={"p-0.5 font-path whitespace-pre bg-gray-100"}/>}
+							components: {path: <span className={"p-0.5 font-path whitespace-pre bg-secondary"}/>}
 						})}
 				</p>
 				<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>
@@ -600,15 +600,15 @@ function PageBody() {
               <table className="relative table-auto text-left">
                 <thead>
                 <tr>
-                  <th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50`}>
+                  <th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-secondary`}>
                   </th>
                   {TABLE_HEAD.map((head, index) => (
                     <th key={index}
-                        className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
+                        className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-secondary p-2.5`}>
                       <small className="font-normal leading-none">{tc(head)}</small>
                     </th>
                   ))}
-                  <th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}/>
+                  <th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-secondary p-2.5`}/>
                 </tr>
                 </thead>
                 <tbody>
@@ -731,7 +731,7 @@ function BulkUpdateCard(
 	const canRemove = bulkUpdateMode == 'remove' || bulkUpdateMode == 'upgradeOrRemove';
 
 	return (
-		<Card className={"flex-shrink-0 p-2 flex flex-row gap-2 bg-blue-gray-50 flex-wrap"}>
+		<Card className={"flex-shrink-0 p-2 flex flex-row gap-2 bg-secondary flex-wrap"}>
 			{canInstall && <Button disabled={disabled} onClick={bulkInstallAll}>
 				{tc("projects:manage:button:install selected")}
 			</Button>}
@@ -1267,7 +1267,7 @@ const PackageRow = memo(function PackageRow(
 	}
 
 	return (
-		<tr className="even:bg-blue-gray-50/50">
+		<tr className="even:bg-primary/5">
 			<td className={`${cellClass} w-1`}>
 				<Checkbox checked={bulkUpdateSelected}
 									onCheckedChange={onClickBulkUpdate}
@@ -1533,7 +1533,7 @@ function ProjectViewHeader({
 				<MenuList>
 					<MenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</MenuItem>
 					<MenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</MenuItem>
-					<MenuItem onClick={onRemove} className={"bg-red-700 text-white"}>{tc("projects:remove project")}</MenuItem>
+					<MenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>{tc("projects:remove project")}</MenuItem>
 				</MenuList>
 			</Menu>
 			{openUnity.dialog}

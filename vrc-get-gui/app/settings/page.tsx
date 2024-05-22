@@ -240,7 +240,7 @@ function Settings(
 					{
 						settings.unity_hub
 							? <Input className="flex-auto" value={settings.unity_hub} disabled/>
-							: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-red-900"}/>
+							: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-destructive"}/>
 					}
 					<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("general:button:select")}</Button>
 				</div>
@@ -368,7 +368,7 @@ function UnityTable(
 			<tr>
 				{UNITY_TABLE_HEAD.map((head, index) => (
 					<th key={index}
-							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
+							className={`sticky top-0 z-10 border-b border-info/40 bg-secondary p-2.5`}>
 						<small className="font-normal leading-none">{tc(head)}</small>
 					</th>
 				))}
