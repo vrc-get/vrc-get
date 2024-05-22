@@ -7,7 +7,6 @@ import {deepLinkHasAddRepository, environmentLanguage, LogEntry} from "@/lib/bin
 import i18next from "@/lib/i18n";
 import {I18nextProvider} from "react-i18next";
 import {toastError, toastNormal} from "@/lib/toast";
-import {ThemeProvider} from "@material-tailwind/react";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {usePathname, useRouter} from "next/navigation";
 
@@ -76,17 +75,9 @@ export function Providers({children}: { children: React.ReactNode }) {
 			/>
 			<QueryClientProvider client={queryClient}>
 				<I18nextProvider i18n={i18next}>
-					<ThemeProvider value={{
-						Typography: {
-							styles: {
-								font: 'normal'
-							}
-						}
-					}}>
-						{<div lang={language} className="contents">
-							{children}
-						</div> as any}
-					</ThemeProvider>
+          <div lang={language} className="contents">
+            {children}
+          </div>
 				</I18nextProvider>
 			</QueryClientProvider>
 		</>
