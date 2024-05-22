@@ -1,7 +1,8 @@
 import React, {useState} from "react";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
-import {Radio} from "@material-tailwind/react";
+import {Label} from "@/components/ui/label";
+import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import {nop} from "@/lib/nop";
 import {tc} from "@/lib/i18n";
 
@@ -77,11 +78,16 @@ function SelectUnityVersionDialog(
 					{tc("projects:manage:dialog:multiple unity found")}
 				</p>
 				{unityVersions.map(([path, version, _]) =>
-					<Radio
-						key={path} name={name} label={`${version} (${path})`}
-						checked={selectedUnityPath == path}
-						onChange={() => setSelectedUnityPath(path)}
-					/>)}
+          <RadioGroup
+            key={path}
+            name={name}
+            className={"flex items-center space-x-2"}
+            onValueChange={(path) => setSelectedUnityPath(path)}
+          >
+            <RadioGroupItem value={path} id={path} />
+            <Label htmlFor={path}>{`${version} (${path})`}</Label>
+          </RadioGroup>
+				)}
 			</div>
 			<div className={"wl-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
