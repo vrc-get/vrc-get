@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {Input} from "@/components/ui/input";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
-import {Spinner} from "@material-tailwind/react";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
@@ -688,7 +687,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
-              {isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+              {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
@@ -869,7 +868,7 @@ function CreateProject(
 			projectNameState = "err";
 			break;
 		case "checking":
-			projectNameCheck = <Spinner/>;
+			projectNameCheck = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />;
 			projectNameState = "Ok";
 			break;
 		default:
@@ -889,13 +888,13 @@ function CreateProject(
 			projectNameStateClass = "text-destructive";
 	}
 
-	if (checking) projectNameCheck = <Spinner/>
+	if (checking) projectNameCheck = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />
 
 	let dialogBody;
 
 	switch (state) {
 		case "loadingInitialInformation":
-			dialogBody = <Spinner/>;
+			dialogBody = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />;
 			break;
 		case "enteringInformation":
 			const renderUnityVersion = (unityVersion: string) => {
@@ -962,7 +961,7 @@ function CreateProject(
 			break;
 		case "creating":
 			dialogBody = <>
-				<Spinner/>
+        <ArrowPathIcon className={"w-5 h-5 animate-spin"} />
 				<p>{tc("projects:creating project...")}</p>
 			</>;
 			break;

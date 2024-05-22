@@ -11,9 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
-import {
-	Spinner,
-} from "@material-tailwind/react";
 import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
@@ -519,7 +516,7 @@ function PageBody() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
-                      {isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+                      {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>{tc("projects:manage:tooltip:refresh packages")}</TooltipContent>
