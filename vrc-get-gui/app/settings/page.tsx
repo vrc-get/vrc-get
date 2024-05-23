@@ -15,7 +15,9 @@ import {
 	environmentPickUnityHub,
 	environmentSetBackupFormat,
 	environmentSetLanguage,
+  environmentSetTheme,
 	environmentSetShowPrereleasePackages,
+  environmentTheme,
 	TauriEnvironmentSettings,
 	utilGetVersion,
 } from "@/lib/bindings";
@@ -208,6 +210,21 @@ function Settings(
 		])
 	};
 
+  const [theme, setTheme] = React.useState(tc("settings:theme:light"));
+
+	React.useEffect(() => {
+		(async () => {
+	    const theme = await environmentTheme();
+      setTheme(tc(`settings:theme:${theme}`));
+		})();
+	}, [])
+
+  const changeTheme = async (theme: string) => {
+    await environmentSetTheme(theme);
+    document.documentElement.setAttribute("class", theme);
+    setTheme(tc(`settings:theme:${theme}`));
+  };
+
 	const reportIssue = async () => {
 		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
 		url.searchParams.append("labels", "bug,vrc-get-gui")
@@ -321,6 +338,15 @@ function Settings(
 			{unityHubDialog}
 			{projectDefaultDialog}
 			{projectBackupDialog}
+      <Card className={"flex-shrink-0 p-4"}>
+        <label className={"flex items-center"}>
+          <h2>{tc("settings:theme")}: </h2>
+          <VGSelect value={theme} onChange={changeTheme} menuClassName={"w-96"}>
+            <VGOption value={"light"}>{tc("settings:theme:light")}</VGOption>
+            <VGOption value={"dark"}>{tc("settings:theme:dark")}</VGOption>
+          </VGSelect>
+        </label>
+      </Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:check update")}</h2>
 				<div>

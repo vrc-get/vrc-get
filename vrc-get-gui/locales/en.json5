@@ -216,5 +216,8 @@
     "settings:language": "Language",
     "settings:report issue": "Report an Issue",
     "settings:button:open issue": "Open an Issue",
+    "settings:theme": "Theme",
+    "settings:theme:light": "Light",
+    "settings:theme:dark": "Dark",
   },
 }
