@@ -92,7 +92,7 @@ jobs:
       name: crates.io
       url: https://crates.io/crates/vrc-get
     runs-on: ubuntu-latest
-    needs: [pre-build]
+    needs: [ pre-build ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -113,7 +113,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: [pre-build, publish-crates-io]
+    needs: [ pre-build, publish-crates-io ]
     env:
       LITEDB_VERSION: ${{ needs.pre-build.outputs.litedb-version }}
     steps:
@@ -121,7 +121,7 @@ jobs:
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.PRIVATE_KEY }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - uses: actions/checkout@v4
         with:
           ref: 'releasing'
@@ -160,7 +160,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - pre-build
       - publish-crates-io
       - publish-to-github

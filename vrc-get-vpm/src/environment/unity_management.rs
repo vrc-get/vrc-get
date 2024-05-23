@@ -195,6 +195,7 @@ pub struct UnityInstallation {
     #[serde(rename = "Path")]
     path: Box<str>,
     #[serde(rename = "Version")]
+    #[serde(deserialize_with = "parse_loose_unity_version")]
     version: Option<UnityVersion>,
     #[serde(rename = "LoadedFromHub")]
     loaded_from_hub: bool,
@@ -221,4 +222,22 @@ impl UnityInstallation {
     pub fn loaded_from_hub(&self) -> bool {
         self.loaded_from_hub
     }
+}
+
+// for unity 2018.x or older, VCC will parse version as "2018.4.0" instead of "2018.4.0f1"
+// so we need to use loose version parser
+fn parse_loose_unity_version<'de, D>(deserializer: D) -> Result<Option<UnityVersion>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if let Some(parsed) = UnityVersion::parse(&s) {
+        return Ok(Some(parsed));
+    }
+
+    if let Some(parsed) = UnityVersion::parse_no_type_increment(&s) {
+        return Ok(Some(parsed));
+    }
+
+    Err(serde::de::Error::custom("Invalid Unity Version"))
 }

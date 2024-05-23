@@ -424,6 +424,7 @@ function ProjectRow(
 	const removed = !project.is_exists;
 
 	const MayTooltip = removed ? TooltipTrigger : Fragment;
+	const MayTooltipRev = !removed ? TooltipTrigger : Fragment;
 
 	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
 		if (removed) {
@@ -548,7 +549,7 @@ function ProjectRow(
 
 	return (
 		<tr className={`even:bg-secondary/30 ${(removed || loading) ? 'opacity-50' : ''}`}>
-			<td className={cellClass}>
+			<td className={`${cellClass} w-3`}>
         <div className={"relative inline-flex"}>
           <Checkbox checked={project.favorite}
                     onCheckedChange={onToggleFavorite}
@@ -559,17 +560,27 @@ function ProjectRow(
           </span>
         </div>
 			</td>
-			<td className={cellClass}>
+			<td className={`${cellClass} max-w-64 overflow-hidden`}>
         <TooltipProvider>
           <Tooltip>
             <MayTooltip className={"text-left select-text cursor-auto w-full"}>
               <div className="flex flex-col">
-                <p className="font-normal whitespace-pre">
-                  {project.name}
-                </p>
-                <p className="font-normal opacity-50 text-sm whitespace-pre">
-                  {project.path}
-                </p>
+                <Tooltip>
+                  <MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
+                    <p className="font-normal whitespace-pre">
+                      {project.name}
+                    </p>
+                  </MayTooltipRev>
+                  <TooltipContent>{project.name}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
+                    <p className="font-normal opacity-50 text-sm whitespace-pre">
+                      {project.path}
+                    </p>
+                  </MayTooltipRev>
+                  <TooltipContent>{project.path}</TooltipContent>
+                </Tooltip>
               </div>
             </MayTooltip>
             <TooltipPortal>
@@ -578,7 +589,7 @@ function ProjectRow(
           </Tooltip>
         </TooltipProvider>
 			</td>
-			<td className={`${cellClass} w-[8em]`}>
+			<td className={`${cellClass} w-[8em] min-w-[8em]`}>
 				<div className="flex flex-row gap-2">
 					<div className="flex items-center">
 						{projectTypeKind === "avatars" ? <UserCircleIcon className={typeIconClass}/> :

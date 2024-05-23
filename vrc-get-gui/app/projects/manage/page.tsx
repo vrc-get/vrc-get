@@ -1271,7 +1271,7 @@ const PackageRow = memo(function PackageRow(
 									disabled={locked || !bulkUpdateAvailable}
 									className="hover:before:content-none"/>
 			</td>
-			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis`}>
+			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis ${pkg.installed ? '' : 'opacity-50'}`}>
 				<div className="flex flex-col">
 					<p className="font-normal">
 						{pkg.displayName}

@@ -308,7 +308,7 @@ jobs:
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.PRIVATE_KEY }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - uses: actions/checkout@v4
         with:
           ref: 'releasing'
@@ -403,7 +403,7 @@ jobs:
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.PRIVATE_KEY }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: vrc-get
           repositories: vrc-get.anatawa12.com
       - uses: actions/checkout@v4

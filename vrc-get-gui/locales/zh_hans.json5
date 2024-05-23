@@ -98,6 +98,8 @@
     "projects:manage:button:select repositories": "选择存储库",
     "vpm repositories:source:official": "官方",
     "vpm repositories:source:curated": "精选",
+    "projects:manage:dialog:unity not found": "Unity 不存在",
+    "projects:manage:dialog:unity version of the project not found": "无法找到该项目使用的 Unity {{unity}} 。<br>请使用 Unity Hub 安装 Unity {{unity}} 然后重启 ALCOM。",
     "projects:manage:suggest resolve": "项目所需的某些软件包未安装。<br>强烈建议修复软件包缺失问题。",
     "projects:manage:button:resolve": "安装软件包",
     "projects:manage:suggest unity migration": "您的项目使用的是 VRChat SDK 不再支持的 Unity 2019。VRChat 建议您将项目迁移到 Unity 2022。",
