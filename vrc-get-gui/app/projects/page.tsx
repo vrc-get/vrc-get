@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {Input} from "@/components/ui/input";
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
+import {Tooltip, TooltipContent, TooltipPortal, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
@@ -229,7 +229,7 @@ function ProjectsTable(
 		return searched;
 	}, [projects, sorting, search]);
 
-	const thClass = `sticky top-0 z-10 border-b border-info/40 p-2.5`;
+	const thClass = `sticky top-0 z-10 border-b border-primary p-2.5`;
 	const iconClass = `size-3 invisible project-table-header-chevron-up-down`;
 
 	const setSorting = async (simpleSorting: SimpleSorting) => {
@@ -251,7 +251,7 @@ function ProjectsTable(
 		}
 	}
 
-	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-info/40" : "bg-secondary";
+	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground";
 	const icon = (target: SimpleSorting) =>
 		sorting === target ? <ChevronDownIcon className={"size-3"}/>
 			: sorting === `${target}Reversed` ? <ChevronUpIcon className={"size-3"}/>
@@ -261,7 +261,7 @@ function ProjectsTable(
 		<table className="relative table-auto text-left">
 			<thead>
 			<tr>
-				<th className={`${thClass} bg-secondary`}>
+				<th className={`${thClass} bg-secondary text-secondary-foreground`}>
 					<StarIcon className={"size-4"}/>
 				</th>
 				<th
@@ -293,7 +293,7 @@ function ProjectsTable(
 						<small className="font-normal leading-none">{tc("projects:last modified")}</small>
 					</button>
 				</th>
-				<th className={`${thClass} bg-secondary`}></th>
+				<th className={`${thClass} bg-secondary text-secondary-foreground`}></th>
 			</tr>
 			</thead>
 			<tbody>
@@ -547,14 +547,14 @@ function ProjectRow(
 	}
 
 	return (
-		<tr className={`even:bg-primary/5 ${(removed || loading) ? 'opacity-50' : ''}`}>
+		<tr className={`even:bg-secondary/30 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={cellClass}>
         <div className={"relative inline-flex"}>
           <Checkbox checked={project.favorite}
                     onCheckedChange={onToggleFavorite}
                     disabled={removed || loading}
                     className="hover:before:content-none before:transition-none border-none !text-primary peer"/>
-          <span className={"text-primary-foreground opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
+          <span className={"text-background opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
             <StarIcon className={"size-3"} />
           </span>
         </div>
@@ -572,7 +572,9 @@ function ProjectRow(
                 </p>
               </div>
             </MayTooltip>
-            <TooltipContent>{tc("projects:tooltip:no directory")}</TooltipContent>
+            <TooltipPortal>
+              <TooltipContent>{tc("projects:tooltip:no directory")}</TooltipContent>
+            </TooltipPortal>
           </Tooltip>
         </TooltipProvider>
 			</td>
@@ -621,7 +623,7 @@ function ProjectRow(
 										 variant={"success"}>{tc("projects:backup")}</RowButton>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" className={"hover:bg-info/10 hover:text-info text-info"}><EllipsisHorizontalIcon
+							<Button variant="ghost" className={"hover:bg-primary/10 text-primary hover:text-primary -px-4 -py-2 min-w-10 min-h-10"}><EllipsisHorizontalIcon
 								className={"size-5"}/></Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>
@@ -679,21 +681,21 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 	};
 
 	return (
-		<HNavBar className={className}>
+		<HNavBar className={`${className}`}>
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 				{tc("projects")}
+			</p>
 
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
+            <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
               {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
-			</p>
 
 			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
 
@@ -949,7 +951,7 @@ function CreateProject(
 					<small className={"whitespace-normal"}>
 						{tc("projects:hint:path of creating project", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {
 							components: {
-								path: <span className={"p-0.5 font-path whitespace-pre bg-secondary"}/>
+								path: <span className={"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"}/>
 							}
 						})}
 					</small>

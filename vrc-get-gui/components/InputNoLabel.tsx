@@ -7,7 +7,7 @@ export function InputNoLabel(
 	return (
 		<Input
 			{...props}
-			className={`!border-t-blue-gray-300 placeholder:text-blue-gray-300 focus:!border-blue-gray-300 ${props.className}`}
+			className={`border-t-primary placeholder:text-primary focus:border-primary ${props.className}`}
 		/>
 	)
 }

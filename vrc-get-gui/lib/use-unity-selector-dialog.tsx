@@ -3,7 +3,6 @@ import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
 import {Label} from "@/components/ui/label";
 import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
-import {nop} from "@/lib/nop";
 import {tc} from "@/lib/i18n";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];

@@ -36,14 +36,14 @@ export function SideBar({className}: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-[20rem] p-2 shadow-xl shadow-blue-gray-900/5 ml-4 my-4 shrink-0`}>
+			className={`${className} flex w-auto max-w-[20rem] p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0`}>
 			<div className="flex flex-col gap-1 p-2 min-w-[10rem] flex-grow">
 				<SideBarItem href={"/projects"} text={t("projects")} icon={ListBulletIcon}/>
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
 				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
 				<div className={'flex-grow'}/>
-				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card"} onClick={copyVersionName}>v{currentVersion}</Button>
+				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card hover:text-card-foreground"} onClick={copyVersionName}>v{currentVersion}</Button>
 			</div>
 		</Card>
 	);

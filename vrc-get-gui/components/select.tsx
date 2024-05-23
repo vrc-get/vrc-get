@@ -57,8 +57,8 @@ export function VGSelect(
 				<div className={"relative w-full min-w-[200px] h-10"}>
 					<DropdownMenuTrigger asChild>
 						<Button variant={"outline"} className={`lowercase w-full ${className}`} disabled={disabled}>
-							<span className={"text-muted-foreground absolute top-2/4 -translate-y-2/4 left-3 pt-0.5"}>{value}</span>
-							<div className={"grid place-items-center absolute right-2 w-5 text-info"}>
+							<span className={"absolute top-2/4 -translate-y-2/4 left-3 pt-0.5"}>{value}</span>
+							<div className={"grid place-items-center absolute right-2 w-5 text-primary"}>
 								<ChevronDownIcon className="size-3"/>
 							</div>
 						</Button>

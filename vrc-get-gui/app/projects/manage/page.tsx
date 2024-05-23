@@ -1,7 +1,7 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
-import {Card, CardHeader, CardContent} from "@/components/ui/card";
+import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
 import {
@@ -476,7 +476,7 @@ function PageBody() {
 					{tc("projects:manage:project location",
 						{path: projectPath},
 						{
-							components: {path: <span className={"p-0.5 font-path whitespace-pre bg-secondary"}/>}
+							components: {path: <span className={"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"}/>}
 						})}
 				</p>
 				<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>
@@ -486,8 +486,8 @@ function PageBody() {
 					</p>
 					<div className={"flex-grow-0 flex-shrink-0"}>
 						<VGSelect value={detailsResult.status == 'success' ? (detailsResult.data.unity_str ?? "unknown") :
-							<span className={"text-blue-gray-300"}>Loading...</span>}
-											className="border-blue-gray-200">
+							<span className={"text-primary"}>Loading...</span>}
+											className="border-primary/10">
 							{/*unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)*/}
 							<VGOption value={""}>{tc("general:not implemented")}</VGOption>
 						</VGSelect>
@@ -515,7 +515,7 @@ function PageBody() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
+                    <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10"} disabled={isLoading}>
                       {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
                     </Button>
                   </TooltipTrigger>
@@ -535,7 +535,7 @@ function PageBody() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant={"ghost"} className={'flex-shrink-0'}>
+                  <Button variant={"ghost"} className={'flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10'}>
                     <EllipsisHorizontalIcon className={"size-5"}/>
                   </Button>
                 </DropdownMenuTrigger>
@@ -595,15 +595,15 @@ function PageBody() {
               <table className="relative table-auto text-left">
                 <thead>
                 <tr>
-                  <th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-secondary`}>
+                  <th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground`}>
                   </th>
                   {TABLE_HEAD.map((head, index) => (
                     <th key={index}
-                        className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-secondary p-2.5`}>
+                        className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
                       <small className="font-normal leading-none">{tc(head)}</small>
                     </th>
                   ))}
-                  <th className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-secondary p-2.5`}/>
+                  <th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}/>
                 </tr>
                 </thead>
                 <tbody>
@@ -726,7 +726,7 @@ function BulkUpdateCard(
 	const canRemove = bulkUpdateMode == 'remove' || bulkUpdateMode == 'upgradeOrRemove';
 
 	return (
-		<Card className={"flex-shrink-0 p-2 flex flex-row gap-2 bg-secondary flex-wrap"}>
+		<Card className={"flex-shrink-0 p-2 flex flex-row gap-2 bg-secondary text-secondary-foreground flex-wrap"}>
 			{canInstall && <Button disabled={disabled} onClick={bulkInstallAll}>
 				{tc("projects:manage:button:install selected")}
 			</Button>}
@@ -815,7 +815,7 @@ function ProjectChangesDialog(
           {
             versionConflicts.length > 0 ? (
               <>
-                <p className={"text-red-700"}>
+                <p className={"text-destructive"}>
                   {tc("projects:manage:dialog:package version conflicts", {count: versionConflicts.length})}
                 </p>
                 <div className={"flex flex-col gap-1 p-2"}>
@@ -836,7 +836,7 @@ function ProjectChangesDialog(
           {
             unityConflicts.length > 0 ? (
               <>
-                <p className={"text-red-700"}>
+                <p className={"text-destructive"}>
                   {tc("projects:manage:dialog:unity version conflicts", {count: unityConflicts.length})}
                 </p>
                 <div className={"flex flex-col gap-1 p-2"}>
@@ -852,7 +852,7 @@ function ProjectChangesDialog(
           {
             changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
               <>
-                <p className={"text-red-700"}>
+                <p className={"text-destructive"}>
                   {tc("projects:manage:dialog:files and directories are removed as legacy")}
                 </p>
                 <div className={"flex flex-col gap-1 p-2"}>
@@ -1264,7 +1264,7 @@ const PackageRow = memo(function PackageRow(
 	}
 
 	return (
-		<tr className="even:bg-primary/5">
+		<tr className="even:bg-secondary/30">
 			<td className={`${cellClass} w-1`}>
 				<Checkbox checked={bulkUpdateSelected}
 									onCheckedChange={onClickBulkUpdate}
@@ -1291,11 +1291,11 @@ const PackageRow = memo(function PackageRow(
 				{
 					pkg.sources.size == 0 ? (
 						pkg.isThereSource ? (
-							<p className="text-blue-gray-400">
+							<p>
 								{tc("projects:manage:source not selected")}
 							</p>
 						) : (
-							<p className="text-blue-gray-400">
+							<p>
 								{tc("projects:manage:none")}
 							</p>
 						)
@@ -1331,8 +1331,8 @@ const PackageRow = memo(function PackageRow(
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
-                      className={"size-5 text-red-700"}/></Button>
+                    <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
+                      className={"size-5 text-destructive"}/></Button>
                   </TooltipTrigger>
                   <TooltipContent>{tc("projects:manage:tooltip:remove packages")}</TooltipContent>
                 </Tooltip>
@@ -1341,9 +1341,9 @@ const PackageRow = memo(function PackageRow(
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant={'ghost'} disabled={locked && !!latestVersion}
+                    <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked && !!latestVersion}
                                 onClick={installLatest}><PlusCircleIcon
-                      className={"size-5 text-gray-800"}/></Button>
+                      className={"size-5 text-secondary-foreground"}/></Button>
                   </TooltipTrigger>
                   <TooltipContent>{tc("projects:manage:tooltip:add package")}</TooltipContent>
                 </Tooltip>
@@ -1395,7 +1395,7 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 
 	return (
 		<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
-							className={`border-blue-gray-200 ${pkg.installed?.yanked ? "text-red-700" : ""}`}
+							className={`border-primary/10 ${pkg.installed?.yanked ? "text-destructive" : ""}`}
 							onChange={onChange}
 							disabled={locked}
 		>
@@ -1428,12 +1428,12 @@ function PackageInstalledInfo(
 	if (pkg.installed) {
 		const version = toVersionString(pkg.installed.version);
 		if (pkg.installed.yanked) {
-			return <p className={"text-red-700"}>{version} {tc("projects:manage:yanked")}</p>;
+			return <p className={"text-destructive"}>{version} {tc("projects:manage:yanked")}</p>;
 		} else {
 			return <p>{version}</p>;
 		}
 	} else {
-		return <p className="text-blue-gray-400">{tc("projects:manage:none")}</p>;
+		return <p className="text-muted-foreground/70">{tc("projects:manage:none")}</p>;
 	}
 }
 
@@ -1450,7 +1450,7 @@ function PackageLatestInfo(
 ) {
 	switch (info.status) {
 		case "none":
-			return <p className="text-blue-gray-400">{tc("projects:manage:none")}</p>;
+			return <p className="text-muted-foreground">{tc("projects:manage:none")}</p>;
 		case "contains":
 			return <p>{toVersionString(info.pkg.version)}</p>;
 		case "upgradable":
@@ -1502,7 +1502,7 @@ function ProjectViewHeader({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant={"ghost"} onClick={() => history.back()}>
+            <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => history.back()}>
               <ArrowLeftIcon className={"w-5 h-5"}/>
             </Button>
           </TooltipTrigger>

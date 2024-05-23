@@ -30,7 +30,7 @@ export default function Page() {
 				</p>
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex flex-grow">
-				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre font-mono shadow-none`}>
+				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre font-mono shadow-none text-muted-foreground`}>
 					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
 				</Card>
 			</main>
