@@ -8,11 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {useTheme} from "@material-tailwind/react";
-import findMatch from "@material-tailwind/react/utils/findMatch";
-import objectsToString from "@material-tailwind/react/utils/objectsToString";
-import {twMerge} from "tailwind-merge";
-import classnames from "classnames";
 import {ChevronDownIcon} from "@heroicons/react/24/solid";
 
 interface SelectContext {
@@ -41,39 +36,12 @@ export function VGSelect(
 	const [state, setState] = useState<string>("close");
 	const [open, setOpen] = React.useState(false);
 
-	const {select} = useTheme();
-	const {defaultProps, valid, styles} = select;
-	const {base, variants} = styles;
-
 	const contextValue: SelectContext = {
 		onClick(value: any) {
 			onChange?.(value);
 			setOpen(false);
 		}
 	}
-
-	const size = defaultProps.size;
-
-	const selectVariant = variants.outlined;
-	const selectSize = selectVariant.sizes[findMatch(valid.sizes, size, "md")];
-	const stateClasses = selectVariant.states[state];
-	const containerClasses = classnames(
-		objectsToString(base.container),
-		objectsToString(selectSize.container),
-	);
-	const selectClasses = twMerge(
-		classnames(
-			objectsToString(base.select),
-			objectsToString(selectVariant.base.select),
-			objectsToString(stateClasses.select),
-			objectsToString(selectSize.select),
-		),
-		className,
-	);
-	const arrowClasses = classnames(objectsToString(base.arrow.initial), {
-		[objectsToString(base.arrow.active)]: open,
-	});
-	const buttonContentClasses = "absolute top-2/4 -translate-y-2/4 left-3 pt-0.5";
 
 	React.useEffect(() => {
 		if (open) {
@@ -86,11 +54,11 @@ export function VGSelect(
 	return (
 		<SelectContext.Provider value={contextValue}>
 			<DropdownMenu open={open} onOpenChange={() => setOpen(!open)}>
-				<div className={containerClasses}>
-					<DropdownMenuTrigger asChild className={"lowercase"}>
-						<Button className={selectClasses} disabled={disabled}>
-							<span className={buttonContentClasses}>{value}</span>
-							<div className={arrowClasses}>
+				<div className={"relative w-full min-w-[200px] h-10"}>
+					<DropdownMenuTrigger asChild>
+						<Button variant={"outline"} className={`lowercase w-full ${className}`} disabled={disabled}>
+							<span className={"text-muted-foreground absolute top-2/4 -translate-y-2/4 left-3 pt-0.5"}>{value}</span>
+							<div className={"grid place-items-center absolute right-2 w-5 text-info"}>
 								<ChevronDownIcon className="size-3"/>
 							</div>
 						</Button>
