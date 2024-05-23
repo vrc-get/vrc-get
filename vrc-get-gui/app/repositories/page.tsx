@@ -415,7 +415,7 @@ function EnteringRepositoryInfo(
         <p className={'font-normal'}>
           {tc("vpm repositories:dialog:enter repository info")}
         </p>
-        <Input type={"vpm repositories:url"} value={url} onChange={e => setUrl(e.target.value)}
+        <Input className={"w-full"} type={"vpm repositories:url"} value={url} onChange={e => setUrl(e.target.value)}
                 placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
         <details>
           <summary className={"font-bold"}>{tc("vpm repositories:dialog:headers")}</summary>
