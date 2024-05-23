@@ -13,7 +13,7 @@ export function VStack({className, children}: { className?: string, children: Re
 
 export function HNavBar({className, children}: { className?: string, children: React.ReactNode }) {
 	return (
-		<Card className={`${className} mx-auto px-4 py-2 w-full max-w-screen-2xl`}>
+		<Card className={`${className} mx-auto px-4 py-2 w-full max-w-screen-xl`}>
 			<div className="mx-auto flex flex-wrap items-center justify-between text-primary gap-2">
 				{children}
 			</div>
