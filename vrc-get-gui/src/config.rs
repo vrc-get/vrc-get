@@ -79,7 +79,7 @@ fn language_default() -> String {
 }
 
 fn theme_default() -> String {
-    "light".to_string()
+    "system".to_string()
 }
 
 fn backup_default() -> String {

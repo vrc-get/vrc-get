@@ -28,6 +28,7 @@ import i18next, {languages, tc, tt} from "@/lib/i18n";
 import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
+import {appWindow} from "@tauri-apps/api/window";
 import {shellOpen} from "@/lib/shellOpen";
 import {loadOSApi} from "@/lib/os";
 import type {OsType} from "@tauri-apps/api/os";
@@ -210,7 +211,7 @@ function Settings(
 		])
 	};
 
-  const [theme, setTheme] = React.useState("light");
+  const [theme, setTheme] = React.useState("system");
 
 	React.useEffect(() => {
 		(async () => {
@@ -221,8 +222,11 @@ function Settings(
 
   const changeTheme = async (theme: string) => {
     await environmentSetTheme(theme);
-    document.documentElement.setAttribute("class", theme);
     setTheme(theme);
+    if (theme === "system") {
+      theme = await appWindow.theme() ?? "light";
+    }
+    document.documentElement.setAttribute("class", theme);
   };
 
 	const reportIssue = async () => {
@@ -342,6 +346,7 @@ function Settings(
         <label className={"flex items-center"}>
           <h2>{tc("settings:theme")}: </h2>
           <VGSelect value={tc(`settings:theme:${theme}`)} onChange={changeTheme} menuClassName={"w-96"}>
+            <VGOption value={"system"}>{tc("settings:theme:system")}</VGOption>
             <VGOption value={"light"}>{tc("settings:theme:light")}</VGOption>
             <VGOption value={"dark"}>{tc("settings:theme:dark")}</VGOption>
           </VGSelect>
