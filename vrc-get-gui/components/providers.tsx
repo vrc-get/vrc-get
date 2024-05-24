@@ -9,6 +9,7 @@ import {I18nextProvider} from "react-i18next";
 import {toastError, toastNormal} from "@/lib/toast";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {usePathname, useRouter} from "next/navigation";
+import {TooltipProvider} from "@/components/ui/tooltip";
 
 const queryClient = new QueryClient();
 
@@ -82,9 +83,11 @@ export function Providers({children}: { children: React.ReactNode }) {
 			/>
 			<QueryClientProvider client={queryClient}>
 				<I18nextProvider i18n={i18next}>
-          <div lang={language} className="contents">
-            {children}
-          </div>
+          <TooltipProvider>
+            <div lang={language} className="contents">
+              {children}
+            </div>
+          </TooltipProvider>
 				</I18nextProvider>
 			</QueryClientProvider>
 		</>

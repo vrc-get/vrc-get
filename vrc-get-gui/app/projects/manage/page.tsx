@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
@@ -512,16 +512,14 @@ function PageBody() {
                 {tc("projects:manage:manage packages")}
               </p>
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10"} disabled={isLoading}>
-                      {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{tc("projects:manage:tooltip:refresh packages")}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10"} disabled={isLoading}>
+                    {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{tc("projects:manage:tooltip:refresh packages")}</TooltipContent>
+              </Tooltip>
 
               <SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
@@ -1300,27 +1298,23 @@ const PackageRow = memo(function PackageRow(
 							</p>
 						)
 					) : pkg.sources.size == 1 ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <p className="overflow-hidden overflow-ellipsis">
-                    {[...pkg.sources][0]}
-                  </p>
-                </TooltipTrigger>
-                <TooltipContent>{[ ...pkg.sources][0] }</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <p className="overflow-hidden overflow-ellipsis">
+                  {[...pkg.sources][0]}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>{[ ...pkg.sources][0] }</TooltipContent>
+            </Tooltip>
 					) : (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <p>
-                    {tc("projects:manage:multiple sources")}
-                  </p>
-                </TooltipTrigger>
-                <TooltipContent>{ [...pkg.sources].join(", ") }</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <p>
+                  {tc("projects:manage:multiple sources")}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>{ [...pkg.sources].join(", ") }</TooltipContent>
+            </Tooltip>
 					)
 				}
 			</td>
@@ -1328,26 +1322,22 @@ const PackageRow = memo(function PackageRow(
 				<div className="flex flex-row gap-2 max-w-min">
 					{
 						pkg.installed ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
-                      className={"size-5 text-destructive"}/></Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{tc("projects:manage:tooltip:remove packages")}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
+                    className={"size-5 text-destructive"}/></Button>
+                </TooltipTrigger>
+                <TooltipContent>{tc("projects:manage:tooltip:remove packages")}</TooltipContent>
+              </Tooltip>
 						) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked && !!latestVersion}
-                                onClick={installLatest}><PlusCircleIcon
-                      className={"size-5 text-secondary-foreground"}/></Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{tc("projects:manage:tooltip:add package")}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked && !!latestVersion}
+                              onClick={installLatest}><PlusCircleIcon
+                    className={"size-5 text-secondary-foreground"}/></Button>
+                </TooltipTrigger>
+                <TooltipContent>{tc("projects:manage:tooltip:add package")}</TooltipContent>
+              </Tooltip>
 						)
 					}
 				</div>
@@ -1455,20 +1445,18 @@ function PackageLatestInfo(
 			return <p>{toVersionString(info.pkg.version)}</p>;
 		case "upgradable":
 			return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant={"outline"}
-                      className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
-                      disabled={locked}
-                      onClick={() => onInstallRequested(info.pkg)}>
-                <ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
-                {toVersionString(info.pkg.version)}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{tc("projects:manage:tooltip:upgrade package")}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant={"outline"}
+                    className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
+                    disabled={locked}
+                    onClick={() => onInstallRequested(info.pkg)}>
+              <ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
+              {toVersionString(info.pkg.version)}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{tc("projects:manage:tooltip:upgrade package")}</TooltipContent>
+        </Tooltip>
 			);
 		default:
 			let _: never = info;
@@ -1499,16 +1487,14 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar className={className}>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => history.back()}>
-              <ArrowLeftIcon className={"w-5 h-5"}/>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{tc("projects:manage:tooltip:back to projects")}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => history.back()}>
+            <ArrowLeftIcon className={"w-5 h-5"}/>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{tc("projects:manage:tooltip:back to projects")}</TooltipContent>
+      </Tooltip>
 
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 whitespace-pre">
 				{projectName}

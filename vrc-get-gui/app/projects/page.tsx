@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {Input} from "@/components/ui/input";
-import {Tooltip, TooltipContent, TooltipPortal, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
+import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
@@ -429,14 +429,14 @@ function ProjectRow(
 	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
 		if (removed) {
 			return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
-            </TooltipTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
+          </TooltipTrigger>
+          <TooltipPortal>
             <TooltipContent>{tt("projects:tooltip:no directory")}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+          </TooltipPortal>
+        </Tooltip>
       )
 		} else {
 			return (
@@ -451,16 +451,14 @@ function ProjectRow(
 	switch (project.project_type) {
 		case "LegacySdk2":
 			manageButton =
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <RowButton variant={"success"} disabled>
-                {tc("projects:button:migrate")}
-              </RowButton>
-            </TooltipTrigger>
-            <TooltipContent>{tc("projects:tooltip:sdk2 migration hint")}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <RowButton variant={"success"} disabled>
+              {tc("projects:button:migrate")}
+            </RowButton>
+          </TooltipTrigger>
+          <TooltipContent>{tc("projects:tooltip:sdk2 migration hint")}</TooltipContent>
+        </Tooltip>
 			break;
 		case "LegacyWorlds":
 		case "LegacyAvatars":
@@ -471,16 +469,14 @@ function ProjectRow(
 		case "UpmAvatars":
 		case "UpmStarter":
 			manageButton =
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <RowButton variant={"info"} disabled>
-                {tc("projects:button:manage")}
-              </RowButton>
-            </TooltipTrigger>
-            <TooltipContent>{tc("projects:tooltip:git-vcc not supported")}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <RowButton variant={"info"} disabled>
+              {tc("projects:button:manage")}
+            </RowButton>
+          </TooltipTrigger>
+          <TooltipContent>{tc("projects:tooltip:git-vcc not supported")}</TooltipContent>
+        </Tooltip>
 			break;
 		case "Unknown":
 		case "Worlds":
@@ -561,33 +557,31 @@ function ProjectRow(
         </div>
 			</td>
 			<td className={`${cellClass} max-w-64 overflow-hidden`}>
-        <TooltipProvider>
-          <Tooltip>
-            <MayTooltip className={"text-left select-text cursor-auto w-full"}>
-              <div className="flex flex-col">
-                <Tooltip>
-                  <MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
-                    <p className="font-normal whitespace-pre">
-                      {project.name}
-                    </p>
-                  </MayTooltipRev>
-                  <TooltipContent>{project.name}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
-                    <p className="font-normal opacity-50 text-sm whitespace-pre">
-                      {project.path}
-                    </p>
-                  </MayTooltipRev>
-                  <TooltipContent>{project.path}</TooltipContent>
-                </Tooltip>
-              </div>
-            </MayTooltip>
-            <TooltipPortal>
-              <TooltipContent>{tc("projects:tooltip:no directory")}</TooltipContent>
-            </TooltipPortal>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <MayTooltip className={"text-left select-text cursor-auto w-full"}>
+            <div className="flex flex-col">
+              <Tooltip>
+                <MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
+                  <p className="font-normal whitespace-pre">
+                    {project.name}
+                  </p>
+                </MayTooltipRev>
+                <TooltipContent>{project.name}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
+                  <p className="font-normal opacity-50 text-sm whitespace-pre">
+                    {project.path}
+                  </p>
+                </MayTooltipRev>
+                <TooltipContent>{project.path}</TooltipContent>
+              </Tooltip>
+            </div>
+          </MayTooltip>
+          <TooltipPortal>
+            <TooltipContent>{tc("projects:tooltip:no directory")}</TooltipContent>
+          </TooltipPortal>
+        </Tooltip>
 			</td>
 			<td className={`${cellClass} w-[8em] min-w-[8em]`}>
 				<div className="flex flex-row gap-2">
@@ -612,18 +606,18 @@ function ProjectRow(
 				</p>
 			</td>
 			<td className={noGrowCellClass}>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <time dateTime={lastModified.toISOString()}>
-                <time className="font-normal">
-                  {formatDateOffset(project.last_modified)}
-                </time>
+        <Tooltip>
+          <TooltipTrigger>
+            <time dateTime={lastModified.toISOString()}>
+              <time className="font-normal">
+                {formatDateOffset(project.last_modified)}
               </time>
-            </TooltipTrigger>
+            </time>
+          </TooltipTrigger>
+          <TooltipPortal>
             <TooltipContent>{lastModifiedHumanReadable}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+          </TooltipPortal>
+        </Tooltip>
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
@@ -697,16 +691,14 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 				{tc("projects")}
 			</p>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
-              {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
+            {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
+      </Tooltip>
 
 			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
 
