@@ -1,6 +1,6 @@
 import React, {Fragment, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {tc, tt} from "@/lib/i18n";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
@@ -43,11 +43,11 @@ export function useUnity2022Migration(
 function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
 	return (
 		<>
-			<div>
+			<DialogDescription>
 				<p className={"text-destructive"}>
 					{tc("projects:dialog:vpm migrate description")}
 				</p>
-			</div>
+			</DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button onClick={() => doMigrate(false)} variant={"destructive"}
@@ -92,11 +92,11 @@ function MigrationConfirmMigrationPatchDialog(
 	}) {
 	return (
 		<>
-			<div>
+			<DialogDescription>
 				<p className={"text-destructive"}>
 					{tc("projects:dialog:migrate unity2022 patch description", {unity})}
 				</p>
-			</div>
+			</DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
@@ -295,25 +295,25 @@ function useMigrationInternal(
 }
 
 function MigrationCopyingDialog() {
-	return <div>
+	return <DialogDescription>
 		<p>
 			{tc("projects:pre-migrate copying...")}
 		</p>
 		<p>
 			{tc("projects:manage:dialog:do not close")}
 		</p>
-	</div>;
+	</DialogDescription>;
 }
 
 function MigrationMigratingDialog() {
-	return <div>
+	return <DialogDescription>
 		<p>
 			{tc("projects:migrating...")}
 		</p>
 		<p>
 			{tc("projects:manage:dialog:do not close")}
 		</p>
-	</div>;
+	</DialogDescription>;
 }
 
 function MigrationCallingUnityForMigrationDialog(
@@ -329,7 +329,7 @@ function MigrationCallingUnityForMigrationDialog(
 		ref.current?.scrollIntoView({behavior: "auto"});
 	}, [lines]);
 
-	return <div>
+	return <DialogDescription>
 		<p>
 			{tc("projects:manage:dialog:unity migrate finalizing...")}
 		</p>
@@ -340,7 +340,7 @@ function MigrationCallingUnityForMigrationDialog(
 					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
 			<div ref={ref}/>
 				</pre>
-	</div>;
+	</DialogDescription>;
 }
 
 function NoExactUnity2022Dialog(
@@ -359,11 +359,11 @@ function NoExactUnity2022Dialog(
 	}
 
 	return <>
-		<div>
+		<DialogDescription>
 			<p>
 				{tc("projects:manage:dialog:exact version unity not found for patch migration description", {unity: expectedVersion})}
 			</p>
-		</div>
+		</DialogDescription>
 		<div className={"ml-auto gap-2"}>
 			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
 			<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
