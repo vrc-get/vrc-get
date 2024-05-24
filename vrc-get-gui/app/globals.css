@@ -5,6 +5,8 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
+    --background-start: 190 7.89% 85.1%;
+    --background-end: 0, 0%, 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -34,6 +36,8 @@
 
   .dark {
     --background: 240 10% 3.9%;
+    --background-start: 10 8% 15%;
+    --background-end: 0 0% 0%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
@@ -68,6 +72,12 @@
 
   body {
     @apply bg-background text-foreground;
+    color: hsl(var(--foreground));
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        hsl(var(--background-end))
+    ) hsl(var(--background-start));
   }
 }
 
