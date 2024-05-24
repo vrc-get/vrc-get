@@ -210,19 +210,19 @@ function Settings(
 		])
 	};
 
-  const [theme, setTheme] = React.useState(tc("settings:theme:light"));
+  const [theme, setTheme] = React.useState("light");
 
 	React.useEffect(() => {
 		(async () => {
 	    const theme = await environmentTheme();
-      setTheme(tc(`settings:theme:${theme}`));
+      setTheme(theme);
 		})();
 	}, [])
 
   const changeTheme = async (theme: string) => {
     await environmentSetTheme(theme);
     document.documentElement.setAttribute("class", theme);
-    setTheme(tc(`settings:theme:${theme}`));
+    setTheme(theme);
   };
 
 	const reportIssue = async () => {
@@ -341,7 +341,7 @@ function Settings(
       <Card className={"flex-shrink-0 p-4"}>
         <label className={"flex items-center"}>
           <h2>{tc("settings:theme")}: </h2>
-          <VGSelect value={theme} onChange={changeTheme} menuClassName={"w-96"}>
+          <VGSelect value={tc(`settings:theme:${theme}`)} onChange={changeTheme} menuClassName={"w-96"}>
             <VGOption value={"light"}>{tc("settings:theme:light")}</VGOption>
             <VGOption value={"dark"}>{tc("settings:theme:dark")}</VGOption>
           </VGSelect>
