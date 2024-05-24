@@ -23,7 +23,6 @@ import React, {Suspense, useCallback, useEffect, useMemo, useState} from "react"
 import {MinusCircleIcon, PlusCircleIcon, XCircleIcon} from "@heroicons/react/24/outline";
 import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
-import {InputNoLabel} from "@/components/InputNoLabel";
 import {loadManifestWithRetries} from "next/dist/server/load-components";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 
@@ -431,7 +430,7 @@ function EnteringRepositoryInfo(
                 headerArray.map(({name, value, id}, idx) => (
                   <tr key={id}>
                     <td>
-                      <InputNoLabel
+                      <Input
                         type={"text"}
                         value={name}
                         className={"w-96"}
@@ -446,7 +445,7 @@ function EnteringRepositoryInfo(
                       />
                     </td>
                     <td>
-                      <InputNoLabel
+                      <Input
                         type={"text"}
                         value={value}
                         onChange={e => {
