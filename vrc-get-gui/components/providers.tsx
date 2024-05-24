@@ -9,7 +9,6 @@ import {I18nextProvider} from "react-i18next";
 import {toastError, toastNormal} from "@/lib/toast";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {usePathname, useRouter} from "next/navigation";
-import {useQuery} from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
 
