@@ -869,7 +869,7 @@ function ProjectChangesDialog(
             ) : null
           }
         </div>
-        <div className={"wl-auto"}>
+        <div className={"ml-auto"}>
           <Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
           <Button onClick={apply} variant={"destructive"}>{tc("projects:manage:button:apply")}</Button>
         </div>

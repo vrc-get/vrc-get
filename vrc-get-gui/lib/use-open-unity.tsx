@@ -102,7 +102,7 @@ function UnityInstallWindow(
           {tc("projects:manage:dialog:unity version of the project not found", {unity: expectedVersion})}
         </p>
       </div>
-      <div className={"wl-auto gap-2"}>
+      <div className={"ml-auto gap-2"}>
         <Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
         <Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
       </div>

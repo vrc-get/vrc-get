@@ -48,7 +48,7 @@ function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
 					{tc("projects:dialog:vpm migrate description")}
 				</p>
 			</div>
-			<div className={"wl-auto"}>
+			<div className={"ml-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button onClick={() => doMigrate(false)} variant={"destructive"}
 								className="mr-1">{tc("projects:button:migrate copy")}</Button>
@@ -97,7 +97,7 @@ function MigrationConfirmMigrationPatchDialog(
 					{tc("projects:dialog:migrate unity2022 patch description", {unity})}
 				</p>
 			</div>
-			<div className={"wl-auto"}>
+			<div className={"ml-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
 			</div>
@@ -364,7 +364,7 @@ function NoExactUnity2022Dialog(
 				{tc("projects:manage:dialog:exact version unity not found for patch migration description", {unity: expectedVersion})}
 			</p>
 		</div>
-		<div className={"wl-auto gap-2"}>
+		<div className={"ml-auto gap-2"}>
 			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
 			<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
 		</div>

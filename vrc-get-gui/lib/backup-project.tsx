@@ -61,7 +61,7 @@ export function useBackupProjectModal(_: Params = {}): Result {
             <div>
               {tc("projects:dialog:creating backup...")}
             </div>
-            <div className={"wl-auto"}>
+            <div className={"ml-auto"}>
               <Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
             </div>
           </DialogContent>

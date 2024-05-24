@@ -72,7 +72,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
                 {tc("projects:dialog:warn removing project", {name: project.name})}
               </p>
             </div>
-            <div className={"wl-auto"}>
+            <div className={"ml-auto"}>
               <Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
               <Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
                 {tc("projects:button:remove from list")}
@@ -94,7 +94,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
             <div>
               {tc("projects:dialog:removing...")}
             </div>
-            <div className={"wl-auto"}>
+            <div className={"ml-auto"}>
               <Button className="mr-1" disabled>{tc("general:button:cancel")}</Button>
               <Button className="mr-1 px-2" disabled>
                 {tc("projects:button:remove from list")}

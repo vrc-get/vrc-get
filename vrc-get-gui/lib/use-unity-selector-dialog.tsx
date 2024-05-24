@@ -88,7 +88,7 @@ function SelectUnityVersionDialog(
           </RadioGroup>
 				)}
 			</div>
-			<div className={"wl-auto"}>
+			<div className={"ml-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button
 					onClick={() => onSelect(selectedUnityPath!)}
