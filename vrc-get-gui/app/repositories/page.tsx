@@ -3,7 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {useQuery} from "@tanstack/react-query";
@@ -262,11 +262,11 @@ function RepositoryRow(
 		dialog = <Dialog open>
       <DialogContent>
         <DialogTitle>{tc("vpm repositories:remove repository")}</DialogTitle>
-        <div>
+        <DialogDescription>
           <p className={"whitespace-normal font-normal"}>
             {tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}
           </p>
-        </div>
+        </DialogDescription>
         <div className={"ml-auto"}>
           <Button onClick={() => setRemoveDialogOpen(false)}>{tc("general:button:cancel")}</Button>
           <Button onClick={() => {
@@ -408,7 +408,7 @@ function EnteringRepositoryInfo(
 
 	return (
 		<>
-      <div>
+      <DialogDescription>
         <p className={'font-normal'}>
           {tc("vpm repositories:dialog:enter repository info")}
         </p>
@@ -489,7 +489,7 @@ function EnteringRepositoryInfo(
           <p className={"text-destructive"}>{tc("vpm repositories:hint:invalid header values")}</p>}
         {foundDuplicateHeader &&
           <p className={"text-destructive"}>{tc("vpm repositories:hint:duplicate headers")}</p>}
-      </div>
+      </DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 				<Button onClick={onAddRepository} className={"ml-2"}
@@ -508,11 +508,11 @@ function LoadingRepository(
 ) {
 	return (
 		<>
-      <div>
+      <DialogDescription>
         <p>
           {tc("vpm repositories:dialog:downloading...")}
         </p>
-      </div>
+      </DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 			</div>
@@ -529,11 +529,11 @@ function Duplicated(
 ) {
 	return (
 		<>
-      <div>
+      <DialogDescription>
         <p>
           {tc("vpm repositories:dialog:already added")}
         </p>
-      </div>
+      </DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel}>{tc("general:button:ok")}</Button>
 			</div>
@@ -556,7 +556,7 @@ function Confirming(
 ) {
 	return (
 		<>
-			<div className={"max-h-[50vh] overflow-y-auto font-normal"}>
+			<DialogDescription className={"max-h-[50vh] overflow-y-auto font-normal"}>
 				<p
 					className={"font-normal"}>{tc("vpm repositories:dialog:name", {name: repo.display_name})}</p>
 				<p className={"font-normal"}>{tc("vpm repositories:dialog:url", {url: repo.url})}</p>
@@ -580,7 +580,7 @@ function Confirming(
 						))
 					}
 				</ul>
-			</div>
+			</DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 				<Button onClick={add} className={"ml-2"}>{tc("vpm repositories:button:add repository")}</Button>

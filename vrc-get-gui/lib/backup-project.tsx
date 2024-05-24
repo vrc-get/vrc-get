@@ -1,6 +1,6 @@
 import React, {ReactNode, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {projectCreateBackup, TauriProject} from "@/lib/bindings";
 import {toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
@@ -58,9 +58,9 @@ export function useBackupProjectModal(_: Params = {}): Result {
 				<Dialog open>
           <DialogContent className={'whitespace-normal'}>
             <DialogTitle>{tc("projects:dialog:backup header")}</DialogTitle>
-            <div>
+            <DialogDescription>
               {tc("projects:dialog:creating backup...")}
-            </div>
+            </DialogDescription>
             <div className={"ml-auto"}>
               <Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
             </div>

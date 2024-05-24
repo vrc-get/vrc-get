@@ -3,7 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -497,11 +497,11 @@ function ProjectRow(
 				<Dialog open>
           <DialogContent className={"whitespace-normal"}>
             <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-            <div>
+            <DialogDescription>
               <p className={"text-destructive"}>
                 {tc("projects:dialog:vpm migrate description")}
               </p>
-            </div>
+            </DialogDescription>
             <div>
               <Button onClick={() => setDialogStatus({type: "normal"})}
                       className="mr-1">{tc("general:button:cancel")}</Button>
@@ -518,11 +518,11 @@ function ProjectRow(
 				<Dialog open>
           <DialogContent className={"whitespace-normal"}>
             <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-            <div>
+            <DialogDescription>
               <p>
                 {tc("projects:pre-migrate copying...")}
               </p>
-            </div>
+            </DialogDescription>
           </DialogContent>
 				</Dialog>
 			);
@@ -532,11 +532,11 @@ function ProjectRow(
 				<Dialog open>
           <DialogContent className={"whitespace-normal"}>
             <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-            <div>
+            <DialogDescription>
               <p>
                 {tc("projects:migrating...")}
               </p>
-            </div>
+            </DialogDescription>
           </DialogContent>
 				</Dialog>
 			);
@@ -975,9 +975,9 @@ function CreateProject(
 	return <Dialog open>
     <DialogContent>
       <DialogTitle>{tc("projects:create new project")}</DialogTitle>
-      <div>
+      <DialogDescription>
         {dialogBody}
-      </div>
+      </DialogDescription>
       <div className={"flex gap-2 ml-auto"}>
         <Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
         <Button onClick={createProject}

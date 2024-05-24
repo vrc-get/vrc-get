@@ -1,5 +1,5 @@
 import {ReactNode, useCallback, useState} from "react";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {tc} from "@/lib/i18n";
 
 export function useFilePickerFunction<A extends unknown[], R>(
@@ -18,7 +18,7 @@ export function useFilePickerFunction<A extends unknown[], R>(
 	let dialog = <Dialog open={isPicking}>
     <DialogContent>
       <DialogTitle>{tc("general:dialog:select file or directory header")}</DialogTitle>
-      <div>{tc("general:dialog:select file or directory")}</div>
+      <DialogDescription>{tc("general:dialog:select file or directory")}</DialogDescription>
     </DialogContent>
 	</Dialog>;
 

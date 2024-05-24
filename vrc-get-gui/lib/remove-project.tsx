@@ -1,6 +1,6 @@
 import React, {ReactNode, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {environmentRemoveProject, environmentRemoveProjectByPath, TauriProject} from "@/lib/bindings";
 import {toastSuccess} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
@@ -67,11 +67,11 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 				<Dialog open>
           <DialogContent className={'whitespace-normal'}>
             <DialogTitle>{tc("projects:remove project")}</DialogTitle>
-            <div>
+            <DialogDescription>
               <p className={"font-normal"}>
                 {tc("projects:dialog:warn removing project", {name: project.name})}
               </p>
-            </div>
+            </DialogDescription>
             <div className={"ml-auto"}>
               <Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
               <Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">

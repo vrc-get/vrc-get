@@ -3,7 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -771,7 +771,7 @@ function ProjectChangesDialog(
 		<Dialog open>
       <DialogContent className={"whitespace-normal"}>
         <DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
-        <div className={"overflow-y-auto max-h-[50vh]"}>
+        <DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
           <p>
             {tc("projects:manage:dialog:confirm changes description")}
           </p>
@@ -868,7 +868,7 @@ function ProjectChangesDialog(
               </>
             ) : null
           }
-        </div>
+        </DialogDescription>
         <div className={"ml-auto"}>
           <Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
           <Button onClick={apply} variant={"destructive"}>{tc("projects:manage:button:apply")}</Button>

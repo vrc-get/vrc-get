@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
 import {Label} from "@/components/ui/label";
 import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import {tc} from "@/lib/i18n";
@@ -72,7 +72,7 @@ function SelectUnityVersionDialog(
 
 	return (
 		<>
-			<div>
+			<DialogDescription>
 				<p>
 					{tc("projects:manage:dialog:multiple unity found")}
 				</p>
@@ -87,7 +87,7 @@ function SelectUnityVersionDialog(
             <Label htmlFor={path}>{`${version} (${path})`}</Label>
           </RadioGroup>
 				)}
-			</div>
+			</DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button
