@@ -144,6 +144,7 @@ licenseNames.set("ISC", "ISC License");
 licenseNames.set("Apache-2.0", "Apache License 2.0");
 licenseNames.set("MPL-2.0", "Mozilla Public License 2.0");
 licenseNames.set("OFL-1.1", "BSD 2-Clause License");
+licenseNames.set("BlueOak-1.0.0", "Blue Oak Model License 1.0.0");
 
 licenseNames.set("OpenSSL", "OpenSSL License");
 licenseNames.set("CC-BY-4.0", "Creative Commons Attribution 4.0");
