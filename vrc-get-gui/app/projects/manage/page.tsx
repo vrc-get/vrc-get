@@ -647,7 +647,7 @@ function SuggestResolveProjectCard(
 				{tc("projects:manage:suggest resolve")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
-			<Button variant={"ghost"} className={"hover:bg-destructive/10 hover:text-destructive text-destructive"} onClick={onResolveRequested} disabled={disabled}>
+			<Button variant={"ghost-destructive"} onClick={onResolveRequested} disabled={disabled}>
 				{tc("projects:manage:button:resolve")}
 			</Button>
 		</Card>
@@ -670,7 +670,7 @@ function SuggestMigrateTo2022Card(
 				{tc("projects:manage:suggest unity migration")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
-			<Button variant={"ghost"} className={"hover:bg-destructive/10 hover:text-destructive text-destructive"} onClick={onMigrateRequested} disabled={disabled}>
+			<Button variant={"ghost-destructive"} onClick={onMigrateRequested} disabled={disabled}>
 				{tc("projects:manage:button:unity migrate")}
 			</Button>
 		</Card>
@@ -693,7 +693,7 @@ function Suggest2022PatchMigrationCard(
 				{tc("projects:manage:suggest unity patch migration")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"}></div>
-			<Button variant={"ghost"} className={"hover:bg-destructive/10 hover:text-destructive text-destructive"} onClick={onMigrateRequested} disabled={disabled}>
+			<Button variant={"ghost-destructive"} onClick={onMigrateRequested} disabled={disabled}>
 				{tc("projects:manage:button:unity migrate")}
 			</Button>
 		</Card>
