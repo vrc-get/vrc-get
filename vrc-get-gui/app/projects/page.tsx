@@ -3,7 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -501,51 +501,45 @@ function ProjectRow(
 	switch (dialogStatus.type) {
 		case "migrateVpm:confirm":
 			dialogContent = (
-				<Dialog open>
-					<DialogContent className={"whitespace-normal"}>
-						<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-						<DialogDescription>
-							<p className={"text-destructive"}>
-								{tc("projects:dialog:vpm migrate description")}
-							</p>
-						</DialogDescription>
-						<DialogFooter>
-							<Button onClick={() => setDialogStatus({type: "normal"})}
-									className="mr-1">{tc("general:button:cancel")}</Button>
-							<Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
-									className="mr-1">{tc("projects:button:migrate copy")}</Button>
-							<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+					<DialogDescription>
+						<p className={"text-destructive"}>
+							{tc("projects:dialog:vpm migrate description")}
+						</p>
+					</DialogDescription>
+					<DialogFooter>
+						<Button onClick={() => setDialogStatus({type: "normal"})}
+								className="mr-1">{tc("general:button:cancel")}</Button>
+						<Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
+								className="mr-1">{tc("projects:button:migrate copy")}</Button>
+						<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
+					</DialogFooter>
+				</DialogOpen>
 			);
 			break;
 		case "migrateVpm:copyingProject":
 			dialogContent = (
-				<Dialog open>
-					<DialogContent className={"whitespace-normal"}>
-						<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-						<DialogDescription>
-							<p>
-								{tc("projects:pre-migrate copying...")}
-							</p>
-						</DialogDescription>
-					</DialogContent>
-				</Dialog>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+					<DialogDescription>
+						<p>
+							{tc("projects:pre-migrate copying...")}
+						</p>
+					</DialogDescription>
+				</DialogOpen>
 			);
 			break;
 		case "migrateVpm:updating":
 			dialogContent = (
-				<Dialog open>
-					<DialogContent className={"whitespace-normal"}>
-						<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-						<DialogDescription>
-							<p>
-								{tc("projects:migrating...")}
-							</p>
-						</DialogDescription>
-					</DialogContent>
-				</Dialog>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+					<DialogDescription>
+						<p>
+							{tc("projects:migrating...")}
+						</p>
+					</DialogDescription>
+				</DialogOpen>
 			);
 			break;
 	}
@@ -1003,18 +997,16 @@ function CreateProject(
 			break;
 	}
 
-	return <Dialog open>
-		<DialogContent>
-			<DialogTitle>{tc("projects:create new project")}</DialogTitle>
-			<DialogDescription>
-				{dialogBody}
-			</DialogDescription>
-			<DialogFooter className={"gap-2"}>
-				<Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
-				<Button onClick={createProject}
-						disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
-			</DialogFooter>
-			{dialog}
-		</DialogContent>
-	</Dialog>;
+	return <DialogOpen>
+		<DialogTitle>{tc("projects:create new project")}</DialogTitle>
+		<DialogDescription>
+			{dialogBody}
+		</DialogDescription>
+		<DialogFooter className={"gap-2"}>
+			<Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
+			<Button onClick={createProject}
+					disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
+		</DialogFooter>
+		{dialog}
+	</DialogOpen>;
 }

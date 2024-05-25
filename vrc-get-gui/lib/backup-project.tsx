@@ -1,6 +1,6 @@
 import React, {ReactNode, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {projectCreateBackup, TauriProject} from "@/lib/bindings";
 import {toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
@@ -55,17 +55,15 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			break;
 		case "backing-up":
 			dialog = (
-				<Dialog open>
-					<DialogContent className={'whitespace-normal'}>
-						<DialogTitle>{tc("projects:dialog:backup header")}</DialogTitle>
-						<DialogDescription>
-							{tc("projects:dialog:creating backup...")}
-						</DialogDescription>
-						<DialogFooter>
-							<Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:backup header")}</DialogTitle>
+					<DialogDescription>
+						{tc("projects:dialog:creating backup...")}
+					</DialogDescription>
+					<DialogFooter>
+						<Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
+					</DialogFooter>
+				</DialogOpen>
 			);
 			break;
 		default:

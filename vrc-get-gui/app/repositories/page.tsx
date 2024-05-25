@@ -3,7 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {useQuery} from "@tanstack/react-query";
@@ -150,11 +150,9 @@ function PageBody() {
 			const _exhaustiveCheck: never = state;
 	}
 	const dialog = dialogBody ?
-		<Dialog open>
-			<DialogContent>
-				<DialogTitle>{tc("vpm repositories:button:add repository")}</DialogTitle>{dialogBody}
-			</DialogContent>
-		</Dialog> : null;
+		<DialogOpen>
+			<DialogTitle>{tc("vpm repositories:button:add repository")}</DialogTitle>{dialogBody}
+		</DialogOpen> : null;
 
 	return (
 		<VStack className={"p-4 overflow-y-auto"}>
@@ -259,23 +257,21 @@ function RepositoryRow(
 
 	let dialog;
 	if (removeDialogOpen) {
-		dialog = <Dialog open>
-			<DialogContent>
-				<DialogTitle>{tc("vpm repositories:remove repository")}</DialogTitle>
-				<DialogDescription>
-					<p className={"whitespace-normal font-normal"}>
-						{tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}
-					</p>
-				</DialogDescription>
-				<DialogFooter>
-					<Button onClick={() => setRemoveDialogOpen(false)}>{tc("general:button:cancel")}</Button>
-					<Button onClick={() => {
-						remove();
-						setRemoveDialogOpen(false);
-					}} className={"ml-2"}>{tc("vpm repositories:remove repository")}</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>;
+		dialog = <DialogOpen>
+			<DialogTitle>{tc("vpm repositories:remove repository")}</DialogTitle>
+			<DialogDescription>
+				<p className={"whitespace-normal font-normal"}>
+					{tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}
+				</p>
+			</DialogDescription>
+			<DialogFooter>
+				<Button onClick={() => setRemoveDialogOpen(false)}>{tc("general:button:cancel")}</Button>
+				<Button onClick={() => {
+					remove();
+					setRemoveDialogOpen(false);
+				}} className={"ml-2"}>{tc("vpm repositories:remove repository")}</Button>
+			</DialogFooter>
+		</DialogOpen>;
 	}
 
 	return (

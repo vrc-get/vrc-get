@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {Label} from "@/components/ui/label";
 import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import {tc} from "@/lib/i18n";
@@ -38,16 +38,14 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 				setInstallStatus({state: "normal"});
 				installStatus.resolve(unityPath);
 			};
-			dialog = <Dialog open>
-				<DialogContent className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:manage:dialog:select unity header")}</DialogTitle>
-					<SelectUnityVersionDialog
-						unityVersions={installStatus.unityVersions}
-						cancel={() => resolveWrapper(null)}
-						onSelect={(unityPath) => resolveWrapper(unityPath)}
-					/>
-				</DialogContent>
-			</Dialog>;
+			dialog = <DialogOpen className={"whitespace-normal"}>
+				<DialogTitle>{tc("projects:manage:dialog:select unity header")}</DialogTitle>
+				<SelectUnityVersionDialog
+					unityVersions={installStatus.unityVersions}
+					cancel={() => resolveWrapper(null)}
+					onSelect={(unityPath) => resolveWrapper(unityPath)}
+				/>
+			</DialogOpen>;
 			break;
 		default:
 			const _: never = installStatus;

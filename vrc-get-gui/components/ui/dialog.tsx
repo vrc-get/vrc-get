@@ -1,6 +1,7 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
+import { ComponentProps } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -46,6 +47,14 @@ const DialogContent = React.forwardRef<
 	</DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
+
+const DialogOpen = (props: ComponentProps<typeof DialogContent>) => {
+	return (
+		<Dialog open>
+			<DialogContent {...props} />
+		</Dialog>
+	)
+}
 
 const DialogHeader = ({
 	className,
@@ -109,6 +118,7 @@ export {
 	DialogClose,
 	DialogTrigger,
 	DialogContent,
+	DialogOpen,
 	DialogHeader,
 	DialogFooter,
 	DialogTitle,

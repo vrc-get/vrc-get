@@ -1,6 +1,6 @@
 import React, {Fragment, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {tc, tt} from "@/lib/i18n";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
@@ -283,12 +283,10 @@ function useMigrationInternal(
 		dialog: <>
 			{unitySelector.dialog}
 			{dialogBodyForState == null ? null :
-				<Dialog open>
-					<DialogContent className={"whitespace-normal leading-relaxed"}>
-						<DialogTitle>{tc("projects:manage:dialog:unity migrate header")}</DialogTitle>
-						{dialogBodyForState}
-					</DialogContent>
-				</Dialog>}
+				<DialogOpen className={"whitespace-normal leading-relaxed"}>
+					<DialogTitle>{tc("projects:manage:dialog:unity migrate header")}</DialogTitle>
+					{dialogBodyForState}
+				</DialogOpen>}
 		</>,
 		request,
 	};
