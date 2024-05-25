@@ -1390,7 +1390,6 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 	}
 ) {
 	const onChange = useCallback((version: string) => {
-		console.log(version);
 		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
