@@ -61,8 +61,8 @@ export function Providers({children}: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		(async () => {
-	    const theme = await environmentTheme();
-      document.documentElement.setAttribute("class", theme);
+			const theme = await environmentTheme();
+			document.documentElement.setAttribute("class", theme);
 		})();
 	}, [])
 
@@ -83,11 +83,11 @@ export function Providers({children}: { children: React.ReactNode }) {
 			/>
 			<QueryClientProvider client={queryClient}>
 				<I18nextProvider i18n={i18next}>
-          <TooltipProvider>
-            <div lang={language} className="contents">
-              {children}
-            </div>
-          </TooltipProvider>
+					<TooltipProvider>
+						<div lang={language} className="contents">
+							{children}
+						</div>
+					</TooltipProvider>
 				</I18nextProvider>
 			</QueryClientProvider>
 		</>

@@ -55,11 +55,11 @@ function SideBarItem(
 	const router = useRouter();
 	const IconElenment = icon;
 	return (
-    <Button variant={"ghost"} className={"justify-start"} onClick={() => router.push(href)}>
-      <div className={"mr-4"}>
-        <IconElenment className="h-5 w-5" />
-      </div>
-      {text}
-    </Button>
+		<Button variant={"ghost"} className={"justify-start"} onClick={() => router.push(href)}>
+			<div className={"mr-4"}>
+				<IconElenment className="h-5 w-5" />
+			</div>
+			{text}
+		</Button>
 	);
 }

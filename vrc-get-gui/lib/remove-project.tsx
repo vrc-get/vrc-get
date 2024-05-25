@@ -65,45 +65,45 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 
 			dialog = (
 				<Dialog open>
-          <DialogContent className={'whitespace-normal'}>
-            <DialogTitle>{tc("projects:remove project")}</DialogTitle>
-            <DialogDescription>
-              <p className={"font-normal"}>
-                {tc("projects:dialog:warn removing project", {name: project.name})}
-              </p>
-            </DialogDescription>
-            <div className={"ml-auto"}>
-              <Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-              <Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
-                {tc("projects:button:remove from list")}
-              </Button>
-              <Button onClick={() => removeProjectButton(true)} variant={"destructive"} className="px-2"
-                      disabled={!project.is_exists}>
-                {tc("projects:button:remove directory")}
-              </Button>
-            </div>
-          </DialogContent>
+					<DialogContent className={'whitespace-normal'}>
+						<DialogTitle>{tc("projects:remove project")}</DialogTitle>
+						<DialogDescription>
+							<p className={"font-normal"}>
+								{tc("projects:dialog:warn removing project", {name: project.name})}
+							</p>
+						</DialogDescription>
+						<div className={"ml-auto"}>
+							<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+							<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
+								{tc("projects:button:remove from list")}
+							</Button>
+							<Button onClick={() => removeProjectButton(true)} variant={"destructive"} className="px-2"
+											disabled={!project.is_exists}>
+								{tc("projects:button:remove directory")}
+							</Button>
+						</div>
+					</DialogContent>
 				</Dialog>
 			);
 			break;
 		case "removing":
 			dialog = (
 				<Dialog open>
-          <DialogContent className={'whitespace-normal'}>
-            <DialogContent>{tc("projects:remove project")}</DialogContent>
-            <div>
-              {tc("projects:dialog:removing...")}
-            </div>
-            <div className={"ml-auto"}>
-              <Button className="mr-1" disabled>{tc("general:button:cancel")}</Button>
-              <Button className="mr-1 px-2" disabled>
-                {tc("projects:button:remove from list")}
-              </Button>
-              <Button variant={"destructive"} className="px-2" disabled>
-                {tc("projects:button:remove directory")}
-              </Button>
-            </div>
-          </DialogContent>
+					<DialogContent className={'whitespace-normal'}>
+						<DialogContent>{tc("projects:remove project")}</DialogContent>
+						<div>
+							{tc("projects:dialog:removing...")}
+						</div>
+						<div className={"ml-auto"}>
+							<Button className="mr-1" disabled>{tc("general:button:cancel")}</Button>
+							<Button className="mr-1 px-2" disabled>
+								{tc("projects:button:remove from list")}
+							</Button>
+							<Button variant={"destructive"} className="px-2" disabled>
+								{tc("projects:button:remove directory")}
+							</Button>
+						</div>
+					</DialogContent>
 				</Dialog>
 			);
 			break;

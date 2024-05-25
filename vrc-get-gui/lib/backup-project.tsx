@@ -56,15 +56,15 @@ export function useBackupProjectModal(_: Params = {}): Result {
 		case "backing-up":
 			dialog = (
 				<Dialog open>
-          <DialogContent className={'whitespace-normal'}>
-            <DialogTitle>{tc("projects:dialog:backup header")}</DialogTitle>
-            <DialogDescription>
-              {tc("projects:dialog:creating backup...")}
-            </DialogDescription>
-            <div className={"ml-auto"}>
-              <Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
-            </div>
-          </DialogContent>
+					<DialogContent className={'whitespace-normal'}>
+						<DialogTitle>{tc("projects:dialog:backup header")}</DialogTitle>
+						<DialogDescription>
+							{tc("projects:dialog:creating backup...")}
+						</DialogDescription>
+						<div className={"ml-auto"}>
+							<Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
+						</div>
+					</DialogContent>
 				</Dialog>
 			);
 			break;

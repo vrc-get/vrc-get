@@ -16,10 +16,10 @@ export function useFilePickerFunction<A extends unknown[], R>(
 	}, [setIsPicking, f]);
 
 	let dialog = <Dialog open={isPicking}>
-    <DialogContent>
-      <DialogTitle>{tc("general:dialog:select file or directory header")}</DialogTitle>
-      <DialogDescription>{tc("general:dialog:select file or directory")}</DialogDescription>
-    </DialogContent>
+		<DialogContent>
+			<DialogTitle>{tc("general:dialog:select file or directory header")}</DialogTitle>
+			<DialogDescription>{tc("general:dialog:select file or directory")}</DialogDescription>
+		</DialogContent>
 	</Dialog>;
 
 	return [result, dialog];

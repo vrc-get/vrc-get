@@ -151,9 +151,9 @@ function PageBody() {
 	}
 	const dialog = dialogBody ?
 		<Dialog open>
-      <DialogContent>
-        <DialogTitle>{tc("vpm repositories:button:add repository")}</DialogTitle>{dialogBody}
-      </DialogContent>
+			<DialogContent>
+				<DialogTitle>{tc("vpm repositories:button:add repository")}</DialogTitle>{dialogBody}
+			</DialogContent>
 		</Dialog> : null;
 
 	return (
@@ -167,15 +167,15 @@ function PageBody() {
 			</HNavBar>
 			<main className="flex-shrink flex-grow overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-scroll shadow-none">
-          <CardHeader>
-            <RepositoryTable
-              userRepos={result.data?.user_repositories || []}
-              hiddenUserRepos={hiddenUserRepos}
-              removeRepository={removeRepository}
-              refetch={() => result.refetch()}
-            />
-            {dialog}
-          </CardHeader>
+					<CardHeader>
+						<RepositoryTable
+							userRepos={result.data?.user_repositories || []}
+							hiddenUserRepos={hiddenUserRepos}
+							removeRepository={removeRepository}
+							refetch={() => result.refetch()}
+						/>
+						{dialog}
+					</CardHeader>
 				</Card>
 			</main>
 		</VStack>
@@ -260,21 +260,21 @@ function RepositoryRow(
 	let dialog;
 	if (removeDialogOpen) {
 		dialog = <Dialog open>
-      <DialogContent>
-        <DialogTitle>{tc("vpm repositories:remove repository")}</DialogTitle>
-        <DialogDescription>
-          <p className={"whitespace-normal font-normal"}>
-            {tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}
-          </p>
-        </DialogDescription>
-        <div className={"ml-auto"}>
-          <Button onClick={() => setRemoveDialogOpen(false)}>{tc("general:button:cancel")}</Button>
-          <Button onClick={() => {
-            remove();
-            setRemoveDialogOpen(false);
-          }} className={"ml-2"}>{tc("vpm repositories:remove repository")}</Button>
-        </div>
-      </DialogContent>
+			<DialogContent>
+				<DialogTitle>{tc("vpm repositories:remove repository")}</DialogTitle>
+				<DialogDescription>
+					<p className={"whitespace-normal font-normal"}>
+						{tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}
+					</p>
+				</DialogDescription>
+				<div className={"ml-auto"}>
+					<Button onClick={() => setRemoveDialogOpen(false)}>{tc("general:button:cancel")}</Button>
+					<Button onClick={() => {
+						remove();
+						setRemoveDialogOpen(false);
+					}} className={"ml-2"}>{tc("vpm repositories:remove repository")}</Button>
+				</div>
+			</DialogContent>
 		</Dialog>;
 	}
 
@@ -297,14 +297,14 @@ function RepositoryRow(
 				</p>
 			</td>
 			<td className={`${cellClass} w-0`}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button onClick={() => setRemoveDialogOpen(true)} variant={"ghost"}>
-              <XCircleIcon className={"size-5 text-destructive"}/>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{tc("vpm repositories:remove repository")}</TooltipContent>
-        </Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button onClick={() => setRemoveDialogOpen(true)} variant={"ghost"}>
+							<XCircleIcon className={"size-5 text-destructive"}/>
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>{tc("vpm repositories:remove repository")}</TooltipContent>
+				</Tooltip>
 			</td>
 			{dialog}
 		</tr>
@@ -408,88 +408,88 @@ function EnteringRepositoryInfo(
 
 	return (
 		<>
-      <DialogDescription>
-        <p className={'font-normal'}>
-          {tc("vpm repositories:dialog:enter repository info")}
-        </p>
-        <Input className={"w-full"} type={"vpm repositories:url"} value={url} onChange={e => setUrl(e.target.value)}
-                placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
-        <details>
-          <summary className={"font-bold"}>{tc("vpm repositories:dialog:headers")}</summary>
-          <div className={"w-full max-h-[50vh] overflow-y-auto"}>
-            <table className={"w-full"}>
-              <thead>
-              <tr>
-                <th className={"sticky top-0 z-10"}>{tc("vpm repositories:dialog:header name")}</th>
-                <th className={"sticky top-0 z-10"}>{tc("vpm repositories:dialog:header value")}</th>
-                <th className={"sticky top-0 z-10"}></th>
-              </tr>
-              </thead>
-              <tbody>
-              {
-                headerArray.map(({name, value, id}, idx) => (
-                  <tr key={id}>
-                    <td>
-                      <Input
-                        type={"text"}
-                        value={name}
-                        className={"w-96"}
-                        onChange={e => {
-                          setHeaderArray(old => {
-                            const newArray = [...old];
-                            newArray[idx] = {...newArray[idx]};
-                            newArray[idx].name = e.target.value;
-                            return newArray;
-                          })
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <Input
-                        type={"text"}
-                        value={value}
-                        onChange={e => {
-                          setHeaderArray(old => {
-                            const newArray = [...old];
-                            newArray[idx] = {...newArray[idx]};
-                            newArray[idx].value = e.target.value;
-                            return newArray;
-                          })
-                        }}
-                      />
-                    </td>
-                    <td className={"w-20"}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant={"ghost"} onClick={addHeader}>
-                            <PlusCircleIcon color={"green"} className={"size-5"}/>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className={"z-[19999]"}>{tc("vpm repositories:tooltip:add header")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant={"ghost"} onClick={() => removeHeader(idx)}>
-                            <MinusCircleIcon color={"red"} className={"size-5"}/>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className={"z-[19999]"}>{tc("vpm repositories:tooltip:remove header")}</TooltipContent>
-                      </Tooltip>
-                    </td>
-                  </tr>
-                ))
-              }
-              </tbody>
-            </table>
-          </div>
-        </details>
-        {foundHeaderNameError &&
-          <p className={"text-destructive"}>{tc("vpm repositories:hint:invalid header names")}</p>}
-        {foundHeaderValueError &&
-          <p className={"text-destructive"}>{tc("vpm repositories:hint:invalid header values")}</p>}
-        {foundDuplicateHeader &&
-          <p className={"text-destructive"}>{tc("vpm repositories:hint:duplicate headers")}</p>}
-      </DialogDescription>
+			<DialogDescription>
+				<p className={'font-normal'}>
+					{tc("vpm repositories:dialog:enter repository info")}
+				</p>
+				<Input className={"w-full"} type={"vpm repositories:url"} value={url} onChange={e => setUrl(e.target.value)}
+								placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
+				<details>
+					<summary className={"font-bold"}>{tc("vpm repositories:dialog:headers")}</summary>
+					<div className={"w-full max-h-[50vh] overflow-y-auto"}>
+						<table className={"w-full"}>
+							<thead>
+							<tr>
+								<th className={"sticky top-0 z-10"}>{tc("vpm repositories:dialog:header name")}</th>
+								<th className={"sticky top-0 z-10"}>{tc("vpm repositories:dialog:header value")}</th>
+								<th className={"sticky top-0 z-10"}></th>
+							</tr>
+							</thead>
+							<tbody>
+							{
+								headerArray.map(({name, value, id}, idx) => (
+									<tr key={id}>
+										<td>
+											<Input
+												type={"text"}
+												value={name}
+												className={"w-96"}
+												onChange={e => {
+													setHeaderArray(old => {
+														const newArray = [...old];
+														newArray[idx] = {...newArray[idx]};
+														newArray[idx].name = e.target.value;
+														return newArray;
+													})
+												}}
+											/>
+										</td>
+										<td>
+											<Input
+												type={"text"}
+												value={value}
+												onChange={e => {
+													setHeaderArray(old => {
+														const newArray = [...old];
+														newArray[idx] = {...newArray[idx]};
+														newArray[idx].value = e.target.value;
+														return newArray;
+													})
+												}}
+											/>
+										</td>
+										<td className={"w-20"}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Button variant={"ghost"} onClick={addHeader}>
+														<PlusCircleIcon color={"green"} className={"size-5"}/>
+													</Button>
+												</TooltipTrigger>
+												<TooltipContent className={"z-[19999]"}>{tc("vpm repositories:tooltip:add header")}</TooltipContent>
+											</Tooltip>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Button variant={"ghost"} onClick={() => removeHeader(idx)}>
+														<MinusCircleIcon color={"red"} className={"size-5"}/>
+													</Button>
+												</TooltipTrigger>
+												<TooltipContent className={"z-[19999]"}>{tc("vpm repositories:tooltip:remove header")}</TooltipContent>
+											</Tooltip>
+										</td>
+									</tr>
+								))
+							}
+							</tbody>
+						</table>
+					</div>
+				</details>
+				{foundHeaderNameError &&
+					<p className={"text-destructive"}>{tc("vpm repositories:hint:invalid header names")}</p>}
+				{foundHeaderValueError &&
+					<p className={"text-destructive"}>{tc("vpm repositories:hint:invalid header values")}</p>}
+				{foundDuplicateHeader &&
+					<p className={"text-destructive"}>{tc("vpm repositories:hint:duplicate headers")}</p>}
+			</DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 				<Button onClick={onAddRepository} className={"ml-2"}
@@ -508,11 +508,11 @@ function LoadingRepository(
 ) {
 	return (
 		<>
-      <DialogDescription>
-        <p>
-          {tc("vpm repositories:dialog:downloading...")}
-        </p>
-      </DialogDescription>
+			<DialogDescription>
+				<p>
+					{tc("vpm repositories:dialog:downloading...")}
+				</p>
+			</DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 			</div>
@@ -529,11 +529,11 @@ function Duplicated(
 ) {
 	return (
 		<>
-      <DialogDescription>
-        <p>
-          {tc("vpm repositories:dialog:already added")}
-        </p>
-      </DialogDescription>
+			<DialogDescription>
+				<p>
+					{tc("vpm repositories:dialog:already added")}
+				</p>
+			</DialogDescription>
 			<div className={"ml-auto"}>
 				<Button onClick={cancel}>{tc("general:button:ok")}</Button>
 			</div>

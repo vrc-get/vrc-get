@@ -101,21 +101,21 @@ export default function Page() {
 												 search={search} setSearch={setSearch}/>
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-auto shadow-none">
-          <CardHeader>
-            {
-              result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
-                result.status == "error" ?
-                  <Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
-                  <ProjectsTable
-                    projects={result.data}
-                    search={search}
-                    loading={loading}
-                    openUnity={openUnity.openUnity}
-                    refresh={() => result.refetch()}
-                    onRemoved={() => result.refetch()}
-                  />
-            }
-          </CardHeader>
+					<CardHeader>
+						{
+							result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
+								result.status == "error" ?
+									<Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
+									<ProjectsTable
+										projects={result.data}
+										search={search}
+										loading={loading}
+										openUnity={openUnity.openUnity}
+										refresh={() => result.refetch()}
+										onRemoved={() => result.refetch()}
+									/>
+						}
+					</CardHeader>
 				</Card>
 				{createProjectState === "creating" &&
 					<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
@@ -429,15 +429,15 @@ function ProjectRow(
 	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
 		if (removed) {
 			return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
-          </TooltipTrigger>
-          <TooltipPortal>
-            <TooltipContent>{tt("projects:tooltip:no directory")}</TooltipContent>
-          </TooltipPortal>
-        </Tooltip>
-      )
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
+					</TooltipTrigger>
+					<TooltipPortal>
+						<TooltipContent>{tt("projects:tooltip:no directory")}</TooltipContent>
+					</TooltipPortal>
+				</Tooltip>
+			)
 		} else {
 			return (
 				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`}
@@ -451,14 +451,14 @@ function ProjectRow(
 	switch (project.project_type) {
 		case "LegacySdk2":
 			manageButton =
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <RowButton variant={"success"} disabled>
-              {tc("projects:button:migrate")}
-            </RowButton>
-          </TooltipTrigger>
-          <TooltipContent>{tc("projects:tooltip:sdk2 migration hint")}</TooltipContent>
-        </Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<RowButton variant={"success"} disabled>
+							{tc("projects:button:migrate")}
+						</RowButton>
+					</TooltipTrigger>
+					<TooltipContent>{tc("projects:tooltip:sdk2 migration hint")}</TooltipContent>
+				</Tooltip>
 			break;
 		case "LegacyWorlds":
 		case "LegacyAvatars":
@@ -469,14 +469,14 @@ function ProjectRow(
 		case "UpmAvatars":
 		case "UpmStarter":
 			manageButton =
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <RowButton variant={"info"} disabled>
-              {tc("projects:button:manage")}
-            </RowButton>
-          </TooltipTrigger>
-          <TooltipContent>{tc("projects:tooltip:git-vcc not supported")}</TooltipContent>
-        </Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<RowButton variant={"info"} disabled>
+							{tc("projects:button:manage")}
+						</RowButton>
+					</TooltipTrigger>
+					<TooltipContent>{tc("projects:tooltip:git-vcc not supported")}</TooltipContent>
+				</Tooltip>
 			break;
 		case "Unknown":
 		case "Worlds":
@@ -495,49 +495,49 @@ function ProjectRow(
 		case "migrateVpm:confirm":
 			dialogContent = (
 				<Dialog open>
-          <DialogContent className={"whitespace-normal"}>
-            <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-            <DialogDescription>
-              <p className={"text-destructive"}>
-                {tc("projects:dialog:vpm migrate description")}
-              </p>
-            </DialogDescription>
-            <div>
-              <Button onClick={() => setDialogStatus({type: "normal"})}
-                      className="mr-1">{tc("general:button:cancel")}</Button>
-              <Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
-                      className="mr-1">{tc("projects:button:migrate copy")}</Button>
-              <Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-            </div>
-          </DialogContent>
+					<DialogContent className={"whitespace-normal"}>
+						<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+						<DialogDescription>
+							<p className={"text-destructive"}>
+								{tc("projects:dialog:vpm migrate description")}
+							</p>
+						</DialogDescription>
+						<div>
+							<Button onClick={() => setDialogStatus({type: "normal"})}
+									className="mr-1">{tc("general:button:cancel")}</Button>
+							<Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
+									className="mr-1">{tc("projects:button:migrate copy")}</Button>
+							<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
+						</div>
+					</DialogContent>
 				</Dialog>
 			);
 			break;
 		case "migrateVpm:copyingProject":
 			dialogContent = (
 				<Dialog open>
-          <DialogContent className={"whitespace-normal"}>
-            <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-            <DialogDescription>
-              <p>
-                {tc("projects:pre-migrate copying...")}
-              </p>
-            </DialogDescription>
-          </DialogContent>
+					<DialogContent className={"whitespace-normal"}>
+						<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+						<DialogDescription>
+							<p>
+								{tc("projects:pre-migrate copying...")}
+							</p>
+						</DialogDescription>
+					</DialogContent>
 				</Dialog>
 			);
 			break;
 		case "migrateVpm:updating":
 			dialogContent = (
 				<Dialog open>
-          <DialogContent className={"whitespace-normal"}>
-            <DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-            <DialogDescription>
-              <p>
-                {tc("projects:migrating...")}
-              </p>
-            </DialogDescription>
-          </DialogContent>
+					<DialogContent className={"whitespace-normal"}>
+						<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+						<DialogDescription>
+							<p>
+								{tc("projects:migrating...")}
+							</p>
+						</DialogDescription>
+					</DialogContent>
 				</Dialog>
 			);
 			break;
@@ -546,42 +546,42 @@ function ProjectRow(
 	return (
 		<tr className={`even:bg-secondary/30 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={`${cellClass} w-3`}>
-        <div className={"relative inline-flex"}>
-          <Checkbox checked={project.favorite}
-                    onCheckedChange={onToggleFavorite}
-                    disabled={removed || loading}
-                    className="hover:before:content-none before:transition-none border-none !text-primary peer"/>
-          <span className={"text-background opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
-            <StarIcon className={"size-3"} />
-          </span>
-        </div>
+				<div className={"relative inline-flex"}>
+					<Checkbox checked={project.favorite}
+							onCheckedChange={onToggleFavorite}
+							disabled={removed || loading}
+							className="hover:before:content-none before:transition-none border-none !text-primary peer"/>
+					<span className={"text-background opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
+						<StarIcon className={"size-3"} />
+					</span>
+				</div>
 			</td>
 			<td className={`${cellClass} max-w-64 overflow-hidden`}>
-        <Tooltip>
-          <MayTooltip className={"text-left select-text cursor-auto w-full"}>
-            <div className="flex flex-col">
-              <Tooltip>
-                <MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
-                  <p className="font-normal whitespace-pre">
-                    {project.name}
-                  </p>
-                </MayTooltipRev>
-                <TooltipContent>{project.name}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
-                  <p className="font-normal opacity-50 text-sm whitespace-pre">
-                    {project.path}
-                  </p>
-                </MayTooltipRev>
-                <TooltipContent>{project.path}</TooltipContent>
-              </Tooltip>
-            </div>
-          </MayTooltip>
-          <TooltipPortal>
-            <TooltipContent>{tc("projects:tooltip:no directory")}</TooltipContent>
-          </TooltipPortal>
-        </Tooltip>
+				<Tooltip>
+					<MayTooltip className={"text-left select-text cursor-auto w-full"}>
+						<div className="flex flex-col">
+							<Tooltip>
+								<MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
+									<p className="font-normal whitespace-pre">
+										{project.name}
+									</p>
+								</MayTooltipRev>
+								<TooltipContent>{project.name}</TooltipContent>
+							</Tooltip>
+							<Tooltip>
+								<MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
+									<p className="font-normal opacity-50 text-sm whitespace-pre">
+										{project.path}
+									</p>
+								</MayTooltipRev>
+								<TooltipContent>{project.path}</TooltipContent>
+							</Tooltip>
+						</div>
+					</MayTooltip>
+					<TooltipPortal>
+						<TooltipContent>{tc("projects:tooltip:no directory")}</TooltipContent>
+					</TooltipPortal>
+				</Tooltip>
 			</td>
 			<td className={`${cellClass} w-[8em] min-w-[8em]`}>
 				<div className="flex flex-row gap-2">
@@ -606,18 +606,18 @@ function ProjectRow(
 				</p>
 			</td>
 			<td className={noGrowCellClass}>
-        <Tooltip>
-          <TooltipTrigger>
-            <time dateTime={lastModified.toISOString()}>
-              <time className="font-normal">
-                {formatDateOffset(project.last_modified)}
-              </time>
-            </time>
-          </TooltipTrigger>
-          <TooltipPortal>
-            <TooltipContent>{lastModifiedHumanReadable}</TooltipContent>
-          </TooltipPortal>
-        </Tooltip>
+				<Tooltip>
+					<TooltipTrigger>
+						<time dateTime={lastModified.toISOString()}>
+							<time className="font-normal">
+								{formatDateOffset(project.last_modified)}
+							</time>
+						</time>
+					</TooltipTrigger>
+					<TooltipPortal>
+						<TooltipContent>{lastModifiedHumanReadable}</TooltipContent>
+					</TooltipPortal>
+				</Tooltip>
 			</td>
 			<td className={noGrowCellClass}>
 				<div className="flex flex-row gap-2 max-w-min">
@@ -691,26 +691,26 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 				{tc("projects")}
 			</p>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
-            {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
-      </Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
+						{isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
+			</Tooltip>
 
 			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
 
 			<DropdownMenu>
-        <div className={"flex divide-x"}>
-          <Button className={"rounded-r-none pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
-          <DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
-            <Button>
-              <ChevronDownIcon className={"w-4 h-4"}/>
-            </Button>
-          </DropdownMenuTrigger>
-        </div>
+				<div className={"flex divide-x"}>
+					<Button className={"rounded-r-none pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
+					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
+						<Button>
+							<ChevronDownIcon className={"w-4 h-4"}/>
+						</Button>
+					</DropdownMenuTrigger>
+				</div>
 				<DropdownMenuContent>
 					<DropdownMenuItem onClick={addProject}>{tc("projects:add existing project")}</DropdownMenuItem>
 				</DropdownMenuContent>
@@ -966,24 +966,24 @@ function CreateProject(
 			break;
 		case "creating":
 			dialogBody = <>
-        <ArrowPathIcon className={"w-5 h-5 animate-spin"} />
+				<ArrowPathIcon className={"w-5 h-5 animate-spin"} />
 				<p>{tc("projects:creating project...")}</p>
 			</>;
 			break;
 	}
 
 	return <Dialog open>
-    <DialogContent>
-      <DialogTitle>{tc("projects:create new project")}</DialogTitle>
-      <DialogDescription>
-        {dialogBody}
-      </DialogDescription>
-      <div className={"flex gap-2 ml-auto"}>
-        <Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
-        <Button onClick={createProject}
-                disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
-      </div>
-      {dialog}
-    </DialogContent>
+		<DialogContent>
+			<DialogTitle>{tc("projects:create new project")}</DialogTitle>
+			<DialogDescription>
+				{dialogBody}
+			</DialogDescription>
+			<div className={"flex gap-2 ml-auto"}>
+				<Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
+				<Button onClick={createProject}
+						disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
+			</div>
+			{dialog}
+		</DialogContent>
 	</Dialog>;
 }

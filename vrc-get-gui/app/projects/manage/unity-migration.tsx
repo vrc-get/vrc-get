@@ -284,10 +284,10 @@ function useMigrationInternal(
 			{unitySelector.dialog}
 			{dialogBodyForState == null ? null :
 				<Dialog open>
-          <DialogContent className={"whitespace-normal leading-relaxed"}>
-            <DialogTitle>{tc("projects:manage:dialog:unity migrate header")}</DialogTitle>
-            {dialogBodyForState}
-          </DialogContent>
+					<DialogContent className={"whitespace-normal leading-relaxed"}>
+						<DialogTitle>{tc("projects:manage:dialog:unity migrate header")}</DialogTitle>
+						{dialogBodyForState}
+					</DialogContent>
 				</Dialog>}
 		</>,
 		request,

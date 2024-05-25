@@ -506,120 +506,121 @@ function PageBody() {
 																			 onMigrateRequested={unity2022PatchMigration.request}/>}
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="flex-grow flex-shrink flex shadow-none">
-          <CardHeader className="w-full p-2 gap-2">
-            <div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
-              <p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-                {tc("projects:manage:manage packages")}
-              </p>
+					<CardHeader className="w-full p-2 gap-2">
+						<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
+							<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
+								{tc("projects:manage:manage packages")}
+							</p>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10"} disabled={isLoading}>
-                    {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{tc("projects:manage:tooltip:refresh packages")}</TooltipContent>
-              </Tooltip>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10"} disabled={isLoading}>
+										{isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>{tc("projects:manage:tooltip:refresh packages")}</TooltipContent>
+							</Tooltip>
 
-              <SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
+							<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
-              {packageRows.some(row => row.latest.status === "upgradable") &&
-                <Button className={"flex-shrink-0"}
-                        onClick={onUpgradeAllRequest}
-                        disabled={isLoading}
-                        variant={"success"}>
-                  {tc("projects:manage:button:upgrade all")}
-                </Button>}
+							{packageRows.some(row => row.latest.status === "upgradable") &&
+								<Button className={"flex-shrink-0"}
+										onClick={onUpgradeAllRequest}
+										disabled={isLoading}
+										variant={"success"}>
+									{tc("projects:manage:button:upgrade all")}
+								</Button>}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant={"ghost"} className={'flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10'}>
-                    <EllipsisHorizontalIcon className={"size-5"}/>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem className={"p-3"}
-                            onClick={onResolveRequest}
-                            disabled={isLoading}>
-                    {tc("projects:manage:button:reinstall all")}</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant={"ghost"} className={'flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10'}>
+										<EllipsisHorizontalIcon className={"size-5"}/>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent>
+									<DropdownMenuItem className={"p-3"}
+											onClick={onResolveRequest}
+											disabled={isLoading}>
+										{tc("projects:manage:button:reinstall all")}
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className={"flex-shrink-0 p-3"}>{tc("projects:manage:button:select repositories")}</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className={"max-h-96 w-64"}>
-                  <RepositoryMenuItem
-                    hiddenUserRepositories={hiddenUserRepositories}
-                    repositoryName={tt("vpm repositories:source:official")}
-                    repositoryId={"com.vrchat.repos.official"}
-                    refetch={onRefreshRepositories}
-                  />
-                  <RepositoryMenuItem
-                    hiddenUserRepositories={hiddenUserRepositories}
-                    repositoryName={tt("vpm repositories:source:curated")}
-                    repositoryId={"com.vrchat.repos.curated"}
-                    refetch={onRefreshRepositories}
-                  />
-                  <UserLocalRepositoryMenuItem
-                    hideUserLocalPackages={repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false}
-                    refetch={onRefreshRepositories}
-                  />
-                  <hr className="my-3"/>
-                  {
-                    repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories.map(repository => (
-                      <RepositoryMenuItem
-                        hiddenUserRepositories={hiddenUserRepositories}
-                        repositoryName={repository.display_name}
-                        repositoryId={repository.id}
-                        refetch={onRefreshRepositories}
-                        key={repository.id}
-                      />
-                    )) : null
-                  }
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <BulkUpdateCard
-              disabled={isLoading} bulkUpdateMode={bulkUpdateMode}
-              bulkUpgradeAll={onUpgradeBulkRequested}
-              bulkRemoveAll={onRemoveBulkRequested}
-              bulkInstallAll={onInstallBulkRequested}
-              cancel={() => setBulkUpdatePackageIds([])}
-            />
-            <Card className="w-full overflow-x-auto overflow-y-scroll">
-              <CardHeader>
-              <table className="relative table-auto text-left">
-                <thead>
-                <tr>
-                  <th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground`}>
-                  </th>
-                  {TABLE_HEAD.map((head, index) => (
-                    <th key={index}
-                        className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
-                      <small className="font-normal leading-none">{tc(head)}</small>
-                    </th>
-                  ))}
-                  <th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}/>
-                </tr>
-                </thead>
-                <tbody>
-                {packageRows.map((row) => (
-                  <PackageRow pkg={row} key={row.id}
-                              locked={isLoading}
-                              onInstallRequested={onInstallRequested}
-                              onRemoveRequested={onRemoveRequested}
-                              bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
-                              bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
-                              addBulkUpdatePackage={addBulkUpdatePackage}
-                              removeBulkUpdatePackage={removeBulkUpdatePackage}
-                  />))}
-                </tbody>
-              </table>
-              </CardHeader>
-            </Card>
-          </CardHeader>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button className={"flex-shrink-0 p-3"}>{tc("projects:manage:button:select repositories")}</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent className={"max-h-96 w-64"}>
+									<RepositoryMenuItem
+										hiddenUserRepositories={hiddenUserRepositories}
+										repositoryName={tt("vpm repositories:source:official")}
+										repositoryId={"com.vrchat.repos.official"}
+										refetch={onRefreshRepositories}
+									/>
+									<RepositoryMenuItem
+										hiddenUserRepositories={hiddenUserRepositories}
+										repositoryName={tt("vpm repositories:source:curated")}
+										repositoryId={"com.vrchat.repos.curated"}
+										refetch={onRefreshRepositories}
+									/>
+									<UserLocalRepositoryMenuItem
+										hideUserLocalPackages={repositoriesInfo.status == 'success' ? repositoriesInfo.data.hide_local_user_packages : false}
+										refetch={onRefreshRepositories}
+									/>
+									<hr className="my-3"/>
+									{
+										repositoriesInfo.status == 'success' ? repositoriesInfo.data.user_repositories.map(repository => (
+										<RepositoryMenuItem
+											hiddenUserRepositories={hiddenUserRepositories}
+											repositoryName={repository.display_name}
+											repositoryId={repository.id}
+											refetch={onRefreshRepositories}
+											key={repository.id}
+										/>
+										)) : null
+									}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+						<BulkUpdateCard
+							disabled={isLoading} bulkUpdateMode={bulkUpdateMode}
+							bulkUpgradeAll={onUpgradeBulkRequested}
+							bulkRemoveAll={onRemoveBulkRequested}
+							bulkInstallAll={onInstallBulkRequested}
+							cancel={() => setBulkUpdatePackageIds([])}
+						/>
+						<Card className="w-full overflow-x-auto overflow-y-scroll">
+							<CardHeader>
+							<table className="relative table-auto text-left">
+								<thead>
+								<tr>
+									<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground`}>
+									</th>
+									{TABLE_HEAD.map((head, index) => (
+										<th key={index}
+											className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
+											<small className="font-normal leading-none">{tc(head)}</small>
+										</th>
+									))}
+									<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}/>
+								</tr>
+								</thead>
+								<tbody>
+								{packageRows.map((row) => (
+									<PackageRow pkg={row} key={row.id}
+												locked={isLoading}
+												onInstallRequested={onInstallRequested}
+												onRemoveRequested={onRemoveRequested}
+												bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
+												bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
+												addBulkUpdatePackage={addBulkUpdatePackage}
+												removeBulkUpdatePackage={removeBulkUpdatePackage}
+									/>))}
+								</tbody>
+							</table>
+							</CardHeader>
+						</Card>
+					</CardHeader>
 				</Card>
 				{dialogForState}
 				{unity2022Migration.dialog}
@@ -769,111 +770,111 @@ function ProjectChangesDialog(
 
 	return (
 		<Dialog open>
-      <DialogContent className={"whitespace-normal"}>
-        <DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
-        <DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
-          <p>
-            {tc("projects:manage:dialog:confirm changes description")}
-          </p>
-          <div className={"flex flex-col gap-1 p-2"}>
-            {packageChangesSorted.map(([pkgId, pkgChange]) => {
-              if ('InstallNew' in pkgChange) {
-                let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
-                if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
-                  changelogUrlTmp = null;
-                const changelogUrl = changelogUrlTmp;
-                return <div key={pkgId} className={"p-3"}>
-                  <p className={"font-normal"}>{tc("projects:manage:dialog:install package", {
-                    name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
-                    version: toVersionString(pkgChange.InstallNew.version),
-                  })}</p>
-                  {changelogUrl != null &&
-                    <Button className={"ml-1 px-2"} size={"sm"}
-                            onClick={() => shellOpen(changelogUrl)}>{tc("projects:manage:button:see changelog")}</Button>}
-                </div>
-              } else {
-                const name = getPackageDisplayName(pkgId);
-                switch (pkgChange.Remove) {
-                  case "Requested":
-                    return <TypographyItem key={pkgId}>
-                      {tc("projects:manage:dialog:uninstall package as requested", {name})}
-                    </TypographyItem>
-                  case "Legacy":
-                    return <TypographyItem key={pkgId}>
-                      {tc("projects:manage:dialog:uninstall package as legacy", {name})}
-                    </TypographyItem>
-                  case "Unused":
-                    return <TypographyItem key={pkgId}>
-                      {tc("projects:manage:dialog:uninstall package as unused", {name})}
-                    </TypographyItem>
-                }
-              }
-            })}
-          </div>
-          {
-            versionConflicts.length > 0 ? (
-              <>
-                <p className={"text-destructive"}>
-                  {tc("projects:manage:dialog:package version conflicts", {count: versionConflicts.length})}
-                </p>
-                <div className={"flex flex-col gap-1 p-2"}>
-                  {versionConflicts.map(([pkgId, conflict]) => {
-                    return (
-                      <TypographyItem key={pkgId}>
-                        {tc("projects:manage:dialog:conflicts with", {
-                          pkg: getPackageDisplayName(pkgId),
-                          other: conflict.packages.map(p => getPackageDisplayName(p)).join(", ")
-                        })}
-                      </TypographyItem>
-                    );
-                  })}
-                </div>
-              </>
-            ) : null
-          }
-          {
-            unityConflicts.length > 0 ? (
-              <>
-                <p className={"text-destructive"}>
-                  {tc("projects:manage:dialog:unity version conflicts", {count: unityConflicts.length})}
-                </p>
-                <div className={"flex flex-col gap-1 p-2"}>
-                  {unityConflicts.map(([pkgId, _]) => (
-                    <TypographyItem key={pkgId}>
-                      {tc("projects:manage:dialog:package not supported your unity", {pkg: getPackageDisplayName(pkgId)})}
-                    </TypographyItem>
-                  ))}
-                </div>
-              </>
-            ) : null
-          }
-          {
-            changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
-              <>
-                <p className={"text-destructive"}>
-                  {tc("projects:manage:dialog:files and directories are removed as legacy")}
-                </p>
-                <div className={"flex flex-col gap-1 p-2"}>
-                  {changes.remove_legacy_files.map(f => (
-                    <TypographyItem key={f}>
-                      {f}
-                    </TypographyItem>
-                  ))}
-                  {changes.remove_legacy_folders.map(f => (
-                    <TypographyItem key={f}>
-                      {f}
-                    </TypographyItem>
-                  ))}
-                </div>
-              </>
-            ) : null
-          }
-        </DialogDescription>
-        <div className={"ml-auto"}>
-          <Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-          <Button onClick={apply} variant={"destructive"}>{tc("projects:manage:button:apply")}</Button>
-        </div>
-      </DialogContent>
+			<DialogContent className={"whitespace-normal"}>
+				<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
+				<DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
+					<p>
+						{tc("projects:manage:dialog:confirm changes description")}
+					</p>
+					<div className={"flex flex-col gap-1 p-2"}>
+						{packageChangesSorted.map(([pkgId, pkgChange]) => {
+							if ('InstallNew' in pkgChange) {
+								let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
+								if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
+									changelogUrlTmp = null;
+								const changelogUrl = changelogUrlTmp;
+								return <div key={pkgId} className={"p-3"}>
+									<p className={"font-normal"}>{tc("projects:manage:dialog:install package", {
+										name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
+										version: toVersionString(pkgChange.InstallNew.version),
+									})}</p>
+									{changelogUrl != null &&
+										<Button className={"ml-1 px-2"} size={"sm"}
+											onClick={() => shellOpen(changelogUrl)}>{tc("projects:manage:button:see changelog")}</Button>}
+								</div>
+							} else {
+								const name = getPackageDisplayName(pkgId);
+								switch (pkgChange.Remove) {
+									case "Requested":
+										return <TypographyItem key={pkgId}>
+											{tc("projects:manage:dialog:uninstall package as requested", {name})}
+										</TypographyItem>
+									case "Legacy":
+										return <TypographyItem key={pkgId}>
+											{tc("projects:manage:dialog:uninstall package as legacy", {name})}
+										</TypographyItem>
+									case "Unused":
+										return <TypographyItem key={pkgId}>
+											{tc("projects:manage:dialog:uninstall package as unused", {name})}
+										</TypographyItem>
+								}
+							}
+						})}
+					</div>
+					{
+						versionConflicts.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc("projects:manage:dialog:package version conflicts", {count: versionConflicts.length})}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{versionConflicts.map(([pkgId, conflict]) => {
+										return (
+											<TypographyItem key={pkgId}>
+											{tc("projects:manage:dialog:conflicts with", {
+												pkg: getPackageDisplayName(pkgId),
+												other: conflict.packages.map(p => getPackageDisplayName(p)).join(", ")
+											})}
+											</TypographyItem>
+										);
+									})}
+								</div>
+							</>
+						) : null
+					}
+					{
+						unityConflicts.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc("projects:manage:dialog:unity version conflicts", {count: unityConflicts.length})}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{unityConflicts.map(([pkgId, _]) => (
+										<TypographyItem key={pkgId}>
+											{tc("projects:manage:dialog:package not supported your unity", {pkg: getPackageDisplayName(pkgId)})}
+										</TypographyItem>
+									))}
+								</div>
+							</>
+						) : null
+					}
+					{
+						changes.remove_legacy_files.length > 0 || changes.remove_legacy_folders.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc("projects:manage:dialog:files and directories are removed as legacy")}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{changes.remove_legacy_files.map(f => (
+										<TypographyItem key={f}>
+											{f}
+										</TypographyItem>
+									))}
+									{changes.remove_legacy_folders.map(f => (
+										<TypographyItem key={f}>
+											{f}
+										</TypographyItem>
+									))}
+								</div>
+							</>
+						) : null
+					}
+				</DialogDescription>
+				<div className={"ml-auto"}>
+					<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+					<Button onClick={apply} variant={"destructive"}>{tc("projects:manage:button:apply")}</Button>
+				</div>
+			</DialogContent>
 		</Dialog>
 	);
 }
@@ -1298,23 +1299,23 @@ const PackageRow = memo(function PackageRow(
 							</p>
 						)
 					) : pkg.sources.size == 1 ? (
-            <Tooltip>
-              <TooltipTrigger>
-                <p className="overflow-hidden overflow-ellipsis">
-                  {[...pkg.sources][0]}
-                </p>
-              </TooltipTrigger>
-              <TooltipContent>{[ ...pkg.sources][0] }</TooltipContent>
-            </Tooltip>
+						<Tooltip>
+							<TooltipTrigger>
+								<p className="overflow-hidden overflow-ellipsis">
+									{[...pkg.sources][0]}
+								</p>
+							</TooltipTrigger>
+							<TooltipContent>{[ ...pkg.sources][0] }</TooltipContent>
+						</Tooltip>
 					) : (
-            <Tooltip>
-              <TooltipTrigger>
-                <p>
-                  {tc("projects:manage:multiple sources")}
-                </p>
-              </TooltipTrigger>
-              <TooltipContent>{ [...pkg.sources].join(", ") }</TooltipContent>
-            </Tooltip>
+						<Tooltip>
+							<TooltipTrigger>
+								<p>
+									{tc("projects:manage:multiple sources")}
+								</p>
+							</TooltipTrigger>
+							<TooltipContent>{ [...pkg.sources].join(", ") }</TooltipContent>
+						</Tooltip>
 					)
 				}
 			</td>
@@ -1322,22 +1323,22 @@ const PackageRow = memo(function PackageRow(
 				<div className="flex flex-row gap-2 max-w-min">
 					{
 						pkg.installed ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
-                    className={"size-5 text-destructive"}/></Button>
-                </TooltipTrigger>
-                <TooltipContent>{tc("projects:manage:tooltip:remove packages")}</TooltipContent>
-              </Tooltip>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
+										className={"size-5 text-destructive"}/></Button>
+								</TooltipTrigger>
+								<TooltipContent>{tc("projects:manage:tooltip:remove packages")}</TooltipContent>
+							</Tooltip>
 						) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked && !!latestVersion}
-                              onClick={installLatest}><PlusCircleIcon
-                    className={"size-5 text-secondary-foreground"}/></Button>
-                </TooltipTrigger>
-                <TooltipContent>{tc("projects:manage:tooltip:add package")}</TooltipContent>
-              </Tooltip>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked && !!latestVersion}
+												onClick={installLatest}><PlusCircleIcon
+									className={"size-5 text-secondary-foreground"}/></Button>
+								</TooltipTrigger>
+								<TooltipContent>{tc("projects:manage:tooltip:add package")}</TooltipContent>
+							</Tooltip>
 						)
 					}
 				</div>
@@ -1445,18 +1446,18 @@ function PackageLatestInfo(
 			return <p>{toVersionString(info.pkg.version)}</p>;
 		case "upgradable":
 			return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant={"outline"}
-                    className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
-                    disabled={locked}
-                    onClick={() => onInstallRequested(info.pkg)}>
-              <ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
-              {toVersionString(info.pkg.version)}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{tc("projects:manage:tooltip:upgrade package")}</TooltipContent>
-        </Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button variant={"outline"}
+								className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
+								disabled={locked}
+								onClick={() => onInstallRequested(info.pkg)}>
+							<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
+							{toVersionString(info.pkg.version)}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>{tc("projects:manage:tooltip:upgrade package")}</TooltipContent>
+				</Tooltip>
 			);
 		default:
 			let _: never = info;
@@ -1487,14 +1488,14 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar className={className}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => history.back()}>
-            <ArrowLeftIcon className={"w-5 h-5"}/>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{tc("projects:manage:tooltip:back to projects")}</TooltipContent>
-      </Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => history.back()}>
+						<ArrowLeftIcon className={"w-5 h-5"}/>
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent>{tc("projects:manage:tooltip:back to projects")}</TooltipContent>
+			</Tooltip>
 
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 whitespace-pre">
 				{projectName}

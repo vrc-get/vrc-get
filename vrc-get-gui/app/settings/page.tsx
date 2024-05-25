@@ -196,8 +196,8 @@ function Settings(
 
 	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
 		try {
-      await environmentSetShowPrereleasePackages(e===true)
-      refetch()
+			await environmentSetShowPrereleasePackages(e===true)
+			refetch()
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e)
@@ -211,23 +211,23 @@ function Settings(
 		])
 	};
 
-  const [theme, setTheme] = React.useState("system");
+	const [theme, setTheme] = React.useState("system");
 
 	React.useEffect(() => {
 		(async () => {
-	    const theme = await environmentTheme();
-      setTheme(theme);
+			const theme = await environmentTheme();
+			setTheme(theme);
 		})();
 	}, [])
 
-  const changeTheme = async (theme: string) => {
-    await environmentSetTheme(theme);
-    setTheme(theme);
-    if (theme === "system") {
-      theme = await appWindow.theme() ?? "light";
-    }
-    document.documentElement.setAttribute("class", theme);
-  };
+	const changeTheme = async (theme: string) => {
+		await environmentSetTheme(theme);
+		setTheme(theme);
+		if (theme === "system") {
+			theme = await appWindow.theme() ?? "light";
+		}
+		document.documentElement.setAttribute("class", theme);
+	};
 
 	const reportIssue = async () => {
 		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
@@ -274,9 +274,9 @@ function Settings(
 					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
 				</div>
 				<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
-          <CardHeader>
-            <UnityTable unityPaths={settings.unity_paths}/>
-          </CardHeader>
+					<CardHeader>
+						<UnityTable unityPaths={settings.unity_paths}/>
+					</CardHeader>
 				</Card>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
@@ -320,9 +320,9 @@ function Settings(
 					{tc("settings:show prerelease description")}
 				</p>
 				<label className={"flex items-center"}>
-          <div className={"p-3"}>
-            <Checkbox checked={settings.show_prerelease_packages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
-          </div>
+					<div className={"p-3"}>
+						<Checkbox checked={settings.show_prerelease_packages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
+					</div>
 					{tc("settings:show prerelease")}
 				</label>
 			</Card>
@@ -342,16 +342,16 @@ function Settings(
 			{unityHubDialog}
 			{projectDefaultDialog}
 			{projectBackupDialog}
-      <Card className={"flex-shrink-0 p-4"}>
-        <label className={"flex items-center"}>
-          <h2>{tc("settings:theme")}: </h2>
-          <VGSelect value={tc(`settings:theme:${theme}`)} onChange={changeTheme} menuClassName={"w-96"}>
-            <VGOption value={"system"}>{tc("settings:theme:system")}</VGOption>
-            <VGOption value={"light"}>{tc("settings:theme:light")}</VGOption>
-            <VGOption value={"dark"}>{tc("settings:theme:dark")}</VGOption>
-          </VGSelect>
-        </label>
-      </Card>
+			<Card className={"flex-shrink-0 p-4"}>
+				<label className={"flex items-center"}>
+					<h2>{tc("settings:theme")}: </h2>
+					<VGSelect value={tc(`settings:theme:${theme}`)} onChange={changeTheme} menuClassName={"w-96"}>
+						<VGOption value={"system"}>{tc("settings:theme:system")}</VGOption>
+						<VGOption value={"light"}>{tc("settings:theme:light")}</VGOption>
+						<VGOption value={"dark"}>{tc("settings:theme:dark")}</VGOption>
+					</VGSelect>
+				</label>
+			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:check update")}</h2>
 				<div>

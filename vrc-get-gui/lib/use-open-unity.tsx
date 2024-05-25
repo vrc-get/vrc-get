@@ -93,20 +93,20 @@ function UnityInstallWindow(
 	}
 
 	return <Dialog open>
-    <DialogContent>
-      <DialogTitle>
-        {tc("projects:manage:dialog:unity not found")}
-      </DialogTitle>
-      <DialogDescription>
-        <p>
-          {tc("projects:manage:dialog:unity version of the project not found", {unity: expectedVersion})}
-        </p>
-      </DialogDescription>
-      <div className={"ml-auto gap-2"}>
-        <Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
-        <Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
-      </div>
-    </DialogContent>
+		<DialogContent>
+			<DialogTitle>
+				{tc("projects:manage:dialog:unity not found")}
+			</DialogTitle>
+			<DialogDescription>
+				<p>
+					{tc("projects:manage:dialog:unity version of the project not found", {unity: expectedVersion})}
+				</p>
+			</DialogDescription>
+			<div className={"ml-auto gap-2"}>
+				<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
+				<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
+			</div>
+		</DialogContent>
 	</Dialog>;
 }
 
