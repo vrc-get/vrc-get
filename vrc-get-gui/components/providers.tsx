@@ -61,7 +61,11 @@ export function Providers({children}: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		(async () => {
-			const theme = await environmentTheme();
+			let theme = await environmentTheme();
+			if (theme === "system") {
+				const {appWindow} = await import("@tauri-apps/api/window");
+				theme = await appWindow.theme() ?? "light";
+			}
 			document.documentElement.setAttribute("class", theme);
 		})();
 	}, [])

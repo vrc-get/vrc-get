@@ -15,9 +15,9 @@ import {
 	environmentPickUnityHub,
 	environmentSetBackupFormat,
 	environmentSetLanguage,
-  environmentSetTheme,
+	environmentSetTheme,
 	environmentSetShowPrereleasePackages,
-  environmentTheme,
+	environmentTheme,
 	TauriEnvironmentSettings,
 	utilGetVersion,
 } from "@/lib/bindings";
@@ -28,7 +28,6 @@ import i18next, {languages, tc, tt} from "@/lib/i18n";
 import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
-import {appWindow} from "@tauri-apps/api/window";
 import {shellOpen} from "@/lib/shellOpen";
 import {loadOSApi} from "@/lib/os";
 import type {OsType} from "@tauri-apps/api/os";
@@ -224,6 +223,7 @@ function Settings(
 		await environmentSetTheme(theme);
 		setTheme(theme);
 		if (theme === "system") {
+			const {appWindow} = await import("@tauri-apps/api/window");
 			theme = await appWindow.theme() ?? "light";
 		}
 		document.documentElement.setAttribute("class", theme);
