@@ -1400,7 +1400,7 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 	const incompatibleNames = [...pkg.unityIncompatible.keys()];
 
 	return (
-		<Select onValueChange={onChange}>
+		<Select onValueChange={onChange} disabled={locked}>
 			<SelectTrigger>
 				<SelectValue
 						placeholder={<PackageInstalledInfo pkg={pkg}/>}
