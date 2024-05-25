@@ -924,9 +924,9 @@ function CreateProject(
 						<div className={"flex items-center"}>
 							<label>{tc("projects:template:type")}</label>
 						</div>
-						<Select onValueChange={value => setTemplateType(value as any)}>
+						<Select defaultValue={templateType} onValueChange={value => setTemplateType(value as any)}>
 							<SelectTrigger>
-								<SelectValue placeholder={tc(`projects:type:${templateType}`)} />
+								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
 								<SelectGroup>
@@ -942,9 +942,9 @@ function CreateProject(
 							<div className={"flex items-center"}>
 								<label>{tc("projects:template:unity version")}</label>
 							</div>
-							<Select onValueChange={value => setUnityVersion(value as any)}>
+							<Select defaultValue={unityVersion} onValueChange={value => setUnityVersion(value as any)}>
 								<SelectTrigger>
-									<SelectValue placeholder={renderUnityVersion(unityVersion)} />
+									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
 									{templateUnityVersions.map(unityVersion =>
@@ -957,9 +957,9 @@ function CreateProject(
 							<div className={"flex items-center"}>
 								<label>{tc("projects:template")}</label>
 							</div>
-							<Select onValueChange={onCustomTemplateChange}>
+							<Select value={customTemplate?.name} onValueChange={onCustomTemplateChange}>
 								<SelectTrigger>
-									<SelectValue placeholder={customTemplate?.name} />
+									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectGroup>

@@ -25,6 +25,7 @@ import {
 	environmentSetLanguage,
 	environmentSetTheme,
 	environmentSetShowPrereleasePackages,
+	environmentLanguage,
 	environmentTheme,
 	TauriEnvironmentSettings,
 	utilGetVersion,
@@ -210,6 +211,11 @@ function Settings(
 		}
 	}
 
+	const {data: lang} = useQuery({
+		queryKey: ["environmentLanguage"],
+		queryFn: environmentLanguage
+	})
+
 	const changeLanguage = async (value: string) => {
 		await Promise.all([
 			i18next.changeLanguage(value),
@@ -217,7 +223,7 @@ function Settings(
 		])
 	};
 
-	const [theme, setTheme] = React.useState("system");
+	const [theme, setTheme] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
 		(async () => {
@@ -313,9 +319,9 @@ function Settings(
 				<div className="mt-2">
 					<label className={"flex items-center"}>
 						<h3>{tc("settings:backup:format")}</h3>
-						<Select onValueChange={setBackupFormat}>
+						<Select defaultValue={settings.backup_format} onValueChange={setBackupFormat}>
 							<SelectTrigger>
-								<SelectValue placeholder={tc("settings:backup:format:" + settings.backup_format)} />
+								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
 								<SelectGroup>
@@ -343,20 +349,22 @@ function Settings(
 			<Card className={"flex-shrink-0 p-4"}>
 				<label className={"flex items-center"}>
 					<h2>{tc("settings:language")}: </h2>
-					<Select onValueChange={changeLanguage}>
-						<SelectTrigger>
-							<SelectValue placeholder={tc("settings:langName")} />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{
-									languages.map((lang) => (
-										<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
-									))
-								}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
+					{lang && (
+						<Select defaultValue={lang} onValueChange={changeLanguage}>
+							<SelectTrigger>
+								<SelectValue/>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{
+										languages.map((lang) => (
+											<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
+										))
+									}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					)}
 				</label>
 			</Card>
 			{unityDialog}
@@ -366,18 +374,20 @@ function Settings(
 			<Card className={"flex-shrink-0 p-4"}>
 				<label className={"flex items-center"}>
 					<h2>{tc("settings:theme")}: </h2>
-					<Select onValueChange={changeTheme}>
-						<SelectTrigger>
-							<SelectValue placeholder={tc(`settings:theme:${theme}`)} />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
-								<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
-								<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
-							</SelectGroup>
-						</SelectContent>
-					</Select>
+					{theme && (
+						<Select defaultValue={theme} onValueChange={changeTheme}>
+							<SelectTrigger>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
+									<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
+									<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					)}
 				</label>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
