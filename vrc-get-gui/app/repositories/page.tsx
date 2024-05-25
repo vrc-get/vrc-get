@@ -3,7 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {useQuery} from "@tanstack/react-query";
@@ -267,13 +267,13 @@ function RepositoryRow(
 						{tc("vpm repositories:dialog:confirm remove description", {name: repo.display_name})}
 					</p>
 				</DialogDescription>
-				<div className={"ml-auto"}>
+				<DialogFooter>
 					<Button onClick={() => setRemoveDialogOpen(false)}>{tc("general:button:cancel")}</Button>
 					<Button onClick={() => {
 						remove();
 						setRemoveDialogOpen(false);
 					}} className={"ml-2"}>{tc("vpm repositories:remove repository")}</Button>
-				</div>
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>;
 	}
@@ -490,11 +490,11 @@ function EnteringRepositoryInfo(
 				{foundDuplicateHeader &&
 					<p className={"text-destructive"}>{tc("vpm repositories:hint:duplicate headers")}</p>}
 			</DialogDescription>
-			<div className={"ml-auto"}>
+			<DialogFooter>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 				<Button onClick={onAddRepository} className={"ml-2"}
 								disabled={hasError}>{tc("vpm repositories:button:add repository")}</Button>
-			</div>
+			</DialogFooter>
 		</>
 	);
 }
@@ -513,9 +513,9 @@ function LoadingRepository(
 					{tc("vpm repositories:dialog:downloading...")}
 				</p>
 			</DialogDescription>
-			<div className={"ml-auto"}>
+			<DialogFooter>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
-			</div>
+			</DialogFooter>
 		</>
 	);
 }
@@ -534,9 +534,9 @@ function Duplicated(
 					{tc("vpm repositories:dialog:already added")}
 				</p>
 			</DialogDescription>
-			<div className={"ml-auto"}>
+			<DialogFooter>
 				<Button onClick={cancel}>{tc("general:button:ok")}</Button>
-			</div>
+			</DialogFooter>
 		</>
 	);
 }
@@ -581,10 +581,10 @@ function Confirming(
 					}
 				</ul>
 			</DialogDescription>
-			<div className={"ml-auto"}>
+			<DialogFooter>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 				<Button onClick={add} className={"ml-2"}>{tc("vpm repositories:button:add repository")}</Button>
-			</div>
+			</DialogFooter>
 		</>
 	);
 }

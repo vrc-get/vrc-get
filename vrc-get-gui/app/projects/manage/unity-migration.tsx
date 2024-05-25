@@ -1,6 +1,6 @@
 import React, {Fragment, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
 import {tc, tt} from "@/lib/i18n";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
@@ -48,12 +48,12 @@ function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
 					{tc("projects:dialog:vpm migrate description")}
 				</p>
 			</DialogDescription>
-			<div className={"ml-auto"}>
+			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button onClick={() => doMigrate(false)} variant={"destructive"}
 								className="mr-1">{tc("projects:button:migrate copy")}</Button>
 				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-			</div>
+			</DialogFooter>
 		</>
 	);
 }
@@ -97,10 +97,10 @@ function MigrationConfirmMigrationPatchDialog(
 					{tc("projects:dialog:migrate unity2022 patch description", {unity})}
 				</p>
 			</DialogDescription>
-			<div className={"ml-auto"}>
+			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-			</div>
+			</DialogFooter>
 		</>
 	);
 }
@@ -364,9 +364,9 @@ function NoExactUnity2022Dialog(
 				{tc("projects:manage:dialog:exact version unity not found for patch migration description", {unity: expectedVersion})}
 			</p>
 		</DialogDescription>
-		<div className={"ml-auto gap-2"}>
+		<DialogFooter className={"gap-2"}>
 			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
 			<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
-		</div>
+		</DialogFooter>
 	</>;
 }

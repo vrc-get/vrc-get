@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
 import {Label} from "@/components/ui/label";
 import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import {tc} from "@/lib/i18n";
@@ -39,14 +39,14 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 				installStatus.resolve(unityPath);
 			};
 			dialog = <Dialog open>
-        <DialogContent className={"whitespace-normal"}>
-          <DialogTitle>{tc("projects:manage:dialog:select unity header")}</DialogTitle>
-          <SelectUnityVersionDialog
-            unityVersions={installStatus.unityVersions}
-            cancel={() => resolveWrapper(null)}
-            onSelect={(unityPath) => resolveWrapper(unityPath)}
-          />
-        </DialogContent>
+				<DialogContent className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:manage:dialog:select unity header")}</DialogTitle>
+					<SelectUnityVersionDialog
+						unityVersions={installStatus.unityVersions}
+						cancel={() => resolveWrapper(null)}
+						onSelect={(unityPath) => resolveWrapper(unityPath)}
+					/>
+				</DialogContent>
 			</Dialog>;
 			break;
 		default:
@@ -77,24 +77,24 @@ function SelectUnityVersionDialog(
 					{tc("projects:manage:dialog:multiple unity found")}
 				</p>
 				{unityVersions.map(([path, version, _]) =>
-          <RadioGroup
-            key={path}
-            name={name}
-            className={"flex items-center space-x-2"}
-            onValueChange={(path) => setSelectedUnityPath(path)}
-          >
-            <RadioGroupItem value={path} id={path} />
-            <Label htmlFor={path}>{`${version} (${path})`}</Label>
-          </RadioGroup>
+					<RadioGroup
+						key={path}
+						name={name}
+						className={"flex items-center space-x-2"}
+						onValueChange={(path) => setSelectedUnityPath(path)}
+					>
+						<RadioGroupItem value={path} id={path} />
+						<Label htmlFor={path}>{`${version} (${path})`}</Label>
+					</RadioGroup>
 				)}
 			</DialogDescription>
-			<div className={"ml-auto"}>
+			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button
 					onClick={() => onSelect(selectedUnityPath!)}
 					disabled={selectedUnityPath == null}
 				>{tc("projects:manage:button:continue")}</Button>
-			</div>
+			</DialogFooter>
 		</>
 	);
 }

@@ -1,6 +1,6 @@
 import React, {ReactNode, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
 import {environmentRemoveProject, environmentRemoveProjectByPath, TauriProject} from "@/lib/bindings";
 import {toastSuccess} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
@@ -72,7 +72,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 								{tc("projects:dialog:warn removing project", {name: project.name})}
 							</p>
 						</DialogDescription>
-						<div className={"ml-auto"}>
+						<DialogFooter>
 							<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 							<Button onClick={() => removeProjectButton(false)} className="mr-1 px-2">
 								{tc("projects:button:remove from list")}
@@ -81,7 +81,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 											disabled={!project.is_exists}>
 								{tc("projects:button:remove directory")}
 							</Button>
-						</div>
+						</DialogFooter>
 					</DialogContent>
 				</Dialog>
 			);
@@ -91,10 +91,10 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 				<Dialog open>
 					<DialogContent className={'whitespace-normal'}>
 						<DialogContent>{tc("projects:remove project")}</DialogContent>
-						<div>
+						<DialogDescription>
 							{tc("projects:dialog:removing...")}
-						</div>
-						<div className={"ml-auto"}>
+						</DialogDescription>
+						<DialogFooter>
 							<Button className="mr-1" disabled>{tc("general:button:cancel")}</Button>
 							<Button className="mr-1 px-2" disabled>
 								{tc("projects:button:remove from list")}
@@ -102,7 +102,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 							<Button variant={"destructive"} className="px-2" disabled>
 								{tc("projects:button:remove directory")}
 							</Button>
-						</div>
+						</DialogFooter>
 					</DialogContent>
 				</Dialog>
 			);

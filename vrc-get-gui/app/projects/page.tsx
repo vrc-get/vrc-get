@@ -3,12 +3,12 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {Input} from "@/components/ui/input";
 import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
@@ -502,13 +502,13 @@ function ProjectRow(
 								{tc("projects:dialog:vpm migrate description")}
 							</p>
 						</DialogDescription>
-						<div>
+						<DialogFooter>
 							<Button onClick={() => setDialogStatus({type: "normal"})}
 									className="mr-1">{tc("general:button:cancel")}</Button>
 							<Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
 									className="mr-1">{tc("projects:button:migrate copy")}</Button>
 							<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-						</div>
+						</DialogFooter>
 					</DialogContent>
 				</Dialog>
 			);
@@ -978,11 +978,11 @@ function CreateProject(
 			<DialogDescription>
 				{dialogBody}
 			</DialogDescription>
-			<div className={"flex gap-2 ml-auto"}>
+			<DialogFooter className={"gap-2"}>
 				<Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
 				<Button onClick={createProject}
 						disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
-			</div>
+			</DialogFooter>
 			{dialog}
 		</DialogContent>
 	</Dialog>;

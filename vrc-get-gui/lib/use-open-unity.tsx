@@ -4,7 +4,7 @@ import {toastError, toastNormal} from "@/lib/toast";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
 import {shellOpen} from "@/lib/shellOpen";
 import {Button} from "@/components/ui/button";
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
 import React from "react";
 
 export type OpenUnityFunction = (projectPath: string, unityVersion: string | null, unityRevision?: string | null) => void;
@@ -102,10 +102,10 @@ function UnityInstallWindow(
 					{tc("projects:manage:dialog:unity version of the project not found", {unity: expectedVersion})}
 				</p>
 			</DialogDescription>
-			<div className={"ml-auto gap-2"}>
+			<DialogFooter className={"gap-2"}>
 				<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
 				<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
-			</div>
+			</DialogFooter>
 		</DialogContent>
 	</Dialog>;
 }

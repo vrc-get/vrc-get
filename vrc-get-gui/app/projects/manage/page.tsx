@@ -3,12 +3,12 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
@@ -870,10 +870,10 @@ function ProjectChangesDialog(
 						) : null
 					}
 				</DialogDescription>
-				<div className={"ml-auto"}>
+				<DialogFooter>
 					<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 					<Button onClick={apply} variant={"destructive"}>{tc("projects:manage:button:apply")}</Button>
-				</div>
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);
