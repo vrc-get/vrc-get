@@ -10,6 +10,16 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectSeparator,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
@@ -44,7 +54,6 @@ import {
 	utilOpen
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
-import {VGOption, VGSelect} from "@/components/select";
 import {useOpenUnity} from "@/lib/use-open-unity";
 import {shellOpen} from "@/lib/shellOpen";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
@@ -485,12 +494,20 @@ function PageBody() {
 						{tc("projects:manage:unity version")}
 					</p>
 					<div className={"flex-grow-0 flex-shrink-0"}>
-						<VGSelect value={detailsResult.status == 'success' ? (detailsResult.data.unity_str ?? "unknown") :
-							<span className={"text-primary"}>Loading...</span>}
-											className="border-primary/10">
-							{/*unityVersions.map(v => <VGOption key={v} value={v}>{v}</VGOption>)*/}
-							<VGOption value={""}>{tc("general:not implemented")}</VGOption>
-						</VGSelect>
+						<Select>
+							<SelectTrigger>
+								<SelectValue placeholder={
+									detailsResult.status == 'success' ?
+										(detailsResult.data.unity_str ?? "unknown") :
+										<span className={"text-primary"}>Loading...</span>
+								} className="border-primary/10" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectLabel>{tc("general:not implemented")}</SelectLabel>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
 					</div>
 				</div>
 			</Card>
@@ -1375,6 +1392,7 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 	}
 ) {
 	const onChange = useCallback((version: string) => {
+		console.log(version);
 		if (pkg.installed != null && version === toVersionString(pkg.installed.version)) return;
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
@@ -1385,17 +1403,22 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 	const incompatibleNames = [...pkg.unityIncompatible.keys()];
 
 	return (
-		<VGSelect value={<PackageInstalledInfo pkg={pkg}/>}
-							className={`border-primary/10 ${pkg.installed?.yanked ? "text-destructive" : ""}`}
-							onChange={onChange}
-							disabled={locked}
-		>
-			{versionNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-			{(incompatibleNames.length > 0 && versionNames.length > 0) && <hr className="my-2"/>}
-			{incompatibleNames.length > 0 &&
-				<p className={"text-sm"}>{tc("projects:manage:incompatible packages")}</p>}
-			{incompatibleNames.map(v => <VGOption key={v} value={v}>{v}</VGOption>)}
-		</VGSelect>
+		<Select onValueChange={onChange}>
+			<SelectTrigger>
+				<SelectValue
+						placeholder={<PackageInstalledInfo pkg={pkg}/>}
+						className={`border-primary/10 ${pkg.installed?.yanked ? "text-destructive" : ""}`} />
+			</SelectTrigger>
+			<SelectContent>
+				<SelectGroup>
+					{versionNames.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+					{(incompatibleNames.length > 0 && versionNames.length > 0) && <SelectSeparator />}
+					{incompatibleNames.length > 0 &&
+						<SelectLabel>{tc("projects:manage:incompatible packages")}</SelectLabel>}
+					{incompatibleNames.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+				</SelectGroup>
+			</SelectContent>
+		</Select>
 	);
 })
 

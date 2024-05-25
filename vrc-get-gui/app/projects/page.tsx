@@ -11,6 +11,14 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {Input} from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
@@ -48,7 +56,6 @@ import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
-import {VGOption, VGSelect} from "@/components/select";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
@@ -752,6 +759,14 @@ function CreateProject(
 	const [unityVersion, setUnityVersion] = useState<(typeof templateUnityVersions)[number]>(latestUnityVersion);
 	const [customTemplate, setCustomTemplate] = useState<CustomTemplate>();
 
+	function onCustomTemplateChange(value: string) {
+		let newCustomTemplate: CustomTemplate = {
+			type: "Custom",
+			name: value,
+		}
+		setCustomTemplate(newCustomTemplate);
+	}
+
 	const [projectNameRaw, setProjectName] = useState("New Project");
 	const projectName = projectNameRaw.trim();
 	const [projectLocation, setProjectLocation] = useState("");
@@ -915,34 +930,50 @@ function CreateProject(
 						<div className={"flex items-center"}>
 							<label>{tc("projects:template:type")}</label>
 						</div>
-						<VGSelect menuClassName={"z-[19999]"} value={tc(`projects:type:${templateType}`)}
-											onChange={value => setTemplateType(value)}>
-							<VGOption value={"avatars"}>{tc("projects:type:avatars")}</VGOption>
-							<VGOption value={"worlds"}>{tc("projects:type:worlds")}</VGOption>
-							<VGOption value={"custom"} disabled={customTemplates.length == 0}>{tc("projects:type:custom")}</VGOption>
-						</VGSelect>
+						<Select onValueChange={value => setTemplateType(value as any)}>
+							<SelectTrigger>
+								<SelectValue placeholder={tc(`projects:type:${templateType}`)} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectItem value={"avatars"}>{tc("projects:type:avatars")}</SelectItem>
+									<SelectItem value={"worlds"}>{tc("projects:type:worlds")}</SelectItem>
+									<SelectItem value={"custom"} disabled={customTemplates.length == 0}>{tc("projects:type:custom")}</SelectItem>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
 					</div>
 					{templateType !== "custom" ? (
 						<div className={"flex gap-1"}>
 							<div className={"flex items-center"}>
 								<label>{tc("projects:template:unity version")}</label>
 							</div>
-							<VGSelect menuClassName={"z-[19999]"} value={renderUnityVersion(unityVersion)}
-												onChange={value => setUnityVersion(value)}>
-								{templateUnityVersions.map(unityVersion =>
-									<VGOption value={unityVersion} key={unityVersion}>{renderUnityVersion(unityVersion)}</VGOption>)}
-							</VGSelect>
+							<Select onValueChange={value => setUnityVersion(value as any)}>
+								<SelectTrigger>
+									<SelectValue placeholder={renderUnityVersion(unityVersion)} />
+								</SelectTrigger>
+								<SelectContent>
+									{templateUnityVersions.map(unityVersion =>
+										<SelectItem value={unityVersion} key={unityVersion}>{renderUnityVersion(unityVersion)}</SelectItem>)}
+								</SelectContent>
+							</Select>
 						</div>
 					) : (
 						<div className={"flex gap-1"}>
 							<div className={"flex items-center"}>
 								<label>{tc("projects:template")}</label>
 							</div>
-							<VGSelect menuClassName={"z-[19999]"} value={customTemplate?.name}
-												onChange={value => setCustomTemplate(value)}>
-								{customTemplates.map(template =>
-									<VGOption value={template} key={template.name}>{template.name}</VGOption>)}
-							</VGSelect>
+							<Select onValueChange={onCustomTemplateChange}>
+								<SelectTrigger>
+									<SelectValue placeholder={customTemplate?.name} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										{customTemplates.map(template =>
+											<SelectItem value={template.name} key={template.name}>{template.name}</SelectItem>)}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
 						</div>
 					)}
 					<Input value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>

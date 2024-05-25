@@ -4,6 +4,14 @@ import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Input} from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
@@ -25,7 +33,6 @@ import {HNavBar, VStack} from "@/components/layout";
 import React from "react";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
-import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
@@ -306,12 +313,19 @@ function Settings(
 				<div className="mt-2">
 					<label className={"flex items-center"}>
 						<h3>{tc("settings:backup:format")}</h3>
-						<VGSelect value={tc("settings:backup:format:" + settings.backup_format)} onChange={setBackupFormat}>
-							<VGOption value={"default"}>{tc("settings:backup:format:default")}</VGOption>
-							<VGOption value={"zip-store"}>{tc("settings:backup:format:zip-store")}</VGOption>
-							<VGOption value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</VGOption>
-							<VGOption value={"zip-best"}>{tc("settings:backup:format:zip-best")}</VGOption>
-						</VGSelect>
+						<Select onValueChange={setBackupFormat}>
+							<SelectTrigger>
+								<SelectValue placeholder={tc("settings:backup:format:" + settings.backup_format)} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
+									<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
+									<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
+									<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
 					</label>
 				</div>
 			</Card>
@@ -329,13 +343,20 @@ function Settings(
 			<Card className={"flex-shrink-0 p-4"}>
 				<label className={"flex items-center"}>
 					<h2>{tc("settings:language")}: </h2>
-					<VGSelect value={tc("settings:langName")} onChange={changeLanguage} menuClassName={"w-96"}>
-						{
-							languages.map((lang) => (
-								<VGOption key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</VGOption>
-							))
-						}
-					</VGSelect>
+					<Select onValueChange={changeLanguage}>
+						<SelectTrigger>
+							<SelectValue placeholder={tc("settings:langName")} />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								{
+									languages.map((lang) => (
+										<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
+									))
+								}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
 				</label>
 			</Card>
 			{unityDialog}
@@ -345,11 +366,18 @@ function Settings(
 			<Card className={"flex-shrink-0 p-4"}>
 				<label className={"flex items-center"}>
 					<h2>{tc("settings:theme")}: </h2>
-					<VGSelect value={tc(`settings:theme:${theme}`)} onChange={changeTheme} menuClassName={"w-96"}>
-						<VGOption value={"system"}>{tc("settings:theme:system")}</VGOption>
-						<VGOption value={"light"}>{tc("settings:theme:light")}</VGOption>
-						<VGOption value={"dark"}>{tc("settings:theme:dark")}</VGOption>
-					</VGSelect>
+					<Select onValueChange={changeTheme}>
+						<SelectTrigger>
+							<SelectValue placeholder={tc(`settings:theme:${theme}`)} />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
+								<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
+								<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
+							</SelectGroup>
+						</SelectContent>
+					</Select>
 				</label>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
