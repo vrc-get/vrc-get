@@ -16,11 +16,11 @@ export function SearchBox({className, value, onChange}: {
 			<Input
 				type="search"
 				placeholder={t("search:placeholder")}
-				className={"m-0 w-full border-t-primary placeholder:text-primary focus:border-primary pl-9 placeholder:opacity-100"}
+				className={"w-full border-t-primary placeholder:text-primary focus:border-primary pl-9 placeholder:opacity-100"}
 				value={value}
 				onChange={onChange}
 			/>
-			<MagnifyingGlassIcon className="!absolute left-3 top-[13px]" width={13} height={14}/>
+			<MagnifyingGlassIcon className="!absolute left-4 top-[17px]" width={13} height={14}/>
 		</div>
 	)
 }
