@@ -9,14 +9,13 @@ The format is based on [Keep a Changelog].
 ## [Unreleased]
 ### Added
 - Support for dark theme [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
-- Implement shadcn to replace material tailwind [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
 
 ### Changed
+- Changed component library to shadcn [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
 
 ### Deprecated
 
 ### Removed
-- Removed material tailwind [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
 
 ### Fixed
 
