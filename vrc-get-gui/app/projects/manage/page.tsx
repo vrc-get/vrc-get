@@ -1406,8 +1406,11 @@ const PackageVersionSelector = memo(function PackageVersionSelector(
 				onValueChange={onChange} disabled={locked}>
 			<SelectTrigger>
 				<SelectValue
+						asChild
 						placeholder={<PackageInstalledInfo pkg={pkg}/>}
-						className={`border-primary/10 ${pkg.installed?.yanked ? "text-destructive" : ""}`} />
+						className={`border-primary/10 ${pkg.installed?.yanked ? "text-destructive" : ""}`}>
+					<PackageInstalledInfo pkg={pkg}/>
+				</SelectValue>
 			</SelectTrigger>
 			<SelectContent>
 				<SelectGroup>

@@ -220,7 +220,7 @@ function Settings(
 		await Promise.all([
 			i18next.changeLanguage(value),
 			environmentSetLanguage(value),
-      refetchLang(),
+			refetchLang(),
 		])
 	};
 
