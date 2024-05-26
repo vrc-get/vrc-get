@@ -597,7 +597,7 @@ function ProjectRow(
 						</p>
 						{isLegacy &&
 							<p
-								className="font-normal opacity-50 text-sm text-destructive">{tc("projects:type:legacy")}</p>}
+								className="font-normal opacity-50 dark:opacity-80 text-sm text-destructive">{tc("projects:type:legacy")}</p>}
 					</div>
 				</div>
 			</td>
