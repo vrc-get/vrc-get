@@ -211,7 +211,7 @@ function Settings(
 		}
 	}
 
-	const {data: lang} = useQuery({
+	const {data: lang, refetch: refetchLang} = useQuery({
 		queryKey: ["environmentLanguage"],
 		queryFn: environmentLanguage
 	})
@@ -220,6 +220,7 @@ function Settings(
 		await Promise.all([
 			i18next.changeLanguage(value),
 			environmentSetLanguage(value),
+      refetchLang(),
 		])
 	};
 
