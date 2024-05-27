@@ -267,6 +267,124 @@ The VPM Clients that recognizes the `yanked` field **SHOULD** show the warning
 if the package is yanked and the package is already installed
 and **MUST NOT** allow users to install the yanked package except for resolving the packages.
 
+## 5. VPM Repository
+The VPM Repository is a server that provides the package information and the package archive file.
+The VPM Repository consists of the Package Information JSON file and the Package Archive file.
+The user provides the URL and Headers information to the VPM Client to access the VPM Repository.
+
+### 5.1. Package Information JSON File
+The Package Information JSON file is a JSON document that provides the package information.
+The Package Information JSON file **MUST** be encoded in UTF-8 [[UNICODE]].
+The Package information JSON file **MUST** be an object that contains the following fields.
+
+#### 5.1.1. `packages` (object)
+The `packages` field shows the list of packages in the VPM Repository.
+The type of the `packages` field **MUST** be an object.
+The key of the `packages` field **MUST** be the package name,
+which is the unique identifier of the package.
+The value **MUST** be an object that contains the package information.
+
+##### 5.1.1.1. `packages.<name>.versions` (object)
+The `packages.<name>.versions` field shows the list of versions of the package.
+The type of the `packages.<name>.versions` field **MUST** be an object.
+The key of the `packages.<name>.versions` field **MUST** be the version of the package,
+which is a valid version name described in Semantic Versioning 2.0.0 [[SEMVER]].
+
+The value **MUST** be an object that contains the VPM Package Manifest,
+which is described in [Section 4.2](#42-structure-of-vpm-package-manifest).
+
+The Package Manifest **MUST** have same package name as the key of `packages` object,
+and same version as the key of `packages.<name>.versions` object.
+The Package Manifest **MUST** have the `url` field that points to the package archive file.
+
+#### 5.1.2. `url` (string)
+The `url` field shows the URL of the VPM Repository JSON.
+The type of the `url` field **MUST** be a string.
+The `url` field **MUST** be a valid URL that points to the VPM Repository JSON.
+
+According to The [[VCC Docs]], It should point to the VPM Repository JSON.
+However, for Some existing VPM Repositories,
+the `url` field is used to point some related pages like booth page or the Author's Website.
+Therefore, VPM Client **SHOULD NOT** use the `url` field to fetch the VPM Repository JSON.
+
+#### 5.1.3. `id` (string)
+The `id` field shows the unique identifier of the VPM Repository.
+The type of the `id` field **MUST** be a string.
+VPM Repository **SHOULD** provide the `id` field to identify the VPM Repository.
+If the `id` field is not provided, the VPM Client **MAY** use the URL of the VPM Repository as the `id` field.
+
+The `id` field **MUST** be unique among all VPM Repositories.
+To the `id` field be unique among all packages in the VPM Repositories, 
+the `id` **SHOULD** be prefixed with reverse domain name of the VPM Repository author.
+If you don't have a domain name, you **MAY** use the `<username>.github.io`
+as your domain like `io.github.<username>.<repository-id>`.
+
+#### 5.1.4. `name` (string)
+The `name` field shows the human-readable name of the VPM Repository.
+The type of the `name` field **MUST** be a string.
+The `name` field should show the human-readable name of the VPM Repository.
+
+#### 5.1.5. `author` (string)
+The `author` field shows the human-readable author of the VPM Repository.
+The type of the `author` field **MUST** be a string.
+The `author` field should show the human-readable author of the VPM Repository.
+
+> [!NOTE]
+> 
+> In the VRChat Official Repository at <https://packages.vrchat.com/official?download> and other popular repositories 
+> the `author` field shows the name of the organization or the group that manages the repository.
+> 
+> On the other hand, in the Example Repository in the [[VCC Docs]],
+> the `author` field shows the email address of the author.
+>
+> We don't know the reason for this difference, but We think the `author` field should show the human-readable name of the author.
+> It's more user-friendly and easier to understand.
+
+### 5.2. Package Archive File
+The Package Archive File is a Zip archive file that contains the package contents.
+The Package Manifest inside the Package Repository JSON **MUST** have the `url` field
+that points to the Package Archive File.
+The Package Archive File **MUST** be a valid Zip archive file that contains the package contents.
+The Package Archive File **MUST** be encoded in UTF-8 [[UNICODE]].
+
+The root directory of the Package Archive File **MUST** be the root directory of the VPM Package.
+In other words, `package.json` of the VPM Package **MUST** be located as `package.json` in the Package Archive File,
+not as `package/package.json` or `root/package.json`.
+
+The VPM Package **SHOULD** only use the relative path in the Package Archive File
+and use Deflate compression method or store uncompressed bytes in the Zip archive file.
+
+TODO: link to zip file APPNOTE?
+
+> [!NOTE]
+> 
+> Notes for the VPM Package Developers
+> 
+> In the recent OSes, when we compressed a directory, they create one more directory that contains the directory.
+> Therefore, please be careful when you compress your VPM Package.
+
+> [!NOTE]
+> 
+> For better compatibility, the VPM Archive File [[SHOULD NOT]] use the compression method other than Deflate.
+> 
+> Most implementation of Zip file only supports the Deflate compression method or store uncompressed bytes.
+> For example, the standard library of go only supports the Deflate compression method and uncompressed bytes.
+> 
+> However, the Microsoft Windows built-in Zip file compressor may use the Deflate64 compression method.
+> The Deflare64 compression method is proprietary and not supported by most of the Zip file implementations.
+> As a result, some existing VPM Packages may use the Deflate64 compression method in their Package Archive File.
+> Therefore, VPM Clients **SHOULD** Support the Deflate64 compression method.
+> 
+> Side Note: the Deflate64 compression method is not publicly documented.
+> In the APPNOTE.TXT by pkware, deflate64 is described as "Deflate64(tm) is supported by the Deflate extractor.",
+> but it requires larger window size, so it's impossible to decompress with existing Deflate implementation.
+> In addition, the Deflate64 is not documented in any public documents,
+> so there are very limited deflate 64 implementations.
+> Here's an incomplete list of known open-source implementations:
+> - [.NET System.IO.Compression](https://github.com/dotnet/runtime/blob/2f08fcbfece0c09319f237a6aee6f74c4a9e14e8/src/libraries/System.IO.Compression/src/System/IO/Compression/DeflateManaged/) by Microsoft, inc. under the MIT License
+> - [7zip](https://sourceforge.net/projects/sevenzip/files/7-Zip/) by Igor Pavlov under the GNU LGPL 2.1
+> - [deflate64-rs](https://github.com/anatawa12/deflate64-rs) by anatawa12 based which is reimplementation of the .NET System.IO.Compression under the MIT License
+
 ## References
 ### \[VCC Docs]
 VRChat provides documentation for VCC at https://vcc.docs.vrchat.com/.
