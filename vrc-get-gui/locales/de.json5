@@ -216,5 +216,9 @@
     "settings:language": "Sprache",
     "settings:report issue": "Problembehandlung",
     "settings:button:open issue": "Fehler melden",
+    "settings:theme": "Design",
+    "settings:theme:system": "System",
+    "settings:theme:light": "Hell",
+    "settings:theme:dark": "Dunkel",
   },
 }
