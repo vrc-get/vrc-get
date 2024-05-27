@@ -370,16 +370,19 @@ TODO: link to zip file APPNOTE?
 > Therefore, please be careful when you compress your VPM Package.
 
 > [!NOTE]
+> Notes About Deflate64 Compression Method
 > 
-> For better compatibility, the VPM Archive File [[SHOULD NOT]] use the compression method other than Deflate.
+> For better compatibility, the VPM Archive File **SHOULD NOT** use the compression method other than Deflate.
 > 
 > Most implementation of Zip file only supports the Deflate compression method or store uncompressed bytes.
-> For example, the standard library of go only supports the Deflate compression method and uncompressed bytes.
+> For example, the standard library of go, python,
+> and java only supports the Deflate compression method and uncompressed bytes.
 > 
 > However, the Microsoft Windows built-in Zip file compressor may use the Deflate64 compression method.
 > The Deflare64 compression method is proprietary and not supported by most of the Zip file implementations.
 > As a result, some existing VPM Packages may use the Deflate64 compression method in their Package Archive File.
-> Therefore, VPM Clients **SHOULD** Support the Deflate64 compression method.
+> Therefore, it might be better for VPM Clients to support the Deflate64 compression method,
+> but due to lack of the documentation, We think it's not suitable to mark as **SHOULD**.
 > 
 > Side Note: the Deflate64 compression method is not publicly documented.
 > In the APPNOTE.TXT by pkware, deflate64 is described as "Deflate64(tm) is supported by the Deflate extractor.",
@@ -390,6 +393,8 @@ TODO: link to zip file APPNOTE?
 > - [.NET System.IO.Compression](https://github.com/dotnet/runtime/blob/2f08fcbfece0c09319f237a6aee6f74c4a9e14e8/src/libraries/System.IO.Compression/src/System/IO/Compression/DeflateManaged/) by Microsoft, inc. under the MIT License
 > - [7zip](https://sourceforge.net/projects/sevenzip/files/7-Zip/) by Igor Pavlov under the GNU LGPL 2.1
 > - [deflate64-rs](https://github.com/anatawa12/deflate64-rs) by anatawa12 based which is reimplementation of the .NET System.IO.Compression under the MIT License
+> - [Info Zip](https://sourceforge.net/projects/infozip/) by Info-ZIP under the Info-ZIP License
+> - [Apache Commons Compress](https://commons.apache.org/proper/commons-compress/) by Apache Software Foundation under the Apache License 2.0
 
 ## References
 ### \[VCC Docs]
