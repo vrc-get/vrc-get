@@ -251,13 +251,13 @@ The type of the `changelogUrl` field **MUST** be a string.
 The `changelogUrl` field **SHOULD** be a valid URL that points to the changelog of the package.
 The VPM Client **MAY** suggest users to open the URL with the Web Browser when the package is updated.
 
-#### 4.2.6. `vrc-get` extension
+#### 4.2.A. `vrc-get` extension
 The VPM Package Manifest **MAY** include the `vrc-get` object that is used to provide the additional information for the vrc-get.
 The `vrc-get` object **MUST** be an object.
 The VPM Client **MAY** ignore the `vrc-get` object.
 The `vrc-get` object **MAY** include the following fields.
 
-##### 4.2.6.1. `yanked` (string or boolean)
+##### 4.2.A.1. `yanked` (string or boolean)
 The `yanked` field of `vrc-get` shows the yanked status of the package.
 The type of the `yanked` field **MUST** be a string or boolean.
 If the `yanked` field is a string, the package is yanked and the string **MUST** be the reason of the yanked.
