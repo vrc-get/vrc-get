@@ -540,7 +540,7 @@ dependencies = [
 name = "build-check-static-link"
 version = "0.1.0"
 dependencies = [
- "object 0.35.0",
+ "object 0.36.0",
 ]
 
 [[package]]
@@ -2768,6 +2768,15 @@ name = "object"
 version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8ec7ab813848ba4522158d5517a6093db1ded27575b070f4177b8d12b41db5e"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "object"
+version = "0.36.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "576dfe1fc8f9df304abb159d767a29d0476f7750fbf8aa7ad07816004a207434"
 dependencies = [
  "memchr",
 ]
@@ -5121,7 +5130,7 @@ dependencies = [
  "bson",
  "cc",
  "hex",
- "object 0.35.0",
+ "object 0.36.0",
  "once_cell",
  "rand 0.8.5",
  "serde",

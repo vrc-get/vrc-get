@@ -37,4 +37,4 @@ serde = "1.0.203"
 [build-dependencies]
 ar = "0.9.0"
 cc = "1.0.98"
-object = { version = "0.35.0", default-features = false, features = ["macho"] }
+object = { version = "0.36.0", default-features = false, features = ["macho"] }
