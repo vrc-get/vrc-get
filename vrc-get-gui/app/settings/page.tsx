@@ -271,7 +271,7 @@ function Settings(
 		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
-				<div className={"flex gap-1"}>
+				<div className={"flex gap-1 items-center"}>
 					{
 						settings.unity_hub
 							? <Input className="flex-auto" value={settings.unity_hub} disabled/>
@@ -298,7 +298,7 @@ function Settings(
 				<p className={"whitespace-normal"}>
 					{tc("settings:default project path description")}
 				</p>
-				<div className={"flex gap-1"}>
+				<div className={"flex gap-1 items-center"}>
 					<Input className="flex-auto" value={settings.default_project_path} disabled/>
 					<Button className={"flex-none px-4"}
 									onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
@@ -311,7 +311,7 @@ function Settings(
 					<p className={"whitespace-normal"}>
 						{tc("settings:backup:path description")}
 					</p>
-					<div className={"flex gap-1"}>
+					<div className={"flex gap-1 items-center"}>
 						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
 						<Button className={"flex-none px-4"}
 										onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>

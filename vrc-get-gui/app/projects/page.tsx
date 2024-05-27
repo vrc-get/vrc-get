@@ -971,7 +971,7 @@ function CreateProject(
 						</div>
 					)}
 					<Input value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
-					<div className={"flex gap-1"}>
+					<div className={"flex gap-1 items-center"}>
 						<Input className="flex-auto" value={projectLocation} disabled/>
 						<Button className="flex-none px-4"
 										onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>

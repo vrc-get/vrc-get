@@ -480,7 +480,7 @@ function PageBody() {
 				onRemove={onRemoveProject}
 				onBackup={onBackupProject}
 			/>
-			<Card className={"flex-shrink-0 p-2 flex flex-row flex-wrap"}>
+			<Card className={"flex-shrink-0 p-2 flex flex-row flex-wrap items-center"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
 					{tc("projects:manage:project location",
 						{path: projectPath},
@@ -489,7 +489,7 @@ function PageBody() {
 						})}
 				</p>
 				<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>
-				<div className="flex-grow-0 flex-shrink-0 flex flex-row">
+				<div className="flex-grow-0 flex-shrink-0 flex flex-row items-center">
 					<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 						{tc("projects:manage:unity version")}
 					</p>
@@ -524,7 +524,7 @@ function PageBody() {
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="flex-grow flex-shrink flex shadow-none">
 					<CardHeader className="w-full p-2 gap-2">
-						<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2"}>
+						<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center"}>
 							<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 								{tc("projects:manage:manage packages")}
 							</p>
@@ -799,7 +799,7 @@ function ProjectChangesDialog(
 							if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
 								changelogUrlTmp = null;
 							const changelogUrl = changelogUrlTmp;
-							return <div key={pkgId} className={"p-3"}>
+							return <div key={pkgId} className={"flex items-center p-3"}>
 								<p className={"font-normal"}>{tc("projects:manage:dialog:install package", {
 									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
 									version: toVersionString(pkgChange.InstallNew.version),
