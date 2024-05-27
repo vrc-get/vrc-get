@@ -78,14 +78,14 @@ The UPM provides the package management system for Unity Editor.
 The UPM Package is the package recognized by the UPM and Unity Editor.
 All VPM Packages are recognized as Embedded UPM Packages by Unity Editor.
 
-### 3.3. Package Manifest, VPM Manifest
+### 3.3. Package Manifest, VPM Project Manifest
 The Package Manifest is the JSON document that describes the package information.
 The Package Manifest is located as `package.json` in the UPM Package and provides the package information,
 such as the package name, version, dependencies, and the package archive file name.
 
-The VPM Manifest is the JSON document that describes the installed package information.
-The VPM Manifest is located as `Packages/vpm-manifest.json` in the Unity project and provides the installed package information,
-The VPM Manifest has two main sections, `dependencies` and `locked`.
+The VPM Project Manifest is the JSON document that describes the installed package information.
+The VPM Project Manifest is located as `Packages/vpm-manifest.json` in the Unity project and provides the installed package information,
+The VPM Project Manifest has two main sections, `dependencies` and `locked`.
 The `dependencies` section provides the requested package information.
 The `locked` section provides the all installed package information, including the dependencies of the requested packages.
 
@@ -102,6 +102,171 @@ The VPM Client manages the locked packages based on the VPM Manifest.
 The unlocked package means the Embedded packages that are not controlled by the VPM Client.
 The VPM Client does not manage the unlocked packages, but may read the package information from the package manifest.
 
+## 4. VPM Package and Manifest
+This section describes the overall structure of VPM Package and the structure of the VPM Package Manifest.
+
+### 4.1. Overall Structure of VPM Package
+The VPM Package is a directory that contains the Package Manifest file
+(named `package.json`) and the entries of the package.
+
+The VPM Package **MUST** include file named `package.json` in the root directory of the package.
+The VPM Package consists of files and directories,
+and they will be recognized as contents of the UPM Package by Unity Editor.
+
+The VPM Package **SHOULD NOT** contain the file-system entries other than files and directories such as symbolic links and device files.
+
+All entries of the VPM Package **MUST** name with Unicode [[UNICODE]] characters
+and **MUST NOT** include any characters that are not allowed in the file system.
+All entries of the VPM Package **SHOULD NOT** use characters other than ASCII Alphabets, 
+Digits, Hyphen (`-`), Underscore (`_`), Space (` `), Dot (`.`), and Parentheses (`(`, `)`).
+Other characters can cause problems in some environments.
+
+### 4.2. Structure of VPM Package Manifest
+The VPM Package Manifest is a [[JSON]] document that describes the package information.
+The document **MUST** be named `package.json` and located in the root directory of the VPM Package.
+The document **MUST** be encoded in UTF-8 [[UNICODE]].
+The VPM Package Manifest is a subset of the UPM Package Manifest.
+Some fields are required, and some fields are optional.
+Additional fields are allowed, but the VPM Client **SHOULD** ignore them.
+Some VPM Clients may use the additional fields for their purposes.
+
+#### 4.2.1. Basic Fields
+The VPM Package Manifest **MUST** include the following two fields.
+
+##### 4.2.1.1. `name` (string)
+The `name` field shows the globally unique name of the package.
+The type of the `name` field **MUST** be a string.
+The `name` field **MUST** be unique among all packages in the VPM Repository
+and **SHOULD** be unique among all packages in the VPM ecosystem.
+To The `name` field be unique among all packages in the VPM Repository,
+the package name **SHOULD** be prefixed with reverse domain name of the package author.
+If you doesnot have a domain name, you **MAY** use the `<username>.github.io` as your domain like `io.github.<username>.<package-name>`.
+The `name` field **SHOULD** be in lowercase and **MUST NOT** contain any characters other than ASCII Alphabets, Digits, Hyphen (`-`), and Dot (`.`).
+The VPM Client **MAY** allow the package name that does not follow the rule, but VPM Client **MAY** ignore such packages.
+
+##### 4.2.2.2. `version` (string)
+The `version` field shows the version of the package.
+The type of the `version` field **MUST** be a string.
+The `version` field **MUST** follow the Semantic Versioning 2.0.0 [[SEMVER]].
+Because the UPM doesn't support that, the `version` **MUST NOT** include the build metadata.
+The VPM Client **MAY** support a loose version like `"1.0"`, `"  v1.0.0 "` or `"v1.0.0"`,
+however, some VPM Clients **MAY** ignore the packages with a loose version.
+
+> [!NOTE]
+> 
+> The VCC currently does support the loose versions.
+> This came from the underlying library of the VCC, `semver.net` by Adam Reeve (https://github.com/adamreeve/semver.net)
+> In the future version of `semver.net`, accepting a loose version is going to be removed 
+> so that the VCC may not support the loose versions in the future.
+>
+> On the other hand, the vrc-get does not support the loose versions.
+> This is originally came from the `semver` crate by David Tolnay
+> but currently vrc-get is using own implementation of the Semantic Versioning.
+
+#### 4.2.3. Resolving Fields
+The VPM Package Manifest **MAY** include the following fields.
+Those fields are used to determine the package is compatible with the Project and collect dependencies.
+
+##### 4.2.3.1. `vpmDependencies` (object)
+The `vpmDependencies` field shows the dependencies of the package.
+The type of the `vpmDependencies` field **MUST** be an object.
+
+The key of the `vpmDependencies` field **MUST** be the package name,
+and the value **MUST** be a string that describes the version constraint.
+The format of the version constraint will be described in [!TODO:Section Version Constraint in Package Resolving].
+
+The VPM Client will resolve the dependencies of the package based on the `vpmDependencies` field.
+More about the resolving process will be described in [!TODO:Section Package Resolving].
+
+##### 4.2.3.2. `unity` (string)
+The `unity` field shows the minimum Unity version that the package is compatible with.
+The type of the `unity` field **MUST** be a string.
+The `unity` field **MUST** follow the Unity Version number described in [!TODO:Section Unity Version in Package Resolving].
+
+The VPM Client will check the compatibility of the package with the Unity Project based on the `unity` field.
+If the package is not compatible with the Unity Project,
+the VPM Client **MUST** reject the installation of the package or show a warning to the user. 
+
+##### 4.2.3.3. `legacyPackages` (array)
+The `legacyPackages` field shows the list of legacy packages that the package name is replacing.
+The type of the `legacyPackages` field **MUST** be an array of strings.
+
+The UdonSharp and ClientShim was provided as a separate package in the past
+and since VRCSDK 3.4.0, they are provided as a part of the VRCSDK.
+However, at that time, may packages are depending on the UdonSharp and ClientShim.
+Therefore, VRChat introduced the `legacyPackages` field to provide the compatibility with the old packages.
+
+The VPM Client **MUST** guarantee
+that the packages specified in the `legacyPackages` field are not installed if the package is installed.
+
+#### 4.2.4. Installation Data Fields
+The VPM Package Manifest **MAY** include the following fields that are used to install the package.
+
+##### 4.2.4.1. `url` (string)
+The `url` field shows the URL of the package archive file.
+The type of the `url` field **MUST** be a string.
+The `url` field **SHOULD** be a valid URL that points to the package archive file.
+The VPM Package Manifest in the Remote Package Repository **MUST** include the `url` field with the valid URL.
+
+The VPM Client will download the package archive file from the URL specified in the `url` field.
+If the `url` field is not included in the VPM Package Manifest,
+the VPM Client **MUST** reject the installation of the package.
+
+##### 4.2.4.2. `zipSHA256` (string)
+The `zipSHA256` field shows the SHA-256 hash of the package archive file.
+The type of the `zipSHA256` field **MUST** be a string.
+The `zipSHA256` field **MUST** be a valid SHA-256 hash of the package archive file.
+
+The VPM Client **MUST** use this hash to verify the integrity of the cached package archive file
+and **MAY** use this hash to verify the integrity of the downloaded package archive file.
+
+The VPM Client **MAY** reject the installation of the package
+if the downloaded package does not match the SHA-256 hash specified in the `zipSHA256` field.
+
+##### 4.2.4.3. `headers` (object)
+The `headers` field shows the additional HTTP headers that is for fetching the package archive file.
+The type of the `headers` field **MUST** be an object, and the keys and values **MUST** be strings.
+
+The VPM Client **MUST** add the headers specified in the `headers` field to fetch the package archive file.
+
+#### 4.2.5. Description Fields
+The VPM Package Manifest **MAY** include the following fields that are used to describe the package to the Human.
+Those fields **MUST NOT** affect the behavior of the VPM Client except for type mismatch.
+
+##### 4.2.5.1. `displayName` (string)
+The `displayName` field shows the human-readable name of the package.
+The type of the `displayName` field **MUST** be a string.
+The `displayName` field should show the human-readable name of the package.
+The name is usually in English but may be in other languages.
+
+##### 4.2.5.2. `description` (string)
+The `description` field shows the human-readable description of the package.
+The type of the `description` field **MUST** be a string.
+The `description` field should show the human-readable description of the package.
+The name is usually in English but may be in other languages.
+
+##### 4.2.5.3. `changelogUrl` (string)
+The `changelogUrl` field shows the URL of the changelog of the package.
+The type of the `changelogUrl` field **MUST** be a string.
+The `changelogUrl` field **SHOULD** be a valid URL that points to the changelog of the package.
+The VPM Client **MAY** suggest users to open the URL with the Web Browser when the package is updated.
+
+#### 4.2.6. `vrc-get` extension
+The VPM Package Manifest **MAY** include the `vrc-get` object that is used to provide the additional information for the vrc-get.
+The `vrc-get` object **MUST** be an object.
+The VPM Client **MAY** ignore the `vrc-get` object.
+The `vrc-get` object **MAY** include the following fields.
+
+##### 4.2.6.1. `yanked` (string or boolean)
+The `yanked` field of `vrc-get` shows the yanked status of the package.
+The type of the `yanked` field **MUST** be a string or boolean.
+If the `yanked` field is a string, the package is yanked and the string **MUST** be the reason of the yanked.
+If the `yanked` field is a boolean, the package is yanked if the value is `true` and not yanked if the value is `false`.
+
+The VPM Clients that recognizes the `yanked` field **SHOULD** show the warning
+if the package is yanked and the package is already installed
+and **MUST NOT** allow users to install the yanked package except for resolving the packages.
+
 ## References
 ### \[VCC Docs]
 VRChat provides documentation for VCC at https://vcc.docs.vrchat.com/.
@@ -114,6 +279,12 @@ Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke, Ed., "HTTP Semantics", S
 ### \[JSON]
 Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, DOI 10.17487/RFC8259, December 2017, <<https://www.rfc-editor.org/info/rfc8259>>.
 
+### \[UNICODE]
+Unicode Consortium, "The Unicode Standard", <<https://www.unicode.org/versions/latest/>>.
+
+### \[SEMVER]
+Preston-Werner, T., "Semantic Versioning 2.0.0", <<https://semver.org/spec/v2.0.0.html>>.
+
 ### \[RFC2119]
 Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, DOI 10.17487/RFC2119, March 1997, <<http://www.rfc-editor.org/info/rfc2119>>.
 
@@ -125,6 +296,9 @@ Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, 
 
 [VCC Docs]: #vcc-docs
 [HTTP]: #http
+[JSON]: #json
+[SEMVER]: #semver
+[UNICODE]: #unicode
 [RFC5234]: #rfc5234
 [RFC2119]: #rfc2119
 [RFC8174]: #rfc8174
