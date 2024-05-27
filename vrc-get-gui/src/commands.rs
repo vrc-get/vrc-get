@@ -46,6 +46,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
     generate_handler![
         environment_language,
         environment_set_language,
+        environment_theme,
+        environment_set_theme,
         environment_projects,
         environment_add_project_with_picker,
         environment_remove_project,
@@ -101,6 +103,8 @@ pub(crate) fn export_ts() {
         specta::collect_types![
             environment_language,
             environment_set_language,
+            environment_theme,
+            environment_set_theme,
             environment_projects,
             environment_add_project_with_picker,
             environment_remove_project,
@@ -613,6 +617,25 @@ async fn environment_set_language(
 ) -> Result<(), RustError> {
     with_config!(state, |mut config| {
         config.language = language;
+        config.save().await?;
+        Ok(())
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_theme(state: State<'_, Mutex<EnvironmentState>>) -> Result<String, RustError> {
+    with_config!(state, |config| Ok(config.theme.clone()))
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_theme(
+    state: State<'_, Mutex<EnvironmentState>>,
+    theme: String,
+) -> Result<(), RustError> {
+    with_config!(state, |mut config| {
+        config.theme = theme;
         config.save().await?;
         Ok(())
     })

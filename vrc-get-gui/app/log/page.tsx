@@ -1,6 +1,6 @@
 "use client";
 
-import {Card, Typography} from "@material-tailwind/react";
+import {Card} from "@/components/ui/card";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {useCallback, useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
@@ -25,12 +25,12 @@ export default function Page() {
 	return (
 		<VStack className={"m-4"}>
 			<HNavBar className={"flex-shrink-0"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("logs")}
-				</Typography>
+				</p>
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex flex-grow">
-				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre font-mono shadow-none`}>
+				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre font-mono shadow-none text-muted-foreground`}>
 					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
 				</Card>
 			</main>
@@ -41,4 +41,3 @@ export default function Page() {
 function logEntryToText(entry: LogEntry) {
 	return `${entry.time} [${entry.level.padStart(5, ' ')}] ${entry.target}: ${entry.message}`;
 }
-

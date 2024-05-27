@@ -1,6 +1,8 @@
 import React, {useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio, Typography} from "@material-tailwind/react";
-import {nop} from "@/lib/nop";
+import {Button} from "@/components/ui/button";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
+import {Label} from "@/components/ui/label";
+import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import {tc} from "@/lib/i18n";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
@@ -36,14 +38,14 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 				setInstallStatus({state: "normal"});
 				installStatus.resolve(unityPath);
 			};
-			dialog = <Dialog open handler={nop} className={"whitespace-normal"}>
-				<DialogHeader>{tc("projects:manage:dialog:select unity header")}</DialogHeader>
+			dialog = <DialogOpen className={"whitespace-normal"}>
+				<DialogTitle>{tc("projects:manage:dialog:select unity header")}</DialogTitle>
 				<SelectUnityVersionDialog
 					unityVersions={installStatus.unityVersions}
 					cancel={() => resolveWrapper(null)}
 					onSelect={(unityPath) => resolveWrapper(unityPath)}
 				/>
-			</Dialog>;
+			</DialogOpen>;
 			break;
 		default:
 			const _: never = installStatus;
@@ -68,17 +70,22 @@ function SelectUnityVersionDialog(
 
 	return (
 		<>
-			<DialogBody>
-				<Typography>
+			<DialogDescription>
+				<p>
 					{tc("projects:manage:dialog:multiple unity found")}
-				</Typography>
+				</p>
 				{unityVersions.map(([path, version, _]) =>
-					<Radio
-						key={path} name={name} label={`${version} (${path})`}
-						checked={selectedUnityPath == path}
-						onChange={() => setSelectedUnityPath(path)}
-					/>)}
-			</DialogBody>
+					<RadioGroup
+						key={path}
+						name={name}
+						className={"flex items-center space-x-2"}
+						onValueChange={(path) => setSelectedUnityPath(path)}
+					>
+						<RadioGroupItem value={path} id={path} />
+						<Label htmlFor={path}>{`${version} (${path})`}</Label>
+					</RadioGroup>
+				)}
+			</DialogDescription>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button
