@@ -267,6 +267,12 @@ The VPM Clients that recognizes the `yanked` field **SHOULD** show the warning
 if the package is yanked and the package is already installed
 and **MUST NOT** allow users to install the yanked package except for resolving the packages.
 
+##### 4.2.A.2. `aliases` (array)
+The `aliases` field of `vrc-get` shows the list of the alternative package display names.
+The type of the `aliases` field **MUST** be an array of strings.
+The VPM Client **MAY** use the `aliases` field to better package search
+but this field **MUST NOT** affect the behavior of the VPM Client.
+
 ## 5. VPM Repository
 The VPM Repository is a server that provides the package information and the package archive file.
 The VPM Repository consists of the Package Information JSON file and the Package Archive file.
