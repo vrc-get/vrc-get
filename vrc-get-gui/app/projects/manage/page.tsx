@@ -531,7 +531,7 @@ function PageBody() {
 
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button variant={"ghost"} onClick={onRefresh} className={"flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10"} disabled={isLoading}>
+									<Button variant={"ghost"} size={"icon"} onClick={onRefresh} className={"flex-shrink-0"} disabled={isLoading}>
 										{isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 									</Button>
 								</TooltipTrigger>
@@ -550,7 +550,7 @@ function PageBody() {
 
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
-									<Button variant={"ghost"} className={'flex-shrink-0 -px-4 -py-2 min-w-10 min-h-10'}>
+									<Button variant={"ghost"} size={"icon"} className={'flex-shrink-0'}>
 										<EllipsisHorizontalIcon className={"size-5"}/>
 									</Button>
 								</DropdownMenuTrigger>
@@ -1340,7 +1340,7 @@ const PackageRow = memo(function PackageRow(
 						pkg.installed ? (
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked} onClick={remove}><MinusCircleIcon
+									<Button variant={'ghost'} size={"icon"} disabled={locked} onClick={remove}><MinusCircleIcon
 										className={"size-5 text-destructive"}/></Button>
 								</TooltipTrigger>
 								<TooltipContent>{tc("projects:manage:tooltip:remove packages")}</TooltipContent>
@@ -1348,7 +1348,7 @@ const PackageRow = memo(function PackageRow(
 						) : (
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={'ghost'} disabled={locked && !!latestVersion}
+									<Button variant={'ghost'} size={"icon"} disabled={locked && !!latestVersion}
 												onClick={installLatest}><PlusCircleIcon
 									className={"size-5 text-secondary-foreground"}/></Button>
 								</TooltipTrigger>
@@ -1516,7 +1516,7 @@ function ProjectViewHeader({
 		<HNavBar className={className}>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => history.back()}>
+					<Button variant={"ghost"} size={"icon"} onClick={() => history.back()}>
 						<ArrowLeftIcon className={"w-5 h-5"}/>
 					</Button>
 				</TooltipTrigger>

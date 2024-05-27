@@ -629,7 +629,7 @@ function ProjectRow(
 										 variant={"success"}>{tc("projects:backup")}</RowButton>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" className={"hover:bg-primary/10 text-primary hover:text-primary -px-4 -py-2 min-w-10 min-h-10"}><EllipsisHorizontalIcon
+							<Button variant="ghost" size={"icon"} className={"hover:bg-primary/10 text-primary hover:text-primary"}><EllipsisHorizontalIcon
 								className={"size-5"}/></Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>
@@ -694,7 +694,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<Button className={"-px-4 -py-2 min-w-10 min-h-10"} variant={"ghost"} onClick={() => refresh?.()} disabled={isLoading}>
+					<Button variant={"ghost"} size={"icon"} onClick={() => refresh?.()} disabled={isLoading}>
 						{isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
 					</Button>
 				</TooltipTrigger>
