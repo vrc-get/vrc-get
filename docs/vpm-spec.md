@@ -136,6 +136,20 @@ All entries of the VPM Package **SHOULD NOT** use characters other than ASCII Al
 Digits, Hyphen (`-`), Underscore (`_`), Space (` `), Dot (`.`), and Parentheses (`(`, `)`).
 Other characters can cause problems in some environments.
 
+> [!NOTE]
+> 
+> The rules about the file name are not provided in the [[VCC Docs]]
+>, and this is completely based on the vrc-get developers' research and opinion.
+> 
+> The official VCC uses .NET, so they cannot handle file names with non-UNICODE characters.
+> Therefore, we wrote the rule that entry name MUST name with Unicode characters.
+> 
+> For non-UTF-8 environments, Unity is unstable with non-ASCII characters.
+> Therefore, we wrote the rule that entry name SHOULD NOT use characters other than ASCII characters.
+> 
+> For some OSes like Windows, some characters are not allowed in the file name.
+> Therefore, we wrote the rule that entry name SHOULD NOT use characters other than specified characters.
+
 ### 4.2. Structure of VPM Package Manifest
 VPM Package Manifest is a [[JSON]] document that describes the package information.
 The document **MUST** be named `package.json` and located in the root directory of the VPM Package.
