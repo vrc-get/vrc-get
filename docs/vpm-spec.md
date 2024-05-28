@@ -2,18 +2,21 @@
 
 ## Abstract
 
-The VRChat Package Manager (VPM) is a package manager for UPM Packages developed by VRChat to distribute VRChat SDK, 
-which is proprietary software, based on Hypertext Transfer Protocol (HTTP).
-This document describes the overall architecture of VPM, defines how the VPM Client should work, and how the package repository should provide packages.
-In addition, this document describes extensions of the vpm implemented by vrc-get.
+The VRChat Package Manager (VPM) is a package manager architecture for UPM Packages
+developed by VRChat to distribute VRChat SDK based on Hypertext Transfer Protocol (HTTP).
+This document describes the overall architecture of VPM, 
+how the VPM Client should work, and how the package repository should provide packages 
+based on vrc-get developers' research.
+In addition, this document describes extensions of the VPM implemented by vrc-get.
 Please note that this document is not provided by VRChat, is provided by vrc-get developers, a third party VPM Client developers.
 
 ## 1. Introduction
 ### 1.1. Purpose
-The VRChat Package Manager is a package manager developed by VRChat and widely used by VRChat community.
+The VRChat Package Manager is a package manager developed by VRChat and widely used by the VRChat community.
 However, the VRChat Creator Companion (VCC), the official VPM implementation, has several bugs that make it hard to know the VPM Client should work.
 Therefore, vrc-get developers assume the best VPM behavior based on the behavior of VCC, and [[VCC Docs]].
-This document describes the vrc-get developers' understanding of the VPM and vrc-get extensions.
+This document describes the vrc-get developers' understanding of the VPM and vrc-get extensions
+for future VPM Client developers and VPM Repository developers.
 
 ### 1.2. Core Concepts
 The VPM provides a simple way to distribute UPM packages.
@@ -21,6 +24,7 @@ The VPM provides a simple way to distribute UPM packages.
 The VPM Repository provides a list of packages and their metadata, and the link to the package archive file, in JSON document hosted on the HTTP server.
 The VPM Repository can authorize VPM Clients by using Header-based authentication, including downloading the package archive file.
 
+The VPM Client is the software that manages the VPM Packages in the Unity project.
 The VPM Client fetches the package information from Package Repositories and collects packages to install based on requested packages, version constraints, and dependencies.
 The VPM Client then downloads the package archives from the URL provided by the Repository and extracts the package archive into `Packages` folder in the Unity project.
 The VPM Client also writes the managing package information to `Packages/vpm-manifest.json` to manage the installed packages.
@@ -44,8 +48,20 @@ in this document are to be interpreted as described in BCP 14 [[RFC2119]] [[RFC8
 and only when, they appear in all capitals, as shown here.
 
 ## 3. Terminology and Core Semantics
-### 3.1. VPM, VPM Client, VPM Repository, VPM Profile Folder, and VPM Package
-The term "VPM" refers to the VRChat Package Manager, which is the package manager system.
+### 3.1. The UPM, UPM Package
+The UPM is the Unity Package Manager,
+which is the package manager developed by Unity Technologies and built into Unity Editor.
+The UPM provides the package management system for Unity Editor.
+
+The UPM Package is the package recognized by the UPM and Unity Editor.
+There are several ways to install UPM Packages to a Unity Project,
+but for VPM, the embedded UPM Package is the most important.
+The embedded UPM Package is the package that is placed in the `Packages` folder in the Unity project.
+
+All VPM Packages are recognized as embedded UPM Packages by Unity Editor.
+
+### 3.2. VPM, VPM Client, VPM Repository, VPM Profile Folder, and VPM Package
+The term "VPM" refers to the VRChat Package Manager, which is the package manager architecture.
 The VPM consists of the VPM Client and the VPM Repository.
 
 The VPM Client is the software that manages the VPM Packages in the Unity project.
@@ -60,7 +76,7 @@ The VPM Repository provides the package information in [[JSON]] format and the p
 One single VPM Repository can be consists of multiple servers, such as the package information server and the package archive server.
 The VPM Repository acts as an HTTP server to provide the package information and the package archive file.
 
-As described above, the VPM Client and VPM Repository communicate with each other by using the HTTP protocol [[HTTP]].
+As described above, the VPM Client and VPM Repository communicate with each other via HTTP [[HTTP]].
 
 VPM Profile Folder is the folder that contains the configuration files and the cache files of the VPM Client.
 The configuration file for VPM Client should be shared among the VPM Clients because it contains the user-wide installed repositories list.
@@ -71,17 +87,14 @@ The VPM Package is the package distributed by the VPM.
 The VPM Package will be recognized as a UPM Package by Unity Editor.
 Therefore, the VPM Package is a special type of UPM Package.
 
-### 3.2. The UPM, UPM Package
-The UPM is the Unity Package Manager, which is the package manager developed by Unity Technologies and built into Unity Editor.
-The UPM provides the package management system for Unity Editor.
+### 3.3. UPM Package Manifest, VPM Package Manifest, VPM Project Manifest
+The UPM Package Manifest is the JSON document that describes the package information.
+The UPM Package Manifest is located as `package.json` in the UPM Package and provides the package information,
+such as the package name, version, dependencies.
 
-The UPM Package is the package recognized by the UPM and Unity Editor.
-All VPM Packages are recognized as Embedded UPM Packages by Unity Editor.
-
-### 3.3. Package Manifest, VPM Project Manifest
-The Package Manifest is the JSON document that describes the package information.
-The Package Manifest is located as `package.json` in the UPM Package and provides the package information,
-such as the package name, version, dependencies, and the package archive file name.
+The VPM Package Manifest is a special type of UPM Package Manifest that describes the VPM Package information.
+In addition to the UPM Package Manifest,
+the VPM Package Manifest includes the vpm-specific dependencies and the installation data.
 
 The VPM Project Manifest is the JSON document that describes the installed package information.
 The VPM Project Manifest is located as `Packages/vpm-manifest.json` in the Unity project and provides the installed package information,
@@ -90,30 +103,32 @@ The `dependencies` section provides the requested package information.
 The `locked` section provides the all installed package information, including the dependencies of the requested packages.
 
 ### 3.4. Requested Package, Dependency Package, Locked Package, and Unlocked Package
-The requested package means the VPM Packages that user requested to install.
+Requested packages are VPM Packages that the user requested to install.
 The user can request to install the package by using the VPM Client.
 
-The dependency package means the packages that are required to install the requested package.
-The VPM Client automatically installs the dependency packages when installing the requested package.
+Dependency packages are VPM packages that are required to install the requested package.
+VPM Client automatically installs dependency packages when installing the requested package.
 
-The locked package means the Embedded packages that are controlled by the VPM Client.
-The VPM Client manages the locked packages based on the VPM Manifest.
+Locked packages are embedded UPM packages that are controlled by the VPM Client.
+VPM Client manages locked packages based on the VPM Manifest.
+All requested packages and Dependency Packages are locked packages.
 
-The unlocked package means the Embedded packages that are not controlled by the VPM Client.
-The VPM Client does not manage the unlocked packages, but may read the package information from the package manifest.
+Unlocked packages are the embedded UPM packages that are not controlled by the VPM Client.
+VPM Client does not install, update, or remove unlocked packages.
+However, may read the package information from the UPM Package Manifest.
 
 ## 4. VPM Package and Manifest
 This section describes the overall structure of VPM Package and the structure of the VPM Package Manifest.
 
 ### 4.1. Overall Structure of VPM Package
-The VPM Package is a directory that contains the Package Manifest file
+The VPM Package is a directory that contains the VPM Package Manifest file
 (named `package.json`) and the entries of the package.
 
-The VPM Package **MUST** include file named `package.json` in the root directory of the package.
-The VPM Package consists of files and directories,
+VPM Package **MUST** include file named `package.json` in the root directory of the package.
+VPM Package consists of files and directories,
 and they will be recognized as contents of the UPM Package by Unity Editor.
 
-The VPM Package **SHOULD NOT** contain the file-system entries other than files and directories such as symbolic links and device files.
+VPM Package **SHOULD NOT** contain the file-system entries other than files and directories such as symbolic links and device files.
 
 All entries of the VPM Package **MUST** name with Unicode [[UNICODE]] characters
 and **MUST NOT** include any characters that are not allowed in the file system.
@@ -122,13 +137,13 @@ Digits, Hyphen (`-`), Underscore (`_`), Space (` `), Dot (`.`), and Parentheses 
 Other characters can cause problems in some environments.
 
 ### 4.2. Structure of VPM Package Manifest
-The VPM Package Manifest is a [[JSON]] document that describes the package information.
+VPM Package Manifest is a [[JSON]] document that describes the package information.
 The document **MUST** be named `package.json` and located in the root directory of the VPM Package.
 The document **MUST** be encoded in UTF-8 [[UNICODE]].
-The VPM Package Manifest is a subset of the UPM Package Manifest.
+VPM Package Manifest is a subset of the UPM Package Manifest.
 Some fields are required, and some fields are optional.
 Additional fields are allowed, but the VPM Client **SHOULD** ignore them.
-Some VPM Clients may use the additional fields for their purposes.
+Some VPM Clients **MAY** use the additional fields for their purposes.
 
 #### 4.2.1. Basic Fields
 The VPM Package Manifest **MUST** include the following two fields.
@@ -299,9 +314,9 @@ which is a valid version name described in Semantic Versioning 2.0.0 [[SEMVER]].
 The value **MUST** be an object that contains the VPM Package Manifest,
 which is described in [Section 4.2](#42-structure-of-vpm-package-manifest).
 
-The Package Manifest **MUST** have same package name as the key of `packages` object,
+The VPM Package Manifest **MUST** have same package name as the key of `packages` object,
 and same version as the key of `packages.<name>.versions` object.
-The Package Manifest **MUST** have the `url` field that points to the package archive file.
+The VPM Package Manifest **MUST** have the `url` field that points to the package archive file.
 
 #### 5.1.2. `url` (string)
 The `url` field shows the URL of the VPM Repository JSON.
