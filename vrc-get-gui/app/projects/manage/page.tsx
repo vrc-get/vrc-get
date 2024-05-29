@@ -1479,7 +1479,7 @@ function PackageLatestInfo(
 			return (
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button variant={"outline"}
+						<Button variant={"outline-success"}
 								className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
 								disabled={locked}
 								onClick={() => onInstallRequested(info.pkg)}>
