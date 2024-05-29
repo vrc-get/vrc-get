@@ -87,7 +87,7 @@ jobs:
       - name: Enable Devtools Feature
         shell: bash
         run: |
-          cargo add tauri --features devtools
+          cargo add --package vrc-get-gui tauri --features devtools
 
       - uses: tauri-apps/tauri-action@v0
         with:
