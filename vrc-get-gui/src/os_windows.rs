@@ -1,3 +1,5 @@
+//! OS-specific functionality.
+
 //! This module is for creating `cmd.exe /d /c start "Name"
 //! "path/to/executable" args` command correctly.
 //!

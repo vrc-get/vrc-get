@@ -2375,7 +2375,7 @@ async fn project_open_unity(
         update_project_last_modified(environment, project_path.as_ref()).await;
     });
 
-    crate::cmd_start::start_command(
+    crate::os::start_command(
         "Unity".as_ref(),
         unity_path.as_ref(),
         &["-projectPath".as_ref(), OsStr::new(project_path.as_str())],

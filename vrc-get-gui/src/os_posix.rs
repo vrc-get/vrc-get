@@ -1,3 +1,5 @@
+//! OS-specific functionality.
+
 use std::ffi::OsStr;
 use tokio::process::Command;
 
