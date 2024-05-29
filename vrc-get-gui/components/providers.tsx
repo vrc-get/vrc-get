@@ -60,11 +60,26 @@ export function Providers({children}: { children: React.ReactNode }) {
 	}, []);
 
 	useEffect(() => {
+		// initially set theme based on query parameter for early feedback
+		if ('location' in globalThis) {
+			const search = new URLSearchParams(location.search);
+			let theme = search.get('theme');
+			if (theme) {
+				if (theme === "system") {
+					const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+					theme = isDark ? "dark" : "light";
+				}
+				document.documentElement.setAttribute("class", theme);
+			}
+		}
+
 		(async () => {
+			// then, load theme from environment
+			// the theme can be different from the query parameter if the user has changed it in the settings
 			let theme = await environmentTheme();
 			if (theme === "system") {
-				const {appWindow} = await import("@tauri-apps/api/window");
-				theme = await appWindow.theme() ?? "light";
+				const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				theme = isDark ? "dark" : "light";
 			}
 			document.documentElement.setAttribute("class", theme);
 		})();

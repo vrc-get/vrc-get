@@ -231,13 +231,17 @@ pub(crate) fn startup(app: &mut App) {
 
     async fn open_main(app: AppHandle) -> tauri::Result<()> {
         let state: State<'_, Mutex<EnvironmentState>> = app.state();
-        let (size, fullscreen) =
-            with_config!(state, |config| (config.window_size, config.fullscreen));
+        let config = with_config!(state, |config| config.clone());
+
+        let query = url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("lang", &config.language)
+            .append_pair("theme", &config.theme)
+            .finish();
 
         let window = tauri::WindowBuilder::new(
             &app,
             "main", /* the unique window label */
-            tauri::WindowUrl::App("/projects".into()),
+            tauri::WindowUrl::App(format!("/projects/?{query}").into()),
         )
         .title("ALCOM")
         .resizable(true)
@@ -253,14 +257,14 @@ pub(crate) fn startup(app: &mut App) {
         .build()?;
 
         // keep original size if it's too small
-        if size.width > 100 && size.height > 100 {
+        if config.window_size.width > 100 && config.window_size.height > 100 {
             window.set_size(LogicalSize {
-                width: size.width,
-                height: size.height,
+                width: config.window_size.width,
+                height: config.window_size.height,
             })?;
         }
 
-        window.set_fullscreen(fullscreen)?;
+        window.set_fullscreen(config.fullscreen)?;
 
         let cloned = window.clone();
 

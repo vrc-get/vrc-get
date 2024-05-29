@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuiConfig {
     #[serde(default)]
