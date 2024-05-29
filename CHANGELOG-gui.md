@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog].
 ### Fixed
 - Clicking '+' of the incompatible package will do nothing `#1046`
 - Opening Manage Project page will cause VCC to crash `#1048`
+- Fails to load installed unity versions if Unity 2018 is installed again `#1051`
 
 ### Security
 

@@ -3,7 +3,7 @@ use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
 use bson::oid::ObjectId;
 use log::info;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -195,7 +195,7 @@ pub struct UnityInstallation {
     #[serde(rename = "Path")]
     path: Box<str>,
     #[serde(rename = "Version")]
-    #[serde(deserialize_with = "parse_loose_unity_version")]
+    #[serde(deserialize_with = "default_if_err")]
     version: Option<UnityVersion>,
     #[serde(rename = "LoadedFromHub")]
     loaded_from_hub: bool,
@@ -225,19 +225,15 @@ impl UnityInstallation {
 }
 
 // for unity 2018.x or older, VCC will parse version as "2018.4.0" instead of "2018.4.0f1"
-// so we need to use loose version parser
-fn parse_loose_unity_version<'de, D>(deserializer: D) -> Result<Option<UnityVersion>, D::Error>
+// and 2018.4.31f1 as "2018.4" instead of "2018.4.31f1"
+// Therefore, we need skip parsing such a version string.
+fn default_if_err<'de, D, T>(de: D) -> Result<T, D::Error>
 where
-    D: serde::Deserializer<'de>,
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
 {
-    let s = String::deserialize(deserializer)?;
-    if let Some(parsed) = UnityVersion::parse(&s) {
-        return Ok(Some(parsed));
+    match T::deserialize(de) {
+        Ok(v) => Ok(v),
+        Err(_) => Ok(T::default()),
     }
-
-    if let Some(parsed) = UnityVersion::parse_no_type_increment(&s) {
-        return Ok(Some(parsed));
-    }
-
-    Err(serde::de::Error::custom("Invalid Unity Version"))
 }
