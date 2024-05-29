@@ -11,8 +11,17 @@
 //! [research-zenn]: https://zenn.dev/tryjsky/articles/0610b2f32453e7
 
 use std::ffi::{OsStr, OsString};
+use std::fs::OpenOptions;
+use std::mem::MaybeUninit;
 use std::os::windows::prelude::*;
+use std::path::Path;
+use std::{io, result};
 use tokio::process::Command;
+use windows::Win32::Foundation::{ERROR_LOCK_VIOLATION, HANDLE};
+use windows::Win32::Storage::FileSystem::{
+    LockFileEx, UnlockFileEx, LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LOCK_FILE_FLAGS,
+};
+use windows::Win32::System::IO::OVERLAPPED;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -149,5 +158,42 @@ fn append_cmd_caret_escaped(args: &mut Vec<u16>, arg: &[u16], percent_env_var_na
         } else {
             args.push(x);
         }
+    }
+}
+
+pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
+    let file = OpenOptions::new().read(true).open(path).unwrap();
+    unsafe {
+        let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
+        overlapped.Anonymous.Anonymous.Offset = 0;
+        overlapped.Anonymous.Anonymous.OffsetHigh = 0;
+        match LockFileEx(
+            HANDLE(file.as_raw_handle() as isize),
+            LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+            0,
+            0,
+            0,
+            &mut overlapped,
+        ) {
+            Err(ref e) if e.code() == ERROR_LOCK_VIOLATION.into() => {
+                // ERROR_LOCK_VIOLATION means it's already locked
+                return Ok(false);
+            }
+            // other error
+            Err(e) => return Err(e.into()),
+            Ok(()) => {}
+        }
+        // lock successful; it's not locked so unlock and return true
+        let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
+        overlapped.Anonymous.Anonymous.Offset = 0;
+        overlapped.Anonymous.Anonymous.OffsetHigh = 0;
+        UnlockFileEx(
+            HANDLE(file.as_raw_handle() as isize),
+            0,
+            !0,
+            !0,
+            &mut overlapped,
+        )?;
+        return Ok(true);
     }
 }

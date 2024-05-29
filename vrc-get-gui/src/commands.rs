@@ -22,6 +22,7 @@ use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 
+use crate::commands::async_command::immediate;
 use async_command::{async_command, AsyncCallResult, AsyncCommandContext, With};
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
@@ -2364,13 +2365,22 @@ async fn project_migrate_project_to_vpm(
     Ok(())
 }
 
+fn is_unity_running(project_path: impl AsRef<Path>) -> bool {
+    crate::os::is_locked(&project_path.as_ref().join("Temp/UnityLockFile")).unwrap_or(false)
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn project_open_unity(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
     unity_path: String,
-) -> Result<(), RustError> {
+) -> Result<bool, RustError> {
+    if is_unity_running(&project_path) {
+        // it looks unity is running. returning false
+        return Ok(false);
+    }
+
     with_environment!(&state, |environment| {
         update_project_last_modified(environment, project_path.as_ref()).await;
     });
@@ -2382,7 +2392,7 @@ async fn project_open_unity(
     )
     .await?;
 
-    Ok(())
+    Ok(true)
 }
 
 fn folder_stream(
