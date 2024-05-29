@@ -13,7 +13,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select"
 import {HNavBar, VStack} from "@/components/layout";
-import {toastError, toastNormal, toastSuccess} from "@/lib/toast";
+import {toastError, toastInfo, toastNormal, toastSuccess} from "@/lib/toast";
 
 export default function Page() {
 	return (
@@ -96,6 +96,7 @@ export default function Page() {
 						<Button onClick={() => toastNormal("Normal Toast Body")}>Normal</Button>
 						<Button variant={"destructive"} onClick={() => toastError("Error Toast Body")}>Error</Button>
 						<Button variant={"success"} onClick={() => toastSuccess("Success Toast Body")}>Success</Button>
+						<Button variant={"info"} onClick={() => toastInfo("Info Toast Body")}>Info</Button>
 					</div>
 				</Card>
 			</main>
