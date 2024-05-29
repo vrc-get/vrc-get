@@ -14,8 +14,8 @@ The format is based on [Keep a Changelog].
 - Changed component library to shadcn [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
 - Informational message will be shown if you've installed fake latest because of the Unity version `#1046` `#1061` 
 - Show newly installed packages and reinstalling packages separately `#1052`
-- Prevents opening multiple unity instances `#1055`
-- Migration will be prevented if the project is opened in Unity `#1055`
+- Prevents opening multiple unity instances `#1055` `#1062`
+- Migration will be prevented if the project is opened in Unity `#1055` `#1062`
 
 ### Deprecated
 
