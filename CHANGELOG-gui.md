@@ -12,12 +12,14 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Changed component library to shadcn [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
+- Informational message will be shown if you've installed fake latest because of the Unity version `#1046` 
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Clicking '+' of the incompatible package will do nothing `#1046`
 
 ### Security
 
