@@ -447,7 +447,7 @@ function UnityTable(
 			<tbody>
 			{
 				unityPaths.map(([path, version, isFromHub]) => (
-					<tr key={path}>
+					<tr key={path} className="even:bg-secondary/30">
 						<td className={"p-2.5"}>{version}</td>
 						<td className={"p-2.5"}>{path}</td>
 						<td className={"p-2.5"}>

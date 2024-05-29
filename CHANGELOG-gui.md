@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Support for dark theme [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
+- Support for dark theme [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028) `#1044`
 
 ### Changed
 - Changed component library to shadcn [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)

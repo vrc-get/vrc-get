@@ -7,19 +7,19 @@
 		--background: 0 0% 100%;
 		--background-start: 190 7.89% 85.1%;
 		--background-end: 0, 0%, 100%;
-		--foreground: 240 10% 3.9%;
+		--foreground: 240 10% 20%;
 		--card: 0 0% 100%;
-		--card-foreground: 240 10% 3.9%;
+		--card-foreground: 240 10% 35%;
 		--popover: 0 0% 100%;
-		--popover-foreground: 240 10% 3.9%;
-		--primary: 240 5.9% 10%;
+		--popover-foreground: 240 10% 20%;
+		--primary: 240 5.9% 20%;
 		--primary-foreground: 0 0% 98%;
 		--secondary: 240 4.8% 95.9%;
 		--secondary-foreground: 240 5.9% 10%;
 		--muted: 240 4.8% 95.9%;
 		--muted-foreground: 240 3.8% 46.1%;
 		--accent: 240 4.8% 95.9%;
-		--accent-foreground: 240 5.9% 10%;
+		--accent-foreground: 240 5.9% 30%;
 		--info: 207 90% 54%;
 		--info-foreground: 210 40% 98%;
 		--success: 122 39% 49%;
@@ -38,27 +38,27 @@
 		--background: 240 10% 3.9%;
 		--background-start: 10 8% 15%;
 		--background-end: 0 0% 0%;
-		--foreground: 0 0% 98%;
-		--card: 240 10% 3.9%;
-		--card-foreground: 0 0% 98%;
+		--foreground: 0 0% 90%;
+		--card: 240 10% 10%;
+		--card-foreground: 0 0% 90%;
 		--popover: 240 10% 3.9%;
-		--popover-foreground: 0 0% 98%;
-		--primary: 0 0% 98%;
+		--popover-foreground: 0 0% 90%;
+		--primary: 0 0% 90%;
 		--primary-foreground: 240 5.9% 10%;
 		--secondary: 240 3.7% 15.9%;
-		--secondary-foreground: 0 0% 98%;
+		--secondary-foreground: 0 0% 90%;
 		--muted: 240 3.7% 15.9%;
 		--muted-foreground: 240 5% 64.9%;
 		--accent: 240 3.7% 15.9%;
-		--accent-foreground: 0 0% 98%;
+		--accent-foreground: 0 0% 90%;
 		--info: 207 90% 54%;
-		--info-foreground: 210 40% 98%;
+		--info-foreground: 210 40% 90%;
 		--success: 122 39% 49%;
-		--success-foreground: 210 40% 98%;
+		--success-foreground: 210 40% 90%;
 		--warning: 52.15, 100%, 46.47%;
-		--warning-foreground: 210 40% 98%;
+		--warning-foreground: 210 40% 90%;
 		--destructive: 0 84.2% 60.2%;
-		--destructive-foreground: 0 0% 98%;
+		--destructive-foreground: 0 0% 90%;
 		--border: 240 3.7% 15.9%;
 		--input: 240 3.7% 15.9%;
 		--ring: 240 4.9% 83.9%;
@@ -74,9 +74,9 @@
 		@apply bg-background text-foreground;
 		color: hsl(var(--foreground));
 		background: linear-gradient(
-				to bottom,
-				transparent,
-				hsl(var(--background-end))
+						to bottom,
+						transparent,
+						hsl(var(--background-end))
 		) hsl(var(--background-start));
 	}
 }
@@ -119,4 +119,35 @@ h6 {
 
 code {
 	@apply font-mono;
+}
+
+/*
+ this is a ad-hoc way to apply toastify variables.
+ We could not find way to correctly order the toastify css and this css so put in body to get higher specificity
+ */
+body {
+	--toastify-color-light: hsl(var(--background));
+	/*--toastify-color-info: #3498db;*/
+	--toastify-color-success: hsl(var(--success));
+	/*--toastify-color-warning: #f1c40f;*/
+	--toastify-color-error: hsl(var(--destructive));
+	/*--toastify-color-transparent: rgba(255, 255, 255, 0.7);*/
+
+	--toastify-icon-color-info: var(--toastify-color-info);
+	--toastify-icon-color-success: var(--toastify-color-success);
+	--toastify-icon-color-warning: var(--toastify-color-warning);
+	--toastify-icon-color-error: var(--toastify-color-error);
+
+	/* size and fonts are not customized */
+
+	--toastify-text-color-light: hsl(var(--foreground));
+
+	--toastify-color-progress-info: var(--toastify-color-info);
+	--toastify-color-progress-success: var(--toastify-color-success);
+	--toastify-color-progress-warning: var(--toastify-color-warning);
+	--toastify-color-progress-error: var(--toastify-color-error);
+
+	.Toastify__toast {
+		box-shadow: 0 4px 12px hsl(var(--primary) / 0.05);
+	}
 }
