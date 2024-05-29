@@ -1162,18 +1162,22 @@ async fn environment_unity_versions(
     with_environment!(&state, |environment| {
         environment.find_unity_hub().await.ok();
 
+        let unity_paths = environment
+            .get_unity_installations()?
+            .iter()
+            .filter_map(|unity| {
+                Some((
+                    unity.path().to_string(),
+                    unity.version()?.to_string(),
+                    unity.loaded_from_hub(),
+                ))
+            })
+            .collect();
+
+        environment.disconnect_litedb();
+
         Ok(TauriUnityVersions {
-            unity_paths: environment
-                .get_unity_installations()?
-                .iter()
-                .filter_map(|unity| {
-                    Some((
-                        unity.path().to_string(),
-                        unity.version()?.to_string(),
-                        unity.loaded_from_hub(),
-                    ))
-                })
-                .collect(),
+            unity_paths,
             recommended_version: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
             install_recommended_version_link: VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK.to_string(),
         })
