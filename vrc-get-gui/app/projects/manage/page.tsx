@@ -56,7 +56,7 @@ import {
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
 import {useOpenUnity} from "@/lib/use-open-unity";
 import {shellOpen} from "@/lib/shellOpen";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastInfo, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
@@ -70,13 +70,16 @@ export default function Page(props: {}) {
 type RequestedOperation = {
 	type: "install";
 	pkg: TauriPackage;
+	hasUnityIncompatibleLatest?: boolean;
 } | {
 	type: "upgradeAll";
+	hasUnityIncompatibleLatest?: boolean;
 } | {
 	type: "remove";
 	pkgId: string;
 } | {
 	type: "bulkInstalled"
+	hasUnityIncompatibleLatest?: boolean;
 } | {
 	type: "bulkRemoved"
 }
@@ -230,12 +233,12 @@ function PageBody() {
 		})
 	}
 
-	const onInstallRequested = useCallback(async (pkg: TauriPackage) => {
+	const onInstallRequested = useCallback(async (pkg: TauriPackage, hasUnityIncompatibleLatest?: boolean) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			console.log("install", pkg.name, pkg.version);
 			const changes = await projectInstallPackage(projectPath, pkg.env_version, pkg.index);
-			setInstallStatus({status: "promptingChanges", changes, requested: {type: "install", pkg}});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "install", pkg, hasUnityIncompatibleLatest}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
@@ -248,11 +251,13 @@ function PageBody() {
 			setInstallStatus({status: "creatingChanges"});
 			let packages: number[] = [];
 			let envVersion: number | undefined = undefined;
+			let hasUnityIncompatibleLatest = false;
 			for (let packageRow of packageRows) {
 				if (packageRow.latest.status === "upgradable") {
 					if (envVersion == null) envVersion = packageRow.latest.pkg.env_version;
 					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
 					packages.push(packageRow.latest.pkg.index);
+					hasUnityIncompatibleLatest ||= packageRow.latest.hasUnityIncompatibleLatest;
 				}
 			}
 			if (envVersion == null) {
@@ -260,7 +265,7 @@ function PageBody() {
 				return;
 			}
 			const changes = await projectUpgradeMultiplePackage(projectPath, envVersion, packages);
-			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll", hasUnityIncompatibleLatest}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
@@ -329,6 +334,7 @@ function PageBody() {
 			let packageIds = new Set(bulkUpdatePackageIds.map(([id, mode]) => id));
 			let packages: number[] = [];
 			let envVersion: number | undefined = undefined;
+			let hasUnityIncompatibleLatest = false;
 			for (let packageRow of packageRows) {
 				if (packageIds.has(packageRow.id)) {
 					if (packageRow.latest.status !== "contains")
@@ -338,6 +344,7 @@ function PageBody() {
 					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
 
 					packages.push(packageRow.latest.pkg.index);
+					hasUnityIncompatibleLatest ||= packageRow.latest.hasUnityIncompatibleLatest;
 				}
 			}
 			if (envVersion == null) {
@@ -345,7 +352,7 @@ function PageBody() {
 				return;
 			}
 			const changes = await projectInstallMultiplePackage(projectPath, envVersion, packages);
-			setInstallStatus({status: "promptingChanges", changes, requested: {type: "bulkInstalled"}});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "bulkInstalled", hasUnityIncompatibleLatest}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
@@ -397,15 +404,24 @@ function PageBody() {
 				case "install":
 					toastSuccess(tt("projects:manage:toast:package installed",
 						{name: requested.pkg.display_name ?? requested.pkg.name, version: toVersionString(requested.pkg.version)}));
+					if (requested.hasUnityIncompatibleLatest) {
+						toastInfo(tt("projects:manage:toast:the package has newer latest with incompatible unity"));
+					}
 					break;
 				case "remove":
 					toastSuccess(tt("projects:manage:toast:package removed", {name: requested.pkgId}));
 					break;
 				case "upgradeAll":
 					toastSuccess(tt("projects:manage:toast:all packages upgraded"));
+					if (requested.hasUnityIncompatibleLatest) {
+						toastInfo(tt("projects:manage:toast:some package has newer latest with incompatible unity"));
+					}
 					break;
 				case "bulkInstalled":
 					toastSuccess(tt("projects:manage:toast:selected packages installed"));
+					if (requested.hasUnityIncompatibleLatest) {
+						toastInfo(tt("projects:manage:toast:some package has newer latest with incompatible unity"));
+					}
 					break;
 				case "bulkRemoved":
 					toastSuccess(tt("projects:manage:toast:selected packages removed"));
@@ -977,9 +993,14 @@ function UserLocalRepositoryMenuItem(
 	)
 }
 
-type PackageLatestInfo = { status: "none" } | { status: "contains", pkg: TauriPackage } | {
+type PackageLatestInfo = { status: "none" } | {
+	status: "contains", 
+	pkg: TauriPackage,
+	hasUnityIncompatibleLatest: boolean,
+} | {
 	status: "upgradable",
-	pkg: TauriPackage
+	pkg: TauriPackage,
+	hasUnityIncompatibleLatest: boolean,
 };
 
 interface PackageRowInfo {
@@ -1139,7 +1160,18 @@ function combinePackagesAndProjectDetails(
 	for (let value of packagesTable.values()) {
 		const latestPackage = value.unityCompatible.values().next().value;
 		if (latestPackage) {
-			value.latest = {status: "contains", pkg: latestPackage};
+			let hasUnityIncompatibleLatest = false;
+
+			const incompatibleLatestPackage = value.unityIncompatible.values().next().value;
+			if (incompatibleLatestPackage && compareVersion(latestPackage.version, incompatibleLatestPackage.version) < 0) {
+				hasUnityIncompatibleLatest = true;
+			}
+
+			value.latest = {
+				status: "contains",
+				pkg: latestPackage, 
+				hasUnityIncompatibleLatest,
+			};
 		}
 	}
 
@@ -1161,7 +1193,11 @@ function combinePackagesAndProjectDetails(
 			if (packageRowInfo.latest.status != "none") {
 				const compare = compareVersion(pkg.version, packageRowInfo.latest.pkg.version);
 				if (compare < 0) {
-					packageRowInfo.latest = {status: "upgradable", pkg: packageRowInfo.latest.pkg};
+					packageRowInfo.latest = {
+						status: "upgradable",
+						pkg: packageRowInfo.latest.pkg,
+						hasUnityIncompatibleLatest: packageRowInfo.latest.hasUnityIncompatibleLatest,
+					};
 				}
 			}
 		}
@@ -1241,7 +1277,7 @@ const PackageRow = memo(function PackageRow(
 	}: {
 		pkg: PackageRowInfo;
 		locked: boolean;
-		onInstallRequested: (pkg: TauriPackage) => void;
+		onInstallRequested: (pkg: TauriPackage, hasUnityIncompatibleLatest?: boolean) => void;
 		onRemoveRequested: (pkgId: string) => void;
 		bulkUpdateSelected: boolean;
 		bulkUpdateAvailable: boolean;
@@ -1259,10 +1295,8 @@ const PackageRow = memo(function PackageRow(
 		onInstallRequested(pkgVersion);
 	}, [onInstallRequested, pkg.installed]);
 	const installLatest = () => {
-		if (!latestVersion) return;
-		const latest = pkg.unityCompatible.get(latestVersion) ?? pkg.unityIncompatible.get(latestVersion);
-		if (!latest) return;
-		onInstallRequested(latest);
+		if (pkg.latest.status == 'none') return;
+		onInstallRequested(pkg.latest.pkg, pkg.latest.hasUnityIncompatibleLatest);
 	}
 
 	const remove = () => {
@@ -1467,7 +1501,7 @@ function PackageLatestInfo(
 	}: {
 		info: PackageLatestInfo,
 		locked: boolean,
-		onInstallRequested: (pkg: TauriPackage) => void;
+		onInstallRequested: (pkg: TauriPackage, hasUnityIncompatibleLatest?: boolean) => void;
 	}
 ) {
 	switch (info.status) {
@@ -1482,7 +1516,7 @@ function PackageLatestInfo(
 						<Button variant={"outline-success"}
 								className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
 								disabled={locked}
-								onClick={() => onInstallRequested(info.pkg)}>
+								onClick={() => onInstallRequested(info.pkg, info.hasUnityIncompatibleLatest)}>
 							<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
 							{toVersionString(info.pkg.version)}
 						</Button>

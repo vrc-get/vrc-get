@@ -85,6 +85,10 @@
     "projects:manage:toast:all packages upgraded": "All packages were upgraded successfully.",
     "projects:manage:toast:selected packages installed": "Selected packages were installed successfully.",
     "projects:manage:toast:selected packages removed": "Selected packages were removed successfully.",
+    // V used in single operation
+    "projects:manage:toast:the package has newer latest with incompatible unity": "The package has a newer version that is incompatible with the Unity version.",
+    // V used in bulk operation
+    "projects:manage:toast:some package has newer latest with incompatible unity": "Some packages have newer versions that are incompatible with the Unity version.",
     "projects:manage:button:unity migrate": "Migrate Project",
     "projects:toast:unity migrate failed by unity not found": "Failed to migrate project: Unity 2022 not found",
     "projects:toast:unity migration finalize failed by unity not found": "Failed to finalize the migration: Unity 2022 not found",
