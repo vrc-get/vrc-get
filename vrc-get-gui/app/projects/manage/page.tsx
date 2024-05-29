@@ -1348,11 +1348,16 @@ const PackageRow = memo(function PackageRow(
 						) : (
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button variant={'ghost'} size={"icon"} disabled={locked && !!latestVersion}
+									<Button variant={'ghost'} size={"icon"} disabled={locked || !latestVersion}
+												className={!latestVersion ? "disabled:pointer-events-auto" : ''}
 												onClick={installLatest}><PlusCircleIcon
 									className={"size-5 text-secondary-foreground"}/></Button>
 								</TooltipTrigger>
-								<TooltipContent>{tc("projects:manage:tooltip:add package")}</TooltipContent>
+								<TooltipContent>{
+									!latestVersion
+										? tc("projects:manage:tooltip:incompatible with unity")
+										: tc("projects:manage:tooltip:add package")
+								}</TooltipContent>
 							</Tooltip>
 						)
 					}
