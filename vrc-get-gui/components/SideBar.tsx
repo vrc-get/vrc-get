@@ -2,7 +2,7 @@
 
 import {Button} from "@/components/ui/button";
 import {Card} from "@/components/ui/card";
-import {CloudIcon, Cog6ToothIcon, ListBulletIcon} from "@heroicons/react/24/solid";
+import {CloudIcon, Cog6ToothIcon, ListBulletIcon, SwatchIcon} from "@heroicons/react/24/solid";
 import React from "react";
 import {Bars4Icon} from "@heroicons/react/24/outline";
 import {useQuery} from "@tanstack/react-query";
@@ -33,6 +33,7 @@ export function SideBar({className}: { className?: string }) {
 			toastNormal(t("sidebar:toast:version copied"));
 		}
 	};
+	const isDev = process.env.NODE_ENV == 'development';
 
 	return (
 		<Card
@@ -42,8 +43,10 @@ export function SideBar({className}: { className?: string }) {
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
 				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
+				{isDev && <SideBarItem href={"/settings/palette"} text={"UI Palette"} icon={SwatchIcon}/>}
 				<div className={'flex-grow'}/>
-				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card hover:text-card-foreground"} onClick={copyVersionName}>v{currentVersion}</Button>
+				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card hover:text-card-foreground"}
+								onClick={copyVersionName}>v{currentVersion}</Button>
 			</div>
 		</Card>
 	);
@@ -57,7 +60,7 @@ function SideBarItem(
 	return (
 		<Button variant={"ghost"} className={"justify-start"} onClick={() => router.push(href)}>
 			<div className={"mr-4"}>
-				<IconElenment className="h-5 w-5" />
+				<IconElenment className="h-5 w-5"/>
 			</div>
 			{text}
 		</Button>
