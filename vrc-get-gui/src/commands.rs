@@ -88,6 +88,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         project_call_unity_for_migration,
         project_migrate_project_to_vpm,
         project_open_unity,
+        project_is_unity_launching,
         project_create_backup,
         util_open,
         util_get_log_entries,
@@ -145,6 +146,7 @@ pub(crate) fn export_ts() {
             project_call_unity_for_migration,
             project_migrate_project_to_vpm,
             project_open_unity,
+            project_is_unity_launching,
             project_create_backup,
             util_open,
             util_get_log_entries,
@@ -2393,6 +2395,12 @@ async fn project_open_unity(
     .await?;
 
     Ok(true)
+}
+
+#[tauri::command]
+#[specta::specta]
+fn project_is_unity_launching(project_path: String) -> bool {
+    return is_unity_running(&project_path);
 }
 
 fn folder_stream(

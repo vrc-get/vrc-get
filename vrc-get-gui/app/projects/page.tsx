@@ -43,7 +43,7 @@ import {
 	environmentProjects,
 	environmentSetFavoriteProject,
 	environmentSetProjectSorting,
-	environmentUnityVersions,
+	environmentUnityVersions, projectIsUnityLaunching,
 	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectDirCheckResult,
@@ -394,7 +394,13 @@ function ProjectRow(
 
 	const openProjectFolder = () => utilOpen(project.path);
 
-	const startMigrateVpm = () => setDialogStatus({type: 'migrateVpm:confirm'});
+	const startMigrateVpm = async () => {
+		if (await projectIsUnityLaunching(project.path)) {
+			toastError(tt("projects:toast:close unity before migration"));
+			return;
+		}
+		setDialogStatus({type: 'migrateVpm:confirm'})
+	};
 	const doMigrateVpm = async (inPlace: boolean) => {
 		setDialogStatus({type: 'normal'});
 		try {

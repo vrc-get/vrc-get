@@ -182,6 +182,10 @@ export function projectOpenUnity(projectPath: string, unityPath: string) {
     return invoke()<boolean>("project_open_unity", { projectPath,unityPath })
 }
 
+export function projectIsUnityLaunching(projectPath: string) {
+    return invoke()<boolean>("project_is_unity_launching", { projectPath })
+}
+
 export function projectCreateBackup(channel: string, projectPath: string) {
     return invoke()<AsyncCallResult<null, null>>("project_create_backup", { channel,projectPath })
 }
