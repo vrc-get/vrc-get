@@ -20,7 +20,7 @@ export default function Page() {
 		<VStack className={"p-4"}>
 			<HNavBar className={"flex-shrink-0"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					UI Pallete
+					UI Palette (dev only)
 				</p>
 			</HNavBar>
 			<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
