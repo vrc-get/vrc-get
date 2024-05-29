@@ -85,6 +85,10 @@
     "projects:manage:toast:all packages upgraded": "Upgrade alle Pakete",
     "projects:manage:toast:selected packages installed": "Ausgewählte Pakete wurden installiert.",
     "projects:manage:toast:selected packages removed": "Ausgewählte Pakete wurden entfernt.",
+    // V used in single operation
+    "projects:manage:toast:the package has newer latest with incompatible unity": "Das Paket hat eine neuere Version, welche für die genutzte Unity Version nicht verfügbar ist.",
+    // V used in bulk operation
+    "projects:manage:toast:some package has newer latest with incompatible unity": "Einige Pakete haben eine neuere Version, welche für die genutzte Unity Version nicht verfügbar sind.",
     "projects:manage:button:unity migrate": "Migriere Projekt",
     "projects:toast:unity migrate failed by unity not found": "Fehler beim migrieren: Unity 2022 nicht gefunden",
     "projects:toast:unity migration finalize failed by unity not found": "Fehler beim abschluss der Migration: Unity 2022 nicht gefunden",
@@ -141,6 +145,7 @@
     "projects:manage:multiple sources": "Mehrere Quellen",
     "projects:manage:tooltip:remove packages": "Paket entfernen",
     "projects:manage:tooltip:add package": "Paket hinzufügen",
+    "projects:manage:tooltip:incompatible with unity": "Nicht unterstützt",
     "projects:manage:tooltip:upgrade package": "Paket upgraden",
     "projects:manage:yanked": "projects:manage:yanked",
     "projects:manage:tooltip:back to projects": "Zurück zu Projekte",
