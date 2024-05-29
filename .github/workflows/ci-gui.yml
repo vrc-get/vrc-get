@@ -84,6 +84,11 @@ jobs:
           cp vrc-get-gui/Cargo.toml vrc-get-gui/Cargo.toml.bak
           sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/Cargo.toml.bak > vrc-get-gui/Cargo.toml
 
+      - name: Enable Devtools Feature
+        shell: bash
+        run: |
+          cargo add --package vrc-get-gui tauri --features devtools
+
       - uses: tauri-apps/tauri-action@v0
         with:
           projectPath: vrc-get-gui
