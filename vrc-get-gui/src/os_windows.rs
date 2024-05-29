@@ -162,7 +162,7 @@ fn append_cmd_caret_escaped(args: &mut Vec<u16>, arg: &[u16], percent_env_var_na
 }
 
 pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
-    let file = OpenOptions::new().read(true).open(path).unwrap();
+    let file = OpenOptions::new().read(true).open(path)?;
     unsafe {
         let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
         overlapped.Anonymous.Anonymous.Offset = 0;
