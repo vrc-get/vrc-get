@@ -74,7 +74,7 @@ type RequestedOperation = {
 	hasUnityIncompatibleLatest?: boolean;
 } | {
 	type: "upgradeAll";
-	hasUnityIncompatibleLatest?: boolean;
+	hasUnityIncompatibleLatest: boolean;
 } | {
 	type: "resolve";
 } | {
@@ -84,7 +84,7 @@ type RequestedOperation = {
 	pkgId: string;
 } | {
 	type: "bulkInstalled"
-	hasUnityIncompatibleLatest?: boolean;
+	hasUnityIncompatibleLatest: boolean;
 } | {
 	type: "bulkRemoved"
 }
@@ -321,6 +321,7 @@ function PageBody() {
 			let packageIds = new Set(bulkUpdatePackageIds.map(([id, mode]) => id));
 			let packages: number[] = [];
 			let envVersion: number | undefined = undefined;
+			let hasUnityIncompatibleLatest = false;
 			for (let packageRow of packageRows) {
 				if (packageIds.has(packageRow.id)) {
 					if (packageRow.latest.status !== "upgradable")
@@ -330,6 +331,7 @@ function PageBody() {
 					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
 
 					packages.push(packageRow.latest.pkg.index);
+					hasUnityIncompatibleLatest ||= packageRow.latest.hasUnityIncompatibleLatest;
 				}
 			}
 			if (envVersion == null) {
@@ -337,7 +339,7 @@ function PageBody() {
 				return;
 			}
 			const changes = await projectUpgradeMultiplePackage(projectPath, envVersion, packages);
-			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll", hasUnityIncompatibleLatest}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
