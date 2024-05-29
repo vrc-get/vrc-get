@@ -38,6 +38,15 @@ i18next
 		}
 	})
 
+if ('location' in globalThis) {
+	const search = new URLSearchParams(location.search);
+	const lang = search.get('lang');
+	if (lang) {
+		// noinspection JSIgnoredPromiseFromCall
+		i18next.changeLanguage(lang)
+	}
+}
+
 export default i18next;
 export const languages = Object.keys(languageResources);
 
