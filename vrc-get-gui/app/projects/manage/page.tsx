@@ -48,6 +48,7 @@ import {
 	TauriPackageChange,
 	TauriPendingProjectChanges,
 	TauriProjectDetails,
+	TauriRemoveReason,
 	TauriUnityVersions,
 	TauriUserRepository,
 	TauriVersion,
@@ -74,6 +75,10 @@ type RequestedOperation = {
 } | {
 	type: "upgradeAll";
 	hasUnityIncompatibleLatest?: boolean;
+} | {
+	type: "resolve";
+} | {
+	type: "reinstallAll";
 } | {
 	type: "remove";
 	pkgId: string;
@@ -277,7 +282,19 @@ function PageBody() {
 		try {
 			setInstallStatus({status: "creatingChanges"});
 			const changes = await projectResolve(projectPath);
-			setInstallStatus({status: "promptingChanges", changes, requested: {type: "upgradeAll"}});
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "resolve"}});
+		} catch (e) {
+			console.error(e);
+			setInstallStatus({status: "normal"});
+			toastThrownError(e);
+		}
+	};
+
+	const onReinstallRequest = async () => {
+		try {
+			setInstallStatus({status: "creatingChanges"});
+			const changes = await projectResolve(projectPath);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "reinstallAll"}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
@@ -411,6 +428,12 @@ function PageBody() {
 				case "remove":
 					toastSuccess(tt("projects:manage:toast:package removed", {name: requested.pkgId}));
 					break;
+				case "resolve":
+					toastSuccess(tt("projects:manage:toast:resolved"));
+					break;
+				case "reinstallAll":
+					toastSuccess(tt("projects:manage:toast:all packages reinstalled"));
+					break;
 				case "upgradeAll":
 					toastSuccess(tt("projects:manage:toast:all packages upgraded"));
 					if (requested.hasUnityIncompatibleLatest) {
@@ -478,6 +501,7 @@ function PageBody() {
 			dialogForState = <ProjectChangesDialog
 				packages={packageRowsData}
 				changes={installStatus.changes}
+				existingPackages={detailsResult.data?.installed_packages ?? []}
 				cancel={() => setInstallStatus({status: "normal"})}
 				apply={() => applyChanges(installStatus)}
 			/>;
@@ -572,7 +596,7 @@ function PageBody() {
 								</DropdownMenuTrigger>
 								<DropdownMenuContent>
 									<DropdownMenuItem className={"p-3"}
-											onClick={onResolveRequest}
+											onClick={onReinstallRequest}
 											disabled={isLoading}>
 										{tc("projects:manage:button:reinstall all")}
 									</DropdownMenuItem>
@@ -779,11 +803,13 @@ function ProjectChangesDialog(
 	{
 		changes,
 		packages,
+		existingPackages,
 		cancel,
 		apply,
 	}: {
 		changes: TauriPendingProjectChanges,
 		packages: PackageRowInfo[],
+		existingPackages?: ([string, TauriBasePackageInfo])[],
 		cancel: () => void,
 		apply: () => void,
 	}) {
@@ -799,7 +825,48 @@ function ProjectChangesDialog(
 		<div className={"p-3"}><p className={"font-normal"}>{children}</p></div>
 	);
 
-	const packageChangesSorted = changes.package_changes.sort(comparePackageChange);
+	function isInstallNew(pair: [string, TauriPackageChange]): pair is [string, { InstallNew: TauriPackage }] {
+		return 'InstallNew' in pair[1];
+	}
+
+	function isRemove(pair: [string, TauriPackageChange]): pair is [string, { Remove: TauriRemoveReason }] {
+		return 'Remove' in pair[1];
+	}
+
+	const existingPackageMap = new Map(existingPackages ?? []);
+
+	const installingPackages = changes.package_changes.filter(isInstallNew);
+	const removingPackages = changes.package_changes.filter(isRemove);
+
+	console.log(existingPackageMap);
+
+	const reInstallingPackages = installingPackages.filter(([pkgId, c]) => existingPackageMap.has(pkgId) && compareVersion(c.InstallNew.version, existingPackageMap.get(pkgId)!.version) == 0);
+	const installingNewPackages = installingPackages.filter(([pkgId, c]) => !existingPackageMap.has(pkgId) || compareVersion(c.InstallNew.version, existingPackageMap.get(pkgId)!.version) != 0)
+
+	const removingRequestedPackages = removingPackages.filter(([_, c]) => c.Remove === "Requested");
+	const removingLegacyPackages = removingPackages.filter(([_, c]) => c.Remove === "Legacy");
+	const removingUnusedPackages = removingPackages.filter(([_, c]) => c.Remove === "Unused");
+
+	reInstallingPackages.sort(comparePackageChangeByName);
+	installingNewPackages.sort(comparePackageChangeByName);
+	removingRequestedPackages.sort(comparePackageChangeByName);
+	removingLegacyPackages.sort(comparePackageChangeByName);
+	removingUnusedPackages.sort(comparePackageChangeByName);
+
+	const ChangelogButton = ({url}: { url?: string | null }) => {
+		if (url == null) return null;
+		try {
+			const parsed = new URL(url);
+			if (parsed.protocol == 'http:' || parsed.protocol == 'https:') {
+				return <Button className={"ml-1 px-2"} size={"sm"} onClick={() => shellOpen(url)}>
+					{tc("projects:manage:button:see changelog")}
+				</Button>;
+			}
+		} catch {
+		}
+
+		return null;
+	}
 
 	return (
 		<DialogOpen className={"whitespace-normal"}>
@@ -809,38 +876,42 @@ function ProjectChangesDialog(
 					{tc("projects:manage:dialog:confirm changes description")}
 				</p>
 				<div className={"flex flex-col gap-1 p-2"}>
-					{packageChangesSorted.map(([pkgId, pkgChange]) => {
-						if ('InstallNew' in pkgChange) {
-							let changelogUrlTmp = pkgChange.InstallNew.changelog_url;
-							if (changelogUrlTmp != null && !changelogUrlTmp.startsWith("http") && !changelogUrlTmp.startsWith("https"))
-								changelogUrlTmp = null;
-							const changelogUrl = changelogUrlTmp;
-							return <div key={pkgId} className={"flex items-center p-3"}>
-								<p className={"font-normal"}>{tc("projects:manage:dialog:install package", {
-									name: pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name,
-									version: toVersionString(pkgChange.InstallNew.version),
-								})}</p>
-								{changelogUrl != null &&
-									<Button className={"ml-1 px-2"} size={"sm"}
-										onClick={() => shellOpen(changelogUrl)}>{tc("projects:manage:button:see changelog")}</Button>}
-							</div>
-						} else {
-							const name = getPackageDisplayName(pkgId);
-							switch (pkgChange.Remove) {
-								case "Requested":
-									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall package as requested", {name})}
-									</TypographyItem>
-								case "Legacy":
-									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall package as legacy", {name})}
-									</TypographyItem>
-								case "Unused":
-									return <TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:uninstall package as unused", {name})}
-									</TypographyItem>
-							}
-						}
+					{installingNewPackages.map(([pkgId, pkgChange]) => {
+						const name = pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name;
+						const version = toVersionString(pkgChange.InstallNew.version);
+
+						return <div key={pkgId} className={"flex items-center p-3"}>
+							<p className={"font-normal"}>{tc("projects:manage:dialog:install package", {name, version})}</p>
+							<ChangelogButton url={pkgChange.InstallNew.changelog_url}/>
+						</div>;
+					})}
+					{installingNewPackages.length > 0 && reInstallingPackages.length > 0 && <hr />}
+					{reInstallingPackages.map(([pkgId, pkgChange]) => {
+						const name = pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name;
+						const version = toVersionString(pkgChange.InstallNew.version);
+
+						return <div key={pkgId} className={"flex items-center p-3"}>
+							<p className={"font-normal"}>{tc("projects:manage:dialog:reinstall package", {name, version})}</p>
+							<ChangelogButton url={pkgChange.InstallNew.changelog_url}/>
+						</div>;
+					})}
+					{removingRequestedPackages.map(([pkgId, _]) => {
+						const name = getPackageDisplayName(pkgId);
+						return <TypographyItem key={pkgId}>
+							{tc("projects:manage:dialog:uninstall package as requested", {name})}
+						</TypographyItem>;
+					})}
+					{removingLegacyPackages.map(([pkgId, _]) => {
+						const name = getPackageDisplayName(pkgId);
+						return <TypographyItem key={pkgId}>
+							{tc("projects:manage:dialog:uninstall package as legacy", {name})}
+						</TypographyItem>;
+					})}
+					{removingUnusedPackages.map(([pkgId, _]) => {
+						const name = getPackageDisplayName(pkgId);
+						return <TypographyItem key={pkgId}>
+							{tc("projects:manage:dialog:uninstall package as unused", {name})}
+						</TypographyItem>;
 					})}
 				</div>
 				{
@@ -914,6 +985,9 @@ function comparePackageChange([aName, aChange]: [string, TauriPackageChange], [b
 	const aType = packageChangesType(aChange);
 	const bType = packageChangesType(bChange);
 	if (aType !== bType) return aType - bType;
+	return aName.localeCompare(bName);
+}
+function comparePackageChangeByName([aName, aChange]: [string, TauriPackageChange], [bName, bChange]: [string, TauriPackageChange]): number {
 	return aName.localeCompare(bName);
 }
 
