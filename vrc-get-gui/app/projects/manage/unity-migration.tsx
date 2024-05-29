@@ -5,7 +5,7 @@ import {tc, tt} from "@/lib/i18n";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
 	environmentCopyProjectForMigration,
-	projectCallUnityForMigration,
+	projectCallUnityForMigration, projectIsUnityLaunching,
 	projectMigrateProjectTo2022, TauriUnityVersions
 } from "@/lib/bindings";
 import {callAsyncCommand} from "@/lib/call-async-command";
@@ -154,6 +154,10 @@ function useMigrationInternal(
 	const [installStatus, setInstallStatus] = React.useState<StateInternal>({state: "normal"});
 
 	const request = async () => {
+		if (await projectIsUnityLaunching(projectPath)) {
+			toastError(tt("projects:toast:close unity before migration"));
+			return;
+		}
 		const unityFound = findRecommendedUnity(unityVersions);
 		if (unityFound.length == 0)
 			setInstallStatus({state: "noExactUnity2022"});

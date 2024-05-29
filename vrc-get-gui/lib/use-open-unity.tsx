@@ -50,15 +50,23 @@ export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Res
 					toastError(i18next.t("projects:toast:match version unity not found", {unity: unityVersion}));
 				}
 				return;
-			case 1:
-				toastNormal(i18next.t("projects:toast:opening unity..."));
-				await projectOpenUnity(projectPath, foundVersions[0][0]);
+			case 1: {
+				const result = await projectOpenUnity(projectPath, foundVersions[0][0]);
+				if (result)
+					toastNormal(i18next.t("projects:toast:opening unity..."));
+				else
+					toastError(i18next.t("projects:toast:unity already running"));
+			}
 				return;
-			default:
+			default: {
 				const selected = await unitySelector.select(foundVersions);
 				if (selected == null) return;
-				toastNormal(i18next.t("projects:toast:opening unity..."));
-				await projectOpenUnity(projectPath, selected);
+				const result = await projectOpenUnity(projectPath, foundVersions[0][0]);
+				if (result)
+					toastNormal(i18next.t("projects:toast:opening unity..."));
+				else
+					toastError("Unity already running");
+			}
 		}
 	}
 

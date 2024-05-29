@@ -3,16 +3,16 @@
 
 use tauri::Manager;
 
-#[cfg_attr(windows, path = "cmd_start_win.rs")]
-#[cfg_attr(not(windows), path = "cmd_start_basic.rs")]
-mod cmd_start;
-
 mod commands;
 mod config;
 mod deep_link_support;
 mod logging;
 mod specta;
 mod templates;
+
+#[cfg_attr(windows, path = "os_windows.rs")]
+#[cfg_attr(not(windows), path = "os_posix.rs")]
+mod os;
 
 // for clippy compatibility
 #[cfg(not(clippy))]

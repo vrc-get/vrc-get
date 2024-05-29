@@ -22,6 +22,7 @@ use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 
+use crate::commands::async_command::immediate;
 use async_command::{async_command, AsyncCallResult, AsyncCommandContext, With};
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
@@ -87,6 +88,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         project_call_unity_for_migration,
         project_migrate_project_to_vpm,
         project_open_unity,
+        project_is_unity_launching,
         project_create_backup,
         util_open,
         util_get_log_entries,
@@ -144,6 +146,7 @@ pub(crate) fn export_ts() {
             project_call_unity_for_migration,
             project_migrate_project_to_vpm,
             project_open_unity,
+            project_is_unity_launching,
             project_create_backup,
             util_open,
             util_get_log_entries,
@@ -2364,25 +2367,40 @@ async fn project_migrate_project_to_vpm(
     Ok(())
 }
 
+fn is_unity_running(project_path: impl AsRef<Path>) -> bool {
+    crate::os::is_locked(&project_path.as_ref().join("Temp/UnityLockFile")).unwrap_or(false)
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn project_open_unity(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
     unity_path: String,
-) -> Result<(), RustError> {
+) -> Result<bool, RustError> {
+    if is_unity_running(&project_path) {
+        // it looks unity is running. returning false
+        return Ok(false);
+    }
+
     with_environment!(&state, |environment| {
         update_project_last_modified(environment, project_path.as_ref()).await;
     });
 
-    crate::cmd_start::start_command(
+    crate::os::start_command(
         "Unity".as_ref(),
         unity_path.as_ref(),
         &["-projectPath".as_ref(), OsStr::new(project_path.as_str())],
     )
     .await?;
 
-    Ok(())
+    Ok(true)
+}
+
+#[tauri::command]
+#[specta::specta]
+fn project_is_unity_launching(project_path: String) -> bool {
+    return is_unity_running(&project_path);
 }
 
 fn folder_stream(

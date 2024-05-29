@@ -179,7 +179,11 @@ export function projectMigrateProjectToVpm(projectPath: string) {
 }
 
 export function projectOpenUnity(projectPath: string, unityPath: string) {
-    return invoke()<null>("project_open_unity", { projectPath,unityPath })
+    return invoke()<boolean>("project_open_unity", { projectPath,unityPath })
+}
+
+export function projectIsUnityLaunching(projectPath: string) {
+    return invoke()<boolean>("project_is_unity_launching", { projectPath })
 }
 
 export function projectCreateBackup(channel: string, projectPath: string) {
