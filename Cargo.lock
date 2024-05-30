@@ -5089,7 +5089,7 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-gui"
-version = "0.1.7"
+version = "0.1.8-beta.0"
 dependencies = [
  "arc-swap",
  "async-stream",
