@@ -8,25 +8,32 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Support for dark theme [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028) `#1044`
 
 ### Changed
-- Changed component library to shadcn [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
-- Informational message will be shown if you've installed fake latest because of the Unity version `#1046` `#1061` 
-- Show newly installed packages and reinstalling packages separately `#1052`
-- Prevents opening multiple unity instances `#1055` `#1062`
-- Migration will be prevented if the project is opened in Unity `#1055` `#1062`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Clicking '+' of the incompatible package will do nothing `#1046`
-- Opening Manage Project page will cause VCC to crash `#1048`
-- Fails to load installed unity versions if Unity 2018 is installed again `#1051`
 
 ### Security
+
+## [0.1.7] - 2024-05-30
+### Added
+- Support for dark theme [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028) [`#1044`](https://github.com/vrc-get/vrc-get/pull/1044)
+
+### Changed
+- Changed component library to shadcn [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
+- Informational message will be shown if you've installed fake latest because of the Unity version [`#1046`](https://github.com/vrc-get/vrc-get/pull/1046) [`#1061`](https://github.com/vrc-get/vrc-get/pull/1061) 
+- Show newly installed packages and reinstalling packages separately [`#1052`](https://github.com/vrc-get/vrc-get/pull/1052)
+- Prevents opening multiple unity instances [`#1055`](https://github.com/vrc-get/vrc-get/pull/1055) [`#1062`](https://github.com/vrc-get/vrc-get/pull/1062)
+- Migration will be prevented if the project is opened in Unity [`#1055`](https://github.com/vrc-get/vrc-get/pull/1055) [`#1062`](https://github.com/vrc-get/vrc-get/pull/1062)
+
+### Fixed
+- Clicking '+' of the incompatible package will do nothing [`#1046`](https://github.com/vrc-get/vrc-get/pull/1046)
+- Opening Manage Project page will cause VCC to crash [`#1048`](https://github.com/vrc-get/vrc-get/pull/1048)
+- Fails to load installed unity versions if Unity 2018 is installed again [`#1051`](https://github.com/vrc-get/vrc-get/pull/1051)
 
 ## [0.1.6] - 2024-05-21
 ### Fixed
@@ -309,7 +316,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.6...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.7...HEAD
+[0.1.7]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.6...gui-v0.1.7
 [0.1.6]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.5...gui-v0.1.6
 [0.1.5]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.4...gui-v0.1.5
 [0.1.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.3...gui-v0.1.4
