@@ -8,7 +8,7 @@ import {Input} from "@/components/ui/input";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {useQuery} from "@tanstack/react-query";
 import {
-	deepLinkHasAddRepository, deepLinkTakeAddRepository,
+	deepLinkTakeAddRepository,
 	environmentAddRepository,
 	environmentDownloadRepository,
 	environmentHideRepository,
@@ -19,7 +19,7 @@ import {
 	TauriUserRepository
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
-import React, {Suspense, useCallback, useEffect, useMemo, useState} from "react";
+import React, {Suspense, useCallback, useEffect, useId, useMemo, useState} from "react";
 import {MinusCircleIcon, PlusCircleIcon, XCircleIcon} from "@heroicons/react/24/outline";
 import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
@@ -242,7 +242,7 @@ function RepositoryRow(
 	}
 ) {
 	const cellClass = "p-2.5";
-	const id = `repository-${repo.id}`;
+	const id = useId();
 
 	const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
 
