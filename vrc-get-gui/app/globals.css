@@ -35,9 +35,9 @@
 	}
 
 	.dark {
-		--bg-color: 240 10% 15%;
+		--bg-color: 240 10% 13%;
 		--fg-color: 240 10% 85%;
-		--secondary-bg: 240 3.7% 20%;
+		--secondary-bg: 240 3.7% 19%;
 		--primary-fg: 240 5.9% 15%;
 
 		--background: var(--bg-color);
