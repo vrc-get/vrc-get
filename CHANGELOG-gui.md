@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog].
 - De-duplicating duplicated projects or Unity in VCC project list `#1081`
 
 ### Changed
+- Refine Dark Theme `#1083`
 
 ### Deprecated
 
