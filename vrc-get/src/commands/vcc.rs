@@ -56,6 +56,8 @@ impl ProjectList {
             .await
             .exit_context("syncing with real projects");
 
+        env.dedup_projects().exit_context("deduplicating projects");
+
         let mut projects = env.get_projects().exit_context("getting projects");
 
         projects.sort_by_key(|x| Reverse(x.last_modified().timestamp_millis()));
