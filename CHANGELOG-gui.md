@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Refine Dark Theme `#1083`
+- Show package display name on uninstalled toast `#1086`
 
 ### Deprecated
 
