@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 - Per-package `headers` field support `#718`
   - Since this is adding support for missing features, I treat this as a bugfix and not bump minor version.
+- De-duplicating duplicated projects or Unity in VCC project list `#1081`
 
 ### Changed
 
@@ -18,6 +19,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Unity from Unity Hub will be registered as manually registered Unity `#1081`
 
 ### Security
 

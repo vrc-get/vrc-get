@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- De-duplicating duplicated projects or Unity in VCC project list `#1081`
 
 ### Changed
 
@@ -16,6 +17,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Unity from Unity Hub will be registered as manually registered Unity `#1081`
 
 ### Security
 
