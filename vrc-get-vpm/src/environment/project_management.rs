@@ -1,5 +1,5 @@
 use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
-use crate::utils::PathBufExt;
+use crate::utils::{check_absolute_path, normalize_path, PathBufExt};
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
 use bson::oid::ObjectId;
@@ -7,7 +7,7 @@ use bson::DateTime;
 use futures::future::join_all;
 use log::error;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Component, Path, PathBuf};
 
 pub(crate) static COLLECTION: &str = "projects";
@@ -120,6 +120,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 return Ok(None);
             }
 
+            let normalized = normalize_path(path);
+            let normalized = if normalized != path {
+                Some(normalized)
+            } else {
+                None
+            };
+
             let mut changed = false;
 
             let loaded_project = UnityProject::load(io.new_project_io(path)).await?;
@@ -146,7 +153,60 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 project.project_type = project_type;
             }
 
+            if let Some(normalized) = normalized {
+                changed = true;
+                project.path = normalized.to_str().unwrap().into();
+            }
+
             Ok(if changed { Some(project) } else { None })
+        }
+
+        Ok(())
+    }
+
+    pub fn dedup_projects(&mut self) -> io::Result<()> {
+        let db = self.get_db()?; // ensure the database connection is initialized
+
+        let projects = db.get_values::<UserProject>(COLLECTION)?;
+
+        let mut projects_by_path = HashMap::<_, Vec<_>>::new();
+
+        for project in &projects {
+            projects_by_path
+                .entry(project.path())
+                .or_default()
+                .push(project);
+        }
+
+        for (_, mut values) in projects_by_path {
+            if values.len() == 1 {
+                continue;
+            }
+
+            // update favorite and last modified
+
+            let favorite = values.iter().any(|x| x.favorite());
+            let last_modified = values.iter().map(|x| x.last_modified()).max().unwrap();
+
+            let mut project = values[0].clone();
+            let mut changed = false;
+            if project.favorite() != favorite {
+                project.set_favorite(favorite);
+                changed = true;
+            }
+            if project.last_modified() != last_modified {
+                project.last_modified = last_modified;
+                changed = true;
+            }
+
+            if changed {
+                db.update(COLLECTION, &project)?;
+            }
+
+            // remove rest
+            for project in values.iter().skip(1) {
+                db.delete(COLLECTION, project.id)?;
+            }
         }
 
         Ok(())
@@ -158,12 +218,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn update_project_last_modified(&mut self, project_path: &Path) -> io::Result<()> {
+        check_absolute_path(project_path)?;
         let db = self.get_db()?;
-        let project_path = if project_path.is_absolute() {
-            normalize_path(project_path)
-        } else {
-            normalize_path(&std::env::current_dir().unwrap().joined(project_path))
-        };
+        let project_path = normalize_path(project_path);
 
         let mut project = db.get_values::<UserProject>(COLLECTION)?;
         let Some(project) = project
@@ -196,12 +253,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         &mut self,
         project: &UnityProject<ProjectIO>,
     ) -> io::Result<()> {
-        let path = project.project_dir();
-        let path = if path.is_absolute() {
-            normalize_path(path)
-        } else {
-            normalize_path(&std::env::current_dir().unwrap().joined(path))
-        };
+        check_absolute_path(project.project_dir())?;
+        let path = normalize_path(project.project_dir());
         let path = path.to_str().ok_or(io::Error::new(
             io::ErrorKind::InvalidData,
             "project path is not utf8",
@@ -227,25 +280,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 }
 
-fn normalize_path(input: &Path) -> PathBuf {
-    let mut result = PathBuf::with_capacity(input.as_os_str().len());
-
-    for component in input.components() {
-        match component {
-            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
-            Component::RootDir => result.push(component.as_os_str()),
-            Component::CurDir => {}
-            Component::ParentDir => {
-                result.pop();
-            }
-            Component::Normal(_) => result.push(component.as_os_str()),
-        }
-    }
-
-    result
-}
-
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct UserProject {
     #[serde(rename = "_id")]
     id: ObjectId,
@@ -265,7 +300,7 @@ pub struct UserProject {
     vrc_get: Option<VrcGetMeta>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 struct VrcGetMeta {
     #[serde(default)]
     cached_unity_version: Option<UnityVersion>,

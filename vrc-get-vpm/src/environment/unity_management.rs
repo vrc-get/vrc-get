@@ -1,4 +1,5 @@
 use crate::io::EnvironmentIo;
+use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
 use bson::oid::ObjectId;
@@ -19,9 +20,22 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         path: &str,
         version: UnityVersion,
     ) -> io::Result<()> {
+        check_absolute_path(path)?;
+        self.add_unity_installation_internal(path, version, false)
+            .await
+    }
+
+    async fn add_unity_installation_internal(
+        &mut self,
+        path: &str,
+        version: UnityVersion,
+        is_from_hub: bool,
+    ) -> io::Result<()> {
         let db = self.get_db()?;
 
-        let installation = UnityInstallation::new(path.into(), Some(version), false);
+        let mut installation = UnityInstallation::new(path.into(), Some(version), false);
+
+        installation.loaded_from_hub = is_from_hub;
 
         db.insert(COLLECTION, &installation)?;
 
@@ -151,19 +165,39 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let mut installed = HashSet::new();
 
         for mut in_db in db.get_values::<UnityInstallation>(COLLECTION)? {
-            if !self.io.is_file(in_db.path().as_ref()).await {
+            let path = Path::new(in_db.path());
+            if !self.io.is_file(path).await {
                 // if the unity editor not found, remove it from the db
                 info!("Removed Unity that is not exists: {}", in_db.path());
                 db.delete(COLLECTION, in_db.id)?;
                 continue;
             }
 
-            installed.insert(PathBuf::from(in_db.path()));
+            if installed.contains(path) {
+                // if the unity editor is already installed, remove it from the db
+                info!("Removed duplicated Unity: {}", in_db.path());
+                db.delete(COLLECTION, in_db.id)?;
+                continue;
+            }
 
-            let exists_in_hub = paths_from_hub.contains(Path::new(in_db.path()));
+            installed.insert(PathBuf::from(path));
+
+            let normalized = normalize_path(path).into_os_string().into_string().unwrap();
+            let exists_in_hub = paths_from_hub.contains(path);
+
+            let mut update = false;
 
             if exists_in_hub != in_db.loaded_from_hub() {
                 in_db.loaded_from_hub = exists_in_hub;
+                update = true;
+            }
+
+            if &normalized != in_db.path() {
+                in_db.path = normalized.into();
+                update = true;
+            }
+
+            if update {
                 db.update(COLLECTION, &in_db)?;
             }
         }
@@ -178,7 +212,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                     continue;
                 }
                 info!("Adding Unity from Unity Hub: {}", path.display());
-                self.add_unity_installation(&path.to_string_lossy(), version)
+                self.add_unity_installation_internal(&path.to_string_lossy(), version, true)
                     .await?;
             }
         }

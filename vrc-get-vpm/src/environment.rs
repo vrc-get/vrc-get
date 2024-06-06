@@ -17,7 +17,7 @@ use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{EnvironmentIoHolder, HttpClient, PackageCollection, RemotePackageDownloader};
-use crate::utils::{to_vec_pretty_os_eol, Sha256AsyncWrite};
+use crate::utils::{normalize_path, to_vec_pretty_os_eol, Sha256AsyncWrite};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use futures::future::{join_all, try_join};
 use futures::prelude::*;
@@ -392,6 +392,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         path: &Path,
         name: Option<&str>,
     ) -> Result<(), AddRepositoryErr> {
+        let path = normalize_path(path);
+
         if self.get_user_repos().iter().any(|x| x.local_path() == path) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }

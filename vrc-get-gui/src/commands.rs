@@ -665,6 +665,7 @@ async fn environment_projects(
     environment.migrate_from_settings_json().await?;
     info!("syncing information with real projects");
     environment.sync_with_real_projects(true).await?;
+    environment.dedup_projects()?;
     environment.save().await?;
 
     info!("fetching projects");
