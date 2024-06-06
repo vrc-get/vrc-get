@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useId, useState} from "react";
 import {Button} from "@/components/ui/button";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {Label} from "@/components/ui/label";
@@ -64,7 +64,7 @@ function SelectUnityVersionDialog(
 		cancel: () => void,
 		onSelect: (unityPath: string) => void,
 	}) {
-	const name = useState(() => `select-unity-version-${Math.random().toString(36).slice(2)}-radio`)[0];
+	const id = useId();
 
 	const [selectedUnityPath, setSelectedUnityPath] = useState<string | null>(null);
 
@@ -74,17 +74,20 @@ function SelectUnityVersionDialog(
 				<p>
 					{tc("projects:manage:dialog:multiple unity found")}
 				</p>
-				{unityVersions.map(([path, version, _]) =>
-					<RadioGroup
-						key={path}
-						name={name}
-						className={"flex items-center space-x-2"}
-						onValueChange={(path) => setSelectedUnityPath(path)}
-					>
-						<RadioGroupItem value={path} id={path} />
-						<Label htmlFor={path}>{`${version} (${path})`}</Label>
-					</RadioGroup>
-				)}
+				<RadioGroup
+					onValueChange={(path) => setSelectedUnityPath(path)}
+					value={selectedUnityPath ?? undefined}
+				>
+					{unityVersions.map(([path, version, _]) =>
+						<div
+							key={path}
+							className={"flex items-center space-x-2"}
+						>
+							<RadioGroupItem value={path} id={`${id}:${path}`}/>
+							<Label htmlFor={`${id}:${path}`}>{`${version} (${path})`}</Label>
+						</div>
+					)}
+				</RadioGroup>
 			</DialogDescription>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>

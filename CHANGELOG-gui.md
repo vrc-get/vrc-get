@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Unity from Unity Hub will be registered as manually registered Unity `#1081`
+- Unity selector radio button does not work well `#1082`
 
 ### Security
 
