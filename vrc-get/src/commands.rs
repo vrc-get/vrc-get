@@ -109,10 +109,24 @@ async fn load_unity(path: Option<Box<Path>>) -> UnityProject {
         .exit_context("loading unity project")
 }
 
+fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
+    fn impl_(path: &Path) -> PathBuf {
+        if path.is_absolute() {
+            path.to_owned()
+        } else {
+            env::current_dir()
+                .exit_context("getting current directory")
+                .join(path)
+        }
+    }
+
+    impl_(path.as_ref())
+}
+
 #[cfg(feature = "experimental-vcc")]
 async fn update_project_last_modified(env: Environment, project_dir: &Path) {
     async fn inner(mut env: Environment, project_dir: &Path) -> Result<(), std::io::Error> {
-        env.update_project_last_modified(project_dir)?;
+        env.update_project_last_modified(&absolute_path(project_dir))?;
         env.save().await?;
         Ok(())
     }
@@ -1020,36 +1034,16 @@ impl RepoAdd {
                 .await
                 .exit_context("adding repository")
         } else {
-            let cwd = env::current_dir().exit_context("getting current directory");
-            let joined = cwd.join(&self.path_or_url);
-            let normalized = normalize_path(&joined);
+            let normalized = absolute_path(&self.path_or_url);
             if !normalized.exists() {
                 exit_with!("path not found: {}", normalized.display());
             }
-            env.add_local_repo(normalized.as_ref(), self.name.as_deref())
+            env.add_local_repo(&normalized, self.name.as_deref())
                 .exit_context("adding repository")
         }
 
         save_env(&mut env).await;
     }
-}
-
-fn normalize_path(input: &Path) -> PathBuf {
-    let mut result = PathBuf::with_capacity(input.as_os_str().len());
-
-    for component in input.components() {
-        match component {
-            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
-            Component::RootDir => result.push(component.as_os_str()),
-            Component::CurDir => {}
-            Component::ParentDir => {
-                result.pop();
-            }
-            Component::Normal(_) => result.push(component.as_os_str()),
-        }
-    }
-
-    result
 }
 
 /// Remove repository with specified url, path or name

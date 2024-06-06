@@ -1,4 +1,5 @@
 use crate::io::EnvironmentIo;
+use crate::utils::check_absolute_path;
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
 use bson::oid::ObjectId;
@@ -19,6 +20,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         path: &str,
         version: UnityVersion,
     ) -> io::Result<()> {
+        check_absolute_path(path)?;
         self.add_unity_installation_internal(path, version, false)
             .await
     }

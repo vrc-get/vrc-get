@@ -1,5 +1,5 @@
 use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
-use crate::utils::PathBufExt;
+use crate::utils::{check_absolute_path, normalize_path, PathBufExt};
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
 use bson::oid::ObjectId;
@@ -158,12 +158,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn update_project_last_modified(&mut self, project_path: &Path) -> io::Result<()> {
+        check_absolute_path(project_path)?;
         let db = self.get_db()?;
-        let project_path = if project_path.is_absolute() {
-            normalize_path(project_path)
-        } else {
-            normalize_path(&std::env::current_dir().unwrap().joined(project_path))
-        };
+        let project_path = normalize_path(project_path);
 
         let mut project = db.get_values::<UserProject>(COLLECTION)?;
         let Some(project) = project
@@ -196,12 +193,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         &mut self,
         project: &UnityProject<ProjectIO>,
     ) -> io::Result<()> {
-        let path = project.project_dir();
-        let path = if path.is_absolute() {
-            normalize_path(path)
-        } else {
-            normalize_path(&std::env::current_dir().unwrap().joined(path))
-        };
+        check_absolute_path(project.project_dir())?;
+        let path = normalize_path(project.project_dir());
         let path = path.to_str().ok_or(io::Error::new(
             io::ErrorKind::InvalidData,
             "project path is not utf8",
@@ -225,24 +218,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         Ok(())
     }
-}
-
-fn normalize_path(input: &Path) -> PathBuf {
-    let mut result = PathBuf::with_capacity(input.as_os_str().len());
-
-    for component in input.components() {
-        match component {
-            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
-            Component::RootDir => result.push(component.as_os_str()),
-            Component::CurDir => {}
-            Component::ParentDir => {
-                result.pop();
-            }
-            Component::Normal(_) => result.push(component.as_os_str()),
-        }
-    }
-
-    result
 }
 
 #[derive(Serialize, Deserialize)]

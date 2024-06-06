@@ -1,4 +1,4 @@
-use crate::commands::{load_env, ResultExt};
+use crate::commands::{absolute_path, load_env, ResultExt};
 use clap::{Parser, Subcommand};
 use log::warn;
 use std::cmp::Reverse;
@@ -91,10 +91,11 @@ impl ProjectAdd {
     pub async fn run(self) {
         let mut env = load_env(&self.env_args).await;
 
-        let project =
-            UnityProject::load(DefaultProjectIo::new(Path::new(self.path.as_ref()).into()))
-                .await
-                .exit_context("loading specified project");
+        let project_path = absolute_path(Path::new(self.path.as_ref()));
+        let project_io = DefaultProjectIo::new(project_path.into());
+        let project = UnityProject::load(project_io)
+            .await
+            .exit_context("loading specified project");
 
         if !project.is_valid().await {
             return eprintln!("Invalid project at {}", self.path);
