@@ -19,9 +19,21 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         path: &str,
         version: UnityVersion,
     ) -> io::Result<()> {
+        self.add_unity_installation_internal(path, version, false)
+            .await
+    }
+
+    async fn add_unity_installation_internal(
+        &mut self,
+        path: &str,
+        version: UnityVersion,
+        is_from_hub: bool,
+    ) -> io::Result<()> {
         let db = self.get_db()?;
 
-        let installation = UnityInstallation::new(path.into(), Some(version), false);
+        let mut installation = UnityInstallation::new(path.into(), Some(version), false);
+
+        installation.loaded_from_hub = is_from_hub;
 
         db.insert(COLLECTION, &installation)?;
 
@@ -178,7 +190,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                     continue;
                 }
                 info!("Adding Unity from Unity Hub: {}", path.display());
-                self.add_unity_installation(&path.to_string_lossy(), version)
+                self.add_unity_installation_internal(&path.to_string_lossy(), version, true)
                     .await?;
             }
         }
