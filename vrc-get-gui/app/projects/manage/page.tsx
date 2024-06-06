@@ -81,7 +81,7 @@ type RequestedOperation = {
 	type: "reinstallAll";
 } | {
 	type: "remove";
-	pkgId: string;
+	displayName: string;
 } | {
 	type: "bulkInstalled"
 	hasUnityIncompatibleLatest: boolean;
@@ -302,12 +302,12 @@ function PageBody() {
 		}
 	};
 
-	const onRemoveRequested = useCallback(async (pkgId: string) => {
+	const onRemoveRequested = useCallback(async (pkg: PackageRowInfo) => {
 		try {
 			setInstallStatus({status: "creatingChanges"});
-			console.log("remove", pkgId);
-			const changes = await projectRemovePackages(projectPath, [pkgId]);
-			setInstallStatus({status: "promptingChanges", changes, requested: {type: "remove", pkgId}});
+			console.log("remove", pkg.id);
+			const changes = await projectRemovePackages(projectPath, [pkg.id]);
+			setInstallStatus({status: "promptingChanges", changes, requested: {type: "remove", displayName: pkg.displayName}});
 		} catch (e) {
 			console.error(e);
 			setInstallStatus({status: "normal"});
@@ -428,7 +428,7 @@ function PageBody() {
 					}
 					break;
 				case "remove":
-					toastSuccess(tt("projects:manage:toast:package removed", {name: requested.pkgId}));
+					toastSuccess(tt("projects:manage:toast:package removed", {name: requested.displayName}));
 					break;
 				case "resolve":
 					toastSuccess(tt("projects:manage:toast:resolved"));
@@ -1354,7 +1354,7 @@ const PackageRow = memo(function PackageRow(
 		pkg: PackageRowInfo;
 		locked: boolean;
 		onInstallRequested: (pkg: TauriPackage, hasUnityIncompatibleLatest?: boolean) => void;
-		onRemoveRequested: (pkgId: string) => void;
+		onRemoveRequested: (pkgId: PackageRowInfo) => void;
 		bulkUpdateSelected: boolean;
 		bulkUpdateAvailable: boolean;
 		addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
@@ -1376,7 +1376,7 @@ const PackageRow = memo(function PackageRow(
 	}
 
 	const remove = () => {
-		onRemoveRequested(pkg.id);
+		onRemoveRequested(pkg);
 	};
 
 	const onClickBulkUpdate = () => {
