@@ -38,6 +38,7 @@ trash = "4.1.1"
 async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
 async-stream = "0.3.5"
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
+tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 sys-locale = "0.3.1"
 log-panics = { version = "2", features = ["with-backtrace"] }
 url = "2.5.0"

@@ -35,6 +35,7 @@ fn main() {
     commands::export_ts();
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             log::info!("single instance remote procedure, {argv:?}, {cwd}");
             if let Some(window) = app.get_window("main") {

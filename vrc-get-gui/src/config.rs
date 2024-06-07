@@ -13,10 +13,6 @@ pub struct GuiConfig {
     pub gui_hidden_repositories: IndexSet<String>,
     #[serde(default)]
     pub hide_local_user_packages: bool,
-    #[serde(default)]
-    pub window_size: WindowSize,
-    #[serde(default)]
-    pub fullscreen: bool,
     #[serde(default = "language_default")]
     pub language: String,
     #[serde(default = "theme_default")]
@@ -32,8 +28,6 @@ impl Default for GuiConfig {
         GuiConfig {
             gui_hidden_repositories: IndexSet::new(),
             hide_local_user_packages: false,
-            window_size: WindowSize::default(),
-            fullscreen: false,
             language: language_default(),
             theme: theme_default(),
             backup_format: backup_default(),
