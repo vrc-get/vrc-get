@@ -2,6 +2,8 @@
 
 This folder contains the experimental GUI version of vrc-get, ALCOM.
 
+[Homepage (Help Wanted)](https://vrc-get.anatawa12.com/alcom/)
+
 ## Installation
 
 The recommended way to install ALCOM is download from [GitHub Releases][alcom-releases].
