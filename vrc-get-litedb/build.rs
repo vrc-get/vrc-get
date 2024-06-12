@@ -87,8 +87,8 @@ fn main() {
 
     let common_libs: &[&str] = &[
         //"static=Runtime.ServerGC",
-        "static=Runtime.WorkstationGC",
-        "static=eventpipe-disabled",
+        "static:-bundle=Runtime.WorkstationGC",
+        "static:-bundle=eventpipe-disabled",
     ];
 
     for lib in common_libs {
