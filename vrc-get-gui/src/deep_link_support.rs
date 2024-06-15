@@ -177,6 +177,7 @@ Categories=Utility;
     log::info!("Desktop file created: {}", desktop_file.display());
 
     if let Err(e) = tokio::process::Command::new("update-desktop-database")
+        .arg(applications_dir)
         .status()
         .await
     {
