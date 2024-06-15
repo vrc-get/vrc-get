@@ -149,6 +149,7 @@ licenseNames.set("BlueOak-1.0.0", "Blue Oak Model License 1.0.0");
 licenseNames.set("OpenSSL", "OpenSSL License");
 licenseNames.set("CC-BY-4.0", "Creative Commons Attribution 4.0");
 licenseNames.set("Unicode-DFS-2016", "Unicode License Agreement - Data Files and Software (2016)");
+licenseNames.set("Unicode-3.0", "Unicode License v3")
 
 licenseNames.set("0BSD", "BSD Zero Clause License");
 licenseNames.set("BSD-2-Clause", "BSD 2-Clause License");
