@@ -1369,7 +1369,7 @@ const PackageRow = memo(function PackageRow(
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
 		onInstallRequested(pkgVersion);
-	}, [onInstallRequested, pkg.installed]);
+	}, [onInstallRequested, pkg]);
 	const installLatest = () => {
 		if (pkg.latest.status == 'none') return;
 		onInstallRequested(pkg.latest.pkg, pkg.latest.hasUnityIncompatibleLatest);
