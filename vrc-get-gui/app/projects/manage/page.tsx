@@ -1083,6 +1083,7 @@ interface PackageRowInfo {
 	id: string;
 	infoSource: TauriVersion;
 	displayName: string;
+	description: string;
 	aliases: string[];
 	unityCompatible: Map<string, TauriPackage>;
 	unityIncompatible: Map<string, TauriPackage>;
@@ -1171,6 +1172,7 @@ function combinePackagesAndProjectDetails(
 			packagesTable.set(pkg.name, packageRowInfo = {
 				id: pkg.name,
 				displayName: pkg.display_name ?? pkg.name,
+				description: pkg.description ?? '',
 				aliases: pkg.aliases,
 				infoSource: pkg.version,
 				unityCompatible: new Map(),
@@ -1192,6 +1194,7 @@ function combinePackagesAndProjectDetails(
 			// use display name from the latest version
 			packageRowInfo.infoSource = pkg.version;
 			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
+			packageRowInfo.description = pkg.description || packageRowInfo.description;
 			packageRowInfo.aliases = pkg.aliases;
 		}
 
@@ -1369,7 +1372,7 @@ const PackageRow = memo(function PackageRow(
 		const pkgVersion = pkg.unityCompatible.get(version) ?? pkg.unityIncompatible.get(version);
 		if (!pkgVersion) return;
 		onInstallRequested(pkgVersion);
-	}, [onInstallRequested, pkg.installed]);
+	}, [onInstallRequested, pkg]);
 	const installLatest = () => {
 		if (pkg.latest.status == 'none') return;
 		onInstallRequested(pkg.latest.pkg, pkg.latest.hasUnityIncompatibleLatest);
@@ -1395,15 +1398,24 @@ const PackageRow = memo(function PackageRow(
 									disabled={locked || !bulkUpdateAvailable}
 									className="hover:before:content-none"/>
 			</td>
-			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis ${pkg.installed ? '' : 'opacity-50'}`}>
-				<div className="flex flex-col">
-					<p className="font-normal">
-						{pkg.displayName}
-					</p>
-					<p className="font-normal opacity-50 text-sm">
-						{pkg.id}
-					</p>
-				</div>
+			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis`}>
+				<Tooltip open={pkg.description ? undefined /* auto */ : false /* disable tooltip */}>
+					<TooltipTrigger asChild>
+						<div className={`flex flex-col ${pkg.installed ? '' : 'opacity-50'}`}>
+							<p className="font-normal">
+								{pkg.displayName}
+							</p>
+							<p className="font-normal opacity-50 text-sm">
+								{pkg.id}
+							</p>
+						</div>
+					</TooltipTrigger>
+					<TooltipContent className={"max-w-[80dvw]"}>
+						<p className={`whitespace-normal ${pkg.installed ? '' : 'opacity-50'}`}>
+							{pkg.description}
+						</p>
+					</TooltipContent>
+				</Tooltip>
 			</td>
 			<td className={noGrowCellClass}>
 				<PackageVersionSelector pkg={pkg} onInstallRequested={onInstallRequested} locked={locked}/>

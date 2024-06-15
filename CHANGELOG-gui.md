@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog].
 ## [Unreleased]
 ### Added
 - De-duplicating duplicated projects or Unity in VCC project list `#1081`
+- Show package description on hovering package name / id `#1118`
 
 ### Changed
 - Refine Dark Theme `#1083`
