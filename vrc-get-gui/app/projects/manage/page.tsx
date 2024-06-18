@@ -489,12 +489,10 @@ function PageBody() {
 
 	const unity2022Migration = useUnity2022Migration({
 		projectPath,
-		unityVersions: unityVersionsResult.data,
 		refresh: onRefresh
 	});
 	const unity2022PatchMigration = useUnity2022PatchMigration({
 		projectPath,
-		unityVersions: unityVersionsResult.data,
 		refresh: onRefresh
 	});
 
@@ -544,7 +542,6 @@ function PageBody() {
 				projectPath={projectPath}
 				unityVersion={detailsResult.data?.unity_str ?? null}
 				unityRevision={detailsResult.data?.unity_revision ?? null}
-				unityVersions={unityVersionsResult?.data}
 				onRemove={onRemoveProject}
 				onBackup={onBackupProject}
 			/>
@@ -1649,7 +1646,6 @@ function ProjectViewHeader({
 														 projectPath,
 														 unityVersion,
 														 unityRevision,
-														 unityVersions,
 														 onRemove,
 														 onBackup
 													 }: {
@@ -1658,11 +1654,10 @@ function ProjectViewHeader({
 	projectPath: string
 	unityVersion: string | null,
 	unityRevision: string | null,
-	unityVersions: TauriUnityVersions | undefined,
 	onRemove?: () => void,
 	onBackup?: () => void,
 }) {
-	const openUnity = useOpenUnity(unityVersions);
+	const openUnity = useOpenUnity();
 	const openProjectFolder = () => utilOpen(projectPath);
 	const [openLaunchOptions, setOpenLaunchOptions] = useState(false);
 

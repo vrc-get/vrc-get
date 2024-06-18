@@ -1,4 +1,4 @@
-import {projectOpenUnity, TauriUnityVersions} from "@/lib/bindings";
+import {environmentUnityVersions, projectOpenUnity, TauriUnityVersions} from "@/lib/bindings";
 import i18next, {tc} from "@/lib/i18n";
 import {toastError, toastNormal} from "@/lib/toast";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
@@ -22,7 +22,7 @@ type StateInternal = {
 	unityHubLink: string;
 }
 
-export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Result {
+export function useOpenUnity(): Result {
 	const unitySelector = useUnitySelectorDialog();
 	const [installStatus, setInstallStatus] = React.useState<StateInternal>({state: "normal"});
 
@@ -31,6 +31,7 @@ export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Res
 			toastError(i18next.t("projects:toast:invalid project unity version"));
 			return;
 		}
+		const unityVersions = await environmentUnityVersions();
 		if (unityVersions == null) {
 			toastError(i18next.t("projects:toast:match version unity not found", {unity: unityVersion}));
 			return;
