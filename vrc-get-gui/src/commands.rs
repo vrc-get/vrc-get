@@ -90,6 +90,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         project_open_unity,
         project_is_unity_launching,
         project_create_backup,
+        project_get_custom_unity_args,
+        project_set_custom_unity_args,
         util_open,
         util_get_log_entries,
         util_get_version,
@@ -148,6 +150,8 @@ pub(crate) fn export_ts() {
             project_open_unity,
             project_is_unity_launching,
             project_create_backup,
+            project_get_custom_unity_args,
+            project_set_custom_unity_args,
             util_open,
             util_get_log_entries,
             util_get_version,
@@ -2390,16 +2394,28 @@ async fn project_open_unity(
         return Ok(false);
     }
 
+    let mut custom_args: Option<Vec<String>> = None;
+
     with_environment!(&state, |environment| {
+        if let Some(project) = environment.find_project(project_path.as_ref())? {
+            custom_args = project
+                .custom_unity_args()
+                .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
+        }
         update_project_last_modified(environment, project_path.as_ref()).await;
     });
 
-    crate::os::start_command(
-        "Unity".as_ref(),
-        unity_path.as_ref(),
-        &["-projectPath".as_ref(), OsStr::new(project_path.as_str())],
-    )
-    .await?;
+    let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
+
+    if let Some(custom_args) = &custom_args {
+        args.extend(custom_args.iter().map(OsStr::new));
+    } else {
+        // TODO: configurable default options?
+        // Note: remember to change similar in typescript
+        args.push(OsStr::new("-debugCodeOptimization"));
+    }
+
+    crate::os::start_command("Unity".as_ref(), unity_path.as_ref(), &args).await?;
 
     Ok(true)
 }
@@ -2630,6 +2646,50 @@ async fn project_create_backup(
         })
     })
     .await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_get_custom_unity_args(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<Option<Vec<String>>, RustError> {
+    with_environment!(&state, |environment| {
+        let result;
+        if let Some(project) = environment.find_project(project_path.as_ref())? {
+            result = project
+                .custom_unity_args()
+                .map(|x| x.iter().map(ToOwned::to_owned).collect());
+        } else {
+            result = None;
+        }
+        environment.disconnect_litedb();
+        Ok(result)
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_set_custom_unity_args(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    args: Option<Vec<String>>,
+) -> Result<bool, RustError> {
+    with_environment!(&state, |environment| {
+        if let Some(mut project) = environment.find_project(project_path.as_ref())? {
+            if let Some(args) = args {
+                project.set_custom_unity_args(args);
+            } else {
+                project.clear_custom_unity_args();
+            }
+            environment.update_project(&project)?;
+            environment.disconnect_litedb();
+            Ok(true)
+        } else {
+            environment.disconnect_litedb();
+            Ok(false)
+        }
+    })
 }
 
 #[tauri::command]

@@ -3,7 +3,14 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogOpen,
+	DialogTitle
+} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -21,9 +28,25 @@ import {
 	SelectValue,
 } from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
-import React, {Fragment, memo, Suspense, useCallback, useMemo, useState} from "react";
+import React, {
+	Dispatch,
+	memo,
+	SetStateAction,
+	Suspense,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState
+} from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
-import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon,} from "@heroicons/react/24/outline";
+import {
+	ArrowDownIcon,
+	ArrowUpCircleIcon,
+	ArrowUpIcon,
+	MinusCircleIcon,
+	PlusCircleIcon,
+	XCircleIcon,
+} from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
 import {useRouter, useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
@@ -38,10 +61,12 @@ import {
 	environmentUnityVersions,
 	projectApplyPendingChanges,
 	projectDetails,
+	projectGetCustomUnityArgs,
 	projectInstallMultiplePackage,
 	projectInstallPackage,
 	projectRemovePackages,
 	projectResolve,
+	projectSetCustomUnityArgs,
 	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
 	TauriPackage,
@@ -63,6 +88,7 @@ import {tc, tt} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
 import {useUnity2022Migration, useUnity2022PatchMigration} from "@/app/projects/manage/unity-migration";
+import {Input} from "@/components/ui/input";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -1638,6 +1664,10 @@ function ProjectViewHeader({
 }) {
 	const openUnity = useOpenUnity(unityVersions);
 	const openProjectFolder = () => utilOpen(projectPath);
+	const [openLaunchOptions, setOpenLaunchOptions] = useState(false);
+
+	const onChangeLaunchOptions = () => setOpenLaunchOptions(true);
+	const closeChangeLaunchOptions = () => setOpenLaunchOptions(false);
 
 	return (
 		<HNavBar className={className}>
@@ -1670,10 +1700,170 @@ function ProjectViewHeader({
 				<DropdownMenuContent>
 					<DropdownMenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
 					<DropdownMenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</DropdownMenuItem>
+					<DropdownMenuItem onClick={onChangeLaunchOptions}>{tc("projects:menuitem:change launch options")}</DropdownMenuItem>
 					<DropdownMenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>{tc("projects:remove project")}</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
 			{openUnity.dialog}
+			<Dialog open={openLaunchOptions}>
+				<DialogContent>
+					<LaunchSettings projectPath={projectPath} close={closeChangeLaunchOptions}/>
+				</DialogContent>
+			</Dialog>
 		</HNavBar>
 	);
+}
+
+const defaultArgs = [
+	"-debugCodeOptimization",
+]
+
+function LaunchSettings(
+	{
+		projectPath,
+		close
+	} : {
+		projectPath: string;
+		close: () => void;
+	}
+) {
+	const [customizeCommandline, setCustomizeCommandline] = useState(false);
+	// Note: remember to change similar in rust side
+	const [customCommandlineArgs, setCustomCommandlineArgs] = useState(defaultArgs);
+
+	useEffect(() => {
+		void (async () => {
+			const args = await projectGetCustomUnityArgs(projectPath);
+			if (args != null) {
+				setCustomizeCommandline(true);
+				setCustomCommandlineArgs(args);
+			}
+		})()
+	}, [projectPath])
+
+	const save = async () => {
+		await projectSetCustomUnityArgs(projectPath, customizeCommandline ? customCommandlineArgs : null)
+		close();
+	}
+
+	let errorMessage;
+
+	if (customizeCommandline && customCommandlineArgs.some(x => x.length == 0)) {
+		errorMessage = tc("projects:hint:some arguments are empty");
+	}
+
+	return <>
+		<DialogTitle>{tc("projects:dialog:launch options")}</DialogTitle>
+		<DialogDescription className={"max-h-[50dvh] overflow-y-auto"}>
+			<h3 className={"text-lg"}>{tc("projects:dialog:command-line arguments")}</h3>
+			{customizeCommandline
+				? <>
+					<Button
+						onClick={() => setCustomizeCommandline(false)}>{tc("projects:dialog:use default command line arguments")}</Button>
+					<CommandLineArgsConfig
+						commandLineArgs={customCommandlineArgs}
+						setCommandLineArgs={setCustomCommandlineArgs}
+						errorMessage={errorMessage}
+					/>
+				</>
+				: <>
+					<Button
+						onClick={() => setCustomizeCommandline(true)}>{tc("projects:dialog:customize command line arguments")}</Button>
+					<CommandLineArgsConfig
+						commandLineArgs={defaultArgs}
+						disabled
+					/>
+				</>
+			}
+		</DialogDescription>
+		<DialogFooter>
+			<Button onClick={save} disabled={errorMessage != null}>{tc("general:button:save")}</Button>
+			<Button onClick={close} variant={'destructive'}>{tc("general:button:cancel")}</Button>
+		</DialogFooter>
+	</>
+}
+
+function CommandLineArgsConfig(
+	{
+		commandLineArgs,
+		setCommandLineArgs,
+		disabled,
+		errorMessage,
+	}: {
+		commandLineArgs: string[];
+		setCommandLineArgs?: Dispatch<SetStateAction<string[]>>;
+		disabled?: boolean;
+		errorMessage?: React.ReactNode;
+	}
+) {
+	return <>
+		<div>
+			{commandLineArgs.map((arg, i) => <div key={i} className={"flex gap-1"}>
+				<Input
+					disabled={disabled}
+					value={arg}
+					onChange={e => setCommandLineArgs?.(prev => {
+						const copy = [...prev];
+						copy[i] = e.target.value;
+						return copy;
+					})}
+					className={"w-full"}
+				/>
+				<Button
+					disabled={disabled}
+					variant={'ghost'}
+					size={"icon"}
+					className={'my-1'}
+					onClick={() => setCommandLineArgs?.(prev => {
+						const copy = [...prev];
+						copy.splice(i, 1);
+						return copy;
+					})}
+				>
+					<XCircleIcon className={"size-5 text-destructive"}/>
+				</Button>
+				<div className={'flex flex-col my-1'}>
+					<Button
+						disabled={disabled || i == 0}
+						variant={'ghost'}
+						size={"icon"}
+						className={'h-5'}
+						onClick={() => setCommandLineArgs?.(prev => {
+							const copy = [...prev];
+							const tmp = copy[i];
+							copy[i] = copy[i - 1];
+							copy[i - 1] = tmp;
+							return copy;
+						})}
+					>
+						<ArrowUpIcon className={"size-2"}/>
+					</Button>
+					<Button
+						disabled={disabled || i == commandLineArgs.length - 1}
+						variant={'ghost'}
+						size={"icon"}
+						className={'h-5'}
+						onClick={() => setCommandLineArgs?.(prev => {
+							const copy = [...prev];
+							const tmp = copy[i];
+							copy[i] = copy[i + 1];
+							copy[i + 1] = tmp;
+							return copy;
+						})}
+					>
+						<ArrowDownIcon className={"size-2"}/>
+					</Button>
+				</div>
+			</div>)}
+		</div>
+		<div className={"flex gap-1 m-1 items-center"}>
+			<Button disabled={disabled}
+							onClick={() => setCommandLineArgs?.(v => [...v, ""])}>{tc("general:button:add")}</Button>
+			<Button disabled={disabled}
+							onClick={() => setCommandLineArgs?.(defaultArgs)}>{tc("general:button:reset")}</Button>
+			<div className={"text-destructive whitespace-normal"}>
+				{errorMessage}
+			</div>
+		</div>
+	</>
 }

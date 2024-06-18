@@ -217,22 +217,25 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(self.get_db()?.get_values(COLLECTION)?)
     }
 
-    pub fn update_project_last_modified(&mut self, project_path: &Path) -> io::Result<()> {
+    pub fn find_project(&self, project_path: &Path) -> io::Result<Option<UserProject>> {
         check_absolute_path(project_path)?;
         let db = self.get_db()?;
         let project_path = normalize_path(project_path);
 
         let mut project = db.get_values::<UserProject>(COLLECTION)?;
-        let Some(project) = project
-            .iter_mut()
-            .find(|x| Path::new(x.path()) == project_path)
-        else {
+        Ok(project
+            .into_iter()
+            .find(|x| Path::new(x.path()) == project_path))
+    }
+
+    pub fn update_project_last_modified(&mut self, project_path: &Path) -> io::Result<()> {
+        check_absolute_path(project_path)?;
+        let Some(mut project) = self.find_project(project_path)? else {
             return Ok(());
         };
 
         project.last_modified = DateTime::now();
-        db.update(COLLECTION, project)?;
-
+        self.update_project(&project)?;
         Ok(())
     }
 
@@ -306,6 +309,7 @@ struct VrcGetMeta {
     cached_unity_version: Option<UnityVersion>,
     #[serde(default)]
     unity_revision: Option<String>,
+    custom_unity_args: Option<Vec<String>>,
 }
 
 impl UserProject {
@@ -379,5 +383,21 @@ impl UserProject {
             .as_ref()
             .filter(|x| x.cached_unity_version == self.unity_version)
             .and_then(|x| x.unity_revision.as_deref())
+    }
+
+    pub fn custom_unity_args(&self) -> Option<&[String]> {
+        self.vrc_get
+            .as_ref()
+            .and_then(|x| x.custom_unity_args.as_deref())
+    }
+
+    pub fn set_custom_unity_args(&mut self, custom_unity_args: Vec<String>) {
+        self.vrc_get
+            .get_or_insert_with(Default::default)
+            .custom_unity_args = Some(custom_unity_args);
+    }
+
+    pub fn clear_custom_unity_args(&mut self) {
+        self.vrc_get.as_mut().map(|x| x.custom_unity_args = None);
     }
 }
