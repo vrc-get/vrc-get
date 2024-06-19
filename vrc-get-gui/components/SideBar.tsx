@@ -43,10 +43,11 @@ export function SideBar({className}: { className?: string }) {
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
 				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
-				{isDev && <SideBarItem href={"/settings/palette"} text={"UI Palette (dev only)"} icon={SwatchIcon}/>}
+				<SideBarItem href={"/settings/palette"} text={"UI Palette"} icon={SwatchIcon}/>
 				<div className={'flex-grow'}/>
 				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card hover:text-card-foreground"}
 								onClick={copyVersionName}>v{currentVersion}</Button>
+				<a href="https://buddyworks.wtf" target="_blank"><img src="/bwtext.png" width="100%"/></a>
 			</div>
 		</Card>
 	);
