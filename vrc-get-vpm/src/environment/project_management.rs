@@ -310,6 +310,7 @@ struct VrcGetMeta {
     #[serde(default)]
     unity_revision: Option<String>,
     custom_unity_args: Option<Vec<String>>,
+    unity_path: Option<String>,
 }
 
 impl UserProject {
@@ -399,5 +400,17 @@ impl UserProject {
 
     pub fn clear_custom_unity_args(&mut self) {
         self.vrc_get.as_mut().map(|x| x.custom_unity_args = None);
+    }
+
+    pub fn unity_path(&self) -> Option<&str> {
+        self.vrc_get.as_ref().and_then(|x| x.unity_path.as_deref())
+    }
+
+    pub fn set_unity_path(&mut self, unity_path: String) {
+        self.vrc_get.get_or_insert_with(Default::default).unity_path = Some(unity_path);
+    }
+
+    pub fn clear_unity_path(&mut self) {
+        self.vrc_get.as_mut().map(|x| x.unity_path = None);
     }
 }

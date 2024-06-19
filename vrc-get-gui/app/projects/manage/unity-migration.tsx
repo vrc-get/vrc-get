@@ -175,8 +175,7 @@ function useMigrationInternal(
 					if (selected == null)
 						setInstallStatus({state: "normal"});
 					else
-						// noinspection ES6MissingAwait
-						continueMigrateProjectTo2022(inPlace, selected);
+						void continueMigrateProjectTo2022(inPlace, selected.unityPath);
 					break;
 			}
 		} catch (e) {

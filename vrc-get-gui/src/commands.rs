@@ -92,6 +92,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         project_create_backup,
         project_get_custom_unity_args,
         project_set_custom_unity_args,
+        project_get_unity_path,
+        project_set_unity_path,
         util_open,
         util_get_log_entries,
         util_get_version,
@@ -152,6 +154,8 @@ pub(crate) fn export_ts() {
             project_create_backup,
             project_get_custom_unity_args,
             project_set_custom_unity_args,
+            project_get_unity_path,
+            project_set_unity_path,
             util_open,
             util_get_log_entries,
             util_get_version,
@@ -2681,6 +2685,48 @@ async fn project_set_custom_unity_args(
                 project.set_custom_unity_args(args);
             } else {
                 project.clear_custom_unity_args();
+            }
+            environment.update_project(&project)?;
+            environment.disconnect_litedb();
+            Ok(true)
+        } else {
+            environment.disconnect_litedb();
+            Ok(false)
+        }
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_get_unity_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<Option<String>, RustError> {
+    with_environment!(&state, |environment| {
+        let result;
+        if let Some(project) = environment.find_project(project_path.as_ref())? {
+            result = project.unity_path().map(ToOwned::to_owned);
+        } else {
+            result = None;
+        }
+        environment.disconnect_litedb();
+        Ok(result)
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_set_unity_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    unity_path: Option<String>,
+) -> Result<bool, RustError> {
+    with_environment!(&state, |environment| {
+        if let Some(mut project) = environment.find_project(project_path.as_ref())? {
+            if let Some(unity_path) = unity_path {
+                project.set_unity_path(unity_path);
+            } else {
+                project.clear_unity_path();
             }
             environment.update_project(&project)?;
             environment.disconnect_litedb();

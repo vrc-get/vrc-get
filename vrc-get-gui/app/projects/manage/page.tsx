@@ -67,6 +67,7 @@ import {
 	projectRemovePackages,
 	projectResolve,
 	projectSetCustomUnityArgs,
+	projectSetUnityPath,
 	projectUpgradeMultiplePackage,
 	TauriBasePackageInfo,
 	TauriPackage,
@@ -1664,6 +1665,8 @@ function ProjectViewHeader({
 	const onChangeLaunchOptions = () => setOpenLaunchOptions(true);
 	const closeChangeLaunchOptions = () => setOpenLaunchOptions(false);
 
+	const forgetUnity = () => void projectSetUnityPath(projectPath, null);
+
 	return (
 		<HNavBar className={className}>
 			<Tooltip>
@@ -1694,6 +1697,7 @@ function ProjectViewHeader({
 				</div>
 				<DropdownMenuContent>
 					<DropdownMenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
+					<DropdownMenuItem onClick={forgetUnity}>{tc("projects:menuitem:forget unity path")}</DropdownMenuItem>
 					<DropdownMenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</DropdownMenuItem>
 					<DropdownMenuItem onClick={onChangeLaunchOptions}>{tc("projects:menuitem:change launch options")}</DropdownMenuItem>
 					<DropdownMenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>{tc("projects:remove project")}</DropdownMenuItem>

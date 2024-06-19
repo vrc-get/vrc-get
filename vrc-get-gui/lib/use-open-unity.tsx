@@ -1,4 +1,10 @@
-import {environmentUnityVersions, projectOpenUnity, TauriUnityVersions} from "@/lib/bindings";
+import {
+	environmentUnityVersions,
+	projectGetUnityPath,
+	projectOpenUnity,
+	projectSetUnityPath,
+	TauriUnityVersions
+} from "@/lib/bindings";
 import i18next, {tc} from "@/lib/i18n";
 import {toastError, toastNormal} from "@/lib/toast";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
@@ -31,7 +37,10 @@ export function useOpenUnity(): Result {
 			toastError(i18next.t("projects:toast:invalid project unity version"));
 			return;
 		}
-		const unityVersions = await environmentUnityVersions();
+		const [unityVersions, selectedPath] = await Promise.all([
+			environmentUnityVersions(),
+			projectGetUnityPath(projectPath),
+		]);
 		if (unityVersions == null) {
 			toastError(i18next.t("projects:toast:match version unity not found", {unity: unityVersion}));
 			return;
@@ -52,6 +61,12 @@ export function useOpenUnity(): Result {
 				}
 				return;
 			case 1: {
+				if (selectedPath) {
+					if (foundVersions[0][0] != selectedPath) {
+						// if only unity is not
+						void projectSetUnityPath(projectPath, null);
+					}
+				}
 				const result = await projectOpenUnity(projectPath, foundVersions[0][0]);
 				if (result)
 					toastNormal(i18next.t("projects:toast:opening unity..."));
@@ -60,9 +75,23 @@ export function useOpenUnity(): Result {
 			}
 				return;
 			default: {
-				const selected = await unitySelector.select(foundVersions);
+				if (selectedPath) {
+					const found = foundVersions.find(([p, _v, _i]) => p === selectedPath);
+					if (found) {
+						const result = await projectOpenUnity(projectPath, selectedPath);
+						if (result)
+							toastNormal(i18next.t("projects:toast:opening unity..."));
+						else
+							toastError(i18next.t("projects:toast:unity already running"));
+						return;
+					}
+				}
+				const selected = await unitySelector.select(foundVersions, true);
 				if (selected == null) return;
-				const result = await projectOpenUnity(projectPath, foundVersions[0][0]);
+				if (selected.keepUsingThisVersion) {
+					void projectSetUnityPath(projectPath, selected.unityPath);
+				}
+				const result = await projectOpenUnity(projectPath, selected.unityPath);
 				if (result)
 					toastNormal(i18next.t("projects:toast:opening unity..."));
 				else
