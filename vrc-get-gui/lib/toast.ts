@@ -6,6 +6,12 @@ export function toastNormal(message: ToastContent) {
 	});
 }
 
+export function toastInfo(message: ToastContent) {
+	toast.info(message, {
+		pauseOnFocusLoss: false,
+	});
+}
+
 export function toastSuccess(message: ToastContent) {
 	toast.success(message, {
 		pauseOnFocusLoss: false,

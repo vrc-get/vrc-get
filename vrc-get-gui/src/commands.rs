@@ -22,6 +22,7 @@ use tokio::fs::read_dir;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 
+use crate::commands::async_command::immediate;
 use async_command::{async_command, AsyncCallResult, AsyncCommandContext, With};
 use vrc_get_vpm::environment::UserProject;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
@@ -46,6 +47,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
     generate_handler![
         environment_language,
         environment_set_language,
+        environment_theme,
+        environment_set_theme,
         environment_projects,
         environment_add_project_with_picker,
         environment_remove_project,
@@ -85,7 +88,12 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         project_call_unity_for_migration,
         project_migrate_project_to_vpm,
         project_open_unity,
+        project_is_unity_launching,
         project_create_backup,
+        project_get_custom_unity_args,
+        project_set_custom_unity_args,
+        project_get_unity_path,
+        project_set_unity_path,
         util_open,
         util_get_log_entries,
         util_get_version,
@@ -101,6 +109,8 @@ pub(crate) fn export_ts() {
         specta::collect_types![
             environment_language,
             environment_set_language,
+            environment_theme,
+            environment_set_theme,
             environment_projects,
             environment_add_project_with_picker,
             environment_remove_project,
@@ -140,7 +150,12 @@ pub(crate) fn export_ts() {
             project_call_unity_for_migration,
             project_migrate_project_to_vpm,
             project_open_unity,
+            project_is_unity_launching,
             project_create_backup,
+            project_get_custom_unity_args,
+            project_set_custom_unity_args,
+            project_get_unity_path,
+            project_set_unity_path,
             util_open,
             util_get_log_entries,
             util_get_version,
@@ -224,13 +239,17 @@ pub(crate) fn startup(app: &mut App) {
 
     async fn open_main(app: AppHandle) -> tauri::Result<()> {
         let state: State<'_, Mutex<EnvironmentState>> = app.state();
-        let (size, fullscreen) =
-            with_config!(state, |config| (config.window_size, config.fullscreen));
+        let config = with_config!(state, |config| config.clone());
+
+        let query = url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("lang", &config.language)
+            .append_pair("theme", &config.theme)
+            .finish();
 
         let window = tauri::WindowBuilder::new(
             &app,
             "main", /* the unique window label */
-            tauri::WindowUrl::App("/projects".into()),
+            tauri::WindowUrl::App(format!("/projects/?{query}").into()),
         )
         .title("ALCOM")
         .resizable(true)
@@ -246,14 +265,14 @@ pub(crate) fn startup(app: &mut App) {
         .build()?;
 
         // keep original size if it's too small
-        if size.width > 100 && size.height > 100 {
+        if config.window_size.width > 100 && config.window_size.height > 100 {
             window.set_size(LogicalSize {
-                width: size.width,
-                height: size.height,
+                width: config.window_size.width,
+                height: config.window_size.height,
             })?;
         }
 
-        window.set_fullscreen(fullscreen)?;
+        window.set_fullscreen(config.fullscreen)?;
 
         let cloned = window.clone();
 
@@ -620,6 +639,25 @@ async fn environment_set_language(
 
 #[tauri::command]
 #[specta::specta]
+async fn environment_theme(state: State<'_, Mutex<EnvironmentState>>) -> Result<String, RustError> {
+    with_config!(state, |config| Ok(config.theme.clone()))
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn environment_set_theme(
+    state: State<'_, Mutex<EnvironmentState>>,
+    theme: String,
+) -> Result<(), RustError> {
+    with_config!(state, |mut config| {
+        config.theme = theme;
+        config.save().await?;
+        Ok(())
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
 async fn environment_projects(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<Vec<TauriProject>, RustError> {
@@ -635,6 +673,7 @@ async fn environment_projects(
     environment.migrate_from_settings_json().await?;
     info!("syncing information with real projects");
     environment.sync_with_real_projects(true).await?;
+    environment.dedup_projects()?;
     environment.save().await?;
 
     info!("fetching projects");
@@ -927,6 +966,7 @@ impl From<&Version> for TauriVersion {
 struct TauriBasePackageInfo {
     name: String,
     display_name: Option<String>,
+    description: Option<String>,
     aliases: Vec<String>,
     version: TauriVersion,
     unity: Option<(u16, u8)>,
@@ -941,6 +981,7 @@ impl TauriBasePackageInfo {
         Self {
             name: package.name().to_string(),
             display_name: package.display_name().map(|v| v.to_string()),
+            description: package.description().map(|v| v.to_string()),
             aliases: package.aliases().iter().map(|v| v.to_string()).collect(),
             version: package.version().into(),
             unity: package.unity().map(|v| (v.major(), v.minor())),
@@ -1139,18 +1180,22 @@ async fn environment_unity_versions(
     with_environment!(&state, |environment| {
         environment.find_unity_hub().await.ok();
 
+        let unity_paths = environment
+            .get_unity_installations()?
+            .iter()
+            .filter_map(|unity| {
+                Some((
+                    unity.path().to_string(),
+                    unity.version()?.to_string(),
+                    unity.loaded_from_hub(),
+                ))
+            })
+            .collect();
+
+        environment.disconnect_litedb();
+
         Ok(TauriUnityVersions {
-            unity_paths: environment
-                .get_unity_installations()?
-                .iter()
-                .filter_map(|unity| {
-                    Some((
-                        unity.path().to_string(),
-                        unity.version()?.to_string(),
-                        unity.loaded_from_hub(),
-                    ))
-                })
-                .collect(),
+            unity_paths,
             recommended_version: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
             install_recommended_version_link: VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK.to_string(),
         })
@@ -2337,25 +2382,52 @@ async fn project_migrate_project_to_vpm(
     Ok(())
 }
 
+fn is_unity_running(project_path: impl AsRef<Path>) -> bool {
+    crate::os::is_locked(&project_path.as_ref().join("Temp/UnityLockFile")).unwrap_or(false)
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn project_open_unity(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
     unity_path: String,
-) -> Result<(), RustError> {
+) -> Result<bool, RustError> {
+    if is_unity_running(&project_path) {
+        // it looks unity is running. returning false
+        return Ok(false);
+    }
+
+    let mut custom_args: Option<Vec<String>> = None;
+
     with_environment!(&state, |environment| {
+        if let Some(project) = environment.find_project(project_path.as_ref())? {
+            custom_args = project
+                .custom_unity_args()
+                .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
+        }
         update_project_last_modified(environment, project_path.as_ref()).await;
     });
 
-    crate::cmd_start::start_command(
-        "Unity".as_ref(),
-        unity_path.as_ref(),
-        &["-projectPath".as_ref(), OsStr::new(project_path.as_str())],
-    )
-    .await?;
+    let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
 
-    Ok(())
+    if let Some(custom_args) = &custom_args {
+        args.extend(custom_args.iter().map(OsStr::new));
+    } else {
+        // TODO: configurable default options?
+        // Note: remember to change similar in typescript
+        args.push(OsStr::new("-debugCodeOptimization"));
+    }
+
+    crate::os::start_command("Unity".as_ref(), unity_path.as_ref(), &args).await?;
+
+    Ok(true)
+}
+
+#[tauri::command]
+#[specta::specta]
+fn project_is_unity_launching(project_path: String) -> bool {
+    return is_unity_running(&project_path);
 }
 
 fn folder_stream(
@@ -2578,6 +2650,92 @@ async fn project_create_backup(
         })
     })
     .await
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_get_custom_unity_args(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<Option<Vec<String>>, RustError> {
+    with_environment!(&state, |environment| {
+        let result;
+        if let Some(project) = environment.find_project(project_path.as_ref())? {
+            result = project
+                .custom_unity_args()
+                .map(|x| x.iter().map(ToOwned::to_owned).collect());
+        } else {
+            result = None;
+        }
+        environment.disconnect_litedb();
+        Ok(result)
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_set_custom_unity_args(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    args: Option<Vec<String>>,
+) -> Result<bool, RustError> {
+    with_environment!(&state, |environment| {
+        if let Some(mut project) = environment.find_project(project_path.as_ref())? {
+            if let Some(args) = args {
+                project.set_custom_unity_args(args);
+            } else {
+                project.clear_custom_unity_args();
+            }
+            environment.update_project(&project)?;
+            environment.disconnect_litedb();
+            Ok(true)
+        } else {
+            environment.disconnect_litedb();
+            Ok(false)
+        }
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_get_unity_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+) -> Result<Option<String>, RustError> {
+    with_environment!(&state, |environment| {
+        let result;
+        if let Some(project) = environment.find_project(project_path.as_ref())? {
+            result = project.unity_path().map(ToOwned::to_owned);
+        } else {
+            result = None;
+        }
+        environment.disconnect_litedb();
+        Ok(result)
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn project_set_unity_path(
+    state: State<'_, Mutex<EnvironmentState>>,
+    project_path: String,
+    unity_path: Option<String>,
+) -> Result<bool, RustError> {
+    with_environment!(&state, |environment| {
+        if let Some(mut project) = environment.find_project(project_path.as_ref())? {
+            if let Some(unity_path) = unity_path {
+                project.set_unity_path(unity_path);
+            } else {
+                project.clear_unity_path();
+            }
+            environment.update_project(&project)?;
+            environment.disconnect_litedb();
+            Ok(true)
+        } else {
+            environment.disconnect_litedb();
+            Ok(false)
+        }
+    })
 }
 
 #[tauri::command]

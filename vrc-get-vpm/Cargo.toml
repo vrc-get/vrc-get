@@ -26,20 +26,20 @@ itertools = "0.13.0"
 log = "0.4.21"
 pin-project-lite = "0.2.14"
 reqwest = { version = "0.12.4", features = ["stream"], default-features = false }
-serde = { version = "1.0.200", features = ["derive", "rc"] }
+serde = { version = "1.0.203", features = ["derive", "rc"] }
 serde_json = { version = "1.0.116", features = ["preserve_order"] }
 sha2 = "0.10.8"
 tokio-util = "0.7.11"
-url = { version = "2.5.0", features = ["serde"] }
+url = { version = "2.5.1", features = ["serde"] }
 uuid = { version = "1.8.0", features = ["v4"] }
 lazy_static = "1.4.0"
 enum-map = "2.7.3"
 
-vrc-get-litedb = { version = "0.2.0", optional = true }
-tokio = { version = "1.37.0", features = ["fs", "process"], optional = true }
+vrc-get-litedb = { version = "0.2.1", optional = true }
+tokio = { version = "1.38.0", features = ["fs", "process"], optional = true }
 serde_path_to_error = "0.1.16"
 serde-value = "0.7.0"
-bson = "2.10.0"
+bson = "2.11.0"
 serde_repr = "0.1.19"
 
 [target."cfg(windows)".dependencies]

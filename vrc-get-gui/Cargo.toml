@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get-gui"
-version = "0.1.7-beta.0"
+version = "0.1.8-beta.0"
 description = "A Tauri App"
 
 homepage.workspace = true
@@ -11,27 +11,27 @@ edition.workspace = true
 
 [build-dependencies]
 flate2 = "1.0.30"
-tar = "0.4.40"
+tar = "0.4.41"
 tauri-build = { version = "1.5.1", features = [ "config-toml" ] }
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.6.7", features = [ "os-all", "updater", "shell-open", "config-toml", "dialog" ] }
+tauri = { version = "1.6.8", features = [ "os-all", "updater", "shell-open", "config-toml", "dialog" ] }
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
 reqwest = "0.12.4"
 specta = { version = "1.0.5", features = [ "chrono" ] }
 tauri-specta = { version = "1.0.2", features = ["typescript"] }
-open = "5.1.3"
+open = "5.1.4"
 arc-swap = "1.7.1"
 log = { version = "0.4.21", features = [ "std" ] }
 chrono = { version = "0.4.38", features = [ "serde" ] }
 ringbuffer = "0.15.0"
-tokio = { version = "1.37.0", features = ["process"] }
+tokio = { version = "1.38.0", features = ["process"] }
 fs_extra = "1.3.0"
 indexmap = "2.2.6"
 futures = "0.3.30"
-tar = "0.4.40"
+tar = "0.4.41"
 flate2 = "1.0.30"
 uuid = { version = "1.8.0", features = ["v4"] }
 trash = "4.1.1"
@@ -40,15 +40,19 @@ async-stream = "0.3.5"
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 sys-locale = "0.3.1"
 log-panics = { version = "2", features = ["with-backtrace"] }
-url = "2.5.0"
+url = "2.5.1"
 dirs-next = "2.0.0"
 
 [target.'cfg(windows)'.dependencies]
+windows = { version = "0.57.0", features = ["Win32_Storage_FileSystem", "Win32_System_IO"] }
 winreg = "0.52.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2.7"
 cocoa = "0.24"
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29.0", features = ["fs"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

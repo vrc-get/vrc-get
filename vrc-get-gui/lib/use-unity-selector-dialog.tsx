@@ -1,7 +1,10 @@
-import React, {useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio, Typography} from "@material-tailwind/react";
-import {nop} from "@/lib/nop";
+import React, {useId, useState} from "react";
+import {Button} from "@/components/ui/button";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
+import {Label} from "@/components/ui/label";
+import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import {tc} from "@/lib/i18n";
+import {Checkbox} from "@/components/ui/checkbox";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
@@ -10,20 +13,35 @@ type StateUnitySelector = {
 } | {
 	state: "selecting";
 	unityVersions: UnityInstallation[];
-	resolve: (unityPath: string | null) => void;
+	supportKeepUsing: boolean; // if true, show the option to keep using this unity in the future
+	resolve: (unityInfo: SelectResult | null) => void;
+}
+
+type SelectResult = SelectResultWithoutInTheFuture | SelectResultWithInTheFuture
+
+type SelectResultWithoutInTheFuture = {
+	unityPath: string,
+}
+
+type SelectResultWithInTheFuture = {
+	unityPath: string,
+	keepUsingThisVersion: boolean,
 }
 
 type ResultUnitySelector = {
 	dialog: React.ReactNode;
-	select: (unityList: [path: string, version: string, fromHub: boolean][]) => Promise<string | null>;
+	select(unityList: UnityInstallation[]): Promise<SelectResultWithoutInTheFuture | null> 
+	select(unityList: UnityInstallation[], supportKeepUsing: true): Promise<SelectResultWithInTheFuture | null>
 }
 
 export function useUnitySelectorDialog(): ResultUnitySelector {
 	const [installStatus, setInstallStatus] = React.useState<StateUnitySelector>({state: "normal"});
 
-	const select = (unityVersions: UnityInstallation[]) => {
-		return new Promise<string | null>((resolve) => {
-			setInstallStatus({state: "selecting", unityVersions, resolve});
+	function select(unityVersions: UnityInstallation[]): Promise<SelectResultWithoutInTheFuture | null>
+	function select(unityVersions: UnityInstallation[], supportKeepUsing: boolean): Promise<SelectResultWithInTheFuture | null>
+	function select(unityVersions: UnityInstallation[], supportKeepUsing?: boolean) {
+		return new Promise<SelectResult | null>((resolve) => {
+			setInstallStatus({state: "selecting", unityVersions, resolve, supportKeepUsing: supportKeepUsing ?? false});
 		});
 	}
 	let dialog: React.ReactNode = null;
@@ -32,18 +50,23 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 		case "normal":
 			break;
 		case "selecting":
-			const resolveWrapper = (unityPath: string | null) => {
+			const cancel = () => {
 				setInstallStatus({state: "normal"});
-				installStatus.resolve(unityPath);
+				installStatus.resolve(null);
+			}
+			const resolveWrapper = (unityPath: string, keepUsingThisVersion: boolean) => {
+				setInstallStatus({state: "normal"});
+				installStatus.resolve(installStatus.supportKeepUsing ? {unityPath, keepUsingThisVersion} : {unityPath})
 			};
-			dialog = <Dialog open handler={nop} className={"whitespace-normal"}>
-				<DialogHeader>{tc("projects:manage:dialog:select unity header")}</DialogHeader>
+			dialog = <DialogOpen className={"whitespace-normal"}>
+				<DialogTitle>{tc("projects:manage:dialog:select unity header")}</DialogTitle>
 				<SelectUnityVersionDialog
 					unityVersions={installStatus.unityVersions}
-					cancel={() => resolveWrapper(null)}
-					onSelect={(unityPath) => resolveWrapper(unityPath)}
+					cancel={cancel}
+					withKeepUsing={installStatus.supportKeepUsing}
+					onSelect={resolveWrapper}
 				/>
-			</Dialog>;
+			</DialogOpen>;
 			break;
 		default:
 			const _: never = installStatus;
@@ -56,33 +79,52 @@ function SelectUnityVersionDialog(
 	{
 		unityVersions,
 		cancel,
+		withKeepUsing,
 		onSelect,
 	}: {
 		unityVersions: UnityInstallation[],
 		cancel: () => void,
-		onSelect: (unityPath: string) => void,
+		withKeepUsing: boolean,
+		onSelect: (unityPath: string, keepUsingThisVersion: boolean) => void,
 	}) {
-	const name = useState(() => `select-unity-version-${Math.random().toString(36).slice(2)}-radio`)[0];
+	const id = useId();
 
 	const [selectedUnityPath, setSelectedUnityPath] = useState<string | null>(null);
+	const [keepUsingThisVersion, setKeepUsingThisVersion] = useState(false);
 
 	return (
 		<>
-			<DialogBody>
-				<Typography>
+			<DialogDescription>
+				<p>
 					{tc("projects:manage:dialog:multiple unity found")}
-				</Typography>
-				{unityVersions.map(([path, version, _]) =>
-					<Radio
-						key={path} name={name} label={`${version} (${path})`}
-						checked={selectedUnityPath == path}
-						onChange={() => setSelectedUnityPath(path)}
-					/>)}
-			</DialogBody>
+				</p>
+				{withKeepUsing && <div>
+					<label className={"flex cursor-pointer items-center gap-2 p-2 whitespace-normal"}>
+						<Checkbox checked={keepUsingThisVersion}
+											onCheckedChange={(e) => setKeepUsingThisVersion(e == true)}
+											className="hover:before:content-none"/>
+						{"Keep Using This Version"}
+					</label>
+				</div>}
+				<RadioGroup
+					onValueChange={(path) => setSelectedUnityPath(path)}
+					value={selectedUnityPath ?? undefined}
+				>
+					{unityVersions.map(([path, version, _]) =>
+						<div
+							key={path}
+							className={"flex items-center space-x-2"}
+						>
+							<RadioGroupItem value={path} id={`${id}:${path}`}/>
+							<Label htmlFor={`${id}:${path}`}>{`${version} (${path})`}</Label>
+						</div>
+					)}
+				</RadioGroup>
+			</DialogDescription>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
 				<Button
-					onClick={() => onSelect(selectedUnityPath!)}
+					onClick={() => onSelect(selectedUnityPath!, keepUsingThisVersion)}
 					disabled={selectedUnityPath == null}
 				>{tc("projects:manage:button:continue")}</Button>
 			</DialogFooter>

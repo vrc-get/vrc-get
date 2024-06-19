@@ -1,11 +1,11 @@
 import React, {Fragment, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Radio, Typography} from "@material-tailwind/react";
-import {nop} from "@/lib/nop";
+import {Button} from "@/components/ui/button";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {tc, tt} from "@/lib/i18n";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
-	environmentCopyProjectForMigration,
-	projectCallUnityForMigration,
+	environmentCopyProjectForMigration, environmentUnityVersions,
+	projectCallUnityForMigration, projectIsUnityLaunching,
 	projectMigrateProjectTo2022, TauriUnityVersions
 } from "@/lib/bindings";
 import {callAsyncCommand} from "@/lib/call-async-command";
@@ -23,17 +23,14 @@ function findRecommendedUnity(unityVersions?: TauriUnityVersions): UnityInstalla
 export function useUnity2022Migration(
 	{
 		projectPath,
-		unityVersions,
 		refresh,
 	}: {
 		projectPath: string,
-		unityVersions?: TauriUnityVersions,
 		refresh?: () => void,
 	}
 ): Result {
 	return useMigrationInternal({
 		projectPath,
-		unityVersions,
 		updateProjectPreUnityLaunch: async (project) => await projectMigrateProjectTo2022(project),
 		refresh,
 		ConfirmComponent: MigrationConfirmMigrationDialog,
@@ -43,16 +40,16 @@ export function useUnity2022Migration(
 function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
 	return (
 		<>
-			<DialogBody>
-				<Typography className={"text-red-700"}>
+			<DialogDescription>
+				<p className={"text-destructive"}>
 					{tc("projects:dialog:vpm migrate description")}
-				</Typography>
-			</DialogBody>
+				</p>
+			</DialogDescription>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate(false)} color={"red"}
+				<Button onClick={() => doMigrate(false)} variant={"destructive"}
 								className="mr-1">{tc("projects:button:migrate copy")}</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
+				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -61,17 +58,14 @@ function MigrationConfirmMigrationDialog({cancel, doMigrate}: ConfirmProps) {
 export function useUnity2022PatchMigration(
 	{
 		projectPath,
-		unityVersions,
 		refresh,
 	}: {
 		projectPath: string,
-		unityVersions?: TauriUnityVersions,
 		refresh?: () => void,
 	}
 ): Result {
 	return useMigrationInternal({
 		projectPath,
-		unityVersions,
 		updateProjectPreUnityLaunch: async () => {
 		}, // nothing pre-launch
 		refresh,
@@ -92,14 +86,14 @@ function MigrationConfirmMigrationPatchDialog(
 	}) {
 	return (
 		<>
-			<DialogBody>
-				<Typography className={"text-red-700"}>
+			<DialogDescription>
+				<p className={"text-destructive"}>
 					{tc("projects:dialog:migrate unity2022 patch description", {unity})}
-				</Typography>
-			</DialogBody>
+				</p>
+			</DialogDescription>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
-				<Button onClick={() => doMigrate(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
+				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
 			</DialogFooter>
 		</>
 	);
@@ -109,8 +103,11 @@ type StateInternal = {
 	state: "normal";
 } | {
 	state: "confirm";
+	unityVersions: TauriUnityVersions;
+	unityFound: UnityInstallation[];
 } | {
 	state: "noExactUnity2022";
+	unityVersions: TauriUnityVersions;
 } | {
 	state: "copyingProject";
 } | {
@@ -134,14 +131,12 @@ type ConfirmProps = {
 function useMigrationInternal(
 	{
 		projectPath,
-		unityVersions,
 		updateProjectPreUnityLaunch,
 		refresh,
 
 		ConfirmComponent,
 	}: {
 		projectPath: string,
-		unityVersions?: TauriUnityVersions,
 		updateProjectPreUnityLaunch: (projectPath: string) => Promise<unknown>,
 		refresh?: () => void,
 
@@ -154,20 +149,23 @@ function useMigrationInternal(
 	const [installStatus, setInstallStatus] = React.useState<StateInternal>({state: "normal"});
 
 	const request = async () => {
+		if (await projectIsUnityLaunching(projectPath)) {
+			toastError(tt("projects:toast:close unity before migration"));
+			return;
+		}
+		const unityVersions = await environmentUnityVersions();
 		const unityFound = findRecommendedUnity(unityVersions);
 		if (unityFound.length == 0)
-			setInstallStatus({state: "noExactUnity2022"});
+			setInstallStatus({state: "noExactUnity2022", unityVersions});
 		else
-			setInstallStatus({state: "confirm"});
+			setInstallStatus({state: "confirm", unityVersions, unityFound});
 	}
 
-	const startMigrateProjectTo2022 = async (inPlace: boolean) => {
+	const startMigrateProjectTo2022 = async (inPlace: boolean, unityFound: UnityInstallation[]) => {
 		try {
-			const unityFound = findRecommendedUnity(unityVersions);
 			switch (unityFound.length) {
 				case 0:
-					setInstallStatus({state: "noExactUnity2022"});
-					break;
+					throw new Error("unreachable");
 				case 1:
 					// noinspection ES6MissingAwait
 					continueMigrateProjectTo2022(inPlace, unityFound[0][0]);
@@ -177,8 +175,7 @@ function useMigrationInternal(
 					if (selected == null)
 						setInstallStatus({state: "normal"});
 					else
-						// noinspection ES6MissingAwait
-						continueMigrateProjectTo2022(inPlace, selected);
+						void continueMigrateProjectTo2022(inPlace, selected.unityPath);
 					break;
 			}
 		} catch (e) {
@@ -254,9 +251,9 @@ function useMigrationInternal(
 			break;
 		case "confirm":
 			dialogBodyForState = <ConfirmComponent
-				unity={unityVersions!.recommended_version}
+				unity={installStatus.unityVersions!.recommended_version}
 				cancel={cancelMigrateProjectTo2022}
-				doMigrate={startMigrateProjectTo2022}
+				doMigrate={(inPlace) => startMigrateProjectTo2022(inPlace, installStatus.unityFound)}
 			/>;
 			break;
 		case "copyingProject":
@@ -267,8 +264,8 @@ function useMigrationInternal(
 			break;
 		case "noExactUnity2022":
 			dialogBodyForState = <NoExactUnity2022Dialog
-				expectedVersion={unityVersions!.recommended_version}
-				installWithUnityHubLink={unityVersions!.install_recommended_version_link}
+				expectedVersion={installStatus.unityVersions!.recommended_version}
+				installWithUnityHubLink={installStatus.unityVersions!.install_recommended_version_link}
 				close={cancelMigrateProjectTo2022}
 			/>;
 			break;
@@ -283,35 +280,35 @@ function useMigrationInternal(
 		dialog: <>
 			{unitySelector.dialog}
 			{dialogBodyForState == null ? null :
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:manage:dialog:unity migrate header")}</DialogHeader>
+				<DialogOpen className={"whitespace-normal leading-relaxed"}>
+					<DialogTitle>{tc("projects:manage:dialog:unity migrate header")}</DialogTitle>
 					{dialogBodyForState}
-				</Dialog>}
+				</DialogOpen>}
 		</>,
 		request,
 	};
 }
 
 function MigrationCopyingDialog() {
-	return <DialogBody>
-		<Typography>
+	return <DialogDescription>
+		<p>
 			{tc("projects:pre-migrate copying...")}
-		</Typography>
-		<Typography>
+		</p>
+		<p>
 			{tc("projects:manage:dialog:do not close")}
-		</Typography>
-	</DialogBody>;
+		</p>
+	</DialogDescription>;
 }
 
 function MigrationMigratingDialog() {
-	return <DialogBody>
-		<Typography>
+	return <DialogDescription>
+		<p>
 			{tc("projects:migrating...")}
-		</Typography>
-		<Typography>
+		</p>
+		<p>
 			{tc("projects:manage:dialog:do not close")}
-		</Typography>
-	</DialogBody>;
+		</p>
+	</DialogDescription>;
 }
 
 function MigrationCallingUnityForMigrationDialog(
@@ -327,18 +324,18 @@ function MigrationCallingUnityForMigrationDialog(
 		ref.current?.scrollIntoView({behavior: "auto"});
 	}, [lines]);
 
-	return <DialogBody>
-		<Typography>
+	return <DialogDescription>
+		<p>
 			{tc("projects:manage:dialog:unity migrate finalizing...")}
-		</Typography>
-		<Typography>
+		</p>
+		<p>
 			{tc("projects:manage:dialog:do not close")}
-		</Typography>
-		<pre className={"overflow-y-auto h-[50vh] bg-gray-900 text-white text-sm"}>
+		</p>
+		<pre className={"overflow-y-auto h-[50vh] bg-secondary text-secondary-foreground text-sm"}>
 					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
 			<div ref={ref}/>
 				</pre>
-	</DialogBody>;
+	</DialogDescription>;
 }
 
 function NoExactUnity2022Dialog(
@@ -357,11 +354,11 @@ function NoExactUnity2022Dialog(
 	}
 
 	return <>
-		<DialogBody>
-			<Typography>
+		<DialogDescription>
+			<p>
 				{tc("projects:manage:dialog:exact version unity not found for patch migration description", {unity: expectedVersion})}
-			</Typography>
-		</DialogBody>
+			</p>
+		</DialogDescription>
 		<DialogFooter className={"gap-2"}>
 			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
 			<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>

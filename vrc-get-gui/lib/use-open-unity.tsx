@@ -1,11 +1,17 @@
-import {projectOpenUnity, TauriUnityVersions} from "@/lib/bindings";
+import {
+	environmentUnityVersions,
+	projectGetUnityPath,
+	projectOpenUnity,
+	projectSetUnityPath,
+	TauriUnityVersions
+} from "@/lib/bindings";
 import i18next, {tc} from "@/lib/i18n";
 import {toastError, toastNormal} from "@/lib/toast";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
 import {shellOpen} from "@/lib/shellOpen";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader, Typography} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import React from "react";
-import {nop} from "@/lib/nop";
 
 export type OpenUnityFunction = (projectPath: string, unityVersion: string | null, unityRevision?: string | null) => void;
 
@@ -22,7 +28,7 @@ type StateInternal = {
 	unityHubLink: string;
 }
 
-export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Result {
+export function useOpenUnity(): Result {
 	const unitySelector = useUnitySelectorDialog();
 	const [installStatus, setInstallStatus] = React.useState<StateInternal>({state: "normal"});
 
@@ -31,6 +37,10 @@ export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Res
 			toastError(i18next.t("projects:toast:invalid project unity version"));
 			return;
 		}
+		const [unityVersions, selectedPath] = await Promise.all([
+			environmentUnityVersions(),
+			projectGetUnityPath(projectPath),
+		]);
 		if (unityVersions == null) {
 			toastError(i18next.t("projects:toast:match version unity not found", {unity: unityVersion}));
 			return;
@@ -50,15 +60,43 @@ export function useOpenUnity(unityVersions: TauriUnityVersions | undefined): Res
 					toastError(i18next.t("projects:toast:match version unity not found", {unity: unityVersion}));
 				}
 				return;
-			case 1:
-				toastNormal(i18next.t("projects:toast:opening unity..."));
-				await projectOpenUnity(projectPath, foundVersions[0][0]);
+			case 1: {
+				if (selectedPath) {
+					if (foundVersions[0][0] != selectedPath) {
+						// if only unity is not
+						void projectSetUnityPath(projectPath, null);
+					}
+				}
+				const result = await projectOpenUnity(projectPath, foundVersions[0][0]);
+				if (result)
+					toastNormal(i18next.t("projects:toast:opening unity..."));
+				else
+					toastError(i18next.t("projects:toast:unity already running"));
+			}
 				return;
-			default:
-				const selected = await unitySelector.select(foundVersions);
+			default: {
+				if (selectedPath) {
+					const found = foundVersions.find(([p, _v, _i]) => p === selectedPath);
+					if (found) {
+						const result = await projectOpenUnity(projectPath, selectedPath);
+						if (result)
+							toastNormal(i18next.t("projects:toast:opening unity..."));
+						else
+							toastError(i18next.t("projects:toast:unity already running"));
+						return;
+					}
+				}
+				const selected = await unitySelector.select(foundVersions, true);
 				if (selected == null) return;
-				toastNormal(i18next.t("projects:toast:opening unity..."));
-				await projectOpenUnity(projectPath, selected);
+				if (selected.keepUsingThisVersion) {
+					void projectSetUnityPath(projectPath, selected.unityPath);
+				}
+				const result = await projectOpenUnity(projectPath, selected.unityPath);
+				if (result)
+					toastNormal(i18next.t("projects:toast:opening unity..."));
+				else
+					toastError("Unity already running");
+			}
 		}
 	}
 
@@ -92,19 +130,19 @@ function UnityInstallWindow(
 		await shellOpen(installWithUnityHubLink);
 	}
 
-	return <Dialog open handler={nop}>
-		<DialogHeader>
+	return <DialogOpen>
+		<DialogTitle>
 			{tc("projects:manage:dialog:unity not found")}
-		</DialogHeader>
-		<DialogBody>
-			<Typography>
+		</DialogTitle>
+		<DialogDescription>
+			<p>
 				{tc("projects:manage:dialog:unity version of the project not found", {unity: expectedVersion})}
-			</Typography>
-		</DialogBody>
+			</p>
+		</DialogDescription>
 		<DialogFooter className={"gap-2"}>
 			<Button onClick={openUnityHub}>{tc("projects:manage:dialog:open unity hub")}</Button>
 			<Button onClick={close} className="mr-1">{tc("general:button:close")}</Button>
 		</DialogFooter>
-	</Dialog>;
+	</DialogOpen>;
 }
 

@@ -46,7 +46,10 @@ impl TargetInformation {
         Self {
             dotnet_runtime_id: rid,
             output_file_name: "vrc-get-litedb.a",
-            link_libraries: vec!["static=System.Native", "static=stdc++compat"],
+            link_libraries: vec![
+                "static:-bundle=System.Native",
+                "static:-bundle=stdc++compat",
+            ],
             bootstrapper: "libbootstrapperdll.o",
             patch_mach_o: false,
             family: TargetFamily::Linux,

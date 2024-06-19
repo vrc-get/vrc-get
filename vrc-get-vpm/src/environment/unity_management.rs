@@ -1,9 +1,10 @@
 use crate::io::EnvironmentIo;
+use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient};
 use bson::oid::ObjectId;
 use log::info;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -19,9 +20,22 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         path: &str,
         version: UnityVersion,
     ) -> io::Result<()> {
+        check_absolute_path(path)?;
+        self.add_unity_installation_internal(path, version, false)
+            .await
+    }
+
+    async fn add_unity_installation_internal(
+        &mut self,
+        path: &str,
+        version: UnityVersion,
+        is_from_hub: bool,
+    ) -> io::Result<()> {
         let db = self.get_db()?;
 
-        let installation = UnityInstallation::new(path.into(), Some(version), false);
+        let mut installation = UnityInstallation::new(path.into(), Some(version), false);
+
+        installation.loaded_from_hub = is_from_hub;
 
         db.insert(COLLECTION, &installation)?;
 
@@ -151,19 +165,39 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let mut installed = HashSet::new();
 
         for mut in_db in db.get_values::<UnityInstallation>(COLLECTION)? {
-            if !self.io.is_file(in_db.path().as_ref()).await {
+            let path = Path::new(in_db.path());
+            if !self.io.is_file(path).await {
                 // if the unity editor not found, remove it from the db
                 info!("Removed Unity that is not exists: {}", in_db.path());
                 db.delete(COLLECTION, in_db.id)?;
                 continue;
             }
 
-            installed.insert(PathBuf::from(in_db.path()));
+            if installed.contains(path) {
+                // if the unity editor is already installed, remove it from the db
+                info!("Removed duplicated Unity: {}", in_db.path());
+                db.delete(COLLECTION, in_db.id)?;
+                continue;
+            }
 
-            let exists_in_hub = paths_from_hub.contains(Path::new(in_db.path()));
+            installed.insert(PathBuf::from(path));
+
+            let normalized = normalize_path(path).into_os_string().into_string().unwrap();
+            let exists_in_hub = paths_from_hub.contains(path);
+
+            let mut update = false;
 
             if exists_in_hub != in_db.loaded_from_hub() {
                 in_db.loaded_from_hub = exists_in_hub;
+                update = true;
+            }
+
+            if &normalized != in_db.path() {
+                in_db.path = normalized.into();
+                update = true;
+            }
+
+            if update {
                 db.update(COLLECTION, &in_db)?;
             }
         }
@@ -178,7 +212,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                     continue;
                 }
                 info!("Adding Unity from Unity Hub: {}", path.display());
-                self.add_unity_installation(&path.to_string_lossy(), version)
+                self.add_unity_installation_internal(&path.to_string_lossy(), version, true)
                     .await?;
             }
         }
@@ -195,7 +229,7 @@ pub struct UnityInstallation {
     #[serde(rename = "Path")]
     path: Box<str>,
     #[serde(rename = "Version")]
-    #[serde(deserialize_with = "parse_loose_unity_version")]
+    #[serde(deserialize_with = "default_if_err")]
     version: Option<UnityVersion>,
     #[serde(rename = "LoadedFromHub")]
     loaded_from_hub: bool,
@@ -225,19 +259,15 @@ impl UnityInstallation {
 }
 
 // for unity 2018.x or older, VCC will parse version as "2018.4.0" instead of "2018.4.0f1"
-// so we need to use loose version parser
-fn parse_loose_unity_version<'de, D>(deserializer: D) -> Result<Option<UnityVersion>, D::Error>
+// and 2018.4.31f1 as "2018.4" instead of "2018.4.31f1"
+// Therefore, we need skip parsing such a version string.
+fn default_if_err<'de, D, T>(de: D) -> Result<T, D::Error>
 where
-    D: serde::Deserializer<'de>,
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
 {
-    let s = String::deserialize(deserializer)?;
-    if let Some(parsed) = UnityVersion::parse(&s) {
-        return Ok(Some(parsed));
+    match T::deserialize(de) {
+        Ok(v) => Ok(v),
+        Err(_) => Ok(T::default()),
     }
-
-    if let Some(parsed) = UnityVersion::parse_no_type_increment(&s) {
-        return Ok(Some(parsed));
-    }
-
-    Err(serde::de::Error::custom("Invalid Unity Version"))
 }

@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuiConfig {
     #[serde(default)]
@@ -19,6 +19,8 @@ pub struct GuiConfig {
     pub fullscreen: bool,
     #[serde(default = "language_default")]
     pub language: String,
+    #[serde(default = "theme_default")]
+    pub theme: String,
     #[serde(default = "backup_default")]
     pub backup_format: String,
     #[serde(default = "project_sorting_default")]
@@ -33,6 +35,7 @@ impl Default for GuiConfig {
             window_size: WindowSize::default(),
             fullscreen: false,
             language: language_default(),
+            theme: theme_default(),
             backup_format: backup_default(),
             project_sorting: project_sorting_default(),
         }
@@ -73,6 +76,10 @@ fn language_default() -> String {
     }
 
     "en".to_string()
+}
+
+fn theme_default() -> String {
+    "system".to_string()
 }
 
 fn backup_default() -> String {

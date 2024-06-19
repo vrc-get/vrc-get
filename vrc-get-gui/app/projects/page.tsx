@@ -1,24 +1,25 @@
 "use client"
 
+import {Button} from "@/components/ui/button";
+import {Card, CardHeader} from "@/components/ui/card";
+import {Checkbox} from "@/components/ui/checkbox";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {
-	Button,
-	ButtonGroup,
-	Card,
-	Checkbox,
-	Dialog,
-	DialogBody,
-	DialogFooter,
-	DialogHeader,
-	IconButton,
-	Input,
-	Menu,
-	MenuHandler,
-	MenuItem,
-	MenuList,
-	Spinner,
-	Tooltip,
-	Typography
-} from "@material-tailwind/react";
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {Input} from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
+import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
@@ -42,7 +43,7 @@ import {
 	environmentProjects,
 	environmentSetFavoriteProject,
 	environmentSetProjectSorting,
-	environmentUnityVersions,
+	environmentUnityVersions, projectIsUnityLaunching,
 	projectMigrateProjectToVpm,
 	TauriProject,
 	TauriProjectDirCheckResult,
@@ -55,7 +56,6 @@ import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {nop} from "@/lib/nop";
 import {useDebounce} from "@uidotdev/usehooks";
-import {VGOption, VGSelect} from "@/components/select";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
@@ -85,15 +85,10 @@ export default function Page() {
 		queryKey: ["projects"],
 		queryFn: environmentProjects,
 	});
-	const unityVersionsResult = useQuery({
-		queryKey: ["unityVersions"],
-		queryFn: () => environmentUnityVersions(),
-	});
-
 	const [search, setSearch] = useState("");
 	const [loadingOther, setLoadingOther] = useState(false);
 	const [createProjectState, setCreateProjectState] = useState<'normal' | 'creating'>('normal');
-	const openUnity = useOpenUnity(unityVersionsResult?.data);
+	const openUnity = useOpenUnity();
 
 	const startCreateProject = () => setCreateProjectState('creating');
 
@@ -108,19 +103,21 @@ export default function Page() {
 												 search={search} setSearch={setSearch}/>
 			<main className="flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-auto shadow-none">
-					{
-						result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
-							result.status == "error" ?
-								<Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
-								<ProjectsTable
-									projects={result.data}
-									search={search}
-									loading={loading}
-									openUnity={openUnity.openUnity}
-									refresh={() => result.refetch()}
-									onRemoved={() => result.refetch()}
-								/>
-					}
+					<CardHeader>
+						{
+							result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
+								result.status == "error" ?
+									<Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
+									<ProjectsTable
+										projects={result.data}
+										search={search}
+										loading={loading}
+										openUnity={openUnity.openUnity}
+										refresh={() => result.refetch()}
+										onRemoved={() => result.refetch()}
+									/>
+						}
+					</CardHeader>
 				</Card>
 				{createProjectState === "creating" &&
 					<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
@@ -234,7 +231,7 @@ function ProjectsTable(
 		return searched;
 	}, [projects, sorting, search]);
 
-	const thClass = `sticky top-0 z-10 border-b border-blue-gray-100 p-2.5`;
+	const thClass = `sticky top-0 z-10 border-b border-primary p-2.5`;
 	const iconClass = `size-3 invisible project-table-header-chevron-up-down`;
 
 	const setSorting = async (simpleSorting: SimpleSorting) => {
@@ -256,7 +253,7 @@ function ProjectsTable(
 		}
 	}
 
-	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-blue-100" : "bg-blue-gray-50";
+	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground";
 	const icon = (target: SimpleSorting) =>
 		sorting === target ? <ChevronDownIcon className={"size-3"}/>
 			: sorting === `${target}Reversed` ? <ChevronUpIcon className={"size-3"}/>
@@ -266,7 +263,7 @@ function ProjectsTable(
 		<table className="relative table-auto text-left">
 			<thead>
 			<tr>
-				<th className={`${thClass} bg-blue-gray-50`}>
+				<th className={`${thClass} bg-secondary text-secondary-foreground`}>
 					<StarIcon className={"size-4"}/>
 				</th>
 				<th
@@ -274,31 +271,31 @@ function ProjectsTable(
 					<button className={"flex w-full project-table-button"}
 									onClick={() => setSorting("name")}>
 						{icon("name")}
-						<Typography variant="small" className="font-normal leading-none">{tc("general:name")}</Typography>
+						<small className="font-normal leading-none">{tc("general:name")}</small>
 					</button>
 				</th>
 				<th
 					className={`${thClass} ${headerBg('type')}`}>
 					<button className={"flex w-full project-table-button"} onClick={() => setSorting("type")}>
 						{icon("type")}
-						<Typography variant="small" className="font-normal leading-none">{tc("projects:type")}</Typography>
+						<small className="font-normal leading-none">{tc("projects:type")}</small>
 					</button>
 				</th>
 				<th
 					className={`${thClass} ${headerBg('unity')}`}>
 					<button className={"flex w-full project-table-button"} onClick={() => setSorting("unity")}>
 						{icon("unity")}
-						<Typography variant="small" className="font-normal leading-none">{tc("projects:unity")}</Typography>
+						<small className="font-normal leading-none">{tc("projects:unity")}</small>
 					</button>
 				</th>
 				<th
 					className={`${thClass} ${headerBg('lastModified')}`}>
 					<button className={"flex w-full project-table-button"} onClick={() => setSorting("lastModified")}>
 						{icon("lastModified")}
-						<Typography variant="small" className="font-normal leading-none">{tc("projects:last modified")}</Typography>
+						<small className="font-normal leading-none">{tc("projects:last modified")}</small>
 					</button>
 				</th>
-				<th className={`${thClass} bg-blue-gray-50`}></th>
+				<th className={`${thClass} bg-secondary text-secondary-foreground`}></th>
 			</tr>
 			</thead>
 			<tbody>
@@ -392,7 +389,13 @@ function ProjectRow(
 
 	const openProjectFolder = () => utilOpen(project.path);
 
-	const startMigrateVpm = () => setDialogStatus({type: 'migrateVpm:confirm'});
+	const startMigrateVpm = async () => {
+		if (await projectIsUnityLaunching(project.path)) {
+			toastError(tt("projects:toast:close unity before migration"));
+			return;
+		}
+		setDialogStatus({type: 'migrateVpm:confirm'})
+	};
 	const doMigrateVpm = async (inPlace: boolean) => {
 		setDialogStatus({type: 'normal'});
 		try {
@@ -428,14 +431,21 @@ function ProjectRow(
 
 	const removed = !project.is_exists;
 
-	const MayTooltip = removed ? Tooltip : Fragment;
-	const MayTooltipRev = !removed ? Tooltip : Fragment;
+	const MayTooltip = removed ? TooltipTrigger : Fragment;
+	const MayTooltipRev = !removed ? TooltipTrigger : Fragment;
 
 	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
 		if (removed) {
-			return <Tooltip content={tt("projects:tooltip:no directory")}>
-				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
-			</Tooltip>
+			return (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
+					</TooltipTrigger>
+					<TooltipPortal>
+						<TooltipContent>{tt("projects:tooltip:no directory")}</TooltipContent>
+					</TooltipPortal>
+				</Tooltip>
+			)
 		} else {
 			return (
 				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`}
@@ -449,25 +459,32 @@ function ProjectRow(
 	switch (project.project_type) {
 		case "LegacySdk2":
 			manageButton =
-				<Tooltip content={tc("projects:tooltip:sdk2 migration hint")}>
-					<RowButton color={"light-green"} disabled>
-						{tc("projects:button:migrate")}
-					</RowButton>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<RowButton variant={"success"} disabled>
+							{tc("projects:button:migrate")}
+						</RowButton>
+					</TooltipTrigger>
+					<TooltipContent>{tc("projects:tooltip:sdk2 migration hint")}</TooltipContent>
 				</Tooltip>
 			break;
 		case "LegacyWorlds":
 		case "LegacyAvatars":
 			manageButton =
-				<RowButton color={"light-green"} onClick={startMigrateVpm}>{tc("projects:button:migrate")}</RowButton>
+				<RowButton variant={"success"} onClick={startMigrateVpm}>{tc("projects:button:migrate")}</RowButton>
 			break;
 		case "UpmWorlds":
 		case "UpmAvatars":
 		case "UpmStarter":
-			manageButton = <Tooltip content={tc("projects:tooltip:git-vcc not supported")}>
-				<RowButton color={"blue"} disabled>
-					{tc("projects:button:manage")}
-				</RowButton>
-			</Tooltip>
+			manageButton =
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<RowButton variant={"info"} disabled>
+							{tc("projects:button:manage")}
+						</RowButton>
+					</TooltipTrigger>
+					<TooltipContent>{tc("projects:tooltip:git-vcc not supported")}</TooltipContent>
+				</Tooltip>
 			break;
 		case "Unknown":
 		case "Worlds":
@@ -475,7 +492,7 @@ function ProjectRow(
 		case "VpmStarter":
 			manageButton = <RowButton
 				onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
-				color={"blue"}>
+				variant={"info"}>
 				{tc("projects:button:manage")}
 			</RowButton>
 			break;
@@ -485,74 +502,88 @@ function ProjectRow(
 	switch (dialogStatus.type) {
 		case "migrateVpm:confirm":
 			dialogContent = (
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
-					<DialogBody>
-						<Typography className={"text-red-700"}>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+					<DialogDescription>
+						<p className={"text-destructive"}>
 							{tc("projects:dialog:vpm migrate description")}
-						</Typography>
-					</DialogBody>
+						</p>
+					</DialogDescription>
 					<DialogFooter>
 						<Button onClick={() => setDialogStatus({type: "normal"})}
-										className="mr-1">{tc("general:button:cancel")}</Button>
-						<Button onClick={() => doMigrateVpm(false)} color={"red"}
-										className="mr-1">{tc("projects:button:migrate copy")}</Button>
-						<Button onClick={() => doMigrateVpm(true)} color={"red"}>{tc("projects:button:migrate in-place")}</Button>
+								className="mr-1">{tc("general:button:cancel")}</Button>
+						<Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
+								className="mr-1">{tc("projects:button:migrate copy")}</Button>
+						<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
 					</DialogFooter>
-				</Dialog>
+				</DialogOpen>
 			);
 			break;
 		case "migrateVpm:copyingProject":
 			dialogContent = (
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
-					<DialogBody>
-						<Typography>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+					<DialogDescription>
+						<p>
 							{tc("projects:pre-migrate copying...")}
-						</Typography>
-					</DialogBody>
-				</Dialog>
+						</p>
+					</DialogDescription>
+				</DialogOpen>
 			);
 			break;
 		case "migrateVpm:updating":
 			dialogContent = (
-				<Dialog open handler={nop} className={"whitespace-normal"}>
-					<DialogHeader>{tc("projects:dialog:vpm migrate header")}</DialogHeader>
-					<DialogBody>
-						<Typography>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+					<DialogDescription>
+						<p>
 							{tc("projects:migrating...")}
-						</Typography>
-					</DialogBody>
-				</Dialog>
+						</p>
+					</DialogDescription>
+				</DialogOpen>
 			);
 			break;
 	}
 
 	return (
-		<tr className={`even:bg-blue-gray-50/50 ${(removed || loading) ? 'opacity-50' : ''}`}>
+		<tr className={`even:bg-secondary/30 ${(removed || loading) ? 'opacity-50' : ''}`}>
 			<td className={`${cellClass} w-3`}>
-				<Checkbox ripple={false} containerProps={{className: "p-0 rounded-none"}}
-									checked={project.favorite}
-									onChange={onToggleFavorite}
-									disabled={removed || loading}
-									icon={<StarIcon className={"size-3"}/>}
-									className="hover:before:content-none before:transition-none border-none"/>
+				<div className={"relative inline-flex"}>
+					<Checkbox checked={project.favorite}
+							onCheckedChange={onToggleFavorite}
+							disabled={removed || loading}
+							className="hover:before:content-none before:transition-none border-none !text-primary peer"/>
+					<span className={"text-background opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
+						<StarIcon className={"size-3"} />
+					</span>
+				</div>
 			</td>
 			<td className={`${cellClass} max-w-64 overflow-hidden`}>
-				<MayTooltip content={tc("projects:tooltip:no directory")}>
-					<div className="flex flex-col">
-						<MayTooltipRev content={project.name}>
-							<Typography className="font-normal whitespace-pre">
-								{project.name}
-							</Typography>
-						</MayTooltipRev>
-						<MayTooltipRev content={project.path}>
-							<Typography className="font-normal opacity-50 text-sm whitespace-pre">
-								{project.path}
-							</Typography>
-						</MayTooltipRev>
-					</div>
-				</MayTooltip>
+				<Tooltip>
+					<MayTooltip className={"text-left select-text cursor-auto w-full"}>
+						<div className="flex flex-col">
+							<Tooltip>
+								<MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
+									<p className="font-normal whitespace-pre">
+										{project.name}
+									</p>
+								</MayTooltipRev>
+								<TooltipContent>{project.name}</TooltipContent>
+							</Tooltip>
+							<Tooltip>
+								<MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
+									<p className="font-normal opacity-50 text-sm whitespace-pre">
+										{project.path}
+									</p>
+								</MayTooltipRev>
+								<TooltipContent>{project.path}</TooltipContent>
+							</Tooltip>
+						</div>
+					</MayTooltip>
+					<TooltipPortal>
+						<TooltipContent>{tc("projects:tooltip:no directory")}</TooltipContent>
+					</TooltipPortal>
+				</Tooltip>
 			</td>
 			<td className={`${cellClass} w-[8em] min-w-[8em]`}>
 				<div className="flex flex-row gap-2">
@@ -562,27 +593,32 @@ function ProjectRow(
 								<QuestionMarkCircleIcon className={typeIconClass}/>}
 					</div>
 					<div className="flex flex-col justify-center">
-						<Typography className="font-normal">
+						<p className="font-normal">
 							{displayType}
-						</Typography>
+						</p>
 						{isLegacy &&
-							<Typography
-								className="font-normal opacity-50 text-sm text-red-700">{tc("projects:type:legacy")}</Typography>}
+							<p
+								className="font-normal opacity-50 dark:opacity-80 text-sm text-destructive">{tc("projects:type:legacy")}</p>}
 					</div>
 				</div>
 			</td>
 			<td className={noGrowCellClass}>
-				<Typography className="font-normal">
+				<p className="font-normal">
 					{project.unity}
-				</Typography>
+				</p>
 			</td>
 			<td className={noGrowCellClass}>
-				<Tooltip content={lastModifiedHumanReadable}>
-					<time dateTime={lastModified.toISOString()}>
-						<Typography as={"time"} className="font-normal">
-							{formatDateOffset(project.last_modified)}
-						</Typography>
-					</time>
+				<Tooltip>
+					<TooltipTrigger>
+						<time dateTime={lastModified.toISOString()}>
+							<time className="font-normal">
+								{formatDateOffset(project.last_modified)}
+							</time>
+						</time>
+					</TooltipTrigger>
+					<TooltipPortal>
+						<TooltipContent>{lastModifiedHumanReadable}</TooltipContent>
+					</TooltipPortal>
 				</Tooltip>
 			</td>
 			<td className={noGrowCellClass}>
@@ -591,21 +627,21 @@ function ProjectRow(
 						onClick={() => openUnity(project.path, project.unity, project.unity_revision)}>{tc("projects:button:open unity")}</RowButton>
 					{manageButton}
 					<RowButton onClick={() => backupProjectModal.startBackup(project)}
-										 color={"green"}>{tc("projects:backup")}</RowButton>
-					<Menu>
-						<MenuHandler>
-							<IconButton variant="text" color={"blue"}><EllipsisHorizontalIcon
-								className={"size-5"}/></IconButton>
-						</MenuHandler>
-						<MenuList>
-							<MenuItem onClick={openProjectFolder}
-												disabled={removed || loading}>{tc("projects:menuitem:open directory")}</MenuItem>
-							<MenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
-												className={'text-red-700 focus:text-red-700'}>
+										 variant={"success"}>{tc("projects:backup")}</RowButton>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="ghost" size={"icon"} className={"hover:bg-primary/10 text-primary hover:text-primary"}><EllipsisHorizontalIcon
+								className={"size-5"}/></Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent>
+							<DropdownMenuItem onClick={openProjectFolder}
+												disabled={removed || loading}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
+												className={'text-destructive focus:text-destructive'}>
 								{tc("projects:remove project")}
-							</MenuItem>
-						</MenuList>
-					</Menu>
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 				{dialogContent}
 				{removeProjectModal.dialog}
@@ -652,32 +688,35 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 	};
 
 	return (
-		<HNavBar className={className}>
-			<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+		<HNavBar className={`${className}`}>
+			<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 				{tc("projects")}
-			</Typography>
+			</p>
 
-			<Tooltip content={tc("projects:tooltip:refresh")}>
-				<IconButton variant={"text"} onClick={() => refresh?.()} disabled={isLoading}>
-					{isLoading ? <Spinner className="w-5 h-5"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
-				</IconButton>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button variant={"ghost"} size={"icon"} onClick={() => refresh?.()} disabled={isLoading}>
+						{isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
 			</Tooltip>
 
 			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
 
-			<Menu>
-				<ButtonGroup>
-					<Button className={"pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
-					<MenuHandler className={"pl-2 pr-2"}>
+			<DropdownMenu>
+				<div className={"flex divide-x"}>
+					<Button className={"rounded-r-none pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
+					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
 						<Button>
 							<ChevronDownIcon className={"w-4 h-4"}/>
 						</Button>
-					</MenuHandler>
-				</ButtonGroup>
-				<MenuList>
-					<MenuItem onClick={addProject}>{tc("projects:add existing project")}</MenuItem>
-				</MenuList>
-			</Menu>
+					</DropdownMenuTrigger>
+				</div>
+				<DropdownMenuContent>
+					<DropdownMenuItem onClick={addProject}>{tc("projects:add existing project")}</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 
 			{dialog}
 		</HNavBar>
@@ -714,6 +753,14 @@ function CreateProject(
 	const [templateType, setTemplateType] = useState<'avatars' | 'worlds' | 'custom'>('avatars');
 	const [unityVersion, setUnityVersion] = useState<(typeof templateUnityVersions)[number]>(latestUnityVersion);
 	const [customTemplate, setCustomTemplate] = useState<CustomTemplate>();
+
+	function onCustomTemplateChange(value: string) {
+		let newCustomTemplate: CustomTemplate = {
+			type: "Custom",
+			name: value,
+		}
+		setCustomTemplate(newCustomTemplate);
+	}
 
 	const [projectNameRaw, setProjectName] = useState("New Project");
 	const projectName = projectNameRaw.trim();
@@ -836,7 +883,7 @@ function CreateProject(
 			projectNameState = "err";
 			break;
 		case "checking":
-			projectNameCheck = <Spinner/>;
+			projectNameCheck = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />;
 			projectNameState = "Ok";
 			break;
 		default:
@@ -847,27 +894,27 @@ function CreateProject(
 	let projectNameStateClass;
 	switch (projectNameState) {
 		case "Ok":
-			projectNameStateClass = "text-green-700";
+			projectNameStateClass = "text-success";
 			break;
 		case "warn":
-			projectNameStateClass = "text-yellow-900";
+			projectNameStateClass = "text-warning";
 			break;
 		case "err":
-			projectNameStateClass = "text-red-900";
+			projectNameStateClass = "text-destructive";
 	}
 
-	if (checking) projectNameCheck = <Spinner/>
+	if (checking) projectNameCheck = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />
 
 	let dialogBody;
 
 	switch (state) {
 		case "loadingInitialInformation":
-			dialogBody = <Spinner/>;
+			dialogBody = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />;
 			break;
 		case "enteringInformation":
 			const renderUnityVersion = (unityVersion: string) => {
 				if (unityVersion === latestUnityVersion) {
-					return <>{unityVersion} <span className={"text-green-700"}>{tc("projects:latest")}</span></>
+					return <>{unityVersion} <span className={"text-success"}>{tc("projects:latest")}</span></>
 				} else {
 					return unityVersion;
 				}
@@ -876,77 +923,91 @@ function CreateProject(
 				<VStack>
 					<div className={"flex gap-1"}>
 						<div className={"flex items-center"}>
-							<Typography as={"label"}>{tc("projects:template:type")}</Typography>
+							<label>{tc("projects:template:type")}</label>
 						</div>
-						<VGSelect menuClassName={"z-[19999]"} value={tc(`projects:type:${templateType}`)}
-											onChange={value => setTemplateType(value)}>
-							<VGOption value={"avatars"}>{tc("projects:type:avatars")}</VGOption>
-							<VGOption value={"worlds"}>{tc("projects:type:worlds")}</VGOption>
-							<VGOption value={"custom"} disabled={customTemplates.length == 0}>{tc("projects:type:custom")}</VGOption>
-						</VGSelect>
+						<Select defaultValue={templateType} onValueChange={value => setTemplateType(value as any)}>
+							<SelectTrigger>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectItem value={"avatars"}>{tc("projects:type:avatars")}</SelectItem>
+									<SelectItem value={"worlds"}>{tc("projects:type:worlds")}</SelectItem>
+									<SelectItem value={"custom"} disabled={customTemplates.length == 0}>{tc("projects:type:custom")}</SelectItem>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
 					</div>
 					{templateType !== "custom" ? (
 						<div className={"flex gap-1"}>
 							<div className={"flex items-center"}>
-								<Typography as={"label"}>{tc("projects:template:unity version")}</Typography>
+								<label>{tc("projects:template:unity version")}</label>
 							</div>
-							<VGSelect menuClassName={"z-[19999]"} value={renderUnityVersion(unityVersion)}
-												onChange={value => setUnityVersion(value)}>
-								{templateUnityVersions.map(unityVersion =>
-									<VGOption value={unityVersion} key={unityVersion}>{renderUnityVersion(unityVersion)}</VGOption>)}
-							</VGSelect>
+							<Select defaultValue={unityVersion} onValueChange={value => setUnityVersion(value as any)}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{templateUnityVersions.map(unityVersion =>
+										<SelectItem value={unityVersion} key={unityVersion}>{renderUnityVersion(unityVersion)}</SelectItem>)}
+								</SelectContent>
+							</Select>
 						</div>
 					) : (
 						<div className={"flex gap-1"}>
 							<div className={"flex items-center"}>
-								<Typography as={"label"}>{tc("projects:template")}</Typography>
+								<label>{tc("projects:template")}</label>
 							</div>
-							<VGSelect menuClassName={"z-[19999]"} value={customTemplate?.name}
-												onChange={value => setCustomTemplate(value)}>
-								{customTemplates.map(template =>
-									<VGOption value={template} key={template.name}>{template.name}</VGOption>)}
-							</VGSelect>
+							<Select value={customTemplate?.name} onValueChange={onCustomTemplateChange}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										{customTemplates.map(template =>
+											<SelectItem value={template.name} key={template.name}>{template.name}</SelectItem>)}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
 						</div>
 					)}
-					<Input label={"Project Name"} value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
-					<div className={"flex gap-1"}>
-						<Input className="flex-auto" label={"Project Location"} value={projectLocation} disabled/>
+					<Input value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
+					<div className={"flex gap-1 items-center"}>
+						<Input className="flex-auto" value={projectLocation} disabled/>
 						<Button className="flex-none px-4"
 										onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
 					</div>
-					<Typography variant={"small"} className={"whitespace-normal"}>
+					<small className={"whitespace-normal"}>
 						{tc("projects:hint:path of creating project", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {
 							components: {
-								path: <span className={"p-0.5 font-path whitespace-pre bg-gray-100"}/>
+								path: <span className={"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"}/>
 							}
 						})}
-					</Typography>
-					<Typography variant={"small"} className={`whitespace-normal ${projectNameStateClass}`}>
+					</small>
+					<small className={`whitespace-normal ${projectNameStateClass}`}>
 						{projectNameCheck}
-					</Typography>
+					</small>
 				</VStack>
 			</>;
 			break;
 		case "creating":
 			dialogBody = <>
-				<Spinner/>
-				<Typography>{tc("projects:creating project...")}</Typography>
+				<ArrowPathIcon className={"w-5 h-5 animate-spin"} />
+				<p>{tc("projects:creating project...")}</p>
 			</>;
 			break;
 	}
 
-	return <Dialog handler={nop} open>
-		<DialogHeader>{tc("projects:create new project")}</DialogHeader>
-		<DialogBody>
+	return <DialogOpen>
+		<DialogTitle>{tc("projects:create new project")}</DialogTitle>
+		<DialogDescription>
 			{dialogBody}
-		</DialogBody>
-		<DialogFooter>
-			<div className={"flex gap-2"}>
-				<Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
-				<Button onClick={createProject}
-								disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
-			</div>
+		</DialogDescription>
+		<DialogFooter className={"gap-2"}>
+			<Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
+			<Button onClick={createProject}
+					disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
 		</DialogFooter>
 		{dialog}
-	</Dialog>;
+	</DialogOpen>;
 }

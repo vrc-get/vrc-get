@@ -1,6 +1,17 @@
 "use client"
 
-import {Button, Card, Checkbox, Input, Typography} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {Card, CardHeader} from "@/components/ui/card";
+import {Checkbox} from "@/components/ui/checkbox";
+import {Input} from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
@@ -12,7 +23,10 @@ import {
 	environmentPickUnityHub,
 	environmentSetBackupFormat,
 	environmentSetLanguage,
+	environmentSetTheme,
 	environmentSetShowPrereleasePackages,
+	environmentLanguage,
+	environmentTheme,
 	TauriEnvironmentSettings,
 	utilGetVersion,
 } from "@/lib/bindings";
@@ -20,7 +34,6 @@ import {HNavBar, VStack} from "@/components/layout";
 import React from "react";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
-import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
@@ -51,9 +64,9 @@ export default function Page() {
 	return (
 		<VStack className={"p-4"}>
 			<HNavBar className={"flex-shrink-0"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("settings")}
-				</Typography>
+				</p>
 			</HNavBar>
 			{body}
 		</VStack>
@@ -188,9 +201,9 @@ function Settings(
 		}
 	}
 
-	const toggleShowPrereleasePackages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
 		try {
-			await environmentSetShowPrereleasePackages(e.target.checked)
+			await environmentSetShowPrereleasePackages(e===true)
 			refetch()
 		} catch (e) {
 			console.error(e);
@@ -198,11 +211,36 @@ function Settings(
 		}
 	}
 
+	const {data: lang, refetch: refetchLang} = useQuery({
+		queryKey: ["environmentLanguage"],
+		queryFn: environmentLanguage
+	})
+
 	const changeLanguage = async (value: string) => {
 		await Promise.all([
 			i18next.changeLanguage(value),
 			environmentSetLanguage(value),
+			refetchLang(),
 		])
+	};
+
+	const [theme, setTheme] = React.useState<string | null>(null);
+
+	React.useEffect(() => {
+		(async () => {
+			const theme = await environmentTheme();
+			setTheme(theme);
+		})();
+	}, [])
+
+	const changeTheme = async (theme: string) => {
+		await environmentSetTheme(theme);
+		setTheme(theme);
+		if (theme === "system") {
+			const {appWindow} = await import("@tauri-apps/api/window");
+			theme = await appWindow.theme() ?? "light";
+		}
+		document.documentElement.setAttribute("class", theme);
 	};
 
 	const reportIssue = async () => {
@@ -233,11 +271,11 @@ function Settings(
 		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
-				<div className={"flex gap-1"}>
+				<div className={"flex gap-1 items-center"}>
 					{
 						settings.unity_hub
 							? <Input className="flex-auto" value={settings.unity_hub} disabled/>
-							: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-red-900"}/>
+							: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-destructive"}/>
 					}
 					<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("general:button:select")}</Button>
 				</div>
@@ -250,15 +288,17 @@ function Settings(
 					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
 				</div>
 				<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
-					<UnityTable unityPaths={settings.unity_paths}/>
+					<CardHeader>
+						<UnityTable unityPaths={settings.unity_paths}/>
+					</CardHeader>
 				</Card>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:default project path")}</h2>
-				<Typography className={"whitespace-normal"}>
+				<p className={"whitespace-normal"}>
 					{tc("settings:default project path description")}
-				</Typography>
-				<div className={"flex gap-1"}>
+				</p>
+				<div className={"flex gap-1 items-center"}>
 					<Input className="flex-auto" value={settings.default_project_path} disabled/>
 					<Button className={"flex-none px-4"}
 									onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
@@ -268,10 +308,10 @@ function Settings(
 				<h2>{tc("projects:backup")}</h2>
 				<div className="mt-2">
 					<h3>{tc("settings:backup:path")}</h3>
-					<Typography className={"whitespace-normal"}>
+					<p className={"whitespace-normal"}>
 						{tc("settings:backup:path description")}
-					</Typography>
-					<div className={"flex gap-1"}>
+					</p>
+					<div className={"flex gap-1 items-center"}>
 						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
 						<Button className={"flex-none px-4"}
 										onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
@@ -280,40 +320,77 @@ function Settings(
 				<div className="mt-2">
 					<label className={"flex items-center"}>
 						<h3>{tc("settings:backup:format")}</h3>
-						<VGSelect value={tc("settings:backup:format:" + settings.backup_format)} onChange={setBackupFormat}>
-							<VGOption value={"default"}>{tc("settings:backup:format:default")}</VGOption>
-							<VGOption value={"zip-store"}>{tc("settings:backup:format:zip-store")}</VGOption>
-							<VGOption value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</VGOption>
-							<VGOption value={"zip-best"}>{tc("settings:backup:format:zip-best")}</VGOption>
-						</VGSelect>
+						<Select defaultValue={settings.backup_format} onValueChange={setBackupFormat}>
+							<SelectTrigger>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
+									<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
+									<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
+									<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
 					</label>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
-				<Typography className={"whitespace-normal"}>
+				<p className={"whitespace-normal"}>
 					{tc("settings:show prerelease description")}
-				</Typography>
+				</p>
 				<label className={"flex items-center"}>
-					<Checkbox checked={settings.show_prerelease_packages} onChange={toggleShowPrereleasePackages}/>
+					<div className={"p-3"}>
+						<Checkbox checked={settings.show_prerelease_packages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
+					</div>
 					{tc("settings:show prerelease")}
 				</label>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<label className={"flex items-center"}>
 					<h2>{tc("settings:language")}: </h2>
-					<VGSelect value={tc("settings:langName")} onChange={changeLanguage} menuClassName={"w-96"}>
-						{
-							languages.map((lang) => (
-								<VGOption key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</VGOption>
-							))
-						}
-					</VGSelect>
+					{lang && (
+						<Select defaultValue={lang} onValueChange={changeLanguage}>
+							<SelectTrigger>
+								<SelectValue/>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{
+										languages.map((lang) => (
+											<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
+										))
+									}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					)}
 				</label>
 			</Card>
 			{unityDialog}
 			{unityHubDialog}
 			{projectDefaultDialog}
 			{projectBackupDialog}
+			<Card className={"flex-shrink-0 p-4"}>
+				<label className={"flex items-center"}>
+					<h2>{tc("settings:theme")}: </h2>
+					{theme && (
+						<Select defaultValue={theme} onValueChange={changeTheme}>
+							<SelectTrigger>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
+									<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
+									<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					)}
+				</label>
+			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:check update")}</h2>
 				<div>
@@ -322,9 +399,9 @@ function Settings(
 			</Card>
 			{osType != "Darwin" && <Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:vcc scheme")}</h2>
-				<Typography className={"whitespace-normal"}>
+				<p className={"whitespace-normal"}>
 					{tc("settings:vcc scheme description")}
-				</Typography>
+				</p>
 				<div>
 					<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
 				</div>
@@ -337,11 +414,11 @@ function Settings(
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
 				<h2>{tc("settings:licenses")}</h2>
-				<Typography className={"whitespace-normal"}>
+				<p className={"whitespace-normal"}>
 					{tc("settings:licenses description", {}, {
 						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
 					})}
-				</Typography>
+				</p>
 			</Card>
 		</main>
 	)
@@ -361,8 +438,8 @@ function UnityTable(
 			<tr>
 				{UNITY_TABLE_HEAD.map((head, index) => (
 					<th key={index}
-							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
+							className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
+						<small className="font-normal leading-none">{tc(head)}</small>
 					</th>
 				))}
 			</tr>
@@ -370,7 +447,7 @@ function UnityTable(
 			<tbody>
 			{
 				unityPaths.map(([path, version, isFromHub]) => (
-					<tr key={path}>
+					<tr key={path} className="even:bg-secondary/30">
 						<td className={"p-2.5"}>{version}</td>
 						<td className={"p-2.5"}>{path}</td>
 						<td className={"p-2.5"}>
