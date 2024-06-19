@@ -2920,15 +2920,6 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8ec7ab813848ba4522158d5517a6093db1ded27575b070f4177b8d12b41db5e"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "object"
 version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "576dfe1fc8f9df304abb159d767a29d0476f7750fbf8aa7ad07816004a207434"
@@ -5268,15 +5259,15 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-litedb"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6d3b22367458ac41c3d3182b9272ac4093614c0226f334d5b9b36079778a582"
+checksum = "895989c08cb4529ec35808cc7bb1153f76e6557e57db178bf52cd016c91ce130"
 dependencies = [
  "ar",
  "bson",
  "cc",
  "hex",
- "object 0.35.0",
+ "object 0.36.0",
  "once_cell",
  "rand 0.8.5",
  "serde",
@@ -5324,7 +5315,7 @@ dependencies = [
  "tokio-util",
  "url",
  "uuid",
- "vrc-get-litedb 0.2.0",
+ "vrc-get-litedb 0.2.1",
  "winreg 0.52.0",
 ]
 
