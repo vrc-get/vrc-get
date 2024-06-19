@@ -85,15 +85,10 @@ export default function Page() {
 		queryKey: ["projects"],
 		queryFn: environmentProjects,
 	});
-	const unityVersionsResult = useQuery({
-		queryKey: ["unityVersions"],
-		queryFn: () => environmentUnityVersions(),
-	});
-
 	const [search, setSearch] = useState("");
 	const [loadingOther, setLoadingOther] = useState(false);
 	const [createProjectState, setCreateProjectState] = useState<'normal' | 'creating'>('normal');
-	const openUnity = useOpenUnity(unityVersionsResult?.data);
+	const openUnity = useOpenUnity();
 
 	const startCreateProject = () => setCreateProjectState('creating');
 
