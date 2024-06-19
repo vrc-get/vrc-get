@@ -33,7 +33,7 @@ pub(crate) async fn start_command(
 ) -> std::io::Result<()> {
     // prepare
     let mut cmd_args = Vec::new();
-    cmd_args.extend("/d /c /E:ON /V:OFF start /b ".encode_utf16());
+    cmd_args.extend("/E:ON /V:OFF /d /c start /b ".encode_utf16());
     append_cmd_escaped(&mut cmd_args, name.encode_wide());
     cmd_args.push(b' ' as u16);
 
@@ -58,12 +58,19 @@ pub(crate) async fn start_command(
     if !status.success() {
         return Err(std::io::Error::new(
             std::io::ErrorKind::Other,
-            format!("cmd.exe /d /c start /d failed with status: {}", status),
+            format!(
+                "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {}",
+                status
+            ),
         ));
     } else {
         Ok(())
     }
 }
+
+/*
+/d /c /E:ON /V:OFF start /b "Unity" "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe" "-projectPath" """D:\VRC\新しいフォルダー (3)\world 2""" "-debugCodeOptimization"
+ */
 
 fn append_cpp_escaped(args: &mut Vec<u16>, arg: &[u16]) {
     let need_quote = arg.iter().any(|&c| c == b' ' as u16 || c == b'\t' as u16);
