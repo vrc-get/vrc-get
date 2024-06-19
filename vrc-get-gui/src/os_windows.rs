@@ -6,9 +6,9 @@
 //! Since the `cmd.exe` has a unique escape sequence behavior,
 //! It's necessary to escape the path and arguments correctly.
 //!
-//! I wrote this module based on [research by Y.m Ryota][research-zenn].
+//! I wrote this module based on [BatBadBut] article.
 //!
-//! [research-zenn]: https://zenn.dev/tryjsky/articles/0610b2f32453e7
+//! [BatBadBut]: https://flatt.tech/research/posts/batbadbut-you-cant-securely-execute-commands-on-windows/#as-a-developer
 
 use std::ffi::{OsStr, OsString};
 use std::fs::OpenOptions;
@@ -34,16 +34,10 @@ pub(crate) async fn start_command(
     // prepare
     let mut cmd_args = Vec::new();
     cmd_args.extend("/d /c /E:ON /V:OFF start /b ".encode_utf16());
-    append_cmd_escaped(
-        &mut cmd_args,
-        name.encode_wide().collect::<Vec<_>>().as_slice(),
-    );
+    append_cmd_escaped(&mut cmd_args, name.encode_wide());
     cmd_args.push(b' ' as u16);
 
-    append_cmd_escaped(
-        &mut cmd_args,
-        path.encode_wide().collect::<Vec<_>>().as_slice(),
-    );
+    append_cmd_escaped(&mut cmd_args, path.encode_wide());
 
     let mut buffer = Vec::new();
     for arg in args {
@@ -51,7 +45,7 @@ pub(crate) async fn start_command(
         let arg = arg.encode_wide().collect::<Vec<_>>();
         buffer.clear();
         append_cpp_escaped(&mut buffer, &arg);
-        append_cmd_escaped(&mut cmd_args, &buffer);
+        append_cmd_escaped(&mut cmd_args, buffer.iter().copied());
     }
 
     // execute
@@ -102,12 +96,12 @@ fn append_cpp_escaped(args: &mut Vec<u16>, arg: &[u16]) {
 const PERCENT_ESCAPED: &[u16] = &[0x25, 0x25, 0x63, 0x64, 0x3a, 0x7e, 0x2c, 0x25];
 
 // based on https://flatt.tech/research/posts/batbadbut-you-cant-securely-execute-commands-on-windows/#as-a-developer
-fn append_cmd_escaped(args: &mut Vec<u16>, arg: EncodeWide) {
+fn append_cmd_escaped(args: &mut Vec<u16>, arg: impl Iterator<Item = u16>) {
     // Enclose the argument with double quotes (").
     args.push('"' as u16);
 
     let mut backslash = 0;
-    for &x in arg {
+    for x in arg {
         if x == b'%' as u16 {
             args.extend_from_slice(PERCENT_ESCAPED);
         } else if x == b'"' as u16 {
