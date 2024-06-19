@@ -19,6 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
+import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
 import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
@@ -101,7 +102,7 @@ export default function Page() {
 												 startCreateProject={startCreateProject}
 												 isLoading={loading}
 												 search={search} setSearch={setSearch}/>
-			<main className="flex-shrink overflow-hidden flex">
+			<ScrollArea className="auto flex-shrink overflow-hidden flex">
 				<Card className="w-full overflow-x-auto overflow-y-auto shadow-none">
 					<CardHeader>
 						{
@@ -122,7 +123,8 @@ export default function Page() {
 				{createProjectState === "creating" &&
 					<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
 				{openUnity.dialog}
-			</main>
+				
+			</ScrollArea>
 		</VStack>
 	);
 }
