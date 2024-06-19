@@ -206,13 +206,16 @@ function PageBody() {
 		detailsResult.status, detailsResult.data,
 	]);
 
-	const packageRows = useMemo(() => {
-		if (search === "") return packageRowsData;
+	const filteredPackageIds = useMemo(() => {
+		if (search === "") return new Set<string>(packageRowsData.map(x => x.id));
 		const searchLower = search.toLowerCase();
-		return packageRowsData.filter(row =>
-			row.displayName.toLowerCase().includes(searchLower)
-			|| row.id.toLowerCase().includes(searchLower)
-			|| row.aliases.some(alias => alias.toLowerCase().includes(searchLower)))
+		return new Set<string>(
+			packageRowsData.filter(row =>
+				row.displayName.toLowerCase().includes(searchLower)
+				|| row.id.toLowerCase().includes(searchLower)
+				|| row.aliases.some(alias => alias.toLowerCase().includes(searchLower)))
+				.map(x => x.id)
+		)
 	}, [packageRowsData, search]);
 
 	const hiddenUserRepositories = useMemo(() => new Set(repositoriesInfo.status == 'success' ? repositoriesInfo.data.hidden_user_repositories : []), [repositoriesInfo]);
@@ -284,7 +287,7 @@ function PageBody() {
 			let packages: number[] = [];
 			let envVersion: number | undefined = undefined;
 			let hasUnityIncompatibleLatest = false;
-			for (let packageRow of packageRows) {
+			for (let packageRow of packageRowsData) {
 				if (packageRow.latest.status === "upgradable") {
 					if (envVersion == null) envVersion = packageRow.latest.pkg.env_version;
 					else if (envVersion != packageRow.latest.pkg.env_version) throw new Error("Inconsistent env_version");
@@ -349,7 +352,7 @@ function PageBody() {
 			let packages: number[] = [];
 			let envVersion: number | undefined = undefined;
 			let hasUnityIncompatibleLatest = false;
-			for (let packageRow of packageRows) {
+			for (let packageRow of packageRowsData) {
 				if (packageIds.has(packageRow.id)) {
 					if (packageRow.latest.status !== "upgradable")
 						throw new Error("Package is not upgradable");
@@ -381,7 +384,7 @@ function PageBody() {
 			let packages: number[] = [];
 			let envVersion: number | undefined = undefined;
 			let hasUnityIncompatibleLatest = false;
-			for (let packageRow of packageRows) {
+			for (let packageRow of packageRowsData) {
 				if (packageIds.has(packageRow.id)) {
 					if (packageRow.latest.status !== "contains")
 						throw new Error("Package is not installable");
@@ -606,7 +609,7 @@ function PageBody() {
 
 							<SearchBox className={"w-max flex-grow"} value={search} onChange={e => setSearch(e.target.value)}/>
 
-							{packageRows.some(row => row.latest.status === "upgradable") &&
+							{packageRowsData.some(row => row.latest.status === "upgradable") &&
 								<Button className={"flex-shrink-0"}
 										onClick={onUpgradeAllRequest}
 										disabled={isLoading}
@@ -689,8 +692,9 @@ function PageBody() {
 								</tr>
 								</thead>
 								<tbody>
-								{packageRows.map((row) => (
-									<PackageRow pkg={row} key={row.id}
+								{packageRowsData.map((row) => (
+									<tr className="even:bg-secondary/30" hidden={!filteredPackageIds.has(row.id)} key={row.id}>
+										<PackageRow pkg={row}
 												locked={isLoading}
 												onInstallRequested={onInstallRequested}
 												onRemoveRequested={onRemoveRequested}
@@ -698,7 +702,8 @@ function PageBody() {
 												bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
 												addBulkUpdatePackage={addBulkUpdatePackage}
 												removeBulkUpdatePackage={removeBulkUpdatePackage}
-									/>))}
+										/>
+									</tr>))}
 								</tbody>
 							</table>
 							</CardHeader>
@@ -1415,7 +1420,7 @@ const PackageRow = memo(function PackageRow(
 	}
 
 	return (
-		<tr className="even:bg-secondary/30">
+		<>
 			<td className={`${cellClass} w-1`}>
 				<Checkbox checked={bulkUpdateSelected}
 									onCheckedChange={onClickBulkUpdate}
@@ -1509,7 +1514,7 @@ const PackageRow = memo(function PackageRow(
 					}
 				</div>
 			</td>
-		</tr>
+		</>
 	);
 });
 
