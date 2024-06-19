@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog].
 - Per-package `headers` field support `#718`
   - Since this is adding support for missing features, I treat this as a bugfix and not bump minor version.
 - De-duplicating duplicated projects or Unity in VCC project list `#1081`
+- Customizing Command Line Arguments for Unity `#1127`
+- Preserve Unity if multiple instance of the same unity version are installed `#1127`
 
 ### Changed
 
