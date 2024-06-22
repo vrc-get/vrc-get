@@ -1847,8 +1847,8 @@ function LaunchSettings(
 			}
 		</DialogDescription>
 		<DialogFooter>
-			<Button onClick={save} disabled={errorMessage != null}>{tc("general:button:save")}</Button>
 			<Button onClick={close} variant={'destructive'}>{tc("general:button:cancel")}</Button>
+			<Button onClick={save} disabled={errorMessage != null}>{tc("general:button:save")}</Button>
 		</DialogFooter>
 	</>
 }
