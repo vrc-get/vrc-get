@@ -16,9 +16,6 @@ export default function RootLayout({
 }>) {
 	return (
 		<html>
-		<head>
-			<script src="http://localhost:8097"></script>
-		</head>
 		<body className={`font-sans w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
 		<Providers>
 			<SideBar className={"flex-grow-0 overflow-auto"}/>
