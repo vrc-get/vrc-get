@@ -234,5 +234,6 @@
     "settings:theme:system": "システム設定",
     "settings:theme:light": "ライト",
     "settings:theme:dark": "ダーク",
+    "settings:button:open location": "開く",
   },
 }
