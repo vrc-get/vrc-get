@@ -1727,7 +1727,15 @@ function DropdownMenuContentBody(
 	}
 ) {
 	const openProjectFolder = () => utilOpen(projectPath);
-	const forgetUnity = () => void projectSetUnityPath(projectPath, null);
+	const forgetUnity = async () => {
+		try {
+			await projectSetUnityPath(projectPath, null)
+			toastSuccess(tc("projects:toast:forgot unity path"))
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	}
 	const unityPathQuery = useQuery({
 		queryFn: () => projectGetUnityPath(projectPath),
 		queryKey: ["projectGetUnityPath", projectPath],
