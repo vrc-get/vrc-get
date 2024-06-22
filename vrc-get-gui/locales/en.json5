@@ -67,6 +67,7 @@
     "projects:dialog:launch options": "Launch Options",
     "projects:dialog:command-line arguments": "Command-line Arguments",
     "projects:dialog:use default command line arguments": "Use Default Command-line Arguments",
+    "projects:dialog:empty command line arguments": "Command-line Arguments is empty.",
     "projects:dialog:customize command line arguments": "Customize Command-line Arguments",
     "projects:hint:some arguments are empty": "Some arguments are empty.",
     "general:toast:invalid directory": "Invalid directory was selected.",

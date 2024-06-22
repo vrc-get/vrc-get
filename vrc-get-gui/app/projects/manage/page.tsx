@@ -29,9 +29,7 @@ import {
 } from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {
-	Dispatch,
 	memo,
-	SetStateAction,
 	Suspense,
 	useCallback,
 	useEffect,
@@ -40,12 +38,9 @@ import React, {
 } from "react";
 import {ArrowLeftIcon, ArrowPathIcon, ChevronDownIcon, EllipsisHorizontalIcon,} from "@heroicons/react/24/solid";
 import {
-	ArrowDownIcon,
 	ArrowUpCircleIcon,
-	ArrowUpIcon,
 	MinusCircleIcon,
 	PlusCircleIcon,
-	XCircleIcon,
 } from "@heroicons/react/24/outline";
 import {HNavBar, VStack} from "@/components/layout";
 import {useRouter, useSearchParams} from "next/navigation";
@@ -91,6 +86,7 @@ import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
 import {useUnity2022Migration, useUnity2022PatchMigration} from "@/app/projects/manage/unity-migration";
 import {Input} from "@/components/ui/input";
+import {ReorderableList, useReorderableList} from "@/components/ReorderableList";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -1755,6 +1751,7 @@ function DropdownMenuContentBody(
 	);
 }
 
+// Note: remember to change similar in rust side
 const defaultArgs = [
 	"-debugCodeOptimization",
 ]
@@ -1769,27 +1766,37 @@ function LaunchSettings(
 	}
 ) {
 	const [customizeCommandline, setCustomizeCommandline] = useState(false);
-	// Note: remember to change similar in rust side
-	const [customCommandlineArgs, setCustomCommandlineArgs] = useState(defaultArgs);
+
+	const reorderableListContext = useReorderableList<string>({
+		defaultValue: "",
+		defaultArray: defaultArgs,
+	});
+
+	// only for render; should not be modified
+	const defaultValueContext = useReorderableList<string>({
+		defaultValue: "",
+		defaultArray: defaultArgs,
+	});
+
 
 	useEffect(() => {
 		void (async () => {
 			const args = await projectGetCustomUnityArgs(projectPath);
 			if (args != null) {
 				setCustomizeCommandline(true);
-				setCustomCommandlineArgs(args);
+				reorderableListContext.setList(args);
 			}
 		})()
 	}, [projectPath])
 
 	const save = async () => {
-		await projectSetCustomUnityArgs(projectPath, customizeCommandline ? customCommandlineArgs : null)
+		await projectSetCustomUnityArgs(projectPath, customizeCommandline ? reorderableListContext.value : null)
 		close();
 	}
 
 	let errorMessage;
 
-	if (customizeCommandline && customCommandlineArgs.some(x => x.length == 0)) {
+	if (customizeCommandline && reorderableListContext.value.some(x => x.length == 0)) {
 		errorMessage = tc("projects:hint:some arguments are empty");
 	}
 
@@ -1801,18 +1808,38 @@ function LaunchSettings(
 				? <>
 					<Button
 						onClick={() => setCustomizeCommandline(false)}>{tc("projects:dialog:use default command line arguments")}</Button>
-					<CommandLineArgsConfig
-						commandLineArgs={customCommandlineArgs}
-						setCommandLineArgs={setCustomCommandlineArgs}
-						errorMessage={errorMessage}
-					/>
+					{
+						reorderableListContext.value.length > 0
+							? <table className={"w-full my-2"}>
+								<ReorderableList
+									context={reorderableListContext}
+									renderItem={(arg, id) =>
+										<Input
+											value={arg}
+											onChange={e => reorderableListContext.update(id, e.target.value)}
+											className={"w-full"}
+										/>}
+								/>
+							</table>
+							: <div>
+								{tc("projects:dialog:empty command line arguments")}
+								<Button className={"m-2"} onClick={() => reorderableListContext.add("")}>{tc("general:button:add")}</Button>
+							</div>
+					}
+					<div className={"flex gap-1 m-1 items-center"}>
+						<Button onClick={() => reorderableListContext.setList(defaultArgs)}>{tc("general:button:reset")}</Button>
+						<div className={"text-destructive whitespace-normal"}>
+							{errorMessage}
+						</div>
+					</div>
 				</>
 				: <>
 					<Button
 						onClick={() => setCustomizeCommandline(true)}>{tc("projects:dialog:customize command line arguments")}</Button>
-					<CommandLineArgsConfig
-						commandLineArgs={defaultArgs}
+					<ReorderableList
+						context={defaultValueContext}
 						disabled
+						renderItem={(arg) => <Input disabled value={arg} className={"w-full"}/>}
 					/>
 				</>
 			}
@@ -1821,90 +1848,5 @@ function LaunchSettings(
 			<Button onClick={save} disabled={errorMessage != null}>{tc("general:button:save")}</Button>
 			<Button onClick={close} variant={'destructive'}>{tc("general:button:cancel")}</Button>
 		</DialogFooter>
-	</>
-}
-
-function CommandLineArgsConfig(
-	{
-		commandLineArgs,
-		setCommandLineArgs,
-		disabled,
-		errorMessage,
-	}: {
-		commandLineArgs: string[];
-		setCommandLineArgs?: Dispatch<SetStateAction<string[]>>;
-		disabled?: boolean;
-		errorMessage?: React.ReactNode;
-	}
-) {
-	return <>
-		<div>
-			{commandLineArgs.map((arg, i) => <div key={i} className={"flex gap-1"}>
-				<Input
-					disabled={disabled}
-					value={arg}
-					onChange={e => setCommandLineArgs?.(prev => {
-						const copy = [...prev];
-						copy[i] = e.target.value;
-						return copy;
-					})}
-					className={"w-full"}
-				/>
-				<Button
-					disabled={disabled}
-					variant={'ghost'}
-					size={"icon"}
-					className={'my-1'}
-					onClick={() => setCommandLineArgs?.(prev => {
-						const copy = [...prev];
-						copy.splice(i, 1);
-						return copy;
-					})}
-				>
-					<XCircleIcon className={"size-5 text-destructive"}/>
-				</Button>
-				<div className={'flex flex-col my-1'}>
-					<Button
-						disabled={disabled || i == 0}
-						variant={'ghost'}
-						size={"icon"}
-						className={'h-5'}
-						onClick={() => setCommandLineArgs?.(prev => {
-							const copy = [...prev];
-							const tmp = copy[i];
-							copy[i] = copy[i - 1];
-							copy[i - 1] = tmp;
-							return copy;
-						})}
-					>
-						<ArrowUpIcon className={"size-2"}/>
-					</Button>
-					<Button
-						disabled={disabled || i == commandLineArgs.length - 1}
-						variant={'ghost'}
-						size={"icon"}
-						className={'h-5'}
-						onClick={() => setCommandLineArgs?.(prev => {
-							const copy = [...prev];
-							const tmp = copy[i];
-							copy[i] = copy[i + 1];
-							copy[i + 1] = tmp;
-							return copy;
-						})}
-					>
-						<ArrowDownIcon className={"size-2"}/>
-					</Button>
-				</div>
-			</div>)}
-		</div>
-		<div className={"flex gap-1 m-1 items-center"}>
-			<Button disabled={disabled}
-							onClick={() => setCommandLineArgs?.(v => [...v, ""])}>{tc("general:button:add")}</Button>
-			<Button disabled={disabled}
-							onClick={() => setCommandLineArgs?.(defaultArgs)}>{tc("general:button:reset")}</Button>
-			<div className={"text-destructive whitespace-normal"}>
-				{errorMessage}
-			</div>
-		</div>
 	</>
 }
