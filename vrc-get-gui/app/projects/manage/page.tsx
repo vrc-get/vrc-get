@@ -1664,13 +1664,10 @@ function ProjectViewHeader({
 	onBackup?: () => void,
 }) {
 	const openUnity = useOpenUnity();
-	const openProjectFolder = () => utilOpen(projectPath);
 	const [openLaunchOptions, setOpenLaunchOptions] = useState(false);
 
 	const onChangeLaunchOptions = () => setOpenLaunchOptions(true);
 	const closeChangeLaunchOptions = () => setOpenLaunchOptions(false);
-
-	const forgetUnity = () => void projectSetUnityPath(projectPath, null);
 
 	return (
 		<HNavBar className={className}>
@@ -1701,11 +1698,12 @@ function ProjectViewHeader({
 					</DropdownMenuTrigger>
 				</div>
 				<DropdownMenuContent>
-					<DropdownMenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
-					<DropdownMenuItem onClick={forgetUnity}>{tc("projects:menuitem:forget unity path")}</DropdownMenuItem>
-					<DropdownMenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</DropdownMenuItem>
-					<DropdownMenuItem onClick={onChangeLaunchOptions}>{tc("projects:menuitem:change launch options")}</DropdownMenuItem>
-					<DropdownMenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>{tc("projects:remove project")}</DropdownMenuItem>
+					<DropdownMenuContentBody
+						projectPath={projectPath}
+						onRemove={onRemove}
+						onBackup={onBackup}
+						onChangeLaunchOptions={onChangeLaunchOptions}
+					/>
 				</DropdownMenuContent>
 			</DropdownMenu>
 			{openUnity.dialog}
@@ -1715,6 +1713,41 @@ function ProjectViewHeader({
 				</DialogContent>
 			</Dialog>
 		</HNavBar>
+	);
+}
+
+function DropdownMenuContentBody(
+	{
+		projectPath,
+		onRemove,
+		onBackup,
+		onChangeLaunchOptions,
+	}: {
+		projectPath: string,
+		onRemove?: () => void,
+		onBackup?: () => void,
+		onChangeLaunchOptions?: () => void,
+	}
+) {
+	const openProjectFolder = () => utilOpen(projectPath);
+	const forgetUnity = () => void projectSetUnityPath(projectPath, null);
+
+	useEffect(() => {
+		console.log("DropdownMenuContentBody created")
+	}, []);
+
+	return (
+		<>
+			<DropdownMenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
+			<DropdownMenuItem onClick={forgetUnity}>{tc("projects:menuitem:forget unity path")}</DropdownMenuItem>
+			<DropdownMenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</DropdownMenuItem>
+			<DropdownMenuItem onClick={onChangeLaunchOptions}>
+				{tc("projects:menuitem:change launch options")}
+			</DropdownMenuItem>
+			<DropdownMenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>
+				{tc("projects:remove project")}
+			</DropdownMenuItem>
+		</>
 	);
 }
 
