@@ -20,11 +20,11 @@ import {
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {Suspense, useCallback, useEffect, useId, useMemo, useState} from "react";
-import {MinusCircleIcon, PlusCircleIcon, XCircleIcon} from "@heroicons/react/24/outline";
+import {XCircleIcon} from "@heroicons/react/24/outline";
 import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
-import {loadManifestWithRetries} from "next/dist/server/load-components";
 import {useTauriListen} from "@/lib/use-tauri-listen";
+import {ReorderableList, useReorderableList} from "@/components/ReorderableList";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -307,8 +307,6 @@ function RepositoryRow(
 	)
 }
 
-let globalHeaderId = 0;
-
 function EnteringRepositoryInfo(
 	{
 		cancel,
@@ -319,12 +317,12 @@ function EnteringRepositoryInfo(
 	}
 ) {
 	const [url, setUrl] = useState("");
-	type Header = { name: string, value: string, id: number };
-	const [headerArray, setHeaderArray] = useState<Header[]>(() => [{
-		name: "",
-		value: "",
-		id: globalHeaderId++,
-	}]);
+
+	const reordableListContext = useReorderableList({
+		defaultValue: {name: "", value: ""},
+		allowEmpty: false,
+		reorderable: false,
+	})
 
 	let foundHeaderNameError = false;
 	let foundHeaderValueError = false;
@@ -332,7 +330,7 @@ function EnteringRepositoryInfo(
 
 	let headerNameSet = new Set<string>();
 
-	for (let {name, value} of headerArray) {
+	for (let {value, name} of reordableListContext.value) {
 		let trimedName = name.trim();
 		let trimedValue = value.trim();
 		if (trimedName != "" || trimedValue != "") {
@@ -370,32 +368,9 @@ function EnteringRepositoryInfo(
 
 	const hasError = foundHeaderNameError || foundHeaderValueError || foundDuplicateHeader;
 
-	const addHeader = () => {
-		setHeaderArray(old => [...old, {
-			name: "",
-			value: "",
-			id: globalHeaderId++,
-		}]);
-	}
-
-	const removeHeader = (idx: number) => {
-		setHeaderArray(old => {
-			const newArray = [...old];
-			newArray.splice(idx, 1);
-			if (newArray.length === 0) {
-				newArray.push({
-					name: "",
-					value: "",
-					id: globalHeaderId++,
-				});
-			}
-			return newArray;
-		});
-	}
-
 	const onAddRepository = () => {
 		const headers: { [name: string]: string } = {};
-		for (const header of headerArray) {
+		for (const header of reordableListContext.value) {
 			if (header.name.trim() === "") continue;
 			headers[header.name.trim()] = header.value.trim();
 		}
@@ -409,7 +384,7 @@ function EnteringRepositoryInfo(
 					{tc("vpm repositories:dialog:enter repository info")}
 				</p>
 				<Input className={"w-full"} type={"vpm repositories:url"} value={url} onChange={e => setUrl(e.target.value)}
-								placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
+							 placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
 				<details>
 					<summary className={"font-bold"}>{tc("vpm repositories:dialog:headers")}</summary>
 					<div className={"w-full max-h-[50vh] overflow-y-auto"}>
@@ -422,59 +397,28 @@ function EnteringRepositoryInfo(
 							</tr>
 							</thead>
 							<tbody>
-							{
-								headerArray.map(({name, value, id}, idx) => (
-									<tr key={id}>
+							<ReorderableList
+								context={reordableListContext}
+								renderItem={(value, id) => (
+									<>
 										<td>
 											<Input
 												type={"text"}
-												value={name}
-												className={"w-96"}
-												onChange={e => {
-													setHeaderArray(old => {
-														const newArray = [...old];
-														newArray[idx] = {...newArray[idx]};
-														newArray[idx].name = e.target.value;
-														return newArray;
-													})
-												}}
+												value={value.name}
+												className={"w-full"}
+												onChange={e => reordableListContext.update(id, old => ({...old, name: e.target.value}))}
 											/>
 										</td>
 										<td>
 											<Input
 												type={"text"}
-												value={value}
-												onChange={e => {
-													setHeaderArray(old => {
-														const newArray = [...old];
-														newArray[idx] = {...newArray[idx]};
-														newArray[idx].value = e.target.value;
-														return newArray;
-													})
-												}}
+												value={value.value}
+												className={"w-full"}
+												onChange={e => reordableListContext.update(id, old => ({...old, value: e.target.value}))}
 											/>
 										</td>
-										<td className={"w-20"}>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<Button variant={"ghost"} size={"icon"} onClick={addHeader}>
-														<PlusCircleIcon color={"green"} className={"size-5"}/>
-													</Button>
-												</TooltipTrigger>
-												<TooltipContent className={"z-[19999]"}>{tc("vpm repositories:tooltip:add header")}</TooltipContent>
-											</Tooltip>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<Button variant={"ghost"} size={"icon"} onClick={() => removeHeader(idx)}>
-														<MinusCircleIcon color={"red"} className={"size-5"}/>
-													</Button>
-												</TooltipTrigger>
-												<TooltipContent className={"z-[19999]"}>{tc("vpm repositories:tooltip:remove header")}</TooltipContent>
-											</Tooltip>
-										</td>
-									</tr>
-								))
-							}
+									</>
+								)}/>
 							</tbody>
 						</table>
 					</div>

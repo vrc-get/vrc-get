@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 - De-duplicating duplicated projects or Unity in VCC project list `#1081`
 - Show package description on hovering package name / id `#1118`
+- Open Project / Backup Location button on Settings Page `#1140`
 
 ### Changed
 - Refine Dark Theme `#1083`
