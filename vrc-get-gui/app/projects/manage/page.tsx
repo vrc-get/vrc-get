@@ -1738,12 +1738,12 @@ function DropdownMenuContentBody(
 
 	return (
 		<>
-			<DropdownMenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
-			<DropdownMenuItem onClick={forgetUnity}>{tc("projects:menuitem:forget unity path")}</DropdownMenuItem>
-			<DropdownMenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</DropdownMenuItem>
 			<DropdownMenuItem onClick={onChangeLaunchOptions}>
 				{tc("projects:menuitem:change launch options")}
 			</DropdownMenuItem>
+			<DropdownMenuItem onClick={forgetUnity}>{tc("projects:menuitem:forget unity path")}</DropdownMenuItem>
+			<DropdownMenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
+			<DropdownMenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</DropdownMenuItem>
 			<DropdownMenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>
 				{tc("projects:remove project")}
 			</DropdownMenuItem>
