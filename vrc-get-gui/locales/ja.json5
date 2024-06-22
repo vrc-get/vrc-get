@@ -62,7 +62,7 @@
     "projects:dialog:launch options": "起動オプション",
     "projects:dialog:command-line arguments": "コマンドライン引数",
     "projects:dialog:use default command line arguments": "デフォルトのコマンドライン引数を使用する",
-    "projects:dialog:empty command line arguments": "コマンドライン引数が空です。",
+    "projects:dialog:empty command line arguments": "コマンドライン引数は空です。",
     "projects:dialog:customize command line arguments": "コマンドライン引数をカスタマイズする",
     "projects:hint:some arguments are empty": "空の引数があります。",
     "general:toast:invalid directory": "不正なディレクトリが選択されました。",
