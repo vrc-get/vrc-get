@@ -1836,11 +1836,13 @@ function LaunchSettings(
 				: <>
 					<Button
 						onClick={() => setCustomizeCommandline(true)}>{tc("projects:dialog:customize command line arguments")}</Button>
-					<ReorderableList
-						context={defaultValueContext}
-						disabled
-						renderItem={(arg) => <Input disabled value={arg} className={"w-full"}/>}
-					/>
+					<table className={"w-full my-2"}>
+						<ReorderableList
+							context={defaultValueContext}
+							disabled
+							renderItem={(arg) => <Input disabled value={arg} className={"w-full"}/>}
+						/>
+					</table>
 				</>
 			}
 		</DialogDescription>

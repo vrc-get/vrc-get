@@ -98,7 +98,7 @@ function SelectUnityVersionDialog(
 				<p>
 					{tc("projects:manage:dialog:multiple unity found")}
 				</p>
-				{withKeepUsing && <div>
+				{withKeepUsing && <div className={"my-2"}>
 					<label className={"flex cursor-pointer items-center gap-2 p-2 whitespace-normal"}>
 						<Checkbox checked={keepUsingThisVersion}
 											onCheckedChange={(e) => setKeepUsingThisVersion(e == true)}
@@ -113,7 +113,7 @@ function SelectUnityVersionDialog(
 					{unityVersions.map(([path, version, _]) =>
 						<div
 							key={path}
-							className={"flex items-center space-x-2"}
+							className={"flex items-center gap-2"}
 						>
 							<RadioGroupItem value={path} id={`${id}:${path}`}/>
 							<Label htmlFor={`${id}:${path}`}>{`${version} (${path})`}</Label>
