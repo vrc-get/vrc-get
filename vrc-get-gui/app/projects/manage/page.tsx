@@ -50,7 +50,7 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import {useRouter, useSearchParams} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
-import {useQueries} from "@tanstack/react-query";
+import {useQueries, useQuery} from "@tanstack/react-query";
 import {
 	environmentHideRepository,
 	environmentPackages,
@@ -62,6 +62,7 @@ import {
 	projectApplyPendingChanges,
 	projectDetails,
 	projectGetCustomUnityArgs,
+	projectGetUnityPath,
 	projectInstallMultiplePackage,
 	projectInstallPackage,
 	projectRemovePackages,
@@ -1731,17 +1732,20 @@ function DropdownMenuContentBody(
 ) {
 	const openProjectFolder = () => utilOpen(projectPath);
 	const forgetUnity = () => void projectSetUnityPath(projectPath, null);
+	const unityPathQuery = useQuery({
+		queryFn: () => projectGetUnityPath(projectPath),
+		queryKey: ["projectGetUnityPath", projectPath],
+		refetchOnWindowFocus: false,
+	});
 
-	useEffect(() => {
-		console.log("DropdownMenuContentBody created")
-	}, []);
+	const unityPath = unityPathQuery.data;
 
 	return (
 		<>
 			<DropdownMenuItem onClick={onChangeLaunchOptions}>
 				{tc("projects:menuitem:change launch options")}
 			</DropdownMenuItem>
-			<DropdownMenuItem onClick={forgetUnity}>{tc("projects:menuitem:forget unity path")}</DropdownMenuItem>
+			{unityPath && <DropdownMenuItem onClick={forgetUnity}>{tc("projects:menuitem:forget unity path")}</DropdownMenuItem>}
 			<DropdownMenuItem onClick={openProjectFolder}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
 			<DropdownMenuItem onClick={onBackup}>{tc("projects:menuitem:backup")}</DropdownMenuItem>
 			<DropdownMenuItem onClick={onRemove} className={"bg-destructive text-destructive-foreground"}>
