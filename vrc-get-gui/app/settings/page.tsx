@@ -28,7 +28,7 @@ import {
 	environmentLanguage,
 	environmentTheme,
 	TauriEnvironmentSettings,
-	utilGetVersion,
+	utilGetVersion, utilOpen,
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
 import React from "react";
@@ -168,6 +168,15 @@ function Settings(
 		}
 	};
 
+	const openProjectDefaultFolder = async () => {
+		try {
+			await utilOpen(settings.default_project_path)
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	};
+
 	const selectProjectBackupFolder = async () => {
 		try {
 			const result = await pickProjectBackupPath();
@@ -185,6 +194,15 @@ function Settings(
 				default:
 					const _exhaustiveCheck: never = result;
 			}
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	};
+
+	const openProjectBackupFolder = async () => {
+		try {
+			await utilOpen(settings.default_project_path)
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e)
@@ -302,6 +320,9 @@ function Settings(
 					<Input className="flex-auto" value={settings.default_project_path} disabled/>
 					<Button className={"flex-none px-4"}
 									onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
+					<Button className={"flex-none px-4"} onClick={openProjectDefaultFolder}>
+						{tc("settings:button:open location")}
+					</Button>
 				</div>
 			</Card>
 			<Card className={"flex-shrink-0 p-4"}>
@@ -315,6 +336,9 @@ function Settings(
 						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
 						<Button className={"flex-none px-4"}
 										onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
+						<Button className={"flex-none px-4"} onClick={openProjectBackupFolder}>
+							{tc("settings:button:open location")}
+						</Button>
 					</div>
 				</div>
 				<div className="mt-2">
