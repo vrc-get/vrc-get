@@ -103,7 +103,7 @@ function SelectUnityVersionDialog(
 						<Checkbox checked={keepUsingThisVersion}
 											onCheckedChange={(e) => setKeepUsingThisVersion(e == true)}
 											className="hover:before:content-none"/>
-						{"Keep Using This Version"}
+						{tc("projects:manage:dialog:keep using this version")}
 					</label>
 				</div>}
 				<RadioGroup
