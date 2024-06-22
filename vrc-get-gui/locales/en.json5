@@ -240,5 +240,6 @@
     "settings:theme:system": "System",
     "settings:theme:light": "Light",
     "settings:theme:dark": "Dark",
+    "settings:button:open location": "Open Location",
   },
 }
