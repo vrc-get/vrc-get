@@ -287,8 +287,8 @@ function Settings(
 
 
 	return (
-		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
-			<ScrollArea>
+		<ScrollArea>
+			<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
 					<div className={"flex gap-1 items-center"}>
@@ -446,8 +446,8 @@ function Settings(
 						})}
 					</p>
 				</Card>
-			</ScrollArea>
-		</main>
+			</main>
+		</ScrollArea>
 	)
 }
 
