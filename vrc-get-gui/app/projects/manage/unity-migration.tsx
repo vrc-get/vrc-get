@@ -331,6 +331,7 @@ function MigrationCallingUnityForMigrationDialog(
 		<p>
 			{tc("projects:manage:dialog:do not close")}
 		</p>
+		{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 		<pre className={"overflow-y-auto h-[50vh] bg-secondary text-secondary-foreground text-sm"}>
 					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
 			<div ref={ref}/>
