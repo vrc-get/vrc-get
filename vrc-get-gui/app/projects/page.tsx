@@ -102,29 +102,27 @@ export default function Page() {
 												 startCreateProject={startCreateProject}
 												 isLoading={loading}
 												 search={search} setSearch={setSearch}/>
-			<ScrollArea className="auto flex-shrink overflow-hidden flex">
-				<Card className="w-full overflow-x-auto overflow-y-auto shadow-none">
-					<CardHeader>
-						{
-							result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
-								result.status == "error" ?
-									<Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
-									<ProjectsTable
-										projects={result.data}
-										search={search}
-										loading={loading}
-										openUnity={openUnity.openUnity}
-										refresh={() => result.refetch()}
-										onRemoved={() => result.refetch()}
-									/>
-						}
-					</CardHeader>
-				</Card>
-				{createProjectState === "creating" &&
-					<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
-				{openUnity.dialog}
-				
-			</ScrollArea>
+			<Card className="w-full shadow-none overflow-hidden">
+				<ScrollArea type={"auto"} className="auto flex-shrink flex h-full w-full">
+					{
+						result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
+							result.status == "error" ?
+								<Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
+								<ProjectsTable
+									projects={result.data}
+									search={search}
+									loading={loading}
+									openUnity={openUnity.openUnity}
+									refresh={() => result.refetch()}
+									onRemoved={() => result.refetch()}
+								/>
+					}
+					<ScrollBar orientation="horizontal" className="bg-background"/>
+				</ScrollArea>
+			</Card>
+			{createProjectState === "creating" &&
+				<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
+			{openUnity.dialog}
 		</VStack>
 	);
 }
@@ -262,7 +260,7 @@ function ProjectsTable(
 				: <ChevronUpDownIcon className={iconClass}/>;
 
 	return (
-		<table className="relative table-auto text-left">
+		<table className="relative table-auto text-left w-full">
 			<thead>
 			<tr>
 				<th className={`${thClass} bg-secondary text-secondary-foreground`}>

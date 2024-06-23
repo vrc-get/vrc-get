@@ -7,6 +7,7 @@ import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
 import {notoSansMono} from "@/app/fonts";
 import {tc} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
+import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
@@ -29,11 +30,12 @@ export default function Page() {
 					{tc("logs")}
 				</p>
 			</HNavBar>
-			<main className="flex-shrink overflow-hidden flex flex-grow">
-				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre font-mono shadow-none text-muted-foreground`}>
-					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
-				</Card>
-			</main>
+			<Card className={`w-full p-2 whitespace-pre font-mono shadow-none text-muted-foreground overflow-hidden`}>
+				<ScrollArea type={"always"} className={"w-full h-full"}>
+						{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
+					<ScrollBar className={"bg-background"} orientation="horizontal" />
+				</ScrollArea>
+			</Card>
 		</VStack>
 	);
 }

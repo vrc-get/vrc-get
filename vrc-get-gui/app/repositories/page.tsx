@@ -25,6 +25,7 @@ import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toa
 import {tc, tt} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {ReorderableList, useReorderableList} from "@/components/ReorderableList";
+import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -155,7 +156,7 @@ function PageBody() {
 		</DialogOpen> : null;
 
 	return (
-		<VStack className={"p-4 overflow-y-auto"}>
+		<VStack className={"p-4 overflow-hidden"}>
 			<HNavBar className={"flex-shrink-0"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("vpm repositories:community repositories")}
@@ -164,18 +165,19 @@ function PageBody() {
 					onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("vpm repositories:button:add repository")}</Button>
 			</HNavBar>
 			<main className="flex-shrink flex-grow overflow-hidden flex">
-				<Card className="w-full overflow-x-auto overflow-y-scroll shadow-none">
-					<CardHeader>
+				<Card className="w-full shadow-none overflow-hidden">
+					<ScrollArea type={"auto"} className="auto flex-shrink flex h-full w-full">
 						<RepositoryTable
 							userRepos={result.data?.user_repositories || []}
 							hiddenUserRepos={hiddenUserRepos}
 							removeRepository={removeRepository}
 							refetch={() => result.refetch()}
 						/>
-						{dialog}
-					</CardHeader>
+						<ScrollBar orientation={"horizontal"} className={"bg-background px-2.5"}/>
+					</ScrollArea>
 				</Card>
 			</main>
+			{dialog}
 		</VStack>
 	);
 }
@@ -387,13 +389,14 @@ function EnteringRepositoryInfo(
 							 placeholder={"https://vpm.anatawa12.com/vpm.json"}></Input>
 				<details>
 					<summary className={"font-bold"}>{tc("vpm repositories:dialog:headers")}</summary>
+					{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 					<div className={"w-full max-h-[50vh] overflow-y-auto"}>
 						<table className={"w-full"}>
 							<thead>
 							<tr>
-								<th className={"sticky top-0 z-10"}>{tc("vpm repositories:dialog:header name")}</th>
-								<th className={"sticky top-0 z-10"}>{tc("vpm repositories:dialog:header value")}</th>
-								<th className={"sticky top-0 z-10"}></th>
+								<th className={"sticky top-0 z-10 bg-background"}>{tc("vpm repositories:dialog:header name")}</th>
+								<th className={"sticky top-0 z-10 bg-background"}>{tc("vpm repositories:dialog:header value")}</th>
+								<th className={"sticky top-0 z-10 bg-background"}></th>
 							</tr>
 							</thead>
 							<tbody>
@@ -496,6 +499,7 @@ function Confirming(
 ) {
 	return (
 		<>
+			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 			<DialogDescription className={"max-h-[50vh] overflow-y-auto font-normal"}>
 				<p
 					className={"font-normal"}>{tc("vpm repositories:dialog:name", {name: repo.display_name})}</p>

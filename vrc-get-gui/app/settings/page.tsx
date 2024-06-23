@@ -3,7 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {ScrollArea} from "@/components/ui/scroll-area";
+import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
 import {Input} from "@/components/ui/input";
 import {
 	Select,
@@ -288,7 +288,7 @@ function Settings(
 
 	return (
 		<ScrollArea>
-			<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
+			<main className="flex flex-col gap-2 flex-shrink flex-grow">
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
 					<div className={"flex gap-1 items-center"}>
@@ -307,10 +307,11 @@ function Settings(
 						</div>
 						<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
 					</div>
-					<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
-						<CardHeader>
+					<Card className="w-full min-h-[20vh] flex flex-col overflow-hidden">
+						<ScrollArea className={"h-full grow"}>
 							<UnityTable unityPaths={settings.unity_paths}/>
-						</CardHeader>
+							<ScrollBar orientation={"horizontal"} className={"bg-background px-2.5"}/>
+						</ScrollArea>
 					</Card>
 				</Card>
 				<Card className={"flex-shrink-0 p-4"}>

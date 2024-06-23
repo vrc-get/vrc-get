@@ -10,6 +10,7 @@ import {utilGetVersion} from "@/lib/bindings";
 import {useTranslation} from "react-i18next";
 import {useRouter} from "next/navigation";
 import {toastNormal} from "@/lib/toast";
+import {ScrollArea} from "@/components/ui/scroll-area";
 
 export function SideBar({className}: { className?: string }) {
 	"use client"
@@ -37,7 +38,7 @@ export function SideBar({className}: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-[20rem] p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0`}>
+			className={`${className} flex w-auto max-w-[20rem] p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}>
 			<div className="flex flex-col gap-1 p-2 min-w-[10rem] flex-grow">
 				<SideBarItem href={"/projects"} text={t("projects")} icon={ListBulletIcon}/>
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
@@ -58,7 +59,7 @@ function SideBarItem(
 	const router = useRouter();
 	const IconElenment = icon;
 	return (
-		<Button variant={"ghost"} className={"justify-start"} onClick={() => router.push(href)}>
+		<Button variant={"ghost"} className={"justify-start flex-shrink-0"} onClick={() => router.push(href)}>
 			<div className={"mr-4"}>
 				<IconElenment className="h-5 w-5"/>
 			</div>

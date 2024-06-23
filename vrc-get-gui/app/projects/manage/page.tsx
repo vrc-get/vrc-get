@@ -1,7 +1,7 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
-import {Card, CardHeader} from "@/components/ui/card";
+import {Card, CardContent} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {
 	Dialog,
@@ -87,6 +87,7 @@ import {useBackupProjectModal} from "@/lib/backup-project";
 import {useUnity2022Migration, useUnity2022PatchMigration} from "@/app/projects/manage/unity-migration";
 import {Input} from "@/components/ui/input";
 import {ReorderableList, useReorderableList} from "@/components/ReorderableList";
+import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -587,9 +588,9 @@ function PageBody() {
 			{is2022PatchMigrationRecommended &&
 				<Suggest2022PatchMigrationCard disabled={isLoading}
 																			 onMigrateRequested={unity2022PatchMigration.request}/>}
-			<main className="flex-shrink overflow-hidden flex">
-				<Card className="flex-grow flex-shrink flex shadow-none">
-					<CardHeader className="w-full p-2 gap-2">
+			<main className="flex-shrink overflow-hidden flex w-full">
+				<Card className="flex-grow flex-shrink flex shadow-none w-full">
+					<CardContent className="w-full p-2 flex flex-col gap-2">
 						<div className={"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center"}>
 							<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 								{tc("projects:manage:manage packages")}
@@ -672,40 +673,41 @@ function PageBody() {
 							bulkInstallAll={onInstallBulkRequested}
 							cancel={() => setBulkUpdatePackageIds([])}
 						/>
-						<Card className="w-full overflow-x-auto overflow-y-scroll">
-							<CardHeader>
-							<table className="relative table-auto text-left">
-								<thead>
-								<tr>
-									<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground`}>
-									</th>
-									{TABLE_HEAD.map((head, index) => (
-										<th key={index}
-											className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
-											<small className="font-normal leading-none">{tc(head)}</small>
+						<Card className="overflow-hidden">
+							<ScrollArea className="w-full h-full" type={"auto"}>
+								<table className="relative table-auto text-left w-full">
+									<thead>
+									<tr>
+										<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground`}>
 										</th>
-									))}
-									<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}/>
-								</tr>
-								</thead>
-								<tbody>
-								{packageRowsData.map((row) => (
-									<tr className="even:bg-secondary/30" hidden={!filteredPackageIds.has(row.id)} key={row.id}>
-										<PackageRow pkg={row}
-												locked={isLoading}
-												onInstallRequested={onInstallRequested}
-												onRemoveRequested={onRemoveRequested}
-												bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
-												bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
-												addBulkUpdatePackage={addBulkUpdatePackage}
-												removeBulkUpdatePackage={removeBulkUpdatePackage}
-										/>
-									</tr>))}
-								</tbody>
-							</table>
-							</CardHeader>
+										{TABLE_HEAD.map((head, index) => (
+											<th key={index}
+												className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
+												<small className="font-normal leading-none">{tc(head)}</small>
+											</th>
+										))}
+										<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}/>
+									</tr>
+									</thead>
+									<tbody>
+									{packageRowsData.map((row) => (
+										<tr className="even:bg-secondary/30" hidden={!filteredPackageIds.has(row.id)} key={row.id}>
+											<PackageRow pkg={row}
+													locked={isLoading}
+													onInstallRequested={onInstallRequested}
+													onRemoveRequested={onRemoveRequested}
+													bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
+													bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
+													addBulkUpdatePackage={addBulkUpdatePackage}
+													removeBulkUpdatePackage={removeBulkUpdatePackage}
+											/>
+										</tr>))}
+									</tbody>
+								</table>
+								<ScrollBar orientation="horizontal" className="bg-background" />
+							</ScrollArea>
 						</Card>
-					</CardHeader>
+					</CardContent>
 				</Card>
 				{dialogForState}
 				{unity2022Migration.dialog}
@@ -899,6 +901,7 @@ function ProjectChangesDialog(
 	return (
 		<DialogOpen className={"whitespace-normal"}>
 			<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
+			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 			<DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
 				<p>
 					{tc("projects:manage:dialog:confirm changes description")}
@@ -1810,6 +1813,7 @@ function LaunchSettings(
 
 	return <>
 		<DialogTitle>{tc("projects:dialog:launch options")}</DialogTitle>
+		{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 		<DialogDescription className={"max-h-[50dvh] overflow-y-auto"}>
 			<h3 className={"text-lg"}>{tc("projects:dialog:command-line arguments")}</h3>
 			{customizeCommandline

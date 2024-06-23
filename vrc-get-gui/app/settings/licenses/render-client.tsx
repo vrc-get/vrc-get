@@ -4,6 +4,7 @@ import {Card} from "@/components/ui/card";
 import Link from "next/link";
 import {Licenses} from "@/lib/licenses";
 import {shellOpen} from "@/lib/shellOpen";
+import {ScrollArea} from "@/components/ui/scroll-area";
 
 export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 	if (licenses === null) {
@@ -15,7 +16,7 @@ export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 	}
 
 	return (
-		<div className={"overflow-y-scroll"}>
+		<ScrollArea>
 			<Card className={"m-4 p-4"}>
 				<p>
 					This project is built on top of many open-source projects.<br/>
@@ -35,11 +36,13 @@ export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 								onClick={() => shellOpen(pkg.url)}>{pkg.name} ({pkg.version})</a></li>
 						))}
 					</ul>
-					<Card className={"p-3 max-h-52 overflow-y-scroll"}>
-						<pre className={"whitespace-pre-wrap"}>{license.text}</pre>
+					<Card className={"p-3 max-h-52 flex"}>
+						<ScrollArea className={'overflow-hidden flex-shrink w-full'}>
+							<pre className={"whitespace-pre-wrap"}>{license.text}</pre>
+						</ScrollArea>
 					</Card>
 				</Card>
 			))}
-		</div>
+		</ScrollArea>
 	);
 }
