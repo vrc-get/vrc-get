@@ -115,7 +115,7 @@ function UnityTable() {
 	];
 	const UNITY_TABLE_HEAD = ["Version", "Path", "Source"];
 	return (
-		<table className="relative table-auto text-left">
+		<table className="relative table-auto text-left w-full">
 			<thead>
 			<tr>
 				{UNITY_TABLE_HEAD.map((head, index) => (
