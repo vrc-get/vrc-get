@@ -3,6 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
+import {ScrollArea} from "@/components/ui/scroll-area";
 import {Input} from "@/components/ui/input";
 import {
 	Select,
@@ -287,163 +288,165 @@ function Settings(
 
 	return (
 		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
-				<div className={"flex gap-1 items-center"}>
-					{
-						settings.unity_hub
-							? <Input className="flex-auto" value={settings.unity_hub} disabled/>
-							: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-destructive"}/>
-					}
-					<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("general:button:select")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<div className={"pb-2 flex align-middle"}>
-					<div className={"flex-grow flex items-center"}>
-						<h2>{tc("settings:unity installations")}</h2>
+			<ScrollArea>
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
+					<div className={"flex gap-1 items-center"}>
+						{
+							settings.unity_hub
+								? <Input className="flex-auto" value={settings.unity_hub} disabled/>
+								: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-destructive"}/>
+						}
+						<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("general:button:select")}</Button>
 					</div>
-					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
-				</div>
-				<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
-					<CardHeader>
-						<UnityTable unityPaths={settings.unity_paths}/>
-					</CardHeader>
 				</Card>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:default project path")}</h2>
-				<p className={"whitespace-normal"}>
-					{tc("settings:default project path description")}
-				</p>
-				<div className={"flex gap-1 items-center"}>
-					<Input className="flex-auto" value={settings.default_project_path} disabled/>
-					<Button className={"flex-none px-4"}
-									onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
-					<Button className={"flex-none px-4"} onClick={openProjectDefaultFolder}>
-						{tc("settings:button:open location")}
-					</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("projects:backup")}</h2>
-				<div className="mt-2">
-					<h3>{tc("settings:backup:path")}</h3>
+				<Card className={"flex-shrink-0 p-4"}>
+					<div className={"pb-2 flex align-middle"}>
+						<div className={"flex-grow flex items-center"}>
+							<h2>{tc("settings:unity installations")}</h2>
+						</div>
+						<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
+					</div>
+					<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
+						<CardHeader>
+							<UnityTable unityPaths={settings.unity_paths}/>
+						</CardHeader>
+					</Card>
+				</Card>
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("settings:default project path")}</h2>
 					<p className={"whitespace-normal"}>
-						{tc("settings:backup:path description")}
+						{tc("settings:default project path description")}
 					</p>
 					<div className={"flex gap-1 items-center"}>
-						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
+						<Input className="flex-auto" value={settings.default_project_path} disabled/>
 						<Button className={"flex-none px-4"}
-										onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
-						<Button className={"flex-none px-4"} onClick={openProjectBackupFolder}>
+										onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
+						<Button className={"flex-none px-4"} onClick={openProjectDefaultFolder}>
 							{tc("settings:button:open location")}
 						</Button>
 					</div>
-				</div>
-				<div className="mt-2">
-					<label className={"flex items-center"}>
-						<h3>{tc("settings:backup:format")}</h3>
-						<Select defaultValue={settings.backup_format} onValueChange={setBackupFormat}>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
-									<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
-									<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
-									<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					</label>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<p className={"whitespace-normal"}>
-					{tc("settings:show prerelease description")}
-				</p>
-				<label className={"flex items-center"}>
-					<div className={"p-3"}>
-						<Checkbox checked={settings.show_prerelease_packages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
+				</Card>
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("projects:backup")}</h2>
+					<div className="mt-2">
+						<h3>{tc("settings:backup:path")}</h3>
+						<p className={"whitespace-normal"}>
+							{tc("settings:backup:path description")}
+						</p>
+						<div className={"flex gap-1 items-center"}>
+							<Input className="flex-auto" value={settings.project_backup_path} disabled/>
+							<Button className={"flex-none px-4"}
+											onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
+							<Button className={"flex-none px-4"} onClick={openProjectBackupFolder}>
+								{tc("settings:button:open location")}
+							</Button>
+						</div>
 					</div>
-					{tc("settings:show prerelease")}
-				</label>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<label className={"flex items-center"}>
-					<h2>{tc("settings:language")}: </h2>
-					{lang && (
-						<Select defaultValue={lang} onValueChange={changeLanguage}>
-							<SelectTrigger>
-								<SelectValue/>
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									{
-										languages.map((lang) => (
-											<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
-										))
-									}
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					)}
-				</label>
-			</Card>
-			{unityDialog}
-			{unityHubDialog}
-			{projectDefaultDialog}
-			{projectBackupDialog}
-			<Card className={"flex-shrink-0 p-4"}>
-				<label className={"flex items-center"}>
-					<h2>{tc("settings:theme")}: </h2>
-					{theme && (
-						<Select defaultValue={theme} onValueChange={changeTheme}>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
-									<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
-									<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					)}
-				</label>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:check update")}</h2>
-				<div>
-					<Button onClick={() => emit("tauri://update")}>{tc("settings:check update")}</Button>
-				</div>
-			</Card>
-			{osType != "Darwin" && <Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:vcc scheme")}</h2>
-				<p className={"whitespace-normal"}>
-					{tc("settings:vcc scheme description")}
-				</p>
-				<div>
-					<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
-				</div>
-			</Card>}
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:report issue")}</h2>
-				<div>
-					<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:licenses")}</h2>
-				<p className={"whitespace-normal"}>
-					{tc("settings:licenses description", {}, {
-						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
-					})}
-				</p>
-			</Card>
+					<div className="mt-2">
+						<label className={"flex items-center"}>
+							<h3>{tc("settings:backup:format")}</h3>
+							<Select defaultValue={settings.backup_format} onValueChange={setBackupFormat}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
+										<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
+										<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
+										<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						</label>
+					</div>
+				</Card>
+				<Card className={"flex-shrink-0 p-4"}>
+					<p className={"whitespace-normal"}>
+						{tc("settings:show prerelease description")}
+					</p>
+					<label className={"flex items-center"}>
+						<div className={"p-3"}>
+							<Checkbox checked={settings.show_prerelease_packages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
+						</div>
+						{tc("settings:show prerelease")}
+					</label>
+				</Card>
+				<Card className={"flex-shrink-0 p-4"}>
+					<label className={"flex items-center"}>
+						<h2>{tc("settings:language")}: </h2>
+						{lang && (
+							<Select defaultValue={lang} onValueChange={changeLanguage}>
+								<SelectTrigger>
+									<SelectValue/>
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										{
+											languages.map((lang) => (
+												<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
+											))
+										}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						)}
+					</label>
+				</Card>
+				{unityDialog}
+				{unityHubDialog}
+				{projectDefaultDialog}
+				{projectBackupDialog}
+				<Card className={"flex-shrink-0 p-4"}>
+					<label className={"flex items-center"}>
+						<h2>{tc("settings:theme")}: </h2>
+						{theme && (
+							<Select defaultValue={theme} onValueChange={changeTheme}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
+										<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
+										<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						)}
+					</label>
+				</Card>
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("settings:check update")}</h2>
+					<div>
+						<Button onClick={() => emit("tauri://update")}>{tc("settings:check update")}</Button>
+					</div>
+				</Card>
+				{osType != "Darwin" && <Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("settings:vcc scheme")}</h2>
+					<p className={"whitespace-normal"}>
+						{tc("settings:vcc scheme description")}
+					</p>
+					<div>
+						<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
+					</div>
+				</Card>}
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("settings:report issue")}</h2>
+					<div>
+						<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
+					</div>
+				</Card>
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("settings:licenses")}</h2>
+					<p className={"whitespace-normal"}>
+						{tc("settings:licenses description", {}, {
+							components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
+						})}
+					</p>
+				</Card>
+			</ScrollArea>
 		</main>
 	)
 }
