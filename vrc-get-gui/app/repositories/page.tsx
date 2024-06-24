@@ -163,16 +163,14 @@ function PageBody() {
 				<Button
 					onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("vpm repositories:button:add repository")}</Button>
 			</HNavBar>
-			<main className="flex-shrink flex-grow">
-				<ScrollableCardTable className="w-full shadow-none overflow-hidden">
-					<RepositoryTableBody
-						userRepos={result.data?.user_repositories || []}
-						hiddenUserRepos={hiddenUserRepos}
-						removeRepository={removeRepository}
-						refetch={() => result.refetch()}
-					/>
-				</ScrollableCardTable>
-			</main>
+			<ScrollableCardTable>
+				<RepositoryTableBody
+					userRepos={result.data?.user_repositories || []}
+					hiddenUserRepos={hiddenUserRepos}
+					removeRepository={removeRepository}
+					refetch={() => result.refetch()}
+				/>
+			</ScrollableCardTable>
 			{dialog}
 		</VStack>
 	);
