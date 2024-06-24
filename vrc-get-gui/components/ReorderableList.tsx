@@ -1,6 +1,7 @@
 import React, {Dispatch, SetStateAction, useCallback, useMemo, useState} from "react";
 import {Button} from "@/components/ui/button";
 import {ArrowDownIcon, ArrowUpIcon, MinusCircleIcon, PlusCircleIcon} from "@heroicons/react/24/outline";
+import {assertNever} from "@/lib/assert-never";
 
 const internalSymbol: unique symbol = Symbol("ReorderableListContextInternal");
 const idSymbol: unique symbol = Symbol("IdSymbol");
@@ -95,7 +96,7 @@ export function useReorderableList<T extends NonFunction>(
         return [...old.slice(0, idx), makeValue(value), ...old.slice(idx)];
       })
     } else {
-      const _exhaustiveCheck: never = options;
+      assertNever(options);
     }
   }, []);
 

@@ -6,6 +6,7 @@ import {
   TauriVersion
 } from "@/lib/bindings";
 import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
+import {assertNever} from "@/lib/assert-never";
 
 export type PackageLatestInfo = {
   status: "none";
@@ -96,8 +97,7 @@ export function combinePackagesAndProjectDetails(
       packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
       packagesPerRepository.set(pkg.source.Remote.id, packages);
     } else {
-      let never: never = pkg.source;
-      throw new Error("unreachable");
+      assertNever(pkg.source);
     }
 
     packages.push(pkg);

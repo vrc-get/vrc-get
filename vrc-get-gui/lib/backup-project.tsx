@@ -6,6 +6,7 @@ import {toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
 import {nop} from "@/lib/nop";
 import {callAsyncCommand} from "@/lib/call-async-command";
+import {assertNever} from "@/lib/assert-never";
 
 // string if remove project by path
 type Project = TauriProject | {
@@ -67,7 +68,7 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			);
 			break;
 		default:
-			let _: never = state;
+			assertNever(state);
 	}
 
 	return {startBackup, dialog}

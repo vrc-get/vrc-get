@@ -25,6 +25,7 @@ import {tc, tt} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {ReorderableList, useReorderableList} from "@/components/ReorderableList";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
+import {assertNever} from "@/lib/assert-never";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -78,7 +79,7 @@ function PageBody() {
 				case "Success":
 					break;
 				default:
-					const _exhaustiveCheck: never = info;
+					assertNever(info, "info");
 			}
 			setState({type: 'confirming', repo: info.value, url, headers})
 		} catch (e) {
@@ -147,7 +148,7 @@ function PageBody() {
 			dialogBody = <Confirming repo={state.repo} headers={state.headers} cancel={cancel} add={doAddRepository}/>;
 			break;
 		default:
-			const _exhaustiveCheck: never = state;
+			assertNever(state, "state");
 	}
 	const dialog = dialogBody ?
 		<DialogOpen>

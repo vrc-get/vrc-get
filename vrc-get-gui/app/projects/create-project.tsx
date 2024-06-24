@@ -18,6 +18,7 @@ import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVal
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
+import {assertNever} from "@/lib/assert-never";
 
 type CreateProjectstate = 'loadingInitialInformation' | 'enteringInformation' | 'creating';
 
@@ -108,7 +109,7 @@ export function CreateProject(
           setProjectLocation(result.new_path);
           break;
         default:
-          const _exhaustiveCheck: never = result;
+          assertNever(result);
       }
     } catch (e) {
       console.error(e);
@@ -135,9 +136,7 @@ export function CreateProject(
           template = customTemplate;
           break;
         default:
-          const _exhaustiveCheck: never = templateType;
-          template = _exhaustiveCheck;
-          break;
+          assertNever(templateType, "template type");
       }
       await environmentCreateProject(projectLocation, projectName, template);
       toastSuccess(tt("projects:toast:project created"));
@@ -183,8 +182,7 @@ export function CreateProject(
       projectNameState = "Ok";
       break;
     default:
-      const _exhaustiveCheck: never = projectNameCheckState;
-      projectNameState = "err";
+      assertNever(projectNameCheckState);
   }
 
   let projectNameStateClass;

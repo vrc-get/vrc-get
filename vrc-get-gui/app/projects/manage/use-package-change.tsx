@@ -14,6 +14,7 @@ import {Button} from "@/components/ui/button";
 import {shellOpen} from "@/lib/shellOpen";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {PackageRowInfo} from "@/app/projects/manage/collect-package-row-info";
+import {assertNever} from "@/lib/assert-never";
 
 type RequestedOperation = {
   type: "install";
@@ -135,7 +136,7 @@ export function usePackageChangeDialog(
               toastSuccess(tt("projects:manage:toast:selected packages removed"));
               break;
             default:
-              let _: never = requested;
+              assertNever(requested);
           }
         } catch (e) {
           console.error(e);

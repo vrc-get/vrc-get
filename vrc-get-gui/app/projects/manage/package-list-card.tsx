@@ -38,6 +38,7 @@ import {tc, tt} from "@/lib/i18n";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import type {PackageRowInfo, PackageLatestInfo} from "@/app/projects/manage/collect-package-row-info";
 import {ButtonDisabledIfLoading, CheckboxDisabledIfLoading, usePageContext} from "@/app/projects/manage/page-context";
+import {assertNever} from "@/lib/assert-never";
 
 type RequestedOperation = {
   type: "install";
@@ -810,6 +811,6 @@ function PackageLatestInfo(
         </Tooltip>
       );
     default:
-      let _: never = info;
+      assertNever(info);
   }
 }

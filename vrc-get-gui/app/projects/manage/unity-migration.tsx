@@ -12,6 +12,7 @@ import {callAsyncCommand} from "@/lib/call-async-command";
 import {useRouter} from "next/navigation";
 import {shellOpen} from "@/lib/shellOpen";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
+import {assertNever} from "@/lib/assert-never";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
@@ -223,7 +224,7 @@ function useMigrationInternal(
 					toastSuccess(tt("projects:toast:unity migrated"));
 					break;
 				default:
-					const _: never = finalizeResult;
+					assertNever(finalizeResult);
 			}
 			if (inPlace) {
 				setInstallStatus({state: "normal"});
@@ -273,7 +274,7 @@ function useMigrationInternal(
 			dialogBodyForState = <MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
 			break;
 		default:
-			const _: never = installStatus;
+			assertNever(installStatus);
 	}
 
 	return {

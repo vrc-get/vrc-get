@@ -42,6 +42,7 @@ import {loadOSApi} from "@/lib/os";
 import type {OsType} from "@tauri-apps/api/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {ToastContent} from "react-toastify";
+import {assertNever} from "@/lib/assert-never";
 
 export default function Page() {
 	const result = useQuery({
@@ -61,7 +62,7 @@ export default function Page() {
 			body = <Settings settings={result.data} refetch={result.refetch}/>;
 			break;
 		default:
-			const _exhaustiveCheck: never = result;
+			assertNever(result);
 	}
 
 	return (
@@ -164,7 +165,7 @@ function UnityInstallationsCard(
 					refetch()
 					break;
 				default:
-					const _exhaustiveCheck: never = result;
+					assertNever(result);
 			}
 		} catch (e) {
 			console.error(e);
@@ -476,7 +477,7 @@ function FilePathRow(
 					refetch()
 					break;
 				default:
-					const _exhaustiveCheck: never = result.type;
+					assertNever(result.type);
 			}
 		} catch (e) {
 			console.error(e);

@@ -5,6 +5,7 @@ import {Label} from "@/components/ui/label";
 import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import {tc} from "@/lib/i18n";
 import {Checkbox} from "@/components/ui/checkbox";
+import {assertNever} from "@/lib/assert-never";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
@@ -69,7 +70,7 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 			</DialogOpen>;
 			break;
 		default:
-			const _: never = installStatus;
+			assertNever(installStatus);
 	}
 
 	return {dialog, select};

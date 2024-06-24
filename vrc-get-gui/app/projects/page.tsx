@@ -50,6 +50,7 @@ import {useOpenUnity, OpenUnityFunction} from "@/lib/use-open-unity";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {CreateProject} from "@/app/projects/create-project";
 import {ProjectRow} from "@/app/projects/project-row";
+import {assertNever} from "@/lib/assert-never";
 
 const sortings = [
 	"lastModified",
@@ -147,8 +148,7 @@ function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 
 	if (a === "Avatars") return 1;
 	if (b === "Avatars") return -1;
 
-	let _: never = a;
-	return 0;
+	assertNever(a, "project type");
 }
 
 function ProjectsTableCard(
@@ -206,7 +206,7 @@ function ProjectsTableCard(
 				searched.sort((a, b) => compareUnityVersionString(b.unity, a.unity));
 				break;
 			default:
-				let _: never = sorting;
+				assertNever(sorting);
 		}
 		searched.sort((a, b) => {
 			if (a.favorite && !b.favorite) return -1;
@@ -320,7 +320,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					toastError(tt("projects:toast:project already exists"));
 					break;
 				default:
-					let _: never = result;
+					assertNever(result);
 			}
 		} catch (e) {
 			console.error("Error adding project", e);

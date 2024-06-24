@@ -4,6 +4,7 @@ import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/compon
 import {environmentRemoveProject, environmentRemoveProjectByPath, TauriProject} from "@/lib/bindings";
 import {toastSuccess} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
+import {assertNever} from "@/lib/assert-never";
 
 // string if remove project by path
 type Project = TauriProject | {
@@ -102,7 +103,7 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 			);
 			break;
 		default:
-			let _: never = state;
+			assertNever(state);
 	}
 
 	return {startRemove, dialog}
