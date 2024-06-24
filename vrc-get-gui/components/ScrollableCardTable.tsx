@@ -17,6 +17,7 @@ export function ScrollableCardTable(
       <table className="relative table-auto text-left w-full">
         {children}
       </table>
+      <div className={"pb-2.5"}/>
       <ScrollBar orientation="horizontal" className="bg-background"/>
     </ScrollArea>
   </Card>
