@@ -50,10 +50,8 @@ export function useRemoveProjectModal({onRemoved}: Params): Result {
 				setState({type: 'removing'});
 				try {
 					if ('list_version' in project) {
-						console.log("remove with index")
 						await environmentRemoveProject(project.list_version, project.index, directory);
 					} else {
-						console.log("remove with path")
 						await environmentRemoveProjectByPath(project.path, directory);
 					}
 					toastSuccess(tt("projects:toast:project removed"));

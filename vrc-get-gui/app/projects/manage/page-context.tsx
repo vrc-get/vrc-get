@@ -24,7 +24,6 @@ export function ButtonDisabledIfLoading(
   }: ComponentProps<typeof Button>,
 ) {
   const {isLoading} = usePageContext();
-  console.log(`rerender: ButtonDisabledIfLoading: isloading: ${isLoading}`);
   return <Button disabled={isLoading || disabled} {...props} />
 }
 
@@ -35,6 +34,5 @@ export function CheckboxDisabledIfLoading(
   }: ComponentProps<typeof Checkbox>,
 ) {
   const {isLoading} = usePageContext();
-  console.log(`rerender: CheckboxDisabledIfLoading: isloading: ${isLoading}`);
   return <Checkbox disabled={isLoading || disabled} {...props}/>
 }

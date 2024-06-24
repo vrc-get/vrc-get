@@ -122,7 +122,6 @@ export const PackageListCard = memo(function PackageListCard(
   }, [packageRowsData])
 
   const onInstallRequested = useCallback((pkg: TauriPackage, hasUnityIncompatibleLatest?: boolean) => {
-    console.log("install", pkg.name, pkg.version);
     createChanges({
       type: "install",
       pkg,
@@ -340,12 +339,12 @@ function ManagePackagesHeading(
         {tc("projects:manage:manage packages")}
       </p>
 
+      <Tooltip>
+        <TooltipTrigger>
           <Button variant={"ghost"} size={"icon"} onClick={onRefresh} className={"flex-shrink-0"}
                   disabled={isLoading}>
             {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
           </Button>
-      <Tooltip>
-        <TooltipTrigger>
         </TooltipTrigger>
         <TooltipContent>{tc("projects:manage:tooltip:refresh packages")}</TooltipContent>
       </Tooltip>

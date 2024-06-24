@@ -350,7 +350,6 @@ function NoExactUnity2022Dialog(
 		close: () => void
 	}) {
 	const openUnityHub = async () => {
-		console.log("openUnityHub", installWithUnityHubLink)
 		await shellOpen(installWithUnityHubLink);
 	}
 

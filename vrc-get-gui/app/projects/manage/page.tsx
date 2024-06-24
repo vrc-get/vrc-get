@@ -99,15 +99,12 @@ function PageBody() {
   const onRefresh = useCallback(async () => {
     try {
       setManualRefething(true);
-      console.log("manualRefetching")
       await environmentRefetchPackages();
-      console.log("refetching with query")
       packagesResult.refetch();
       detailsResult.refetch();
       repositoriesInfo.refetch();
       unityVersionsResult.refetch();
     } finally {
-      console.log("manualRefetching end")
       setManualRefething(false);
     }
   }, [detailsResult, packagesResult, repositoriesInfo, unityVersionsResult]);

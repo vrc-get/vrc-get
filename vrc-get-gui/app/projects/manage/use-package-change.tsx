@@ -200,8 +200,6 @@ function ProjectChangesDialog(
   const installingPackages = changes.package_changes.filter(isInstallNew);
   const removingPackages = changes.package_changes.filter(isRemove);
 
-  console.log(existingPackageMap);
-
   const reInstallingPackages = installingPackages.filter(([pkgId, c]) => existingPackageMap.has(pkgId) && compareVersion(c.InstallNew.version, existingPackageMap.get(pkgId)!.version) == 0);
   const installingNewPackages = installingPackages.filter(([pkgId, c]) => !existingPackageMap.has(pkgId) || compareVersion(c.InstallNew.version, existingPackageMap.get(pkgId)!.version) != 0)
 
