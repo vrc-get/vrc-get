@@ -459,7 +459,7 @@ function UnityTableBody(
 ) {
 	const UNITY_TABLE_HEAD = ["settings:unity:version", "settings:unity:path", "general:source"];
 	return (
-		<table className="relative table-auto text-left w-full">
+		<>
 			<thead>
 			<tr>
 				{UNITY_TABLE_HEAD.map((head, index) => (
@@ -483,6 +483,6 @@ function UnityTableBody(
 				))
 			}
 			</tbody>
-		</table>
+		</>
 	)
 }
