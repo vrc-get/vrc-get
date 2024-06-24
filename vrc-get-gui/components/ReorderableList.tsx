@@ -1,6 +1,6 @@
 import React, {Dispatch, SetStateAction, useCallback, useMemo, useState} from "react";
 import {Button} from "@/components/ui/button";
-import {ArrowDownIcon, ArrowUpIcon, MinusCircleIcon, PlusCircleIcon} from "@heroicons/react/24/outline";
+import {ArrowUp, ArrowDown, CircleMinus, CirclePlus} from "lucide-react";
 import {assertNever} from "@/lib/assert-never";
 
 const internalSymbol: unique symbol = Symbol("ReorderableListContextInternal");
@@ -178,10 +178,10 @@ export function ReorderableList<T>(
 				<div className={"flex flex-row ml-1.5"}>
 					<Button disabled={disabled} variant={"ghost"} size={"icon"}
 									onClick={() => context.add(internal.defaultValue, {after: id})}>
-						<PlusCircleIcon color={"green"} className={"size-5"}/>
+						<CirclePlus color={"green"} className={"size-5"}/>
 					</Button>
 					<Button disabled={disabled} variant={"ghost"} size={"icon"} onClick={() => context.remove(id)}>
-						<MinusCircleIcon color={"red"} className={"size-5"}/>
+						<CircleMinus color={"red"} className={"size-5"}/>
 					</Button>
 					{internal.reorderable && <div className={'flex flex-col w-10 align-middle'}>
 						<Button
@@ -191,7 +191,7 @@ export function ReorderableList<T>(
 							className={'h-5'}
 							onClick={() => internal.swap(i, i - 1)}
 						>
-							<ArrowUpIcon className={"size-2.5"}/>
+							<ArrowUp className={"size-2.5"}/>
 						</Button>
 						<Button
 							disabled={disabled || i == internal.backedList.length - 1}
@@ -200,7 +200,7 @@ export function ReorderableList<T>(
 							className={'h-5'}
 							onClick={() => internal.swap(i, i + 1)}
 						>
-							<ArrowDownIcon className={"size-2.5"}/>
+							<ArrowDown className={"size-2.5"}/>
 						</Button>
 					</div>}
 				</div>

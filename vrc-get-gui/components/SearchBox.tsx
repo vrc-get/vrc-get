@@ -1,4 +1,4 @@
-import {MagnifyingGlassIcon} from "@heroicons/react/24/solid";
+import {Search} from "lucide-react";
 import React from "react";
 import {useTranslation} from "react-i18next";
 import {Input} from "@/components/ui/input";
@@ -20,7 +20,7 @@ export function SearchBox({className, value, onChange}: {
 				value={value}
 				onChange={onChange}
 			/>
-			<MagnifyingGlassIcon className="!absolute left-4 top-[17px]" width={13} height={14}/>
+			<Search className="!absolute left-4 top-[17px]" width={13} height={14}/>
 		</div>
 	)
 }
