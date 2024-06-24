@@ -41,6 +41,7 @@ import {shellOpen} from "@/lib/shellOpen";
 import {loadOSApi} from "@/lib/os";
 import type {OsType} from "@tauri-apps/api/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
+import {ToastContent} from "react-toastify";
 
 export default function Page() {
 	const result = useQuery({
@@ -85,9 +86,6 @@ function Settings(
 	}
 ) {
 	const [pickUnity, unityDialog] = useFilePickerFunction(environmentPickUnity);
-	const [pickUnityHub, unityHubDialog] = useFilePickerFunction(environmentPickUnityHub);
-	const [pickProjectDefaultPath, projectDefaultDialog] = useFilePickerFunction(environmentPickProjectDefaultPath);
-	const [pickProjectBackupPath, projectBackupDialog] = useFilePickerFunction(environmentPickProjectBackupPath);
 
 	const [osType, setOsType] = React.useState<OsType>("Windows_NT");
 
@@ -97,29 +95,6 @@ function Settings(
 			setOsType(await os.type());
 		})();
 	}, [])
-
-	const selectUnityHub = async () => {
-		try {
-			const result = await pickUnityHub();
-			switch (result) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tt("settings:toast:not unity hub"));
-					break;
-				case "Successful":
-					toastSuccess(tt("settings:toast:unity hub path updated"));
-					refetch()
-					break;
-				default:
-					const _exhaustiveCheck: never = result;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	}
 
 	const addUnity = async () => {
 		try {
@@ -146,70 +121,6 @@ function Settings(
 			toastThrownError(e)
 		}
 	}
-
-	const selectProjectDefaultFolder = async () => {
-		try {
-			const result = await pickProjectDefaultPath();
-			switch (result.type) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tt("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(tt("settings:toast:default project path updated"));
-					refetch()
-					break;
-				default:
-					const _exhaustiveCheck: never = result;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
-
-	const openProjectDefaultFolder = async () => {
-		try {
-			await utilOpen(settings.default_project_path)
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
-
-	const selectProjectBackupFolder = async () => {
-		try {
-			const result = await pickProjectBackupPath();
-			switch (result) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tt("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(tt("settings:toast:backup path updated"));
-					refetch()
-					break;
-				default:
-					const _exhaustiveCheck: never = result;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
-
-	const openProjectBackupFolder = async () => {
-		try {
-			await utilOpen(settings.default_project_path)
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
 
 	const setBackupFormat = async (format: string) => {
 		try {
@@ -292,14 +203,14 @@ function Settings(
 			<main className="flex flex-col gap-2 flex-shrink flex-grow">
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
-					<div className={"flex gap-1 items-center"}>
-						{
-							settings.unity_hub
-								? <Input className="flex-auto" value={settings.unity_hub} disabled/>
-								: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-destructive"}/>
-						}
-						<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("general:button:select")}</Button>
-					</div>
+					<FilePathRow
+						withoutSelect
+						path={settings.unity_hub}
+						pick={environmentPickUnityHub}
+						refetch={refetch}
+						notFoundMessage={"Unity Hub Not Found"}
+						successMessage={tc("settings:toast:unity hub path updated")}
+					/>
 				</Card>
 				<Card className={"flex-shrink-0 p-4"}>
 					<div className={"pb-2 flex align-middle"}>
@@ -317,14 +228,12 @@ function Settings(
 					<p className={"whitespace-normal"}>
 						{tc("settings:default project path description")}
 					</p>
-					<div className={"flex gap-1 items-center"}>
-						<Input className="flex-auto" value={settings.default_project_path} disabled/>
-						<Button className={"flex-none px-4"}
-										onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
-						<Button className={"flex-none px-4"} onClick={openProjectDefaultFolder}>
-							{tc("settings:button:open location")}
-						</Button>
-					</div>
+					<FilePathRow
+						path={settings.default_project_path}
+						pick={environmentPickProjectDefaultPath}
+						refetch={refetch}
+						successMessage={tc("settings:toast:default project path updated")}
+					/>
 				</Card>
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2>{tc("projects:backup")}</h2>
@@ -333,14 +242,12 @@ function Settings(
 						<p className={"whitespace-normal"}>
 							{tc("settings:backup:path description")}
 						</p>
-						<div className={"flex gap-1 items-center"}>
-							<Input className="flex-auto" value={settings.project_backup_path} disabled/>
-							<Button className={"flex-none px-4"}
-											onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
-							<Button className={"flex-none px-4"} onClick={openProjectBackupFolder}>
-								{tc("settings:button:open location")}
-							</Button>
-						</div>
+						<FilePathRow
+							path={settings.project_backup_path}
+							pick={environmentPickProjectBackupPath}
+							refetch={refetch}
+							successMessage={tc("settings:toast:backup path updated")}
+						/>
 					</div>
 					<div className="mt-2">
 						<label className={"flex items-center"}>
@@ -394,9 +301,6 @@ function Settings(
 					</label>
 				</Card>
 				{unityDialog}
-				{unityHubDialog}
-				{projectDefaultDialog}
-				{projectBackupDialog}
 				<Card className={"flex-shrink-0 p-4"}>
 					<label className={"flex items-center"}>
 						<h2>{tc("settings:theme")}: </h2>
@@ -484,5 +388,73 @@ function UnityTableBody(
 			}
 			</tbody>
 		</>
+	)
+}
+
+function FilePathRow(
+	{
+		path,
+		notFoundMessage,
+		pick,
+		refetch,
+		successMessage,
+		withoutSelect = false,
+	}: {
+		path: string;
+		notFoundMessage?: string;
+		pick: () => Promise<{type: "NoFolderSelected" | "InvalidSelection" | "Successful"}>;
+		refetch: () => void;
+		successMessage: ToastContent;
+		withoutSelect?: boolean;
+	}) {
+	const [pickPath, dialog] = useFilePickerFunction(pick);
+
+	const selectFolder = async () => {
+		try {
+			const result = await pickPath();
+			switch (result.type) {
+				case "NoFolderSelected":
+					// no-op
+					break;
+				case "InvalidSelection":
+					toastError(tc("general:toast:invalid directory"));
+					break;
+				case "Successful":
+					toastSuccess(successMessage);
+					refetch()
+					break;
+				default:
+					const _exhaustiveCheck: never = result.type;
+			}
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	};
+
+	const openFolder = async () => {
+		try {
+			await utilOpen(path)
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	};
+
+	return (
+		<div className={"flex gap-1 items-center"}>
+			{
+				!path && notFoundMessage
+					? <Input className="flex-auto text-destructive" value={notFoundMessage} disabled/>
+					: <Input className="flex-auto" value={path} disabled/>
+			}
+			<Button className={"flex-none px-4"} onClick={selectFolder}>
+				{tc("general:button:select")}
+			</Button>
+			{withoutSelect || <Button className={"flex-none px-4"} onClick={openFolder}>
+				{tc("settings:button:open location")}
+			</Button>}
+			{dialog}
+		</div>
 	)
 }
