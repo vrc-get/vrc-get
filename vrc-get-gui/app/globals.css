@@ -79,9 +79,9 @@
 		@apply bg-background text-foreground;
 		color: hsl(var(--foreground));
 		background: linear-gradient(
-				to bottom,
-				transparent,
-				hsl(var(--background-end))
+			to bottom,
+			transparent,
+			hsl(var(--background-end))
 		) hsl(var(--background-start));
 	}
 }
