@@ -2,7 +2,7 @@
 
 import {Button} from "@/components/ui/button";
 import {Card} from "@/components/ui/card";
-import {Cloud, Settings, List, Swatches, AlignLeft, SwatchBook} from "lucide-react";
+import {Cloud, Settings, List, AlignLeft, SwatchBook} from "lucide-react";
 import React from "react";
 import {useQuery} from "@tanstack/react-query";
 import {utilGetVersion} from "@/lib/bindings";
