@@ -7,7 +7,7 @@ import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 import {Select, SelectContent, SelectGroup, SelectLabel, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {Suspense, useCallback, useMemo, useState} from "react";
-import {ArrowLeftIcon, ChevronDownIcon,} from "@heroicons/react/24/solid";
+import {ArrowLeft, ChevronDown} from "lucide-react";
 import {HNavBar, VStack} from "@/components/layout";
 import {useRouter, useSearchParams} from "next/navigation";
 import {useQueries, useQuery} from "@tanstack/react-query";
@@ -352,7 +352,7 @@ function ProjectViewHeader({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button variant={"ghost"} size={"icon"} onClick={() => history.back()}>
-						<ArrowLeftIcon className={"w-5 h-5"}/>
+						<ArrowLeft className={"w-5 h-5"}/>
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent>{tc("projects:manage:tooltip:back to projects")}</TooltipContent>
@@ -371,7 +371,7 @@ function ProjectViewHeader({
 									className={"rounded-r-none pl-4 pr-3"}>{tc("projects:button:open unity")}</Button>
 					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
 						<Button>
-							<ChevronDownIcon className={"w-4 h-4"}/>
+							<ChevronDown className={"w-4 h-4"}/>
 						</Button>
 					</DropdownMenuTrigger>
 				</div>
