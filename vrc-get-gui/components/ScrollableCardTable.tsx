@@ -13,7 +13,7 @@ export function ScrollableCardTable(
   }
 ) {
   return <Card className={cn("overflow-hidden", className)}>
-    <ScrollArea type="auto" className="h-full w-full">
+    <ScrollArea type="auto" className="h-full w-full" scrollBarClassName="bg-background">
       <table className="relative table-auto text-left w-full">
         {children}
       </table>

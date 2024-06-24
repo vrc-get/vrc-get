@@ -30,8 +30,8 @@ export default function Page() {
 					{tc("logs")}
 				</p>
 			</HNavBar>
-			<Card className={`w-full p-2 whitespace-pre font-mono shadow-none text-muted-foreground overflow-hidden`}>
-				<ScrollArea type={"always"} className={"w-full h-full"}>
+			<Card className={`w-full pl-2.5 pt-2.5 whitespace-pre font-mono shadow-none text-muted-foreground overflow-hidden`}>
+				<ScrollArea type={"always"} className={"w-full h-full"} scrollBarClassName={"bg-background"}>
 						{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
 					<ScrollBar className={"bg-background"} orientation="horizontal" />
 				</ScrollArea>
