@@ -85,8 +85,6 @@ function Settings(
 		refetch: () => void
 	}
 ) {
-	const [pickUnity, unityDialog] = useFilePickerFunction(environmentPickUnity);
-
 	const [osType, setOsType] = React.useState<OsType>("Windows_NT");
 
 	React.useEffect(() => {
@@ -95,6 +93,68 @@ function Settings(
 			setOsType(await os.type());
 		})();
 	}, [])
+
+	return (
+		<ScrollArea>
+			<main className="flex flex-col gap-2 flex-shrink flex-grow">
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
+					<FilePathRow
+						withoutSelect
+						path={settings.unity_hub}
+						pick={environmentPickUnityHub}
+						refetch={refetch}
+						notFoundMessage={"Unity Hub Not Found"}
+						successMessage={tc("settings:toast:unity hub path updated")}
+					/>
+				</Card>
+				<UnityInstallationsCard refetch={refetch} unityPaths={settings.unity_paths}/>
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("settings:default project path")}</h2>
+					<p className={"whitespace-normal"}>
+						{tc("settings:default project path description")}
+					</p>
+					<FilePathRow
+						path={settings.default_project_path}
+						pick={environmentPickProjectDefaultPath}
+						refetch={refetch}
+						successMessage={tc("settings:toast:default project path updated")}
+					/>
+				</Card>
+				<BackupCard
+					projectBackupPath={settings.project_backup_path}
+					backupFormat={settings.backup_format}
+					refetch={refetch}
+				/>
+				<PrereleasePackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
+				<LanguageCard/>
+				<ThemeCard/>
+				<CheckForUpdateCard/>
+				{osType != "Darwin" && <VccSchemeCard/>}
+				<ReportIssueCard/>
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("settings:licenses")}</h2>
+					<p className={"whitespace-normal"}>
+						{tc("settings:licenses description", {}, {
+							components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
+						})}
+					</p>
+				</Card>
+			</main>
+		</ScrollArea>
+	)
+}
+
+function UnityInstallationsCard(
+	{
+		refetch,
+		unityPaths,
+	}: {
+		refetch: () => void;
+		unityPaths: [path: string, version: string, fromHub: boolean][]
+	}
+) {
+	const [pickUnity, unityDialog] = useFilePickerFunction(environmentPickUnity);
 
 	const addUnity = async () => {
 		try {
@@ -122,6 +182,57 @@ function Settings(
 		}
 	}
 
+	const UNITY_TABLE_HEAD = ["settings:unity:version", "settings:unity:path", "general:source"];
+
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<div className={"pb-2 flex align-middle"}>
+				<div className={"flex-grow flex items-center"}>
+					<h2>{tc("settings:unity installations")}</h2>
+				</div>
+				<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
+			</div>
+			<ScrollableCardTable className="w-full min-h-[20vh]">
+				<thead>
+				<tr>
+					{UNITY_TABLE_HEAD.map((head, index) => (
+						<th key={index}
+								className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
+							<small className="font-normal leading-none">{tc(head)}</small>
+						</th>
+					))}
+				</tr>
+				</thead>
+				<tbody>
+				{
+					unityPaths.map(([path, version, isFromHub]) => (
+						<tr key={path} className="even:bg-secondary/30">
+							<td className={"p-2.5"}>{version}</td>
+							<td className={"p-2.5"}>{path}</td>
+							<td className={"p-2.5"}>
+								{isFromHub ? tc("settings:unity:source:unity hub") : tc("settings:unity:source:manual")}
+							</td>
+						</tr>
+					))
+				}
+				</tbody>
+			</ScrollableCardTable>
+			{unityDialog}
+		</Card>
+	)
+}
+
+function BackupCard(
+	{
+		projectBackupPath,
+		backupFormat,
+		refetch,
+	}: {
+		projectBackupPath: string;
+		backupFormat: string;
+		refetch: () => void;
+	}
+) {
 	const setBackupFormat = async (format: string) => {
 		try {
 			await environmentSetBackupFormat(format)
@@ -132,6 +243,52 @@ function Settings(
 		}
 	}
 
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>{tc("projects:backup")}</h2>
+			<div className="mt-2">
+				<h3>{tc("settings:backup:path")}</h3>
+				<p className={"whitespace-normal"}>
+					{tc("settings:backup:path description")}
+				</p>
+				<FilePathRow
+					path={projectBackupPath}
+					pick={environmentPickProjectBackupPath}
+					refetch={refetch}
+					successMessage={tc("settings:toast:backup path updated")}
+				/>
+			</div>
+			<div className="mt-2">
+				<label className={"flex items-center"}>
+					<h3>{tc("settings:backup:format")}</h3>
+					<Select defaultValue={backupFormat} onValueChange={setBackupFormat}>
+						<SelectTrigger>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
+								<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
+								<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
+								<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				</label>
+			</div>
+		</Card>
+	)
+}
+
+function PrereleasePackagesCard(
+	{
+		showPrereleasePackages,
+		refetch,
+	}: {
+		showPrereleasePackages: boolean;
+		refetch: () => void;
+	}
+) {
 	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
 		try {
 			await environmentSetShowPrereleasePackages(e===true)
@@ -142,6 +299,22 @@ function Settings(
 		}
 	}
 
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<p className={"whitespace-normal"}>
+				{tc("settings:show prerelease description")}
+			</p>
+			<label className={"flex items-center"}>
+				<div className={"p-3"}>
+					<Checkbox checked={showPrereleasePackages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
+				</div>
+				{tc("settings:show prerelease")}
+			</label>
+		</Card>
+	)
+}
+
+function LanguageCard() {
 	const {data: lang, refetch: refetchLang} = useQuery({
 		queryKey: ["environmentLanguage"],
 		queryFn: environmentLanguage
@@ -155,6 +328,32 @@ function Settings(
 		])
 	};
 
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<label className={"flex items-center"}>
+				<h2>{tc("settings:language")}: </h2>
+				{lang && (
+					<Select defaultValue={lang} onValueChange={changeLanguage}>
+						<SelectTrigger>
+							<SelectValue/>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								{
+									languages.map((lang) => (
+										<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
+									))
+								}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				)}
+			</label>
+		</Card>
+	)
+}
+
+function ThemeCard() {
 	const [theme, setTheme] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
@@ -174,19 +373,41 @@ function Settings(
 		document.documentElement.setAttribute("class", theme);
 	};
 
-	const reportIssue = async () => {
-		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
-		url.searchParams.append("labels", "bug,vrc-get-gui")
-		url.searchParams.append("template", "01_gui_bug-report.yml")
-		const osApi = await loadOSApi();
-		url.searchParams.append("os", `${await osApi.type()} - ${await osApi.platform()} - ${await osApi.version()} - ${await osApi.arch()}`)
-		const appVersion = await utilGetVersion();
-		url.searchParams.append("version", appVersion)
-		url.searchParams.append("version", appVersion)
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<label className={"flex items-center"}>
+				<h2>{tc("settings:theme")}: </h2>
+				{theme && (
+					<Select defaultValue={theme} onValueChange={changeTheme}>
+						<SelectTrigger>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
+								<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
+								<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				)}
+			</label>
+		</Card>
+	)
+}
 
-		shellOpen(url.toString())
-	}
+function CheckForUpdateCard() {
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>{tc("settings:check update")}</h2>
+			<div>
+				<Button onClick={() => emit("tauri://update")}>{tc("settings:check update")}</Button>
+			</div>
+		</Card>
+	)
+}
 
+function VccSchemeCard() {
 	const installVccProtocol = async () => {
 		try {
 			await deepLinkInstallVcc();
@@ -197,197 +418,40 @@ function Settings(
 		}
 	}
 
-
 	return (
-		<ScrollArea>
-			<main className="flex flex-col gap-2 flex-shrink flex-grow">
-				<Card className={"flex-shrink-0 p-4"}>
-					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
-					<FilePathRow
-						withoutSelect
-						path={settings.unity_hub}
-						pick={environmentPickUnityHub}
-						refetch={refetch}
-						notFoundMessage={"Unity Hub Not Found"}
-						successMessage={tc("settings:toast:unity hub path updated")}
-					/>
-				</Card>
-				<Card className={"flex-shrink-0 p-4"}>
-					<div className={"pb-2 flex align-middle"}>
-						<div className={"flex-grow flex items-center"}>
-							<h2>{tc("settings:unity installations")}</h2>
-						</div>
-						<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
-					</div>
-					<ScrollableCardTable className="w-full min-h-[20vh]">
-						<UnityTableBody unityPaths={settings.unity_paths}/>
-					</ScrollableCardTable>
-				</Card>
-				<Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("settings:default project path")}</h2>
-					<p className={"whitespace-normal"}>
-						{tc("settings:default project path description")}
-					</p>
-					<FilePathRow
-						path={settings.default_project_path}
-						pick={environmentPickProjectDefaultPath}
-						refetch={refetch}
-						successMessage={tc("settings:toast:default project path updated")}
-					/>
-				</Card>
-				<Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("projects:backup")}</h2>
-					<div className="mt-2">
-						<h3>{tc("settings:backup:path")}</h3>
-						<p className={"whitespace-normal"}>
-							{tc("settings:backup:path description")}
-						</p>
-						<FilePathRow
-							path={settings.project_backup_path}
-							pick={environmentPickProjectBackupPath}
-							refetch={refetch}
-							successMessage={tc("settings:toast:backup path updated")}
-						/>
-					</div>
-					<div className="mt-2">
-						<label className={"flex items-center"}>
-							<h3>{tc("settings:backup:format")}</h3>
-							<Select defaultValue={settings.backup_format} onValueChange={setBackupFormat}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
-										<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
-										<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
-										<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						</label>
-					</div>
-				</Card>
-				<Card className={"flex-shrink-0 p-4"}>
-					<p className={"whitespace-normal"}>
-						{tc("settings:show prerelease description")}
-					</p>
-					<label className={"flex items-center"}>
-						<div className={"p-3"}>
-							<Checkbox checked={settings.show_prerelease_packages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
-						</div>
-						{tc("settings:show prerelease")}
-					</label>
-				</Card>
-				<Card className={"flex-shrink-0 p-4"}>
-					<label className={"flex items-center"}>
-						<h2>{tc("settings:language")}: </h2>
-						{lang && (
-							<Select defaultValue={lang} onValueChange={changeLanguage}>
-								<SelectTrigger>
-									<SelectValue/>
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										{
-											languages.map((lang) => (
-												<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
-											))
-										}
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						)}
-					</label>
-				</Card>
-				{unityDialog}
-				<Card className={"flex-shrink-0 p-4"}>
-					<label className={"flex items-center"}>
-						<h2>{tc("settings:theme")}: </h2>
-						{theme && (
-							<Select defaultValue={theme} onValueChange={changeTheme}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
-										<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
-										<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						)}
-					</label>
-				</Card>
-				<Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("settings:check update")}</h2>
-					<div>
-						<Button onClick={() => emit("tauri://update")}>{tc("settings:check update")}</Button>
-					</div>
-				</Card>
-				{osType != "Darwin" && <Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("settings:vcc scheme")}</h2>
-					<p className={"whitespace-normal"}>
-						{tc("settings:vcc scheme description")}
-					</p>
-					<div>
-						<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
-					</div>
-				</Card>}
-				<Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("settings:report issue")}</h2>
-					<div>
-						<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
-					</div>
-				</Card>
-				<Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("settings:licenses")}</h2>
-					<p className={"whitespace-normal"}>
-						{tc("settings:licenses description", {}, {
-							components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
-						})}
-					</p>
-				</Card>
-			</main>
-		</ScrollArea>
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>{tc("settings:vcc scheme")}</h2>
+			<p className={"whitespace-normal"}>
+				{tc("settings:vcc scheme description")}
+			</p>
+			<div>
+				<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
+			</div>
+		</Card>
 	)
 }
 
-function UnityTableBody(
-	{
-		unityPaths,
-	}: {
-		unityPaths: [path: string, version: string, fromHub: boolean][]
+function ReportIssueCard() {
+	const reportIssue = async () => {
+		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
+		url.searchParams.append("labels", "bug,vrc-get-gui")
+		url.searchParams.append("template", "01_gui_bug-report.yml")
+		const osApi = await loadOSApi();
+		url.searchParams.append("os", `${await osApi.type()} - ${await osApi.platform()} - ${await osApi.version()} - ${await osApi.arch()}`)
+		const appVersion = await utilGetVersion();
+		url.searchParams.append("version", appVersion)
+		url.searchParams.append("version", appVersion)
+
+		void shellOpen(url.toString())
 	}
-) {
-	const UNITY_TABLE_HEAD = ["settings:unity:version", "settings:unity:path", "general:source"];
+
 	return (
-		<>
-			<thead>
-			<tr>
-				{UNITY_TABLE_HEAD.map((head, index) => (
-					<th key={index}
-							className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
-						<small className="font-normal leading-none">{tc(head)}</small>
-					</th>
-				))}
-			</tr>
-			</thead>
-			<tbody>
-			{
-				unityPaths.map(([path, version, isFromHub]) => (
-					<tr key={path} className="even:bg-secondary/30">
-						<td className={"p-2.5"}>{version}</td>
-						<td className={"p-2.5"}>{path}</td>
-						<td className={"p-2.5"}>
-							{isFromHub ? tc("settings:unity:source:unity hub") : tc("settings:unity:source:manual")}
-						</td>
-					</tr>
-				))
-			}
-			</tbody>
-		</>
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>{tc("settings:report issue")}</h2>
+			<div>
+				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
+			</div>
+		</Card>
 	)
 }
 
