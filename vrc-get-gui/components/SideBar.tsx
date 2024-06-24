@@ -46,7 +46,7 @@ export function SideBar({className}: { className?: string }) {
 				{isDev && <SideBarItem href={"/settings/palette"} text={"UI Palette (dev only)"} icon={SwatchBook}/>}
 				<div className={'flex-grow'}/>
 				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card hover:text-card-foreground"}
-								onClick={copyVersionName}>v{currentVersion}<settings color="red" size={48} /></Button>
+								onClick={copyVersionName}>v{currentVersion}</Button>
 			</div>
 		</Card>
 	);
