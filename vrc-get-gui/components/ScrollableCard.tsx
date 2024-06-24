@@ -13,10 +13,10 @@ export function ScrollableCard(
   }
 ) {
   return <Card className={cn("pl-2.5 pt-2.5 overflow-hidden flex", className)}>
-    <ScrollArea type="always" className={"w-full flex-shrink overflow-hidden"} scrollBarClassName={"bg-background pt-0"}>
+    <ScrollArea type="always" className={"w-full flex-shrink overflow-hidden"} scrollBarClassName={"bg-background pb-2.5"}>
       {children}
       <div className={"pb-2.5"} />
-      <ScrollBar className={"bg-background pl-0"} orientation="horizontal" />
+      <ScrollBar className={"bg-background"} orientation="horizontal" />
     </ScrollArea>
   </Card>
 }

@@ -3,7 +3,7 @@
 import {Button} from "@/components/ui/button";
 import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
+import {ScrollArea} from "@/components/ui/scroll-area";
 import {Input} from "@/components/ui/input";
 import {
 	Select,
