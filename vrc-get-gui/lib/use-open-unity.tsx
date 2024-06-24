@@ -126,7 +126,6 @@ function UnityInstallWindow(
 		close: () => void
 	}) {
 	const openUnityHub = async () => {
-		console.log("openUnityHub", installWithUnityHubLink)
 		await shellOpen(installWithUnityHubLink);
 	}
 

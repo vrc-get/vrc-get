@@ -1,13 +1,11 @@
 "use client";
 
-import {Card} from "@/components/ui/card";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {useCallback, useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
-import {notoSansMono} from "@/app/fonts";
 import {tc} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
+import {ScrollableCard} from "@/components/ScrollableCard";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
@@ -30,12 +28,11 @@ export default function Page() {
 					{tc("logs")}
 				</p>
 			</HNavBar>
-			<Card className={`w-full p-2 whitespace-pre font-mono shadow-none text-muted-foreground overflow-hidden`}>
-				<ScrollArea type={"always"} className={"w-full h-full"}>
-						{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
-					<ScrollBar className={"bg-background"} orientation="horizontal" />
-				</ScrollArea>
-			</Card>
+			<ScrollableCard className={"w-full shadow-none"}>
+				<pre className="whitespace-pre font-mono text-muted-foreground">
+					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
+				</pre>
+			</ScrollableCard>
 		</VStack>
 	);
 }

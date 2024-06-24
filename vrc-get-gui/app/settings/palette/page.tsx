@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/select"
 import {HNavBar, VStack} from "@/components/layout";
 import {toastError, toastInfo, toastNormal, toastSuccess} from "@/lib/toast";
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
+import {ScrollArea} from "@/components/ui/scroll-area";
+import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 
 export default function Page() {
 	return (
@@ -40,12 +41,9 @@ export default function Page() {
 							</div>
 							<Button size={"sm"} className={"m-1"}>Add Unity</Button>
 						</div>
-						<Card className="w-full shadow-none overflow-hidden">
-							<ScrollArea type={"auto"} className="auto flex-shrink flex h-full w-full">
-								<UnityTable/>
-								<ScrollBar orientation={"horizontal"} className={"bg-background px-2.5"}/>
-							</ScrollArea>
-						</Card>
+						<ScrollableCardTable>
+							<UnityTableBody/>
+						</ScrollableCardTable>
 					</Card>
 					<Card className={"flex-shrink-0 p-4"}>
 						<h2>Dropdown Selector</h2>
@@ -108,7 +106,7 @@ export default function Page() {
 )
 }
 
-function UnityTable() {
+function UnityTableBody() {
 	const unityPaths: [path: string, version: string, fromHub: boolean][] = [
 		["/Applications/Unity/Hub/Editor/2019.4.31f1/Unity.app/Contents/MacOS/Unity", "2019.4.31f1", true],
 		["/Applications/Unity/Hub/Editor/2022.3.22f1/Unity.app/Contents/MacOS/Unity", "2022.3.22f1", true],

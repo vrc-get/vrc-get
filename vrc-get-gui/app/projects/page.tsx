@@ -1,7 +1,7 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
-import {Card, CardHeader} from "@/components/ui/card";
+import {Card} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {
@@ -10,18 +10,8 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {Input} from "@/components/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select"
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
 import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
-import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
+import React, {forwardRef, Fragment, useContext, useEffect, useMemo, useState} from "react";
 import {
 	ArrowPathIcon,
 	ChevronDownIcon,
@@ -35,37 +25,32 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import {
 	environmentAddProjectWithPicker,
-	environmentCheckProjectName,
 	environmentCopyProjectForMigration,
-	environmentCreateProject,
 	environmentGetProjectSorting,
-	environmentPickProjectDefaultPath,
-	environmentProjectCreationInformation,
 	environmentProjects,
 	environmentSetFavoriteProject,
 	environmentSetProjectSorting,
-	environmentUnityVersions, projectIsUnityLaunching,
+	projectIsUnityLaunching,
 	projectMigrateProjectToVpm,
 	TauriProject,
-	TauriProjectDirCheckResult,
-	TauriProjectTemplate,
 	TauriProjectType,
 	utilOpen
 } from "@/lib/bindings";
 import {useQuery} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
-import {nop} from "@/lib/nop";
-import {useDebounce} from "@uidotdev/usehooks";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
-import {pathSeparator} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
 import {ChevronUpIcon} from "@heroicons/react/24/outline";
 import {compareUnityVersionString} from "@/lib/version";
 import {useOpenUnity, OpenUnityFunction} from "@/lib/use-open-unity";
+import {ScrollableCardTable} from "@/components/ScrollableCardTable";
+import {CreateProject} from "@/app/projects/create-project";
+import {ProjectRow} from "@/app/projects/project-row";
+import {assertNever} from "@/lib/assert-never";
 
 const sortings = [
 	"lastModified",
@@ -82,7 +67,7 @@ function isSorting(s: string): s is Sorting {
 }
 
 export default function Page() {
-	const result = useQuery({
+	let result = useQuery({
 		queryKey: ["projects"],
 		queryFn: environmentProjects,
 	});
@@ -102,24 +87,25 @@ export default function Page() {
 												 startCreateProject={startCreateProject}
 												 isLoading={loading}
 												 search={search} setSearch={setSearch}/>
-			<Card className="w-full shadow-none overflow-hidden">
-				<ScrollArea type={"auto"} className="auto flex-shrink flex h-full w-full">
-					{
-						result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
-							result.status == "error" ?
-								<Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
-								<ProjectsTable
-									projects={result.data}
-									search={search}
-									loading={loading}
-									openUnity={openUnity.openUnity}
-									refresh={() => result.refetch()}
-									onRemoved={() => result.refetch()}
-								/>
-					}
-					<ScrollBar orientation="horizontal" className="bg-background"/>
-				</ScrollArea>
-			</Card>
+
+			{
+				result.status == "pending" ?
+					<Card className="w-full shadow-none overflow-hidden p-4">
+						{tc("general:loading...")}
+					</Card> :
+					result.status == "error" ?
+						<Card className="w-full shadow-none overflow-hidden p-4">
+							{tc("projects:error:load error", {msg: result.error.message})}
+						</Card>
+						: <ProjectsTableCard
+							projects={result.data}
+							search={search}
+							loading={loading}
+							openUnity={openUnity.openUnity}
+							refresh={() => result.refetch()}
+							onRemoved={() => result.refetch()}
+						/>
+			}
 			{createProjectState === "creating" &&
 				<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
 			{openUnity.dialog}
@@ -162,11 +148,10 @@ function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 
 	if (a === "Avatars") return 1;
 	if (b === "Avatars") return -1;
 
-	let _: never = a;
-	return 0;
+	assertNever(a, "project type");
 }
 
-function ProjectsTable(
+function ProjectsTableCard(
 	{
 		projects, search, onRemoved, loading, refresh, openUnity,
 	}: {
@@ -221,7 +206,7 @@ function ProjectsTable(
 				searched.sort((a, b) => compareUnityVersionString(b.unity, a.unity));
 				break;
 			default:
-				let _: never = sorting;
+				assertNever(sorting);
 		}
 		searched.sort((a, b) => {
 			if (a.favorite && !b.favorite) return -1;
@@ -260,7 +245,7 @@ function ProjectsTable(
 				: <ChevronUpDownIcon className={iconClass}/>;
 
 	return (
-		<table className="relative table-auto text-left w-full">
+		<ScrollableCardTable>
 			<thead>
 			<tr>
 				<th className={`${thClass} bg-secondary text-secondary-foreground`}>
@@ -303,352 +288,8 @@ function ProjectsTable(
 				<ProjectRow key={project.index} project={project} loading={loading} refresh={refresh} onRemoved={onRemoved}
 										openUnity={openUnity}/>)}
 			</tbody>
-		</table>
+		</ScrollableCardTable>
 	);
-}
-
-const ProjectDisplayType: Record<TauriProjectType, "avatars" | "worlds" | "sdk2" | "unknown"> = {
-	"Unknown": "unknown",
-	"LegacySdk2": "sdk2",
-	"LegacyWorlds": "worlds",
-	"LegacyAvatars": "avatars",
-	"UpmWorlds": "worlds",
-	"UpmAvatars": "avatars",
-	"UpmStarter": "unknown",
-	"Worlds": "worlds",
-	"Avatars": "avatars",
-	"VpmStarter": "unknown",
-}
-
-const LegacyProjectTypes = ["LegacySdk2", "LegacyWorlds", "LegacyAvatars", "UpmWorlds", "UpmAvatars", "UpmStarter"];
-
-function formatDateOffset(date: number): React.ReactNode {
-	const now = Date.now();
-	const diff = now - date;
-
-	const PER_SECOND = 1000;
-	const PER_MINUTE = 60 * PER_SECOND;
-	const PER_HOUR = 60 * PER_MINUTE;
-	const PER_DAY = 24 * PER_HOUR;
-	const PER_WEEK = 7 * PER_DAY;
-	const PER_MONTH = 30 * PER_DAY;
-	const PER_YEAR = 365 * PER_DAY;
-
-	const diffAbs = Math.abs(diff);
-
-	if (diffAbs < PER_MINUTE) return tc("projects:last modified:moments");
-	if (diffAbs < PER_HOUR) return tc("projects:last modified:minutes", {count: Math.floor(diff / PER_MINUTE)});
-	if (diffAbs < PER_DAY) return tc("projects:last modified:hours", {count: Math.floor(diff / PER_HOUR)});
-	if (diffAbs < PER_WEEK) return tc("projects:last modified:days", {count: Math.floor(diff / PER_DAY)});
-	if (diffAbs < PER_MONTH) return tc("projects:last modified:weeks", {count: Math.floor(diff / PER_WEEK)});
-	if (diffAbs < PER_YEAR) return tc("projects:last modified:months", {count: Math.floor(diff / PER_MONTH)});
-
-	return tc("projects:last modified:years", {count: Math.floor(diff / PER_YEAR)});
-}
-
-type ProjectRowState = {
-	type: 'normal',
-} | {
-	type: 'migrateVpm:confirm',
-} | {
-	type: 'migrateVpm:copyingProject',
-} | {
-	type: 'migrateVpm:updating',
-}
-
-function ProjectRow(
-	{
-		project,
-		openUnity,
-		onRemoved,
-		loading,
-		refresh,
-	}: {
-		project: TauriProject;
-		openUnity: OpenUnityFunction;
-		onRemoved?: () => void;
-		loading?: boolean;
-		refresh?: () => void;
-	}
-) {
-	const router = useRouter();
-
-	const [dialogStatus, setDialogStatus] = useState<ProjectRowState>({type: 'normal'});
-	const removeProjectModal = useRemoveProjectModal({onRemoved});
-	const backupProjectModal = useBackupProjectModal();
-
-	const cellClass = "p-2.5";
-	const noGrowCellClass = `${cellClass} w-1`;
-	const typeIconClass = `w-5 h-5`;
-
-	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
-	const displayType = tc(`projects:type:${projectTypeKind}`)
-	const isLegacy = LegacyProjectTypes.includes(project.project_type);
-	const lastModified = new Date(project.last_modified);
-	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, '0')}-${(lastModified.getMonth() + 1).toString().padStart(2, '0')}-${lastModified.getDate().toString().padStart(2, '0')} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
-
-	const openProjectFolder = () => utilOpen(project.path);
-
-	const startMigrateVpm = async () => {
-		if (await projectIsUnityLaunching(project.path)) {
-			toastError(tt("projects:toast:close unity before migration"));
-			return;
-		}
-		setDialogStatus({type: 'migrateVpm:confirm'})
-	};
-	const doMigrateVpm = async (inPlace: boolean) => {
-		setDialogStatus({type: 'normal'});
-		try {
-			let migrateProjectPath;
-			if (inPlace) {
-				migrateProjectPath = project.path;
-			} else {
-				// copy
-				setDialogStatus({type: "migrateVpm:copyingProject"});
-				migrateProjectPath = await environmentCopyProjectForMigration(project.path);
-			}
-			setDialogStatus({type: "migrateVpm:updating"});
-			await projectMigrateProjectToVpm(migrateProjectPath);
-			setDialogStatus({type: "normal"});
-			toastSuccess(tt("projects:toast:project migrated"));
-			refresh?.();
-		} catch (e) {
-			console.error("Error migrating project", e);
-			setDialogStatus({type: "normal"});
-			toastThrownError(e);
-		}
-	}
-
-	const onToggleFavorite = async () => {
-		try {
-			await environmentSetFavoriteProject(project.list_version, project.index, !project.favorite);
-			refresh?.();
-		} catch (e) {
-			console.error("Error migrating project", e);
-			toastThrownError(e);
-		}
-	}
-
-	const removed = !project.is_exists;
-
-	const MayTooltip = removed ? TooltipTrigger : Fragment;
-	const MayTooltipRev = !removed ? TooltipTrigger : Fragment;
-
-	const RowButton = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(function RowButton(props, ref) {
-		if (removed) {
-			return (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button {...props} className={`disabled:pointer-events-auto ${props.className}`} disabled ref={ref}/>
-					</TooltipTrigger>
-					<TooltipPortal>
-						<TooltipContent>{tt("projects:tooltip:no directory")}</TooltipContent>
-					</TooltipPortal>
-				</Tooltip>
-			)
-		} else {
-			return (
-				<Button {...props} className={`disabled:pointer-events-auto ${props.className}`}
-								disabled={loading || props.disabled} ref={ref}/>
-			);
-		}
-	});
-
-	let manageButton;
-
-	switch (project.project_type) {
-		case "LegacySdk2":
-			manageButton =
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<RowButton variant={"success"} disabled>
-							{tc("projects:button:migrate")}
-						</RowButton>
-					</TooltipTrigger>
-					<TooltipContent>{tc("projects:tooltip:sdk2 migration hint")}</TooltipContent>
-				</Tooltip>
-			break;
-		case "LegacyWorlds":
-		case "LegacyAvatars":
-			manageButton =
-				<RowButton variant={"success"} onClick={startMigrateVpm}>{tc("projects:button:migrate")}</RowButton>
-			break;
-		case "UpmWorlds":
-		case "UpmAvatars":
-		case "UpmStarter":
-			manageButton =
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<RowButton variant={"info"} disabled>
-							{tc("projects:button:manage")}
-						</RowButton>
-					</TooltipTrigger>
-					<TooltipContent>{tc("projects:tooltip:git-vcc not supported")}</TooltipContent>
-				</Tooltip>
-			break;
-		case "Unknown":
-		case "Worlds":
-		case "Avatars":
-		case "VpmStarter":
-			manageButton = <RowButton
-				onClick={() => router.push(`/projects/manage?${new URLSearchParams({projectPath: project.path})}`)}
-				variant={"info"}>
-				{tc("projects:button:manage")}
-			</RowButton>
-			break;
-	}
-
-	let dialogContent: React.ReactNode = null;
-	switch (dialogStatus.type) {
-		case "migrateVpm:confirm":
-			dialogContent = (
-				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-					<DialogDescription>
-						<p className={"text-destructive"}>
-							{tc("projects:dialog:vpm migrate description")}
-						</p>
-					</DialogDescription>
-					<DialogFooter>
-						<Button onClick={() => setDialogStatus({type: "normal"})}
-								className="mr-1">{tc("general:button:cancel")}</Button>
-						<Button onClick={() => doMigrateVpm(false)} variant={"destructive"}
-								className="mr-1">{tc("projects:button:migrate copy")}</Button>
-						<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>{tc("projects:button:migrate in-place")}</Button>
-					</DialogFooter>
-				</DialogOpen>
-			);
-			break;
-		case "migrateVpm:copyingProject":
-			dialogContent = (
-				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-					<DialogDescription>
-						<p>
-							{tc("projects:pre-migrate copying...")}
-						</p>
-					</DialogDescription>
-				</DialogOpen>
-			);
-			break;
-		case "migrateVpm:updating":
-			dialogContent = (
-				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-					<DialogDescription>
-						<p>
-							{tc("projects:migrating...")}
-						</p>
-					</DialogDescription>
-				</DialogOpen>
-			);
-			break;
-	}
-
-	return (
-		<tr className={`even:bg-secondary/30 ${(removed || loading) ? 'opacity-50' : ''}`}>
-			<td className={`${cellClass} w-3`}>
-				<div className={"relative inline-flex"}>
-					<Checkbox checked={project.favorite}
-							onCheckedChange={onToggleFavorite}
-							disabled={removed || loading}
-							className="hover:before:content-none before:transition-none border-none !text-primary peer"/>
-					<span className={"text-background opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
-						<StarIcon className={"size-3"} />
-					</span>
-				</div>
-			</td>
-			<td className={`${cellClass} max-w-64 overflow-hidden`}>
-				<Tooltip>
-					<MayTooltip className={"text-left select-text cursor-auto w-full"}>
-						<div className="flex flex-col">
-							<Tooltip>
-								<MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
-									<p className="font-normal whitespace-pre">
-										{project.name}
-									</p>
-								</MayTooltipRev>
-								<TooltipContent>{project.name}</TooltipContent>
-							</Tooltip>
-							<Tooltip>
-								<MayTooltipRev className={"text-left select-text cursor-auto w-full"}>
-									<p className="font-normal opacity-50 text-sm whitespace-pre">
-										{project.path}
-									</p>
-								</MayTooltipRev>
-								<TooltipContent>{project.path}</TooltipContent>
-							</Tooltip>
-						</div>
-					</MayTooltip>
-					<TooltipPortal>
-						<TooltipContent>{tc("projects:tooltip:no directory")}</TooltipContent>
-					</TooltipPortal>
-				</Tooltip>
-			</td>
-			<td className={`${cellClass} w-[8em] min-w-[8em]`}>
-				<div className="flex flex-row gap-2">
-					<div className="flex items-center">
-						{projectTypeKind === "avatars" ? <UserCircleIcon className={typeIconClass}/> :
-							projectTypeKind === "worlds" ? <GlobeAltIcon className={typeIconClass}/> :
-								<QuestionMarkCircleIcon className={typeIconClass}/>}
-					</div>
-					<div className="flex flex-col justify-center">
-						<p className="font-normal">
-							{displayType}
-						</p>
-						{isLegacy &&
-							<p
-								className="font-normal opacity-50 dark:opacity-80 text-sm text-destructive">{tc("projects:type:legacy")}</p>}
-					</div>
-				</div>
-			</td>
-			<td className={noGrowCellClass}>
-				<p className="font-normal">
-					{project.unity}
-				</p>
-			</td>
-			<td className={noGrowCellClass}>
-				<Tooltip>
-					<TooltipTrigger>
-						<time dateTime={lastModified.toISOString()}>
-							<time className="font-normal">
-								{formatDateOffset(project.last_modified)}
-							</time>
-						</time>
-					</TooltipTrigger>
-					<TooltipPortal>
-						<TooltipContent>{lastModifiedHumanReadable}</TooltipContent>
-					</TooltipPortal>
-				</Tooltip>
-			</td>
-			<td className={noGrowCellClass}>
-				<div className="flex flex-row gap-2 max-w-min">
-					<RowButton
-						onClick={() => openUnity(project.path, project.unity, project.unity_revision)}>{tc("projects:button:open unity")}</RowButton>
-					{manageButton}
-					<RowButton onClick={() => backupProjectModal.startBackup(project)}
-										 variant={"success"}>{tc("projects:backup")}</RowButton>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size={"icon"} className={"hover:bg-primary/10 text-primary hover:text-primary"}><EllipsisHorizontalIcon
-								className={"size-5"}/></Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent>
-							<DropdownMenuItem onClick={openProjectFolder}
-												disabled={removed || loading}>{tc("projects:menuitem:open directory")}</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => removeProjectModal.startRemove(project)} disabled={loading}
-												className={'text-destructive focus:text-destructive'}>
-								{tc("projects:remove project")}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
-				{dialogContent}
-				{removeProjectModal.dialog}
-				{backupProjectModal.dialog}
-			</td>
-		</tr>
-	)
 }
 
 function ProjectViewHeader({className, refresh, startCreateProject, isLoading, search, setSearch}: {
@@ -679,7 +320,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					toastError(tt("projects:toast:project already exists"));
 					break;
 				default:
-					let _: never = result;
+					assertNever(result);
 			}
 		} catch (e) {
 			console.error("Error adding project", e);
@@ -721,293 +362,4 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 			{dialog}
 		</HNavBar>
 	);
-}
-
-type CreateProjectstate = 'loadingInitialInformation' | 'enteringInformation' | 'creating';
-
-function CreateProject(
-	{
-		close,
-		refetch,
-	}: {
-		close?: () => void,
-		refetch?: () => void,
-	}
-) {
-	const router = useRouter();
-
-	const [state, setState] = useState<CreateProjectstate>('loadingInitialInformation');
-	const [projectNameCheckState, setProjectNameCheckState] = useState<'checking' | TauriProjectDirCheckResult>('Ok');
-
-	type CustomTemplate = TauriProjectTemplate & { type: 'Custom' };
-
-	const templateUnityVersions = [
-		'2022.3.22f1',
-		'2022.3.6f1',
-		'2019.4.31f1',
-	] as const;
-	const latestUnityVersion = templateUnityVersions[0];
-
-	const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
-
-	const [templateType, setTemplateType] = useState<'avatars' | 'worlds' | 'custom'>('avatars');
-	const [unityVersion, setUnityVersion] = useState<(typeof templateUnityVersions)[number]>(latestUnityVersion);
-	const [customTemplate, setCustomTemplate] = useState<CustomTemplate>();
-
-	function onCustomTemplateChange(value: string) {
-		let newCustomTemplate: CustomTemplate = {
-			type: "Custom",
-			name: value,
-		}
-		setCustomTemplate(newCustomTemplate);
-	}
-
-	const [projectNameRaw, setProjectName] = useState("New Project");
-	const projectName = projectNameRaw.trim();
-	const [projectLocation, setProjectLocation] = useState("");
-	const projectNameDebounced = useDebounce(projectName, 500);
-
-	const [pickProjectDefaultPath, dialog] = useFilePickerFunction(environmentPickProjectDefaultPath);
-
-	useEffect(() => {
-		(async () => {
-			const information = await environmentProjectCreationInformation();
-			const customTemplates = information.templates.filter((template): template is CustomTemplate => template.type === "Custom");
-			setCustomTemplates(customTemplates);
-			setCustomTemplate(customTemplates[0]);
-			setProjectLocation(information.default_path);
-			setState('enteringInformation');
-		})();
-	}, []);
-
-	useEffect(() => {
-		let canceled = false;
-		(async () => {
-			try {
-				setProjectNameCheckState('checking');
-				const result = await environmentCheckProjectName(projectLocation, projectNameDebounced);
-				if (canceled) return;
-				setProjectNameCheckState(result);
-			} catch (e) {
-				console.error("Error checking project name", e);
-				toastThrownError(e);
-			}
-		})()
-		return () => {
-			canceled = true;
-		};
-	}, [projectNameDebounced, projectLocation]);
-
-	const selectProjectDefaultFolder = async () => {
-		try {
-			const result = await pickProjectDefaultPath();
-			switch (result.type) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tt("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					setProjectLocation(result.new_path);
-					break;
-				default:
-					const _exhaustiveCheck: never = result;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
-
-	const createProject = async () => {
-		try {
-			setState('creating');
-			let template: TauriProjectTemplate;
-			switch (templateType) {
-				case "avatars":
-				case "worlds":
-					template = {
-						type: "Builtin",
-						id: `${templateType}-${unityVersion}`,
-						name: `${templateType}-${unityVersion}`,
-					}
-					break;
-				case "custom":
-					if (customTemplate === undefined)
-						throw new Error("Custom template not selected");
-					template = customTemplate;
-					break;
-				default:
-					const _exhaustiveCheck: never = templateType;
-					template = _exhaustiveCheck;
-					break;
-			}
-			await environmentCreateProject(projectLocation, projectName, template);
-			toastSuccess(tt("projects:toast:project created"));
-			close?.();
-			refetch?.();
-			const projectPath = `${projectLocation}${pathSeparator()}${projectName}`;
-			router.push(`/projects/manage?${new URLSearchParams({projectPath})}`);
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-			close?.();
-		}
-	};
-
-	const checking = projectNameDebounced != projectName || projectNameCheckState === "checking";
-
-	let projectNameState: 'Ok' | 'warn' | 'err';
-	let projectNameCheck;
-
-	switch (projectNameCheckState) {
-		case "Ok":
-			projectNameCheck = tc("projects:hint:create project ready");
-			projectNameState = "Ok";
-			break;
-		case "InvalidNameForFolderName":
-			projectNameCheck = tc("projects:hint:invalid project name");
-			projectNameState = "err";
-			break;
-		case "MayCompatibilityProblem":
-			projectNameCheck = tc("projects:hint:warn symbol in project name");
-			projectNameState = "warn";
-			break;
-		case "WideChar":
-			projectNameCheck = tc("projects:hint:warn multibyte char in project name");
-			projectNameState = "warn";
-			break;
-		case "AlreadyExists":
-			projectNameCheck = tc("projects:hint:project already exists");
-			projectNameState = "err";
-			break;
-		case "checking":
-			projectNameCheck = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />;
-			projectNameState = "Ok";
-			break;
-		default:
-			const _exhaustiveCheck: never = projectNameCheckState;
-			projectNameState = "err";
-	}
-
-	let projectNameStateClass;
-	switch (projectNameState) {
-		case "Ok":
-			projectNameStateClass = "text-success";
-			break;
-		case "warn":
-			projectNameStateClass = "text-warning";
-			break;
-		case "err":
-			projectNameStateClass = "text-destructive";
-	}
-
-	if (checking) projectNameCheck = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />
-
-	let dialogBody;
-
-	switch (state) {
-		case "loadingInitialInformation":
-			dialogBody = <ArrowPathIcon className={"w-5 h-5 animate-spin"} />;
-			break;
-		case "enteringInformation":
-			const renderUnityVersion = (unityVersion: string) => {
-				if (unityVersion === latestUnityVersion) {
-					return <>{unityVersion} <span className={"text-success"}>{tc("projects:latest")}</span></>
-				} else {
-					return unityVersion;
-				}
-			}
-			dialogBody = <>
-				<VStack>
-					<div className={"flex gap-1"}>
-						<div className={"flex items-center"}>
-							<label>{tc("projects:template:type")}</label>
-						</div>
-						<Select defaultValue={templateType} onValueChange={value => setTemplateType(value as any)}>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									<SelectItem value={"avatars"}>{tc("projects:type:avatars")}</SelectItem>
-									<SelectItem value={"worlds"}>{tc("projects:type:worlds")}</SelectItem>
-									<SelectItem value={"custom"} disabled={customTemplates.length == 0}>{tc("projects:type:custom")}</SelectItem>
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					</div>
-					{templateType !== "custom" ? (
-						<div className={"flex gap-1"}>
-							<div className={"flex items-center"}>
-								<label>{tc("projects:template:unity version")}</label>
-							</div>
-							<Select defaultValue={unityVersion} onValueChange={value => setUnityVersion(value as any)}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{templateUnityVersions.map(unityVersion =>
-										<SelectItem value={unityVersion} key={unityVersion}>{renderUnityVersion(unityVersion)}</SelectItem>)}
-								</SelectContent>
-							</Select>
-						</div>
-					) : (
-						<div className={"flex gap-1"}>
-							<div className={"flex items-center"}>
-								<label>{tc("projects:template")}</label>
-							</div>
-							<Select value={customTemplate?.name} onValueChange={onCustomTemplateChange}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										{customTemplates.map(template =>
-											<SelectItem value={template.name} key={template.name}>{template.name}</SelectItem>)}
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						</div>
-					)}
-					<Input value={projectNameRaw} onChange={(e) => setProjectName(e.target.value)}/>
-					<div className={"flex gap-1 items-center"}>
-						<Input className="flex-auto" value={projectLocation} disabled/>
-						<Button className="flex-none px-4"
-										onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
-					</div>
-					<small className={"whitespace-normal"}>
-						{tc("projects:hint:path of creating project", {path: `${projectLocation}${pathSeparator()}${projectName}`}, {
-							components: {
-								path: <span className={"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"}/>
-							}
-						})}
-					</small>
-					<small className={`whitespace-normal ${projectNameStateClass}`}>
-						{projectNameCheck}
-					</small>
-				</VStack>
-			</>;
-			break;
-		case "creating":
-			dialogBody = <>
-				<ArrowPathIcon className={"w-5 h-5 animate-spin"} />
-				<p>{tc("projects:creating project...")}</p>
-			</>;
-			break;
-	}
-
-	return <DialogOpen>
-		<DialogTitle>{tc("projects:create new project")}</DialogTitle>
-		<DialogDescription>
-			{dialogBody}
-		</DialogDescription>
-		<DialogFooter className={"gap-2"}>
-			<Button onClick={close} disabled={state == "creating"}>{tc("general:button:cancel")}</Button>
-			<Button onClick={createProject}
-					disabled={state == "creating" || checking || projectNameState == "err"}>{tc("projects:button:create")}</Button>
-		</DialogFooter>
-		{dialog}
-	</DialogOpen>;
 }
