@@ -5,6 +5,7 @@ import Link from "next/link";
 import {Licenses} from "@/lib/licenses";
 import {shellOpen} from "@/lib/shellOpen";
 import {ScrollArea} from "@/components/ui/scroll-area";
+import {ScrollableCard} from "@/components/ScrollableCard";
 
 export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 	if (licenses === null) {
@@ -36,11 +37,9 @@ export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 								onClick={() => shellOpen(pkg.url)}>{pkg.name} ({pkg.version})</a></li>
 						))}
 					</ul>
-					<Card className={"p-3 max-h-52 flex"}>
-						<ScrollArea className={'overflow-hidden flex-shrink w-full'}>
-							<pre className={"whitespace-pre-wrap"}>{license.text}</pre>
-						</ScrollArea>
-					</Card>
+					<ScrollableCard className="max-h-52">
+						<pre className={"whitespace-pre-wrap"}>{license.text}</pre>
+					</ScrollableCard>
 				</Card>
 			))}
 		</ScrollArea>
