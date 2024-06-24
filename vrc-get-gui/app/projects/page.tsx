@@ -13,15 +13,12 @@ import {
 import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {forwardRef, Fragment, useContext, useEffect, useMemo, useState} from "react";
 import {
-	ArrowPathIcon,
-	ChevronDownIcon,
-	ChevronUpDownIcon,
-	EllipsisHorizontalIcon,
-	GlobeAltIcon,
-	QuestionMarkCircleIcon,
-	StarIcon,
-	UserCircleIcon
-} from "@heroicons/react/24/solid";
+	RefreshCw,
+	ChevronDown,
+	ChevronUp,
+	ChevronsUpDown,
+	Star,
+} from "lucide-react";
 import {HNavBar, VStack} from "@/components/layout";
 import {
 	environmentAddProjectWithPicker,
@@ -44,7 +41,6 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {useBackupProjectModal} from "@/lib/backup-project";
-import {ChevronUpIcon} from "@heroicons/react/24/outline";
 import {compareUnityVersionString} from "@/lib/version";
 import {useOpenUnity, OpenUnityFunction} from "@/lib/use-open-unity";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
@@ -240,16 +236,16 @@ function ProjectsTableCard(
 
 	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground";
 	const icon = (target: SimpleSorting) =>
-		sorting === target ? <ChevronDownIcon className={"size-3"}/>
-			: sorting === `${target}Reversed` ? <ChevronUpIcon className={"size-3"}/>
-				: <ChevronUpDownIcon className={iconClass}/>;
+		sorting === target ? <ChevronDown className={"size-3"}/>
+			: sorting === `${target}Reversed` ? <ChevronUp className={"size-3"}/>
+				: <ChevronsUpDown className={iconClass}/>;
 
 	return (
 		<ScrollableCardTable>
 			<thead>
 			<tr>
 				<th className={`${thClass} bg-secondary text-secondary-foreground`}>
-					<StarIcon className={"size-4"}/>
+					<Star className={"size-4"}/>
 				</th>
 				<th
 					className={`${thClass} ${headerBg('name')}`}>
@@ -337,7 +333,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button variant={"ghost"} size={"icon"} onClick={() => refresh?.()} disabled={isLoading}>
-						{isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+						{isLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : <RefreshCw className={"w-5 h-5"}/>}
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
@@ -350,7 +346,7 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 					<Button className={"rounded-r-none pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
 					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
 						<Button>
-							<ChevronDownIcon className={"w-4 h-4"}/>
+							<ChevronDown className={"w-4 h-4"}/>
 						</Button>
 					</DropdownMenuTrigger>
 				</div>

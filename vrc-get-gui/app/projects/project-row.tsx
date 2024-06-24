@@ -18,12 +18,12 @@ import {useBackupProjectModal} from "@/lib/backup-project";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {Checkbox} from "@/components/ui/checkbox";
 import {
-	EllipsisHorizontalIcon,
-	GlobeAltIcon,
-	QuestionMarkCircleIcon,
-	StarIcon,
-	UserCircleIcon
-} from "@heroicons/react/24/solid";
+	Ellipsis,
+	Globe,
+	CircleHelp,
+	Star,
+	CircleUserRound
+} from "lucide-react";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 
@@ -94,7 +94,7 @@ export function ProjectRow(
 										className="hover:before:content-none before:transition-none border-none !text-primary peer"/>
 					<span
 						className={"text-background opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
-						<StarIcon className={"size-3"}/>
+						<Star className={"size-3"}/>
 					</span>
 				</div>
 			</td>
@@ -128,9 +128,9 @@ export function ProjectRow(
 			<td className={`${cellClass} w-[8em] min-w-[8em]`}>
 				<div className="flex flex-row gap-2">
 					<div className="flex items-center">
-						{projectTypeKind === "avatars" ? <UserCircleIcon className={typeIconClass}/> :
-							projectTypeKind === "worlds" ? <GlobeAltIcon className={typeIconClass}/> :
-								<QuestionMarkCircleIcon className={typeIconClass}/>}
+						{projectTypeKind === "avatars" ? <CircleUserRound className={typeIconClass}/> :
+							projectTypeKind === "worlds" ? <Globe className={typeIconClass}/> :
+								<CircleHelp className={typeIconClass}/>}
 					</div>
 					<div className="flex flex-col justify-center">
 						<p className="font-normal">
@@ -171,7 +171,7 @@ export function ProjectRow(
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" size={"icon"}
-											className={"hover:bg-primary/10 text-primary hover:text-primary"}><EllipsisHorizontalIcon
+											className={"hover:bg-primary/10 text-primary hover:text-primary"}><Ellipsis
 								className={"size-5"}/></Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>
