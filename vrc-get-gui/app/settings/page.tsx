@@ -127,19 +127,9 @@ function Settings(
 					refetch={refetch}
 				/>
 				<PrereleasePackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
-				<LanguageCard/>
-				<ThemeCard/>
-				<CheckForUpdateCard/>
+				<AppearanceCard/>
 				{osType != "Darwin" && <VccSchemeCard/>}
-				<ReportIssueCard/>
-				<Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("settings:licenses")}</h2>
-					<p className={"whitespace-normal"}>
-						{tc("settings:licenses description", {}, {
-							components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
-						})}
-					</p>
-				</Card>
+				<AlcomCard/>
 			</main>
 		</ScrollArea>
 	)
@@ -314,11 +304,13 @@ function PrereleasePackagesCard(
 	)
 }
 
-function LanguageCard() {
+function AppearanceCard() {
 	const {data: lang, refetch: refetchLang} = useQuery({
 		queryKey: ["environmentLanguage"],
 		queryFn: environmentLanguage
 	})
+
+	const [theme, setTheme] = React.useState<string | null>(null);
 
 	const changeLanguage = async (value: string) => {
 		await Promise.all([
@@ -327,34 +319,6 @@ function LanguageCard() {
 			refetchLang(),
 		])
 	};
-
-	return (
-		<Card className={"flex-shrink-0 p-4"}>
-			<label className={"flex items-center"}>
-				<h2>{tc("settings:language")}: </h2>
-				{lang && (
-					<Select defaultValue={lang} onValueChange={changeLanguage}>
-						<SelectTrigger>
-							<SelectValue/>
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{
-									languages.map((lang) => (
-										<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
-									))
-								}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				)}
-			</label>
-		</Card>
-	)
-}
-
-function ThemeCard() {
-	const [theme, setTheme] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
 		(async () => {
@@ -375,12 +339,32 @@ function ThemeCard() {
 
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
+			<h2>Appearance</h2>
 			<label className={"flex items-center"}>
-				<h2>{tc("settings:theme")}: </h2>
+				<h3>{tc("settings:language")}: </h3>
+				{lang && (
+					<Select defaultValue={lang} onValueChange={changeLanguage}>
+						<SelectTrigger>
+							<SelectValue/>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								{
+									languages.map((lang) => (
+										<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
+									))
+								}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				)}
+			</label>
+			<label className={"flex items-center"}>
+				<h3>{tc("settings:theme")}: </h3>
 				{theme && (
 					<Select defaultValue={theme} onValueChange={changeTheme}>
 						<SelectTrigger>
-							<SelectValue />
+							<SelectValue/>
 						</SelectTrigger>
 						<SelectContent>
 							<SelectGroup>
@@ -392,17 +376,6 @@ function ThemeCard() {
 					</Select>
 				)}
 			</label>
-		</Card>
-	)
-}
-
-function CheckForUpdateCard() {
-	return (
-		<Card className={"flex-shrink-0 p-4"}>
-			<h2>{tc("settings:check update")}</h2>
-			<div>
-				<Button onClick={() => emit("tauri://update")}>{tc("settings:check update")}</Button>
-			</div>
 		</Card>
 	)
 }
@@ -431,7 +404,16 @@ function VccSchemeCard() {
 	)
 }
 
-function ReportIssueCard() {
+function AlcomCard() {
+	const checkForUpdate = async () => {
+		try {
+			await emit("tauri://update")
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	}
+
 	const reportIssue = async () => {
 		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
 		url.searchParams.append("labels", "bug,vrc-get-gui")
@@ -446,11 +428,17 @@ function ReportIssueCard() {
 	}
 
 	return (
-		<Card className={"flex-shrink-0 p-4"}>
-			<h2>{tc("settings:report issue")}</h2>
-			<div>
+		<Card className={"flex-shrink-0 p-4 flex flex-col gap-2"}>
+			<h2>ALCOM</h2>
+			<div className={"flex flex-row flex-wrap gap-2"}>
+				<Button onClick={checkForUpdate}>{tc("settings:check update")}</Button>
 				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
 			</div>
+			<p className={"whitespace-normal"}>
+				{tc("settings:licenses description", {}, {
+					components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
+				})}
+			</p>
 		</Card>
 	)
 }
