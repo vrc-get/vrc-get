@@ -19,7 +19,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
 import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {forwardRef, Fragment, useEffect, useMemo, useState} from "react";
 import {
@@ -66,6 +65,7 @@ import {useBackupProjectModal} from "@/lib/backup-project";
 import {ChevronUpIcon} from "@heroicons/react/24/outline";
 import {compareUnityVersionString} from "@/lib/version";
 import {useOpenUnity, OpenUnityFunction} from "@/lib/use-open-unity";
+import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 
 const sortings = [
 	"lastModified",
@@ -82,7 +82,7 @@ function isSorting(s: string): s is Sorting {
 }
 
 export default function Page() {
-	const result = useQuery({
+	let result = useQuery({
 		queryKey: ["projects"],
 		queryFn: environmentProjects,
 	});
@@ -102,24 +102,27 @@ export default function Page() {
 												 startCreateProject={startCreateProject}
 												 isLoading={loading}
 												 search={search} setSearch={setSearch}/>
-			<Card className="w-full shadow-none overflow-hidden">
-				<ScrollArea type={"auto"} className="auto flex-shrink flex h-full w-full">
-					{
-						result.status == "pending" ? <Card className={"p-4"}>{tc("general:loading...")}</Card> :
-							result.status == "error" ?
-								<Card className={"p-4"}>{tc("projects:error:load error", {msg: result.error.message})}</Card> :
-								<ProjectsTable
-									projects={result.data}
-									search={search}
-									loading={loading}
-									openUnity={openUnity.openUnity}
-									refresh={() => result.refetch()}
-									onRemoved={() => result.refetch()}
-								/>
-					}
-					<ScrollBar orientation="horizontal" className="bg-background"/>
-				</ScrollArea>
-			</Card>
+
+			{
+				result.status == "pending" ?
+					<Card className="w-full shadow-none overflow-hidden p-4">
+						{tc("general:loading...")}
+					</Card> :
+					result.status == "error" ?
+						<Card className="w-full shadow-none overflow-hidden p-4">
+							{tc("projects:error:load error", {msg: result.error.message})}
+						</Card>
+						: <ScrollableCardTable>
+							<ProjectsTableBody
+								projects={result.data}
+								search={search}
+								loading={loading}
+								openUnity={openUnity.openUnity}
+								refresh={() => result.refetch()}
+								onRemoved={() => result.refetch()}
+							/>
+						</ScrollableCardTable>
+			}
 			{createProjectState === "creating" &&
 				<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
 			{openUnity.dialog}
@@ -166,7 +169,7 @@ function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 
 	return 0;
 }
 
-function ProjectsTable(
+function ProjectsTableBody(
 	{
 		projects, search, onRemoved, loading, refresh, openUnity,
 	}: {
@@ -260,7 +263,7 @@ function ProjectsTable(
 				: <ChevronUpDownIcon className={iconClass}/>;
 
 	return (
-		<table className="relative table-auto text-left w-full">
+		<>
 			<thead>
 			<tr>
 				<th className={`${thClass} bg-secondary text-secondary-foreground`}>
@@ -303,7 +306,7 @@ function ProjectsTable(
 				<ProjectRow key={project.index} project={project} loading={loading} refresh={refresh} onRemoved={onRemoved}
 										openUnity={openUnity}/>)}
 			</tbody>
-		</table>
+		</>
 	);
 }
 

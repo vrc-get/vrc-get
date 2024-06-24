@@ -87,7 +87,7 @@ import {useBackupProjectModal} from "@/lib/backup-project";
 import {useUnity2022Migration, useUnity2022PatchMigration} from "@/app/projects/manage/unity-migration";
 import {Input} from "@/components/ui/input";
 import {ReorderableList, useReorderableList} from "@/components/ReorderableList";
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
+import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -673,40 +673,36 @@ function PageBody() {
 							bulkInstallAll={onInstallBulkRequested}
 							cancel={() => setBulkUpdatePackageIds([])}
 						/>
-						<Card className="overflow-hidden">
-							<ScrollArea className="w-full h-full" type={"auto"}>
-								<table className="relative table-auto text-left w-full">
-									<thead>
-									<tr>
-										<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground`}>
-										</th>
-										{TABLE_HEAD.map((head, index) => (
-											<th key={index}
-												className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
-												<small className="font-normal leading-none">{tc(head)}</small>
-											</th>
-										))}
-										<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}/>
-									</tr>
-									</thead>
-									<tbody>
-									{packageRowsData.map((row) => (
-										<tr className="even:bg-secondary/30" hidden={!filteredPackageIds.has(row.id)} key={row.id}>
-											<PackageRow pkg={row}
-													locked={isLoading}
-													onInstallRequested={onInstallRequested}
-													onRemoveRequested={onRemoveRequested}
-													bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
-													bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
-													addBulkUpdatePackage={addBulkUpdatePackage}
-													removeBulkUpdatePackage={removeBulkUpdatePackage}
-											/>
-										</tr>))}
-									</tbody>
-								</table>
-								<ScrollBar orientation="horizontal" className="bg-background" />
-							</ScrollArea>
-						</Card>
+						<ScrollableCardTable>
+							<thead>
+							<tr>
+								<th className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground`}>
+								</th>
+								{TABLE_HEAD.map((head, index) => (
+									<th key={index}
+											className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
+										<small className="font-normal leading-none">{tc(head)}</small>
+									</th>
+								))}
+								<th
+									className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}/>
+							</tr>
+							</thead>
+							<tbody>
+							{packageRowsData.map((row) => (
+								<tr className="even:bg-secondary/30" hidden={!filteredPackageIds.has(row.id)} key={row.id}>
+									<PackageRow pkg={row}
+															locked={isLoading}
+															onInstallRequested={onInstallRequested}
+															onRemoveRequested={onRemoveRequested}
+															bulkUpdateSelected={bulkUpdatePackageIds.some(([id, _]) => id === row.id)}
+															bulkUpdateAvailable={canBulkUpdate(bulkUpdateMode, bulkUpdateModeForPackage(row))}
+															addBulkUpdatePackage={addBulkUpdatePackage}
+															removeBulkUpdatePackage={removeBulkUpdatePackage}
+									/>
+								</tr>))}
+							</tbody>
+						</ScrollableCardTable>
 					</CardContent>
 				</Card>
 				{dialogForState}

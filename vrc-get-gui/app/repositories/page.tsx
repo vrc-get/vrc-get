@@ -1,7 +1,6 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
-import {Card, CardHeader} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
@@ -21,11 +20,11 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import React, {Suspense, useCallback, useEffect, useId, useMemo, useState} from "react";
 import {XCircleIcon} from "@heroicons/react/24/outline";
-import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {ReorderableList, useReorderableList} from "@/components/ReorderableList";
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
+import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -164,25 +163,22 @@ function PageBody() {
 				<Button
 					onClick={() => setState({type: 'enteringRepositoryInfo'})}>{tc("vpm repositories:button:add repository")}</Button>
 			</HNavBar>
-			<main className="flex-shrink flex-grow overflow-hidden flex">
-				<Card className="w-full shadow-none overflow-hidden">
-					<ScrollArea type={"auto"} className="auto flex-shrink flex h-full w-full">
-						<RepositoryTable
-							userRepos={result.data?.user_repositories || []}
-							hiddenUserRepos={hiddenUserRepos}
-							removeRepository={removeRepository}
-							refetch={() => result.refetch()}
-						/>
-						<ScrollBar orientation={"horizontal"} className={"bg-background px-2.5"}/>
-					</ScrollArea>
-				</Card>
+			<main className="flex-shrink flex-grow">
+				<ScrollableCardTable className="w-full shadow-none overflow-hidden">
+					<RepositoryTableBody
+						userRepos={result.data?.user_repositories || []}
+						hiddenUserRepos={hiddenUserRepos}
+						removeRepository={removeRepository}
+						refetch={() => result.refetch()}
+					/>
+				</ScrollableCardTable>
 			</main>
 			{dialog}
 		</VStack>
 	);
 }
 
-function RepositoryTable(
+function RepositoryTableBody(
 	{
 		userRepos,
 		hiddenUserRepos,
@@ -203,7 +199,7 @@ function RepositoryTable(
 	];
 
 	return (
-		<table className="relative table-auto text-left">
+		<>
 			<thead>
 			<tr>
 				{TABLE_HEAD.map((head, index) => (
@@ -226,7 +222,7 @@ function RepositoryTable(
 					/>)
 			}
 			</tbody>
-		</table>
+		</>
 	);
 }
 

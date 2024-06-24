@@ -40,6 +40,7 @@ import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
 import {loadOSApi} from "@/lib/os";
 import type {OsType} from "@tauri-apps/api/os";
+import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 
 export default function Page() {
 	const result = useQuery({
@@ -307,12 +308,9 @@ function Settings(
 						</div>
 						<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
 					</div>
-					<Card className="w-full min-h-[20vh] flex flex-col overflow-hidden">
-						<ScrollArea className={"h-full grow"}>
-							<UnityTable unityPaths={settings.unity_paths}/>
-							<ScrollBar orientation={"horizontal"} className={"bg-background px-2.5"}/>
-						</ScrollArea>
-					</Card>
+					<ScrollableCardTable className="w-full min-h-[20vh]">
+						<UnityTableBody unityPaths={settings.unity_paths}/>
+					</ScrollableCardTable>
 				</Card>
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2>{tc("settings:default project path")}</h2>
@@ -452,7 +450,7 @@ function Settings(
 	)
 }
 
-function UnityTable(
+function UnityTableBody(
 	{
 		unityPaths,
 	}: {
