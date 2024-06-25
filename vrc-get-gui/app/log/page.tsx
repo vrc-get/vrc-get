@@ -1,12 +1,11 @@
 "use client";
 
-import {Card} from "@/components/ui/card";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {useCallback, useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
-import {notoSansMono} from "@/app/fonts";
 import {tc} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
+import {ScrollableCard} from "@/components/ScrollableCard";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
@@ -29,11 +28,11 @@ export default function Page() {
 					{tc("logs")}
 				</p>
 			</HNavBar>
-			<main className="flex-shrink overflow-hidden flex flex-grow">
-				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre font-mono shadow-none text-muted-foreground`}>
+			<ScrollableCard className={"w-full shadow-none"}>
+				<pre className="whitespace-pre font-mono text-muted-foreground">
 					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
-				</Card>
-			</main>
+				</pre>
+			</ScrollableCard>
 		</VStack>
 	);
 }

@@ -18,8 +18,8 @@ export default function RootLayout({
 		<html>
 		<body className={`font-sans w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
 		<Providers>
-			<SideBar className={"flex-grow-0 overflow-auto"}/>
-			<div className={"h-screen flex-grow overflow-auto flex"}>
+			<SideBar className={"flex-grow-0"}/>
+			<div className={"h-screen flex-grow overflow-hidden flex"}>
 				{children}
 			</div>
 		</Providers>

@@ -12,6 +12,7 @@ import {callAsyncCommand} from "@/lib/call-async-command";
 import {useRouter} from "next/navigation";
 import {shellOpen} from "@/lib/shellOpen";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
+import {assertNever} from "@/lib/assert-never";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
@@ -223,7 +224,7 @@ function useMigrationInternal(
 					toastSuccess(tt("projects:toast:unity migrated"));
 					break;
 				default:
-					const _: never = finalizeResult;
+					assertNever(finalizeResult);
 			}
 			if (inPlace) {
 				setInstallStatus({state: "normal"});
@@ -273,7 +274,7 @@ function useMigrationInternal(
 			dialogBodyForState = <MigrationCallingUnityForMigrationDialog lines={installStatus.lines}/>;
 			break;
 		default:
-			const _: never = installStatus;
+			assertNever(installStatus);
 	}
 
 	return {
@@ -331,6 +332,7 @@ function MigrationCallingUnityForMigrationDialog(
 		<p>
 			{tc("projects:manage:dialog:do not close")}
 		</p>
+		{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 		<pre className={"overflow-y-auto h-[50vh] bg-secondary text-secondary-foreground text-sm"}>
 					{lines.map(([lineNumber, line]) => <Fragment key={lineNumber}>{line}{"\n"}</Fragment>)}
 			<div ref={ref}/>
@@ -349,7 +351,6 @@ function NoExactUnity2022Dialog(
 		close: () => void
 	}) {
 	const openUnityHub = async () => {
-		console.log("openUnityHub", installWithUnityHubLink)
 		await shellOpen(installWithUnityHubLink);
 	}
 

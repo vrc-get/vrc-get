@@ -5,6 +5,7 @@ import {Label} from "@/components/ui/label";
 import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import {tc} from "@/lib/i18n";
 import {Checkbox} from "@/components/ui/checkbox";
+import {assertNever} from "@/lib/assert-never";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
@@ -69,7 +70,7 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 			</DialogOpen>;
 			break;
 		default:
-			const _: never = installStatus;
+			assertNever(installStatus);
 	}
 
 	return {dialog, select};
@@ -98,12 +99,12 @@ function SelectUnityVersionDialog(
 				<p>
 					{tc("projects:manage:dialog:multiple unity found")}
 				</p>
-				{withKeepUsing && <div>
+				{withKeepUsing && <div className={"my-2"}>
 					<label className={"flex cursor-pointer items-center gap-2 p-2 whitespace-normal"}>
 						<Checkbox checked={keepUsingThisVersion}
 											onCheckedChange={(e) => setKeepUsingThisVersion(e == true)}
 											className="hover:before:content-none"/>
-						{"Keep Using This Version"}
+						{tc("projects:manage:dialog:keep using this version")}
 					</label>
 				</div>}
 				<RadioGroup
@@ -113,7 +114,7 @@ function SelectUnityVersionDialog(
 					{unityVersions.map(([path, version, _]) =>
 						<div
 							key={path}
-							className={"flex items-center space-x-2"}
+							className={"flex items-center gap-2"}
 						>
 							<RadioGroupItem value={path} id={`${id}:${path}`}/>
 							<Label htmlFor={`${id}:${path}`}>{`${version} (${path})`}</Label>

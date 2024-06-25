@@ -74,9 +74,9 @@
 		@apply bg-background text-foreground;
 		color: hsl(var(--foreground));
 		background: linear-gradient(
-						to bottom,
-						transparent,
-						hsl(var(--background-end))
+			to bottom,
+			transparent,
+			hsl(var(--background-end))
 		) hsl(var(--background-start));
 	}
 }
@@ -150,4 +150,13 @@ body {
 	.Toastify__toast {
 		box-shadow: 0 4px 12px hsl(var(--primary) / 0.05);
 	}
+
+	.Toastify__close-button--light {
+		color: hsl(var(--foreground));
+	}
+}
+
+/* Radix ui sets display:block for each scroll viewport element but it seem it make worse */
+[data-radix-scroll-area-viewport] > div {
+	display: block !important;
 }

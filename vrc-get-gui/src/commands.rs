@@ -1244,6 +1244,7 @@ async fn environment_get_settings(
 }
 
 #[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
 enum TauriPickUnityHubResult {
     NoFolderSelected,
     InvalidSelection,
@@ -1437,6 +1438,7 @@ async fn environment_pick_project_default_path(
 }
 
 #[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
 enum TauriPickProjectBackupPathResult {
     NoFolderSelected,
     InvalidSelection,
