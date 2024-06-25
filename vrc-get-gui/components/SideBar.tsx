@@ -47,6 +47,7 @@ export function SideBar({className}: { className?: string }) {
 				<div className={'flex-grow'}/>
 				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card hover:text-card-foreground"}
 								onClick={copyVersionName}>v{currentVersion}</Button>
+				<a href="https://buddyworks.wtf" target="_blank"><img src="/bwtext.png" width="100%"/></a>
 			</div>
 		</Card>
 	);
