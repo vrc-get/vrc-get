@@ -8,26 +8,33 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- De-duplicating duplicated projects or Unity in VCC project list `#1081`
-- Show package description on hovering package name / id `#1118`
-- Open Project / Backup Location button on Settings Page `#1140`
 
 ### Changed
-- Refine Dark Theme `#1083`
-- Show package display name on uninstalled toast `#1086`
-- Improved performance of package search `#1131`
-- Swapped heroicons for lucide-react `#1129`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Unity from Unity Hub will be registered as manually registered Unity `#1081`
-- Unity selector radio button does not work well `#1082`
-- `vcc:` link install button does not work well on linux `#1117`
 
 ### Security
+
+## [0.1.8] - 2024-06-25
+### Added
+- De-duplicating duplicated projects or Unity in VCC project list [`#1081`](https://github.com/vrc-get/vrc-get/pull/1081)
+- Show package description on hovering package name / id [`#1118`](https://github.com/vrc-get/vrc-get/pull/1118)
+- Open Project / Backup Location button on Settings Page [`#1140`](https://github.com/vrc-get/vrc-get/pull/1140)
+
+### Changed
+- Refine Dark Theme [`#1083`](https://github.com/vrc-get/vrc-get/pull/1083)
+- Show package display name on uninstalled toast [`#1086`](https://github.com/vrc-get/vrc-get/pull/1086)
+- Improved performance of package search [`#1131`](https://github.com/vrc-get/vrc-get/pull/1131)
+- Swapped heroicons for lucide-react [`#1129`](https://github.com/vrc-get/vrc-get/pull/1129)
+
+### Fixed
+- Unity from Unity Hub will be registered as manually registered Unity [`#1081`](https://github.com/vrc-get/vrc-get/pull/1081)
+- Unity selector radio button does not work well [`#1082`](https://github.com/vrc-get/vrc-get/pull/1082)
+- `vcc:` link install button does not work well on linux [`#1117`](https://github.com/vrc-get/vrc-get/pull/1117)
 
 ## [0.1.7] - 2024-05-30
 ### Added
@@ -326,7 +333,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.7...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.8...HEAD
+[0.1.8]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.7...gui-v0.1.8
 [0.1.7]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.6...gui-v0.1.7
 [0.1.6]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.5...gui-v0.1.6
 [0.1.5]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.4...gui-v0.1.5
