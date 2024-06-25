@@ -16,8 +16,7 @@ import {
 } from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {memo, useCallback, useEffect, useMemo, useState} from "react";
-import {ArrowPathIcon, EllipsisHorizontalIcon} from "@heroicons/react/24/solid";
-import {ArrowUpCircleIcon, MinusCircleIcon, PlusCircleIcon} from "@heroicons/react/24/outline";
+import {RefreshCw, Ellipsis, CircleArrowUp, CircleMinus, CirclePlus} from "lucide-react";
 import {SearchBox} from "@/components/SearchBox";
 import {
 	environmentHideRepository,
@@ -344,7 +343,7 @@ function ManagePackagesHeading(
 				<TooltipTrigger>
 					<Button variant={"ghost"} size={"icon"} onClick={onRefresh} className={"flex-shrink-0"}
 									disabled={isLoading}>
-						{isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <ArrowPathIcon className={"w-5 h-5"}/>}
+						{isLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : <RefreshCw className={"w-5 h-5"}/>}
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent>{tc("projects:manage:tooltip:refresh packages")}</TooltipContent>
@@ -363,7 +362,7 @@ function ManagePackagesHeading(
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button variant={"ghost"} size={"icon"} className={'flex-shrink-0'}>
-						<EllipsisHorizontalIcon className={"size-5"}/>
+						<Ellipsis className={"size-5"}/>
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent>
@@ -638,7 +637,7 @@ const PackageRow = memo(function PackageRow(
 						pkg.installed ? (
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<ButtonDisabledIfLoading variant={'ghost'} size={"icon"} onClick={remove}><MinusCircleIcon
+									<ButtonDisabledIfLoading variant={'ghost'} size={"icon"} onClick={remove}><CircleMinus
 										className={"size-5 text-destructive"}/></ButtonDisabledIfLoading>
 								</TooltipTrigger>
 								<TooltipContent>{tc("projects:manage:tooltip:remove packages")}</TooltipContent>
@@ -652,7 +651,7 @@ const PackageRow = memo(function PackageRow(
 										disabled={!latestVersion}
 										className={!latestVersion ? "disabled:pointer-events-auto" : ''}
 										onClick={installLatest}>
-										<PlusCircleIcon className={"size-5 text-secondary-foreground"}/>
+										<CirclePlus className={"size-5 text-secondary-foreground"}/>
 									</ButtonDisabledIfLoading>
 								</TooltipTrigger>
 								<TooltipContent>{
@@ -803,7 +802,7 @@ function PackageLatestInfo(
 						<ButtonDisabledIfLoading variant={"outline-success"}
 																		 className={"text-left px-2 py-1 w-full h-full font-normal text-base normal-case border-success hover:border-success/70 text-success hover:text-success/70"}
 																		 onClick={() => onInstallRequested(info.pkg, info.hasUnityIncompatibleLatest)}>
-							<ArrowUpCircleIcon color={"green"} className={"size-4 inline mr-2"}/>
+							<CircleArrowUp color={"green"} className={"size-4 inline mr-2"}/>
 							{toVersionString(info.pkg.version)}
 						</ButtonDisabledIfLoading>
 					</TooltipTrigger>

@@ -2,9 +2,8 @@
 
 import {Button} from "@/components/ui/button";
 import {Card} from "@/components/ui/card";
-import {CloudIcon, Cog6ToothIcon, ListBulletIcon, SwatchIcon} from "@heroicons/react/24/solid";
+import {Cloud, Settings, List, AlignLeft, SwatchBook} from "lucide-react";
 import React from "react";
-import {Bars4Icon} from "@heroicons/react/24/outline";
 import {useQuery} from "@tanstack/react-query";
 import {utilGetVersion} from "@/lib/bindings";
 import {useTranslation} from "react-i18next";
@@ -40,11 +39,11 @@ export function SideBar({className}: { className?: string }) {
 		<Card
 			className={`${className} flex w-auto max-w-[20rem] p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}>
 			<div className="flex flex-col gap-1 p-2 min-w-[10rem] flex-grow">
-				<SideBarItem href={"/projects"} text={t("projects")} icon={ListBulletIcon}/>
-				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={CloudIcon}/>
-				<SideBarItem href={"/settings"} text={t("settings")} icon={Cog6ToothIcon}/>
-				<SideBarItem href={"/log"} text={t("logs")} icon={Bars4Icon}/>
-				{isDev && <SideBarItem href={"/settings/palette"} text={"UI Palette (dev only)"} icon={SwatchIcon}/>}
+				<SideBarItem href={"/projects"} text={t("projects")} icon={List}/>
+				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={Cloud}/>
+				<SideBarItem href={"/settings"} text={t("settings")} icon={Settings}/>
+				<SideBarItem href={"/log"} text={t("logs")} icon={AlignLeft}/>
+				{isDev && <SideBarItem href={"/settings/palette"} text={"UI Palette (dev only)"} icon={SwatchBook}/>}
 				<div className={'flex-grow'}/>
 				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card hover:text-card-foreground"}
 								onClick={copyVersionName}>v{currentVersion}</Button>

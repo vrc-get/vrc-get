@@ -15,7 +15,7 @@ import {
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {Suspense, useCallback, useEffect, useId, useMemo, useState} from "react";
-import {XCircleIcon} from "@heroicons/react/24/outline";
+import {CircleX} from "lucide-react"; 
 import {toastThrownError} from "@/lib/toast";
 import {tc} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
@@ -203,7 +203,7 @@ function RepositoryRow(
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button onClick={() => setRemoveDialogOpen(true)} variant={"ghost"} size={"icon"}>
-							<XCircleIcon className={"size-5 text-destructive"}/>
+							<CircleX className={"size-5 text-destructive"}/>
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>{tc("vpm repositories:remove repository")}</TooltipContent>

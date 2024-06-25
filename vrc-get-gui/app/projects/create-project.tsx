@@ -13,7 +13,7 @@ import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
 import {pathSeparator} from "@/lib/os";
-import {ArrowPathIcon} from "@heroicons/react/24/solid";
+import {RefreshCw} from "lucide-react";
 import {VStack} from "@/components/layout";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Input} from "@/components/ui/input";
@@ -179,7 +179,7 @@ export function CreateProject(
 			projectNameState = "err";
 			break;
 		case "checking":
-			projectNameCheck = <ArrowPathIcon className={"w-5 h-5 animate-spin"}/>;
+			projectNameCheck = <RefreshCw className={"w-5 h-5 animate-spin"}/>;
 			projectNameState = "Ok";
 			break;
 		default:
@@ -198,13 +198,13 @@ export function CreateProject(
 			projectNameStateClass = "text-destructive";
 	}
 
-	if (checking) projectNameCheck = <ArrowPathIcon className={"w-5 h-5 animate-spin"}/>
+	if (checking) projectNameCheck = <RefreshCw className={"w-5 h-5 animate-spin"}/>
 
 	let dialogBody;
 
 	switch (state) {
 		case "loadingInitialInformation":
-			dialogBody = <ArrowPathIcon className={"w-5 h-5 animate-spin"}/>;
+			dialogBody = <RefreshCw className={"w-5 h-5 animate-spin"}/>;
 			break;
 		case "enteringInformation":
 			const renderUnityVersion = (unityVersion: string) => {
@@ -289,7 +289,7 @@ export function CreateProject(
 			break;
 		case "creating":
 			dialogBody = <>
-				<ArrowPathIcon className={"w-5 h-5 animate-spin"}/>
+				<RefreshCw className={"w-5 h-5 animate-spin"}/>
 				<p>{tc("projects:creating project...")}</p>
 			</>;
 			break;

@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 - Refine Dark Theme `#1083`
 - Show package display name on uninstalled toast `#1086`
 - Improved performance of package search `#1131`
+- Swapped heroicons for lucide-react `#1129`
 
 ### Deprecated
 
