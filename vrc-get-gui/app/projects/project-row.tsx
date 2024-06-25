@@ -94,7 +94,7 @@ export function ProjectRow(
 										className="hover:before:content-none before:transition-none border-none !text-primary peer"/>
 					<span
 						className={"text-background opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"}>
-						<Star className={"size-3"}/>
+						<Star strokeWidth={3} className={"size-3"}/>
 					</span>
 				</div>
 			</td>
