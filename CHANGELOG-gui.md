@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- UI Freezes in many situations `#1177`
 
 ### Security
 
