@@ -16,9 +16,12 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- UI Freezes in many situations `#1177`
 
 ### Security
+
+## [0.1.9] - 2024-06-26
+### Fixed
+- UI Freezes in many situations [`#1177`](https://github.com/vrc-get/vrc-get/pull/1177)
 
 ## [0.1.8] - 2024-06-25
 ### Added
@@ -334,7 +337,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.8...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.9...HEAD
+[0.1.9]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.8...gui-v0.1.9
 [0.1.8]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.7...gui-v0.1.8
 [0.1.7]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.6...gui-v0.1.7
 [0.1.6]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.5...gui-v0.1.6
