@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "tauri": "npm install && tauri",
-    "dev": "next dev",
+    "dev": "next dev -p 3030",
     "build": "npm install && npm run build:licenses && npm run build:next",
-    "build:next": "next build --profile",
+    "build:next": "next build",
     "build:licenses": "node ./scripts/build-license-json.mjs",
     "start": "next start",
     "lint": "next lint"
