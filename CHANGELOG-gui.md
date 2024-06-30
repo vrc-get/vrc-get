@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository `#1183`
+    - Currently, official VCC does not verify the hash of the downloaded zip file, but it's better to verify the hash.
+    - For compatibility, even if the hash does not match, the file will be extracted with an error message.
+    - In the future, we may make this a hard error.
 
 ### Deprecated
 

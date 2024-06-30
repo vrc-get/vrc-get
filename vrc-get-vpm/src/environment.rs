@@ -559,7 +559,7 @@ impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T
                 ),
             );
 
-            Ok(download_package_zip(
+            let (zip_file, zip_hash) = download_package_zip(
                 self.http.as_ref(),
                 &self.io,
                 &new_headers,
@@ -573,7 +573,23 @@ impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T
                     )
                 })?,
             )
-            .await?)
+            .await?;
+
+            if let Some(repo_hash) = package
+                .zip_sha_256()
+                .and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok())
+            {
+                if repo_hash != zip_hash {
+                    error!(
+                        "Package hash mismatched! This will be hard error in the future!: {} v{}",
+                        package.name(),
+                        package.version()
+                    );
+                    //return None;
+                }
+            }
+
+            Ok(zip_file)
         }
     }
 }
@@ -645,7 +661,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     sha_path: &Path,
     zip_file_name: &str,
     url: &Url,
-) -> io::Result<IO::FileStream> {
+) -> io::Result<(IO::FileStream, [u8; 256 / 8])> {
     let Some(http) = http else {
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
     };
@@ -659,6 +675,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     io::copy(&mut response, &mut writer).await?;
 
     let (mut cache_file, hash) = writer.finalize();
+    let hash: [u8; 256 / 8] = hash.into();
 
     cache_file.flush().await?;
     cache_file.seek(SeekFrom::Start(0)).await?;
@@ -670,7 +687,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     )
     .await?;
 
-    Ok(cache_file)
+    Ok((cache_file, hash))
 }
 
 #[derive(Debug)]
