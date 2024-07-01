@@ -515,7 +515,7 @@ pub async fn project_open_unity(
 #[tauri::command]
 #[specta::specta]
 pub fn project_is_unity_launching(project_path: String) -> bool {
-    return is_unity_running(&project_path);
+    is_unity_running(project_path)
 }
 
 fn folder_stream(

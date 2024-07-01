@@ -18,6 +18,7 @@ struct Parsed {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub(super) enum UpmDependency {
     // minimum version name. build meta is not supported by upm
     Version(Version),

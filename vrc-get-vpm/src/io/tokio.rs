@@ -222,6 +222,7 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
     async fn create(&self, path: &Path) -> io::Result<Self::FileStream> {
         fs::OpenOptions::new()
             .create(true)
+            .truncate(true)
             .write(true)
             .read(true)
             .open(self.resolve(path)?)

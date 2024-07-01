@@ -192,7 +192,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 update = true;
             }
 
-            if &normalized != in_db.path() {
+            if normalized != in_db.path() {
                 in_db.path = normalized.into();
                 update = true;
             }

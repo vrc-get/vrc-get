@@ -149,7 +149,7 @@ impl<'de> Deserialize<'de> for RemoteRepository {
     }
 }
 
-fn deserialize_packages<'de, D: Deserializer<'de>>(
+fn deserialize_packages<'de, D>(
     deserializer: D,
 ) -> Result<IndexMap<Box<str>, RemotePackages>, D::Error>
 where

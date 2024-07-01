@@ -1,5 +1,5 @@
 use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
-use crate::utils::{check_absolute_path, normalize_path, PathBufExt};
+use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
 use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
 use bson::oid::ObjectId;
@@ -8,7 +8,7 @@ use futures::future::join_all;
 use log::error;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::path::{Component, Path, PathBuf};
+use std::path::Path;
 
 pub(crate) static COLLECTION: &str = "projects";
 
@@ -178,7 +178,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 .push(project);
         }
 
-        for (_, mut values) in projects_by_path {
+        for (_, values) in projects_by_path {
             if values.len() == 1 {
                 continue;
             }
@@ -222,7 +222,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let db = self.get_db()?;
         let project_path = normalize_path(project_path);
 
-        let mut project = db.get_values::<UserProject>(COLLECTION)?;
+        let project = db.get_values::<UserProject>(COLLECTION)?;
         Ok(project
             .into_iter()
             .find(|x| Path::new(x.path()) == project_path))
@@ -399,7 +399,9 @@ impl UserProject {
     }
 
     pub fn clear_custom_unity_args(&mut self) {
-        self.vrc_get.as_mut().map(|x| x.custom_unity_args = None);
+        if let Some(x) = self.vrc_get.as_mut() {
+            x.custom_unity_args = None;
+        }
     }
 
     pub fn unity_path(&self) -> Option<&str> {
@@ -411,6 +413,8 @@ impl UserProject {
     }
 
     pub fn clear_unity_path(&mut self) {
-        self.vrc_get.as_mut().map(|x| x.unity_path = None);
+        if let Some(x) = self.vrc_get.as_mut() {
+            x.unity_path = None;
+        }
     }
 }
