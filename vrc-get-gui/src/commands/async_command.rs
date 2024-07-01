@@ -1,4 +1,4 @@
-use crate::commands::RustError;
+use crate::commands::prelude::*;
 use log::error;
 use serde::Serialize;
 use std::future::Future;
