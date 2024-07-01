@@ -13,6 +13,7 @@ use vrc_get_vpm::PackageInfo;
 
 use crate::commands::prelude::*;
 use crate::commands::project::TauriPendingProjectChanges;
+use crate::commands::util::UpdateResponseHolder;
 use crate::config::GuiConfigHolder;
 
 macro_rules! with_environment {
@@ -62,6 +63,7 @@ pub struct EnvironmentState {
     pub projects: Box<[UserProject]>,
     pub projects_version: Wrapping<u32>,
     pub changes_info: ChangesInfoHolder,
+    pub update_response_holder: UpdateResponseHolder,
 }
 
 pub struct PendingProjectChangesInfo<'env> {
@@ -203,6 +205,7 @@ impl EnvironmentState {
             projects: Box::new([]),
             projects_version: Wrapping(0),
             changes_info: ChangesInfoHolder::new(),
+            update_response_holder: UpdateResponseHolder::new(),
             io,
         }
     }

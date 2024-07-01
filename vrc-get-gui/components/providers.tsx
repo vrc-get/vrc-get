@@ -3,13 +3,22 @@
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {ToastContainer} from 'react-toastify';
 import {useCallback, useEffect, useState} from "react";
-import {deepLinkHasAddRepository, environmentLanguage, environmentTheme, LogEntry} from "@/lib/bindings";
-import i18next from "@/lib/i18n";
+import {
+	CheckForUpdateResponse,
+	deepLinkHasAddRepository,
+	environmentLanguage,
+	environmentTheme,
+	LogEntry,
+	utilCheckForUpdate
+} from "@/lib/bindings";
+import i18next, {tc} from "@/lib/i18n";
 import {I18nextProvider} from "react-i18next";
-import {toastError, toastNormal} from "@/lib/toast";
+import {toastError, toastNormal, toastThrownError} from "@/lib/toast";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {usePathname, useRouter} from "next/navigation";
-import {TooltipProvider} from "@/components/ui/tooltip";
+import {Tooltip, TooltipContent, TooltipProvider} from "@/components/ui/tooltip";
+import {Dialog, DialogContent} from "@/components/ui/dialog";
+import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +94,27 @@ export function Providers({children}: { children: React.ReactNode }) {
 		})();
 	}, [])
 
+	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(null);
+
+	useEffect(() => {
+		let cancel = false;
+		(async () => {
+			try {
+				const checkVersion = await utilCheckForUpdate();
+				if (cancel) return;
+				if (checkVersion.is_update_available) {
+					setUpdateState(checkVersion);
+				}
+			} catch (e) {
+				toastThrownError(e)
+				console.error(e)
+			}
+		})()
+		return () => {
+			cancel = true;
+		}
+	}, []);
+
 	return (
 		<>
 			<ToastContainer
@@ -103,6 +133,7 @@ export function Providers({children}: { children: React.ReactNode }) {
 			<QueryClientProvider client={queryClient}>
 				<I18nextProvider i18n={i18next}>
 					<TooltipProvider>
+						{updateState && <CheckForUpdateMessage response={updateState} close={() => setUpdateState(null)}/>}
 						<div lang={language} className="contents">
 							{children}
 						</div>

@@ -29,11 +29,11 @@ import {
 	environmentLanguage,
 	environmentTheme,
 	TauriEnvironmentSettings,
-	utilGetVersion, utilOpen,
+	utilGetVersion, utilOpen, CheckForUpdateResponse, utilCheckForUpdate,
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
-import React from "react";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import React, {useEffect, useState} from "react";
+import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {emit} from "@tauri-apps/api/event";
@@ -43,6 +43,8 @@ import type {OsType} from "@tauri-apps/api/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {ToastContent} from "react-toastify";
 import {assertNever} from "@/lib/assert-never";
+import {checkUpdate, onUpdaterEvent} from "@tauri-apps/api/updater";
+import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
 
 export default function Page() {
 	const result = useQuery({
@@ -406,12 +408,19 @@ function VccSchemeCard() {
 }
 
 function AlcomCard() {
+	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(null);
+
 	const checkForUpdate = async () => {
 		try {
-			await emit("tauri://update")
+			const checkVersion = await utilCheckForUpdate();
+			if (checkVersion.is_update_available) {
+				setUpdateState(checkVersion);
+			} else {
+				toastNormal(tc("check update:toast:no updates"));
+			}
 		} catch (e) {
-			console.error(e);
 			toastThrownError(e)
+			console.error(e)
 		}
 	}
 
@@ -430,6 +439,7 @@ function AlcomCard() {
 
 	return (
 		<Card className={"flex-shrink-0 p-4 flex flex-col gap-2"}>
+			{updateState && <CheckForUpdateMessage response={updateState} close={() => setUpdateState(null)}/>}
 			<h2>ALCOM</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={checkForUpdate}>{tc("settings:check update")}</Button>
