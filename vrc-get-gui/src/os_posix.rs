@@ -26,5 +26,5 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
 
     nix::fcntl::fcntl(file.as_raw_fd(), nix::fcntl::F_GETLK(&mut lock))?;
 
-    return Ok(lock.l_type != F_UNLCK as c_short);
+    Ok(lock.l_type != F_UNLCK as c_short)
 }

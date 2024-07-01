@@ -52,6 +52,7 @@ pub struct PackageInfo<'a> {
 impl std::fmt::Debug for PackageInfo<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         #[derive(Debug)]
+        #[allow(dead_code)] // debug only struct
         enum SourceEnum<'a> {
             Local(&'a Path),
             Remote(&'a str),

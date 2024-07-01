@@ -6,6 +6,7 @@ use specta::{DataType, DefOpts, ExportError, Type};
 #[serde(transparent)]
 pub struct IndexMapV2<K: std::hash::Hash + Eq, V>(pub IndexMap<K, V>);
 
+#[allow(dead_code)]
 trait StringLike: std::hash::Hash + Eq {}
 
 impl StringLike for Box<str> {}

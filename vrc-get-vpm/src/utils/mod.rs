@@ -95,21 +95,6 @@ impl JsonMapExt for Map<String, Value> {
     }
 }
 
-pub(crate) trait OurTryStreamExt: Stream + Sized {
-    fn flatten_ok(self) -> FlattenOk<Self>
-    where
-        Self: TryStream,
-        Self::Ok: Stream,
-    {
-        FlattenOk {
-            stream: self,
-            next: None,
-        }
-    }
-}
-
-impl<T: Stream + Sized> OurTryStreamExt for T {}
-
 pin_project! {
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
     pub(crate) struct FlattenOk<S> where S: TryStream{
