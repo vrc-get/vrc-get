@@ -1,4 +1,3 @@
-use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use tauri::updater::UpdateResponse;
@@ -33,7 +32,7 @@ pub struct UpdateResponseInfo {
 }
 
 pub struct UpdateResponseHolder {
-    changes_info: Option<NonNull<UpdateResponseInfo>>,
+    changes_info: Option<Box<UpdateResponseInfo>>,
 }
 
 impl UpdateResponseHolder {
@@ -41,22 +40,15 @@ impl UpdateResponseHolder {
         Self { changes_info: None }
     }
 
-    pub fn update(&mut self, response: UpdateResponse<Wry>) -> u32 {
+    fn update(&mut self, response: UpdateResponse<Wry>) -> u32 {
         static CHANGES_GLOBAL_INDEXER: AtomicU32 = AtomicU32::new(0);
         let version = CHANGES_GLOBAL_INDEXER.fetch_add(1, Ordering::SeqCst);
-
-        let changes_info = Box::new(UpdateResponseInfo { version, response });
-
-        if let Some(ptr) = self.changes_info.take() {
-            unsafe { drop(Box::from_raw(ptr.as_ptr())) }
-        }
-        self.changes_info = NonNull::new(Box::into_raw(changes_info));
-
+        self.changes_info = Some(Box::new(UpdateResponseInfo { version, response }));
         version
     }
 
-    pub fn take(&mut self) -> Option<UpdateResponseInfo> {
-        Some(*unsafe { Box::from_raw(self.changes_info.take()?.as_mut()) })
+    fn take(&mut self) -> Option<UpdateResponseInfo> {
+        self.changes_info.take().map(|x| *x)
     }
 }
 

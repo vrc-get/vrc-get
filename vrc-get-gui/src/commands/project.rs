@@ -3,6 +3,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::process::Stdio;
+use std::ptr::NonNull;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use futures::{Stream, TryStreamExt};
 use log::{error, warn};
@@ -19,6 +21,7 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
+use crate::commands::state::PendingProjectChangesInfo;
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
@@ -140,6 +143,44 @@ impl From<&ConflictInfo> for TauriConflictInfo {
                 .collect(),
             unity_conflict: value.conflicts_with_unity(),
         }
+    }
+}
+
+pub struct ChangesInfoHolder {
+    changes_info: Option<NonNull<PendingProjectChangesInfo<'static>>>,
+}
+
+impl ChangesInfoHolder {
+    pub fn new() -> Self {
+        Self { changes_info: None }
+    }
+
+    fn update(
+        &mut self,
+        environment_version: u32,
+        changes: PendingProjectChanges<'_>,
+    ) -> TauriPendingProjectChanges {
+        static CHANGES_GLOBAL_INDEXER: AtomicU32 = AtomicU32::new(0);
+        let changes_version = CHANGES_GLOBAL_INDEXER.fetch_add(1, Ordering::SeqCst);
+
+        let result = TauriPendingProjectChanges::new(changes_version, &changes);
+
+        let changes_info = Box::new(PendingProjectChangesInfo {
+            environment_version,
+            changes_version,
+            changes,
+        });
+
+        if let Some(ptr) = self.changes_info.take() {
+            unsafe { drop(Box::from_raw(ptr.as_ptr())) }
+        }
+        self.changes_info = NonNull::new(Box::into_raw(changes_info) as *mut _);
+
+        result
+    }
+
+    fn take(&mut self) -> Option<PendingProjectChangesInfo> {
+        Some(*unsafe { Box::from_raw(self.changes_info.take()?.as_mut()) })
     }
 }
 
