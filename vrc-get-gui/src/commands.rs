@@ -96,6 +96,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
 
 #[cfg(debug_assertions)]
 pub(crate) fn export_ts() {
+    let export_path = "lib/bindings.ts";
     tauri_specta::ts::export_with_cfg(
         specta::collect_types![
             environment::config::environment_language,
@@ -158,9 +159,40 @@ pub(crate) fn export_ts() {
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
-        "lib/bindings.ts",
+        export_path,
     )
     .unwrap();
+
+    let ts_file = std::fs::read_to_string(export_path).unwrap();
+    let ts_file = ts_file.lines().collect::<Vec<_>>();
+    let export_file_start = ts_file
+        .iter()
+        .position(|x| x.starts_with("export type "))
+        .unwrap();
+    let export_file_last = ts_file
+        .iter()
+        .rposition(|x| x.starts_with("export type "))
+        .unwrap();
+
+    let pre_export = &ts_file[..export_file_start];
+    let mut export_range = ts_file[export_file_start..=export_file_last]
+        .iter()
+        .copied()
+        .collect::<Vec<_>>();
+    let post_export = &ts_file[export_file_last + 1..];
+
+    // sort by type name
+    export_range.sort();
+
+    let file = [pre_export, &export_range, post_export]
+        .iter()
+        .map(|x| x.iter())
+        .flatten()
+        .map(|x| [x, "\n"].into_iter())
+        .flatten()
+        .collect::<String>();
+
+    std::fs::write(export_path, file).unwrap();
 }
 
 async fn update_project_last_modified(env: &mut Environment, project_dir: &Path) {
