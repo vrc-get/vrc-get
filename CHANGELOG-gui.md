@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog].
     - For compatibility, even if the hash does not match, the file will be extracted with an error message.
     - In the future, we may make this a hard error.
 - Localized upgrade notice dialog `#1200`
+- Update notice can upgrade ALCOM to beta releases `#1200`
 
 ### Deprecated
 
