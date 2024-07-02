@@ -64,7 +64,7 @@ export function CheckForUpdateMessage(
 						<p>{tc("check update:dialog:current version")}{" "}{response.current_version}</p>
 						<p>{tc("check update:dialog:latest version")}{" "}{response.latest_version}</p>
 						<h3>{tc("check update:dialog:changelog")}</h3>
-						<p className={"whitespace-pre-line"}>{response.update_description}</p>
+						<p className={"whitespace-pre-wrap"}>{response.update_description}</p>
 					</DialogDescription>
 					<DialogFooter className={"gap-2"}>
 						<Button onClick={close}>{tc("check update:dialog:dismiss")}</Button>
