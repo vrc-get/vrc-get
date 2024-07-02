@@ -54,10 +54,16 @@ impl UpdateResponseHolder {
 
 pub async fn check_for_update(
     app_handle: AppHandle,
+    stable: bool,
 ) -> tauri::updater::Result<UpdateResponse<Wry>> {
+    let endpoint = if stable {
+        "https://vrc-get.anatawa12.com/api/gui/tauri-updater.json"
+    } else {
+        "https://vrc-get.anatawa12.com/api/gui/tauri-updater-beta.json"
+    };
     tauri::updater::builder(app_handle)
         .skip_events()
-        .endpoints(&["https://vrc-get.anatawa12.com/api/gui/tauri-updater.json".into()])
+        .endpoints(&[endpoint.into()])
         .check()
         .await
 }
@@ -77,7 +83,8 @@ pub async fn util_check_for_update(
     app_handle: AppHandle,
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<CheckForUpdateResponse, RustError> {
-    let response = check_for_update(app_handle).await?;
+    let stable = with_config!(state, |config| config.release_channel == "stable");
+    let response = check_for_update(app_handle, stable).await?;
     let is_update_available = response.is_update_available();
     let current_version = response.current_version().to_string();
     let latest_version = response.latest_version().to_string();

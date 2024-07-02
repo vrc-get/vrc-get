@@ -60,6 +60,7 @@ pub struct TauriEnvironmentSettings {
     unity_paths: Vec<(String, String, bool)>,
     show_prerelease_packages: bool,
     backup_format: String,
+    release_channel: String,
 }
 
 #[tauri::command]
@@ -87,6 +88,7 @@ pub async fn environment_get_settings(
                 .collect(),
             show_prerelease_packages: environment.show_prerelease_packages(),
             backup_format: config.backup_format.to_string(),
+            release_channel: config.release_channel.to_string(),
         };
         environment.disconnect_litedb();
         Ok(settings)
@@ -349,6 +351,20 @@ pub async fn environment_set_backup_format(
     with_config!(&state, |mut config| {
         info!("setting backup_format to {backup_format}");
         config.backup_format = backup_format;
+        config.save().await?;
+        Ok(())
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_release_channel(
+    state: State<'_, Mutex<EnvironmentState>>,
+    release_channel: String,
+) -> Result<(), RustError> {
+    with_config!(&state, |mut config| {
+        info!("setting release_channel to {release_channel}");
+        config.release_channel = release_channel;
         config.save().await?;
         Ok(())
     })
