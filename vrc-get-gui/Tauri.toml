@@ -30,7 +30,7 @@ targets = [
     "app", # needs for dmg
     "dmg",
 
-    "updater", # auto update
+    "updater", # auto update # remove if ci # since this requires private key, which is not avaiable on ci
 ]
 longDescription = "ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
 shortDescription = "ALCOM - Alternative Creator Companion"
