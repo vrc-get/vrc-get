@@ -440,34 +440,26 @@ function AlcomCard(
 		void shellOpen(url.toString())
 	}
 
-	const changeReleaseChannel = async (value: string) => {
-		await environmentSetReleaseChannel(value);
+	const changeReleaseChannel = async (value: "indeterminate" | boolean) => {
+		await environmentSetReleaseChannel(value === true ? "beta" : "stable");
 		refetch();
 	};
 
 	return (
-		<Card className={"flex-shrink-0 p-4 flex flex-col gap-2"}>
+		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
 			{updateState && <CheckForUpdateMessage response={updateState} close={() => setUpdateState(null)}/>}
 			<h2>ALCOM</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={checkForUpdate}>{tc("settings:check update")}</Button>
 				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
 			</div>
-			<h3>{tc("settings:release channel")}</h3>
-			<p>{tc("settings:release channel:description")}</p>
-			<label className={"flex items-center"}>
-				<Select>
-					<Select defaultValue={releaseChannel} onValueChange={changeReleaseChannel}>
-						<SelectTrigger>
-							<SelectValue/>
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value={"stable"}>{tc("settings:release channel:stable")}</SelectItem>
-							<SelectItem value={"beta"}>{tc("settings:release channel:beta")}</SelectItem>
-						</SelectContent>
-					</Select>
-				</Select>
-			</label>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox checked={releaseChannel == "beta"} onCheckedChange={(e) => changeReleaseChannel(e)}/>
+					{tc("settings:receive beta updates")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>{tc("settings:beta updates description")}</p>
+			</div>
 			<p className={"whitespace-normal"}>
 				{tc("settings:licenses description", {}, {
 					components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
