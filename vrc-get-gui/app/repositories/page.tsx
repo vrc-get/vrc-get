@@ -67,7 +67,7 @@ function PageBody() {
 	}, []);
 
 	return (
-		<VStack className={"p-4 overflow-hidden"}>
+		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("vpm repositories:community repositories")}

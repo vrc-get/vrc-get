@@ -5,7 +5,7 @@ import {Card} from "@/components/ui/card";
 
 export function VStack({className, children}: { className?: string, children: React.ReactNode }) {
 	return (
-		<div className={`flex flex-col overflow-hidden w-full gap-3 ${className}`}>
+		<div className={`flex flex-col w-full gap-3 ${className}`}>
 			{children}
 		</div>
 	);

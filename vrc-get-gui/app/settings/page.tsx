@@ -3,7 +3,6 @@
 import {Button} from "@/components/ui/button";
 import {Card} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {ScrollArea} from "@/components/ui/scroll-area";
 import {Input} from "@/components/ui/input";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import Link from "next/link";
@@ -39,6 +38,7 @@ import type {OsType} from "@tauri-apps/api/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {ToastContent} from "react-toastify";
 import {assertNever} from "@/lib/assert-never";
+import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
 
 export default function Page() {
@@ -63,7 +63,7 @@ export default function Page() {
 	}
 
 	return (
-		<VStack className={"p-4"}>
+		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("settings")}
@@ -93,7 +93,7 @@ function Settings(
 	}, [])
 
 	return (
-		<ScrollArea>
+		<ScrollPageContainer>
 			<main className="flex flex-col gap-2 flex-shrink flex-grow">
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
@@ -129,7 +129,7 @@ function Settings(
 				{osType != "Darwin" && <VccSchemeCard/>}
 				<AlcomCard releaseChannel={settings.release_channel} refetch={refetch}/>
 			</main>
-		</ScrollArea>
+		</ScrollPageContainer>
 	)
 }
 

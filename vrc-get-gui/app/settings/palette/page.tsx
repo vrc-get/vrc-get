@@ -1,31 +1,32 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
-import {Card, CardHeader} from "@/components/ui/card";
+import {Card} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Input} from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
 	SelectGroup,
-	SelectItem, SelectLabel,
+	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
 import {HNavBar, VStack} from "@/components/layout";
 import {toastError, toastInfo, toastNormal, toastSuccess} from "@/lib/toast";
-import {ScrollArea} from "@/components/ui/scroll-area";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
+import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 
 export default function Page() {
 	return (
-		<VStack className={"p-4"}>
+		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					UI Palette (dev only)
 				</p>
 			</HNavBar>
-			<ScrollArea>
+			<ScrollPageContainer>
 				<main className="flex flex-col gap-2 flex-shrink flex-grow">
 					<Card className={"flex-shrink-0 p-4"}>
 						<h2 className={"pb-2"}>File Selector</h2>
@@ -101,9 +102,9 @@ export default function Page() {
 						</div>
 					</Card>
 				</main>
-			</ScrollArea>
+			</ScrollPageContainer>
 		</VStack>
-)
+	)
 }
 
 function UnityTableBody() {
