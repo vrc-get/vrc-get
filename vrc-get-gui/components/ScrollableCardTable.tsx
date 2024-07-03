@@ -13,12 +13,13 @@ export function ScrollableCardTable(
 	}
 ) {
 	return <Card className={cn("overflow-hidden", className)}>
-		<ScrollArea type="auto" className="h-full w-full" scrollBarClassName="bg-background py-2.5">
+		<ScrollArea type="auto" className="h-full w-full vrc-get-scrollable-card"
+								scrollBarClassName="bg-background py-2.5 vrc-get-scrollable-card-vertical-bar">
 			<table className="relative table-auto text-left w-full">
 				{children}
 			</table>
 			<div className={"pb-2.5"}/>
-			<ScrollBar orientation="horizontal" className="bg-background ps-2.5"/>
+			<ScrollBar orientation="horizontal" className="bg-background ps-2.5 vrc-get-scrollable-card-horizontal-bar"/>
 		</ScrollArea>
 	</Card>
 }
