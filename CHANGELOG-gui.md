@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Button to clear package cache `#1204`
 
 ### Changed
 - Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository `#1183`

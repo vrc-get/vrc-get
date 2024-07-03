@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog].
 - De-duplicating duplicated projects or Unity in VCC project list `#1081`
 - Customizing Command Line Arguments for Unity `#1127`
 - Preserve Unity if multiple instance of the same unity version are installed `#1127`
+- `vrc-get cache clear`, command to clear package cache `#1204`
 
 ### Changed
 - Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository `#1183`

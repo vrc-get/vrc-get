@@ -106,6 +106,10 @@ export function environmentRemoveRepository(id: string) {
     return invoke()<null>("environment_remove_repository", { id })
 }
 
+export function environmentClearPackageCache() {
+    return invoke()<null>("environment_clear_package_cache")
+}
+
 export function environmentUnityVersions() {
     return invoke()<TauriUnityVersions>("environment_unity_versions")
 }

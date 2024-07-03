@@ -472,6 +472,58 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
+    pub async fn clear_package_cache(&self) -> io::Result<()> {
+        let io = &self.io;
+
+        let repo_folder_stream = io.read_dir(REPO_CACHE_FOLDER.as_ref()).await?;
+
+        let pkg_folder_entries = repo_folder_stream.try_filter_map(|pkg_entry| async move {
+            if pkg_entry.file_type().await?.is_dir() {
+                return Ok(Some(pkg_entry));
+            }
+            Ok(None)
+        });
+
+        pkg_folder_entries
+            .try_for_each_concurrent(None, |pkg_folder_entry| async move {
+                let pkg_name = pkg_folder_entry.file_name();
+
+                let pkg_folder_stream = io
+                    .read_dir(&Path::new(REPO_CACHE_FOLDER).join(pkg_folder_entry.file_name()))
+                    .await?
+                    .map_ok(move |inner| (pkg_name.clone(), inner));
+
+                let cache_file_entries =
+                    pkg_folder_stream.try_filter_map(|(pkg_id, cache_entry)| async move {
+                        let name = cache_entry.file_name();
+                        let name = name.as_encoded_bytes();
+                        if name.starts_with(b"vrc-get-")
+                            && (name.ends_with(b".zip") || name.ends_with(b".zip.sha256"))
+                        {
+                            if cache_entry.file_type().await?.is_file() {
+                                return Ok(Some((pkg_id, cache_entry)));
+                            }
+                        }
+                        Ok(None)
+                    });
+
+                cache_file_entries
+                    .try_for_each_concurrent(None, |(pkg_id, cache_entry)| async move {
+                        let file_path = Path::new(REPO_CACHE_FOLDER)
+                            .join(pkg_id)
+                            .join(cache_entry.file_name());
+                        io.remove_file(&file_path).await?;
+                        Ok(())
+                    })
+                    .await?;
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(())
+    }
+
     pub fn show_prerelease_packages(&self) -> bool {
         self.settings.show_prerelease_packages()
     }

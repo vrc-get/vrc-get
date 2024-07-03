@@ -9,7 +9,7 @@ import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
 	CheckForUpdateResponse,
-	deepLinkInstallVcc,
+	deepLinkInstallVcc, environmentClearPackageCache,
 	environmentGetSettings,
 	environmentLanguage,
 	environmentPickProjectBackupPath,
@@ -124,7 +124,7 @@ function Settings(
 					backupFormat={settings.backup_format}
 					refetch={refetch}
 				/>
-				<PrereleasePackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
+				<PackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
 				<AppearanceCard/>
 				{osType != "Darwin" && <VccSchemeCard/>}
 				<AlcomCard releaseChannel={settings.release_channel} refetch={refetch}/>
@@ -268,7 +268,7 @@ function BackupCard(
 	)
 }
 
-function PrereleasePackagesCard(
+function PackagesCard(
 	{
 		showPrereleasePackages,
 		refetch,
@@ -277,6 +277,16 @@ function PrereleasePackagesCard(
 		refetch: () => void;
 	}
 ) {
+	const clearPackageCache = async () => {
+		try {
+			await environmentClearPackageCache()
+			toastSuccess(tc("settings:toast:package cache cleared"))
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	}
+
 	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
 		try {
 			await environmentSetShowPrereleasePackages(e === true)
@@ -288,16 +298,18 @@ function PrereleasePackagesCard(
 	}
 
 	return (
-		<Card className={"flex-shrink-0 p-4"}>
-			<p className={"whitespace-normal"}>
-				{tc("settings:show prerelease description")}
-			</p>
-			<label className={"flex items-center"}>
-				<div className={"p-3"}>
+		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
+			<h2>{tc("settings:packages")}</h2>
+			<div className={"flex flex-row flex-wrap gap-2"}>
+				<Button onClick={clearPackageCache}>{tc("settings:clear package cache")}</Button>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
 					<Checkbox checked={showPrereleasePackages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
-				</div>
-				{tc("settings:show prerelease")}
-			</label>
+					{tc("settings:show prerelease")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>{tc("settings:show prerelease description")}</p>
+			</div>
 		</Card>
 	)
 }
