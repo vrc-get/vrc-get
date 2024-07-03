@@ -7,7 +7,6 @@ The format is based on [Keep a Changelog].
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
-Release pipeline fixes
 ### Added
 
 ### Changed
@@ -20,6 +19,8 @@ Release pipeline fixes
 
 ### Security
 
+## [0.1.10-beta.2] - 2024-07-03
+Release pipeline fixes
 ## [0.1.10-beta.1] - 2024-07-03
 ### Added
 - Button to clear package cache [`#1204`](https://github.com/vrc-get/vrc-get/pull/1204)
@@ -350,7 +351,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.1...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.2...HEAD
+[0.1.10-beta.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.1...gui-v0.1.10-beta.2
 [0.1.10-beta.1]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.9...gui-v0.1.10-beta.1
 [0.1.9]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.8...gui-v0.1.9
 [0.1.8]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.7...gui-v0.1.8
