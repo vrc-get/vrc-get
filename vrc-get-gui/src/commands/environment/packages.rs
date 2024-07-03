@@ -298,3 +298,17 @@ pub async fn environment_remove_repository(
 
     Ok(())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_clear_package_cache(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<(), RustError> {
+    with_environment!(state, |environment| {
+        environment.clear_package_cache().await?;
+
+        environment.save().await?;
+    });
+
+    Ok(())
+}

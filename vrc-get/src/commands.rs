@@ -374,6 +374,8 @@ pub enum Command {
     Info(info::Info),
     #[command(subcommand)]
     Migrate(migrate::Migrate),
+    #[command(subcommand)]
+    Cache(Cache),
     #[cfg(feature = "experimental-vcc")]
     #[command(subcommand)]
     Vcc(vcc::Vcc),
@@ -396,6 +398,7 @@ multi_command!(Command is
     Repo,
     Info,
     Migrate,
+    Cache,
     Vcc,
     Completion,
 );
@@ -1222,6 +1225,32 @@ impl RepoPackages {
                 exit_with!("no repository named {} found!", self.name_or_url);
             }
         }
+    }
+}
+
+/// Commands about cache control
+#[derive(Subcommand)]
+#[command(author, version)]
+pub enum Cache {
+    Clear(CacheClear),
+}
+
+multi_command!(Cache is Clear);
+
+/// Cleanup package cache
+#[derive(Parser)]
+#[command(author, version)]
+pub struct CacheClear {
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl CacheClear {
+    pub async fn run(self) {
+        let env = load_env(&self.env_args).await;
+        env.clear_package_cache()
+            .await
+            .exit_context("clearing package cache");
     }
 }
 
