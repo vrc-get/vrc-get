@@ -8,15 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Button to clear package cache `#1204`
 
 ### Changed
-- Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository `#1183`
-    - Currently, official VCC does not verify the hash of the downloaded zip file, but it's better to verify the hash.
-    - For compatibility, even if the hash does not match, the file will be extracted with an error message.
-    - In the future, we may make this a hard error.
-- Localized upgrade notice dialog `#1200`
-- Update notice can upgrade ALCOM to beta releases `#1200`
 
 ### Deprecated
 
@@ -25,6 +18,18 @@ The format is based on [Keep a Changelog].
 ### Fixed
 
 ### Security
+
+## [0.1.10-beta.1] - 2024-07-03
+### Added
+- Button to clear package cache [`#1204`](https://github.com/vrc-get/vrc-get/pull/1204)
+
+### Changed
+- Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository [`#1183`](https://github.com/vrc-get/vrc-get/pull/1183)
+    - Currently, official VCC does not verify the hash of the downloaded zip file, but it's better to verify the hash.
+    - For compatibility, even if the hash does not match, the file will be extracted with an error message.
+    - In the future, we may make this a hard error.
+- Localized upgrade notice dialog [`#1200`](https://github.com/vrc-get/vrc-get/pull/1200)
+- Update notice can upgrade ALCOM to beta releases [`#1200`](https://github.com/vrc-get/vrc-get/pull/1200)
 
 ## [0.1.9] - 2024-06-26
 ### Fixed
@@ -344,7 +349,8 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.9...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.1...HEAD
+[0.1.10-beta.1]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.9...gui-v0.1.10-beta.1
 [0.1.9]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.8...gui-v0.1.9
 [0.1.8]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.7...gui-v0.1.8
 [0.1.7]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.6...gui-v0.1.7
