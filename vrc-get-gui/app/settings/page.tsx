@@ -1,9 +1,8 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
-import {Card, CardHeader} from "@/components/ui/card";
+import {Card} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {ScrollArea} from "@/components/ui/scroll-area";
 import {Input} from "@/components/ui/input";
 import {
 	Select,
@@ -67,7 +66,7 @@ export default function Page() {
 	}
 
 	return (
-		<VStack className={"p-4"}>
+		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("settings")}

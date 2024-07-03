@@ -19,11 +19,11 @@ export default function RootLayout({
 		<body className={`font-sans w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
 		<Providers>
 			<SideBar className={"flex-grow-0"}/>
-			<div className={"h-screen flex-grow overflow-hidden flex"}>
+			<div className={"h-screen flex-grow overflow-hidden flex p-4"}>
 				{children}
 			</div>
 		</Providers>
 		</body>
 		</html>
-	);
+);
 }

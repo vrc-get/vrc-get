@@ -2,16 +2,14 @@
 
 import {Button} from "@/components/ui/button";
 import {Card} from "@/components/ui/card";
-import {Checkbox} from "@/components/ui/checkbox";
-import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {Tooltip, TooltipContent, TooltipPortal, TooltipTrigger} from "@/components/ui/tooltip";
-import React, {forwardRef, Fragment, useContext, useEffect, useMemo, useState} from "react";
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
+import React, {useEffect, useMemo, useState} from "react";
 import {
 	RefreshCw,
 	ChevronDown,
@@ -22,25 +20,17 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import {
 	environmentAddProjectWithPicker,
-	environmentCopyProjectForMigration,
 	environmentGetProjectSorting,
 	environmentProjects,
-	environmentSetFavoriteProject,
 	environmentSetProjectSorting,
-	projectIsUnityLaunching,
-	projectMigrateProjectToVpm,
 	TauriProject,
-	TauriProjectType,
-	utilOpen
+	TauriProjectType
 } from "@/lib/bindings";
 import {useQuery} from "@tanstack/react-query";
-import {useRouter} from "next/navigation";
 import {SearchBox} from "@/components/SearchBox";
 import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
-import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
-import {useBackupProjectModal} from "@/lib/backup-project";
 import {compareUnityVersionString} from "@/lib/version";
 import {useOpenUnity, OpenUnityFunction} from "@/lib/use-open-unity";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
@@ -77,7 +67,7 @@ export default function Page() {
 	const loading = result.isFetching || loadingOther;
 
 	return (
-		<VStack className={"m-4"}>
+		<VStack>
 			<ProjectViewHeader className={"flex-shrink-0"}
 												 refresh={() => result.refetch()}
 												 startCreateProject={startCreateProject}

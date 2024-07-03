@@ -182,7 +182,7 @@ function PageBody() {
 
 	return (
 		<PageContextProvider value={pageContext}>
-			<VStack className={"m-4"}>
+			<VStack>
 				<ProjectViewHeader
 					className={"flex-shrink-0"}
 					projectName={projectName}

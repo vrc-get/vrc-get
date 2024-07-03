@@ -10,14 +10,14 @@ import {VStack} from "@/components/layout";
 export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 	if (licenses === null) {
 		return (
-			<div className={"p-4 whitespace-normal"}>
+			<div className={"whitespace-normal"}>
 				<p>Failed to load licenses.</p>
 			</div>
 		);
 	}
 
 	return (
-		<VStack className={"p-4"}>
+		<VStack>
 			<ScrollPageContainer>
 				<VStack className={"gap-4"}>
 					<Card className={"p-4"}>

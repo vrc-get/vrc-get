@@ -20,7 +20,7 @@ import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 
 export default function Page() {
 	return (
-		<VStack className={"p-4"}>
+		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					UI Palette (dev only)
