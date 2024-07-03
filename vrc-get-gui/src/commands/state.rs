@@ -1,7 +1,6 @@
 use std::io;
 use std::num::Wrapping;
 use std::ptr::NonNull;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use log::info;
 use tokio::sync::Mutex;
@@ -12,7 +11,8 @@ use vrc_get_vpm::unity_project::PendingProjectChanges;
 use vrc_get_vpm::PackageInfo;
 
 use crate::commands::prelude::*;
-use crate::commands::project::TauriPendingProjectChanges;
+use crate::commands::project::ChangesInfoHolder;
+use crate::commands::util::UpdateResponseHolder;
 use crate::config::GuiConfigHolder;
 
 macro_rules! with_environment {
@@ -62,6 +62,7 @@ pub struct EnvironmentState {
     pub projects: Box<[UserProject]>,
     pub projects_version: Wrapping<u32>,
     pub changes_info: ChangesInfoHolder,
+    pub update_response_holder: UpdateResponseHolder,
 }
 
 pub struct PendingProjectChangesInfo<'env> {
@@ -156,44 +157,6 @@ pub enum UpdateRepositoryMode {
     IfOutdatedOrNecessary,
 }
 
-pub struct ChangesInfoHolder {
-    changes_info: Option<NonNull<PendingProjectChangesInfo<'static>>>,
-}
-
-impl ChangesInfoHolder {
-    fn new() -> Self {
-        Self { changes_info: None }
-    }
-
-    pub fn update(
-        &mut self,
-        environment_version: u32,
-        changes: PendingProjectChanges<'_>,
-    ) -> TauriPendingProjectChanges {
-        static CHANGES_GLOBAL_INDEXER: AtomicU32 = AtomicU32::new(0);
-        let changes_version = CHANGES_GLOBAL_INDEXER.fetch_add(1, Ordering::SeqCst);
-
-        let result = TauriPendingProjectChanges::new(changes_version, &changes);
-
-        let changes_info = Box::new(PendingProjectChangesInfo {
-            environment_version,
-            changes_version,
-            changes,
-        });
-
-        if let Some(ptr) = self.changes_info.take() {
-            unsafe { drop(Box::from_raw(ptr.as_ptr())) }
-        }
-        self.changes_info = NonNull::new(Box::into_raw(changes_info) as *mut _);
-
-        result
-    }
-
-    pub fn take(&mut self) -> Option<PendingProjectChangesInfo> {
-        Some(*unsafe { Box::from_raw(self.changes_info.take()?.as_mut()) })
-    }
-}
-
 impl EnvironmentState {
     fn new(io: DefaultEnvironmentIo) -> Self {
         Self {
@@ -203,6 +166,7 @@ impl EnvironmentState {
             projects: Box::new([]),
             projects_version: Wrapping(0),
             changes_info: ChangesInfoHolder::new(),
+            update_response_holder: UpdateResponseHolder::new(),
             io,
         }
     }

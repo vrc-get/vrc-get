@@ -25,6 +25,9 @@ pub struct GuiConfig {
     pub backup_format: String,
     #[serde(default = "project_sorting_default")]
     pub project_sorting: String,
+    #[serde(default = "release_channel_default")]
+    // "stable" or "beta"
+    pub release_channel: String,
 }
 
 impl Default for GuiConfig {
@@ -38,6 +41,7 @@ impl Default for GuiConfig {
             theme: theme_default(),
             backup_format: backup_default(),
             project_sorting: project_sorting_default(),
+            release_channel: release_channel_default(),
         }
     }
 }
@@ -88,6 +92,10 @@ fn backup_default() -> String {
 
 fn project_sorting_default() -> String {
     "lastModified".to_string()
+}
+
+fn release_channel_default() -> String {
+    "stable".to_string()
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

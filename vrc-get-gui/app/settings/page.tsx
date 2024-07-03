@@ -1,48 +1,45 @@
 "use client"
 
 import {Button} from "@/components/ui/button";
-import {Card, CardHeader} from "@/components/ui/card";
+import {Card} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {Input} from "@/components/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select"
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
+	CheckForUpdateResponse,
 	deepLinkInstallVcc,
 	environmentGetSettings,
+	environmentLanguage,
 	environmentPickProjectBackupPath,
 	environmentPickProjectDefaultPath,
 	environmentPickUnity,
 	environmentPickUnityHub,
 	environmentSetBackupFormat,
 	environmentSetLanguage,
-	environmentSetTheme,
+	environmentSetReleaseChannel,
 	environmentSetShowPrereleasePackages,
-	environmentLanguage,
+	environmentSetTheme,
 	environmentTheme,
 	TauriEnvironmentSettings,
-	utilGetVersion, utilOpen,
+	utilCheckForUpdate,
+	utilGetVersion,
+	utilOpen,
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
-import React from "react";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import React, {useState} from "react";
+import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
-import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
 import {loadOSApi} from "@/lib/os";
 import type {OsType} from "@tauri-apps/api/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {ToastContent} from "react-toastify";
 import {assertNever} from "@/lib/assert-never";
+import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
 
 export default function Page() {
 	const result = useQuery({
@@ -130,7 +127,7 @@ function Settings(
 				<PrereleasePackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
 				<AppearanceCard/>
 				{osType != "Darwin" && <VccSchemeCard/>}
-				<AlcomCard/>
+				<AlcomCard releaseChannel={settings.release_channel} refetch={refetch}/>
 			</main>
 		</ScrollArea>
 	)
@@ -254,7 +251,7 @@ function BackupCard(
 					<h3>{tc("settings:backup:format")}</h3>
 					<Select defaultValue={backupFormat} onValueChange={setBackupFormat}>
 						<SelectTrigger>
-							<SelectValue />
+							<SelectValue/>
 						</SelectTrigger>
 						<SelectContent>
 							<SelectGroup>
@@ -282,7 +279,7 @@ function PrereleasePackagesCard(
 ) {
 	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
 		try {
-			await environmentSetShowPrereleasePackages(e===true)
+			await environmentSetShowPrereleasePackages(e === true)
 			refetch()
 		} catch (e) {
 			console.error(e);
@@ -405,13 +402,28 @@ function VccSchemeCard() {
 	)
 }
 
-function AlcomCard() {
+function AlcomCard(
+	{
+		releaseChannel,
+		refetch,
+	}: {
+		releaseChannel: string;
+		refetch: () => void;
+	}
+) {
+	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(null);
+
 	const checkForUpdate = async () => {
 		try {
-			await emit("tauri://update")
+			const checkVersion = await utilCheckForUpdate();
+			if (checkVersion.is_update_available) {
+				setUpdateState(checkVersion);
+			} else {
+				toastNormal(tc("check update:toast:no updates"));
+			}
 		} catch (e) {
-			console.error(e);
 			toastThrownError(e)
+			console.error(e)
 		}
 	}
 
@@ -428,12 +440,25 @@ function AlcomCard() {
 		void shellOpen(url.toString())
 	}
 
+	const changeReleaseChannel = async (value: "indeterminate" | boolean) => {
+		await environmentSetReleaseChannel(value === true ? "beta" : "stable");
+		refetch();
+	};
+
 	return (
-		<Card className={"flex-shrink-0 p-4 flex flex-col gap-2"}>
+		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
+			{updateState && <CheckForUpdateMessage response={updateState} close={() => setUpdateState(null)}/>}
 			<h2>ALCOM</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={checkForUpdate}>{tc("settings:check update")}</Button>
 				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox checked={releaseChannel == "beta"} onCheckedChange={(e) => changeReleaseChannel(e)}/>
+					{tc("settings:receive beta updates")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>{tc("settings:beta updates description")}</p>
 			</div>
 			<p className={"whitespace-normal"}>
 				{tc("settings:licenses description", {}, {
@@ -455,7 +480,7 @@ function FilePathRow(
 	}: {
 		path: string;
 		notFoundMessage?: string;
-		pick: () => Promise<{type: "NoFolderSelected" | "InvalidSelection" | "Successful"}>;
+		pick: () => Promise<{ type: "NoFolderSelected" | "InvalidSelection" | "Successful" }>;
 		refetch: () => void;
 		successMessage: ToastContent;
 		withoutSelect?: boolean;
