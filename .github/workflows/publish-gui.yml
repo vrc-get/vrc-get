@@ -455,7 +455,7 @@ jobs:
         run: |-
           BRANCH_NAME="update-tauri-updater-json-v$GUI_VERSION"
           git switch -c "$BRANCH_NAME"
-          git add public/api/gui/tauri-updater.json
+          git add public/api/gui/tauri-updater.json public/api/gui/tauri-updater-beta.json
           git commit -m "chore: update tauri-updater.json to v$GUI_VERSION"
           git push -u origin "$BRANCH_NAME"
 
