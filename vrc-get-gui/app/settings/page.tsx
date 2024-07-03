@@ -43,6 +43,7 @@ import type {OsType} from "@tauri-apps/api/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {ToastContent} from "react-toastify";
 import {assertNever} from "@/lib/assert-never";
+import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 
 export default function Page() {
 	const result = useQuery({
@@ -96,7 +97,7 @@ function Settings(
 	}, [])
 
 	return (
-		<ScrollArea>
+		<ScrollPageContainer>
 			<main className="flex flex-col gap-2 flex-shrink flex-grow">
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
@@ -132,7 +133,7 @@ function Settings(
 				{osType != "Darwin" && <VccSchemeCard/>}
 				<AlcomCard/>
 			</main>
-		</ScrollArea>
+		</ScrollPageContainer>
 	)
 }
 
