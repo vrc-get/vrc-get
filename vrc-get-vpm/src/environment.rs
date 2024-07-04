@@ -342,7 +342,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
         }
 
-        let mut local_cache = LocalCachedRepository::new(remote_repo, headers);
+        let mut local_cache = LocalCachedRepository::new(remote_repo, headers.clone());
 
         // set etag
         if let Some(etag) = etag {
@@ -356,14 +356,17 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         let file_name = self.write_new_repo(&local_cache).await?;
 
-        self.settings.add_user_repo(UserRepoSetting::new(
+        let mut repo_setting = UserRepoSetting::new(
             self.io
                 .resolve(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref())
                 .into_boxed_path(),
             repo_name,
             Some(url),
             repo_id,
-        ));
+        );
+        repo_setting.headers = headers;
+
+        self.settings.add_user_repo(repo_setting);
         Ok(())
     }
 
