@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Importing / Exporting Repositories list `#1209`
 
 ### Changed
 
@@ -17,9 +16,15 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Maximized is not saved on windows `#902`
 
 ### Security
+
+## [0.1.10-beta.3] - 2024-07-04
+### Added
+- Importing / Exporting Repositories list [`#1209`](https://github.com/vrc-get/vrc-get/pull/1209)
+
+### Fixed
+- Maximized is not saved on windows [`#902`](https://github.com/vrc-get/vrc-get/pull/902)
 
 ## [0.1.10-beta.2] - 2024-07-03
 Release pipeline fixes
@@ -353,7 +358,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.2...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.3...HEAD
+[0.1.10-beta.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.2...gui-v0.1.10-beta.3
 [0.1.10-beta.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.1...gui-v0.1.10-beta.2
 [0.1.10-beta.1]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.9...gui-v0.1.10-beta.1
 [0.1.9]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.8...gui-v0.1.9
