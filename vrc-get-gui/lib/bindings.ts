@@ -106,6 +106,22 @@ export function environmentRemoveRepository(id: string) {
     return invoke()<null>("environment_remove_repository", { id })
 }
 
+export function environmentImportRepositoryPick() {
+    return invoke()<TauriImportRepositoryPickResult>("environment_import_repository_pick")
+}
+
+export function environmentImportDownloadRepositories(channel: string, repositories: TauriRepositoryDescriptor[]) {
+    return invoke()<AsyncCallResult<number, ([TauriRepositoryDescriptor, TauriDownloadRepository])[]>>("environment_import_download_repositories", { channel,repositories })
+}
+
+export function environmentImportAddRepositories(repositories: TauriRepositoryDescriptor[]) {
+    return invoke()<null>("environment_import_add_repositories", { repositories })
+}
+
+export function environmentExportRepositories() {
+    return invoke()<null>("environment_export_repositories")
+}
+
 export function environmentClearPackageCache() {
     return invoke()<null>("environment_clear_package_cache")
 }
@@ -259,6 +275,7 @@ export type TauriConflictInfo = { packages: string[]; unity_conflict: boolean }
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful"
 export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated" } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }
 export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string }
+export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] }
 export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { env_version: number; index: number; source: TauriPackageSource }
 export type TauriPackageChange = { InstallNew: TauriBasePackageInfo } | { Remove: TauriRemoveReason }
 export type TauriPackageSource = "LocalUser" | { Remote: { id: string; display_name: string } }
@@ -276,6 +293,7 @@ export type TauriProjectType = "Unknown" | "LegacySdk2" | "LegacyWorlds" | "Lega
 export type TauriRemoteRepositoryInfo = { display_name: string; id: string; url: string; packages: TauriBasePackageInfo[] }
 export type TauriRemoveReason = "Requested" | "Legacy" | "Unused"
 export type TauriRepositoriesInfo = { user_repositories: TauriUserRepository[]; hidden_user_repositories: string[]; hide_local_user_packages: boolean; show_prerelease_packages: boolean }
+export type TauriRepositoryDescriptor = { url: string; headers: { [key: string]: string } }
 export type TauriUnityVersions = { unity_paths: ([string, string, boolean])[]; recommended_version: string; install_recommended_version_link: string }
 export type TauriUserRepository = { id: string; url: string | null; display_name: string }
 export type TauriVersion = { major: number; minor: number; patch: number; pre: string; build: string }

@@ -12,10 +12,13 @@ use std::error::Error as StdError;
 use std::ffi::OsStr;
 use std::fmt::{Debug, Display};
 use std::num::NonZeroU32;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
+use tokio::fs::read_to_string;
+use vrc_get_vpm::environment::AddRepositoryErr;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
+use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
@@ -924,9 +927,11 @@ pub enum Repo {
     Remove(RepoRemove),
     Cleanup(RepoCleanup),
     Packages(RepoPackages),
+    Import(RepoImport),
+    Export(RepoExport),
 }
 
-multi_command!(Repo is List, Add, Remove, Cleanup, Packages);
+multi_command!(Repo is List, Add, Remove, Cleanup, Packages, Import, Export);
 
 /// List all repositories
 #[derive(Parser)]
@@ -1225,6 +1230,88 @@ impl RepoPackages {
                 exit_with!("no repository named {} found!", self.name_or_url);
             }
         }
+    }
+}
+
+/// Import repository list file
+#[derive(Parser)]
+#[command(author, version)]
+pub struct RepoImport {
+    repositories_file: String,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
+
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl RepoImport {
+    pub async fn run(self) {
+        let mut env = load_env(&self.env_args).await;
+        let repositories_file = read_to_string(self.repositories_file)
+            .await
+            .exit_context("reading repositories file");
+
+        let result = RepositoriesFile::parse(&repositories_file);
+
+        println!("You're importing the following repositories:");
+        for repository in result.parsed().repositories() {
+            if repository.headers().is_empty() {
+                println!("- {}", repository.url());
+            } else {
+                println!("- {} (with headers)", repository.url());
+            }
+        }
+        println!("The following lines are invalid and will be ignored:");
+        for line in result.unparseable_lines() {
+            println!("- {}", line);
+        }
+
+        if self.yes {
+            println!("--yes is set. skipping confirm");
+        } else if !confirm_prompt("Do you want to install those repositories?") {
+            exit(1);
+        }
+
+        for repository in result.parsed().repositories() {
+            match env
+                .add_remote_repo(repository.url().clone(), None, repository.headers().clone())
+                .await
+            {
+                Ok(()) => {}
+                Err(AddRepositoryErr::AlreadyAdded) => {
+                    warn!(
+                        "{} is already added so skipping that repository",
+                        repository.url()
+                    );
+                }
+                Err(err) => {
+                    exit_with!(
+                        "error adding repository {url}: {err}",
+                        url = repository.url()
+                    );
+                }
+            }
+        }
+
+        save_env(&mut env).await;
+    }
+}
+
+/// Export user repository list file
+#[derive(Parser)]
+#[command(author, version)]
+pub struct RepoExport {
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl RepoExport {
+    pub async fn run(self) {
+        let env = load_env(&self.env_args).await;
+        print!("{}", env.export_repositories());
     }
 }
 

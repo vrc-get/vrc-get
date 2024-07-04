@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog].
 - Customizing Command Line Arguments for Unity `#1127`
 - Preserve Unity if multiple instance of the same unity version are installed `#1127`
 - `vrc-get cache clear`, command to clear package cache `#1204`
+- Importing / Exporting Repositories list `#1209`
+  - `vrc-get repo import <list file>` and `vrc-get repo export`
 
 ### Changed
 - Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository `#1183`

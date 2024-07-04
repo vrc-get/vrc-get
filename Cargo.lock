@@ -4170,6 +4170,7 @@ dependencies = [
  "specta-macros",
  "tauri",
  "thiserror",
+ "url",
 ]
 
 [[package]]

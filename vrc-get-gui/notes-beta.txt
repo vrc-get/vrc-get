@@ -1,4 +1,6 @@
 # This is notes text for the updater json, which will be shown in the updater dialog.
 # Lines starting with '#' will be ignored (as comments).
+This release includes the following features:
+- Importing / Exporting Repositories list
 This release includes the following fixes!:
 - maximized state is not saved

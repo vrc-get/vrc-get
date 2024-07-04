@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use specta::{DataType, DefOpts, ExportError, Type};
 
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Clone)]
 #[serde(transparent)]
 pub struct IndexMapV2<K: std::hash::Hash + Eq, V>(pub IndexMap<K, V>);
 

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Importing / Exporting Repositories list `#1209`
 
 ### Changed
 
