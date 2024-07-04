@@ -118,6 +118,10 @@ export function environmentImportAddRepositories(repositories: TauriRepositoryDe
     return invoke()<null>("environment_import_add_repositories", { repositories })
 }
 
+export function environmentExportRepositories() {
+    return invoke()<null>("environment_export_repositories")
+}
+
 export function environmentClearPackageCache() {
     return invoke()<null>("environment_clear_package_cache")
 }

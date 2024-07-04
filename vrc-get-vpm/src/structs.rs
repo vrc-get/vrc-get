@@ -17,7 +17,7 @@ pub mod setting {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub(crate) id: Option<Box<str>>,
         #[serde(default)]
-        headers: IndexMap<Box<str>, Box<str>>,
+        pub(crate) headers: IndexMap<Box<str>, Box<str>>,
     }
 
     impl UserRepoSetting {

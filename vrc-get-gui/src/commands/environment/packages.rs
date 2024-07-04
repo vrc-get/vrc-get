@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use serde::{Deserialize, Serialize};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::{Manager, State, Window};
+use tokio::fs::write;
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -493,6 +494,27 @@ pub async fn environment_import_add_repositories(
     // force update repository
     let mut state = state.lock().await;
     state.environment.last_repository_update = None;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_export_repositories(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<(), RustError> {
+    let Some(path) = FileDialogBuilder::new()
+        .add_filter("Text", &["txt"])
+        .set_file_name("repositories")
+        .save_file()
+    else {
+        return Ok(());
+    };
+
+    let repositories =
+        with_environment!(state, |environment| { environment.export_repositories() });
+
+    write(path, repositories).await?;
 
     Ok(())
 }

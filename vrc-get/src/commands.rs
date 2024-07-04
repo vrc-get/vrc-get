@@ -928,9 +928,10 @@ pub enum Repo {
     Cleanup(RepoCleanup),
     Packages(RepoPackages),
     Import(RepoImport),
+    Export(RepoExport),
 }
 
-multi_command!(Repo is List, Add, Remove, Cleanup, Packages, Import);
+multi_command!(Repo is List, Add, Remove, Cleanup, Packages, Import, Export);
 
 /// List all repositories
 #[derive(Parser)]
@@ -1293,6 +1294,21 @@ impl RepoImport {
         }
 
         save_env(&mut env).await;
+    }
+}
+
+/// Export user repository list file
+#[derive(Parser)]
+#[command(author, version)]
+pub struct RepoExport {
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl RepoExport {
+    pub async fn run(self) {
+        let env = load_env(&self.env_args).await;
+        print!("{}", env.export_repositories());
     }
 }
 

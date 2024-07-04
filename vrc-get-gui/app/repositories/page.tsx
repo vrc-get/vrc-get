@@ -6,7 +6,7 @@ import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/compon
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import {useQuery} from "@tanstack/react-query";
 import {
-	deepLinkTakeAddRepository,
+	deepLinkTakeAddRepository, environmentExportRepositories,
 	environmentHideRepository,
 	environmentRemoveRepository,
 	environmentRepositoriesInfo,
@@ -23,6 +23,7 @@ import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {useAddRepository} from "@/app/repositories/use-add-repository";
 import {useImportRepositories} from "@/app/repositories/use-import-repositories";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
+import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -43,6 +44,16 @@ function PageBody() {
 			refetch: () => result.refetch(),
 		}
 	);
+
+	const [exportRepositoriesRaw, exportDialog] = useFilePickerFunction(environmentExportRepositories);
+
+	const exportRepositories = useCallback(async () => {
+		try {
+			await exportRepositoriesRaw();
+		} catch (e) {
+			toastThrownError(e);
+		}
+	}, [exportRepositoriesRaw]);
 
 	const hiddenUserRepos = useMemo(() => new Set(result.data?.hidden_user_repositories), [result]);
 
@@ -95,6 +106,7 @@ function PageBody() {
 					</div>
 					<DropdownMenuContent>
 						<DropdownMenuItem onClick={importRepositoryInfo.startImportingRepositories}>{tc("vpm repositories:button:import repositories")}</DropdownMenuItem>
+						<DropdownMenuItem onClick={exportRepositories}>{tc("vpm repositories:button:export repositories")}</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</HNavBar>
@@ -108,6 +120,7 @@ function PageBody() {
 			</ScrollableCardTable>
 			{addRepositoryInfo.dialog}
 			{importRepositoryInfo.dialog}
+			{exportDialog}
 		</VStack>
 	);
 }
