@@ -1287,8 +1287,11 @@ impl RepoImport {
                         repository.url()
                     );
                 }
-                err @ Err(_) => {
-                    err.exit_context("Adding repository");
+                Err(err) => {
+                    exit_with!(
+                        "error adding repository {url}: {err}",
+                        url = repository.url()
+                    );
                 }
             }
         }
