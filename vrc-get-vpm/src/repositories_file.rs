@@ -24,6 +24,11 @@ impl RepositoriesFile {
         let mut adding_urls = HashSet::new();
 
         for line in file.lines() {
+            // remove comments
+            let line = line
+                .split_once('#')
+                .map(|(before_hash, _)| before_hash)
+                .unwrap_or(line);
             let line = line.trim();
             if line.is_empty() {
                 continue;
