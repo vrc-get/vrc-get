@@ -23,6 +23,8 @@ mod utils;
 pub mod version;
 mod version_selector;
 
+pub mod repositories_file;
+
 #[cfg(feature = "unity")]
 pub mod unity;
 #[cfg(feature = "unity-hub")]
