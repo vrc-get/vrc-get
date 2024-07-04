@@ -40,7 +40,14 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
                             log::error!("Duplicate url query parameter");
                             return None;
                         }
-                        url = Some(value.to_string());
+                        let Some(parsed) = Url::parse(&value)
+                            .ok()
+                            .filter(|x| x.scheme() == "http" || x.scheme() == "https")
+                        else {
+                            log::error!("Invalid to remove url: {}", value);
+                            return None;
+                        };
+                        url = Some(parsed);
                     }
                     "headers[]" => {
                         let (key, value) = value.split_once(':')?;
@@ -66,7 +73,7 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
 
 #[derive(specta::Type, serde::Serialize, Debug, Eq, PartialEq)]
 pub struct AddRepositoryInfo {
-    url: String,
+    url: Url,
     headers: IndexMapV2<String, String>,
 }
 
@@ -206,7 +213,7 @@ mod tests {
         assert_eq!(
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
-                url: "https://example.com".to_string(),
+                url: Url::parse("https://example.com").unwrap(),
                 headers: IndexMapV2(IndexMap::new()),
             })
         );
@@ -218,7 +225,7 @@ mod tests {
         assert_eq!(
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
-                url: "https://vpm.anatawa12.com/vpm.json".to_string(),
+                url: Url::parse("https://vpm.anatawa12.com/vpm.json").unwrap(),
                 headers: IndexMapV2(IndexMap::new()),
             })
         );
@@ -228,7 +235,7 @@ mod tests {
         assert_eq!(
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
-                url: "https://vpm.anatawa12.com/vpm.json".to_string(),
+                url: Url::parse("https://vpm.anatawa12.com/vpm.json").unwrap(),
                 headers: IndexMapV2({
                     let mut map = IndexMap::new();
                     map.insert("Authorization".to_string(), "test".to_string());
