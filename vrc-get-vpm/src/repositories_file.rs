@@ -21,8 +21,6 @@ impl RepositoriesFile {
         let mut parsed_lines = vec![];
         let mut unparseable_lines = vec![];
 
-        let mut adding_urls = HashSet::new();
-
         for line in file.lines() {
             // remove comments
             let line = line
@@ -52,14 +50,6 @@ impl RepositoriesFile {
                     });
                 }
                 _ => {}
-            }
-
-            if let Some(parsed) = &repository {
-                if adding_urls.contains(parsed.url()) {
-                    repository = None; // if the url is already added, ignore it
-                } else {
-                    adding_urls.insert(parsed.url().clone());
-                }
             }
 
             if let Some(repository) = repository {
