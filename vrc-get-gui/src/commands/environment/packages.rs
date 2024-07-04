@@ -217,19 +217,8 @@ pub async fn environment_download_repository(
     };
 
     with_environment!(state, |environment| {
-        let user_repo_urls = environment
-            .get_user_repos()
-            .iter()
-            .flat_map(|x| x.url())
-            .map(|x| x.to_string())
-            .collect::<HashSet<_>>();
-
-        let user_repo_ids = environment
-            .get_user_repos()
-            .iter()
-            .flat_map(|x| x.id())
-            .map(|x| x.to_string())
-            .collect::<HashSet<_>>();
+        let user_repo_urls = user_repo_urls(environment);
+        let user_repo_ids = user_repo_ids(environment);
 
         Ok(download_one_repository(
             environment.http().unwrap(),
@@ -240,6 +229,45 @@ pub async fn environment_download_repository(
         )
         .await?)
     })
+}
+
+fn user_repo_urls(environment: &Environment) -> HashSet<String> {
+    let mut user_repo_urls = environment
+        .get_user_repos()
+        .iter()
+        .flat_map(|x| x.url())
+        .map(|x| x.to_string())
+        .collect::<HashSet<_>>();
+
+    if !environment.ignore_curated_repository() {
+        // should we check more urls?
+        user_repo_urls.insert("https://packages.vrchat.com/curated?download".to_owned());
+    }
+
+    if !environment.ignore_official_repository() {
+        user_repo_urls.insert("https://packages.vrchat.com/official?download".to_owned());
+    }
+
+    user_repo_urls
+}
+
+fn user_repo_ids(environment: &Environment) -> HashSet<String> {
+    let mut user_repo_ids = environment
+        .get_user_repos()
+        .iter()
+        .flat_map(|x| x.id())
+        .map(|x| x.to_string())
+        .collect::<HashSet<_>>();
+
+    if !environment.ignore_curated_repository() {
+        user_repo_ids.insert("com.vrchat.repos.curated".to_owned());
+    }
+
+    if !environment.ignore_official_repository() {
+        user_repo_ids.insert("com.vrchat.repos.official".to_owned());
+    }
+
+    user_repo_ids
 }
 
 async fn download_one_repository(
@@ -394,19 +422,8 @@ pub async fn environment_import_download_repositories(
         With::<usize>::continue_async(|ctx| async move {
             let state = window.state::<Mutex<EnvironmentState>>();
             with_environment!(state, |environment| {
-                let user_repo_urls = environment
-                    .get_user_repos()
-                    .iter()
-                    .flat_map(|x| x.url())
-                    .map(|x| x.to_string())
-                    .collect::<HashSet<_>>();
-
-                let mut user_repo_ids = environment
-                    .get_user_repos()
-                    .iter()
-                    .flat_map(|x| x.id())
-                    .map(|x| x.to_string())
-                    .collect::<HashSet<_>>();
+                let user_repo_urls = user_repo_urls(environment);
+                let mut user_repo_ids = user_repo_ids(environment);
 
                 info!("downloading {} repositories", repositories.len());
 

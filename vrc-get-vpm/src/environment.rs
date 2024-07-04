@@ -306,6 +306,18 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         if user_repos.iter().any(|x| x.url() == Some(&url)) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
+        // should we check more urls?
+        if !self.ignore_curated_repository()
+            && url.as_str() == "https://packages.vrchat.com/curated?download"
+        {
+            return Err(AddRepositoryErr::AlreadyAdded);
+        }
+        if !self.ignore_official_repository()
+            && url.as_str() == "https://packages.vrchat.com/official?download"
+        {
+            return Err(AddRepositoryErr::AlreadyAdded);
+        }
+
         let http = self.http.as_ref().ok_or(AddRepositoryErr::OfflineMode)?;
 
         let (remote_repo, etag) = RemoteRepository::download(http, &url, &headers).await?;
@@ -316,6 +328,16 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         if let Some(repo_id) = repo_id.as_deref() {
             // if there is id, check if there is already repo with same id
             if user_repos.iter().any(|x| x.id() == Some(repo_id)) {
+                return Err(AddRepositoryErr::AlreadyAdded);
+            }
+            if repo_id == "com.vrchat.repos.official"
+                && !self.vrc_get_settings.ignore_official_repository()
+            {
+                return Err(AddRepositoryErr::AlreadyAdded);
+            }
+            if repo_id == "com.vrchat.repos.curated"
+                && !self.vrc_get_settings.ignore_curated_repository()
+            {
                 return Err(AddRepositoryErr::AlreadyAdded);
             }
         }
@@ -554,6 +576,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
     pub fn set_unity_hub_path(&mut self, value: &str) {
         self.settings.set_unity_hub(value);
+    }
+
+    pub fn ignore_curated_repository(&self) -> bool {
+        self.vrc_get_settings.ignore_curated_repository()
+    }
+
+    pub fn ignore_official_repository(&self) -> bool {
+        self.vrc_get_settings.ignore_official_repository()
     }
 
     pub fn http(&self) -> Option<&T> {
