@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get"
-version = "1.8.1-beta.0"
+version = "1.8.2-beta.0"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
@@ -15,21 +15,21 @@ categories = ["command-line-utilities"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anstyle = "1.0.6"
-clap = { version = "4.5.4", features = ["derive"] }
-clap_complete = "4.5.1"
+anstyle = "1.0.7"
+clap = { version = "4.5.8", features = ["derive"] }
+clap_complete = "4.5.7"
 color-print = "0.3.6"
 env_logger = "0.11.3"
 indexmap = { version = "2.2.6", features = ["serde"] }
-itertools = "0.12.1"
-log = "0.4.21"
-reqwest = { version = "0.12.4", default-features = false }
-serde = { version = "1.0.199", features = ["derive", "rc"] }
-serde_json = { version = "1.0.116", features = ["preserve_order"] }
-tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros", "fs"] }
+itertools = "0.13.0"
+log = "0.4.22"
+reqwest = { version = "0.12.5", default-features = false }
+serde = { version = "1.0.203", features = ["derive", "rc"] }
+serde_json = { version = "1.0.119", features = ["preserve_order"] }
+tokio = { version = "1.38.0", features = ["rt-multi-thread", "macros", "fs"] }
 
 [dependencies.vrc-get-vpm]
-version = "0.0.12-beta.0"
+version = "0.0.13-beta.0"
 path = "../vrc-get-vpm"
 features = ["tokio"]
 default-features = false

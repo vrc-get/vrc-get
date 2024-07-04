@@ -14,7 +14,7 @@ use futures::stream::FuturesUnordered;
 use pin_project_lite::pin_project;
 use serde_json::error::Category;
 use serde_json::{Map, Value};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
 use std::task::{ready, Context, Poll};
 
@@ -94,21 +94,6 @@ impl JsonMapExt for Map<String, Value> {
         self.entry(key.into()).or_insert_with(|| value().into())
     }
 }
-
-pub(crate) trait OurTryStreamExt: Stream + Sized {
-    fn flatten_ok(self) -> FlattenOk<Self>
-    where
-        Self: TryStream,
-        Self::Ok: Stream,
-    {
-        FlattenOk {
-            stream: self,
-            next: None,
-        }
-    }
-}
-
-impl<T: Stream + Sized> OurTryStreamExt for T {}
 
 pin_project! {
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
@@ -289,4 +274,32 @@ where
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
         Err(e) => Err(e),
     }
+}
+
+pub(crate) fn normalize_path(input: &Path) -> PathBuf {
+    let mut result = PathBuf::with_capacity(input.as_os_str().len());
+
+    for component in input.components() {
+        match component {
+            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
+            Component::RootDir => result.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                result.pop();
+            }
+            Component::Normal(_) => result.push(component.as_os_str()),
+        }
+    }
+
+    result
+}
+
+pub(crate) fn check_absolute_path(path: impl AsRef<Path>) -> io::Result<()> {
+    if !path.as_ref().is_absolute() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "project path must be absolute",
+        ));
+    }
+    Ok(())
 }

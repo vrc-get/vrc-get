@@ -134,6 +134,10 @@ async fn find_legacy_assets_by_path<'a>(
 }
 
 async fn check_guid(io: &impl ProjectIo, path: &Path, guid: Option<Guid>) -> bool {
+    // for paths other than UdonSharp, we don't need to check the guid.
+    if path != Path::new("Assets/UdonSharp") {
+        return true;
+    }
     if let Some(guid) = guid {
         let mut path = OsString::from(path);
         path.push(".meta");

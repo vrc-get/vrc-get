@@ -26,9 +26,7 @@ impl DependencyRange {
             return None;
         };
 
-        let Some(full) = star.to_full() else {
-            return None;
-        };
+        let full = star.to_full()?;
 
         Some(full)
     }

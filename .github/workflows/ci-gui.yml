@@ -69,6 +69,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-
       - uses: taiki-e/install-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           tool: cargo-about
 
@@ -84,12 +86,23 @@ jobs:
           cp vrc-get-gui/Cargo.toml vrc-get-gui/Cargo.toml.bak
           sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/Cargo.toml.bak > vrc-get-gui/Cargo.toml
 
+      - name: disable bundling updater
+        shell: bash
+        run: |
+          cp vrc-get-gui/Tauri.toml vrc-get-gui/Tauri.toml.bak
+          grep -v "remove if ci" < vrc-get-gui/Tauri.toml.bak > vrc-get-gui/Tauri.toml
+
+      - name: Enable Devtools Feature
+        shell: bash
+        run: |
+          cargo add --package vrc-get-gui tauri --features devtools
+
       - uses: tauri-apps/tauri-action@v0
         with:
           projectPath: vrc-get-gui
           tauriScript: npm run tauri
           args: |
-            --target ${{ matrix.triple }} -c '{"tauri":{"updater":{"active":false}},"package":{"version":"${{ steps.version.outputs.version }}"}}'
+            --target ${{ matrix.triple }} -c '{"package":{"version":"${{ steps.version.outputs.version }}"}}'
 
       - name: Upload built binary
         uses: actions/upload-artifact@v4

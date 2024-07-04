@@ -3,6 +3,7 @@
 use chrono::{Timelike, Utc};
 use indexmap::IndexMap;
 use serde::Serialize;
+use std::path::Path;
 
 #[derive(Serialize)]
 struct UpdaterJson {
@@ -52,12 +53,38 @@ fn main() {
         platforms.insert(platform.to_string(), Platform { signature, url });
     }
 
-    let updater = UpdaterJson {
+    let stable_notes = get_notes("vrc-get-gui/notes.txt".as_ref());
+    let beta_notes = get_notes("vrc-get-gui/notes-beta.txt".as_ref());
+    let is_beta = version.contains('-');
+
+    let mut updater = UpdaterJson {
         version,
-        notes: "Bug Fixes or New Features".to_string(),
+        notes: String::new(),
         pub_date: Utc::now().with_nanosecond(0).unwrap(),
         platforms,
     };
-    let json = serde_json::to_string_pretty(&updater).unwrap();
-    std::fs::write("updater.json", json).expect("write updater.json");
+
+    if !is_beta {
+        updater.notes = stable_notes;
+        write_json("updater.json", &updater);
+    }
+    updater.notes = beta_notes;
+    write_json("updater-beta.json", &updater);
+}
+
+fn write_json(path: impl AsRef<Path>, json: impl Serialize) {
+    let json = serde_json::to_string_pretty(&json).unwrap();
+    std::fs::write(path, json).expect("write updater.json");
+}
+
+fn get_notes(path: &Path) -> String {
+    let notes = std::fs::read_to_string(path).expect("read notes.txt");
+    // lines starts with # are comments
+    notes
+        .trim_end()
+        .lines()
+        .filter(|x| !x.starts_with("#"))
+        .map(|x| x.trim_end())
+        .collect::<Vec<_>>()
+        .join("\n")
 }

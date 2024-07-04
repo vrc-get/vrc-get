@@ -43,8 +43,11 @@ pub struct UnityProject<IO: ProjectIo> {
     upm_manifest: UpmManifest,
     /// unity version parsed
     unity_version: Option<UnityVersion>,
+    /// unity revision parsed
+    unity_revision: Option<String>,
     /// packages installed in the directory but not locked in vpm-manifest.json
     unlocked_packages: Vec<(Box<str>, Option<PackageManifest>)>,
+    /// packages installed in the directory and licked in vpm-manifest.json
     installed_packages: HashMap<Box<str>, PackageManifest>,
 }
 
@@ -87,13 +90,14 @@ impl<IO: ProjectIo> UnityProject<IO> {
             }
         }
 
-        let unity_version = Self::try_read_unity_version(&io).await;
+        let (unity_version, unity_revision) = Self::try_read_unity_version(&io).await;
 
         Ok(Self {
             io,
             manifest,
             upm_manifest,
             unity_version,
+            unity_revision,
             unlocked_packages,
             installed_packages,
         })
@@ -116,17 +120,17 @@ impl<IO: ProjectIo> UnityProject<IO> {
         (name, parsed.map(|x| x.0))
     }
 
-    async fn try_read_unity_version(io: &IO) -> Option<UnityVersion> {
+    async fn try_read_unity_version(io: &IO) -> (Option<UnityVersion>, Option<String>) {
         let mut project_version_file =
             match io.open("ProjectSettings/ProjectVersion.txt".as_ref()).await {
                 Ok(file) => file,
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
                     log::error!("ProjectVersion.txt not found");
-                    return None;
+                    return (None, None);
                 }
                 Err(e) => {
                     log::error!("opening ProjectVersion.txt failed with error: {e}");
-                    return None;
+                    return (None, None);
                 }
             };
 
@@ -134,26 +138,51 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         if let Err(e) = project_version_file.read_to_string(&mut buffer).await {
             log::error!("reading ProjectVersion.txt failed with error: {e}");
-            return None;
+            return (None, None);
         };
 
-        let Some((_, version_info)) = buffer.split_once("m_EditorVersion:") else {
-            log::error!("m_EditorVersion not found in ProjectVersion.txt");
-            return None;
+        let unity_version = match Self::find_attribute(buffer.as_str(), "m_EditorVersion:") {
+            None => None,
+            Some(version_info) => {
+                let parsed = UnityVersion::parse(version_info);
+                if parsed.is_none() {
+                    log::error!("failed to parse m_EditorVersion in ProjectVersion.txt");
+                }
+                parsed
+            }
         };
 
+        let revision = match Self::find_attribute(buffer.as_str(), "m_EditorVersionWithRevision:") {
+            None => None,
+            Some(version_info) => {
+                let parsed = Self::parse_version_with_revision(version_info);
+                if parsed.is_none() {
+                    log::error!(
+                        "failed to parse m_EditorVersionWithRevision in ProjectVersion.txt"
+                    );
+                }
+                parsed
+            }
+        };
+
+        (unity_version, revision.map(|x| x.to_string()))
+    }
+
+    fn find_attribute<'a>(buffer: &'a str, attribute: &str) -> Option<&'a str> {
+        let (_, version_info) = buffer.split_once(attribute)?;
         let version_info_end = version_info
             .find(|x: char| x == '\r' || x == '\n')
             .unwrap_or(version_info.len());
         let version_info = &version_info[..version_info_end];
         let version_info = version_info.trim();
+        Some(version_info)
+    }
 
-        let Some(unity_version) = UnityVersion::parse(version_info) else {
-            log::error!("failed to unity version in ProjectVersion.txt ({version_info})");
-            return None;
-        };
+    fn parse_version_with_revision(version_info: &str) -> Option<&str> {
+        let (_version, revision) = version_info.split_once('(')?;
+        let (revision, _) = revision.split_once(')')?;
 
-        Some(unity_version)
+        Some(revision)
     }
 
     pub async fn is_valid(&self) -> bool {
@@ -228,6 +257,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
     pub fn unity_version(&self) -> Option<UnityVersion> {
         self.unity_version
+    }
+
+    pub fn unity_revision(&self) -> Option<&str> {
+        self.unity_revision.as_deref()
     }
 
     pub fn has_upm_package(&self, name: &str) -> bool {

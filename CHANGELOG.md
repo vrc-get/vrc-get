@@ -8,19 +8,40 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Per-package `headers` field support `#718`
+  - Since this is adding support for missing features, I treat this as a bugfix and not bump minor version.
+- De-duplicating duplicated projects or Unity in VCC project list `#1081`
+- Customizing Command Line Arguments for Unity `#1127`
+- Preserve Unity if multiple instance of the same unity version are installed `#1127`
+- `vrc-get cache clear`, command to clear package cache `#1204`
 
 ### Changed
-- Relax validation for `package.json` for local user packages `#750`
-- Improved handling for unlocked packages `#790`
+- Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository `#1183`
+  - Currently, official VCC does not verify the hash of the downloaded zip file, but it's better to verify the hash.
+  - For compatibility, even if the hash does not match, the file will be extracted with an error message.
+  - In the future, we may make this a hard error.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Installing package while Unity can be failed `#696`
+- Unity from Unity Hub will be registered as manually registered Unity `#1081`
 
 ### Security
+
+## [1.8.1] - 2024-05-13
+### Changed
+- Relax validation for `package.json` for local user packages [`#750`](https://github.com/vrc-get/vrc-get/pull/750)
+- Improved handling for unlocked packages [`#790`](https://github.com/vrc-get/vrc-get/pull/790)
+- Legacy Assets are remove even if the specified GUID does not match with the actual GUID [`#901`](https://github.com/vrc-get/vrc-get/pull/901)
+  - This follows VCC 2.3.0 beta 3 behavior.
+- Updated the recommended Unity 2022 version to 2022.3.22f1 [`#928`](https://github.com/vrc-get/vrc-get/pull/928)
+- Support repositories with bad packages [`#954`](https://github.com/vrc-get/vrc-get/pull/954)
+- Use url in settings.json to load remote repository [`#955`](https://github.com/vrc-get/vrc-get/pull/955)
+
+### Fixed
+- Installing package while Unity can be failed [`#696`](https://github.com/vrc-get/vrc-get/pull/696)
 
 ## [1.8.0] - 2024-03-31
 ### Added
@@ -425,7 +446,8 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/vrc-get/vrc-get/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/vrc-get/vrc-get/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/anatawa12/vrc-get/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/anatawa12/vrc-get/compare/v1.6.1...v1.7.0

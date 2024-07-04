@@ -8,11 +8,6 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- `/opt/unityhub/unityhub` to the unity hub search path `#812`
-  - The path is the default path for official apt distribution
-- Issue Report button feature in Settings `#821`
-- German translation `#824`
-- SDK2 Project is now shown as type "SDK2" `#869`
 
 ### Changed
 
@@ -21,16 +16,133 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Impossible to control some portion if the window is narrow `#805`
-- Reorder Sidebar menu for clearer organization `#820`
-- Background is black if dark mode `#811`
-  - Plaease wait a while for the dark mode support
-- Added dedicated messages for bulk actions in manage packages page `#819`
-- Panics are ignored `#846`
-  - From this version, panics will be logged to error logs instead of stderr.
 - Maximized is not saved on windows `#902`
 
 ### Security
+
+## [0.1.10-beta.2] - 2024-07-03
+Release pipeline fixes
+## [0.1.10-beta.1] - 2024-07-03
+### Added
+- Button to clear package cache [`#1204`](https://github.com/vrc-get/vrc-get/pull/1204)
+
+### Changed
+- Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository [`#1183`](https://github.com/vrc-get/vrc-get/pull/1183)
+    - Currently, official VCC does not verify the hash of the downloaded zip file, but it's better to verify the hash.
+    - For compatibility, even if the hash does not match, the file will be extracted with an error message.
+    - In the future, we may make this a hard error.
+- Localized upgrade notice dialog [`#1200`](https://github.com/vrc-get/vrc-get/pull/1200)
+- Update notice can upgrade ALCOM to beta releases [`#1200`](https://github.com/vrc-get/vrc-get/pull/1200)
+
+## [0.1.9] - 2024-06-26
+### Fixed
+- UI Freezes in many situations [`#1177`](https://github.com/vrc-get/vrc-get/pull/1177)
+
+## [0.1.8] - 2024-06-25
+### Added
+- De-duplicating duplicated projects or Unity in VCC project list [`#1081`](https://github.com/vrc-get/vrc-get/pull/1081)
+- Show package description on hovering package name / id [`#1118`](https://github.com/vrc-get/vrc-get/pull/1118)
+- Open Project / Backup Location button on Settings Page [`#1140`](https://github.com/vrc-get/vrc-get/pull/1140)
+
+### Changed
+- Refine Dark Theme [`#1083`](https://github.com/vrc-get/vrc-get/pull/1083)
+- Show package display name on uninstalled toast [`#1086`](https://github.com/vrc-get/vrc-get/pull/1086)
+- Improved performance of package search [`#1131`](https://github.com/vrc-get/vrc-get/pull/1131)
+- Swapped heroicons for lucide-react [`#1129`](https://github.com/vrc-get/vrc-get/pull/1129)
+
+### Fixed
+- Unity from Unity Hub will be registered as manually registered Unity [`#1081`](https://github.com/vrc-get/vrc-get/pull/1081)
+- Unity selector radio button does not work well [`#1082`](https://github.com/vrc-get/vrc-get/pull/1082)
+- `vcc:` link install button does not work well on linux [`#1117`](https://github.com/vrc-get/vrc-get/pull/1117)
+
+## [0.1.7] - 2024-05-30
+### Added
+- Support for dark theme [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028) [`#1044`](https://github.com/vrc-get/vrc-get/pull/1044)
+
+### Changed
+- Changed component library to shadcn [`#1028`](https://github.com/vrc-get/vrc-get/pull/1028)
+- Informational message will be shown if you've installed fake latest because of the Unity version [`#1046`](https://github.com/vrc-get/vrc-get/pull/1046) [`#1061`](https://github.com/vrc-get/vrc-get/pull/1061) 
+- Show newly installed packages and reinstalling packages separately [`#1052`](https://github.com/vrc-get/vrc-get/pull/1052)
+- Prevents opening multiple unity instances [`#1055`](https://github.com/vrc-get/vrc-get/pull/1055) [`#1062`](https://github.com/vrc-get/vrc-get/pull/1062)
+- Migration will be prevented if the project is opened in Unity [`#1055`](https://github.com/vrc-get/vrc-get/pull/1055) [`#1062`](https://github.com/vrc-get/vrc-get/pull/1062)
+
+### Fixed
+- Clicking '+' of the incompatible package will do nothing [`#1046`](https://github.com/vrc-get/vrc-get/pull/1046)
+- Opening Manage Project page will cause VCC to crash [`#1048`](https://github.com/vrc-get/vrc-get/pull/1048)
+- Fails to load installed unity versions if Unity 2018 is installed again [`#1051`](https://github.com/vrc-get/vrc-get/pull/1051)
+
+## [0.1.6] - 2024-05-21
+### Fixed
+- Fails to load installed unity versions if Unity 2018 is installed [`#1024`](https://github.com/vrc-get/vrc-get/pull/1024)
+
+## [0.1.5] - 2024-05-21
+### Removed
+- Support perMachine install [`#1021`](https://github.com/vrc-get/vrc-get/pull/1021)
+  - Due to problems of tauri updater and installer, it's not good to support perMachine for now.
+
+## [0.1.4] - 2024-05-20
+### Added
+- `vcc://` support [`#978`](https://github.com/vrc-get/vrc-get/pull/978)
+  - This is enabled by default for macOS and you have to enable manually on Settings page for windows and linux.
+- per-package `headers` field support [`#718`](https://github.com/vrc-get/vrc-get/pull/718)
+
+### Changed
+- Improved project Template selection [`#967`](https://github.com/vrc-get/vrc-get/pull/967)
+- Ask installing unity for a project if not installed [`#988`](https://github.com/vrc-get/vrc-get/pull/988)
+- Removed Visual Scripting from dependencies of template projects [`#991`](https://github.com/vrc-get/vrc-get/pull/991)
+- Support more legacy browsers [`#994`](https://github.com/vrc-get/vrc-get/pull/994)
+- Improved UI with narrow windows [`#1003`](https://github.com/vrc-get/vrc-get/pull/1003)
+- Make package name gray-outed if not installed [`#1018`](https://github.com/vrc-get/vrc-get/pull/1018)
+
+### Fixed
+- Impossible to install for machine (for Windows) [`#976`](https://github.com/vrc-get/vrc-get/pull/976)
+- Japanese variant of CJK Ideograph is used for Simplified Chinese [`#980`](https://github.com/vrc-get/vrc-get/pull/980)
+  - Since this version, ALCOM will always use `system-ui` font for all languages.
+- Last modified is not updated on opening unity again [`#995`](https://github.com/vrc-get/vrc-get/pull/995)
+
+## [0.1.3] - 2024-05-13
+### Added
+- Template for unity 2022.3.6f1 [`#956`](https://github.com/vrc-get/vrc-get/pull/956)
+
+### Changed
+- Support repositories with bad packages [`#954`](https://github.com/vrc-get/vrc-get/pull/954)
+- Use url in settings.json to load remote repository [`#955`](https://github.com/vrc-get/vrc-get/pull/955)
+
+### Fixed
+- Project page is not refreshed after unity patch migration [`#941`](https://github.com/vrc-get/vrc-get/pull/941)
+- VCC Crashes after opening settings page [`#942`](https://github.com/vrc-get/vrc-get/pull/942)
+- Resolve needed check ignores legacy packages [`#952`](https://github.com/vrc-get/vrc-get/pull/952)
+
+## [0.1.2] - 2024-05-10
+### Fixed
+- Unity version used in template is not updated [`#933`](https://github.com/vrc-get/vrc-get/pull/933)
+  - We upgraded Unity to 2022.3.22f1
+
+## [0.1.1] - 2024-05-10
+### Added
+- `/opt/unityhub/unityhub` to the unity hub search path [`#812`](https://github.com/vrc-get/vrc-get/pull/812)
+  - The path is the default path for official apt distribution
+- Issue Report button feature in Settings [`#821`](https://github.com/vrc-get/vrc-get/pull/821)
+- German translation [`#824`](https://github.com/vrc-get/vrc-get/pull/824)
+- SDK2 Project is now shown as type "SDK2" [`#869`](https://github.com/vrc-get/vrc-get/pull/869)
+- Select Unity Path if there are two or more Unity of the same version installed [`#863`](https://github.com/vrc-get/vrc-get/pull/863)
+  - Currently, ALCOM will ask every time you open Unity. We will implement saving the selection in the future.
+- Unity 2022 patch version migration [`#863`](https://github.com/vrc-get/vrc-get/pull/863)
+- Legacy Assets are remove even if the specified GUID does not match with the actual GUID [`#901`](https://github.com/vrc-get/vrc-get/pull/901)
+  - This follows VCC 2.3.0 beta 3 behavior.
+- Added a French language translation [`#904`](https://github.com/vrc-get/vrc-get/pull/904)
+- Updated the recommended Unity 2022 version to 2022.3.22f1 [`#928`](https://github.com/vrc-get/vrc-get/pull/928)
+- Resolve suggestion [`#930`](https://github.com/vrc-get/vrc-get/pull/930)
+
+### Fixed
+- Impossible to control some portion if the window is narrow [`#805`](https://github.com/vrc-get/vrc-get/pull/805)
+- Reorder Sidebar menu for clearer organization [`#820`](https://github.com/vrc-get/vrc-get/pull/820)
+- Background is black if dark mode [`#811`](https://github.com/vrc-get/vrc-get/pull/811)
+  - Plaease wait a while for the dark mode support
+- Added dedicated messages for bulk actions in manage packages page [`#819`](https://github.com/vrc-get/vrc-get/pull/819)
+- Panics are ignored [`#846`](https://github.com/vrc-get/vrc-get/pull/846)
+  - From this version, panics will be logged to error logs instead of stderr.
+- We cannot see packages from newly added repository just after adding repository [`#903`](https://github.com/vrc-get/vrc-get/pull/903)
 
 ## [0.1.0] - 2024-04-18
 ## [0.1.0-rc.0] - 2024-04-18
@@ -240,7 +352,18 @@ The format is based on [Keep a Changelog].
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.2...HEAD
+[0.1.10-beta.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.1...gui-v0.1.10-beta.2
+[0.1.10-beta.1]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.9...gui-v0.1.10-beta.1
+[0.1.9]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.8...gui-v0.1.9
+[0.1.8]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.7...gui-v0.1.8
+[0.1.7]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.6...gui-v0.1.7
+[0.1.6]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.5...gui-v0.1.6
+[0.1.5]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.4...gui-v0.1.5
+[0.1.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.3...gui-v0.1.4
+[0.1.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.2...gui-v0.1.3
+[0.1.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.1...gui-v0.1.2
+[0.1.1]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0...gui-v0.1.1
 [0.1.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-rc.0...gui-v0.1.0
 [0.1.0-rc.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.21...gui-v0.1.0-rc.0
 [0.1.0-beta.21]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.0-beta.20...gui-v0.1.0-beta.21

@@ -1,55 +1,38 @@
 "use client";
 
-import {Card, Typography} from "@material-tailwind/react";
 import {HNavBar, VStack} from "@/components/layout";
-import React, {useEffect} from "react";
+import React, {useCallback, useEffect} from "react";
 import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
-import {notoSansMono} from "@/app/fonts";
-import {listen} from '@tauri-apps/api/event';
 import {tc} from "@/lib/i18n";
+import {useTauriListen} from "@/lib/use-tauri-listen";
+import {ScrollableCard} from "@/components/ScrollableCard";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
 
 	useEffect(() => {
-		utilGetLogEntries().then(list => setLogEntries(list.toReversed()));
+		utilGetLogEntries().then(list => setLogEntries([...list].reverse()));
 	}, []);
 
-	useEffect(() => {
-		let unlisten: (() => void) | undefined = undefined;
-		let unlistened = false;
-
-		listen("log", (event) => {
-			setLogEntries((entries) => {
-				const entry = event.payload as LogEntry;
-				return [entry, ...entries];
-			});
-		}).then((unlistenFn) => {
-			if (unlistened) {
-				unlistenFn();
-			} else {
-				unlisten = unlistenFn;
-			}
+	useTauriListen<LogEntry>("log", useCallback((event) => {
+		setLogEntries((entries) => {
+			const entry = event.payload as LogEntry;
+			return [entry, ...entries];
 		});
-
-		return () => {
-			unlisten?.();
-			unlistened = true;
-		};
-	}, []);
+	}, []));
 
 	return (
-		<VStack className={"m-4"}>
+		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("logs")}
-				</Typography>
+				</p>
 			</HNavBar>
-			<main className="flex-shrink overflow-hidden flex flex-grow">
-				<Card className={`w-full overflow-x-auto overflow-y-scroll p-2 whitespace-pre ${notoSansMono.className} shadow-none`}>
+			<ScrollableCard className={"w-full shadow-none"}>
+				<pre className="whitespace-pre font-mono text-muted-foreground">
 					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
-				</Card>
-			</main>
+				</pre>
+			</ScrollableCard>
 		</VStack>
 	);
 }
@@ -57,4 +40,3 @@ export default function Page() {
 function logEntryToText(entry: LogEntry) {
 	return `${entry.time} [${entry.level.padStart(5, ' ')}] ${entry.target}: ${entry.message}`;
 }
-

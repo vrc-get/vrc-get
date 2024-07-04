@@ -25,6 +25,7 @@ macro_rules! initialize_from_package_json_like {
             legacy_folders: $source.legacy_folders,
             legacy_files: $source.legacy_files,
             legacy_packages: $source.legacy_packages,
+            headers: $source.headers,
             changelog_url: $source.changelog_url,
             vrc_get: VrcGetMeta {
                 yanked: $source.vrc_get.yanked,
@@ -79,6 +80,9 @@ macro_rules! package_json_struct {
             $optional_vis legacy_packages: Vec<Box<str>>,
 
             $(#[$optional])?
+            $optional_vis headers: indexmap::IndexMap<Box<str>, Box<str>>,
+
+            $(#[$optional])?
             $optional_vis changelog_url: Option<Url>,
 
             $(#[$optional])?
@@ -129,6 +133,9 @@ impl PackageManifest {
     pub fn legacy_files(&self) -> &HashMap<Box<str>, Option<Box<str>>> {
         &self.legacy_files
     }
+    pub fn headers(&self) -> &IndexMap<Box<str>, Box<str>> {
+        &self.headers
+    }
 
     pub fn legacy_packages(&self) -> &[Box<str>] {
         self.legacy_packages.as_slice()
@@ -173,6 +180,7 @@ impl PackageManifest {
             legacy_folders: HashMap::new(),
             legacy_files: HashMap::new(),
             legacy_packages: Vec::new(),
+            headers: IndexMap::new(),
             vrc_get: VrcGetMeta::default(),
             zip_sha_256: None,
             changelog_url: None,

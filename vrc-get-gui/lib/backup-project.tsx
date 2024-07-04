@@ -1,10 +1,12 @@
 import React, {ReactNode, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {projectCreateBackup, TauriProject} from "@/lib/bindings";
 import {toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
 import {nop} from "@/lib/nop";
 import {callAsyncCommand} from "@/lib/call-async-command";
+import {assertNever} from "@/lib/assert-never";
 
 // string if remove project by path
 type Project = TauriProject | {
@@ -37,7 +39,7 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			if (channel == 'cancelled') {
 				toastNormal(tt("projects:toast:backup canceled"));
 			} else {
-				toastSuccess(tt("projects:toast:backup success"));
+				toastSuccess(tt("projects:toast:backup succeeded"));
 			}
 			setState({type: 'idle'});
 		} catch (e) {
@@ -54,19 +56,19 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			break;
 		case "backing-up":
 			dialog = (
-				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{tc("projects:dialog:backup header")}</DialogHeader>
-					<DialogBody>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:backup header")}</DialogTitle>
+					<DialogDescription>
 						{tc("projects:dialog:creating backup...")}
-					</DialogBody>
+					</DialogDescription>
 					<DialogFooter>
 						<Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
 					</DialogFooter>
-				</Dialog>
+				</DialogOpen>
 			);
 			break;
 		default:
-			let _: never = state;
+			assertNever(state);
 	}
 
 	return {startBackup, dialog}

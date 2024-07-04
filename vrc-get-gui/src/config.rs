@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuiConfig {
     #[serde(default)]
@@ -19,10 +19,15 @@ pub struct GuiConfig {
     pub fullscreen: bool,
     #[serde(default = "language_default")]
     pub language: String,
+    #[serde(default = "theme_default")]
+    pub theme: String,
     #[serde(default = "backup_default")]
     pub backup_format: String,
     #[serde(default = "project_sorting_default")]
     pub project_sorting: String,
+    #[serde(default = "release_channel_default")]
+    // "stable" or "beta"
+    pub release_channel: String,
 }
 
 impl Default for GuiConfig {
@@ -33,8 +38,10 @@ impl Default for GuiConfig {
             window_size: WindowSize::default(),
             fullscreen: false,
             language: language_default(),
+            theme: theme_default(),
             backup_format: backup_default(),
             project_sorting: project_sorting_default(),
+            release_channel: release_channel_default(),
         }
     }
 }
@@ -43,6 +50,9 @@ impl GuiConfig {
     fn fix_defaults(&mut self) {
         if self.language.is_empty() {
             self.language = language_default();
+        }
+        if self.language == "zh_cn" {
+            self.language = "zh_hans".to_string();
         }
         if self.backup_format.is_empty() {
             self.backup_format = backup_default();
@@ -65,11 +75,15 @@ fn language_default() -> String {
             return "ja".to_string();
         }
         if locale.starts_with("zh") {
-            return "zh_cn".to_string();
+            return "zh_hans".to_string();
         }
     }
 
     "en".to_string()
+}
+
+fn theme_default() -> String {
+    "system".to_string()
 }
 
 fn backup_default() -> String {
@@ -78,6 +92,10 @@ fn backup_default() -> String {
 
 fn project_sorting_default() -> String {
     "lastModified".to_string()
+}
+
+fn release_channel_default() -> String {
+    "stable".to_string()
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -89,7 +107,7 @@ pub struct WindowSize {
 impl Default for WindowSize {
     fn default() -> Self {
         WindowSize {
-            width: 1000,
+            width: 1300,
             height: 800,
         }
     }

@@ -17,7 +17,7 @@ use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{EnvironmentIoHolder, HttpClient, PackageCollection, RemotePackageDownloader};
-use crate::utils::{to_vec_pretty_os_eol, Sha256AsyncWrite};
+use crate::utils::{normalize_path, to_vec_pretty_os_eol, Sha256AsyncWrite};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use futures::future::{join_all, try_join};
 use futures::prelude::*;
@@ -392,6 +392,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         path: &Path,
         name: Option<&str>,
     ) -> Result<(), AddRepositoryErr> {
+        let path = normalize_path(path);
+
         if self.get_user_repos().iter().any(|x| x.local_path() == path) {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
@@ -470,6 +472,58 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
+    pub async fn clear_package_cache(&self) -> io::Result<()> {
+        let io = &self.io;
+
+        let repo_folder_stream = io.read_dir(REPO_CACHE_FOLDER.as_ref()).await?;
+
+        let pkg_folder_entries = repo_folder_stream.try_filter_map(|pkg_entry| async move {
+            if pkg_entry.file_type().await?.is_dir() {
+                return Ok(Some(pkg_entry));
+            }
+            Ok(None)
+        });
+
+        pkg_folder_entries
+            .try_for_each_concurrent(None, |pkg_folder_entry| async move {
+                let pkg_name = pkg_folder_entry.file_name();
+
+                let pkg_folder_stream = io
+                    .read_dir(&Path::new(REPO_CACHE_FOLDER).join(pkg_folder_entry.file_name()))
+                    .await?
+                    .map_ok(move |inner| (pkg_name.clone(), inner));
+
+                let cache_file_entries =
+                    pkg_folder_stream.try_filter_map(|(pkg_id, cache_entry)| async move {
+                        let name = cache_entry.file_name();
+                        let name = name.as_encoded_bytes();
+                        if name.starts_with(b"vrc-get-")
+                            && (name.ends_with(b".zip") || name.ends_with(b".zip.sha256"))
+                        {
+                            if cache_entry.file_type().await?.is_file() {
+                                return Ok(Some((pkg_id, cache_entry)));
+                            }
+                        }
+                        Ok(None)
+                    });
+
+                cache_file_entries
+                    .try_for_each_concurrent(None, |(pkg_id, cache_entry)| async move {
+                        let file_path = Path::new(REPO_CACHE_FOLDER)
+                            .join(pkg_id)
+                            .join(cache_entry.file_name());
+                        io.remove_file(&file_path).await?;
+                        Ok(())
+                    })
+                    .await?;
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(())
+    }
+
     pub fn show_prerelease_packages(&self) -> bool {
         self.settings.show_prerelease_packages()
     }
@@ -544,10 +598,23 @@ impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T
         } else {
             self.io.create_dir_all(zip_path.parent().unwrap()).await?;
 
-            Ok(download_package_zip(
+            let new_headers = IndexMap::from_iter(
+                (repository
+                    .headers()
+                    .iter()
+                    .map(|(k, v)| (k.as_ref(), v.as_ref())))
+                .chain(
+                    package
+                        .headers()
+                        .iter()
+                        .map(|(k, v)| (k.as_ref(), v.as_ref())),
+                ),
+            );
+
+            let (zip_file, zip_hash) = download_package_zip(
                 self.http.as_ref(),
                 &self.io,
-                repository.headers(),
+                &new_headers,
                 &zip_path,
                 &sha_path,
                 &zip_file_name,
@@ -558,7 +625,23 @@ impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T
                     )
                 })?,
             )
-            .await?)
+            .await?;
+
+            if let Some(repo_hash) = package
+                .zip_sha_256()
+                .and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok())
+            {
+                if repo_hash != zip_hash {
+                    error!(
+                        "Package hash mismatched! This will be hard error in the future!: {} v{}",
+                        package.name(),
+                        package.version()
+                    );
+                    //return None;
+                }
+            }
+
+            Ok(zip_file)
         }
     }
 }
@@ -625,12 +708,12 @@ async fn try_load_package_cache<IO: EnvironmentIo>(
 async fn download_package_zip<IO: EnvironmentIo>(
     http: Option<&impl HttpClient>,
     io: &IO,
-    headers: &IndexMap<Box<str>, Box<str>>,
+    headers: &IndexMap<&str, &str>,
     zip_path: &Path,
     sha_path: &Path,
     zip_file_name: &str,
     url: &Url,
-) -> io::Result<IO::FileStream> {
+) -> io::Result<(IO::FileStream, [u8; 256 / 8])> {
     let Some(http) = http else {
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
     };
@@ -644,6 +727,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     io::copy(&mut response, &mut writer).await?;
 
     let (mut cache_file, hash) = writer.finalize();
+    let hash: [u8; 256 / 8] = hash.into();
 
     cache_file.flush().await?;
     cache_file.seek(SeekFrom::Start(0)).await?;
@@ -655,7 +739,7 @@ async fn download_package_zip<IO: EnvironmentIo>(
     )
     .await?;
 
-    Ok(cache_file)
+    Ok((cache_file, hash))
 }
 
 #[derive(Debug)]

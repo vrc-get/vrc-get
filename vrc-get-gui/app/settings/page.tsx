@@ -1,28 +1,45 @@
 "use client"
 
-import {Button, Card, Checkbox, Input, Typography} from "@material-tailwind/react";
+import {Button} from "@/components/ui/button";
+import {Card} from "@/components/ui/card";
+import {Checkbox} from "@/components/ui/checkbox";
+import {Input} from "@/components/ui/input";
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
+	CheckForUpdateResponse,
+	deepLinkInstallVcc, environmentClearPackageCache,
 	environmentGetSettings,
+	environmentLanguage,
 	environmentPickProjectBackupPath,
 	environmentPickProjectDefaultPath,
 	environmentPickUnity,
-	environmentPickUnityHub, environmentSetBackupFormat,
+	environmentPickUnityHub,
+	environmentSetBackupFormat,
 	environmentSetLanguage,
+	environmentSetReleaseChannel,
 	environmentSetShowPrereleasePackages,
+	environmentSetTheme,
+	environmentTheme,
 	TauriEnvironmentSettings,
+	utilCheckForUpdate,
 	utilGetVersion,
+	utilOpen,
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
-import React from "react";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import React, {useState} from "react";
+import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import i18next, {languages, tc, tt} from "@/lib/i18n";
-import {VGOption, VGSelect} from "@/components/select";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
-import {emit} from "@tauri-apps/api/event";
 import {shellOpen} from "@/lib/shellOpen";
-import { loadOSApi } from "@/lib/os";
+import {loadOSApi} from "@/lib/os";
+import type {OsType} from "@tauri-apps/api/os";
+import {ScrollableCardTable} from "@/components/ScrollableCardTable";
+import {ToastContent} from "react-toastify";
+import {assertNever} from "@/lib/assert-never";
+import {ScrollPageContainer} from "@/components/ScrollPageContainer";
+import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
 
 export default function Page() {
 	const result = useQuery({
@@ -42,15 +59,15 @@ export default function Page() {
 			body = <Settings settings={result.data} refetch={result.refetch}/>;
 			break;
 		default:
-			const _exhaustiveCheck: never = result;
+			assertNever(result);
 	}
 
 	return (
-		<VStack className={"p-4"}>
+		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<Typography className="cursor-pointer py-1.5 font-bold flex-grow-0">
+				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("settings")}
-				</Typography>
+				</p>
 			</HNavBar>
 			{body}
 		</VStack>
@@ -66,33 +83,66 @@ function Settings(
 		refetch: () => void
 	}
 ) {
-	const [pickUnity, unityDialog] = useFilePickerFunction(environmentPickUnity);
-	const [pickUnityHub, unityHubDialog] = useFilePickerFunction(environmentPickUnityHub);
-	const [pickProjectDefaultPath, projectDefaultDialog] = useFilePickerFunction(environmentPickProjectDefaultPath);
-	const [pickProjectBackupPath, projectBackupDialog] = useFilePickerFunction(environmentPickProjectBackupPath);
+	const [osType, setOsType] = React.useState<OsType>("Windows_NT");
 
-	const selectUnityHub = async () => {
-		try {
-			const result = await pickUnityHub();
-			switch (result) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tt("settings:toast:not unity hub"));
-					break;
-				case "Successful":
-					toastSuccess(tt("settings:toast:unity hub path updated"));
-					refetch()
-					break;
-				default:
-					const _exhaustiveCheck: never = result;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
+	React.useEffect(() => {
+		(async () => {
+			const os = await loadOSApi();
+			setOsType(await os.type());
+		})();
+	}, [])
+
+	return (
+		<ScrollPageContainer>
+			<main className="flex flex-col gap-2 flex-shrink flex-grow">
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
+					<FilePathRow
+						withoutSelect
+						path={settings.unity_hub}
+						pick={environmentPickUnityHub}
+						refetch={refetch}
+						notFoundMessage={"Unity Hub Not Found"}
+						successMessage={tc("settings:toast:unity hub path updated")}
+					/>
+				</Card>
+				<UnityInstallationsCard refetch={refetch} unityPaths={settings.unity_paths}/>
+				<Card className={"flex-shrink-0 p-4"}>
+					<h2>{tc("settings:default project path")}</h2>
+					<p className={"whitespace-normal"}>
+						{tc("settings:default project path description")}
+					</p>
+					<FilePathRow
+						path={settings.default_project_path}
+						pick={environmentPickProjectDefaultPath}
+						refetch={refetch}
+						successMessage={tc("settings:toast:default project path updated")}
+					/>
+				</Card>
+				<BackupCard
+					projectBackupPath={settings.project_backup_path}
+					backupFormat={settings.backup_format}
+					refetch={refetch}
+				/>
+				<PackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
+				<AppearanceCard/>
+				{osType != "Darwin" && <VccSchemeCard/>}
+				<AlcomCard releaseChannel={settings.release_channel} refetch={refetch}/>
+			</main>
+		</ScrollPageContainer>
+	)
+}
+
+function UnityInstallationsCard(
+	{
+		refetch,
+		unityPaths,
+	}: {
+		refetch: () => void;
+		unityPaths: [path: string, version: string, fromHub: boolean][]
 	}
+) {
+	const [pickUnity, unityDialog] = useFilePickerFunction(environmentPickUnity);
 
 	const addUnity = async () => {
 		try {
@@ -112,7 +162,7 @@ function Settings(
 					refetch()
 					break;
 				default:
-					const _exhaustiveCheck: never = result;
+					assertNever(result);
 			}
 		} catch (e) {
 			console.error(e);
@@ -120,52 +170,57 @@ function Settings(
 		}
 	}
 
-	const selectProjectDefaultFolder = async () => {
-		try {
-			const result = await pickProjectDefaultPath();
-			switch (result.type) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tt("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(tt("settings:toast:default project path updated"));
-					refetch()
-					break;
-				default:
-					const _exhaustiveCheck: never = result;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
+	const UNITY_TABLE_HEAD = ["settings:unity:version", "settings:unity:path", "general:source"];
 
-	const selectProjectBackupFolder = async () => {
-		try {
-			const result = await pickProjectBackupPath();
-			switch (result) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tt("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(tt("settings:toast:backup path updated"));
-					refetch()
-					break;
-				default:
-					const _exhaustiveCheck: never = result;
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<div className={"pb-2 flex align-middle"}>
+				<div className={"flex-grow flex items-center"}>
+					<h2>{tc("settings:unity installations")}</h2>
+				</div>
+				<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
+			</div>
+			<ScrollableCardTable className="w-full min-h-[20vh]">
+				<thead>
+				<tr>
+					{UNITY_TABLE_HEAD.map((head, index) => (
+						<th key={index}
+								className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
+							<small className="font-normal leading-none">{tc(head)}</small>
+						</th>
+					))}
+				</tr>
+				</thead>
+				<tbody>
+				{
+					unityPaths.map(([path, version, isFromHub]) => (
+						<tr key={path} className="even:bg-secondary/30">
+							<td className={"p-2.5"}>{version}</td>
+							<td className={"p-2.5"}>{path}</td>
+							<td className={"p-2.5"}>
+								{isFromHub ? tc("settings:unity:source:unity hub") : tc("settings:unity:source:manual")}
+							</td>
+						</tr>
+					))
+				}
+				</tbody>
+			</ScrollableCardTable>
+			{unityDialog}
+		</Card>
+	)
+}
 
+function BackupCard(
+	{
+		projectBackupPath,
+		backupFormat,
+		refetch,
+	}: {
+		projectBackupPath: string;
+		backupFormat: string;
+		refetch: () => void;
+	}
+) {
 	const setBackupFormat = async (format: string) => {
 		try {
 			await environmentSetBackupFormat(format)
@@ -176,9 +231,65 @@ function Settings(
 		}
 	}
 
-	const toggleShowPrereleasePackages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>{tc("projects:backup")}</h2>
+			<div className="mt-2">
+				<h3>{tc("settings:backup:path")}</h3>
+				<p className={"whitespace-normal"}>
+					{tc("settings:backup:path description")}
+				</p>
+				<FilePathRow
+					path={projectBackupPath}
+					pick={environmentPickProjectBackupPath}
+					refetch={refetch}
+					successMessage={tc("settings:toast:backup path updated")}
+				/>
+			</div>
+			<div className="mt-2">
+				<label className={"flex items-center"}>
+					<h3>{tc("settings:backup:format")}</h3>
+					<Select defaultValue={backupFormat} onValueChange={setBackupFormat}>
+						<SelectTrigger>
+							<SelectValue/>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
+								<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
+								<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
+								<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				</label>
+			</div>
+		</Card>
+	)
+}
+
+function PackagesCard(
+	{
+		showPrereleasePackages,
+		refetch,
+	}: {
+		showPrereleasePackages: boolean;
+		refetch: () => void;
+	}
+) {
+	const clearPackageCache = async () => {
 		try {
-			await environmentSetShowPrereleasePackages(e.target.checked)
+			await environmentClearPackageCache()
+			toastSuccess(tc("settings:toast:package cache cleared"))
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	}
+
+	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
+		try {
+			await environmentSetShowPrereleasePackages(e === true)
 			refetch()
 		} catch (e) {
 			console.error(e);
@@ -186,12 +297,147 @@ function Settings(
 		}
 	}
 
+	return (
+		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
+			<h2>{tc("settings:packages")}</h2>
+			<div className={"flex flex-row flex-wrap gap-2"}>
+				<Button onClick={clearPackageCache}>{tc("settings:clear package cache")}</Button>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox checked={showPrereleasePackages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
+					{tc("settings:show prerelease")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>{tc("settings:show prerelease description")}</p>
+			</div>
+		</Card>
+	)
+}
+
+function AppearanceCard() {
+	const {data: lang, refetch: refetchLang} = useQuery({
+		queryKey: ["environmentLanguage"],
+		queryFn: environmentLanguage
+	})
+
+	const [theme, setTheme] = React.useState<string | null>(null);
+
 	const changeLanguage = async (value: string) => {
 		await Promise.all([
 			i18next.changeLanguage(value),
 			environmentSetLanguage(value),
+			refetchLang(),
 		])
 	};
+
+	React.useEffect(() => {
+		(async () => {
+			const theme = await environmentTheme();
+			setTheme(theme);
+		})();
+	}, [])
+
+	const changeTheme = async (theme: string) => {
+		await environmentSetTheme(theme);
+		setTheme(theme);
+		if (theme === "system") {
+			const {appWindow} = await import("@tauri-apps/api/window");
+			theme = await appWindow.theme() ?? "light";
+		}
+		document.documentElement.setAttribute("class", theme);
+	};
+
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>Appearance</h2>
+			<label className={"flex items-center"}>
+				<h3>{tc("settings:language")}: </h3>
+				{lang && (
+					<Select defaultValue={lang} onValueChange={changeLanguage}>
+						<SelectTrigger>
+							<SelectValue/>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								{
+									languages.map((lang) => (
+										<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
+									))
+								}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				)}
+			</label>
+			<label className={"flex items-center"}>
+				<h3>{tc("settings:theme")}: </h3>
+				{theme && (
+					<Select defaultValue={theme} onValueChange={changeTheme}>
+						<SelectTrigger>
+							<SelectValue/>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
+								<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
+								<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				)}
+			</label>
+		</Card>
+	)
+}
+
+function VccSchemeCard() {
+	const installVccProtocol = async () => {
+		try {
+			await deepLinkInstallVcc();
+			toastSuccess(tc("settings:toast:vcc scheme installed"));
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	}
+
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>{tc("settings:vcc scheme")}</h2>
+			<p className={"whitespace-normal"}>
+				{tc("settings:vcc scheme description")}
+			</p>
+			<div>
+				<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
+			</div>
+		</Card>
+	)
+}
+
+function AlcomCard(
+	{
+		releaseChannel,
+		refetch,
+	}: {
+		releaseChannel: string;
+		refetch: () => void;
+	}
+) {
+	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(null);
+
+	const checkForUpdate = async () => {
+		try {
+			const checkVersion = await utilCheckForUpdate();
+			if (checkVersion.is_update_available) {
+				setUpdateState(checkVersion);
+			} else {
+				toastNormal(tc("check update:toast:no updates"));
+			}
+		} catch (e) {
+			toastThrownError(e)
+			console.error(e)
+		}
+	}
 
 	const reportIssue = async () => {
 		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
@@ -203,150 +449,102 @@ function Settings(
 		url.searchParams.append("version", appVersion)
 		url.searchParams.append("version", appVersion)
 
-		shellOpen(url.toString())
+		void shellOpen(url.toString())
 	}
 
+	const changeReleaseChannel = async (value: "indeterminate" | boolean) => {
+		await environmentSetReleaseChannel(value === true ? "beta" : "stable");
+		refetch();
+	};
 
 	return (
-		<main className="flex flex-col gap-2 flex-shrink overflow-y-auto flex-grow">
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2 className={"pb-2"}>{tc("settings:unity hub")}</h2>
-				<div className={"flex gap-1"}>
-					{
-						settings.unity_hub
-							? <Input className="flex-auto" value={settings.unity_hub} disabled/>
-							: <Input value={"Unity Hub Not Found"} disabled className={"flex-auto text-red-900"}/>
-					}
-					<Button className={"flex-none px-4"} onClick={selectUnityHub}>{tc("general:button:select")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<div className={"pb-2 flex align-middle"}>
-					<div className={"flex-grow flex items-center"}>
-						<h2>{tc("settings:unity installations")}</h2>
-					</div>
-					<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
-				</div>
-				<Card className="w-full overflow-x-auto overflow-y-scroll min-h-[20vh]">
-					<UnityTable unityPaths={settings.unity_paths}/>
-				</Card>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:default project path")}</h2>
-				<Typography className={"whitespace-normal"}>
-					{tc("settings:default project path description")}
-				</Typography>
-				<div className={"flex gap-1"}>
-					<Input className="flex-auto" value={settings.default_project_path} disabled/>
-					<Button className={"flex-none px-4"} onClick={selectProjectDefaultFolder}>{tc("general:button:select")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("projects:backup")}</h2>
-				<div className="mt-2">
-					<h3>{tc("settings:backup:path")}</h3>
-					<Typography className={"whitespace-normal"}>
-						{tc("settings:backup:path description")}
-					</Typography>
-					<div className={"flex gap-1"}>
-						<Input className="flex-auto" value={settings.project_backup_path} disabled/>
-						<Button className={"flex-none px-4"} onClick={selectProjectBackupFolder}>{tc("general:button:select")}</Button>
-					</div>
-				</div>
-				<div className="mt-2">
-					<label className={"flex items-center"}>
-						<h3>{tc("settings:backup:format")}</h3>
-						<VGSelect value={tc("settings:backup:format:" + settings.backup_format)} onChange={setBackupFormat}>
-							<VGOption value={"default"}>{tc("settings:backup:format:default")}</VGOption>
-							<VGOption value={"zip-store"}>{tc("settings:backup:format:zip-store")}</VGOption>
-							<VGOption value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</VGOption>
-							<VGOption value={"zip-best"}>{tc("settings:backup:format:zip-best")}</VGOption>
-						</VGSelect>
-					</label>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<Typography className={"whitespace-normal"}>
-					{tc("settings:show prerelease description")}
-				</Typography>
-				<label className={"flex items-center"}>
-					<Checkbox checked={settings.show_prerelease_packages} onChange={toggleShowPrereleasePackages}/>
-					{tc("settings:show prerelease")}
-				</label>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<label className={"flex items-center"}>
-					<h2>{tc("settings:language")}: </h2>
-					<VGSelect value={tc("settings:langName")} onChange={changeLanguage} menuClassName={"w-96"}>
-						{
-							languages.map((lang) => (
-								<VGOption key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</VGOption>
-							))
-						}
-					</VGSelect>
-				</label>
-			</Card>
-			{unityDialog}
-			{unityHubDialog}
-			{projectDefaultDialog}
-			{projectBackupDialog}
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:check update")}</h2>
-				<div>
-					<Button onClick={() => emit("tauri://update")}>{tc("settings:check update")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:report issue")}</h2>
-				<div>
+		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
+			{updateState && <CheckForUpdateMessage response={updateState} close={() => setUpdateState(null)}/>}
+			<h2>ALCOM</h2>
+			<div className={"flex flex-row flex-wrap gap-2"}>
+				<Button onClick={checkForUpdate}>{tc("settings:check update")}</Button>
 				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
-				</div>
-			</Card>
-			<Card className={"flex-shrink-0 p-4"}>
-				<h2>{tc("settings:licenses")}</h2>
-				<Typography className={"whitespace-normal"}>
-					{tc("settings:licenses description", {}, {
-						components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
-					})}
-				</Typography>
-			</Card>
-		</main>
+			</div>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox checked={releaseChannel == "beta"} onCheckedChange={(e) => changeReleaseChannel(e)}/>
+					{tc("settings:receive beta updates")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>{tc("settings:beta updates description")}</p>
+			</div>
+			<p className={"whitespace-normal"}>
+				{tc("settings:licenses description", {}, {
+					components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
+				})}
+			</p>
+		</Card>
 	)
 }
 
-function UnityTable(
+function FilePathRow(
 	{
-		unityPaths,
+		path,
+		notFoundMessage,
+		pick,
+		refetch,
+		successMessage,
+		withoutSelect = false,
 	}: {
-		unityPaths: [path: string, version: string, fromHub: boolean][]
-	}
-) {
-	const UNITY_TABLE_HEAD = ["settings:unity:version", "settings:unity:path", "general:source"];
-	return (
-		<table className="relative table-auto text-left">
-			<thead>
-			<tr>
-				{UNITY_TABLE_HEAD.map((head, index) => (
-					<th key={index}
-							className={`sticky top-0 z-10 border-b border-blue-gray-100 bg-blue-gray-50 p-2.5`}>
-						<Typography variant="small" className="font-normal leading-none">{tc(head)}</Typography>
-					</th>
-				))}
-			</tr>
-			</thead>
-			<tbody>
-			{
-				unityPaths.map(([path, version, isFromHub]) => (
-					<tr key={path}>
-						<td className={"p-2.5"}>{version}</td>
-						<td className={"p-2.5"}>{path}</td>
-						<td className={"p-2.5"}>
-							{isFromHub ? tc("settings:unity hub") : tc("settings:unity:source:manual")}
-						</td>
-					</tr>
-				))
+		path: string;
+		notFoundMessage?: string;
+		pick: () => Promise<{ type: "NoFolderSelected" | "InvalidSelection" | "Successful" }>;
+		refetch: () => void;
+		successMessage: ToastContent;
+		withoutSelect?: boolean;
+	}) {
+	const [pickPath, dialog] = useFilePickerFunction(pick);
+
+	const selectFolder = async () => {
+		try {
+			const result = await pickPath();
+			switch (result.type) {
+				case "NoFolderSelected":
+					// no-op
+					break;
+				case "InvalidSelection":
+					toastError(tc("general:toast:invalid directory"));
+					break;
+				case "Successful":
+					toastSuccess(successMessage);
+					refetch()
+					break;
+				default:
+					assertNever(result.type);
 			}
-			</tbody>
-		</table>
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	};
+
+	const openFolder = async () => {
+		try {
+			await utilOpen(path)
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	};
+
+	return (
+		<div className={"flex gap-1 items-center"}>
+			{
+				!path && notFoundMessage
+					? <Input className="flex-auto text-destructive" value={notFoundMessage} disabled/>
+					: <Input className="flex-auto" value={path} disabled/>
+			}
+			<Button className={"flex-none px-4"} onClick={selectFolder}>
+				{tc("general:button:select")}
+			</Button>
+			{withoutSelect || <Button className={"flex-none px-4"} onClick={openFolder}>
+				{tc("settings:button:open location")}
+			</Button>}
+			{dialog}
+		</div>
 	)
 }
