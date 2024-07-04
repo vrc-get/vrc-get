@@ -68,7 +68,7 @@ impl RepositoriesFile {
             parsed: RepositoriesFile {
                 repositories: parsed_lines,
             },
-            unparseable_lines: vec![],
+            unparseable_lines,
         }
     }
 
