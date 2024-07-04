@@ -1,12 +1,20 @@
+use futures::future::try_join_all;
+use indexmap::IndexMap;
+use log::info;
+use std::collections::HashSet;
 use std::ptr::NonNull;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-use serde::Serialize;
-use tauri::State;
+use serde::{Deserialize, Serialize};
+use tauri::api::dialog::blocking::FileDialogBuilder;
+use tauri::{Manager, State, Window};
 use tokio::sync::Mutex;
 use url::Url;
 
+use crate::commands::async_command::{async_command, AsyncCallResult, With};
+use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
-use vrc_get_vpm::{PackageCollection, PackageInfo, VersionSelector};
+use vrc_get_vpm::{HttpClient, PackageCollection, PackageInfo, VersionSelector};
 
 use crate::commands::prelude::*;
 use crate::specta::IndexMapV2;
@@ -175,7 +183,7 @@ pub async fn environment_set_hide_local_user_packages(
     })
 }
 
-#[derive(Serialize, specta::Type)]
+#[derive(Serialize, specta::Type, Clone)]
 pub struct TauriRemoteRepositoryInfo {
     display_name: String,
     id: String,
@@ -183,7 +191,7 @@ pub struct TauriRemoteRepositoryInfo {
     packages: Vec<TauriBasePackageInfo>,
 }
 
-#[derive(Serialize, specta::Type)]
+#[derive(Serialize, specta::Type, Clone)]
 #[serde(tag = "type")]
 pub enum TauriDownloadRepository {
     BadUrl,
@@ -209,44 +217,70 @@ pub async fn environment_download_repository(
     };
 
     with_environment!(state, |environment| {
-        for repo in environment.get_user_repos() {
-            if repo.url().map(|x| x.as_str()) == Some(url.as_str()) {
-                return Ok(TauriDownloadRepository::Duplicated);
-            }
+        let user_repo_urls = environment
+            .get_user_repos()
+            .iter()
+            .flat_map(|x| x.url())
+            .map(|x| x.to_string())
+            .collect::<HashSet<_>>();
+
+        let user_repo_ids = environment
+            .get_user_repos()
+            .iter()
+            .flat_map(|x| x.id())
+            .map(|x| x.to_string())
+            .collect::<HashSet<_>>();
+
+        Ok(download_one_repository(
+            environment.http().unwrap(),
+            &url,
+            &headers.0,
+            &user_repo_urls,
+            &user_repo_ids,
+        )
+        .await?)
+    })
+}
+
+async fn download_one_repository(
+    client: &impl HttpClient,
+    repository_url: &Url,
+    headers: &IndexMap<Box<str>, Box<str>>,
+    user_repo_urls: &HashSet<String>,
+    user_repo_ids: &HashSet<String>,
+) -> Result<TauriDownloadRepository, RustError> {
+    if user_repo_urls.contains(repository_url.as_str()) {
+        return Ok(TauriDownloadRepository::Duplicated);
+    }
+
+    let repo = match RemoteRepository::download(client, repository_url, headers).await {
+        Ok((repo, _)) => repo,
+        Err(e) => {
+            return Ok(TauriDownloadRepository::DownloadError {
+                message: e.to_string(),
+            });
         }
+    };
 
-        let client = environment.http().unwrap();
-        let repo = match RemoteRepository::download(client, &url, &headers.0).await {
-            Ok((repo, _)) => repo,
-            Err(e) => {
-                return Ok(TauriDownloadRepository::DownloadError {
-                    message: e.to_string(),
-                });
-            }
-        };
+    let url = repo.url().unwrap_or(repository_url).as_str();
+    let id = repo.id().unwrap_or(url);
 
-        let url = repo.url().unwrap_or(&url).as_str();
-        let id = repo.id().unwrap_or(url);
+    if user_repo_ids.contains(id) {
+        return Ok(TauriDownloadRepository::Duplicated);
+    }
 
-        for repo in environment.get_user_repos() {
-            if repo.id() == Some(id) {
-                return Ok(TauriDownloadRepository::Duplicated);
-            }
-        }
-
-        Ok(TauriDownloadRepository::Success {
-            value: TauriRemoteRepositoryInfo {
-                id: id.to_string(),
-                url: url.to_string(),
-                display_name: repo.name().unwrap_or(id).to_string(),
-                packages: repo
-                    .get_packages()
-                    .filter_map(|x| x.get_latest(VersionSelector::latest_for(None, true)))
-                    .filter(|x| !x.is_yanked())
-                    .map(TauriBasePackageInfo::new)
-                    .collect(),
-            },
-        })
+    Ok(TauriDownloadRepository::Success {
+        value: TauriRemoteRepositoryInfo {
+            id: id.to_string(),
+            url: url.to_string(),
+            display_name: repo.name().unwrap_or(id).to_string(),
+            packages: repo
+                .get_packages()
+                .filter_map(|x| x.get_latest(VersionSelector::latest_for(None, true)))
+                .filter(|x| !x.is_yanked())
+                .map(TauriBasePackageInfo::new)
+                .collect(),
+        },
     })
 }
 
@@ -295,6 +329,153 @@ pub async fn environment_remove_repository(
 
         environment.save().await?;
     });
+
+    Ok(())
+}
+
+#[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
+pub enum TauriImportRepositoryPickResult {
+    NoFilePicked,
+    ParsedRepositories {
+        repositories: Vec<TauriRepositoryDescriptor>,
+        unparsable_lines: Vec<String>,
+    },
+}
+
+// workaround bug in specta::Type derive macro
+type Headers = IndexMapV2<Box<str>, Box<str>>;
+
+#[derive(Serialize, Deserialize, specta::Type, Clone)]
+pub struct TauriRepositoryDescriptor {
+    pub url: Url,
+    pub headers: Headers,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_import_repository_pick(
+) -> Result<TauriImportRepositoryPickResult, RustError> {
+    let builder = FileDialogBuilder::new();
+
+    let Some(repositories_path) = builder.pick_file() else {
+        return Ok(TauriImportRepositoryPickResult::NoFilePicked);
+    };
+
+    let repositories_file = tokio::fs::read_to_string(repositories_path).await?;
+
+    let result = RepositoriesFile::parse(&repositories_file);
+
+    Ok(TauriImportRepositoryPickResult::ParsedRepositories {
+        repositories: result
+            .parsed()
+            .repositories()
+            .iter()
+            .map(|x| TauriRepositoryDescriptor {
+                url: x.url().clone(),
+                headers: IndexMapV2(x.headers().clone()),
+            })
+            .collect(),
+        unparsable_lines: result.unparseable_lines().to_vec(),
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_import_download_repositories(
+    window: Window,
+    channel: String,
+    repositories: Vec<TauriRepositoryDescriptor>,
+) -> Result<
+    AsyncCallResult<usize, Vec<(TauriRepositoryDescriptor, TauriDownloadRepository)>>,
+    RustError,
+> {
+    async_command(channel, window.clone(), async move {
+        With::<usize>::continue_async(|ctx| async move {
+            let state = window.state::<Mutex<EnvironmentState>>();
+            with_environment!(state, |environment| {
+                let user_repo_urls = environment
+                    .get_user_repos()
+                    .iter()
+                    .flat_map(|x| x.url())
+                    .map(|x| x.to_string())
+                    .collect::<HashSet<_>>();
+
+                let mut user_repo_ids = environment
+                    .get_user_repos()
+                    .iter()
+                    .flat_map(|x| x.id())
+                    .map(|x| x.to_string())
+                    .collect::<HashSet<_>>();
+
+                info!("downloading {} repositories", repositories.len());
+
+                let client = environment.http().unwrap();
+
+                let counter = AtomicUsize::new(0);
+
+                let counter_ref = &counter;
+                let user_repo_urls_ref = &user_repo_urls;
+                let user_repo_ids_ref = &user_repo_ids;
+
+                let mut results = try_join_all(repositories.into_iter().map(|adding_repo| {
+                    let ctx = ctx.clone();
+                    async move {
+                        let downloaded = download_one_repository(
+                            client,
+                            &adding_repo.url,
+                            &adding_repo.headers.0,
+                            user_repo_urls_ref,
+                            user_repo_ids_ref,
+                        )
+                        .await?;
+
+                        info!("downloaded repository: {:?}", adding_repo.url);
+
+                        let count = counter_ref.fetch_add(1, Ordering::Relaxed);
+                        ctx.emit(count).unwrap();
+
+                        Ok::<_, RustError>((adding_repo, downloaded))
+                    }
+                }))
+                .await?;
+
+                for (_, downloaded) in results.as_mut_slice() {
+                    if let TauriDownloadRepository::Success { value } = &downloaded {
+                        if user_repo_ids.contains(&value.id) {
+                            info!("duplicated repository in list: {}", value.url);
+                            *downloaded = TauriDownloadRepository::Duplicated;
+                        } else {
+                            user_repo_ids.insert(value.id.to_string());
+                        }
+                    }
+                }
+
+                Ok(results)
+            })
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_import_add_repositories(
+    state: State<'_, Mutex<EnvironmentState>>,
+    repositories: Vec<TauriRepositoryDescriptor>,
+) -> Result<(), RustError> {
+    with_environment!(&state, |environment| {
+        for adding_repo in repositories {
+            environment
+                .add_remote_repo(adding_repo.url, None, adding_repo.headers.0)
+                .await?;
+        }
+        environment.save().await?;
+    });
+
+    // force update repository
+    let mut state = state.lock().await;
+    state.environment.last_repository_update = None;
 
     Ok(())
 }

@@ -15,12 +15,14 @@ import {
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {Suspense, useCallback, useEffect, useId, useMemo, useState} from "react";
-import {CircleX} from "lucide-react"; 
+import {ChevronDown, CircleX} from "lucide-react"; 
 import {toastThrownError} from "@/lib/toast";
 import {tc} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {useAddRepository} from "@/app/repositories/use-add-repository";
+import {useImportRepositories} from "@/app/repositories/use-import-repositories";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -35,6 +37,12 @@ function PageBody() {
 	const addRepositoryInfo = useAddRepository({
 		refetch: () => result.refetch(),
 	});
+
+	const importRepositoryInfo = useImportRepositories(
+		{
+			refetch: () => result.refetch(),
+		}
+	);
 
 	const hiddenUserRepos = useMemo(() => new Set(result.data?.hidden_user_repositories), [result]);
 
@@ -72,7 +80,23 @@ function PageBody() {
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
 					{tc("vpm repositories:community repositories")}
 				</p>
-				<Button onClick={addRepositoryInfo.openAddDialog}>{tc("vpm repositories:button:add repository")}</Button>
+				<DropdownMenu>
+					<div className={"flex divide-x"}>
+						<Button
+							className={"rounded-r-none"}
+							onClick={addRepositoryInfo.openAddDialog}>
+							{tc("vpm repositories:button:add repository")}
+						</Button>
+						<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
+							<Button>
+								<ChevronDown className={"w-4 h-4"}/>
+							</Button>
+						</DropdownMenuTrigger>
+					</div>
+					<DropdownMenuContent>
+						<DropdownMenuItem onClick={importRepositoryInfo.startImportingRepositories}>{tc("vpm repositories:button:import repositories")}</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</HNavBar>
 			<ScrollableCardTable>
 				<RepositoryTableBody
@@ -83,6 +107,7 @@ function PageBody() {
 				/>
 			</ScrollableCardTable>
 			{addRepositoryInfo.dialog}
+			{importRepositoryInfo.dialog}
 		</VStack>
 	);
 }
