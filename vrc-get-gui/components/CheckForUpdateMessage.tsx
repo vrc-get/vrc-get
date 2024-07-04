@@ -79,7 +79,7 @@ export function CheckForUpdateMessage(
 						{tc("check update:dialog:title")}
 					</DialogTitle>
 					<DialogDescription>
-						<p>{"check update:dialog:downloading..."}</p>
+						<p>{tc("check update:dialog:downloading...")}</p>
 						<Progress value={downloadedBytes} max={totalBytes}/>
 					</DialogDescription>
 				</DialogOpen>
@@ -91,7 +91,7 @@ export function CheckForUpdateMessage(
 						{tc("check update:dialog:title")}
 					</DialogTitle>
 					<DialogDescription>
-						<p>{"check update:dialog:relaunching..."}</p>
+						<p>{tc("check update:dialog:relaunching...")}</p>
 					</DialogDescription>
 				</DialogOpen>
 			);
