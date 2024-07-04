@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Maximized is not saved on windows `#902`
 
 ### Security
 

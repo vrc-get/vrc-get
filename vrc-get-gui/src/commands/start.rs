@@ -2,10 +2,32 @@ use crate::commands::prelude::*;
 
 use log::{error, info};
 use std::io;
-use tauri::{App, AppHandle, LogicalSize, Manager, State, WindowEvent};
+use tauri::{App, AppHandle, LogicalSize, Manager, State, Window, WindowEvent};
 use tokio::sync::Mutex;
 use vrc_get_vpm::unity_hub;
 
+trait WindowExt {
+    fn make_fullscreen_ish(&self) -> tauri::Result<()>;
+    fn is_fullscreen_ish(&self) -> tauri::Result<bool>;
+}
+
+impl WindowExt for Window {
+    fn make_fullscreen_ish(&self) -> tauri::Result<()> {
+        if cfg!(windows) {
+            self.maximize()
+        } else {
+            self.set_fullscreen(true)
+        }
+    }
+
+    fn is_fullscreen_ish(&self) -> tauri::Result<bool> {
+        if cfg!(windows) {
+            self.is_maximized()
+        } else {
+            self.is_fullscreen()
+        }
+    }
+}
 pub fn startup(app: &mut App) {
     let handle = app.handle();
     tauri::async_runtime::spawn(async move {
@@ -82,7 +104,9 @@ pub fn startup(app: &mut App) {
             })?;
         }
 
-        window.set_fullscreen(config.fullscreen)?;
+        if config.fullscreen {
+            window.make_fullscreen_ish()?;
+        }
 
         let cloned = window.clone();
 
@@ -101,7 +125,7 @@ pub fn startup(app: &mut App) {
                     return;
                 }
 
-                let fullscreen = cloned.is_fullscreen().unwrap();
+                let fullscreen = cloned.is_fullscreen_ish().unwrap();
 
                 let mut resize_debounce = resize_debounce.lock().unwrap();
 
