@@ -3,13 +3,12 @@
 import {Button} from "@/components/ui/button";
 import {Card} from "@/components/ui/card";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Input} from "@/components/ui/input";
-import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import Link from "next/link";
 import {useQuery} from "@tanstack/react-query";
 import {
 	CheckForUpdateResponse,
-	deepLinkInstallVcc, environmentClearPackageCache,
+	deepLinkInstallVcc,
+	environmentClearPackageCache,
 	environmentGetSettings,
 	environmentPickProjectBackupPath,
 	environmentPickProjectDefaultPath,
@@ -18,10 +17,10 @@ import {
 	environmentSetBackupFormat,
 	environmentSetReleaseChannel,
 	environmentSetShowPrereleasePackages,
+	environmentSetUseAlcomForVccProtocol,
 	TauriEnvironmentSettings,
 	utilCheckForUpdate,
 	utilGetVersion,
-	utilOpen,
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {useState} from "react";
@@ -122,8 +121,12 @@ function Settings(
 				/>
 				<PackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
 				<AppearanceCard/>
-				{osType != "Darwin" && <VccSchemeCard/>}
-				<AlcomCard releaseChannel={settings.release_channel} refetch={refetch}/>
+				<AlcomCard
+					isMac={osType == "Darwin"}
+					releaseChannel={settings.release_channel}
+					useAlcomForVccProtocol={settings.use_alcom_for_vcc_protocol}
+					refetch={refetch}
+				/>
 			</main>
 		</ScrollPageContainer>
 	)
@@ -308,36 +311,16 @@ function AppearanceCard() {
 	)
 }
 
-function VccSchemeCard() {
-	const installVccProtocol = async () => {
-		try {
-			await deepLinkInstallVcc();
-			toastSuccess(tc("settings:toast:vcc scheme installed"));
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	}
-
-	return (
-		<Card className={"flex-shrink-0 p-4"}>
-			<h2>{tc("settings:vcc scheme")}</h2>
-			<p className={"whitespace-normal"}>
-				{tc("settings:vcc scheme description")}
-			</p>
-			<div>
-				<Button onClick={installVccProtocol}>{tc("settings:register vcc scheme")}</Button>
-			</div>
-		</Card>
-	)
-}
-
 function AlcomCard(
 	{
+		isMac,
 		releaseChannel,
+		useAlcomForVccProtocol,
 		refetch,
 	}: {
+		isMac: boolean;
 		releaseChannel: string;
+		useAlcomForVccProtocol: boolean;
 		refetch: () => void;
 	}
 ) {
@@ -375,6 +358,21 @@ function AlcomCard(
 		refetch();
 	};
 
+	const changeUseAlcomForVcc = async (value: "indeterminate" | boolean) => {
+		await environmentSetUseAlcomForVccProtocol(value === true);
+		refetch();
+	};
+
+	const installVccProtocol = async () => {
+		try {
+			await deepLinkInstallVcc();
+			toastSuccess(tc("settings:toast:vcc scheme installed"));
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e)
+		}
+	}
+
 	return (
 		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
 			{updateState && <CheckForUpdateMessage response={updateState} close={() => setUpdateState(null)}/>}
@@ -390,6 +388,18 @@ function AlcomCard(
 				</label>
 				<p className={"text-sm whitespace-normal"}>{tc("settings:beta updates description")}</p>
 			</div>
+			{!isMac && <div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox checked={useAlcomForVccProtocol} onCheckedChange={(e) => changeUseAlcomForVcc(e)}/>
+					{tc("settings:use alcom for vcc scheme")}
+				</label>
+				<Button className={"my-1"} disabled={!useAlcomForVccProtocol} onClick={installVccProtocol}>
+					{tc("settings:register vcc scheme now")}
+				</Button>
+				<p className={"text-sm whitespace-normal"}>
+					{tc(["settings:use vcc scheme description", "settings:vcc scheme description"])}
+				</p>
+			</div>}
 			<p className={"whitespace-normal"}>
 				{tc("settings:licenses description", {}, {
 					components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}

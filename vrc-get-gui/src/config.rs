@@ -28,6 +28,8 @@ pub struct GuiConfig {
     #[serde(default = "release_channel_default")]
     // "stable" or "beta"
     pub release_channel: String,
+    #[serde(default)]
+    pub use_alcom_for_vcc_protocol: bool,
 }
 
 impl Default for GuiConfig {
@@ -42,6 +44,7 @@ impl Default for GuiConfig {
             backup_format: backup_default(),
             project_sorting: project_sorting_default(),
             release_channel: release_channel_default(),
+            use_alcom_for_vcc_protocol: false,
         }
     }
 }

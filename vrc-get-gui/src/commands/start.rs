@@ -2,6 +2,7 @@ use crate::commands::prelude::*;
 
 use log::{error, info};
 use std::io;
+use tauri::async_runtime::spawn;
 use tauri::{App, AppHandle, LogicalSize, Manager, State, Window, WindowEvent};
 use tokio::sync::Mutex;
 use vrc_get_vpm::unity_hub;
@@ -72,6 +73,10 @@ pub fn startup(app: &mut App) {
     async fn open_main(app: AppHandle) -> tauri::Result<()> {
         let state: State<'_, Mutex<EnvironmentState>> = app.state();
         let config = with_config!(state, |config| config.clone());
+
+        if !cfg!(target_os = "macos") && config.use_alcom_for_vcc_protocol {
+            spawn(crate::deep_link_support::deep_link_install_vcc());
+        }
 
         let query = url::form_urlencoded::Serializer::new(String::new())
             .append_pair("lang", &config.language)

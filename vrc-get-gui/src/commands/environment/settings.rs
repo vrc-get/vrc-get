@@ -5,6 +5,7 @@ use std::path::Path;
 use log::info;
 use serde::Serialize;
 use tauri::api::dialog::blocking::FileDialogBuilder;
+use tauri::async_runtime::spawn;
 use tauri::State;
 use tokio::sync::Mutex;
 
@@ -59,6 +60,7 @@ pub struct TauriEnvironmentSettings {
     show_prerelease_packages: bool,
     backup_format: String,
     release_channel: String,
+    use_alcom_for_vcc_protocol: bool,
 }
 
 #[tauri::command]
@@ -87,6 +89,7 @@ pub async fn environment_get_settings(
             show_prerelease_packages: environment.show_prerelease_packages(),
             backup_format: config.backup_format.to_string(),
             release_channel: config.release_channel.to_string(),
+            use_alcom_for_vcc_protocol: config.use_alcom_for_vcc_protocol,
         };
         environment.disconnect_litedb();
         Ok(settings)
@@ -351,6 +354,23 @@ pub async fn environment_set_release_channel(
         info!("setting release_channel to {release_channel}");
         config.release_channel = release_channel;
         config.save().await?;
+        Ok(())
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_use_alcom_for_vcc_protocol(
+    state: State<'_, Mutex<EnvironmentState>>,
+    use_alcom_for_vcc_protocol: bool,
+) -> Result<(), RustError> {
+    with_config!(&state, |mut config| {
+        info!("setting use_alcom_for_vcc_protocol to {use_alcom_for_vcc_protocol}");
+        config.use_alcom_for_vcc_protocol = use_alcom_for_vcc_protocol;
+        config.save().await?;
+        if use_alcom_for_vcc_protocol {
+            spawn(crate::deep_link_support::deep_link_install_vcc());
+        }
         Ok(())
     })
 }
