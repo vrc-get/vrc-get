@@ -43,6 +43,7 @@ export function SideBar({className}: { className?: string }) {
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={Cloud}/>
 				<SideBarItem href={"/settings"} text={t("settings")} icon={Settings}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={AlignLeft}/>
+				{isDev && <SideBarItem href={"/setup/appearance"} text={"Setup Pages (dev only link)"} icon={Settings}/>}
 				{isDev && <SideBarItem href={"/settings/palette"} text={"UI Palette (dev only)"} icon={SwatchBook}/>}
 				<div className={'flex-grow'}/>
 				<Button variant={"ghost"} className={"text-sm justify-start hover:bg-card hover:text-card-foreground"}

@@ -11,17 +11,13 @@ import {
 	CheckForUpdateResponse,
 	deepLinkInstallVcc, environmentClearPackageCache,
 	environmentGetSettings,
-	environmentLanguage,
 	environmentPickProjectBackupPath,
 	environmentPickProjectDefaultPath,
 	environmentPickUnity,
 	environmentPickUnityHub,
 	environmentSetBackupFormat,
-	environmentSetLanguage,
 	environmentSetReleaseChannel,
 	environmentSetShowPrereleasePackages,
-	environmentSetTheme,
-	environmentTheme,
 	TauriEnvironmentSettings,
 	utilCheckForUpdate,
 	utilGetVersion,
@@ -40,6 +36,7 @@ import {ToastContent} from "react-toastify";
 import {assertNever} from "@/lib/assert-never";
 import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
+import {LanguageSelector, ThemeSelector} from "@/components/common-setting-parts";
 
 export default function Page() {
 	const result = useQuery({
@@ -315,77 +312,11 @@ function PackagesCard(
 }
 
 function AppearanceCard() {
-	const {data: lang, refetch: refetchLang} = useQuery({
-		queryKey: ["environmentLanguage"],
-		queryFn: environmentLanguage
-	})
-
-	const [theme, setTheme] = React.useState<string | null>(null);
-
-	const changeLanguage = async (value: string) => {
-		await Promise.all([
-			i18next.changeLanguage(value),
-			environmentSetLanguage(value),
-			refetchLang(),
-		])
-	};
-
-	React.useEffect(() => {
-		(async () => {
-			const theme = await environmentTheme();
-			setTheme(theme);
-		})();
-	}, [])
-
-	const changeTheme = async (theme: string) => {
-		await environmentSetTheme(theme);
-		setTheme(theme);
-		if (theme === "system") {
-			const {appWindow} = await import("@tauri-apps/api/window");
-			theme = await appWindow.theme() ?? "light";
-		}
-		document.documentElement.setAttribute("class", theme);
-	};
-
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
 			<h2>Appearance</h2>
-			<label className={"flex items-center"}>
-				<h3>{tc("settings:language")}: </h3>
-				{lang && (
-					<Select defaultValue={lang} onValueChange={changeLanguage}>
-						<SelectTrigger>
-							<SelectValue/>
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{
-									languages.map((lang) => (
-										<SelectItem key={lang} value={lang}>{tc("settings:langName", {lng: lang})}</SelectItem>
-									))
-								}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				)}
-			</label>
-			<label className={"flex items-center"}>
-				<h3>{tc("settings:theme")}: </h3>
-				{theme && (
-					<Select defaultValue={theme} onValueChange={changeTheme}>
-						<SelectTrigger>
-							<SelectValue/>
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								<SelectItem value={"system"}>{tc("settings:theme:system")}</SelectItem>
-								<SelectItem value={"light"}>{tc("settings:theme:light")}</SelectItem>
-								<SelectItem value={"dark"}>{tc("settings:theme:dark")}</SelectItem>
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				)}
-			</label>
+			<LanguageSelector/>
+			<ThemeSelector/>
 		</Card>
 	)
 }
