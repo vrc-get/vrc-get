@@ -267,7 +267,7 @@
     "check update:dialog:changelog": "更新日志",
     "check update:dialog:dismiss": "忽略",
     "check update:dialog:update": "下载并更新！",
-    "check update:dialog:downloading...": "正在下载更新中...",
+    "check update:dialog:downloading...": "正在下载更新...",
     "check update:toast:no updates": "已是最新版本。",
   },
 }
