@@ -159,3 +159,29 @@ export function FilePathRow(
 		</div>
 	)
 }
+
+export function BackupFormatSelect(
+	{
+		backupFormat,
+		setBackupFormat,
+	}: {
+		backupFormat: string;
+		setBackupFormat: (format: string) => void;
+	}
+) {
+	return (
+		<Select value={backupFormat} onValueChange={setBackupFormat}>
+			<SelectTrigger>
+				<SelectValue/>
+			</SelectTrigger>
+			<SelectContent>
+				<SelectGroup>
+					<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
+					<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
+					<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
+					<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
+				</SelectGroup>
+			</SelectContent>
+		</Select>
+	)
+}

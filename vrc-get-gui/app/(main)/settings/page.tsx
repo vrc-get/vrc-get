@@ -35,7 +35,7 @@ import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {assertNever} from "@/lib/assert-never";
 import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
-import {FilePathRow, LanguageSelector, ThemeSelector} from "@/components/common-setting-parts";
+import {BackupFormatSelect, FilePathRow, LanguageSelector, ThemeSelector} from "@/components/common-setting-parts";
 
 export default function Page() {
 	const result = useQuery({
@@ -245,19 +245,7 @@ function BackupCard(
 			<div className="mt-2">
 				<label className={"flex items-center"}>
 					<h3>{tc("settings:backup:format")}</h3>
-					<Select defaultValue={backupFormat} onValueChange={setBackupFormat}>
-						<SelectTrigger>
-							<SelectValue/>
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								<SelectItem value={"default"}>{tc("settings:backup:format:default")}</SelectItem>
-								<SelectItem value={"zip-store"}>{tc("settings:backup:format:zip-store")}</SelectItem>
-								<SelectItem value={"zip-fast"}>{tc("settings:backup:format:zip-fast")}</SelectItem>
-								<SelectItem value={"zip-best"}>{tc("settings:backup:format:zip-best")}</SelectItem>
-							</SelectGroup>
-						</SelectContent>
-					</Select>
+					<BackupFormatSelect backupFormat={backupFormat} setBackupFormat={setBackupFormat}/>
 				</label>
 			</div>
 		</Card>
