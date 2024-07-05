@@ -30,6 +30,7 @@ export default function Page() {
 
 	const onNext = () => {
 		// TODO: fetch next page from backend
+		router.push("/setup/finish")
 	};
 
 	return <div className={"w-full flex items-center justify-center"}>
