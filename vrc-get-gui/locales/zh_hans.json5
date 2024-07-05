@@ -241,5 +241,6 @@
     "settings:theme:light": "明亮",
     "settings:theme:dark": "暗黑",
     "settings:button:open location": "打开所在位置",
+    "check update:dialog:relaunching...": "正在重启 ALCOM...",
   },
 }
