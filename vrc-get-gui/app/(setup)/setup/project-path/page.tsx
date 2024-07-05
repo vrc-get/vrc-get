@@ -32,7 +32,8 @@ export default function Page() {
 				<h1 className={"text-center"}>Project Save Path</h1>
 			</CardHeader>
 			<CardDescription className={"whitespace-normal"}>
-				When you crete project with ALCOM, the project will be saved in this path.
+				When you crete project with ALCOM, the project will be saved in this path.<br/>
+				This setting may also be changed in settings page later.
 			</CardDescription>
 			<div className={"pb-4"}/>
 			{
