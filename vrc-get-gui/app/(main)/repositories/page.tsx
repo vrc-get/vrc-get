@@ -20,8 +20,8 @@ import {toastThrownError} from "@/lib/toast";
 import {tc} from "@/lib/i18n";
 import {useTauriListen} from "@/lib/use-tauri-listen";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
-import {useAddRepository} from "@/app/repositories/use-add-repository";
-import {useImportRepositories} from "@/app/repositories/use-import-repositories";
+import {useAddRepository} from "./use-add-repository";
+import {useImportRepositories} from "./use-import-repositories";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 

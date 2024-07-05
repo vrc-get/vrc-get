@@ -34,8 +34,8 @@ import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {compareUnityVersionString} from "@/lib/version";
 import {useOpenUnity, OpenUnityFunction} from "@/lib/use-open-unity";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
-import {CreateProject} from "@/app/projects/create-project";
-import {ProjectRow} from "@/app/projects/project-row";
+import {CreateProject} from "./create-project";
+import {ProjectRow} from "./project-row";
 import {assertNever} from "@/lib/assert-never";
 
 const sortings = [

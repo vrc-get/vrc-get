@@ -30,12 +30,12 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
-import {useUnity2022Migration, useUnity2022PatchMigration} from "@/app/projects/manage/unity-migration";
-import {LaunchSettings} from "@/app/projects/manage/launch-settings";
-import {PackageListCard} from "@/app/projects/manage/package-list-card";
-import {usePackageChangeDialog} from "@/app/projects/manage/use-package-change";
-import {combinePackagesAndProjectDetails, VRCSDK_PACKAGES} from "@/app/projects/manage/collect-package-row-info";
-import {PageContextProvider} from "@/app/projects/manage/page-context";
+import {useUnity2022Migration, useUnity2022PatchMigration} from "./unity-migration";
+import {LaunchSettings} from "./launch-settings";
+import {PackageListCard} from "./package-list-card";
+import {usePackageChangeDialog} from "./use-package-change";
+import {combinePackagesAndProjectDetails, VRCSDK_PACKAGES} from "./collect-package-row-info";
+import {PageContextProvider} from "./page-context";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
