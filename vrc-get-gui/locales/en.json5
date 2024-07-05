@@ -253,6 +253,7 @@
     "projects:dialog:creating backup...": "Creating a backup...",
     "projects:toast:backup canceled": "Backup was canceled.",
     "projects:toast:backup succeeded": "Backup was created successfully.",
+    "settings:appearance": "Appearance",
     "settings:language": "Language",
     "settings:report issue": "Report an Issue",
     "settings:button:open issue": "Open an Issue",

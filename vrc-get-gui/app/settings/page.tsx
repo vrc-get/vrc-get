@@ -349,7 +349,7 @@ function AppearanceCard() {
 
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
-			<h2>Appearance</h2>
+			<h2>{tc("settings:appearance")}</h2>
 			<label className={"flex items-center"}>
 				<h3>{tc("settings:language")}: </h3>
 				{lang && (
