@@ -41,55 +41,56 @@ export default function Page() {
 				operation.
 			</CardDescription>
 			{
-				hubInstalled ?
-					<>
-						<div className={"pb-4"}/>
-						<p className={"whitespace-normal text-muted-foreground"}>
-							Using this Unity Hub:
-						</p>
-						<FilePathRow
-							withoutSelect
-							path={result.data?.unity_hub ?? ""}
-							pick={environmentPickUnityHub}
-							refetch={() => result.refetch()}
-							notFoundMessage={"Unity Hub Not Found"}
-							successMessage={tc("settings:toast:unity hub path updated")}
-						/>
-					</>
-					:
-					<>
-						<div className={"p-2"}/>
-						<div className={"flex flex-row gap-1"}>
-							<Button onClick={() => shellOpen("https://unity.com/ja/download")} className={"px-2 py-1 text-xs h-7"}>
-								Download Unity Hub from unity.com
-							</Button>
-							<Button onClick={() => result.refetch()} className={"px-2 py-1 text-xs h-7"}>
-								Recheck Installation
-							</Button>
-						</div>
-						<Accordion type="single" collapsible>
-							<AccordionItem value={"you-have"} className={"border-none"}>
-								<AccordionTrigger className={"text-sm"}>Have you installed Unity Hub?</AccordionTrigger>
-								<AccordionContent>
-									<p className={"whitespace-normal"}>
-										In this case, ALCOM fails to detect your Unity Hub installation.
-										Please manually set path to Unity Hub executable.
-									</p>
-									<FilePathRow
-										withoutSelect
-										path={result.data?.unity_hub ?? ""}
-										pick={environmentPickUnityHub}
-										refetch={() => result.refetch()}
-										notFoundMessage={"Unity Hub Not Found"}
-										successMessage={tc("settings:toast:unity hub path updated")}
-									/>
-								</AccordionContent>
-							</AccordionItem>
-						</Accordion>
-						<div className={"flex w-full"}>
-							<span className={"text-destructive"}>{"Unity Hub is not found."}</span>
-						</div>
-					</>
+				result.isLoading
+					? <p>Loading...</p>
+					: hubInstalled
+						? <>
+							<div className={"pb-4"}/>
+							<p className={"whitespace-normal text-muted-foreground"}>
+								Using this Unity Hub:
+							</p>
+							<FilePathRow
+								withoutSelect
+								path={result.data?.unity_hub ?? ""}
+								pick={environmentPickUnityHub}
+								refetch={() => result.refetch()}
+								notFoundMessage={"Unity Hub Not Found"}
+								successMessage={tc("settings:toast:unity hub path updated")}
+							/>
+						</>
+						: <>
+							<div className={"p-2"}/>
+							<div className={"flex flex-row gap-1"}>
+								<Button onClick={() => shellOpen("https://unity.com/ja/download")} className={"px-2 py-1 text-xs h-7"}>
+									Download Unity Hub from unity.com
+								</Button>
+								<Button onClick={() => result.refetch()} className={"px-2 py-1 text-xs h-7"}>
+									Recheck Installation
+								</Button>
+							</div>
+							<Accordion type="single" collapsible>
+								<AccordionItem value={"you-have"} className={"border-none"}>
+									<AccordionTrigger className={"text-sm"}>Have you installed Unity Hub?</AccordionTrigger>
+									<AccordionContent>
+										<p className={"whitespace-normal"}>
+											In this case, ALCOM fails to detect your Unity Hub installation.
+											Please manually set path to Unity Hub executable.
+										</p>
+										<FilePathRow
+											withoutSelect
+											path={result.data?.unity_hub ?? ""}
+											pick={environmentPickUnityHub}
+											refetch={() => result.refetch()}
+											notFoundMessage={"Unity Hub Not Found"}
+											successMessage={tc("settings:toast:unity hub path updated")}
+										/>
+									</AccordionContent>
+								</AccordionItem>
+							</Accordion>
+							<div className={"flex w-full"}>
+								<span className={"text-destructive"}>{"Unity Hub is not found."}</span>
+							</div>
+						</>
 			}
 			<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">
 				<Button onClick={onBack}>Back</Button>
