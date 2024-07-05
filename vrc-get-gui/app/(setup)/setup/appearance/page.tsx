@@ -10,7 +10,8 @@ export default function Page() {
 	const router = useRouter();
 
 	const onNext = () => {
-		// TODO: navigate to next page
+		// TODO: fetch next page from backend
+		router.push("/setup/unity-hub")
 	};
 
 	return <div className={"w-full flex items-center justify-center"}>

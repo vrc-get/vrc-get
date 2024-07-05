@@ -26,17 +26,16 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import React, {useState} from "react";
 import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
-import i18next, {languages, tc, tt} from "@/lib/i18n";
+import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {shellOpen} from "@/lib/shellOpen";
 import {loadOSApi} from "@/lib/os";
 import type {OsType} from "@tauri-apps/api/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
-import {ToastContent} from "react-toastify";
 import {assertNever} from "@/lib/assert-never";
 import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
-import {LanguageSelector, ThemeSelector} from "@/components/common-setting-parts";
+import {FilePathRow, LanguageSelector, ThemeSelector} from "@/components/common-setting-parts";
 
 export default function Page() {
 	const result = useQuery({
@@ -409,73 +408,5 @@ function AlcomCard(
 				})}
 			</p>
 		</Card>
-	)
-}
-
-function FilePathRow(
-	{
-		path,
-		notFoundMessage,
-		pick,
-		refetch,
-		successMessage,
-		withoutSelect = false,
-	}: {
-		path: string;
-		notFoundMessage?: string;
-		pick: () => Promise<{ type: "NoFolderSelected" | "InvalidSelection" | "Successful" }>;
-		refetch: () => void;
-		successMessage: ToastContent;
-		withoutSelect?: boolean;
-	}) {
-	const [pickPath, dialog] = useFilePickerFunction(pick);
-
-	const selectFolder = async () => {
-		try {
-			const result = await pickPath();
-			switch (result.type) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tc("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(successMessage);
-					refetch()
-					break;
-				default:
-					assertNever(result.type);
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
-
-	const openFolder = async () => {
-		try {
-			await utilOpen(path)
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e)
-		}
-	};
-
-	return (
-		<div className={"flex gap-1 items-center"}>
-			{
-				!path && notFoundMessage
-					? <Input className="flex-auto text-destructive" value={notFoundMessage} disabled/>
-					: <Input className="flex-auto" value={path} disabled/>
-			}
-			<Button className={"flex-none px-4"} onClick={selectFolder}>
-				{tc("general:button:select")}
-			</Button>
-			{withoutSelect || <Button className={"flex-none px-4"} onClick={openFolder}>
-				{tc("settings:button:open location")}
-			</Button>}
-			{dialog}
-		</div>
 	)
 }
