@@ -254,6 +254,10 @@ export function utilInstallAndUpgrade(version: number) {
     return invoke()<null>("util_install_and_upgrade", { version })
 }
 
+export function utilIsBadHostname() {
+    return invoke()<boolean>("util_is_bad_hostname")
+}
+
 export function deepLinkHasAddRepository() {
     return invoke()<boolean>("deep_link_has_add_repository")
 }
