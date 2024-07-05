@@ -583,7 +583,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         self.settings.set_show_prerelease_packages(value);
     }
 
-    pub fn default_project_path(&self) -> &str {
+    pub fn default_project_path(&self) -> Option<&str> {
         self.settings.default_project_path()
     }
 
@@ -591,7 +591,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         self.settings.set_default_project_path(value);
     }
 
-    pub fn project_backup_path(&self) -> &str {
+    pub fn project_backup_path(&self) -> Option<&str> {
         self.settings.project_backup_path()
     }
 

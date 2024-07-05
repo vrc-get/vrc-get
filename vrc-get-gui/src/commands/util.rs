@@ -1,16 +1,42 @@
+use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use tauri::updater::UpdateResponse;
 use tauri::{AppHandle, State, Wry};
+use tokio::fs::create_dir_all;
 use tokio::sync::Mutex;
 
 use crate::commands::prelude::*;
 use crate::logging::LogEntry;
+use crate::utils::find_existing_parent_dir_or_home;
+
+#[derive(serde::Deserialize, specta::Type)]
+pub enum OpenOptions {
+    ErrorIfNotExists,
+    CreateFolderIfNotExists,
+    OpenParentIfNotExists,
+}
 
 #[tauri::command]
 #[specta::specta]
-pub async fn util_open(path: String) -> Result<(), RustError> {
-    open::that(path).map_err(RustError::unrecoverable)?;
+pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), RustError> {
+    let path = Path::new(&path);
+    if !path.exists() {
+        match if_not_exists {
+            OpenOptions::ErrorIfNotExists => {
+                return Err(RustError::unrecoverable("Path does not exist"));
+            }
+            OpenOptions::CreateFolderIfNotExists => {
+                create_dir_all(&path).await?;
+                open::that(path)?;
+            }
+            OpenOptions::OpenParentIfNotExists => {
+                open::that(find_existing_parent_dir_or_home(path.as_ref()).as_os_str())?;
+            }
+        }
+    } else {
+        open::that(path)?;
+    }
     Ok(())
 }
 

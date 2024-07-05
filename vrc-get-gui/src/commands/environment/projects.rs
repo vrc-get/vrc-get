@@ -1,5 +1,6 @@
 use crate::commands::prelude::*;
 
+use crate::utils::default_project_path;
 use futures::TryStreamExt;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -434,7 +435,7 @@ pub async fn environment_project_creation_information(
 
         Ok(TauriProjectCreationInformation {
             templates,
-            default_path: environment.default_project_path().to_string(),
+            default_path: default_project_path(environment).await?.to_string(),
         })
     })
 }

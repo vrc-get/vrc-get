@@ -230,8 +230,8 @@ export function projectSetUnityPath(projectPath: string, unityPath: string | nul
     return invoke()<boolean>("project_set_unity_path", { projectPath,unityPath })
 }
 
-export function utilOpen(path: string) {
-    return invoke()<null>("util_open", { path })
+export function utilOpen(path: string, ifNotExists: OpenOptions) {
+    return invoke()<null>("util_open", { path,ifNotExists })
 }
 
 export function utilGetLogEntries() {
@@ -267,6 +267,7 @@ export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Star
 export type CheckForUpdateResponse = { version: number; is_update_available: boolean; current_version: string; latest_version: string; update_description: string | null }
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
+export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists"
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriAddRepositoryResult = "BadUrl" | "Success"
 export type TauriBasePackageInfo = { name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }

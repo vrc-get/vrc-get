@@ -70,7 +70,7 @@ export function ProjectRow(
 	const lastModified = new Date(project.last_modified);
 	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, '0')}-${(lastModified.getMonth() + 1).toString().padStart(2, '0')}-${lastModified.getDate().toString().padStart(2, '0')} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
 
-	const openProjectFolder = () => utilOpen(project.path);
+	const openProjectFolder = () => utilOpen(project.path, "ErrorIfNotExists");
 
 	const onToggleFavorite = async () => {
 		try {

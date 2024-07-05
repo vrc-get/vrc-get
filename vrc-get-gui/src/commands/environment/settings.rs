@@ -8,12 +8,10 @@ use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::State;
 use tokio::sync::Mutex;
 
-use vrc_get_vpm::io::EnvironmentIo;
-use vrc_get_vpm::{
-    EnvironmentIoHolder, VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK,
-};
+use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
 use crate::commands::prelude::*;
+use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriUnityVersions {
@@ -72,8 +70,8 @@ pub async fn environment_get_settings(
         environment.find_unity_hub().await.ok();
 
         let settings = TauriEnvironmentSettings {
-            default_project_path: environment.default_project_path().to_string(),
-            project_backup_path: environment.project_backup_path().to_string(),
+            default_project_path: default_project_path(environment).await?.to_string(),
+            project_backup_path: project_backup_path(environment).await?.to_string(),
             unity_hub: environment.unity_hub_path().to_string(),
             unity_paths: environment
                 .get_unity_installations()?
@@ -260,18 +258,10 @@ pub async fn environment_pick_project_default_path(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriPickProjectDefaultPathResult, RustError> {
     let Some(dir) = with_environment!(state, |environment| {
-        // default path may not be exists so create here
-        // Note: keep in sync with vrc-get-vpm/src/environment/settings.rs
-        let mut default_path = environment.io().resolve("".as_ref());
-        default_path.pop();
-        default_path.push("VRChatProjects");
-        println!("default_path: {:?}", default_path.display());
-        if default_path.as_path() == Path::new(environment.default_project_path()) {
-            tokio::fs::create_dir_all(&default_path).await.ok();
-        }
-
         FileDialogBuilder::new()
-            .set_directory(environment.default_project_path())
+            .set_directory(find_existing_parent_dir_or_home(
+                default_project_path(environment).await?.as_ref(),
+            ))
             .pick_folder()
     }) else {
         return Ok(TauriPickProjectDefaultPathResult::NoFolderSelected);
@@ -303,15 +293,10 @@ pub async fn environment_pick_project_backup_path(
     state: State<'_, Mutex<EnvironmentState>>,
 ) -> Result<TauriPickProjectBackupPathResult, RustError> {
     let Some(dir) = with_environment!(state, |environment| {
-        // backup folder may not be exists so create here
-        // Note: keep in sync with vrc-get-vpm/src/environment/settings.rs
-        let default_path = environment.io().resolve("Project Backups".as_ref());
-        if default_path.as_path() == Path::new(environment.project_backup_path()) {
-            tokio::fs::create_dir_all(&default_path).await.ok();
-        }
-
         FileDialogBuilder::new()
-            .set_directory(environment.project_backup_path())
+            .set_directory(find_existing_parent_dir_or_home(
+                project_backup_path(environment).await?.as_ref(),
+            ))
             .pick_folder()
     }) else {
         return Ok(TauriPickProjectBackupPathResult::NoFolderSelected);

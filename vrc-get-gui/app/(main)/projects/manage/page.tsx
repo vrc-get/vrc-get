@@ -407,7 +407,7 @@ function DropdownMenuContentBody(
 		onChangeLaunchOptions?: () => void,
 	}
 ) {
-	const openProjectFolder = () => utilOpen(projectPath);
+	const openProjectFolder = () => utilOpen(projectPath, "ErrorIfNotExists");
 	const forgetUnity = async () => {
 		try {
 			await projectSetUnityPath(projectPath, null)

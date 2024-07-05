@@ -135,7 +135,7 @@ export function FilePathRow(
 
 	const openFolder = async () => {
 		try {
-			await utilOpen(path)
+			await utilOpen(path, "CreateFolderIfNotExists")
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e)

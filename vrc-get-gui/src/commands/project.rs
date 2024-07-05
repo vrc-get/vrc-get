@@ -22,6 +22,7 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
 use crate::commands::state::PendingProjectChangesInfo;
+use crate::utils::project_backup_path;
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
@@ -690,7 +691,7 @@ pub async fn project_create_backup(
 ) -> Result<AsyncCallResult<(), ()>, RustError> {
     async_command(channel, window, async {
         let (backup_dir, backup_format) = with_environment!(&state, |environment, config| {
-            let backup_path = environment.project_backup_path();
+            let backup_path = project_backup_path(environment).await?;
             let backup_format = config.backup_format.to_ascii_lowercase();
             (backup_path.to_string(), backup_format)
         });

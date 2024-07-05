@@ -13,6 +13,7 @@ mod templates;
 #[cfg_attr(windows, path = "os_windows.rs")]
 #[cfg_attr(not(windows), path = "os_posix.rs")]
 mod os;
+mod utils;
 
 // for clippy compatibility
 #[cfg(not(clippy))]
