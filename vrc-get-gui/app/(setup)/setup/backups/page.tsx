@@ -20,7 +20,7 @@ export default function Page() {
 	const isMac = osType === "Darwin";
 
 	return <SetupPageBase
-		heading={"Project Backup Settings"}
+		heading={tc("setup:backups:heading")}
 		Body={Body}
 		nextPage={isMac ? "/setup/finish" : "/setup/system-setting"}
 		pageId={"Backups"}
@@ -50,10 +50,9 @@ function Body({environment, refetch}: BodyProps) {
 
 	return (
 		<>
-			<h3>{tc("settings:backup:path")}</h3>
+			<h3>{tc("setup:backups:location")}</h3>
 			<CardDescription className={"whitespace-normal"}>
-				When you backup your project, the backup archive file will be saved in this path.<br/>
-				This setting may also be changed in settings page later.
+				{tc("setup:backups:location description")}
 			</CardDescription>
 			<FilePathRow
 				withoutSelect
@@ -62,22 +61,11 @@ function Body({environment, refetch}: BodyProps) {
 				refetch={refetch}
 				successMessage={tc("settings:toast:backup path updated")}
 			/>
-			{
-				inLocalAppData
-					? <p className={"text-warning whitespace-normal text-sm"}>
-						The location is in LocalAppData folder, which will be deleted with "Reset your PC" with "Keep my files".
-						It's recommended to save your projects in a different location.
-					</p>
-					: null
-			}
+			{inLocalAppData && <p className={"text-warning whitespace-normal text-sm"}>{tc("setup:backups:warning:in-local-app-data")}</p>}
 			<div className={"pb-3"}/>
-			<h3>Archive Format</h3>
+			<h3>{tc("setup:backups:archive")}</h3>
 			<CardDescription className={"whitespace-normal"}>
-				You can select the format of the backup archive. <br/>
-				Default setting is the best format ALCOM thinks at the moment. <br/>
-				Since the many big file in Unity project is compressed binary file,
-				ALCOM currently thinks reducing backup size are not worth the compression time. <br/>
-				However, if you have very limited disk space, it might be better to compress files.
+				{tc("setup:backups:archive description")}
 			</CardDescription>
 			<BackupFormatSelect backupFormat={backupFormat} setBackupFormat={setBackupFormat}/>
 		</>

@@ -3,13 +3,14 @@
 import {CardDescription} from "@/components/ui/card";
 import React from "react";
 import {SetupPageBase} from "../setup-page-base";
+import {tc} from "@/lib/i18n";
 
 export default function Page() {
 	return <SetupPageBase
-		heading={"Congratulations!"}
+		heading={"Setup Completed!"}
 		Body={Body}
 		nextPage={"/projects"}
-		nextContent={"Start using ALCOM"}
+		nextContent={tc("setup:finish:next")}
 		pageId={null}
 	/>
 }
@@ -18,8 +19,7 @@ function Body() {
 	return (
 		<>
 			<CardDescription className={"whitespace-normal"}>
-				This is the end of the setup process!<br/>
-				You can now start using ALCOM.
+				{tc("setup:finish:description")}
 			</CardDescription>
 		</>
 	)

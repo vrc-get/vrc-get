@@ -12,6 +12,7 @@ import {Button} from "@/components/ui/button";
 import React from "react";
 import {Circle, CircleCheck, CircleChevronRight} from "lucide-react";
 import {loadOSApi} from "@/lib/os";
+import {tc} from "@/lib/i18n";
 
 export type BodyProps = Readonly<{ environment: TauriEnvironmentSettings, refetch: () => void }>;
 
@@ -20,8 +21,8 @@ export function SetupPageBase(
 		heading,
 		Body,
 		nextPage,
-		backContent = "Back",
-		nextContent = "Next",
+		backContent = tc("setup:back"),
+		nextContent = tc("setup:next"),
 		pageId,
 		withoutSteps = false,
 	}: {
@@ -62,7 +63,7 @@ export function SetupPageBase(
 					<div className={"pb-4"}/>
 					{
 						!result.data
-							? <p>Loading...</p>
+							? <p>{tc("setup:loading")}</p>
 							: <Body environment={result.data} refetch={() => result.refetch()}/>
 					}
 					<div className={"flex-grow"}/>
@@ -100,11 +101,11 @@ function StepCard(
 
 	return <Card className={"w-48 p-4"}>
 		<ol className={"flex flex-col gap-2"}>
-			<StepElement current={current} finisheds={finisheds} pageId={"Appearance"}>Appearance</StepElement>
-			<StepElement current={current} finisheds={finisheds} pageId={"UnityHub"}>Unity Hub</StepElement>
-			<StepElement current={current} finisheds={finisheds} pageId={"ProjectPath"}>Save Location</StepElement>
-			<StepElement current={current} finisheds={finisheds} pageId={"Backups"}>Backup</StepElement>
-			{!isMac && <StepElement current={current} finisheds={finisheds} pageId={"SystemSetting"}>System</StepElement>}
+			<StepElement current={current} finisheds={finisheds} pageId={"Appearance"}/>
+			<StepElement current={current} finisheds={finisheds} pageId={"UnityHub"}/>
+			<StepElement current={current} finisheds={finisheds} pageId={"ProjectPath"}/>
+			<StepElement current={current} finisheds={finisheds} pageId={"Backups"}/>
+			{!isMac && <StepElement current={current} finisheds={finisheds} pageId={"SystemSetting"}/>}
 		</ol>
 	</Card>
 }
@@ -114,18 +115,16 @@ function StepElement(
 		current,
 		finisheds,
 		pageId,
-		children,
 	}: {
 		current: SetupPages | null;
 		finisheds: SetupPages[];
 		pageId: SetupPages;
-		children: React.ReactNode;
 	}
 ) {
 	const finished = finisheds.includes(pageId);
 	const active = current === pageId;
 	return <li className={`${active ? "text-foreground" : finished ? "text-success" : "text-foreground/50"} flex gap-1`}>
 		{finished ? <CircleCheck/> : active ? <CircleChevronRight/> : <Circle/>}
-		{children}
+		{tc(`setup:steps card:${pageId}`)}
 	</li>
 }

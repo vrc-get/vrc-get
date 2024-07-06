@@ -11,7 +11,7 @@ import {BodyProps, SetupPageBase} from "../setup-page-base";
 
 export default function Page() {
 	return <SetupPageBase
-		heading={"System Configuration"}
+		heading={tc("setup:system-setting:heading")}
 		Body={Body}
 		nextPage={"/setup/finish"}
 		pageId={"SystemSetting"}
@@ -51,17 +51,16 @@ function Body({environment, refetch}: BodyProps) {
 					{tc("settings:use alcom for vcc scheme")}
 				</label>
 				<p className={"text-sm whitespace-normal text-muted-foreground"}>
-					You can use ALCOM for vcc:// scheme instead of VCC to install repository to your PC.
+					{tc("setup:system-setting:vcc scheme description")}
 				</p>
 			</div> : <div>
 				<p className={"text-sm whitespace-normal text-muted-foreground"}>
-					There is nothing to configure on macOS. (This page should not be shown, showing this page is a bug)
+					{tc("setup:system-setting:macos bug message")}
 				</p>
 			</div>}
 			{isBadHostName.data && <div className={"mt-3"}>
 				<p className={"text-sm whitespace-normal text-warning"}>
-					Your hostname (PC Name) contains non-ASCII characters. This may cause problems with Unity 2022.<br/>
-					It's highly recommended to change your PC Name to ASCII characters.
+					{tc("setup:system-setting:hostname-with-non-ascii")}
 				</p>
 			</div>}
 		</>

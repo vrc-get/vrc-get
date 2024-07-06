@@ -4,10 +4,11 @@ import {CardDescription} from "@/components/ui/card";
 import React from "react";
 import {LanguageSelector, ThemeSelector} from "@/components/common-setting-parts";
 import {SetupPageBase} from "../setup-page-base";
+import {tc} from "@/lib/i18n";
 
 export default function Page() {
 	return <SetupPageBase
-		heading={"Welcome to ALCOM!"}
+		heading={tc("setup:entry:welcome")}
 		Body={Body}
 		nextPage={"/setup/unity-hub"}
 		backContent={null}
@@ -19,12 +20,11 @@ export default function Page() {
 function Body() {
 	return <>
 		<CardDescription className={"whitespace-normal text-lg text-center"}>
-			ALCOM is an Open-Source Creator Companion for VRChat and other Unity Projects.
+			{tc("setup:entry:welcome description")}
 		</CardDescription>
 		<div className={"pb-3"}/>
 		<CardDescription className={"whitespace-normal"}>
-			Please set up your appearance preferences at the beginning.<br/>
-			You can change later on settings page.
+			{tc("setup:appearance:description")}
 		</CardDescription>
 		<LanguageSelector/>
 		<ThemeSelector/>

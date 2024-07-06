@@ -11,7 +11,7 @@ import {BodyProps, SetupPageBase} from "../setup-page-base";
 
 export default function Page() {
 	return <SetupPageBase
-		heading={"Project Save Path"}
+		heading={tc("setup:project-path:heading")}
 		Body={Body}
 		nextPage={"/setup/backups"}
 		pageId={"ProjectPath"}
@@ -38,8 +38,7 @@ function Body(
 	return (
 		<>
 			<CardDescription className={"whitespace-normal"}>
-				When you crete project with ALCOM, the project will be saved in this path.<br/>
-				This setting may also be changed in settings page later.
+				{tc("setup:project-path:description")}
 			</CardDescription>
 			<FilePathRow
 				withoutSelect
@@ -48,29 +47,9 @@ function Body(
 				refetch={refetch}
 				successMessage={tc("settings:toast:default project path updated")}
 			/>
-			{
-				hasWhitespace
-					? <p className={"text-warning whitespace-normal text-sm"}>
-						The path contains whitespace. Whitespace in the path may cause problems with Unity and other tools.
-					</p>
-					: null
-			}
-			{
-				hasNonAscii
-					? <p className={"text-warning whitespace-normal text-sm"}>
-						The path contains non-ASCII characters.
-						Non-ASCII characters in the path with non-UTF-8 locale may cause problems with Unity and other tools.
-					</p>
-					: null
-			}
-			{
-				inLocalAppData
-					? <p className={"text-warning whitespace-normal text-sm"}>
-						The location is in LocalAppData folder, which will be deleted with "Reset your PC" with "Keep my files".
-						It's recommended to save your projects in a different location.
-					</p>
-					: null
-			}
+			{hasWhitespace && <p className={"text-warning whitespace-normal text-sm"}>{tc("setup:project-path:warning:whitespace")}</p>}
+			{hasNonAscii && <p className={"text-warning whitespace-normal text-sm"}>{tc("setup:project-path:warning:non-ascii")}</p>}
+			{inLocalAppData && <p className={"text-warning whitespace-normal text-sm"}>{tc("setup:project-path:warning:in-local-app-data")}</p>}
 		</>
 	)
 }
