@@ -304,7 +304,7 @@ function PackagesCard(
 function AppearanceCard() {
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
-			<h2>Appearance</h2>
+			<h2>{tc("settings:appearance")}</h2>
 			<LanguageSelector/>
 			<ThemeSelector/>
 		</Card>
