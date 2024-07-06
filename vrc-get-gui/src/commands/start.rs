@@ -75,7 +75,7 @@ pub fn startup(app: &mut App) {
         let config = with_config!(state, |config| config.clone());
 
         if !cfg!(target_os = "macos") && config.use_alcom_for_vcc_protocol {
-            spawn(crate::deep_link_support::deep_link_install_vcc());
+            spawn(crate::deep_link_support::deep_link_install_vcc(app.clone()));
         }
 
         let query = url::form_urlencoded::Serializer::new(String::new())

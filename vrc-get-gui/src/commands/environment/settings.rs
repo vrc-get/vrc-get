@@ -6,7 +6,7 @@ use log::info;
 use serde::Serialize;
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::async_runtime::spawn;
-use tauri::State;
+use tauri::{AppHandle, State};
 use tokio::sync::Mutex;
 
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
@@ -361,6 +361,7 @@ pub async fn environment_set_release_channel(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_use_alcom_for_vcc_protocol(
+    app: AppHandle,
     state: State<'_, Mutex<EnvironmentState>>,
     use_alcom_for_vcc_protocol: bool,
 ) -> Result<(), RustError> {
@@ -369,7 +370,7 @@ pub async fn environment_set_use_alcom_for_vcc_protocol(
         config.use_alcom_for_vcc_protocol = use_alcom_for_vcc_protocol;
         config.save().await?;
         if use_alcom_for_vcc_protocol {
-            spawn(crate::deep_link_support::deep_link_install_vcc());
+            spawn(crate::deep_link_support::deep_link_install_vcc(app));
         }
         Ok(())
     })
