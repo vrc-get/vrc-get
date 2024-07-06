@@ -1,69 +1,25 @@
 "use client";
 
-import {Card, CardDescription, CardFooter, CardHeader} from "@/components/ui/card";
 import React from "react";
-import {Button} from "@/components/ui/button";
-import {FilePathRow} from "@/components/common-setting-parts";
-import {useRouter} from "next/navigation";
-import {
-	environmentGetSettings,
-	environmentPickProjectDefaultPath,
-	environmentSetUseAlcomForVccProtocol, utilIsBadHostname
-} from "@/lib/bindings";
+import {environmentSetUseAlcomForVccProtocol, utilIsBadHostname} from "@/lib/bindings";
 import {tc} from "@/lib/i18n";
 import {useQuery} from "@tanstack/react-query";
-import {isWindows, loadOSApi} from "@/lib/os";
+import {loadOSApi} from "@/lib/os";
 import type {OsType} from "@tauri-apps/api/os";
 import {Checkbox} from "@/components/ui/checkbox";
+import {BodyProps, SetupPageBase} from "../setup-page-base";
 
 export default function Page() {
-	const router = useRouter();
-
-	const result = useQuery({
-		queryKey: ["environmentGetSettings"],
-		queryFn: environmentGetSettings
-	})
-
-	const onBack = () => {
-		router.back()
-	};
-
-	const onNext = () => {
-		// TODO: fetch next page from backend
-		router.push("/setup/finish")
-	};
-
-	return <div className={"w-full flex items-center justify-center"}>
-		<Card className={"w-[500px] min-w-[50vw] p-4"}>
-			<CardHeader>
-				<h1 className={"text-center"}>System Configuration</h1>
-			</CardHeader>
-			<div className={"pb-4"}/>
-			{
-				!result.data
-					? <p>Loading...</p>
-					: <WithLoadedData
-						useAlcomForVccProtocol={result.data.use_alcom_for_vcc_protocol}
-						refetch={() => result.refetch()}
-					/>
-			}
-			<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">
-				<Button onClick={onBack}>Back</Button>
-				<Button onClick={onNext}>Next</Button>
-			</CardFooter>
-		</Card>
-	</div>
+	return <SetupPageBase
+		heading={"System Configuration"}
+		Body={Body}
+		nextPage={"/setup/finish"}
+	/>
 }
 
-function WithLoadedData(
-	{
-		useAlcomForVccProtocol,
-		refetch,
-	}: {
-		useAlcomForVccProtocol: boolean;
-		refetch: () => void;
-	}
-) {
+function Body({environment, refetch}: BodyProps) {
+	const useAlcomForVccProtocol = environment.use_alcom_for_vcc_protocol;
+
 	const isBadHostName = useQuery({
 		queryKey: ["util_is_bad_hostname"],
 		queryFn: utilIsBadHostname,

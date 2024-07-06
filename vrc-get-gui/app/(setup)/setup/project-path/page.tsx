@@ -1,64 +1,30 @@
 "use client";
 
-import {Card, CardDescription, CardFooter, CardHeader} from "@/components/ui/card";
+import {CardDescription} from "@/components/ui/card";
 import React from "react";
-import {Button} from "@/components/ui/button";
 import {FilePathRow} from "@/components/common-setting-parts";
-import {useRouter} from "next/navigation";
-import {environmentGetSettings, environmentPickProjectDefaultPath} from "@/lib/bindings";
+import {environmentPickProjectDefaultPath} from "@/lib/bindings";
 import {tc} from "@/lib/i18n";
 import {useQuery} from "@tanstack/react-query";
 import {isWindows} from "@/lib/os";
+import {BodyProps, SetupPageBase} from "../setup-page-base";
 
 export default function Page() {
-	const router = useRouter();
-
-	const result = useQuery({
-		queryKey: ["environmentGetSettings"],
-		queryFn: environmentGetSettings
-	})
-
-	const onBack = () => {
-		router.back()
-	};
-
-	const onNext = () => {
-		// TODO: fetch next page from backend
-		router.push("/setup/backups")
-	};
-
-	return <div className={"w-full flex items-center justify-center"}>
-		<Card className={"w-[500px] p-4"}>
-			<CardHeader>
-				<h1 className={"text-center"}>Project Save Path</h1>
-			</CardHeader>
-			<CardDescription className={"whitespace-normal"}>
-				When you crete project with ALCOM, the project will be saved in this path.<br/>
-				This setting may also be changed in settings page later.
-			</CardDescription>
-			<div className={"pb-4"}/>
-			{
-				!result.data
-					? <p>Loading...</p>
-					: <WithLoadedData projectPath={result.data.default_project_path} refetch={() => result.refetch()}/>
-			}
-			<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">
-				<Button onClick={onBack}>Back</Button>
-				<Button onClick={onNext}>Next</Button>
-			</CardFooter>
-		</Card>
-	</div>
+	return <SetupPageBase
+		heading={"Project Save Path"}
+		Body={Body}
+		nextPage={"/setup/backups"}
+	/>
 }
 
-function WithLoadedData(
+function Body(
 	{
-		projectPath,
+		environment,
 		refetch,
-	}: {
-		projectPath: string;
-		refetch: () => void;
-	}
+	}: BodyProps
 ) {
+	const projectPath = environment.default_project_path;
+
 	const localAppDataPath = useQuery({
 		queryKey: ["cacheDir"],
 		queryFn: async () => await (await import("@tauri-apps/api/path")).cacheDir()
@@ -70,6 +36,10 @@ function WithLoadedData(
 
 	return (
 		<>
+			<CardDescription className={"whitespace-normal"}>
+				When you crete project with ALCOM, the project will be saved in this path.<br/>
+				This setting may also be changed in settings page later.
+			</CardDescription>
 			<FilePathRow
 				withoutSelect
 				path={projectPath}
@@ -81,7 +51,7 @@ function WithLoadedData(
 				hasWhitespace
 					? <p className={"text-warning whitespace-normal text-sm"}>
 						The path contains whitespace. Whitespace in the path may cause problems with Unity and other tools.
-				</p>
+					</p>
 					: null
 			}
 			{

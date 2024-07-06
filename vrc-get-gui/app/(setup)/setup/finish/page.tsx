@@ -10,39 +10,24 @@ import {environmentGetSettings, environmentPickUnityHub} from "@/lib/bindings";
 import {tc} from "@/lib/i18n";
 import {useQuery} from "@tanstack/react-query";
 import {shellOpen} from "@/lib/shellOpen";
+import {SetupPageBase} from "../setup-page-base";
 
 export default function Page() {
-	const router = useRouter();
+	return <SetupPageBase
+		heading={"Congratulations!"}
+		Body={Body}
+		nextPage={"/projects"}
+		nextContent={"Start using ALCOM"}
+	/>
+}
 
-	const result = useQuery({
-		queryKey: ["environmentGetSettings"],
-		queryFn: environmentGetSettings
-	})
-
-	const onBack = () => {
-		router.back()
-	};
-
-	const onNext = () => {
-		router.push("/projects")
-	};
-
-	const hubInstalled = !!result.data?.unity_hub;
-
-	return <div className={"w-full flex items-center justify-center"}>
-		<Card className={"w-[500px] p-4"}>
-			<CardHeader>
-				<h1 className={"text-center"}>Configuration</h1>
-			</CardHeader>
-			<div className={"pb-4"}/>
+function Body() {
+	return (
+		<>
 			<CardDescription className={"whitespace-normal"}>
 				This is the end of the setup process!<br/>
 				You can now start using ALCOM.
 			</CardDescription>
-			<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">
-				<Button onClick={onBack}>Back</Button>
-				<Button disabled={!hubInstalled} onClick={onNext}>Start using ALCOM</Button>
-			</CardFooter>
-		</Card>
-	</div>
+		</>
+	)
 }
