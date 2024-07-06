@@ -13,6 +13,7 @@ export default function Page() {
 		heading={"Project Backup Settings"}
 		Body={Body}
 		nextPage={"/setup/system-setting"}
+		pageId={"Backups"}
 	/>
 }
 

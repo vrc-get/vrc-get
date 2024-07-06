@@ -11,6 +11,8 @@ export default function Page() {
 		Body={Body}
 		nextPage={"/setup/unity-hub"}
 		backContent={null}
+		pageId={"Appearance"}
+		withoutSteps
 	/>
 }
 

@@ -14,6 +14,7 @@ export default function Page() {
 		heading={"Project Save Path"}
 		Body={Body}
 		nextPage={"/setup/backups"}
+		pageId={"ProjectPath"}
 	/>
 }
 

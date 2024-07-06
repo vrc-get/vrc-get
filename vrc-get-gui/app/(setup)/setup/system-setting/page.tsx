@@ -14,6 +14,7 @@ export default function Page() {
 		heading={"System Configuration"}
 		Body={Body}
 		nextPage={"/setup/finish"}
+		pageId={"SystemSetting"}
 	/>
 }
 
