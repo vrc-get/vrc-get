@@ -272,7 +272,7 @@
     "check update:dialog:dismiss": "Dismiss",
     "check update:dialog:update": "Download & Update!",
     "check update:dialog:downloading...": "Downloading the update...",
-    "check update:dialog:relaunching...": "Relaunching ALCOM..."
+    "check update:dialog:relaunching...": "Relaunching ALCOM...",
     "check update:toast:no updates": "No updates available.",
   },
 }
