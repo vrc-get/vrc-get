@@ -30,6 +30,8 @@ pub struct GuiConfig {
     pub release_channel: String,
     #[serde(default)]
     pub use_alcom_for_vcc_protocol: bool,
+    #[serde(default)]
+    pub setup_process_progress: u32,
 }
 
 impl Default for GuiConfig {
@@ -45,6 +47,7 @@ impl Default for GuiConfig {
             project_sorting: project_sorting_default(),
             release_channel: release_channel_default(),
             use_alcom_for_vcc_protocol: false,
+            setup_process_progress: 0,
         }
     }
 }

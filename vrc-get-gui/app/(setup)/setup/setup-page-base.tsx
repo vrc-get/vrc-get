@@ -1,6 +1,12 @@
 import {useRouter} from "next/navigation";
 import {useQuery} from "@tanstack/react-query";
-import {environmentGetSettings, TauriEnvironmentSettings} from "@/lib/bindings";
+import {
+	environmentFinishedSetupPage,
+	environmentGetFinishedSetupPages,
+	environmentGetSettings,
+	SetupPages,
+	TauriEnvironmentSettings
+} from "@/lib/bindings";
 import {Card, CardFooter, CardHeader} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import React from "react";
@@ -8,8 +14,6 @@ import {Circle, CircleCheck, CircleChevronRight} from "lucide-react";
 import {loadOSApi} from "@/lib/os";
 
 export type BodyProps = Readonly<{ environment: TauriEnvironmentSettings, refetch: () => void }>;
-
-export type PageId = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting";
 
 export function SetupPageBase(
 	{
@@ -26,7 +30,7 @@ export function SetupPageBase(
 		nextPage: string;
 		backContent?: React.ReactNode;
 		nextContent?: React.ReactNode;
-		pageId: PageId | null;
+		pageId: SetupPages | null;
 		withoutSteps?: boolean;
 	}
 ) {
@@ -41,8 +45,9 @@ export function SetupPageBase(
 		router.back()
 	};
 
-	const onNext = () => {
-		// TODO: fetch next page from backend
+	const onNext = async () => {
+		if (pageId)
+			await environmentFinishedSetupPage(pageId);
 		router.push(nextPage)
 	};
 
@@ -75,11 +80,15 @@ function StepCard(
 	{
 		current,
 	}: {
-		current: PageId | null;
+		current: SetupPages | null;
 	}
 ) {
 	// TODO: get progress from backend
-	const finisheds: PageId[] = ["Appearance", "UnityHub"];
+	const finisheds = useQuery({
+		queryKey: ["environmentGetFinishedSetupPages"],
+		queryFn: async () => environmentGetFinishedSetupPages(),
+		initialData: []
+	}).data;
 
 	const osType = useQuery({
 		queryKey: ["osType"],
@@ -107,9 +116,9 @@ function StepElement(
 		pageId,
 		children,
 	}: {
-		current: PageId | null;
-		finisheds: PageId[];
-		pageId: PageId;
+		current: SetupPages | null;
+		finisheds: SetupPages[];
+		pageId: SetupPages;
 		children: React.ReactNode;
 	}
 ) {

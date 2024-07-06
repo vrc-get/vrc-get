@@ -83,10 +83,19 @@ pub fn startup(app: &mut App) {
             .append_pair("theme", &config.theme)
             .finish();
 
+        use super::environment::config::SetupPages;
+        let start_page = SetupPages::pages()
+            .iter()
+            .copied()
+            .filter(|page| !page.is_finished(config.setup_process_progress))
+            .next()
+            .map(|x| x.path())
+            .unwrap_or("/projects/");
+
         let window = tauri::WindowBuilder::new(
             &app,
             "main", /* the unique window label */
-            tauri::WindowUrl::App(format!("/projects/?{query}").into()),
+            tauri::WindowUrl::App(format!("{start_page}?{query}").into()),
         )
         .title("ALCOM")
         .resizable(true)

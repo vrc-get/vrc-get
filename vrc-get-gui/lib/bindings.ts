@@ -34,6 +34,18 @@ export function environmentSetProjectSorting(sorting: string) {
     return invoke()<null>("environment_set_project_sorting", { sorting })
 }
 
+export function environmentGetFinishedSetupPages() {
+    return invoke()<SetupPages[]>("environment_get_finished_setup_pages")
+}
+
+export function environmentFinishedSetupPage(page: SetupPages) {
+    return invoke()<null>("environment_finished_setup_page", { page })
+}
+
+export function environmentClearSetupProcess() {
+    return invoke()<null>("environment_clear_setup_process")
+}
+
 export function environmentProjects() {
     return invoke()<TauriProject[]>("environment_projects")
 }
@@ -276,6 +288,7 @@ export type CheckForUpdateResponse = { version: number; is_update_available: boo
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists"
+export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting"
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriAddRepositoryResult = "BadUrl" | "Success"
 export type TauriBasePackageInfo = { name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }

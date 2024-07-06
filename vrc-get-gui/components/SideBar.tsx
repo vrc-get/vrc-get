@@ -5,7 +5,7 @@ import {Card} from "@/components/ui/card";
 import {AlignLeft, CircleAlert, Cloud, List, Settings, SwatchBook} from "lucide-react";
 import React from "react";
 import {useQuery} from "@tanstack/react-query";
-import {utilGetVersion, utilIsBadHostname} from "@/lib/bindings";
+import {environmentClearSetupProcess, utilGetVersion, utilIsBadHostname} from "@/lib/bindings";
 import {useTranslation} from "react-i18next";
 import {useRouter} from "next/navigation";
 import {toastNormal} from "@/lib/toast";
@@ -61,7 +61,7 @@ export function SideBar({className}: { className?: string }) {
 				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={Cloud}/>
 				<SideBarItem href={"/settings"} text={t("settings")} icon={Settings}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={AlignLeft}/>
-				{isDev && <SideBarItem href={"/setup/appearance"} text={"Setup Pages (dev only link)"} icon={Settings}/>}
+				{isDev && <DevRestartSetupButton/>}
 				{isDev && <SideBarItem href={"/settings/palette"} text={"UI Palette (dev only)"} icon={SwatchBook}/>}
 				<div className={'flex-grow'}/>
 				{isBadHostName.data && <BadHostNameDialogButton/>}
@@ -115,4 +115,20 @@ function BadHostNameDialogButton() {
 			</DialogContent>
 		</Dialog>
 	)
+}
+
+function DevRestartSetupButton() {
+	const router = useRouter();
+	const onClick = async () => {
+		await environmentClearSetupProcess();
+		router.push("/setup/appearance");
+	}
+	return (
+		<Button variant={"ghost"} className={"justify-start flex-shrink-0"} onClick={onClick}>
+			<div className={"mr-4"}>
+				<Settings className="h-5 w-5"/>
+			</div>
+			Restart Setup (dev only)
+		</Button>
+	);
 }
