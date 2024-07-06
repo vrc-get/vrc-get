@@ -8,7 +8,7 @@ import {tc} from "@/lib/i18n";
 import {toastThrownError} from "@/lib/toast";
 import {BodyProps, SetupPageBase} from "../setup-page-base";
 import {useQuery} from "@tanstack/react-query";
-import {loadOSApi} from "@/lib/os";
+import {isWindows, loadOSApi} from "@/lib/os";
 
 export default function Page() {
 	const osType = useQuery({
@@ -41,6 +41,13 @@ function Body({environment, refetch}: BodyProps) {
 		}
 	}
 
+	const localAppDataPath = useQuery({
+		queryKey: ["cacheDir"],
+		queryFn: async () => await (await import("@tauri-apps/api/path")).cacheDir()
+	}).data;
+
+	const inLocalAppData = !!(isWindows() && localAppDataPath && projectBackupPath.includes(localAppDataPath));
+
 	return (
 		<>
 			<h3>{tc("settings:backup:path")}</h3>
@@ -55,6 +62,15 @@ function Body({environment, refetch}: BodyProps) {
 				refetch={refetch}
 				successMessage={tc("settings:toast:backup path updated")}
 			/>
+			{
+				inLocalAppData
+					? <p className={"text-warning whitespace-normal text-sm"}>
+						The location is in LocalAppData folder, which will be deleted with "Reset your PC" with "Keep my files".
+						It's recommended to save your projects in a different location.
+					</p>
+					: null
+			}
+			<div className={"pb-3"}/>
 			<h3>Archive Format</h3>
 			<CardDescription className={"whitespace-normal"}>
 				You can select the format of the backup archive. <br/>
