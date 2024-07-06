@@ -250,6 +250,7 @@
     "projects:dialog:creating backup...": "正在创建备份...",
     "projects:toast:backup canceled": "备份操作已被取消",
     "projects:toast:backup succeeded": "备份创建成功",
+    "settings:appearance": "外观",
     "settings:language": "界面语言(Language)",
     "settings:report issue": "报告问题",
     "settings:button:open issue": "在 GitHub 上创建问题",
@@ -268,6 +269,7 @@
     "check update:dialog:dismiss": "忽略",
     "check update:dialog:update": "下载并更新！",
     "check update:dialog:downloading...": "正在下载更新...",
+    "check update:dialog:relaunching...": "正在重启 ALCOM...",
     "check update:toast:no updates": "已是最新版本。",
   },
 }

@@ -253,6 +253,7 @@
     "projects:dialog:creating backup...": "Creating a backup...",
     "projects:toast:backup canceled": "Backup was canceled.",
     "projects:toast:backup succeeded": "Backup was created successfully.",
+    "settings:appearance": "Appearance",
     "settings:language": "Language",
     "settings:report issue": "Report an Issue",
     "settings:button:open issue": "Open an Issue",
@@ -271,6 +272,7 @@
     "check update:dialog:dismiss": "Dismiss",
     "check update:dialog:update": "Download & Update!",
     "check update:dialog:downloading...": "Downloading the update...",
+    "check update:dialog:relaunching...": "Relaunching ALCOM...",
     "check update:toast:no updates": "No updates available.",
   },
 }
