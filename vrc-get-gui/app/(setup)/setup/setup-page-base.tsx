@@ -5,6 +5,7 @@ import {Card, CardFooter, CardHeader} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import React from "react";
 import {Circle, CircleCheck, CircleChevronRight} from "lucide-react";
+import {loadOSApi} from "@/lib/os";
 
 export type BodyProps = Readonly<{ environment: TauriEnvironmentSettings, refetch: () => void }>;
 
@@ -80,13 +81,21 @@ function StepCard(
 	// TODO: get progress from backend
 	const finisheds: PageId[] = ["Appearance", "UnityHub"];
 
+	const osType = useQuery({
+		queryKey: ["osType"],
+		queryFn: async () => loadOSApi().then(os => os.type()),
+		initialData: "Windows_NT" as const
+	}).data;
+
+	const isMac = osType === "Darwin";
+
 	return <Card className={"w-48 p-4"}>
 		<ol className={"flex flex-col gap-2"}>
 			<StepElement current={current} finisheds={finisheds} pageId={"Appearance"}>Appearance</StepElement>
 			<StepElement current={current} finisheds={finisheds} pageId={"UnityHub"}>Unity Hub</StepElement>
 			<StepElement current={current} finisheds={finisheds} pageId={"ProjectPath"}>Save Location</StepElement>
 			<StepElement current={current} finisheds={finisheds} pageId={"Backups"}>Backup</StepElement>
-			<StepElement current={current} finisheds={finisheds} pageId={"SystemSetting"}>System</StepElement>
+			{!isMac && <StepElement current={current} finisheds={finisheds} pageId={"SystemSetting"}>System</StepElement>}
 		</ol>
 	</Card>
 }

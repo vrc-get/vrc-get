@@ -29,7 +29,6 @@ import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {shellOpen} from "@/lib/shellOpen";
 import {loadOSApi} from "@/lib/os";
-import type {OsType} from "@tauri-apps/api/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {assertNever} from "@/lib/assert-never";
 import {ScrollPageContainer} from "@/components/ScrollPageContainer";
@@ -78,14 +77,11 @@ function Settings(
 		refetch: () => void
 	}
 ) {
-	const [osType, setOsType] = React.useState<OsType>("Windows_NT");
-
-	React.useEffect(() => {
-		(async () => {
-			const os = await loadOSApi();
-			setOsType(await os.type());
-		})();
-	}, [])
+	const osType = useQuery({
+		queryKey: ["osType"],
+		queryFn: async () => loadOSApi().then(os => os.type()),
+		initialData: "Windows_NT" as const
+	}).data;
 
 	return (
 		<ScrollPageContainer>

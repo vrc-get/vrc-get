@@ -7,12 +7,22 @@ import {environmentPickProjectBackupPath, environmentSetBackupFormat} from "@/li
 import {tc} from "@/lib/i18n";
 import {toastThrownError} from "@/lib/toast";
 import {BodyProps, SetupPageBase} from "../setup-page-base";
+import {useQuery} from "@tanstack/react-query";
+import {loadOSApi} from "@/lib/os";
 
 export default function Page() {
+	const osType = useQuery({
+		queryKey: ["osType"],
+		queryFn: async () => loadOSApi().then(os => os.type()),
+		initialData: "Windows_NT" as const
+	}).data;
+
+	const isMac = osType === "Darwin";
+
 	return <SetupPageBase
 		heading={"Project Backup Settings"}
 		Body={Body}
-		nextPage={"/setup/system-setting"}
+		nextPage={isMac ? "/setup/finish" : "/setup/system-setting"}
 		pageId={"Backups"}
 	/>
 }
