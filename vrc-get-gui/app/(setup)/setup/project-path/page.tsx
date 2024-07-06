@@ -32,7 +32,7 @@ function Body(
 	}).data;
 
 	const hasWhitespace = projectPath.includes(" ");
-	const hasNonAscii = isWindows() && !projectPath.match(/[^\x00-\x7F]/);
+	const hasNonAscii = isWindows() && projectPath.match(/[^\x00-\x7F]/);
 	const inLocalAppData = !!(isWindows() && localAppDataPath && projectPath.includes(localAppDataPath));
 
 	return (
