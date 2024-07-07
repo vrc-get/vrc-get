@@ -15,6 +15,7 @@ export default function Page() {
 		heading={tc("setup:unity-hub:heading")}
 		Body={Body}
 		nextPage={"/setup/project-path"}
+		prevPage={"/setup/appearance"}
 		pageId={"UnityHub"}
 	/>
 }

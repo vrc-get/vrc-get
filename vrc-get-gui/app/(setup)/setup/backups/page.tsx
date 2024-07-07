@@ -23,6 +23,7 @@ export default function Page() {
 		heading={tc("setup:backups:heading")}
 		Body={Body}
 		nextPage={isMac ? "/setup/finish" : "/setup/system-setting"}
+		prevPage={"/setup/project-path"}
 		pageId={"Backups"}
 	/>
 }

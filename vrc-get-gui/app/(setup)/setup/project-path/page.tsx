@@ -14,6 +14,7 @@ export default function Page() {
 		heading={tc("setup:project-path:heading")}
 		Body={Body}
 		nextPage={"/setup/backups"}
+		prevPage={"/setup/unity-hub"}
 		pageId={"ProjectPath"}
 	/>
 }

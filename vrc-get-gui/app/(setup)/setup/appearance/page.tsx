@@ -11,7 +11,7 @@ export default function Page() {
 		heading={tc("setup:entry:welcome")}
 		Body={Body}
 		nextPage={"/setup/unity-hub"}
-		backContent={null}
+		prevPage={null}
 		pageId={"Appearance"}
 		withoutSteps
 	/>

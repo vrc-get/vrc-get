@@ -21,6 +21,7 @@ export function SetupPageBase(
 		heading,
 		Body,
 		nextPage,
+		prevPage,
 		backContent = tc("setup:back"),
 		nextContent = tc("setup:next"),
 		pageId,
@@ -29,6 +30,7 @@ export function SetupPageBase(
 		heading: React.ReactNode;
 		Body: React.ComponentType<BodyProps>;
 		nextPage: string;
+		prevPage: string | null;
 		backContent?: React.ReactNode;
 		nextContent?: React.ReactNode;
 		pageId: SetupPages | null;
@@ -41,10 +43,6 @@ export function SetupPageBase(
 		queryKey: ["environmentGetSettings"],
 		queryFn: environmentGetSettings,
 	})
-
-	const onBack = () => {
-		router.back()
-	};
 
 	const onNext = async () => {
 		if (pageId)
@@ -68,8 +66,8 @@ export function SetupPageBase(
 					}
 					<div className={"flex-grow"}/>
 					<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">
-						{backContent && <Button onClick={onBack}>{backContent}</Button>}
-						{nextContent && <Button onClick={onNext}>{nextContent}</Button>}
+						{prevPage && <Button onClick={() => router.push(prevPage)}>{backContent}</Button>}
+						<Button onClick={onNext}>{nextContent}</Button>
 					</CardFooter>
 				</div>
 			</Card>
