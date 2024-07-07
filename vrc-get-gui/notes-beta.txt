@@ -1,6 +1,2 @@
 # This is notes text for the updater json, which will be shown in the updater dialog.
 # Lines starting with '#' will be ignored (as comments).
-This release includes the following features!:
-- Setup Wizard
-  Setup Wizard will be shown after upgrading to this version.
-- User Package Management

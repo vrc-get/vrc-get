@@ -8,10 +8,6 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Initial Setup Process `#1214`
-  - There are few settings should be set up before using ALCOM.
-  - Since this version, ALCOM will show the initial setup process if the settings are not set up.
-- User Package Management `#1222`
 
 ### Changed
 
@@ -20,10 +16,19 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- There is no way to remove ALCOM for `vcc:` link `#1222`
-  - Since this version, ALCOM will remove ALCOM from the `vcc:` link registry on uninstallation.
 
 ### Security
+
+## [0.1.10-beta.4] - 2024-07-07
+### Added
+- Initial Setup Process [`#1214`](https://github.com/vrc-get/vrc-get/pull/1214)
+  - There are few settings should be set up before using ALCOM.
+  - Since this version, ALCOM will show the initial setup process if the settings are not set up.
+- User Package Management [`#1222`](https://github.com/vrc-get/vrc-get/pull/1222)
+
+### Fixed
+- There is no way to remove ALCOM for `vcc:` link [`#1222`](https://github.com/vrc-get/vrc-get/pull/1222)
+  - Since this version, ALCOM will remove ALCOM from the `vcc:` link registry on uninstallation.
 
 ## [0.1.10-beta.3] - 2024-07-04
 ### Added
@@ -364,7 +369,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.3...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.4...HEAD
+[0.1.10-beta.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.3...gui-v0.1.10-beta.4
 [0.1.10-beta.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.2...gui-v0.1.10-beta.3
 [0.1.10-beta.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.1...gui-v0.1.10-beta.2
 [0.1.10-beta.1]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.9...gui-v0.1.10-beta.1
