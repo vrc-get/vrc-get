@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- There is no way to remove ALCOM for `vcc:` link `#1222`
+  - Since this version, ALCOM will remove ALCOM from the `vcc:` link registry on uninstallation.
 
 ### Security
 
