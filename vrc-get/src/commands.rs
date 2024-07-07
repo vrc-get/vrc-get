@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::read_to_string;
-use vrc_get_vpm::environment::AddRepositoryErr;
+use vrc_get_vpm::environment::{AddRepositoryErr, AddUserPackageResult};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
@@ -91,6 +91,20 @@ async fn load_env(args: &EnvArgs) -> Environment {
         .exit_context("loading global config");
 
     env.load_package_infos(!args.no_update)
+        .await
+        .exit_context("loading repositories");
+    env.save().await.exit_context("saving repositories updates");
+
+    env
+}
+
+async fn load_user_env() -> Environment {
+    let io = DefaultEnvironmentIo::new_default();
+    let mut env = Environment::load(None, io)
+        .await
+        .exit_context("loading global config");
+
+    env.load_user_package_infos()
         .await
         .exit_context("loading repositories");
     env.save().await.exit_context("saving repositories updates");
@@ -374,6 +388,8 @@ pub enum Command {
     #[command(subcommand)]
     Repo(Repo),
     #[command(subcommand)]
+    UserPackage(UserPackage),
+    #[command(subcommand)]
     Info(info::Info),
     #[command(subcommand)]
     Migrate(migrate::Migrate),
@@ -399,6 +415,7 @@ multi_command!(Command is
     Downgrade,
     Search,
     Repo,
+    UserPackage,
     Info,
     Migrate,
     Cache,
@@ -1312,6 +1329,87 @@ impl RepoExport {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
         print!("{}", env.export_repositories());
+    }
+}
+
+/// Commands around user packages
+#[derive(Subcommand)]
+#[command(author, version)]
+pub enum UserPackage {
+    List(UserPackageList),
+    Add(UserPackageAdd),
+    Remove(UserPackageRemove),
+}
+
+multi_command!(UserPackage is List, Add, Remove);
+
+/// List all user packages
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UserPackageList {}
+
+impl UserPackageList {
+    pub async fn run(self) {
+        let env = load_user_env().await;
+
+        for (path, package) in env.user_packages() {
+            println!(
+                "{}: {} version {} at {}",
+                package.name(),
+                package.display_name().unwrap_or(package.name()),
+                package.version(),
+                path.display(),
+            );
+        }
+    }
+}
+
+/// Add user package
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UserPackageAdd {
+    /// Path to package
+    #[arg()]
+    path: Box<Path>,
+}
+
+impl UserPackageAdd {
+    pub async fn run(self) {
+        let mut env = load_user_env().await;
+
+        let path = absolute_path(&self.path);
+        match env.add_user_package(&path).await {
+            AddUserPackageResult::BadPackage => {
+                exit_with!("bad package: {}", self.path.display())
+            }
+            AddUserPackageResult::AlreadyAdded => {
+                exit_with!("package already added: {}", self.path.display())
+            }
+            AddUserPackageResult::Success => {}
+            AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
+        }
+
+        save_env(&mut env).await;
+    }
+}
+
+/// Remove user package
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UserPackageRemove {
+    /// Path to package
+    #[arg()]
+    path: Box<Path>,
+}
+
+impl UserPackageRemove {
+    pub async fn run(self) {
+        let mut env = load_user_env().await;
+
+        let path = absolute_path(&self.path);
+        env.remove_user_package(&path);
+
+        save_env(&mut env).await;
     }
 }
 
