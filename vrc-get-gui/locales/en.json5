@@ -3,7 +3,7 @@
     "settings:langName": "English",
     "projects": "Projects",
     "settings": "Settings",
-    "vpm repositories": "VPM Repositories",
+    "packages": "Packages",
     "logs": "Logs",
     "sidebar:toast:version copied": "Version name was copied.",
     "sidebar:bad hostname": "Bad hostname",
