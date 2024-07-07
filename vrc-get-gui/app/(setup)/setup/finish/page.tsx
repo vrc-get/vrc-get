@@ -28,10 +28,10 @@ export default function Page() {
 
 function Body() {
 	return (
-		<>
-			<CardDescription className={"whitespace-normal"}>
+		<div className={"w-full h-full flex justify-center items-center"}>
+			<CardDescription className={"whitespace-normal text-lg text-foreground text-center"}>
 				{tc("setup:finish:description")}
 			</CardDescription>
-		</>
+		</div>
 	)
 }

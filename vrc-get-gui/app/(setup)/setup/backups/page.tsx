@@ -6,7 +6,7 @@ import {BackupFormatSelect, FilePathRow} from "@/components/common-setting-parts
 import {environmentPickProjectBackupPath, environmentSetBackupFormat} from "@/lib/bindings";
 import {tc} from "@/lib/i18n";
 import {toastThrownError} from "@/lib/toast";
-import {BodyProps, SetupPageBase} from "../setup-page-base";
+import {BodyProps, SetupPageBase, WarningMessage} from "../setup-page-base";
 import {useQuery} from "@tanstack/react-query";
 import {isWindows, loadOSApi} from "@/lib/os";
 
@@ -62,7 +62,7 @@ function Body({environment, refetch}: BodyProps) {
 				refetch={refetch}
 				successMessage={tc("settings:toast:backup path updated")}
 			/>
-			{inLocalAppData && <p className={"text-warning whitespace-normal text-sm"}>{tc("setup:backups:warning:in-local-app-data")}</p>}
+			{inLocalAppData && <WarningMessage>{tc("setup:backups:warning:in-local-app-data")}</WarningMessage>}
 			<div className={"pb-3"}/>
 			<h3>{tc("setup:backups:archive")}</h3>
 			<CardDescription className={"whitespace-normal"}>

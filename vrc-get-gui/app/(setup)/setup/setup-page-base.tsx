@@ -10,7 +10,7 @@ import {
 import {Card, CardFooter, CardHeader} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import React from "react";
-import {Circle, CircleCheck, CircleChevronRight} from "lucide-react";
+import {Circle, CircleAlert, CircleCheck, CircleChevronRight} from "lucide-react";
 import {loadOSApi} from "@/lib/os";
 import {tc} from "@/lib/i18n";
 
@@ -125,4 +125,21 @@ function StepElement(
 		{finished ? <CircleCheck/> : active ? <CircleChevronRight/> : <Circle/>}
 		{tc(`setup:steps card:${pageId}`)}
 	</li>
+}
+
+export function WarningMessage(
+	{
+		children,
+	}: {
+		children: React.ReactNode;
+	}
+) {
+	return <div className={"flex items-center gap-2"}>
+		<div className="flex-grow-0 flex-shrink-0">
+			<CircleAlert className="text-warning w-5 h-5"/>
+		</div>
+		<p className={"whitespace-normal text-sm"}>
+			{children}
+		</p>
+	</div>
 }

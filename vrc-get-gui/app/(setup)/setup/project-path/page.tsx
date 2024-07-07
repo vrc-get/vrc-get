@@ -7,7 +7,7 @@ import {environmentPickProjectDefaultPath} from "@/lib/bindings";
 import {tc} from "@/lib/i18n";
 import {useQuery} from "@tanstack/react-query";
 import {isWindows} from "@/lib/os";
-import {BodyProps, SetupPageBase} from "../setup-page-base";
+import {BodyProps, SetupPageBase, WarningMessage} from "../setup-page-base";
 
 export default function Page() {
 	return <SetupPageBase
@@ -48,9 +48,11 @@ function Body(
 				refetch={refetch}
 				successMessage={tc("settings:toast:default project path updated")}
 			/>
-			{hasWhitespace && <p className={"text-warning whitespace-normal text-sm"}>{tc("setup:project-path:warning:whitespace")}</p>}
-			{hasNonAscii && <p className={"text-warning whitespace-normal text-sm"}>{tc("setup:project-path:warning:non-ascii")}</p>}
-			{inLocalAppData && <p className={"text-warning whitespace-normal text-sm"}>{tc("setup:project-path:warning:in-local-app-data")}</p>}
+			<div className="flex flex-col gap-1">
+				{hasWhitespace && <WarningMessage>{tc("setup:project-path:warning:whitespace")}</WarningMessage>}
+				{hasNonAscii && <WarningMessage>{tc("setup:project-path:warning:non-ascii")}</WarningMessage>}
+				{inLocalAppData && <WarningMessage>{tc("setup:project-path:warning:in-local-app-data")}</WarningMessage>}
+			</div>
 		</>
 	)
 }
