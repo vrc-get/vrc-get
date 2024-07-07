@@ -17,7 +17,7 @@ export default function Page() {
 	const isMac = osType === "Darwin";
 
 	return <SetupPageBase
-		heading={"Setup Completed!"}
+		heading={tc("setup:finish:heading")}
 		Body={Body}
 		nextPage={"/projects"}
 		prevPage={isMac ? "/setup/backups" : "/setup/system-setting"}
