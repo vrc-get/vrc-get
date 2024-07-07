@@ -229,7 +229,7 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
 #[tauri::command]
 #[specta::specta]
 #[cfg(target_os = "linux")]
-pub async fn deep_link_uninstall_vcc(app: AppHandle) {
+pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
     // for linux, create a desktop entry
     // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
 
@@ -241,7 +241,7 @@ pub async fn deep_link_uninstall_vcc(app: AppHandle) {
     let desktop_file =
         applications_dir.join(format!("{app_id}.desktop", app_id = "com.anataw12.vrc_get"));
 
-    match remove_file(desktop_file).await {
+    match remove_file(&desktop_file).await {
         Ok(()) => {
             log::info!("Desktop file removed: {}", desktop_file.display());
         }
