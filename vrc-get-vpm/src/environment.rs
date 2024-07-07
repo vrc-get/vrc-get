@@ -17,7 +17,7 @@ use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::{EnvironmentIoHolder, HttpClient, PackageCollection, RemotePackageDownloader};
-use crate::utils::{normalize_path, to_vec_pretty_os_eol, Sha256AsyncWrite};
+use crate::utils::{normalize_path, to_vec_pretty_os_eol, try_load_json, Sha256AsyncWrite};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use futures::future::{join_all, try_join};
 use futures::prelude::*;
@@ -38,6 +38,7 @@ use url::Url;
 
 use crate::environment::vrc_get_settings::VrcGetSettings;
 use crate::io::{DirEntry, EnvironmentIo};
+use crate::package_manifest::LooseManifest;
 #[cfg(feature = "experimental-project-management")]
 pub use project_management::*;
 pub(crate) use repo_holder::RepoHolder;
@@ -196,7 +197,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         });
     }
 
-    async fn load_user_package_infos(&mut self) -> io::Result<()> {
+    pub async fn load_user_package_infos(&mut self) -> io::Result<()> {
         self.user_packages.clear();
         for x in self.settings.user_package_folders() {
             self.user_packages.try_add_package(&self.io, x).await;
@@ -630,6 +631,50 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         #[cfg(feature = "vrc-get-litedb")]
         self.disconnect_litedb();
         Ok(())
+    }
+}
+
+pub enum AddUserPackageResult {
+    Success,
+    NonAbsolute,
+    BadPackage,
+    AlreadyAdded,
+}
+
+impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+    pub fn user_packages(&self) -> &[(PathBuf, PackageManifest)] {
+        self.user_packages.get_packages()
+    }
+
+    pub fn remove_user_package(&mut self, pkg_path: &Path) {
+        self.user_packages.remove_user_package(pkg_path);
+        self.settings.remove_user_package_folder(pkg_path);
+    }
+
+    pub async fn add_user_package(&mut self, pkg_path: &Path) -> AddUserPackageResult {
+        if !pkg_path.is_absolute() {
+            return AddUserPackageResult::NonAbsolute;
+        }
+
+        for x in self.settings.user_package_folders() {
+            if x == pkg_path {
+                return AddUserPackageResult::AlreadyAdded;
+            }
+        }
+
+        let package_json =
+            match try_load_json::<LooseManifest>(&self.io, &pkg_path.join("package.json")).await {
+                Ok(Some(LooseManifest(package_json))) => package_json,
+                _ => {
+                    return AddUserPackageResult::BadPackage;
+                }
+            };
+
+        self.user_packages
+            .add_user_package(pkg_path.into(), package_json);
+        self.settings.add_user_package_folder(pkg_path.to_owned());
+
+        AddUserPackageResult::Success
     }
 }
 

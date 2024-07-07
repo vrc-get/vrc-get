@@ -2,6 +2,7 @@ use futures::future::try_join_all;
 use indexmap::IndexMap;
 use log::info;
 use std::collections::HashSet;
+use std::path::Path;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -13,6 +14,7 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use crate::commands::async_command::{async_command, AsyncCallResult, With};
+use vrc_get_vpm::environment::AddUserPackageResult;
 use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::{HttpClient, PackageCollection, PackageInfo, VersionSelector};
@@ -511,8 +513,7 @@ pub async fn environment_export_repositories(
         return Ok(());
     };
 
-    let repositories =
-        with_environment!(state, |environment| { environment.export_repositories() });
+    let repositories = with_environment!(state, |environment| environment.export_repositories());
 
     write(path, repositories).await?;
 
@@ -529,6 +530,99 @@ pub async fn environment_clear_package_cache(
 
         environment.save().await?;
     });
+
+    Ok(())
+}
+
+#[derive(Serialize, specta::Type)]
+pub struct TauriUserPackage {
+    path: String,
+    package: TauriBasePackageInfo,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_get_user_packages(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<Vec<TauriUserPackage>, RustError> {
+    let mut env_state = state.lock().await;
+    let env_state = &mut *env_state;
+    let environment = env_state
+        .environment
+        .get_environment_mut(
+            UpdateRepositoryMode::IfOutdatedOrNecessaryForLocal,
+            &env_state.io,
+        )
+        .await?;
+
+    Ok(environment
+        .user_packages()
+        .iter()
+        .filter_map(|(path, json)| {
+            let path = path.as_os_str().to_str()?;
+            Some(TauriUserPackage {
+                path: path.into(),
+                package: TauriBasePackageInfo::new(json),
+            })
+        })
+        .collect())
+}
+
+#[derive(Serialize, specta::Type)]
+pub enum TauriAddUserPackageWithPickerResult {
+    NoFolderSelected,
+    InvalidSelection,
+    AlreadyAdded,
+    Successful,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_add_user_package_with_picker(
+    state: State<'_, Mutex<EnvironmentState>>,
+) -> Result<TauriAddUserPackageWithPickerResult, RustError> {
+    let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
+        return Ok(TauriAddUserPackageWithPickerResult::NoFolderSelected);
+    };
+
+    let Ok(project_path) = project_path.into_os_string().into_string() else {
+        return Ok(TauriAddUserPackageWithPickerResult::InvalidSelection);
+    };
+
+    with_environment!(&state, |environment| {
+        match environment.add_user_package(project_path.as_ref()).await {
+            AddUserPackageResult::Success => {}
+            AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
+            AddUserPackageResult::BadPackage => {
+                return Ok(TauriAddUserPackageWithPickerResult::InvalidSelection);
+            }
+            AddUserPackageResult::AlreadyAdded => {
+                return Ok(TauriAddUserPackageWithPickerResult::AlreadyAdded);
+            }
+        }
+
+        environment.save().await?;
+    });
+
+    Ok(TauriAddUserPackageWithPickerResult::Successful)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_remove_user_packages(
+    state: State<'_, Mutex<EnvironmentState>>,
+    path: String,
+) -> Result<(), RustError> {
+    with_environment!(state, |environment| {
+        environment.remove_user_package(Path::new(&path));
+
+        environment.save().await?;
+    });
+
+    {
+        let mut state = state.lock().await;
+        state.environment.last_repository_update = None;
+    }
 
     Ok(())
 }

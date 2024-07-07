@@ -4,7 +4,7 @@ use crate::utils::{load_json_or_default, SaveController};
 use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 type JsonObject = Map<String, Value>;
 
@@ -87,6 +87,17 @@ impl Settings {
 
     pub(crate) fn user_package_folders(&self) -> &[PathBuf] {
         &self.controller.user_package_folders
+    }
+
+    pub fn remove_user_package_folder(&mut self, path: &Path) {
+        self.controller
+            .as_mut()
+            .user_package_folders
+            .retain(|x| x != path);
+    }
+
+    pub(crate) fn add_user_package_folder(&mut self, path: PathBuf) {
+        self.controller.as_mut().user_package_folders.push(path);
     }
 
     pub(crate) fn update_user_repo_id(&mut self, new_id: impl NewIdGetter) {
