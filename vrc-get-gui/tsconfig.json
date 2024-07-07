@@ -23,8 +23,20 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./*"
+      "@/app/*": [
+        "./app/*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/locales/*": [
+        "./locales/*"
+      ],
+      "@/build/*": [
+        "./build/*"
       ]
     }
   },

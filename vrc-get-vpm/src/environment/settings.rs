@@ -4,7 +4,7 @@ use crate::utils::{load_json_or_default, SaveController};
 use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 type JsonObject = Map<String, Value>;
 
@@ -21,8 +21,10 @@ struct AsJson {
     unity_editors: Vec<Box<str>>,
     #[serde(default)]
     preferred_unity_editors: JsonObject,
+    // In the current VCC, this path will be reset to default if it's null
+    // and vrc-get prefers another path the VCC's one so keep null if not set
     #[serde(default)]
-    default_project_path: Box<str>,
+    default_project_path: Option<Box<str>>,
     #[serde(rename = "lastUIState")]
     #[serde(default)]
     last_ui_state: i64,
@@ -38,8 +40,10 @@ struct AsJson {
     last_news_update: Box<str>,
     #[serde(default)]
     allow_pii: bool,
+    // In the current VCC, this path will be reset to default if it's null
+    // and vrc-get prefers another path the VCC's one so keep null if not set
     #[serde(default)]
-    project_backup_path: Box<str>,
+    project_backup_path: Option<Box<str>>,
     #[serde(default)]
     show_prerelease_packages: bool,
     #[serde(default)]
@@ -70,24 +74,7 @@ const JSON_PATH: &str = "settings.json";
 
 impl Settings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
-        let mut parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
-
-        if parsed.project_backup_path.is_empty() {
-            // Note: keep in sync with vrc-get-gui/src/commands.rs
-            parsed.project_backup_path = io
-                .resolve("Project Backups".as_ref())
-                .to_string_lossy()
-                .into_owned()
-                .into();
-        }
-
-        if parsed.default_project_path.is_empty() {
-            // Note: keep in sync with vrc-get-gui/src/commands.rs
-            let mut path = io.resolve("".as_ref());
-            path.pop();
-            path.push("VRChatProjects");
-            parsed.default_project_path = path.to_string_lossy().into_owned().into();
-        }
+        let parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
         Ok(Self {
             controller: SaveController::new(parsed),
@@ -100,6 +87,17 @@ impl Settings {
 
     pub(crate) fn user_package_folders(&self) -> &[PathBuf] {
         &self.controller.user_package_folders
+    }
+
+    pub fn remove_user_package_folder(&mut self, path: &Path) {
+        self.controller
+            .as_mut()
+            .user_package_folders
+            .retain(|x| x != path);
+    }
+
+    pub(crate) fn add_user_package_folder(&mut self, path: PathBuf) {
+        self.controller.as_mut().user_package_folders.push(path);
     }
 
     pub(crate) fn update_user_repo_id(&mut self, new_id: impl NewIdGetter) {
@@ -155,20 +153,20 @@ impl Settings {
         self.controller.as_mut().show_prerelease_packages = value;
     }
 
-    pub(crate) fn default_project_path(&self) -> &str {
-        &self.controller.default_project_path
+    pub(crate) fn default_project_path(&self) -> Option<&str> {
+        self.controller.default_project_path.as_deref()
     }
 
     pub(crate) fn set_default_project_path(&mut self, value: &str) {
-        self.controller.as_mut().default_project_path = value.into();
+        self.controller.as_mut().default_project_path = Some(value.into());
     }
 
-    pub(crate) fn project_backup_path(&self) -> &str {
-        &self.controller.project_backup_path
+    pub(crate) fn project_backup_path(&self) -> Option<&str> {
+        self.controller.project_backup_path.as_deref()
     }
 
     pub(crate) fn set_project_backup_path(&mut self, value: &str) {
-        self.controller.as_mut().project_backup_path = value.into();
+        self.controller.as_mut().project_backup_path = Some(value.into());
     }
 
     pub(crate) fn unity_hub(&self) -> &str {

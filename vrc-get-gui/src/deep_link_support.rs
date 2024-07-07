@@ -1,9 +1,11 @@
+use std::io;
 use std::sync::Arc;
 
 use crate::specta::IndexMapV2;
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
 use tauri::{AppHandle, Manager};
+use tokio::fs::remove_file;
 use url::{Host, Url};
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
@@ -109,7 +111,7 @@ pub fn deep_link_take_add_repository() -> Option<AddRepositoryInfo> {
 #[tauri::command]
 #[specta::specta]
 #[cfg(target_os = "macos")]
-pub async fn deep_link_install_vcc() {
+pub async fn deep_link_install_vcc(_app: AppHandle) {
     // for macos, nothing to do!
     log::error!("deep_link_install_vcc is not supported on macos");
 }
@@ -117,8 +119,8 @@ pub async fn deep_link_install_vcc() {
 #[tauri::command]
 #[specta::specta]
 #[cfg(windows)]
-// for windows, install to registry
-pub async fn deep_link_install_vcc() {
+pub async fn deep_link_install_vcc(_app: AppHandle) {
+    // for windows, install to registry
     fn impl_() -> std::io::Result<()> {
         let exe = std::env::current_exe()?;
         let exe = exe.to_string_lossy();
@@ -197,6 +199,69 @@ Categories=Utility;
             .replace(r#"`"#, r#"\\`"#)
             .replace(r#"$"#, r#"\\$"#)
             .replace(r#"""#, r#"\\""#)
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+#[cfg(target_os = "macos")]
+pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
+    // for macos, nothing to do!
+    log::error!("deep_link_uninstall_vcc is not supported on macos");
+}
+
+#[tauri::command]
+#[specta::specta]
+#[cfg(windows)]
+pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
+    // for windows, install to registry
+    fn impl_() -> io::Result<()> {
+        winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
+            .delete_subkey_all("Software\\Classes\\vcc")?;
+        Ok(())
+    }
+
+    if let Err(e) = impl_() {
+        log::error!("Failed to install vcc deep link: {}", e);
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+#[cfg(target_os = "linux")]
+pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
+    // for linux, create a desktop entry
+    // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
+
+    let Some(home_dir) = dirs_next::data_dir() else {
+        log::error!("Failed to get XDG_DATA_HOME");
+        return;
+    };
+    let applications_dir = home_dir.join("applications");
+    let desktop_file =
+        applications_dir.join(format!("{app_id}.desktop", app_id = "com.anataw12.vrc_get"));
+
+    match remove_file(&desktop_file).await {
+        Ok(()) => {
+            log::info!("Desktop file removed: {}", desktop_file.display());
+        }
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+            log::info!("Desktop file was not found: {}", desktop_file.display());
+            return;
+        }
+        Err(e) => {
+            log::error!("Failed to remove desktop file: {}", e);
+            return;
+        }
+    }
+
+    if let Err(e) = tokio::process::Command::new("update-desktop-database")
+        .arg(applications_dir)
+        .status()
+        .await
+    {
+        log::error!("Failed to call update-desktop-database: {}", e);
+        return;
     }
 }
 

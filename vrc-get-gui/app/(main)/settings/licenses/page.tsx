@@ -1,5 +1,5 @@
 import {loadLicenses} from "@/lib/licenses";
-import RenderPage from "@/app/settings/licenses/render-client";
+import RenderPage from "./render-client";
 
 const licenses = await loadLicenses();
 

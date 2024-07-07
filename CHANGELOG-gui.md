@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Initial Setup Process `#1214`
+  - There are few settings should be set up before using ALCOM.
+  - Since this version, ALCOM will show the initial setup process if the settings are not set up.
+- User Package Management `#1222`
 
 ### Changed
 
@@ -16,6 +20,8 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- There is no way to remove ALCOM for `vcc:` link `#1222`
+  - Since this version, ALCOM will remove ALCOM from the `vcc:` link registry on uninstallation.
 
 ### Security
 

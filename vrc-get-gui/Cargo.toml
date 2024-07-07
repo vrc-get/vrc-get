@@ -17,7 +17,7 @@ tauri-build = { version = "1.5.1", features = [ "config-toml" ] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.6.8", features = [ "os-all", "updater", "shell-open", "config-toml", "dialog" ] }
+tauri = { version = "1.6.8", features = [ "path-all", "os-all", "updater", "shell-open", "config-toml", "dialog" ] }
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
 reqwest = "0.12.5"
 specta = { version = "1.0.5", features = [ "chrono", "url" ] }
@@ -44,7 +44,7 @@ url = "2.5.2"
 dirs-next = "2.0.0"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.57.0", features = ["Win32_Storage_FileSystem", "Win32_System_IO"] }
+windows = { version = "0.57.0", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper"] }
 winreg = "0.52.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]

@@ -2,4 +2,7 @@
 # Lines starting with '#' will be ignored (as comments).
 This release includes the following features!:
 - Receive Beta releases of ALCOM!
-= Importing / Exporting Repositories list
+- Importing / Exporting Repositories list
+- Setup Wizard
+  Setup Wizard will be shown after upgrading to this version.
+- User Package Management

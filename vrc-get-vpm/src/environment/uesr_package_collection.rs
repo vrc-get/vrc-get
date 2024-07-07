@@ -33,6 +33,18 @@ impl UserPackageCollection {
             }
         }
     }
+
+    pub(crate) fn get_packages(&self) -> &[(PathBuf, PackageManifest)] {
+        &self.user_packages
+    }
+
+    pub(crate) fn add_user_package(&mut self, path: PathBuf, json: PackageManifest) {
+        self.user_packages.push((path, json));
+    }
+
+    pub(crate) fn remove_user_package(&mut self, path: &Path) {
+        self.user_packages.retain(|(p, _)| p != path);
+    }
 }
 
 impl PackageCollection for UserPackageCollection {

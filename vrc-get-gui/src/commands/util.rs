@@ -1,16 +1,42 @@
+use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use tauri::updater::UpdateResponse;
 use tauri::{AppHandle, State, Wry};
+use tokio::fs::create_dir_all;
 use tokio::sync::Mutex;
 
 use crate::commands::prelude::*;
 use crate::logging::LogEntry;
+use crate::utils::find_existing_parent_dir_or_home;
+
+#[derive(serde::Deserialize, specta::Type)]
+pub enum OpenOptions {
+    ErrorIfNotExists,
+    CreateFolderIfNotExists,
+    OpenParentIfNotExists,
+}
 
 #[tauri::command]
 #[specta::specta]
-pub async fn util_open(path: String) -> Result<(), RustError> {
-    open::that(path).map_err(RustError::unrecoverable)?;
+pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), RustError> {
+    let path = Path::new(&path);
+    if !path.exists() {
+        match if_not_exists {
+            OpenOptions::ErrorIfNotExists => {
+                return Err(RustError::unrecoverable("Path does not exist"));
+            }
+            OpenOptions::CreateFolderIfNotExists => {
+                create_dir_all(&path).await?;
+                open::that(path)?;
+            }
+            OpenOptions::OpenParentIfNotExists => {
+                open::that(find_existing_parent_dir_or_home(path.as_ref()).as_os_str())?;
+            }
+        }
+    } else {
+        open::that(path)?;
+    }
     Ok(())
 }
 
@@ -125,4 +151,34 @@ pub async fn util_install_and_upgrade(
 
     app_handle.restart();
     unreachable!("app_handle.restart() should restart the app");
+}
+
+#[cfg(windows)]
+#[tauri::command]
+#[specta::specta]
+pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
+    unsafe {
+        use windows::Win32::NetworkManagement::IpHelper::{GetNetworkParams, FIXED_INFO_W2KSP1};
+        let mut len = 0;
+        // ignore error since expecting ERROR_BUFFER_OVERFLOW
+        GetNetworkParams(None, &mut len).ok().ok();
+        let memory = vec![0u8; len as usize];
+        let ptr = memory.as_ptr() as *mut FIXED_INFO_W2KSP1;
+        GetNetworkParams(Some(ptr), &mut len)
+            .ok()
+            .map_err(RustError::unrecoverable)?;
+        let info = &*ptr;
+        Ok(info
+            .HostName
+            .iter()
+            .take_while(|&&c| c != 0)
+            .any(|&c| c < 0))
+    }
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+#[specta::specta]
+pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
+    Ok(false)
 }

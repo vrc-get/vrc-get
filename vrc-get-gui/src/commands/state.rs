@@ -128,6 +128,18 @@ impl EnvironmentHolder {
                         environment.load_package_infos(true).await?;
                     }
                 }
+                UpdateRepositoryMode::IfOutdatedOrNecessaryForLocal => {
+                    if self
+                        .last_repository_update
+                        .map(|x| x.elapsed() > OUTDATED)
+                        .unwrap_or(true)
+                    {
+                        self.last_repository_update = Some(tokio::time::Instant::now());
+                        self.environment_version += Wrapping(1);
+                        info!("loading local package infos");
+                        environment.load_user_package_infos().await?;
+                    }
+                }
             }
 
             Ok(environment)
@@ -144,6 +156,12 @@ impl EnvironmentHolder {
                     info!("loading package infos");
                     environment.load_package_infos(true).await?;
                 }
+                UpdateRepositoryMode::IfOutdatedOrNecessaryForLocal => {
+                    self.last_repository_update = Some(tokio::time::Instant::now());
+                    self.environment_version += Wrapping(1);
+                    info!("loading local package infos");
+                    environment.load_user_package_infos().await?;
+                }
             }
 
             Ok(environment)
@@ -155,6 +173,7 @@ pub enum UpdateRepositoryMode {
     None,
     Force,
     IfOutdatedOrNecessary,
+    IfOutdatedOrNecessaryForLocal,
 }
 
 impl EnvironmentState {

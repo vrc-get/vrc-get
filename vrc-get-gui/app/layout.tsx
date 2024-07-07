@@ -1,7 +1,6 @@
 import type {Metadata} from "next";
 import "./globals.css";
-import 'react-toastify/dist/ReactToastify.css';
-import {SideBar} from "@/components/SideBar";
+import 'react-toastify/ReactToastify.css';
 import {Providers} from "@/components/providers";
 
 export const metadata: Metadata = {
@@ -18,10 +17,7 @@ export default function RootLayout({
 		<html>
 		<body className={`font-sans w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
 		<Providers>
-			<SideBar className={"flex-grow-0"}/>
-			<div className={"h-screen flex-grow overflow-hidden flex p-4"}>
-				{children}
-			</div>
+			{children}
 		</Providers>
 		</body>
 		</html>
