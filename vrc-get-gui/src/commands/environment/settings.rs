@@ -371,6 +371,8 @@ pub async fn environment_set_use_alcom_for_vcc_protocol(
         config.save().await?;
         if use_alcom_for_vcc_protocol {
             spawn(crate::deep_link_support::deep_link_install_vcc(app));
+        } else {
+            spawn(crate::deep_link_support::deep_link_uninstall_vcc(app));
         }
         Ok(())
     })
