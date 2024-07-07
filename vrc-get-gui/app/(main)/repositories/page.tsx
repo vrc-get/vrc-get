@@ -89,7 +89,7 @@ function PageBody() {
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
 				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					{tc("vpm repositories:community repositories")}
+					{tc("packages:community repositories")}
 				</p>
 				<DropdownMenu>
 					<div className={"flex divide-x"}>

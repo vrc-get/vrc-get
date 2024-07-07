@@ -202,7 +202,7 @@
     "sidebar:toast:version copied": "Nom de version copié.",
     "vpm repositories": "Dépots VPM",
     "vpm repositories:button:add repository": "Ajouter un dépot",
-    "vpm repositories:community repositories": "Dépots communautaires",
+    "packages:community repositories": "Dépots communautaires",
     "vpm repositories:dialog:already added": "Ce dépot a déja été ajouté.",
     "vpm repositories:dialog:confirm remove description": "Voullez vous supprimer le dépot <b>{{name}}</b> ?",
     "vpm repositories:dialog:downloading...": "Téléchargement du dépot...",
