@@ -5,3 +5,4 @@ This release includes the following features!:
 - Importing / Exporting Repositories list
 - Setup Wizard
   Setup Wizard will be shown after upgrading to this version.
+- User Package Management

@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog].
 - `vrc-get cache clear`, command to clear package cache `#1204`
 - Importing / Exporting Repositories list `#1209`
   - `vrc-get repo import <list file>` and `vrc-get repo export`
+- User Package Management `#1222`
+  - This release adds `vrc-get user-package` subcommands to manage user packages.
 
 ### Changed
 - Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository `#1183`
