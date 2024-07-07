@@ -170,6 +170,7 @@
     "projects:manage:tooltip:back to projects": "Back to projects",
     "packages:community repositories": "Community Repositories",
     "vpm repositories:toast:invalid url": "The URL is invalid.",
+    "packages:user packages": "User Packages",
     "vpm repositories:toast:load failed": "Failed to download the repository: {{message}}",
     "vpm repositories:toast:repository added": "The repository was added successfully.",
     "vpm repositories:button:add repository": "Add Repository",

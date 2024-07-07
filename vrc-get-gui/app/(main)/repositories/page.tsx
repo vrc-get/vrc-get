@@ -24,6 +24,7 @@ import {useAddRepository} from "./use-add-repository";
 import {useImportRepositories} from "./use-import-repositories";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
+import {useRouter} from "next/navigation";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -88,9 +89,8 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					{tc("packages:community repositories")}
-				</p>
+				<HeadingPageName/>
+				<div className={"flex-grow"}/>
 				<DropdownMenu>
 					<div className={"flex divide-x"}>
 						<Button
@@ -123,6 +123,27 @@ function PageBody() {
 			{exportDialog}
 		</VStack>
 	);
+}
+
+function HeadingPageName() {
+	const router = useRouter()
+
+	const userPackages = useCallback(() => {
+		router.push("/packages")
+	}, [router]);
+
+	const button = "cursor-pointer py-1.5 font-bold flex-grow-0 hover:bg-secondary rounded-sm p-2";
+
+	return (
+		<div className={"flex flex-row -ml-2 gap-1"}>
+			<div className={`${button} bg-secondary`}>
+				{tc("packages:community repositories")}
+			</div>
+			<button className={`${button} bg-none`} onClick={userPackages}>
+				{tc("packages:user packages")}
+			</button>
+		</div>
+	)
 }
 
 function RepositoryTableBody(
