@@ -58,7 +58,7 @@ https://SaturnianJP.github.io/AutoSaveScript-for-Unity/index.json
 https://SaturnianJP.github.io/NailSetupTool/index.json
 https://SaturnianJP.github.io/NewKiseteneExVPM/index.json
 https://sayabeans.github.io/vpm/index.json
-# https://sh0ou.github.io/vpm-repos/vpm.json # trailing comma. vrc-get does not allow it. https://github.com/sh0ou/vpm-repos/pull/1
+https://sh0ou.github.io/vpm-repos/vpm.json
 https://sinkunvv.github.io/BlendMaestro/index.json
 https://skeb-inc.github.io/skeb-art-panel/index.json
 https://SleetCat123.github.io/vpm-packages/index.json
