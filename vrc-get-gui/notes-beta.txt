@@ -3,3 +3,4 @@
 This release includes the following features!:
 - Setup Wizard
   Setup Wizard will be shown after upgrading to this version.
+- User Package Management

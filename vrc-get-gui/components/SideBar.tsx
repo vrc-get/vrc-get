@@ -55,10 +55,10 @@ export function SideBar({className}: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-[20rem] p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}>
-			<div className="flex flex-col gap-1 p-2 min-w-[10rem] flex-grow">
+			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}>
+			<div className="flex flex-col gap-1 p-2 min-w-40 flex-grow">
 				<SideBarItem href={"/projects"} text={t("projects")} icon={List}/>
-				<SideBarItem href={"/repositories"} text={t("vpm repositories")} icon={Cloud}/>
+				<SideBarItem href={"/repositories"} text={t("Packages")} icon={Cloud}/>
 				<SideBarItem href={"/settings"} text={t("settings")} icon={Settings}/>
 				<SideBarItem href={"/log"} text={t("logs")} icon={AlignLeft}/>
 				{isDev && <DevRestartSetupButton/>}

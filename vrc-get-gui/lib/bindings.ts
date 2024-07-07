@@ -138,6 +138,18 @@ export function environmentClearPackageCache() {
     return invoke()<null>("environment_clear_package_cache")
 }
 
+export function environmentGetUserPackages() {
+    return invoke()<TauriUserPackage[]>("environment_get_user_packages")
+}
+
+export function environmentAddUserPackageWithPicker() {
+    return invoke()<TauriAddUserPackageWithPickerResult>("environment_add_user_package_with_picker")
+}
+
+export function environmentRemoveUserPackages(path: string) {
+    return invoke()<null>("environment_remove_user_packages", { path })
+}
+
 export function environmentUnityVersions() {
     return invoke()<TauriUnityVersions>("environment_unity_versions")
 }
@@ -291,6 +303,7 @@ export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "Open
 export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting"
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriAddRepositoryResult = "BadUrl" | "Success"
+export type TauriAddUserPackageWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriBasePackageInfo = { name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }
 export type TauriCallUnityForMigrationResult = { type: "ExistsWithNonZero"; status: string } | { type: "FinishedSuccessfully" }
 export type TauriConflictInfo = { packages: string[]; unity_conflict: boolean }
@@ -317,5 +330,6 @@ export type TauriRemoveReason = "Requested" | "Legacy" | "Unused"
 export type TauriRepositoriesInfo = { user_repositories: TauriUserRepository[]; hidden_user_repositories: string[]; hide_local_user_packages: boolean; show_prerelease_packages: boolean }
 export type TauriRepositoryDescriptor = { url: string; headers: { [key: string]: string } }
 export type TauriUnityVersions = { unity_paths: ([string, string, boolean])[]; recommended_version: string; install_recommended_version_link: string }
+export type TauriUserPackage = { path: string; package: TauriBasePackageInfo }
 export type TauriUserRepository = { id: string; url: string | null; display_name: string }
 export type TauriVersion = { major: number; minor: number; patch: number; pre: string; build: string }
