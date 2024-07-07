@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Initial Setup Process `#1214`
+  - There are few settings should be set up before using ALCOM.
+  - Since this version, ALCOM will show the initial setup process if the settings are not set up.
 
 ### Changed
 

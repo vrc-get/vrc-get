@@ -173,3 +173,8 @@ body {
 .vrc-get-scrollable-card:not(:has(> .vrc-get-scrollable-card-vertical-bar)) > div[data-radix-scroll-area-viewport] > div > div.vrc-get-scrollable-card-horizontal-bar {
 	@apply pe-2.5;
 }
+
+.vrc-get-sidebar-hostname-warning-container {
+	contain-intrinsic-size: 0 7em;
+	contain: size;
+}

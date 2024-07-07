@@ -109,7 +109,7 @@ pub fn deep_link_take_add_repository() -> Option<AddRepositoryInfo> {
 #[tauri::command]
 #[specta::specta]
 #[cfg(target_os = "macos")]
-pub async fn deep_link_install_vcc() {
+pub async fn deep_link_install_vcc(_app: AppHandle) {
     // for macos, nothing to do!
     log::error!("deep_link_install_vcc is not supported on macos");
 }
@@ -118,7 +118,7 @@ pub async fn deep_link_install_vcc() {
 #[specta::specta]
 #[cfg(windows)]
 // for windows, install to registry
-pub async fn deep_link_install_vcc() {
+pub async fn deep_link_install_vcc(_app: AppHandle) {
     fn impl_() -> std::io::Result<()> {
         let exe = std::env::current_exe()?;
         let exe = exe.to_string_lossy();

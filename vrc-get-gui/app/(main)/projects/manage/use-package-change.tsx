@@ -13,7 +13,7 @@ import {compareVersion, toVersionString} from "@/lib/version";
 import {Button} from "@/components/ui/button";
 import {shellOpen} from "@/lib/shellOpen";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
-import {PackageRowInfo} from "@/app/projects/manage/collect-package-row-info";
+import {PackageRowInfo} from "./collect-package-row-info";
 import {assertNever} from "@/lib/assert-never";
 
 type RequestedOperation = {

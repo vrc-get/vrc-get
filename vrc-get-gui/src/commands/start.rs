@@ -2,6 +2,7 @@ use crate::commands::prelude::*;
 
 use log::{error, info};
 use std::io;
+use tauri::async_runtime::spawn;
 use tauri::{App, AppHandle, LogicalSize, Manager, State, Window, WindowEvent};
 use tokio::sync::Mutex;
 use vrc_get_vpm::unity_hub;
@@ -73,15 +74,28 @@ pub fn startup(app: &mut App) {
         let state: State<'_, Mutex<EnvironmentState>> = app.state();
         let config = with_config!(state, |config| config.clone());
 
+        if !cfg!(target_os = "macos") && config.use_alcom_for_vcc_protocol {
+            spawn(crate::deep_link_support::deep_link_install_vcc(app.clone()));
+        }
+
         let query = url::form_urlencoded::Serializer::new(String::new())
             .append_pair("lang", &config.language)
             .append_pair("theme", &config.theme)
             .finish();
 
+        use super::environment::config::SetupPages;
+        let start_page = SetupPages::pages()
+            .iter()
+            .copied()
+            .filter(|page| !page.is_finished(config.setup_process_progress))
+            .next()
+            .map(|x| x.path())
+            .unwrap_or("/projects/");
+
         let window = tauri::WindowBuilder::new(
             &app,
             "main", /* the unique window label */
-            tauri::WindowUrl::App(format!("/projects/?{query}").into()),
+            tauri::WindowUrl::App(format!("{start_page}?{query}").into()),
         )
         .title("ALCOM")
         .resizable(true)

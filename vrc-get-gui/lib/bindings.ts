@@ -34,6 +34,18 @@ export function environmentSetProjectSorting(sorting: string) {
     return invoke()<null>("environment_set_project_sorting", { sorting })
 }
 
+export function environmentGetFinishedSetupPages() {
+    return invoke()<SetupPages[]>("environment_get_finished_setup_pages")
+}
+
+export function environmentFinishedSetupPage(page: SetupPages) {
+    return invoke()<null>("environment_finished_setup_page", { page })
+}
+
+export function environmentClearSetupProcess() {
+    return invoke()<null>("environment_clear_setup_process")
+}
+
 export function environmentProjects() {
     return invoke()<TauriProject[]>("environment_projects")
 }
@@ -162,6 +174,10 @@ export function environmentSetReleaseChannel(releaseChannel: string) {
     return invoke()<null>("environment_set_release_channel", { releaseChannel })
 }
 
+export function environmentSetUseAlcomForVccProtocol(useAlcomForVccProtocol: boolean) {
+    return invoke()<null>("environment_set_use_alcom_for_vcc_protocol", { useAlcomForVccProtocol })
+}
+
 export function projectDetails(projectPath: string) {
     return invoke()<TauriProjectDetails>("project_details", { projectPath })
 }
@@ -230,8 +246,8 @@ export function projectSetUnityPath(projectPath: string, unityPath: string | nul
     return invoke()<boolean>("project_set_unity_path", { projectPath,unityPath })
 }
 
-export function utilOpen(path: string) {
-    return invoke()<null>("util_open", { path })
+export function utilOpen(path: string, ifNotExists: OpenOptions) {
+    return invoke()<null>("util_open", { path,ifNotExists })
 }
 
 export function utilGetLogEntries() {
@@ -248,6 +264,10 @@ export function utilCheckForUpdate() {
 
 export function utilInstallAndUpgrade(version: number) {
     return invoke()<null>("util_install_and_upgrade", { version })
+}
+
+export function utilIsBadHostname() {
+    return invoke()<boolean>("util_is_bad_hostname")
 }
 
 export function deepLinkHasAddRepository() {
@@ -267,6 +287,8 @@ export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Star
 export type CheckForUpdateResponse = { version: number; is_update_available: boolean; current_version: string; latest_version: string; update_description: string | null }
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
+export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists"
+export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting"
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriAddRepositoryResult = "BadUrl" | "Success"
 export type TauriBasePackageInfo = { name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }
@@ -274,7 +296,7 @@ export type TauriCallUnityForMigrationResult = { type: "ExistsWithNonZero"; stat
 export type TauriConflictInfo = { packages: string[]; unity_conflict: boolean }
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful"
 export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated" } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }
-export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string }
+export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean }
 export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] }
 export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { env_version: number; index: number; source: TauriPackageSource }
 export type TauriPackageChange = { InstallNew: TauriBasePackageInfo } | { Remove: TauriRemoveReason }
