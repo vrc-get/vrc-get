@@ -143,7 +143,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
         match LockFileEx(
-            HANDLE(file.as_raw_handle() as isize),
+            HANDLE(file.as_raw_handle()),
             LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
             0,
             0,
@@ -163,7 +163,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
         UnlockFileEx(
-            HANDLE(file.as_raw_handle() as isize),
+            HANDLE(file.as_raw_handle()),
             0,
             !0,
             !0,
