@@ -16,7 +16,7 @@ fn basic_remove() {
             .unwrap();
 
         let result = project
-            .remove_request(&[&"com.anatawa12.gists"])
+            .remove_request(&["com.anatawa12.gists"])
             .await
             .unwrap();
 
@@ -45,7 +45,7 @@ fn transitive_unused_remove() {
             .unwrap();
 
         let result = project
-            .remove_request(&[&"com.vrchat.avatars"])
+            .remove_request(&["com.vrchat.avatars"])
             .await
             .unwrap();
 
@@ -80,7 +80,7 @@ fn do_not_remove_transitively_when_untouched() {
             .unwrap();
 
         let result = project
-            .remove_request(&[&"com.vrchat.avatars"])
+            .remove_request(&["com.vrchat.avatars"])
             .await
             .unwrap();
 
@@ -122,7 +122,7 @@ fn remove_referenced_legacy_package() {
             .unwrap();
 
         let result = project
-            .remove_request(&[&"com.anatawa12.legacy-package"])
+            .remove_request(&["com.anatawa12.legacy-package"])
             .await
             .unwrap();
 

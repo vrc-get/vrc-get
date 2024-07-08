@@ -87,8 +87,7 @@ pub fn startup(app: &mut App) {
         let start_page = SetupPages::pages()
             .iter()
             .copied()
-            .filter(|page| !page.is_finished(config.setup_process_progress))
-            .next()
+            .find(|page| !page.is_finished(config.setup_process_progress))
             .map(|x| x.path())
             .unwrap_or("/projects/");
 

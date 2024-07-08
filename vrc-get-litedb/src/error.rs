@@ -22,7 +22,7 @@ impl CsError {
 
         Self {
             // SAFETY: C# guarantees the safety.
-            code: std::mem::transmute(error.code),
+            code: std::mem::transmute::<i32, ErrorKind>(error.code),
             message,
         }
     }

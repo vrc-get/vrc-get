@@ -1454,7 +1454,11 @@ impl Completion {
         };
         let mut bin_name = args().next().expect("bin name");
         if let Some(slash) = bin_name.rfind(&['/', '\\']) {
-            bin_name = bin_name[slash + 1..].to_owned();
+            // https://github.com/rust-lang/rust-clippy/issues/13070
+            #[allow(clippy::assigning_clones)]
+            {
+                bin_name = bin_name[slash + 1..].to_owned();
+            }
         }
 
         clap_complete::generate(

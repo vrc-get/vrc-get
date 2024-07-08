@@ -1,11 +1,9 @@
-use std::io;
 use std::sync::Arc;
 
 use crate::specta::IndexMapV2;
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
 use tauri::{AppHandle, Manager};
-use tokio::fs::remove_file;
 use url::{Host, Url};
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
@@ -191,14 +189,13 @@ Categories=Utility;
         .await
     {
         log::error!("Failed to call update-desktop-database: {}", e);
-        return;
     }
 
     fn escape(s: &str) -> String {
-        s.replace(r#"\"#, r#"\\\\"#)
-            .replace(r#"`"#, r#"\\`"#)
-            .replace(r#"$"#, r#"\\$"#)
-            .replace(r#"""#, r#"\\""#)
+        s.replace('\\', r#"\\\\"#)
+            .replace('`', r#"\\`"#)
+            .replace('$', r#"\\$"#)
+            .replace('"', r#"\\""#)
     }
 }
 
@@ -215,7 +212,7 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
 #[cfg(windows)]
 pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
     // for windows, install to registry
-    fn impl_() -> io::Result<()> {
+    fn impl_() -> std::io::Result<()> {
         winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
             .delete_subkey_all("Software\\Classes\\vcc")?;
         Ok(())
@@ -241,11 +238,11 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
     let desktop_file =
         applications_dir.join(format!("{app_id}.desktop", app_id = "com.anataw12.vrc_get"));
 
-    match remove_file(&desktop_file).await {
+    match tokio::fs::remove_file(&desktop_file).await {
         Ok(()) => {
             log::info!("Desktop file removed: {}", desktop_file.display());
         }
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => {
             log::info!("Desktop file was not found: {}", desktop_file.display());
             return;
         }
@@ -261,7 +258,6 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
         .await
     {
         log::error!("Failed to call update-desktop-database: {}", e);
-        return;
     }
 }
 

@@ -294,6 +294,7 @@ pub(crate) fn normalize_path(input: &Path) -> PathBuf {
     result
 }
 
+#[allow(dead_code)] // used by some features
 pub(crate) fn check_absolute_path(path: impl AsRef<Path>) -> io::Result<()> {
     if !path.as_ref().is_absolute() {
         return Err(io::Error::new(
