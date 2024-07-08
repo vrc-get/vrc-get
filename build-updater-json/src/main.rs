@@ -83,7 +83,7 @@ fn get_notes(path: &Path) -> String {
     notes
         .trim_end()
         .lines()
-        .filter(|x| !x.starts_with("#"))
+        .filter(|x| !x.starts_with('#'))
         .map(|x| x.trim_end())
         .collect::<Vec<_>>()
         .join("\n")

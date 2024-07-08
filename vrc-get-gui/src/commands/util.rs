@@ -11,6 +11,7 @@ use crate::logging::LogEntry;
 use crate::utils::find_existing_parent_dir_or_home;
 
 #[derive(serde::Deserialize, specta::Type)]
+#[allow(clippy::enum_variant_names)]
 pub enum OpenOptions {
     ErrorIfNotExists,
     CreateFolderIfNotExists,
@@ -31,7 +32,7 @@ pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), R
                 open::that(path)?;
             }
             OpenOptions::OpenParentIfNotExists => {
-                open::that(find_existing_parent_dir_or_home(path.as_ref()).as_os_str())?;
+                open::that(find_existing_parent_dir_or_home(path).as_os_str())?;
             }
         }
     } else {

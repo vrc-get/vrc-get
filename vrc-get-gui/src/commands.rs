@@ -203,10 +203,7 @@ pub(crate) fn export_ts() {
         .unwrap();
 
     let pre_export = &ts_file[..export_file_start];
-    let mut export_range = ts_file[export_file_start..=export_file_last]
-        .iter()
-        .copied()
-        .collect::<Vec<_>>();
+    let mut export_range = ts_file[export_file_start..=export_file_last].to_vec();
     let post_export = &ts_file[export_file_last + 1..];
 
     // sort by type name
@@ -214,10 +211,8 @@ pub(crate) fn export_ts() {
 
     let file = [pre_export, &export_range, post_export]
         .iter()
-        .map(|x| x.iter())
-        .flatten()
-        .map(|x| [x, "\n"].into_iter())
-        .flatten()
+        .flat_map(|x| x.iter())
+        .flat_map(|x| [x, "\n"].into_iter())
         .collect::<String>();
 
     std::fs::write(export_path, file).unwrap();

@@ -437,7 +437,7 @@ impl DirectoryEntry {
             .lock()
             .unwrap()
             .get(name)
-            .map(Clone::clone)
+            .cloned()
             .ok_or_else(|| io::Error::new(ErrorKind::NotFound, "file not found"))
     }
 

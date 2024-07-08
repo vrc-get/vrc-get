@@ -223,14 +223,14 @@ pub async fn environment_download_repository(
         let user_repo_urls = user_repo_urls(environment);
         let user_repo_ids = user_repo_ids(environment);
 
-        Ok(download_one_repository(
+        download_one_repository(
             environment.http().unwrap(),
             &url,
             &headers.0,
             &user_repo_urls,
             &user_repo_ids,
         )
-        .await?)
+        .await
     })
 }
 

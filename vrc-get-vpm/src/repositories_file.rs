@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use std::collections::HashSet;
 use url::{Host, Url};
 
 pub struct RepositoriesFile {
@@ -114,12 +113,9 @@ fn parse_add_repo_link(vcc_url: Url) -> Option<RepositoryInfo> {
                 if url.is_some() {
                     return None;
                 }
-                let Some(parsed) = Url::parse(&value)
+                let parsed = Url::parse(&value)
                     .ok()
-                    .filter(|x| x.scheme() == "http" || x.scheme() == "https")
-                else {
-                    return None;
-                };
+                    .filter(|x| x.scheme() == "http" || x.scheme() == "https")?;
                 url = Some(parsed);
             }
             "headers[]" => {

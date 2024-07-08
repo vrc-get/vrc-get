@@ -526,10 +526,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                         let name = name.as_encoded_bytes();
                         if name.starts_with(b"vrc-get-")
                             && (name.ends_with(b".zip") || name.ends_with(b".zip.sha256"))
+                            && cache_entry.file_type().await?.is_file()
                         {
-                            if cache_entry.file_type().await?.is_file() {
-                                return Ok(Some((pkg_id, cache_entry)));
-                            }
+                            return Ok(Some((pkg_id, cache_entry)));
                         }
                         Ok(None)
                     });
