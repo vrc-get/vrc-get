@@ -4,7 +4,15 @@ import {Button} from "@/components/ui/button";
 import {Card} from "@/components/ui/card";
 import {Dialog, DialogContent} from "@/components/ui/dialog";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
-import {Select, SelectContent, SelectGroup, SelectLabel, SelectTrigger, SelectValue,} from "@/components/ui/select"
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeft, ChevronDown} from "lucide-react";
@@ -211,6 +219,7 @@ function PageBody() {
 							<UnityVersionSelector
 								disabled={isLoading}
 								detailsResult={detailsResult}
+								unityVersions={unityVersionsResult.data}
 							/>
 						</div>
 					</div>
@@ -249,13 +258,30 @@ function UnityVersionSelector(
 	{
 		disabled,
 		detailsResult,
+		unityVersions,
 	}: {
 		disabled?: boolean,
 		detailsResult: UseQueryResult<TauriProjectDetails>,
+		unityVersions?: TauriUnityVersions,
 	}
 ) {
+	const unityVersionNames = useMemo(() => {
+		if (unityVersions == null) return null
+		const versionNames = [...new Set<string>(unityVersions.unity_paths.map(([, path]) => path))];
+		versionNames.sort();
+		return versionNames;
+	}, [unityVersions]);
+
+	const onChange = useCallback(async (version: string) => {
+		const detailsData = detailsResult.data;
+		if (detailsData == null) return;
+		const hasVRCSDK = detailsData.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id))
+		// TODO: show dialog to change unity version
+		toastSuccess(`trying to change to ${version}`)
+	}, []);
+
 	return (
-		<Select disabled={disabled}>
+		<Select disabled={disabled} value={detailsResult.data?.unity_str ?? undefined} onValueChange={onChange}>
 			<SelectTrigger>
 				<SelectValue placeholder={
 					detailsResult.status == 'success' ?
@@ -265,7 +291,11 @@ function UnityVersionSelector(
 			</SelectTrigger>
 			<SelectContent>
 				<SelectGroup>
-					<SelectLabel>{tc("general:not implemented")}</SelectLabel>
+					{
+						unityVersionNames == null
+							? <SelectLabel>Loading...</SelectLabel>
+							: unityVersionNames.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)
+					}
 				</SelectGroup>
 			</SelectContent>
 		</Select>
