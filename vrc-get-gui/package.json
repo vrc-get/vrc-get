@@ -36,7 +36,7 @@
     "react-dom": "^18",
     "react-i18next": "^14.1.2",
     "react-toastify": "^10.0.5",
-    "tailwind-merge": "^2.3.0",
+    "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7"
   },
   "__comment": "we use react 18.2.19 due to bug. see https://github.com/creativetimofficial/material-tailwind/issues/528",
