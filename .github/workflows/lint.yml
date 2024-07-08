@@ -44,12 +44,9 @@ jobs:
         with:
           dotnet-version: 8.0.2xx
 
-      - name: try clippy without action
-        # avoid silent build failure
-        # see https://github.com/giraffate/clippy-action/issues/88
-        run: cargo clippy --color always -q --all --all-targets --all-features
-
-      - uses: giraffate/clippy-action@v1
+      - uses: auguwu/clippy-action@1.4.0
         with:
-          reporter: github-pr-check
-          clippy_flags: --all --all-targets --all-features -- -Dclippy::todo -Dwarnings
+          token: ${{secrets.GITHUB_TOKEN}}
+          check-args: --all --all-targets --all-features
+          args: -Dclippy::todo -Dwarnings
+          
