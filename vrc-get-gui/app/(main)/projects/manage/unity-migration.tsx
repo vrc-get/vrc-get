@@ -35,6 +35,7 @@ export function useUnity2022Migration(
 		updateProjectPreUnityLaunch: async (project) => await projectMigrateProjectTo2022(project),
 		refresh,
 		ConfirmComponent: MigrationConfirmMigrationDialog,
+		dialogHeader: tc("projects:manage:dialog:unity migrate header"),
 	});
 }
 
@@ -72,6 +73,7 @@ export function useUnity2022PatchMigration(
 		refresh,
 
 		ConfirmComponent: MigrationConfirmMigrationPatchDialog,
+		dialogHeader: tc("projects:manage:dialog:unity migrate header"),
 	});
 }
 
@@ -136,12 +138,14 @@ function useMigrationInternal(
 		refresh,
 
 		ConfirmComponent,
+		dialogHeader,
 	}: {
 		projectPath: string,
 		updateProjectPreUnityLaunch: (projectPath: string) => Promise<unknown>,
 		refresh?: () => void,
 
 		ConfirmComponent: React.ComponentType<ConfirmProps>,
+		dialogHeader: React.ReactNode,
 	}
 ): Result {
 	const router = useRouter();
@@ -282,7 +286,7 @@ function useMigrationInternal(
 			{unitySelector.dialog}
 			{dialogBodyForState == null ? null :
 				<DialogOpen className={"whitespace-normal leading-relaxed"}>
-					<DialogTitle>{tc("projects:manage:dialog:unity migrate header")}</DialogTitle>
+					<DialogTitle>{dialogHeader}</DialogTitle>
 					{dialogBodyForState}
 				</DialogOpen>}
 		</>,
