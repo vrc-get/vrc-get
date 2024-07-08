@@ -12,7 +12,7 @@ edition.workspace = true
 [build-dependencies]
 flate2 = "1.0.30"
 tar = "0.4.41"
-tauri-build = { version = "1.5.1", features = [ "config-toml" ] }
+tauri-build = { version = "1.5.3", features = [ "config-toml" ] }
 
 [dependencies]
 serde_json = "1.0"
