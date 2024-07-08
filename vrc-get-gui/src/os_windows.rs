@@ -162,13 +162,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
-        UnlockFileEx(
-            HANDLE(file.as_raw_handle()),
-            0,
-            !0,
-            !0,
-            &mut overlapped,
-        )?;
+        UnlockFileEx(HANDLE(file.as_raw_handle()), 0, !0, !0, &mut overlapped)?;
         return Ok(true);
     }
 }
