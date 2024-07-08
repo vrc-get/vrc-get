@@ -10,7 +10,7 @@ import React, {Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeft, ChevronDown} from "lucide-react";
 import {HNavBar, VStack} from "@/components/layout";
 import {useRouter, useSearchParams} from "next/navigation";
-import {useQueries, useQuery} from "@tanstack/react-query";
+import {useQueries, useQuery, UseQueryResult} from "@tanstack/react-query";
 import {
 	environmentPackages,
 	environmentRefetchPackages,
@@ -208,20 +208,10 @@ function PageBody() {
 							{tc("projects:manage:unity version")}
 						</p>
 						<div className={"flex-grow-0 flex-shrink-0"}>
-							<Select>
-								<SelectTrigger>
-									<SelectValue placeholder={
-										detailsResult.status == 'success' ?
-											(detailsResult.data.unity_str ?? "unknown") :
-											<span className={"text-primary"}>Loading...</span>
-									} className="border-primary/10"/>
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectLabel>{tc("general:not implemented")}</SelectLabel>
-									</SelectGroup>
-								</SelectContent>
-							</Select>
+							<UnityVersionSelector
+								disabled={isLoading}
+								detailsResult={detailsResult}
+							/>
 						</div>
 					</div>
 				</Card>
@@ -253,6 +243,33 @@ function PageBody() {
 			</VStack>
 		</PageContextProvider>
 	);
+}
+
+function UnityVersionSelector(
+	{
+		disabled,
+		detailsResult,
+	}: {
+		disabled?: boolean,
+		detailsResult: UseQueryResult<TauriProjectDetails>,
+	}
+) {
+	return (
+		<Select disabled={disabled}>
+			<SelectTrigger>
+				<SelectValue placeholder={
+					detailsResult.status == 'success' ?
+						(detailsResult.data.unity_str ?? "unknown") :
+						<span className={"text-primary"}>Loading...</span>
+				} className="border-primary/10"/>
+			</SelectTrigger>
+			<SelectContent>
+				<SelectGroup>
+					<SelectLabel>{tc("general:not implemented")}</SelectLabel>
+				</SelectGroup>
+			</SelectContent>
+		</Select>
+	)
 }
 
 function SuggestResolveProjectCard(
