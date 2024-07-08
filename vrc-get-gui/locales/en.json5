@@ -310,7 +310,7 @@
     "setup:unity-hub:detection failed description": "Please click the above \"Recheck Installation\" button to re-detect Unity Hub installation. If this doesn't work, ALCOM fails to detect your Unity Hub installation. Please set Unity Hub Manually below.",
     "setup:unity-hub:not found": "Unity Hub was not found.",
     "setup:project-path:heading": "Project Save Location",
-    "setup:project-path:description": "When you crete project with ALCOM, the project will be saved in this location.<br/>This setting may also be changed in settings page later.",
+    "setup:project-path:description": "When you create project with ALCOM, the project will be saved in this location.<br/>This setting may also be changed in settings page later.",
     "setup:project-path:warning:whitespace": "The location contains whitespace. Whitespace in may cause problems with Unity and other tools. Please consider use another location.",
     "setup:project-path:warning:non-ascii": "The location contains non-ASCII characters. Non-ASCII characters in the location locale may cause problems with Unity. Please consider use another location.",
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
