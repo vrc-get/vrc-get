@@ -43,6 +43,15 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.2xx
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: lints-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: auguwu/clippy-action@1.4.0
         with:
