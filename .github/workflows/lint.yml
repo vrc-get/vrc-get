@@ -29,10 +29,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+
+      - name: install dependencies
+        run:
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.2xx
+
+      - name: try clippy without action
+        # avoid silent build failure
+        # see https://github.com/giraffate/clippy-action/issues/88
+        run: cargo clippy --color always -q --all --all-targets --all-features
 
       - uses: giraffate/clippy-action@v1
         with:
