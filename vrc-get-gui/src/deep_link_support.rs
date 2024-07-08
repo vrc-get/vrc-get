@@ -189,14 +189,13 @@ Categories=Utility;
         .await
     {
         log::error!("Failed to call update-desktop-database: {}", e);
-        return;
     }
 
     fn escape(s: &str) -> String {
-        s.replace(r#"\"#, r#"\\\\"#)
-            .replace(r#"`"#, r#"\\`"#)
-            .replace(r#"$"#, r#"\\$"#)
-            .replace(r#"""#, r#"\\""#)
+        s.replace('\\', r#"\\\\"#)
+            .replace('`', r#"\\`"#)
+            .replace('$', r#"\\$"#)
+            .replace('"', r#"\\""#)
     }
 }
 
@@ -259,7 +258,6 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
         .await
     {
         log::error!("Failed to call update-desktop-database: {}", e);
-        return;
     }
 }
 
