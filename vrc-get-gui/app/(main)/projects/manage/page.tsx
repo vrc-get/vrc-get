@@ -38,7 +38,7 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
-import {useUnity2022Migration, useUnity2022PatchMigration} from "./unity-migration";
+import {useUnity2022Migration, useUnity2022PatchMigration, useUnityVersionChange} from "./unity-migration";
 import {LaunchSettings} from "./launch-settings";
 import {PackageListCard} from "./package-list-card";
 import {usePackageChangeDialog} from "./use-package-change";
@@ -218,6 +218,7 @@ function PageBody() {
 						<div className={"flex-grow-0 flex-shrink-0"}>
 							<UnityVersionSelector
 								disabled={isLoading}
+								projectPath={projectPath}
 								detailsResult={detailsResult}
 								unityVersions={unityVersionsResult.data}
 							/>
@@ -257,14 +258,21 @@ function PageBody() {
 function UnityVersionSelector(
 	{
 		disabled,
+		projectPath,
 		detailsResult,
 		unityVersions,
 	}: {
 		disabled?: boolean,
+		projectPath: string,
 		detailsResult: UseQueryResult<TauriProjectDetails>,
 		unityVersions?: TauriUnityVersions,
 	}
 ) {
+	const unityChangeVersion = useUnityVersionChange({
+		projectPath,
+		refresh: () => detailsResult.refetch(),
+	});
+
 	const unityVersionNames = useMemo(() => {
 		if (unityVersions == null) return null
 		const versionNames = [...new Set<string>(unityVersions.unity_paths.map(([, path]) => path))];
@@ -275,10 +283,15 @@ function UnityVersionSelector(
 	const onChange = useCallback(async (version: string) => {
 		const detailsData = detailsResult.data;
 		if (detailsData == null) return;
-		const hasVRCSDK = detailsData.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id))
-		// TODO: show dialog to change unity version
-		toastSuccess(`trying to change to ${version}`)
-	}, []);
+		const currentUnityVersion = detailsData.unity_str;
+		if (currentUnityVersion == null) return;
+		const isVRCProject = detailsData.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id))
+		unityChangeVersion.request({
+			version,
+			isVRCProject,
+			currentUnityVersion,
+		})
+	}, [detailsResult.data, unityChangeVersion]);
 
 	return (
 		<Select disabled={disabled} value={detailsResult.data?.unity_str ?? undefined} onValueChange={onChange}>
@@ -298,6 +311,7 @@ function UnityVersionSelector(
 					}
 				</SelectGroup>
 			</SelectContent>
+			{unityChangeVersion.dialog}
 		</Select>
 	)
 }

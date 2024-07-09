@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from "react";
+import React, {Fragment, useCallback} from "react";
 import {Button} from "@/components/ui/button";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {tc, tt} from "@/lib/i18n";
@@ -13,6 +13,7 @@ import {useRouter} from "next/navigation";
 import {shellOpen} from "@/lib/shellOpen";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
 import {assertNever} from "@/lib/assert-never";
+import {compareUnityVersionString, parseUnityVersion} from "@/lib/version";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
@@ -108,6 +109,166 @@ function MigrationConfirmMigrationPatchDialog({result, cancel, doMigrate}: Confi
 		</>
 	);
 }
+
+// endregion unity version change
+
+export function useUnityVersionChange(
+	{
+		projectPath,
+		refresh,
+	}: {
+		projectPath: string,
+		refresh?: () => void,
+	}
+): Result<{ version: string, currentUnityVersion: string, isVRCProject: boolean }> {
+	const use = useMigrationInternal({
+		projectPath,
+		updateProjectPreUnityLaunch: async (project, data) => {
+			if (data.isVRC && data.kind == "upgradeMajor" && data.targetUnityVersion.startsWith("2022.")) {
+				await projectMigrateProjectTo2022(project)
+			}
+		},
+		findUnity: findUnityForUnityChange,
+		refresh,
+		ConfirmComponent: UnityVersionChange,
+		dialogHeader: tc("projects:manage:dialog:unity change version header"),
+	});
+
+	const request = use.request;
+
+	return {
+		dialog: use.dialog,
+		request: useCallback(({version, currentUnityVersion, isVRCProject}) => {
+			if (currentUnityVersion == null) throw new Error("unexpected");
+			const v = detectChangeUnityKind(currentUnityVersion, version, isVRCProject);
+			request(v);
+		}, [request]),
+	};
+}
+
+function UnityVersionChange({cancel, doMigrate, data}: ConfirmProps<ChangeUnityData>) {
+	// TODO: description
+
+	let mainMessage: React.ReactNode;
+
+	switch (data.kind) {
+		case "downgradeMajor":
+			if (data.isVRC) {
+				if (data.isTargetVersionSupportedByVRC) {
+					mainMessage = tc("projects:manage:dialog:downgrade major vrchat supported");
+				} else {
+					mainMessage = tc("projects:manage:dialog:downgrade major vrchat unsupported");
+				}
+			} else {
+				mainMessage = tc("projects:manage:dialog:downgrade major generic");
+			}
+			break;
+		case "downgradePatchOrMinor":
+			if (data.isVRC) {
+				if (data.isTargetVersionSupportedByVRC) {
+					mainMessage = tc("projects:manage:dialog:downgrade minor vrchat supported");
+				} else {
+					mainMessage = tc("projects:manage:dialog:downgrade minor vrchat unsupported");
+				}
+			} else {
+				mainMessage = tc("projects:manage:dialog:downgrade minor generic");
+			}
+			break;
+		case "upgradePatchOrMinor":
+			if (data.isVRC) {
+				if (data.isTargetVersionSupportedByVRC) {
+					mainMessage = tc("projects:manage:dialog:upgrade minor vrchat supported");
+				} else {
+					mainMessage = tc("projects:manage:dialog:upgrade minor vrchat unsupported");
+				}
+			} else {
+				mainMessage = tc("projects:manage:dialog:upgrade minor generic");
+			}
+			break;
+		case "upgradeMajor":
+			if (data.isVRC) {
+				if (data.isTargetVersionSupportedByVRC) {
+					mainMessage = tc("projects:manage:dialog:upgrade major vrchat supported");
+				} else {
+					mainMessage = tc("projects:manage:dialog:upgrade major vrchat unsupported");
+				}
+			} else {
+				mainMessage = tc("projects:manage:dialog:upgrade major generic");
+			}
+			break;
+		default:
+			assertNever(data.kind);
+	}
+
+	return (
+		<>
+			<DialogDescription>
+				<p className={"text-destructive"}>
+					{mainMessage}
+				</p>
+			</DialogDescription>
+			<DialogFooter>
+				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:change unity version")}</Button>
+			</DialogFooter>
+		</>
+	);
+}
+
+type ChangeUnityKind = "downgradeMajor" | "downgradePatchOrMinor" | "upgradePatchOrMinor" | "upgradeMajor";
+
+type ChangeUnityData = ({
+	kind: ChangeUnityKind;
+	isVRC: false;
+} | {
+	kind: ChangeUnityKind;
+	isVRC: true;
+	isTargetVersionSupportedByVRC: boolean;
+}) & {
+	targetUnityVersion: string,
+}
+
+function detectChangeUnityKind(currentVersion: string, targetUnityVersion: string, isVRCProject: boolean): ChangeUnityData {
+	const parsedCurrent = parseUnityVersion(currentVersion)!;
+	const parsedTarget = parseUnityVersion(targetUnityVersion)!;
+
+	let kind: ChangeUnityData["kind"] =
+		compareUnityVersionString(currentVersion, targetUnityVersion) >= 0 
+			? (parsedCurrent.major == parsedTarget.major ? "downgradePatchOrMinor" : "downgradeMajor")
+			: (parsedCurrent.major == parsedTarget.major ? "upgradePatchOrMinor" : "upgradeMajor");
+
+	if (isVRCProject) {
+		const supportedVersions = [
+			"2019.4.31f1",
+			"2022.3.6f1",
+			"2022.3.22f1",
+		]
+		return {
+			kind,
+			isVRC: true,
+			isTargetVersionSupportedByVRC: supportedVersions.includes(targetUnityVersion),
+			targetUnityVersion,
+		};
+	} else {
+		return {
+			kind,
+			isVRC: false,
+			targetUnityVersion,
+		};
+	}
+}
+
+function findUnityForUnityChange(unityVersions: TauriUnityVersions, data: ChangeUnityData): FindUnityResult {
+	let foundVersions = unityVersions.unity_paths.filter(([_p, v, _]) => v == data.targetUnityVersion);
+	if (foundVersions.length == 0) throw new Error("unreachable");
+	return {
+		expectingVersion: data.targetUnityVersion,
+		found: true,
+		installations: foundVersions,
+	};
+}
+
+// endregion
 
 type StateInternal<Data> = {
 	state: "normal";
