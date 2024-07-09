@@ -230,10 +230,10 @@ function PageBody() {
 				}
 				{isMigrationTo2022Recommended &&
 					<SuggestMigrateTo2022Card disabled={isLoading}
-																		onMigrateRequested={unity2022Migration.request}/>}
+																		onMigrateRequested={() => unity2022Migration.request({})}/>}
 				{is2022PatchMigrationRecommended &&
 					<Suggest2022PatchMigrationCard disabled={isLoading}
-																				 onMigrateRequested={unity2022PatchMigration.request}/>}
+																				 onMigrateRequested={() => unity2022PatchMigration.request({})}/>}
 				<main className="flex-shrink overflow-hidden flex w-full">
 					<PackageListCard
 						projectPath={projectPath}
