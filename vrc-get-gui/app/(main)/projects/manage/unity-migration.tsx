@@ -155,45 +155,45 @@ function UnityVersionChange({cancel, doMigrate, data}: ConfirmProps<ChangeUnityD
 		case "downgradeMajor":
 			if (data.isVRC) {
 				if (data.isTargetVersionSupportedByVRC) {
-					mainMessage = tc("projects:manage:dialog:downgrade major vrchat supported");
+					mainMessage = tc(["projects:manage:dialog:downgrade major vrchat supported", "projects:manage:dialog:downgrade major"]);
 				} else {
-					mainMessage = tc("projects:manage:dialog:downgrade major vrchat unsupported");
+					mainMessage = tc(["projects:manage:dialog:downgrade major vrchat unsupported", "projects:manage:dialog:downgrade major"]);
 				}
 			} else {
-				mainMessage = tc("projects:manage:dialog:downgrade major generic");
+				mainMessage = tc("projects:manage:dialog:downgrade major");
 			}
 			break;
 		case "downgradePatchOrMinor":
 			if (data.isVRC) {
 				if (data.isTargetVersionSupportedByVRC) {
-					mainMessage = tc("projects:manage:dialog:downgrade minor vrchat supported");
+					mainMessage = tc(["projects:manage:dialog:downgrade minor vrchat supported", "projects:manage:dialog:downgrade minor"]);
 				} else {
-					mainMessage = tc("projects:manage:dialog:downgrade minor vrchat unsupported");
+					mainMessage = tc(["projects:manage:dialog:downgrade minor vrchat unsupported", "projects:manage:dialog:downgrade minor"]);
 				}
 			} else {
-				mainMessage = tc("projects:manage:dialog:downgrade minor generic");
+				mainMessage = tc("projects:manage:dialog:downgrade minor");
 			}
 			break;
 		case "upgradePatchOrMinor":
 			if (data.isVRC) {
 				if (data.isTargetVersionSupportedByVRC) {
-					mainMessage = tc("projects:manage:dialog:upgrade minor vrchat supported");
+					mainMessage = tc(["projects:manage:dialog:upgrade minor vrchat supported", "projects:manage:dialog:upgrade minor"]);
 				} else {
-					mainMessage = tc("projects:manage:dialog:upgrade minor vrchat unsupported");
+					mainMessage = tc(["projects:manage:dialog:upgrade minor vrchat unsupported", "projects:manage:dialog:upgrade minor"]);
 				}
 			} else {
-				mainMessage = tc("projects:manage:dialog:upgrade minor generic");
+				mainMessage = tc("projects:manage:dialog:upgrade minor");
 			}
 			break;
 		case "upgradeMajor":
 			if (data.isVRC) {
 				if (data.isTargetVersionSupportedByVRC) {
-					mainMessage = tc("projects:manage:dialog:upgrade major vrchat supported");
+					mainMessage = tc(["projects:manage:dialog:upgrade major vrchat supported", "projects:manage:dialog:upgrade major"]);
 				} else {
-					mainMessage = tc("projects:manage:dialog:upgrade major vrchat unsupported");
+					mainMessage = tc(["projects:manage:dialog:upgrade major vrchat unsupported", "projects:manage:dialog:upgrade major"]);
 				}
 			} else {
-				mainMessage = tc("projects:manage:dialog:upgrade major generic");
+				mainMessage = tc("projects:manage:dialog:upgrade major");
 			}
 			break;
 		default:
