@@ -1,8 +1,8 @@
-[{*.tsx,*.ts}]
+[{*.tsx,*.ts,*.js}]
 indent_size = 2
 indent_style = tab
 
-[lib/bindings.ts]
+[vrc-get-gui/lib/bindings.ts]
 indent_size = 4
 indent_style = space
 
