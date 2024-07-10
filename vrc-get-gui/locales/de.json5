@@ -168,6 +168,22 @@
     "projects:manage:tooltip:upgrade package": "Paket upgraden",
     "projects:manage:yanked": "projects:manage:yanked",
     "projects:manage:tooltip:back to projects": "Zurück zu Projekte",
+    // Notes for translators:
+    // Each "projects:manage:dialog:(downgrade|upgrade) (major|minor)"
+    //   key has additional 2 variants for VRChat supported and unsupported.
+    //   (suffixed by " vrchat supported" and " vrchat unsupported"
+    // Even if english does not provide translation for VRChat supported and unsupported,
+    //   you can provide translation for them if you think it's better
+    "projects:manage:dialog:unity change version header": "Ändere Unity Version",
+    "projects:manage:dialog:downgrade major": "Du bist dabei die Unity Version dieses Projektes zu einer älteren Hauptversion zu ändern. Dies wird nicht unterstützt und kann dein Projekt beschädigen!<br/>Es wird dringend dazu geraten vorher ein Backup zu erstellen.<br/>Möchtest du fortfahren?",
+    "projects:manage:dialog:downgrade minor": "Du bist dabei die Unity Version dieses Projektes zu einem älteren Patch zu ändern. Dies wird nicht unterstützt und kann dein Projekt beschädigen!<br/>Es wird dringend dazu geraten vorher ein Backup zu erstellen.<br/>Möchtest du fortfahren?",
+    "projects:manage:dialog:downgrade minor vrchat unsupported": "Du bist dabei die Unity Version dieses Projektes zu einer älteren Hauptversion zu ändern. Dies wird nicht unterstützt und kann dein Projekt beschädigen!<br/>Es wird dringend dazu geraten vorher ein Backup zu erstellen.<br/>Beachte dass die gewählte Unity Version vom VRChat SDK nicht unterstützt wird, Uploads sind daher nicht möglich.<br/>Möchtest du fortfahren?",
+    "projects:manage:dialog:upgrade minor": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Möchtest du fortfahren?",
+    "projects:manage:dialog:upgrade minor vrchat unsupported": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Beachte dass die gewählte Unity Version vom VRChat SDK nicht unterstützt wird, Uploads sind daher nicht möglich.<br/>Möchtest du fortfahren?",
+    "projects:manage:dialog:upgrade major": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Möchtest du fortfahren?",
+    "projects:manage:dialog:upgrade major vrchat supported": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird das VRChat SDK aktualisieren, Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Möchtest du fortfahren?",
+    "projects:manage:dialog:upgrade major vrchat unsupported": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird das VRChat SDK aktualisieren, Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Beachte dass die gewählte Unity Version vom VRChat SDK nicht unterstützt wird, Uploads sind daher nicht möglich.<br/>Möchtest du fortfahren?",
+    "projects:button:change unity version": "Unity Version Ändern",
     "packages:community repositories": "Community Paketquellen",
     "vpm repositories:toast:invalid url": "Die URL ist ungültig",
     "packages:user packages": "Eigene Pakete",
