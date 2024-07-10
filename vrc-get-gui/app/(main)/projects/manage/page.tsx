@@ -44,6 +44,7 @@ import {PackageListCard} from "./package-list-card";
 import {usePackageChangeDialog} from "./use-package-change";
 import {combinePackagesAndProjectDetails, VRCSDK_PACKAGES} from "./collect-package-row-info";
 import {PageContextProvider} from "./page-context";
+import {compareUnityVersionString} from "@/lib/version";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -276,7 +277,7 @@ function UnityVersionSelector(
 	const unityVersionNames = useMemo(() => {
 		if (unityVersions == null) return null
 		const versionNames = [...new Set<string>(unityVersions.unity_paths.map(([, path]) => path))];
-		versionNames.sort();
+		versionNames.sort((a, b) => compareUnityVersionString(b, a));
 		return versionNames;
 	}, [unityVersions]);
 
@@ -296,11 +297,11 @@ function UnityVersionSelector(
 	return (
 		<Select disabled={disabled} value={detailsResult.data?.unity_str ?? undefined} onValueChange={onChange}>
 			<SelectTrigger>
-				<SelectValue placeholder={
+				{
 					detailsResult.status == 'success' ?
 						(detailsResult.data.unity_str ?? "unknown") :
 						<span className={"text-primary"}>Loading...</span>
-				} className="border-primary/10"/>
+				}
 			</SelectTrigger>
 			<SelectContent>
 				<SelectGroup>
