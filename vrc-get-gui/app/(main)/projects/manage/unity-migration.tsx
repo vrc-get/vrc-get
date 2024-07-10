@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from "react";
+import React, {Fragment, useCallback} from "react";
 import {Button} from "@/components/ui/button";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {tc, tt} from "@/lib/i18n";
@@ -13,12 +13,26 @@ import {useRouter} from "next/navigation";
 import {shellOpen} from "@/lib/shellOpen";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
 import {assertNever} from "@/lib/assert-never";
+import {compareUnityVersionString, parseUnityVersion} from "@/lib/version";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
-function findRecommendedUnity(unityVersions?: TauriUnityVersions): UnityInstallation[] {
-	if (unityVersions == null) return [];
-	return unityVersions.unity_paths.filter(([_p, v, _]) => v == unityVersions.recommended_version);
+function findRecommendedUnity(unityVersions: TauriUnityVersions): FindUnityResult {
+	const versions = unityVersions.unity_paths.filter(([_p, v, _]) => v == unityVersions.recommended_version);
+
+	if (versions.length == 0) {
+		return {
+			expectingVersion: unityVersions.recommended_version,
+			installLink: unityVersions.install_recommended_version_link,
+			found: false,
+		};
+	} else {
+		return {
+			expectingVersion: unityVersions.recommended_version,
+			found: true,
+			installations: versions,
+		};
+	}
 }
 
 export function useUnity2022Migration(
@@ -29,12 +43,14 @@ export function useUnity2022Migration(
 		projectPath: string,
 		refresh?: () => void,
 	}
-): Result {
+): Result<{}> {
 	return useMigrationInternal({
 		projectPath,
 		updateProjectPreUnityLaunch: async (project) => await projectMigrateProjectTo2022(project),
+		findUnity: findRecommendedUnity,
 		refresh,
 		ConfirmComponent: MigrationConfirmMigrationDialog,
+		dialogHeader: tc("projects:manage:dialog:unity migrate header"),
 	});
 }
 
@@ -64,27 +80,21 @@ export function useUnity2022PatchMigration(
 		projectPath: string,
 		refresh?: () => void,
 	}
-): Result {
+): Result<{}> {
 	return useMigrationInternal({
 		projectPath,
 		updateProjectPreUnityLaunch: async () => {
 		}, // nothing pre-launch
+		findUnity: findRecommendedUnity,
 		refresh,
 
 		ConfirmComponent: MigrationConfirmMigrationPatchDialog,
+		dialogHeader: tc("projects:manage:dialog:unity migrate header"),
 	});
 }
 
-function MigrationConfirmMigrationPatchDialog(
-	{
-		unity,
-		cancel,
-		doMigrate,
-	}: {
-		unity: string,
-		cancel: () => void,
-		doMigrate: (inPlace: boolean) => void,
-	}) {
+function MigrationConfirmMigrationPatchDialog({result, cancel, doMigrate}: ConfirmProps) {
+	const unity = result.expectingVersion;
 	return (
 		<>
 			<DialogDescription>
@@ -100,15 +110,176 @@ function MigrationConfirmMigrationPatchDialog(
 	);
 }
 
-type StateInternal = {
+// endregion unity version change
+
+export function useUnityVersionChange(
+	{
+		projectPath,
+		refresh,
+	}: {
+		projectPath: string,
+		refresh?: () => void,
+	}
+): Result<{ version: string, currentUnityVersion: string, isVRCProject: boolean }> {
+	const use = useMigrationInternal({
+		projectPath,
+		updateProjectPreUnityLaunch: async (project, data) => {
+			if (data.isVRC && data.kind == "upgradeMajor" && data.targetUnityVersion.startsWith("2022.")) {
+				await projectMigrateProjectTo2022(project)
+			}
+		},
+		findUnity: findUnityForUnityChange,
+		refresh,
+		ConfirmComponent: UnityVersionChange,
+		dialogHeader: tc("projects:manage:dialog:unity change version header"),
+	});
+
+	const request = use.request;
+
+	return {
+		dialog: use.dialog,
+		request: useCallback(({version, currentUnityVersion, isVRCProject}) => {
+			if (currentUnityVersion == null) throw new Error("unexpected");
+			const v = detectChangeUnityKind(currentUnityVersion, version, isVRCProject);
+			request(v);
+		}, [request]),
+	};
+}
+
+function UnityVersionChange({cancel, doMigrate, data}: ConfirmProps<ChangeUnityData>) {
+	// TODO: description
+
+	let mainMessage: React.ReactNode;
+
+	switch (data.kind) {
+		case "downgradeMajor":
+			if (data.isVRC) {
+				if (data.isTargetVersionSupportedByVRC) {
+					mainMessage = tc(["projects:manage:dialog:downgrade major vrchat supported", "projects:manage:dialog:downgrade major"]);
+				} else {
+					mainMessage = tc(["projects:manage:dialog:downgrade major vrchat unsupported", "projects:manage:dialog:downgrade major"]);
+				}
+			} else {
+				mainMessage = tc("projects:manage:dialog:downgrade major");
+			}
+			break;
+		case "downgradePatchOrMinor":
+			if (data.isVRC) {
+				if (data.isTargetVersionSupportedByVRC) {
+					mainMessage = tc(["projects:manage:dialog:downgrade minor vrchat supported", "projects:manage:dialog:downgrade minor"]);
+				} else {
+					mainMessage = tc(["projects:manage:dialog:downgrade minor vrchat unsupported", "projects:manage:dialog:downgrade minor"]);
+				}
+			} else {
+				mainMessage = tc("projects:manage:dialog:downgrade minor");
+			}
+			break;
+		case "upgradePatchOrMinor":
+			if (data.isVRC) {
+				if (data.isTargetVersionSupportedByVRC) {
+					mainMessage = tc(["projects:manage:dialog:upgrade minor vrchat supported", "projects:manage:dialog:upgrade minor"]);
+				} else {
+					mainMessage = tc(["projects:manage:dialog:upgrade minor vrchat unsupported", "projects:manage:dialog:upgrade minor"]);
+				}
+			} else {
+				mainMessage = tc("projects:manage:dialog:upgrade minor");
+			}
+			break;
+		case "upgradeMajor":
+			if (data.isVRC) {
+				if (data.isTargetVersionSupportedByVRC) {
+					mainMessage = tc(["projects:manage:dialog:upgrade major vrchat supported", "projects:manage:dialog:upgrade major"]);
+				} else {
+					mainMessage = tc(["projects:manage:dialog:upgrade major vrchat unsupported", "projects:manage:dialog:upgrade major"]);
+				}
+			} else {
+				mainMessage = tc("projects:manage:dialog:upgrade major");
+			}
+			break;
+		default:
+			assertNever(data.kind);
+	}
+
+	return (
+		<>
+			<DialogDescription>
+				<p className={"text-destructive"}>
+					{mainMessage}
+				</p>
+			</DialogDescription>
+			<DialogFooter>
+				<Button onClick={cancel} className="mr-1">{tc("general:button:cancel")}</Button>
+				<Button onClick={() => doMigrate(true)} variant={"destructive"}>{tc("projects:button:change unity version")}</Button>
+			</DialogFooter>
+		</>
+	);
+}
+
+type ChangeUnityKind = "downgradeMajor" | "downgradePatchOrMinor" | "upgradePatchOrMinor" | "upgradeMajor";
+
+type ChangeUnityData = ({
+	kind: ChangeUnityKind;
+	isVRC: false;
+} | {
+	kind: ChangeUnityKind;
+	isVRC: true;
+	isTargetVersionSupportedByVRC: boolean;
+}) & {
+	targetUnityVersion: string,
+}
+
+function detectChangeUnityKind(currentVersion: string, targetUnityVersion: string, isVRCProject: boolean): ChangeUnityData {
+	const parsedCurrent = parseUnityVersion(currentVersion)!;
+	const parsedTarget = parseUnityVersion(targetUnityVersion)!;
+
+	let kind: ChangeUnityData["kind"] =
+		compareUnityVersionString(currentVersion, targetUnityVersion) >= 0 
+			? (parsedCurrent.major == parsedTarget.major ? "downgradePatchOrMinor" : "downgradeMajor")
+			: (parsedCurrent.major == parsedTarget.major ? "upgradePatchOrMinor" : "upgradeMajor");
+
+	if (isVRCProject) {
+		const supportedVersions = [
+			"2019.4.31f1",
+			"2022.3.6f1",
+			"2022.3.22f1",
+		]
+		return {
+			kind,
+			isVRC: true,
+			isTargetVersionSupportedByVRC: supportedVersions.includes(targetUnityVersion),
+			targetUnityVersion,
+		};
+	} else {
+		return {
+			kind,
+			isVRC: false,
+			targetUnityVersion,
+		};
+	}
+}
+
+function findUnityForUnityChange(unityVersions: TauriUnityVersions, data: ChangeUnityData): FindUnityResult {
+	let foundVersions = unityVersions.unity_paths.filter(([_p, v, _]) => v == data.targetUnityVersion);
+	if (foundVersions.length == 0) throw new Error("unreachable");
+	return {
+		expectingVersion: data.targetUnityVersion,
+		found: true,
+		installations: foundVersions,
+	};
+}
+
+// endregion
+
+type StateInternal<Data> = {
 	state: "normal";
 } | {
 	state: "confirm";
-	unityVersions: TauriUnityVersions;
-	unityFound: UnityInstallation[];
+	data: Data;
+	findResult: FindUnityResult & { found: true };
 } | {
 	state: "noExactUnity2022";
-	unityVersions: TauriUnityVersions;
+	data: Data;
+	findResult: FindUnityResult & { found: false };
 } | {
 	state: "copyingProject";
 } | {
@@ -118,65 +289,84 @@ type StateInternal = {
 	lines: [number, string][];
 }
 
-type Result = {
+type Result<Data> = {
 	dialog: React.ReactNode;
-	request: () => void;
+	request: (data: Data) => void;
 }
 
-type ConfirmProps = {
-	unity: string,
+type ConfirmProps<Data = {}> = {
+	result: FindUnityResult,
+	data: Data,
 	cancel: () => void,
 	doMigrate: (inPlace: boolean) => void,
 }
 
-function useMigrationInternal(
+type FindUnityResult = FindUnityFoundResult | FindUnityNotFoundResult
+
+interface FindUnityFoundResult {
+	expectingVersion: string;
+	found: true,
+	installations: UnityInstallation[];
+}
+
+interface FindUnityNotFoundResult {
+	expectingVersion: string;
+	installLink: string;
+	found: false,
+}
+
+function useMigrationInternal<Data>(
 	{
 		projectPath,
 		updateProjectPreUnityLaunch,
+		findUnity,
 		refresh,
 
 		ConfirmComponent,
+		dialogHeader,
 	}: {
 		projectPath: string,
-		updateProjectPreUnityLaunch: (projectPath: string) => Promise<unknown>,
+		updateProjectPreUnityLaunch: (projectPath: string, data: Data) => Promise<unknown>,
+		findUnity: (unityVersions: TauriUnityVersions, data: Data) => FindUnityResult,
 		refresh?: () => void,
 
-		ConfirmComponent: React.ComponentType<ConfirmProps>,
+		ConfirmComponent: React.ComponentType<ConfirmProps<Data>>,
+		dialogHeader: React.ReactNode,
 	}
-): Result {
+): Result<Data> {
 	const router = useRouter();
 	const unitySelector = useUnitySelectorDialog();
 
-	const [installStatus, setInstallStatus] = React.useState<StateInternal>({state: "normal"});
+	const [installStatus, setInstallStatus] = React.useState<StateInternal<Data>>({state: "normal"});
 
-	const request = async () => {
+	const request = async (data: Data) => {
 		if (await projectIsUnityLaunching(projectPath)) {
 			toastError(tt("projects:toast:close unity before migration"));
 			return;
 		}
 		const unityVersions = await environmentUnityVersions();
-		const unityFound = findRecommendedUnity(unityVersions);
-		if (unityFound.length == 0)
-			setInstallStatus({state: "noExactUnity2022", unityVersions});
+		const findResult = findUnity(unityVersions, data);
+		if (!findResult.found) {
+			setInstallStatus({state: "noExactUnity2022", data, findResult});
+		}
 		else
-			setInstallStatus({state: "confirm", unityVersions, unityFound});
+			setInstallStatus({state: "confirm", data, findResult});
 	}
 
-	const startMigrateProjectTo2022 = async (inPlace: boolean, unityFound: UnityInstallation[]) => {
+	const startChangeUnityVersion = async (inPlace: boolean, unityFound: UnityInstallation[], data: Data) => {
 		try {
 			switch (unityFound.length) {
 				case 0:
 					throw new Error("unreachable");
 				case 1:
-					// noinspection ES6MissingAwait
-					continueMigrateProjectTo2022(inPlace, unityFound[0][0]);
+					void continueChangeUnityVersion(inPlace, unityFound[0][0], data);
 					break;
 				default:
 					const selected = await unitySelector.select(unityFound);
 					if (selected == null)
 						setInstallStatus({state: "normal"});
 					else
-						void continueMigrateProjectTo2022(inPlace, selected.unityPath);
+						void continueChangeUnityVersion(inPlace, selected.unityPath, data);
 					break;
 			}
 		} catch (e) {
@@ -186,7 +376,7 @@ function useMigrationInternal(
 		}
 	}
 
-	const continueMigrateProjectTo2022 = async (inPlace: boolean, unityPath: string) => {
+	const continueChangeUnityVersion = async (inPlace: boolean, unityPath: string, data: Data) => {
 		try {
 			let migrateProjectPath;
 			if (inPlace) {
@@ -197,10 +387,10 @@ function useMigrationInternal(
 				migrateProjectPath = await environmentCopyProjectForMigration(projectPath);
 			}
 			setInstallStatus({state: "updating"});
-			await updateProjectPreUnityLaunch(migrateProjectPath);
+			await updateProjectPreUnityLaunch(migrateProjectPath, data);
 			setInstallStatus({state: "finalizing", lines: []});
 			let lineNumber = 0;
-			let [__, promise] = callAsyncCommand(projectCallUnityForMigration, [migrateProjectPath, unityPath], lineString => {
+			let [, promise] = callAsyncCommand(projectCallUnityForMigration, [migrateProjectPath, unityPath], lineString => {
 				setInstallStatus(prev => {
 					if (prev.state != "finalizing") return prev;
 					lineNumber++;
@@ -240,7 +430,7 @@ function useMigrationInternal(
 		}
 	};
 
-	const cancelMigrateProjectTo2022 = async () => {
+	const cancelChangeUnityVersion = async () => {
 		setInstallStatus({state: "normal"});
 	}
 
@@ -252,9 +442,10 @@ function useMigrationInternal(
 			break;
 		case "confirm":
 			dialogBodyForState = <ConfirmComponent
-				unity={installStatus.unityVersions!.recommended_version}
-				cancel={cancelMigrateProjectTo2022}
-				doMigrate={(inPlace) => startMigrateProjectTo2022(inPlace, installStatus.unityFound)}
+				result={installStatus.findResult}
+				cancel={cancelChangeUnityVersion}
+				data={installStatus.data}
+				doMigrate={(inPlace) => startChangeUnityVersion(inPlace, installStatus.findResult.installations, installStatus.data)}
 			/>;
 			break;
 		case "copyingProject":
@@ -265,9 +456,9 @@ function useMigrationInternal(
 			break;
 		case "noExactUnity2022":
 			dialogBodyForState = <NoExactUnity2022Dialog
-				expectedVersion={installStatus.unityVersions!.recommended_version}
-				installWithUnityHubLink={installStatus.unityVersions!.install_recommended_version_link}
-				close={cancelMigrateProjectTo2022}
+				expectedVersion={installStatus.findResult.expectingVersion}
+				installWithUnityHubLink={installStatus.findResult.installLink}
+				close={cancelChangeUnityVersion}
 			/>;
 			break;
 		case "finalizing":
@@ -282,7 +473,7 @@ function useMigrationInternal(
 			{unitySelector.dialog}
 			{dialogBodyForState == null ? null :
 				<DialogOpen className={"whitespace-normal leading-relaxed"}>
-					<DialogTitle>{tc("projects:manage:dialog:unity migrate header")}</DialogTitle>
+					<DialogTitle>{dialogHeader}</DialogTitle>
 					{dialogBodyForState}
 				</DialogOpen>}
 		</>,
