@@ -9,6 +9,7 @@ use tauri::{generate_handler, Invoke};
 
 pub use start::startup;
 pub use state::new_env_state;
+pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
@@ -19,6 +20,7 @@ mod async_command;
 mod environment;
 mod project;
 mod start;
+mod uri_custom_scheme;
 mod util;
 
 mod prelude {

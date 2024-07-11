@@ -51,6 +51,7 @@ fn main() {
         }))
         .manage(io.clone())
         .manage(GuiConfigState::new())
+        .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {
             app.manage(commands::new_env_state(io));

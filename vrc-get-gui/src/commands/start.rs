@@ -81,11 +81,6 @@ pub fn startup(app: &mut App) {
             spawn(crate::deep_link_support::deep_link_install_vcc(app.clone()));
         }
 
-        let query = url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("lang", &config.language)
-            .append_pair("theme", &config.theme)
-            .finish();
-
         use super::environment::config::SetupPages;
         let start_page = SetupPages::pages()
             .iter()
@@ -97,7 +92,7 @@ pub fn startup(app: &mut App) {
         let window = tauri::WindowBuilder::new(
             &app,
             "main", /* the unique window label */
-            tauri::WindowUrl::App(format!("{start_page}?{query}").into()),
+            tauri::WindowUrl::App(format!("{start_page}").into()),
         )
         .title("ALCOM")
         .resizable(true)

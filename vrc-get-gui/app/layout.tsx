@@ -15,6 +15,10 @@ export default function RootLayout({
 }>) {
 	return (
 		<html>
+		<head>
+			{/* eslint-disable-next-line @next/next/no-sync-scripts */}
+			<script src="vrc-get:global-info.js"/>
+		</head>
 		<body className={`font-sans w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}>
 		<Providers>
 			{children}

@@ -6,7 +6,6 @@ import {AlignLeft, CircleAlert, Package, List, Settings, SwatchBook} from "lucid
 import React from "react";
 import {useQuery} from "@tanstack/react-query";
 import {environmentClearSetupProcess, utilGetVersion, utilIsBadHostname} from "@/lib/bindings";
-import {useTranslation} from "react-i18next";
 import {useRouter} from "next/navigation";
 import {toastNormal} from "@/lib/toast";
 import {
@@ -21,8 +20,6 @@ import {tc} from "@/lib/i18n";
 
 export function SideBar({className}: { className?: string }) {
 	"use client"
-
-	const {t} = useTranslation();
 
 	const currentVersionResult = useQuery({
 		queryKey: ["utilGetVersion"],
@@ -48,7 +45,7 @@ export function SideBar({className}: { className?: string }) {
 	const copyVersionName = () => {
 		if (currentVersionResult.status == "success") {
 			navigator.clipboard.writeText(currentVersionResult.data);
-			toastNormal(t("sidebar:toast:version copied"));
+			toastNormal(tc("sidebar:toast:version copied"));
 		}
 	};
 	const isDev = process.env.NODE_ENV == 'development';
@@ -57,10 +54,10 @@ export function SideBar({className}: { className?: string }) {
 		<Card
 			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}>
 			<div className="flex flex-col gap-1 p-2 min-w-40 flex-grow">
-				<SideBarItem href={"/projects"} text={t("projects")} icon={List}/>
-				<SideBarItem href={"/repositories"} text={t("packages")} icon={Package}/>
-				<SideBarItem href={"/settings"} text={t("settings")} icon={Settings}/>
-				<SideBarItem href={"/log"} text={t("logs")} icon={AlignLeft}/>
+				<SideBarItem href={"/projects"} text={tc("projects")} icon={List}/>
+				<SideBarItem href={"/repositories"} text={tc("packages")} icon={Package}/>
+				<SideBarItem href={"/settings"} text={tc("settings")} icon={Settings}/>
+				<SideBarItem href={"/log"} text={tc("logs")} icon={AlignLeft}/>
 				{isDev && <DevRestartSetupButton/>}
 				{isDev && <SideBarItem href={"/settings/palette"} text={"UI Palette (dev only)"} icon={SwatchBook}/>}
 				<div className={'flex-grow'}/>
@@ -73,7 +70,15 @@ export function SideBar({className}: { className?: string }) {
 }
 
 function SideBarItem(
-	{href, text, icon}: { href: string, text: string, icon: React.ComponentType<{ className?: string }> }
+	{
+		href, 
+		text, 
+		icon,
+	}: { 
+		href: string, 
+		text: React.ReactNode, 
+		icon: React.ComponentType<{ className?: string }> 
+	}
 ) {
 	const router = useRouter();
 	const IconElenment = icon;
