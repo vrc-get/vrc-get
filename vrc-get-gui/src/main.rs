@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use crate::config::GuiConfigState;
 use tauri::Manager;
 
 mod commands;
@@ -48,6 +49,8 @@ fn main() {
             }
             process_args(&argv);
         }))
+        .manage(io.clone())
+        .manage(GuiConfigState::new())
         .invoke_handler(commands::handlers())
         .setup(move |app| {
             app.manage(commands::new_env_state(io));

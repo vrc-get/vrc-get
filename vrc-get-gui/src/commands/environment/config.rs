@@ -1,70 +1,74 @@
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use tokio::sync::Mutex;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 use crate::commands::prelude::*;
+use crate::config::GuiConfigState;
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_language(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<String, RustError> {
-    with_config!(state, |config| Ok(config.language.clone()))
+    Ok(config.load(&io).await?.language.clone())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_language(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
     language: String,
 ) -> Result<(), RustError> {
-    with_config!(state, |mut config| {
-        config.language = language;
-        config.save().await?;
-        Ok(())
-    })
+    let mut config = config.load_mut(&io).await?;
+    config.language = language;
+    config.save().await?;
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_theme(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<String, RustError> {
-    with_config!(state, |config| Ok(config.theme.clone()))
+    Ok(config.load(&io).await?.theme.clone())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_theme(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
     theme: String,
 ) -> Result<(), RustError> {
-    with_config!(state, |mut config| {
-        config.theme = theme;
-        config.save().await?;
-        Ok(())
-    })
+    let mut config = config.load_mut(&io).await?;
+    config.theme = theme;
+    config.save().await?;
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_get_project_sorting(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<String, RustError> {
-    with_config!(state, |config| Ok(config.project_sorting.clone()))
+    Ok(config.load(&io).await?.project_sorting.clone())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_project_sorting(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
     sorting: String,
 ) -> Result<(), RustError> {
-    with_config!(state, |mut config| {
-        config.project_sorting = sorting;
-        config.save().await?;
-        Ok(())
-    })
+    let mut config = config.load_mut(&io).await?;
+    config.project_sorting = sorting;
+    config.save().await?;
+    Ok(())
 }
 
 #[derive(Serialize, Deserialize, specta::Type, Copy, Clone)]
@@ -124,9 +128,10 @@ impl SetupPages {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_get_finished_setup_pages(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<Vec<SetupPages>, RustError> {
-    let setup_process_progress = with_config!(state, |config| config.setup_process_progress);
+    let setup_process_progress = config.load(&io).await?.setup_process_progress;
 
     Ok(SetupPages::pages()
         .iter()
@@ -138,24 +143,24 @@ pub async fn environment_get_finished_setup_pages(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_finished_setup_page(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
     page: SetupPages,
 ) -> Result<(), RustError> {
-    with_config!(state, |mut config| {
-        config.setup_process_progress |= page.as_flag();
-        config.save().await?;
-        Ok(())
-    })
+    let mut config = config.load_mut(&io).await?;
+    config.setup_process_progress |= page.as_flag();
+    config.save().await?;
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_clear_setup_process(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<(), RustError> {
-    with_config!(state, |mut config| {
-        config.setup_process_progress = 0;
-        config.save().await?;
-        Ok(())
-    })
+    let mut config = config.load_mut(&io).await?;
+    config.setup_process_progress = 0;
+    config.save().await?;
+    Ok(())
 }
