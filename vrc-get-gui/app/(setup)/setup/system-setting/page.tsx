@@ -4,10 +4,9 @@ import React from "react";
 import {environmentSetUseAlcomForVccProtocol, utilIsBadHostname} from "@/lib/bindings";
 import {tc} from "@/lib/i18n";
 import {useQuery} from "@tanstack/react-query";
-import {loadOSApi} from "@/lib/os";
-import type {OsType} from "@tauri-apps/api/os";
 import {Checkbox} from "@/components/ui/checkbox";
 import {BodyProps, SetupPageBase} from "../setup-page-base";
+import {useGlobalInfo} from "@/lib/global-info";
 
 export default function Page() {
 	return <SetupPageBase
@@ -28,21 +27,12 @@ function Body({environment, refetch}: BodyProps) {
 		initialData: false
 	})
 
-	const [osType, setOsType] = React.useState<OsType>("Windows_NT");
-
-	React.useEffect(() => {
-		(async () => {
-			const os = await loadOSApi();
-			setOsType(await os.type());
-		})();
-	}, [])
-
 	const changeUseAlcomForVcc = async (value: "indeterminate" | boolean) => {
 		await environmentSetUseAlcomForVccProtocol(value === true);
 		refetch();
 	};
 
-	const isMac = osType == "Darwin";
+	const isMac = useGlobalInfo().osType === "Darwin";
 
 	return (
 		<>
