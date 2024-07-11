@@ -39,12 +39,7 @@ function load(): GlobalInfo {
 
 function onload(info: Readonly<GlobalInfo>) {
 	document.documentElement.setAttribute("lang", info.language);
-	let theme = info.theme;
-	if (theme === "system") {
-		const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-		theme = isDark ? "dark" : "light";
-	}
-	document.documentElement.setAttribute("class", theme);
+	document.documentElement.setAttribute("class", info.theme);
 }
 
 export default globalInfo;
