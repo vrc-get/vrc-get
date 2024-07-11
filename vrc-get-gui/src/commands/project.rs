@@ -13,6 +13,7 @@ use tauri::{State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Mutex;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
@@ -22,6 +23,7 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
 use crate::commands::state::PendingProjectChangesInfo;
+use crate::config::GuiConfigState;
 use crate::utils::project_backup_path;
 
 #[derive(Serialize, specta::Type)]
@@ -685,15 +687,18 @@ impl Drop for RemoveOnDrop<'_> {
 #[specta::specta]
 pub async fn project_create_backup(
     state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
     window: Window,
     channel: String,
     project_path: String,
 ) -> Result<AsyncCallResult<(), ()>, RustError> {
     async_command(channel, window, async {
-        let (backup_dir, backup_format) = with_environment!(&state, |environment, config| {
+        let backup_format = config.load(&io).await?.backup_format.to_ascii_lowercase();
+
+        let backup_dir = with_environment!(&state, |environment| {
             let backup_path = project_backup_path(environment).await?;
-            let backup_format = config.backup_format.to_ascii_lowercase();
-            (backup_path.to_string(), backup_format)
+            backup_path.to_string()
         });
 
         With::<()>::continue_async(move |_| async move {

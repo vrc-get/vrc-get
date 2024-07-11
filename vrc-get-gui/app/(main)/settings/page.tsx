@@ -20,7 +20,6 @@ import {
 	environmentSetUseAlcomForVccProtocol,
 	TauriEnvironmentSettings,
 	utilCheckForUpdate,
-	utilGetVersion,
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {useState} from "react";
@@ -28,12 +27,12 @@ import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toa
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
 import {shellOpen} from "@/lib/shellOpen";
-import {loadOSApi} from "@/lib/os";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {assertNever} from "@/lib/assert-never";
 import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
 import {BackupFormatSelect, FilePathRow, LanguageSelector, ThemeSelector} from "@/components/common-setting-parts";
+import globalInfo, {useGlobalInfo} from "@/lib/global-info";
 
 export default function Page() {
 	const result = useQuery({
@@ -77,11 +76,7 @@ function Settings(
 		refetch: () => void
 	}
 ) {
-	const osType = useQuery({
-		queryKey: ["osType"],
-		queryFn: async () => loadOSApi().then(os => os.type()),
-		initialData: "Windows_NT" as const
-	}).data;
+	const isMac = useGlobalInfo().osType == "Darwin";
 
 	return (
 		<ScrollPageContainer>
@@ -118,7 +113,7 @@ function Settings(
 				<PackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
 				<AppearanceCard/>
 				<AlcomCard
-					isMac={osType == "Darwin"}
+					isMac={isMac}
 					releaseChannel={settings.release_channel}
 					useAlcomForVccProtocol={settings.use_alcom_for_vcc_protocol}
 					refetch={refetch}
@@ -340,11 +335,8 @@ function AlcomCard(
 		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
 		url.searchParams.append("labels", "bug,vrc-get-gui")
 		url.searchParams.append("template", "01_gui_bug-report.yml")
-		const osApi = await loadOSApi();
-		url.searchParams.append("os", `${await osApi.type()} - ${await osApi.platform()} - ${await osApi.version()} - ${await osApi.arch()}`)
-		const appVersion = await utilGetVersion();
-		url.searchParams.append("version", appVersion)
-		url.searchParams.append("version", appVersion)
+		url.searchParams.append("os", `${globalInfo.osInfo} - ${globalInfo.arch}`)
+		url.searchParams.append("version", globalInfo.version ?? "unknown")
 
 		void shellOpen(url.toString())
 	}

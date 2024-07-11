@@ -6,6 +6,7 @@ import jaJson from "@/locales/ja.json5";
 import zh_hansJson from "@/locales/zh_hans.json5";
 import frJson from "@/locales/fr.json5";
 import {tc as tcOriginal} from "@/components/VGTrans";
+import globalInfo from "@/lib/global-info";
 
 const languageResources = {
 	en: enJson,
@@ -38,14 +39,7 @@ i18next
 		}
 	})
 
-if ('location' in globalThis) {
-	const search = new URLSearchParams(location.search);
-	const lang = search.get('lang');
-	if (lang) {
-		// noinspection JSIgnoredPromiseFromCall
-		i18next.changeLanguage(lang)
-	}
-}
+i18next.changeLanguage(globalInfo.language)
 
 export default i18next;
 export const languages = Object.keys(languageResources);

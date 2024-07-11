@@ -9,9 +9,11 @@ use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State};
 use tokio::sync::Mutex;
 
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
 use crate::commands::prelude::*;
+use crate::config::GuiConfigState;
 use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
 
 #[derive(Serialize, specta::Type)]
@@ -67,8 +69,16 @@ pub struct TauriEnvironmentSettings {
 #[specta::specta]
 pub async fn environment_get_settings(
     state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriEnvironmentSettings, RustError> {
-    with_environment!(&state, |environment, config| {
+    let config = config.load(&io).await?;
+    let backup_format = config.backup_format.to_string();
+    let release_channel = config.release_channel.to_string();
+    let use_alcom_for_vcc_protocol = config.use_alcom_for_vcc_protocol;
+    drop(config);
+
+    with_environment!(&state, |environment| {
         environment.find_unity_hub().await.ok();
 
         let settings = TauriEnvironmentSettings {
@@ -87,9 +97,9 @@ pub async fn environment_get_settings(
                 })
                 .collect(),
             show_prerelease_packages: environment.show_prerelease_packages(),
-            backup_format: config.backup_format.to_string(),
-            release_channel: config.release_channel.to_string(),
-            use_alcom_for_vcc_protocol: config.use_alcom_for_vcc_protocol,
+            backup_format,
+            release_channel,
+            use_alcom_for_vcc_protocol,
         };
         environment.disconnect_litedb();
         Ok(settings)
@@ -333,47 +343,45 @@ pub async fn environment_set_show_prerelease_packages(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_backup_format(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
     backup_format: String,
 ) -> Result<(), RustError> {
-    with_config!(&state, |mut config| {
-        info!("setting backup_format to {backup_format}");
-        config.backup_format = backup_format;
-        config.save().await?;
-        Ok(())
-    })
+    let mut config = config.load_mut(&io).await?;
+    config.backup_format = backup_format;
+    config.save().await?;
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_release_channel(
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
     release_channel: String,
 ) -> Result<(), RustError> {
-    with_config!(&state, |mut config| {
-        info!("setting release_channel to {release_channel}");
-        config.release_channel = release_channel;
-        config.save().await?;
-        Ok(())
-    })
+    let mut config = config.load_mut(&io).await?;
+    config.release_channel = release_channel;
+    config.save().await?;
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_use_alcom_for_vcc_protocol(
     app: AppHandle,
-    state: State<'_, Mutex<EnvironmentState>>,
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
     use_alcom_for_vcc_protocol: bool,
 ) -> Result<(), RustError> {
-    with_config!(&state, |mut config| {
-        info!("setting use_alcom_for_vcc_protocol to {use_alcom_for_vcc_protocol}");
-        config.use_alcom_for_vcc_protocol = use_alcom_for_vcc_protocol;
-        config.save().await?;
-        if use_alcom_for_vcc_protocol {
-            spawn(crate::deep_link_support::deep_link_install_vcc(app));
-        } else {
-            spawn(crate::deep_link_support::deep_link_uninstall_vcc(app));
-        }
-        Ok(())
-    })
+    let mut config = config.load_mut(&io).await?;
+    info!("setting use_alcom_for_vcc_protocol to {use_alcom_for_vcc_protocol}");
+    config.use_alcom_for_vcc_protocol = use_alcom_for_vcc_protocol;
+    config.save().await?;
+    if use_alcom_for_vcc_protocol {
+        spawn(crate::deep_link_support::deep_link_install_vcc(app));
+    } else {
+        spawn(crate::deep_link_support::deep_link_uninstall_vcc(app));
+    }
+    Ok(())
 }

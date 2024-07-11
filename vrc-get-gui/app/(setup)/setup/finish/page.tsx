@@ -4,17 +4,10 @@ import {CardDescription} from "@/components/ui/card";
 import React from "react";
 import {SetupPageBase} from "../setup-page-base";
 import {tc} from "@/lib/i18n";
-import {useQuery} from "@tanstack/react-query";
-import {loadOSApi} from "@/lib/os";
+import {useGlobalInfo} from "@/lib/global-info";
 
 export default function Page() {
-	const osType = useQuery({
-		queryKey: ["osType"],
-		queryFn: async () => loadOSApi().then(os => os.type()),
-		initialData: "Windows_NT" as const
-	}).data;
-
-	const isMac = osType === "Darwin";
+	const isMac = useGlobalInfo().osType === "Darwin";
 
 	return <SetupPageBase
 		heading={tc("setup:finish:heading")}

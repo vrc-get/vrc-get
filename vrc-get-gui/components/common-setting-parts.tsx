@@ -66,10 +66,6 @@ export function ThemeSelector() {
 	const changeTheme = async (theme: string) => {
 		await environmentSetTheme(theme);
 		setTheme(theme);
-		if (theme === "system") {
-			const {appWindow} = await import("@tauri-apps/api/window");
-			theme = await appWindow.theme() ?? "light";
-		}
 		document.documentElement.setAttribute("class", theme);
 	};
 

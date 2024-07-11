@@ -13,26 +13,18 @@ use vrc_get_vpm::PackageInfo;
 use crate::commands::prelude::*;
 use crate::commands::project::ChangesInfoHolder;
 use crate::commands::util::UpdateResponseHolder;
-use crate::config::GuiConfigHolder;
 
 macro_rules! with_environment {
-    ($state: expr, |$environment: pat_param$(, $config: pat_param)?| $body: expr) => {{
+    ($state: expr, |$environment: pat_param| $body: expr) => {{
         let mut state = $state.lock().await;
         let state = &mut *state;
         let $environment = state
             .environment
-            .get_environment_mut($crate::commands::state::UpdateRepositoryMode::None, &state.io)
+            .get_environment_mut(
+                $crate::commands::state::UpdateRepositoryMode::None,
+                &state.io,
+            )
             .await?;
-        $(let $config = state.config.load(&state.io).await?;)?
-        $body
-    }};
-}
-
-macro_rules! with_config {
-    ($state: expr, |$config: pat_param| $body: expr) => {{
-        let mut state = $state.lock().await;
-        let state = &mut *state;
-        let $config = state.config.load(&state.io).await?;
         $body
     }};
 }
@@ -56,7 +48,6 @@ unsafe impl Sync for EnvironmentState {}
 pub struct EnvironmentState {
     pub io: DefaultEnvironmentIo,
     pub environment: EnvironmentHolder,
-    pub config: GuiConfigHolder,
     pub packages: Option<NonNull<[PackageInfo<'static>]>>,
     // null or reference to
     pub projects: Box<[UserProject]>,
@@ -180,7 +171,6 @@ impl EnvironmentState {
     fn new(io: DefaultEnvironmentIo) -> Self {
         Self {
             environment: EnvironmentHolder::new(),
-            config: GuiConfigHolder::new(),
             packages: None,
             projects: Box::new([]),
             projects_version: Wrapping(0),

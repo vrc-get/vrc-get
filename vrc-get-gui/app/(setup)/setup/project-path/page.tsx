@@ -5,9 +5,8 @@ import React from "react";
 import {FilePathRow} from "@/components/common-setting-parts";
 import {environmentPickProjectDefaultPath} from "@/lib/bindings";
 import {tc} from "@/lib/i18n";
-import {useQuery} from "@tanstack/react-query";
-import {isWindows} from "@/lib/os";
 import {BodyProps, SetupPageBase, WarningMessage} from "../setup-page-base";
+import {useGlobalInfo} from "@/lib/global-info";
 
 export default function Page() {
 	return <SetupPageBase
@@ -27,14 +26,11 @@ function Body(
 ) {
 	const projectPath = environment.default_project_path;
 
-	const localAppDataPath = useQuery({
-		queryKey: ["cacheDir"],
-		queryFn: async () => await (await import("@tauri-apps/api/path")).cacheDir()
-	}).data;
-
 	const hasWhitespace = projectPath.includes(" ");
-	const hasNonAscii = isWindows() && projectPath.match(/[^\x00-\x7F]/);
-	const inLocalAppData = !!(isWindows() && localAppDataPath && projectPath.includes(localAppDataPath));
+	const globalInfo = useGlobalInfo();
+	const isWindows = globalInfo.osType === "WindowsNT";
+	const hasNonAscii = isWindows && projectPath.match(/[^\x00-\x7F]/);
+	const inLocalAppData = !!(isWindows && globalInfo.localAppData && projectPath.includes(globalInfo.localAppData));
 
 	return (
 		<>

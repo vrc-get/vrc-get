@@ -6,25 +6,21 @@ import {useCallback, useEffect, useState} from "react";
 import {
 	CheckForUpdateResponse,
 	deepLinkHasAddRepository,
-	environmentLanguage,
-	environmentTheme,
 	LogEntry,
 	utilCheckForUpdate
 } from "@/lib/bindings";
-import i18next, {tc} from "@/lib/i18n";
+import i18next from "@/lib/i18n";
 import {I18nextProvider} from "react-i18next";
-import {toastError, toastNormal, toastThrownError} from "@/lib/toast";
+import {toastError, toastThrownError} from "@/lib/toast";
 import {useTauriListen} from "@/lib/use-tauri-listen";
-import {usePathname, useRouter} from "next/navigation";
-import {Tooltip, TooltipContent, TooltipProvider} from "@/components/ui/tooltip";
-import {Dialog, DialogContent} from "@/components/ui/dialog";
+import {useRouter} from "next/navigation";
+import {TooltipProvider} from "@/components/ui/tooltip";
 import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
 
 const queryClient = new QueryClient();
 
 export function Providers({children}: { children: React.ReactNode }) {
 	const router = useRouter();
-	const pathname = usePathname();
 
 	useTauriListen<LogEntry>("log", useCallback((event) => {
 		const entry = event.payload as LogEntry;
@@ -56,10 +52,6 @@ export function Providers({children}: { children: React.ReactNode }) {
 		}
 	}, [moveToRepositories]);
 
-	useEffect(() => {
-		environmentLanguage().then((lang) => i18next.changeLanguage(lang))
-	}, []);
-
 	const [language, setLanguage] = useState(i18next.language);
 
 	useEffect(() => {
@@ -67,32 +59,6 @@ export function Providers({children}: { children: React.ReactNode }) {
 		i18next.on("languageChanged", changeLanguage);
 		return () => i18next.off("languageChanged", changeLanguage);
 	}, []);
-
-	useEffect(() => {
-		// initially set theme based on query parameter for early feedback
-		if ('location' in globalThis) {
-			const search = new URLSearchParams(location.search);
-			let theme = search.get('theme');
-			if (theme) {
-				if (theme === "system") {
-					const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-					theme = isDark ? "dark" : "light";
-				}
-				document.documentElement.setAttribute("class", theme);
-			}
-		}
-
-		(async () => {
-			// then, load theme from environment
-			// the theme can be different from the query parameter if the user has changed it in the settings
-			let theme = await environmentTheme();
-			if (theme === "system") {
-				const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				theme = isDark ? "dark" : "light";
-			}
-			document.documentElement.setAttribute("class", theme);
-		})();
-	}, [])
 
 	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(null);
 
