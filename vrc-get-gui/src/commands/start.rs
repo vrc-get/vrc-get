@@ -92,7 +92,7 @@ pub fn startup(app: &mut App) {
         let window = tauri::WindowBuilder::new(
             &app,
             "main", /* the unique window label */
-            tauri::WindowUrl::App(format!("{start_page}").into()),
+            tauri::WindowUrl::App(start_page.into()),
         )
         .title("ALCOM")
         .resizable(true)
