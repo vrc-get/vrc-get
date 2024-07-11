@@ -10,8 +10,17 @@ pub fn handle_vrc_get_scheme(
     app: &AppHandle,
     request: &Request,
 ) -> Result<Response, Box<dyn std::error::Error>> {
-    match request.uri() {
-        "vrc-get:global-info.js" => global_info_json(app),
+    let url = request.uri();
+    log::info!("recived request: {url}");
+    let path = if let Some(path) = url.strip_prefix("vrc-get://localhost/") {
+        path
+    } else if let Some(path) = url.strip_prefix("vrc-get:/") {
+        path
+    } else {
+        return ResponseBuilder::new().status(404).body(b"bad sceme".into());
+    };
+    match path {
+        "global-info.js" => global_info_json(app),
         _ => ResponseBuilder::new().status(404).body(b"bad".into()),
     }
 }
