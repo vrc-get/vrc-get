@@ -1,10 +1,12 @@
 use crate::commands::prelude::*;
 
+use crate::config::GuiConfigState;
 use log::{error, info};
 use std::io;
 use tauri::async_runtime::spawn;
 use tauri::{App, AppHandle, LogicalSize, Manager, State, Window, WindowEvent};
 use tokio::sync::Mutex;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_hub;
 
 trait WindowExt {
@@ -71,17 +73,13 @@ pub fn startup(app: &mut App) {
     }
 
     async fn open_main(app: AppHandle) -> tauri::Result<()> {
-        let state: State<'_, Mutex<EnvironmentState>> = app.state();
-        let config = with_config!(state, |config| config.clone());
+        let config = app.state::<GuiConfigState>();
+        let io = app.state::<DefaultEnvironmentIo>();
+        let config = config.load(&io).await?.clone();
 
         if !cfg!(target_os = "macos") && config.use_alcom_for_vcc_protocol {
             spawn(crate::deep_link_support::deep_link_install_vcc(app.clone()));
         }
-
-        let query = url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("lang", &config.language)
-            .append_pair("theme", &config.theme)
-            .finish();
 
         use super::environment::config::SetupPages;
         let start_page = SetupPages::pages()
@@ -94,7 +92,7 @@ pub fn startup(app: &mut App) {
         let window = tauri::WindowBuilder::new(
             &app,
             "main", /* the unique window label */
-            tauri::WindowUrl::App(format!("{start_page}?{query}").into()),
+            tauri::WindowUrl::App(start_page.into()),
         )
         .title("ALCOM")
         .resizable(true)
@@ -103,8 +101,9 @@ pub fn startup(app: &mut App) {
                 url.host_str() == Some("localhost")
             } else if cfg!(windows) {
                 url.scheme() == "https" && url.host_str() == Some("tauri.localhost")
+                    || url.host_str() == Some("vrc-get.localhost")
             } else {
-                url.scheme() == "tauri"
+                url.scheme() == "tauri" || url.scheme() == "vrc-get"
             }
         })
         .build()?;
@@ -151,7 +150,7 @@ pub fn startup(app: &mut App) {
                 *resize_debounce = Some(tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-                    if let Err(e) = save_window_size(cloned.state(), logical, fullscreen).await {
+                    if let Err(e) = save_window_size(cloned, logical, fullscreen).await {
                         error!("failed to save window size: {e}");
                     }
                 }));
@@ -160,7 +159,7 @@ pub fn startup(app: &mut App) {
         });
 
         async fn save_window_size(
-            state: State<'_, Mutex<EnvironmentState>>,
+            window: Window,
             size: LogicalSize<u32>,
             fullscreen: bool,
         ) -> tauri::Result<()> {
@@ -168,16 +167,17 @@ pub fn startup(app: &mut App) {
                 "saving window size: {}x{}, full: {}",
                 size.width, size.height, fullscreen
             );
-            with_config!(state, |mut config| {
-                if fullscreen {
-                    config.fullscreen = true;
-                } else {
-                    config.fullscreen = false;
-                    config.window_size.width = size.width;
-                    config.window_size.height = size.height;
-                }
-                config.save().await?;
-            });
+            let config = window.state::<GuiConfigState>();
+            let io = window.state::<DefaultEnvironmentIo>();
+            let mut config = config.load_mut(&io).await?;
+            if fullscreen {
+                config.fullscreen = true;
+            } else {
+                config.fullscreen = false;
+                config.window_size.width = size.width;
+                config.window_size.height = size.height;
+            }
+            config.save().await?;
             Ok(())
         }
 

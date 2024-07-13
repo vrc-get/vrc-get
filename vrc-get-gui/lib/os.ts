@@ -1,19 +1,7 @@
-let isWindowsCache: boolean | undefined
-
-export async function loadOSApi(){
-	const osApi = await import('@tauri-apps/api/os')
-	return osApi
-}
-
-export function isWindows() {
-	if (isWindowsCache === undefined) {
-		isWindowsCache = navigator.userAgent.toLowerCase().includes("windows nt")
-	}
-	return isWindowsCache;
-}
+import globalInfo from "./global-info";
 
 export function pathSeparators(): string[] {
-	return isWindows() ? ['\\', '/'] : ['/'];
+	return globalInfo.osType == "WindowsNT" ? ['\\', '/'] : ['/'];
 }
 
 export function pathSeparator(): string {
@@ -21,7 +9,7 @@ export function pathSeparator(): string {
 }
 
 export function nameFromPath(path: string): string {
-	if (isWindows()) {
+	if (globalInfo.osInfo == "WindowsNT") {
 		let indexOfSlash = path.lastIndexOf("/");
 		let indexOfBackSlash = path.lastIndexOf("\\");
 		let indexOfSeparator = Math.max(indexOfSlash, indexOfBackSlash);

@@ -16,6 +16,7 @@ use std::mem::MaybeUninit;
 use std::os::windows::ffi::EncodeWide;
 use std::os::windows::prelude::*;
 use std::path::Path;
+use std::sync::OnceLock;
 use std::{io, result};
 use tokio::process::Command;
 use windows::Win32::Foundation::{ERROR_LOCK_VIOLATION, HANDLE};
@@ -143,7 +144,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
         match LockFileEx(
-            HANDLE(file.as_raw_handle() as isize),
+            HANDLE(file.as_raw_handle()),
             LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
             0,
             0,
@@ -162,13 +163,52 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
-        UnlockFileEx(
-            HANDLE(file.as_raw_handle() as isize),
-            0,
-            !0,
-            !0,
-            &mut overlapped,
-        )?;
+        UnlockFileEx(HANDLE(file.as_raw_handle()), 0, !0, !0, &mut overlapped)?;
         return Ok(true);
     }
+}
+
+pub fn os_info() -> &'static str {
+    static OS_INFO: OnceLock<String> = OnceLock::new();
+
+    fn compute_os_info() -> String {
+        use windows::Wdk::System::SystemServices::RtlGetVersion;
+        use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
+        let mut info: OSVERSIONINFOW = Default::default();
+        info.dwOSVersionInfoSize = std::mem::size_of_val(&info) as u32;
+        unsafe {
+            if RtlGetVersion(&mut info).is_err() {
+                return "Unknown".to_string();
+            }
+        }
+
+        let ex_version = &info.szCSDVersion[..];
+        let ex_version = &ex_version[..ex_version
+            .iter()
+            .position(|&x| x == 0)
+            .unwrap_or(ex_version.len())];
+        let ex_version = String::from_utf16_lossy(ex_version);
+        let ex_version = if ex_version.is_empty() {
+            "".to_string()
+        } else {
+            format!(" ({})", ex_version)
+        };
+
+        format!(
+            "Windows {}.{}.{}{}",
+            info.dwMajorVersion, info.dwMinorVersion, info.dwBuildNumber, ex_version,
+        )
+    }
+
+    OS_INFO.get_or_init(compute_os_info)
+}
+
+pub fn local_app_data() -> &'static str {
+    static LOCAL_APP_DATA: OnceLock<String> = OnceLock::new();
+
+    LOCAL_APP_DATA.get_or_init(|| {
+        dirs_next::cache_dir()
+            .map(|x| x.to_string_lossy().into_owned())
+            .unwrap_or_else(|| String::new())
+    })
 }

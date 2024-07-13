@@ -1,6 +1,18 @@
 const fs = require('node:fs/promises');
 const json5 = require('json5');
 
+// Those keys are optional; they are not required to be translated and might be translated only by some locales.
+const optionalKeys = [
+	"projects:manage:dialog:downgrade major vrchat supported",
+	"projects:manage:dialog:downgrade major vrchat unsupported",
+	"projects:manage:dialog:downgrade minor vrchat supported",
+	"projects:manage:dialog:downgrade minor vrchat unsupported",
+	"projects:manage:dialog:upgrade minor vrchat supported",
+	"projects:manage:dialog:upgrade minor vrchat unsupported",
+	"projects:manage:dialog:upgrade major vrchat supported",
+	"projects:manage:dialog:upgrade major vrchat unsupported",
+]
+
 /**
  * @param github {import('@octokit/rest').Octokit}
  * @param context {{repo: {owner: string, repo: string}}}
@@ -86,8 +98,8 @@ async function processOneLocale(github, owner, repo, number, replyToId, localeId
 	const transJson = json5.parse(await fs.readFile(`vrc-get-gui/locales/${localeId}.json5`, "utf8"));
 	const transKeys = normalizeKeys(Object.keys(transJson.translation));
 
-	const missingKeys = enKeys.filter(key => !transKeys.includes(key));
-	const extraKeys = transKeys.filter(key => !enKeys.includes(key));
+	const missingKeys = enKeys.filter(key => !transKeys.includes(key)).filter(key => !optionalKeys.includes(key));
+	const extraKeys = transKeys.filter(key => !enKeys.includes(key)).filter(key => !optionalKeys.includes(key));
 
 	const missingKeysStr = missingKeys.length === 0 ? 'nothing' : missingKeys.map(key => `- \`${key}\``).join('\n');
 	const excessKeysStr = extraKeys.length === 0 ? 'nothing' : extraKeys.map(key => `- \`${key}\``).join('\n');

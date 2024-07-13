@@ -1,9 +1,15 @@
+use std::io;
+use std::io::Read;
+use std::ops::{Deref, DerefMut};
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use arc_swap::ArcSwapOption;
 use futures::AsyncReadExt;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::ops::{Deref, DerefMut};
-use std::path::PathBuf;
+use tokio::sync::{Mutex, MutexGuard};
+
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -53,7 +59,7 @@ impl Default for GuiConfig {
 }
 
 impl GuiConfig {
-    fn fix_defaults(&mut self) {
+    pub(crate) fn fix_defaults(&mut self) {
         if self.language.is_empty() {
             self.language = language_default();
         }
@@ -119,65 +125,168 @@ impl Default for WindowSize {
     }
 }
 
-pub struct GuiConfigHandler<'a> {
-    config: &'a mut GuiConfig,
-    path: &'a PathBuf,
+struct GuiConfigStateInner {
+    config: GuiConfig,
+    path: PathBuf,
 }
 
-impl GuiConfigHandler<'_> {
-    pub async fn save(&self) -> io::Result<()> {
-        let json = serde_json::to_string_pretty(&self.config)?;
-        tokio::fs::create_dir_all(self.path.parent().unwrap()).await?;
-        tokio::fs::write(&self.path, json.as_bytes()).await
+pub struct GuiConfigState {
+    inner: ArcSwapOption<GuiConfigStateInner>,
+    mut_lock: Mutex<()>,
+}
+
+impl GuiConfigState {
+    pub fn new() -> Self {
+        Self {
+            inner: ArcSwapOption::new(None),
+            mut_lock: Mutex::new(()),
+        }
+    }
+
+    pub async fn load(&self, io: &DefaultEnvironmentIo) -> io::Result<GuiConfigRef> {
+        Self::load_async_impl(&self.inner, io).await
+    }
+
+    async fn load_async_impl(
+        inner: &ArcSwapOption<GuiConfigStateInner>,
+        io: &DefaultEnvironmentIo,
+    ) -> io::Result<GuiConfigRef> {
+        if let Some(inner) = &*inner.load() {
+            Ok(GuiConfigRef::new(inner.clone()))
+        } else {
+            Ok(GuiConfigRef::new(Self::set_updated_or_removed(
+                inner,
+                load_async(io).await?,
+            )))
+        }
+    }
+
+    #[allow(dead_code)] // Not used in the current codebase but used soon
+    pub fn load_sync(&self, io: &DefaultEnvironmentIo) -> io::Result<GuiConfigRef> {
+        let inner = self.inner.load();
+        if let Some(inner) = &*inner {
+            Ok(GuiConfigRef::new(inner.clone()))
+        } else {
+            Ok(GuiConfigRef::new(Self::set_updated_or_removed(
+                &self.inner,
+                load_sync(io)?,
+            )))
+        }
+    }
+
+    fn set_updated_or_removed(
+        inner: &ArcSwapOption<GuiConfigStateInner>,
+        value: GuiConfigStateInner,
+    ) -> Arc<GuiConfigStateInner> {
+        let arc = Arc::new(value);
+        let guard = inner.compare_and_swap(std::ptr::null(), Some(arc.clone()));
+        if let Some(old) = &*guard {
+            old.clone()
+        } else {
+            arc
+        }
+    }
+
+    pub async fn load_mut<'s>(
+        &'s self,
+        io: &DefaultEnvironmentIo,
+    ) -> io::Result<GuiConfigMutRef<'s>> {
+        let lock = self.mut_lock.lock().await;
+        let loaded = Self::load_async_impl(&self.inner, io).await?;
+        Ok(GuiConfigMutRef {
+            config: loaded.state.config.clone(),
+            path: loaded.state.path.clone(),
+            _mut_lock_guard: lock,
+            cache: &self.inner,
+        })
     }
 }
 
-impl Deref for GuiConfigHandler<'_> {
+pub struct GuiConfigRef {
+    state: Arc<GuiConfigStateInner>,
+}
+
+impl GuiConfigRef {
+    fn new(state: Arc<GuiConfigStateInner>) -> Self {
+        Self { state }
+    }
+}
+
+impl Deref for GuiConfigRef {
     type Target = GuiConfig;
 
     #[inline(always)]
     fn deref(&self) -> &GuiConfig {
-        self.config
+        &self.state.config
     }
 }
 
-impl DerefMut for GuiConfigHandler<'_> {
+pub struct GuiConfigMutRef<'s> {
+    config: GuiConfig,
+    path: PathBuf,
+    _mut_lock_guard: MutexGuard<'s, ()>,
+    cache: &'s ArcSwapOption<GuiConfigStateInner>,
+}
+
+impl GuiConfigMutRef<'_> {
+    pub async fn save(self) -> io::Result<()> {
+        let json = serde_json::to_string_pretty(&self.config)?;
+        tokio::fs::create_dir_all(self.path.parent().unwrap()).await?;
+        tokio::fs::write(&self.path, json.as_bytes()).await?;
+        self.cache.swap(Some(Arc::new(GuiConfigStateInner {
+            config: self.config,
+            path: self.path,
+        })));
+        Ok(())
+    }
+}
+
+impl Deref for GuiConfigMutRef<'_> {
+    type Target = GuiConfig;
+
+    #[inline(always)]
+    fn deref(&self) -> &GuiConfig {
+        &self.config
+    }
+}
+
+impl DerefMut for GuiConfigMutRef<'_> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut GuiConfig {
-        self.config
+        &mut self.config
     }
 }
 
-pub struct GuiConfigHolder {
-    cached_value: Option<(GuiConfig, PathBuf)>,
+async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
+    let path = io.resolve("vrc-get/gui-config.json".as_ref());
+    let config = match io.open(&path).await {
+        Ok(mut file) => {
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer).await?;
+            let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
+            loaded.fix_defaults();
+            loaded
+        }
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => GuiConfig::default(),
+        Err(e) => return Err(e),
+    };
+
+    Ok(GuiConfigStateInner { config, path })
 }
 
-impl GuiConfigHolder {
-    pub fn new() -> Self {
-        Self { cached_value: None }
-    }
+fn load_sync(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
+    let path = io.resolve("vrc-get/gui-config.json".as_ref());
+    let config = match std::fs::File::open(&path) {
+        Ok(mut file) => {
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer)?;
+            let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
+            loaded.fix_defaults();
+            loaded
+        }
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => GuiConfig::default(),
+        Err(e) => return Err(e),
+    };
 
-    pub async fn load(&mut self, io: &DefaultEnvironmentIo) -> io::Result<GuiConfigHandler> {
-        let (config, path) = if let Some((ref mut config, ref path)) = self.cached_value {
-            (config, path)
-        } else {
-            let path = io.resolve("vrc-get/gui-config.json".as_ref());
-            let value = match io.open(&path).await {
-                Ok(mut file) => {
-                    let mut buffer = Vec::new();
-                    file.read_to_end(&mut buffer).await?;
-                    let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
-                    loaded.fix_defaults();
-                    loaded
-                }
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => GuiConfig::default(),
-                Err(e) => return Err(e),
-            };
-            self.cached_value = Some((value, path));
-            let (config, path) = self.cached_value.as_mut().unwrap();
-            (config, &*path)
-        };
-
-        Ok(GuiConfigHandler { config, path })
-    }
+    Ok(GuiConfigStateInner { config, path })
 }

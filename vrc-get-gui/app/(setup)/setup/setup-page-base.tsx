@@ -11,8 +11,8 @@ import {Card, CardFooter, CardHeader} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import React from "react";
 import {Circle, CircleAlert, CircleCheck, CircleChevronRight} from "lucide-react";
-import {loadOSApi} from "@/lib/os";
 import {tc} from "@/lib/i18n";
+import {useGlobalInfo} from "@/lib/global-info";
 
 export type BodyProps = Readonly<{ environment: TauriEnvironmentSettings, refetch: () => void }>;
 
@@ -89,13 +89,7 @@ function StepCard(
 		initialData: []
 	}).data;
 
-	const osType = useQuery({
-		queryKey: ["osType"],
-		queryFn: async () => loadOSApi().then(os => os.type()),
-		initialData: "Windows_NT" as const
-	}).data;
-
-	const isMac = osType === "Darwin";
+	const isMac = useGlobalInfo().osType === "Darwin";
 
 	return <Card className={"w-48 p-4"}>
 		<ol className={"flex flex-col gap-2"}>

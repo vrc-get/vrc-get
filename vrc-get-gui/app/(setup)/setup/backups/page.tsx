@@ -7,17 +7,10 @@ import {environmentPickProjectBackupPath, environmentSetBackupFormat} from "@/li
 import {tc} from "@/lib/i18n";
 import {toastThrownError} from "@/lib/toast";
 import {BodyProps, SetupPageBase, WarningMessage} from "../setup-page-base";
-import {useQuery} from "@tanstack/react-query";
-import {isWindows, loadOSApi} from "@/lib/os";
+import {useGlobalInfo} from "@/lib/global-info";
 
 export default function Page() {
-	const osType = useQuery({
-		queryKey: ["osType"],
-		queryFn: async () => loadOSApi().then(os => os.type()),
-		initialData: "Windows_NT" as const
-	}).data;
-
-	const isMac = osType === "Darwin";
+	const isMac = useGlobalInfo().osType === "Darwin";
 
 	return <SetupPageBase
 		heading={tc("setup:backups:heading")}
@@ -42,12 +35,9 @@ function Body({environment, refetch}: BodyProps) {
 		}
 	}
 
-	const localAppDataPath = useQuery({
-		queryKey: ["cacheDir"],
-		queryFn: async () => await (await import("@tauri-apps/api/path")).cacheDir()
-	}).data;
-
-	const inLocalAppData = !!(isWindows() && localAppDataPath && projectBackupPath.includes(localAppDataPath));
+	const globalInfo = useGlobalInfo();
+	const isWindows = globalInfo.osType === "WindowsNT";
+	const inLocalAppData = !!(isWindows && globalInfo.localAppData && projectBackupPath.includes(globalInfo.localAppData));
 
 	return (
 		<>

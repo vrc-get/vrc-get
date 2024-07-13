@@ -32,9 +32,9 @@ bson = "2.11.0"
 hex = "0.4.3"
 once_cell = "1.19.0"
 rand = "0.8.5"
-serde = "1.0.203"
+serde = "1.0.204"
 
 [build-dependencies]
 ar = "0.9.0"
-cc = "1.0.104"
+cc = "1.0.105"
 object = { version = "0.36.1", default-features = false, features = ["macho"] }

@@ -4,13 +4,21 @@ import {Button} from "@/components/ui/button";
 import {Card} from "@/components/ui/card";
 import {Dialog, DialogContent} from "@/components/ui/dialog";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
-import {Select, SelectContent, SelectGroup, SelectLabel, SelectTrigger, SelectValue,} from "@/components/ui/select"
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 import React, {Suspense, useCallback, useMemo, useState} from "react";
 import {ArrowLeft, ChevronDown} from "lucide-react";
 import {HNavBar, VStack} from "@/components/layout";
 import {useRouter, useSearchParams} from "next/navigation";
-import {useQueries, useQuery} from "@tanstack/react-query";
+import {useQueries, useQuery, UseQueryResult} from "@tanstack/react-query";
 import {
 	environmentPackages,
 	environmentRefetchPackages,
@@ -30,12 +38,13 @@ import {useRemoveProjectModal} from "@/lib/remove-project";
 import {tc} from "@/lib/i18n";
 import {nameFromPath} from "@/lib/os";
 import {useBackupProjectModal} from "@/lib/backup-project";
-import {useUnity2022Migration, useUnity2022PatchMigration} from "./unity-migration";
+import {useUnity2022Migration, useUnity2022PatchMigration, useUnityVersionChange} from "./unity-migration";
 import {LaunchSettings} from "./launch-settings";
 import {PackageListCard} from "./package-list-card";
 import {usePackageChangeDialog} from "./use-package-change";
 import {combinePackagesAndProjectDetails, VRCSDK_PACKAGES} from "./collect-package-row-info";
 import {PageContextProvider} from "./page-context";
+import {compareUnityVersionString} from "@/lib/version";
 
 export default function Page(props: {}) {
 	return <Suspense><PageBody {...props}/></Suspense>
@@ -208,20 +217,12 @@ function PageBody() {
 							{tc("projects:manage:unity version")}
 						</p>
 						<div className={"flex-grow-0 flex-shrink-0"}>
-							<Select>
-								<SelectTrigger>
-									<SelectValue placeholder={
-										detailsResult.status == 'success' ?
-											(detailsResult.data.unity_str ?? "unknown") :
-											<span className={"text-primary"}>Loading...</span>
-									} className="border-primary/10"/>
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectLabel>{tc("general:not implemented")}</SelectLabel>
-									</SelectGroup>
-								</SelectContent>
-							</Select>
+							<UnityVersionSelector
+								disabled={isLoading}
+								projectPath={projectPath}
+								detailsResult={detailsResult}
+								unityVersions={unityVersionsResult.data}
+							/>
 						</div>
 					</div>
 				</Card>
@@ -231,10 +232,10 @@ function PageBody() {
 				}
 				{isMigrationTo2022Recommended &&
 					<SuggestMigrateTo2022Card disabled={isLoading}
-																		onMigrateRequested={unity2022Migration.request}/>}
+																		onMigrateRequested={() => unity2022Migration.request({})}/>}
 				{is2022PatchMigrationRecommended &&
 					<Suggest2022PatchMigrationCard disabled={isLoading}
-																				 onMigrateRequested={unity2022PatchMigration.request}/>}
+																				 onMigrateRequested={() => unity2022PatchMigration.request({})}/>}
 				<main className="flex-shrink overflow-hidden flex w-full">
 					<PackageListCard
 						projectPath={projectPath}
@@ -253,6 +254,67 @@ function PageBody() {
 			</VStack>
 		</PageContextProvider>
 	);
+}
+
+function UnityVersionSelector(
+	{
+		disabled,
+		projectPath,
+		detailsResult,
+		unityVersions,
+	}: {
+		disabled?: boolean,
+		projectPath: string,
+		detailsResult: UseQueryResult<TauriProjectDetails>,
+		unityVersions?: TauriUnityVersions,
+	}
+) {
+	const unityChangeVersion = useUnityVersionChange({
+		projectPath,
+		refresh: () => detailsResult.refetch(),
+	});
+
+	const unityVersionNames = useMemo(() => {
+		if (unityVersions == null) return null
+		const versionNames = [...new Set<string>(unityVersions.unity_paths.map(([, path]) => path))];
+		versionNames.sort((a, b) => compareUnityVersionString(b, a));
+		return versionNames;
+	}, [unityVersions]);
+
+	const onChange = useCallback(async (version: string) => {
+		const detailsData = detailsResult.data;
+		if (detailsData == null) return;
+		const currentUnityVersion = detailsData.unity_str;
+		if (currentUnityVersion == null) return;
+		const isVRCProject = detailsData.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id))
+		unityChangeVersion.request({
+			version,
+			isVRCProject,
+			currentUnityVersion,
+		})
+	}, [detailsResult.data, unityChangeVersion]);
+
+	return (
+		<Select disabled={disabled} value={detailsResult.data?.unity_str ?? undefined} onValueChange={onChange}>
+			<SelectTrigger>
+				{
+					detailsResult.status == 'success' ?
+						(detailsResult.data.unity_str ?? "unknown") :
+						<span className={"text-primary"}>Loading...</span>
+				}
+			</SelectTrigger>
+			<SelectContent>
+				<SelectGroup>
+					{
+						unityVersionNames == null
+							? <SelectLabel>Loading...</SelectLabel>
+							: unityVersionNames.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)
+					}
+				</SelectGroup>
+			</SelectContent>
+			{unityChangeVersion.dialog}
+		</Select>
+	)
 }
 
 function SuggestResolveProjectCard(
