@@ -42,7 +42,6 @@ pub(crate) async fn start_command(
 
     for arg in args {
         cmd_args.push(b' ' as u16);
-        let arg = arg.encode_wide().collect::<Vec<_>>();
         append_cmd_escaped(&mut cmd_args, arg.encode_wide());
     }
 

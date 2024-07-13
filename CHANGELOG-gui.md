@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Fails to open projects contains whitespace in project name on windows `#1256`
 
 ### Security
 
