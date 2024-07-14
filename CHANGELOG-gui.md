@@ -60,6 +60,8 @@ Release pipeline fixes
 ### Added
 - De-duplicating duplicated projects or Unity in VCC project list [`#1081`](https://github.com/vrc-get/vrc-get/pull/1081)
 - Show package description on hovering package name / id [`#1118`](https://github.com/vrc-get/vrc-get/pull/1118)
+- Customizing Command Line Arguments for Unity [`#1127`](https://github.com/vrc-get/vrc-get/pull/1127)
+- Preserve Unity if multiple instance of the same unity version are installed [`#1127`](https://github.com/vrc-get/vrc-get/pull/1127)
 - Open Project / Backup Location button on Settings Page [`#1140`](https://github.com/vrc-get/vrc-get/pull/1140)
 
 ### Changed
