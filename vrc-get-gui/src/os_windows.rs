@@ -40,13 +40,9 @@ pub(crate) async fn start_command(
 
     append_cmd_escaped(&mut cmd_args, path.encode_wide());
 
-    let mut buffer = Vec::new();
     for arg in args {
         cmd_args.push(b' ' as u16);
-        let arg = arg.encode_wide().collect::<Vec<_>>();
-        buffer.clear();
-        append_cpp_escaped(&mut buffer, &arg);
-        append_cmd_escaped(&mut cmd_args, buffer.iter().copied());
+        append_cmd_escaped(&mut cmd_args, arg.encode_wide());
     }
 
     // execute
@@ -66,37 +62,6 @@ pub(crate) async fn start_command(
         ));
     } else {
         Ok(())
-    }
-}
-
-/*
-/d /c /E:ON /V:OFF start /b "Unity" "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe" "-projectPath" """D:\VRC\新しいフォルダー (3)\world 2""" "-debugCodeOptimization"
- */
-
-fn append_cpp_escaped(args: &mut Vec<u16>, arg: &[u16]) {
-    let need_quote = arg.iter().any(|&c| c == b' ' as u16 || c == b'\t' as u16);
-    if need_quote {
-        args.push(b'"' as u16);
-    }
-
-    let mut backslashes = 0;
-    for &x in arg {
-        if x == b'\\' as u16 {
-            backslashes += 1;
-        } else {
-            if x == b'"' as u16 {
-                // n + 1 backslashes makes n * 2 + 1 backslashes
-                args.extend(std::iter::repeat(b'\\' as u16).take(backslashes + 1));
-            }
-            backslashes = 0;
-        }
-        args.push(x);
-    }
-
-    if need_quote {
-        // n backslashes makes n * 2 backslashes
-        args.extend(std::iter::repeat(b'\\' as u16).take(backslashes));
-        args.push(b'"' as u16);
     }
 }
 
