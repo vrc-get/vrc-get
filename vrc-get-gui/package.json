@@ -4,12 +4,14 @@
 	"private": true,
 	"scripts": {
 		"tauri": "npm install && tauri",
+		"biome": "npm ci && biome",
 		"dev": "next dev -p 3030",
 		"build": "npm install && npm run build:licenses && npm run build:next",
 		"build:next": "next build",
 		"build:licenses": "node ./scripts/build-license-json.mjs",
 		"format": "biome format",
 		"start": "next start",
+		"check": "biome check",
 		"lint": "biome lint"
 	},
 	"dependencies": {
