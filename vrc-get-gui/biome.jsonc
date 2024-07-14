@@ -1,7 +1,14 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"files": {
-		"ignore": ["templates", "node_modules", ".next", "out"]
+		"ignore": [
+			"templates",
+			"node_modules",
+			".next",
+			"out",
+			"lib/bindings.ts",
+			"build"
+		]
 	},
 	"formatter": {
 		"enabled": true
