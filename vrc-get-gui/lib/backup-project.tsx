@@ -1,50 +1,63 @@
-import React, {ReactNode, useState} from "react";
-import {Button} from "@/components/ui/button";
-import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
-import {projectCreateBackup, TauriProject} from "@/lib/bindings";
-import {toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
-import {tc, tt} from "@/lib/i18n";
-import {nop} from "@/lib/nop";
-import {callAsyncCommand} from "@/lib/call-async-command";
-import {assertNever} from "@/lib/assert-never";
+import React, { ReactNode, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+	DialogDescription,
+	DialogFooter,
+	DialogOpen,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { projectCreateBackup, TauriProject } from "@/lib/bindings";
+import { toastNormal, toastSuccess, toastThrownError } from "@/lib/toast";
+import { tc, tt } from "@/lib/i18n";
+import { nop } from "@/lib/nop";
+import { callAsyncCommand } from "@/lib/call-async-command";
+import { assertNever } from "@/lib/assert-never";
 
 // string if remove project by path
-type Project = TauriProject | {
-	path: string,
-	name: string,
-};
+type Project =
+	| TauriProject
+	| {
+			path: string;
+			name: string;
+	  };
 
-type State = {
-	type: 'idle',
-} | {
-	type: 'backing-up',
-	cancel: () => void,
-}
+type State =
+	| {
+			type: "idle";
+	  }
+	| {
+			type: "backing-up";
+			cancel: () => void;
+	  };
 
-type Params = {}
+type Params = {};
 
 type Result = {
-	startBackup: (project: Project) => void,
-	dialog: ReactNode,
-}
+	startBackup: (project: Project) => void;
+	dialog: ReactNode;
+};
 
 export function useBackupProjectModal(_: Params = {}): Result {
-	const [state, setState] = useState<State>({type: 'idle'});
+	const [state, setState] = useState<State>({ type: "idle" });
 
 	const startBackup = async (project: Project) => {
 		try {
-			const [cancel, promise] = callAsyncCommand(projectCreateBackup, [project.path], nop);
-			setState({type: 'backing-up', cancel});
+			const [cancel, promise] = callAsyncCommand(
+				projectCreateBackup,
+				[project.path],
+				nop,
+			);
+			setState({ type: "backing-up", cancel });
 			const channel = await promise;
-			if (channel == 'cancelled') {
+			if (channel == "cancelled") {
 				toastNormal(tt("projects:toast:backup canceled"));
 			} else {
 				toastSuccess(tt("projects:toast:backup succeeded"));
 			}
-			setState({type: 'idle'});
+			setState({ type: "idle" });
 		} catch (e) {
 			console.error("Error creating backup", e);
-			setState({type: 'idle'});
+			setState({ type: "idle" });
 			toastThrownError(e);
 		}
 	};
@@ -62,7 +75,9 @@ export function useBackupProjectModal(_: Params = {}): Result {
 						{tc("projects:dialog:creating backup...")}
 					</DialogDescription>
 					<DialogFooter>
-						<Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
+						<Button className="mr-1" onClick={state.cancel}>
+							{tc("general:button:cancel")}
+						</Button>
 					</DialogFooter>
 				</DialogOpen>
 			);
@@ -71,5 +86,5 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			assertNever(state);
 	}
 
-	return {startBackup, dialog}
+	return { startBackup, dialog };
 }

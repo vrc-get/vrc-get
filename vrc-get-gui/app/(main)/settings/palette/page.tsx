@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import {Button} from "@/components/ui/button";
-import {Card} from "@/components/ui/card";
-import {Checkbox} from "@/components/ui/checkbox";
-import {Input} from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -12,11 +12,11 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "@/components/ui/select"
-import {HNavBar, VStack} from "@/components/layout";
-import {toastError, toastInfo, toastNormal, toastSuccess} from "@/lib/toast";
-import {ScrollableCardTable} from "@/components/ScrollableCardTable";
-import {ScrollPageContainer} from "@/components/ScrollPageContainer";
+} from "@/components/ui/select";
+import { HNavBar, VStack } from "@/components/layout";
+import { toastError, toastInfo, toastNormal, toastSuccess } from "@/lib/toast";
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 
 export default function Page() {
 	return (
@@ -31,7 +31,11 @@ export default function Page() {
 					<Card className={"flex-shrink-0 p-4"}>
 						<h2 className={"pb-2"}>File Selector</h2>
 						<div className={"flex gap-1 items-center"}>
-							<Input className="flex-auto" value={"/some/path/field"} disabled/>
+							<Input
+								className="flex-auto"
+								value={"/some/path/field"}
+								disabled
+							/>
 							<Button className={"flex-none px-4"}>Select</Button>
 						</div>
 					</Card>
@@ -40,10 +44,12 @@ export default function Page() {
 							<div className={"flex-grow flex items-center"}>
 								<h2>Table</h2>
 							</div>
-							<Button size={"sm"} className={"m-1"}>Add Unity</Button>
+							<Button size={"sm"} className={"m-1"}>
+								Add Unity
+							</Button>
 						</div>
 						<ScrollableCardTable>
-							<UnityTableBody/>
+							<UnityTableBody />
 						</ScrollableCardTable>
 					</Card>
 					<Card className={"flex-shrink-0 p-4"}>
@@ -53,7 +59,7 @@ export default function Page() {
 								<h3>Selector</h3>
 								<Select>
 									<SelectTrigger>
-										<SelectValue/>
+										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
 										<SelectGroup>
@@ -69,12 +75,10 @@ export default function Page() {
 						</div>
 					</Card>
 					<Card className={"flex-shrink-0 p-4"}>
-						<p className={"whitespace-normal"}>
-							Some Description Here
-						</p>
+						<p className={"whitespace-normal"}>Some Description Here</p>
 						<label className={"flex items-center"}>
 							<div className={"p-3"}>
-								<Checkbox/>
+								<Checkbox />
 							</div>
 							Checkbox
 						</label>
@@ -95,49 +99,72 @@ export default function Page() {
 					<Card className={"flex-shrink-0 p-4"}>
 						<h2 className={"pb-2"}>Toasts</h2>
 						<div className={"flex gap-2 items-center"}>
-							<Button onClick={() => toastNormal("Normal Toast Body")}>Normal</Button>
-							<Button variant={"destructive"} onClick={() => toastError("Error Toast Body")}>Error</Button>
-							<Button variant={"success"} onClick={() => toastSuccess("Success Toast Body")}>Success</Button>
-							<Button variant={"info"} onClick={() => toastInfo("Info Toast Body")}>Info</Button>
+							<Button onClick={() => toastNormal("Normal Toast Body")}>
+								Normal
+							</Button>
+							<Button
+								variant={"destructive"}
+								onClick={() => toastError("Error Toast Body")}
+							>
+								Error
+							</Button>
+							<Button
+								variant={"success"}
+								onClick={() => toastSuccess("Success Toast Body")}
+							>
+								Success
+							</Button>
+							<Button
+								variant={"info"}
+								onClick={() => toastInfo("Info Toast Body")}
+							>
+								Info
+							</Button>
 						</div>
 					</Card>
 				</main>
 			</ScrollPageContainer>
 		</VStack>
-	)
+	);
 }
 
 function UnityTableBody() {
 	const unityPaths: [path: string, version: string, fromHub: boolean][] = [
-		["/Applications/Unity/Hub/Editor/2019.4.31f1/Unity.app/Contents/MacOS/Unity", "2019.4.31f1", true],
-		["/Applications/Unity/Hub/Editor/2022.3.22f1/Unity.app/Contents/MacOS/Unity", "2022.3.22f1", true],
+		[
+			"/Applications/Unity/Hub/Editor/2019.4.31f1/Unity.app/Contents/MacOS/Unity",
+			"2019.4.31f1",
+			true,
+		],
+		[
+			"/Applications/Unity/Hub/Editor/2022.3.22f1/Unity.app/Contents/MacOS/Unity",
+			"2022.3.22f1",
+			true,
+		],
 	];
 	const UNITY_TABLE_HEAD = ["Version", "Path", "Source"];
 	return (
 		<table className="relative table-auto text-left w-full">
 			<thead>
-			<tr>
-				{UNITY_TABLE_HEAD.map((head, index) => (
-					<th key={index}
-							className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
-						<small className="font-normal leading-none">{head}</small>
-					</th>
-				))}
-			</tr>
+				<tr>
+					{UNITY_TABLE_HEAD.map((head, index) => (
+						<th
+							key={index}
+							className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}
+						>
+							<small className="font-normal leading-none">{head}</small>
+						</th>
+					))}
+				</tr>
 			</thead>
 			<tbody>
-			{
-				unityPaths.map(([path, version, isFromHub]) => (
+				{unityPaths.map(([path, version, isFromHub]) => (
 					<tr key={path} className="even:bg-secondary/30">
 						<td className={"p-2.5"}>{version}</td>
 						<td className={"p-2.5"}>{path}</td>
-						<td className={"p-2.5"}>
-							Unity Hub
-						</td>
+						<td className={"p-2.5"}>Unity Hub</td>
 					</tr>
-				))
-			}
+				))}
 			</tbody>
 		</table>
-	)
+	);
 }

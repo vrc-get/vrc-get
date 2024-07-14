@@ -1,7 +1,7 @@
 import globalInfo from "./global-info";
 
 export function pathSeparators(): string[] {
-	return globalInfo.osType == "WindowsNT" ? ['\\', '/'] : ['/'];
+	return globalInfo.osType == "WindowsNT" ? ["\\", "/"] : ["/"];
 }
 
 export function pathSeparator(): string {

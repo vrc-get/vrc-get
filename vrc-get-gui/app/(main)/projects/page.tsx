@@ -1,15 +1,19 @@
-"use client"
+"use client";
 
-import {Button} from "@/components/ui/button";
-import {Card} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
-import React, {useEffect, useMemo, useState} from "react";
+} from "@/components/ui/dropdown-menu";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import React, { useEffect, useMemo, useState } from "react";
 import {
 	RefreshCw,
 	ChevronDown,
@@ -17,39 +21,36 @@ import {
 	ChevronsUpDown,
 	Star,
 } from "lucide-react";
-import {HNavBar, VStack} from "@/components/layout";
+import { HNavBar, VStack } from "@/components/layout";
 import {
 	environmentAddProjectWithPicker,
 	environmentGetProjectSorting,
 	environmentProjects,
 	environmentSetProjectSorting,
 	TauriProject,
-	TauriProjectType
+	TauriProjectType,
 } from "@/lib/bindings";
-import {useQuery} from "@tanstack/react-query";
-import {SearchBox} from "@/components/SearchBox";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
-import {tc, tt} from "@/lib/i18n";
-import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
-import {compareUnityVersionString} from "@/lib/version";
-import {useOpenUnity, OpenUnityFunction} from "@/lib/use-open-unity";
-import {ScrollableCardTable} from "@/components/ScrollableCardTable";
-import {CreateProject} from "./create-project";
-import {ProjectRow} from "./project-row";
-import {assertNever} from "@/lib/assert-never";
+import { useQuery } from "@tanstack/react-query";
+import { SearchBox } from "@/components/SearchBox";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { tc, tt } from "@/lib/i18n";
+import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import { compareUnityVersionString } from "@/lib/version";
+import { useOpenUnity, OpenUnityFunction } from "@/lib/use-open-unity";
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { CreateProject } from "./create-project";
+import { ProjectRow } from "./project-row";
+import { assertNever } from "@/lib/assert-never";
 
-const sortings = [
-	"lastModified",
-	"name",
-	"unity",
-	"type",
-] as const;
+const sortings = ["lastModified", "name", "unity", "type"] as const;
 
 type SimpleSorting = (typeof sortings)[number];
 type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
 
 function isSorting(s: string): s is Sorting {
-	return sortings.some(sorting => sorting === s || `${sorting}Reversed` === s);
+	return sortings.some(
+		(sorting) => sorting === s || `${sorting}Reversed` === s,
+	);
 }
 
 export default function Page() {
@@ -59,47 +60,59 @@ export default function Page() {
 	});
 	const [search, setSearch] = useState("");
 	const [loadingOther, setLoadingOther] = useState(false);
-	const [createProjectState, setCreateProjectState] = useState<'normal' | 'creating'>('normal');
+	const [createProjectState, setCreateProjectState] = useState<
+		"normal" | "creating"
+	>("normal");
 	const openUnity = useOpenUnity();
 
-	const startCreateProject = () => setCreateProjectState('creating');
+	const startCreateProject = () => setCreateProjectState("creating");
 
 	const loading = result.isFetching || loadingOther;
 
 	return (
 		<VStack>
-			<ProjectViewHeader className={"flex-shrink-0"}
-												 refresh={() => result.refetch()}
-												 startCreateProject={startCreateProject}
-												 isLoading={loading}
-												 search={search} setSearch={setSearch}/>
+			<ProjectViewHeader
+				className={"flex-shrink-0"}
+				refresh={() => result.refetch()}
+				startCreateProject={startCreateProject}
+				isLoading={loading}
+				search={search}
+				setSearch={setSearch}
+			/>
 
-			{
-				result.status == "pending" ?
-					<Card className="w-full shadow-none overflow-hidden p-4">
-						{tc("general:loading...")}
-					</Card> :
-					result.status == "error" ?
-						<Card className="w-full shadow-none overflow-hidden p-4">
-							{tc("projects:error:load error", {msg: result.error.message})}
-						</Card>
-						: <ProjectsTableCard
-							projects={result.data}
-							search={search}
-							loading={loading}
-							openUnity={openUnity.openUnity}
-							refresh={() => result.refetch()}
-							onRemoved={() => result.refetch()}
-						/>
-			}
-			{createProjectState === "creating" &&
-				<CreateProject close={() => setCreateProjectState("normal")} refetch={() => result.refetch()}/>}
+			{result.status == "pending" ? (
+				<Card className="w-full shadow-none overflow-hidden p-4">
+					{tc("general:loading...")}
+				</Card>
+			) : result.status == "error" ? (
+				<Card className="w-full shadow-none overflow-hidden p-4">
+					{tc("projects:error:load error", { msg: result.error.message })}
+				</Card>
+			) : (
+				<ProjectsTableCard
+					projects={result.data}
+					search={search}
+					loading={loading}
+					openUnity={openUnity.openUnity}
+					refresh={() => result.refetch()}
+					onRemoved={() => result.refetch()}
+				/>
+			)}
+			{createProjectState === "creating" && (
+				<CreateProject
+					close={() => setCreateProjectState("normal")}
+					refetch={() => result.refetch()}
+				/>
+			)}
 			{openUnity.dialog}
 		</VStack>
 	);
 }
 
-function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 1 {
+function compareProjectType(
+	a: TauriProjectType,
+	b: TauriProjectType,
+): 0 | -1 | 1 {
 	if (a === b) return 0;
 
 	// legacy unknown
@@ -108,7 +121,7 @@ function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 
 	if (a === "UpmStarter") return 1;
 	if (b === "UpmStarter") return -1;
 
-	// legacy worlds 
+	// legacy worlds
 	if (a === "LegacyWorlds") return 1;
 	if (b === "LegacyWorlds") return -1;
 	if (a === "UpmWorlds") return 1;
@@ -137,18 +150,21 @@ function compareProjectType(a: TauriProjectType, b: TauriProjectType): 0 | -1 | 
 	assertNever(a, "project type");
 }
 
-function ProjectsTableCard(
-	{
-		projects, search, onRemoved, loading, refresh, openUnity,
-	}: {
-		projects: TauriProject[],
-		openUnity: OpenUnityFunction,
-		search?: string,
-		loading?: boolean,
-		onRemoved?: () => void;
-		refresh?: () => void,
-	}
-) {
+function ProjectsTableCard({
+	projects,
+	search,
+	onRemoved,
+	loading,
+	refresh,
+	openUnity,
+}: {
+	projects: TauriProject[];
+	openUnity: OpenUnityFunction;
+	search?: string;
+	loading?: boolean;
+	onRemoved?: () => void;
+	refresh?: () => void;
+}) {
 	const [sorting, setSortingState] = useState<Sorting>("lastModified");
 
 	useEffect(() => {
@@ -160,11 +176,13 @@ function ProjectsTableCard(
 			} else {
 				setSortingState(newSorting);
 			}
-		})()
+		})();
 	}, []);
 
 	const projectsShown = useMemo(() => {
-		let searched = projects.filter(project => project.name.toLowerCase().includes(search?.toLowerCase() ?? ""));
+		let searched = projects.filter((project) =>
+			project.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
+		);
 		searched.sort((a, b) => b.last_modified - a.last_modified);
 		switch (sorting) {
 			case "lastModified":
@@ -180,10 +198,14 @@ function ProjectsTableCard(
 				searched.sort((a, b) => b.name.localeCompare(a.name));
 				break;
 			case "type":
-				searched.sort((a, b) => compareProjectType(a.project_type, b.project_type));
+				searched.sort((a, b) =>
+					compareProjectType(a.project_type, b.project_type),
+				);
 				break;
 			case "typeReversed":
-				searched.sort((a, b) => compareProjectType(b.project_type, a.project_type));
+				searched.sort((a, b) =>
+					compareProjectType(b.project_type, a.project_type),
+				);
 				break;
 			case "unity":
 				searched.sort((a, b) => compareUnityVersionString(a.unity, b.unity));
@@ -198,7 +220,7 @@ function ProjectsTableCard(
 			if (a.favorite && !b.favorite) return -1;
 			if (!a.favorite && b.favorite) return 1;
 			return 0;
-		})
+		});
 		return searched;
 	}, [projects, sorting, search]);
 
@@ -222,71 +244,111 @@ function ProjectsTableCard(
 			console.error("Error setting project sorting", e);
 			toastThrownError(e);
 		}
-	}
+	};
 
-	const headerBg = (target: SimpleSorting) => sorting === target || sorting === `${target}Reversed` ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground";
+	const headerBg = (target: SimpleSorting) =>
+		sorting === target || sorting === `${target}Reversed`
+			? "bg-primary text-primary-foreground"
+			: "bg-secondary text-secondary-foreground";
 	const icon = (target: SimpleSorting) =>
-		sorting === target ? <ChevronDown className={"size-3"}/>
-			: sorting === `${target}Reversed` ? <ChevronUp className={"size-3"}/>
-				: <ChevronsUpDown className={iconClass}/>;
+		sorting === target ? (
+			<ChevronDown className={"size-3"} />
+		) : sorting === `${target}Reversed` ? (
+			<ChevronUp className={"size-3"} />
+		) : (
+			<ChevronsUpDown className={iconClass} />
+		);
 
 	return (
 		<ScrollableCardTable>
 			<thead>
-			<tr>
-				<th className={`${thClass} bg-secondary text-secondary-foreground`}>
-					<Star className={"size-4"}/>
-				</th>
-				<th
-					className={`${thClass} ${headerBg('name')}`}>
-					<button className={"flex w-full project-table-button"}
-									onClick={() => setSorting("name")}>
-						{icon("name")}
-						<small className="font-normal leading-none">{tc("general:name")}</small>
-					</button>
-				</th>
-				<th
-					className={`${thClass} ${headerBg('type')}`}>
-					<button className={"flex w-full project-table-button"} onClick={() => setSorting("type")}>
-						{icon("type")}
-						<small className="font-normal leading-none">{tc("projects:type")}</small>
-					</button>
-				</th>
-				<th
-					className={`${thClass} ${headerBg('unity')}`}>
-					<button className={"flex w-full project-table-button"} onClick={() => setSorting("unity")}>
-						{icon("unity")}
-						<small className="font-normal leading-none">{tc("projects:unity")}</small>
-					</button>
-				</th>
-				<th
-					className={`${thClass} ${headerBg('lastModified')}`}>
-					<button className={"flex w-full project-table-button"} onClick={() => setSorting("lastModified")}>
-						{icon("lastModified")}
-						<small className="font-normal leading-none">{tc("projects:last modified")}</small>
-					</button>
-				</th>
-				<th className={`${thClass} bg-secondary text-secondary-foreground`}></th>
-			</tr>
+				<tr>
+					<th className={`${thClass} bg-secondary text-secondary-foreground`}>
+						<Star className={"size-4"} />
+					</th>
+					<th className={`${thClass} ${headerBg("name")}`}>
+						<button
+							className={"flex w-full project-table-button"}
+							onClick={() => setSorting("name")}
+						>
+							{icon("name")}
+							<small className="font-normal leading-none">
+								{tc("general:name")}
+							</small>
+						</button>
+					</th>
+					<th className={`${thClass} ${headerBg("type")}`}>
+						<button
+							className={"flex w-full project-table-button"}
+							onClick={() => setSorting("type")}
+						>
+							{icon("type")}
+							<small className="font-normal leading-none">
+								{tc("projects:type")}
+							</small>
+						</button>
+					</th>
+					<th className={`${thClass} ${headerBg("unity")}`}>
+						<button
+							className={"flex w-full project-table-button"}
+							onClick={() => setSorting("unity")}
+						>
+							{icon("unity")}
+							<small className="font-normal leading-none">
+								{tc("projects:unity")}
+							</small>
+						</button>
+					</th>
+					<th className={`${thClass} ${headerBg("lastModified")}`}>
+						<button
+							className={"flex w-full project-table-button"}
+							onClick={() => setSorting("lastModified")}
+						>
+							{icon("lastModified")}
+							<small className="font-normal leading-none">
+								{tc("projects:last modified")}
+							</small>
+						</button>
+					</th>
+					<th
+						className={`${thClass} bg-secondary text-secondary-foreground`}
+					></th>
+				</tr>
 			</thead>
 			<tbody>
-			{projectsShown.map((project) =>
-				<ProjectRow key={project.index} project={project} loading={loading} refresh={refresh} onRemoved={onRemoved}
-										openUnity={openUnity}/>)}
+				{projectsShown.map((project) => (
+					<ProjectRow
+						key={project.index}
+						project={project}
+						loading={loading}
+						refresh={refresh}
+						onRemoved={onRemoved}
+						openUnity={openUnity}
+					/>
+				))}
 			</tbody>
 		</ScrollableCardTable>
 	);
 }
 
-function ProjectViewHeader({className, refresh, startCreateProject, isLoading, search, setSearch}: {
-	className?: string,
-	refresh?: () => void,
-	startCreateProject?: () => void
-	isLoading?: boolean,
-	search: string,
-	setSearch: (search: string) => void
+function ProjectViewHeader({
+	className,
+	refresh,
+	startCreateProject,
+	isLoading,
+	search,
+	setSearch,
+}: {
+	className?: string;
+	refresh?: () => void;
+	startCreateProject?: () => void;
+	isLoading?: boolean;
+	search: string;
+	setSearch: (search: string) => void;
 }) {
-	const [addProjectWithPicker, dialog] = useFilePickerFunction(environmentAddProjectWithPicker);
+	const [addProjectWithPicker, dialog] = useFilePickerFunction(
+		environmentAddProjectWithPicker,
+	);
 
 	const addProject = async () => {
 		try {
@@ -322,26 +384,46 @@ function ProjectViewHeader({className, refresh, startCreateProject, isLoading, s
 
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<Button variant={"ghost"} size={"icon"} onClick={() => refresh?.()} disabled={isLoading}>
-						{isLoading ? <RefreshCw className="w-5 h-5 animate-spin"/> : <RefreshCw className={"w-5 h-5"}/>}
+					<Button
+						variant={"ghost"}
+						size={"icon"}
+						onClick={() => refresh?.()}
+						disabled={isLoading}
+					>
+						{isLoading ? (
+							<RefreshCw className="w-5 h-5 animate-spin" />
+						) : (
+							<RefreshCw className={"w-5 h-5"} />
+						)}
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
 			</Tooltip>
 
-			<SearchBox className={"w-max flex-grow"} value={search} onChange={(e) => setSearch(e.target.value)}/>
+			<SearchBox
+				className={"w-max flex-grow"}
+				value={search}
+				onChange={(e) => setSearch(e.target.value)}
+			/>
 
 			<DropdownMenu>
 				<div className={"flex divide-x"}>
-					<Button className={"rounded-r-none pl-4 pr-3"} onClick={startCreateProject}>{tc("projects:create new project")}</Button>
+					<Button
+						className={"rounded-r-none pl-4 pr-3"}
+						onClick={startCreateProject}
+					>
+						{tc("projects:create new project")}
+					</Button>
 					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
 						<Button>
-							<ChevronDown className={"w-4 h-4"}/>
+							<ChevronDown className={"w-4 h-4"} />
 						</Button>
 					</DropdownMenuTrigger>
 				</div>
 				<DropdownMenuContent>
-					<DropdownMenuItem onClick={addProject}>{tc("projects:add existing project")}</DropdownMenuItem>
+					<DropdownMenuItem onClick={addProject}>
+						{tc("projects:add existing project")}
+					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
 

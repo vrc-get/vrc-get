@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import {Button} from "@/components/ui/button";
-import {Card} from "@/components/ui/card";
-import {Checkbox} from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
-import {useQuery} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
 	CheckForUpdateResponse,
 	deepLinkInstallVcc,
@@ -21,24 +21,34 @@ import {
 	TauriEnvironmentSettings,
 	utilCheckForUpdate,
 } from "@/lib/bindings";
-import {HNavBar, VStack} from "@/components/layout";
-import React, {useState} from "react";
-import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
-import {tc, tt} from "@/lib/i18n";
-import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
-import {shellOpen} from "@/lib/shellOpen";
-import {ScrollableCardTable} from "@/components/ScrollableCardTable";
-import {assertNever} from "@/lib/assert-never";
-import {ScrollPageContainer} from "@/components/ScrollPageContainer";
-import {CheckForUpdateMessage} from "@/components/CheckForUpdateMessage";
-import {BackupFormatSelect, FilePathRow, LanguageSelector, ThemeSelector} from "@/components/common-setting-parts";
-import globalInfo, {useGlobalInfo} from "@/lib/global-info";
+import { HNavBar, VStack } from "@/components/layout";
+import React, { useState } from "react";
+import {
+	toastError,
+	toastNormal,
+	toastSuccess,
+	toastThrownError,
+} from "@/lib/toast";
+import { tc, tt } from "@/lib/i18n";
+import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import { shellOpen } from "@/lib/shellOpen";
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { assertNever } from "@/lib/assert-never";
+import { ScrollPageContainer } from "@/components/ScrollPageContainer";
+import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
+import {
+	BackupFormatSelect,
+	FilePathRow,
+	LanguageSelector,
+	ThemeSelector,
+} from "@/components/common-setting-parts";
+import globalInfo, { useGlobalInfo } from "@/lib/global-info";
 
 export default function Page() {
 	const result = useQuery({
 		queryKey: ["environmentGetSettings"],
-		queryFn: environmentGetSettings
-	})
+		queryFn: environmentGetSettings,
+	});
 
 	let body;
 	switch (result.status) {
@@ -49,7 +59,7 @@ export default function Page() {
 			body = <Card className={"p-4"}>{tc("general:loading...")}</Card>;
 			break;
 		case "success":
-			body = <Settings settings={result.data} refetch={result.refetch}/>;
+			body = <Settings settings={result.data} refetch={result.refetch} />;
 			break;
 		default:
 			assertNever(result);
@@ -67,15 +77,13 @@ export default function Page() {
 	);
 }
 
-function Settings(
-	{
-		settings,
-		refetch,
-	}: {
-		settings: TauriEnvironmentSettings,
-		refetch: () => void
-	}
-) {
+function Settings({
+	settings,
+	refetch,
+}: {
+	settings: TauriEnvironmentSettings;
+	refetch: () => void;
+}) {
 	const isMac = useGlobalInfo().osType == "Darwin";
 
 	return (
@@ -92,7 +100,10 @@ function Settings(
 						successMessage={tc("settings:toast:unity hub path updated")}
 					/>
 				</Card>
-				<UnityInstallationsCard refetch={refetch} unityPaths={settings.unity_paths}/>
+				<UnityInstallationsCard
+					refetch={refetch}
+					unityPaths={settings.unity_paths}
+				/>
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2>{tc("settings:default project path")}</h2>
 					<p className={"whitespace-normal"}>
@@ -110,8 +121,11 @@ function Settings(
 					backupFormat={settings.backup_format}
 					refetch={refetch}
 				/>
-				<PackagesCard showPrereleasePackages={settings.show_prerelease_packages} refetch={refetch}/>
-				<AppearanceCard/>
+				<PackagesCard
+					showPrereleasePackages={settings.show_prerelease_packages}
+					refetch={refetch}
+				/>
+				<AppearanceCard />
 				<AlcomCard
 					isMac={isMac}
 					releaseChannel={settings.release_channel}
@@ -120,18 +134,16 @@ function Settings(
 				/>
 			</main>
 		</ScrollPageContainer>
-	)
+	);
 }
 
-function UnityInstallationsCard(
-	{
-		refetch,
-		unityPaths,
-	}: {
-		refetch: () => void;
-		unityPaths: [path: string, version: string, fromHub: boolean][]
-	}
-) {
+function UnityInstallationsCard({
+	refetch,
+	unityPaths,
+}: {
+	refetch: () => void;
+	unityPaths: [path: string, version: string, fromHub: boolean][];
+}) {
 	const [pickUnity, unityDialog] = useFilePickerFunction(environmentPickUnity);
 
 	const addUnity = async () => {
@@ -149,18 +161,22 @@ function UnityInstallationsCard(
 					break;
 				case "Successful":
 					toastSuccess(tt("settings:toast:unity added"));
-					refetch()
+					refetch();
 					break;
 				default:
 					assertNever(result);
 			}
 		} catch (e) {
 			console.error(e);
-			toastThrownError(e)
+			toastThrownError(e);
 		}
-	}
+	};
 
-	const UNITY_TABLE_HEAD = ["settings:unity:version", "settings:unity:path", "general:source"];
+	const UNITY_TABLE_HEAD = [
+		"settings:unity:version",
+		"settings:unity:path",
+		"general:source",
+	];
 
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
@@ -168,58 +184,60 @@ function UnityInstallationsCard(
 				<div className={"flex-grow flex items-center"}>
 					<h2>{tc("settings:unity installations")}</h2>
 				</div>
-				<Button onClick={addUnity} size={"sm"} className={"m-1"}>{tc("settings:button:add unity")}</Button>
+				<Button onClick={addUnity} size={"sm"} className={"m-1"}>
+					{tc("settings:button:add unity")}
+				</Button>
 			</div>
 			<ScrollableCardTable className="w-full min-h-[20vh]">
 				<thead>
-				<tr>
-					{UNITY_TABLE_HEAD.map((head, index) => (
-						<th key={index}
-								className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}>
-							<small className="font-normal leading-none">{tc(head)}</small>
-						</th>
-					))}
-				</tr>
+					<tr>
+						{UNITY_TABLE_HEAD.map((head, index) => (
+							<th
+								key={index}
+								className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}
+							>
+								<small className="font-normal leading-none">{tc(head)}</small>
+							</th>
+						))}
+					</tr>
 				</thead>
 				<tbody>
-				{
-					unityPaths.map(([path, version, isFromHub]) => (
+					{unityPaths.map(([path, version, isFromHub]) => (
 						<tr key={path} className="even:bg-secondary/30">
 							<td className={"p-2.5"}>{version}</td>
 							<td className={"p-2.5"}>{path}</td>
 							<td className={"p-2.5"}>
-								{isFromHub ? tc("settings:unity:source:unity hub") : tc("settings:unity:source:manual")}
+								{isFromHub
+									? tc("settings:unity:source:unity hub")
+									: tc("settings:unity:source:manual")}
 							</td>
 						</tr>
-					))
-				}
+					))}
 				</tbody>
 			</ScrollableCardTable>
 			{unityDialog}
 		</Card>
-	)
+	);
 }
 
-function BackupCard(
-	{
-		projectBackupPath,
-		backupFormat,
-		refetch,
-	}: {
-		projectBackupPath: string;
-		backupFormat: string;
-		refetch: () => void;
-	}
-) {
+function BackupCard({
+	projectBackupPath,
+	backupFormat,
+	refetch,
+}: {
+	projectBackupPath: string;
+	backupFormat: string;
+	refetch: () => void;
+}) {
 	const setBackupFormat = async (format: string) => {
 		try {
-			await environmentSetBackupFormat(format)
-			refetch()
+			await environmentSetBackupFormat(format);
+			refetch();
 		} catch (e) {
 			console.error(e);
-			toastThrownError(e)
+			toastThrownError(e);
 		}
-	}
+	};
 
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
@@ -239,83 +257,91 @@ function BackupCard(
 			<div className="mt-2">
 				<label className={"flex items-center"}>
 					<h3>{tc("settings:backup:format")}</h3>
-					<BackupFormatSelect backupFormat={backupFormat} setBackupFormat={setBackupFormat}/>
+					<BackupFormatSelect
+						backupFormat={backupFormat}
+						setBackupFormat={setBackupFormat}
+					/>
 				</label>
 			</div>
 		</Card>
-	)
+	);
 }
 
-function PackagesCard(
-	{
-		showPrereleasePackages,
-		refetch,
-	}: {
-		showPrereleasePackages: boolean;
-		refetch: () => void;
-	}
-) {
+function PackagesCard({
+	showPrereleasePackages,
+	refetch,
+}: {
+	showPrereleasePackages: boolean;
+	refetch: () => void;
+}) {
 	const clearPackageCache = async () => {
 		try {
-			await environmentClearPackageCache()
-			toastSuccess(tc("settings:toast:package cache cleared"))
+			await environmentClearPackageCache();
+			toastSuccess(tc("settings:toast:package cache cleared"));
 		} catch (e) {
 			console.error(e);
-			toastThrownError(e)
+			toastThrownError(e);
 		}
-	}
+	};
 
 	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
 		try {
-			await environmentSetShowPrereleasePackages(e === true)
-			refetch()
+			await environmentSetShowPrereleasePackages(e === true);
+			refetch();
 		} catch (e) {
 			console.error(e);
-			toastThrownError(e)
+			toastThrownError(e);
 		}
-	}
+	};
 
 	return (
 		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
 			<h2>{tc("settings:packages")}</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
-				<Button onClick={clearPackageCache}>{tc("settings:clear package cache")}</Button>
+				<Button onClick={clearPackageCache}>
+					{tc("settings:clear package cache")}
+				</Button>
 			</div>
 			<div>
 				<label className={"flex items-center gap-2"}>
-					<Checkbox checked={showPrereleasePackages} onCheckedChange={(e) => toggleShowPrereleasePackages(e)}/>
+					<Checkbox
+						checked={showPrereleasePackages}
+						onCheckedChange={(e) => toggleShowPrereleasePackages(e)}
+					/>
 					{tc("settings:show prerelease")}
 				</label>
-				<p className={"text-sm whitespace-normal"}>{tc("settings:show prerelease description")}</p>
+				<p className={"text-sm whitespace-normal"}>
+					{tc("settings:show prerelease description")}
+				</p>
 			</div>
 		</Card>
-	)
+	);
 }
 
 function AppearanceCard() {
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
 			<h2>{tc("settings:appearance")}</h2>
-			<LanguageSelector/>
-			<ThemeSelector/>
+			<LanguageSelector />
+			<ThemeSelector />
 		</Card>
-	)
+	);
 }
 
-function AlcomCard(
-	{
-		isMac,
-		releaseChannel,
-		useAlcomForVccProtocol,
-		refetch,
-	}: {
-		isMac: boolean;
-		releaseChannel: string;
-		useAlcomForVccProtocol: boolean;
-		refetch: () => void;
-	}
-) {
-	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(null);
+function AlcomCard({
+	isMac,
+	releaseChannel,
+	useAlcomForVccProtocol,
+	refetch,
+}: {
+	isMac: boolean;
+	releaseChannel: string;
+	useAlcomForVccProtocol: boolean;
+	refetch: () => void;
+}) {
+	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(
+		null,
+	);
 
 	const checkForUpdate = async () => {
 		try {
@@ -326,20 +352,20 @@ function AlcomCard(
 				toastNormal(tc("check update:toast:no updates"));
 			}
 		} catch (e) {
-			toastThrownError(e)
-			console.error(e)
+			toastThrownError(e);
+			console.error(e);
 		}
-	}
+	};
 
 	const reportIssue = async () => {
-		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new")
-		url.searchParams.append("labels", "bug,vrc-get-gui")
-		url.searchParams.append("template", "01_gui_bug-report.yml")
-		url.searchParams.append("os", `${globalInfo.osInfo} - ${globalInfo.arch}`)
-		url.searchParams.append("version", globalInfo.version ?? "unknown")
+		const url = new URL("https://github.com/vrc-get/vrc-get/issues/new");
+		url.searchParams.append("labels", "bug,vrc-get-gui");
+		url.searchParams.append("template", "01_gui_bug-report.yml");
+		url.searchParams.append("os", `${globalInfo.osInfo} - ${globalInfo.arch}`);
+		url.searchParams.append("version", globalInfo.version ?? "unknown");
 
-		void shellOpen(url.toString())
-	}
+		void shellOpen(url.toString());
+	};
 
 	const changeReleaseChannel = async (value: "indeterminate" | boolean) => {
 		await environmentSetReleaseChannel(value === true ? "beta" : "stable");
@@ -357,42 +383,72 @@ function AlcomCard(
 			toastSuccess(tc("settings:toast:vcc scheme installed"));
 		} catch (e) {
 			console.error(e);
-			toastThrownError(e)
+			toastThrownError(e);
 		}
-	}
+	};
 
 	return (
 		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
-			{updateState && <CheckForUpdateMessage response={updateState} close={() => setUpdateState(null)}/>}
+			{updateState && (
+				<CheckForUpdateMessage
+					response={updateState}
+					close={() => setUpdateState(null)}
+				/>
+			)}
 			<h2>ALCOM</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={checkForUpdate}>{tc("settings:check update")}</Button>
-				<Button onClick={reportIssue}>{tc("settings:button:open issue")}</Button>
+				<Button onClick={reportIssue}>
+					{tc("settings:button:open issue")}
+				</Button>
 			</div>
 			<div>
 				<label className={"flex items-center gap-2"}>
-					<Checkbox checked={releaseChannel == "beta"} onCheckedChange={(e) => changeReleaseChannel(e)}/>
+					<Checkbox
+						checked={releaseChannel == "beta"}
+						onCheckedChange={(e) => changeReleaseChannel(e)}
+					/>
 					{tc("settings:receive beta updates")}
 				</label>
-				<p className={"text-sm whitespace-normal"}>{tc("settings:beta updates description")}</p>
-			</div>
-			{!isMac && <div>
-				<label className={"flex items-center gap-2"}>
-					<Checkbox checked={useAlcomForVccProtocol} onCheckedChange={(e) => changeUseAlcomForVcc(e)}/>
-					{tc("settings:use alcom for vcc scheme")}
-				</label>
-				<Button className={"my-1"} disabled={!useAlcomForVccProtocol} onClick={installVccProtocol}>
-					{tc("settings:register vcc scheme now")}
-				</Button>
 				<p className={"text-sm whitespace-normal"}>
-					{tc(["settings:use vcc scheme description", "settings:vcc scheme description"])}
+					{tc("settings:beta updates description")}
 				</p>
-			</div>}
+			</div>
+			{!isMac && (
+				<div>
+					<label className={"flex items-center gap-2"}>
+						<Checkbox
+							checked={useAlcomForVccProtocol}
+							onCheckedChange={(e) => changeUseAlcomForVcc(e)}
+						/>
+						{tc("settings:use alcom for vcc scheme")}
+					</label>
+					<Button
+						className={"my-1"}
+						disabled={!useAlcomForVccProtocol}
+						onClick={installVccProtocol}
+					>
+						{tc("settings:register vcc scheme now")}
+					</Button>
+					<p className={"text-sm whitespace-normal"}>
+						{tc([
+							"settings:use vcc scheme description",
+							"settings:vcc scheme description",
+						])}
+					</p>
+				</div>
+			)}
 			<p className={"whitespace-normal"}>
-				{tc("settings:licenses description", {}, {
-					components: {l: <Link href={"/settings/licenses"} className={"underline"}/>}
-				})}
+				{tc(
+					"settings:licenses description",
+					{},
+					{
+						components: {
+							l: <Link href={"/settings/licenses"} className={"underline"} />,
+						},
+					},
+				)}
 			</p>
 		</Card>
-	)
+	);
 }

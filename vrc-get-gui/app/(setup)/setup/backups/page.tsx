@@ -1,43 +1,55 @@
 "use client";
 
-import {CardDescription} from "@/components/ui/card";
+import { CardDescription } from "@/components/ui/card";
 import React from "react";
-import {BackupFormatSelect, FilePathRow} from "@/components/common-setting-parts";
-import {environmentPickProjectBackupPath, environmentSetBackupFormat} from "@/lib/bindings";
-import {tc} from "@/lib/i18n";
-import {toastThrownError} from "@/lib/toast";
-import {BodyProps, SetupPageBase, WarningMessage} from "../setup-page-base";
-import {useGlobalInfo} from "@/lib/global-info";
+import {
+	BackupFormatSelect,
+	FilePathRow,
+} from "@/components/common-setting-parts";
+import {
+	environmentPickProjectBackupPath,
+	environmentSetBackupFormat,
+} from "@/lib/bindings";
+import { tc } from "@/lib/i18n";
+import { toastThrownError } from "@/lib/toast";
+import { BodyProps, SetupPageBase, WarningMessage } from "../setup-page-base";
+import { useGlobalInfo } from "@/lib/global-info";
 
 export default function Page() {
 	const isMac = useGlobalInfo().osType === "Darwin";
 
-	return <SetupPageBase
-		heading={tc("setup:backups:heading")}
-		Body={Body}
-		nextPage={isMac ? "/setup/finish" : "/setup/system-setting"}
-		prevPage={"/setup/project-path"}
-		pageId={"Backups"}
-	/>
+	return (
+		<SetupPageBase
+			heading={tc("setup:backups:heading")}
+			Body={Body}
+			nextPage={isMac ? "/setup/finish" : "/setup/system-setting"}
+			prevPage={"/setup/project-path"}
+			pageId={"Backups"}
+		/>
+	);
 }
 
-function Body({environment, refetch}: BodyProps) {
+function Body({ environment, refetch }: BodyProps) {
 	const projectBackupPath = environment.project_backup_path;
 	const backupFormat = environment.backup_format;
 
 	const setBackupFormat = async (format: string) => {
 		try {
-			await environmentSetBackupFormat(format)
-			refetch()
+			await environmentSetBackupFormat(format);
+			refetch();
 		} catch (e) {
 			console.error(e);
-			toastThrownError(e)
+			toastThrownError(e);
 		}
-	}
+	};
 
 	const globalInfo = useGlobalInfo();
 	const isWindows = globalInfo.osType === "WindowsNT";
-	const inLocalAppData = !!(isWindows && globalInfo.localAppData && projectBackupPath.includes(globalInfo.localAppData));
+	const inLocalAppData = !!(
+		isWindows &&
+		globalInfo.localAppData &&
+		projectBackupPath.includes(globalInfo.localAppData)
+	);
 
 	return (
 		<>
@@ -52,13 +64,20 @@ function Body({environment, refetch}: BodyProps) {
 				refetch={refetch}
 				successMessage={tc("settings:toast:backup path updated")}
 			/>
-			{inLocalAppData && <WarningMessage>{tc("setup:backups:warning:in-local-app-data")}</WarningMessage>}
-			<div className={"pb-3"}/>
+			{inLocalAppData && (
+				<WarningMessage>
+					{tc("setup:backups:warning:in-local-app-data")}
+				</WarningMessage>
+			)}
+			<div className={"pb-3"} />
 			<h3>{tc("setup:backups:archive")}</h3>
 			<CardDescription className={"whitespace-normal"}>
 				{tc("setup:backups:archive description")}
 			</CardDescription>
-			<BackupFormatSelect backupFormat={backupFormat} setBackupFormat={setBackupFormat}/>
+			<BackupFormatSelect
+				backupFormat={backupFormat}
+				setBackupFormat={setBackupFormat}
+			/>
 		</>
-	)
+	);
 }

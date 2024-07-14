@@ -1,8 +1,8 @@
 // keep structure sync with uri_custom_scheme.rs
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 
-type OsType = 'Linux' | 'Darwin' | 'WindowsNT';
-type Arch = 'x86_64' | 'aarch64';
+type OsType = "Linux" | "Darwin" | "WindowsNT";
+type Arch = "x86_64" | "aarch64";
 
 interface GlobalInfo {
 	language: string;
@@ -22,13 +22,13 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	arch: "x86_64",
 	osInfo: "unknown OS",
 	localAppData: "",
-}
+};
 
 const globalInfo: Readonly<GlobalInfo> = load();
 
 function load(): GlobalInfo {
-	if ('vrcGetGlobalInfo' in globalThis) {
-		console.log("found vrcGetGlobalInfo!")
+	if ("vrcGetGlobalInfo" in globalThis) {
+		console.log("found vrcGetGlobalInfo!");
 		// @ts-expect-error
 		const info = globalThis.vrcGetGlobalInfo as GlobalInfo;
 		onload(info);

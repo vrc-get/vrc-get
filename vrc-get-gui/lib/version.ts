@@ -1,4 +1,4 @@
-import {TauriVersion} from "@/lib/bindings";
+import { TauriVersion } from "@/lib/bindings";
 
 function comparePrereleaseSegment(a: string, b: string) {
 	if (a === b) return 0;
@@ -42,11 +42,11 @@ export function compareVersion(a: TauriVersion, b: TauriVersion) {
 	if (a.pre === b.pre) return 0;
 
 	// if either has no prerelease, it comes later
-	if (a.pre === '') return 1;
-	if (b.pre === '') return -1;
+	if (a.pre === "") return 1;
+	if (b.pre === "") return -1;
 
-	const aPrerelease = a.pre.split('.');
-	const bPrerelease = b.pre.split('.');
+	const aPrerelease = a.pre.split(".");
+	const bPrerelease = b.pre.split(".");
 
 	for (let i = 0; i < Math.min(aPrerelease.length, bPrerelease.length); i++) {
 		const cmp = comparePrereleaseSegment(aPrerelease[i], bPrerelease[i]);
@@ -59,9 +59,12 @@ export function compareVersion(a: TauriVersion, b: TauriVersion) {
 	return 0;
 }
 
-export function toVersionString(version: TauriVersion): `${number}.${number}.${number}${`-${string}` | ''}${`+${string}` | ''}` {
+export function toVersionString(
+	version: TauriVersion,
+): `${number}.${number}.${number}${`-${string}` | ""}${`+${string}` | ""}` {
 	const versionString: `${number}.${number}.${number}` = `${version.major}.${version.minor}.${version.patch}`;
-	const withPre: `${number}.${number}.${number}${`-${string}` | ''}` = version.pre ? `${versionString}-${version.pre}` : versionString;
+	const withPre: `${number}.${number}.${number}${`-${string}` | ""}` =
+		version.pre ? `${versionString}-${version.pre}` : versionString;
 	return version.build ? `${withPre}+${version.build}` : withPre;
 }
 
@@ -112,7 +115,7 @@ interface UnityVersion {
 	major: number;
 	minor: number;
 	patch: number;
-	channel: 'a' | 'b' | 'f' | 'c' | 'p' | 'x';
+	channel: "a" | "b" | "f" | "c" | "p" | "x";
 	increment: number;
 }
 
@@ -128,31 +131,34 @@ export function parseUnityVersion(version: string): UnityVersion | null {
 		major: parseInt(match[1], 10),
 		minor: parseInt(match[2], 10),
 		patch: parseInt(match[3], 10),
-		channel: (match[4] || 'f') as UnityVersion['channel'],
-		increment: parseInt(match[5] || '1', 10)
+		channel: (match[4] || "f") as UnityVersion["channel"],
+		increment: parseInt(match[5] || "1", 10),
 	};
 }
 
-function compareUnityChannel(a: UnityVersion['channel'], b: UnityVersion['channel']) {
-	if (a == 'c') a = 'f';
-	if (b == 'c') b = 'f';
+function compareUnityChannel(
+	a: UnityVersion["channel"],
+	b: UnityVersion["channel"],
+) {
+	if (a == "c") a = "f";
+	if (b == "c") b = "f";
 
 	if (a === b) return 0;
 
-	if (a === 'a') return -1;
-	if (b === 'a') return 1;
+	if (a === "a") return -1;
+	if (b === "a") return 1;
 
-	if (a === 'b') return -1;
-	if (b === 'b') return 1;
+	if (a === "b") return -1;
+	if (b === "b") return 1;
 
-	if (a === 'f') return -1;
-	if (b === 'f') return 1;
+	if (a === "f") return -1;
+	if (b === "f") return 1;
 
-	if (a === 'p') return 1;
-	if (b === 'p') return -1;
+	if (a === "p") return 1;
+	if (b === "p") return -1;
 
-	if (a === 'x') return -1;
-	if (b === 'x') return 1;
+	if (a === "x") return -1;
+	if (b === "x") return 1;
 
 	return 0;
 }
