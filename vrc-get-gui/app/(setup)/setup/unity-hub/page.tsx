@@ -54,7 +54,7 @@ function Body({ environment, refetch }: BodyProps) {
 					<div className={"p-2"} />
 					<div className={"flex flex-row flex-wrap gap-2"}>
 						<Button onClick={() => shellOpen("https://unity.com/ja/download")}>
-							{tc("Download Unity Hub from unity.com")}
+							{tc("setup:unity-hub:download unity hub from unity.com")}
 						</Button>
 						<Button onClick={refetch}>
 							{tc("setup:unity-hub:recheck installation")}

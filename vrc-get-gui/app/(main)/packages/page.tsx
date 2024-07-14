@@ -24,7 +24,7 @@ import {
 	environmentRemoveUserPackages,
 } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
-import { toastSuccess, toastThrownError } from "@/lib/toast";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { toVersionString } from "@/lib/version";
 import { useQuery } from "@tanstack/react-query";
@@ -57,7 +57,7 @@ function PageBody() {
 					case "NoFolderSelected":
 						break;
 					case "InvalidSelection":
-						toastSuccess(tc("user packages:toast:invalid selection"));
+						toastError(tc("user packages:toast:invalid selection"));
 						break;
 					case "AlreadyAdded":
 						toastSuccess(tc("user packages:toast:package already added"));
@@ -142,8 +142,8 @@ function RepositoryTableBody({
 }) {
 	const TABLE_HEAD = [
 		"general:name",
-		"user packages:version",
 		"user packages:path",
+		"user packages:version",
 		"", // actions
 	];
 
