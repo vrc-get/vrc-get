@@ -1,8 +1,10 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-	"formatter": {
-		"enabled": true,
+	"files": {
 		"ignore": ["templates", "node_modules", ".next", "out"]
+	},
+	"formatter": {
+		"enabled": true
 	},
 	"linter": {
 		"enabled": false
