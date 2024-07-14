@@ -1,4 +1,3 @@
-import React, { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -6,14 +5,15 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { assertNever } from "@/lib/assert-never";
 import {
+	type TauriProject,
 	environmentRemoveProject,
 	environmentRemoveProjectByPath,
-	type TauriProject,
 } from "@/lib/bindings";
-import { toastSuccess } from "@/lib/toast";
 import { tc, tt } from "@/lib/i18n";
-import { assertNever } from "@/lib/assert-never";
+import { toastSuccess } from "@/lib/toast";
+import React, { type ReactNode, useState } from "react";
 
 // string if remove project by path
 type Project =

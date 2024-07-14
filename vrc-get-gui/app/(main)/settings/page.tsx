@@ -1,12 +1,22 @@
 "use client";
 
+import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
+import { ScrollPageContainer } from "@/components/ScrollPageContainer";
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import {
+	BackupFormatSelect,
+	FilePathRow,
+	LanguageSelector,
+	ThemeSelector,
+} from "@/components/common-setting-parts";
+import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { assertNever } from "@/lib/assert-never";
 import {
 	type CheckForUpdateResponse,
+	type TauriEnvironmentSettings,
 	deepLinkInstallVcc,
 	environmentClearPackageCache,
 	environmentGetSettings,
@@ -18,32 +28,22 @@ import {
 	environmentSetReleaseChannel,
 	environmentSetShowPrereleasePackages,
 	environmentSetUseAlcomForVccProtocol,
-	type TauriEnvironmentSettings,
 	utilCheckForUpdate,
 } from "@/lib/bindings";
-import { HNavBar, VStack } from "@/components/layout";
-import type React from "react";
-import { useState } from "react";
+import globalInfo, { useGlobalInfo } from "@/lib/global-info";
+import { tc, tt } from "@/lib/i18n";
+import { shellOpen } from "@/lib/shellOpen";
 import {
 	toastError,
 	toastNormal,
 	toastSuccess,
 	toastThrownError,
 } from "@/lib/toast";
-import { tc, tt } from "@/lib/i18n";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { shellOpen } from "@/lib/shellOpen";
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
-import { assertNever } from "@/lib/assert-never";
-import { ScrollPageContainer } from "@/components/ScrollPageContainer";
-import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
-import {
-	BackupFormatSelect,
-	FilePathRow,
-	LanguageSelector,
-	ThemeSelector,
-} from "@/components/common-setting-parts";
-import globalInfo, { useGlobalInfo } from "@/lib/global-info";
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import type React from "react";
+import { useState } from "react";
 
 export default function Page() {
 	const result = useQuery({

@@ -2,10 +2,10 @@
  * This file is used to generate a JSON file containing the licenses of all the dependencies.
  * This is based on the output of `cargo about generate --format=json` and `npx license-checker --production --json`.
  */
-import { promisify } from "node:util";
 import { exec as execCallback } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { promisify } from "node:util";
 
 const exec = promisify(execCallback);
 

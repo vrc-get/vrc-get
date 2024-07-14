@@ -1,5 +1,6 @@
 "use client";
 
+import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -23,16 +24,10 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import React, { Suspense, useCallback, useMemo, useState } from "react";
-import { ArrowLeft, ChevronDown } from "lucide-react";
-import { HNavBar, VStack } from "@/components/layout";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useBackupProjectModal } from "@/lib/backup-project";
 import {
-	useQueries,
-	useQuery,
-	type UseQueryResult,
-} from "@tanstack/react-query";
-import {
+	type TauriProjectDetails,
+	type TauriUnityVersions,
 	environmentPackages,
 	environmentRefetchPackages,
 	environmentRepositoriesInfo,
@@ -41,30 +36,35 @@ import {
 	projectGetUnityPath,
 	projectResolve,
 	projectSetUnityPath,
-	type TauriProjectDetails,
-	type TauriUnityVersions,
 	utilOpen,
 } from "@/lib/bindings";
-import { useOpenUnity } from "@/lib/use-open-unity";
-import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { useRemoveProjectModal } from "@/lib/remove-project";
 import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
-import { useBackupProjectModal } from "@/lib/backup-project";
+import { useRemoveProjectModal } from "@/lib/remove-project";
+import { toastSuccess, toastThrownError } from "@/lib/toast";
+import { useOpenUnity } from "@/lib/use-open-unity";
+import { compareUnityVersionString } from "@/lib/version";
+import {
+	type UseQueryResult,
+	useQueries,
+	useQuery,
+} from "@tanstack/react-query";
+import { ArrowLeft, ChevronDown } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { Suspense, useCallback, useMemo, useState } from "react";
+import {
+	VRCSDK_PACKAGES,
+	combinePackagesAndProjectDetails,
+} from "./collect-package-row-info";
+import { LaunchSettings } from "./launch-settings";
+import { PackageListCard } from "./package-list-card";
+import { PageContextProvider } from "./page-context";
 import {
 	useUnity2022Migration,
 	useUnity2022PatchMigration,
 	useUnityVersionChange,
 } from "./unity-migration";
-import { LaunchSettings } from "./launch-settings";
-import { PackageListCard } from "./package-list-card";
 import { usePackageChangeDialog } from "./use-package-change";
-import {
-	combinePackagesAndProjectDetails,
-	VRCSDK_PACKAGES,
-} from "./collect-package-row-info";
-import { PageContextProvider } from "./page-context";
-import { compareUnityVersionString } from "@/lib/version";
 
 export default function Page() {
 	return (

@@ -1,3 +1,4 @@
+import { assertNever } from "@/lib/assert-never";
 import type {
 	TauriBasePackageInfo,
 	TauriPackage,
@@ -10,7 +11,6 @@ import {
 	compareVersion,
 	toVersionString,
 } from "@/lib/version";
-import { assertNever } from "@/lib/assert-never";
 
 export type PackageLatestInfo =
 	| {

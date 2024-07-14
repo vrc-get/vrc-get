@@ -1,4 +1,5 @@
-import i18next, { languages, tc } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -7,8 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { assertNever } from "@/lib/assert-never";
 import {
 	environmentLanguage,
 	environmentSetLanguage,
@@ -16,12 +16,12 @@ import {
 	environmentTheme,
 	utilOpen,
 } from "@/lib/bindings";
-import type { ToastContent } from "react-toastify";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import i18next, { languages, tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { assertNever } from "@/lib/assert-never";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import { useQuery } from "@tanstack/react-query";
+import React from "react";
+import type { ToastContent } from "react-toastify";
 
 export function LanguageSelector() {
 	const { data: lang, refetch: refetchLang } = useQuery({

@@ -1,7 +1,7 @@
 "use client";
 
-import type React from "react";
 import { Card } from "@/components/ui/card";
+import type React from "react";
 
 export function VStack({
 	className,

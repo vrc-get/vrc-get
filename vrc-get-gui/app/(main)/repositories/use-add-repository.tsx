@@ -1,25 +1,25 @@
-import type React from "react";
-import { useCallback, useState } from "react";
 import {
 	ReorderableList,
 	useReorderableList,
 } from "@/components/ReorderableList";
+import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
 	DialogFooter,
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { tc, tt } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { assertNever } from "@/lib/assert-never";
 import {
+	type TauriRemoteRepositoryInfo,
 	environmentAddRepository,
 	environmentDownloadRepository,
-	type TauriRemoteRepositoryInfo,
 } from "@/lib/bindings";
+import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { assertNever } from "@/lib/assert-never";
+import type React from "react";
+import { useCallback, useState } from "react";
 
 type State =
 	| {

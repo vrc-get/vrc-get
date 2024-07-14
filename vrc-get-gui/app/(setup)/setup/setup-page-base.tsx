@@ -1,23 +1,23 @@
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import {
+	type SetupPages,
+	type TauriEnvironmentSettings,
 	environmentFinishedSetupPage,
 	environmentGetFinishedSetupPages,
 	environmentGetSettings,
-	type SetupPages,
-	type TauriEnvironmentSettings,
 } from "@/lib/bindings";
-import { Card, CardFooter, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import type React from "react";
+import { useGlobalInfo } from "@/lib/global-info";
+import { tc } from "@/lib/i18n";
+import { useQuery } from "@tanstack/react-query";
 import {
 	Circle,
 	CircleAlert,
 	CircleCheck,
 	CircleChevronRight,
 } from "lucide-react";
-import { tc } from "@/lib/i18n";
-import { useGlobalInfo } from "@/lib/global-info";
+import { useRouter } from "next/navigation";
+import type React from "react";
 
 export type BodyProps = Readonly<{
 	environment: TauriEnvironmentSettings;

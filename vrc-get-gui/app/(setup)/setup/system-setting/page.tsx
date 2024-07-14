@@ -1,15 +1,15 @@
 "use client";
 
-import React from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	environmentSetUseAlcomForVccProtocol,
 	utilIsBadHostname,
 } from "@/lib/bindings";
+import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
-import { Checkbox } from "@/components/ui/checkbox";
+import React from "react";
 import { type BodyProps, SetupPageBase } from "../setup-page-base";
-import { useGlobalInfo } from "@/lib/global-info";
 
 export default function Page() {
 	return (

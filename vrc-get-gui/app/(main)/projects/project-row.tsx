@@ -1,40 +1,11 @@
-import React, {
-	type ComponentProps,
-	forwardRef,
-	Fragment,
-	useContext,
-	useState,
-} from "react";
 import { Button } from "@/components/ui/button";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipPortal,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { tc, tt } from "@/lib/i18n";
-import {
-	environmentCopyProjectForMigration,
-	environmentSetFavoriteProject,
-	projectIsUnityLaunching,
-	projectMigrateProjectToVpm,
-	type TauriProject,
-	type TauriProjectType,
-	utilOpen,
-} from "@/lib/bindings";
-import type { OpenUnityFunction } from "@/lib/use-open-unity";
-import { useRouter } from "next/navigation";
-import { useRemoveProjectModal } from "@/lib/remove-project";
-import { useBackupProjectModal } from "@/lib/backup-project";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-	Ellipsis,
-	Globe,
-	CircleHelp,
-	Star,
-	CircleUserRound,
-} from "lucide-react";
+	DialogDescription,
+	DialogFooter,
+	DialogOpen,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -42,11 +13,40 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-	DialogDescription,
-	DialogFooter,
-	DialogOpen,
-	DialogTitle,
-} from "@/components/ui/dialog";
+	Tooltip,
+	TooltipContent,
+	TooltipPortal,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useBackupProjectModal } from "@/lib/backup-project";
+import {
+	type TauriProject,
+	type TauriProjectType,
+	environmentCopyProjectForMigration,
+	environmentSetFavoriteProject,
+	projectIsUnityLaunching,
+	projectMigrateProjectToVpm,
+	utilOpen,
+} from "@/lib/bindings";
+import { tc, tt } from "@/lib/i18n";
+import { useRemoveProjectModal } from "@/lib/remove-project";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import type { OpenUnityFunction } from "@/lib/use-open-unity";
+import {
+	CircleHelp,
+	CircleUserRound,
+	Ellipsis,
+	Globe,
+	Star,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, {
+	type ComponentProps,
+	forwardRef,
+	Fragment,
+	useContext,
+	useState,
+} from "react";
 
 const ProjectDisplayType: Record<
 	TauriProjectType,

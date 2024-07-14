@@ -3,22 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-	AlignLeft,
-	CircleAlert,
-	Package,
-	List,
-	Settings,
-	SwatchBook,
-} from "lucide-react";
-import type React from "react";
-import { useQuery } from "@tanstack/react-query";
-import {
-	environmentClearSetupProcess,
-	utilIsBadHostname,
-} from "@/lib/bindings";
-import { useRouter } from "next/navigation";
-import { toastNormal } from "@/lib/toast";
-import {
 	Dialog,
 	DialogClose,
 	DialogContent,
@@ -27,8 +11,24 @@ import {
 	DialogHeader,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { tc } from "@/lib/i18n";
+import {
+	environmentClearSetupProcess,
+	utilIsBadHostname,
+} from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
+import { tc } from "@/lib/i18n";
+import { toastNormal } from "@/lib/toast";
+import { useQuery } from "@tanstack/react-query";
+import {
+	AlignLeft,
+	CircleAlert,
+	List,
+	Package,
+	Settings,
+	SwatchBook,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import type React from "react";
 
 export function SideBar({ className }: { className?: string }) {
 	"use client";

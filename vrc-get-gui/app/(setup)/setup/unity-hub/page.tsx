@@ -1,8 +1,5 @@
 "use client";
 
-import { CardDescription } from "@/components/ui/card";
-import React from "react";
-import { Button } from "@/components/ui/button";
 import { FilePathRow } from "@/components/common-setting-parts";
 import {
 	Accordion,
@@ -10,9 +7,12 @@ import {
 	AccordionItem,
 	AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { CardDescription } from "@/components/ui/card";
 import { environmentPickUnityHub } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { shellOpen } from "@/lib/shellOpen";
+import React from "react";
 import { type BodyProps, SetupPageBase } from "../setup-page-base";
 
 export default function Page() {

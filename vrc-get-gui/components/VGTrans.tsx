@@ -1,7 +1,7 @@
+import dynamic from "next/dynamic";
+import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import type { TransProps } from "react-i18next/TransWithoutContext";
-import React from "react";
-import dynamic from "next/dynamic";
 
 // localization would cause hydration error so do not ssr
 export const VGTrans = dynamic(

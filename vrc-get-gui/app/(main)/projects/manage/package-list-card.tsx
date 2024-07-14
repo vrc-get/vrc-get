@@ -1,5 +1,7 @@
 // noinspection ExceptionCaughtLocallyJS
 
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,17 +26,11 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type React from "react";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { assertNever } from "@/lib/assert-never";
 import {
-	RefreshCw,
-	Ellipsis,
-	CircleArrowUp,
-	CircleMinus,
-	CirclePlus,
-} from "lucide-react";
-import { SearchBox } from "@/components/SearchBox";
-import {
+	type TauriPackage,
+	type TauriPendingProjectChanges,
+	type TauriRepositoriesInfo,
 	environmentHideRepository,
 	environmentSetHideLocalUserPackages,
 	environmentShowRepository,
@@ -43,14 +39,19 @@ import {
 	projectRemovePackages,
 	projectResolve,
 	projectUpgradeMultiplePackage,
-	type TauriPackage,
-	type TauriPendingProjectChanges,
-	type TauriRepositoriesInfo,
 } from "@/lib/bindings";
-import { toVersionString } from "@/lib/version";
-import { toastError, toastThrownError } from "@/lib/toast";
 import { tc, tt } from "@/lib/i18n";
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { toastError, toastThrownError } from "@/lib/toast";
+import { toVersionString } from "@/lib/version";
+import {
+	CircleArrowUp,
+	CircleMinus,
+	CirclePlus,
+	Ellipsis,
+	RefreshCw,
+} from "lucide-react";
+import type React from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type {
 	PackageLatestInfo,
 	PackageRowInfo,
@@ -60,7 +61,6 @@ import {
 	CheckboxDisabledIfLoading,
 	usePageContext,
 } from "./page-context";
-import { assertNever } from "@/lib/assert-never";
 
 type RequestedOperation =
 	| {

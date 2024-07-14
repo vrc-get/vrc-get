@@ -1,5 +1,5 @@
-import React, { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DialogDescription,
 	DialogFooter,
@@ -8,9 +8,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { tc } from "@/lib/i18n";
-import { Checkbox } from "@/components/ui/checkbox";
 import { assertNever } from "@/lib/assert-never";
+import { tc } from "@/lib/i18n";
+import React, { useId, useState } from "react";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 

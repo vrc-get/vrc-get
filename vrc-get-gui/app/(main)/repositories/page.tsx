@@ -1,5 +1,7 @@
 "use client";
 
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -9,21 +11,32 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useQuery } from "@tanstack/react-query";
 import {
+	type TauriUserRepository,
 	deepLinkTakeAddRepository,
 	environmentExportRepositories,
 	environmentHideRepository,
 	environmentRemoveRepository,
 	environmentRepositoriesInfo,
 	environmentShowRepository,
-	type TauriUserRepository,
 } from "@/lib/bindings";
-import { HNavBar, VStack } from "@/components/layout";
+import { tc } from "@/lib/i18n";
+import { toastThrownError } from "@/lib/toast";
+import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import { useTauriListen } from "@/lib/use-tauri-listen";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, CircleX } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type React from "react";
 import {
 	Suspense,
@@ -33,21 +46,8 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import { ChevronDown, CircleX } from "lucide-react";
-import { toastThrownError } from "@/lib/toast";
-import { tc } from "@/lib/i18n";
-import { useTauriListen } from "@/lib/use-tauri-listen";
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { useAddRepository } from "./use-add-repository";
 import { useImportRepositories } from "./use-import-repositories";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { useRouter } from "next/navigation";
 
 export default function Page() {
 	return (

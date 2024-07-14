@@ -1,4 +1,3 @@
-import { type ReactNode, useCallback, useState } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -6,6 +5,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { tc } from "@/lib/i18n";
+import { type ReactNode, useCallback, useState } from "react";
 
 export function useFilePickerFunction<A extends unknown[], R>(
 	f: (...args: A) => Promise<R>,

@@ -1,11 +1,11 @@
 "use client";
 
+import { ScrollPageContainer } from "@/components/ScrollPageContainer";
+import { ScrollableCard } from "@/components/ScrollableCard";
+import { VStack } from "@/components/layout";
 import { Card } from "@/components/ui/card";
 import type { Licenses } from "@/lib/licenses";
 import { shellOpen } from "@/lib/shellOpen";
-import { ScrollableCard } from "@/components/ScrollableCard";
-import { ScrollPageContainer } from "@/components/ScrollPageContainer";
-import { VStack } from "@/components/layout";
 
 export default function RenderPage({
 	licenses,

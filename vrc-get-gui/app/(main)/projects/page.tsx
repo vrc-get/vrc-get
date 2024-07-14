@@ -1,5 +1,8 @@
 "use client";
 
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { SearchBox } from "@/components/SearchBox";
+import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -13,34 +16,31 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import React, { useEffect, useMemo, useState } from "react";
+import { assertNever } from "@/lib/assert-never";
 import {
-	RefreshCw,
-	ChevronDown,
-	ChevronUp,
-	ChevronsUpDown,
-	Star,
-} from "lucide-react";
-import { HNavBar, VStack } from "@/components/layout";
-import {
+	type TauriProject,
+	type TauriProjectType,
 	environmentAddProjectWithPicker,
 	environmentGetProjectSorting,
 	environmentProjects,
 	environmentSetProjectSorting,
-	type TauriProject,
-	type TauriProjectType,
 } from "@/lib/bindings";
-import { useQuery } from "@tanstack/react-query";
-import { SearchBox } from "@/components/SearchBox";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { tc, tt } from "@/lib/i18n";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import { type OpenUnityFunction, useOpenUnity } from "@/lib/use-open-unity";
 import { compareUnityVersionString } from "@/lib/version";
-import { useOpenUnity, type OpenUnityFunction } from "@/lib/use-open-unity";
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { useQuery } from "@tanstack/react-query";
+import {
+	ChevronDown,
+	ChevronUp,
+	ChevronsUpDown,
+	RefreshCw,
+	Star,
+} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 import { CreateProject } from "./create-project";
 import { ProjectRow } from "./project-row";
-import { assertNever } from "@/lib/assert-never";
 
 const sortings = ["lastModified", "name", "unity", "type"] as const;
 

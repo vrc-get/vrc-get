@@ -1,21 +1,21 @@
-import type React from "react";
-import { useEffect, useState } from "react";
 import {
 	ReorderableList,
 	useReorderableList,
 } from "@/components/ReorderableList";
-import {
-	projectGetCustomUnityArgs,
-	projectSetCustomUnityArgs,
-} from "@/lib/bindings";
-import { tc } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
 	DialogFooter,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+	projectGetCustomUnityArgs,
+	projectSetCustomUnityArgs,
+} from "@/lib/bindings";
+import { tc } from "@/lib/i18n";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 // Note: remember to change similar in rust side
 const defaultArgs = ["-debugCodeOptimization"];

@@ -1,31 +1,31 @@
-import type React from "react";
-import { useCallback, useState } from "react";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogOpen,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import { tc, tt } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
-import {
-	environmentImportAddRepositories,
-	environmentImportDownloadRepositories,
-	environmentImportRepositoryPick,
-	type TauriDownloadRepository,
-	type TauriRepositoryDescriptor,
-} from "@/lib/bindings";
-import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { assertNever } from "@/lib/assert-never";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { callAsyncCommand } from "@/lib/call-async-command";
-import { Progress } from "@/components/ui/progress";
 import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
 	AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import {
+	DialogDescription,
+	DialogFooter,
+	DialogOpen,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { assertNever } from "@/lib/assert-never";
+import {
+	type TauriDownloadRepository,
+	type TauriRepositoryDescriptor,
+	environmentImportAddRepositories,
+	environmentImportDownloadRepositories,
+	environmentImportRepositoryPick,
+} from "@/lib/bindings";
+import { callAsyncCommand } from "@/lib/call-async-command";
+import { tc, tt } from "@/lib/i18n";
+import { toastSuccess, toastThrownError } from "@/lib/toast";
+import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import type React from "react";
+import { useCallback, useState } from "react";
 
 type ParsedRepositories = {
 	repositories: TauriRepositoryDescriptor[];

@@ -1,13 +1,13 @@
 "use client";
 
-import { CardDescription } from "@/components/ui/card";
-import React from "react";
 import {
 	LanguageSelector,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
-import { SetupPageBase } from "../setup-page-base";
+import { CardDescription } from "@/components/ui/card";
 import { tc } from "@/lib/i18n";
+import React from "react";
+import { SetupPageBase } from "../setup-page-base";
 
 export default function Page() {
 	return (

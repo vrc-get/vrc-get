@@ -1,4 +1,3 @@
-import React, { Fragment, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -6,22 +5,23 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { tc, tt } from "@/lib/i18n";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { assertNever } from "@/lib/assert-never";
 import {
+	type TauriUnityVersions,
 	environmentCopyProjectForMigration,
 	environmentUnityVersions,
 	projectCallUnityForMigration,
 	projectIsUnityLaunching,
 	projectMigrateProjectTo2022,
-	type TauriUnityVersions,
 } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
-import { useRouter } from "next/navigation";
+import { tc, tt } from "@/lib/i18n";
 import { shellOpen } from "@/lib/shellOpen";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
-import { assertNever } from "@/lib/assert-never";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
+import { useRouter } from "next/navigation";
+import React, { Fragment, useCallback } from "react";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 

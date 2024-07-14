@@ -1,5 +1,7 @@
 "use client";
 
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -15,22 +17,20 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useQuery } from "@tanstack/react-query";
 import {
+	type TauriUserPackage,
 	environmentAddUserPackageWithPicker,
 	environmentGetUserPackages,
 	environmentRemoveUserPackages,
-	type TauriUserPackage,
 } from "@/lib/bindings";
-import { HNavBar, VStack } from "@/components/layout";
-import React, { Suspense, useCallback, useId } from "react";
-import { CircleX } from "lucide-react";
-import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { tc } from "@/lib/i18n";
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { useRouter } from "next/navigation";
 import { toVersionString } from "@/lib/version";
+import { useQuery } from "@tanstack/react-query";
+import { CircleX } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { Suspense, useCallback, useId } from "react";
 
 export default function Page() {
 	return (

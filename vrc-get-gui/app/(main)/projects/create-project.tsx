@@ -1,21 +1,12 @@
-import { useRouter } from "next/navigation";
-import type React from "react";
-import { useEffect, useState } from "react";
-import {
-	environmentCheckProjectName,
-	environmentCreateProject,
-	environmentPickProjectDefaultPath,
-	environmentProjectCreationInformation,
-	type TauriProjectDirCheckResult,
-	type TauriProjectTemplate,
-} from "@/lib/bindings";
-import { useDebounce } from "@uidotdev/usehooks";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { tc, tt } from "@/lib/i18n";
-import { pathSeparator } from "@/lib/os";
-import { RefreshCw } from "lucide-react";
 import { VStack } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import {
+	DialogDescription,
+	DialogFooter,
+	DialogOpen,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -24,15 +15,24 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogOpen,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { assertNever } from "@/lib/assert-never";
+import {
+	type TauriProjectDirCheckResult,
+	type TauriProjectTemplate,
+	environmentCheckProjectName,
+	environmentCreateProject,
+	environmentPickProjectDefaultPath,
+	environmentProjectCreationInformation,
+} from "@/lib/bindings";
+import { tc, tt } from "@/lib/i18n";
+import { pathSeparator } from "@/lib/os";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import { useDebounce } from "@uidotdev/usehooks";
+import { RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 type CreateProjectstate =
 	| "loadingInitialInformation"

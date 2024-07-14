@@ -1,16 +1,16 @@
 "use client";
 
-import { CardDescription } from "@/components/ui/card";
-import React from "react";
 import { FilePathRow } from "@/components/common-setting-parts";
+import { CardDescription } from "@/components/ui/card";
 import { environmentPickProjectDefaultPath } from "@/lib/bindings";
+import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
+import React from "react";
 import {
 	type BodyProps,
 	SetupPageBase,
 	WarningMessage,
 } from "../setup-page-base";
-import { useGlobalInfo } from "@/lib/global-info";
 
 export default function Page() {
 	return (

@@ -1,11 +1,11 @@
 "use client";
 
+import { ScrollableCard } from "@/components/ScrollableCard";
 import { HNavBar, VStack } from "@/components/layout";
-import React, { useCallback, useEffect } from "react";
 import { type LogEntry, utilGetLogEntries } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { useTauriListen } from "@/lib/use-tauri-listen";
-import { ScrollableCard } from "@/components/ScrollableCard";
+import React, { useCallback, useEffect } from "react";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);

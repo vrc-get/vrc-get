@@ -1,21 +1,21 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastContainer } from "react-toastify";
-import { useCallback, useEffect, useState } from "react";
+import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
 	type CheckForUpdateResponse,
-	deepLinkHasAddRepository,
 	type LogEntry,
+	deepLinkHasAddRepository,
 	utilCheckForUpdate,
 } from "@/lib/bindings";
 import i18next from "@/lib/i18n";
-import { I18nextProvider } from "react-i18next";
 import { toastError, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
+import { useCallback, useEffect, useState } from "react";
+import { I18nextProvider } from "react-i18next";
+import { ToastContainer } from "react-toastify";
 
 const queryClient = new QueryClient();
 

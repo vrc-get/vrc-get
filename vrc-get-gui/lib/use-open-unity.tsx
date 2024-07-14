@@ -1,14 +1,3 @@
-import {
-	environmentUnityVersions,
-	projectGetUnityPath,
-	projectOpenUnity,
-	projectSetUnityPath,
-	TauriUnityVersions,
-} from "@/lib/bindings";
-import i18next, { tc } from "@/lib/i18n";
-import { toastError, toastNormal } from "@/lib/toast";
-import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
-import { shellOpen } from "@/lib/shellOpen";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -16,6 +5,17 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import {
+	TauriUnityVersions,
+	environmentUnityVersions,
+	projectGetUnityPath,
+	projectOpenUnity,
+	projectSetUnityPath,
+} from "@/lib/bindings";
+import i18next, { tc } from "@/lib/i18n";
+import { shellOpen } from "@/lib/shellOpen";
+import { toastError, toastNormal } from "@/lib/toast";
+import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
 import React from "react";
 
 export type OpenUnityFunction = (
