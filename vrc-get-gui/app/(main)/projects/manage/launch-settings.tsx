@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 import {
 	ReorderableList,
 	useReorderableList,
@@ -39,6 +40,7 @@ export function LaunchSettings({
 		defaultArray: defaultArgs,
 	});
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: we want to change on projectPath
 	useEffect(() => {
 		void (async () => {
 			const args = await projectGetCustomUnityArgs(projectPath);
@@ -57,7 +59,7 @@ export function LaunchSettings({
 		close();
 	};
 
-	let errorMessage;
+	let errorMessage: React.ReactNode;
 
 	if (
 		customizeCommandline &&

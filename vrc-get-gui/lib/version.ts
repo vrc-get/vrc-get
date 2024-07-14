@@ -137,11 +137,11 @@ export function parseUnityVersion(version: string): UnityVersion | null {
 }
 
 function compareUnityChannel(
-	a: UnityVersion["channel"],
-	b: UnityVersion["channel"],
+	aIn: UnityVersion["channel"],
+	bIn: UnityVersion["channel"],
 ) {
-	if (a === "c") a = "f";
-	if (b === "c") b = "f";
+	const a = aIn === "c" ? "f" : aIn;
+	const b = bIn === "c" ? "f" : bIn;
 
 	if (a === b) return 0;
 

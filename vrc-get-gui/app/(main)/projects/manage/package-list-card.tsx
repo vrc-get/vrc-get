@@ -168,6 +168,7 @@ export const PackageListCard = memo(function PackageListCard({
 		[repositoriesInfo],
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset when packageRowsData changes
 	useEffect(() => {
 		// if packageRowsData is changed, clear bulkUpdatePackageIds
 		setBulkUpdatePackageIds([]);
@@ -328,14 +329,9 @@ export const PackageListCard = memo(function PackageListCard({
 		});
 	}, []);
 
-	const removeBulkUpdatePackage = useCallback(
-		(row: PackageRowInfo) => {
-			setBulkUpdatePackageIds((prev) =>
-				prev.filter(([id, _]) => id !== row.id),
-			);
-		},
-		[setBulkUpdatePackageIds],
-	);
+	const removeBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
+		setBulkUpdatePackageIds((prev) => prev.filter(([id, _]) => id !== row.id));
+	}, []);
 
 	const dialogForState: React.ReactNode = null;
 
@@ -377,6 +373,7 @@ export const PackageListCard = memo(function PackageListCard({
 							/>
 							{TABLE_HEAD.map((head, index) => (
 								<th
+									// biome-ignore lint/suspicious/noArrayIndexKey: static array
 									key={index}
 									className={
 										"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
@@ -777,7 +774,7 @@ const PackageRow = memo(function PackageRow({
 				/>
 			</td>
 			<td className={`${cellClass} min-w-32 w-32`}>
-				<PackageLatestInfo
+				<LatestPackageInfo
 					info={pkg.latest}
 					onInstallRequested={onInstallRequested}
 				/>
@@ -1005,7 +1002,7 @@ function PackageInstalledInfo({
 	}
 }
 
-function PackageLatestInfo({
+function LatestPackageInfo({
 	info,
 	onInstallRequested,
 }: {

@@ -1,5 +1,5 @@
 declare module "*.json5" {
-	const content: any;
+	const content: unknown;
 
 	export default content;
 }

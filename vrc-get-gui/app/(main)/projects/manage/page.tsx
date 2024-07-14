@@ -66,10 +66,10 @@ import {
 import { PageContextProvider } from "./page-context";
 import { compareUnityVersionString } from "@/lib/version";
 
-export default function Page(props: {}) {
+export default function Page() {
 	return (
 		<Suspense>
-			<PageBody {...props} />
+			<PageBody />
 		</Suspense>
 	);
 }

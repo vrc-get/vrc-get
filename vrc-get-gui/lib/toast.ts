@@ -22,14 +22,17 @@ export function toastError(message: ToastContent) {
 	toast.error(message);
 }
 
-export function toastThrownError(error: any) {
+export function toastThrownError(error: unknown) {
 	switch (typeof error) {
 		case "string":
 			toastError(error);
 			break;
 		case "object":
+			if (error === null) return;
 			if ("type" in error && error.type === "Unrecoverable") return; // should be handled by log toast
-			if (error instanceof Error || "message" in error) {
+			if (error instanceof Error) {
+				toastError(error.message);
+			} else if ("message" in error && typeof error.message === "string") {
 				toastError(error.message);
 			} else {
 				toastError(JSON.stringify(error));

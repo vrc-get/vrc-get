@@ -273,10 +273,11 @@ export function combinePackagesAndProjectDetails(
 		for (const pkg of packagesTable.values()) {
 			if (pkg.latest.status !== "none") {
 				for (const dependency of pkg.latest.pkg.vpm_dependencies) {
-					if (!dependantPackages.has(dependency)) {
-						dependantPackages.set(dependency, new Set());
+					let packageInfo = dependantPackages.get(dependency);
+					if (packageInfo === undefined) {
+						dependantPackages.set(dependency, (packageInfo = new Set()));
 					}
-					dependantPackages.get(dependency)!.add(pkg.id);
+					packageInfo.add(pkg.id);
 				}
 			}
 		}
@@ -292,6 +293,7 @@ export function combinePackagesAndProjectDetails(
 
 		// update forAvatars and forWorlds recursively
 		while (toRemove.size > 0) {
+			// biome-ignore lint/style/noNonNullAssertion: we know it's not empty
 			const pkgId = [...toRemove].pop()!;
 			toRemove.delete(pkgId);
 

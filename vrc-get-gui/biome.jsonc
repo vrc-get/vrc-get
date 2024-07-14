@@ -16,6 +16,9 @@
 					"fix": "none",
 					"level": "error"
 				}
+			},
+			"suspicious": {
+				"noAssignInExpressions": "off"
 			}
 		},
 		"enabled": true

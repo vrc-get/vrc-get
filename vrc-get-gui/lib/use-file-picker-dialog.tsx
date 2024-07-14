@@ -20,7 +20,7 @@ export function useFilePickerFunction<A extends unknown[], R>(
 				setIsPicking(false);
 			}
 		},
-		[setIsPicking, f],
+		[f],
 	);
 
 	const dialog = (

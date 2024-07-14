@@ -30,6 +30,7 @@ function Body({ environment, refetch }: BodyProps) {
 	const hasWhitespace = projectPath.includes(" ");
 	const globalInfo = useGlobalInfo();
 	const isWindows = globalInfo.osType === "WindowsNT";
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: allow control characters
 	const hasNonAscii = isWindows && projectPath.match(/[^\x00-\x7F]/);
 	const inLocalAppData = !!(
 		isWindows &&

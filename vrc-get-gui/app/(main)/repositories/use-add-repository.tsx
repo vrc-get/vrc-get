@@ -98,7 +98,7 @@ export function useAddRepository({
 		}
 	}, []);
 
-	let dialogBody;
+	let dialogBody: React.ReactNode;
 	switch (state.type) {
 		case "normal":
 			dialogBody = null;
@@ -391,7 +391,7 @@ function Confirming({
 						</p>
 						<ul className={"list-disc pl-6"}>
 							{Object.entries(headers).map(([key, value], idx) => (
-								<li key={idx}>
+								<li key={key}>
 									{key}: {value}
 								</li>
 							))}
@@ -403,7 +403,7 @@ function Confirming({
 				</p>
 				<ul className={"list-disc pl-6"}>
 					{repo.packages.map((info, idx) => (
-						<li key={idx}>{info.display_name ?? info.name}</li>
+						<li key={info.name}>{info.display_name ?? info.name}</li>
 					))}
 				</ul>
 			</DialogDescription>

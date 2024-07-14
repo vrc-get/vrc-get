@@ -30,14 +30,12 @@ type State =
 			cancel: () => void;
 	  };
 
-type Params = {};
-
 type Result = {
 	startBackup: (project: Project) => void;
 	dialog: ReactNode;
 };
 
-export function useBackupProjectModal(_: Params = {}): Result {
+export function useBackupProjectModal(): Result {
 	const [state, setState] = useState<State>({ type: "idle" });
 
 	const startBackup = async (project: Project) => {

@@ -24,7 +24,8 @@ import {
 	type TauriUserRepository,
 } from "@/lib/bindings";
 import { HNavBar, VStack } from "@/components/layout";
-import React, {
+import type React from "react";
+import {
 	Suspense,
 	useCallback,
 	useEffect,
@@ -48,10 +49,10 @@ import {
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useRouter } from "next/navigation";
 
-export default function Page(props: {}) {
+export default function Page() {
 	return (
 		<Suspense>
-			<PageBody {...props} />
+			<PageBody />
 		</Suspense>
 	);
 }
@@ -117,6 +118,7 @@ function PageBody() {
 		),
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: we want to do on mount
 	useEffect(() => {
 		// noinspection JSIgnoredPromiseFromCall
 		processDeepLink();
@@ -185,7 +187,11 @@ function HeadingPageName() {
 			<div className={`${button} bg-secondary`}>
 				{tc("packages:community repositories")}
 			</div>
-			<button className={`${button} bg-none`} onClick={userPackages}>
+			<button
+				type="button"
+				className={`${button} bg-none`}
+				onClick={userPackages}
+			>
 				{tc("packages:user packages")}
 			</button>
 		</div>
@@ -216,6 +222,7 @@ function RepositoryTableBody({
 				<tr>
 					{TABLE_HEAD.map((head, index) => (
 						<th
+							// biome-ignore lint/suspicious/noArrayIndexKey: static array
 							key={index}
 							className={
 								"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
@@ -266,7 +273,7 @@ function RepositoryRow({
 		}
 	};
 
-	let dialog;
+	let dialog: React.ReactNode;
 	if (removeDialogOpen) {
 		dialog = (
 			<DialogOpen>

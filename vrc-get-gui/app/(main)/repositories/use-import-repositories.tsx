@@ -148,7 +148,7 @@ export function useImportRepositories({
 		[refetch],
 	);
 
-	let dialogBody;
+	let dialogBody: React.ReactNode;
 	switch (state.type) {
 		case "normal":
 			dialogBody = null;
@@ -255,6 +255,7 @@ function ConfirmingRepositoryList({
 						</p>
 						<ul className={"list-disc pl-6"}>
 							{pickResult.unparsable_lines.map((line, idx) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: unchanged
 								<li key={idx} className={"whitespace-pre"}>
 									{line}
 								</li>
@@ -334,8 +335,8 @@ function ConfirmingPackages({
 					className="max-h-[50vh] overflow-y-auto w-full"
 				>
 					{repositories.map(([repo, download]) => {
-						let error;
-						let content;
+						let error: boolean;
+						let content: React.ReactNode;
 						switch (download.type) {
 							case "BadUrl":
 								throw new Error("BadUrl should not be here");
@@ -352,11 +353,11 @@ function ConfirmingPackages({
 								);
 								break;
 							case "Success":
-								error = null;
+								error = false;
 								content = (
 									<ul className={"list-disc pl-6"}>
 										{download.value.packages.map((info, idx) => (
-											<li key={idx}>{info.display_name ?? info.name}</li>
+											<li key={info.name}>{info.display_name ?? info.name}</li>
 										))}
 									</ul>
 								);

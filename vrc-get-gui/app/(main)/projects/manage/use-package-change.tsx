@@ -266,22 +266,20 @@ function ProjectChangesDialog({
 	const installingPackages = changes.package_changes.filter(isInstallNew);
 	const removingPackages = changes.package_changes.filter(isRemove);
 
-	const reInstallingPackages = installingPackages.filter(
-		([pkgId, c]) =>
-			existingPackageMap.has(pkgId) &&
-			compareVersion(
-				c.InstallNew.version,
-				existingPackageMap.get(pkgId)!.version,
-			) === 0,
-	);
-	const installingNewPackages = installingPackages.filter(
-		([pkgId, c]) =>
-			!existingPackageMap.has(pkgId) ||
-			compareVersion(
-				c.InstallNew.version,
-				existingPackageMap.get(pkgId)!.version,
-			) !== 0,
-	);
+	const reInstallingPackages = installingPackages.filter(([pkgId, c]) => {
+		const info = existingPackageMap.get(pkgId);
+		return (
+			info !== undefined &&
+			compareVersion(c.InstallNew.version, info.version) === 0
+		);
+	});
+	const installingNewPackages = installingPackages.filter(([pkgId, c]) => {
+		const info = existingPackageMap.get(pkgId);
+		return (
+			info === undefined ||
+			compareVersion(c.InstallNew.version, info.version) !== 0
+		);
+	});
 
 	const removingRequestedPackages = removingPackages.filter(
 		([_, c]) => c.Remove === "Requested",

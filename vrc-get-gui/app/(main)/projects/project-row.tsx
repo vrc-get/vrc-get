@@ -358,7 +358,7 @@ function MigrateButton({
 	const doMigrateVpm = async (inPlace: boolean) => {
 		setDialogStatus({ type: "normal" });
 		try {
-			let migrateProjectPath;
+			let migrateProjectPath: string;
 			if (inPlace) {
 				migrateProjectPath = project.path;
 			} else {

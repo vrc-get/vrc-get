@@ -31,15 +31,15 @@ export default function RenderPage({
 				</Card>
 
 				{licenses.map((license, idx) => (
-					<Card className={"p-4"} key={idx}>
+					<Card className={"p-4"} key={license.text}>
 						<h3>{license.name}</h3>
 						<h4>Used by:</h4>
 						<ul className={"ml-2"}>
 							{license.packages.map((pkg) => (
 								<li key={`${pkg.name}@${pkg.version}`}>
-									<a onClick={() => shellOpen(pkg.url)}>
+									<button type="button" onClick={() => shellOpen(pkg.url)}>
 										{pkg.name} ({pkg.version})
-									</a>
+									</button>
 								</li>
 							))}
 						</ul>

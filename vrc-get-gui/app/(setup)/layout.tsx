@@ -25,8 +25,12 @@ function DevTools() {
 		<div className={"absolute bottom-0 left-0 p-4 flex flex-col gap-3"}>
 			<p>debug tools</p>
 			<div className={"flex gap-3"}>
-				<button onClick={() => router.back()}>Go Back</button>
-				<button onClick={() => router.push("/settings")}>Go Settings</button>
+				<button type="button" onClick={() => router.back()}>
+					Go Back
+				</button>
+				<button type="button" onClick={() => router.push("/settings")}>
+					Go Settings
+				</button>
 			</div>
 		</div>
 	);

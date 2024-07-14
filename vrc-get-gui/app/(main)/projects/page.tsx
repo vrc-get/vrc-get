@@ -268,6 +268,7 @@ function ProjectsTableCard({
 					</th>
 					<th className={`${thClass} ${headerBg("name")}`}>
 						<button
+							type="button"
 							className={"flex w-full project-table-button"}
 							onClick={() => setSorting("name")}
 						>
@@ -279,6 +280,7 @@ function ProjectsTableCard({
 					</th>
 					<th className={`${thClass} ${headerBg("type")}`}>
 						<button
+							type="button"
 							className={"flex w-full project-table-button"}
 							onClick={() => setSorting("type")}
 						>
@@ -290,6 +292,7 @@ function ProjectsTableCard({
 					</th>
 					<th className={`${thClass} ${headerBg("unity")}`}>
 						<button
+							type="button"
 							className={"flex w-full project-table-button"}
 							onClick={() => setSorting("unity")}
 						>
@@ -301,6 +304,7 @@ function ProjectsTableCard({
 					</th>
 					<th className={`${thClass} ${headerBg("lastModified")}`}>
 						<button
+							type="button"
 							className={"flex w-full project-table-button"}
 							onClick={() => setSorting("lastModified")}
 						>

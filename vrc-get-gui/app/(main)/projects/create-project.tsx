@@ -1,5 +1,6 @@
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 import {
 	environmentCheckProjectName,
 	environmentCreateProject,
@@ -63,13 +64,14 @@ export function CreateProject({
 	] as const;
 	const latestUnityVersion = templateUnityVersions[0];
 
+	type TemplateType = "avatars" | "worlds" | "custom";
+	type TemplateUnityVersion = (typeof templateUnityVersions)[number];
+
 	const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
 
-	const [templateType, setTemplateType] = useState<
-		"avatars" | "worlds" | "custom"
-	>("avatars");
+	const [templateType, setTemplateType] = useState<TemplateType>("avatars");
 	const [unityVersion, setUnityVersion] =
-		useState<(typeof templateUnityVersions)[number]>(latestUnityVersion);
+		useState<TemplateUnityVersion>(latestUnityVersion);
 	const [customTemplate, setCustomTemplate] = useState<CustomTemplate>();
 
 	function onCustomTemplateChange(value: string) {
@@ -184,7 +186,7 @@ export function CreateProject({
 		projectNameCheckState === "checking";
 
 	let projectNameState: "Ok" | "warn" | "err";
-	let projectNameCheck;
+	let projectNameCheck: React.ReactNode;
 
 	switch (projectNameCheckState) {
 		case "Ok":
@@ -217,7 +219,7 @@ export function CreateProject({
 			assertNever(projectNameCheckState);
 	}
 
-	let projectNameStateClass;
+	let projectNameStateClass: React.ReactNode;
 	switch (projectNameState) {
 		case "Ok":
 			projectNameStateClass = "text-success";
@@ -232,7 +234,7 @@ export function CreateProject({
 	if (checking)
 		projectNameCheck = <RefreshCw className={"w-5 h-5 animate-spin"} />;
 
-	let dialogBody;
+	let dialogBody: React.ReactNode;
 
 	switch (state) {
 		case "loadingInitialInformation":
@@ -260,7 +262,9 @@ export function CreateProject({
 							</div>
 							<Select
 								defaultValue={templateType}
-								onValueChange={(value) => setTemplateType(value as any)}
+								onValueChange={(value) =>
+									setTemplateType(value as TemplateType)
+								}
 							>
 								<SelectTrigger>
 									<SelectValue />
@@ -290,7 +294,9 @@ export function CreateProject({
 								</div>
 								<Select
 									defaultValue={unityVersion}
-									onValueChange={(value) => setUnityVersion(value as any)}
+									onValueChange={(value) =>
+										setUnityVersion(value as TemplateUnityVersion)
+									}
 								>
 									<SelectTrigger>
 										<SelectValue />

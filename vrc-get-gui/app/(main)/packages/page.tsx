@@ -32,10 +32,10 @@ import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useRouter } from "next/navigation";
 import { toVersionString } from "@/lib/version";
 
-export default function Page(props: {}) {
+export default function Page() {
 	return (
 		<Suspense>
-			<PageBody {...props} />
+			<PageBody />
 		</Suspense>
 	);
 }
@@ -119,7 +119,11 @@ function HeadingPageName() {
 
 	return (
 		<div className={"flex flex-row -ml-2 gap-1"}>
-			<button className={`${button} bg-none`} onClick={userPackages}>
+			<button
+				type="button"
+				className={`${button} bg-none`}
+				onClick={userPackages}
+			>
 				{tc("packages:community repositories")}
 			</button>
 			<div className={`${button} bg-secondary`}>
@@ -149,6 +153,7 @@ function RepositoryTableBody({
 				<tr>
 					{TABLE_HEAD.map((head, index) => (
 						<th
+							// biome-ignore lint/suspicious/noArrayIndexKey: static array
 							key={index}
 							className={
 								"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"

@@ -53,7 +53,7 @@ export function useUnity2022Migration({
 }: {
 	projectPath: string;
 	refresh?: () => void;
-}): Result<{}> {
+}): Result<Record<string, never>> {
 	return useMigrationInternal({
 		projectPath,
 		updateProjectPreUnityLaunch: async (project) =>
@@ -98,7 +98,7 @@ export function useUnity2022PatchMigration({
 }: {
 	projectPath: string;
 	refresh?: () => void;
-}): Result<{}> {
+}): Result<Record<string, never>> {
 	return useMigrationInternal({
 		projectPath,
 		updateProjectPreUnityLaunch: async () => {}, // nothing pre-launch
@@ -308,7 +308,9 @@ function detectChangeUnityKind(
 	targetUnityVersion: string,
 	isVRCProject: boolean,
 ): ChangeUnityData {
+	// biome-ignore lint/style/noNonNullAssertion: the version is known to be valid
 	const parsedCurrent = parseUnityVersion(currentVersion)!;
+	// biome-ignore lint/style/noNonNullAssertion: the version is known to be valid
 	const parsedTarget = parseUnityVersion(targetUnityVersion)!;
 
 	const kind: ChangeUnityData["kind"] =
@@ -385,7 +387,7 @@ type Result<Data> = {
 	request: (data: Data) => void;
 };
 
-type ConfirmProps<Data = {}> = {
+type ConfirmProps<Data = Record<string, never>> = {
 	result: FindUnityResult;
 	data: Data;
 	cancel: () => void;
@@ -478,7 +480,7 @@ function useMigrationInternal<Data>({
 		data: Data,
 	) => {
 		try {
-			let migrateProjectPath;
+			let migrateProjectPath: string;
 			if (inPlace) {
 				migrateProjectPath = projectPath;
 			} else {
@@ -628,6 +630,7 @@ function MigrationCallingUnityForMigrationDialog({
 }) {
 	const ref = React.useRef<HTMLDivElement>(null);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: we want to scroll to bottom on lines changed
 	React.useEffect(() => {
 		ref.current?.scrollIntoView({ behavior: "auto" });
 	}, [lines]);

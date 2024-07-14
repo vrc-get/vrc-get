@@ -172,6 +172,7 @@ function SelectUnityVersionDialog({
 					{tc("general:button:cancel")}
 				</Button>
 				<Button
+					// biome-ignore lint/style/noNonNullAssertion: disabled button
 					onClick={() => onSelect(selectedUnityPath!, keepUsingThisVersion)}
 					disabled={selectedUnityPath == null}
 				>

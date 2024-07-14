@@ -14,6 +14,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
+		// biome-ignore lint/a11y/useHtmlLang: we cannot determine the language of the content. we add in inner div.
 		<html>
 			<head>
 				{/* eslint-disable-next-line @next/next/no-sync-scripts */}

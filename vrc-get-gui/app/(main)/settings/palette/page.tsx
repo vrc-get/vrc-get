@@ -148,6 +148,7 @@ function UnityTableBody() {
 				<tr>
 					{UNITY_TABLE_HEAD.map((head, index) => (
 						<th
+							// biome-ignore lint/suspicious/noArrayIndexKey: static array
 							key={index}
 							className={
 								"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"

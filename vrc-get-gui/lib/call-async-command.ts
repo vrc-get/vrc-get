@@ -7,7 +7,7 @@ type AsyncCallResult<P, R> =
 			type: "UnusedProgress";
 			progress: P;
 	  };
-type AsyncCommand<A extends any[], P, R> = (
+type AsyncCommand<A extends unknown[], P, R> = (
 	channel: string,
 	...args: A
 ) => Promise<AsyncCallResult<P, R>>;
@@ -19,10 +19,10 @@ type FinishedMessage<R> =
 	  }
 	| {
 			type: "Failed";
-			value: any;
+			value: unknown;
 	  };
 
-export function callAsyncCommand<A extends any[], P, R>(
+export function callAsyncCommand<A extends unknown[], P, R>(
 	command: AsyncCommand<A, P, R>,
 	args: A,
 	progress: (progress: P) => void,
@@ -33,7 +33,7 @@ export function callAsyncCommand<A extends any[], P, R>(
 	return [cancel, callAsyncCommandImpl(channel, command, args, progress)];
 }
 
-async function callAsyncCommandImpl<A extends any[], P, R>(
+async function callAsyncCommandImpl<A extends unknown[], P, R>(
 	channel: string,
 	command: AsyncCommand<A, P, R>,
 	args: A,
