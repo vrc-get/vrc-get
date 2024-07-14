@@ -5,13 +5,13 @@ import {
 	TauriPackage,
 	TauriPackageChange,
 	TauriPendingProjectChanges,
-	TauriRemoveReason
+	TauriRemoveReason,
+	utilOpenUrl
 } from "@/lib/bindings";
 import {toastInfo, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
 import {compareVersion, toVersionString} from "@/lib/version";
 import {Button} from "@/components/ui/button";
-import {shellOpen} from "@/lib/shellOpen";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import {PackageRowInfo} from "./collect-package-row-info";
 import {assertNever} from "@/lib/assert-never";
@@ -219,7 +219,7 @@ function ProjectChangesDialog(
 		try {
 			const parsed = new URL(url);
 			if (parsed.protocol == 'http:' || parsed.protocol == 'https:') {
-				return <Button className={"ml-1 px-2"} size={"sm"} onClick={() => shellOpen(url)}>
+				return <Button className={"ml-1 px-2"} size={"sm"} onClick={() => utilOpenUrl(url)}>
 					{tc("projects:manage:button:see changelog")}
 				</Button>;
 			}

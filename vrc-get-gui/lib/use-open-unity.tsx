@@ -3,12 +3,11 @@ import {
 	projectGetUnityPath,
 	projectOpenUnity,
 	projectSetUnityPath,
-	TauriUnityVersions
+	utilOpenUrl
 } from "@/lib/bindings";
 import i18next, {tc} from "@/lib/i18n";
 import {toastError, toastNormal} from "@/lib/toast";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
-import {shellOpen} from "@/lib/shellOpen";
 import {Button} from "@/components/ui/button";
 import {DialogDescription, DialogFooter, DialogOpen, DialogTitle} from "@/components/ui/dialog";
 import React from "react";
@@ -126,7 +125,7 @@ function UnityInstallWindow(
 		close: () => void
 	}) {
 	const openUnityHub = async () => {
-		await shellOpen(installWithUnityHubLink);
+		await utilOpenUrl(installWithUnityHubLink);
 	}
 
 	return <DialogOpen>

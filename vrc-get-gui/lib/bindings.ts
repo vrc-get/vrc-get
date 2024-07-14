@@ -262,6 +262,10 @@ export function utilOpen(path: string, ifNotExists: OpenOptions) {
     return invoke()<null>("util_open", { path,ifNotExists })
 }
 
+export function utilOpenUrl(url: string) {
+    return invoke()<null>("util_open_url", { url })
+}
+
 export function utilGetLogEntries() {
     return invoke()<LogEntry[]>("util_get_log_entries")
 }

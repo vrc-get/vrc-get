@@ -2,10 +2,10 @@
 
 import {Card} from "@/components/ui/card";
 import {Licenses} from "@/lib/licenses";
-import {shellOpen} from "@/lib/shellOpen";
 import {ScrollableCard} from "@/components/ScrollableCard";
 import {ScrollPageContainer} from "@/components/ScrollPageContainer";
 import {VStack} from "@/components/layout";
+import {utilOpenUrl} from "@/lib/bindings";
 
 export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 	if (licenses === null) {
@@ -35,7 +35,7 @@ export default function RenderPage({licenses}: { licenses: Licenses | null }) {
 						<ul className={"ml-2"}>
 							{license.packages.map(pkg => (
 								<li key={`${pkg.name}@${pkg.version}`}><a
-									onClick={() => shellOpen(pkg.url)}>{pkg.name} ({pkg.version})</a></li>
+									onClick={() => utilOpenUrl(pkg.url)}>{pkg.name} ({pkg.version})</a></li>
 							))}
 						</ul>
 						<ScrollableCard className="max-h-52">

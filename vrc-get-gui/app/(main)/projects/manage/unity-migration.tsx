@@ -6,11 +6,10 @@ import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {
 	environmentCopyProjectForMigration, environmentUnityVersions,
 	projectCallUnityForMigration, projectIsUnityLaunching,
-	projectMigrateProjectTo2022, TauriUnityVersions
+	projectMigrateProjectTo2022, TauriUnityVersions, utilOpenUrl
 } from "@/lib/bindings";
 import {callAsyncCommand} from "@/lib/call-async-command";
 import {useRouter} from "next/navigation";
-import {shellOpen} from "@/lib/shellOpen";
 import {useUnitySelectorDialog} from "@/lib/use-unity-selector-dialog";
 import {assertNever} from "@/lib/assert-never";
 import {compareUnityVersionString, parseUnityVersion} from "@/lib/version";
@@ -542,7 +541,7 @@ function NoExactUnity2022Dialog(
 		close: () => void
 	}) {
 	const openUnityHub = async () => {
-		await shellOpen(installWithUnityHubLink);
+		await utilOpenUrl(installWithUnityHubLink);
 	}
 
 	return <>

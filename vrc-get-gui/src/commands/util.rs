@@ -45,6 +45,13 @@ pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), R
 
 #[tauri::command]
 #[specta::specta]
+pub async fn util_open_url(url: String) -> Result<(), RustError> {
+    open::that(url)?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn util_get_log_entries() -> Vec<LogEntry> {
     crate::logging::get_log_entries()
 }

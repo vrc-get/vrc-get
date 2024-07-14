@@ -20,13 +20,13 @@ import {
 	environmentSetUseAlcomForVccProtocol,
 	TauriEnvironmentSettings,
 	utilCheckForUpdate,
+	utilOpenUrl,
 } from "@/lib/bindings";
 import {HNavBar, VStack} from "@/components/layout";
 import React, {useState} from "react";
 import {toastError, toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc, tt} from "@/lib/i18n";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
-import {shellOpen} from "@/lib/shellOpen";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {assertNever} from "@/lib/assert-never";
 import {ScrollPageContainer} from "@/components/ScrollPageContainer";
@@ -338,7 +338,7 @@ function AlcomCard(
 		url.searchParams.append("os", `${globalInfo.osInfo} - ${globalInfo.arch}`)
 		url.searchParams.append("version", globalInfo.version ?? "unknown")
 
-		void shellOpen(url.toString())
+		void utilOpenUrl(url.toString())
 	}
 
 	const changeReleaseChannel = async (value: "indeterminate" | boolean) => {

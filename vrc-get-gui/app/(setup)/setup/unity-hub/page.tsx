@@ -5,9 +5,8 @@ import React from "react";
 import {Button} from "@/components/ui/button";
 import {FilePathRow} from "@/components/common-setting-parts";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/components/ui/accordion";
-import {environmentPickUnityHub} from "@/lib/bindings";
+import {environmentPickUnityHub, utilOpenUrl} from "@/lib/bindings";
 import {tc} from "@/lib/i18n";
-import {shellOpen} from "@/lib/shellOpen";
 import {BodyProps, SetupPageBase} from "../setup-page-base";
 
 export default function Page() {
@@ -45,7 +44,7 @@ function Body({environment, refetch}: BodyProps) {
 			: <>
 				<div className={"p-2"}/>
 				<div className={"flex flex-row flex-wrap gap-2"}>
-					<Button onClick={() => shellOpen("https://unity.com/ja/download")}>
+					<Button onClick={() => utilOpenUrl("https://unity.com/ja/download")}>
 						{tc("Download Unity Hub from unity.com")}
 					</Button>
 					<Button onClick={refetch}>
