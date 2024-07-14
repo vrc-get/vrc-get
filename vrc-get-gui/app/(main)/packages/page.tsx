@@ -21,7 +21,7 @@ import {
 import {HNavBar, VStack} from "@/components/layout";
 import React, {Suspense, useCallback, useId} from "react";
 import {CircleX} from "lucide-react";
-import {toastSuccess, toastThrownError} from "@/lib/toast";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
 import {tc} from "@/lib/i18n";
 import {ScrollableCardTable} from "@/components/ScrollableCardTable";
 import {useFilePickerFunction} from "@/lib/use-file-picker-dialog";
@@ -46,7 +46,7 @@ function PageBody() {
 				case "NoFolderSelected":
 					break;
 				case "InvalidSelection":
-					toastSuccess(tc("user packages:toast:invalid selection"));
+					toastError(tc("user packages:toast:invalid selection"));
 					break;
 				case "AlreadyAdded":
 					toastSuccess(tc("user packages:toast:package already added"));
@@ -123,8 +123,8 @@ function RepositoryTableBody(
 ) {
 	const TABLE_HEAD = [
 		"general:name",
-		"user packages:version",
 		"user packages:path",
+		"user packages:version",
 		"", // actions
 	];
 
