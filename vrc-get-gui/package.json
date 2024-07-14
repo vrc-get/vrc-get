@@ -8,6 +8,7 @@
     "build": "npm install && npm run build:licenses && npm run build:next",
     "build:next": "next build",
     "build:licenses": "node ./scripts/build-license-json.mjs",
+    "format": "biome format",
     "start": "next start",
     "lint": "next lint"
   },
@@ -41,6 +42,7 @@
   },
   "__comment": "we use react 18.2.19 due to bug. see https://github.com/creativetimofficial/material-tailwind/issues/528",
   "devDependencies": {
+    "@biomejs/biome": "1.8.3",
     "@tauri-apps/cli": "^1.6.0",
     "@types/node": "^20",
     "@types/react": "18.3.3",
