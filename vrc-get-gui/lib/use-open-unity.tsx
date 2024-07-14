@@ -6,7 +6,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import {
-	TauriUnityVersions,
 	environmentUnityVersions,
 	projectGetUnityPath,
 	projectOpenUnity,

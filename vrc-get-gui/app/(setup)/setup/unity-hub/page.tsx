@@ -12,7 +12,6 @@ import { CardDescription } from "@/components/ui/card";
 import { environmentPickUnityHub } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { shellOpen } from "@/lib/shellOpen";
-import React from "react";
 import { type BodyProps, SetupPageBase } from "../setup-page-base";
 
 export default function Page() {

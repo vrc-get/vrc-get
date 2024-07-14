@@ -14,7 +14,7 @@ import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import type { UpdateStatusResult } from "@tauri-apps/api/updater";
-import React, { useState } from "react";
+import { useState } from "react";
 
 type ConfirmStatus = "confirming" | "downloading" | "waitingForRelaunch";
 

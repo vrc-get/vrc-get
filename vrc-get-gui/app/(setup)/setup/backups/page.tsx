@@ -12,7 +12,6 @@ import {
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
-import React from "react";
 import {
 	type BodyProps,
 	SetupPageBase,

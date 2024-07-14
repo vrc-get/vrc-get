@@ -1,5 +1,4 @@
 import dynamic from "next/dynamic";
-import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import type { TransProps } from "react-i18next/TransWithoutContext";
 

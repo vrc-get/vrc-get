@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import React, { type ComponentProps, createContext, useContext } from "react";
+import { type ComponentProps, createContext, useContext } from "react";
 
 interface PageContext {
 	isLoading: boolean;

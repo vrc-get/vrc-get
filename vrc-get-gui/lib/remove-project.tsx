@@ -13,7 +13,7 @@ import {
 } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { toastSuccess } from "@/lib/toast";
-import React, { type ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react";
 
 // string if remove project by path
 type Project =

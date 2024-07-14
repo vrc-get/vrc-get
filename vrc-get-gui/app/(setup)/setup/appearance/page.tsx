@@ -6,7 +6,6 @@ import {
 } from "@/components/common-setting-parts";
 import { CardDescription } from "@/components/ui/card";
 import { tc } from "@/lib/i18n";
-import React from "react";
 import { SetupPageBase } from "../setup-page-base";
 
 export default function Page() {

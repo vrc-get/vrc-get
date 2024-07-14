@@ -3,7 +3,6 @@
 import { CardDescription } from "@/components/ui/card";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import React from "react";
 import { SetupPageBase } from "../setup-page-base";
 
 export default function Page() {

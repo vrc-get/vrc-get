@@ -19,6 +19,9 @@
 			},
 			"suspicious": {
 				"noAssignInExpressions": "off"
+			},
+			"correctness": {
+				"noUnusedImports": "error"
 			}
 		},
 		"enabled": true

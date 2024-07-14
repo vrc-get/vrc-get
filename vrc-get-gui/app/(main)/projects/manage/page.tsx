@@ -17,7 +17,6 @@ import {
 	SelectItem,
 	SelectLabel,
 	SelectTrigger,
-	SelectValue,
 } from "@/components/ui/select";
 import {
 	Tooltip,
@@ -51,7 +50,7 @@ import {
 } from "@tanstack/react-query";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import {
 	VRCSDK_PACKAGES,
 	combinePackagesAndProjectDetails,

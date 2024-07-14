@@ -5,7 +5,6 @@ import { CardDescription } from "@/components/ui/card";
 import { environmentPickProjectDefaultPath } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import React from "react";
 import {
 	type BodyProps,
 	SetupPageBase,

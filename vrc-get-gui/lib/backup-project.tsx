@@ -11,7 +11,7 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
 import { nop } from "@/lib/nop";
 import { toastNormal, toastSuccess, toastThrownError } from "@/lib/toast";
-import React, { type ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react";
 
 // string if remove project by path
 type Project =

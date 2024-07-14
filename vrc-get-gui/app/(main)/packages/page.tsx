@@ -30,7 +30,7 @@ import { toVersionString } from "@/lib/version";
 import { useQuery } from "@tanstack/react-query";
 import { CircleX } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { Suspense, useCallback, useId } from "react";
+import { Suspense, useCallback, useId } from "react";
 
 export default function Page() {
 	return (
