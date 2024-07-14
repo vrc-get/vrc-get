@@ -159,6 +159,23 @@
     "projects:manage:tooltip:upgrade package": "パッケージを更新",
     "projects:manage:yanked": "(取り下げ済み)",
     "projects:manage:tooltip:back to projects": "プロジェクトリストに戻る",
+    // Notes for translators:
+    // Each "projects:manage:dialog:(downgrade|upgrade) (major|minor)"
+    //   key has additional 2 variants for VRChat supported and unsupported.
+    //   (suffixed by " vrchat supported" and " vrchat unsupported"
+    // Even if english does not provide translation for VRChat supported and unsupported,
+    //   you can provide translation for them if you think it's better
+    "projects:manage:dialog:unity change version header": "Unityバージョンを変更",
+    "projects:manage:dialog:downgrade major": "プロジェクトに使用するUnityのメジャーバージョンを下げようとしています。<br>Unityはこの操作をサポートしていないため、プロジェクトが壊れる可能性があります。<br>予めバックアップを行っておくことを推奨します。",
+    "projects:manage:dialog:downgrade major vrchat unsupported": "プロジェクトに使用するUnityのメジャーバージョンを下げようとしています。<br>Unityはこの操作をサポートしていないため、プロジェクトが壊れる可能性があります。<br>予めバックアップを行っておくことを推奨します。<br>また、変更先のバージョンはVRChatがサポートしていないバージョンであるため、VRChatにコンテンツをアップロードできないかもしれません。",
+    "projects:manage:dialog:downgrade minor": "プロジェクトに使用するUnityのバージョンを下げようとしています。<br>Unityはこの操作をサポートしていないため、プロジェクトが壊れることがあります。<br>予めバックアップを行っておくことを推奨します。",
+    "projects:manage:dialog:downgrade minor vrchat unsupported": "プロジェクトに使用するUnityのバージョンを下げようとしています。<br>Unityはこの操作をサポートしていないため、プロジェクトが壊れることがあります。<br>予めバックアップを行っておくことを推奨します。<br>また、変更先のバージョンはVRChatがサポートしていないバージョンであるため、VRChatにコンテンツをアップロードできないかもしれません。",
+    "projects:manage:dialog:upgrade minor": "プロジェクトに使用するUnityのバージョンを上げようとしています。<br>これにより、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
+    "projects:manage:dialog:upgrade minor vrchat unsupported": "プロジェクトに使用するUnityのバージョンを上げようとしています。<br>これにより、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。<br>また、変更先のバージョンはVRChatがサポートしていないバージョンであるため、VRChatにコンテンツをアップロードできないかもしれません。",
+    "projects:manage:dialog:upgrade major": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これにより、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
+    "projects:manage:dialog:upgrade major vrchat supported": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これによりVRCSDKが更新されるほか、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
+    "projects:manage:dialog:upgrade major vrchat unsupported": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これによりVRCSDKが更新されるほか、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。<br>また、変更先のバージョンはVRChatがサポートしていないバージョンであるため、VRChatにコンテンツをアップロードできないかもしれません。",
+    "projects:button:change unity version": "変更する",
     "packages:community repositories": "コミュニティリポジトリ",
     "vpm repositories:toast:invalid url": "不正なURLです。",
     "packages:user packages": "ユーザーパッケージ",
