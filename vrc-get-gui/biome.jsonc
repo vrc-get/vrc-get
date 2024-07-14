@@ -7,7 +7,7 @@
 		"enabled": true
 	},
 	"linter": {
-		"enabled": false
+		"enabled": true
 	},
 	"organizeImports": {
 		"enabled": false
