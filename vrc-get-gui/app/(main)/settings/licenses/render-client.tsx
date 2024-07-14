@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Licenses } from "@/lib/licenses";
+import type { Licenses } from "@/lib/licenses";
 import { shellOpen } from "@/lib/shellOpen";
 import { ScrollableCard } from "@/components/ScrollableCard";
 import { ScrollPageContainer } from "@/components/ScrollPageContainer";

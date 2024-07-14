@@ -1,11 +1,12 @@
-import React, { useCallback, useMemo, useState } from "react";
+import type React from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
 	projectApplyPendingChanges,
-	TauriBasePackageInfo,
-	TauriPackage,
-	TauriPackageChange,
-	TauriPendingProjectChanges,
-	TauriRemoveReason,
+	type TauriBasePackageInfo,
+	type TauriPackage,
+	type TauriPackageChange,
+	type TauriPendingProjectChanges,
+	type TauriRemoveReason,
 } from "@/lib/bindings";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
 import { tc, tt } from "@/lib/i18n";
@@ -18,7 +19,7 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { PackageRowInfo } from "./collect-package-row-info";
+import type { PackageRowInfo } from "./collect-package-row-info";
 import { assertNever } from "@/lib/assert-never";
 
 type RequestedOperation =

@@ -5,7 +5,11 @@ import React from "react";
 import { FilePathRow } from "@/components/common-setting-parts";
 import { environmentPickProjectDefaultPath } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
-import { BodyProps, SetupPageBase, WarningMessage } from "../setup-page-base";
+import {
+	type BodyProps,
+	SetupPageBase,
+	WarningMessage,
+} from "../setup-page-base";
 import { useGlobalInfo } from "@/lib/global-info";
 
 export default function Page() {

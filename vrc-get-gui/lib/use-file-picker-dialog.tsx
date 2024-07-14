@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -10,8 +10,8 @@ import { tc } from "@/lib/i18n";
 export function useFilePickerFunction<A extends unknown[], R>(
 	f: (...args: A) => Promise<R>,
 ): [f: (...args: A) => Promise<R>, dialog: ReactNode] {
-	let [isPicking, setIsPicking] = useState(false);
-	let result = useCallback(
+	const [isPicking, setIsPicking] = useState(false);
+	const result = useCallback(
 		async (...args: A) => {
 			setIsPicking(true);
 			try {
@@ -23,7 +23,7 @@ export function useFilePickerFunction<A extends unknown[], R>(
 		[setIsPicking, f],
 	);
 
-	let dialog = (
+	const dialog = (
 		<Dialog open={isPicking}>
 			<DialogContent>
 				<DialogTitle>

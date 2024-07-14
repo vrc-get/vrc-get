@@ -16,7 +16,7 @@ import {
 	environmentTheme,
 	utilOpen,
 } from "@/lib/bindings";
-import { ToastContent } from "react-toastify";
+import type { ToastContent } from "react-toastify";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { assertNever } from "@/lib/assert-never";

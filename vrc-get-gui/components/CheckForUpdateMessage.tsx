@@ -1,4 +1,7 @@
-import { CheckForUpdateResponse, utilInstallAndUpgrade } from "@/lib/bindings";
+import {
+	type CheckForUpdateResponse,
+	utilInstallAndUpgrade,
+} from "@/lib/bindings";
 import React, { useState } from "react";
 import {
 	DialogDescription,
@@ -10,7 +13,7 @@ import { tc } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
-import { UpdateStatusResult } from "@tauri-apps/api/updater";
+import type { UpdateStatusResult } from "@tauri-apps/api/updater";
 import { Progress } from "@/components/ui/progress";
 
 type ConfirmStatus = "confirming" | "downloading" | "waitingForRelaunch";

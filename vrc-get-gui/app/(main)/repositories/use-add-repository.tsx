@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import type React from "react";
+import { useCallback, useState } from "react";
 import {
 	ReorderableList,
 	useReorderableList,
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
 	environmentAddRepository,
 	environmentDownloadRepository,
-	TauriRemoteRepositoryInfo,
+	type TauriRemoteRepositoryInfo,
 } from "@/lib/bindings";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { assertNever } from "@/lib/assert-never";
@@ -175,11 +176,11 @@ function EnteringRepositoryInfo({
 	let foundHeaderValueError = false;
 	let foundDuplicateHeader = false;
 
-	let headerNameSet = new Set<string>();
+	const headerNameSet = new Set<string>();
 
-	for (let { value, name } of reordableListContext.value) {
-		let trimedName = name.trim();
-		let trimedValue = value.trim();
+	for (const { value, name } of reordableListContext.value) {
+		const trimedName = name.trim();
+		const trimedValue = value.trim();
 		if (trimedName != "" || trimedValue != "") {
 			// header (field) name is token (RFC 9110 section 5.1)
 			//   https://www.rfc-editor.org/rfc/rfc9110.html#name-field-names

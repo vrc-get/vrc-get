@@ -1,4 +1,4 @@
-import {
+import type {
 	TauriBasePackageInfo,
 	TauriPackage,
 	TauriProjectDetails,
@@ -56,7 +56,7 @@ export function combinePackagesAndProjectDetails(
 	hiddenRepositories?: string[] | null,
 	hideLocalUserPackages?: boolean,
 	definedRepositories: TauriUserRepository[] = [],
-	showPrereleasePackages: boolean = false,
+	showPrereleasePackages = false,
 ): PackageRowInfo[] {
 	const hiddenRepositoriesSet = new Set(hiddenRepositories ?? []);
 
@@ -176,18 +176,18 @@ export function combinePackagesAndProjectDetails(
 	packagesPerRepository.delete("com.vrchat.repos.curated");
 
 	// for repositories
-	for (let definedRepository of definedRepositories) {
+	for (const definedRepository of definedRepositories) {
 		packagesPerRepository.get(definedRepository.id)?.forEach(addPackage);
 		packagesPerRepository.delete(definedRepository.id);
 	}
 
 	// in case of repository is not defined
-	for (let packages of packagesPerRepository.values()) {
+	for (const packages of packagesPerRepository.values()) {
 		packages.forEach(addPackage);
 	}
 
 	// sort versions
-	for (let value of packagesTable.values()) {
+	for (const value of packagesTable.values()) {
 		value.unityCompatible = new Map(
 			[...value.unityCompatible].sort(
 				(a, b) => -compareVersion(a[1].version, b[1].version),
@@ -201,7 +201,7 @@ export function combinePackagesAndProjectDetails(
 	}
 
 	// set latest info
-	for (let value of packagesTable.values()) {
+	for (const value of packagesTable.values()) {
 		const latestPackage = value.unityCompatible.values().next().value;
 		if (latestPackage) {
 			let hasUnityIncompatibleLatest = false;
@@ -270,7 +270,7 @@ export function combinePackagesAndProjectDetails(
 
 		// collect dependant packages
 		const dependantPackages = new Map<string, Set<string>>();
-		for (let pkg of packagesTable.values()) {
+		for (const pkg of packagesTable.values()) {
 			if (pkg.latest.status != "none") {
 				for (const dependency of pkg.latest.pkg.vpm_dependencies) {
 					if (!dependantPackages.has(dependency)) {

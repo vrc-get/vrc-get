@@ -2,7 +2,7 @@
 
 import { HNavBar, VStack } from "@/components/layout";
 import React, { useCallback, useEffect } from "react";
-import { LogEntry, utilGetLogEntries } from "@/lib/bindings";
+import { type LogEntry, utilGetLogEntries } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { ScrollableCard } from "@/components/ScrollableCard";

@@ -10,9 +10,9 @@ export function pathSeparator(): string {
 
 export function nameFromPath(path: string): string {
 	if (globalInfo.osInfo == "WindowsNT") {
-		let indexOfSlash = path.lastIndexOf("/");
-		let indexOfBackSlash = path.lastIndexOf("\\");
-		let indexOfSeparator = Math.max(indexOfSlash, indexOfBackSlash);
+		const indexOfSlash = path.lastIndexOf("/");
+		const indexOfBackSlash = path.lastIndexOf("\\");
+		const indexOfSeparator = Math.max(indexOfSlash, indexOfBackSlash);
 		if (indexOfSeparator == -1) return path;
 		return path.substring(indexOfSeparator + 1);
 	} else {

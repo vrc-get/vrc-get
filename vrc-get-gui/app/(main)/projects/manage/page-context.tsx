@@ -1,4 +1,4 @@
-import React, { ComponentProps, createContext, useContext } from "react";
+import React, { type ComponentProps, createContext, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 

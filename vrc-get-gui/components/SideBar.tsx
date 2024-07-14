@@ -10,7 +10,7 @@ import {
 	Settings,
 	SwatchBook,
 } from "lucide-react";
-import React from "react";
+import type React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
 	environmentClearSetupProcess,

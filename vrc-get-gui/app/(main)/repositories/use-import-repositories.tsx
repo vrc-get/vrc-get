@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import type React from "react";
+import { useCallback, useState } from "react";
 import {
 	DialogDescription,
 	DialogFooter,
@@ -11,8 +12,8 @@ import {
 	environmentImportAddRepositories,
 	environmentImportDownloadRepositories,
 	environmentImportRepositoryPick,
-	TauriDownloadRepository,
-	TauriRepositoryDescriptor,
+	type TauriDownloadRepository,
+	type TauriRepositoryDescriptor,
 } from "@/lib/bindings";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { assertNever } from "@/lib/assert-never";
@@ -76,7 +77,7 @@ export function useImportRepositories({
 	const startImportingRepositories = useCallback(
 		async function startImportingRepositories() {
 			try {
-				let pickResult = await importRepositoryPick();
+				const pickResult = await importRepositoryPick();
 				switch (pickResult.type) {
 					case "NoFilePicked":
 						// no-op
@@ -120,7 +121,7 @@ export function useImportRepositories({
 				downloaded: 0,
 				cancel,
 			});
-			let result = await resultPromise;
+			const result = await resultPromise;
 			if (result == "cancelled") {
 				return;
 			}

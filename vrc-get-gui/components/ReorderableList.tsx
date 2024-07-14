@@ -1,6 +1,7 @@
-import React, {
-	Dispatch,
-	SetStateAction,
+import type React from "react";
+import {
+	type Dispatch,
+	type SetStateAction,
 	useCallback,
 	useMemo,
 	useState,

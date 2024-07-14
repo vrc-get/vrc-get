@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import React from "react";
+import type React from "react";
 
 export function ScrollableCardTable({
 	children,

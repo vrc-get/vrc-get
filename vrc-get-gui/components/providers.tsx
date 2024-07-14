@@ -4,9 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastContainer } from "react-toastify";
 import { useCallback, useEffect, useState } from "react";
 import {
-	CheckForUpdateResponse,
+	type CheckForUpdateResponse,
 	deepLinkHasAddRepository,
-	LogEntry,
+	type LogEntry,
 	utilCheckForUpdate,
 } from "@/lib/bindings";
 import i18next from "@/lib/i18n";

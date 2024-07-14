@@ -8,7 +8,7 @@ import {
 import { tc } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BodyProps, SetupPageBase } from "../setup-page-base";
+import { type BodyProps, SetupPageBase } from "../setup-page-base";
 import { useGlobalInfo } from "@/lib/global-info";
 
 export default function Page() {

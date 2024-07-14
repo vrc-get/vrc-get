@@ -1,4 +1,4 @@
-import { TauriVersion } from "@/lib/bindings";
+import type { TauriVersion } from "@/lib/bindings";
 
 function comparePrereleaseSegment(a: string, b: string) {
 	if (a === b) return 0;
@@ -8,8 +8,8 @@ function comparePrereleaseSegment(a: string, b: string) {
 
 	if (aIsNum) {
 		if (bIsNum) {
-			const aNum = parseInt(a, 10);
-			const bNum = parseInt(b, 10);
+			const aNum = Number.parseInt(a, 10);
+			const bNum = Number.parseInt(b, 10);
 			if (aNum < bNum) return -1;
 			if (aNum > bNum) return 1;
 			return 0;
@@ -128,11 +128,11 @@ export function parseUnityVersion(version: string): UnityVersion | null {
 		}
 	}
 	return {
-		major: parseInt(match[1], 10),
-		minor: parseInt(match[2], 10),
-		patch: parseInt(match[3], 10),
+		major: Number.parseInt(match[1], 10),
+		minor: Number.parseInt(match[2], 10),
+		patch: Number.parseInt(match[3], 10),
 		channel: (match[4] || "f") as UnityVersion["channel"],
-		increment: parseInt(match[5] || "1", 10),
+		increment: Number.parseInt(match[5] || "1", 10),
 	};
 }
 

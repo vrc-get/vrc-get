@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-	CheckForUpdateResponse,
+	type CheckForUpdateResponse,
 	deepLinkInstallVcc,
 	environmentClearPackageCache,
 	environmentGetSettings,
@@ -18,7 +18,7 @@ import {
 	environmentSetReleaseChannel,
 	environmentSetShowPrereleasePackages,
 	environmentSetUseAlcomForVccProtocol,
-	TauriEnvironmentSettings,
+	type TauriEnvironmentSettings,
 	utilCheckForUpdate,
 } from "@/lib/bindings";
 import { HNavBar, VStack } from "@/components/layout";

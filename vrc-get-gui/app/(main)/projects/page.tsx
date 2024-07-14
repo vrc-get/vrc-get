@@ -27,8 +27,8 @@ import {
 	environmentGetProjectSorting,
 	environmentProjects,
 	environmentSetProjectSorting,
-	TauriProject,
-	TauriProjectType,
+	type TauriProject,
+	type TauriProjectType,
 } from "@/lib/bindings";
 import { useQuery } from "@tanstack/react-query";
 import { SearchBox } from "@/components/SearchBox";
@@ -36,7 +36,7 @@ import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { tc, tt } from "@/lib/i18n";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { compareUnityVersionString } from "@/lib/version";
-import { useOpenUnity, OpenUnityFunction } from "@/lib/use-open-unity";
+import { useOpenUnity, type OpenUnityFunction } from "@/lib/use-open-unity";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { CreateProject } from "./create-project";
 import { ProjectRow } from "./project-row";
@@ -54,7 +54,7 @@ function isSorting(s: string): s is Sorting {
 }
 
 export default function Page() {
-	let result = useQuery({
+	const result = useQuery({
 		queryKey: ["projects"],
 		queryFn: environmentProjects,
 	});
@@ -180,7 +180,7 @@ function ProjectsTableCard({
 	}, []);
 
 	const projectsShown = useMemo(() => {
-		let searched = projects.filter((project) =>
+		const searched = projects.filter((project) =>
 			project.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
 		);
 		searched.sort((a, b) => b.last_modified - a.last_modified);

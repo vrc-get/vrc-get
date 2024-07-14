@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from "react";
+import React, { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -9,7 +9,7 @@ import {
 import {
 	environmentRemoveProject,
 	environmentRemoveProjectByPath,
-	TauriProject,
+	type TauriProject,
 } from "@/lib/bindings";
 import { toastSuccess } from "@/lib/toast";
 import { tc, tt } from "@/lib/i18n";

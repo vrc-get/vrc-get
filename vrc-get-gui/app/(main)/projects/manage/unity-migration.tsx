@@ -14,7 +14,7 @@ import {
 	projectCallUnityForMigration,
 	projectIsUnityLaunching,
 	projectMigrateProjectTo2022,
-	TauriUnityVersions,
+	type TauriUnityVersions,
 } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { useRouter } from "next/navigation";
@@ -311,7 +311,7 @@ function detectChangeUnityKind(
 	const parsedCurrent = parseUnityVersion(currentVersion)!;
 	const parsedTarget = parseUnityVersion(targetUnityVersion)!;
 
-	let kind: ChangeUnityData["kind"] =
+	const kind: ChangeUnityData["kind"] =
 		compareUnityVersionString(currentVersion, targetUnityVersion) >= 0
 			? parsedCurrent.major == parsedTarget.major
 				? "downgradePatchOrMinor"
@@ -342,7 +342,7 @@ function findUnityForUnityChange(
 	unityVersions: TauriUnityVersions,
 	data: ChangeUnityData,
 ): FindUnityResult {
-	let foundVersions = unityVersions.unity_paths.filter(
+	const foundVersions = unityVersions.unity_paths.filter(
 		([_p, v, _]) => v == data.targetUnityVersion,
 	);
 	if (foundVersions.length == 0) throw new Error("unreachable");
@@ -490,14 +490,14 @@ function useMigrationInternal<Data>({
 			await updateProjectPreUnityLaunch(migrateProjectPath, data);
 			setInstallStatus({ state: "finalizing", lines: [] });
 			let lineNumber = 0;
-			let [, promise] = callAsyncCommand(
+			const [, promise] = callAsyncCommand(
 				projectCallUnityForMigration,
 				[migrateProjectPath, unityPath],
 				(lineString) => {
 					setInstallStatus((prev) => {
 						if (prev.state != "finalizing") return prev;
 						lineNumber++;
-						let line: [number, string] = [lineNumber, lineString];
+						const line: [number, string] = [lineNumber, lineString];
 						if (prev.lines.length > 200) {
 							return { ...prev, lines: [...prev.lines.slice(1), line] };
 						} else {

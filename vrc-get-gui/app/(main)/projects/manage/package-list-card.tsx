@@ -24,7 +24,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import type React from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
 	RefreshCw,
 	Ellipsis,
@@ -42,9 +43,9 @@ import {
 	projectRemovePackages,
 	projectResolve,
 	projectUpgradeMultiplePackage,
-	TauriPackage,
-	TauriPendingProjectChanges,
-	TauriRepositoriesInfo,
+	type TauriPackage,
+	type TauriPendingProjectChanges,
+	type TauriRepositoriesInfo,
 } from "@/lib/bindings";
 import { toVersionString } from "@/lib/version";
 import { toastError, toastThrownError } from "@/lib/toast";
@@ -188,10 +189,10 @@ export const PackageListCard = memo(function PackageListCard({
 
 	const onUpgradeAllRequest = useCallback(() => {
 		try {
-			let packages: number[] = [];
+			const packages: number[] = [];
 			let envVersion: number | undefined = undefined;
 			let hasUnityIncompatibleLatest = false;
-			for (let packageRow of packageRowsData) {
+			for (const packageRow of packageRowsData) {
 				if (packageRow.latest.status === "upgradable") {
 					if (envVersion == null)
 						envVersion = packageRow.latest.pkg.env_version;
@@ -235,11 +236,11 @@ export const PackageListCard = memo(function PackageListCard({
 
 	const onUpgradeBulkRequested = useCallback(() => {
 		try {
-			let packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
-			let packages: number[] = [];
+			const packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
+			const packages: number[] = [];
 			let envVersion: number | undefined = undefined;
 			let hasUnityIncompatibleLatest = false;
-			for (let packageRow of packageRowsData) {
+			for (const packageRow of packageRowsData) {
 				if (packageIds.has(packageRow.id)) {
 					if (packageRow.latest.status !== "upgradable")
 						throw new Error("Package is not upgradable");
@@ -273,11 +274,11 @@ export const PackageListCard = memo(function PackageListCard({
 
 	const onInstallBulkRequested = useCallback(() => {
 		try {
-			let packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
-			let packages: number[] = [];
+			const packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
+			const packages: number[] = [];
 			let envVersion: number | undefined = undefined;
 			let hasUnityIncompatibleLatest = false;
-			for (let packageRow of packageRowsData) {
+			for (const packageRow of packageRowsData) {
 				if (packageIds.has(packageRow.id)) {
 					if (packageRow.latest.status !== "contains")
 						throw new Error("Package is not installable");
@@ -336,7 +337,7 @@ export const PackageListCard = memo(function PackageListCard({
 		[setBulkUpdatePackageIds],
 	);
 
-	let dialogForState: React.ReactNode = null;
+	const dialogForState: React.ReactNode = null;
 
 	const TABLE_HEAD = [
 		"projects:manage:package",

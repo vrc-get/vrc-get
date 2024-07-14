@@ -5,8 +5,8 @@ import {
 	environmentCreateProject,
 	environmentPickProjectDefaultPath,
 	environmentProjectCreationInformation,
-	TauriProjectDirCheckResult,
-	TauriProjectTemplate,
+	type TauriProjectDirCheckResult,
+	type TauriProjectTemplate,
 } from "@/lib/bindings";
 import { useDebounce } from "@uidotdev/usehooks";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
@@ -73,7 +73,7 @@ export function CreateProject({
 	const [customTemplate, setCustomTemplate] = useState<CustomTemplate>();
 
 	function onCustomTemplateChange(value: string) {
-		let newCustomTemplate: CustomTemplate = {
+		const newCustomTemplate: CustomTemplate = {
 			type: "Custom",
 			name: value,
 		};

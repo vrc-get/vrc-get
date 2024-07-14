@@ -4,12 +4,12 @@ import {
 	environmentFinishedSetupPage,
 	environmentGetFinishedSetupPages,
 	environmentGetSettings,
-	SetupPages,
-	TauriEnvironmentSettings,
+	type SetupPages,
+	type TauriEnvironmentSettings,
 } from "@/lib/bindings";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import React from "react";
+import type React from "react";
 import {
 	Circle,
 	CircleAlert,

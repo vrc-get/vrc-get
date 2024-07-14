@@ -13,7 +13,7 @@ import {
 import { environmentPickUnityHub } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { shellOpen } from "@/lib/shellOpen";
-import { BodyProps, SetupPageBase } from "../setup-page-base";
+import { type BodyProps, SetupPageBase } from "../setup-page-base";
 
 export default function Page() {
 	return (

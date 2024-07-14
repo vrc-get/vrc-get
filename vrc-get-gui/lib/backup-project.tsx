@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from "react";
+import React, { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -6,7 +6,7 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { projectCreateBackup, TauriProject } from "@/lib/bindings";
+import { projectCreateBackup, type TauriProject } from "@/lib/bindings";
 import { toastNormal, toastSuccess, toastThrownError } from "@/lib/toast";
 import { tc, tt } from "@/lib/i18n";
 import { nop } from "@/lib/nop";

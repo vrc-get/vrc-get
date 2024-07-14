@@ -1,5 +1,5 @@
 import React, {
-	ComponentProps,
+	type ComponentProps,
 	forwardRef,
 	Fragment,
 	useContext,
@@ -18,11 +18,11 @@ import {
 	environmentSetFavoriteProject,
 	projectIsUnityLaunching,
 	projectMigrateProjectToVpm,
-	TauriProject,
-	TauriProjectType,
+	type TauriProject,
+	type TauriProjectType,
 	utilOpen,
 } from "@/lib/bindings";
-import { OpenUnityFunction } from "@/lib/use-open-unity";
+import type { OpenUnityFunction } from "@/lib/use-open-unity";
 import { useRouter } from "next/navigation";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { useBackupProjectModal } from "@/lib/backup-project";

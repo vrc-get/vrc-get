@@ -1,4 +1,4 @@
-import { toast, ToastContent } from "react-toastify";
+import { toast, type ToastContent } from "react-toastify";
 
 export function toastNormal(message: ToastContent) {
 	toast(message, {

@@ -27,7 +27,11 @@ import React, { Suspense, useCallback, useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { HNavBar, VStack } from "@/components/layout";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueries, useQuery, UseQueryResult } from "@tanstack/react-query";
+import {
+	useQueries,
+	useQuery,
+	type UseQueryResult,
+} from "@tanstack/react-query";
 import {
 	environmentPackages,
 	environmentRefetchPackages,
@@ -37,8 +41,8 @@ import {
 	projectGetUnityPath,
 	projectResolve,
 	projectSetUnityPath,
-	TauriProjectDetails,
-	TauriUnityVersions,
+	type TauriProjectDetails,
+	type TauriUnityVersions,
 	utilOpen,
 } from "@/lib/bindings";
 import { useOpenUnity } from "@/lib/use-open-unity";

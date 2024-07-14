@@ -21,7 +21,7 @@ import {
 	environmentRemoveRepository,
 	environmentRepositoriesInfo,
 	environmentShowRepository,
-	TauriUserRepository,
+	type TauriUserRepository,
 } from "@/lib/bindings";
 import { HNavBar, VStack } from "@/components/layout";
 import React, {

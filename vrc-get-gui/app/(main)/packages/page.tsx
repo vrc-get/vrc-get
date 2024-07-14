@@ -20,7 +20,7 @@ import {
 	environmentAddUserPackageWithPicker,
 	environmentGetUserPackages,
 	environmentRemoveUserPackages,
-	TauriUserPackage,
+	type TauriUserPackage,
 } from "@/lib/bindings";
 import { HNavBar, VStack } from "@/components/layout";
 import React, { Suspense, useCallback, useId } from "react";
