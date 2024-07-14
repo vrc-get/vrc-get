@@ -122,7 +122,7 @@ export function useImportRepositories({
 				cancel,
 			});
 			const result = await resultPromise;
-			if (result == "cancelled") {
+			if (result === "cancelled") {
 				return;
 			}
 			setState({ type: "confirmingPackages", repositories: result });

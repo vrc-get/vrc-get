@@ -117,7 +117,7 @@ export function useAddRepository({
 		case "duplicated":
 			dialogBody = <Duplicated cancel={cancel} />;
 			break;
-		case "confirming":
+		case "confirming": {
 			const doAddRepository = async () => {
 				try {
 					await environmentAddRepository(state.url, state.headers);
@@ -139,6 +139,7 @@ export function useAddRepository({
 				/>
 			);
 			break;
+		}
 		default:
 			assertNever(state, "state");
 	}
@@ -181,13 +182,13 @@ function EnteringRepositoryInfo({
 	for (const { value, name } of reordableListContext.value) {
 		const trimedName = name.trim();
 		const trimedValue = value.trim();
-		if (trimedName != "" || trimedValue != "") {
+		if (trimedName !== "" || trimedValue !== "") {
 			// header (field) name is token (RFC 9110 section 5.1)
 			//   https://www.rfc-editor.org/rfc/rfc9110.html#name-field-names
 			// token is defined in 5.6.2
 			//   https://www.rfc-editor.org/rfc/rfc9110.html#name-tokens
 			if (
-				trimedName == "" ||
+				trimedName === "" ||
 				!trimedName.match(/[!#$%&'*+\-.^_`|~0-9a-zA-Z]/)
 			) {
 				foundHeaderNameError = true;
@@ -241,7 +242,7 @@ function EnteringRepositoryInfo({
 					value={url}
 					onChange={(e) => setUrl(e.target.value)}
 					placeholder={"https://vpm.anatawa12.com/vpm.json"}
-				></Input>
+				/>
 				<details>
 					<summary className={"font-bold"}>
 						{tc("vpm repositories:dialog:headers")}
@@ -257,7 +258,7 @@ function EnteringRepositoryInfo({
 									<th className={"sticky top-0 z-10 bg-background"}>
 										{tc("vpm repositories:dialog:header value")}
 									</th>
-									<th className={"sticky top-0 z-10 bg-background"}></th>
+									<th className={"sticky top-0 z-10 bg-background"} />
 								</tr>
 							</thead>
 							<tbody>

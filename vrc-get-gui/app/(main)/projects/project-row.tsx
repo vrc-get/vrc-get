@@ -91,7 +91,7 @@ export function ProjectRow({
 
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
-	const typeIconClass = `w-5 h-5`;
+	const typeIconClass = "w-5 h-5";
 
 	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
 	const displayType = tc(`projects:type:${projectTypeKind}`);

@@ -90,7 +90,7 @@ export function useOpenUnity(): Result {
 			case 1:
 				{
 					if (selectedPath) {
-						if (foundVersions[0][0] != selectedPath) {
+						if (foundVersions[0][0] !== selectedPath) {
 							// if only unity is not
 							void projectSetUnityPath(projectPath, null);
 						}

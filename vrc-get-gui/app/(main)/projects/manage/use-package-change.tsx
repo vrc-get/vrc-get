@@ -115,7 +115,7 @@ export function usePackageChangeDialog({
 	let dialogForState: React.ReactNode = null;
 
 	switch (installStatus.status) {
-		case "promptingChanges":
+		case "promptingChanges": {
 			const applyChanges = async ({
 				changes,
 				requested,
@@ -210,6 +210,7 @@ export function usePackageChangeDialog({
 				/>
 			);
 			break;
+		}
 	}
 
 	return {
@@ -271,7 +272,7 @@ function ProjectChangesDialog({
 			compareVersion(
 				c.InstallNew.version,
 				existingPackageMap.get(pkgId)!.version,
-			) == 0,
+			) === 0,
 	);
 	const installingNewPackages = installingPackages.filter(
 		([pkgId, c]) =>
@@ -279,7 +280,7 @@ function ProjectChangesDialog({
 			compareVersion(
 				c.InstallNew.version,
 				existingPackageMap.get(pkgId)!.version,
-			) != 0,
+			) !== 0,
 	);
 
 	const removingRequestedPackages = removingPackages.filter(
@@ -302,7 +303,7 @@ function ProjectChangesDialog({
 		if (url == null) return null;
 		try {
 			const parsed = new URL(url);
-			if (parsed.protocol == "http:" || parsed.protocol == "https:") {
+			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
 				return (
 					<Button
 						className={"ml-1 px-2"}

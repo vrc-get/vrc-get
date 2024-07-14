@@ -7,6 +7,17 @@
 		"enabled": true
 	},
 	"linter": {
+		"rules": {
+			"style": {
+				// For parallel ifs, we should place else. (we may use conditional operator but if-else looks better)
+				"noUselessElse": "off",
+				"noNonNullAssertion": {
+					// In my opinion, '!.' => '?.' is not reasonable for all cases, so I disabled automatic fix.
+					"fix": "none",
+					"level": "error"
+				}
+			}
+		},
 		"enabled": true
 	},
 	"organizeImports": {

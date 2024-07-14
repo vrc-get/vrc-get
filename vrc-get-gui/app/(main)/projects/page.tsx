@@ -80,11 +80,11 @@ export default function Page() {
 				setSearch={setSearch}
 			/>
 
-			{result.status == "pending" ? (
+			{result.status === "pending" ? (
 				<Card className="w-full shadow-none overflow-hidden p-4">
 					{tc("general:loading...")}
 				</Card>
-			) : result.status == "error" ? (
+			) : result.status === "error" ? (
 				<Card className="w-full shadow-none overflow-hidden p-4">
 					{tc("projects:error:load error", { msg: result.error.message })}
 				</Card>
@@ -224,8 +224,8 @@ function ProjectsTableCard({
 		return searched;
 	}, [projects, sorting, search]);
 
-	const thClass = `sticky top-0 z-10 border-b border-primary p-2.5`;
-	const iconClass = `size-3 invisible project-table-header-chevron-up-down`;
+	const thClass = "sticky top-0 z-10 border-b border-primary p-2.5";
+	const iconClass = "size-3 invisible project-table-header-chevron-up-down";
 
 	const setSorting = async (simpleSorting: SimpleSorting) => {
 		let newSorting: Sorting;
@@ -310,9 +310,7 @@ function ProjectsTableCard({
 							</small>
 						</button>
 					</th>
-					<th
-						className={`${thClass} bg-secondary text-secondary-foreground`}
-					></th>
+					<th className={`${thClass} bg-secondary text-secondary-foreground`} />
 				</tr>
 			</thead>
 			<tbody>

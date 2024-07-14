@@ -55,7 +55,7 @@ async function callAsyncCommandImpl<A extends any[], P, R>(
 		finishHandler = (message) => {
 			unlistenProgress();
 			unlistenFinished();
-			if (message.type == "Success") {
+			if (message.type === "Success") {
 				resolve(message.value);
 			} else {
 				reject(message.value);

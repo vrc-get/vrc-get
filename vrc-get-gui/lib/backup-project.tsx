@@ -49,7 +49,7 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			);
 			setState({ type: "backing-up", cancel });
 			const channel = await promise;
-			if (channel == "cancelled") {
+			if (channel === "cancelled") {
 				toastNormal(tt("projects:toast:backup canceled"));
 			} else {
 				toastSuccess(tt("projects:toast:backup succeeded"));

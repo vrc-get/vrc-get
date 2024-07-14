@@ -220,7 +220,7 @@ export function ReorderableList<T>({
 					{internal.reorderable && (
 						<div className={"flex flex-col w-10 align-middle"}>
 							<Button
-								disabled={disabled || i == 0}
+								disabled={disabled || i === 0}
 								variant={"ghost"}
 								size={"icon"}
 								className={"h-5"}
@@ -229,7 +229,7 @@ export function ReorderableList<T>({
 								<ArrowUp className={"size-2.5"} />
 							</Button>
 							<Button
-								disabled={disabled || i == internal.backedList.length - 1}
+								disabled={disabled || i === internal.backedList.length - 1}
 								variant={"ghost"}
 								size={"icon"}
 								className={"h-5"}

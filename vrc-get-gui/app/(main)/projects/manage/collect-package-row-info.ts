@@ -244,7 +244,7 @@ export function combinePackagesAndProjectDetails(
 			packageRowInfo.isThereSource = knownPackages.has(pkg.name);
 
 			// if we have the latest version, check if it's upgradable
-			if (packageRowInfo.latest.status != "none") {
+			if (packageRowInfo.latest.status !== "none") {
 				const compare = compareVersion(
 					pkg.version,
 					packageRowInfo.latest.pkg.version,
@@ -265,13 +265,13 @@ export function combinePackagesAndProjectDetails(
 		packagesTable.get("com.vrchat.avatars")?.installed != null;
 	const isWorldsSdkInstalled =
 		packagesTable.get("com.vrchat.worlds")?.installed != null;
-	if (isAvatarsSdkInstalled != isWorldsSdkInstalled) {
+	if (isAvatarsSdkInstalled !== isWorldsSdkInstalled) {
 		// if either avatars or worlds sdk is installed, remove the packages for the other SDK.
 
 		// collect dependant packages
 		const dependantPackages = new Map<string, Set<string>>();
 		for (const pkg of packagesTable.values()) {
-			if (pkg.latest.status != "none") {
+			if (pkg.latest.status !== "none") {
 				for (const dependency of pkg.latest.pkg.vpm_dependencies) {
 					if (!dependantPackages.has(dependency)) {
 						dependantPackages.set(dependency, new Set());

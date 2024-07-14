@@ -79,7 +79,7 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 	switch (installStatus.state) {
 		case "normal":
 			break;
-		case "selecting":
+		case "selecting": {
 			const cancel = () => {
 				setInstallStatus({ state: "normal" });
 				installStatus.resolve(null);
@@ -109,6 +109,7 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 				</DialogOpen>
 			);
 			break;
+		}
 		default:
 			assertNever(installStatus);
 	}
@@ -147,7 +148,7 @@ function SelectUnityVersionDialog({
 						>
 							<Checkbox
 								checked={keepUsingThisVersion}
-								onCheckedChange={(e) => setKeepUsingThisVersion(e == true)}
+								onCheckedChange={(e) => setKeepUsingThisVersion(e === true)}
 								className="hover:before:content-none"
 							/>
 							{tc("projects:manage:dialog:keep using this version")}

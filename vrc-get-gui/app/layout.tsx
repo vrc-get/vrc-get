@@ -22,7 +22,9 @@ export default function RootLayout({
 				<script src="https://vrc-get.localhost/global-info.js" />
 			</head>
 			<body
-				className={`font-sans w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap`}
+				className={
+					"font-sans w-screen h-screen flex flex-row overflow-hidden whitespace-nowrap"
+				}
 			>
 				<Providers>{children}</Providers>
 			</body>

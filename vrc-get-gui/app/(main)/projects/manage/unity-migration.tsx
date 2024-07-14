@@ -29,10 +29,10 @@ function findRecommendedUnity(
 	unityVersions: TauriUnityVersions,
 ): FindUnityResult {
 	const versions = unityVersions.unity_paths.filter(
-		([_p, v, _]) => v == unityVersions.recommended_version,
+		([_p, v, _]) => v === unityVersions.recommended_version,
 	);
 
-	if (versions.length == 0) {
+	if (versions.length === 0) {
 		return {
 			expectingVersion: unityVersions.recommended_version,
 			installLink: unityVersions.install_recommended_version_link,
@@ -153,7 +153,7 @@ export function useUnityVersionChange({
 		updateProjectPreUnityLaunch: async (project, data) => {
 			if (
 				data.isVRC &&
-				data.kind == "upgradeMajor" &&
+				data.kind === "upgradeMajor" &&
 				data.targetUnityVersion.startsWith("2022.")
 			) {
 				await projectMigrateProjectTo2022(project);
@@ -313,10 +313,10 @@ function detectChangeUnityKind(
 
 	const kind: ChangeUnityData["kind"] =
 		compareUnityVersionString(currentVersion, targetUnityVersion) >= 0
-			? parsedCurrent.major == parsedTarget.major
+			? parsedCurrent.major === parsedTarget.major
 				? "downgradePatchOrMinor"
 				: "downgradeMajor"
-			: parsedCurrent.major == parsedTarget.major
+			: parsedCurrent.major === parsedTarget.major
 				? "upgradePatchOrMinor"
 				: "upgradeMajor";
 
@@ -343,9 +343,9 @@ function findUnityForUnityChange(
 	data: ChangeUnityData,
 ): FindUnityResult {
 	const foundVersions = unityVersions.unity_paths.filter(
-		([_p, v, _]) => v == data.targetUnityVersion,
+		([_p, v, _]) => v === data.targetUnityVersion,
 	);
-	if (foundVersions.length == 0) throw new Error("unreachable");
+	if (foundVersions.length === 0) throw new Error("unreachable");
 	return {
 		expectingVersion: data.targetUnityVersion,
 		found: true,
@@ -457,12 +457,13 @@ function useMigrationInternal<Data>({
 				case 1:
 					void continueChangeUnityVersion(inPlace, unityFound[0][0], data);
 					break;
-				default:
+				default: {
 					const selected = await unitySelector.select(unityFound);
 					if (selected == null) setInstallStatus({ state: "normal" });
 					else
 						void continueChangeUnityVersion(inPlace, selected.unityPath, data);
 					break;
+				}
 			}
 		} catch (e) {
 			console.error(e);
@@ -495,7 +496,7 @@ function useMigrationInternal<Data>({
 				[migrateProjectPath, unityPath],
 				(lineString) => {
 					setInstallStatus((prev) => {
-						if (prev.state != "finalizing") return prev;
+						if (prev.state !== "finalizing") return prev;
 						lineNumber++;
 						const line: [number, string] = [lineNumber, lineString];
 						if (prev.lines.length > 200) {
@@ -507,7 +508,7 @@ function useMigrationInternal<Data>({
 				},
 			);
 			const finalizeResult = await promise;
-			if (finalizeResult == "cancelled") {
+			if (finalizeResult === "cancelled") {
 				throw new Error("unexpectedly cancelled");
 			}
 			switch (finalizeResult.type) {

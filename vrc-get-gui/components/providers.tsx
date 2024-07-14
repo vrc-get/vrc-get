@@ -33,7 +33,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 	);
 
 	const moveToRepositories = useCallback(() => {
-		if (location.pathname != "/repositories") {
+		if (location.pathname !== "/repositories") {
 			router.push("/repositories");
 		}
 	}, [router]);

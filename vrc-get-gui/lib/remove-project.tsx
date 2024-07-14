@@ -58,7 +58,7 @@ export function useRemoveProjectModal({ onRemoved }: Params): Result {
 	switch (state.type) {
 		case "idle":
 			break;
-		case "confirm":
+		case "confirm": {
 			const project = state.project;
 
 			const removeProjectButton = async (directory: boolean) => {
@@ -112,6 +112,7 @@ export function useRemoveProjectModal({ onRemoved }: Params): Result {
 				</DialogOpen>
 			);
 			break;
+		}
 		case "removing":
 			dialog = (
 				<DialogOpen className={"whitespace-normal"}>

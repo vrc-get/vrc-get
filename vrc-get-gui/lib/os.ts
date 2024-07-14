@@ -1,7 +1,7 @@
 import globalInfo from "./global-info";
 
 export function pathSeparators(): string[] {
-	return globalInfo.osType == "WindowsNT" ? ["\\", "/"] : ["/"];
+	return globalInfo.osType === "WindowsNT" ? ["\\", "/"] : ["/"];
 }
 
 export function pathSeparator(): string {
@@ -9,11 +9,11 @@ export function pathSeparator(): string {
 }
 
 export function nameFromPath(path: string): string {
-	if (globalInfo.osInfo == "WindowsNT") {
+	if (globalInfo.osInfo === "WindowsNT") {
 		const indexOfSlash = path.lastIndexOf("/");
 		const indexOfBackSlash = path.lastIndexOf("\\");
 		const indexOfSeparator = Math.max(indexOfSlash, indexOfBackSlash);
-		if (indexOfSeparator == -1) return path;
+		if (indexOfSeparator === -1) return path;
 		return path.substring(indexOfSeparator + 1);
 	} else {
 		return path.substring(path.lastIndexOf("/") + 1);

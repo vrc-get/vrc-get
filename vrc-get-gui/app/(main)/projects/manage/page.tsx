@@ -210,7 +210,7 @@ function PageBody() {
 	function checkIfMigrationTo2022Recommended(data: TauriProjectDetails) {
 		if (data.unity == null) return false;
 		// migrate if the project is using 2019 and has vrcsdk
-		if (data.unity[0] != 2019) return false;
+		if (data.unity[0] !== 2019) return false;
 		return data.installed_packages.some(([id, _]) =>
 			VRCSDK_PACKAGES.includes(id),
 		);
@@ -226,18 +226,18 @@ function PageBody() {
 			return false;
 
 		if (data.unity == null) return false;
-		if (data.unity[0] != 2022) return false;
+		if (data.unity[0] !== 2022) return false;
 		// unity patch is 2022.
-		return data.unity_str != unityData.recommended_version;
+		return data.unity_str !== unityData.recommended_version;
 	}
 
 	const isResolveRecommended = detailsResult?.data?.should_resolve;
 	const isMigrationTo2022Recommended =
-		detailsResult.status == "success" &&
+		detailsResult.status === "success" &&
 		checkIfMigrationTo2022Recommended(detailsResult.data);
 	const is2022PatchMigrationRecommended =
-		detailsResult.status == "success" &&
-		unityVersionsResult.status == "success" &&
+		detailsResult.status === "success" &&
+		unityVersionsResult.status === "success" &&
 		checkIf2022PatchMigrationRecommended(
 			detailsResult.data,
 			unityVersionsResult.data,
@@ -277,7 +277,7 @@ function PageBody() {
 							},
 						)}
 					</p>
-					<div className={"flex-grow-0 flex-shrink-0 w-2"}></div>
+					<div className={"flex-grow-0 flex-shrink-0 w-2"} />
 					<div className="flex-grow-0 flex-shrink-0 flex flex-row items-center">
 						<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
 							{tc("projects:manage:unity version")}
@@ -380,7 +380,7 @@ function UnityVersionSelector({
 			onValueChange={onChange}
 		>
 			<SelectTrigger>
-				{detailsResult.status == "success" ? (
+				{detailsResult.status === "success" ? (
 					detailsResult.data.unity_str ?? "unknown"
 				) : (
 					<span className={"text-primary"}>Loading...</span>
@@ -416,7 +416,7 @@ function SuggestResolveProjectCard({
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest resolve")}
 			</p>
-			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<div className={"flex-grow flex-shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
 				onClick={onResolveRequested}
@@ -440,7 +440,7 @@ function SuggestMigrateTo2022Card({
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest unity migration")}
 			</p>
-			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<div className={"flex-grow flex-shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
 				onClick={onMigrateRequested}
@@ -464,7 +464,7 @@ function Suggest2022PatchMigrationCard({
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest unity patch migration")}
 			</p>
-			<div className={"flex-grow flex-shrink-0 w-2"}></div>
+			<div className={"flex-grow flex-shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
 				onClick={onMigrateRequested}
@@ -520,7 +520,7 @@ function ProjectViewHeader({
 				{projectName}
 			</p>
 
-			<div className="relative flex gap-2 w-max flex-grow"></div>
+			<div className="relative flex gap-2 w-max flex-grow" />
 
 			<DropdownMenu>
 				<div className={"flex divide-x"}>

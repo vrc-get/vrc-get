@@ -140,8 +140,8 @@ function compareUnityChannel(
 	a: UnityVersion["channel"],
 	b: UnityVersion["channel"],
 ) {
-	if (a == "c") a = "f";
-	if (b == "c") b = "f";
+	if (a === "c") a = "f";
+	if (b === "c") b = "f";
 
 	if (a === b) return 0;
 

@@ -36,7 +36,7 @@ export function CheckForUpdateMessage({
 	const [totalBytes, setTotalBytes] = useState(100);
 
 	useTauriListen<UpdateStatusResult>("tauri://update-status", (e) => {
-		if ((e.payload.status as string) == "DOWNLOADED") {
+		if ((e.payload.status as string) === "DOWNLOADED") {
 			setConfirmStatus("waitingForRelaunch");
 		}
 	});

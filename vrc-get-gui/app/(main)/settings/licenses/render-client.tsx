@@ -27,7 +27,7 @@ export default function RenderPage({
 						<br />
 						Here are the licenses of the projects used in this project:
 					</p>
-					<ul></ul>
+					<ul />
 				</Card>
 
 				{licenses.map((license, idx) => (

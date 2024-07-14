@@ -61,7 +61,7 @@ export function LaunchSettings({
 
 	if (
 		customizeCommandline &&
-		reorderableListContext.value.some((x) => x.length == 0)
+		reorderableListContext.value.some((x) => x.length === 0)
 	) {
 		errorMessage = tc("projects:hint:some arguments are empty");
 	}

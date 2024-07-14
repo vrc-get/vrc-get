@@ -103,13 +103,13 @@ function updateModeFromPackageModes(
 ): BulkUpdateMode {
 	const asSet = new Set(map);
 
-	if (asSet.size == 0) {
+	if (asSet.size === 0) {
 		return "any";
 	}
-	if (asSet.size == 1) {
+	if (asSet.size === 1) {
 		return [...asSet][0];
 	}
-	if (asSet.size == 2) {
+	if (asSet.size === 2) {
 		if (asSet.has("remove") && asSet.has("upgradeOrRemove")) {
 			return "remove";
 		}
@@ -196,7 +196,7 @@ export const PackageListCard = memo(function PackageListCard({
 				if (packageRow.latest.status === "upgradable") {
 					if (envVersion == null)
 						envVersion = packageRow.latest.pkg.env_version;
-					else if (envVersion != packageRow.latest.pkg.env_version)
+					else if (envVersion !== packageRow.latest.pkg.env_version)
 						throw new Error("Inconsistent env_version");
 					packages.push(packageRow.latest.pkg.index);
 					hasUnityIncompatibleLatest ||=
@@ -247,7 +247,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 					if (envVersion == null)
 						envVersion = packageRow.latest.pkg.env_version;
-					else if (envVersion != packageRow.latest.pkg.env_version)
+					else if (envVersion !== packageRow.latest.pkg.env_version)
 						throw new Error("Inconsistent env_version");
 
 					packages.push(packageRow.latest.pkg.index);
@@ -285,7 +285,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 					if (envVersion == null)
 						envVersion = packageRow.latest.pkg.env_version;
-					else if (envVersion != packageRow.latest.pkg.env_version)
+					else if (envVersion !== packageRow.latest.pkg.env_version)
 						throw new Error("Inconsistent env_version");
 
 					packages.push(packageRow.latest.pkg.index);
@@ -321,7 +321,7 @@ export const PackageListCard = memo(function PackageListCard({
 		const possibleUpdate: PackageBulkUpdateMode | "nothing" =
 			bulkUpdateModeForPackage(row);
 
-		if (possibleUpdate == "nothing") return;
+		if (possibleUpdate === "nothing") return;
 		setBulkUpdatePackageIds((prev) => {
 			if (prev.some(([id, _]) => id === row.id)) return prev;
 			return [...prev, [row.id, possibleUpdate]];
@@ -371,18 +371,24 @@ export const PackageListCard = memo(function PackageListCard({
 					<thead>
 						<tr>
 							<th
-								className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground`}
-							></th>
+								className={
+									"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground"
+								}
+							/>
 							{TABLE_HEAD.map((head, index) => (
 								<th
 									key={index}
-									className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}
+									className={
+										"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+									}
 								>
 									<small className="font-normal leading-none">{tc(head)}</small>
 								</th>
 							))}
 							<th
-								className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}
+								className={
+									"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+								}
 							/>
 						</tr>
 					</thead>
@@ -559,13 +565,13 @@ function BulkUpdateCard({
 	bulkInstallAll?: () => void;
 	cancel?: () => void;
 }) {
-	if (bulkUpdateMode == "any") return null;
+	if (bulkUpdateMode === "any") return null;
 
-	const canInstall = bulkUpdateMode == "install";
+	const canInstall = bulkUpdateMode === "install";
 	const canUpgrade =
-		bulkUpdateMode == "upgrade" || bulkUpdateMode == "upgradeOrRemove";
+		bulkUpdateMode === "upgrade" || bulkUpdateMode === "upgradeOrRemove";
 	const canRemove =
-		bulkUpdateMode == "remove" || bulkUpdateMode == "upgradeOrRemove";
+		bulkUpdateMode === "remove" || bulkUpdateMode === "upgradeOrRemove";
 
 	return (
 		<Card
@@ -715,7 +721,7 @@ const PackageRow = memo(function PackageRow({
 		[onInstallRequested, pkg],
 	);
 	const installLatest = () => {
-		if (pkg.latest.status == "none") return;
+		if (pkg.latest.status === "none") return;
 		onInstallRequested(pkg.latest.pkg, pkg.latest.hasUnityIncompatibleLatest);
 	};
 
@@ -777,13 +783,13 @@ const PackageRow = memo(function PackageRow({
 				/>
 			</td>
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
-				{pkg.sources.size == 0 ? (
+				{pkg.sources.size === 0 ? (
 					pkg.isThereSource ? (
 						<p>{tc("projects:manage:source not selected")}</p>
 					) : (
 						<p>{tc("projects:manage:none")}</p>
 					)
-				) : pkg.sources.size == 1 ? (
+				) : pkg.sources.size === 1 ? (
 					<Tooltip>
 						<TooltipTrigger>
 							<p className="overflow-hidden overflow-ellipsis">

@@ -180,7 +180,8 @@ export function CreateProject({
 	};
 
 	const checking =
-		projectNameDebounced != projectName || projectNameCheckState === "checking";
+		projectNameDebounced !== projectName ||
+		projectNameCheckState === "checking";
 
 	let projectNameState: "Ok" | "warn" | "err";
 	let projectNameCheck;
@@ -237,7 +238,7 @@ export function CreateProject({
 		case "loadingInitialInformation":
 			dialogBody = <RefreshCw className={"w-5 h-5 animate-spin"} />;
 			break;
-		case "enteringInformation":
+		case "enteringInformation": {
 			const renderUnityVersion = (unityVersion: string) => {
 				if (unityVersion === latestUnityVersion) {
 					return (
@@ -274,7 +275,7 @@ export function CreateProject({
 										</SelectItem>
 										<SelectItem
 											value={"custom"}
-											disabled={customTemplates.length == 0}
+											disabled={customTemplates.length === 0}
 										>
 											{tc("projects:type:custom")}
 										</SelectItem>
@@ -364,6 +365,7 @@ export function CreateProject({
 				</>
 			);
 			break;
+		}
 		case "creating":
 			dialogBody = (
 				<>
@@ -379,13 +381,13 @@ export function CreateProject({
 			<DialogTitle>{tc("projects:create new project")}</DialogTitle>
 			<DialogDescription>{dialogBody}</DialogDescription>
 			<DialogFooter className={"gap-2"}>
-				<Button onClick={close} disabled={state == "creating"}>
+				<Button onClick={close} disabled={state === "creating"}>
 					{tc("general:button:cancel")}
 				</Button>
 				<Button
 					onClick={createProject}
 					disabled={
-						state == "creating" || checking || projectNameState == "err"
+						state === "creating" || checking || projectNameState === "err"
 					}
 				>
 					{tc("projects:button:create")}

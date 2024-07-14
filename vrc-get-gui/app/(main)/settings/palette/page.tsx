@@ -149,7 +149,9 @@ function UnityTableBody() {
 					{UNITY_TABLE_HEAD.map((head, index) => (
 						<th
 							key={index}
-							className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}
+							className={
+								"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+							}
 						>
 							<small className="font-normal leading-none">{head}</small>
 						</th>

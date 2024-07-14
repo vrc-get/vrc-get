@@ -7,7 +7,7 @@ export default function SetupLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const isDev = process.env.NODE_ENV == "development";
+	const isDev = process.env.NODE_ENV === "development";
 
 	return (
 		<>

@@ -84,7 +84,7 @@ function Settings({
 	settings: TauriEnvironmentSettings;
 	refetch: () => void;
 }) {
-	const isMac = useGlobalInfo().osType == "Darwin";
+	const isMac = useGlobalInfo().osType === "Darwin";
 
 	return (
 		<ScrollPageContainer>
@@ -194,7 +194,9 @@ function UnityInstallationsCard({
 						{UNITY_TABLE_HEAD.map((head, index) => (
 							<th
 								key={index}
-								className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}
+								className={
+									"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+								}
 							>
 								<small className="font-normal leading-none">{tc(head)}</small>
 							</th>
@@ -405,7 +407,7 @@ function AlcomCard({
 			<div>
 				<label className={"flex items-center gap-2"}>
 					<Checkbox
-						checked={releaseChannel == "beta"}
+						checked={releaseChannel === "beta"}
 						onCheckedChange={(e) => changeReleaseChannel(e)}
 					/>
 					{tc("settings:receive beta updates")}
