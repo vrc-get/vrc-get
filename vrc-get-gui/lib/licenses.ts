@@ -6,7 +6,7 @@ export type Licenses = {
 		name: string;
 		version: string;
 		url: string;
-	}[]
+	}[];
 }[];
 
 export async function loadLicenses(): Promise<Licenses | null> {
