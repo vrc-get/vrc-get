@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Change Unity version `#1246`
 
 ### Changed
 
@@ -17,9 +16,15 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Fails to open projects contains whitespace in project name on windows `#1256`
 
 ### Security
+
+## [0.1.10] - 2024-07-16
+### Added
+- Change Unity version [`#1246`](https://github.com/vrc-get/vrc-get/pull/1246)
+
+### Fixed
+- Fails to open projects contains whitespace in project name on windows [`#1256`](https://github.com/vrc-get/vrc-get/pull/1256)
 
 ## [0.1.10-beta.4] - 2024-07-07
 ### Added
@@ -373,7 +378,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.4...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10...HEAD
+[0.1.10]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.4...gui-v0.1.10
 [0.1.10-beta.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.3...gui-v0.1.10-beta.4
 [0.1.10-beta.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.2...gui-v0.1.10-beta.3
 [0.1.10-beta.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.1...gui-v0.1.10-beta.2
