@@ -1,20 +1,20 @@
-import * as React from "react"
-import * as ProgressPrimitive from "@radix-ui/react-progress"
+import * as ProgressPrimitive from "@radix-ui/react-progress";
+import * as React from "react";
 
-import {cn} from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 // https://github.com/shadcn-ui/ui/pull/3471
 const Progress = React.forwardRef<
 	React.ElementRef<typeof ProgressPrimitive.Root>,
 	React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({className, value, max, ...props}, ref) => (
+>(({ className, value, max, ...props }, ref) => (
 	<ProgressPrimitive.Root
 		ref={ref}
 		value={value}
 		max={max}
 		className={cn(
 			"relative h-4 w-full overflow-hidden rounded-full bg-secondary",
-			className
+			className,
 		)}
 		{...props}
 	>
@@ -27,7 +27,7 @@ const Progress = React.forwardRef<
 			}}
 		/>
 	</ProgressPrimitive.Root>
-))
-Progress.displayName = ProgressPrimitive.Root.displayName
+));
+Progress.displayName = ProgressPrimitive.Root.displayName;
 
-export {Progress}
+export { Progress };

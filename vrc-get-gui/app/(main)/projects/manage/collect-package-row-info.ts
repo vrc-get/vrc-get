@@ -1,24 +1,31 @@
-import {
+import { assertNever } from "@/lib/assert-never";
+import type {
 	TauriBasePackageInfo,
 	TauriPackage,
 	TauriProjectDetails,
 	TauriUserRepository,
-	TauriVersion
+	TauriVersion,
 } from "@/lib/bindings";
-import {compareUnityVersion, compareVersion, toVersionString} from "@/lib/version";
-import {assertNever} from "@/lib/assert-never";
+import {
+	compareUnityVersion,
+	compareVersion,
+	toVersionString,
+} from "@/lib/version";
 
-export type PackageLatestInfo = {
-	status: "none";
-} | {
-	status: "contains";
-	pkg: TauriPackage;
-	hasUnityIncompatibleLatest: boolean;
-} | {
-	status: "upgradable";
-	pkg: TauriPackage;
-	hasUnityIncompatibleLatest: boolean;
-};
+export type PackageLatestInfo =
+	| {
+			status: "none";
+	  }
+	| {
+			status: "contains";
+			pkg: TauriPackage;
+			hasUnityIncompatibleLatest: boolean;
+	  }
+	| {
+			status: "upgradable";
+			pkg: TauriPackage;
+			hasUnityIncompatibleLatest: boolean;
+	  };
 
 export interface PackageRowInfo {
 	id: string;
@@ -40,7 +47,7 @@ export interface PackageRowInfo {
 export const VRCSDK_PACKAGES = [
 	"com.vrchat.avatars",
 	"com.vrchat.worlds",
-	"com.vrchat.base"
+	"com.vrchat.base",
 ];
 
 export function combinePackagesAndProjectDetails(
@@ -49,11 +56,14 @@ export function combinePackagesAndProjectDetails(
 	hiddenRepositories?: string[] | null,
 	hideLocalUserPackages?: boolean,
 	definedRepositories: TauriUserRepository[] = [],
-	showPrereleasePackages: boolean = false,
+	showPrereleasePackages = false,
 ): PackageRowInfo[] {
 	const hiddenRepositoriesSet = new Set(hiddenRepositories ?? []);
 
-	function isUnityCompatible(pkg: TauriPackage, unityVersion: [number, number] | null) {
+	function isUnityCompatible(
+		pkg: TauriPackage,
+		unityVersion: [number, number] | null,
+	) {
 		if (unityVersion == null) return true;
 		if (pkg.unity == null) return true;
 
@@ -63,7 +73,11 @@ export function combinePackagesAndProjectDetails(
 				return unityVersion[0] === 2019;
 			}
 		} else if (pkg.name === "com.vrchat.core.vpm-resolver") {
-			if (pkg.version.major === 0 && pkg.version.minor === 1 && pkg.version.patch <= 26) {
+			if (
+				pkg.version.major === 0 &&
+				pkg.version.minor === 1 &&
+				pkg.version.patch <= 26
+			) {
 				return unityVersion[0] === 2019;
 			}
 		}
@@ -86,12 +100,12 @@ export function combinePackagesAndProjectDetails(
 
 		knownPackages.add(pkg.name);
 
-		let packages: TauriPackage[]
+		let packages: TauriPackage[];
 		// check the repository is visible
 		if (pkg.source === "LocalUser") {
-			if (hideLocalUserPackages) continue
+			if (hideLocalUserPackages) continue;
 			packages = userPackages;
-		} else if ('Remote' in pkg.source) {
+		} else if ("Remote" in pkg.source) {
 			if (hiddenRepositoriesSet.has(pkg.source.Remote.id)) continue;
 
 			packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
@@ -108,19 +122,22 @@ export function combinePackagesAndProjectDetails(
 	const getRowInfo = (pkg: TauriBasePackageInfo): PackageRowInfo => {
 		let packageRowInfo = packagesTable.get(pkg.name);
 		if (packageRowInfo == null) {
-			packagesTable.set(pkg.name, packageRowInfo = {
-				id: pkg.name,
-				displayName: pkg.display_name ?? pkg.name,
-				description: pkg.description ?? '',
-				aliases: pkg.aliases,
-				infoSource: pkg.version,
-				unityCompatible: new Map(),
-				unityIncompatible: new Map(),
-				sources: new Set(),
-				isThereSource: false,
-				installed: null,
-				latest: {status: "none"},
-			});
+			packagesTable.set(
+				pkg.name,
+				(packageRowInfo = {
+					id: pkg.name,
+					displayName: pkg.display_name ?? pkg.name,
+					description: pkg.description ?? "",
+					aliases: pkg.aliases,
+					infoSource: pkg.version,
+					unityCompatible: new Map(),
+					unityIncompatible: new Map(),
+					sources: new Set(),
+					isThereSource: false,
+					installed: null,
+					latest: { status: "none" },
+				}),
+			);
 		}
 		return packageRowInfo;
 	};
@@ -133,7 +150,8 @@ export function combinePackagesAndProjectDetails(
 			// use display name from the latest version
 			packageRowInfo.infoSource = pkg.version;
 			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
-			packageRowInfo.description = pkg.description || packageRowInfo.description;
+			packageRowInfo.description =
+				pkg.description || packageRowInfo.description;
 			packageRowInfo.aliases = pkg.aliases;
 		}
 
@@ -145,7 +163,7 @@ export function combinePackagesAndProjectDetails(
 
 		if (pkg.source === "LocalUser") {
 			packageRowInfo.sources.add("User");
-		} else if ('Remote' in pkg.source) {
+		} else if ("Remote" in pkg.source) {
 			packageRowInfo.sources.add(pkg.source.Remote.display_name);
 		}
 	}
@@ -158,30 +176,46 @@ export function combinePackagesAndProjectDetails(
 	packagesPerRepository.delete("com.vrchat.repos.curated");
 
 	// for repositories
-	for (let definedRepository of definedRepositories) {
+	for (const definedRepository of definedRepositories) {
 		packagesPerRepository.get(definedRepository.id)?.forEach(addPackage);
 		packagesPerRepository.delete(definedRepository.id);
 	}
 
 	// in case of repository is not defined
-	for (let packages of packagesPerRepository.values()) {
+	for (const packages of packagesPerRepository.values()) {
 		packages.forEach(addPackage);
 	}
 
 	// sort versions
-	for (let value of packagesTable.values()) {
-		value.unityCompatible = new Map([...value.unityCompatible].sort((a, b) => -compareVersion(a[1].version, b[1].version)));
-		value.unityIncompatible = new Map([...value.unityIncompatible].sort((a, b) => -compareVersion(a[1].version, b[1].version)));
+	for (const value of packagesTable.values()) {
+		value.unityCompatible = new Map(
+			[...value.unityCompatible].sort(
+				(a, b) => -compareVersion(a[1].version, b[1].version),
+			),
+		);
+		value.unityIncompatible = new Map(
+			[...value.unityIncompatible].sort(
+				(a, b) => -compareVersion(a[1].version, b[1].version),
+			),
+		);
 	}
 
 	// set latest info
-	for (let value of packagesTable.values()) {
+	for (const value of packagesTable.values()) {
 		const latestPackage = value.unityCompatible.values().next().value;
 		if (latestPackage) {
 			let hasUnityIncompatibleLatest = false;
 
-			const incompatibleLatestPackage = value.unityIncompatible.values().next().value;
-			if (incompatibleLatestPackage && compareVersion(latestPackage.version, incompatibleLatestPackage.version) < 0) {
+			const incompatibleLatestPackage = value.unityIncompatible
+				.values()
+				.next().value;
+			if (
+				incompatibleLatestPackage &&
+				compareVersion(
+					latestPackage.version,
+					incompatibleLatestPackage.version,
+				) < 0
+			) {
 				hasUnityIncompatibleLatest = true;
 			}
 
@@ -203,38 +237,47 @@ export function combinePackagesAndProjectDetails(
 			packageRowInfo.aliases = [...pkg.aliases, ...packageRowInfo.aliases];
 			packageRowInfo.installed = {
 				version: pkg.version,
-				yanked: pkg.is_yanked || yankedVersions.has(`${pkg.name}:${toVersionString(pkg.version)}`),
+				yanked:
+					pkg.is_yanked ||
+					yankedVersions.has(`${pkg.name}:${toVersionString(pkg.version)}`),
 			};
 			packageRowInfo.isThereSource = knownPackages.has(pkg.name);
 
 			// if we have the latest version, check if it's upgradable
-			if (packageRowInfo.latest.status != "none") {
-				const compare = compareVersion(pkg.version, packageRowInfo.latest.pkg.version);
+			if (packageRowInfo.latest.status !== "none") {
+				const compare = compareVersion(
+					pkg.version,
+					packageRowInfo.latest.pkg.version,
+				);
 				if (compare < 0) {
 					packageRowInfo.latest = {
 						status: "upgradable",
 						pkg: packageRowInfo.latest.pkg,
-						hasUnityIncompatibleLatest: packageRowInfo.latest.hasUnityIncompatibleLatest,
+						hasUnityIncompatibleLatest:
+							packageRowInfo.latest.hasUnityIncompatibleLatest,
 					};
 				}
 			}
 		}
 	}
 
-	const isAvatarsSdkInstalled = packagesTable.get("com.vrchat.avatars")?.installed != null;
-	const isWorldsSdkInstalled = packagesTable.get("com.vrchat.worlds")?.installed != null;
-	if (isAvatarsSdkInstalled != isWorldsSdkInstalled) {
+	const isAvatarsSdkInstalled =
+		packagesTable.get("com.vrchat.avatars")?.installed != null;
+	const isWorldsSdkInstalled =
+		packagesTable.get("com.vrchat.worlds")?.installed != null;
+	if (isAvatarsSdkInstalled !== isWorldsSdkInstalled) {
 		// if either avatars or worlds sdk is installed, remove the packages for the other SDK.
 
 		// collect dependant packages
 		const dependantPackages = new Map<string, Set<string>>();
-		for (let pkg of packagesTable.values()) {
-			if (pkg.latest.status != "none") {
+		for (const pkg of packagesTable.values()) {
+			if (pkg.latest.status !== "none") {
 				for (const dependency of pkg.latest.pkg.vpm_dependencies) {
-					if (!dependantPackages.has(dependency)) {
-						dependantPackages.set(dependency, new Set());
+					let packageInfo = dependantPackages.get(dependency);
+					if (packageInfo === undefined) {
+						dependantPackages.set(dependency, (packageInfo = new Set()));
 					}
-					dependantPackages.get(dependency)!.add(pkg.id);
+					packageInfo.add(pkg.id);
 				}
 			}
 		}
@@ -250,15 +293,15 @@ export function combinePackagesAndProjectDetails(
 
 		// update forAvatars and forWorlds recursively
 		while (toRemove.size > 0) {
+			// biome-ignore lint/style/noNonNullAssertion: we know it's not empty
 			const pkgId = [...toRemove].pop()!;
 			toRemove.delete(pkgId);
 
-			if (!packagesTable.delete(pkgId)) continue // already removed
+			if (!packagesTable.delete(pkgId)) continue; // already removed
 
 			const dependants = dependantPackages.get(pkgId);
 			if (dependants != null)
-				for (const dependant of dependants)
-					toRemove.add(dependant);
+				for (const dependant of dependants) toRemove.add(dependant);
 		}
 	}
 

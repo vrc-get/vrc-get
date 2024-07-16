@@ -1,25 +1,28 @@
 "use client";
 
-import {HNavBar, VStack} from "@/components/layout";
-import React, {useCallback, useEffect} from "react";
-import {LogEntry, utilGetLogEntries} from "@/lib/bindings";
-import {tc} from "@/lib/i18n";
-import {useTauriListen} from "@/lib/use-tauri-listen";
-import {ScrollableCard} from "@/components/ScrollableCard";
+import { ScrollableCard } from "@/components/ScrollableCard";
+import { HNavBar, VStack } from "@/components/layout";
+import { type LogEntry, utilGetLogEntries } from "@/lib/bindings";
+import { tc } from "@/lib/i18n";
+import { useTauriListen } from "@/lib/use-tauri-listen";
+import React, { useCallback, useEffect } from "react";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
 
 	useEffect(() => {
-		utilGetLogEntries().then(list => setLogEntries([...list].reverse()));
+		utilGetLogEntries().then((list) => setLogEntries([...list].reverse()));
 	}, []);
 
-	useTauriListen<LogEntry>("log", useCallback((event) => {
-		setLogEntries((entries) => {
-			const entry = event.payload as LogEntry;
-			return [entry, ...entries];
-		});
-	}, []));
+	useTauriListen<LogEntry>(
+		"log",
+		useCallback((event) => {
+			setLogEntries((entries) => {
+				const entry = event.payload as LogEntry;
+				return [entry, ...entries];
+			});
+		}, []),
+	);
 
 	return (
 		<VStack>
@@ -38,5 +41,5 @@ export default function Page() {
 }
 
 function logEntryToText(entry: LogEntry) {
-	return `${entry.time} [${entry.level.padStart(5, ' ')}] ${entry.target}: ${entry.message}`;
+	return `${entry.time} [${entry.level.padStart(5, " ")}] ${entry.target}: ${entry.message}`;
 }
