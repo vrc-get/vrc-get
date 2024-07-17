@@ -10,12 +10,7 @@ import {
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
-import {
-	Circle,
-	CircleAlert,
-	CircleCheck,
-	CircleChevronRight,
-} from "lucide-react";
+import { Circle, CircleCheck, CircleChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
 
@@ -164,20 +159,5 @@ function StepElement({
 			)}
 			{tc(`setup:steps card:${pageId}`)}
 		</li>
-	);
-}
-
-export function WarningMessage({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
-	return (
-		<div className={"flex items-center gap-2"}>
-			<div className="flex-grow-0 flex-shrink-0">
-				<CircleAlert className="text-warning w-5 h-5" />
-			</div>
-			<p className={"whitespace-normal text-sm"}>{children}</p>
-		</div>
 	);
 }

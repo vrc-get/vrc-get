@@ -5,8 +5,10 @@ import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import {
 	BackupFormatSelect,
+	BackupPathWarnings,
 	FilePathRow,
 	LanguageSelector,
+	ProjectPathWarnings,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { HNavBar, VStack } from "@/components/layout";
@@ -116,6 +118,7 @@ function Settings({
 						refetch={refetch}
 						successMessage={tc("settings:toast:default project path updated")}
 					/>
+					<ProjectPathWarnings projectPath={settings.default_project_path} />
 				</Card>
 				<BackupCard
 					projectBackupPath={settings.project_backup_path}
@@ -257,6 +260,7 @@ function BackupCard({
 					refetch={refetch}
 					successMessage={tc("settings:toast:backup path updated")}
 				/>
+				<BackupPathWarnings backupPath={projectBackupPath} />
 			</div>
 			<div className="mt-2">
 				<label className={"flex items-center"}>
