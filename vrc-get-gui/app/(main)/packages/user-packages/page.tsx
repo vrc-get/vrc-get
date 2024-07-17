@@ -111,7 +111,7 @@ function HeadingPageName() {
 	const router = useRouter();
 
 	const userPackages = useCallback(() => {
-		router.push("/repositories");
+		router.push("/packages/repositories");
 	}, [router]);
 
 	const button =
