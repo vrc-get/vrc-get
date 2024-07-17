@@ -16,9 +16,12 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Language Settings is not loaded on linux or macOS `#1286`
 
 ### Security
+
+## [0.1.11] - 2024-07-17
+### Fixed
+- Language Settings is not loaded on linux or macOS [`#1286`](https://github.com/vrc-get/vrc-get/pull/1286)
 
 ## [0.1.10] - 2024-07-16
 ### Added
@@ -379,7 +382,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.11...HEAD
+[0.1.11]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10...gui-v0.1.11
 [0.1.10]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.4...gui-v0.1.10
 [0.1.10-beta.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.3...gui-v0.1.10-beta.4
 [0.1.10-beta.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.2...gui-v0.1.10-beta.3
