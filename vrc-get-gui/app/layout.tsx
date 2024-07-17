@@ -18,7 +18,7 @@ export default function RootLayout({
 		<html>
 			<head>
 				{/* eslint-disable-next-line @next/next/no-sync-scripts */}
-				<script src="vrc-get:/global-info.js" />
+				<script src="vrc-get://localhost/global-info.js" />
 				{/* eslint-disable-next-line @next/next/no-sync-scripts */}
 				<script src="https://vrc-get.localhost/global-info.js" />
 			</head>

@@ -97,9 +97,10 @@ pub fn startup(app: &mut App) {
         .title("ALCOM")
         .resizable(true)
         .on_navigation(|url| {
-            if cfg!(debug_assertions) {
-                url.host_str() == Some("localhost")
-            } else if cfg!(windows) {
+            if cfg!(debug_assertions) && url.host_str() == Some("localhost") {
+                return true;
+            }
+            if cfg!(windows) {
                 url.scheme() == "https" && url.host_str() == Some("tauri.localhost")
                     || url.host_str() == Some("vrc-get.localhost")
             } else {

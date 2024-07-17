@@ -14,8 +14,6 @@ pub fn handle_vrc_get_scheme(
     log::info!("recived request: {url}");
     let path = if let Some(path) = url.strip_prefix("vrc-get://localhost/") {
         path
-    } else if let Some(path) = url.strip_prefix("vrc-get:/") {
-        path
     } else {
         return ResponseBuilder::new().status(404).body(b"bad sceme".into());
     };
