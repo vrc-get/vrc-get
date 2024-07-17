@@ -60,7 +60,7 @@ function Body({ environment, refetch }: BodyProps) {
 			<div className={"pb-3"} />
 			<h3>{tc("setup:backups:archive")}</h3>
 			<CardDescription className={"whitespace-normal"}>
-				{tc("setup:backups:archive description")}
+				{tc("settings:backup:format description")}
 			</CardDescription>
 			<BackupFormatSelect
 				backupFormat={backupFormat}

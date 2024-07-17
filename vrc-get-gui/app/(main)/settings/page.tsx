@@ -263,8 +263,11 @@ function BackupCard({
 				<BackupPathWarnings backupPath={projectBackupPath} />
 			</div>
 			<div className="mt-2">
+				<h3>{tc("settings:backup:format")}</h3>
+				<p className={"whitespace-normal text-sm"}>
+					{tc("settings:backup:format description")}
+				</p>
 				<label className={"flex items-center"}>
-					<h3>{tc("settings:backup:format")}</h3>
 					<BackupFormatSelect
 						backupFormat={backupFormat}
 						setBackupFormat={setBackupFormat}
