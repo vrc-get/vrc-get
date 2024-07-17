@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Language Settings is not loaded on linux or macOS `#1286`
 
 ### Security
 
