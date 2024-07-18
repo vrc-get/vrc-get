@@ -33,8 +33,8 @@ export function LanguageSelector() {
 		await Promise.all([
 			i18next.changeLanguage(value),
 			environmentSetLanguage(value),
-			refetchLang(),
 		]);
+		await refetchLang();
 	};
 
 	return (

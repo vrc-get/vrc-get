@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Language Selector is very unstable `#1287`
 
 ### Security
 
