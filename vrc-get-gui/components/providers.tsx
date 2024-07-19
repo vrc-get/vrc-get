@@ -77,6 +77,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		let cancel = false;
 		(async () => {
 			try {
+				const isDev = process.env.NODE_ENV === "development";
+				if (isDev) return;
 				const checkVersion = await utilCheckForUpdate();
 				if (cancel) return;
 				if (checkVersion.is_update_available) {
