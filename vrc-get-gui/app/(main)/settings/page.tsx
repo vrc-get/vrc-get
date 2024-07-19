@@ -366,7 +366,13 @@ function AlcomCard({
 		url.searchParams.append("labels", "bug,vrc-get-gui");
 		url.searchParams.append("template", "01_gui_bug-report.yml");
 		url.searchParams.append("os", `${globalInfo.osInfo} - ${globalInfo.arch}`);
-		url.searchParams.append("version", globalInfo.version ?? "unknown");
+		let version = globalInfo.version ?? "unknown";
+		if (globalInfo.commitHash) {
+			version += ` (${globalInfo.commitHash})`;
+		} else {
+			version += " (unknown commit)";
+		}
+		url.searchParams.append("version", version);
 
 		void shellOpen(url.toString());
 	};

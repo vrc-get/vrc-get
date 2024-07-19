@@ -10,6 +10,7 @@ fn main() {
     }
 
     build_templates();
+    get_commit_hash();
 }
 
 fn build_templates() {
@@ -67,4 +68,26 @@ fn build_templates() {
     for t in threads {
         t.join().unwrap();
     }
+}
+
+fn get_commit_hash() {
+    use std::process::*;
+
+    let output = Command::new("git")
+        .arg("rev-parse")
+        .arg("HEAD")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .output()
+        .unwrap();
+
+    let hash_value = std::str::from_utf8(&output.stdout)
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap()
+        .trim();
+
+    println!("cargo:rustc-env=COMMIT_HASH={}", hash_value);
 }
