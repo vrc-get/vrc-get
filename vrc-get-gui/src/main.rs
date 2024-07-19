@@ -33,7 +33,7 @@ fn main() {
     // logger is now initialized, we can use log for panics
     log_panics::init();
 
-    #[cfg(debug_assertions)]
+    #[cfg(dev)]
     commands::export_ts();
 
     let app = tauri::Builder::default()

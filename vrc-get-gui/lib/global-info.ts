@@ -8,6 +8,7 @@ interface GlobalInfo {
 	language: string;
 	theme: string;
 	version: string | null;
+	commitHash: string | null;
 	osType: OsType;
 	arch: Arch;
 	osInfo: string;
@@ -18,6 +19,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	language: "en",
 	theme: "system",
 	version: null,
+	commitHash: null,
 	osType: "WindowsNT",
 	arch: "x86_64",
 	osInfo: "unknown OS",

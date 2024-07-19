@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Include commit hash for issue report `#1288`
 
 ### Deprecated
 
