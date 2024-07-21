@@ -251,7 +251,7 @@ function BackupCard({
 			<h2>{tc("projects:backup")}</h2>
 			<div className="mt-2">
 				<h3>{tc("settings:backup:path")}</h3>
-				<p className={"whitespace-normal"}>
+				<p className={"whitespace-normal text-sm"}>
 					{tc("settings:backup:path description")}
 				</p>
 				<FilePathRow
