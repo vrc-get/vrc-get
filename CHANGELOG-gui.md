@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Language Selector is very unstable `#1287`
+- Typo in the bundle identifier `#1291`
+  - The bundle identifier is changed to `com.anatawa12.vrc-get` from `com.anataw12.vrc-get`
+  - This may leave the old bundle identifier in the registry. Please remove the old one manually.
 
 ### Security
 
