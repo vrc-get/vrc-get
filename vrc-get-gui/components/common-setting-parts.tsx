@@ -221,7 +221,7 @@ export function BackupPathWarnings({ backupPath }: { backupPath: string }) {
 		<div className="flex flex-col gap-1">
 			{inLocalAppData && (
 				<WarningMessage>
-					{tc("setup:backups:warning:in-local-app-data")}
+					{tc("settings:warning:in-local-app-data")}
 				</WarningMessage>
 			)}
 		</div>
