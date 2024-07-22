@@ -116,7 +116,7 @@ pub(super) fn fix_env_variables(command: &mut Command) {
     let appdir = appdir.as_ref();
     let appdir_bytes = appdir.as_bytes();
 
-    if appdir_bytes.contains(&b':') {
+    if appdir_bytes.contains(&b':') || appdir_bytes.is_empty() {
         // if the appdir contains ':',
         // the PATH variables become wired (broken) and impossible to fix so keep as-is
         return;
