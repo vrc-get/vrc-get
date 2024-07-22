@@ -42,3 +42,5 @@ pub fn os_info() -> &'static str {
     static OS_INFO: OnceLock<String> = OnceLock::new();
     OS_INFO.get_or_init(os_more::compute_os_info)
 }
+
+pub use os_more::open_that;

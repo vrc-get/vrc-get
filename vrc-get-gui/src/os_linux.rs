@@ -69,3 +69,5 @@ fn os_release() -> Option<String> {
         _ => None,
     }
 }
+
+pub use open::that as open_that;

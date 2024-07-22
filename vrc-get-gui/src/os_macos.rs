@@ -13,3 +13,5 @@ pub(super) fn compute_os_info() -> String {
         )
     }
 }
+
+pub use open::that as open_that;
