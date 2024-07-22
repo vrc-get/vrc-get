@@ -15,3 +15,7 @@ pub(super) fn compute_os_info() -> String {
 }
 
 pub use open::that as open_that;
+
+pub fn initialize(_: tauri::AppHandle) {
+    // nothing to initialize
+}

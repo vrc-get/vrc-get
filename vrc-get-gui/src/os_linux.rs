@@ -71,3 +71,7 @@ fn os_release() -> Option<String> {
 }
 
 pub use open::that as open_that;
+
+pub fn initialize(_: tauri::AppHandle) {
+    // nothing to initialize
+}

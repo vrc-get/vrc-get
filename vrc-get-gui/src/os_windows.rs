@@ -179,3 +179,7 @@ pub fn local_app_data() -> &'static str {
 }
 
 pub use open::that as open_that;
+
+pub fn initialize(_: tauri::AppHandle) {
+    // nothing to initialize
+}
