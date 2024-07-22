@@ -29,8 +29,8 @@ import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { toVersionString } from "@/lib/version";
 import { useQuery } from "@tanstack/react-query";
 import { CircleX } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useId } from "react";
+import { HeadingPageName } from "../tab-selector";
 
 export default function Page() {
 	return (
@@ -90,7 +90,7 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<HeadingPageName />
+				<HeadingPageName pageType={"/packages/user-packages"} />
 				<div className={"flex-grow"} />
 				<Button onClick={addUserPackage}>
 					{tc("user packages:button:add package")}
@@ -104,32 +104,6 @@ function PageBody() {
 			</ScrollableCardTable>
 			{dialog}
 		</VStack>
-	);
-}
-
-function HeadingPageName() {
-	const router = useRouter();
-
-	const userPackages = useCallback(() => {
-		router.push("/repositories");
-	}, [router]);
-
-	const button =
-		"cursor-pointer py-1.5 font-bold flex-grow-0 hover:bg-secondary rounded-sm p-2";
-
-	return (
-		<div className={"flex flex-row -ml-2 gap-1"}>
-			<button
-				type="button"
-				className={`${button} bg-none`}
-				onClick={userPackages}
-			>
-				{tc("packages:community repositories")}
-			</button>
-			<div className={`${button} bg-secondary`}>
-				{tc("packages:user packages")}
-			</div>
-		</div>
 	);
 }
 

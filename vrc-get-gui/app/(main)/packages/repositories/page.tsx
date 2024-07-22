@@ -36,7 +36,6 @@ import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, CircleX } from "lucide-react";
-import { useRouter } from "next/navigation";
 import type React from "react";
 import {
 	Suspense,
@@ -46,6 +45,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { HeadingPageName } from "../tab-selector";
 import { useAddRepository } from "./use-add-repository";
 import { useImportRepositories } from "./use-import-repositories";
 
@@ -129,7 +129,7 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<HeadingPageName />
+				<HeadingPageName pageType={"/packages/repositories"} />
 				<div className={"flex-grow"} />
 				<DropdownMenu>
 					<div className={"flex divide-x"}>
@@ -169,32 +169,6 @@ function PageBody() {
 			{importRepositoryInfo.dialog}
 			{exportDialog}
 		</VStack>
-	);
-}
-
-function HeadingPageName() {
-	const router = useRouter();
-
-	const userPackages = useCallback(() => {
-		router.push("/packages");
-	}, [router]);
-
-	const button =
-		"cursor-pointer py-1.5 font-bold flex-grow-0 hover:bg-secondary rounded-sm p-2";
-
-	return (
-		<div className={"flex flex-row -ml-2 gap-1"}>
-			<div className={`${button} bg-secondary`}>
-				{tc("packages:community repositories")}
-			</div>
-			<button
-				type="button"
-				className={`${button} bg-none`}
-				onClick={userPackages}
-			>
-				{tc("packages:user packages")}
-			</button>
-		</div>
 	);
 }
 
