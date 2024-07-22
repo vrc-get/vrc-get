@@ -5,13 +5,16 @@ use std::fs::OpenOptions;
 use std::io;
 use std::os::fd::AsRawFd;
 use std::path::Path;
+use std::process::Command;
 use std::sync::OnceLock;
 
 use nix::libc::{c_short, flock, F_UNLCK};
-use tokio::process::Command;
 
 pub(crate) async fn start_command(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
-    Command::new(path).args(args).spawn()?;
+    let mut command = Command::new(path);
+    command.args(args);
+    os_more::fix_env_variables(&mut command);
+    command.spawn()?;
     Ok(())
 }
 
