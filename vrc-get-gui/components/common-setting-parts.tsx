@@ -16,10 +16,12 @@ import {
 	environmentTheme,
 	utilOpen,
 } from "@/lib/bindings";
+import { useGlobalInfo } from "@/lib/global-info";
 import i18next, { languages, tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useQuery } from "@tanstack/react-query";
+import { CircleAlert } from "lucide-react";
 import React from "react";
 import type { ToastContent } from "react-toastify";
 
@@ -33,8 +35,8 @@ export function LanguageSelector() {
 		await Promise.all([
 			i18next.changeLanguage(value),
 			environmentSetLanguage(value),
-			refetchLang(),
 		]);
+		await refetchLang();
 	};
 
 	return (
@@ -174,6 +176,69 @@ export function FilePathRow({
 				</Button>
 			)}
 			{dialog}
+		</div>
+	);
+}
+
+export function ProjectPathWarnings({ projectPath }: { projectPath: string }) {
+	const globalInfo = useGlobalInfo();
+	const isWindows = globalInfo.osType === "WindowsNT";
+	const hasNonAscii = isWindows && projectPath.match(/[^\x20-\x7F]/);
+	const hasWhitespace = projectPath.includes(" ");
+	const inLocalAppData = !!(
+		isWindows &&
+		globalInfo.localAppData &&
+		projectPath.includes(globalInfo.localAppData)
+	);
+
+	return (
+		<div className="flex flex-col gap-1">
+			{hasWhitespace && (
+				<WarningMessage>{tc("settings:warning:whitespace")}</WarningMessage>
+			)}
+			{hasNonAscii && (
+				<WarningMessage>{tc("settings:warning:non-ascii")}</WarningMessage>
+			)}
+			{inLocalAppData && (
+				<WarningMessage>
+					{tc("settings:warning:in-local-app-data")}
+				</WarningMessage>
+			)}
+		</div>
+	);
+}
+
+export function BackupPathWarnings({ backupPath }: { backupPath: string }) {
+	const globalInfo = useGlobalInfo();
+	const isWindows = globalInfo.osType === "WindowsNT";
+	const inLocalAppData = !!(
+		isWindows &&
+		globalInfo.localAppData &&
+		backupPath.includes(globalInfo.localAppData)
+	);
+
+	return (
+		<div className="flex flex-col gap-1">
+			{inLocalAppData && (
+				<WarningMessage>
+					{tc("settings:warning:in-local-app-data")}
+				</WarningMessage>
+			)}
+		</div>
+	);
+}
+
+export function WarningMessage({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
+	return (
+		<div className={"flex items-center gap-2"}>
+			<div className="flex-grow-0 flex-shrink-0">
+				<CircleAlert className="text-warning w-5 h-5" />
+			</div>
+			<p className={"whitespace-normal text-sm"}>{children}</p>
 		</div>
 	);
 }

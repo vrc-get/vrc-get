@@ -150,8 +150,10 @@ pub async fn deep_link_install_vcc(app: AppHandle) {
         return;
     };
     let applications_dir = home_dir.join("applications");
-    let desktop_file =
-        applications_dir.join(format!("{app_id}.desktop", app_id = "com.anataw12.vrc_get"));
+    let desktop_file = applications_dir.join(format!(
+        "{app_id}.desktop",
+        app_id = "com.anatawa12.vrc_get"
+    ));
 
     let Some(appimage_path) = app.env().appimage.and_then(|x| x.into_string().ok()) else {
         log::error!("Failed to get appimage path");
@@ -235,8 +237,10 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
         return;
     };
     let applications_dir = home_dir.join("applications");
-    let desktop_file =
-        applications_dir.join(format!("{app_id}.desktop", app_id = "com.anataw12.vrc_get"));
+    let desktop_file = applications_dir.join(format!(
+        "{app_id}.desktop",
+        app_id = "com.anatawa12.vrc_get"
+    ));
 
     match tokio::fs::remove_file(&desktop_file).await {
         Ok(()) => {

@@ -61,7 +61,7 @@ export function useUnity2022Migration({
 		findUnity: findRecommendedUnity,
 		refresh,
 		ConfirmComponent: MigrationConfirmMigrationDialog,
-		dialogHeader: tc("projects:manage:dialog:unity migrate header"),
+		dialogHeader: () => tc("projects:manage:dialog:unity migrate header"),
 	});
 }
 
@@ -106,7 +106,7 @@ export function useUnity2022PatchMigration({
 		refresh,
 
 		ConfirmComponent: MigrationConfirmMigrationPatchDialog,
-		dialogHeader: tc("projects:manage:dialog:unity migrate header"),
+		dialogHeader: () => tc("projects:manage:dialog:unity migrate header"),
 	});
 }
 
@@ -162,7 +162,17 @@ export function useUnityVersionChange({
 		findUnity: findUnityForUnityChange,
 		refresh,
 		ConfirmComponent: UnityVersionChange,
-		dialogHeader: tc("projects:manage:dialog:unity change version header"),
+		dialogHeader: (data) => {
+			if (data.isVRC && data.isTargetVersionSupportedByVRC) {
+				switch (data.kind) {
+					case "upgradePatchOrMinor":
+					case "upgradeMajor":
+						return tc("projects:manage:dialog:unity migrate header");
+				}
+			}
+
+			return tc("projects:manage:dialog:unity change version header");
+		},
 	});
 
 	const request = use.request;
@@ -188,8 +198,33 @@ function UnityVersionChange({
 	cancel,
 	doMigrate,
 	data,
+	result,
 }: ConfirmProps<ChangeUnityData>) {
 	// TODO: description
+
+	if (data.isVRC && data.isTargetVersionSupportedByVRC) {
+		// for supported migrations, show dialog same as migration
+		switch (data.kind) {
+			case "upgradePatchOrMinor":
+				return (
+					<MigrationConfirmMigrationPatchDialog
+						cancel={cancel}
+						doMigrate={doMigrate}
+						result={result}
+						data={{}}
+					/>
+				);
+			case "upgradeMajor":
+				return (
+					<MigrationConfirmMigrationDialog
+						cancel={cancel}
+						doMigrate={doMigrate}
+						result={result}
+						data={{}}
+					/>
+				);
+		}
+	}
 
 	let mainMessage: React.ReactNode;
 
@@ -373,12 +408,15 @@ type StateInternal<Data> =
 	  }
 	| {
 			state: "copyingProject";
+			data: Data;
 	  }
 	| {
 			state: "updating";
+			data: Data;
 	  }
 	| {
 			state: "finalizing";
+			data: Data;
 			lines: [number, string][];
 	  };
 
@@ -426,7 +464,7 @@ function useMigrationInternal<Data>({
 	refresh?: () => void;
 
 	ConfirmComponent: React.ComponentType<ConfirmProps<Data>>;
-	dialogHeader: React.ReactNode;
+	dialogHeader: (data: Data) => React.ReactNode;
 }): Result<Data> {
 	const router = useRouter();
 	const unitySelector = useUnitySelectorDialog();
@@ -485,13 +523,13 @@ function useMigrationInternal<Data>({
 				migrateProjectPath = projectPath;
 			} else {
 				// copy
-				setInstallStatus({ state: "copyingProject" });
+				setInstallStatus({ state: "copyingProject", data });
 				migrateProjectPath =
 					await environmentCopyProjectForMigration(projectPath);
 			}
-			setInstallStatus({ state: "updating" });
+			setInstallStatus({ state: "updating", data });
 			await updateProjectPreUnityLaunch(migrateProjectPath, data);
-			setInstallStatus({ state: "finalizing", lines: [] });
+			setInstallStatus({ state: "finalizing", lines: [], data });
 			let lineNumber = 0;
 			const [, promise] = callAsyncCommand(
 				projectCallUnityForMigration,
@@ -543,6 +581,7 @@ function useMigrationInternal<Data>({
 		setInstallStatus({ state: "normal" });
 	};
 
+	let dialogHeaderForState: React.ReactNode = null;
 	let dialogBodyForState: React.ReactNode = null;
 
 	switch (installStatus.state) {
@@ -550,6 +589,7 @@ function useMigrationInternal<Data>({
 			dialogBodyForState = null;
 			break;
 		case "confirm":
+			dialogHeaderForState = dialogHeader(installStatus.data);
 			dialogBodyForState = (
 				<ConfirmComponent
 					result={installStatus.findResult}
@@ -566,12 +606,15 @@ function useMigrationInternal<Data>({
 			);
 			break;
 		case "copyingProject":
+			dialogHeaderForState = dialogHeader(installStatus.data);
 			dialogBodyForState = <MigrationCopyingDialog />;
 			break;
 		case "updating":
+			dialogHeaderForState = dialogHeader(installStatus.data);
 			dialogBodyForState = <MigrationMigratingDialog />;
 			break;
 		case "noExactUnity2022":
+			dialogHeaderForState = dialogHeader(installStatus.data);
 			dialogBodyForState = (
 				<NoExactUnity2022Dialog
 					expectedVersion={installStatus.findResult.expectingVersion}
@@ -581,6 +624,7 @@ function useMigrationInternal<Data>({
 			);
 			break;
 		case "finalizing":
+			dialogHeaderForState = dialogHeader(installStatus.data);
 			dialogBodyForState = (
 				<MigrationCallingUnityForMigrationDialog lines={installStatus.lines} />
 			);
@@ -595,7 +639,7 @@ function useMigrationInternal<Data>({
 				{unitySelector.dialog}
 				{dialogBodyForState == null ? null : (
 					<DialogOpen className={"whitespace-normal leading-relaxed"}>
-						<DialogTitle>{dialogHeader}</DialogTitle>
+						<DialogTitle>{dialogHeaderForState}</DialogTitle>
 						{dialogBodyForState}
 					</DialogOpen>
 				)}

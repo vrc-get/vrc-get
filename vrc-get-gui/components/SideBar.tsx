@@ -60,7 +60,7 @@ export function SideBar({ className }: { className?: string }) {
 			<div className="flex flex-col gap-1 p-2 min-w-40 flex-grow">
 				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
 				<SideBarItem
-					href={"/repositories"}
+					href={"/packages/repositories"}
 					text={tc("packages")}
 					icon={Package}
 				/>

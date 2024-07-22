@@ -8,18 +8,32 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Change Unity version `#1246`
 
 ### Changed
+- Include commit hash for issue report `#1288`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Fails to open projects contains whitespace in project name on windows `#1256`
+- Language Selector is very unstable `#1287`
+- Typo in the bundle identifier `#1291`
+  - The bundle identifier is changed to `com.anatawa12.vrc-get` from `com.anataw12.vrc-get`
+  - This may leave the old bundle identifier in the registry. Please remove the old one manually.
 
 ### Security
+
+## [0.1.11] - 2024-07-17
+### Fixed
+- Language Settings is not loaded on linux or macOS [`#1286`](https://github.com/vrc-get/vrc-get/pull/1286)
+
+## [0.1.10] - 2024-07-16
+### Added
+- Change Unity version [`#1246`](https://github.com/vrc-get/vrc-get/pull/1246)
+
+### Fixed
+- Fails to open projects contains whitespace in project name on windows [`#1256`](https://github.com/vrc-get/vrc-get/pull/1256)
 
 ## [0.1.10-beta.4] - 2024-07-07
 ### Added
@@ -373,7 +387,9 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.4...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.11...HEAD
+[0.1.11]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10...gui-v0.1.11
+[0.1.10]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.4...gui-v0.1.10
 [0.1.10-beta.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.3...gui-v0.1.10-beta.4
 [0.1.10-beta.3]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.2...gui-v0.1.10-beta.3
 [0.1.10-beta.2]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.1...gui-v0.1.10-beta.2

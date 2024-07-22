@@ -5,8 +5,10 @@ import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import {
 	BackupFormatSelect,
+	BackupPathWarnings,
 	FilePathRow,
 	LanguageSelector,
+	ProjectPathWarnings,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { HNavBar, VStack } from "@/components/layout";
@@ -116,6 +118,7 @@ function Settings({
 						refetch={refetch}
 						successMessage={tc("settings:toast:default project path updated")}
 					/>
+					<ProjectPathWarnings projectPath={settings.default_project_path} />
 				</Card>
 				<BackupCard
 					projectBackupPath={settings.project_backup_path}
@@ -248,7 +251,7 @@ function BackupCard({
 			<h2>{tc("projects:backup")}</h2>
 			<div className="mt-2">
 				<h3>{tc("settings:backup:path")}</h3>
-				<p className={"whitespace-normal"}>
+				<p className={"whitespace-normal text-sm"}>
 					{tc("settings:backup:path description")}
 				</p>
 				<FilePathRow
@@ -257,10 +260,14 @@ function BackupCard({
 					refetch={refetch}
 					successMessage={tc("settings:toast:backup path updated")}
 				/>
+				<BackupPathWarnings backupPath={projectBackupPath} />
 			</div>
 			<div className="mt-2">
+				<h3>{tc("settings:backup:format")}</h3>
+				<p className={"whitespace-normal text-sm"}>
+					{tc("settings:backup:format description")}
+				</p>
 				<label className={"flex items-center"}>
-					<h3>{tc("settings:backup:format")}</h3>
 					<BackupFormatSelect
 						backupFormat={backupFormat}
 						setBackupFormat={setBackupFormat}
@@ -366,7 +373,13 @@ function AlcomCard({
 		url.searchParams.append("labels", "bug,vrc-get-gui");
 		url.searchParams.append("template", "01_gui_bug-report.yml");
 		url.searchParams.append("os", `${globalInfo.osInfo} - ${globalInfo.arch}`);
-		url.searchParams.append("version", globalInfo.version ?? "unknown");
+		let version = globalInfo.version ?? "unknown";
+		if (globalInfo.commitHash) {
+			version += ` (${globalInfo.commitHash})`;
+		} else {
+			version += " (unknown commit)";
+		}
+		url.searchParams.append("version", version);
 
 		void utilOpenUrl(url.toString());
 	};

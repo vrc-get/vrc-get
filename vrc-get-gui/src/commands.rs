@@ -111,7 +111,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
     ]
 }
 
-#[cfg(debug_assertions)]
+#[cfg(dev)]
 pub(crate) fn export_ts() {
     let export_path = "lib/bindings.ts";
     tauri_specta::ts::export_with_cfg(

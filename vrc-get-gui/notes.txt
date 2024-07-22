@@ -1,9 +1,4 @@
 # This is notes text for the updater json, which will be shown in the updater dialog.
 # Lines starting with '#' will be ignored (as comments).
-This release includes the following features!:
-- Receive Beta releases of ALCOM!
-- Importing / Exporting Repositories list
-- Setup Wizard
-  Setup Wizard will be shown after upgrading to this version.
-- User Package Management
-- Change Unity version of Project
+This release fixed Typo in the bundle identifier
+  This may leave the old bundle identifier in the registry. Please remove the old one manually.

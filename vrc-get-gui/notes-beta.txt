@@ -1,4 +1,4 @@
 # This is notes text for the updater json, which will be shown in the updater dialog.
 # Lines starting with '#' will be ignored (as comments).
-This release includes the following features!:
-- Change Unity version of Project
+This release fixed Typo in the bundle identifier
+  This may leave the old bundle identifier in the registry. Please remove the old one manually.

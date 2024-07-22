@@ -14,8 +14,6 @@ pub fn handle_vrc_get_scheme(
     log::info!("recived request: {url}");
     let path = if let Some(path) = url.strip_prefix("vrc-get://localhost/") {
         path
-    } else if let Some(path) = url.strip_prefix("vrc-get:/") {
-        path
     } else {
         return ResponseBuilder::new().status(404).body(b"bad sceme".into());
     };
@@ -37,6 +35,7 @@ pub fn global_info_json(app: &AppHandle) -> Result<Response, Box<dyn std::error:
         language: &'a str,
         theme: &'a str,
         version: &'a str,
+        commit_hash: Option<&'a str>,
         os_type: &'a str,
         arch: &'a str,
         os_info: &'a str,
@@ -66,6 +65,7 @@ pub fn global_info_json(app: &AppHandle) -> Result<Response, Box<dyn std::error:
         language: &config.language,
         theme: &config.theme,
         version: env!("CARGO_PKG_VERSION"),
+        commit_hash: option_env!("COMMIT_HASH"),
         os_type,
         arch,
         os_info,
