@@ -33,7 +33,7 @@
 		"classnames": "^2.5.1",
 		"clsx": "^2.1.1",
 		"i18next": "^23.11.5",
-		"lucide-react": "^0.401.0",
+		"lucide-react": "^0.412.0",
 		"next": "14.2.4",
 		"react": "^18",
 		"react-dom": "^18",
