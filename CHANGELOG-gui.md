@@ -21,6 +21,10 @@ The format is based on [Keep a Changelog].
 - Typo in the bundle identifier `#1291`
   - The bundle identifier is changed to `com.anatawa12.vrc-get` from `com.anataw12.vrc-get`
   - This may leave the old bundle identifier in the registry. Please remove the old one manually.
+- Links are not working with KDE6 `#1260`
+  - Since this version, system `xdg-open` will be used for opening links.
+    Please make sure you have `xdg-open` in your environment.
+    (I believe most modern desktop environment has that so I believe no opearation is needed)
 
 ### Security
 
