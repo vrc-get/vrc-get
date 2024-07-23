@@ -13,6 +13,7 @@ interface GlobalInfo {
 	arch: Arch;
 	osInfo: string;
 	localAppData: string; // empty string for non-windows
+	defaultUnityArguments: string[];
 }
 
 const fallbackGlobalInfo: Readonly<GlobalInfo> = {
@@ -24,6 +25,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	arch: "x86_64",
 	osInfo: "unknown OS",
 	localAppData: "",
+	defaultUnityArguments: [],
 };
 
 const globalInfo: Readonly<GlobalInfo> = load();

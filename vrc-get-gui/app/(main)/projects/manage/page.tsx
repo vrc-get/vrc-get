@@ -3,7 +3,12 @@
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+	DialogDescription,
+	DialogFooter,
+	DialogOpen,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -23,17 +28,24 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+	UnityArgumentsSettings,
+	useUnityArgumentsSettings,
+} from "@/components/unity-arguments-settings";
 import { useBackupProjectModal } from "@/lib/backup-project";
 import {
 	type TauriProjectDetails,
 	type TauriUnityVersions,
+	environmentGetDefaultUnityArguments,
 	environmentPackages,
 	environmentRefetchPackages,
 	environmentRepositoriesInfo,
 	environmentUnityVersions,
 	projectDetails,
+	projectGetCustomUnityArgs,
 	projectGetUnityPath,
 	projectResolve,
+	projectSetCustomUnityArgs,
 	projectSetUnityPath,
 	utilOpen,
 } from "@/lib/bindings";
@@ -55,7 +67,6 @@ import {
 	VRCSDK_PACKAGES,
 	combinePackagesAndProjectDetails,
 } from "./collect-package-row-info";
-import { LaunchSettings } from "./launch-settings";
 import { PackageListCard } from "./package-list-card";
 import { PageContextProvider } from "./page-context";
 import {
@@ -493,10 +504,25 @@ function ProjectViewHeader({
 	onBackup?: () => void;
 }) {
 	const openUnity = useOpenUnity();
-	const [openLaunchOptions, setOpenLaunchOptions] = useState(false);
+	const [openLaunchOptions, setOpenLaunchOptions] = useState<
+		| false
+		| {
+				initialArgs: null | string[];
+				defaultArgs: string[];
+		  }
+	>(false);
 
-	const onChangeLaunchOptions = () => setOpenLaunchOptions(true);
-	const closeChangeLaunchOptions = () => setOpenLaunchOptions(false);
+	const onChangeLaunchOptions = async () => {
+		const initialArgs = await projectGetCustomUnityArgs(projectPath);
+		const defaultArgs = await environmentGetDefaultUnityArguments();
+		setOpenLaunchOptions({
+			initialArgs,
+			defaultArgs,
+		});
+	};
+	const closeChangeLaunchOptions = () => {
+		setOpenLaunchOptions(false);
+	};
 
 	return (
 		<HNavBar className={className}>
@@ -547,15 +573,57 @@ function ProjectViewHeader({
 				</DropdownMenuContent>
 			</DropdownMenu>
 			{openUnity.dialog}
-			<Dialog open={openLaunchOptions}>
-				<DialogContent>
+			{openLaunchOptions !== false && (
+				<DialogOpen>
 					<LaunchSettings
 						projectPath={projectPath}
+						initialValue={openLaunchOptions.initialArgs}
+						defaultUnityArgs={openLaunchOptions.defaultArgs}
 						close={closeChangeLaunchOptions}
 					/>
-				</DialogContent>
-			</Dialog>
+				</DialogOpen>
+			)}
 		</HNavBar>
+	);
+}
+
+function LaunchSettings({
+	projectPath,
+	defaultUnityArgs,
+	initialValue,
+	close,
+}: {
+	projectPath: string;
+	defaultUnityArgs: string[];
+	initialValue: string[] | null;
+	close: () => void;
+}) {
+	const context = useUnityArgumentsSettings(initialValue, defaultUnityArgs);
+
+	const saveAndClose = async () => {
+		await projectSetCustomUnityArgs(projectPath, context.currentValue);
+		close();
+	};
+
+	return (
+		<>
+			<DialogTitle>{tc("projects:dialog:launch options")}</DialogTitle>
+			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
+			<DialogDescription className={"max-h-[50dvh] overflow-y-auto"}>
+				<h3 className={"text-lg"}>
+					{tc("projects:dialog:command-line arguments")}
+				</h3>
+				<UnityArgumentsSettings context={context} />
+			</DialogDescription>
+			<DialogFooter>
+				<Button onClick={close} variant={"destructive"}>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button onClick={saveAndClose} disabled={context.hasError}>
+					{tc("general:button:save")}
+				</Button>
+			</DialogFooter>
+		</>
 	);
 }
 
