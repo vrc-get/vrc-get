@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Way to customize default command-line arguments for unity `#1304`
+  - You now can change default command-line arguments
 
 ### Changed
 - Include commit hash for issue report `#1288`
