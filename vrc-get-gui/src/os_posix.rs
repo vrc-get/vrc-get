@@ -5,13 +5,16 @@ use std::fs::OpenOptions;
 use std::io;
 use std::os::fd::AsRawFd;
 use std::path::Path;
+use std::process::Command;
 use std::sync::OnceLock;
 
 use nix::libc::{c_short, flock, F_UNLCK};
-use tokio::process::Command;
 
 pub(crate) async fn start_command(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
-    Command::new(path).args(args).spawn()?;
+    let mut command = Command::new(path);
+    command.args(args);
+    os_more::fix_env_variables(&mut command);
+    command.spawn()?;
     Ok(())
 }
 
@@ -42,3 +45,6 @@ pub fn os_info() -> &'static str {
     static OS_INFO: OnceLock<String> = OnceLock::new();
     OS_INFO.get_or_init(os_more::compute_os_info)
 }
+
+pub use os_more::initialize;
+pub use os_more::open_that;

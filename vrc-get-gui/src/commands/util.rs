@@ -10,6 +10,7 @@ use vrc_get_vpm::io::DefaultEnvironmentIo;
 use crate::commands::prelude::*;
 use crate::config::GuiConfigState;
 use crate::logging::LogEntry;
+use crate::os::open_that;
 use crate::utils::find_existing_parent_dir_or_home;
 
 #[derive(serde::Deserialize, specta::Type)]
@@ -31,15 +32,22 @@ pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), R
             }
             OpenOptions::CreateFolderIfNotExists => {
                 create_dir_all(&path).await?;
-                open::that(path)?;
+                open_that(path)?;
             }
             OpenOptions::OpenParentIfNotExists => {
-                open::that(find_existing_parent_dir_or_home(path).as_os_str())?;
+                open_that(find_existing_parent_dir_or_home(path).as_os_str())?;
             }
         }
     } else {
-        open::that(path)?;
+        open_that(path)?;
     }
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn util_open_url(url: String) -> Result<(), RustError> {
+    open_that(url)?;
     Ok(())
 }
 

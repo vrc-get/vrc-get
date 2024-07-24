@@ -13,9 +13,9 @@ import {
 	type TauriPendingProjectChanges,
 	type TauriRemoveReason,
 	projectApplyPendingChanges,
+	utilOpenUrl,
 } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
-import { shellOpen } from "@/lib/shellOpen";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareVersion, toVersionString } from "@/lib/version";
 import type React from "react";
@@ -306,7 +306,7 @@ function ProjectChangesDialog({
 					<Button
 						className={"ml-1 px-2"}
 						size={"sm"}
-						onClick={() => shellOpen(url)}
+						onClick={() => utilOpenUrl(url)}
 					>
 						{tc("projects:manage:button:see changelog")}
 					</Button>

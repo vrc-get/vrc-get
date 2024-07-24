@@ -13,3 +13,14 @@ pub(super) fn compute_os_info() -> String {
         )
     }
 }
+
+pub use open::that as open_that;
+use std::process::Command;
+
+pub fn initialize(_: tauri::AppHandle) {
+    // nothing to initialize
+}
+
+pub(crate) fn fix_env_variables(_: &mut Command) {
+    // nothing to do
+}

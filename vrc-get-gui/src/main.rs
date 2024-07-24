@@ -63,6 +63,8 @@ fn main() {
         .build(tauri_context())
         .expect("error while building tauri application");
 
+    os::initialize(app.handle());
+
     // deep link support
     #[cfg(target_os = "macos")]
     objc_patch::patch_delegate();

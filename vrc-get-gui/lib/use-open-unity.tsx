@@ -10,9 +10,9 @@ import {
 	projectGetUnityPath,
 	projectOpenUnity,
 	projectSetUnityPath,
+	utilOpenUrl,
 } from "@/lib/bindings";
 import i18next, { tc } from "@/lib/i18n";
-import { shellOpen } from "@/lib/shellOpen";
 import { toastError, toastNormal } from "@/lib/toast";
 import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
 import React from "react";
@@ -154,7 +154,7 @@ function UnityInstallWindow({
 	close: () => void;
 }) {
 	const openUnityHub = async () => {
-		await shellOpen(installWithUnityHubLink);
+		await utilOpenUrl(installWithUnityHubLink);
 	};
 
 	return (

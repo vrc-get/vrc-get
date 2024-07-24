@@ -4,8 +4,8 @@ import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { ScrollableCard } from "@/components/ScrollableCard";
 import { VStack } from "@/components/layout";
 import { Card } from "@/components/ui/card";
+import { utilOpenUrl } from "@/lib/bindings";
 import type { Licenses } from "@/lib/licenses";
-import { shellOpen } from "@/lib/shellOpen";
 
 export default function RenderPage({
 	licenses,
@@ -37,7 +37,7 @@ export default function RenderPage({
 						<ul className={"ml-2"}>
 							{license.packages.map((pkg) => (
 								<li key={`${pkg.name}@${pkg.version}`}>
-									<button type="button" onClick={() => shellOpen(pkg.url)}>
+									<button type="button" onClick={() => utilOpenUrl(pkg.url)}>
 										{pkg.name} ({pkg.version})
 									</button>
 								</li>

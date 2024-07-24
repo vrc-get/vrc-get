@@ -13,10 +13,10 @@ import {
 	projectCallUnityForMigration,
 	projectIsUnityLaunching,
 	projectMigrateProjectTo2022,
+	utilOpenUrl,
 } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
-import { shellOpen } from "@/lib/shellOpen";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
@@ -711,7 +711,7 @@ function NoExactUnity2022Dialog({
 	close: () => void;
 }) {
 	const openUnityHub = async () => {
-		await shellOpen(installWithUnityHubLink);
+		await utilOpenUrl(installWithUnityHubLink);
 	};
 
 	return (

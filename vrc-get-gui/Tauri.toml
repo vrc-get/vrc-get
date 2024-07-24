@@ -9,9 +9,6 @@ productName = "ALCOM"
 
 [tauri]
 
-[tauri.allowlist]
-shell = { open = "^((https|unityhub)?://\\w+).+" }
-
 [tauri.security]
 # csp =
 

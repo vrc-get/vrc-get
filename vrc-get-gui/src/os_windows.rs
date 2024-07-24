@@ -177,3 +177,9 @@ pub fn local_app_data() -> &'static str {
             .unwrap_or_else(|| String::new())
     })
 }
+
+pub use open::that as open_that;
+
+pub fn initialize(_: tauri::AppHandle) {
+    // nothing to initialize
+}

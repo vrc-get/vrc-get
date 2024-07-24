@@ -43,10 +43,10 @@ import {
 	environmentSetShowPrereleasePackages,
 	environmentSetUseAlcomForVccProtocol,
 	utilCheckForUpdate,
+	utilOpenUrl,
 } from "@/lib/bindings";
 import globalInfo, { useGlobalInfo } from "@/lib/global-info";
 import { tc, tt } from "@/lib/i18n";
-import { shellOpen } from "@/lib/shellOpen";
 import {
 	toastError,
 	toastNormal,
@@ -482,7 +482,7 @@ function AlcomCard({
 		}
 		url.searchParams.append("version", version);
 
-		void shellOpen(url.toString());
+		void utilOpenUrl(url.toString());
 	};
 
 	const changeReleaseChannel = async (value: "indeterminate" | boolean) => {
