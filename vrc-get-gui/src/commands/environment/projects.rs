@@ -627,6 +627,7 @@ pub async fn environment_create_project(
         settings_file.set_len(0).await?;
         settings_file.write_all(settings.as_bytes()).await?;
         settings_file.flush().await?;
+        settings_file.sync_data().await?;
         drop(settings_file);
     }
 

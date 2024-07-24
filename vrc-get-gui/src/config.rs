@@ -8,6 +8,7 @@ use arc_swap::ArcSwapOption;
 use futures::AsyncReadExt;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::{Mutex, MutexGuard};
 
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
@@ -235,7 +236,10 @@ impl GuiConfigMutRef<'_> {
     pub async fn save(self) -> io::Result<()> {
         let json = serde_json::to_string_pretty(&self.config)?;
         tokio::fs::create_dir_all(self.path.parent().unwrap()).await?;
-        tokio::fs::write(&self.path, json.as_bytes()).await?;
+        let mut file = tokio::fs::File::create(&self.path).await?;
+        file.write_all(json.as_bytes()).await?;
+        file.sync_data().await?;
+        drop(file);
         self.cache.swap(Some(Arc::new(GuiConfigStateInner {
             config: self.config,
             path: self.path,

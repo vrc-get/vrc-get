@@ -624,7 +624,7 @@ fn folder_stream(
     }
 }
 
-async fn create_zip(
+async fn create_backup_zip(
     backup_path: &Path,
     project_path: &Path,
     compression: async_zip::Compression,
@@ -668,6 +668,7 @@ async fn create_zip(
 
     writer.close().await?;
     file.flush().await?;
+    file.sync_data().await?;
     drop(file);
     Ok(())
 }
@@ -734,7 +735,7 @@ pub async fn project_create_backup(
                         .join(&backup_name)
                         .with_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    create_zip(
+                    create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
                         async_zip::Compression::Stored,
@@ -747,7 +748,7 @@ pub async fn project_create_backup(
                         .join(&backup_name)
                         .with_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    create_zip(
+                    create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
@@ -760,7 +761,7 @@ pub async fn project_create_backup(
                         .join(&backup_name)
                         .with_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    create_zip(
+                    create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
@@ -776,7 +777,7 @@ pub async fn project_create_backup(
                         .with_extension("zip");
 
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    create_zip(
+                    create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
