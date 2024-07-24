@@ -1,5 +1,7 @@
 use crate::io;
-use crate::io::{EnvironmentIo, FileSystemProjectIo, FileType, IoTrait, Metadata, ProjectIo};
+use crate::io::{
+    EnvironmentIo, FileStream, FileSystemProjectIo, FileType, IoTrait, Metadata, ProjectIo,
+};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::OsString;
@@ -8,6 +10,7 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::fs;
+use tokio::io::AsyncWriteExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 #[derive(Debug, Clone)]
@@ -180,6 +183,15 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
         tokio::fs::write(self.resolve(path)?, content).await
     }
 
+    async fn write_sync(&self, path: &Path, content: &[u8]) -> io::Result<()> {
+        let path = self.resolve(path)?;
+        let mut file = fs::File::create(&path).await?;
+        file.write_all(content).await?;
+        file.flush().await?;
+        file.sync_data().await?;
+        Ok(())
+    }
+
     async fn remove_file(&self, path: &Path) -> io::Result<()> {
         fs::remove_file(self.resolve(path)?).await
     }
@@ -234,6 +246,8 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
         Ok(fs::File::open(self.resolve(path)?).await?.compat())
     }
 }
+
+impl FileStream for tokio_util::compat::Compat<fs::File> {}
 
 pub struct ReadDir {
     inner: fs::ReadDir,

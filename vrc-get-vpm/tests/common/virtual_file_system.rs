@@ -119,6 +119,14 @@ impl vrc_get_vpm::io::IoTrait for VirtualFileSystem {
         Ok(())
     }
 
+    fn write_sync(
+        &self,
+        path: &Path,
+        content: &[u8],
+    ) -> impl Future<Output = io::Result<()>> + Send {
+        self.write(path, content)
+    }
+
     async fn remove_file(&self, path: &Path) -> io::Result<()> {
         let Some((dir_path, last)) = self.resolve2(path)? else {
             return err(IS_DIRECTORY, "is directory");
@@ -650,6 +658,7 @@ impl vrc_get_vpm::io::DirEntry for DirEntry {
 mod file_stream {
     use crate::common::virtual_file_system::FileContent;
     use futures::{AsyncRead, AsyncSeek, AsyncWrite};
+    use std::future::Future;
     use std::io;
     use std::io::{ErrorKind, SeekFrom};
     use std::pin::Pin;
@@ -755,4 +764,6 @@ mod file_stream {
             Poll::Ready(Ok(()))
         }
     }
+
+    impl vrc_get_vpm::io::FileStream for FileStream {}
 }

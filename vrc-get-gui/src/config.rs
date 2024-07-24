@@ -1,16 +1,17 @@
+use std::future::{ready, Future};
 use std::io;
-use std::io::Read;
 use std::ops::{Deref, DerefMut};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use arc_swap::ArcSwapOption;
-use futures::AsyncReadExt;
+use futures::*;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::{Mutex, MutexGuard};
 
-use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -235,7 +236,10 @@ impl GuiConfigMutRef<'_> {
     pub async fn save(self) -> io::Result<()> {
         let json = serde_json::to_string_pretty(&self.config)?;
         tokio::fs::create_dir_all(self.path.parent().unwrap()).await?;
-        tokio::fs::write(&self.path, json.as_bytes()).await?;
+        let mut file = tokio::fs::File::create(&self.path).await?;
+        file.write_all(json.as_bytes()).await?;
+        file.sync_data().await?;
+        drop(file);
         self.cache.swap(Some(Arc::new(GuiConfigStateInner {
             config: self.config,
             path: self.path,
@@ -260,36 +264,91 @@ impl DerefMut for GuiConfigMutRef<'_> {
     }
 }
 
-async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
-    let path = io.resolve("vrc-get/gui-config.json".as_ref());
-    let config = match io.open(&path).await {
-        Ok(mut file) => {
-            let mut buffer = Vec::new();
-            file.read_to_end(&mut buffer).await?;
-            let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
-            loaded.fix_defaults();
-            loaded
+trait FsWrapper {
+    fn read(path: &Path) -> impl Future<Output = io::Result<Vec<u8>>> + Send;
+    fn rename(from: &Path, to: &Path) -> impl Future<Output = io::Result<()>> + Send;
+}
+
+async fn loader<F: FsWrapper>(path: PathBuf) -> io::Result<GuiConfigStateInner> {
+    async fn load_fs<F: FsWrapper>(path: &Path) -> io::Result<GuiConfig> {
+        match F::read(path).await {
+            Ok(buffer) => {
+                let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
+                loaded.fix_defaults();
+                Ok(loaded)
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(GuiConfig::default()),
+            Err(e) => Err(e),
         }
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => GuiConfig::default(),
-        Err(e) => return Err(e),
+    }
+
+    async fn backup_old_config<F: FsWrapper>(path: &Path) -> io::Result<()> {
+        let mut i = 0;
+        loop {
+            let backup_path = path.with_extension(format!("json.bak.{}", i));
+            match F::rename(path, &backup_path).await {
+                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                    i += 1;
+                }
+                Ok(()) => break Ok(()),
+                Err(e) if e.kind() == io::ErrorKind::NotFound => break Ok(()),
+                Err(e) => break Err(e),
+            }
+        }
+    }
+
+    let config = match load_fs::<F>(&path).await {
+        Ok(loaded) => loaded,
+        Err(e) => {
+            log::error!(
+                "Failed to load gui-config.json, using default config: {}",
+                e
+            );
+
+            // backup old config if possible
+            if let Err(e) = backup_old_config::<F>(&path).await {
+                log::error!("Failed to backup old config: {}", e);
+            }
+
+            GuiConfig::default()
+        }
     };
 
     Ok(GuiConfigStateInner { config, path })
 }
 
-fn load_sync(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
-    let path = io.resolve("vrc-get/gui-config.json".as_ref());
-    let config = match std::fs::File::open(&path) {
-        Ok(mut file) => {
-            let mut buffer = Vec::new();
-            file.read_to_end(&mut buffer)?;
-            let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
-            loaded.fix_defaults();
-            loaded
+async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
+    struct AsyncIO;
+    impl FsWrapper for AsyncIO {
+        fn read(path: &Path) -> impl Future<Output = io::Result<Vec<u8>>> + Send {
+            tokio::fs::read(path)
         }
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => GuiConfig::default(),
-        Err(e) => return Err(e),
-    };
 
-    Ok(GuiConfigStateInner { config, path })
+        fn rename(from: &Path, to: &Path) -> impl Future<Output = io::Result<()>> + Send {
+            tokio::fs::rename(from, to)
+        }
+    }
+
+    let path = io.resolve("vrc-get/gui-config.json".as_ref());
+
+    loader::<AsyncIO>(path).await
+}
+
+fn load_sync(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
+    struct SyncIO;
+    impl FsWrapper for SyncIO {
+        fn read(path: &Path) -> impl Future<Output = io::Result<Vec<u8>>> + Send {
+            ready(std::fs::read(path))
+        }
+
+        fn rename(from: &Path, to: &Path) -> impl Future<Output = io::Result<()>> + Send {
+            ready(std::fs::rename(from, to))
+        }
+    }
+
+    let path = io.resolve("vrc-get/gui-config.json".as_ref());
+
+    loader::<SyncIO>(path)
+        .now_or_never()
+        .expect("sync operation suspended")
 }

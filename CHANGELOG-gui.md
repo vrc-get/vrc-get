@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Include commit hash for issue report `#1288`
+- Use default config if `config.json` is corrupted `#1307`
+  - Previously, ALCOM will crash if `config.json` is corrupted. Now, ALCOM will use default config if `config.json` is corrupted.
 
 ### Deprecated
 

@@ -41,7 +41,8 @@ impl<T: Serialize> SaveController<T> {
 
         io.create_dir_all(path.parent().unwrap_or("".as_ref()))
             .await?;
-        io.write(path, &to_vec_pretty_os_eol(&self.parsed)?).await?;
+        io.write_sync(path, &to_vec_pretty_os_eol(&self.parsed)?)
+            .await?;
 
         self.settings_changed = false;
         Ok(())
