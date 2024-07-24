@@ -38,6 +38,8 @@ pub struct GuiConfig {
     pub use_alcom_for_vcc_protocol: bool,
     #[serde(default)]
     pub setup_process_progress: u32,
+    #[serde(default)]
+    pub default_unity_arguments: Option<Vec<String>>,
 }
 
 impl Default for GuiConfig {
@@ -54,6 +56,7 @@ impl Default for GuiConfig {
             release_channel: release_channel_default(),
             use_alcom_for_vcc_protocol: false,
             setup_process_progress: 0,
+            default_unity_arguments: None,
         }
     }
 }

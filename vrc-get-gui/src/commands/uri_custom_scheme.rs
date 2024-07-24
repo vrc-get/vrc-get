@@ -2,9 +2,9 @@ use serde::Serialize;
 use tauri::http::{Request, Response, ResponseBuilder};
 use tauri::{AppHandle, Manager};
 
-use vrc_get_vpm::io::DefaultEnvironmentIo;
-
+use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::config::GuiConfigState;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 pub fn handle_vrc_get_scheme(
     app: &AppHandle,
@@ -40,6 +40,7 @@ pub fn global_info_json(app: &AppHandle) -> Result<Response, Box<dyn std::error:
         arch: &'a str,
         os_info: &'a str,
         local_app_data: &'a str,
+        default_unity_arguments: &'a [&'a str],
     }
 
     #[cfg(target_os = "macos")]
@@ -70,6 +71,7 @@ pub fn global_info_json(app: &AppHandle) -> Result<Response, Box<dyn std::error:
         arch,
         os_info,
         local_app_data,
+        default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
     };
 
     let mut script = b"globalThis.vrcGetGlobalInfo = ".to_vec();

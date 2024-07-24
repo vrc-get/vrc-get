@@ -9,12 +9,12 @@ use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State};
 use tokio::sync::Mutex;
 
-use vrc_get_vpm::io::DefaultEnvironmentIo;
-use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
-
 use crate::commands::prelude::*;
+use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::config::GuiConfigState;
 use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
+use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriUnityVersions {
@@ -63,6 +63,7 @@ pub struct TauriEnvironmentSettings {
     backup_format: String,
     release_channel: String,
     use_alcom_for_vcc_protocol: bool,
+    default_unity_arguments: Option<Vec<String>>,
 }
 
 #[tauri::command]
@@ -76,6 +77,7 @@ pub async fn environment_get_settings(
     let backup_format = config.backup_format.to_string();
     let release_channel = config.release_channel.to_string();
     let use_alcom_for_vcc_protocol = config.use_alcom_for_vcc_protocol;
+    let default_unity_arguments = config.default_unity_arguments.clone();
     drop(config);
 
     with_environment!(&state, |environment| {
@@ -100,6 +102,7 @@ pub async fn environment_get_settings(
             backup_format,
             release_channel,
             use_alcom_for_vcc_protocol,
+            default_unity_arguments,
         };
         environment.disconnect_litedb();
         Ok(settings)
@@ -383,5 +386,38 @@ pub async fn environment_set_use_alcom_for_vcc_protocol(
     } else {
         spawn(crate::deep_link_support::deep_link_uninstall_vcc(app));
     }
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_get_default_unity_arguments(
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
+) -> Result<Vec<String>, RustError> {
+    Ok(config
+        .load(&io)
+        .await?
+        .default_unity_arguments
+        .clone()
+        .unwrap_or_else(|| {
+            DEFAULT_UNITY_ARGUMENTS
+                .iter()
+                .copied()
+                .map(String::from)
+                .collect()
+        }))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_default_unity_arguments(
+    config: State<'_, GuiConfigState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    default_unity_arguments: Option<Vec<String>>,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut(&io).await?;
+    config.default_unity_arguments = default_unity_arguments;
+    config.save().await?;
     Ok(())
 }
