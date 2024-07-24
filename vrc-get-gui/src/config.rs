@@ -2,7 +2,6 @@ use std::future::{ready, Future};
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
-use std::pin::pin;
 use std::sync::Arc;
 
 use arc_swap::ArcSwapOption;
@@ -271,25 +270,25 @@ trait FsWrapper {
 }
 
 async fn loader<F: FsWrapper>(path: PathBuf) -> io::Result<GuiConfigStateInner> {
-    async fn load_fs<F: FsWrapper>(path: &PathBuf) -> io::Result<GuiConfig> {
-        match F::read(&path).await {
+    async fn load_fs<F: FsWrapper>(path: &Path) -> io::Result<GuiConfig> {
+        match F::read(path).await {
             Ok(buffer) => {
                 let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
                 loaded.fix_defaults();
                 Ok(loaded)
             }
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(GuiConfig::default()),
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         }
     }
 
-    async fn backup_old_config<F: FsWrapper>(path: &PathBuf) -> io::Result<()> {
+    async fn backup_old_config<F: FsWrapper>(path: &Path) -> io::Result<()> {
         let mut i = 0;
         loop {
             let backup_path = path.with_extension(format!("json.bak.{}", i));
             match F::rename(path, &backup_path).await {
                 Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-                    i = i + 1;
+                    i += 1;
                 }
                 Ok(()) => break Ok(()),
                 Err(e) if e.kind() == io::ErrorKind::NotFound => break Ok(()),
