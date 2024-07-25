@@ -42,7 +42,6 @@
 		"tailwind-merge": "^2.4.0",
 		"tailwindcss-animate": "^1.0.7"
 	},
-	"__comment": "we use react 18.2.19 due to bug. see https://github.com/creativetimofficial/material-tailwind/issues/528",
 	"devDependencies": {
 		"@biomejs/biome": "1.8.3",
 		"@tauri-apps/cli": "^1.6.0",
