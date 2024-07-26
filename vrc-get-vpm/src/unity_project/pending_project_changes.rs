@@ -1,12 +1,9 @@
-use crate::io;
 use crate::io::{DirEntry, ProjectIo};
-use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
-use crate::utils::{copy_recursive, extract_zip, walk_dir_relative};
+use crate::utils::walk_dir_relative;
 use crate::version::DependencyRange;
-use crate::{
-    unity_compatible, PackageInfo, PackageInfoInner, RemotePackageDownloader, UnityProject,
-};
+use crate::{io, PackageInstaller};
+use crate::{unity_compatible, PackageInfo, UnityProject};
 use either::Either;
 use futures::future::{join, join_all, try_join_all};
 use futures::prelude::*;
@@ -500,7 +497,7 @@ static PKG_TEMP_DIR: &str = "Temp/vrc-get";
 
 impl<IO: ProjectIo> UnityProject<IO> {
     /// Applies the changes specified in `AddPackageRequest` to the project.
-    pub async fn apply_pending_changes<'env, Env: RemotePackageDownloader + EnvironmentIoHolder>(
+    pub async fn apply_pending_changes<'env, Env: PackageInstaller>(
         &mut self,
         env: &'env Env,
         request: PendingProjectChanges<'env>,
@@ -670,7 +667,7 @@ async fn restore_remove(io: &impl ProjectIo, temp_dir: &Path, names: impl Iterat
     io.remove_dir(TEMP_DIR.as_ref()).await.ok();
 }
 
-async fn install_packages<Env: RemotePackageDownloader + EnvironmentIoHolder>(
+async fn install_packages<Env: PackageInstaller>(
     io: &impl ProjectIo,
     env: &Env,
     packages: &[PackageInfo<'_>],
@@ -679,7 +676,7 @@ async fn install_packages<Env: RemotePackageDownloader + EnvironmentIoHolder>(
     try_join_all(
         packages
             .iter()
-            .map(|package| add_package(io, env, *package)),
+            .map(|package| env.install_package(io, *package)),
     )
     .await?;
 
@@ -725,29 +722,5 @@ async fn remove_assets(
             log::error!("error removing legacy asset at {}: {}", path.display(), err);
         }
         remove_meta_file(io, path.to_owned()).await;
-    }
-}
-
-pub(crate) async fn add_package<Env: RemotePackageDownloader + EnvironmentIoHolder>(
-    io: &impl ProjectIo,
-    env: &Env,
-    package: PackageInfo<'_>,
-) -> io::Result<()> {
-    log::debug!("adding package {}", package.name());
-    let dest_folder = PathBuf::from(format!("Packages/{}", package.name()));
-    match package.inner {
-        PackageInfoInner::Remote(package, user_repo) => {
-            let zip_file = env.get_package(user_repo, package).await?;
-            let zip_file = io::BufReader::new(zip_file);
-
-            // remove dest folder before extract if exists
-            extract_zip(zip_file, io, &dest_folder).await?;
-
-            Ok(())
-        }
-        PackageInfoInner::Local(_, path) => {
-            copy_recursive(env.io(), path.into(), io, dest_folder).await?;
-            Ok(())
-        }
     }
 }

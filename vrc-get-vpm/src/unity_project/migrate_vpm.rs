@@ -3,10 +3,9 @@ use log::{debug, info};
 use std::collections::HashSet;
 
 use crate::io::ProjectIo;
-use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
-use crate::{io, ProjectType};
-use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
+use crate::{io, PackageInstaller, ProjectType};
+use crate::{PackageCollection, UnityProject, VersionSelector};
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -61,7 +60,7 @@ type Result<T = (), E = MigrateVpmError> = std::result::Result<T, E>;
 impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn migrate_vpm<E>(&mut self, env: &E, include_prerelease: bool) -> Result
     where
-        E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
+        E: PackageCollection + PackageInstaller,
     {
         migrate_vpm_beta(self, env, include_prerelease).await
     }
@@ -73,7 +72,7 @@ async fn migrate_vpm_beta<E>(
     include_prerelease: bool,
 ) -> Result
 where
-    E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
+    E: PackageCollection + PackageInstaller,
 {
     let is_worlds = match project.detect_project_type().await? {
         // we only can migrate legacy VRCSDK3 projects

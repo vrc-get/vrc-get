@@ -1,9 +1,8 @@
 use crate::io::ProjectIo;
-use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
 use crate::version::UnityVersion;
-use crate::{io, VRCHAT_RECOMMENDED_2022_UNITY};
-use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
+use crate::{io, PackageInstaller, VRCHAT_RECOMMENDED_2022_UNITY};
+use crate::{PackageCollection, UnityProject, VersionSelector};
 use log::warn;
 
 #[non_exhaustive]
@@ -55,7 +54,7 @@ type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
 impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn migrate_unity_2022<E>(&mut self, env: &E) -> Result
     where
-        E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
+        E: PackageCollection + PackageInstaller,
     {
         migrate_unity_2022_beta(self, env).await
     }
@@ -63,7 +62,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
 async fn migrate_unity_2022_beta<E>(project: &mut UnityProject<impl ProjectIo>, env: &E) -> Result
 where
-    E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
+    E: PackageCollection + PackageInstaller,
 {
     // See https://misskey.niri.la/notes/9nod7sk4sr for migration process
     if project.unity_version().map(UnityVersion::major) != Some(2019) {

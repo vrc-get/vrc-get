@@ -39,7 +39,7 @@ pub use structs::setting::UserRepoSetting;
 pub use traits::EnvironmentIoHolder;
 pub use traits::HttpClient;
 pub use traits::PackageCollection;
-pub use traits::RemotePackageDownloader;
+pub use traits::PackageInstaller;
 pub use unity_project::UnityProject;
 pub use version_selector::VersionSelector;
 

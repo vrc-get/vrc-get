@@ -12,14 +12,14 @@ mod project_management;
 #[cfg(feature = "experimental-unity-management")]
 mod unity_management;
 
-use crate::io;
-use crate::io::SeekFrom;
+use crate::io::{ProjectIo, SeekFrom};
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::PackageCollection as _;
-use crate::traits::{EnvironmentIoHolder, HttpClient, RemotePackageDownloader};
+use crate::traits::{EnvironmentIoHolder, HttpClient};
 use crate::utils::{normalize_path, to_vec_pretty_os_eol, try_load_json, Sha256AsyncWrite};
+use crate::{io, PackageInstaller};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use futures::future::{join_all, try_join};
 use futures::prelude::*;
@@ -694,14 +694,12 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T, IO> {
-    type FileStream = IO::FileStream;
-
+impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     async fn get_package(
         &self,
         repository: &LocalCachedRepository,
         package: &PackageManifest,
-    ) -> io::Result<Self::FileStream> {
+    ) -> io::Result<IO::FileStream> {
         let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name(), package.version());
         let zip_path = PathBuf::from(format!(
             "{}/{}/{}",
@@ -762,6 +760,33 @@ impl<T: HttpClient, IO: EnvironmentIo> RemotePackageDownloader for Environment<T
             }
 
             Ok(zip_file)
+        }
+    }
+}
+
+impl<T: HttpClient, IO: EnvironmentIo> PackageInstaller for Environment<T, IO> {
+    async fn install_package(
+        &self,
+        io: &impl ProjectIo,
+        package: PackageInfo<'_>,
+    ) -> io::Result<()> {
+        use crate::PackageInfoInner;
+        log::debug!("adding package {}", package.name());
+        let dest_folder = PathBuf::from(format!("Packages/{}", package.name()));
+        match package.inner {
+            PackageInfoInner::Remote(package, user_repo) => {
+                let zip_file = self.get_package(user_repo, package).await?;
+                let zip_file = io::BufReader::new(zip_file);
+
+                // remove dest folder before extract if exists
+                crate::utils::extract_zip(zip_file, io, &dest_folder).await?;
+
+                Ok(())
+            }
+            PackageInfoInner::Local(_, path) => {
+                crate::utils::copy_recursive(&self.io, path.into(), io, dest_folder).await?;
+                Ok(())
+            }
         }
     }
 }
