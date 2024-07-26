@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::read_to_string;
-use vrc_get_vpm::environment::{AddRepositoryErr, AddUserPackageResult};
+use vrc_get_vpm::environment::{AddRepositoryErr, AddUserPackageResult, PackageCollection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
@@ -24,7 +24,7 @@ use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveR
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    PackageCollection, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
+    PackageCollection as _, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
 };
 
 type Environment = vrc_get_vpm::Environment<Client, DefaultEnvironmentIo>;
@@ -157,7 +157,7 @@ async fn update_project_last_modified(env: Environment, project_dir: &Path) {
 async fn update_project_last_modified(_: Environment, _: &Path) {}
 
 fn get_package<'env>(
-    env: &'env Environment,
+    env: &'env PackageCollection,
     name: &str,
     selector: VersionSelector,
 ) -> PackageInfo<'env> {
@@ -470,6 +470,7 @@ impl Install {
         };
 
         let env = load_env(&self.env_args).await;
+        let package_collection = env.new_package_collection();
         let mut unity = load_unity(self.project).await;
 
         let version_selector = match self.version {
@@ -500,12 +501,12 @@ impl Install {
             }
             packages.into_iter().unique_by(|x| x.name()).collect()
         } else {
-            vec![get_package(&env, &name, version_selector)]
+            vec![get_package(&package_collection, &name, version_selector)]
         };
 
         let changes = unity
             .add_package_request(
-                &env,
+                &package_collection,
                 &packages,
                 AddPackageOperation::InstallToDependencies,
                 self.prerelease,
@@ -548,8 +549,10 @@ impl Resolve {
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
+        let package_collection = env.new_package_collection();
+
         let changes = unity
-            .resolve_request(&env)
+            .resolve_request(&package_collection)
             .await
             .exit_context("collecting packages to be installed");
 
@@ -646,13 +649,14 @@ impl Outdated {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
         let unity = load_unity(self.project).await;
+        let package_collection = env.new_package_collection();
 
         let mut outdated_packages = HashMap::new();
 
         let selector = VersionSelector::latest_for(unity.unity_version(), self.prerelease);
 
         for locked in unity.locked_packages() {
-            match env.find_package_by_name(locked.name(), selector) {
+            match package_collection.find_package_by_name(locked.name(), selector) {
                 None => log::error!("latest version for package {} not found.", locked.name()),
                 // if found version is newer: add to outdated
                 Some(pkg) if locked.version() < pkg.version() => {
@@ -736,6 +740,7 @@ pub struct Upgrade {
 impl Upgrade {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
+        let package_collection = env.new_package_collection();
         let mut unity = load_unity(self.project).await;
 
         let updates = if let Some(name) = &self.name {
@@ -743,7 +748,7 @@ impl Upgrade {
                 None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
                 Some(ref version) => VersionSelector::specific_version(version),
             };
-            let package = get_package(&env, name, version_selector);
+            let package = get_package(&package_collection, name, version_selector);
 
             vec![package]
         } else {
@@ -752,13 +757,13 @@ impl Upgrade {
 
             unity
                 .locked_packages()
-                .map(|locked| get_package(&env, locked.name(), version_selector))
+                .map(|locked| get_package(&package_collection, locked.name(), version_selector))
                 .collect()
         };
 
         let changes = unity
             .add_package_request(
-                &env,
+                &package_collection,
                 &updates,
                 AddPackageOperation::UpgradeLocked,
                 self.prerelease,
@@ -829,17 +834,18 @@ pub struct Downgrade {
 impl Downgrade {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
+        let package_collection = env.new_package_collection();
         let mut unity = load_unity(self.project).await;
 
         let updates = [get_package(
-            &env,
+            &package_collection,
             &self.name,
             VersionSelector::specific_version(&self.version),
         )];
 
         let changes = unity
             .add_package_request(
-                &env,
+                &package_collection,
                 &updates,
                 AddPackageOperation::Downgrade,
                 self.prerelease,

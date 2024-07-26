@@ -193,7 +193,9 @@ impl Package {
 
         debug_assert_eq!(format_version, 1);
 
-        let versions: Vec<_> = env
+        let package_collection = env.new_package_collection();
+
+        let versions: Vec<_> = package_collection
             .find_packages(&self.package)
             .map(|x| PackageVersionInfo {
                 version: x.version(),
