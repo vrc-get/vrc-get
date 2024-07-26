@@ -171,7 +171,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
     fn find_attribute<'a>(buffer: &'a str, attribute: &str) -> Option<&'a str> {
         let (_, version_info) = buffer.split_once(attribute)?;
         let version_info_end = version_info
-            .find(|x: char| x == '\r' || x == '\n')
+            .find(['\r', '\n'])
             .unwrap_or(version_info.len());
         let version_info = &version_info[..version_info_end];
         let version_info = version_info.trim();
