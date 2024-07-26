@@ -58,22 +58,22 @@ impl From<io::Error> for MigrateVpmError {
 type Result<T = (), E = MigrateVpmError> = std::result::Result<T, E>;
 
 impl<IO: ProjectIo> UnityProject<IO> {
-    pub async fn migrate_vpm<E>(&mut self, env: &E, include_prerelease: bool) -> Result
-    where
-        E: PackageCollection + PackageInstaller,
-    {
-        migrate_vpm_beta(self, env, include_prerelease).await
+    pub async fn migrate_vpm(
+        &mut self,
+        collection: &impl PackageCollection,
+        installer: &impl PackageInstaller,
+        include_prerelease: bool,
+    ) -> Result {
+        migrate_vpm_beta(self, collection, installer, include_prerelease).await
     }
 }
 
-async fn migrate_vpm_beta<E>(
+async fn migrate_vpm_beta(
     project: &mut UnityProject<impl ProjectIo>,
-    env: &E,
+    collection: &impl PackageCollection,
+    installer: &impl PackageInstaller,
     include_prerelease: bool,
-) -> Result
-where
-    E: PackageCollection + PackageInstaller,
-{
+) -> Result {
     let is_worlds = match project.detect_project_type().await? {
         // we only can migrate legacy VRCSDK3 projects
         ProjectType::LegacyWorlds => true,
@@ -93,12 +93,14 @@ where
     // basic part: install SDK
     if is_worlds {
         adding_packages.push(
-            env.find_package_by_name("com.vrchat.worlds", version_selector)
+            collection
+                .find_package_by_name("com.vrchat.worlds", version_selector)
                 .ok_or(MigrateVpmError::VpmPackageNotFound("com.vrchat.worlds"))?,
         );
     } else {
         adding_packages.push(
-            env.find_package_by_name("com.vrchat.avatars", version_selector)
+            collection
+                .find_package_by_name("com.vrchat.avatars", version_selector)
                 .ok_or(MigrateVpmError::VpmPackageNotFound("com.vrchat.avatars"))?,
         );
     }
@@ -106,7 +108,7 @@ where
     // additional part: migrate VRChat-curated packages
     // we find legacy curated package by trying to install it and check if the project has legacy assets
     {
-        let mut curated_packages = env
+        let mut curated_packages = collection
             .get_curated_packages(version_selector)
             .collect::<Vec<_>>();
 
@@ -114,7 +116,7 @@ where
 
         let packages = project
             .add_package_request(
-                env,
+                collection,
                 &curated_packages,
                 AddPackageOperation::InstallToDependencies,
                 include_prerelease,
@@ -143,14 +145,14 @@ where
 
     let request = project
         .add_package_request(
-            env,
+            collection,
             &adding_packages,
             AddPackageOperation::InstallToDependencies,
             include_prerelease,
         )
         .await?;
 
-    project.apply_pending_changes(env, request).await?;
+    project.apply_pending_changes(installer, request).await?;
 
     // update project settings
     let project_settings_path = "ProjectSettings/ProjectSettings.asset".as_ref();

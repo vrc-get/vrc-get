@@ -394,7 +394,10 @@ pub async fn project_migrate_project_to_2022(
     with_environment!(state, |environment| {
         let mut unity_project = load_project(project_path).await?;
 
-        match unity_project.migrate_unity_2022(environment).await {
+        match unity_project
+            .migrate_unity_2022(environment, environment)
+            .await
+        {
             Ok(()) => {}
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
@@ -502,7 +505,11 @@ pub async fn project_migrate_project_to_vpm(
     let mut unity_project = load_project(project_path).await?;
 
     match unity_project
-        .migrate_vpm(environment, environment.show_prerelease_packages())
+        .migrate_vpm(
+            environment,
+            environment,
+            environment.show_prerelease_packages(),
+        )
         .await
     {
         Ok(()) => {}
