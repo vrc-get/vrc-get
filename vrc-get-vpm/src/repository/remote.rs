@@ -120,6 +120,10 @@ impl RemoteRepository {
             .flatten()
     }
 
+    pub fn get_package(&self, package: &str) -> Option<&RemotePackages> {
+        self.parsed.packages.get(package)
+    }
+
     pub fn get_packages(&self) -> impl Iterator<Item = &'_ RemotePackages> {
         self.parsed.packages.values()
     }
@@ -206,6 +210,10 @@ impl RemotePackages {
             .clone()
             .filter(|json| !json.is_yanked())
             .max_by_key(|json| json.version())
+    }
+
+    pub fn get_version(&self, version: &Version) -> Option<&PackageManifest> {
+        self.versions.get(version)
     }
 }
 

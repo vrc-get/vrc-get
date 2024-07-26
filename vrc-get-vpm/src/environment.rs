@@ -6,6 +6,7 @@ mod vrc_get_settings;
 
 #[cfg(feature = "vrc-get-litedb")]
 mod litedb;
+mod package_collection;
 #[cfg(feature = "experimental-project-management")]
 mod project_management;
 #[cfg(feature = "experimental-unity-management")]
@@ -16,7 +17,8 @@ use crate::io::SeekFrom;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
-use crate::traits::{EnvironmentIoHolder, HttpClient, PackageCollection, RemotePackageDownloader};
+use crate::traits::PackageCollection as _;
+use crate::traits::{EnvironmentIoHolder, HttpClient, RemotePackageDownloader};
 use crate::utils::{normalize_path, to_vec_pretty_os_eol, try_load_json, Sha256AsyncWrite};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use futures::future::{join_all, try_join};
@@ -45,6 +47,8 @@ pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
 pub(crate) use settings::Settings;
 pub(crate) use uesr_package_collection::UserPackageCollection;
+
+pub use package_collection::PackageCollection;
 
 const OFFICIAL_URL_STR: &str = "https://packages.vrchat.com/official?download";
 const LOCAL_OFFICIAL_PATH: &str = "Repos/vrc-official.json";
@@ -204,9 +208,22 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
         Ok(())
     }
+
+    pub fn new_package_collection(&self) -> PackageCollection {
+        PackageCollection {
+            repositories: self
+                .repo_cache
+                .get_repos()
+                .iter()
+                .copied()
+                .cloned()
+                .collect(),
+            user_packages: self.user_packages.get_packages().to_vec(),
+        }
+    }
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> PackageCollection for Environment<T, IO> {
+impl<T: HttpClient, IO: EnvironmentIo> crate::PackageCollection for Environment<T, IO> {
     fn get_curated_packages(
         &self,
         version_selector: VersionSelector,

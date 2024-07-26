@@ -6,9 +6,9 @@ use url::Url;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LocalCachedRepository {
-    repo: RemoteRepository,
+    pub(crate) repo: RemoteRepository,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
-    headers: IndexMap<Box<str>, Box<str>>,
+    pub(crate) headers: IndexMap<Box<str>, Box<str>>,
     #[serde(rename = "vrc-get")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) vrc_get: Option<VrcGetMeta>,
