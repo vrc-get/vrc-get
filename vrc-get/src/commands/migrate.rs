@@ -57,9 +57,11 @@ impl Unity2022 {
 
         let mut project = load_unity(self.project).await;
         let env = load_env(&self.env_args).await;
+        let collection = env.new_package_collection();
+        let installer = env.get_package_installer();
 
         project
-            .migrate_unity_2022(&env, &env)
+            .migrate_unity_2022(&collection, &installer)
             .await
             .exit_context("migrating unity project");
 
@@ -130,9 +132,10 @@ impl Vpm {
         let mut project = load_unity(self.project).await;
         let env = load_env(&self.env_args).await;
         let package_collection = env.new_package_collection();
+        let installer = env.get_package_installer();
 
         project
-            .migrate_vpm(&package_collection, &env, false)
+            .migrate_vpm(&package_collection, &installer, false)
             .await
             .exit_context("migrating unity project");
 

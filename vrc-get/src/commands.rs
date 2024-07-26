@@ -471,6 +471,7 @@ impl Install {
 
         let env = load_env(&self.env_args).await;
         let package_collection = env.new_package_collection();
+        let installer = env.get_package_installer();
         let mut unity = load_unity(self.project).await;
 
         let version_selector = match self.version {
@@ -521,7 +522,7 @@ impl Install {
         }
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("adding package");
 
@@ -550,6 +551,7 @@ impl Resolve {
         let mut unity = load_unity(self.project).await;
 
         let package_collection = env.new_package_collection();
+        let installer = env.get_package_installer();
 
         let changes = unity
             .resolve_request(&package_collection)
@@ -559,7 +561,7 @@ impl Resolve {
         print_prompt_install(&changes);
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("installing packages");
 
@@ -595,6 +597,7 @@ impl Remove {
             .remove_request(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
             .await
             .exit_context("collecting packages to be removed");
+        let installer = env.get_package_installer();
 
         print_prompt_install(&changes);
 
@@ -606,7 +609,7 @@ impl Remove {
         }
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("removing packages");
 
@@ -741,6 +744,7 @@ impl Upgrade {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
         let package_collection = env.new_package_collection();
+        let installer = env.get_package_installer();
         let mut unity = load_unity(self.project).await;
 
         let updates = if let Some(name) = &self.name {
@@ -790,7 +794,7 @@ impl Upgrade {
             .collect::<Vec<_>>();
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("upgrading packages");
 
@@ -835,6 +839,7 @@ impl Downgrade {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
         let package_collection = env.new_package_collection();
+        let installer = env.get_package_installer();
         let mut unity = load_unity(self.project).await;
 
         let updates = [get_package(
@@ -866,7 +871,7 @@ impl Downgrade {
             .collect::<Vec<_>>();
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("upgrading packages");
 
