@@ -366,6 +366,12 @@ pub async fn environment_remove_repository(
         environment.save().await?;
     });
 
+    {
+        let mut state = state.lock().await;
+        state.environment.last_repository_update = None;
+        state.packages = None;
+    }
+
     Ok(())
 }
 
@@ -609,6 +615,12 @@ pub async fn environment_add_user_package_with_picker(
         environment.save().await?;
     });
 
+    {
+        let mut state = state.lock().await;
+        state.environment.last_repository_update = None;
+        state.packages = None;
+    }
+
     Ok(TauriAddUserPackageWithPickerResult::Successful)
 }
 
@@ -627,6 +639,7 @@ pub async fn environment_remove_user_packages(
     {
         let mut state = state.lock().await;
         state.environment.last_repository_update = None;
+        state.packages = None;
     }
 
     Ok(())

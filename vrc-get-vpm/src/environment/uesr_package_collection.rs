@@ -16,10 +16,6 @@ impl UserPackageCollection {
         }
     }
 
-    pub(crate) fn clear(&mut self) {
-        self.user_packages.clear();
-    }
-
     pub(crate) async fn try_add_package(&mut self, io: &impl EnvironmentIo, folder: &Path) {
         match try_load_json::<LooseManifest>(io, &folder.join("package.json")).await {
             Ok(Some(LooseManifest(package_json))) => {
@@ -34,16 +30,8 @@ impl UserPackageCollection {
         }
     }
 
-    pub(crate) fn get_packages(&self) -> &[(PathBuf, PackageManifest)] {
-        &self.user_packages
-    }
-
-    pub(crate) fn add_user_package(&mut self, path: PathBuf, json: PackageManifest) {
-        self.user_packages.push((path, json));
-    }
-
-    pub(crate) fn remove_user_package(&mut self, path: &Path) {
-        self.user_packages.retain(|(p, _)| p != path);
+    pub(crate) fn into_packages(self) -> Vec<(PathBuf, PackageManifest)> {
+        self.user_packages
     }
 }
 

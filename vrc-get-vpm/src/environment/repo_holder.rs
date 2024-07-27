@@ -141,12 +141,6 @@ impl RepoHolder {
         self.cached_repos_new.values().collect()
     }
 
-    pub(crate) fn get_repo_with_path(
-        &self,
-    ) -> impl Iterator<Item = (&'_ Box<Path>, &'_ LocalCachedRepository)> {
-        self.cached_repos_new.iter()
-    }
-
     pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
         self.cached_repos_new.get(path)
     }

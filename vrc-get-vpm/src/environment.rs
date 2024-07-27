@@ -27,7 +27,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{error, warn};
-use std::cmp::Reverse;
 use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 use std::fmt;
@@ -67,9 +66,7 @@ pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
     // TODO?: use inner mutability?
     #[cfg(feature = "vrc-get-litedb")]
     litedb_connection: litedb::LiteDbConnectionHolder,
-    /// Cache
-    repo_cache: RepoHolder,
-    user_packages: UserPackageCollection,
+    collection: PackageCollection,
 }
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
@@ -80,9 +77,11 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             vrc_get_settings: VrcGetSettings::load(&io).await?,
             #[cfg(feature = "vrc-get-litedb")]
             litedb_connection: litedb::LiteDbConnectionHolder::new(),
-            repo_cache: RepoHolder::new(),
-            user_packages: UserPackageCollection::new(),
             io,
+            collection: PackageCollection {
+                repositories: Vec::new(),
+                user_packages: Vec::new(),
+            },
         })
     }
 
@@ -144,16 +143,23 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .iter()
             .map(UserRepoSetting::to_source);
         self.io.create_dir_all("Repos".as_ref()).await?;
-        self.repo_cache
+        let mut repo_cache = RepoHolder::new();
+        repo_cache
             .load_repos(http, &self.io, predefined_repos.chain(user_repos))
             .await?;
-        self.update_user_repo_id();
-        self.load_user_package_infos().await?;
-        self.remove_id_duplication();
+        self.update_user_repo_id(&repo_cache);
+        self.remove_id_duplication(&mut repo_cache);
+        let user_packages = self.do_load_user_package_infos().await?;
+
+        self.collection = PackageCollection {
+            repositories: repo_cache.get_repos().iter().copied().cloned().collect(),
+            user_packages: user_packages.into_packages(),
+        };
+
         Ok(())
     }
 
-    fn update_user_repo_id(&mut self) {
+    fn update_user_repo_id(&mut self, repo_cache: &RepoHolder) {
         // update id field
         struct NewIdGetterImpl<'b>(&'b RepoHolder);
 
@@ -170,10 +176,10 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
 
         self.settings
-            .update_user_repo_id(NewIdGetterImpl(&self.repo_cache));
+            .update_user_repo_id(NewIdGetterImpl(repo_cache));
     }
 
-    fn remove_id_duplication(&mut self) {
+    fn remove_id_duplication(&mut self, repo_cache: &mut RepoHolder) {
         let user_repos = self.get_user_repos();
         if user_repos.is_empty() {
             return;
@@ -193,38 +199,37 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 true
             } else {
                 // this means duplicated id: removed so mark as changed
-                self.repo_cache.remove_repo(repo.local_path());
+                repo_cache.remove_repo(repo.local_path());
 
                 false
             }
         });
     }
 
-    pub async fn load_user_package_infos(&mut self) -> io::Result<()> {
-        self.user_packages.clear();
+    async fn do_load_user_package_infos(&mut self) -> io::Result<UserPackageCollection> {
+        let mut user_packages = UserPackageCollection::new();
         for x in self.settings.user_package_folders() {
-            self.user_packages.try_add_package(&self.io, x).await;
+            user_packages.try_add_package(&self.io, x).await;
         }
+        Ok(user_packages)
+    }
+
+    pub async fn load_user_package_infos(&mut self) -> io::Result<()> {
+        let user_packages = self.do_load_user_package_infos().await?;
+
+        self.collection.user_packages = user_packages.into_packages();
+
         Ok(())
     }
 
     pub fn new_package_collection(&self) -> PackageCollection {
-        PackageCollection {
-            repositories: self
-                .repo_cache
-                .get_repos()
-                .iter()
-                .copied()
-                .cloned()
-                .collect(),
-            user_packages: self.user_packages.get_packages().to_vec(),
-        }
+        self.collection.clone()
     }
 }
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
-    pub fn get_repos(&self) -> impl Iterator<Item = (&'_ Box<Path>, &'_ LocalCachedRepository)> {
-        self.repo_cache.get_repo_with_path()
+    pub fn get_repos(&self) -> impl Iterator<Item = &'_ LocalCachedRepository> {
+        self.collection.repositories.iter()
     }
 
     pub fn find_whole_all_packages(
@@ -232,28 +237,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         version_selector: VersionSelector,
         filter: impl Fn(&PackageManifest) -> bool,
     ) -> Vec<PackageInfo> {
-        let mut list = Vec::new();
-
-        self.get_repos()
-            .flat_map(|(_, repo)| {
-                repo.get_packages()
-                    .filter_map(|packages| packages.get_latest(version_selector))
-                    .map(|json| PackageInfo::remote(json, repo))
-            })
+        self.collection
+            .get_all_packages()
+            .filter(|x| version_selector.satisfies(x.package_json()))
+            .into_group_map_by(|x| x.name())
+            .values()
+            .map(|versions| versions.iter().max_by_key(|x| x.version()).unwrap())
             .filter(|x| filter(x.package_json()))
-            .fold((), |_, pkg| list.push(pkg));
-
-        // user package folders
-        for info in self.user_packages.get_all_packages() {
-            if !info.version().pre.is_empty() && filter(info.package_json()) {
-                list.push(info);
-            }
-        }
-
-        list.sort_by_key(|x| Reverse(x.version()));
-
-        list.into_iter()
-            .unique_by(|x| (x.name(), x.version()))
+            .copied()
             .collect()
     }
 
@@ -399,10 +390,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
     pub async fn remove_repo(&mut self, condition: impl Fn(&UserRepoSetting) -> bool) -> usize {
         let removed = self.settings.retain_user_repos(|x| !condition(x));
-
-        for x in &removed {
-            self.repo_cache.remove_repo(x.local_path());
-        }
 
         join_all(removed.iter().map(|x| async move {
             match remove_file(x.local_path()) {
@@ -605,11 +592,10 @@ pub enum AddUserPackageResult {
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub fn user_packages(&self) -> &[(PathBuf, PackageManifest)] {
-        self.user_packages.get_packages()
+        &self.collection.user_packages
     }
 
     pub fn remove_user_package(&mut self, pkg_path: &Path) {
-        self.user_packages.remove_user_package(pkg_path);
         self.settings.remove_user_package_folder(pkg_path);
     }
 
@@ -624,16 +610,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
         }
 
-        let package_json =
-            match try_load_json::<LooseManifest>(&self.io, &pkg_path.join("package.json")).await {
-                Ok(Some(LooseManifest(package_json))) => package_json,
-                _ => {
-                    return AddUserPackageResult::BadPackage;
-                }
-            };
+        match try_load_json::<LooseManifest>(&self.io, &pkg_path.join("package.json")).await {
+            Ok(Some(LooseManifest(package_json))) => package_json,
+            _ => {
+                return AddUserPackageResult::BadPackage;
+            }
+        };
 
-        self.user_packages
-            .add_user_package(pkg_path.into(), package_json);
         self.settings.add_user_package_folder(pkg_path.to_owned());
 
         AddUserPackageResult::Success

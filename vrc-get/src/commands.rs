@@ -973,15 +973,14 @@ impl RepoList {
     pub async fn run(self) {
         let env = load_env(&self.env_args).await;
 
-        for (local_path, repo) in env.get_repos() {
+        for repo in env.get_repos() {
             println!(
-                "{}: {} (from {} at {})",
+                "{}: {} (from {})",
                 repo.id()
                     .or(repo.url().map(Url::as_str))
                     .unwrap_or("(no id)"),
                 repo.name().unwrap_or("(unnamed)"),
                 repo.url().map(Url::as_str).unwrap_or("(no remote)"),
-                local_path.display(),
             );
         }
     }
@@ -1247,7 +1246,7 @@ impl RepoPackages {
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
 
-            for (_, repo) in env.get_repos() {
+            for repo in env.get_repos() {
                 if repo.name() == some_name || repo.id() == some_name {
                     print_repo(repo.repo());
                     found = true;

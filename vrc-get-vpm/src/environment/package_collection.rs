@@ -4,6 +4,7 @@ use crate::repository::LocalCachedRepository;
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 
 /// A immutable structure that holds information about all the packages.
+#[derive(Debug, Clone)]
 pub struct PackageCollection {
     pub(super) repositories: Vec<LocalCachedRepository>,
     pub(super) user_packages: Vec<(PathBuf, PackageManifest)>,
