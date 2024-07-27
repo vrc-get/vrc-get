@@ -1,7 +1,9 @@
+use crate::environment::settings::Settings;
+use crate::environment::VccDatabaseConnection;
 use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
-use crate::{io, Environment, HttpClient, ProjectType, UnityProject};
+use crate::{io, ProjectType, UnityProject};
 use bson::oid::ObjectId;
 use bson::DateTime;
 use futures::future::join_all;
@@ -12,26 +14,28 @@ use std::path::Path;
 
 pub(crate) static COLLECTION: &str = "projects";
 
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
-    pub async fn migrate_from_settings_json(&mut self) -> io::Result<()> {
-        // remove relative paths
-        let removed = self
-            .settings
-            .retain_user_projects(|x| Path::new(x).is_absolute());
-        if !removed.is_empty() {
-            error!("Removed relative paths: {:?}", removed);
-        }
-
-        let db = self.get_db()?; // ensure the database connection is initialized
-
-        let projects = self
-            .settings
+impl VccDatabaseConnection {
+    pub async fn migrate(
+        &mut self,
+        settings: &Settings,
+        io: &impl EnvironmentIo,
+    ) -> io::Result<()> {
+        let projects = settings
             .user_projects()
             .iter()
+            .filter(|x| {
+                if Path::new(x.as_ref()).is_absolute() {
+                    true
+                } else {
+                    error!("Skipping relative path: {}", x);
+                    false
+                }
+            })
             .map(|x| x.as_ref())
             .collect::<HashSet<_>>();
 
-        let db_projects = db
+        let db_projects = self
+            .db()
             .get_values::<UserProject>(COLLECTION)?
             .into_iter()
             .map(|x| (x.path().to_owned(), x))
@@ -53,42 +57,48 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                         project.unity_revision().map(|x| x.to_owned()),
                     ))
                 }
-                let (project_type, unity_version, unity_revision) =
-                    get_project_type(&self.io, project.as_ref())
-                        .await
-                        .unwrap_or((ProjectType::Unknown, None, None));
+                let (project_type, unity_version, unity_revision) = get_project_type(
+                    io,
+                    project.as_ref(),
+                )
+                .await
+                .unwrap_or((ProjectType::Unknown, None, None));
                 let mut project = UserProject::new((*project).into(), unity_version, project_type);
                 if let (Some(unity), Some(revision)) = (unity_version, unity_revision) {
                     project.set_unity_revision(unity, revision);
                 }
-                db.insert(COLLECTION, &project)?;
+                self.db().insert(COLLECTION, &project)?;
             }
         }
 
         // remove deleted projects
         for (project_path, project) in db_projects.iter() {
             if !projects.contains(project_path.as_str()) {
-                db.delete(COLLECTION, project.id)?;
+                self.db().delete(COLLECTION, project.id)?;
             }
         }
 
         Ok(())
     }
+}
 
-    pub async fn sync_with_real_projects(&mut self, skip_not_found: bool) -> io::Result<()> {
-        let db = self.get_db()?; // ensure the database connection is initialized
-
-        let mut projects = db.get_values::<UserProject>(COLLECTION)?;
+impl VccDatabaseConnection {
+    pub async fn sync_with_real_projects(
+        &mut self,
+        skip_not_found: bool,
+        io: &impl EnvironmentIo,
+    ) -> io::Result<()> {
+        let mut projects = self.db().get_values::<UserProject>(COLLECTION)?;
 
         let changed_projects = join_all(
             projects
                 .iter_mut()
-                .map(|x| update_project_with_actual_data(&self.io, x, skip_not_found)),
+                .map(|x| update_project_with_actual_data(io, x, skip_not_found)),
         )
         .await;
 
         for project in changed_projects.iter().flatten() {
-            db.update(COLLECTION, project)?;
+            self.db().update(COLLECTION, project)?;
         }
 
         async fn update_project_with_actual_data<'a>(
@@ -165,9 +175,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn dedup_projects(&mut self) -> io::Result<()> {
-        let db = self.get_db()?; // ensure the database connection is initialized
-
-        let projects = db.get_values::<UserProject>(COLLECTION)?;
+        let projects = self.db().get_values::<UserProject>(COLLECTION)?;
 
         let mut projects_by_path = HashMap::<_, Vec<_>>::new();
 
@@ -200,29 +208,27 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
 
             if changed {
-                db.update(COLLECTION, &project)?;
+                self.db().update(COLLECTION, &project)?;
             }
 
             // remove rest
             for project in values.iter().skip(1) {
-                db.delete(COLLECTION, project.id)?;
+                self.db().delete(COLLECTION, project.id)?;
             }
         }
 
         Ok(())
     }
 
-    // TODO: return wrapper type instead?
     pub fn get_projects(&self) -> io::Result<Vec<UserProject>> {
-        Ok(self.get_db()?.get_values(COLLECTION)?)
+        Ok(self.db().get_values(COLLECTION)?)
     }
 
     pub fn find_project(&self, project_path: &Path) -> io::Result<Option<UserProject>> {
         check_absolute_path(project_path)?;
-        let db = self.get_db()?;
         let project_path = normalize_path(project_path);
 
-        let project = db.get_values::<UserProject>(COLLECTION)?;
+        let project = self.db().get_values::<UserProject>(COLLECTION)?;
         Ok(project
             .into_iter()
             .find(|x| Path::new(x.path()) == project_path))
@@ -240,15 +246,11 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn update_project(&mut self, project: &UserProject) -> io::Result<()> {
-        Ok(self.get_db()?.update(COLLECTION, &project)?)
+        Ok(self.db().update(COLLECTION, &project)?)
     }
 
     pub fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
-        let db = self.get_db()?;
-
-        db.delete(COLLECTION, project.id)?;
-        self.settings.remove_user_project(project.path());
-
+        self.db().delete(COLLECTION, project.id)?;
         Ok(())
     }
 
@@ -276,8 +278,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
         new_project.set_unity_revision(unity_version, unity_revision.to_owned());
 
-        self.get_db()?.insert(COLLECTION, &new_project)?;
-        self.settings.add_user_project(path);
+        self.db().insert(COLLECTION, &new_project)?;
 
         Ok(())
     }

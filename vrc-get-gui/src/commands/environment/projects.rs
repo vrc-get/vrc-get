@@ -13,7 +13,7 @@ use tauri::State;
 use tokio::fs::read_dir;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::Mutex;
-use vrc_get_vpm::environment::UserProject;
+use vrc_get_vpm::environment::{UserProject, VccDatabaseConnection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 use vrc_get_vpm::ProjectType;
 
@@ -103,18 +103,24 @@ pub async fn environment_projects(
         .environment
         .get_environment_mut(UpdateRepositoryMode::None, &state.io)
         .await?;
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
 
     info!("migrating projects from settings.json");
     // migrate from settings json
-    environment.migrate_from_settings_json().await?;
+    connection
+        .migrate(environment.settings(), io.inner())
+        .await?;
     info!("syncing information with real projects");
-    environment.sync_with_real_projects(true).await?;
-    environment.dedup_projects()?;
+    connection.sync_with_real_projects(true, io.inner()).await?;
+    connection.dedup_projects()?;
+    environment.load_from_db(&connection)?;
+    connection.save(io.inner()).await?;
     environment.save(io.inner()).await?;
 
     info!("fetching projects");
 
-    let projects = environment.get_projects()?.into_boxed_slice();
+    let projects = connection.get_projects()?.into_boxed_slice();
+    drop(connection);
     environment.disconnect_litedb();
 
     state.projects = projects;
@@ -160,14 +166,20 @@ pub async fn environment_add_project_with_picker(
     }
 
     with_environment!(&state, |environment| {
-        let projects = environment.get_projects()?;
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        let projects = connection.get_projects()?;
         if projects
             .iter()
             .any(|x| Path::new(x.path()) == Path::new(&project_path))
         {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
-        environment.add_project(&unity_project).await?;
+        connection
+            .migrate(environment.settings(), io.inner())
+            .await?;
+        connection.add_project(&unity_project).await?;
+        connection.save(io.inner()).await?;
+        environment.load_from_db(&connection)?;
         environment.save(io.inner()).await?;
     });
 
@@ -202,7 +214,13 @@ pub async fn environment_remove_project(
         .environment
         .get_environment_mut(UpdateRepositoryMode::None, &state.io)
         .await?;
-    environment.remove_project(project)?;
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    connection
+        .migrate(environment.settings(), io.inner())
+        .await?;
+    connection.remove_project(project)?;
+    connection.save(io.inner()).await?;
+    environment.load_from_db(&connection)?;
     environment.save(io.inner()).await?;
 
     if directory {
@@ -228,10 +246,16 @@ pub async fn environment_remove_project_by_path(
     directory: bool,
 ) -> Result<(), RustError> {
     with_environment!(&state, |environment| {
-        let projects: Vec<vrc_get_vpm::environment::UserProject> = environment.get_projects()?;
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        let projects: Vec<UserProject> = connection.get_projects()?;
 
         if let Some(x) = projects.iter().find(|x| x.path() == path) {
-            environment.remove_project(x)?;
+            connection
+                .migrate(environment.settings(), io.inner())
+                .await?;
+            connection.remove_project(x)?;
+            connection.save(io.inner()).await?;
+            environment.load_from_db(&connection)?;
             environment.save(io.inner()).await?;
         } else {
             environment.disconnect_litedb();
@@ -326,7 +350,13 @@ pub async fn environment_copy_project_for_migration(
     let unity_project = load_project(new_path_str.clone()).await?;
 
     with_environment!(state, |environment| {
-        environment.add_project(&unity_project).await?;
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        connection
+            .migrate(environment.settings(), io.inner())
+            .await?;
+        connection.add_project(&unity_project).await?;
+        connection.save(io.inner()).await?;
+        environment.load_from_db(&connection)?;
         environment.save(io.inner()).await?;
     });
 
@@ -351,12 +381,10 @@ pub async fn environment_set_favorite_project(
 
     let project = &mut state.projects[index];
     project.set_favorite(favorite);
-    let environment = state
-        .environment
-        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
-        .await?;
-    environment.update_project(project)?;
-    environment.save(io.inner()).await?;
+
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    connection.update_project(project)?;
+    connection.save(io.inner()).await?;
 
     Ok(())
 }
@@ -653,7 +681,13 @@ pub async fn environment_create_project(
         unity_project.save().await?;
 
         // add the project to listing
-        environment.add_project(&unity_project).await?;
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        connection
+            .migrate(environment.settings(), io.inner())
+            .await?;
+        connection.add_project(&unity_project).await?;
+        connection.save(io.inner()).await?;
+        environment.load_from_db(&connection)?;
         environment.save(io.inner()).await?;
     }
     Ok(TauriCreateProjectResult::Successful)

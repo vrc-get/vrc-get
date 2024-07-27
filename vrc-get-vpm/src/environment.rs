@@ -44,6 +44,7 @@ pub(crate) use repo_source::RepoSource;
 pub(crate) use uesr_package_collection::UserPackageCollection;
 
 use crate::environment::settings::Settings;
+pub use litedb::VccDatabaseConnection;
 pub use package_collection::PackageCollection;
 pub use package_installer::PackageInstaller;
 
@@ -57,6 +58,7 @@ const REPO_CACHE_FOLDER: &str = "Repos";
 #[derive(Debug)]
 pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
     pub(crate) http: Option<T>,
+    #[allow(dead_code)] // for now
     pub(crate) io: IO,
     // we do not connect to litedb unless we need information from litedb.
     // TODO?: use inner mutability?
@@ -210,6 +212,10 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         self.collection.user_packages = user_packages.into_packages();
 
         Ok(())
+    }
+
+    pub fn settings(&self) -> &Settings {
+        &self.settings
     }
 
     pub fn new_package_collection(&self) -> PackageCollection {

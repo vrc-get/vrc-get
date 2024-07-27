@@ -1,3 +1,4 @@
+use crate::environment::VccDatabaseConnection;
 use crate::io::EnvironmentIo;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
@@ -10,9 +11,9 @@ use std::path::{Path, PathBuf};
 
 pub(crate) static COLLECTION: &str = "unityVersions";
 
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+impl VccDatabaseConnection {
     pub fn get_unity_installations(&self) -> io::Result<Vec<UnityInstallation>> {
-        Ok(self.get_db()?.get_values(COLLECTION)?)
+        Ok(self.db().get_values(COLLECTION)?)
     }
 
     pub async fn add_unity_installation(
@@ -31,19 +32,17 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         version: UnityVersion,
         is_from_hub: bool,
     ) -> io::Result<()> {
-        let db = self.get_db()?;
-
         let mut installation = UnityInstallation::new(path.into(), Some(version), false);
 
         installation.loaded_from_hub = is_from_hub;
 
-        db.insert(COLLECTION, &installation)?;
+        self.db().insert(COLLECTION, &installation)?;
 
         Ok(())
     }
 
     pub async fn remove_unity_installation(&mut self, unity: &UnityInstallation) -> io::Result<()> {
-        self.get_db()?.delete(COLLECTION, unity.id)?;
+        self.db().delete(COLLECTION, unity.id)?;
 
         Ok(())
     }
@@ -56,7 +55,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let mut minor_match = None;
         let mut major_match = None;
 
-        for unity in self.get_unity_installations()? {
+        for unity in self.db().get_values::<UnityInstallation>(COLLECTION)? {
             if let Some(version) = unity.version() {
                 if version == expected {
                     return Ok(Some(unity));
@@ -79,6 +78,74 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
 
         Ok(revision_match.or(minor_match).or(major_match))
+    }
+
+    pub async fn update_unity_from_unity_hub_and_fs(
+        &mut self,
+        path_and_version_from_hub: &[(UnityVersion, PathBuf)],
+        io: &impl EnvironmentIo,
+    ) -> io::Result<()> {
+        let paths_from_hub = path_and_version_from_hub
+            .iter()
+            .map(|(_, path)| path.as_path())
+            .collect::<HashSet<_>>();
+
+        let mut installed = HashSet::new();
+
+        for mut in_db in self.db().get_values::<UnityInstallation>(COLLECTION)? {
+            let path = Path::new(in_db.path());
+            if !io.is_file(path).await {
+                // if the unity editor not found, remove it from the db
+                info!("Removed Unity that is not exists: {}", in_db.path());
+                self.db().delete(COLLECTION, in_db.id)?;
+                continue;
+            }
+
+            if installed.contains(path) {
+                // if the unity editor is already installed, remove it from the db
+                info!("Removed duplicated Unity: {}", in_db.path());
+                self.db().delete(COLLECTION, in_db.id)?;
+                continue;
+            }
+
+            installed.insert(PathBuf::from(path));
+
+            let normalized = normalize_path(path).into_os_string().into_string().unwrap();
+            let exists_in_hub = paths_from_hub.contains(path);
+
+            let mut update = false;
+
+            if exists_in_hub != in_db.loaded_from_hub() {
+                in_db.loaded_from_hub = exists_in_hub;
+                update = true;
+            }
+
+            if normalized != in_db.path() {
+                in_db.path = normalized.into();
+                update = true;
+            }
+
+            if update {
+                self.db().update(COLLECTION, &in_db)?;
+            }
+        }
+
+        for &(version, ref path) in path_and_version_from_hub {
+            if !installed.contains(path) {
+                if version < UnityVersion::new_f1(2019, 4, 0) {
+                    info!(
+                        "Ignoring Unity from Unity Hub since old: {}",
+                        path.display()
+                    );
+                    continue;
+                }
+                info!("Adding Unity from Unity Hub: {}", path.display());
+                self.add_unity_installation_internal(&path.to_string_lossy(), version, true)
+                    .await?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -132,9 +199,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
     }
 
-    pub async fn find_unity_hub(&mut self) -> io::Result<Option<String>> {
+    pub async fn find_unity_hub(&mut self, io: &impl EnvironmentIo) -> io::Result<Option<String>> {
         let path = self.settings.unity_hub_path();
-        if !path.is_empty() && self.io.is_file(path.as_ref()).await {
+        if !path.is_empty() && io.is_file(path.as_ref()).await {
             // if configured one is valid path to file, return it
             return Ok(Some(path.to_string()));
         }
@@ -142,82 +209,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         // if not, try default paths
 
         for &path in Self::default_unity_hub_path() {
-            if self.io.is_file(path.as_ref()).await {
+            if io.is_file(path.as_ref()).await {
                 self.settings.set_unity_hub_path(path);
                 return Ok(Some(path.to_string()));
             }
         }
 
         Ok(None)
-    }
-
-    pub async fn update_unity_from_unity_hub_and_fs(
-        &mut self,
-        path_and_version_from_hub: &[(UnityVersion, PathBuf)],
-    ) -> io::Result<()> {
-        let paths_from_hub = path_and_version_from_hub
-            .iter()
-            .map(|(_, path)| path.as_path())
-            .collect::<HashSet<_>>();
-
-        let db = self.get_db()?;
-
-        let mut installed = HashSet::new();
-
-        for mut in_db in db.get_values::<UnityInstallation>(COLLECTION)? {
-            let path = Path::new(in_db.path());
-            if !self.io.is_file(path).await {
-                // if the unity editor not found, remove it from the db
-                info!("Removed Unity that is not exists: {}", in_db.path());
-                db.delete(COLLECTION, in_db.id)?;
-                continue;
-            }
-
-            if installed.contains(path) {
-                // if the unity editor is already installed, remove it from the db
-                info!("Removed duplicated Unity: {}", in_db.path());
-                db.delete(COLLECTION, in_db.id)?;
-                continue;
-            }
-
-            installed.insert(PathBuf::from(path));
-
-            let normalized = normalize_path(path).into_os_string().into_string().unwrap();
-            let exists_in_hub = paths_from_hub.contains(path);
-
-            let mut update = false;
-
-            if exists_in_hub != in_db.loaded_from_hub() {
-                in_db.loaded_from_hub = exists_in_hub;
-                update = true;
-            }
-
-            if normalized != in_db.path() {
-                in_db.path = normalized.into();
-                update = true;
-            }
-
-            if update {
-                db.update(COLLECTION, &in_db)?;
-            }
-        }
-
-        for &(version, ref path) in path_and_version_from_hub {
-            if !installed.contains(path) {
-                if version < UnityVersion::new_f1(2019, 4, 0) {
-                    info!(
-                        "Ignoring Unity from Unity Hub since old: {}",
-                        path.display()
-                    );
-                    continue;
-                }
-                info!("Adding Unity from Unity Hub: {}", path.display());
-                self.add_unity_installation_internal(&path.to_string_lossy(), version, true)
-                    .await?;
-            }
-        }
-
-        Ok(())
     }
 }
 

@@ -7,7 +7,7 @@ use url::Url;
 
 use crate::environment::vpm_settings::{NewIdGetter, VpmSettings};
 use crate::environment::vrc_get_settings::VrcGetSettings;
-use crate::environment::AddUserPackageResult;
+use crate::environment::{AddUserPackageResult, VccDatabaseConnection};
 use crate::io::EnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::repository::RemoteRepository;
@@ -138,6 +138,26 @@ impl Settings {
         self.vpm.add_user_package_folder(pkg_path.to_owned());
 
         AddUserPackageResult::Success
+    }
+
+    pub fn load_from_db(&mut self, connection: &VccDatabaseConnection) -> io::Result<()> {
+        let projects = connection.get_projects()?;
+        let mut project_paths = projects.iter().map(|x| x.path()).collect::<HashSet<_>>();
+
+        // remove removed projects
+        self.vpm
+            .retain_user_projects(|x| project_paths.contains(&x));
+
+        // add new projects
+        for x in self.vpm.user_projects() {
+            project_paths.remove(x.as_ref());
+        }
+
+        for x in project_paths {
+            self.vpm.add_user_project(x);
+        }
+
+        Ok(())
     }
 }
 

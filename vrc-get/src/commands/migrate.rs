@@ -59,6 +59,9 @@ impl Unity2022 {
         let mut project = load_unity(self.project).await;
         let io = DefaultEnvironmentIo::new_default();
         let env = load_env(&self.env_args).await;
+        #[cfg(feature = "experimental-vcc")]
+        let connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(&io)
+            .exit_context("connecting to database");
         let collection = env.new_package_collection();
         let installer = env.get_package_installer(&io);
 
@@ -77,7 +80,7 @@ impl Unity2022 {
         #[cfg(feature = "experimental-vcc")]
         let unity = self.unity.unwrap_or_else(|| {
             use vrc_get_vpm::VRCHAT_RECOMMENDED_2022_UNITY;
-            let Some(found) = env.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
+            let Some(found) = connection.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
                 .exit_context("getting unity 2022 path") else {
                 exit_with!("Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option.")
             };

@@ -6,6 +6,33 @@ use std::fmt::Debug;
 use std::sync::atomic::AtomicPtr;
 use vrc_get_litedb::DatabaseConnection;
 
+pub struct VccDatabaseConnection {
+    pub(crate) connection: DatabaseConnection,
+}
+
+impl VccDatabaseConnection {
+    pub fn connect(io: &impl EnvironmentIo) -> io::Result<Self> {
+        Ok(Self {
+            connection: io.connect_lite_db()?,
+        })
+    }
+
+    pub async fn save(&self, _: &impl EnvironmentIo) -> io::Result<()> {
+        // nop for now but might have to do something in the future
+        Ok(())
+    }
+
+    pub(crate) fn db(&self) -> &DatabaseConnection {
+        &self.connection
+    }
+}
+
+impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+    pub fn load_from_db(&mut self, connection: &VccDatabaseConnection) -> io::Result<()> {
+        self.settings.load_from_db(connection)
+    }
+}
+
 pub(super) struct LiteDbConnectionHolder {
     ptr: AtomicPtr<DatabaseConnection>,
 }
@@ -37,34 +64,6 @@ impl LiteDbConnectionHolder {
             Some(unsafe { &*ptr })
         }
     }
-
-    fn connect(&self, io: &impl EnvironmentIo) -> io::Result<&DatabaseConnection> {
-        if let Some(connection) = self.get() {
-            return Ok(connection);
-        }
-
-        let db = io.connect_lite_db()?;
-
-        let ptr = Box::into_raw(Box::new(db));
-
-        match self.ptr.compare_exchange(
-            std::ptr::null_mut(),
-            ptr,
-            std::sync::atomic::Ordering::AcqRel,
-            std::sync::atomic::Ordering::Acquire,
-        ) {
-            Ok(_) => {
-                // success means the value is used so return the value
-                Ok(unsafe { &*ptr })
-            }
-            Err(failure) => {
-                // failure means the value is already set so drop the new value and return the old value
-                // since it's not null
-                let _ = unsafe { Box::from_raw(ptr) };
-                Ok(unsafe { &*failure })
-            }
-        }
-    }
 }
 
 impl Drop for LiteDbConnectionHolder {
@@ -77,11 +76,6 @@ impl Drop for LiteDbConnectionHolder {
 }
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
-    // TODO?: use inner mutability to get the database connection?
-    pub(super) fn get_db(&self) -> io::Result<&DatabaseConnection> {
-        self.litedb_connection.connect(&self.io)
-    }
-
     pub fn disconnect_litedb(&mut self) {
         self.litedb_connection = LiteDbConnectionHolder::new();
     }

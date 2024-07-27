@@ -13,6 +13,7 @@ use crate::commands::prelude::*;
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::config::GuiConfigState;
 use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
+use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
@@ -27,11 +28,14 @@ pub struct TauriUnityVersions {
 #[specta::specta]
 pub async fn environment_unity_versions(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriUnityVersions, RustError> {
     with_environment!(&state, |environment| {
-        environment.find_unity_hub().await.ok();
+        let connection = VccDatabaseConnection::connect(io.inner())?;
 
-        let unity_paths = environment
+        environment.find_unity_hub(io.inner()).await.ok();
+
+        let unity_paths = connection
             .get_unity_installations()?
             .iter()
             .filter_map(|unity| {
@@ -81,13 +85,15 @@ pub async fn environment_get_settings(
     drop(config);
 
     with_environment!(&state, |environment| {
-        environment.find_unity_hub().await.ok();
+        environment.find_unity_hub(io.inner()).await.ok();
+
+        let connection = VccDatabaseConnection::connect(io.inner())?;
 
         let settings = TauriEnvironmentSettings {
             default_project_path: default_project_path(environment, &io).await?.to_string(),
             project_backup_path: project_backup_path(environment, &io).await?.to_string(),
             unity_hub: environment.unity_hub_path().to_string(),
-            unity_paths: environment
+            unity_paths: connection
                 .get_unity_installations()?
                 .iter()
                 .filter_map(|unity| {
@@ -240,13 +246,15 @@ pub async fn environment_pick_unity(
     let unity_version = vrc_get_vpm::unity::call_unity_for_version(path.as_ref()).await?;
 
     with_environment!(&state, |environment| {
-        for x in environment.get_unity_installations()? {
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+
+        for x in connection.get_unity_installations()? {
             if x.path() == path {
                 return Ok(TauriPickUnityResult::AlreadyAdded);
             }
         }
 
-        match environment
+        match connection
             .add_unity_installation(&path, unity_version)
             .await
         {
@@ -256,6 +264,8 @@ pub async fn environment_pick_unity(
             Err(e) => return Err(e.into()),
             Ok(_) => {}
         }
+
+        connection.save(io.inner()).await?;
         environment.save(io.inner()).await?;
     });
 

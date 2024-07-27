@@ -6,6 +6,7 @@ use std::io;
 use tauri::async_runtime::spawn;
 use tauri::{App, AppHandle, LogicalSize, Manager, State, Window, WindowEvent};
 use tokio::sync::Mutex;
+use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_hub;
 
@@ -54,7 +55,7 @@ pub fn startup(app: &mut App) {
     ) -> Result<(), io::Error> {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         let unity_hub_path = with_environment!(&state, |environment| {
-            let Some(unity_hub_path) = environment.find_unity_hub().await? else {
+            let Some(unity_hub_path) = environment.find_unity_hub(io.inner()).await? else {
                 error!("Unity Hub not found");
                 return Ok(());
             };
@@ -64,13 +65,15 @@ pub fn startup(app: &mut App) {
 
         let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
 
-        with_environment!(&state, |environment| {
-            environment
-                .update_unity_from_unity_hub_and_fs(&paths_from_hub)
+        {
+            let mut connection = VccDatabaseConnection::connect(io.inner())?;
+
+            connection
+                .update_unity_from_unity_hub_and_fs(&paths_from_hub, io.inner())
                 .await?;
 
-            environment.save(io.inner()).await?;
-        });
+            connection.save(io.inner()).await?;
+        }
 
         info!("finished updating unity from unity hub");
         Ok(())

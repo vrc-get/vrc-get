@@ -10,6 +10,7 @@ use tauri::{generate_handler, Invoke};
 pub use start::startup;
 pub use state::new_env_state;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
+use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
@@ -229,15 +230,15 @@ pub(crate) fn export_ts() {
     std::fs::write(export_path, file).unwrap();
 }
 
-async fn update_project_last_modified(env: &mut Environment, project_dir: &Path) {
-    async fn inner(env: &mut Environment, project_dir: &Path) -> Result<(), io::Error> {
-        let io = DefaultEnvironmentIo::new_default();
-        env.update_project_last_modified(project_dir)?;
-        env.save(&io).await?;
+async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
+    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), io::Error> {
+        let mut connection = VccDatabaseConnection::connect(io)?;
+        connection.update_project_last_modified(project_dir)?;
+        connection.save(io).await?;
         Ok(())
     }
 
-    if let Err(err) = inner(env, project_dir).await {
+    if let Err(err) = inner(io, project_dir).await {
         eprintln!("error updating project updated_at on vcc: {err}");
     }
 }

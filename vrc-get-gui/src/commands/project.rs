@@ -13,6 +13,7 @@ use tauri::{State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Mutex;
+use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 use vrc_get_vpm::unity_project::pending_project_changes::{
@@ -386,7 +387,7 @@ pub async fn project_apply_pending_changes(
         .await?;
 
     unity_project.save().await?;
-    update_project_last_modified(environment, unity_project.project_dir()).await;
+    update_project_last_modified(&io, unity_project.project_dir()).await;
     Ok(())
 }
 
@@ -412,7 +413,7 @@ pub async fn project_migrate_project_to_2022(
         }
 
         unity_project.save().await?;
-        update_project_last_modified(environment, unity_project.project_dir()).await;
+        update_project_last_modified(&io, unity_project.project_dir()).await;
 
         Ok(())
     })
@@ -529,7 +530,7 @@ pub async fn project_migrate_project_to_vpm(
     }
 
     unity_project.save().await?;
-    update_project_last_modified(environment, unity_project.project_dir()).await;
+    update_project_last_modified(&io, unity_project.project_dir()).await;
 
     Ok(())
 }
@@ -541,7 +542,6 @@ fn is_unity_running(project_path: impl AsRef<Path>) -> bool {
 #[tauri::command]
 #[specta::specta]
 pub async fn project_open_unity(
-    state: State<'_, Mutex<EnvironmentState>>,
     config: State<'_, GuiConfigState>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
@@ -554,14 +554,16 @@ pub async fn project_open_unity(
 
     let mut custom_args: Option<Vec<String>> = None;
 
-    with_environment!(&state, |environment| {
-        if let Some(project) = environment.find_project(project_path.as_ref())? {
+    {
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        if let Some(project) = connection.find_project(project_path.as_ref())? {
             custom_args = project
                 .custom_unity_args()
                 .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
         }
-        update_project_last_modified(environment, project_path.as_ref()).await;
-    });
+        connection.update_project_last_modified(project_path.as_ref())?;
+        connection.save(io.inner()).await?;
+    }
 
     let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
     let config_default_args;
@@ -818,11 +820,13 @@ pub async fn project_create_backup(
 #[specta::specta]
 pub async fn project_get_custom_unity_args(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
     with_environment!(&state, |environment| {
+        let connection = VccDatabaseConnection::connect(io.inner())?;
         let result;
-        if let Some(project) = environment.find_project(project_path.as_ref())? {
+        if let Some(project) = connection.find_project(project_path.as_ref())? {
             result = project
                 .custom_unity_args()
                 .map(|x| x.iter().map(ToOwned::to_owned).collect());
@@ -838,17 +842,20 @@ pub async fn project_get_custom_unity_args(
 #[specta::specta]
 pub async fn project_set_custom_unity_args(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     args: Option<Vec<String>>,
 ) -> Result<bool, RustError> {
     with_environment!(&state, |environment| {
-        if let Some(mut project) = environment.find_project(project_path.as_ref())? {
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        if let Some(mut project) = connection.find_project(project_path.as_ref())? {
             if let Some(args) = args {
                 project.set_custom_unity_args(args);
             } else {
                 project.clear_custom_unity_args();
             }
-            environment.update_project(&project)?;
+            connection.update_project(&project)?;
+            connection.save(io.inner()).await?;
             environment.disconnect_litedb();
             Ok(true)
         } else {
@@ -862,11 +869,13 @@ pub async fn project_set_custom_unity_args(
 #[specta::specta]
 pub async fn project_get_unity_path(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<String>, RustError> {
     with_environment!(&state, |environment| {
+        let connection = VccDatabaseConnection::connect(io.inner())?;
         let result;
-        if let Some(project) = environment.find_project(project_path.as_ref())? {
+        if let Some(project) = connection.find_project(project_path.as_ref())? {
             result = project.unity_path().map(ToOwned::to_owned);
         } else {
             result = None;
@@ -880,17 +889,20 @@ pub async fn project_get_unity_path(
 #[specta::specta]
 pub async fn project_set_unity_path(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
     with_environment!(&state, |environment| {
-        if let Some(mut project) = environment.find_project(project_path.as_ref())? {
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        if let Some(mut project) = connection.find_project(project_path.as_ref())? {
             if let Some(unity_path) = unity_path {
                 project.set_unity_path(unity_path);
             } else {
                 project.clear_unity_path();
             }
-            environment.update_project(&project)?;
+            connection.update_project(&project)?;
+            connection.save(io.inner()).await?;
             environment.disconnect_litedb();
             Ok(true)
         } else {
