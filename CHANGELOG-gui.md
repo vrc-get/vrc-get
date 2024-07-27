@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog].
 
 ### Security
 
+## [0.1.13] - 2024-07-27
+### Fixed
+- Upgrading 0.1.11 to 0.1.12 will installs to wrong directory [`#1322`](https://github.com/vrc-get/vrc-get/pull/1322)
+
 ## [0.1.12] - 2024-07-25
 ### Added
 - Way to customize default command-line arguments for unity [`#1304`](https://github.com/vrc-get/vrc-get/pull/1304)
@@ -403,7 +407,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.12...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.13...HEAD
+[0.1.13]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.12...gui-v0.1.13
 [0.1.12]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.11...gui-v0.1.12
 [0.1.11]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10...gui-v0.1.11
 [0.1.10]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.4...gui-v0.1.10
