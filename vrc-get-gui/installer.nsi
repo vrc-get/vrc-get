@@ -413,6 +413,30 @@ FunctionEnd
 
 Var PassiveMode
 Function .onInit
+  ; Migrate Legacy Registry Key
+  ReadRegStr $0 HKCU "${MANUPRODUCTKEY}" ""
+  ReadRegStr $1 HKCU "${MANUPRODUCTKEYOLD1}" ""
+  ReadRegStr $2 HKCU "${MANUPRODUCTKEYOLD2}" ""
+  ReadRegStr $3 HKCU "${MANUPRODUCTKEYOLD3}" ""
+  ${If} $0 != "" 
+    ; This means new key is already created, no need to migrate
+
+    ; MANUPRODUCTKEYOLD3 is unlikely to be expected key so the lowest priority
+  ${ElseIf} $2 != ""
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD2}" key2
+  ${ElseIf} $1 != ""
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD1}" key1
+  ${ElseIf} $3 != ""
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD3}" key3
+  ${EndIf}
+
+  ; after migration, delete old keys
+  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD1}"
+  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD2}"
+  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD3}"
+  DeleteRegKey /ifempty HKCU "${MANUKEYOLD}"
+  ; End Migrate Legacy Registry Key
+
   ${GetOptions} $CMDLINE "/P" $PassiveMode
   IfErrors +2 0
     StrCpy $PassiveMode 1
@@ -448,29 +472,6 @@ Function .onInit
   !if "${INSTALLMODE}" == "both"
     !insertmacro MULTIUSER_INIT
   !endif
-  
-  ; Migrate Legacy Registry Key
-  ReadRegStr $0 HKCU "${MANUPRODUCTKEY}" ""
-  ReadRegStr $1 HKCU "${MANUPRODUCTKEYOLD1}" ""
-  ReadRegStr $2 HKCU "${MANUPRODUCTKEYOLD2}" ""
-  ReadRegStr $3 HKCU "${MANUPRODUCTKEYOLD3}" ""
-  ${If} $0 != "" 
-    ; This means new key is already created, no need to migrate
-
-    ; MANUPRODUCTKEYOLD3 is unlikely to be expected key so the lowest priority
-  ${ElseIf} $2 != ""
-    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD2}" key2
-  ${ElseIf} $1 != ""
-    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD1}" key1
-  ${ElseIf} $3 != ""
-    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD3}" key3
-  ${EndIf}
-
-  ; after migration, delete old keys
-  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD1}"
-  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD2}"
-  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD3}"
-  DeleteRegKey /ifempty HKCU "${MANUKEYOLD}"
 FunctionEnd
 
 Section EarlyChecks
