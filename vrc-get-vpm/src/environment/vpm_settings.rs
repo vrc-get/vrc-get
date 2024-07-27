@@ -60,7 +60,7 @@ struct AsJson {
 }
 
 #[derive(Debug)]
-pub(crate) struct Settings {
+pub(crate) struct VpmSettings {
     controller: SaveController<AsJson>,
 }
 
@@ -72,7 +72,7 @@ pub(crate) trait NewIdGetter {
 
 const JSON_PATH: &str = "settings.json";
 
-impl Settings {
+impl VpmSettings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
         let parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
@@ -183,7 +183,7 @@ impl Settings {
 }
 
 #[cfg(feature = "experimental-project-management")]
-impl Settings {
+impl VpmSettings {
     pub(crate) fn user_projects(&self) -> &[Box<str>] {
         &self.controller.user_projects
     }
