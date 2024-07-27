@@ -359,6 +359,7 @@ pub async fn project_remove_packages(
 #[specta::specta]
 pub async fn project_apply_pending_changes(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     changes_version: u32,
 ) -> Result<(), RustError> {
@@ -376,7 +377,7 @@ pub async fn project_apply_pending_changes(
         .environment
         .get_environment_mut(UpdateRepositoryMode::None, &env_state.io)
         .await?;
-    let installer = environment.get_package_installer();
+    let installer = environment.get_package_installer(io.inner());
 
     let mut unity_project = load_project(project_path).await?;
 
@@ -393,13 +394,14 @@ pub async fn project_apply_pending_changes(
 #[specta::specta]
 pub async fn project_migrate_project_to_2022(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<(), RustError> {
     with_environment!(state, |environment| {
         let mut unity_project = load_project(project_path).await?;
 
         let collection = environment.new_package_collection();
-        let installer = environment.get_package_installer();
+        let installer = environment.get_package_installer(io.inner());
 
         match unity_project
             .migrate_unity_2022(&collection, &installer)
@@ -500,6 +502,7 @@ pub async fn project_call_unity_for_migration(
 #[specta::specta]
 pub async fn project_migrate_project_to_vpm(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<(), RustError> {
     let mut env_state = state.lock().await;
@@ -511,7 +514,7 @@ pub async fn project_migrate_project_to_vpm(
 
     let mut unity_project = load_project(project_path).await?;
     let collection = environment.new_package_collection();
-    let installer = environment.get_package_installer();
+    let installer = environment.get_package_installer(io.inner());
 
     match unity_project
         .migrate_vpm(
@@ -721,7 +724,7 @@ pub async fn project_create_backup(
         let backup_format = config.load(&io).await?.backup_format.to_ascii_lowercase();
 
         let backup_dir = with_environment!(&state, |environment| {
-            let backup_path = project_backup_path(environment).await?;
+            let backup_path = project_backup_path(environment, &io).await?;
             backup_path.to_string()
         });
 

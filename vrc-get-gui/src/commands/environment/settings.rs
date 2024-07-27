@@ -84,8 +84,8 @@ pub async fn environment_get_settings(
         environment.find_unity_hub().await.ok();
 
         let settings = TauriEnvironmentSettings {
-            default_project_path: default_project_path(environment).await?.to_string(),
-            project_backup_path: project_backup_path(environment).await?.to_string(),
+            default_project_path: default_project_path(environment, &io).await?.to_string(),
+            project_backup_path: project_backup_path(environment, &io).await?.to_string(),
             unity_hub: environment.unity_hub_path().to_string(),
             unity_paths: environment
                 .get_unity_installations()?
@@ -121,6 +121,7 @@ pub enum TauriPickUnityHubResult {
 #[specta::specta]
 pub async fn environment_pick_unity_hub(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriPickUnityHubResult, RustError> {
     let Some(mut path) = with_environment!(&state, |environment| {
         let mut unity_hub = Path::new(environment.unity_hub_path());
@@ -181,7 +182,7 @@ pub async fn environment_pick_unity_hub(
 
     with_environment!(&state, |environment| {
         environment.set_unity_hub_path(&path);
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     Ok(TauriPickUnityHubResult::Successful)
@@ -199,6 +200,7 @@ pub enum TauriPickUnityResult {
 #[specta::specta]
 pub async fn environment_pick_unity(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriPickUnityResult, RustError> {
     let Some(mut path) = ({
         let mut builder = FileDialogBuilder::new();
@@ -254,7 +256,7 @@ pub async fn environment_pick_unity(
             Err(e) => return Err(e.into()),
             Ok(_) => {}
         }
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     Ok(TauriPickUnityResult::Successful)
@@ -272,11 +274,12 @@ pub enum TauriPickProjectDefaultPathResult {
 #[specta::specta]
 pub async fn environment_pick_project_default_path(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriPickProjectDefaultPathResult, RustError> {
     let Some(dir) = with_environment!(state, |environment| {
         FileDialogBuilder::new()
             .set_directory(find_existing_parent_dir_or_home(
-                default_project_path(environment).await?.as_ref(),
+                default_project_path(environment, &io).await?.as_ref(),
             ))
             .pick_folder()
     }) else {
@@ -289,7 +292,7 @@ pub async fn environment_pick_project_default_path(
 
     with_environment!(&state, |environment| {
         environment.set_default_project_path(&dir);
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     Ok(TauriPickProjectDefaultPathResult::Successful { new_path: dir })
@@ -307,11 +310,12 @@ pub enum TauriPickProjectBackupPathResult {
 #[specta::specta]
 pub async fn environment_pick_project_backup_path(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriPickProjectBackupPathResult, RustError> {
     let Some(dir) = with_environment!(state, |environment| {
         FileDialogBuilder::new()
             .set_directory(find_existing_parent_dir_or_home(
-                project_backup_path(environment).await?.as_ref(),
+                project_backup_path(environment, io.inner()).await?.as_ref(),
             ))
             .pick_folder()
     }) else {
@@ -324,7 +328,7 @@ pub async fn environment_pick_project_backup_path(
 
     with_environment!(&state, |environment| {
         environment.set_project_backup_path(&dir);
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     Ok(TauriPickProjectBackupPathResult::Successful)
@@ -334,11 +338,12 @@ pub async fn environment_pick_project_backup_path(
 #[specta::specta]
 pub async fn environment_set_show_prerelease_packages(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     value: bool,
 ) -> Result<(), RustError> {
     with_environment!(&state, |environment| {
         environment.set_show_prerelease_packages(value);
-        environment.save().await?;
+        environment.save(io.inner()).await?;
         Ok(())
     })
 }

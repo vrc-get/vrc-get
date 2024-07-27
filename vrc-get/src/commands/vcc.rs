@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use log::warn;
 use std::cmp::Reverse;
 use std::path::Path;
-use vrc_get_vpm::io::DefaultProjectIo;
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::{unity_hub, UnityProject};
 
 /// Experimental VCC commands
@@ -91,6 +91,7 @@ pub struct ProjectAdd {
 
 impl ProjectAdd {
     pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
         let mut env = load_env(&self.env_args).await;
 
         let project_path = absolute_path(Path::new(self.path.as_ref()));
@@ -110,7 +111,7 @@ impl ProjectAdd {
         env.add_project(&project)
             .await
             .exit_context("adding project");
-        env.save().await.exit_context("saving environment");
+        env.save(&io).await.exit_context("saving environment");
     }
 }
 
@@ -125,6 +126,7 @@ pub struct ProjectRemove {
 
 impl ProjectRemove {
     pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
         let mut env = load_env(&self.env_args).await;
 
         let Some(project) = env
@@ -142,7 +144,7 @@ impl ProjectRemove {
 
         env.remove_project(&project)
             .exit_context("removing project");
-        env.save().await.exit_context("saving environment");
+        env.save(&io).await.exit_context("saving environment");
     }
 }
 
@@ -197,6 +199,7 @@ pub struct UnityAdd {
 
 impl UnityAdd {
     pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
         let mut env = load_env(&self.env_args).await;
 
         let unity_version = vrc_get_vpm::unity::call_unity_for_version(self.path.as_ref().as_ref())
@@ -209,7 +212,7 @@ impl UnityAdd {
 
         println!("Added version {} at {}", unity_version, self.path);
 
-        env.save().await.exit_context("saving environment");
+        env.save(&io).await.exit_context("saving environment");
     }
 }
 
@@ -224,6 +227,7 @@ pub struct UnityRemove {
 
 impl UnityRemove {
     pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
         let mut env = load_env(&self.env_args).await;
 
         let Some(unity) = env
@@ -239,7 +243,7 @@ impl UnityRemove {
             .await
             .exit_context("adding unity installation");
 
-        env.save().await.exit_context("saving environment");
+        env.save(&io).await.exit_context("saving environment");
     }
 }
 
@@ -256,6 +260,7 @@ pub struct UnityUpdate {
 
 impl UnityUpdate {
     pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
         let mut env = load_env(&self.env_args).await;
 
         let unity_hub_path = env
@@ -272,6 +277,6 @@ impl UnityUpdate {
             .await
             .exit_context("updating unity from unity hub");
 
-        env.save().await.exit_context("saving environment");
+        env.save(&io).await.exit_context("saving environment");
     }
 }

@@ -86,8 +86,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     /// Please call [`load_package_infos`] after this method.
     ///
     /// [`load_package_infos`]: Environment::load_package_infos
-    pub async fn reload(&mut self) -> io::Result<()> {
-        self.settings = Settings::load(&self.io).await?;
+    pub async fn reload(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
+        self.settings = Settings::load(io).await?;
         #[cfg(feature = "vrc-get-litedb")]
         {
             self.litedb_connection = litedb::LiteDbConnectionHolder::new();
@@ -95,8 +95,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
-    pub async fn save(&mut self) -> io::Result<()> {
-        self.settings.save(&self.io).await?;
+    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
+        self.settings.save(io).await?;
         #[cfg(feature = "vrc-get-litedb")]
         self.disconnect_litedb();
         Ok(())
@@ -136,7 +136,11 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         repositories
     }
 
-    pub async fn load_package_infos(&mut self, update: bool) -> io::Result<()> {
+    pub async fn load_package_infos(
+        &mut self,
+        update: bool,
+        io: &impl EnvironmentIo,
+    ) -> io::Result<()> {
         let http = if update { self.http.as_ref() } else { None };
         let predefined_repos = self.get_predefined_repos().into_iter();
         let user_repos = self
@@ -144,14 +148,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .get_user_repos()
             .iter()
             .map(UserRepoSetting::to_source);
-        self.io.create_dir_all("Repos".as_ref()).await?;
+        io.create_dir_all("Repos".as_ref()).await?;
         let mut repo_cache = RepoHolder::new();
         repo_cache
-            .load_repos(http, &self.io, predefined_repos.chain(user_repos))
+            .load_repos(http, io, predefined_repos.chain(user_repos))
             .await?;
         self.update_user_repo_id(&repo_cache);
         self.remove_id_duplication(&mut repo_cache);
-        let user_packages = self.do_load_user_package_infos().await?;
+        let user_packages = self.do_load_user_package_infos(io).await?;
 
         self.collection = PackageCollection {
             repositories: repo_cache.get_repos().iter().copied().cloned().collect(),
@@ -189,16 +193,19 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
     }
 
-    async fn do_load_user_package_infos(&mut self) -> io::Result<UserPackageCollection> {
+    async fn do_load_user_package_infos(
+        &mut self,
+        io: &impl EnvironmentIo,
+    ) -> io::Result<UserPackageCollection> {
         let mut user_packages = UserPackageCollection::new();
         for x in self.settings.user_package_folders() {
-            user_packages.try_add_package(&self.io, x).await;
+            user_packages.try_add_package(io, x).await;
         }
         Ok(user_packages)
     }
 
-    pub async fn load_user_package_infos(&mut self) -> io::Result<()> {
-        let user_packages = self.do_load_user_package_infos().await?;
+    pub async fn load_user_package_infos(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
+        let user_packages = self.do_load_user_package_infos(io).await?;
 
         self.collection.user_packages = user_packages.into_packages();
 
@@ -240,6 +247,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         url: Url,
         name: Option<&str>,
         headers: IndexMap<Box<str>, Box<str>>,
+        io: &impl EnvironmentIo,
     ) -> Result<(), AddRepositoryErr> {
         let http = self.http.as_ref().ok_or(AddRepositoryErr::OfflineMode)?;
 
@@ -257,11 +265,9 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 .etag = etag;
         }
 
-        self.io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
-        let file_name = self.write_new_repo(&local_cache).await?;
-        let repo_path = self
-            .io
-            .resolve(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref());
+        io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
+        let file_name = self.write_new_repo(&local_cache, io).await?;
+        let repo_path = io.resolve(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref());
 
         assert!(
             self.settings
@@ -272,8 +278,12 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         Ok(())
     }
 
-    async fn write_new_repo(&self, local_cache: &LocalCachedRepository) -> io::Result<String> {
-        self.io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
+    async fn write_new_repo(
+        &self,
+        local_cache: &LocalCachedRepository,
+        io: &impl EnvironmentIo,
+    ) -> io::Result<String> {
+        io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
 
         // [0-9a-zA-Z._-]+
         fn is_id_name_for_file(id: &str) -> bool {
@@ -295,8 +305,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let guid_names = std::iter::from_fn(|| Some(format!("{}.json", uuid::Uuid::new_v4())));
 
         for file_name in id_names.chain(guid_names) {
-            match self
-                .io
+            match io
                 .create_new(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref())
                 .await
             {
@@ -345,13 +354,13 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         removed.len()
     }
 
-    pub async fn cleanup_repos_folder(&self) -> io::Result<()> {
+    pub async fn cleanup_repos_folder(&self, io: &impl EnvironmentIo) -> io::Result<()> {
         let mut uesr_repo_file_names = HashSet::<OsString>::from_iter([
             OsString::from("vrc-official.json"),
             OsString::from("vrc-curated.json"),
             OsString::from("package-cache.json"),
         ]);
-        let repos_base = self.io.resolve(REPO_CACHE_FOLDER.as_ref());
+        let repos_base = io.resolve(REPO_CACHE_FOLDER.as_ref());
 
         for x in self.get_user_repos() {
             if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
@@ -368,7 +377,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
         }
 
-        let mut entry = self.io.read_dir(REPO_CACHE_FOLDER.as_ref()).await?;
+        let mut entry = io.read_dir(REPO_CACHE_FOLDER.as_ref()).await?;
         while let Some(entry) = entry.try_next().await? {
             let file_name: OsString = entry.file_name();
             if file_name.as_encoded_bytes().ends_with(b".json")
@@ -380,16 +389,14 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 path.push(REPO_CACHE_FOLDER);
                 path.push(OsStr::new("/"));
                 path.push(file_name);
-                self.io.remove_file(path.as_ref()).await?;
+                io.remove_file(path.as_ref()).await?;
             }
         }
 
         Ok(())
     }
 
-    pub async fn clear_package_cache(&self) -> io::Result<()> {
-        let io = &self.io;
-
+    pub async fn clear_package_cache(&self, io: &impl EnvironmentIo) -> io::Result<()> {
         let repo_folder_stream = io.read_dir(REPO_CACHE_FOLDER.as_ref()).await?;
 
         let pkg_folder_entries = repo_folder_stream.try_filter_map(|pkg_entry| async move {
@@ -524,13 +531,20 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         self.settings.remove_user_package(pkg_path);
     }
 
-    pub async fn add_user_package(&mut self, pkg_path: &Path) -> AddUserPackageResult {
-        self.settings.add_user_package(pkg_path, &self.io).await
+    pub async fn add_user_package(
+        &mut self,
+        pkg_path: &Path,
+        io: &impl EnvironmentIo,
+    ) -> AddUserPackageResult {
+        self.settings.add_user_package(pkg_path, io).await
     }
 
-    pub fn get_package_installer(&self) -> PackageInstaller<'_, T, IO> {
+    pub fn get_package_installer<'a, IO2: EnvironmentIo>(
+        &'a self,
+        io: &'a IO2,
+    ) -> PackageInstaller<'a, T, IO2> {
         PackageInstaller {
-            io: &self.io,
+            io,
             http: self.http.as_ref(),
         }
     }

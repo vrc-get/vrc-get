@@ -6,6 +6,7 @@ use log::{info, warn};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use tokio::process::Command;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 /// Migrate Unity Project
 #[derive(Subcommand)]
@@ -56,9 +57,10 @@ impl Unity2022 {
         }
 
         let mut project = load_unity(self.project).await;
+        let io = DefaultEnvironmentIo::new_default();
         let env = load_env(&self.env_args).await;
         let collection = env.new_package_collection();
-        let installer = env.get_package_installer();
+        let installer = env.get_package_installer(&io);
 
         project
             .migrate_unity_2022(&collection, &installer)
@@ -130,9 +132,10 @@ impl Vpm {
         }
 
         let mut project = load_unity(self.project).await;
+        let io = DefaultEnvironmentIo::new_default();
         let env = load_env(&self.env_args).await;
         let package_collection = env.new_package_collection();
-        let installer = env.get_package_installer();
+        let installer = env.get_package_installer(&io);
 
         project
             .migrate_vpm(&package_collection, &installer, false)

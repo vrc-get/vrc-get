@@ -35,7 +35,8 @@ pub fn startup(app: &mut App) {
     let handle = app.handle();
     tauri::async_runtime::spawn(async move {
         let state = handle.state();
-        if let Err(e) = update_unity_hub(state).await {
+        let io = handle.state();
+        if let Err(e) = update_unity_hub(state, io).await {
             error!("failed to update unity from unity hub: {e}");
         }
     });
@@ -47,14 +48,17 @@ pub fn startup(app: &mut App) {
         }
     });
 
-    async fn update_unity_hub(state: State<'_, Mutex<EnvironmentState>>) -> Result<(), io::Error> {
+    async fn update_unity_hub(
+        state: State<'_, Mutex<EnvironmentState>>,
+        io: State<'_, DefaultEnvironmentIo>,
+    ) -> Result<(), io::Error> {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         let unity_hub_path = with_environment!(&state, |environment| {
             let Some(unity_hub_path) = environment.find_unity_hub().await? else {
                 error!("Unity Hub not found");
                 return Ok(());
             };
-            environment.save().await?;
+            environment.save(io.inner()).await?;
             unity_hub_path
         });
 
@@ -65,7 +69,7 @@ pub fn startup(app: &mut App) {
                 .update_unity_from_unity_hub_and_fs(&paths_from_hub)
                 .await?;
 
-            environment.save().await?;
+            environment.save(io.inner()).await?;
         });
 
         info!("finished updating unity from unity hub");

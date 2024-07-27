@@ -95,6 +95,7 @@ impl TauriProject {
 #[specta::specta]
 pub async fn environment_projects(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<Vec<TauriProject>, RustError> {
     let mut state = state.lock().await;
     let state = &mut *state;
@@ -109,7 +110,7 @@ pub async fn environment_projects(
     info!("syncing information with real projects");
     environment.sync_with_real_projects(true).await?;
     environment.dedup_projects()?;
-    environment.save().await?;
+    environment.save(io.inner()).await?;
 
     info!("fetching projects");
 
@@ -143,6 +144,7 @@ pub enum TauriAddProjectWithPickerResult {
 #[specta::specta]
 pub async fn environment_add_project_with_picker(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriAddProjectWithPickerResult, RustError> {
     let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
         return Ok(TauriAddProjectWithPickerResult::NoFolderSelected);
@@ -166,7 +168,7 @@ pub async fn environment_add_project_with_picker(
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
         environment.add_project(&unity_project).await?;
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     Ok(TauriAddProjectWithPickerResult::Successful)
@@ -183,6 +185,7 @@ async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
 #[specta::specta]
 pub async fn environment_remove_project(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     list_version: u32,
     index: usize,
     directory: bool,
@@ -200,7 +203,7 @@ pub async fn environment_remove_project(
         .get_environment_mut(UpdateRepositoryMode::None, &state.io)
         .await?;
     environment.remove_project(project)?;
-    environment.save().await?;
+    environment.save(io.inner()).await?;
 
     if directory {
         let path = project.path();
@@ -220,6 +223,7 @@ pub async fn environment_remove_project(
 #[specta::specta]
 pub async fn environment_remove_project_by_path(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     path: String,
     directory: bool,
 ) -> Result<(), RustError> {
@@ -228,7 +232,7 @@ pub async fn environment_remove_project_by_path(
 
         if let Some(x) = projects.iter().find(|x| x.path() == path) {
             environment.remove_project(x)?;
-            environment.save().await?;
+            environment.save(io.inner()).await?;
         } else {
             environment.disconnect_litedb();
         }
@@ -263,6 +267,7 @@ async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result
 #[specta::specta]
 pub async fn environment_copy_project_for_migration(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     source_path: String,
 ) -> Result<String, RustError> {
     async fn create_folder(folder: &Path, name: &OsStr) -> Option<String> {
@@ -322,7 +327,7 @@ pub async fn environment_copy_project_for_migration(
 
     with_environment!(state, |environment| {
         environment.add_project(&unity_project).await?;
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     Ok(new_path_str)
@@ -332,6 +337,7 @@ pub async fn environment_copy_project_for_migration(
 #[specta::specta]
 pub async fn environment_set_favorite_project(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     list_version: u32,
     index: usize,
     favorite: bool,
@@ -350,7 +356,7 @@ pub async fn environment_set_favorite_project(
         .get_environment_mut(UpdateRepositoryMode::None, &state.io)
         .await?;
     environment.update_project(project)?;
-    environment.save().await?;
+    environment.save(io.inner()).await?;
 
     Ok(())
 }
@@ -434,7 +440,7 @@ pub async fn environment_project_creation_information(
 
         Ok(TauriProjectCreationInformation {
             templates,
-            default_path: default_project_path(environment).await?.to_string(),
+            default_path: default_project_path(environment, &io).await?.to_string(),
         })
     })
 }
@@ -635,7 +641,7 @@ pub async fn environment_create_project(
             .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
             .await?;
         let collection = environment.new_package_collection();
-        let installer = environment.get_package_installer();
+        let installer = environment.get_package_installer(io.inner());
 
         let mut unity_project = load_project(path_str.into()).await?;
 
@@ -648,7 +654,7 @@ pub async fn environment_create_project(
 
         // add the project to listing
         environment.add_project(&unity_project).await?;
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     }
     Ok(TauriCreateProjectResult::Successful)
 }

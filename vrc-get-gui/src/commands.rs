@@ -231,8 +231,9 @@ pub(crate) fn export_ts() {
 
 async fn update_project_last_modified(env: &mut Environment, project_dir: &Path) {
     async fn inner(env: &mut Environment, project_dir: &Path) -> Result<(), io::Error> {
+        let io = DefaultEnvironmentIo::new_default();
         env.update_project_last_modified(project_dir)?;
-        env.save().await?;
+        env.save(&io).await?;
         Ok(())
     }
 

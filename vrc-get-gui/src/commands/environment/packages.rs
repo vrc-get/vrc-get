@@ -330,6 +330,7 @@ pub enum TauriAddRepositoryResult {
 #[specta::specta]
 pub async fn environment_add_repository(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     url: String,
     headers: IndexMapV2<Box<str>, Box<str>>,
 ) -> Result<TauriAddRepositoryResult, RustError> {
@@ -341,8 +342,10 @@ pub async fn environment_add_repository(
     };
 
     with_environment!(&state, |environment| {
-        environment.add_remote_repo(url, None, headers.0).await?;
-        environment.save().await?;
+        environment
+            .add_remote_repo(url, None, headers.0, io.inner())
+            .await?;
+        environment.save(io.inner()).await?;
     });
 
     // force update repository
@@ -356,6 +359,7 @@ pub async fn environment_add_repository(
 #[specta::specta]
 pub async fn environment_remove_repository(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     id: String,
 ) -> Result<(), RustError> {
     with_environment!(state, |environment| {
@@ -363,7 +367,7 @@ pub async fn environment_remove_repository(
             .remove_repo(|r| r.id() == Some(id.as_str()))
             .await;
 
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     {
@@ -493,15 +497,16 @@ pub async fn environment_import_download_repositories(
 #[specta::specta]
 pub async fn environment_import_add_repositories(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     repositories: Vec<TauriRepositoryDescriptor>,
 ) -> Result<(), RustError> {
     with_environment!(&state, |environment| {
         for adding_repo in repositories {
             environment
-                .add_remote_repo(adding_repo.url, None, adding_repo.headers.0)
+                .add_remote_repo(adding_repo.url, None, adding_repo.headers.0, io.inner())
                 .await?;
         }
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     // force update repository
@@ -535,11 +540,12 @@ pub async fn environment_export_repositories(
 #[specta::specta]
 pub async fn environment_clear_package_cache(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<(), RustError> {
     with_environment!(state, |environment| {
-        environment.clear_package_cache().await?;
+        environment.clear_package_cache(io.inner()).await?;
 
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     Ok(())
@@ -591,6 +597,7 @@ pub enum TauriAddUserPackageWithPickerResult {
 #[specta::specta]
 pub async fn environment_add_user_package_with_picker(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriAddUserPackageWithPickerResult, RustError> {
     let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
         return Ok(TauriAddUserPackageWithPickerResult::NoFolderSelected);
@@ -601,7 +608,10 @@ pub async fn environment_add_user_package_with_picker(
     };
 
     with_environment!(&state, |environment| {
-        match environment.add_user_package(project_path.as_ref()).await {
+        match environment
+            .add_user_package(project_path.as_ref(), io.inner())
+            .await
+        {
             AddUserPackageResult::Success => {}
             AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
             AddUserPackageResult::BadPackage => {
@@ -612,7 +622,7 @@ pub async fn environment_add_user_package_with_picker(
             }
         }
 
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     {
@@ -628,12 +638,13 @@ pub async fn environment_add_user_package_with_picker(
 #[specta::specta]
 pub async fn environment_remove_user_packages(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     path: String,
 ) -> Result<(), RustError> {
     with_environment!(state, |environment| {
         environment.remove_user_package(Path::new(&path));
 
-        environment.save().await?;
+        environment.save(io.inner()).await?;
     });
 
     {

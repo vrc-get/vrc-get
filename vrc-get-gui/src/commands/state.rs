@@ -104,7 +104,7 @@ impl EnvironmentHolder {
             {
                 info!("reloading settings files");
                 // reload settings files
-                environment.reload().await?;
+                environment.reload(io).await?;
                 self.last_update = Some(tokio::time::Instant::now());
             }
 
@@ -117,7 +117,7 @@ impl EnvironmentHolder {
                     self.last_repository_update = Some(tokio::time::Instant::now());
                     self.environment_version += Wrapping(1);
                     info!("loading package infos");
-                    environment.load_package_infos(true).await?;
+                    environment.load_package_infos(true, io).await?;
                 }
                 UpdateRepositoryMode::IfOutdatedOrNecessary => {
                     if self
@@ -128,7 +128,7 @@ impl EnvironmentHolder {
                         self.last_repository_update = Some(tokio::time::Instant::now());
                         self.environment_version += Wrapping(1);
                         info!("loading package infos");
-                        environment.load_package_infos(true).await?;
+                        environment.load_package_infos(true, io).await?;
                     }
                 }
                 UpdateRepositoryMode::IfOutdatedOrNecessaryForLocal => {
@@ -140,7 +140,7 @@ impl EnvironmentHolder {
                         self.last_repository_update = Some(tokio::time::Instant::now());
                         self.environment_version += Wrapping(1);
                         info!("loading local package infos");
-                        environment.load_user_package_infos().await?;
+                        environment.load_user_package_infos(io).await?;
                     }
                 }
             }
@@ -157,13 +157,13 @@ impl EnvironmentHolder {
                     self.last_repository_update = Some(tokio::time::Instant::now());
                     self.environment_version += Wrapping(1);
                     info!("loading package infos");
-                    environment.load_package_infos(true).await?;
+                    environment.load_package_infos(true, io).await?;
                 }
                 UpdateRepositoryMode::IfOutdatedOrNecessaryForLocal => {
                     self.last_repository_update = Some(tokio::time::Instant::now());
                     self.environment_version += Wrapping(1);
                     info!("loading local package infos");
-                    environment.load_user_package_infos().await?;
+                    environment.load_user_package_infos(io).await?;
                 }
             }
 
