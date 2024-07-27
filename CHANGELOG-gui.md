@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Upgrading 0.1.11 to 0.1.12 will installs to wrong directory `#1322`
 
 ### Security
 
