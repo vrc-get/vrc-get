@@ -819,95 +819,73 @@ pub async fn project_create_backup(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_get_custom_unity_args(
-    state: State<'_, Mutex<EnvironmentState>>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
-    with_environment!(&state, |environment| {
-        let connection = VccDatabaseConnection::connect(io.inner())?;
-        let result;
-        if let Some(project) = connection.find_project(project_path.as_ref())? {
-            result = project
-                .custom_unity_args()
-                .map(|x| x.iter().map(ToOwned::to_owned).collect());
-        } else {
-            result = None;
-        }
-        environment.disconnect_litedb();
-        Ok(result)
-    })
+    let connection = VccDatabaseConnection::connect(io.inner())?;
+    if let Some(project) = connection.find_project(project_path.as_ref())? {
+        Ok(project
+            .custom_unity_args()
+            .map(|x| x.iter().map(ToOwned::to_owned).collect()))
+    } else {
+        Ok(None)
+    }
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_set_custom_unity_args(
-    state: State<'_, Mutex<EnvironmentState>>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     args: Option<Vec<String>>,
 ) -> Result<bool, RustError> {
-    with_environment!(&state, |environment| {
-        let mut connection = VccDatabaseConnection::connect(io.inner())?;
-        if let Some(mut project) = connection.find_project(project_path.as_ref())? {
-            if let Some(args) = args {
-                project.set_custom_unity_args(args);
-            } else {
-                project.clear_custom_unity_args();
-            }
-            connection.update_project(&project)?;
-            connection.save(io.inner()).await?;
-            environment.disconnect_litedb();
-            Ok(true)
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+        if let Some(args) = args {
+            project.set_custom_unity_args(args);
         } else {
-            environment.disconnect_litedb();
-            Ok(false)
+            project.clear_custom_unity_args();
         }
-    })
+        connection.update_project(&project)?;
+        connection.save(io.inner()).await?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_get_unity_path(
-    state: State<'_, Mutex<EnvironmentState>>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<String>, RustError> {
-    with_environment!(&state, |environment| {
-        let connection = VccDatabaseConnection::connect(io.inner())?;
-        let result;
-        if let Some(project) = connection.find_project(project_path.as_ref())? {
-            result = project.unity_path().map(ToOwned::to_owned);
-        } else {
-            result = None;
-        }
-        environment.disconnect_litedb();
-        Ok(result)
-    })
+    let connection = VccDatabaseConnection::connect(io.inner())?;
+    if let Some(project) = connection.find_project(project_path.as_ref())? {
+        Ok(project.unity_path().map(ToOwned::to_owned))
+    } else {
+        Ok(None)
+    }
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_set_unity_path(
-    state: State<'_, Mutex<EnvironmentState>>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
-    with_environment!(&state, |environment| {
-        let mut connection = VccDatabaseConnection::connect(io.inner())?;
-        if let Some(mut project) = connection.find_project(project_path.as_ref())? {
-            if let Some(unity_path) = unity_path {
-                project.set_unity_path(unity_path);
-            } else {
-                project.clear_unity_path();
-            }
-            connection.update_project(&project)?;
-            connection.save(io.inner()).await?;
-            environment.disconnect_litedb();
-            Ok(true)
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+        if let Some(unity_path) = unity_path {
+            project.set_unity_path(unity_path);
         } else {
-            environment.disconnect_litedb();
-            Ok(false)
+            project.clear_unity_path();
         }
-    })
+        connection.update_project(&project)?;
+        connection.save(io.inner()).await?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }

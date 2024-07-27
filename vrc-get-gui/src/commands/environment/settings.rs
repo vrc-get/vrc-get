@@ -47,8 +47,6 @@ pub async fn environment_unity_versions(
             })
             .collect();
 
-        environment.disconnect_litedb();
-
         Ok(TauriUnityVersions {
             unity_paths,
             recommended_version: VRCHAT_RECOMMENDED_2022_UNITY.to_string(),
@@ -89,7 +87,7 @@ pub async fn environment_get_settings(
 
         let connection = VccDatabaseConnection::connect(io.inner())?;
 
-        let settings = TauriEnvironmentSettings {
+        Ok(TauriEnvironmentSettings {
             default_project_path: default_project_path(environment, &io).await?.to_string(),
             project_backup_path: project_backup_path(environment, &io).await?.to_string(),
             unity_hub: environment.unity_hub_path().to_string(),
@@ -109,9 +107,7 @@ pub async fn environment_get_settings(
             release_channel,
             use_alcom_for_vcc_protocol,
             default_unity_arguments,
-        };
-        environment.disconnect_litedb();
-        Ok(settings)
+        })
     })
 }
 

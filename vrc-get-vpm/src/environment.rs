@@ -60,10 +60,6 @@ pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
     pub(crate) http: Option<T>,
     #[allow(dead_code)] // for now
     pub(crate) io: IO,
-    // we do not connect to litedb unless we need information from litedb.
-    // TODO?: use inner mutability?
-    #[cfg(feature = "vrc-get-litedb")]
-    litedb_connection: litedb::LiteDbConnectionHolder,
     collection: PackageCollection,
     settings: Settings,
 }
@@ -72,8 +68,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub async fn load(http: Option<T>, io: IO) -> io::Result<Self> {
         Ok(Self {
             http,
-            #[cfg(feature = "vrc-get-litedb")]
-            litedb_connection: litedb::LiteDbConnectionHolder::new(),
             collection: PackageCollection {
                 repositories: Vec::new(),
                 user_packages: Vec::new(),
@@ -90,17 +84,11 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     /// [`load_package_infos`]: Environment::load_package_infos
     pub async fn reload(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
         self.settings = Settings::load(io).await?;
-        #[cfg(feature = "vrc-get-litedb")]
-        {
-            self.litedb_connection = litedb::LiteDbConnectionHolder::new();
-        }
         Ok(())
     }
 
     pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
         self.settings.save(io).await?;
-        #[cfg(feature = "vrc-get-litedb")]
-        self.disconnect_litedb();
         Ok(())
     }
 }

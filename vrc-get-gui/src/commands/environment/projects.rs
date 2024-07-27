@@ -121,7 +121,6 @@ pub async fn environment_projects(
 
     let projects = connection.get_projects()?.into_boxed_slice();
     drop(connection);
-    environment.disconnect_litedb();
 
     state.projects = projects;
     state.projects_version += Wrapping(1);
@@ -257,8 +256,6 @@ pub async fn environment_remove_project_by_path(
             connection.save(io.inner()).await?;
             environment.load_from_db(&connection)?;
             environment.save(io.inner()).await?;
-        } else {
-            environment.disconnect_litedb();
         }
 
         if directory {
