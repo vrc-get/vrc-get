@@ -37,11 +37,7 @@ pub fn new_http_client() -> reqwest::Client {
 }
 
 pub async fn new_environment(io: &DefaultEnvironmentIo) -> io::Result<Environment> {
-    let client = reqwest::Client::builder()
-        .user_agent(concat!("vrc-get-litedb/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .expect("building client");
-    Environment::load(Some(client), io).await
+    Environment::load(io).await
 }
 
 pub fn new_env_state(app: &App) -> impl Send + Sync + 'static {

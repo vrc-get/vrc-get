@@ -2,7 +2,7 @@ use crate::environment::VccDatabaseConnection;
 use crate::io::EnvironmentIo;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
-use crate::{io, Environment, HttpClient};
+use crate::{io, Environment};
 use bson::oid::ObjectId;
 use log::info;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -150,7 +150,7 @@ impl VccDatabaseConnection {
 }
 
 /// UnityHub Operations
-impl<T: HttpClient> Environment<T> {
+impl Environment {
     fn default_unity_hub_path() -> &'static [&'static str] {
         // https://docs.unity3d.com/hub/manual/HubCLI.html
         #[cfg(windows)]

@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use log::warn;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
-use reqwest::{Client, Url};
+use reqwest::Url;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
@@ -26,10 +26,10 @@ use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveR
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    PackageCollection as _, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
+    Environment, PackageCollection as _, PackageInfo, PackageManifest, UserRepoSetting,
+    VersionSelector,
 };
 
-type Environment = vrc_get_vpm::Environment<Client>;
 type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
@@ -88,7 +88,7 @@ struct EnvArgs {
 async fn load_env(args: &EnvArgs) -> Environment {
     let client = crate::create_client(args.offline);
     let io = DefaultEnvironmentIo::new_default();
-    let mut env = Environment::load(client.clone(), &io)
+    let mut env = Environment::load(&io)
         .await
         .exit_context("loading global config");
 
@@ -104,7 +104,7 @@ async fn load_env(args: &EnvArgs) -> Environment {
 
 async fn load_user_env() -> Environment {
     let io = DefaultEnvironmentIo::new_default();
-    let mut env = Environment::load(None, &io)
+    let mut env = Environment::load(&io)
         .await
         .exit_context("loading global config");
 

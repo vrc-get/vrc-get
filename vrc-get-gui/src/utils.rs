@@ -1,9 +1,9 @@
-use crate::commands::Environment;
 use std::borrow::Cow;
 use std::io;
 use std::path::{Path, PathBuf};
 use tauri::api::dir::is_dir;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::Environment;
 
 pub(crate) fn home_dir() -> PathBuf {
     use tauri::api::path::home_dir;

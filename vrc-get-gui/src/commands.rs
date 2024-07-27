@@ -28,12 +28,11 @@ mod util;
 mod prelude {
     pub use super::state::{EnvironmentState, UpdateRepositoryMode};
     pub(super) use super::{
-        load_project, update_project_last_modified, Environment, RustError, TauriBasePackageInfo,
-        UnityProject,
+        load_project, update_project_last_modified, RustError, TauriBasePackageInfo, UnityProject,
     };
+    pub(super) use vrc_get_vpm::environment::Environment;
 }
 
-pub type Environment = vrc_get_vpm::Environment<reqwest::Client>;
 pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 // Note: remember to change similar in typescript
