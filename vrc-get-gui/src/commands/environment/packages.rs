@@ -3,22 +3,21 @@ use indexmap::IndexMap;
 use log::info;
 use std::collections::HashSet;
 use std::path::Path;
-use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::commands::async_command::{async_command, AsyncCallResult, With};
 use serde::{Deserialize, Serialize};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::{Manager, State, Window};
 use tokio::fs::write;
 use tokio::sync::Mutex;
 use url::Url;
-
-use crate::commands::async_command::{async_command, AsyncCallResult, With};
 use vrc_get_vpm::environment::AddUserPackageResult;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::{HttpClient, PackageCollection, PackageInfo, VersionSelector};
+use yoke::Yoke;
 
 use crate::commands::prelude::*;
 use crate::config::GuiConfigState;
@@ -88,17 +87,14 @@ pub async fn environment_packages(
         .environment
         .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
         .await?;
+    let collection = environment.new_package_collection();
+    let package_list = Yoke::<crate::commands::state::PackageList<'static>, _>::attach_to_cart(
+        Box::new(collection),
+        |x| x.get_all_packages().collect(),
+    );
 
-    let packages = environment
-        .get_all_packages()
-        .collect::<Vec<_>>()
-        .into_boxed_slice();
-    if let Some(ptr) = env_state.packages {
-        env_state.packages = None; // avoid a double drop
-        unsafe { drop(Box::from_raw(ptr.as_ptr())) }
-    }
-    env_state.packages = NonNull::new(Box::into_raw(packages) as *mut _);
-    let packages = unsafe { &*env_state.packages.unwrap().as_ptr() };
+    env_state.packages = Some(package_list);
+    let packages = &env_state.packages.as_ref().unwrap().get().packages;
     let version = env_state.environment.environment_version.0;
 
     Ok(packages

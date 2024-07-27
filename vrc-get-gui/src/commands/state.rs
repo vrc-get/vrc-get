@@ -1,14 +1,13 @@
 use std::io;
 use std::num::Wrapping;
-use std::ptr::NonNull;
 
 use log::info;
 use tokio::sync::Mutex;
-
-use vrc_get_vpm::environment::UserProject;
+use vrc_get_vpm::environment::{PackageCollection, UserProject};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_project::PendingProjectChanges;
 use vrc_get_vpm::PackageInfo;
+use yoke::{Yoke, Yokeable};
 
 use crate::commands::prelude::*;
 use crate::commands::project::ChangesInfoHolder;
@@ -45,10 +44,23 @@ unsafe impl Send for EnvironmentState {}
 
 unsafe impl Sync for EnvironmentState {}
 
+#[derive(Yokeable)]
+pub struct PackageList<'env> {
+    pub packages: Vec<PackageInfo<'env>>,
+}
+
+impl<'a> FromIterator<PackageInfo<'a>> for PackageList<'a> {
+    fn from_iter<T: IntoIterator<Item = PackageInfo<'a>>>(iter: T) -> Self {
+        Self {
+            packages: iter.into_iter().collect(),
+        }
+    }
+}
+
 pub struct EnvironmentState {
     pub io: DefaultEnvironmentIo,
     pub environment: EnvironmentHolder,
-    pub packages: Option<NonNull<[PackageInfo<'static>]>>,
+    pub packages: Option<Yoke<PackageList<'static>, Box<PackageCollection>>>,
     // null or reference to
     pub projects: Box<[UserProject]>,
     pub projects_version: Wrapping<u32>,

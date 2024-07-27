@@ -222,51 +222,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> crate::PackageCollection for Environment<T, IO> {
-    fn get_curated_packages(
-        &self,
-        version_selector: VersionSelector,
-    ) -> impl Iterator<Item = PackageInfo> {
-        self.repo_cache
-            .get_repo(LOCAL_CURATED_PATH.as_ref())
-            .map(move |repo| {
-                repo.repo()
-                    .get_packages()
-                    .filter_map(move |x| x.get_latest(version_selector))
-                    .map(|json| PackageInfo::remote(json, repo))
-            })
-            .into_iter()
-            .flatten()
-    }
-
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        self.repo_cache
-            .get_all_packages()
-            .chain(self.user_packages.get_all_packages())
-    }
-
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        self.repo_cache
-            .find_packages(package)
-            .chain(self.user_packages.find_packages(package))
-    }
-
-    fn find_package_by_name(
-        &self,
-        package: &str,
-        package_selector: VersionSelector,
-    ) -> Option<PackageInfo> {
-        let local = self
-            .repo_cache
-            .find_package_by_name(package, package_selector);
-        let user = self
-            .user_packages
-            .find_package_by_name(package, package_selector);
-
-        return local.into_iter().chain(user).max_by_key(|x| x.version());
-    }
-}
-
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub fn get_repos(&self) -> impl Iterator<Item = (&'_ Box<Path>, &'_ LocalCachedRepository)> {
         self.repo_cache.get_repo_with_path()
@@ -689,18 +644,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             io: &self.io,
             http: self.http.as_ref(),
         }
-    }
-}
-
-impl<T: HttpClient, IO: EnvironmentIo> crate::PackageInstaller for Environment<T, IO> {
-    async fn install_package(
-        &self,
-        io: &impl io::ProjectIo,
-        package: PackageInfo<'_>,
-    ) -> io::Result<()> {
-        self.get_package_installer()
-            .install_package(io, package)
-            .await
     }
 }
 

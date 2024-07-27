@@ -634,13 +634,15 @@ pub async fn environment_create_project(
             .environment
             .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
             .await?;
+        let collection = environment.new_package_collection();
+        let installer = environment.get_package_installer();
 
         let mut unity_project = load_project(path_str.into()).await?;
 
         // finally, resolve the project folder
-        let request = unity_project.resolve_request(environment).await?;
+        let request = unity_project.resolve_request(&collection).await?;
         unity_project
-            .apply_pending_changes(environment, request)
+            .apply_pending_changes(&installer, request)
             .await?;
         unity_project.save().await?;
 

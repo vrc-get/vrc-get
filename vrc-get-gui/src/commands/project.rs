@@ -189,7 +189,7 @@ impl ChangesInfoHolder {
 }
 
 macro_rules! changes {
-    ($state: ident, $($env_version: ident, )? |$environment: pat_param, $packages: pat_param| $body: expr) => {{
+    ($state: ident, $($env_version: ident, )? |$environment: pat_param, $packages: pat_param, $collection: pat_param| $body: expr) => {{
         let mut state = $state.lock().await;
         let state = &mut *state;
         let current_version = state.environment.environment_version.0;
@@ -200,7 +200,10 @@ macro_rules! changes {
         )?
 
         let $environment = state.environment.get_environment_mut(UpdateRepositoryMode::None, &state.io).await?;
-        let $packages = unsafe { &*state.packages.unwrap().as_mut() };
+        let packages_yoke = state.packages.as_mut().unwrap();
+        let $collection = packages_yoke.backing_cart().as_ref();
+        let $packages = packages_yoke.get().packages.as_slice();
+
         let changes = $body;
 
         Ok(state.changes_info.update(current_version, changes))
@@ -215,7 +218,7 @@ pub async fn project_install_package(
     env_version: u32,
     package_index: usize,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages| {
+    changes!(state, env_version, |environment, packages, collection| {
         let installing_package = packages[package_index];
 
         let unity_project = load_project(project_path).await?;
@@ -234,7 +237,7 @@ pub async fn project_install_package(
 
         match unity_project
             .add_package_request(
-                environment,
+                collection,
                 &[installing_package],
                 operation,
                 allow_prerelease,
@@ -255,7 +258,7 @@ pub async fn project_install_multiple_package(
     env_version: u32,
     package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages| {
+    changes!(state, env_version, |environment, packages, collection| {
         let installing_packages = package_indices
             .iter()
             .map(|index| packages[*index])
@@ -269,7 +272,7 @@ pub async fn project_install_multiple_package(
 
         match unity_project
             .add_package_request(
-                environment,
+                collection,
                 &installing_packages,
                 operation,
                 allow_prerelease,
@@ -290,7 +293,7 @@ pub async fn project_upgrade_multiple_package(
     env_version: u32,
     package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages| {
+    changes!(state, env_version, |environment, packages, collection| {
         let installing_packages = package_indices
             .iter()
             .map(|index| packages[*index])
@@ -304,7 +307,7 @@ pub async fn project_upgrade_multiple_package(
 
         match unity_project
             .add_package_request(
-                environment,
+                collection,
                 &installing_packages,
                 operation,
                 allow_prerelease,
@@ -323,10 +326,10 @@ pub async fn project_resolve(
     state: State<'_, Mutex<EnvironmentState>>,
     project_path: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, |environment, _| {
+    changes!(state, |_, _, collection| {
         let unity_project = load_project(project_path).await?;
 
-        match unity_project.resolve_request(environment).await {
+        match unity_project.resolve_request(collection).await {
             Ok(request) => request,
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
@@ -340,7 +343,7 @@ pub async fn project_remove_packages(
     project_path: String,
     names: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, |_, _| {
+    changes!(state, |_, _, _| {
         let unity_project = load_project(project_path).await?;
 
         let names = names.iter().map(|x| x.as_str()).collect::<Vec<_>>();
@@ -373,11 +376,12 @@ pub async fn project_apply_pending_changes(
         .environment
         .get_environment_mut(UpdateRepositoryMode::None, &env_state.io)
         .await?;
+    let installer = environment.get_package_installer();
 
     let mut unity_project = load_project(project_path).await?;
 
     unity_project
-        .apply_pending_changes(environment, changes.changes)
+        .apply_pending_changes(&installer, changes.changes)
         .await?;
 
     unity_project.save().await?;
@@ -394,8 +398,11 @@ pub async fn project_migrate_project_to_2022(
     with_environment!(state, |environment| {
         let mut unity_project = load_project(project_path).await?;
 
+        let collection = environment.new_package_collection();
+        let installer = environment.get_package_installer();
+
         match unity_project
-            .migrate_unity_2022(environment, environment)
+            .migrate_unity_2022(&collection, &installer)
             .await
         {
             Ok(()) => {}
@@ -503,11 +510,13 @@ pub async fn project_migrate_project_to_vpm(
         .await?;
 
     let mut unity_project = load_project(project_path).await?;
+    let collection = environment.new_package_collection();
+    let installer = environment.get_package_installer();
 
     match unity_project
         .migrate_vpm(
-            environment,
-            environment,
+            &collection,
+            &installer,
             environment.show_prerelease_packages(),
         )
         .await
