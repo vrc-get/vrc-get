@@ -43,6 +43,7 @@ icon = [
     "icons/icon.ico",
 ]
 resources = []
+publisher = "anatawa12"
 
 [tauri.bundle.deb]
 depends = []
