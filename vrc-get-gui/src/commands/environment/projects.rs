@@ -14,8 +14,8 @@ use tokio::fs::read_dir;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 use vrc_get_vpm::environment::UserProject;
-use vrc_get_vpm::io::{DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
-use vrc_get_vpm::{EnvironmentIoHolder, ProjectType};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
+use vrc_get_vpm::ProjectType;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct TauriProject {
@@ -368,9 +368,7 @@ pub struct TauriProjectCreationInformation {
     default_path: String,
 }
 
-async fn load_user_templates(environment: &mut Environment) -> io::Result<Vec<String>> {
-    let io = environment.io();
-
+async fn load_user_templates(io: &DefaultEnvironmentIo) -> io::Result<Vec<String>> {
     let mut templates = Vec::<String>::new();
 
     let path = io.resolve("Templates".as_ref());
@@ -414,6 +412,7 @@ async fn load_user_templates(environment: &mut Environment) -> io::Result<Vec<St
 #[specta::specta]
 pub async fn environment_project_creation_information(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriProjectCreationInformation, RustError> {
     with_environment!(state, |environment| {
         let mut templates = crate::templates::TEMPLATES
@@ -425,7 +424,7 @@ pub async fn environment_project_creation_information(
             .collect::<Vec<_>>();
 
         templates.extend(
-            load_user_templates(environment)
+            load_user_templates(&io)
                 .await
                 .ok()
                 .into_iter()
@@ -504,6 +503,7 @@ pub enum TauriCreateProjectResult {
 #[specta::specta]
 pub async fn environment_create_project(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     base_path: String,
     project_name: String,
     template: TauriProjectTemplate,
@@ -523,11 +523,7 @@ pub async fn environment_create_project(
             Template::Builtin(template)
         }
         TauriProjectTemplate::Custom { name } => {
-            let template_path = with_environment!(state, |enviornment| {
-                enviornment
-                    .io()
-                    .resolve(format!("Templates/{name}").as_ref())
-            });
+            let template_path = io.resolve(format!("Templates/{name}").as_ref());
             match tokio::fs::metadata(&template_path).await {
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
                     return Ok(TauriCreateProjectResult::TemplateNotFound);
