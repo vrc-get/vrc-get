@@ -1,17 +1,17 @@
 use std::io;
 use std::num::Wrapping;
 
+use crate::commands::prelude::*;
+use crate::commands::project::ChangesInfoHolder;
+use crate::commands::util::UpdateResponseHolder;
 use log::info;
+use tauri::{App, Manager};
 use tokio::sync::Mutex;
 use vrc_get_vpm::environment::{PackageCollection, UserProject};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_project::PendingProjectChanges;
 use vrc_get_vpm::PackageInfo;
 use yoke::{Yoke, Yokeable};
-
-use crate::commands::prelude::*;
-use crate::commands::project::ChangesInfoHolder;
-use crate::commands::util::UpdateResponseHolder;
 
 macro_rules! with_environment {
     ($state: expr, |$environment: pat_param| $body: expr) => {{
@@ -22,10 +22,18 @@ macro_rules! with_environment {
             .get_environment_mut(
                 $crate::commands::state::UpdateRepositoryMode::None,
                 &state.io,
+                &state.http,
             )
             .await?;
         $body
     }};
+}
+
+pub fn new_http_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .user_agent(concat!("vrc-get-litedb/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .expect("building client")
 }
 
 pub async fn new_environment(io: &DefaultEnvironmentIo) -> io::Result<Environment> {
@@ -36,8 +44,11 @@ pub async fn new_environment(io: &DefaultEnvironmentIo) -> io::Result<Environmen
     Environment::load(Some(client), io).await
 }
 
-pub fn new_env_state(io: DefaultEnvironmentIo) -> impl Send + Sync + 'static {
-    Mutex::new(EnvironmentState::new(io))
+pub fn new_env_state(app: &App) -> impl Send + Sync + 'static {
+    Mutex::new(EnvironmentState::new(
+        app.state::<DefaultEnvironmentIo>().inner().clone(),
+        app.state::<reqwest::Client>().inner().clone(),
+    ))
 }
 
 unsafe impl Send for EnvironmentState {}
@@ -59,6 +70,7 @@ impl<'a> FromIterator<PackageInfo<'a>> for PackageList<'a> {
 
 pub struct EnvironmentState {
     pub io: DefaultEnvironmentIo,
+    pub http: reqwest::Client,
     pub environment: EnvironmentHolder,
     pub packages: Option<Yoke<PackageList<'static>, Box<PackageCollection>>>,
     // null or reference to
@@ -95,6 +107,7 @@ impl EnvironmentHolder {
         &mut self,
         update_repository: UpdateRepositoryMode,
         io: &DefaultEnvironmentIo,
+        http: &reqwest::Client,
     ) -> io::Result<&mut Environment> {
         if let Some(ref mut environment) = self.environment {
             if !self
@@ -117,7 +130,7 @@ impl EnvironmentHolder {
                     self.last_repository_update = Some(tokio::time::Instant::now());
                     self.environment_version += Wrapping(1);
                     info!("loading package infos");
-                    environment.load_package_infos(true, io).await?;
+                    environment.load_package_infos(io, Some(http)).await?;
                 }
                 UpdateRepositoryMode::IfOutdatedOrNecessary => {
                     if self
@@ -128,7 +141,7 @@ impl EnvironmentHolder {
                         self.last_repository_update = Some(tokio::time::Instant::now());
                         self.environment_version += Wrapping(1);
                         info!("loading package infos");
-                        environment.load_package_infos(true, io).await?;
+                        environment.load_package_infos(io, Some(http)).await?;
                     }
                 }
                 UpdateRepositoryMode::IfOutdatedOrNecessaryForLocal => {
@@ -157,7 +170,7 @@ impl EnvironmentHolder {
                     self.last_repository_update = Some(tokio::time::Instant::now());
                     self.environment_version += Wrapping(1);
                     info!("loading package infos");
-                    environment.load_package_infos(true, io).await?;
+                    environment.load_package_infos(io, Some(http)).await?;
                 }
                 UpdateRepositoryMode::IfOutdatedOrNecessaryForLocal => {
                     self.last_repository_update = Some(tokio::time::Instant::now());
@@ -180,7 +193,7 @@ pub enum UpdateRepositoryMode {
 }
 
 impl EnvironmentState {
-    fn new(io: DefaultEnvironmentIo) -> Self {
+    fn new(io: DefaultEnvironmentIo, http: reqwest::Client) -> Self {
         Self {
             environment: EnvironmentHolder::new(),
             packages: None,
@@ -189,6 +202,7 @@ impl EnvironmentState {
             changes_info: ChangesInfoHolder::new(),
             update_response_holder: UpdateResponseHolder::new(),
             io,
+            http,
         }
     }
 }

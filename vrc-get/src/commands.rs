@@ -16,7 +16,9 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::read_to_string;
-use vrc_get_vpm::environment::{AddRepositoryErr, AddUserPackageResult, PackageCollection};
+use vrc_get_vpm::environment::{
+    AddRepositoryErr, AddUserPackageResult, PackageCollection, PackageInstaller,
+};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
@@ -86,11 +88,11 @@ struct EnvArgs {
 async fn load_env(args: &EnvArgs) -> Environment {
     let client = crate::create_client(args.offline);
     let io = DefaultEnvironmentIo::new_default();
-    let mut env = Environment::load(client, &io)
+    let mut env = Environment::load(client.clone(), &io)
         .await
         .exit_context("loading global config");
 
-    env.load_package_infos(!args.no_update, &io)
+    env.load_package_infos(&io, client.as_ref())
         .await
         .exit_context("loading repositories");
     env.save(&io)
@@ -477,10 +479,11 @@ impl Install {
             .await;
         };
 
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
         let env = load_env(&self.env_args).await;
         let package_collection = env.new_package_collection();
-        let installer = env.get_package_installer(&io);
+        let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
 
         let version_selector = match self.version {
@@ -556,12 +559,13 @@ pub struct Resolve {
 
 impl Resolve {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
 
         let package_collection = env.new_package_collection();
-        let installer = env.get_package_installer(&io);
+        let installer = PackageInstaller::new(&io, client.as_ref());
 
         let changes = unity
             .resolve_request(&package_collection)
@@ -600,6 +604,7 @@ pub struct Remove {
 
 impl Remove {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
         let env = load_env(&self.env_args).await;
         let mut unity = load_unity(self.project).await;
@@ -608,7 +613,7 @@ impl Remove {
             .remove_request(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
             .await
             .exit_context("collecting packages to be removed");
-        let installer = env.get_package_installer(&io);
+        let installer = PackageInstaller::new(&io, client.as_ref());
 
         print_prompt_install(&changes);
 
@@ -754,9 +759,10 @@ pub struct Upgrade {
 impl Upgrade {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
+        let client = crate::create_client(self.env_args.offline);
         let env = load_env(&self.env_args).await;
         let package_collection = env.new_package_collection();
-        let installer = env.get_package_installer(&io);
+        let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
 
         let updates = if let Some(name) = &self.name {
@@ -849,10 +855,11 @@ pub struct Downgrade {
 
 impl Downgrade {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
         let env = load_env(&self.env_args).await;
         let package_collection = env.new_package_collection();
-        let installer = env.get_package_installer(&io);
+        let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
 
         let updates = [get_package(
@@ -1072,6 +1079,7 @@ impl StdError for HeaderPairErr {
 impl RepoAdd {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
+        let http = crate::create_client(false);
         let mut env = load_env(&self.env_args).await;
 
         if let Ok(url) = Url::parse(&self.path_or_url) {
@@ -1079,9 +1087,15 @@ impl RepoAdd {
             for HeaderPair(name, value) in self.header {
                 headers.insert(name.as_str().into(), value.to_str().unwrap().into());
             }
-            env.add_remote_repo(url, self.name.as_deref(), headers, &io)
-                .await
-                .exit_context("adding repository")
+            env.add_remote_repo(
+                url,
+                self.name.as_deref(),
+                headers,
+                &io,
+                &http.unwrap_or_else(|| exit_with!("offline mode")),
+            )
+            .await
+            .exit_context("adding repository")
         } else {
             let normalized = absolute_path(&self.path_or_url);
             if !normalized.exists() {
@@ -1293,6 +1307,7 @@ impl RepoImport {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
         let mut env = load_env(&self.env_args).await;
+        let http = crate::create_client(self.env_args.offline);
         let repositories_file = read_to_string(self.repositories_file)
             .await
             .exit_context("reading repositories file");
@@ -1325,6 +1340,7 @@ impl RepoImport {
                     None,
                     repository.headers().clone(),
                     &io,
+                    http.as_ref().unwrap_or_else(|| exit_with!("offline mode")),
                 )
                 .await
             {

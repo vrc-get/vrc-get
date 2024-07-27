@@ -57,6 +57,7 @@ const REPO_CACHE_FOLDER: &str = "Repos";
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
 pub struct Environment<T: HttpClient> {
+    #[allow(dead_code)] // for now
     pub(crate) http: Option<T>,
     collection: PackageCollection,
     settings: Settings,
@@ -125,10 +126,9 @@ impl<T: HttpClient> Environment<T> {
 
     pub async fn load_package_infos(
         &mut self,
-        update: bool,
         io: &impl EnvironmentIo,
+        http: Option<&impl HttpClient>,
     ) -> io::Result<()> {
-        let http = if update { self.http.as_ref() } else { None };
         let predefined_repos = self.get_predefined_repos().into_iter();
         let user_repos = self
             .settings
@@ -239,9 +239,8 @@ impl<T: HttpClient> Environment<T> {
         name: Option<&str>,
         headers: IndexMap<Box<str>, Box<str>>,
         io: &impl EnvironmentIo,
+        http: &impl HttpClient,
     ) -> Result<(), AddRepositoryErr> {
-        let http = self.http.as_ref().ok_or(AddRepositoryErr::OfflineMode)?;
-
         let (remote_repo, etag) = RemoteRepository::download(http, &url, &headers).await?;
 
         if !self.settings.can_add_remote_repo(&url, &remote_repo) {
@@ -500,10 +499,6 @@ impl<T: HttpClient> Environment<T> {
     pub fn ignore_official_repository(&self) -> bool {
         self.settings.ignore_official_repository()
     }
-
-    pub fn http(&self) -> Option<&T> {
-        self.http.as_ref()
-    }
 }
 
 pub enum AddUserPackageResult {
@@ -528,16 +523,6 @@ impl<T: HttpClient> Environment<T> {
         io: &impl EnvironmentIo,
     ) -> AddUserPackageResult {
         self.settings.add_user_package(pkg_path, io).await
-    }
-
-    pub fn get_package_installer<'a, IO2: EnvironmentIo>(
-        &'a self,
-        io: &'a IO2,
-    ) -> PackageInstaller<'a, T, IO2> {
-        PackageInstaller {
-            io,
-            http: self.http.as_ref(),
-        }
     }
 }
 

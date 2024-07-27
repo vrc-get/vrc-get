@@ -13,7 +13,7 @@ use tauri::State;
 use tokio::fs::read_dir;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::Mutex;
-use vrc_get_vpm::environment::{UserProject, VccDatabaseConnection};
+use vrc_get_vpm::environment::{PackageInstaller, UserProject, VccDatabaseConnection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 use vrc_get_vpm::ProjectType;
 
@@ -95,13 +95,14 @@ impl TauriProject {
 #[specta::specta]
 pub async fn environment_projects(
     state: State<'_, Mutex<EnvironmentState>>,
+    http: State<'_, reqwest::Client>,
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<Vec<TauriProject>, RustError> {
     let mut state = state.lock().await;
     let state = &mut *state;
     let environment = state
         .environment
-        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
+        .get_environment_mut(UpdateRepositoryMode::None, io.inner(), http.inner())
         .await?;
     let mut connection = VccDatabaseConnection::connect(io.inner())?;
 
@@ -197,6 +198,7 @@ async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
 pub async fn environment_remove_project(
     state: State<'_, Mutex<EnvironmentState>>,
     io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     list_version: u32,
     index: usize,
     directory: bool,
@@ -211,7 +213,7 @@ pub async fn environment_remove_project(
     let project = &state.projects[index];
     let environment = state
         .environment
-        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
+        .get_environment_mut(UpdateRepositoryMode::None, io.inner(), http.inner())
         .await?;
     let mut connection = VccDatabaseConnection::connect(io.inner())?;
     connection
@@ -535,6 +537,7 @@ pub enum TauriCreateProjectResult {
 pub async fn environment_create_project(
     state: State<'_, Mutex<EnvironmentState>>,
     io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     base_path: String,
     project_name: String,
     template: TauriProjectTemplate,
@@ -663,10 +666,14 @@ pub async fn environment_create_project(
         let env_state = &mut *env_state;
         let environment = env_state
             .environment
-            .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
+            .get_environment_mut(
+                UpdateRepositoryMode::IfOutdatedOrNecessary,
+                io.inner(),
+                http.inner(),
+            )
             .await?;
         let collection = environment.new_package_collection();
-        let installer = environment.get_package_installer(io.inner());
+        let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
         let mut unity_project = load_project(path_str.into()).await?;
 

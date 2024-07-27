@@ -9,6 +9,7 @@ use tauri::{generate_handler, Invoke};
 
 pub use start::startup;
 pub use state::new_env_state;
+pub use state::new_http_client;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};

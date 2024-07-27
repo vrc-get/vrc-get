@@ -17,6 +17,12 @@ pub struct PackageInstaller<'a, T: HttpClient, IO: EnvironmentIo> {
     pub(super) http: Option<&'a T>,
 }
 
+impl<'a, T: HttpClient, IO: EnvironmentIo> PackageInstaller<'a, T, IO> {
+    pub fn new(io: &'a IO, http: Option<&'a T>) -> Self {
+        Self { io, http }
+    }
+}
+
 impl<T: HttpClient, IO: EnvironmentIo> crate::PackageInstaller for PackageInstaller<'_, T, IO> {
     async fn install_package(
         &self,

@@ -65,12 +65,14 @@ impl TauriPackage {
 #[specta::specta]
 pub async fn environment_refetch_packages(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
 ) -> Result<(), RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
     env_state
         .environment
-        .get_environment_mut(UpdateRepositoryMode::Force, &env_state.io)
+        .get_environment_mut(UpdateRepositoryMode::Force, io.inner(), http.inner())
         .await?;
 
     Ok(())
@@ -80,12 +82,18 @@ pub async fn environment_refetch_packages(
 #[specta::specta]
 pub async fn environment_packages(
     state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
 ) -> Result<Vec<TauriPackage>, RustError> {
     let mut env_state = state.lock().await;
     let env_state = &mut *env_state;
     let environment = env_state
         .environment
-        .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
+        .get_environment_mut(
+            UpdateRepositoryMode::IfOutdatedOrNecessary,
+            io.inner(),
+            http.inner(),
+        )
         .await?;
     let collection = environment.new_package_collection();
     let package_list = Yoke::<crate::commands::state::PackageList<'static>, _>::attach_to_cart(
@@ -214,6 +222,7 @@ pub enum TauriDownloadRepository {
 #[specta::specta]
 pub async fn environment_download_repository(
     state: State<'_, Mutex<EnvironmentState>>,
+    http: State<'_, reqwest::Client>,
     url: String,
     headers: IndexMapV2<Box<str>, Box<str>>,
 ) -> Result<TauriDownloadRepository, RustError> {
@@ -229,7 +238,7 @@ pub async fn environment_download_repository(
         let user_repo_ids = user_repo_ids(environment);
 
         download_one_repository(
-            environment.http().unwrap(),
+            http.inner(),
             &url,
             &headers.0,
             &user_repo_urls,
@@ -331,6 +340,7 @@ pub enum TauriAddRepositoryResult {
 pub async fn environment_add_repository(
     state: State<'_, Mutex<EnvironmentState>>,
     io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     url: String,
     headers: IndexMapV2<Box<str>, Box<str>>,
 ) -> Result<TauriAddRepositoryResult, RustError> {
@@ -343,7 +353,7 @@ pub async fn environment_add_repository(
 
     with_environment!(&state, |environment| {
         environment
-            .add_remote_repo(url, None, headers.0, io.inner())
+            .add_remote_repo(url, None, headers.0, io.inner(), http.inner())
             .await?;
         environment.save(io.inner()).await?;
     });
@@ -445,19 +455,19 @@ pub async fn environment_import_download_repositories(
 
                 info!("downloading {} repositories", repositories.len());
 
-                let client = environment.http().unwrap();
-
                 let counter = AtomicUsize::new(0);
 
                 let counter_ref = &counter;
                 let user_repo_urls_ref = &user_repo_urls;
                 let user_repo_ids_ref = &user_repo_ids;
 
+                let http = window.state::<reqwest::Client>();
                 let mut results = try_join_all(repositories.into_iter().map(|adding_repo| {
                     let ctx = ctx.clone();
+                    let http = http.clone();
                     async move {
                         let downloaded = download_one_repository(
-                            client,
+                            http.inner(),
                             &adding_repo.url,
                             &adding_repo.headers.0,
                             user_repo_urls_ref,
@@ -497,13 +507,20 @@ pub async fn environment_import_download_repositories(
 #[specta::specta]
 pub async fn environment_import_add_repositories(
     state: State<'_, Mutex<EnvironmentState>>,
+    http: State<'_, reqwest::Client>,
     io: State<'_, DefaultEnvironmentIo>,
     repositories: Vec<TauriRepositoryDescriptor>,
 ) -> Result<(), RustError> {
     with_environment!(&state, |environment| {
         for adding_repo in repositories {
             environment
-                .add_remote_repo(adding_repo.url, None, adding_repo.headers.0, io.inner())
+                .add_remote_repo(
+                    adding_repo.url,
+                    None,
+                    adding_repo.headers.0,
+                    io.inner(),
+                    http.inner(),
+                )
                 .await?;
         }
         environment.save(io.inner()).await?;
@@ -569,6 +586,7 @@ pub async fn environment_get_user_packages(
         .get_environment_mut(
             UpdateRepositoryMode::IfOutdatedOrNecessaryForLocal,
             &env_state.io,
+            &env_state.http,
         )
         .await?;
 

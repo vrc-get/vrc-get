@@ -51,10 +51,11 @@ fn main() {
         }))
         .manage(io.clone())
         .manage(GuiConfigState::new())
+        .manage(commands::new_http_client())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {
-            app.manage(commands::new_env_state(io));
+            app.manage(commands::new_env_state(app));
             commands::startup(app);
             // process args
             process_args(&std::env::args().collect::<Vec<_>>());
