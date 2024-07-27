@@ -52,6 +52,7 @@ ${StrLoc}
 !define MANUPRODUCTKEYOLD1 "Software\anataw12\vrc-get-gui"
 !define MANUPRODUCTKEYOLD2 "Software\anataw12\ALCOM"
 !define MANUPRODUCTKEYOLD3 "Software\anatawa12\ALCOM"
+!define MANUKEYOLD         "Software\anataw12"
 
 Name "${PRODUCTNAME}"
 BrandingText "${COPYRIGHT}"
@@ -469,6 +470,7 @@ Function .onInit
   DeleteRegKey HKCU "${MANUPRODUCTKEYOLD1}"
   DeleteRegKey HKCU "${MANUPRODUCTKEYOLD2}"
   DeleteRegKey HKCU "${MANUPRODUCTKEYOLD3}"
+  DeleteRegKey /ifempty HKCU "${MANUKEYOLD}"
 FunctionEnd
 
 Section EarlyChecks
