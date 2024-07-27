@@ -17,8 +17,8 @@ use crate::io;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
+use crate::traits::HttpClient;
 use crate::traits::PackageCollection as _;
-use crate::traits::{EnvironmentIoHolder, HttpClient};
 use crate::utils::{normalize_path, to_vec_pretty_os_eol, try_load_json};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use futures::future::{join_all, try_join};
@@ -264,14 +264,6 @@ impl<T: HttpClient, IO: EnvironmentIo> crate::PackageCollection for Environment<
             .find_package_by_name(package, package_selector);
 
         return local.into_iter().chain(user).max_by_key(|x| x.version());
-    }
-}
-
-impl<T: HttpClient, IO: EnvironmentIo> EnvironmentIoHolder for Environment<T, IO> {
-    type EnvironmentIo = IO;
-
-    fn io(&self) -> &Self::EnvironmentIo {
-        &self.io
     }
 }
 

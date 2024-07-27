@@ -1,5 +1,5 @@
 use crate::io;
-use crate::io::{EnvironmentIo, ProjectIo};
+use crate::io::ProjectIo;
 use crate::utils::MapResultExt;
 use crate::{PackageInfo, VersionSelector};
 use core::iter::Iterator;
@@ -30,11 +30,6 @@ pub trait PackageCollection {
         package: &str,
         package_selector: VersionSelector,
     ) -> Option<PackageInfo>;
-}
-
-pub trait EnvironmentIoHolder {
-    type EnvironmentIo: EnvironmentIo;
-    fn io(&self) -> &Self::EnvironmentIo;
 }
 
 /// The trait for installing package

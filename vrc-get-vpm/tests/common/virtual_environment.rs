@@ -8,8 +8,7 @@ use vrc_get_vpm::io::{EnvironmentIo, IoTrait, ProjectIo};
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::{
-    Environment, EnvironmentIoHolder, HttpClient, PackageInfo, PackageInstaller, PackageManifest,
-    UnityProject,
+    Environment, HttpClient, PackageInfo, PackageInstaller, PackageManifest, UnityProject,
 };
 
 pub struct VirtualEnvironment {
@@ -19,13 +18,6 @@ pub struct VirtualEnvironment {
 impl VirtualEnvironment {
     pub fn new(vfs: VirtualFileSystem) -> Self {
         Self { vfs }
-    }
-}
-
-impl EnvironmentIoHolder for VirtualEnvironment {
-    type EnvironmentIo = VirtualFileSystem;
-    fn io(&self) -> &Self::EnvironmentIo {
-        &self.vfs
     }
 }
 
