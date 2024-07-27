@@ -390,6 +390,26 @@ FunctionEnd
   ${EndIf}
 !macroend
 
+!macro MigrateRenameRegistryKeyCopyKeys OLDKEY labelkey
+  Push $0
+  Push $1
+  Push $2
+
+  loop${labelkey}:
+    ClearErrors
+    EnumRegValue $1 HKCU "${OLDKEY}" $0
+    IfErrors done${labelkey}
+    IntOp $0 $0 + 1
+    ReadRegStr $2 HKCU "${OLDKEY}" $0
+    WriteRegStr HKCU "${MANUPRODUCTKEY}" $0 $2
+    Goto loop${labelkey}
+  done${labelkey}:
+
+  Pop $2
+  Pop $1
+  Pop $0
+!macroend
+
 Var PassiveMode
 Function .onInit
   ${GetOptions} $CMDLINE "/P" $PassiveMode
@@ -427,29 +447,7 @@ Function .onInit
   !if "${INSTALLMODE}" == "both"
     !insertmacro MULTIUSER_INIT
   !endif
-FunctionEnd
-
-!macro MigrateRenameRegistryKeyCopyKeys OLDKEY labelkey
-  Push $0
-  Push $1
-  Push $2
-
-  loop${labelkey}:
-    ClearErrors
-    EnumRegValue $1 HKCU "${OLDKEY}" $0
-    IfErrors done${labelkey}
-    IntOp $0 $0 + 1
-    ReadRegStr $2 HKCU "${OLDKEY}" $0
-    WriteRegStr HKCU "${MANUPRODUCTKEY}" $0 $2
-    Goto loop${labelkey}
-  done${labelkey}:
-
-  Pop $2
-  Pop $1
-  Pop $0
-!macroend
-
-Section MigrateRenameRegistryKey
+  
   ; Migrate Legacy Registry Key
   ReadRegStr $0 HKCU "${MANUPRODUCTKEY}" ""
   ReadRegStr $1 HKCU "${MANUPRODUCTKEYOLD1}" ""
@@ -471,7 +469,7 @@ Section MigrateRenameRegistryKey
   DeleteRegKey HKCU "${MANUPRODUCTKEYOLD1}"
   DeleteRegKey HKCU "${MANUPRODUCTKEYOLD2}"
   DeleteRegKey HKCU "${MANUPRODUCTKEYOLD3}"
-SectionEnd
+FunctionEnd
 
 Section EarlyChecks
   ; Abort silent installer if downgrades is disabled
