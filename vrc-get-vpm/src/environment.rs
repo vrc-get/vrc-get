@@ -10,6 +10,7 @@ mod package_collection;
 mod package_installer;
 #[cfg(feature = "experimental-project-management")]
 mod project_management;
+mod settings;
 #[cfg(feature = "experimental-unity-management")]
 mod unity_management;
 
@@ -21,7 +22,7 @@ use crate::traits::HttpClient;
 use crate::traits::PackageCollection as _;
 use crate::utils::{normalize_path, to_vec_pretty_os_eol, try_load_json};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
-use futures::future::{join_all, try_join};
+use futures::future::join_all;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -35,7 +36,6 @@ use std::fs::remove_file;
 use std::path::{Path, PathBuf};
 use url::Url;
 
-use crate::environment::vrc_get_settings::VrcGetSettings;
 use crate::io::{DirEntry, EnvironmentIo};
 use crate::package_manifest::LooseManifest;
 #[cfg(feature = "experimental-project-management")]
@@ -43,8 +43,8 @@ pub use project_management::*;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
 pub(crate) use uesr_package_collection::UserPackageCollection;
-pub(crate) use vpm_settings::VpmSettings;
 
+use crate::environment::settings::Settings;
 pub use package_collection::PackageCollection;
 pub use package_installer::PackageInstaller;
 
@@ -59,29 +59,26 @@ const REPO_CACHE_FOLDER: &str = "Repos";
 pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
     pub(crate) http: Option<T>,
     pub(crate) io: IO,
-    /// parsed settings
-    vpm_settings: VpmSettings,
-    vrc_get_settings: VrcGetSettings,
     // we do not connect to litedb unless we need information from litedb.
     // TODO?: use inner mutability?
     #[cfg(feature = "vrc-get-litedb")]
     litedb_connection: litedb::LiteDbConnectionHolder,
     collection: PackageCollection,
+    settings: Settings,
 }
 
 impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     pub async fn load(http: Option<T>, io: IO) -> io::Result<Self> {
         Ok(Self {
             http,
-            vpm_settings: VpmSettings::load(&io).await?,
-            vrc_get_settings: VrcGetSettings::load(&io).await?,
             #[cfg(feature = "vrc-get-litedb")]
             litedb_connection: litedb::LiteDbConnectionHolder::new(),
-            io,
             collection: PackageCollection {
                 repositories: Vec::new(),
                 user_packages: Vec::new(),
             },
+            settings: Settings::load(&io).await?,
+            io,
         })
     }
 
@@ -91,12 +88,18 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     ///
     /// [`load_package_infos`]: Environment::load_package_infos
     pub async fn reload(&mut self) -> io::Result<()> {
-        self.vpm_settings = VpmSettings::load(&self.io).await?;
-        self.vrc_get_settings = VrcGetSettings::load(&self.io).await?;
+        self.settings = Settings::load(&self.io).await?;
         #[cfg(feature = "vrc-get-litedb")]
         {
             self.litedb_connection = litedb::LiteDbConnectionHolder::new();
         }
+        Ok(())
+    }
+
+    pub async fn save(&mut self) -> io::Result<()> {
+        self.settings.save(&self.io).await?;
+        #[cfg(feature = "vrc-get-litedb")]
+        self.disconnect_litedb();
         Ok(())
     }
 }
@@ -111,7 +114,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         let mut repositories = Vec::with_capacity(2);
 
-        if !self.vrc_get_settings.ignore_official_repository() {
+        if !self.settings.vrc_get.ignore_official_repository() {
             repositories.push(RepoSource::new(
                 LOCAL_OFFICIAL_PATH.as_ref(),
                 &EMPTY_HEADERS,
@@ -121,7 +124,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             warn!("ignoring official repository is experimental feature!");
         }
 
-        if !self.vrc_get_settings.ignore_curated_repository() {
+        if !self.settings.vrc_get.ignore_curated_repository() {
             repositories.push(RepoSource::new(
                 LOCAL_CURATED_PATH.as_ref(),
                 &EMPTY_HEADERS,
@@ -138,7 +141,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let http = if update { self.http.as_ref() } else { None };
         let predefined_repos = self.get_predefined_repos().into_iter();
         let user_repos = self
-            .vpm_settings
+            .settings
+            .vpm
             .user_repos()
             .iter()
             .map(UserRepoSetting::to_source);
@@ -175,7 +179,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
         }
 
-        self.vpm_settings
+        self.settings
+            .vpm
             .update_user_repo_id(NewIdGetterImpl(repo_cache));
     }
 
@@ -189,7 +194,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         // retain operates in place, visiting each element exactly once in the original order.
         // s
-        self.vpm_settings.retain_user_repos(|repo| {
+        self.settings.vpm.retain_user_repos(|repo| {
             let mut to_add = true;
             if let Some(id) = repo.id() {
                 to_add = used_ids.insert(id.to_owned());
@@ -208,7 +213,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
     async fn do_load_user_package_infos(&mut self) -> io::Result<UserPackageCollection> {
         let mut user_packages = UserPackageCollection::new();
-        for x in self.vpm_settings.user_package_folders() {
+        for x in self.settings.vpm.user_package_folders() {
             user_packages.try_add_package(&self.io, x).await;
         }
         Ok(user_packages)
@@ -249,7 +254,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn get_user_repos(&self) -> &[UserRepoSetting] {
-        self.vpm_settings.user_repos()
+        self.settings.vpm.user_repos()
     }
 
     pub async fn add_remote_repo(
@@ -287,12 +292,12 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
                 return Err(AddRepositoryErr::AlreadyAdded);
             }
             if repo_id == "com.vrchat.repos.official"
-                && !self.vrc_get_settings.ignore_official_repository()
+                && !self.settings.vrc_get.ignore_official_repository()
             {
                 return Err(AddRepositoryErr::AlreadyAdded);
             }
             if repo_id == "com.vrchat.repos.curated"
-                && !self.vrc_get_settings.ignore_curated_repository()
+                && !self.settings.vrc_get.ignore_curated_repository()
             {
                 return Err(AddRepositoryErr::AlreadyAdded);
             }
@@ -322,7 +327,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         );
         repo_setting.headers = headers;
 
-        self.vpm_settings.add_user_repo(repo_setting);
+        self.settings.vpm.add_user_repo(repo_setting);
         Ok(())
     }
 
@@ -379,7 +384,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             return Err(AddRepositoryErr::AlreadyAdded);
         }
 
-        self.vpm_settings.add_user_repo(UserRepoSetting::new(
+        self.settings.vpm.add_user_repo(UserRepoSetting::new(
             path.into(),
             name.map(Into::into),
             None,
@@ -389,7 +394,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub async fn remove_repo(&mut self, condition: impl Fn(&UserRepoSetting) -> bool) -> usize {
-        let removed = self.vpm_settings.retain_user_repos(|x| !condition(x));
+        let removed = self.settings.vpm.retain_user_repos(|x| !condition(x));
 
         join_all(removed.iter().map(|x| async move {
             match remove_file(x.local_path()) {
@@ -526,60 +531,47 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn show_prerelease_packages(&self) -> bool {
-        self.vpm_settings.show_prerelease_packages()
+        self.settings.vpm.show_prerelease_packages()
     }
 
     pub fn set_show_prerelease_packages(&mut self, value: bool) {
-        self.vpm_settings.set_show_prerelease_packages(value);
+        self.settings.vpm.set_show_prerelease_packages(value);
     }
 
     pub fn default_project_path(&self) -> Option<&str> {
-        self.vpm_settings.default_project_path()
+        self.settings.vpm.default_project_path()
     }
 
     pub fn set_default_project_path(&mut self, value: &str) {
-        self.vpm_settings.set_default_project_path(value);
+        self.settings.vpm.set_default_project_path(value);
     }
 
     pub fn project_backup_path(&self) -> Option<&str> {
-        self.vpm_settings.project_backup_path()
+        self.settings.vpm.project_backup_path()
     }
 
     pub fn set_project_backup_path(&mut self, value: &str) {
-        self.vpm_settings.set_project_backup_path(value);
+        self.settings.vpm.set_project_backup_path(value);
     }
 
     pub fn unity_hub_path(&self) -> &str {
-        self.vpm_settings.unity_hub()
+        self.settings.vpm.unity_hub()
     }
 
     pub fn set_unity_hub_path(&mut self, value: &str) {
-        self.vpm_settings.set_unity_hub(value);
+        self.settings.vpm.set_unity_hub(value);
     }
 
     pub fn ignore_curated_repository(&self) -> bool {
-        self.vrc_get_settings.ignore_curated_repository()
+        self.settings.vrc_get.ignore_curated_repository()
     }
 
     pub fn ignore_official_repository(&self) -> bool {
-        self.vrc_get_settings.ignore_official_repository()
+        self.settings.vrc_get.ignore_official_repository()
     }
 
     pub fn http(&self) -> Option<&T> {
         self.http.as_ref()
-    }
-
-    pub async fn save(&mut self) -> io::Result<()> {
-        try_join(
-            self.vpm_settings.save(&self.io),
-            self.vrc_get_settings.save(&self.io),
-        )
-        .await
-        .map(|_| ())?;
-
-        #[cfg(feature = "vrc-get-litedb")]
-        self.disconnect_litedb();
-        Ok(())
     }
 }
 
@@ -596,7 +588,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn remove_user_package(&mut self, pkg_path: &Path) {
-        self.vpm_settings.remove_user_package_folder(pkg_path);
+        self.settings.vpm.remove_user_package_folder(pkg_path);
     }
 
     pub async fn add_user_package(&mut self, pkg_path: &Path) -> AddUserPackageResult {
@@ -604,7 +596,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             return AddUserPackageResult::NonAbsolute;
         }
 
-        for x in self.vpm_settings.user_package_folders() {
+        for x in self.settings.vpm.user_package_folders() {
             if x == pkg_path {
                 return AddUserPackageResult::AlreadyAdded;
             }
@@ -617,7 +609,8 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             }
         };
 
-        self.vpm_settings
+        self.settings
+            .vpm
             .add_user_package_folder(pkg_path.to_owned());
 
         AddUserPackageResult::Success
