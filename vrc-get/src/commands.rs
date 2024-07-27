@@ -27,7 +27,7 @@ use vrc_get_vpm::{
     PackageCollection as _, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
 };
 
-type Environment = vrc_get_vpm::Environment<Client, DefaultEnvironmentIo>;
+type Environment = vrc_get_vpm::Environment<Client>;
 type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
@@ -86,7 +86,7 @@ struct EnvArgs {
 async fn load_env(args: &EnvArgs) -> Environment {
     let client = crate::create_client(args.offline);
     let io = DefaultEnvironmentIo::new_default();
-    let mut env = Environment::load(client, io.clone())
+    let mut env = Environment::load(client, &io)
         .await
         .exit_context("loading global config");
 
@@ -102,7 +102,7 @@ async fn load_env(args: &EnvArgs) -> Environment {
 
 async fn load_user_env() -> Environment {
     let io = DefaultEnvironmentIo::new_default();
-    let mut env = Environment::load(None, io.clone())
+    let mut env = Environment::load(None, &io)
         .await
         .exit_context("loading global config");
 

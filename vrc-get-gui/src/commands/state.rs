@@ -33,7 +33,7 @@ pub async fn new_environment(io: &DefaultEnvironmentIo) -> io::Result<Environmen
         .user_agent(concat!("vrc-get-litedb/", env!("CARGO_PKG_VERSION")))
         .build()
         .expect("building client");
-    Environment::load(Some(client), io.clone()).await
+    Environment::load(Some(client), io).await
 }
 
 pub fn new_env_state(io: DefaultEnvironmentIo) -> impl Send + Sync + 'static {

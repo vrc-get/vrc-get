@@ -32,7 +32,7 @@ mod prelude {
     };
 }
 
-pub type Environment = vrc_get_vpm::Environment<reqwest::Client, DefaultEnvironmentIo>;
+pub type Environment = vrc_get_vpm::Environment<reqwest::Client>;
 pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 // Note: remember to change similar in typescript

@@ -150,7 +150,7 @@ impl VccDatabaseConnection {
 }
 
 /// UnityHub Operations
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+impl<T: HttpClient> Environment<T> {
     fn default_unity_hub_path() -> &'static [&'static str] {
         // https://docs.unity3d.com/hub/manual/HubCLI.html
         #[cfg(windows)]

@@ -56,24 +56,21 @@ const REPO_CACHE_FOLDER: &str = "Repos";
 
 /// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
 #[derive(Debug)]
-pub struct Environment<T: HttpClient, IO: EnvironmentIo> {
+pub struct Environment<T: HttpClient> {
     pub(crate) http: Option<T>,
-    #[allow(dead_code)] // for now
-    pub(crate) io: IO,
     collection: PackageCollection,
     settings: Settings,
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
-    pub async fn load(http: Option<T>, io: IO) -> io::Result<Self> {
+impl<T: HttpClient> Environment<T> {
+    pub async fn load(http: Option<T>, io: &impl EnvironmentIo) -> io::Result<Self> {
         Ok(Self {
             http,
             collection: PackageCollection {
                 repositories: Vec::new(),
                 user_packages: Vec::new(),
             },
-            settings: Settings::load(&io).await?,
-            io,
+            settings: Settings::load(io).await?,
         })
     }
 
@@ -93,7 +90,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+impl<T: HttpClient> Environment<T> {
     fn get_predefined_repos(&self) -> Vec<RepoSource<'static>> {
         lazy_static! {
             static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
@@ -211,7 +208,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+impl<T: HttpClient> Environment<T> {
     pub fn get_repos(&self) -> impl Iterator<Item = &'_ LocalCachedRepository> {
         self.collection.repositories.iter()
     }
@@ -516,7 +513,7 @@ pub enum AddUserPackageResult {
     AlreadyAdded,
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+impl<T: HttpClient> Environment<T> {
     pub fn user_packages(&self) -> &[(PathBuf, PackageManifest)] {
         &self.collection.user_packages
     }

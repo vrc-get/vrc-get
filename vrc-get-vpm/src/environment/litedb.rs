@@ -25,7 +25,7 @@ impl VccDatabaseConnection {
     }
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
+impl<T: HttpClient> Environment<T> {
     pub fn load_from_db(&mut self, connection: &VccDatabaseConnection) -> io::Result<()> {
         self.settings.load_from_db(connection)
     }
