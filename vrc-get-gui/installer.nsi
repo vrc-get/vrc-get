@@ -400,8 +400,8 @@ FunctionEnd
     EnumRegValue $1 HKCU "${OLDKEY}" $0
     IfErrors done${labelkey}
     IntOp $0 $0 + 1
-    ReadRegStr $2 HKCU "${OLDKEY}" $0
-    WriteRegStr HKCU "${MANUPRODUCTKEY}" $0 $2
+    ReadRegStr $2 HKCU "${OLDKEY}" $1
+    WriteRegStr HKCU "${MANUPRODUCTKEY}" $1 $2
     Goto loop${labelkey}
   done${labelkey}:
 
