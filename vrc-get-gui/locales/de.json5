@@ -249,6 +249,11 @@
     "general:button:select": "Auswählen",
     "settings:unity installations": "Unity Installationen",
     "settings:button:add unity": "Unity hinzufügen",
+    // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
+    // It's at Setting app > System > Recovery > Reset this PC
+    "settings:warning:in-local-app-data": "Gewählter Pfad ist im LocalAppData Verzeichnis, welcher über \"Diesen PC zurücksetzen\" mit \"Eigene Dateien behalten\" gelöscht wird.\nBitte wähle einen anderen Pfad.",
+    "settings:warning:whitespace": "Der Pfad enthält Leerzeichen. Dies kann zu Problemen mit Unity und anderen Tools führen. Bitte wähle einen anderen Pfad.",
+    "settings:warning:non-ascii": "Der Pfad enthält nicht-ASCII Zeichen. Dies kann zu Problemen mit Unity und anderen Tools führen. Bitte wähle einen anderen Pfad.",
     "settings:default project path": "Standard Projektpfad",
     "settings:default project path description": "Das Verzeichnis, in dem neue Projekte erstellt werden.",
     "settings:backup:path": "Backup Pfad",
@@ -268,6 +273,10 @@
     "settings:unity:path": "Pfad",
     "settings:unity:source:manual": "Benutzerdefiniert",
     "settings:unity:source:unity hub": "Unity Hub",
+    "settings:default unity arguments": "Standard Unity Befehlzeilen Parameter",
+    "settings:button:edit unity arguments": "Bearbeiten",
+    "settings:default unity arguments description": "Diese Befehlzeilen Parameter werden benutzt wenn Unity über ALCOM geöffnet wird.",
+    "settings:dialog:default launch arguments": "Standard Unity Befehlzeilen Parameter",
     "settings:vcc scheme description": "Das <code>vcc:</code> Protokoll wird verwendet, um VCC-Paketlisten direkt vom Browser aus hinzufügen zu können.<br>Als alternative zu VCC kann ALCOM diese Anfragen annehmen.<br>Unter MacOS geschieht das automatisch. Andere Betriebssysteme müssen dies manuell festlegen.",
     "settings:toast:vcc scheme installed": "ALCOM wurde als Programm für <code>vcc:</code> Links registriert.",
     "general:toast:not supported": "{{name}} wird noch nicht unterstützt",
@@ -328,15 +337,9 @@
     "setup:unity-hub:not found": "Unity Hub nicht gefunden.",
     "setup:project-path:heading": "Projekt Speicherpfad",
     "setup:project-path:description": "Über ALCOM erstellte Projekte werden hier gespeichert.<br/>Dies kann später in den Einstellungen geändert werden.",
-    "setup:project-path:warning:whitespace": "Der Pfad enthält Leerzeichen. Dies kann zu Problemen mit Unity und anderen Tools führen. Bitte wähle einen anderen Pfad.",
-    "setup:project-path:warning:non-ascii": "Der Pfad enthält nicht-ASCII Zeichen. Dies kann zu Problemen mit Unity und anderen Tools führen. Bitte wähle einen anderen Pfad.",
-    // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
-    // It's at Setting app > System > Recovery > Reset this PC
-    "setup:project-path:warning:in-local-app-data": "Gewählter Pfad ist im LocalAppData Verzeichnis, welcher über \"Diesen PC zurücksetzen\" mit \"Eigene Dateien behalten\" gelöscht wird.\nBitte wähle einen anderen Pfad.",
     "setup:backups:heading": "Backup Einstellungen",
     "setup:backups:location": "Backup-Pfad",
     "setup:backups:location description": "Backups die du über ALCOm erstellst werden hier gespeichert.<br/>Dies kann später in den Einstellungen geändert werden.",
-    "setup:backups:warning:in-local-app-data": "Gewählter Pfad ist im LocalAppData Verzeichnis, welcher über \"Diesen PC zurücksetzen\" mit \"Eigene Dateien behalten\" gelöscht wird.\nBitte wähle einen anderen Pfad.",
     "setup:backups:archive": "Archiv Format",
     "setup:system-setting:heading": "System Einstellungen",
     "setup:system-setting:vcc scheme description": "Du kannst ALCOM statt VCC für vcc:// Links registrieren, um Paketquellen direkt hinzuzufügen. ALCOM and VCC teilen die gleiche Paketquellen-Liste, diese Einstellung erlaubt schnelleres Hinzufügen von Paketlisten ohne VCC öffnen zu müssen.",
