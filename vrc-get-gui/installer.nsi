@@ -1,3 +1,6 @@
+# initially copied from tauri at 28a5f6c83f122df0b924374e211ae061967569d4
+# https://github.com/tauri-apps/tauri/blob/51d043209b8aca8ceda2d51e2f92574a6c5b58f8/tooling/bundler/src/bundle/templates/installer.nsi
+
 Unicode true
 ; Set the compression algorithm. Default is LZMA.
 !if "{{compression}}" == ""
