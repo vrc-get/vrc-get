@@ -43,9 +43,15 @@ ${StrLoc}
 !define WEBVIEW2BOOTSTRAPPERPATH "{{webview2_bootstrapper_path}}"
 !define WEBVIEW2INSTALLERPATH "{{webview2_installer_path}}"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCTNAME}"
-!define MANUPRODUCTKEY "Software\${MANUFACTURER}\${PRODUCTNAME}"
+!define MANUPRODUCTKEY "Software\${MANUFACTURER}\vrc-get-gui"
 !define UNINSTALLERSIGNCOMMAND "{{uninstaller_sign_cmd}}"
 !define ESTIMATEDSIZE "{{estimated_size}}"
+
+; Those keys are used to install previous versions of the software
+; older to newer so we should test them in reverse order
+!define MANUPRODUCTKEYOLD1 "Software\anataw12\vrc-get-gui"
+!define MANUPRODUCTKEYOLD2 "Software\anataw12\ALCOM"
+!define MANUPRODUCTKEYOLD3 "Software\anatawa12\ALCOM"
 
 Name "${PRODUCTNAME}"
 BrandingText "${COPYRIGHT}"
@@ -423,6 +429,48 @@ Function .onInit
   !endif
 FunctionEnd
 
+!macro MigrateRenameRegistryKeyCopyKeys OLDKEY
+  Push $0
+  Push $1
+  Push $2
+
+  loop:
+    ClearErrors
+    EnumRegValue $1 HKCU "${OLDKEY}" $0
+    IfErrors done
+    IntOp $0 $0 + 1
+    ReadRegStr $2 HKCU "${OLDKEY}" $0
+    WriteRegStr HKCU "${MANUPRODUCTKEY}" $0 $2
+  done:
+
+  Pop $2
+  Pop $1
+  Pop $0
+!macroend
+
+Section MigrateRenameRegistryKey
+  ; Migrate Legacy Registry Key
+  ReadRegStr $0 HKCU "${MANUPRODUCTKEY}" ""
+  ReadRegStr $1 HKCU "${MANUPRODUCTKEYOLD1}" ""
+  ReadRegStr $2 HKCU "${MANUPRODUCTKEYOLD2}" ""
+  ReadRegStr $3 HKCU "${MANUPRODUCTKEYOLD3}" ""
+  ${If} $0 != "" 
+    ; This means new key is already created, no need to migrate
+
+    ; MANUPRODUCTKEYOLD3 is unlikely to be expected key so the lowest priority
+  ${ElseIf} $2 != ""
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD2}"
+  ${ElseIf} $1 != ""
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD1}"
+  ${ElseIf} $3 != ""
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD3}"
+  ${EndIf}
+
+  ; after migration, delete old keys
+  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD1}"
+  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD2}"
+  DeleteRegKey HKCU "${MANUPRODUCTKEYOLD3}"
+SectionEnd
 
 Section EarlyChecks
   ; Abort silent installer if downgrades is disabled
