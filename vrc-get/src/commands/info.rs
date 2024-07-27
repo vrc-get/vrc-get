@@ -6,6 +6,7 @@ use serde::Serialize;
 use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::Path;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::version::{UnityVersion, Version, VersionRange};
 use vrc_get_vpm::PackageCollection;
 
@@ -180,7 +181,9 @@ pub struct Package {
 
 impl Package {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let env = load_env(&io, client.as_ref()).await;
 
         let format_version = match self.json_format.map(|x| x.get()).unwrap_or_default() {
             0 => {

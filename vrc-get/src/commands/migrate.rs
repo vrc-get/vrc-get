@@ -61,7 +61,7 @@ impl Unity2022 {
 
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         #[cfg(feature = "experimental-vcc")]
         let connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(&io)
             .exit_context("connecting to database");
@@ -141,7 +141,7 @@ impl Vpm {
 
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         let package_collection = env.new_package_collection();
         let installer = PackageInstaller::new(&io, client.as_ref());
 

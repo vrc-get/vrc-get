@@ -47,8 +47,9 @@ pub struct ProjectList {
 
 impl ProjectList {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
 
         let mut connection =
             VccDatabaseConnection::connect(&io).exit_context("connecting to database");
@@ -100,8 +101,9 @@ pub struct ProjectAdd {
 
 impl ProjectAdd {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_env(&self.env_args).await;
+        let mut env = load_env(&io, client.as_ref()).await;
         let mut connection =
             VccDatabaseConnection::connect(&io).exit_context("connecting to database");
 
@@ -143,8 +145,9 @@ pub struct ProjectRemove {
 
 impl ProjectRemove {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_env(&self.env_args).await;
+        let mut env = load_env(&io, client.as_ref()).await;
         let mut connection =
             VccDatabaseConnection::connect(&io).exit_context("connecting to database");
 
@@ -289,8 +292,9 @@ pub struct UnityUpdate {
 
 impl UnityUpdate {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_env(&self.env_args).await;
+        let mut env = load_env(&io, client.as_ref()).await;
 
         let unity_hub_path = env
             .find_unity_hub(&io)

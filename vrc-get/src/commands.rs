@@ -85,33 +85,30 @@ struct EnvArgs {
     no_update: bool,
 }
 
-async fn load_env(args: &EnvArgs) -> Environment {
-    let client = crate::create_client(args.offline);
-    let io = DefaultEnvironmentIo::new_default();
-    let mut env = Environment::load(&io)
+async fn load_env(io: &DefaultEnvironmentIo, http: Option<&reqwest::Client>) -> Environment {
+    let mut env = Environment::load(io)
         .await
         .exit_context("loading global config");
 
-    env.load_package_infos(&io, client.as_ref())
+    env.load_package_infos(io, http)
         .await
         .exit_context("loading repositories");
-    env.save(&io)
+    env.save(io)
         .await
         .exit_context("saving repositories updates");
 
     env
 }
 
-async fn load_user_env() -> Environment {
-    let io = DefaultEnvironmentIo::new_default();
-    let mut env = Environment::load(&io)
+async fn load_user_env(io: &DefaultEnvironmentIo) -> Environment {
+    let mut env = Environment::load(io)
         .await
         .exit_context("loading global config");
 
-    env.load_user_package_infos(&io)
+    env.load_user_package_infos(io)
         .await
         .exit_context("loading repositories");
-    env.save(&io)
+    env.save(io)
         .await
         .exit_context("saving repositories updates");
 
@@ -481,7 +478,7 @@ impl Install {
 
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         let package_collection = env.new_package_collection();
         let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
@@ -561,7 +558,7 @@ impl Resolve {
     pub async fn run(self) {
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         let mut unity = load_unity(self.project).await;
 
         let package_collection = env.new_package_collection();
@@ -606,7 +603,7 @@ impl Remove {
     pub async fn run(self) {
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         let mut unity = load_unity(self.project).await;
 
         let changes = unity
@@ -641,7 +638,9 @@ pub struct Update {}
 
 impl Update {
     pub async fn run(self) {
-        let _ = load_env(&EnvArgs::default()).await;
+        let client = crate::create_client(true);
+        let io = DefaultEnvironmentIo::new_default();
+        let _ = load_env(&io, client.as_ref()).await;
     }
 }
 
@@ -666,7 +665,9 @@ pub struct Outdated {
 
 impl Outdated {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let env = load_env(&io, client.as_ref()).await;
         let unity = load_unity(self.project).await;
         let package_collection = env.new_package_collection();
 
@@ -760,7 +761,7 @@ impl Upgrade {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
         let client = crate::create_client(self.env_args.offline);
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         let package_collection = env.new_package_collection();
         let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
@@ -857,7 +858,7 @@ impl Downgrade {
     pub async fn run(self) {
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         let package_collection = env.new_package_collection();
         let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
@@ -920,7 +921,9 @@ pub struct Search {
 
 impl Search {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let env = load_env(&io, client.as_ref()).await;
 
         let mut queries = self.queries;
         for query in &mut queries {
@@ -991,7 +994,9 @@ pub struct RepoList {
 
 impl RepoList {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let env = load_env(&io, client.as_ref()).await;
 
         for repo in env.get_repos() {
             println!(
@@ -1078,9 +1083,10 @@ impl StdError for HeaderPairErr {
 
 impl RepoAdd {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
         let http = crate::create_client(false);
-        let mut env = load_env(&self.env_args).await;
+        let mut env = load_env(&io, client.as_ref()).await;
 
         if let Ok(url) = Url::parse(&self.path_or_url) {
             let mut headers = IndexMap::<Box<str>, Box<str>>::new();
@@ -1185,7 +1191,9 @@ impl RepoSearcher {
 
 impl RepoRemove {
     pub async fn run(self) {
-        let mut env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let mut env = load_env(&io, client.as_ref()).await;
 
         // we're using OsStr for paths.
         let finder = OsStr::new(self.finder.as_str());
@@ -1212,8 +1220,9 @@ pub struct RepoCleanup {
 
 impl RepoCleanup {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         env.cleanup_repos_folder(&io)
             .await
             .exit_context("cleaning up Repos directory");
@@ -1270,7 +1279,9 @@ impl RepoPackages {
 
             print_repo(&repo);
         } else {
-            let env = load_env(&self.env_args).await;
+            let client = crate::create_client(self.env_args.offline);
+            let io = DefaultEnvironmentIo::new_default();
+            let env = load_env(&io, client.as_ref()).await;
 
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
@@ -1305,8 +1316,9 @@ pub struct RepoImport {
 
 impl RepoImport {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_env(&self.env_args).await;
+        let mut env = load_env(&io, client.as_ref()).await;
         let http = crate::create_client(self.env_args.offline);
         let repositories_file = read_to_string(self.repositories_file)
             .await
@@ -1374,7 +1386,9 @@ pub struct RepoExport {
 
 impl RepoExport {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let env = load_env(&io, client.as_ref()).await;
         print!("{}", env.export_repositories());
     }
 }
@@ -1397,7 +1411,8 @@ pub struct UserPackageList {}
 
 impl UserPackageList {
     pub async fn run(self) {
-        let env = load_user_env().await;
+        let io = DefaultEnvironmentIo::new_default();
+        let env = load_user_env(&io).await;
 
         for (path, package) in env.user_packages() {
             println!(
@@ -1423,7 +1438,7 @@ pub struct UserPackageAdd {
 impl UserPackageAdd {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_user_env().await;
+        let mut env = load_user_env(&io).await;
 
         let path = absolute_path(&self.path);
         match env.add_user_package(&path, &io).await {
@@ -1452,7 +1467,8 @@ pub struct UserPackageRemove {
 
 impl UserPackageRemove {
     pub async fn run(self) {
-        let mut env = load_user_env().await;
+        let io = DefaultEnvironmentIo::new_default();
+        let mut env = load_user_env(&io).await;
 
         let path = absolute_path(&self.path);
         env.remove_user_package(&path);
@@ -1480,8 +1496,9 @@ pub struct CacheClear {
 
 impl CacheClear {
     pub async fn run(self) {
+        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&self.env_args).await;
+        let env = load_env(&io, client.as_ref()).await;
         env.clear_package_cache(&io)
             .await
             .exit_context("clearing package cache");
