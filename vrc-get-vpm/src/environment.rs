@@ -20,7 +20,7 @@ use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::HttpClient;
 use crate::traits::PackageCollection as _;
-use crate::utils::{normalize_path, to_vec_pretty_os_eol, try_load_json};
+use crate::utils::to_vec_pretty_os_eol;
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use futures::future::join_all;
 use futures::prelude::*;
@@ -37,7 +37,6 @@ use std::path::{Path, PathBuf};
 use url::Url;
 
 use crate::io::{DirEntry, EnvironmentIo};
-use crate::package_manifest::LooseManifest;
 #[cfg(feature = "experimental-project-management")]
 pub use project_management::*;
 pub(crate) use repo_holder::RepoHolder;
@@ -114,7 +113,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         let mut repositories = Vec::with_capacity(2);
 
-        if !self.settings.vrc_get.ignore_official_repository() {
+        if !self.settings.ignore_official_repository() {
             repositories.push(RepoSource::new(
                 LOCAL_OFFICIAL_PATH.as_ref(),
                 &EMPTY_HEADERS,
@@ -124,7 +123,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             warn!("ignoring official repository is experimental feature!");
         }
 
-        if !self.settings.vrc_get.ignore_curated_repository() {
+        if !self.settings.ignore_curated_repository() {
             repositories.push(RepoSource::new(
                 LOCAL_CURATED_PATH.as_ref(),
                 &EMPTY_HEADERS,
@@ -142,8 +141,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let predefined_repos = self.get_predefined_repos().into_iter();
         let user_repos = self
             .settings
-            .vpm
-            .user_repos()
+            .get_user_repos()
             .iter()
             .map(UserRepoSetting::to_source);
         self.io.create_dir_all("Repos".as_ref()).await?;
@@ -180,40 +178,20 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
 
         self.settings
-            .vpm
             .update_user_repo_id(NewIdGetterImpl(repo_cache));
     }
 
     fn remove_id_duplication(&mut self, repo_cache: &mut RepoHolder) {
-        let user_repos = self.get_user_repos();
-        if user_repos.is_empty() {
-            return;
+        let removed = self.settings.remove_id_duplication();
+
+        for setting in removed {
+            repo_cache.remove_repo(setting.local_path());
         }
-
-        let mut used_ids = HashSet::new();
-
-        // retain operates in place, visiting each element exactly once in the original order.
-        // s
-        self.settings.vpm.retain_user_repos(|repo| {
-            let mut to_add = true;
-            if let Some(id) = repo.id() {
-                to_add = used_ids.insert(id.to_owned());
-            }
-            if to_add {
-                // this means new id
-                true
-            } else {
-                // this means duplicated id: removed so mark as changed
-                repo_cache.remove_repo(repo.local_path());
-
-                false
-            }
-        });
     }
 
     async fn do_load_user_package_infos(&mut self) -> io::Result<UserPackageCollection> {
         let mut user_packages = UserPackageCollection::new();
-        for x in self.settings.vpm.user_package_folders() {
+        for x in self.settings.user_package_folders() {
             user_packages.try_add_package(&self.io, x).await;
         }
         Ok(user_packages)
@@ -254,7 +232,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn get_user_repos(&self) -> &[UserRepoSetting] {
-        self.settings.vpm.user_repos()
+        self.settings.get_user_repos()
     }
 
     pub async fn add_remote_repo(
@@ -263,49 +241,15 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         name: Option<&str>,
         headers: IndexMap<Box<str>, Box<str>>,
     ) -> Result<(), AddRepositoryErr> {
-        let user_repos = self.get_user_repos();
-        if user_repos.iter().any(|x| x.url() == Some(&url)) {
-            return Err(AddRepositoryErr::AlreadyAdded);
-        }
-        // should we check more urls?
-        if !self.ignore_curated_repository()
-            && url.as_str() == "https://packages.vrchat.com/curated?download"
-        {
-            return Err(AddRepositoryErr::AlreadyAdded);
-        }
-        if !self.ignore_official_repository()
-            && url.as_str() == "https://packages.vrchat.com/official?download"
-        {
-            return Err(AddRepositoryErr::AlreadyAdded);
-        }
-
         let http = self.http.as_ref().ok_or(AddRepositoryErr::OfflineMode)?;
 
         let (remote_repo, etag) = RemoteRepository::download(http, &url, &headers).await?;
-        let repo_name = name.or(remote_repo.name()).map(Into::into);
 
-        let repo_id = remote_repo.id().map(Into::into);
-
-        if let Some(repo_id) = repo_id.as_deref() {
-            // if there is id, check if there is already repo with same id
-            if user_repos.iter().any(|x| x.id() == Some(repo_id)) {
-                return Err(AddRepositoryErr::AlreadyAdded);
-            }
-            if repo_id == "com.vrchat.repos.official"
-                && !self.settings.vrc_get.ignore_official_repository()
-            {
-                return Err(AddRepositoryErr::AlreadyAdded);
-            }
-            if repo_id == "com.vrchat.repos.curated"
-                && !self.settings.vrc_get.ignore_curated_repository()
-            {
-                return Err(AddRepositoryErr::AlreadyAdded);
-            }
+        if !self.settings.can_add_remote_repo(&url, &remote_repo) {
+            return Err(AddRepositoryErr::AlreadyAdded);
         }
 
         let mut local_cache = LocalCachedRepository::new(remote_repo, headers.clone());
-
-        // set etag
         if let Some(etag) = etag {
             local_cache
                 .vrc_get
@@ -314,20 +258,17 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         }
 
         self.io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
-
         let file_name = self.write_new_repo(&local_cache).await?;
+        let repo_path = self
+            .io
+            .resolve(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref());
 
-        let mut repo_setting = UserRepoSetting::new(
-            self.io
-                .resolve(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref())
-                .into_boxed_path(),
-            repo_name,
-            Some(url),
-            repo_id,
+        assert!(
+            self.settings
+                .add_remote_repo(&url, name, headers, local_cache.repo(), &repo_path),
+            "add_remote_repo failed unexpectedly"
         );
-        repo_setting.headers = headers;
 
-        self.settings.vpm.add_user_repo(repo_setting);
         Ok(())
     }
 
@@ -378,23 +319,15 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         path: &Path,
         name: Option<&str>,
     ) -> Result<(), AddRepositoryErr> {
-        let path = normalize_path(path);
-
-        if self.get_user_repos().iter().any(|x| x.local_path() == path) {
-            return Err(AddRepositoryErr::AlreadyAdded);
+        if self.settings.add_local_repo(path, name) {
+            Ok(())
+        } else {
+            Err(AddRepositoryErr::AlreadyAdded)
         }
-
-        self.settings.vpm.add_user_repo(UserRepoSetting::new(
-            path.into(),
-            name.map(Into::into),
-            None,
-            None,
-        ));
-        Ok(())
     }
 
     pub async fn remove_repo(&mut self, condition: impl Fn(&UserRepoSetting) -> bool) -> usize {
-        let removed = self.settings.vpm.retain_user_repos(|x| !condition(x));
+        let removed = self.settings.remove_repo(condition);
 
         join_all(removed.iter().map(|x| async move {
             match remove_file(x.local_path()) {
@@ -531,43 +464,43 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn show_prerelease_packages(&self) -> bool {
-        self.settings.vpm.show_prerelease_packages()
+        self.settings.show_prerelease_packages()
     }
 
     pub fn set_show_prerelease_packages(&mut self, value: bool) {
-        self.settings.vpm.set_show_prerelease_packages(value);
+        self.settings.set_show_prerelease_packages(value)
     }
 
     pub fn default_project_path(&self) -> Option<&str> {
-        self.settings.vpm.default_project_path()
+        self.settings.default_project_path()
     }
 
     pub fn set_default_project_path(&mut self, value: &str) {
-        self.settings.vpm.set_default_project_path(value);
+        self.settings.set_default_project_path(value)
     }
 
     pub fn project_backup_path(&self) -> Option<&str> {
-        self.settings.vpm.project_backup_path()
+        self.settings.project_backup_path()
     }
 
     pub fn set_project_backup_path(&mut self, value: &str) {
-        self.settings.vpm.set_project_backup_path(value);
+        self.settings.set_project_backup_path(value)
     }
 
     pub fn unity_hub_path(&self) -> &str {
-        self.settings.vpm.unity_hub()
+        self.settings.unity_hub_path()
     }
 
     pub fn set_unity_hub_path(&mut self, value: &str) {
-        self.settings.vpm.set_unity_hub(value);
+        self.settings.set_unity_hub_path(value)
     }
 
     pub fn ignore_curated_repository(&self) -> bool {
-        self.settings.vrc_get.ignore_curated_repository()
+        self.settings.ignore_curated_repository()
     }
 
     pub fn ignore_official_repository(&self) -> bool {
-        self.settings.vrc_get.ignore_official_repository()
+        self.settings.ignore_official_repository()
     }
 
     pub fn http(&self) -> Option<&T> {
@@ -588,32 +521,11 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub fn remove_user_package(&mut self, pkg_path: &Path) {
-        self.settings.vpm.remove_user_package_folder(pkg_path);
+        self.settings.remove_user_package(pkg_path);
     }
 
     pub async fn add_user_package(&mut self, pkg_path: &Path) -> AddUserPackageResult {
-        if !pkg_path.is_absolute() {
-            return AddUserPackageResult::NonAbsolute;
-        }
-
-        for x in self.settings.vpm.user_package_folders() {
-            if x == pkg_path {
-                return AddUserPackageResult::AlreadyAdded;
-            }
-        }
-
-        match try_load_json::<LooseManifest>(&self.io, &pkg_path.join("package.json")).await {
-            Ok(Some(LooseManifest(package_json))) => package_json,
-            _ => {
-                return AddUserPackageResult::BadPackage;
-            }
-        };
-
-        self.settings
-            .vpm
-            .add_user_package_folder(pkg_path.to_owned());
-
-        AddUserPackageResult::Success
+        self.settings.add_user_package(pkg_path, &self.io).await
     }
 
     pub fn get_package_installer(&self) -> PackageInstaller<'_, T, IO> {

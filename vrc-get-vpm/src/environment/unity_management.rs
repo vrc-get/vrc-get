@@ -133,7 +133,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
     }
 
     pub async fn find_unity_hub(&mut self) -> io::Result<Option<String>> {
-        let path = self.settings.vpm.unity_hub();
+        let path = self.settings.unity_hub_path();
         if !path.is_empty() && self.io.is_file(path.as_ref()).await {
             // if configured one is valid path to file, return it
             return Ok(Some(path.to_string()));
@@ -143,7 +143,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         for &path in Self::default_unity_hub_path() {
             if self.io.is_file(path.as_ref()).await {
-                self.settings.vpm.set_unity_hub(path);
+                self.settings.set_unity_hub_path(path);
                 return Ok(Some(path.to_string()));
             }
         }

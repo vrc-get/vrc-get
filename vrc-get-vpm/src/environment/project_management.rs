@@ -17,7 +17,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         // remove relative paths
         let removed = self
             .settings
-            .vpm
             .retain_user_projects(|x| Path::new(x).is_absolute());
         if !removed.is_empty() {
             error!("Removed relative paths: {:?}", removed);
@@ -27,7 +26,6 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
 
         let projects = self
             .settings
-            .vpm
             .user_projects()
             .iter()
             .map(|x| x.as_ref())
@@ -37,7 +35,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
             .get_values::<UserProject>(COLLECTION)?
             .into_iter()
             .map(|x| (x.path().to_owned(), x))
-            .collect::<std::collections::HashMap<_, _>>();
+            .collect::<HashMap<_, _>>();
 
         // add new projects
         for project in &projects {
@@ -249,7 +247,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         let db = self.get_db()?;
 
         db.delete(COLLECTION, project.id)?;
-        self.settings.vpm.remove_user_project(project.path());
+        self.settings.remove_user_project(project.path());
 
         Ok(())
     }
@@ -279,7 +277,7 @@ impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
         new_project.set_unity_revision(unity_version, unity_revision.to_owned());
 
         self.get_db()?.insert(COLLECTION, &new_project)?;
-        self.settings.vpm.add_user_project(path);
+        self.settings.add_user_project(path);
 
         Ok(())
     }

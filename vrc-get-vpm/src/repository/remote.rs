@@ -92,10 +92,10 @@ impl RemoteRepository {
             self.parsed.url = Some(url.clone());
             self.actual
                 .insert("url".to_owned(), Value::String(url.to_string()));
-            if self.parsed.id.is_none() {
-                let url = self.parsed.url.as_ref().unwrap().as_str().into();
-                self.set_id_if_none(move || url);
-            }
+        }
+        if self.parsed.id.is_none() {
+            let url = self.parsed.url.as_ref().unwrap().as_str().into();
+            self.set_id_if_none(move || url);
         }
     }
 
