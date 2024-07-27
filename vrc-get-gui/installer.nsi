@@ -429,19 +429,20 @@ Function .onInit
   !endif
 FunctionEnd
 
-!macro MigrateRenameRegistryKeyCopyKeys OLDKEY
+!macro MigrateRenameRegistryKeyCopyKeys OLDKEY labelkey
   Push $0
   Push $1
   Push $2
 
-  loop:
+  loop${labelkey}:
     ClearErrors
     EnumRegValue $1 HKCU "${OLDKEY}" $0
-    IfErrors done
+    IfErrors done${labelkey}
     IntOp $0 $0 + 1
     ReadRegStr $2 HKCU "${OLDKEY}" $0
     WriteRegStr HKCU "${MANUPRODUCTKEY}" $0 $2
-  done:
+    Goto loop${labelkey}
+  done${labelkey}:
 
   Pop $2
   Pop $1
@@ -459,11 +460,11 @@ Section MigrateRenameRegistryKey
 
     ; MANUPRODUCTKEYOLD3 is unlikely to be expected key so the lowest priority
   ${ElseIf} $2 != ""
-    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD2}"
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD2}" key2
   ${ElseIf} $1 != ""
-    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD1}"
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD1}" key1
   ${ElseIf} $3 != ""
-    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD3}"
+    !insertmacro MigrateRenameRegistryKeyCopyKeys "${MANUPRODUCTKEYOLD3}" key3
   ${EndIf}
 
   ; after migration, delete old keys
