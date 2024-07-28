@@ -17,7 +17,8 @@ use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::read_to_string;
 use vrc_get_vpm::environment::{
-    AddRepositoryErr, AddUserPackageResult, PackageCollection, PackageInstaller,
+    AddRepositoryErr, AddUserPackageResult, PackageCollection, PackageInstaller, Settings,
+    UserPackageCollection,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
@@ -91,21 +92,6 @@ async fn load_env(io: &DefaultEnvironmentIo, http: Option<&reqwest::Client>) -> 
         .exit_context("loading global config");
 
     env.load_package_infos(io, http)
-        .await
-        .exit_context("loading repositories");
-    env.save(io)
-        .await
-        .exit_context("saving repositories updates");
-
-    env
-}
-
-async fn load_user_env(io: &DefaultEnvironmentIo) -> Environment {
-    let mut env = Environment::load(io)
-        .await
-        .exit_context("loading global config");
-
-    env.load_user_package_infos(io)
         .await
         .exit_context("loading repositories");
     env.save(io)
@@ -1412,9 +1398,10 @@ pub struct UserPackageList {}
 impl UserPackageList {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_user_env(&io).await;
+        let settings = Settings::load(&io).await.exit_context("loading settings");
+        let packages = UserPackageCollection::load(&settings, &io).await;
 
-        for (path, package) in env.user_packages() {
+        for (path, package) in packages.packages() {
             println!(
                 "{}: {} version {} at {}",
                 package.name(),
@@ -1438,10 +1425,10 @@ pub struct UserPackageAdd {
 impl UserPackageAdd {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_user_env(&io).await;
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
 
         let path = absolute_path(&self.path);
-        match env.add_user_package(&path, &io).await {
+        match settings.add_user_package(&path, &io).await {
             AddUserPackageResult::BadPackage => {
                 exit_with!("bad package: {}", self.path.display())
             }
@@ -1452,7 +1439,7 @@ impl UserPackageAdd {
             AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
         }
 
-        save_env(&mut env).await;
+        settings.save(&io).await.exit_context("saving settings");
     }
 }
 
@@ -1468,12 +1455,12 @@ pub struct UserPackageRemove {
 impl UserPackageRemove {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_user_env(&io).await;
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
 
         let path = absolute_path(&self.path);
-        env.remove_user_package(&path);
+        settings.remove_user_package(&path);
 
-        save_env(&mut env).await;
+        settings.save(&io).await.exit_context("saving settings");
     }
 }
 
