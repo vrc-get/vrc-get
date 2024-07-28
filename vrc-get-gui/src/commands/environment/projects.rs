@@ -6,7 +6,6 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::io;
-use std::num::Wrapping;
 use std::path::{Path, PathBuf};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::State;
@@ -94,45 +93,35 @@ impl TauriProject {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_projects(
-    state: State<'_, Mutex<EnvironmentState>>,
-    http: State<'_, reqwest::Client>,
+    settings: State<'_, SettingsState>,
+    projects_state: State<'_, ProjectsState>,
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<Vec<TauriProject>, RustError> {
-    let mut state = state.lock().await;
-    let state = &mut *state;
-    let environment = state
-        .environment
-        .get_environment_mut(UpdateRepositoryMode::None, io.inner(), http.inner())
-        .await?;
+    let mut settings = settings.load_mut(io.inner()).await?;
     let mut connection = VccDatabaseConnection::connect(io.inner())?;
 
     info!("migrating projects from settings.json");
     // migrate from settings json
-    connection
-        .migrate(environment.settings(), io.inner())
-        .await?;
+    connection.migrate(&settings, io.inner()).await?;
     info!("syncing information with real projects");
     connection.sync_with_real_projects(true, io.inner()).await?;
     connection.dedup_projects()?;
-    environment.load_from_db(&connection)?;
+    settings.load_from_db(&connection)?;
     connection.save(io.inner()).await?;
-    environment.save(io.inner()).await?;
+    settings.save().await?;
 
     info!("fetching projects");
 
     let projects = connection.get_projects()?.into_boxed_slice();
     drop(connection);
 
-    state.projects = projects;
-    state.projects_version += Wrapping(1);
+    let stored = projects_state.set(projects).await;
 
-    let version = (state.environment.environment_version + state.projects_version).0;
-
-    let vec = state
-        .projects
+    let vec = stored
+        .data()
         .iter()
         .enumerate()
-        .map(|(index, value)| TauriProject::new(version, index, value))
+        .map(|(index, value)| TauriProject::new(stored.version(), index, value))
         .collect::<Vec<_>>();
 
     Ok(vec)
@@ -196,33 +185,29 @@ async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_remove_project(
-    state: State<'_, Mutex<EnvironmentState>>,
+    projects_state: State<'_, ProjectsState>,
+    settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
-    http: State<'_, reqwest::Client>,
     list_version: u32,
     index: usize,
     directory: bool,
 ) -> Result<(), RustError> {
-    let mut state = state.lock().await;
-    let state = &mut *state;
-    let version = (state.environment.environment_version + state.projects_version).0;
-    if list_version != version {
+    let projects = projects_state.get().await;
+    if list_version != projects.version() {
         return Err(RustError::unrecoverable("project list version mismatch"));
     }
 
-    let project = &state.projects[index];
-    let environment = state
-        .environment
-        .get_environment_mut(UpdateRepositoryMode::None, io.inner(), http.inner())
-        .await?;
+    let Some(project) = projects.get(index) else {
+        return Err(RustError::unrecoverable("project not found"));
+    };
+
+    let mut settings = settings.load_mut(io.inner()).await?;
     let mut connection = VccDatabaseConnection::connect(io.inner())?;
-    connection
-        .migrate(environment.settings(), io.inner())
-        .await?;
+    connection.migrate(&settings, io.inner()).await?;
     connection.remove_project(project)?;
     connection.save(io.inner()).await?;
-    environment.load_from_db(&connection)?;
-    environment.save(io.inner()).await?;
+    settings.load_from_db(&connection)?;
+    settings.save().await?;
 
     if directory {
         let path = project.path();
@@ -241,23 +226,25 @@ pub async fn environment_remove_project(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_remove_project_by_path(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
     path: String,
     directory: bool,
 ) -> Result<(), RustError> {
-    with_environment!(&state, |environment| {
+    {
+        let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        connection.migrate(&settings, io.inner()).await?;
+
         let projects: Vec<UserProject> = connection.get_projects()?;
 
         if let Some(x) = projects.iter().find(|x| x.path() == path) {
-            connection
-                .migrate(environment.settings(), io.inner())
-                .await?;
             connection.remove_project(x)?;
             connection.save(io.inner()).await?;
-            environment.load_from_db(&connection)?;
-            environment.save(io.inner()).await?;
+            settings.load_from_db(&connection)?;
+            settings.save().await?;
+        } else {
+            drop(settings);
         }
 
         if directory {
@@ -270,7 +257,7 @@ pub async fn environment_remove_project_by_path(
         }
 
         Ok(())
-    })
+    }
 }
 
 async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result<u64> {
@@ -364,20 +351,20 @@ pub async fn environment_copy_project_for_migration(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_favorite_project(
-    state: State<'_, Mutex<EnvironmentState>>,
+    projects_state: State<'_, ProjectsState>,
     io: State<'_, DefaultEnvironmentIo>,
     list_version: u32,
     index: usize,
     favorite: bool,
 ) -> Result<(), RustError> {
-    let mut state = state.lock().await;
-    let state = &mut *state;
-    let version = (state.environment.environment_version + state.projects_version).0;
-    if list_version != version {
+    let mut projects = projects_state.get().await;
+    if list_version != projects.version() {
         return Err(RustError::unrecoverable("project list version mismatch"));
     }
+    let Some(project) = projects.get_mut(index) else {
+        return Err(RustError::unrecoverable("project not found"));
+    };
 
-    let project = &mut state.projects[index];
     project.set_favorite(favorite);
 
     let mut connection = VccDatabaseConnection::connect(io.inner())?;

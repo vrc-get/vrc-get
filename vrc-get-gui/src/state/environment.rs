@@ -3,7 +3,7 @@ use std::io;
 use std::num::Wrapping;
 use tauri::{App, Manager};
 use tokio::sync::Mutex;
-use vrc_get_vpm::environment::{PackageCollection, UserProject};
+use vrc_get_vpm::environment::PackageCollection;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_project::PendingProjectChanges;
 use vrc_get_vpm::{Environment, PackageInfo};
@@ -42,9 +42,6 @@ pub struct EnvironmentState {
     pub http: reqwest::Client,
     pub environment: EnvironmentHolder,
     pub packages: Option<Yoke<PackageList<'static>, Box<PackageCollection>>>,
-    // null or reference to
-    pub projects: Box<[UserProject]>,
-    pub projects_version: Wrapping<u32>,
     pub changes_info: crate::commands::ChangesInfoHolder,
 }
 
@@ -165,8 +162,6 @@ impl EnvironmentState {
         Self {
             environment: EnvironmentHolder::new(),
             packages: None,
-            projects: Box::new([]),
-            projects_version: Wrapping(0),
             changes_info: crate::commands::ChangesInfoHolder::new(),
             io,
             http,
