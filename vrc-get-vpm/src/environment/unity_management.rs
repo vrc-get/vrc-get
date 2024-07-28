@@ -1,4 +1,4 @@
-use crate::environment::VccDatabaseConnection;
+use crate::environment::{Settings, VccDatabaseConnection};
 use crate::io::EnvironmentIo;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
@@ -151,71 +151,78 @@ impl VccDatabaseConnection {
 
 /// UnityHub Operations
 impl Environment {
-    fn default_unity_hub_path() -> &'static [&'static str] {
-        // https://docs.unity3d.com/hub/manual/HubCLI.html
-        #[cfg(windows)]
-        {
-            lazy_static::lazy_static! {
-                static ref INSTALLATIONS: &'static [&'static str] = {
-                    // https://github.com/vrc-get/vrc-get/issues/579
-                    if let Some(unity_hub_from_regi) =
-                        winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
-                            .open_subkey(r"Software\Unity Technologies\Hub")
-                            .ok()
-                            .and_then(|key| key.get_value("InstallPath").ok())
-                            .and_then(|str: std::ffi::OsString| str.into_string().ok())
-                            .map(|s| PathBuf::from(s))
-                            .map(|mut p| {
-                                p.push("Unity Hub.exe");
-                                p
-                            })
-                            .map(|p| p.into_os_string().into_string().unwrap()) {
-                        vec![unity_hub_from_regi.leak(), "C:\\Program Files\\Unity Hub\\Unity Hub.exe"].leak()
-                    } else {
-                        &["C:\\Program Files\\Unity Hub\\Unity Hub.exe"]
-                    }
-                };
-            }
+    pub async fn find_unity_hub(&mut self, io: &impl EnvironmentIo) -> io::Result<Option<String>> {
+        find_unity_hub(&mut self.settings, io).await
+    }
+}
 
-            INSTALLATIONS.as_ref()
-        }
-        #[cfg(target_os = "macos")]
-        {
-            &["/Applications/Unity Hub.app/Contents/MacOS/Unity Hub"]
-        }
-        #[cfg(target_os = "linux")]
-        {
-            // for linux,
-            lazy_static::lazy_static! {
-                static ref USER_INSTALLATION: String = {
-                    let home = std::env::var("HOME").expect("HOME not set");
-                    format!("{}/Applications/Unity Hub.AppImage", home)
-                };
-                static ref INSTALLATIONS: [&'static str; 3] =
-                    [&USER_INSTALLATION, "/usr/bin/unity-hub", "/opt/unityhub/unityhub"];
-            }
+pub async fn find_unity_hub(
+    settings: &mut Settings,
+    io: &impl EnvironmentIo,
+) -> io::Result<Option<String>> {
+    let path = settings.unity_hub_path();
+    if !path.is_empty() && io.is_file(path.as_ref()).await {
+        // if configured one is valid path to file, return it
+        return Ok(Some(path.to_string()));
+    }
 
-            INSTALLATIONS.as_ref()
+    // if not, try default paths
+
+    for &path in default_unity_hub_path() {
+        if io.is_file(path.as_ref()).await {
+            settings.set_unity_hub_path(path);
+            return Ok(Some(path.to_string()));
         }
     }
 
-    pub async fn find_unity_hub(&mut self, io: &impl EnvironmentIo) -> io::Result<Option<String>> {
-        let path = self.settings.unity_hub_path();
-        if !path.is_empty() && io.is_file(path.as_ref()).await {
-            // if configured one is valid path to file, return it
-            return Ok(Some(path.to_string()));
+    Ok(None)
+}
+
+fn default_unity_hub_path() -> &'static [&'static str] {
+    // https://docs.unity3d.com/hub/manual/HubCLI.html
+    #[cfg(windows)]
+    {
+        lazy_static::lazy_static! {
+            static ref INSTALLATIONS: &'static [&'static str] = {
+                // https://github.com/vrc-get/vrc-get/issues/579
+                if let Some(unity_hub_from_regi) =
+                    winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
+                        .open_subkey(r"Software\Unity Technologies\Hub")
+                        .ok()
+                        .and_then(|key| key.get_value("InstallPath").ok())
+                        .and_then(|str: std::ffi::OsString| str.into_string().ok())
+                        .map(|s| PathBuf::from(s))
+                        .map(|mut p| {
+                            p.push("Unity Hub.exe");
+                            p
+                        })
+                        .map(|p| p.into_os_string().into_string().unwrap()) {
+                    vec![unity_hub_from_regi.leak(), "C:\\Program Files\\Unity Hub\\Unity Hub.exe"].leak()
+                } else {
+                    &["C:\\Program Files\\Unity Hub\\Unity Hub.exe"]
+                }
+            };
         }
 
-        // if not, try default paths
-
-        for &path in Self::default_unity_hub_path() {
-            if io.is_file(path.as_ref()).await {
-                self.settings.set_unity_hub_path(path);
-                return Ok(Some(path.to_string()));
-            }
+        INSTALLATIONS.as_ref()
+    }
+    #[cfg(target_os = "macos")]
+    {
+        &["/Applications/Unity Hub.app/Contents/MacOS/Unity Hub"]
+    }
+    #[cfg(target_os = "linux")]
+    {
+        // for linux,
+        lazy_static::lazy_static! {
+            static ref USER_INSTALLATION: String = {
+                let home = std::env::var("HOME").expect("HOME not set");
+                format!("{}/Applications/Unity Hub.AppImage", home)
+            };
+            static ref INSTALLATIONS: [&'static str; 3] =
+                [&USER_INSTALLATION, "/usr/bin/unity-hub", "/opt/unityhub/unityhub"];
         }
 
-        Ok(None)
+        INSTALLATIONS.as_ref()
     }
 }
 

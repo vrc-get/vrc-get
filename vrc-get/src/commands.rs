@@ -1185,7 +1185,9 @@ impl RepoRemove {
         let finder = OsStr::new(self.finder.as_str());
         let searcher = self.searcher.as_searcher();
 
-        let count = env.remove_repo(|x| searcher.get(x) == Some(finder)).await;
+        let count = env
+            .remove_repo(&io, |x| searcher.get(x) == Some(finder))
+            .await;
 
         println!("removed {} repositories with {}", count, searcher);
 

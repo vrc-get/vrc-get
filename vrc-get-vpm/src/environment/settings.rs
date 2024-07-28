@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
 use futures::future::try_join;
@@ -283,5 +284,30 @@ impl Settings {
 
     pub fn update_id(&mut self, loaded: &PackageCollection) {
         self.vpm.update_id(loaded);
+    }
+
+    pub fn export_repositories(&self) -> String {
+        let mut builder = String::new();
+
+        for setting in self.get_user_repos() {
+            let Some(url) = setting.url() else { continue };
+            if setting.headers().is_empty() {
+                writeln!(builder, "{url}").unwrap();
+            } else {
+                let mut add_url = Url::parse("vcc://vpm/addRepo").unwrap();
+                let mut query_builder = add_url.query_pairs_mut();
+                query_builder.clear();
+                query_builder.append_pair("url", url.as_str());
+
+                for (header_name, value) in setting.headers() {
+                    query_builder.append_pair("headers[]", &format!("{}:{}", header_name, value));
+                }
+                drop(query_builder);
+
+                writeln!(builder, "{}", add_url).unwrap();
+            }
+        }
+
+        builder
     }
 }

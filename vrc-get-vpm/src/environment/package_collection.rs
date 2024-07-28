@@ -4,8 +4,10 @@ use std::path::{Path, PathBuf};
 use crate::environment::{RepoHolder, Settings, UserPackageCollection};
 use crate::io::EnvironmentIo;
 use crate::repository::LocalCachedRepository;
+use crate::PackageCollection as _;
 use crate::{io, HttpClient, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector};
 use futures::prelude::*;
+use itertools::Itertools;
 use log::error;
 
 /// A immutable structure that holds information about all the packages.
@@ -45,6 +47,27 @@ impl PackageCollection {
             io.remove_file(duplicated_repo.local_path()).await.ok();
             self.repositories.remove(duplicated_repo.local_path());
         }
+    }
+}
+
+impl PackageCollection {
+    pub fn get_remote(&self) -> impl Iterator<Item = &'_ LocalCachedRepository> {
+        self.repositories.values()
+    }
+
+    pub fn find_whole_all_packages(
+        &self,
+        version_selector: VersionSelector,
+        filter: impl Fn(&PackageManifest) -> bool,
+    ) -> Vec<PackageInfo> {
+        self.get_all_packages()
+            .filter(|x| version_selector.satisfies(x.package_json()))
+            .into_group_map_by(|x| x.name())
+            .values()
+            .map(|versions| versions.iter().max_by_key(|x| x.version()).unwrap())
+            .filter(|x| filter(x.package_json()))
+            .copied()
+            .collect()
     }
 }
 

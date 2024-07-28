@@ -374,7 +374,7 @@ pub async fn environment_remove_repository(
 ) -> Result<(), RustError> {
     with_environment!(state, |environment| {
         environment
-            .remove_repo(|r| r.id() == Some(id.as_str()))
+            .remove_repo(io.inner(), |r| r.id() == Some(id.as_str()))
             .await;
 
         environment.save(io.inner()).await?;
