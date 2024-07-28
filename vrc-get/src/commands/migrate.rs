@@ -1,5 +1,5 @@
 use crate::commands::{
-    confirm_prompt, load_env, load_unity, update_project_last_modified, EnvArgs, ResultExt,
+    confirm_prompt, load_collection, load_unity, update_project_last_modified, EnvArgs, ResultExt,
 };
 use clap::{Parser, Subcommand};
 use log::{info, warn};
@@ -61,12 +61,12 @@ impl Unity2022 {
 
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&io, client.as_ref()).await;
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
+
         #[cfg(feature = "experimental-vcc")]
         let connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(&io)
             .exit_context("connecting to database");
-        let collection = env.new_package_collection();
-        let installer = PackageInstaller::new(&io, client.as_ref());
 
         project
             .migrate_unity_2022(&collection, &installer)
@@ -113,7 +113,7 @@ impl Unity2022 {
 
         info!("Unity exited successfully. Migration finished.");
 
-        update_project_last_modified(env, project.project_dir()).await;
+        update_project_last_modified(&io, project.project_dir()).await;
     }
 }
 
@@ -141,12 +141,11 @@ impl Vpm {
 
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&io, client.as_ref()).await;
-        let package_collection = env.new_package_collection();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
         let installer = PackageInstaller::new(&io, client.as_ref());
 
         project
-            .migrate_vpm(&package_collection, &installer, false)
+            .migrate_vpm(&collection, &installer, false)
             .await
             .exit_context("migrating unity project");
 
@@ -154,6 +153,6 @@ impl Vpm {
 
         info!("Migration finished.");
 
-        update_project_last_modified(env, project.project_dir()).await;
+        update_project_last_modified(&io, project.project_dir()).await;
     }
 }

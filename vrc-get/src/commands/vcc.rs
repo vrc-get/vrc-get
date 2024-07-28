@@ -1,9 +1,9 @@
-use crate::commands::{absolute_path, load_env, ResultExt};
+use crate::commands::{absolute_path, ResultExt};
 use clap::{Parser, Subcommand};
 use log::warn;
 use std::cmp::Reverse;
 use std::path::Path;
-use vrc_get_vpm::environment::VccDatabaseConnection;
+use vrc_get_vpm::environment::{find_unity_hub, Settings, VccDatabaseConnection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::{unity_hub, UnityProject};
 
@@ -47,15 +47,14 @@ pub struct ProjectList {
 
 impl ProjectList {
     pub async fn run(self) {
-        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&io, client.as_ref()).await;
+        let settings = Settings::load(&io).await.exit_context("loading settings");
 
         let mut connection =
             VccDatabaseConnection::connect(&io).exit_context("connecting to database");
 
         connection
-            .migrate(env.settings(), &io)
+            .migrate(&settings, &io)
             .await
             .exit_context("migrating from settings.json");
 
@@ -101,9 +100,8 @@ pub struct ProjectAdd {
 
 impl ProjectAdd {
     pub async fn run(self) {
-        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_env(&io, client.as_ref()).await;
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
         let mut connection =
             VccDatabaseConnection::connect(&io).exit_context("connecting to database");
 
@@ -118,7 +116,7 @@ impl ProjectAdd {
         }
 
         connection
-            .migrate(env.settings(), &io)
+            .migrate(&settings, &io)
             .await
             .exit_context("migrating from settings.json");
 
@@ -128,9 +126,10 @@ impl ProjectAdd {
             .exit_context("adding project");
 
         connection.save(&io).await.exit_context("saving database");
-        env.load_from_db(&connection)
+        settings
+            .load_from_db(&connection)
             .exit_context("saving database");
-        env.save(&io).await.exit_context("saving environment");
+        settings.save(&io).await.exit_context("saving settings");
     }
 }
 
@@ -145,9 +144,8 @@ pub struct ProjectRemove {
 
 impl ProjectRemove {
     pub async fn run(self) {
-        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_env(&io, client.as_ref()).await;
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
         let mut connection =
             VccDatabaseConnection::connect(&io).exit_context("connecting to database");
 
@@ -161,7 +159,7 @@ impl ProjectRemove {
         };
 
         connection
-            .migrate(env.settings(), &io)
+            .migrate(&settings, &io)
             .await
             .exit_context("migrating from settings.json");
 
@@ -169,9 +167,11 @@ impl ProjectRemove {
             .remove_project(&project)
             .exit_context("removing project");
         connection.save(&io).await.exit_context("saving database");
-        env.load_from_db(&connection)
+
+        settings
+            .load_from_db(&connection)
             .exit_context("saving database");
-        env.save(&io).await.exit_context("saving environment");
+        settings.save(&io).await.exit_context("saving environment");
     }
 }
 
@@ -292,12 +292,10 @@ pub struct UnityUpdate {
 
 impl UnityUpdate {
     pub async fn run(self) {
-        let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let mut env = load_env(&io, client.as_ref()).await;
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
 
-        let unity_hub_path = env
-            .find_unity_hub(&io)
+        let unity_hub_path = find_unity_hub(&mut settings, &io)
             .await
             .exit_context("loading unity hub path")
             .unwrap_or_else(|| exit_with!("Unity Hub not found"));
@@ -314,6 +312,6 @@ impl UnityUpdate {
             .exit_context("updating unity from unity hub");
 
         connection.save(&io).await.exit_context("saving database");
-        env.save(&io).await.exit_context("saving environment");
+        settings.save(&io).await.exit_context("saving settings");
     }
 }

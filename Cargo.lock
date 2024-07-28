@@ -5105,6 +5105,7 @@ dependencies = [
  "clap_complete",
  "color-print",
  "env_logger",
+ "futures",
  "home",
  "indexmap 2.2.6",
  "itertools 0.13.0",

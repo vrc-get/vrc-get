@@ -1,5 +1,5 @@
-use super::UnityProject;
-use crate::commands::{load_env, load_unity};
+use super::{load_collection, UnityProject};
+use crate::commands::load_unity;
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
 use serde::Serialize;
@@ -183,7 +183,7 @@ impl Package {
     pub async fn run(self) {
         let client = crate::create_client(self.env_args.offline);
         let io = DefaultEnvironmentIo::new_default();
-        let env = load_env(&io, client.as_ref()).await;
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
 
         let format_version = match self.json_format.map(|x| x.get()).unwrap_or_default() {
             0 => {
@@ -196,9 +196,7 @@ impl Package {
 
         debug_assert_eq!(format_version, 1);
 
-        let package_collection = env.new_package_collection();
-
-        let versions: Vec<_> = package_collection
+        let versions: Vec<_> = collection
             .find_packages(&self.package)
             .map(|x| PackageVersionInfo {
                 version: x.version(),
