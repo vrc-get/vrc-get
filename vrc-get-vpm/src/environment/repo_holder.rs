@@ -1,13 +1,17 @@
 use crate::environment::repo_source::RepoSource;
-use crate::io;
+use crate::environment::{
+    Settings, CURATED_URL_STR, LOCAL_CURATED_PATH, LOCAL_OFFICIAL_PATH, OFFICIAL_URL_STR,
+};
 use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::traits::HttpClient;
 use crate::utils::{read_json_file, to_vec_pretty_os_eol, try_load_json};
+use crate::{io, UserRepoSetting};
 use futures::future::join_all;
 use indexmap::IndexMap;
-use log::error;
+use lazy_static::lazy_static;
+use log::{error, warn};
 use std::collections::HashMap;
 use std::path::Path;
 use url::Url;
@@ -27,6 +31,57 @@ impl RepoHolder {
 
 // new system
 impl RepoHolder {
+    pub(crate) async fn load(
+        settings: &Settings,
+        io: &impl EnvironmentIo,
+        http: Option<&impl HttpClient>,
+    ) -> io::Result<Self> {
+        let predefined_repos = Self::get_predefined_repos(settings).into_iter();
+        let user_repos = settings
+            .get_user_repos()
+            .iter()
+            .map(UserRepoSetting::to_source);
+        io.create_dir_all("Repos".as_ref()).await?;
+        let mut repo_cache = Self::new();
+        repo_cache
+            .load_repos(http, io, predefined_repos.chain(user_repos))
+            .await?;
+
+        Ok(repo_cache)
+    }
+
+    fn get_predefined_repos(settings: &Settings) -> Vec<RepoSource<'static>> {
+        lazy_static! {
+            static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
+            static ref OFFICIAL_URL: Url = Url::parse(OFFICIAL_URL_STR).unwrap();
+            static ref CURATED_URL: Url = Url::parse(CURATED_URL_STR).unwrap();
+        }
+
+        let mut repositories = Vec::with_capacity(2);
+
+        if !settings.ignore_official_repository() {
+            repositories.push(RepoSource::new(
+                LOCAL_OFFICIAL_PATH.as_ref(),
+                &EMPTY_HEADERS,
+                Some(&OFFICIAL_URL),
+            ));
+        } else {
+            warn!("ignoring official repository is experimental feature!");
+        }
+
+        if !settings.ignore_curated_repository() {
+            repositories.push(RepoSource::new(
+                LOCAL_CURATED_PATH.as_ref(),
+                &EMPTY_HEADERS,
+                Some(&CURATED_URL),
+            ));
+        } else {
+            warn!("ignoring curated repository is experimental feature!");
+        }
+
+        repositories
+    }
+
     pub(crate) async fn load_repos<'a, IO: EnvironmentIo>(
         &mut self,
         http: Option<&impl HttpClient>,
@@ -138,13 +193,5 @@ impl RepoHolder {
 
     pub(crate) fn into_repos(self) -> HashMap<Box<Path>, LocalCachedRepository> {
         self.cached_repos_new
-    }
-
-    pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
-        self.cached_repos_new.get(path)
-    }
-
-    pub(crate) fn remove_repo(&mut self, path: &Path) {
-        self.cached_repos_new.remove(path);
     }
 }

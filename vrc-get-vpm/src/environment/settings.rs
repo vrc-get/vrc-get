@@ -5,9 +5,9 @@ use futures::future::try_join;
 use indexmap::IndexMap;
 use url::Url;
 
-use crate::environment::vpm_settings::{NewIdGetter, VpmSettings};
+use crate::environment::vpm_settings::VpmSettings;
 use crate::environment::vrc_get_settings::VrcGetSettings;
-use crate::environment::{AddUserPackageResult, VccDatabaseConnection};
+use crate::environment::{AddUserPackageResult, PackageCollection, VccDatabaseConnection};
 use crate::io::EnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::repository::RemoteRepository;
@@ -281,7 +281,7 @@ impl Settings {
         })
     }
 
-    pub(crate) fn update_user_repo_id(&mut self, new_id: impl NewIdGetter) {
-        self.vpm.update_user_repo_id(new_id);
+    pub fn update_id(&mut self, loaded: &PackageCollection) {
+        self.vpm.update_id(loaded);
     }
 }

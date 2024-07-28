@@ -26,8 +26,7 @@ use futures::future::join_all;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use lazy_static::lazy_static;
-use log::{error, warn};
+use log::error;
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
@@ -89,92 +88,19 @@ impl Environment {
 }
 
 impl Environment {
-    fn get_predefined_repos(&self) -> Vec<RepoSource<'static>> {
-        lazy_static! {
-            static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
-            static ref OFFICIAL_URL: Url = Url::parse(OFFICIAL_URL_STR).unwrap();
-            static ref CURATED_URL: Url = Url::parse(CURATED_URL_STR).unwrap();
-        }
-
-        let mut repositories = Vec::with_capacity(2);
-
-        if !self.settings.ignore_official_repository() {
-            repositories.push(RepoSource::new(
-                LOCAL_OFFICIAL_PATH.as_ref(),
-                &EMPTY_HEADERS,
-                Some(&OFFICIAL_URL),
-            ));
-        } else {
-            warn!("ignoring official repository is experimental feature!");
-        }
-
-        if !self.settings.ignore_curated_repository() {
-            repositories.push(RepoSource::new(
-                LOCAL_CURATED_PATH.as_ref(),
-                &EMPTY_HEADERS,
-                Some(&CURATED_URL),
-            ));
-        } else {
-            warn!("ignoring curated repository is experimental feature!");
-        }
-
-        repositories
-    }
-
     pub async fn load_package_infos(
         &mut self,
         io: &impl EnvironmentIo,
         http: Option<&impl HttpClient>,
     ) -> io::Result<()> {
-        let predefined_repos = self.get_predefined_repos().into_iter();
-        let user_repos = self
-            .settings
-            .get_user_repos()
-            .iter()
-            .map(UserRepoSetting::to_source);
-        io.create_dir_all("Repos".as_ref()).await?;
-        let mut repo_cache = RepoHolder::new();
-        repo_cache
-            .load_repos(http, io, predefined_repos.chain(user_repos))
-            .await?;
-        self.update_user_repo_id(&repo_cache);
-        self.remove_id_duplication(&mut repo_cache);
-        let user_packages = UserPackageCollection::load(&self.settings, io).await;
-
-        self.collection = PackageCollection {
-            repositories: repo_cache.into_repos(),
-            user_packages: user_packages.into_packages(),
-        };
+        self.collection = PackageCollection::load(&self.settings, io, http).await?;
+        self.settings.update_id(&self.collection);
+        let duplicated_repos = self.settings.remove_id_duplication();
+        self.collection
+            .remove_repositories(&duplicated_repos, io)
+            .await;
 
         Ok(())
-    }
-
-    fn update_user_repo_id(&mut self, repo_cache: &RepoHolder) {
-        // update id field
-        struct NewIdGetterImpl<'b>(&'b RepoHolder);
-
-        impl<'b> vpm_settings::NewIdGetter for NewIdGetterImpl<'b> {
-            fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Result<Option<&'a str>, ()> {
-                let loaded = self.0.get_repo(repo.local_path()).ok_or(())?;
-
-                let id = loaded.id();
-                let url = loaded.url().map(Url::as_str);
-                let local_url = repo.url().map(Url::as_str);
-
-                Ok(id.or(url).or(local_url))
-            }
-        }
-
-        self.settings
-            .update_user_repo_id(NewIdGetterImpl(repo_cache));
-    }
-
-    fn remove_id_duplication(&mut self, repo_cache: &mut RepoHolder) {
-        let removed = self.settings.remove_id_duplication();
-
-        for setting in removed {
-            repo_cache.remove_repo(setting.local_path());
-        }
     }
 
     pub async fn load_user_package_infos(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {

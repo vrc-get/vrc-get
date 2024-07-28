@@ -1,3 +1,4 @@
+use crate::environment::PackageCollection;
 use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::{load_json_or_default, SaveController};
@@ -64,12 +65,6 @@ pub(crate) struct VpmSettings {
     controller: SaveController<AsJson>,
 }
 
-pub(crate) trait NewIdGetter {
-    // I wanted to be closure but it looks not possible
-    // https://users.rust-lang.org/t/any-way-to-return-an-closure-that-would-returns-a-reference-to-one-of-its-captured-variable/22652/2
-    fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Result<Option<&'a str>, ()>;
-}
-
 const JSON_PATH: &str = "settings.json";
 
 impl VpmSettings {
@@ -100,18 +95,19 @@ impl VpmSettings {
         self.controller.as_mut().user_package_folders.push(path);
     }
 
-    pub(crate) fn update_user_repo_id(&mut self, new_id: impl NewIdGetter) {
+    pub(crate) fn update_id(&mut self, collection: &PackageCollection) {
         self.controller.may_changing(|json| {
             let mut changed = false;
+
             for repo in &mut json.user_repos {
-                if let Ok(id) = new_id.new_id(repo) {
-                    if id != repo.id() {
-                        let owned = id.map(|x| x.into());
-                        repo.id = owned;
+                if let Some(cache) = collection.repositories.get(repo.local_path()) {
+                    if cache.repo.id() != repo.id() {
+                        repo.id = cache.repo.id().map(|x| x.into());
                         changed = true;
                     }
                 }
             }
+
             changed
         })
     }

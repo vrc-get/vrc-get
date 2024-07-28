@@ -1,14 +1,51 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use crate::environment::{RepoHolder, Settings, UserPackageCollection};
+use crate::io::EnvironmentIo;
 use crate::repository::LocalCachedRepository;
-use crate::{PackageInfo, PackageManifest, VersionSelector};
+use crate::{io, HttpClient, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector};
+use futures::prelude::*;
+use log::error;
 
 /// A immutable structure that holds information about all the packages.
 #[derive(Debug, Clone)]
 pub struct PackageCollection {
     pub(super) repositories: HashMap<Box<Path>, LocalCachedRepository>,
     pub(super) user_packages: Vec<(PathBuf, PackageManifest)>,
+}
+
+impl PackageCollection {
+    pub async fn load(
+        settings: &Settings,
+        io: &impl EnvironmentIo,
+        http: Option<&impl HttpClient>,
+    ) -> io::Result<Self> {
+        let (repositories, user_packages) = futures::try_join!(
+            RepoHolder::load(settings, io, http),
+            UserPackageCollection::load(settings, io).map(Ok)
+        )?;
+
+        Ok(Self {
+            repositories: repositories.into_repos(),
+            user_packages: user_packages.into_packages(),
+        })
+    }
+
+    pub async fn remove_repositories(
+        &mut self,
+        remove_repos: &[UserRepoSetting],
+        io: &impl EnvironmentIo,
+    ) {
+        for duplicated_repo in remove_repos {
+            error!(
+                "Duplicated repository id: {}",
+                duplicated_repo.local_path().display()
+            );
+            io.remove_file(duplicated_repo.local_path()).await.ok();
+            self.repositories.remove(duplicated_repo.local_path());
+        }
+    }
 }
 
 impl crate::PackageCollection for PackageCollection {
