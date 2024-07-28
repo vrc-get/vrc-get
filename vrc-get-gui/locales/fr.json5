@@ -178,7 +178,6 @@
     "settings:licenses description": "Cliquez <l>ici</l> pour voir les licenses du projet utilisés par ALCOM",
     "settings:licenses": "Licenses",
     "settings:register vcc scheme": "Enregistrer ALCOM en temps que gestion de schéma d'URL <code>vcc:</code>",
-    "settings:report issue": "Rapporter un problème",
     "settings:show prerelease description": "Activer les packets expérimentaux vous affichera tous les packets en cours de stabilisation en provenance de la liste de packets. De plus, ces packets expérimentaux seront disponibles pour la résolution de dépendances.",
     "settings:show prerelease": "Afficher les packets expérimentaux",
     "settings:theme": "Thême",

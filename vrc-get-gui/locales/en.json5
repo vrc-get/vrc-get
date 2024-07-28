@@ -292,7 +292,6 @@
     "projects:toast:backup succeeded": "Backup was created successfully.",
     "settings:appearance": "Appearance",
     "settings:language": "Language",
-    "settings:report issue": "Report an Issue",
     "settings:button:open issue": "Open an Issue",
     "settings:receive beta updates": "Receive Beta Updates",
     "settings:beta updates description": "Beta channel will receive frequent updates with futures and bugfixes. However, it may have more bugs than the stable channel relates to the new features.",
