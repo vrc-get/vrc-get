@@ -1,3 +1,4 @@
+use super::Settings;
 use crate::io::EnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::utils::try_load_json;
@@ -5,11 +6,23 @@ use crate::PackageManifest;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
-pub(crate) struct UserPackageCollection {
+pub struct UserPackageCollection {
     user_packages: Vec<(PathBuf, PackageManifest)>,
 }
 
 impl UserPackageCollection {
+    pub async fn load(settings: &Settings, io: &impl EnvironmentIo) -> Self {
+        let mut user_packages = UserPackageCollection::new();
+        for x in settings.user_package_folders() {
+            user_packages.try_add_package(io, x).await;
+        }
+        user_packages
+    }
+
+    pub fn packages(&self) -> impl Iterator<Item = &(PathBuf, PackageManifest)> {
+        self.user_packages.iter()
+    }
+
     pub(crate) fn new() -> UserPackageCollection {
         Self {
             user_packages: Vec::new(),

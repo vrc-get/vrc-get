@@ -41,12 +41,12 @@ use crate::io::{DirEntry, EnvironmentIo};
 pub use project_management::*;
 pub(crate) use repo_holder::RepoHolder;
 pub(crate) use repo_source::RepoSource;
-pub(crate) use uesr_package_collection::UserPackageCollection;
 
-use crate::environment::settings::Settings;
 pub use litedb::VccDatabaseConnection;
 pub use package_collection::PackageCollection;
 pub use package_installer::PackageInstaller;
+pub use settings::Settings;
+pub use uesr_package_collection::UserPackageCollection;
 
 const OFFICIAL_URL_STR: &str = "https://packages.vrchat.com/official?download";
 const LOCAL_OFFICIAL_PATH: &str = "Repos/vrc-official.json";
@@ -139,7 +139,7 @@ impl Environment {
             .await?;
         self.update_user_repo_id(&repo_cache);
         self.remove_id_duplication(&mut repo_cache);
-        let user_packages = self.do_load_user_package_infos(io).await?;
+        let user_packages = UserPackageCollection::load(&self.settings, io).await;
 
         self.collection = PackageCollection {
             repositories: repo_cache.get_repos().iter().copied().cloned().collect(),
@@ -177,19 +177,8 @@ impl Environment {
         }
     }
 
-    async fn do_load_user_package_infos(
-        &mut self,
-        io: &impl EnvironmentIo,
-    ) -> io::Result<UserPackageCollection> {
-        let mut user_packages = UserPackageCollection::new();
-        for x in self.settings.user_package_folders() {
-            user_packages.try_add_package(io, x).await;
-        }
-        Ok(user_packages)
-    }
-
     pub async fn load_user_package_infos(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        let user_packages = self.do_load_user_package_infos(io).await?;
+        let user_packages = UserPackageCollection::load(&self.settings, io).await;
 
         self.collection.user_packages = user_packages.into_packages();
 
