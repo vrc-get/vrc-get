@@ -1,3 +1,4 @@
+use crate::commands::SettingMutRef;
 use std::borrow::Cow;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -28,6 +29,14 @@ pub(crate) async fn project_backup_path<'env>(
     Ok(env.project_backup_path().unwrap())
 }
 
+pub(crate) fn project_backup_path_1<'env>(settings: &'env mut SettingMutRef<'_>) -> &'env str {
+    if settings.project_backup_path().is_none() {
+        settings.set_project_backup_path(&default_backup_path());
+    }
+
+    settings.project_backup_path().unwrap()
+}
+
 pub(crate) fn default_default_project_path() -> String {
     let mut home = home_dir();
     home.extend(&["ALCOM", "Projects"]);
@@ -44,6 +53,14 @@ pub(crate) async fn default_project_path<'env>(
     }
 
     Ok(env.default_project_path().unwrap())
+}
+
+pub(crate) fn default_project_path_1<'env>(settings: &'env mut SettingMutRef<'_>) -> &'env str {
+    if settings.default_project_path().is_none() {
+        settings.set_default_project_path(&default_default_project_path());
+    }
+
+    settings.default_project_path().unwrap()
 }
 
 pub(crate) fn find_existing_parent_dir(path: &Path) -> Option<&Path> {

@@ -50,6 +50,7 @@ fn main() {
         }))
         .manage(io.clone())
         .manage(commands::new_http_client())
+        .manage(commands::SettingsState::new())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {
