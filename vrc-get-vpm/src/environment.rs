@@ -28,7 +28,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{error, warn};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::fmt::Write;
@@ -65,7 +65,7 @@ impl Environment {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
         Ok(Self {
             collection: PackageCollection {
-                repositories: Vec::new(),
+                repositories: HashMap::new(),
                 user_packages: Vec::new(),
             },
             settings: Settings::load(io).await?,
@@ -142,7 +142,7 @@ impl Environment {
         let user_packages = UserPackageCollection::load(&self.settings, io).await;
 
         self.collection = PackageCollection {
-            repositories: repo_cache.get_repos().iter().copied().cloned().collect(),
+            repositories: repo_cache.into_repos(),
             user_packages: user_packages.into_packages(),
         };
 
@@ -196,7 +196,7 @@ impl Environment {
 
 impl Environment {
     pub fn get_repos(&self) -> impl Iterator<Item = &'_ LocalCachedRepository> {
-        self.collection.repositories.iter()
+        self.collection.repositories.values()
     }
 
     pub fn find_whole_all_packages(

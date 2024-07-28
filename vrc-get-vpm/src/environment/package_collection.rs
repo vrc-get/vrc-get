@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 use crate::repository::LocalCachedRepository;
 use crate::{PackageInfo, PackageManifest, VersionSelector};
@@ -6,7 +7,7 @@ use crate::{PackageInfo, PackageManifest, VersionSelector};
 /// A immutable structure that holds information about all the packages.
 #[derive(Debug, Clone)]
 pub struct PackageCollection {
-    pub(super) repositories: Vec<LocalCachedRepository>,
+    pub(super) repositories: HashMap<Box<Path>, LocalCachedRepository>,
     pub(super) user_packages: Vec<(PathBuf, PackageManifest)>,
 }
 
@@ -16,7 +17,7 @@ impl crate::PackageCollection for PackageCollection {
         version_selector: VersionSelector,
     ) -> impl Iterator<Item = PackageInfo> {
         self.repositories
-            .iter()
+            .values()
             .filter(|x| x.repo.id() == Some("com.vrchat.repos.curated"))
             .flat_map(move |repo| {
                 repo.repo()
@@ -27,7 +28,7 @@ impl crate::PackageCollection for PackageCollection {
     }
 
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        let remote = self.repositories.iter().flat_map(|repo| {
+        let remote = self.repositories.values().flat_map(|repo| {
             repo.repo
                 .get_packages()
                 .flat_map(|x| x.all_versions())
@@ -42,7 +43,7 @@ impl crate::PackageCollection for PackageCollection {
     }
 
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        let remote = self.repositories.iter().flat_map(|repo| {
+        let remote = self.repositories.values().flat_map(|repo| {
             repo.repo
                 .get_package(package)
                 .into_iter()
@@ -62,7 +63,7 @@ impl crate::PackageCollection for PackageCollection {
         package: &str,
         package_selector: VersionSelector,
     ) -> Option<PackageInfo> {
-        let remote = self.repositories.iter().flat_map(|repo| {
+        let remote = self.repositories.values().flat_map(|repo| {
             repo.repo
                 .get_package(package)
                 .into_iter()

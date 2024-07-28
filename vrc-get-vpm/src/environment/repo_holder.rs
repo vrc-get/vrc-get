@@ -136,8 +136,8 @@ impl RepoHolder {
         read_json_file::<LocalCachedRepository>(io.open(path).await?, path).await
     }
 
-    pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
-        self.cached_repos_new.values().collect()
+    pub(crate) fn into_repos(self) -> HashMap<Box<Path>, LocalCachedRepository> {
+        self.cached_repos_new
     }
 
     pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
