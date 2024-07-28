@@ -202,7 +202,6 @@
     "vpm repositories:hint:invalid header names": "Header name is invalid.",
     "vpm repositories:hint:invalid header values": "Header value is invalid.",
     "vpm repositories:hint:duplicate headers": "Header name is duplicated.",
-    "vpm repositories:dialog:headers": "Headers:",
     "vpm repositories:dialog:downloading...": "Downloading the repository...",
     "vpm repositories:dialog:already added": "This repository was already added.",
     "general:button:ok": "OK",

@@ -193,7 +193,6 @@
     "vpm repositories:hint:invalid header names": "标头名称不可用。",
     "vpm repositories:hint:invalid header values": "标头值不可用。",
     "vpm repositories:hint:duplicate headers": "标头名称重复。",
-    "vpm repositories:dialog:headers": "标头:",
     "vpm repositories:dialog:downloading...": "正在下载存储库...",
     "vpm repositories:dialog:already added": "这个存储库已经被添加过了。",
     "general:button:ok": "完成",

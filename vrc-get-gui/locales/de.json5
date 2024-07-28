@@ -202,7 +202,6 @@
     "vpm repositories:hint:invalid header names": "Headername ist ungültig",
     "vpm repositories:hint:invalid header values": "Headerwert ist ungültig",
     "vpm repositories:hint:duplicate headers": "Headername existiert bereits",
-    "vpm repositories:dialog:headers": "Header",
     "vpm repositories:dialog:downloading...": "Lade Paketquelle...",
     "vpm repositories:dialog:already added": "Diese Paketquelle wurde bereits hinzugefügt.",
     "general:button:ok": "OK",
