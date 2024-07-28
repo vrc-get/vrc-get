@@ -1,5 +1,5 @@
 use crate::repository::{RemotePackages, RemoteRepository};
-use crate::{PackageCollection, PackageInfo, PackageManifest, VersionSelector};
+use crate::PackageManifest;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -74,34 +74,4 @@ impl LocalCachedRepository {
 pub struct VrcGetMeta {
     #[serde(default, skip_serializing_if = "str::is_empty")]
     pub etag: Box<str>,
-}
-
-impl PackageCollection for LocalCachedRepository {
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        self.repo()
-            .get_packages()
-            .flat_map(|x| x.all_versions())
-            .map(|pkg| PackageInfo::remote(pkg, self))
-    }
-
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        self.get_versions_of(package)
-            .map(|pkg| PackageInfo::remote(pkg, self))
-    }
-
-    fn find_package_by_name(
-        &self,
-        package: &str,
-        package_selector: VersionSelector,
-    ) -> Option<PackageInfo> {
-        if let Some(version) = package_selector.as_specific() {
-            self.repo
-                .get_package_version(package, version)
-                .map(|pkg| PackageInfo::remote(pkg, self))
-        } else {
-            self.find_packages(package)
-                .filter(|x| package_selector.satisfies(x.package_json()))
-                .max_by_key(|x| x.version())
-        }
-    }
 }

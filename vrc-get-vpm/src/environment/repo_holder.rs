@@ -5,7 +5,6 @@ use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::traits::HttpClient;
 use crate::utils::{read_json_file, to_vec_pretty_os_eol, try_load_json};
-use crate::{PackageCollection, PackageInfo, VersionSelector};
 use futures::future::join_all;
 use indexmap::IndexMap;
 use log::error;
@@ -147,30 +146,5 @@ impl RepoHolder {
 
     pub(crate) fn remove_repo(&mut self, path: &Path) {
         self.cached_repos_new.remove(path);
-    }
-}
-
-impl PackageCollection for RepoHolder {
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.get_all_packages())
-    }
-
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.find_packages(package))
-    }
-
-    fn find_package_by_name(
-        &self,
-        package: &str,
-        package_selector: VersionSelector,
-    ) -> Option<PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.find_package_by_name(package, package_selector))
-            .max_by_key(|x| x.version())
     }
 }

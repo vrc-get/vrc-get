@@ -204,6 +204,10 @@ impl RemotePackages {
     }
 
     pub fn get_latest(&self, selector: VersionSelector) -> Option<&PackageManifest> {
+        if let Some(version) = selector.as_specific() {
+            return self.versions.get(version);
+        }
+
         self.versions
             .values()
             .filter(|json| selector.satisfies(json))
