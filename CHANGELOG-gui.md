@@ -8,28 +8,41 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Way to customize default command-line arguments for unity `#1304`
-  - You now can change default command-line arguments
 
 ### Changed
-- Include commit hash for issue report `#1288`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Language Selector is very unstable `#1287`
-- Typo in the bundle identifier `#1291`
+
+### Security
+
+## [0.1.13] - 2024-07-27
+### Fixed
+- Upgrading 0.1.11 to 0.1.12 will installs to wrong directory [`#1322`](https://github.com/vrc-get/vrc-get/pull/1322)
+
+## [0.1.12] - 2024-07-25
+### Added
+- Way to customize default command-line arguments for unity [`#1304`](https://github.com/vrc-get/vrc-get/pull/1304)
+  - You now can change default command-line arguments
+
+### Changed
+- Include commit hash for issue report [`#1288`](https://github.com/vrc-get/vrc-get/pull/1288)
+- Use default config if `config.json` is corrupted [`#1307`](https://github.com/vrc-get/vrc-get/pull/1307)
+  - Previously, ALCOM will crash if `config.json` is corrupted. Now, ALCOM will use default config if `config.json` is corrupted.
+
+### Fixed
+- Language Selector is very unstable [`#1287`](https://github.com/vrc-get/vrc-get/pull/1287)
+- Typo in the bundle identifier [`#1291`](https://github.com/vrc-get/vrc-get/pull/1291)
   - The bundle identifier is changed to `com.anatawa12.vrc-get` from `com.anataw12.vrc-get`
   - This may leave the old bundle identifier in the registry. Please remove the old one manually.
-- Not working as SPA on linux platform `#1300`
-- Links are not working with KDE6 `#1260`
+- Not working as SPA on linux platform [`#1300`](https://github.com/vrc-get/vrc-get/pull/1300)
+- Links are not working with KDE6 [`#1260`](https://github.com/vrc-get/vrc-get/pull/1260)
   - Since this version, system `xdg-open` will be used for opening links.
     Please make sure you have `xdg-open` in your environment.
     (I believe most modern desktop environment has that so I believe no opearation is needed)
-
-### Security
 
 ## [0.1.11] - 2024-07-17
 ### Fixed
@@ -394,7 +407,9 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.11...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.13...HEAD
+[0.1.13]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.12...gui-v0.1.13
+[0.1.12]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.11...gui-v0.1.12
 [0.1.11]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10...gui-v0.1.11
 [0.1.10]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.4...gui-v0.1.10
 [0.1.10-beta.4]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10-beta.3...gui-v0.1.10-beta.4

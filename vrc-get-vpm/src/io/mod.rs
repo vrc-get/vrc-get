@@ -46,6 +46,7 @@ pub trait FileSystemProjectIo {
 pub trait IoTrait: Sync {
     fn create_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn write(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
+    fn write_sync(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
     fn remove_file(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn remove_dir(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn remove_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
@@ -75,12 +76,14 @@ pub trait IoTrait: Sync {
 
     fn read_dir(&self, path: &Path) -> impl Future<Output = Result<Self::ReadDirStream>> + Send;
 
-    type FileStream: AsyncRead + AsyncWrite + AsyncSeek + Unpin + Send;
+    type FileStream: FileStream;
 
     fn create_new(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn create(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn open(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
 }
+
+pub trait FileStream: AsyncRead + AsyncWrite + AsyncSeek + Unpin + Send {}
 
 #[derive(Debug, Copy, Clone)]
 pub struct FileType {

@@ -53,7 +53,7 @@ pub enum AddPackageOperation {
 impl<IO: ProjectIo> UnityProject<IO> {
     /// Creates a new `AddPackageRequest` to add the specified packages.
     ///
-    /// You should call `do_add_package_request` to apply the changes after confirming to the user.
+    /// You should call `apply_pending_changes` to apply the changes after confirming to the user.
     pub async fn add_package_request<'env>(
         &self,
         env: &'env impl PackageCollection,

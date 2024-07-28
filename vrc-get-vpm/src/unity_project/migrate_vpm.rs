@@ -194,7 +194,7 @@ where
             if changed {
                 project
                     .io
-                    .write(project_settings_path, buffer.as_bytes())
+                    .write_sync(project_settings_path, buffer.as_bytes())
                     .await?;
             }
         }

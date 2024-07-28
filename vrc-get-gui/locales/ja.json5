@@ -8,6 +8,7 @@
     "general:source": "ソース",
 
     "general:button:add": "追加",
+    "settings:button:edit unity arguments": "編集",
     "general:button:cancel": "キャンセル",
     "general:button:close": "閉じる",
     "general:button:ok": "OK",
@@ -344,6 +345,10 @@
     "settings:toast:not unity": "選択されたファイルはUnityではありません。",
     "settings:toast:unity already added": "選択されたUnityは既に登録されています。",
     "settings:toast:unity added": "選択されたUnityを登録しました。",
+
+    "settings:default unity arguments": "デフォルトのUnityコマンドライン引数",
+    "settings:default unity arguments description": "これらのコマンドライン引数は、ALCOMからUnityを起動する際に使用されます。",
+    "settings:dialog:default launch arguments": "デフォルトのUnityコマンドライン引数",
 
     "settings:default project path": "プロジェクト作成時の保存先",
     "settings:default project path description": "",
