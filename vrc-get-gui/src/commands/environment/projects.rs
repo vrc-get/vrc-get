@@ -1,6 +1,5 @@
 use crate::commands::prelude::*;
 
-use crate::commands::SettingsState;
 use crate::utils::default_project_path;
 use futures::TryStreamExt;
 use log::{error, info, warn};

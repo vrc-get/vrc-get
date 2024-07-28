@@ -1,4 +1,5 @@
-use crate::commands::SettingsState;
+use crate::commands::prelude::*;
+
 use crate::config::GuiConfigState;
 use log::{error, info};
 use std::io;

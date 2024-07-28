@@ -9,7 +9,7 @@ use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State};
 
 use crate::commands::prelude::*;
-use crate::commands::{SettingsState, DEFAULT_UNITY_ARGUMENTS};
+use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::config::GuiConfigState;
 use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
 use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
