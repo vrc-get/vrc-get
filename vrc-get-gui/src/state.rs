@@ -1,10 +1,12 @@
 mod config;
 mod environment;
 mod settings;
+mod updater;
 
 pub use config::*;
 pub use environment::*;
 pub use settings::*;
+pub use updater::*;
 
 pub fn new_http_client() -> reqwest::Client {
     reqwest::Client::builder()

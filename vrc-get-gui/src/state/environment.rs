@@ -46,7 +46,6 @@ pub struct EnvironmentState {
     pub projects: Box<[UserProject]>,
     pub projects_version: Wrapping<u32>,
     pub changes_info: crate::commands::ChangesInfoHolder,
-    pub update_response_holder: crate::commands::UpdateResponseHolder,
 }
 
 pub struct PendingProjectChangesInfo<'env> {
@@ -169,7 +168,6 @@ impl EnvironmentState {
             projects: Box::new([]),
             projects_version: Wrapping(0),
             changes_info: crate::commands::ChangesInfoHolder::new(),
-            update_response_holder: crate::commands::UpdateResponseHolder::new(),
             io,
             http,
         }

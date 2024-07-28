@@ -10,7 +10,6 @@ use tauri::{generate_handler, Invoke};
 pub use project::ChangesInfoHolder;
 pub use start::startup;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
-pub use util::UpdateResponseHolder;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::Version;
