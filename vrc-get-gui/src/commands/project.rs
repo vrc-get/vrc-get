@@ -574,7 +574,7 @@ pub async fn project_open_unity(
     if let Some(custom_args) = &custom_args {
         args.extend(custom_args.iter().map(OsStr::new));
     } else {
-        config_default_args = config.load(&io).await?.default_unity_arguments.clone();
+        config_default_args = config.get().default_unity_arguments.clone();
         if let Some(config_default_args) = &config_default_args {
             args.extend(config_default_args.iter().map(OsStr::new));
         } else {
@@ -726,7 +726,7 @@ pub async fn project_create_backup(
     project_path: String,
 ) -> Result<AsyncCallResult<(), ()>, RustError> {
     async_command(channel, window, async {
-        let backup_format = config.load(&io).await?.backup_format.to_ascii_lowercase();
+        let backup_format = config.get().backup_format.to_ascii_lowercase();
 
         let backup_dir = with_environment!(&state, |environment| {
             let backup_path = project_backup_path(environment, &io).await?;

@@ -1,11 +1,10 @@
-use std::future::{ready, Future};
+use std::future::Future;
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use arc_swap::ArcSwapOption;
-use futures::*;
+use arc_swap::ArcSwap;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
@@ -135,68 +134,26 @@ struct GuiConfigStateInner {
 }
 
 pub struct GuiConfigState {
-    inner: ArcSwapOption<GuiConfigStateInner>,
+    inner: ArcSwap<GuiConfigStateInner>,
     mut_lock: Mutex<()>,
 }
 
 impl GuiConfigState {
-    pub fn new() -> Self {
-        Self {
-            inner: ArcSwapOption::new(None),
+    pub async fn new_load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
+        let loaded = load_async(io).await?;
+        Ok(Self {
+            inner: ArcSwap::new(Arc::new(loaded)),
             mut_lock: Mutex::new(()),
-        }
+        })
     }
 
-    pub async fn load(&self, io: &DefaultEnvironmentIo) -> io::Result<GuiConfigRef> {
-        Self::load_async_impl(&self.inner, io).await
+    pub fn get(&self) -> GuiConfigRef {
+        GuiConfigRef::new(self.inner.load().clone())
     }
 
-    async fn load_async_impl(
-        inner: &ArcSwapOption<GuiConfigStateInner>,
-        io: &DefaultEnvironmentIo,
-    ) -> io::Result<GuiConfigRef> {
-        if let Some(inner) = &*inner.load() {
-            Ok(GuiConfigRef::new(inner.clone()))
-        } else {
-            Ok(GuiConfigRef::new(Self::set_updated_or_removed(
-                inner,
-                load_async(io).await?,
-            )))
-        }
-    }
-
-    #[allow(dead_code)] // Not used in the current codebase but used soon
-    pub fn load_sync(&self, io: &DefaultEnvironmentIo) -> io::Result<GuiConfigRef> {
-        let inner = self.inner.load();
-        if let Some(inner) = &*inner {
-            Ok(GuiConfigRef::new(inner.clone()))
-        } else {
-            Ok(GuiConfigRef::new(Self::set_updated_or_removed(
-                &self.inner,
-                load_sync(io)?,
-            )))
-        }
-    }
-
-    fn set_updated_or_removed(
-        inner: &ArcSwapOption<GuiConfigStateInner>,
-        value: GuiConfigStateInner,
-    ) -> Arc<GuiConfigStateInner> {
-        let arc = Arc::new(value);
-        let guard = inner.compare_and_swap(std::ptr::null(), Some(arc.clone()));
-        if let Some(old) = &*guard {
-            old.clone()
-        } else {
-            arc
-        }
-    }
-
-    pub async fn load_mut<'s>(
-        &'s self,
-        io: &DefaultEnvironmentIo,
-    ) -> io::Result<GuiConfigMutRef<'s>> {
+    pub async fn load_mut(&self) -> io::Result<GuiConfigMutRef<'_>> {
         let lock = self.mut_lock.lock().await;
-        let loaded = Self::load_async_impl(&self.inner, io).await?;
+        let loaded = GuiConfigRef::new(self.inner.load().clone());
         Ok(GuiConfigMutRef {
             config: loaded.state.config.clone(),
             path: loaded.state.path.clone(),
@@ -229,7 +186,7 @@ pub struct GuiConfigMutRef<'s> {
     config: GuiConfig,
     path: PathBuf,
     _mut_lock_guard: MutexGuard<'s, ()>,
-    cache: &'s ArcSwapOption<GuiConfigStateInner>,
+    cache: &'s ArcSwap<GuiConfigStateInner>,
 }
 
 impl GuiConfigMutRef<'_> {
@@ -240,10 +197,10 @@ impl GuiConfigMutRef<'_> {
         file.write_all(json.as_bytes()).await?;
         file.sync_data().await?;
         drop(file);
-        self.cache.swap(Some(Arc::new(GuiConfigStateInner {
+        self.cache.swap(Arc::new(GuiConfigStateInner {
             config: self.config,
             path: self.path,
-        })));
+        }));
         Ok(())
     }
 }
@@ -332,23 +289,4 @@ async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner
     let path = io.resolve("vrc-get/gui-config.json".as_ref());
 
     loader::<AsyncIO>(path).await
-}
-
-fn load_sync(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
-    struct SyncIO;
-    impl FsWrapper for SyncIO {
-        fn read(path: &Path) -> impl Future<Output = io::Result<Vec<u8>>> + Send {
-            ready(std::fs::read(path))
-        }
-
-        fn rename(from: &Path, to: &Path) -> impl Future<Output = io::Result<()>> + Send {
-            ready(std::fs::rename(from, to))
-        }
-    }
-
-    let path = io.resolve("vrc-get/gui-config.json".as_ref());
-
-    loader::<SyncIO>(path)
-        .now_or_never()
-        .expect("sync operation suspended")
 }

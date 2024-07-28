@@ -80,9 +80,12 @@ pub fn startup(app: &mut App) {
     }
 
     async fn open_main(app: AppHandle) -> tauri::Result<()> {
-        let config = app.state::<GuiConfigState>();
         let io = app.state::<DefaultEnvironmentIo>();
-        let config = config.load(&io).await?.clone();
+        let config = GuiConfigState::new_load(io.inner()).await?;
+        app.manage(config);
+
+        let config = app.state::<GuiConfigState>();
+        let config = config.get().clone();
 
         if !cfg!(target_os = "macos") && config.use_alcom_for_vcc_protocol {
             spawn(crate::deep_link_support::deep_link_install_vcc(app.clone()));
@@ -176,8 +179,7 @@ pub fn startup(app: &mut App) {
                 size.width, size.height, fullscreen
             );
             let config = window.state::<GuiConfigState>();
-            let io = window.state::<DefaultEnvironmentIo>();
-            let mut config = config.load_mut(&io).await?;
+            let mut config = config.load_mut().await?;
             if fullscreen {
                 config.fullscreen = true;
             } else {

@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use crate::config::GuiConfigState;
 use tauri::Manager;
 
 mod commands;
@@ -50,7 +49,6 @@ fn main() {
             process_args(&argv);
         }))
         .manage(io.clone())
-        .manage(GuiConfigState::new())
         .manage(commands::new_http_client())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())

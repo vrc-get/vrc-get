@@ -132,9 +132,8 @@ pub struct TauriRepositoriesInfo {
 pub async fn environment_repositories_info(
     state: State<'_, Mutex<EnvironmentState>>,
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriRepositoriesInfo, RustError> {
-    let config = config.load(&io).await?;
+    let config = config.get();
     let hidden_user_repositories = config.gui_hidden_repositories.iter().cloned().collect();
     let hide_local_user_packages = config.hide_local_user_packages;
     drop(config);
@@ -164,10 +163,9 @@ pub async fn environment_repositories_info(
 #[specta::specta]
 pub async fn environment_hide_repository(
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
     repository: String,
 ) -> Result<(), RustError> {
-    let mut config = config.load_mut(&io).await?;
+    let mut config = config.load_mut().await?;
     config.gui_hidden_repositories.insert(repository);
     config.save().await?;
     Ok(())
@@ -177,10 +175,9 @@ pub async fn environment_hide_repository(
 #[specta::specta]
 pub async fn environment_show_repository(
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
     repository: String,
 ) -> Result<(), RustError> {
-    let mut config = config.load_mut(&io).await?;
+    let mut config = config.load_mut().await?;
     config.gui_hidden_repositories.shift_remove(&repository);
     config.save().await?;
     Ok(())
@@ -190,10 +187,9 @@ pub async fn environment_show_repository(
 #[specta::specta]
 pub async fn environment_set_hide_local_user_packages(
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
     value: bool,
 ) -> Result<(), RustError> {
-    let mut config = config.load_mut(&io).await?;
+    let mut config = config.load_mut().await?;
     config.hide_local_user_packages = value;
     config.save().await?;
     Ok(())

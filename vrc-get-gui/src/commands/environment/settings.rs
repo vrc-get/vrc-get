@@ -75,7 +75,7 @@ pub async fn environment_get_settings(
     config: State<'_, GuiConfigState>,
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriEnvironmentSettings, RustError> {
-    let config = config.load(&io).await?;
+    let config = config.get();
     let backup_format = config.backup_format.to_string();
     let release_channel = config.release_channel.to_string();
     let use_alcom_for_vcc_protocol = config.use_alcom_for_vcc_protocol;
@@ -358,10 +358,9 @@ pub async fn environment_set_show_prerelease_packages(
 #[specta::specta]
 pub async fn environment_set_backup_format(
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
     backup_format: String,
 ) -> Result<(), RustError> {
-    let mut config = config.load_mut(&io).await?;
+    let mut config = config.load_mut().await?;
     config.backup_format = backup_format;
     config.save().await?;
     Ok(())
@@ -371,10 +370,9 @@ pub async fn environment_set_backup_format(
 #[specta::specta]
 pub async fn environment_set_release_channel(
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
     release_channel: String,
 ) -> Result<(), RustError> {
-    let mut config = config.load_mut(&io).await?;
+    let mut config = config.load_mut().await?;
     config.release_channel = release_channel;
     config.save().await?;
     Ok(())
@@ -385,10 +383,9 @@ pub async fn environment_set_release_channel(
 pub async fn environment_set_use_alcom_for_vcc_protocol(
     app: AppHandle,
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
     use_alcom_for_vcc_protocol: bool,
 ) -> Result<(), RustError> {
-    let mut config = config.load_mut(&io).await?;
+    let mut config = config.load_mut().await?;
     info!("setting use_alcom_for_vcc_protocol to {use_alcom_for_vcc_protocol}");
     config.use_alcom_for_vcc_protocol = use_alcom_for_vcc_protocol;
     config.save().await?;
@@ -404,11 +401,9 @@ pub async fn environment_set_use_alcom_for_vcc_protocol(
 #[specta::specta]
 pub async fn environment_get_default_unity_arguments(
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<Vec<String>, RustError> {
     Ok(config
-        .load(&io)
-        .await?
+        .get()
         .default_unity_arguments
         .clone()
         .unwrap_or_else(|| {
@@ -424,10 +419,9 @@ pub async fn environment_get_default_unity_arguments(
 #[specta::specta]
 pub async fn environment_set_default_unity_arguments(
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
     default_unity_arguments: Option<Vec<String>>,
 ) -> Result<(), RustError> {
-    let mut config = config.load_mut(&io).await?;
+    let mut config = config.load_mut().await?;
     config.default_unity_arguments = default_unity_arguments;
     config.save().await?;
     Ok(())

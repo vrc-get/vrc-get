@@ -4,7 +4,6 @@ use tauri::{AppHandle, Manager};
 
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::config::GuiConfigState;
-use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 pub fn handle_vrc_get_scheme(
     app: &AppHandle,
@@ -25,8 +24,7 @@ pub fn handle_vrc_get_scheme(
 
 pub fn global_info_json(app: &AppHandle) -> Result<Response, Box<dyn std::error::Error>> {
     let config = app.state::<GuiConfigState>();
-    let io = app.state::<DefaultEnvironmentIo>();
-    let config = config.load_sync(&io)?;
+    let config = config.get();
 
     // keep structure sync with global-info.ts
     #[derive(Serialize)]

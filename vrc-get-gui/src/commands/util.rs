@@ -5,7 +5,6 @@ use tauri::updater::UpdateResponse;
 use tauri::{AppHandle, State, Wry};
 use tokio::fs::create_dir_all;
 use tokio::sync::Mutex;
-use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 use crate::commands::prelude::*;
 use crate::config::GuiConfigState;
@@ -120,9 +119,8 @@ pub async fn util_check_for_update(
     app_handle: AppHandle,
     state: State<'_, Mutex<EnvironmentState>>,
     config: State<'_, GuiConfigState>,
-    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<CheckForUpdateResponse, RustError> {
-    let stable = config.load(&io).await?.release_channel == "stable";
+    let stable = config.get().release_channel == "stable";
     let response = check_for_update(app_handle, stable).await?;
     let is_update_available = response.is_update_available();
     let current_version = response.current_version().to_string();
