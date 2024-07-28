@@ -19,7 +19,7 @@ use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::structs::setting::UserRepoSetting;
 use crate::traits::HttpClient;
-use crate::utils::to_vec_pretty_os_eol;
+use crate::utils::{to_vec_pretty_os_eol, SaveController};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use futures::future::join_all;
 use futures::prelude::*;
@@ -54,7 +54,7 @@ const REPO_CACHE_FOLDER: &str = "Repos";
 #[derive(Debug)]
 pub struct Environment {
     collection: PackageCollection,
-    settings: Settings,
+    settings: SaveController<Settings>,
 }
 
 impl Environment {
@@ -64,7 +64,7 @@ impl Environment {
                 repositories: HashMap::new(),
                 user_packages: Vec::new(),
             },
-            settings: Settings::load(io).await?,
+            settings: SaveController::new(Settings::load(io).await?),
         })
     }
 
@@ -74,12 +74,12 @@ impl Environment {
     ///
     /// [`load_package_infos`]: Environment::load_package_infos
     pub async fn reload(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        self.settings = Settings::load(io).await?;
+        self.settings = SaveController::new(Settings::load(io).await?);
         Ok(())
     }
 
     pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        self.settings.save(io).await?;
+        self.settings.save(|data| data.save(io)).await?;
         Ok(())
     }
 }
@@ -91,8 +91,15 @@ impl Environment {
         http: Option<&impl HttpClient>,
     ) -> io::Result<()> {
         self.collection = PackageCollection::load(&self.settings, io, http).await?;
-        self.settings.update_id(&self.collection);
-        let duplicated_repos = self.settings.remove_id_duplication();
+        self.settings
+            .may_changing(|settings| settings.update_id(&self.collection));
+        let mut duplicated_repos = vec![];
+        self.settings.may_changing(|settings| {
+            duplicated_repos = settings.remove_id_duplication();
+
+            !duplicated_repos.is_empty()
+        });
+
         self.collection
             .remove_repositories(&duplicated_repos, io)
             .await;
@@ -143,7 +150,7 @@ impl Environment {
         io: &impl EnvironmentIo,
         http: &impl HttpClient,
     ) -> Result<(), AddRepositoryErr> {
-        add_remote_repo(&mut self.settings, url, name, headers, io, http).await
+        add_remote_repo(self.settings.as_mut(), url, name, headers, io, http).await
     }
 
     pub fn add_local_repo(
@@ -151,7 +158,7 @@ impl Environment {
         path: &Path,
         name: Option<&str>,
     ) -> Result<(), AddRepositoryErr> {
-        if self.settings.add_local_repo(path, name) {
+        if self.settings.as_mut().add_local_repo(path, name) {
             Ok(())
         } else {
             Err(AddRepositoryErr::AlreadyAdded)
@@ -163,7 +170,7 @@ impl Environment {
         io: &impl EnvironmentIo,
         condition: impl Fn(&UserRepoSetting) -> bool,
     ) -> usize {
-        let removed = self.settings.remove_repo(condition);
+        let removed = self.settings.as_mut().remove_repo(condition);
 
         join_all(
             removed
@@ -192,7 +199,7 @@ impl Environment {
     }
 
     pub fn set_show_prerelease_packages(&mut self, value: bool) {
-        self.settings.set_show_prerelease_packages(value)
+        self.settings.as_mut().set_show_prerelease_packages(value)
     }
 
     pub fn default_project_path(&self) -> Option<&str> {
@@ -200,7 +207,7 @@ impl Environment {
     }
 
     pub fn set_default_project_path(&mut self, value: &str) {
-        self.settings.set_default_project_path(value)
+        self.settings.as_mut().set_default_project_path(value)
     }
 
     pub fn project_backup_path(&self) -> Option<&str> {
@@ -208,7 +215,7 @@ impl Environment {
     }
 
     pub fn set_project_backup_path(&mut self, value: &str) {
-        self.settings.set_project_backup_path(value)
+        self.settings.as_mut().set_project_backup_path(value)
     }
 
     pub fn unity_hub_path(&self) -> &str {
@@ -216,7 +223,7 @@ impl Environment {
     }
 
     pub fn set_unity_hub_path(&mut self, value: &str) {
-        self.settings.set_unity_hub_path(value)
+        self.settings.as_mut().set_unity_hub_path(value)
     }
 
     pub fn ignore_curated_repository(&self) -> bool {
@@ -410,7 +417,7 @@ impl Environment {
     }
 
     pub fn remove_user_package(&mut self, pkg_path: &Path) {
-        self.settings.remove_user_package(pkg_path);
+        self.settings.as_mut().remove_user_package(pkg_path);
     }
 
     pub async fn add_user_package(
@@ -418,7 +425,7 @@ impl Environment {
         pkg_path: &Path,
         io: &impl EnvironmentIo,
     ) -> AddUserPackageResult {
-        self.settings.add_user_package(pkg_path, io).await
+        self.settings.as_mut().add_user_package(pkg_path, io).await
     }
 }
 

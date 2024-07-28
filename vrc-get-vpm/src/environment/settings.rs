@@ -15,7 +15,7 @@ use crate::repository::RemoteRepository;
 use crate::utils::{normalize_path, try_load_json};
 use crate::{io, UserRepoSetting};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Settings {
     /// parsed settings
     vpm: VpmSettings,
@@ -33,7 +33,7 @@ impl Settings {
         })
     }
 
-    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
+    pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
         try_join(self.vpm.save(io), self.vrc_get.save(io))
             .await
             .map(|_| ())?;
@@ -282,8 +282,8 @@ impl Settings {
         })
     }
 
-    pub fn update_id(&mut self, loaded: &PackageCollection) {
-        self.vpm.update_id(loaded);
+    pub fn update_id(&mut self, loaded: &PackageCollection) -> bool {
+        self.vpm.update_id(loaded)
     }
 
     pub fn export_repositories(&self) -> String {

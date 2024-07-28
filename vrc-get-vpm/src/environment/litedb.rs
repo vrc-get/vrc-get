@@ -27,6 +27,6 @@ impl VccDatabaseConnection {
 
 impl Environment {
     pub fn load_from_db(&mut self, connection: &VccDatabaseConnection) -> io::Result<()> {
-        self.settings.load_from_db(connection)
+        self.settings.as_mut().load_from_db(connection)
     }
 }

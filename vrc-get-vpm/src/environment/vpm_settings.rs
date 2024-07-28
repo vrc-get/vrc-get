@@ -1,7 +1,7 @@
 use crate::environment::PackageCollection;
 use crate::io;
 use crate::io::EnvironmentIo;
-use crate::utils::{load_json_or_default, SaveController};
+use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
 use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 type JsonObject = Map<String, Value>;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct AsJson {
     #[serde(default)]
@@ -60,9 +60,9 @@ struct AsJson {
     rest: JsonObject,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct VpmSettings {
-    controller: SaveController<AsJson>,
+    parsed: AsJson,
 }
 
 const JSON_PATH: &str = "settings.json";
@@ -71,45 +71,39 @@ impl VpmSettings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
         let parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
-        Ok(Self {
-            controller: SaveController::new(parsed),
-        })
+        Ok(Self { parsed })
     }
 
     pub(crate) fn user_repos(&self) -> &[UserRepoSetting] {
-        &self.controller.user_repos
+        &self.parsed.user_repos
     }
 
     pub(crate) fn user_package_folders(&self) -> &[PathBuf] {
-        &self.controller.user_package_folders
+        &self.parsed.user_package_folders
     }
 
     pub fn remove_user_package_folder(&mut self, path: &Path) {
-        self.controller
-            .as_mut()
-            .user_package_folders
-            .retain(|x| x != path);
+        self.parsed.user_package_folders.retain(|x| x != path);
     }
 
     pub(crate) fn add_user_package_folder(&mut self, path: PathBuf) {
-        self.controller.as_mut().user_package_folders.push(path);
+        self.parsed.user_package_folders.push(path);
     }
 
-    pub(crate) fn update_id(&mut self, collection: &PackageCollection) {
-        self.controller.may_changing(|json| {
-            let mut changed = false;
+    pub(crate) fn update_id(&mut self, collection: &PackageCollection) -> bool {
+        let json = &mut self.parsed;
+        let mut changed = false;
 
-            for repo in &mut json.user_repos {
-                if let Some(cache) = collection.repositories.get(repo.local_path()) {
-                    if cache.repo.id() != repo.id() {
-                        repo.id = cache.repo.id().map(|x| x.into());
-                        changed = true;
-                    }
+        for repo in &mut json.user_repos {
+            if let Some(cache) = collection.repositories.get(repo.local_path()) {
+                if cache.repo.id() != repo.id() {
+                    repo.id = cache.repo.id().map(|x| x.into());
+                    changed = true;
                 }
             }
+        }
 
-            changed
-        })
+        changed
     }
 
     pub fn retain_user_repos(
@@ -119,69 +113,71 @@ impl VpmSettings {
         let mut removed = Vec::new();
 
         // awaiting extract_if but not stable yet so use cloned method
-        self.controller.may_changing(|json| {
-            let cloned = json.user_repos.to_vec();
-            json.user_repos.clear();
+        let json = &mut self.parsed;
+        let cloned = json.user_repos.to_vec();
+        json.user_repos.clear();
 
-            for element in cloned {
-                if f(&element) {
-                    json.user_repos.push(element);
-                } else {
-                    removed.push(element);
-                }
+        for element in cloned {
+            if f(&element) {
+                json.user_repos.push(element);
+            } else {
+                removed.push(element);
             }
-
-            !removed.is_empty()
-        });
+        }
 
         removed
     }
 
     pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {
-        self.controller.as_mut().user_repos.push(repo);
+        self.parsed.user_repos.push(repo);
     }
 
     pub(crate) fn show_prerelease_packages(&self) -> bool {
-        self.controller.show_prerelease_packages
+        self.parsed.show_prerelease_packages
     }
 
     pub(crate) fn set_show_prerelease_packages(&mut self, value: bool) {
-        self.controller.as_mut().show_prerelease_packages = value;
+        self.parsed.show_prerelease_packages = value;
     }
 
     pub(crate) fn default_project_path(&self) -> Option<&str> {
-        self.controller.default_project_path.as_deref()
+        self.parsed.default_project_path.as_deref()
     }
 
     pub(crate) fn set_default_project_path(&mut self, value: &str) {
-        self.controller.as_mut().default_project_path = Some(value.into());
+        self.parsed.default_project_path = Some(value.into());
     }
 
     pub(crate) fn project_backup_path(&self) -> Option<&str> {
-        self.controller.project_backup_path.as_deref()
+        self.parsed.project_backup_path.as_deref()
     }
 
     pub(crate) fn set_project_backup_path(&mut self, value: &str) {
-        self.controller.as_mut().project_backup_path = Some(value.into());
+        self.parsed.project_backup_path = Some(value.into());
     }
 
     pub(crate) fn unity_hub(&self) -> &str {
-        &self.controller.path_to_unity_hub
+        &self.parsed.path_to_unity_hub
     }
 
     pub(crate) fn set_unity_hub(&mut self, path: &str) {
-        self.controller.as_mut().path_to_unity_hub = path.into();
+        self.parsed.path_to_unity_hub = path.into();
     }
 
-    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        self.controller.save(io, JSON_PATH.as_ref()).await
+    pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
+        let path = Path::new(JSON_PATH);
+        io.create_dir_all(path.parent().unwrap_or("".as_ref()))
+            .await?;
+        io.write_sync(path, &to_vec_pretty_os_eol(&self.parsed)?)
+            .await?;
+        Ok(())
     }
 }
 
 #[cfg(feature = "experimental-project-management")]
 impl VpmSettings {
     pub(crate) fn user_projects(&self) -> &[Box<str>] {
-        &self.controller.user_projects
+        &self.parsed.user_projects
     }
 
     pub(crate) fn retain_user_projects(
@@ -191,35 +187,26 @@ impl VpmSettings {
         let mut removed = Vec::new();
 
         // awaiting extract_if but not stable yet so use cloned method
-        self.controller.may_changing(|json| {
-            let cloned = json.user_projects.to_vec();
-            json.user_projects.clear();
 
-            for element in cloned {
-                if f(element.as_ref()) {
-                    json.user_projects.push(element);
-                } else {
-                    removed.push(element);
-                }
+        let cloned = self.parsed.user_projects.to_vec();
+        self.parsed.user_projects.clear();
+
+        for element in cloned {
+            if f(element.as_ref()) {
+                self.parsed.user_projects.push(element);
+            } else {
+                removed.push(element);
             }
-
-            !removed.is_empty()
-        });
+        }
 
         removed
     }
 
     pub(crate) fn remove_user_project(&mut self, path: &str) {
-        self.controller
-            .as_mut()
-            .user_projects
-            .retain(|x| x.as_ref() != path);
+        self.parsed.user_projects.retain(|x| x.as_ref() != path);
     }
 
     pub(crate) fn add_user_project(&mut self, path: &str) {
-        self.controller
-            .as_mut()
-            .user_projects
-            .insert(0, path.into());
+        self.parsed.user_projects.insert(0, path.into());
     }
 }

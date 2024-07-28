@@ -152,7 +152,7 @@ impl VccDatabaseConnection {
 /// UnityHub Operations
 impl Environment {
     pub async fn find_unity_hub(&mut self, io: &impl EnvironmentIo) -> io::Result<Option<String>> {
-        find_unity_hub(&mut self.settings, io).await
+        find_unity_hub(self.settings.as_mut(), io).await
     }
 }
 
