@@ -199,7 +199,6 @@
     "settings:unity:source:manual": "Manuelle",
     "settings:unity:source:unity hub": "Unity Hub",
     "settings:unity:version": "Version de Unity",
-    "settings:vcc scheme description": "Le schéma d'URL <code>vcc:</code> est utilisé afin d'ouvrir VCC pour ajouter un dépot depuis un navigateur web.<br>En tant qu'alternative à VCC, Vous pouvez utiliser ALCOM en temps qu'application pour ajouter ces dépots depuis un navigateur web.<br>Il est automatiquement enregistré pour macOS, mais pour les autres plateformes, vous devez l'enregistrer manuellement.",
     "settings:vcc scheme": "<code>vcc:</code> Gestion du schéma d'URL",
     "sidebar:toast:version copied": "Nom de version copié.",
     "vpm repositories": "Dépots VPM",

@@ -261,7 +261,6 @@
     "settings:unity:path": "Unity 路径",
     "settings:unity:source:manual": "手动安装",
     "settings:unity:source:unity hub": "Unity Hub",
-    "settings:vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为 URL 快捷方式 <code>vcc://</code> 唤起的默认应用程序，以从浏览器快捷添加软件包存储库。<br>在 macOS 上，它会自动注册，但在其他平台上，则需要手动注册。",
     "settings:toast:vcc scheme installed": "ALCOM 已被注册为 URL 快捷方式 <code>vcc://</code> 的默认启动程序。",
     "general:toast:not supported": "{{name}} 尚未支持",
     "general:not implemented": "该功能未实现",

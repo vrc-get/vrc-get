@@ -276,7 +276,6 @@
     "settings:button:edit unity arguments": "Bearbeiten",
     "settings:default unity arguments description": "Diese Befehlzeilen Parameter werden benutzt wenn Unity über ALCOM geöffnet wird.",
     "settings:dialog:default launch arguments": "Standard Unity Befehlzeilen Parameter",
-    "settings:vcc scheme description": "Das <code>vcc:</code> Protokoll wird verwendet, um VCC-Paketlisten direkt vom Browser aus hinzufügen zu können.<br>Als alternative zu VCC kann ALCOM diese Anfragen annehmen.<br>Unter MacOS geschieht das automatisch. Andere Betriebssysteme müssen dies manuell festlegen.",
     "settings:toast:vcc scheme installed": "ALCOM wurde als Programm für <code>vcc:</code> Links registriert.",
     "general:toast:not supported": "{{name}} wird noch nicht unterstützt",
     "general:not implemented": "Nicht implementiert",
