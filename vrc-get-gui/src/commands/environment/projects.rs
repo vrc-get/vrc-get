@@ -1,5 +1,6 @@
 use crate::commands::prelude::*;
 
+use crate::commands::SettingsState;
 use crate::utils::default_project_path;
 use futures::TryStreamExt;
 use log::{error, info, warn};
@@ -149,7 +150,7 @@ pub enum TauriAddProjectWithPickerResult {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_add_project_with_picker(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriAddProjectWithPickerResult, RustError> {
     let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
@@ -165,8 +166,11 @@ pub async fn environment_add_project_with_picker(
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     }
 
-    with_environment!(&state, |environment| {
+    {
+        let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        connection.migrate(&settings, io.inner()).await?;
+
         let projects = connection.get_projects()?;
         if projects
             .iter()
@@ -174,14 +178,11 @@ pub async fn environment_add_project_with_picker(
         {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
-        connection
-            .migrate(environment.settings(), io.inner())
-            .await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
-        environment.load_from_db(&connection)?;
-        environment.save(io.inner()).await?;
-    });
+        settings.load_from_db(&connection)?;
+        settings.save().await?;
+    }
 
     Ok(TauriAddProjectWithPickerResult::Successful)
 }
@@ -289,7 +290,7 @@ async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_copy_project_for_migration(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
     source_path: String,
 ) -> Result<String, RustError> {
@@ -348,16 +349,15 @@ pub async fn environment_copy_project_for_migration(
 
     let unity_project = load_project(new_path_str.clone()).await?;
 
-    with_environment!(state, |environment| {
+    {
+        let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner())?;
-        connection
-            .migrate(environment.settings(), io.inner())
-            .await?;
+        connection.migrate(&settings, io.inner()).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
-        environment.load_from_db(&connection)?;
-        environment.save(io.inner()).await?;
-    });
+        settings.load_from_db(&connection)?;
+        settings.save().await?;
+    }
 
     Ok(new_path_str)
 }
@@ -444,10 +444,10 @@ async fn load_user_templates(io: &DefaultEnvironmentIo) -> io::Result<Vec<String
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_project_creation_information(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriProjectCreationInformation, RustError> {
-    with_environment!(state, |environment| {
+    {
         let mut templates = crate::templates::TEMPLATES
             .iter()
             .map(|&(id, name, _)| TauriProjectTemplate::Builtin {
@@ -465,11 +465,15 @@ pub async fn environment_project_creation_information(
                 .map(|name| TauriProjectTemplate::Custom { name }),
         );
 
+        let mut settings = settings.load_mut(io.inner()).await?;
+        let default_path = default_project_path(&mut settings).to_string();
+        settings.maybe_save().await?;
+
         Ok(TauriProjectCreationInformation {
             templates,
-            default_path: default_project_path(environment, &io).await?.to_string(),
+            default_path,
         })
-    })
+    }
 }
 
 #[derive(Serialize, specta::Type)]

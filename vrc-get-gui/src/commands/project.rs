@@ -24,7 +24,7 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
 use crate::commands::state::PendingProjectChangesInfo;
-use crate::commands::DEFAULT_UNITY_ARGUMENTS;
+use crate::commands::{SettingsState, DEFAULT_UNITY_ARGUMENTS};
 use crate::config::GuiConfigState;
 use crate::utils::project_backup_path;
 
@@ -718,8 +718,8 @@ impl Drop for RemoveOnDrop<'_> {
 #[tauri::command]
 #[specta::specta]
 pub async fn project_create_backup(
-    state: State<'_, Mutex<EnvironmentState>>,
     config: State<'_, GuiConfigState>,
+    settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
     window: Window,
     channel: String,
@@ -728,10 +728,9 @@ pub async fn project_create_backup(
     async_command(channel, window, async {
         let backup_format = config.get().backup_format.to_ascii_lowercase();
 
-        let backup_dir = with_environment!(&state, |environment| {
-            let backup_path = project_backup_path(environment, &io).await?;
-            backup_path.to_string()
-        });
+        let mut settings = settings.load_mut(io.inner()).await?;
+        let backup_dir = project_backup_path(&mut settings).to_string();
+        settings.maybe_save().await?;
 
         With::<()>::continue_async(move |_| async move {
             let project_name = Path::new(&project_path)

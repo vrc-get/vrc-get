@@ -1,12 +1,10 @@
-use crate::commands::prelude::*;
-
+use crate::commands::SettingsState;
 use crate::config::GuiConfigState;
 use log::{error, info};
 use std::io;
 use tauri::async_runtime::spawn;
 use tauri::{App, AppHandle, LogicalSize, Manager, State, Window, WindowEvent};
-use tokio::sync::Mutex;
-use vrc_get_vpm::environment::VccDatabaseConnection;
+use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_hub;
 
@@ -50,18 +48,20 @@ pub fn startup(app: &mut App) {
     });
 
     async fn update_unity_hub(
-        state: State<'_, Mutex<EnvironmentState>>,
+        settings: State<'_, SettingsState>,
         io: State<'_, DefaultEnvironmentIo>,
     ) -> Result<(), io::Error> {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        let unity_hub_path = with_environment!(&state, |environment| {
-            let Some(unity_hub_path) = environment.find_unity_hub(io.inner()).await? else {
+        let unity_hub_path = {
+            let mut settings = settings.load_mut(io.inner()).await?;
+            let Some(unity_hub_path) = find_unity_hub(&mut settings, io.inner()).await? else {
                 error!("Unity Hub not found");
+                settings.save().await?;
                 return Ok(());
             };
-            environment.save(io.inner()).await?;
+            settings.save().await?;
             unity_hub_path
-        });
+        };
 
         let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
 

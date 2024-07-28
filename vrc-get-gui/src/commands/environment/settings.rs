@@ -11,9 +11,7 @@ use tauri::{AppHandle, State};
 use crate::commands::prelude::*;
 use crate::commands::{SettingsState, DEFAULT_UNITY_ARGUMENTS};
 use crate::config::GuiConfigState;
-use crate::utils::{
-    default_project_path_1, find_existing_parent_dir_or_home, project_backup_path_1,
-};
+use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
 use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
@@ -110,8 +108,8 @@ pub async fn environment_get_settings(
 
         find_unity_hub(&mut settings, io.inner()).await?;
         unity_hub = settings.unity_hub_path().to_string();
-        default_project_path = default_project_path_1(&mut settings).to_string();
-        project_backup_path = project_backup_path_1(&mut settings).to_string();
+        default_project_path = crate::utils::default_project_path(&mut settings).to_string();
+        project_backup_path = crate::utils::project_backup_path(&mut settings).to_string();
         show_prerelease_packages = settings.show_prerelease_packages();
 
         settings.save().await?;
@@ -300,17 +298,19 @@ pub async fn environment_pick_project_default_path(
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriPickProjectDefaultPathResult, RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
-    let default_project_path = default_project_path_1(&mut settings);
+    let default_project_path = default_project_path(&mut settings);
     let Some(dir) = FileDialogBuilder::new()
         .set_directory(find_existing_parent_dir_or_home(
             default_project_path.as_ref(),
         ))
         .pick_folder()
     else {
+        settings.maybe_save().await?;
         return Ok(TauriPickProjectDefaultPathResult::NoFolderSelected);
     };
 
     let Ok(dir) = dir.into_os_string().into_string() else {
+        settings.maybe_save().await?;
         return Ok(TauriPickProjectDefaultPathResult::InvalidSelection);
     };
 
@@ -335,7 +335,7 @@ pub async fn environment_pick_project_backup_path(
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriPickProjectBackupPathResult, RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
-    let project_backup_path = project_backup_path_1(&mut settings);
+    let project_backup_path = project_backup_path(&mut settings);
     let Some(dir) = FileDialogBuilder::new()
         .set_directory(find_existing_parent_dir_or_home(
             project_backup_path.as_ref(),
