@@ -23,9 +23,8 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
-use crate::commands::state::PendingProjectChangesInfo;
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::config::GuiConfigState;
+use crate::state::PendingProjectChangesInfo;
 use crate::utils::project_backup_path;
 
 #[derive(Serialize, specta::Type)]

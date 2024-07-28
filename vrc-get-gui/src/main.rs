@@ -13,6 +13,7 @@ mod templates;
 #[cfg_attr(windows, path = "os_windows.rs")]
 #[cfg_attr(not(windows), path = "os_posix.rs")]
 mod os;
+mod state;
 mod utils;
 
 // for clippy compatibility
@@ -49,12 +50,12 @@ fn main() {
             process_args(&argv);
         }))
         .manage(io.clone())
-        .manage(commands::new_http_client())
-        .manage(commands::SettingsState::new())
+        .manage(state::new_http_client())
+        .manage(state::SettingsState::new())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {
-            app.manage(commands::new_env_state(app));
+            app.manage(state::new_env_state(app));
             commands::startup(app);
             // process args
             process_args(&std::env::args().collect::<Vec<_>>());

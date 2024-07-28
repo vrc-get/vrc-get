@@ -7,12 +7,10 @@ use serde::Serialize;
 use specta::specta;
 use tauri::{generate_handler, Invoke};
 
+pub use project::ChangesInfoHolder;
 pub use start::startup;
-pub use state::new_env_state;
-pub use state::new_http_client;
-pub use state::SettingMutRef;
-pub use state::SettingsState;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
+pub use util::UpdateResponseHolder;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::Version;
@@ -28,10 +26,10 @@ mod uri_custom_scheme;
 mod util;
 
 mod prelude {
-    pub use super::state::*;
     pub(super) use super::{
         load_project, update_project_last_modified, RustError, TauriBasePackageInfo, UnityProject,
     };
+    pub use crate::state::*;
     pub(super) use vrc_get_vpm::environment::Environment;
 }
 

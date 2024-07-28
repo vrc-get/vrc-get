@@ -3,7 +3,7 @@ use tauri::http::{Request, Response, ResponseBuilder};
 use tauri::{AppHandle, Manager};
 
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::config::GuiConfigState;
+use crate::state::GuiConfigState;
 
 pub fn handle_vrc_get_scheme(
     app: &AppHandle,

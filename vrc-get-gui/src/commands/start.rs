@@ -1,6 +1,5 @@
 use crate::commands::prelude::*;
 
-use crate::config::GuiConfigState;
 use log::{error, info};
 use std::io;
 use tauri::async_runtime::spawn;

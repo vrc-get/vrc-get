@@ -20,7 +20,6 @@ use vrc_get_vpm::{HttpClient, PackageCollection, PackageInfo, VersionSelector};
 use yoke::Yoke;
 
 use crate::commands::prelude::*;
-use crate::config::GuiConfigState;
 use crate::specta::IndexMapV2;
 
 #[derive(Serialize, specta::Type)]
@@ -96,10 +95,9 @@ pub async fn environment_packages(
         )
         .await?;
     let collection = environment.new_package_collection();
-    let package_list = Yoke::<crate::commands::state::PackageList<'static>, _>::attach_to_cart(
-        Box::new(collection),
-        |x| x.get_all_packages().collect(),
-    );
+    let package_list = Yoke::<PackageList<'static>, _>::attach_to_cart(Box::new(collection), |x| {
+        x.get_all_packages().collect()
+    });
 
     env_state.packages = Some(package_list);
     let packages = &env_state.packages.as_ref().unwrap().get().packages;

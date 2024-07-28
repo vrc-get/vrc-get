@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::commands::prelude::*;
-use crate::config::GuiConfigState;
 
 #[tauri::command]
 #[specta::specta]

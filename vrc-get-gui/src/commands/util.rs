@@ -7,7 +7,6 @@ use tokio::fs::create_dir_all;
 use tokio::sync::Mutex;
 
 use crate::commands::prelude::*;
-use crate::config::GuiConfigState;
 use crate::logging::LogEntry;
 use crate::os::open_that;
 use crate::utils::find_existing_parent_dir_or_home;
