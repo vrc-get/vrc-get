@@ -653,7 +653,7 @@ function MigrationCopyingDialog() {
 	return (
 		<DialogDescription>
 			<p>{tc("projects:pre-migrate copying...")}</p>
-			<p>{tc("projects:manage:dialog:do not close")}</p>
+			<p>{tc("projects:do not close")}</p>
 		</DialogDescription>
 	);
 }
@@ -662,7 +662,7 @@ function MigrationMigratingDialog() {
 	return (
 		<DialogDescription>
 			<p>{tc("projects:migrating...")}</p>
-			<p>{tc("projects:manage:dialog:do not close")}</p>
+			<p>{tc("projects:do not close")}</p>
 		</DialogDescription>
 	);
 }
@@ -682,7 +682,7 @@ function MigrationCallingUnityForMigrationDialog({
 	return (
 		<DialogDescription>
 			<p>{tc("projects:manage:dialog:unity migrate finalizing...")}</p>
-			<p>{tc("projects:manage:dialog:do not close")}</p>
+			<p>{tc("projects:do not close")}</p>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 			<pre
 				className={
@@ -726,7 +726,7 @@ function NoExactUnity2022Dialog({
 			</DialogDescription>
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={openUnityHub}>
-					{tc("projects:manage:dialog:open unity hub")}
+					{tc("projects:dialog:open unity hub")}
 				</Button>
 				<Button onClick={close} className="mr-1">
 					{tc("general:button:close")}

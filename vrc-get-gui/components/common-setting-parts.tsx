@@ -172,7 +172,7 @@ export function FilePathRow({
 			</Button>
 			{withoutSelect || (
 				<Button className={"flex-none px-4"} onClick={openFolder}>
-					{tc("settings:button:open location")}
+					{tc("general:button:open location")}
 				</Button>
 			)}
 			{dialog}
