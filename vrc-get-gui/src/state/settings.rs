@@ -1,9 +1,12 @@
+use arc_swap::ArcSwapOption;
 use std::backtrace::Backtrace;
 use std::io;
+use std::marker::PhantomData;
 use std::mem::forget;
 use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
+use tokio::sync::{Mutex, MutexGuard};
 use vrc_get_vpm::environment::Settings;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 
@@ -13,66 +16,96 @@ struct SettingsInner {
 }
 
 impl SettingsInner {
+    fn new(settings: Settings) -> Self {
+        Self {
+            settings,
+            loaded_at: Instant::now(),
+        }
+    }
+
     fn is_new(&self) -> bool {
         self.loaded_at + Duration::from_secs(1) < Instant::now()
     }
 }
 
-// TODO: This is a temporary implementation. We may avoid lock on read-only access
 pub struct SettingsState {
-    // None: not loaded yet, Some: loaded but might be outdated
-    mut_lock: Mutex<Option<SettingsInner>>,
+    inner: ArcSwapOption<SettingsInner>,
+    load_lock: Mutex<()>,
 }
 
 impl SettingsState {
     pub fn new() -> Self {
         Self {
-            mut_lock: Mutex::new(None),
+            inner: ArcSwapOption::default(),
+            load_lock: Mutex::new(()),
         }
     }
 
     pub async fn load(&self, io: &DefaultEnvironmentIo) -> io::Result<SettingsRef> {
-        Ok(SettingsRef::new(self.do_load(io).await?))
-    }
-
-    async fn do_load<'a>(
-        &'a self,
-        io: &DefaultEnvironmentIo,
-    ) -> io::Result<MappedMutexGuard<'a, SettingsInner>> {
-        let mut lock = self.mut_lock.lock().await;
-
-        match *lock {
-            Some(ref inner) if inner.is_new() => {}
-            _ => {
-                *lock = Some(SettingsInner {
-                    settings: Settings::load(io).await?,
-                    loaded_at: Instant::now(),
-                })
-            }
+        // If the data is new enough, we can use it.
+        let inner = self.inner.load();
+        if let Some(inner) = inner.as_ref().filter(|x| x.is_new()) {
+            return Ok(SettingsRef::new(inner.clone()));
         }
 
-        Ok(MutexGuard::map(lock, |x| x.as_mut().unwrap()))
+        let guard = self.load_lock.lock().await;
+
+        // Recheck after lock to get loaded from another thread
+        let inner = self.inner.load();
+        if let Some(inner) = inner.as_ref().filter(|x| x.is_new()) {
+            return Ok(SettingsRef::new(inner.clone()));
+        }
+
+        // Loaded data is too old, reload it
+        let arc = Arc::new(SettingsInner::new(Settings::load(io).await?));
+
+        self.inner.store(Some(arc.clone()));
+
+        drop(guard); // free the lock
+
+        Ok(SettingsRef::new(arc))
     }
 
     pub async fn load_mut<'a>(
         &'a self,
         io: &'a DefaultEnvironmentIo,
     ) -> io::Result<SettingMutRef<'a>> {
-        Ok(SettingMutRef {
-            lock: self.do_load(io).await?,
-            io,
-            save_checker: UnsavedDropChecker::new(),
-        })
+        // since we're editing, do everything in the lock
+        let guard = self.load_lock.lock().await;
+
+        // if loaded one is new enough, we can use it
+        let inner = self.inner.load();
+        if let Some(inner) = inner.as_ref().filter(|x| x.is_new()) {
+            return Ok(SettingMutRef::new(
+                inner.settings.clone(), // TODO: we may avoid this clone
+                &self.inner,
+                io,
+                guard,
+            ));
+        }
+
+        // otherwise, if loaded one is old, load and use it
+
+        let loaded = Settings::load(io).await?;
+
+        self.inner
+            .store(Some(Arc::new(SettingsInner::new(loaded.clone()))));
+
+        Ok(SettingMutRef::new(loaded, &self.inner, io, guard))
     }
 }
 
 pub struct SettingsRef<'a> {
-    state: MappedMutexGuard<'a, SettingsInner>,
+    arc: Arc<SettingsInner>,
+    _phantom_data: PhantomData<&'a ()>,
 }
 
-impl<'a> SettingsRef<'a> {
-    fn new(state: MappedMutexGuard<'a, SettingsInner>) -> Self {
-        Self { state }
+impl SettingsRef<'_> {
+    fn new(arc: Arc<SettingsInner>) -> Self {
+        Self {
+            arc,
+            _phantom_data: PhantomData,
+        }
     }
 }
 
@@ -81,20 +114,44 @@ impl Deref for SettingsRef<'_> {
 
     #[inline(always)]
     fn deref(&self) -> &Settings {
-        &self.state.settings
+        &self.arc.settings
     }
 }
 
 pub struct SettingMutRef<'s> {
-    lock: MappedMutexGuard<'s, SettingsInner>,
+    settings: Settings,
+    inner: &'s ArcSwapOption<SettingsInner>,
+    guard: MutexGuard<'s, ()>,
     io: &'s DefaultEnvironmentIo,
     save_checker: UnsavedDropChecker,
 }
 
-impl SettingMutRef<'_> {
+impl<'s> SettingMutRef<'s> {
+    fn new(
+        settings: Settings,
+        inner: &'s ArcSwapOption<SettingsInner>,
+        io: &'s DefaultEnvironmentIo,
+        guard: MutexGuard<'s, ()>,
+    ) -> Self {
+        Self {
+            settings,
+            inner,
+            guard,
+            io,
+            save_checker: UnsavedDropChecker::new(),
+        }
+    }
+
     pub async fn save(self) -> io::Result<()> {
-        forget(self.save_checker); // We're doing the save, so we don't need to check for it
-        self.lock.settings.save(self.io).await?;
+        // We're doing the save, so we don't need to check for it
+        forget(self.save_checker);
+        // first, save the settings
+        self.settings.save(self.io).await?;
+        // then, save to cache
+        self.inner
+            .store(Some(Arc::new(SettingsInner::new(self.settings))));
+        // finally, release the lock
+        drop(self.guard);
         Ok(())
     }
 
@@ -107,7 +164,7 @@ impl SettingMutRef<'_> {
             self.save().await
         } else {
             // skip should_save in drop
-            forget(self);
+            forget(self.save_checker);
             Ok(())
         }
     }
@@ -118,14 +175,14 @@ impl Deref for SettingMutRef<'_> {
 
     #[inline(always)]
     fn deref(&self) -> &Settings {
-        &self.lock.settings
+        &self.settings
     }
 }
 
 impl DerefMut for SettingMutRef<'_> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut Settings {
-        &mut self.lock.settings
+        &mut self.settings
     }
 }
 
