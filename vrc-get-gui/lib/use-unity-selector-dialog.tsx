@@ -97,9 +97,7 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 			};
 			dialog = (
 				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>
-						{tc("projects:dialog:select unity header")}
-					</DialogTitle>
+					<DialogTitle>{tc("projects:dialog:select unity header")}</DialogTitle>
 					<SelectUnityVersionDialog
 						unityVersions={installStatus.unityVersions}
 						cancel={cancel}
