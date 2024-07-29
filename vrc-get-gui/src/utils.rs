@@ -81,6 +81,18 @@ pub(crate) trait YokeExt<Y: for<'a> Yokeable<'a>, C> {
 }
 
 impl<Y: for<'a> Yokeable<'a>, C> YokeExt<Y, C> for Yoke<Y, C> {
+    /// ```rust,compile_fail
+    /// # async fn test<Y: for<'a> Yokeable<'a>, C: CloneableCart + StableDeref>(yoke: Yoke<Y, C>) {
+    /// let mut outer_arg = None;
+    /// yoke.try_map_project_async::<u8, _, (), _>(|_, yokable, _| async move {
+    ///     outer_arg = Some(yokable);
+    ///     Ok(0)
+    /// })
+    /// .await;
+    /// drop(yoke);
+    /// outer_arg.unwrap(); // Errors!
+    /// # }
+    /// ```
     async fn try_map_project_async<'this, P, F, E, Fut>(&'this self, f: F) -> Result<Yoke<P, C>, E>
     where
         P: for<'a> Yokeable<'a>,
