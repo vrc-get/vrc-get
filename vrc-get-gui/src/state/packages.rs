@@ -1,5 +1,5 @@
 use crate::utils::YokeExt;
-use arc_swap::ArcSwap;
+use arc_swap::ArcSwapOption;
 use std::future::Future;
 use std::io;
 use std::marker::PhantomData;
@@ -36,18 +36,6 @@ impl PackagesStateInner {
         VERSION.fetch_add(1, Ordering::AcqRel)
     }
 
-    pub fn uninitialized() -> Self {
-        let mut created_at = std::time::Instant::now();
-        created_at -= Duration::from_secs(60 * 60);
-        Self {
-            version: Self::new_version(),
-            data: Yoke::attach_to_cart(Arc::new(PackageCollection::empty()), |_| {
-                YokeData::new(vec![])
-            }),
-            crated_at: created_at,
-        }
-    }
-
     pub fn new(data: Data) -> Self {
         let version = Self::new_version();
         let crated_at = std::time::Instant::now();
@@ -64,14 +52,14 @@ impl PackagesStateInner {
 }
 
 pub struct PackagesState {
-    inner: ArcSwap<PackagesStateInner>,
+    inner: ArcSwapOption<PackagesStateInner>,
     load_lock: tokio::sync::Mutex<()>,
 }
 
 impl PackagesState {
     pub fn new() -> Self {
         Self {
-            inner: ArcSwap::new(Arc::new(PackagesStateInner::uninitialized())),
+            inner: ArcSwapOption::new(None),
             load_lock: tokio::sync::Mutex::new(()),
         }
     }
@@ -85,14 +73,14 @@ impl PackagesState {
         let inner = self.inner.load();
 
         // If the data is new enough, we can use it.
-        if inner.is_new() {
+        if let Some(inner) = inner.as_ref().filter(|x| x.is_new()) {
             return Ok(PackagesStateRef {
                 arc: inner.clone(),
                 _phantom_data: PhantomData,
             });
         }
 
-        self.load_force(settings, io, http).await
+        self.load_impl(settings, io, http, false).await
     }
 
     pub async fn load_force(
@@ -101,16 +89,29 @@ impl PackagesState {
         io: &DefaultEnvironmentIo,
         http: &reqwest::Client,
     ) -> io::Result<PackagesStateRef> {
+        self.load_impl(settings, io, http, true).await
+    }
+
+    async fn load_impl(
+        &self,
+        settings: &Settings,
+        io: &DefaultEnvironmentIo,
+        http: &reqwest::Client,
+        force: bool,
+    ) -> io::Result<PackagesStateRef> {
         // We won't allow multiple threads to load the data at the same time.
         let guard = self.load_lock.lock().await;
 
-        let loaded = self.inner.load();
-        if loaded.is_new() {
-            // Another thread loaded it while we were waiting.
-            return Ok(PackagesStateRef {
-                arc: loaded.clone(),
-                _phantom_data: PhantomData,
-            });
+        if !force {
+            // if it's not forced, we can check if the data is already loaded.
+            let loaded = self.inner.load();
+            if let Some(loaded) = loaded.as_ref().filter(|x| x.is_new()) {
+                // Another thread loaded it while we were waiting.
+                return Ok(PackagesStateRef {
+                    arc: loaded.clone(),
+                    _phantom_data: PhantomData,
+                });
+            }
         }
 
         let collection = PackageCollection::load(settings, io, Some(http)).await?;
@@ -120,7 +121,7 @@ impl PackagesState {
         });
 
         let arc = Arc::new(PackagesStateInner::new(yoke));
-        self.inner.store(arc.clone());
+        self.inner.store(Some(arc.clone()));
 
         drop(guard);
 
@@ -132,6 +133,7 @@ impl PackagesState {
 
     pub fn get_versioned(&self, version: u32) -> Option<PackagesVersionRef<'_>> {
         let loaded = self.inner.load();
+        let loaded = loaded.as_ref()?;
         if loaded.version == version {
             Some(PackagesVersionRef {
                 arc: loaded.clone(),
@@ -143,8 +145,7 @@ impl PackagesState {
     }
 
     pub fn clear_cache(&self) {
-        self.inner
-            .store(Arc::new(PackagesStateInner::uninitialized()));
+        self.inner.store(None);
     }
 }
 
