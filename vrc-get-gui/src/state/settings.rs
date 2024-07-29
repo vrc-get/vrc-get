@@ -25,10 +25,10 @@ pub struct SettingsState {
 }
 
 impl SettingsState {
-    pub async fn new() -> io::Result<Self> {
-        Ok(Self {
+    pub fn new() -> Self {
+        Self {
             mut_lock: Mutex::new(None),
-        })
+        }
     }
 
     pub async fn load(&self, io: &DefaultEnvironmentIo) -> io::Result<SettingsRef> {
