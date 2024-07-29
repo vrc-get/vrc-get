@@ -35,6 +35,7 @@ pub(crate) use repo_source::RepoSource;
 #[cfg(feature = "experimental-unity-management")]
 pub use unity_management::*;
 
+#[cfg(feature = "vrc-get-litedb")]
 pub use litedb::VccDatabaseConnection;
 pub use package_collection::PackageCollection;
 pub use package_installer::PackageInstaller;

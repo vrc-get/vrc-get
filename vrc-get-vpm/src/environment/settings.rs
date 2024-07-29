@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::environment::vpm_settings::VpmSettings;
 use crate::environment::vrc_get_settings::VrcGetSettings;
-use crate::environment::{AddUserPackageResult, PackageCollection, VccDatabaseConnection};
+use crate::environment::{AddUserPackageResult, PackageCollection};
 use crate::io::EnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::repository::RemoteRepository;
@@ -75,7 +75,10 @@ impl Settings {
     pub fn set_unity_hub_path(&mut self, value: &str) {
         self.vpm.set_unity_hub(value);
     }
+}
 
+#[cfg(feature = "experimental-project-management")]
+impl Settings {
     pub fn user_projects(&self) -> &[Box<str>] {
         self.vpm.user_projects()
     }
@@ -90,6 +93,26 @@ impl Settings {
 
     pub fn remove_user_project(&mut self, path: &str) {
         self.vpm.remove_user_project(path);
+    }
+
+    pub fn load_from_db(&mut self, connection: &super::VccDatabaseConnection) -> io::Result<()> {
+        let projects = connection.get_projects()?;
+        let mut project_paths = projects.iter().map(|x| x.path()).collect::<HashSet<_>>();
+
+        // remove removed projects
+        self.vpm
+            .retain_user_projects(|x| project_paths.contains(&x));
+
+        // add new projects
+        for x in self.vpm.user_projects() {
+            project_paths.remove(x.as_ref());
+        }
+
+        for x in project_paths {
+            self.vpm.add_user_project(x);
+        }
+
+        Ok(())
     }
 }
 
@@ -139,26 +162,6 @@ impl Settings {
         self.vpm.add_user_package_folder(pkg_path.to_owned());
 
         AddUserPackageResult::Success
-    }
-
-    pub fn load_from_db(&mut self, connection: &VccDatabaseConnection) -> io::Result<()> {
-        let projects = connection.get_projects()?;
-        let mut project_paths = projects.iter().map(|x| x.path()).collect::<HashSet<_>>();
-
-        // remove removed projects
-        self.vpm
-            .retain_user_projects(|x| project_paths.contains(&x));
-
-        // add new projects
-        for x in self.vpm.user_projects() {
-            project_paths.remove(x.as_ref());
-        }
-
-        for x in project_paths {
-            self.vpm.add_user_project(x);
-        }
-
-        Ok(())
     }
 }
 
