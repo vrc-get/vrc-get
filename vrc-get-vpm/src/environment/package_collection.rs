@@ -18,6 +18,13 @@ pub struct PackageCollection {
 }
 
 impl PackageCollection {
+    pub fn empty() -> Self {
+        Self {
+            repositories: HashMap::new(),
+            user_packages: Vec::new(),
+        }
+    }
+
     pub async fn load(
         settings: &Settings,
         io: &impl EnvironmentIo,
@@ -53,6 +60,10 @@ impl PackageCollection {
 impl PackageCollection {
     pub fn get_remote(&self) -> impl Iterator<Item = &'_ LocalCachedRepository> {
         self.repositories.values()
+    }
+
+    pub fn user_packages(&self) -> &[(PathBuf, PackageManifest)] {
+        &self.user_packages
     }
 
     pub fn find_whole_all_packages(

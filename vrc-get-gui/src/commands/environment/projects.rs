@@ -11,7 +11,6 @@ use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::State;
 use tokio::fs::read_dir;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
-use tokio::sync::Mutex;
 use vrc_get_vpm::environment::{PackageInstaller, UserProject, VccDatabaseConnection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 use vrc_get_vpm::ProjectType;
@@ -525,7 +524,8 @@ pub enum TauriCreateProjectResult {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_create_project(
-    state: State<'_, Mutex<EnvironmentState>>,
+    packages_state: State<'_, PackagesState>,
+    settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     base_path: String,
@@ -651,38 +651,34 @@ pub async fn environment_create_project(
         drop(settings_file);
     }
 
+    let packages;
     {
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state
-            .environment
-            .get_environment_mut(
-                UpdateRepositoryMode::IfOutdatedOrNecessary,
-                io.inner(),
-                http.inner(),
-            )
+        let settings = settings.load(io.inner()).await?;
+        packages = packages_state
+            .load(&settings, io.inner(), http.inner())
             .await?;
-        let collection = environment.new_package_collection();
+    }
+
+    {
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
         let mut unity_project = load_project(path_str.into()).await?;
 
         // finally, resolve the project folder
-        let request = unity_project.resolve_request(&collection).await?;
+        let request = unity_project.resolve_request(packages.collection()).await?;
         unity_project
             .apply_pending_changes(&installer, request)
             .await?;
         unity_project.save().await?;
 
         // add the project to listing
+        let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner())?;
-        connection
-            .migrate(environment.settings(), io.inner())
-            .await?;
+        connection.migrate(&settings, io.inner()).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
-        environment.load_from_db(&connection)?;
-        environment.save(io.inner()).await?;
+        settings.load_from_db(&connection)?;
+        settings.save().await?;
     }
     Ok(TauriCreateProjectResult::Successful)
 }

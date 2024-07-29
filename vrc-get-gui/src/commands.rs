@@ -15,8 +15,6 @@ use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
 
-#[macro_use]
-mod state;
 mod async_command;
 mod environment;
 mod project;
@@ -29,7 +27,6 @@ mod prelude {
         load_project, update_project_last_modified, RustError, TauriBasePackageInfo, UnityProject,
     };
     pub use crate::state::*;
-    pub(super) use vrc_get_vpm::environment::Environment;
 }
 
 pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;

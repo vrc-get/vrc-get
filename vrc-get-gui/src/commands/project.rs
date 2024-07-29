@@ -159,6 +159,7 @@ impl ChangesInfoHolder {
         Self { changes_info: None }
     }
 
+    // TODO: This is completely unsound so we have to fix it
     fn update(
         &mut self,
         environment_version: u32,
@@ -189,7 +190,7 @@ impl ChangesInfoHolder {
 }
 
 macro_rules! changes {
-    ($state: ident, $($env_version: ident, )? |$environment: pat_param, $packages: pat_param, $collection: pat_param| $body: expr) => {{
+    ($state: ident, $($env_version: ident, )? || $body: expr) => {{
         let mut state = $state.lock().await;
         let state = &mut *state;
         let current_version = state.environment.environment_version.0;
@@ -199,11 +200,6 @@ macro_rules! changes {
         }
         )?
 
-        let $environment = state.environment.get_environment_mut(UpdateRepositoryMode::None, &state.io, &state.http).await?;
-        let packages_yoke = state.packages.as_mut().unwrap();
-        let $collection = packages_yoke.backing_cart().as_ref();
-        let $packages = packages_yoke.get().packages.as_slice();
-
         let changes = $body;
 
         Ok(state.changes_info.update(current_version, changes))
@@ -212,14 +208,22 @@ macro_rules! changes {
 
 #[tauri::command]
 #[specta::specta]
+#[allow(clippy::too_many_arguments)]
 pub async fn project_install_package(
     state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
     env_version: u32,
     package_index: usize,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages, collection| {
-        let installing_package = packages[package_index];
+    let settings = settings.load(io.inner()).await?;
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+
+    changes!(state, env_version, || {
+        let installing_package = packages.packages()[package_index];
 
         let unity_project = load_project(project_path).await?;
 
@@ -233,11 +237,11 @@ pub async fn project_install_package(
             AddPackageOperation::InstallToDependencies
         };
 
-        let allow_prerelease = environment.show_prerelease_packages();
+        let allow_prerelease = settings.show_prerelease_packages();
 
         match unity_project
             .add_package_request(
-                collection,
+                packages.collection(),
                 &[installing_package],
                 operation,
                 allow_prerelease,
@@ -252,27 +256,35 @@ pub async fn project_install_package(
 
 #[tauri::command]
 #[specta::specta]
+#[allow(clippy::too_many_arguments)]
 pub async fn project_install_multiple_package(
     state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
     env_version: u32,
     package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages, collection| {
+    let settings = settings.load(io.inner()).await?;
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+
+    changes!(state, env_version, || {
         let installing_packages = package_indices
             .iter()
-            .map(|index| packages[*index])
+            .map(|&index| packages.packages()[index])
             .collect::<Vec<_>>();
 
         let unity_project = load_project(project_path).await?;
 
         let operation = AddPackageOperation::InstallToDependencies;
 
-        let allow_prerelease = environment.show_prerelease_packages();
+        let allow_prerelease = settings.show_prerelease_packages();
 
         match unity_project
             .add_package_request(
-                collection,
+                packages.collection(),
                 &installing_packages,
                 operation,
                 allow_prerelease,
@@ -287,27 +299,35 @@ pub async fn project_install_multiple_package(
 
 #[tauri::command]
 #[specta::specta]
+#[allow(clippy::too_many_arguments)]
 pub async fn project_upgrade_multiple_package(
     state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
     env_version: u32,
     package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages, collection| {
+    let settings = settings.load(io.inner()).await?;
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+
+    changes!(state, env_version, || {
         let installing_packages = package_indices
             .iter()
-            .map(|index| packages[*index])
+            .map(|&index| packages.packages()[index])
             .collect::<Vec<_>>();
 
         let unity_project = load_project(project_path).await?;
 
         let operation = AddPackageOperation::UpgradeLocked;
 
-        let allow_prerelease = environment.show_prerelease_packages();
+        let allow_prerelease = settings.show_prerelease_packages();
 
         match unity_project
             .add_package_request(
-                collection,
+                packages.collection(),
                 &installing_packages,
                 operation,
                 allow_prerelease,
@@ -324,12 +344,18 @@ pub async fn project_upgrade_multiple_package(
 #[specta::specta]
 pub async fn project_resolve(
     state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, |_, _, collection| {
+    let settings = settings.load(io.inner()).await?;
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    changes!(state, || {
         let unity_project = load_project(project_path).await?;
 
-        match unity_project.resolve_request(collection).await {
+        match unity_project.resolve_request(packages.collection()).await {
             Ok(request) => request,
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
@@ -343,7 +369,7 @@ pub async fn project_remove_packages(
     project_path: String,
     names: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, |_, _, _| {
+    changes!(state, || {
         let unity_project = load_project(project_path).await?;
 
         let names = names.iter().map(|x| x.as_str()).collect::<Vec<_>>();
@@ -390,19 +416,21 @@ pub async fn project_apply_pending_changes(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_2022(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<(), RustError> {
-    with_environment!(state, |environment| {
+    {
+        let settings = settings.load(io.inner()).await?;
+        let packages = packages.load(&settings, io.inner(), http.inner()).await?;
         let mut unity_project = load_project(project_path).await?;
 
-        let collection = environment.new_package_collection();
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
         match unity_project
-            .migrate_unity_2022(&collection, &installer)
+            .migrate_unity_2022(packages.collection(), &installer)
             .await
         {
             Ok(()) => {}
@@ -413,7 +441,7 @@ pub async fn project_migrate_project_to_2022(
         update_project_last_modified(&io, unity_project.project_dir()).await;
 
         Ok(())
-    })
+    }
 }
 
 #[derive(Serialize, specta::Type, Clone)]
@@ -499,31 +527,23 @@ pub async fn project_call_unity_for_migration(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_vpm(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<(), RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state
-        .environment
-        .get_environment_mut(
-            UpdateRepositoryMode::IfOutdatedOrNecessary,
-            &env_state.io,
-            &env_state.http,
-        )
-        .await?;
+    let settings = settings.load(io.inner()).await?;
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
 
     let mut unity_project = load_project(project_path).await?;
-    let collection = environment.new_package_collection();
     let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
     match unity_project
         .migrate_vpm(
-            &collection,
+            packages.collection(),
             &installer,
-            environment.show_prerelease_packages(),
+            settings.show_prerelease_packages(),
         )
         .await
     {
