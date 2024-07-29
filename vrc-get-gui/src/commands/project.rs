@@ -190,15 +190,10 @@ impl ChangesInfoHolder {
 }
 
 macro_rules! changes {
-    ($state: ident, $($env_version: ident, )? || $body: expr) => {{
+    ($state: ident, || $body: expr) => {{
         let mut state = $state.lock().await;
         let state = &mut *state;
         let current_version = state.environment.environment_version.0;
-        $(
-        if current_version != $env_version {
-            return Err(RustError::unrecoverable("environment version mismatch"));
-        }
-        )?
 
         let changes = $body;
 
@@ -214,15 +209,16 @@ pub async fn project_install_package(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
-    http: State<'_, reqwest::Client>,
     project_path: String,
     env_version: u32,
     package_index: usize,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let Some(packages) = packages.get_versioned(env_version) else {
+        return Err(RustError::unrecoverable("environment version mismatch"));
+    };
 
-    changes!(state, env_version, || {
+    changes!(state, || {
         let installing_package = packages.packages()[package_index];
 
         let unity_project = load_project(project_path).await?;
@@ -262,15 +258,16 @@ pub async fn project_install_multiple_package(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
-    http: State<'_, reqwest::Client>,
     project_path: String,
     env_version: u32,
     package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let Some(packages) = packages.get_versioned(env_version) else {
+        return Err(RustError::unrecoverable("environment version mismatch"));
+    };
 
-    changes!(state, env_version, || {
+    changes!(state, || {
         let installing_packages = package_indices
             .iter()
             .map(|&index| packages.packages()[index])
@@ -305,15 +302,16 @@ pub async fn project_upgrade_multiple_package(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
-    http: State<'_, reqwest::Client>,
     project_path: String,
     env_version: u32,
     package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let Some(packages) = packages.get_versioned(env_version) else {
+        return Err(RustError::unrecoverable("environment version mismatch"));
+    };
 
-    changes!(state, env_version, || {
+    changes!(state, || {
         let installing_packages = package_indices
             .iter()
             .map(|&index| packages.packages()[index])

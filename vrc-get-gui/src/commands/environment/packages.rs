@@ -91,7 +91,6 @@ pub async fn environment_packages(
 
     Ok(packages
         .packages()
-        .iter()
         .enumerate()
         .map(|(index, value)| TauriPackage::new(version, index, value))
         .collect::<Vec<_>>())

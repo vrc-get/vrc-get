@@ -128,6 +128,18 @@ impl PackagesState {
         })
     }
 
+    pub fn get_versioned(&self, version: u32) -> Option<PackagesVersionRef<'_>> {
+        let loaded = self.inner.load();
+        if loaded.version == version {
+            Some(PackagesVersionRef {
+                arc: loaded.clone(),
+                _phantom_data: PhantomData,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn clear_cache(&self) {
         self.inner
             .store(Arc::new(PackagesStateInner::uninitialized()));
@@ -144,12 +156,27 @@ impl PackagesStateRef<'_> {
         self.arc.data.backing_cart()
     }
 
-    pub fn collection_arc(&self) -> Arc<PackageCollection> {
-        self.arc.data.backing_cart().clone()
-    }
-
     pub fn version(&self) -> u32 {
         self.arc.version
+    }
+
+    pub fn packages(&self) -> impl Iterator<Item = &PackageInfo> {
+        self.arc.data.get().packages.iter()
+    }
+}
+
+pub struct PackagesVersionRef<'a> {
+    arc: Arc<PackagesStateInner>,
+    _phantom_data: PhantomData<&'a ()>,
+}
+
+impl PackagesVersionRef<'_> {
+    pub fn collection(&self) -> &PackageCollection {
+        self.arc.data.backing_cart()
+    }
+
+    pub fn collection_arc(&self) -> Arc<PackageCollection> {
+        self.arc.data.backing_cart().clone()
     }
 
     pub fn packages(&self) -> &[PackageInfo] {
