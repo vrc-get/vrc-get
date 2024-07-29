@@ -7,7 +7,6 @@ use serde::Serialize;
 use specta::specta;
 use tauri::{generate_handler, Invoke};
 
-pub use project::ChangesInfoHolder;
 pub use start::startup;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::VccDatabaseConnection;

@@ -1,8 +1,13 @@
 use crate::state::*;
 
+use stable_deref_trait::StableDeref;
 use std::borrow::Cow;
+use std::future::Future;
+use std::marker::PhantomData;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use tauri::api::dir::is_dir;
+use yoke::{CloneableCart, Yoke, Yokeable};
 
 pub(crate) fn home_dir() -> PathBuf {
     use tauri::api::path::home_dir;
@@ -56,4 +61,44 @@ pub(crate) fn find_existing_parent_dir_or_home(path: &Path) -> Cow<Path> {
     find_existing_parent_dir(path)
         .map(Cow::Borrowed)
         .unwrap_or_else(|| Cow::Owned(home_dir()))
+}
+
+pub(crate) trait YokeExt<Y: for<'a> Yokeable<'a>, C> {
+    fn try_map_project_async<'this, P, F, E, Fut>(
+        &'this self,
+        f: F,
+    ) -> impl Future<Output = Result<Yoke<P, C>, E>>
+    where
+        P: for<'a> Yokeable<'a>,
+        C: CloneableCart + StableDeref,
+        Fut: Future<Output = Result<<P as Yokeable<'this>>::Output, E>>,
+        <C as Deref>::Target: 'this,
+        F: FnOnce(
+            &'this <C as Deref>::Target,
+            &'this <Y as Yokeable<'this>>::Output,
+            PhantomData<&'this ()>,
+        ) -> Fut;
+}
+
+impl<Y: for<'a> Yokeable<'a>, C> YokeExt<Y, C> for Yoke<Y, C> {
+    async fn try_map_project_async<'this, P, F, E, Fut>(&'this self, f: F) -> Result<Yoke<P, C>, E>
+    where
+        P: for<'a> Yokeable<'a>,
+        C: CloneableCart + StableDeref,
+        Fut: Future<Output = Result<<P as Yokeable<'this>>::Output, E>>,
+        F: FnOnce(
+            &'this <C as Deref>::Target,
+            &'this <Y as Yokeable<'this>>::Output,
+            PhantomData<&'this ()>,
+        ) -> Fut,
+    {
+        let data = f(self.backing_cart(), self.get(), PhantomData).await?;
+
+        unsafe {
+            Ok(
+                Yoke::new_always_owned(P::make(data))
+                    .replace_cart(|()| self.backing_cart().clone()),
+            )
+        }
+    }
 }

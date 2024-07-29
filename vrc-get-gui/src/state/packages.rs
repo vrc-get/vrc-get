@@ -1,4 +1,6 @@
+use crate::utils::YokeExt;
 use arc_swap::ArcSwap;
+use std::future::Future;
 use std::io;
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -163,6 +165,21 @@ impl PackagesStateRef<'_> {
     pub fn packages(&self) -> impl Iterator<Item = &PackageInfo> {
         self.arc.data.get().packages.iter()
     }
+
+    pub async fn map_yoke<'this, P, F, E, Fut>(
+        &'this self,
+        f: F,
+    ) -> Result<Yoke<P, Arc<PackageCollection>>, E>
+    where
+        P: for<'a> Yokeable<'a>,
+        Fut: Future<Output = Result<<P as Yokeable<'this>>::Output, E>>,
+        F: FnOnce(&'this PackageCollection) -> Fut,
+    {
+        self.arc
+            .data
+            .try_map_project_async(|collection, _, _| f(collection))
+            .await
+    }
 }
 
 pub struct PackagesVersionRef<'a> {
@@ -181,5 +198,20 @@ impl PackagesVersionRef<'_> {
 
     pub fn packages(&self) -> &[PackageInfo] {
         &self.arc.data.get().packages
+    }
+
+    pub async fn map_yoke<'this, P, F, E, Fut>(
+        &'this self,
+        f: F,
+    ) -> Result<Yoke<P, Arc<PackageCollection>>, E>
+    where
+        P: for<'a> Yokeable<'a>,
+        Fut: Future<Output = Result<<P as Yokeable<'this>>::Output, E>>,
+        F: FnOnce(&'this PackageCollection, &'this [PackageInfo]) -> Fut,
+    {
+        self.arc
+            .data
+            .try_map_project_async(|collection, packages, _| f(collection, &packages.packages))
+            .await
     }
 }

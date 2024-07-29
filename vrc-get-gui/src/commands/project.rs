@@ -3,8 +3,6 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::process::Stdio;
-use std::ptr::NonNull;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use futures::{Stream, TryStreamExt};
 use log::{error, warn};
@@ -12,7 +10,6 @@ use serde::Serialize;
 use tauri::{State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::sync::Mutex;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 
@@ -24,7 +21,6 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::state::PendingProjectChangesInfo;
 use crate::utils::project_backup_path;
 
 #[derive(Serialize, specta::Type)]
@@ -150,54 +146,32 @@ impl From<&ConflictInfo> for TauriConflictInfo {
     }
 }
 
-pub struct ChangesInfoHolder {
-    changes_info: Option<NonNull<PendingProjectChangesInfo<'static>>>,
-}
+pub struct ChangesInfoHolder {}
 
 impl ChangesInfoHolder {
     pub fn new() -> Self {
-        Self { changes_info: None }
-    }
-
-    // TODO: This is completely unsound so we have to fix it
-    fn update(
-        &mut self,
-        environment_version: u32,
-        changes: PendingProjectChanges<'_>,
-    ) -> TauriPendingProjectChanges {
-        static CHANGES_GLOBAL_INDEXER: AtomicU32 = AtomicU32::new(0);
-        let changes_version = CHANGES_GLOBAL_INDEXER.fetch_add(1, Ordering::SeqCst);
-
-        let result = TauriPendingProjectChanges::new(changes_version, &changes);
-
-        let changes_info = Box::new(PendingProjectChangesInfo {
-            environment_version,
-            changes_version,
-            changes,
-        });
-
-        if let Some(ptr) = self.changes_info.take() {
-            unsafe { drop(Box::from_raw(ptr.as_ptr())) }
-        }
-        self.changes_info = NonNull::new(Box::into_raw(changes_info) as *mut _);
-
-        result
-    }
-
-    fn take(&mut self) -> Option<PendingProjectChangesInfo> {
-        Some(*unsafe { Box::from_raw(self.changes_info.take()?.as_mut()) })
+        Self {}
     }
 }
 
 macro_rules! changes {
-    ($state: ident, || $body: expr) => {{
-        let mut state = $state.lock().await;
-        let state = &mut *state;
-        let current_version = state.environment.environment_version.0;
-
-        let changes = $body;
-
-        Ok(state.changes_info.update(current_version, changes))
+    ($packages_ref: ident, $changes: ident, |$collection: pat_param, $packages: pat_param| $body: expr) => {{
+        $changes
+            .build_changes(
+                &$packages_ref,
+                |$collection, $packages| async { Ok($body) },
+                TauriPendingProjectChanges::new,
+            )
+            .await
+    }};
+    ($packages_ref: ident, $changes: ident, |$collection: pat_param| $body: expr) => {{
+        $changes
+            .build_changes_no_list(
+                &$packages_ref,
+                |$collection| async { Ok($body) },
+                TauriPendingProjectChanges::new,
+            )
+            .await
     }};
 }
 
@@ -205,9 +179,9 @@ macro_rules! changes {
 #[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn project_install_package(
-    state: State<'_, Mutex<EnvironmentState>>,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     env_version: u32,
@@ -218,8 +192,8 @@ pub async fn project_install_package(
         return Err(RustError::unrecoverable("environment version mismatch"));
     };
 
-    changes!(state, || {
-        let installing_package = packages.packages()[package_index];
+    changes!(packages, changes, |collection, packages| {
+        let installing_package = packages[package_index];
 
         let unity_project = load_project(project_path).await?;
 
@@ -237,7 +211,7 @@ pub async fn project_install_package(
 
         match unity_project
             .add_package_request(
-                packages.collection(),
+                collection,
                 &[installing_package],
                 operation,
                 allow_prerelease,
@@ -254,9 +228,9 @@ pub async fn project_install_package(
 #[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn project_install_multiple_package(
-    state: State<'_, Mutex<EnvironmentState>>,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     env_version: u32,
@@ -267,10 +241,10 @@ pub async fn project_install_multiple_package(
         return Err(RustError::unrecoverable("environment version mismatch"));
     };
 
-    changes!(state, || {
+    changes!(packages, changes, |collection, packages| {
         let installing_packages = package_indices
             .iter()
-            .map(|&index| packages.packages()[index])
+            .map(|&index| packages[index])
             .collect::<Vec<_>>();
 
         let unity_project = load_project(project_path).await?;
@@ -281,7 +255,7 @@ pub async fn project_install_multiple_package(
 
         match unity_project
             .add_package_request(
-                packages.collection(),
+                collection,
                 &installing_packages,
                 operation,
                 allow_prerelease,
@@ -298,9 +272,9 @@ pub async fn project_install_multiple_package(
 #[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn project_upgrade_multiple_package(
-    state: State<'_, Mutex<EnvironmentState>>,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     env_version: u32,
@@ -310,22 +284,21 @@ pub async fn project_upgrade_multiple_package(
     let Some(packages) = packages.get_versioned(env_version) else {
         return Err(RustError::unrecoverable("environment version mismatch"));
     };
+    let allow_prerelease = settings.show_prerelease_packages();
 
-    changes!(state, || {
+    changes!(packages, changes, |collection, packages| {
         let installing_packages = package_indices
             .iter()
-            .map(|&index| packages.packages()[index])
+            .map(|&index| packages[index])
             .collect::<Vec<_>>();
 
         let unity_project = load_project(project_path).await?;
 
         let operation = AddPackageOperation::UpgradeLocked;
 
-        let allow_prerelease = settings.show_prerelease_packages();
-
         match unity_project
             .add_package_request(
-                packages.collection(),
+                collection,
                 &installing_packages,
                 operation,
                 allow_prerelease,
@@ -341,19 +314,19 @@ pub async fn project_upgrade_multiple_package(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_resolve(
-    state: State<'_, Mutex<EnvironmentState>>,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
     let packages = packages.load(&settings, io.inner(), http.inner()).await?;
-    changes!(state, || {
+    changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
 
-        match unity_project.resolve_request(packages.collection()).await {
+        match unity_project.resolve_request(collection).await {
             Ok(request) => request,
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
@@ -363,52 +336,50 @@ pub async fn project_resolve(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_remove_packages(
-    state: State<'_, Mutex<EnvironmentState>>,
+    changes_state: State<'_, ChangesState>,
     project_path: String,
     names: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, || {
-        let unity_project = load_project(project_path).await?;
+    let unity_project = load_project(project_path).await?;
 
-        let names = names.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+    let names = names.iter().map(|x| x.as_str()).collect::<Vec<_>>();
 
-        match unity_project.remove_request(&names).await {
-            Ok(request) => request,
-            Err(e) => return Err(RustError::unrecoverable(e)),
-        }
-    })
+    let changes = match unity_project.remove_request(&names).await {
+        Ok(changes) => changes,
+        Err(e) => return Err(RustError::unrecoverable(e)),
+    };
+
+    Ok(changes_state.set(changes, TauriPendingProjectChanges::new))
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_apply_pending_changes(
-    state: State<'_, Mutex<EnvironmentState>>,
+    changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     project_path: String,
     changes_version: u32,
 ) -> Result<(), RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let changes = env_state.changes_info.take().unwrap();
-    if changes.changes_version != changes_version {
+    let Some(changes) = changes.get_versioned(changes_version) else {
         return Err(RustError::unrecoverable("changes version mismatch"));
-    }
-    if changes.environment_version != env_state.environment.environment_version.0 {
-        return Err(RustError::unrecoverable("environment version mismatch"));
-    }
+    };
 
-    let installer = PackageInstaller::new(&env_state.io, Some(http.inner()));
+    changes
+        .work_with_changes(|changes| async move {
+            let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
-    let mut unity_project = load_project(project_path).await?;
+            let mut unity_project = load_project(project_path).await?;
 
-    unity_project
-        .apply_pending_changes(&installer, changes.changes)
-        .await?;
+            unity_project
+                .apply_pending_changes(&installer, changes)
+                .await?;
 
-    unity_project.save().await?;
-    update_project_last_modified(&io, unity_project.project_dir()).await;
-    Ok(())
+            unity_project.save().await?;
+            update_project_last_modified(&io, unity_project.project_dir()).await;
+            Ok(())
+        })
+        .await
 }
 
 #[tauri::command]

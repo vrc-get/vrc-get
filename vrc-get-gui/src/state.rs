@@ -1,12 +1,12 @@
+mod changes;
 mod config;
-mod environment;
 mod packages;
 mod projects;
 mod settings;
 mod updater;
 
+pub use changes::*;
 pub use config::*;
-pub use environment::*;
 pub use packages::*;
 pub use projects::*;
 pub use settings::*;

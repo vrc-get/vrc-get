@@ -5148,6 +5148,7 @@ dependencies = [
  "serde",
  "serde_json",
  "specta",
+ "stable_deref_trait",
  "sys-locale",
  "tar",
  "tauri",

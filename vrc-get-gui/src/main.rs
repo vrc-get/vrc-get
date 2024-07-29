@@ -58,7 +58,6 @@ fn main() {
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {
-            app.manage(state::new_env_state(app));
             commands::startup(app);
             // process args
             process_args(&std::env::args().collect::<Vec<_>>());
