@@ -7,9 +7,7 @@ use std::path::PathBuf;
 use vrc_get_vpm::io::{EnvironmentIo, IoTrait, ProjectIo};
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
-use vrc_get_vpm::{
-    Environment, HttpClient, PackageInfo, PackageInstaller, PackageManifest, UnityProject,
-};
+use vrc_get_vpm::{HttpClient, PackageInfo, PackageInstaller, PackageManifest, UnityProject};
 
 pub struct VirtualEnvironment {
     vfs: VirtualFileSystem,

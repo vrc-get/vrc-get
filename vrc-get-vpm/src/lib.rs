@@ -32,7 +32,6 @@ pub mod unity_hub;
 
 use crate::repository::local::LocalCachedRepository;
 
-pub use environment::Environment;
 pub use package_manifest::PackageManifest;
 pub use package_manifest::PartialUnityVersion;
 pub use structs::setting::UserRepoSetting;

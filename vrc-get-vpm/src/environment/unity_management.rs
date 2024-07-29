@@ -1,8 +1,8 @@
 use crate::environment::{Settings, VccDatabaseConnection};
+use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
-use crate::{io, Environment};
 use bson::oid::ObjectId;
 use log::info;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -146,13 +146,6 @@ impl VccDatabaseConnection {
         }
 
         Ok(())
-    }
-}
-
-/// UnityHub Operations
-impl Environment {
-    pub async fn find_unity_hub(&mut self, io: &impl EnvironmentIo) -> io::Result<Option<String>> {
-        find_unity_hub(self.settings.as_mut(), io).await
     }
 }
 

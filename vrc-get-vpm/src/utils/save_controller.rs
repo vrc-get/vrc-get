@@ -17,13 +17,6 @@ impl<T> SaveController<T> {
     }
 
     #[inline]
-    pub(crate) fn may_changing(&mut self, f: impl FnOnce(&mut T) -> bool) {
-        if f(&mut self.parsed) {
-            self.settings_changed = true;
-        }
-    }
-
-    #[inline]
     pub(crate) fn as_mut(&mut self) -> &mut T {
         self.settings_changed = true;
         &mut self.parsed

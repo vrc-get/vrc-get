@@ -1,7 +1,7 @@
 #![allow(unsafe_code)]
 
+use crate::io;
 use crate::io::EnvironmentIo;
-use crate::{io, Environment};
 use vrc_get_litedb::DatabaseConnection;
 
 pub struct VccDatabaseConnection {
@@ -22,11 +22,5 @@ impl VccDatabaseConnection {
 
     pub(crate) fn db(&self) -> &DatabaseConnection {
         &self.connection
-    }
-}
-
-impl Environment {
-    pub fn load_from_db(&mut self, connection: &VccDatabaseConnection) -> io::Result<()> {
-        self.settings.as_mut().load_from_db(connection)
     }
 }

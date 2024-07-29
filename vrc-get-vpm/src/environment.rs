@@ -17,17 +17,14 @@ mod unity_management;
 use crate::io;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
-use crate::structs::setting::UserRepoSetting;
 use crate::traits::HttpClient;
-use crate::utils::{to_vec_pretty_os_eol, SaveController};
-use crate::{PackageInfo, PackageManifest, VersionSelector};
-use futures::future::join_all;
+use crate::utils::to_vec_pretty_os_eol;
 use futures::prelude::*;
 use indexmap::IndexMap;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 use std::fmt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use url::Url;
 
 use crate::io::{DirEntry, EnvironmentIo};
@@ -49,191 +46,6 @@ const LOCAL_OFFICIAL_PATH: &str = "Repos/vrc-official.json";
 const CURATED_URL_STR: &str = "https://packages.vrchat.com/curated?download";
 const LOCAL_CURATED_PATH: &str = "Repos/vrc-curated.json";
 const REPO_CACHE_FOLDER: &str = "Repos";
-
-/// This struct holds global state (will be saved on %LOCALAPPDATA% of VPM.
-#[derive(Debug)]
-pub struct Environment {
-    collection: PackageCollection,
-    settings: SaveController<Settings>,
-}
-
-impl Environment {
-    pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
-        Ok(Self {
-            collection: PackageCollection {
-                repositories: HashMap::new(),
-                user_packages: Vec::new(),
-            },
-            settings: SaveController::new(Settings::load(io).await?),
-        })
-    }
-
-    /// Reload configuration files on the filesystem.
-    /// This doesn't update repository cache or user package cache.
-    /// Please call [`load_package_infos`] after this method.
-    ///
-    /// [`load_package_infos`]: Environment::load_package_infos
-    pub async fn reload(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        self.settings = SaveController::new(Settings::load(io).await?);
-        Ok(())
-    }
-
-    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        self.settings.save(|data| data.save(io)).await?;
-        Ok(())
-    }
-}
-
-impl Environment {
-    pub async fn load_package_infos(
-        &mut self,
-        io: &impl EnvironmentIo,
-        http: Option<&impl HttpClient>,
-    ) -> io::Result<()> {
-        self.collection = PackageCollection::load(&self.settings, io, http).await?;
-        self.settings
-            .may_changing(|settings| settings.update_id(&self.collection));
-        let mut duplicated_repos = vec![];
-        self.settings.may_changing(|settings| {
-            duplicated_repos = settings.remove_id_duplication();
-
-            !duplicated_repos.is_empty()
-        });
-
-        self.collection
-            .remove_repositories(&duplicated_repos, io)
-            .await;
-
-        Ok(())
-    }
-
-    pub async fn load_user_package_infos(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        let user_packages = UserPackageCollection::load(&self.settings, io).await;
-
-        self.collection.user_packages = user_packages.into_packages();
-
-        Ok(())
-    }
-
-    pub fn settings(&self) -> &Settings {
-        &self.settings
-    }
-
-    pub fn new_package_collection(&self) -> PackageCollection {
-        self.collection.clone()
-    }
-}
-
-impl Environment {
-    pub fn get_repos(&self) -> impl Iterator<Item = &'_ LocalCachedRepository> {
-        self.collection.repositories.values()
-    }
-
-    pub fn find_whole_all_packages(
-        &self,
-        version_selector: VersionSelector,
-        filter: impl Fn(&PackageManifest) -> bool,
-    ) -> Vec<PackageInfo> {
-        self.collection
-            .find_whole_all_packages(version_selector, filter)
-    }
-
-    pub fn get_user_repos(&self) -> &[UserRepoSetting] {
-        self.settings.get_user_repos()
-    }
-
-    pub async fn add_remote_repo(
-        &mut self,
-        url: Url,
-        name: Option<&str>,
-        headers: IndexMap<Box<str>, Box<str>>,
-        io: &impl EnvironmentIo,
-        http: &impl HttpClient,
-    ) -> Result<(), AddRepositoryErr> {
-        add_remote_repo(self.settings.as_mut(), url, name, headers, io, http).await
-    }
-
-    pub fn add_local_repo(
-        &mut self,
-        path: &Path,
-        name: Option<&str>,
-    ) -> Result<(), AddRepositoryErr> {
-        if self.settings.as_mut().add_local_repo(path, name) {
-            Ok(())
-        } else {
-            Err(AddRepositoryErr::AlreadyAdded)
-        }
-    }
-
-    pub async fn remove_repo(
-        &mut self,
-        io: &impl EnvironmentIo,
-        condition: impl Fn(&UserRepoSetting) -> bool,
-    ) -> usize {
-        let removed = self.settings.as_mut().remove_repo(condition);
-
-        join_all(
-            removed
-                .iter()
-                .map(|x| async { io.remove_file(x.local_path()).await.ok() }),
-        )
-        .await;
-
-        removed.len()
-    }
-
-    pub async fn cleanup_repos_folder(&self, io: &impl EnvironmentIo) -> io::Result<()> {
-        cleanup_repos_folder(&self.settings, io).await
-    }
-
-    pub async fn clear_package_cache(&self, io: &impl EnvironmentIo) -> io::Result<()> {
-        clear_package_cache(io).await
-    }
-
-    pub fn export_repositories(&self) -> String {
-        self.settings.export_repositories()
-    }
-
-    pub fn show_prerelease_packages(&self) -> bool {
-        self.settings.show_prerelease_packages()
-    }
-
-    pub fn set_show_prerelease_packages(&mut self, value: bool) {
-        self.settings.as_mut().set_show_prerelease_packages(value)
-    }
-
-    pub fn default_project_path(&self) -> Option<&str> {
-        self.settings.default_project_path()
-    }
-
-    pub fn set_default_project_path(&mut self, value: &str) {
-        self.settings.as_mut().set_default_project_path(value)
-    }
-
-    pub fn project_backup_path(&self) -> Option<&str> {
-        self.settings.project_backup_path()
-    }
-
-    pub fn set_project_backup_path(&mut self, value: &str) {
-        self.settings.as_mut().set_project_backup_path(value)
-    }
-
-    pub fn unity_hub_path(&self) -> &str {
-        self.settings.unity_hub_path()
-    }
-
-    pub fn set_unity_hub_path(&mut self, value: &str) {
-        self.settings.as_mut().set_unity_hub_path(value)
-    }
-
-    pub fn ignore_curated_repository(&self) -> bool {
-        self.settings.ignore_curated_repository()
-    }
-
-    pub fn ignore_official_repository(&self) -> bool {
-        self.settings.ignore_official_repository()
-    }
-}
 
 pub async fn add_remote_repo(
     settings: &mut Settings,
@@ -409,24 +221,6 @@ pub enum AddUserPackageResult {
     NonAbsolute,
     BadPackage,
     AlreadyAdded,
-}
-
-impl Environment {
-    pub fn user_packages(&self) -> &[(PathBuf, PackageManifest)] {
-        &self.collection.user_packages
-    }
-
-    pub fn remove_user_package(&mut self, pkg_path: &Path) {
-        self.settings.as_mut().remove_user_package(pkg_path);
-    }
-
-    pub async fn add_user_package(
-        &mut self,
-        pkg_path: &Path,
-        io: &impl EnvironmentIo,
-    ) -> AddUserPackageResult {
-        self.settings.as_mut().add_user_package(pkg_path, io).await
-    }
 }
 
 #[derive(Debug)]
