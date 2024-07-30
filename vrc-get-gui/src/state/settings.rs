@@ -5,6 +5,7 @@ use std::marker::PhantomData;
 use std::mem::forget;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
+use std::thread::panicking;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, MutexGuard};
 use vrc_get_vpm::environment::Settings;
@@ -202,7 +203,7 @@ impl UnsavedDropChecker {
 
 impl Drop for UnsavedDropChecker {
     fn drop(&mut self) {
-        if self.should_save {
+        if self.should_save && !panicking() {
             let trace = Backtrace::capture();
             log::error!("dropped without save: {trace}");
         }
