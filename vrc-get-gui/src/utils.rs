@@ -23,6 +23,7 @@ pub(crate) fn default_backup_path() -> String {
 pub(crate) fn project_backup_path<'env>(settings: &'env mut SettingMutRef<'_>) -> &'env str {
     if settings.project_backup_path().is_none() {
         settings.set_project_backup_path(&default_backup_path());
+        settings.require_save();
     }
 
     settings.project_backup_path().unwrap()
