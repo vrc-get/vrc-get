@@ -35,7 +35,7 @@ impl VccDatabaseConnection {
             .collect::<HashSet<_>>();
 
         let db_projects = self
-            .db()
+            .db
             .get_values::<UserProject>(COLLECTION)?
             .into_iter()
             .map(|x| (x.path().to_owned(), x))
@@ -67,14 +67,14 @@ impl VccDatabaseConnection {
                 if let (Some(unity), Some(revision)) = (unity_version, unity_revision) {
                     project.set_unity_revision(unity, revision);
                 }
-                self.db().insert(COLLECTION, &project)?;
+                self.db.insert(COLLECTION, &project)?;
             }
         }
 
         // remove deleted projects
         for (project_path, project) in db_projects.iter() {
             if !projects.contains(project_path.as_str()) {
-                self.db().delete(COLLECTION, project.id)?;
+                self.db.delete(COLLECTION, project.id)?;
             }
         }
 
@@ -88,7 +88,7 @@ impl VccDatabaseConnection {
         skip_not_found: bool,
         io: &impl EnvironmentIo,
     ) -> io::Result<()> {
-        let mut projects = self.db().get_values::<UserProject>(COLLECTION)?;
+        let mut projects = self.db.get_values::<UserProject>(COLLECTION)?;
 
         let changed_projects = join_all(
             projects
@@ -98,7 +98,7 @@ impl VccDatabaseConnection {
         .await;
 
         for project in changed_projects.iter().flatten() {
-            self.db().update(COLLECTION, project)?;
+            self.db.update(COLLECTION, project)?;
         }
 
         async fn update_project_with_actual_data<'a>(
@@ -175,7 +175,7 @@ impl VccDatabaseConnection {
     }
 
     pub fn dedup_projects(&mut self) -> io::Result<()> {
-        let projects = self.db().get_values::<UserProject>(COLLECTION)?;
+        let projects = self.db.get_values::<UserProject>(COLLECTION)?;
 
         let mut projects_by_path = HashMap::<_, Vec<_>>::new();
 
@@ -208,12 +208,12 @@ impl VccDatabaseConnection {
             }
 
             if changed {
-                self.db().update(COLLECTION, &project)?;
+                self.db.update(COLLECTION, &project)?;
             }
 
             // remove rest
             for project in values.iter().skip(1) {
-                self.db().delete(COLLECTION, project.id)?;
+                self.db.delete(COLLECTION, project.id)?;
             }
         }
 
@@ -221,14 +221,14 @@ impl VccDatabaseConnection {
     }
 
     pub fn get_projects(&self) -> io::Result<Vec<UserProject>> {
-        Ok(self.db().get_values(COLLECTION)?)
+        Ok(self.db.get_values(COLLECTION)?)
     }
 
     pub fn find_project(&self, project_path: &Path) -> io::Result<Option<UserProject>> {
         check_absolute_path(project_path)?;
         let project_path = normalize_path(project_path);
 
-        let project = self.db().get_values::<UserProject>(COLLECTION)?;
+        let project = self.db.get_values::<UserProject>(COLLECTION)?;
         Ok(project
             .into_iter()
             .find(|x| Path::new(x.path()) == project_path))
@@ -246,11 +246,11 @@ impl VccDatabaseConnection {
     }
 
     pub fn update_project(&mut self, project: &UserProject) -> io::Result<()> {
-        Ok(self.db().update(COLLECTION, &project)?)
+        Ok(self.db.update(COLLECTION, &project)?)
     }
 
     pub fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
-        self.db().delete(COLLECTION, project.id)?;
+        self.db.delete(COLLECTION, project.id)?;
         Ok(())
     }
 
@@ -278,7 +278,7 @@ impl VccDatabaseConnection {
         let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
         new_project.set_unity_revision(unity_version, unity_revision.to_owned());
 
-        self.db().insert(COLLECTION, &new_project)?;
+        self.db.insert(COLLECTION, &new_project)?;
 
         Ok(())
     }

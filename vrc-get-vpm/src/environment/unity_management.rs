@@ -13,7 +13,7 @@ pub(crate) static COLLECTION: &str = "unityVersions";
 
 impl VccDatabaseConnection {
     pub fn get_unity_installations(&self) -> io::Result<Vec<UnityInstallation>> {
-        Ok(self.db().get_values(COLLECTION)?)
+        Ok(self.db.get_values(COLLECTION)?)
     }
 
     pub async fn add_unity_installation(
@@ -36,13 +36,13 @@ impl VccDatabaseConnection {
 
         installation.loaded_from_hub = is_from_hub;
 
-        self.db().insert(COLLECTION, &installation)?;
+        self.db.insert(COLLECTION, &installation)?;
 
         Ok(())
     }
 
     pub async fn remove_unity_installation(&mut self, unity: &UnityInstallation) -> io::Result<()> {
-        self.db().delete(COLLECTION, unity.id)?;
+        self.db.delete(COLLECTION, unity.id)?;
 
         Ok(())
     }
@@ -55,7 +55,7 @@ impl VccDatabaseConnection {
         let mut minor_match = None;
         let mut major_match = None;
 
-        for unity in self.db().get_values::<UnityInstallation>(COLLECTION)? {
+        for unity in self.db.get_values::<UnityInstallation>(COLLECTION)? {
             if let Some(version) = unity.version() {
                 if version == expected {
                     return Ok(Some(unity));
@@ -92,19 +92,19 @@ impl VccDatabaseConnection {
 
         let mut installed = HashSet::new();
 
-        for mut in_db in self.db().get_values::<UnityInstallation>(COLLECTION)? {
+        for mut in_db in self.db.get_values::<UnityInstallation>(COLLECTION)? {
             let path = Path::new(in_db.path());
             if !io.is_file(path).await {
                 // if the unity editor not found, remove it from the db
                 info!("Removed Unity that is not exists: {}", in_db.path());
-                self.db().delete(COLLECTION, in_db.id)?;
+                self.db.delete(COLLECTION, in_db.id)?;
                 continue;
             }
 
             if installed.contains(path) {
                 // if the unity editor is already installed, remove it from the db
                 info!("Removed duplicated Unity: {}", in_db.path());
-                self.db().delete(COLLECTION, in_db.id)?;
+                self.db.delete(COLLECTION, in_db.id)?;
                 continue;
             }
 
@@ -126,7 +126,7 @@ impl VccDatabaseConnection {
             }
 
             if update {
-                self.db().update(COLLECTION, &in_db)?;
+                self.db.update(COLLECTION, &in_db)?;
             }
         }
 
