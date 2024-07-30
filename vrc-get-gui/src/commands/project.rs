@@ -169,7 +169,6 @@ macro_rules! changes {
 
 #[tauri::command]
 #[specta::specta]
-#[allow(clippy::too_many_arguments)]
 pub async fn project_install_package(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
@@ -218,7 +217,6 @@ pub async fn project_install_package(
 
 #[tauri::command]
 #[specta::specta]
-#[allow(clippy::too_many_arguments)]
 pub async fn project_install_multiple_package(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
@@ -262,7 +260,6 @@ pub async fn project_install_multiple_package(
 
 #[tauri::command]
 #[specta::specta]
-#[allow(clippy::too_many_arguments)]
 pub async fn project_upgrade_multiple_package(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
