@@ -146,14 +146,6 @@ impl From<&ConflictInfo> for TauriConflictInfo {
     }
 }
 
-pub struct ChangesInfoHolder {}
-
-impl ChangesInfoHolder {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
 macro_rules! changes {
     ($packages_ref: ident, $changes: ident, |$collection: pat_param, $packages: pat_param| $body: expr) => {{
         $changes
