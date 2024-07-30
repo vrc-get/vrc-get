@@ -25,7 +25,7 @@ impl SettingsInner {
     }
 
     fn is_new(&self) -> bool {
-        self.loaded_at + Duration::from_secs(1) < Instant::now()
+        self.loaded_at.elapsed() < Duration::from_secs(1)
     }
 }
 
