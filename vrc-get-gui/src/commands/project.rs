@@ -371,6 +371,15 @@ pub async fn project_apply_pending_changes(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn project_clear_pending_changes(
+    changes: State<'_, ChangesState>,
+) -> Result<(), RustError> {
+    changes.clear_cache();
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn project_migrate_project_to_2022(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
