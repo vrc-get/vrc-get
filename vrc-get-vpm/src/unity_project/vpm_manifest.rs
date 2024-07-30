@@ -1,7 +1,7 @@
 use crate::io;
 use crate::io::ProjectIo;
 use crate::unity_project::LockedDependencyInfo;
-use crate::utils::{load_json_or_default, SaveController};
+use crate::utils::{load_json_or_default, save_json, SaveController};
 use crate::version::{DependencyRange, Version, VersionRange};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -106,6 +106,8 @@ impl VpmManifest {
     }
 
     pub(super) async fn save(&mut self, io: &impl ProjectIo) -> io::Result<()> {
-        self.controller.save(io, MANIFEST_PATH.as_ref()).await
+        self.controller
+            .save(|json| save_json(io, MANIFEST_PATH.as_ref(), json))
+            .await
     }
 }

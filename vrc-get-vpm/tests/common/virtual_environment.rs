@@ -1,10 +1,13 @@
 use crate::common::{PackageCollection, VirtualFileSystem};
 use indexmap::IndexMap;
 use serde_json::json;
-use vrc_get_vpm::io::{EnvironmentIo, IoTrait};
+use std::future::Future;
+use std::io;
+use std::path::PathBuf;
+use vrc_get_vpm::io::{EnvironmentIo, IoTrait, ProjectIo};
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
-use vrc_get_vpm::{EnvironmentIoHolder, PackageManifest, RemotePackageDownloader, UnityProject};
+use vrc_get_vpm::{HttpClient, PackageInfo, PackageInstaller, PackageManifest, UnityProject};
 
 pub struct VirtualEnvironment {
     vfs: VirtualFileSystem,
@@ -16,24 +19,15 @@ impl VirtualEnvironment {
     }
 }
 
-impl EnvironmentIoHolder for VirtualEnvironment {
-    type EnvironmentIo = VirtualFileSystem;
-    fn io(&self) -> &Self::EnvironmentIo {
-        &self.vfs
-    }
-}
-
-impl RemotePackageDownloader for VirtualEnvironment {
-    type FileStream = futures::io::Cursor<&'static [u8]>;
-
-    fn get_package(
+impl PackageInstaller for VirtualEnvironment {
+    fn install_package(
         &self,
-        _repository: &vrc_get_vpm::repository::LocalCachedRepository,
-        _package: &PackageManifest,
-    ) -> impl futures::Future<Output = std::io::Result<Self::FileStream>> + Send {
-        std::future::ready(Err(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "Remove Access",
+        _: &impl ProjectIo,
+        _: PackageInfo<'_>,
+    ) -> impl Future<Output = std::io::Result<()>> {
+        std::future::ready(Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "install_package not supported in VirtualEnvironment",
         )))
     }
 }

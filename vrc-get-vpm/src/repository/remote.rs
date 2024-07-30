@@ -92,10 +92,10 @@ impl RemoteRepository {
             self.parsed.url = Some(url.clone());
             self.actual
                 .insert("url".to_owned(), Value::String(url.to_string()));
-            if self.parsed.id.is_none() {
-                let url = self.parsed.url.as_ref().unwrap().as_str().into();
-                self.set_id_if_none(move || url);
-            }
+        }
+        if self.parsed.id.is_none() {
+            let url = self.parsed.url.as_ref().unwrap().as_str().into();
+            self.set_id_if_none(move || url);
         }
     }
 
@@ -118,6 +118,10 @@ impl RemoteRepository {
             .map(RemotePackages::all_versions)
             .into_iter()
             .flatten()
+    }
+
+    pub fn get_package(&self, package: &str) -> Option<&RemotePackages> {
+        self.parsed.packages.get(package)
     }
 
     pub fn get_packages(&self) -> impl Iterator<Item = &'_ RemotePackages> {
@@ -200,12 +204,20 @@ impl RemotePackages {
     }
 
     pub fn get_latest(&self, selector: VersionSelector) -> Option<&PackageManifest> {
+        if let Some(version) = selector.as_specific() {
+            return self.versions.get(version);
+        }
+
         self.versions
             .values()
             .filter(|json| selector.satisfies(json))
             .clone()
             .filter(|json| !json.is_yanked())
             .max_by_key(|json| json.version())
+    }
+
+    pub fn get_version(&self, version: &Version) -> Option<&PackageManifest> {
+        self.versions.get(version)
     }
 }
 

@@ -1,8 +1,7 @@
 use crate::io;
-use crate::io::EnvironmentIo;
-use crate::repository::local::LocalCachedRepository;
+use crate::io::ProjectIo;
 use crate::utils::MapResultExt;
-use crate::{PackageInfo, PackageManifest, VersionSelector};
+use crate::{PackageInfo, VersionSelector};
 use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;
@@ -33,23 +32,16 @@ pub trait PackageCollection {
     ) -> Option<PackageInfo>;
 }
 
-pub trait EnvironmentIoHolder {
-    type EnvironmentIo: EnvironmentIo;
-    fn io(&self) -> &Self::EnvironmentIo;
-}
-
-/// The trait for downloading remote packages.
+/// The trait for installing package
 ///
-/// Caching packages is responsibility of this crate.
-pub trait RemotePackageDownloader {
-    type FileStream: AsyncRead + AsyncSeek + Unpin;
-
-    /// Get package from remote server.
-    fn get_package(
+/// Caching packages is responsibility of this trait.
+pub trait PackageInstaller {
+    /// Installs the specified package.
+    fn install_package(
         &self,
-        repository: &LocalCachedRepository,
-        package: &PackageManifest,
-    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
+        io: &impl ProjectIo,
+        package: PackageInfo<'_>,
+    ) -> impl Future<Output = io::Result<()>>;
 }
 
 /// The HTTP Client.

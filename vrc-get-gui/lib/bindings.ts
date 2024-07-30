@@ -226,6 +226,10 @@ export function projectApplyPendingChanges(projectPath: string, changesVersion: 
     return invoke()<null>("project_apply_pending_changes", { projectPath,changesVersion })
 }
 
+export function projectClearPendingChanges() {
+    return invoke()<null>("project_clear_pending_changes")
+}
+
 export function projectMigrateProjectTo2022(projectPath: string) {
     return invoke()<null>("project_migrate_project_to_2022", { projectPath })
 }

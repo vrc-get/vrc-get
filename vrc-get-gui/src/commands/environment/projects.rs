@@ -6,16 +6,14 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::io;
-use std::num::Wrapping;
 use std::path::{Path, PathBuf};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::State;
 use tokio::fs::read_dir;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
-use tokio::sync::Mutex;
-use vrc_get_vpm::environment::UserProject;
-use vrc_get_vpm::io::{DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
-use vrc_get_vpm::{EnvironmentIoHolder, ProjectType};
+use vrc_get_vpm::environment::{PackageInstaller, Settings, UserProject, VccDatabaseConnection};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
+use vrc_get_vpm::ProjectType;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct TauriProject {
@@ -91,41 +89,47 @@ impl TauriProject {
     }
 }
 
+async fn migrate_sanitize_projects(
+    connection: &mut VccDatabaseConnection,
+    io: &DefaultEnvironmentIo,
+    settings: &Settings,
+) -> io::Result<()> {
+    info!("migrating projects from settings.json");
+    // migrate from settings json
+    connection.migrate(settings, io).await?;
+    connection.dedup_projects()?;
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_projects(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    projects_state: State<'_, ProjectsState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<Vec<TauriProject>, RustError> {
-    let mut state = state.lock().await;
-    let state = &mut *state;
-    let environment = state
-        .environment
-        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
-        .await?;
+    let mut settings = settings.load_mut(io.inner()).await?;
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
 
-    info!("migrating projects from settings.json");
-    // migrate from settings json
-    environment.migrate_from_settings_json().await?;
+    migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
     info!("syncing information with real projects");
-    environment.sync_with_real_projects(true).await?;
-    environment.dedup_projects()?;
-    environment.save().await?;
+    connection.sync_with_real_projects(true, io.inner()).await?;
+    settings.load_from_db(&connection)?;
+    connection.save(io.inner()).await?;
+    settings.save().await?;
 
     info!("fetching projects");
 
-    let projects = environment.get_projects()?.into_boxed_slice();
-    environment.disconnect_litedb();
+    let projects = connection.get_projects()?.into_boxed_slice();
+    drop(connection);
 
-    state.projects = projects;
-    state.projects_version += Wrapping(1);
+    let stored = projects_state.set(projects).await;
 
-    let version = (state.environment.environment_version + state.projects_version).0;
-
-    let vec = state
-        .projects
+    let vec = stored
+        .data()
         .iter()
         .enumerate()
-        .map(|(index, value)| TauriProject::new(version, index, value))
+        .map(|(index, value)| TauriProject::new(stored.version(), index, value))
         .collect::<Vec<_>>();
 
     Ok(vec)
@@ -142,7 +146,8 @@ pub enum TauriAddProjectWithPickerResult {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_add_project_with_picker(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriAddProjectWithPickerResult, RustError> {
     let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
         return Ok(TauriAddProjectWithPickerResult::NoFolderSelected);
@@ -157,17 +162,23 @@ pub async fn environment_add_project_with_picker(
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     }
 
-    with_environment!(&state, |environment| {
-        let projects = environment.get_projects()?;
+    {
+        let mut settings = settings.load_mut(io.inner()).await?;
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
+
+        let projects = connection.get_projects()?;
         if projects
             .iter()
             .any(|x| Path::new(x.path()) == Path::new(&project_path))
         {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
-        environment.add_project(&unity_project).await?;
-        environment.save().await?;
-    });
+        connection.add_project(&unity_project).await?;
+        connection.save(io.inner()).await?;
+        settings.load_from_db(&connection)?;
+        settings.save().await?;
+    }
 
     Ok(TauriAddProjectWithPickerResult::Successful)
 }
@@ -182,25 +193,29 @@ async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_remove_project(
-    state: State<'_, Mutex<EnvironmentState>>,
+    projects_state: State<'_, ProjectsState>,
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
     list_version: u32,
     index: usize,
     directory: bool,
 ) -> Result<(), RustError> {
-    let mut state = state.lock().await;
-    let state = &mut *state;
-    let version = (state.environment.environment_version + state.projects_version).0;
-    if list_version != version {
+    let projects = projects_state.get().await;
+    if list_version != projects.version() {
         return Err(RustError::unrecoverable("project list version mismatch"));
     }
 
-    let project = &state.projects[index];
-    let environment = state
-        .environment
-        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
-        .await?;
-    environment.remove_project(project)?;
-    environment.save().await?;
+    let Some(project) = projects.get(index) else {
+        return Err(RustError::unrecoverable("project not found"));
+    };
+
+    let mut settings = settings.load_mut(io.inner()).await?;
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
+    connection.remove_project(project)?;
+    connection.save(io.inner()).await?;
+    settings.load_from_db(&connection)?;
+    settings.save().await?;
 
     if directory {
         let path = project.path();
@@ -219,18 +234,25 @@ pub async fn environment_remove_project(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_remove_project_by_path(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
     path: String,
     directory: bool,
 ) -> Result<(), RustError> {
-    with_environment!(&state, |environment| {
-        let projects: Vec<vrc_get_vpm::environment::UserProject> = environment.get_projects()?;
+    {
+        let mut settings = settings.load_mut(io.inner()).await?;
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
+
+        let projects: Vec<UserProject> = connection.get_projects()?;
 
         if let Some(x) = projects.iter().find(|x| x.path() == path) {
-            environment.remove_project(x)?;
-            environment.save().await?;
+            connection.remove_project(x)?;
+            connection.save(io.inner()).await?;
+            settings.load_from_db(&connection)?;
+            settings.save().await?;
         } else {
-            environment.disconnect_litedb();
+            drop(settings);
         }
 
         if directory {
@@ -243,7 +265,7 @@ pub async fn environment_remove_project_by_path(
         }
 
         Ok(())
-    })
+    }
 }
 
 async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result<u64> {
@@ -262,7 +284,8 @@ async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_copy_project_for_migration(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
     source_path: String,
 ) -> Result<String, RustError> {
     async fn create_folder(folder: &Path, name: &OsStr) -> Option<String> {
@@ -320,10 +343,15 @@ pub async fn environment_copy_project_for_migration(
 
     let unity_project = load_project(new_path_str.clone()).await?;
 
-    with_environment!(state, |environment| {
-        environment.add_project(&unity_project).await?;
-        environment.save().await?;
-    });
+    {
+        let mut settings = settings.load_mut(io.inner()).await?;
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
+        connection.add_project(&unity_project).await?;
+        connection.save(io.inner()).await?;
+        settings.load_from_db(&connection)?;
+        settings.save().await?;
+    }
 
     Ok(new_path_str)
 }
@@ -331,26 +359,25 @@ pub async fn environment_copy_project_for_migration(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_favorite_project(
-    state: State<'_, Mutex<EnvironmentState>>,
+    projects_state: State<'_, ProjectsState>,
+    io: State<'_, DefaultEnvironmentIo>,
     list_version: u32,
     index: usize,
     favorite: bool,
 ) -> Result<(), RustError> {
-    let mut state = state.lock().await;
-    let state = &mut *state;
-    let version = (state.environment.environment_version + state.projects_version).0;
-    if list_version != version {
+    let mut projects = projects_state.get().await;
+    if list_version != projects.version() {
         return Err(RustError::unrecoverable("project list version mismatch"));
     }
+    let Some(project) = projects.get_mut(index) else {
+        return Err(RustError::unrecoverable("project not found"));
+    };
 
-    let project = &mut state.projects[index];
     project.set_favorite(favorite);
-    let environment = state
-        .environment
-        .get_environment_mut(UpdateRepositoryMode::None, &state.io)
-        .await?;
-    environment.update_project(project)?;
-    environment.save().await?;
+
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    connection.update_project(project)?;
+    connection.save(io.inner()).await?;
 
     Ok(())
 }
@@ -368,9 +395,7 @@ pub struct TauriProjectCreationInformation {
     default_path: String,
 }
 
-async fn load_user_templates(environment: &mut Environment) -> io::Result<Vec<String>> {
-    let io = environment.io();
-
+async fn load_user_templates(io: &DefaultEnvironmentIo) -> io::Result<Vec<String>> {
     let mut templates = Vec::<String>::new();
 
     let path = io.resolve("Templates".as_ref());
@@ -413,9 +438,10 @@ async fn load_user_templates(environment: &mut Environment) -> io::Result<Vec<St
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_project_creation_information(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriProjectCreationInformation, RustError> {
-    with_environment!(state, |environment| {
+    {
         let mut templates = crate::templates::TEMPLATES
             .iter()
             .map(|&(id, name, _)| TauriProjectTemplate::Builtin {
@@ -425,7 +451,7 @@ pub async fn environment_project_creation_information(
             .collect::<Vec<_>>();
 
         templates.extend(
-            load_user_templates(environment)
+            load_user_templates(&io)
                 .await
                 .ok()
                 .into_iter()
@@ -433,11 +459,15 @@ pub async fn environment_project_creation_information(
                 .map(|name| TauriProjectTemplate::Custom { name }),
         );
 
+        let mut settings = settings.load_mut(io.inner()).await?;
+        let default_path = default_project_path(&mut settings).to_string();
+        settings.maybe_save().await?;
+
         Ok(TauriProjectCreationInformation {
             templates,
-            default_path: default_project_path(environment).await?.to_string(),
+            default_path,
         })
-    })
+    }
 }
 
 #[derive(Serialize, specta::Type)]
@@ -503,7 +533,10 @@ pub enum TauriCreateProjectResult {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_create_project(
-    state: State<'_, Mutex<EnvironmentState>>,
+    packages_state: State<'_, PackagesState>,
+    settings: State<'_, SettingsState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     base_path: String,
     project_name: String,
     template: TauriProjectTemplate,
@@ -523,11 +556,7 @@ pub async fn environment_create_project(
             Template::Builtin(template)
         }
         TauriProjectTemplate::Custom { name } => {
-            let template_path = with_environment!(state, |enviornment| {
-                enviornment
-                    .io()
-                    .resolve(format!("Templates/{name}").as_ref())
-            });
+            let template_path = io.resolve(format!("Templates/{name}").as_ref());
             match tokio::fs::metadata(&template_path).await {
                 Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
                     return Ok(TauriCreateProjectResult::TemplateNotFound);
@@ -631,26 +660,34 @@ pub async fn environment_create_project(
         drop(settings_file);
     }
 
+    let packages;
     {
-        let mut env_state = state.lock().await;
-        let env_state = &mut *env_state;
-        let environment = env_state
-            .environment
-            .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
+        let settings = settings.load(io.inner()).await?;
+        packages = packages_state
+            .load(&settings, io.inner(), http.inner())
             .await?;
+    }
+
+    {
+        let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
         let mut unity_project = load_project(path_str.into()).await?;
 
         // finally, resolve the project folder
-        let request = unity_project.resolve_request(environment).await?;
+        let request = unity_project.resolve_request(packages.collection()).await?;
         unity_project
-            .apply_pending_changes(environment, request)
+            .apply_pending_changes(&installer, request)
             .await?;
         unity_project.save().await?;
 
         // add the project to listing
-        environment.add_project(&unity_project).await?;
-        environment.save().await?;
+        let mut settings = settings.load_mut(io.inner()).await?;
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
+        connection.add_project(&unity_project).await?;
+        connection.save(io.inner()).await?;
+        settings.load_from_db(&connection)?;
+        settings.save().await?;
     }
     Ok(TauriCreateProjectResult::Successful)
 }

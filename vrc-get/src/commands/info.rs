@@ -1,11 +1,12 @@
-use super::UnityProject;
-use crate::commands::{load_env, load_unity};
+use super::{load_collection, UnityProject};
+use crate::commands::load_unity;
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::Path;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::version::{UnityVersion, Version, VersionRange};
 use vrc_get_vpm::PackageCollection;
 
@@ -180,7 +181,9 @@ pub struct Package {
 
 impl Package {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
 
         let format_version = match self.json_format.map(|x| x.get()).unwrap_or_default() {
             0 => {
@@ -193,7 +196,7 @@ impl Package {
 
         debug_assert_eq!(format_version, 1);
 
-        let versions: Vec<_> = env
+        let versions: Vec<_> = collection
             .find_packages(&self.package)
             .map(|x| PackageVersionInfo {
                 version: x.version(),
