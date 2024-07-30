@@ -350,25 +350,23 @@ pub async fn project_apply_pending_changes(
     project_path: String,
     changes_version: u32,
 ) -> Result<(), RustError> {
-    let Some(changes) = changes.get_versioned(changes_version) else {
+    let Some(mut changes) = changes.get_versioned(changes_version) else {
         return Err(RustError::unrecoverable("changes version mismatch"));
     };
 
-    changes
-        .work_with_changes(|changes| async move {
-            let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
+    let changes = changes.take_changes();
 
-            let mut unity_project = load_project(project_path).await?;
+    let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
-            unity_project
-                .apply_pending_changes(&installer, changes)
-                .await?;
+    let mut unity_project = load_project(project_path).await?;
 
-            unity_project.save().await?;
-            update_project_last_modified(&io, unity_project.project_dir()).await;
-            Ok(())
-        })
-        .await
+    unity_project
+        .apply_pending_changes(&installer, changes)
+        .await?;
+
+    unity_project.save().await?;
+    update_project_last_modified(&io, unity_project.project_dir()).await;
+    Ok(())
 }
 
 #[tauri::command]

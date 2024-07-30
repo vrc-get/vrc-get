@@ -109,10 +109,7 @@ impl ChangesState {
         self.inner
             .take(Ordering::SeqCst)
             .filter(|loaded| loaded.version == version)
-            .map(|boxed| ChangesVersionRef {
-                data: boxed.data,
-                _phantom_data: PhantomData,
-            })
+            .map(|boxed| ChangesVersionRef::new(boxed.data))
     }
 
     pub fn clear_cache(&self) {
@@ -121,21 +118,24 @@ impl ChangesState {
 }
 
 pub struct ChangesVersionRef<'a> {
-    data: Data,
+    _arc: Arc<PackageCollection>,
+    data: Option<Data>,
     _phantom_data: PhantomData<&'a ()>,
 }
 
 impl<'a> ChangesVersionRef<'a> {
-    pub async fn work_with_changes<F, Fut>(self, f: F) -> <Fut as Future>::Output
-    where
-        F: FnOnce(PendingProjectChanges<'a>) -> Fut,
-        Fut: Future,
-    {
-        unsafe {
-            let _owner = self.data.backing_cart().clone();
-            let changes: YokeData<'a> = self.data.replace_cart(|_| ()).into_yokeable();
-
-            f(changes.changes).await
+    fn new(data: Data) -> Self {
+        Self {
+            _arc: data.backing_cart().clone(),
+            data: Some(data),
+            _phantom_data: PhantomData,
         }
+    }
+
+    /// Panics if the data has already been taken.
+    pub fn take_changes(&mut self) -> PendingProjectChanges {
+        let yoke = self.data.take().unwrap();
+        // SAFETY: We have clone of backing_cart in self, so yokeable will live while self lives.
+        unsafe { yoke.replace_cart(|_| ()) }.into_yokeable().changes
     }
 }
