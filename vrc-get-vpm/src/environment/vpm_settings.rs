@@ -1,7 +1,7 @@
 use crate::environment::PackageCollection;
 use crate::io;
 use crate::io::EnvironmentIo;
-use crate::utils::{load_json_or_default, to_vec_pretty_os_eol};
+use crate::utils::{load_json_or_default, save_json};
 use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -165,12 +165,7 @@ impl VpmSettings {
     }
 
     pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
-        let path = Path::new(JSON_PATH);
-        io.create_dir_all(path.parent().unwrap_or("".as_ref()))
-            .await?;
-        io.write_sync(path, &to_vec_pretty_os_eol(&self.parsed)?)
-            .await?;
-        Ok(())
+        save_json(io, JSON_PATH.as_ref(), &self.parsed).await
     }
 }
 
