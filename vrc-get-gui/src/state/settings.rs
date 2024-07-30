@@ -11,6 +11,7 @@ use tokio::sync::{Mutex, MutexGuard};
 use vrc_get_vpm::environment::Settings;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 
+#[derive(Clone)]
 struct SettingsInner {
     settings: Settings,
     loaded_at: Instant,
@@ -75,22 +76,21 @@ impl SettingsState {
         let guard = self.load_lock.lock().await;
 
         // if loaded one is new enough, we can use it
-        let inner = self.inner.load();
-        if let Some(inner) = inner.as_ref().filter(|x| x.is_new()) {
-            return Ok(SettingMutRef::new(
-                inner.settings.clone(), // TODO: we may avoid this clone
-                &self.inner,
-                io,
-                guard,
-            ));
+        let inner = self.inner.load_full();
+        if let Some(inner) = inner.filter(|x| x.is_new()) {
+            self.inner.store(None); // remove the old one
+
+            let settings = Arc::try_unwrap(inner).unwrap_or_else(|arc| {
+                log::info!("Unwrapping settings arc failed, cloning...");
+                SettingsInner::clone(&arc)
+            });
+
+            return Ok(SettingMutRef::new(settings, &self.inner, io, guard));
         }
 
         // otherwise, if loaded one is old, load and use it
 
-        let loaded = Settings::load(io).await?;
-
-        self.inner
-            .store(Some(Arc::new(SettingsInner::new(loaded.clone()))));
+        let loaded = SettingsInner::new(Settings::load(io).await?);
 
         Ok(SettingMutRef::new(loaded, &self.inner, io, guard))
     }
@@ -120,8 +120,8 @@ impl Deref for SettingsRef<'_> {
 }
 
 pub struct SettingMutRef<'s> {
-    settings: Settings,
-    inner: &'s ArcSwapOption<SettingsInner>,
+    owned: SettingsInner,
+    cache_slot: &'s ArcSwapOption<SettingsInner>,
     guard: MutexGuard<'s, ()>,
     io: &'s DefaultEnvironmentIo,
     save_checker: UnsavedDropChecker,
@@ -129,14 +129,14 @@ pub struct SettingMutRef<'s> {
 
 impl<'s> SettingMutRef<'s> {
     fn new(
-        settings: Settings,
+        settings: SettingsInner,
         inner: &'s ArcSwapOption<SettingsInner>,
         io: &'s DefaultEnvironmentIo,
         guard: MutexGuard<'s, ()>,
     ) -> Self {
         Self {
-            settings,
-            inner,
+            owned: settings,
+            cache_slot: inner,
             guard,
             io,
             save_checker: UnsavedDropChecker::new(),
@@ -147,10 +147,11 @@ impl<'s> SettingMutRef<'s> {
         // We're doing the save, so we don't need to check for it
         forget(self.save_checker);
         // first, save the settings
-        self.settings.save(self.io).await?;
+        self.owned.settings.save(self.io).await?;
         // then, save to cache
-        self.inner
-            .store(Some(Arc::new(SettingsInner::new(self.settings))));
+        // since we've saved that, renew the loaded_at
+        self.cache_slot
+            .store(Some(Arc::new(SettingsInner::new(self.owned.settings))));
         // finally, release the lock
         drop(self.guard);
         Ok(())
@@ -166,6 +167,8 @@ impl<'s> SettingMutRef<'s> {
         } else {
             // skip should_save in drop
             forget(self.save_checker);
+            // we're owning the settings so return to cache
+            self.cache_slot.store(Some(Arc::new(self.owned)));
             Ok(())
         }
     }
@@ -176,14 +179,14 @@ impl Deref for SettingMutRef<'_> {
 
     #[inline(always)]
     fn deref(&self) -> &Settings {
-        &self.settings
+        &self.owned.settings
     }
 }
 
 impl DerefMut for SettingMutRef<'_> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut Settings {
-        &mut self.settings
+        &mut self.owned.settings
     }
 }
 
