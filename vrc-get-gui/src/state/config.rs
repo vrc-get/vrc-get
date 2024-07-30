@@ -1,6 +1,5 @@
 use crate::config::GuiConfig;
 use arc_swap::ArcSwap;
-use std::future::Future;
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
@@ -102,14 +101,9 @@ impl DerefMut for GuiConfigMutRef<'_> {
     }
 }
 
-trait FsWrapper {
-    fn read(path: &Path) -> impl Future<Output = io::Result<Vec<u8>>> + Send;
-    fn rename(from: &Path, to: &Path) -> impl Future<Output = io::Result<()>> + Send;
-}
-
-async fn loader<F: FsWrapper>(path: PathBuf) -> io::Result<GuiConfigStateInner> {
-    async fn load_fs<F: FsWrapper>(path: &Path) -> io::Result<GuiConfig> {
-        match F::read(path).await {
+async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
+    async fn load_fs(path: &Path) -> io::Result<GuiConfig> {
+        match tokio::fs::read(path).await {
             Ok(buffer) => {
                 let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
                 loaded.fix_defaults();
@@ -120,11 +114,11 @@ async fn loader<F: FsWrapper>(path: PathBuf) -> io::Result<GuiConfigStateInner> 
         }
     }
 
-    async fn backup_old_config<F: FsWrapper>(path: &Path) -> io::Result<()> {
+    async fn backup_old_config(path: &Path) -> io::Result<()> {
         let mut i = 0;
         loop {
             let backup_path = path.with_extension(format!("json.bak.{}", i));
-            match F::rename(path, &backup_path).await {
+            match tokio::fs::rename(path, &backup_path).await {
                 Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
                     i += 1;
                 }
@@ -135,7 +129,9 @@ async fn loader<F: FsWrapper>(path: PathBuf) -> io::Result<GuiConfigStateInner> 
         }
     }
 
-    let config = match load_fs::<F>(&path).await {
+    let path = io.resolve("vrc-get/gui-config.json".as_ref());
+
+    let config = match load_fs(&path).await {
         Ok(loaded) => loaded,
         Err(e) => {
             log::error!(
@@ -144,7 +140,7 @@ async fn loader<F: FsWrapper>(path: PathBuf) -> io::Result<GuiConfigStateInner> 
             );
 
             // backup old config if possible
-            if let Err(e) = backup_old_config::<F>(&path).await {
+            if let Err(e) = backup_old_config(&path).await {
                 log::error!("Failed to backup old config: {}", e);
             }
 
@@ -153,21 +149,4 @@ async fn loader<F: FsWrapper>(path: PathBuf) -> io::Result<GuiConfigStateInner> 
     };
 
     Ok(GuiConfigStateInner { config, path })
-}
-
-async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
-    struct AsyncIO;
-    impl FsWrapper for AsyncIO {
-        fn read(path: &Path) -> impl Future<Output = io::Result<Vec<u8>>> + Send {
-            tokio::fs::read(path)
-        }
-
-        fn rename(from: &Path, to: &Path) -> impl Future<Output = io::Result<()>> + Send {
-            tokio::fs::rename(from, to)
-        }
-    }
-
-    let path = io.resolve("vrc-get/gui-config.json".as_ref());
-
-    loader::<AsyncIO>(path).await
 }
