@@ -3,8 +3,6 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::process::Stdio;
-use std::ptr::NonNull;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use futures::{Stream, TryStreamExt};
 use log::{error, warn};
@@ -12,7 +10,7 @@ use serde::Serialize;
 use tauri::{State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::sync::Mutex;
+use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 use vrc_get_vpm::unity_project::pending_project_changes::{
@@ -22,9 +20,7 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
-use crate::commands::state::PendingProjectChangesInfo;
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::config::GuiConfigState;
 use crate::utils::project_backup_path;
 
 #[derive(Serialize, specta::Type)]
@@ -150,72 +146,44 @@ impl From<&ConflictInfo> for TauriConflictInfo {
     }
 }
 
-pub struct ChangesInfoHolder {
-    changes_info: Option<NonNull<PendingProjectChangesInfo<'static>>>,
-}
-
-impl ChangesInfoHolder {
-    pub fn new() -> Self {
-        Self { changes_info: None }
-    }
-
-    fn update(
-        &mut self,
-        environment_version: u32,
-        changes: PendingProjectChanges<'_>,
-    ) -> TauriPendingProjectChanges {
-        static CHANGES_GLOBAL_INDEXER: AtomicU32 = AtomicU32::new(0);
-        let changes_version = CHANGES_GLOBAL_INDEXER.fetch_add(1, Ordering::SeqCst);
-
-        let result = TauriPendingProjectChanges::new(changes_version, &changes);
-
-        let changes_info = Box::new(PendingProjectChangesInfo {
-            environment_version,
-            changes_version,
-            changes,
-        });
-
-        if let Some(ptr) = self.changes_info.take() {
-            unsafe { drop(Box::from_raw(ptr.as_ptr())) }
-        }
-        self.changes_info = NonNull::new(Box::into_raw(changes_info) as *mut _);
-
-        result
-    }
-
-    fn take(&mut self) -> Option<PendingProjectChangesInfo> {
-        Some(*unsafe { Box::from_raw(self.changes_info.take()?.as_mut()) })
-    }
-}
-
 macro_rules! changes {
-    ($state: ident, $($env_version: ident, )? |$environment: pat_param, $packages: pat_param| $body: expr) => {{
-        let mut state = $state.lock().await;
-        let state = &mut *state;
-        let current_version = state.environment.environment_version.0;
-        $(
-        if current_version != $env_version {
-            return Err(RustError::unrecoverable("environment version mismatch"));
-        }
-        )?
-
-        let $environment = state.environment.get_environment_mut(UpdateRepositoryMode::None, &state.io).await?;
-        let $packages = unsafe { &*state.packages.unwrap().as_mut() };
-        let changes = $body;
-
-        Ok(state.changes_info.update(current_version, changes))
+    ($packages_ref: ident, $changes: ident, |$collection: pat_param, $packages: pat_param| $body: expr) => {{
+        $changes
+            .build_changes(
+                &$packages_ref,
+                |$collection, $packages| async { Ok($body) },
+                TauriPendingProjectChanges::new,
+            )
+            .await
+    }};
+    ($packages_ref: ident, $changes: ident, |$collection: pat_param| $body: expr) => {{
+        $changes
+            .build_changes_no_list(
+                &$packages_ref,
+                |$collection| async { Ok($body) },
+                TauriPendingProjectChanges::new,
+            )
+            .await
     }};
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_install_package(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     env_version: u32,
     package_index: usize,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages| {
+    let settings = settings.load(io.inner()).await?;
+    let Some(packages) = packages.get_versioned(env_version) else {
+        return Err(RustError::unrecoverable("environment version mismatch"));
+    };
+
+    changes!(packages, changes, |collection, packages| {
         let installing_package = packages[package_index];
 
         let unity_project = load_project(project_path).await?;
@@ -230,11 +198,11 @@ pub async fn project_install_package(
             AddPackageOperation::InstallToDependencies
         };
 
-        let allow_prerelease = environment.show_prerelease_packages();
+        let allow_prerelease = settings.show_prerelease_packages();
 
         match unity_project
             .add_package_request(
-                environment,
+                collection,
                 &[installing_package],
                 operation,
                 allow_prerelease,
@@ -250,26 +218,34 @@ pub async fn project_install_package(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_install_multiple_package(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     env_version: u32,
     package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages| {
+    let settings = settings.load(io.inner()).await?;
+    let Some(packages) = packages.get_versioned(env_version) else {
+        return Err(RustError::unrecoverable("environment version mismatch"));
+    };
+
+    changes!(packages, changes, |collection, packages| {
         let installing_packages = package_indices
             .iter()
-            .map(|index| packages[*index])
+            .map(|&index| packages[index])
             .collect::<Vec<_>>();
 
         let unity_project = load_project(project_path).await?;
 
         let operation = AddPackageOperation::InstallToDependencies;
 
-        let allow_prerelease = environment.show_prerelease_packages();
+        let allow_prerelease = settings.show_prerelease_packages();
 
         match unity_project
             .add_package_request(
-                environment,
+                collection,
                 &installing_packages,
                 operation,
                 allow_prerelease,
@@ -285,26 +261,33 @@ pub async fn project_install_multiple_package(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_upgrade_multiple_package(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     env_version: u32,
     package_indices: Vec<usize>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, env_version, |environment, packages| {
+    let settings = settings.load(io.inner()).await?;
+    let Some(packages) = packages.get_versioned(env_version) else {
+        return Err(RustError::unrecoverable("environment version mismatch"));
+    };
+    let allow_prerelease = settings.show_prerelease_packages();
+
+    changes!(packages, changes, |collection, packages| {
         let installing_packages = package_indices
             .iter()
-            .map(|index| packages[*index])
+            .map(|&index| packages[index])
             .collect::<Vec<_>>();
 
         let unity_project = load_project(project_path).await?;
 
         let operation = AddPackageOperation::UpgradeLocked;
 
-        let allow_prerelease = environment.show_prerelease_packages();
-
         match unity_project
             .add_package_request(
-                environment,
+                collection,
                 &installing_packages,
                 operation,
                 allow_prerelease,
@@ -320,13 +303,19 @@ pub async fn project_upgrade_multiple_package(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_resolve(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, |environment, _| {
+    let settings = settings.load(io.inner()).await?;
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
 
-        match unity_project.resolve_request(environment).await {
+        match unity_project.resolve_request(collection).await {
             Ok(request) => request,
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
@@ -336,74 +325,88 @@ pub async fn project_resolve(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_remove_packages(
-    state: State<'_, Mutex<EnvironmentState>>,
+    changes_state: State<'_, ChangesState>,
     project_path: String,
     names: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    changes!(state, |_, _| {
-        let unity_project = load_project(project_path).await?;
+    let unity_project = load_project(project_path).await?;
 
-        let names = names.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+    let names = names.iter().map(|x| x.as_str()).collect::<Vec<_>>();
 
-        match unity_project.remove_request(&names).await {
-            Ok(request) => request,
-            Err(e) => return Err(RustError::unrecoverable(e)),
-        }
-    })
+    let changes = match unity_project.remove_request(&names).await {
+        Ok(changes) => changes,
+        Err(e) => return Err(RustError::unrecoverable(e)),
+    };
+
+    Ok(changes_state.set(changes, TauriPendingProjectChanges::new))
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_apply_pending_changes(
-    state: State<'_, Mutex<EnvironmentState>>,
+    changes: State<'_, ChangesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
     changes_version: u32,
 ) -> Result<(), RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let changes = env_state.changes_info.take().unwrap();
-    if changes.changes_version != changes_version {
+    let Some(mut changes) = changes.get_versioned(changes_version) else {
         return Err(RustError::unrecoverable("changes version mismatch"));
-    }
-    if changes.environment_version != env_state.environment.environment_version.0 {
-        return Err(RustError::unrecoverable("environment version mismatch"));
-    }
+    };
 
-    let environment = env_state
-        .environment
-        .get_environment_mut(UpdateRepositoryMode::None, &env_state.io)
-        .await?;
+    let changes = changes.take_changes();
+
+    let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
     let mut unity_project = load_project(project_path).await?;
 
     unity_project
-        .apply_pending_changes(environment, changes.changes)
+        .apply_pending_changes(&installer, changes)
         .await?;
 
     unity_project.save().await?;
-    update_project_last_modified(environment, unity_project.project_dir()).await;
+    update_project_last_modified(&io, unity_project.project_dir()).await;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn project_clear_pending_changes(
+    changes: State<'_, ChangesState>,
+) -> Result<(), RustError> {
+    changes.clear_cache();
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_2022(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<(), RustError> {
-    with_environment!(state, |environment| {
+    {
+        let settings = settings.load(io.inner()).await?;
+        let packages = packages.load(&settings, io.inner(), http.inner()).await?;
         let mut unity_project = load_project(project_path).await?;
 
-        match unity_project.migrate_unity_2022(environment).await {
+        let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
+
+        match unity_project
+            .migrate_unity_2022(packages.collection(), &installer)
+            .await
+        {
             Ok(()) => {}
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
 
         unity_project.save().await?;
-        update_project_last_modified(environment, unity_project.project_dir()).await;
+        update_project_last_modified(&io, unity_project.project_dir()).await;
 
         Ok(())
-    })
+    }
 }
 
 #[derive(Serialize, specta::Type, Clone)]
@@ -489,20 +492,24 @@ pub async fn project_call_unity_for_migration(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_vpm(
-    state: State<'_, Mutex<EnvironmentState>>,
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<(), RustError> {
-    let mut env_state = state.lock().await;
-    let env_state = &mut *env_state;
-    let environment = env_state
-        .environment
-        .get_environment_mut(UpdateRepositoryMode::IfOutdatedOrNecessary, &env_state.io)
-        .await?;
+    let settings = settings.load(io.inner()).await?;
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
 
     let mut unity_project = load_project(project_path).await?;
+    let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
     match unity_project
-        .migrate_vpm(environment, environment.show_prerelease_packages())
+        .migrate_vpm(
+            packages.collection(),
+            &installer,
+            settings.show_prerelease_packages(),
+        )
         .await
     {
         Ok(()) => {}
@@ -510,7 +517,7 @@ pub async fn project_migrate_project_to_vpm(
     }
 
     unity_project.save().await?;
-    update_project_last_modified(environment, unity_project.project_dir()).await;
+    update_project_last_modified(&io, unity_project.project_dir()).await;
 
     Ok(())
 }
@@ -522,7 +529,6 @@ fn is_unity_running(project_path: impl AsRef<Path>) -> bool {
 #[tauri::command]
 #[specta::specta]
 pub async fn project_open_unity(
-    state: State<'_, Mutex<EnvironmentState>>,
     config: State<'_, GuiConfigState>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
@@ -535,14 +541,16 @@ pub async fn project_open_unity(
 
     let mut custom_args: Option<Vec<String>> = None;
 
-    with_environment!(&state, |environment| {
-        if let Some(project) = environment.find_project(project_path.as_ref())? {
+    {
+        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        if let Some(project) = connection.find_project(project_path.as_ref())? {
             custom_args = project
                 .custom_unity_args()
                 .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
         }
-        update_project_last_modified(environment, project_path.as_ref()).await;
-    });
+        connection.update_project_last_modified(project_path.as_ref())?;
+        connection.save(io.inner()).await?;
+    }
 
     let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
     let config_default_args;
@@ -550,7 +558,7 @@ pub async fn project_open_unity(
     if let Some(custom_args) = &custom_args {
         args.extend(custom_args.iter().map(OsStr::new));
     } else {
-        config_default_args = config.load(&io).await?.default_unity_arguments.clone();
+        config_default_args = config.get().default_unity_arguments.clone();
         if let Some(config_default_args) = &config_default_args {
             args.extend(config_default_args.iter().map(OsStr::new));
         } else {
@@ -694,20 +702,19 @@ impl Drop for RemoveOnDrop<'_> {
 #[tauri::command]
 #[specta::specta]
 pub async fn project_create_backup(
-    state: State<'_, Mutex<EnvironmentState>>,
     config: State<'_, GuiConfigState>,
+    settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
     window: Window,
     channel: String,
     project_path: String,
 ) -> Result<AsyncCallResult<(), ()>, RustError> {
     async_command(channel, window, async {
-        let backup_format = config.load(&io).await?.backup_format.to_ascii_lowercase();
+        let backup_format = config.get().backup_format.to_ascii_lowercase();
 
-        let backup_dir = with_environment!(&state, |environment| {
-            let backup_path = project_backup_path(environment).await?;
-            backup_path.to_string()
-        });
+        let mut settings = settings.load_mut(io.inner()).await?;
+        let backup_dir = project_backup_path(&mut settings).to_string();
+        settings.maybe_save().await?;
 
         With::<()>::continue_async(move |_| async move {
             let project_name = Path::new(&project_path)
@@ -798,85 +805,73 @@ pub async fn project_create_backup(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_get_custom_unity_args(
-    state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
-    with_environment!(&state, |environment| {
-        let result;
-        if let Some(project) = environment.find_project(project_path.as_ref())? {
-            result = project
-                .custom_unity_args()
-                .map(|x| x.iter().map(ToOwned::to_owned).collect());
-        } else {
-            result = None;
-        }
-        environment.disconnect_litedb();
-        Ok(result)
-    })
+    let connection = VccDatabaseConnection::connect(io.inner())?;
+    if let Some(project) = connection.find_project(project_path.as_ref())? {
+        Ok(project
+            .custom_unity_args()
+            .map(|x| x.iter().map(ToOwned::to_owned).collect()))
+    } else {
+        Ok(None)
+    }
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_set_custom_unity_args(
-    state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     args: Option<Vec<String>>,
 ) -> Result<bool, RustError> {
-    with_environment!(&state, |environment| {
-        if let Some(mut project) = environment.find_project(project_path.as_ref())? {
-            if let Some(args) = args {
-                project.set_custom_unity_args(args);
-            } else {
-                project.clear_custom_unity_args();
-            }
-            environment.update_project(&project)?;
-            environment.disconnect_litedb();
-            Ok(true)
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+        if let Some(args) = args {
+            project.set_custom_unity_args(args);
         } else {
-            environment.disconnect_litedb();
-            Ok(false)
+            project.clear_custom_unity_args();
         }
-    })
+        connection.update_project(&project)?;
+        connection.save(io.inner()).await?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_get_unity_path(
-    state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
 ) -> Result<Option<String>, RustError> {
-    with_environment!(&state, |environment| {
-        let result;
-        if let Some(project) = environment.find_project(project_path.as_ref())? {
-            result = project.unity_path().map(ToOwned::to_owned);
-        } else {
-            result = None;
-        }
-        environment.disconnect_litedb();
-        Ok(result)
-    })
+    let connection = VccDatabaseConnection::connect(io.inner())?;
+    if let Some(project) = connection.find_project(project_path.as_ref())? {
+        Ok(project.unity_path().map(ToOwned::to_owned))
+    } else {
+        Ok(None)
+    }
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn project_set_unity_path(
-    state: State<'_, Mutex<EnvironmentState>>,
+    io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
-    with_environment!(&state, |environment| {
-        if let Some(mut project) = environment.find_project(project_path.as_ref())? {
-            if let Some(unity_path) = unity_path {
-                project.set_unity_path(unity_path);
-            } else {
-                project.clear_unity_path();
-            }
-            environment.update_project(&project)?;
-            environment.disconnect_litedb();
-            Ok(true)
+    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+        if let Some(unity_path) = unity_path {
+            project.set_unity_path(unity_path);
         } else {
-            environment.disconnect_litedb();
-            Ok(false)
+            project.clear_unity_path();
         }
-    })
+        connection.update_project(&project)?;
+        connection.save(io.inner()).await?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }

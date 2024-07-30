@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use crate::config::GuiConfigState;
 use tauri::Manager;
 
 mod commands;
@@ -14,6 +13,7 @@ mod templates;
 #[cfg_attr(windows, path = "os_windows.rs")]
 #[cfg_attr(not(windows), path = "os_posix.rs")]
 mod os;
+mod state;
 mod utils;
 
 // for clippy compatibility
@@ -50,11 +50,14 @@ fn main() {
             process_args(&argv);
         }))
         .manage(io.clone())
-        .manage(GuiConfigState::new())
+        .manage(state::new_http_client())
+        .manage(state::SettingsState::new())
+        .manage(state::UpdaterState::new())
+        .manage(state::ProjectsState::new())
+        .manage(state::PackagesState::new())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {
-            app.manage(commands::new_env_state(io));
             commands::startup(app);
             // process args
             process_args(&std::env::args().collect::<Vec<_>>());

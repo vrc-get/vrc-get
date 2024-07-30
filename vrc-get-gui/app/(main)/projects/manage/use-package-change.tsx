@@ -13,6 +13,7 @@ import {
 	type TauriPendingProjectChanges,
 	type TauriRemoveReason,
 	projectApplyPendingChanges,
+	projectClearPendingChanges,
 	utilOpenUrl,
 } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
@@ -200,12 +201,22 @@ export function usePackageChangeDialog({
 				}
 			};
 
+			const cancel = async () => {
+				setInstallStatus({ status: "normal" });
+				try {
+					await projectClearPendingChanges();
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+
 			dialogForState = (
 				<ProjectChangesDialog
 					packages={packageRowsData}
 					changes={installStatus.changes}
 					existingPackages={existingPackages}
-					cancel={() => setInstallStatus({ status: "normal" })}
+					cancel={cancel}
 					apply={() => applyChanges(installStatus)}
 				/>
 			);

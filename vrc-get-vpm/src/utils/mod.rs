@@ -8,22 +8,22 @@ mod sha256_async_write;
 use crate::io;
 use crate::io::{DirEntry, IoTrait};
 use async_zip::error::ZipError;
-use either::Either;
-use futures::prelude::*;
-use futures::stream::FuturesUnordered;
-use pin_project_lite::pin_project;
-use serde_json::error::Category;
-use serde_json::{Map, Value};
-use std::path::{Component, Path, PathBuf};
-use std::pin::Pin;
-use std::task::{ready, Context, Poll};
-
 pub(crate) use copy_recursive::copy_recursive;
 pub(crate) use crlf_json_formatter::to_vec_pretty_os_eol;
 pub(crate) use deup_deserializer::DedupForwarder;
+use either::Either;
 pub(crate) use extract_zip::extract_zip;
+use futures::prelude::*;
+use futures::stream::FuturesUnordered;
+use pin_project_lite::pin_project;
 pub(crate) use save_controller::SaveController;
+use serde::Serialize;
+use serde_json::error::Category;
+use serde_json::{Map, Value};
 pub(crate) use sha256_async_write::Sha256AsyncWrite;
+use std::path::{Component, Path, PathBuf};
+use std::pin::Pin;
+use std::task::{ready, Context, Poll};
 
 pub(crate) trait PathBufExt {
     fn joined(self, into: impl AsRef<Path>) -> Self;
@@ -302,5 +302,16 @@ pub(crate) fn check_absolute_path(path: impl AsRef<Path>) -> io::Result<()> {
             "project path must be absolute",
         ));
     }
+    Ok(())
+}
+
+pub(crate) async fn save_json(
+    io: &impl IoTrait,
+    path: &Path,
+    data: &impl Serialize,
+) -> io::Result<()> {
+    io.create_dir_all(path.parent().unwrap_or("".as_ref()))
+        .await?;
+    io.write_sync(path, &to_vec_pretty_os_eol(&data)?).await?;
     Ok(())
 }

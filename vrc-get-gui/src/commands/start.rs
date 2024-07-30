@@ -1,11 +1,10 @@
 use crate::commands::prelude::*;
 
-use crate::config::GuiConfigState;
 use log::{error, info};
 use std::io;
 use tauri::async_runtime::spawn;
 use tauri::{App, AppHandle, LogicalSize, Manager, State, Window, WindowEvent};
-use tokio::sync::Mutex;
+use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_hub;
 
@@ -35,7 +34,8 @@ pub fn startup(app: &mut App) {
     let handle = app.handle();
     tauri::async_runtime::spawn(async move {
         let state = handle.state();
-        if let Err(e) = update_unity_hub(state).await {
+        let io = handle.state();
+        if let Err(e) = update_unity_hub(state, io).await {
             error!("failed to update unity from unity hub: {e}");
         }
     });
@@ -47,35 +47,45 @@ pub fn startup(app: &mut App) {
         }
     });
 
-    async fn update_unity_hub(state: State<'_, Mutex<EnvironmentState>>) -> Result<(), io::Error> {
+    async fn update_unity_hub(
+        settings: State<'_, SettingsState>,
+        io: State<'_, DefaultEnvironmentIo>,
+    ) -> Result<(), io::Error> {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        let unity_hub_path = with_environment!(&state, |environment| {
-            let Some(unity_hub_path) = environment.find_unity_hub().await? else {
+        let unity_hub_path = {
+            let mut settings = settings.load_mut(io.inner()).await?;
+            let Some(unity_hub_path) = find_unity_hub(&mut settings, io.inner()).await? else {
                 error!("Unity Hub not found");
+                settings.save().await?;
                 return Ok(());
             };
-            environment.save().await?;
+            settings.save().await?;
             unity_hub_path
-        });
+        };
 
         let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
 
-        with_environment!(&state, |environment| {
-            environment
-                .update_unity_from_unity_hub_and_fs(&paths_from_hub)
+        {
+            let mut connection = VccDatabaseConnection::connect(io.inner())?;
+
+            connection
+                .update_unity_from_unity_hub_and_fs(&paths_from_hub, io.inner())
                 .await?;
 
-            environment.save().await?;
-        });
+            connection.save(io.inner()).await?;
+        }
 
         info!("finished updating unity from unity hub");
         Ok(())
     }
 
     async fn open_main(app: AppHandle) -> tauri::Result<()> {
-        let config = app.state::<GuiConfigState>();
         let io = app.state::<DefaultEnvironmentIo>();
-        let config = config.load(&io).await?.clone();
+        let config = GuiConfigState::new_load(io.inner()).await?;
+        app.manage(config);
+
+        let config = app.state::<GuiConfigState>();
+        let config = config.get().clone();
 
         if !cfg!(target_os = "macos") && config.use_alcom_for_vcc_protocol {
             spawn(crate::deep_link_support::deep_link_install_vcc(app.clone()));
@@ -169,8 +179,7 @@ pub fn startup(app: &mut App) {
                 size.width, size.height, fullscreen
             );
             let config = window.state::<GuiConfigState>();
-            let io = window.state::<DefaultEnvironmentIo>();
-            let mut config = config.load_mut(&io).await?;
+            let mut config = config.load_mut().await?;
             if fullscreen {
                 config.fullscreen = true;
             } else {

@@ -1,11 +1,13 @@
 use crate::commands::{
-    confirm_prompt, load_env, load_unity, update_project_last_modified, EnvArgs, ResultExt,
+    confirm_prompt, load_collection, load_unity, update_project_last_modified, EnvArgs, ResultExt,
 };
 use clap::{Parser, Subcommand};
 use log::{info, warn};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use tokio::process::Command;
+use vrc_get_vpm::environment::PackageInstaller;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 /// Migrate Unity Project
 #[derive(Subcommand)]
@@ -56,10 +58,18 @@ impl Unity2022 {
         }
 
         let mut project = load_unity(self.project).await;
-        let env = load_env(&self.env_args).await;
+
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
+
+        #[cfg(feature = "experimental-vcc")]
+        let connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(&io)
+            .exit_context("connecting to database");
 
         project
-            .migrate_unity_2022(&env)
+            .migrate_unity_2022(&collection, &installer)
             .await
             .exit_context("migrating unity project");
 
@@ -73,7 +83,7 @@ impl Unity2022 {
         #[cfg(feature = "experimental-vcc")]
         let unity = self.unity.unwrap_or_else(|| {
             use vrc_get_vpm::VRCHAT_RECOMMENDED_2022_UNITY;
-            let Some(found) = env.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
+            let Some(found) = connection.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
                 .exit_context("getting unity 2022 path") else {
                 exit_with!("Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option.")
             };
@@ -103,7 +113,7 @@ impl Unity2022 {
 
         info!("Unity exited successfully. Migration finished.");
 
-        update_project_last_modified(env, project.project_dir()).await;
+        update_project_last_modified(&io, project.project_dir()).await;
     }
 }
 
@@ -128,10 +138,14 @@ impl Vpm {
         }
 
         let mut project = load_unity(self.project).await;
-        let env = load_env(&self.env_args).await;
+
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
 
         project
-            .migrate_vpm(&env, false)
+            .migrate_vpm(&collection, &installer, false)
             .await
             .exit_context("migrating unity project");
 
@@ -139,6 +153,6 @@ impl Vpm {
 
         info!("Migration finished.");
 
-        update_project_last_modified(env, project.project_dir()).await;
+        update_project_last_modified(&io, project.project_dir()).await;
     }
 }

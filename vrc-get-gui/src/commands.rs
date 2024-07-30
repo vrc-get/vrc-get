@@ -8,14 +8,12 @@ use specta::specta;
 use tauri::{generate_handler, Invoke};
 
 pub use start::startup;
-pub use state::new_env_state;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
+use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
 
-#[macro_use]
-mod state;
 mod async_command;
 mod environment;
 mod project;
@@ -24,14 +22,12 @@ mod uri_custom_scheme;
 mod util;
 
 mod prelude {
-    pub use super::state::{EnvironmentState, UpdateRepositoryMode};
     pub(super) use super::{
-        load_project, update_project_last_modified, Environment, RustError, TauriBasePackageInfo,
-        UnityProject,
+        load_project, update_project_last_modified, RustError, TauriBasePackageInfo, UnityProject,
     };
+    pub use crate::state::*;
 }
 
-pub type Environment = vrc_get_vpm::Environment<reqwest::Client, DefaultEnvironmentIo>;
 pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 // Note: remember to change similar in typescript
@@ -93,6 +89,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
         project::project_resolve,
         project::project_remove_packages,
         project::project_apply_pending_changes,
+        project::project_clear_pending_changes,
         project::project_migrate_project_to_2022,
         project::project_call_unity_for_migration,
         project::project_migrate_project_to_vpm,
@@ -175,6 +172,7 @@ pub(crate) fn export_ts() {
             project::project_resolve,
             project::project_remove_packages,
             project::project_apply_pending_changes,
+            project::project_clear_pending_changes,
             project::project_migrate_project_to_2022,
             project::project_call_unity_for_migration,
             project::project_migrate_project_to_vpm,
@@ -229,14 +227,15 @@ pub(crate) fn export_ts() {
     std::fs::write(export_path, file).unwrap();
 }
 
-async fn update_project_last_modified(env: &mut Environment, project_dir: &Path) {
-    async fn inner(env: &mut Environment, project_dir: &Path) -> Result<(), io::Error> {
-        env.update_project_last_modified(project_dir)?;
-        env.save().await?;
+async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
+    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), io::Error> {
+        let mut connection = VccDatabaseConnection::connect(io)?;
+        connection.update_project_last_modified(project_dir)?;
+        connection.save(io).await?;
         Ok(())
     }
 
-    if let Err(err) = inner(env, project_dir).await {
+    if let Err(err) = inner(io, project_dir).await {
         eprintln!("error updating project updated_at on vcc: {err}");
     }
 }

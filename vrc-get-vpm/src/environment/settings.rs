@@ -1,229 +1,313 @@
-use crate::io;
-use crate::io::EnvironmentIo;
-use crate::utils::{load_json_or_default, SaveController};
-use crate::UserRepoSetting;
-use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use std::collections::HashSet;
+use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
-type JsonObject = Map<String, Value>;
+use indexmap::IndexMap;
+use url::Url;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AsJson {
-    #[serde(default)]
-    path_to_unity_exe: Box<str>,
-    #[serde(default)]
-    path_to_unity_hub: Box<str>,
-    #[serde(default)]
-    user_projects: Vec<Box<str>>,
-    #[serde(default)]
-    unity_editors: Vec<Box<str>>,
-    #[serde(default)]
-    preferred_unity_editors: JsonObject,
-    // In the current VCC, this path will be reset to default if it's null
-    // and vrc-get prefers another path the VCC's one so keep null if not set
-    #[serde(default)]
-    default_project_path: Option<Box<str>>,
-    #[serde(rename = "lastUIState")]
-    #[serde(default)]
-    last_ui_state: i64,
-    #[serde(default)]
-    skip_unity_auto_find: bool,
-    #[serde(default)]
-    user_package_folders: Vec<PathBuf>,
-    #[serde(default)]
-    window_size_data: JsonObject,
-    #[serde(default)]
-    skip_requirements: bool,
-    #[serde(default)]
-    last_news_update: Box<str>,
-    #[serde(default)]
-    allow_pii: bool,
-    // In the current VCC, this path will be reset to default if it's null
-    // and vrc-get prefers another path the VCC's one so keep null if not set
-    #[serde(default)]
-    project_backup_path: Option<Box<str>>,
-    #[serde(default)]
-    show_prerelease_packages: bool,
-    #[serde(default)]
-    track_community_repos: bool,
-    #[serde(default)]
-    selected_providers: u64,
-    #[serde(default)]
-    last_selected_project: Box<str>,
-    #[serde(default)]
-    user_repos: Vec<UserRepoSetting>,
+use crate::environment::vpm_settings::VpmSettings;
+use crate::environment::vrc_get_settings::VrcGetSettings;
+use crate::environment::{AddUserPackageResult, PackageCollection};
+use crate::io::EnvironmentIo;
+use crate::package_manifest::LooseManifest;
+use crate::repository::RemoteRepository;
+use crate::utils::{normalize_path, try_load_json};
+use crate::{io, UserRepoSetting};
 
-    #[serde(flatten)]
-    rest: JsonObject,
+#[derive(Debug, Clone)]
+pub struct Settings {
+    /// parsed settings
+    vpm: VpmSettings,
+    vrc_get: VrcGetSettings,
 }
-
-#[derive(Debug)]
-pub(crate) struct Settings {
-    controller: SaveController<AsJson>,
-}
-
-pub(crate) trait NewIdGetter {
-    // I wanted to be closure but it looks not possible
-    // https://users.rust-lang.org/t/any-way-to-return-an-closure-that-would-returns-a-reference-to-one-of-its-captured-variable/22652/2
-    fn new_id<'a>(&'a self, repo: &'a UserRepoSetting) -> Result<Option<&'a str>, ()>;
-}
-
-const JSON_PATH: &str = "settings.json";
 
 impl Settings {
     pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
-        let parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
+        let settings = VpmSettings::load(io).await?;
+        let vrc_get_settings = VrcGetSettings::load(io).await?;
 
         Ok(Self {
-            controller: SaveController::new(parsed),
+            vpm: settings,
+            vrc_get: vrc_get_settings,
         })
     }
 
-    pub(crate) fn user_repos(&self) -> &[UserRepoSetting] {
-        &self.controller.user_repos
+    pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
+        self.vpm.save(io).await?;
+
+        Ok(())
+    }
+}
+
+/// VCC Settings / Stores
+impl Settings {
+    pub fn show_prerelease_packages(&self) -> bool {
+        self.vpm.show_prerelease_packages()
     }
 
-    pub(crate) fn user_package_folders(&self) -> &[PathBuf] {
-        &self.controller.user_package_folders
+    pub fn set_show_prerelease_packages(&mut self, value: bool) {
+        self.vpm.set_show_prerelease_packages(value);
     }
 
-    pub fn remove_user_package_folder(&mut self, path: &Path) {
-        self.controller
-            .as_mut()
-            .user_package_folders
-            .retain(|x| x != path);
+    pub fn default_project_path(&self) -> Option<&str> {
+        self.vpm.default_project_path()
     }
 
-    pub(crate) fn add_user_package_folder(&mut self, path: PathBuf) {
-        self.controller.as_mut().user_package_folders.push(path);
+    pub fn set_default_project_path(&mut self, value: &str) {
+        self.vpm.set_default_project_path(value);
     }
 
-    pub(crate) fn update_user_repo_id(&mut self, new_id: impl NewIdGetter) {
-        self.controller.may_changing(|json| {
-            let mut changed = false;
-            for repo in &mut json.user_repos {
-                if let Ok(id) = new_id.new_id(repo) {
-                    if id != repo.id() {
-                        let owned = id.map(|x| x.into());
-                        repo.id = owned;
-                        changed = true;
-                    }
-                }
-            }
-            changed
-        })
+    pub fn project_backup_path(&self) -> Option<&str> {
+        self.vpm.project_backup_path()
     }
 
-    pub fn retain_user_repos(
-        &mut self,
-        mut f: impl FnMut(&UserRepoSetting) -> bool,
-    ) -> Vec<UserRepoSetting> {
-        let mut removed = Vec::new();
-
-        // awaiting extract_if but not stable yet so use cloned method
-        self.controller.may_changing(|json| {
-            let cloned = json.user_repos.to_vec();
-            json.user_repos.clear();
-
-            for element in cloned {
-                if f(&element) {
-                    json.user_repos.push(element);
-                } else {
-                    removed.push(element);
-                }
-            }
-
-            !removed.is_empty()
-        });
-
-        removed
+    pub fn set_project_backup_path(&mut self, value: &str) {
+        self.vpm.set_project_backup_path(value);
     }
 
-    pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {
-        self.controller.as_mut().user_repos.push(repo);
+    pub fn unity_hub_path(&self) -> &str {
+        self.vpm.unity_hub()
     }
 
-    pub(crate) fn show_prerelease_packages(&self) -> bool {
-        self.controller.show_prerelease_packages
-    }
-
-    pub(crate) fn set_show_prerelease_packages(&mut self, value: bool) {
-        self.controller.as_mut().show_prerelease_packages = value;
-    }
-
-    pub(crate) fn default_project_path(&self) -> Option<&str> {
-        self.controller.default_project_path.as_deref()
-    }
-
-    pub(crate) fn set_default_project_path(&mut self, value: &str) {
-        self.controller.as_mut().default_project_path = Some(value.into());
-    }
-
-    pub(crate) fn project_backup_path(&self) -> Option<&str> {
-        self.controller.project_backup_path.as_deref()
-    }
-
-    pub(crate) fn set_project_backup_path(&mut self, value: &str) {
-        self.controller.as_mut().project_backup_path = Some(value.into());
-    }
-
-    pub(crate) fn unity_hub(&self) -> &str {
-        &self.controller.path_to_unity_hub
-    }
-
-    pub(crate) fn set_unity_hub(&mut self, path: &str) {
-        self.controller.as_mut().path_to_unity_hub = path.into();
-    }
-
-    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        self.controller.save(io, JSON_PATH.as_ref()).await
+    pub fn set_unity_hub_path(&mut self, value: &str) {
+        self.vpm.set_unity_hub(value);
     }
 }
 
 #[cfg(feature = "experimental-project-management")]
 impl Settings {
-    pub(crate) fn user_projects(&self) -> &[Box<str>] {
-        &self.controller.user_projects
+    pub fn user_projects(&self) -> &[Box<str>] {
+        self.vpm.user_projects()
     }
 
-    pub(crate) fn retain_user_projects(
+    pub fn retain_user_projects(&mut self, f: impl FnMut(&str) -> bool) -> Vec<Box<str>> {
+        self.vpm.retain_user_projects(f)
+    }
+
+    pub fn add_user_project(&mut self, path: &str) {
+        self.vpm.add_user_project(path);
+    }
+
+    pub fn remove_user_project(&mut self, path: &str) {
+        self.vpm.remove_user_project(path);
+    }
+
+    pub fn load_from_db(&mut self, connection: &super::VccDatabaseConnection) -> io::Result<()> {
+        let projects = connection.get_projects()?;
+        let mut project_paths = projects.iter().map(|x| x.path()).collect::<HashSet<_>>();
+
+        // remove removed projects
+        self.vpm
+            .retain_user_projects(|x| project_paths.contains(&x));
+
+        // add new projects
+        for x in self.vpm.user_projects() {
+            project_paths.remove(x.as_ref());
+        }
+
+        for x in project_paths {
+            self.vpm.add_user_project(x);
+        }
+
+        Ok(())
+    }
+}
+
+/// VPM Settings (vrc-get extensions)
+impl Settings {
+    pub fn ignore_curated_repository(&self) -> bool {
+        self.vrc_get.ignore_curated_repository()
+    }
+
+    pub fn ignore_official_repository(&self) -> bool {
+        self.vrc_get.ignore_official_repository()
+    }
+}
+
+/// User Package Managements
+impl Settings {
+    pub fn user_package_folders(&self) -> &[PathBuf] {
+        self.vpm.user_package_folders()
+    }
+
+    pub fn remove_user_package(&mut self, pkg_path: &Path) {
+        self.vpm.remove_user_package_folder(pkg_path);
+    }
+
+    pub async fn add_user_package(
         &mut self,
-        mut f: impl FnMut(&str) -> bool,
-    ) -> Vec<Box<str>> {
-        let mut removed = Vec::new();
+        pkg_path: &Path,
+        io: &impl EnvironmentIo,
+    ) -> AddUserPackageResult {
+        if !pkg_path.is_absolute() {
+            return AddUserPackageResult::NonAbsolute;
+        }
 
-        // awaiting extract_if but not stable yet so use cloned method
-        self.controller.may_changing(|json| {
-            let cloned = json.user_projects.to_vec();
-            json.user_projects.clear();
-
-            for element in cloned {
-                if f(element.as_ref()) {
-                    json.user_projects.push(element);
-                } else {
-                    removed.push(element);
-                }
+        for x in self.vpm.user_package_folders() {
+            if x == pkg_path {
+                return AddUserPackageResult::AlreadyAdded;
             }
+        }
 
-            !removed.is_empty()
-        });
+        match try_load_json::<LooseManifest>(io, &pkg_path.join("package.json")).await {
+            Ok(Some(LooseManifest(package_json))) => package_json,
+            _ => {
+                return AddUserPackageResult::BadPackage;
+            }
+        };
 
-        removed
+        self.vpm.add_user_package_folder(pkg_path.to_owned());
+
+        AddUserPackageResult::Success
+    }
+}
+
+/// Repository Managements
+impl Settings {
+    pub fn get_user_repos(&self) -> &[UserRepoSetting] {
+        self.vpm.user_repos()
     }
 
-    pub(crate) fn remove_user_project(&mut self, path: &str) {
-        self.controller
-            .as_mut()
-            .user_projects
-            .retain(|x| x.as_ref() != path);
+    pub fn can_add_remote_repo(&self, url: &Url, remote_repo: &RemoteRepository) -> bool {
+        let user_repos = self.get_user_repos();
+        if user_repos.iter().any(|x| x.url() == Some(url)) {
+            return false;
+        }
+        // should we check more urls?
+        if !self.ignore_curated_repository()
+            && url.as_str() == "https://packages.vrchat.com/curated?download"
+        {
+            return false;
+        }
+        if !self.ignore_official_repository()
+            && url.as_str() == "https://packages.vrchat.com/official?download"
+        {
+            return false;
+        }
+
+        if let Some(repo_id) = remote_repo.id() {
+            // if there is id, check if there is already repo with same id
+            if user_repos.iter().any(|x| x.id() == Some(repo_id)) {
+                return false;
+            }
+            if repo_id == "com.vrchat.repos.official" && !self.vrc_get.ignore_official_repository()
+            {
+                return false;
+            }
+            if repo_id == "com.vrchat.repos.curated" && !self.vrc_get.ignore_curated_repository() {
+                return false;
+            }
+        }
+
+        true
     }
 
-    pub(crate) fn add_user_project(&mut self, path: &str) {
-        self.controller
-            .as_mut()
-            .user_projects
-            .insert(0, path.into());
+    pub fn add_remote_repo(
+        &mut self,
+        url: &Url,
+        name: Option<&str>,
+        headers: IndexMap<Box<str>, Box<str>>,
+        remote_repo: &RemoteRepository,
+        path_buf: &Path,
+    ) -> bool {
+        if !self.can_add_remote_repo(url, remote_repo) {
+            return false;
+        }
+
+        let repo_name = name.or(remote_repo.name()).map(Into::into);
+        let repo_id = remote_repo.id().map(Into::into);
+
+        let mut repo_setting = UserRepoSetting::new(
+            path_buf.to_path_buf().into_boxed_path(),
+            repo_name,
+            Some(url.clone()),
+            repo_id,
+        );
+        repo_setting.headers = headers;
+
+        self.vpm.add_user_repo(repo_setting);
+        true
+    }
+
+    pub fn add_local_repo(&mut self, path: &Path, name: Option<&str>) -> bool {
+        let path = normalize_path(path);
+
+        if self.get_user_repos().iter().any(|x| x.local_path() == path) {
+            return false;
+        }
+
+        self.vpm.add_user_repo(UserRepoSetting::new(
+            path.into(),
+            name.map(Into::into),
+            None,
+            None,
+        ));
+        true
+    }
+
+    pub fn remove_repo(
+        &mut self,
+        condition: impl Fn(&UserRepoSetting) -> bool,
+    ) -> Vec<UserRepoSetting> {
+        self.vpm.retain_user_repos(|x| !condition(x))
+    }
+
+    // auto configurations
+
+    /// Removes id-duplicated repositories
+    ///
+    /// If there are multiple repositories with the same id,
+    /// this function will remove all but the first one.
+    pub fn remove_id_duplication(&mut self) -> Vec<UserRepoSetting> {
+        let user_repos = self.get_user_repos();
+        if user_repos.is_empty() {
+            return vec![];
+        }
+
+        let mut used_ids = HashSet::new();
+
+        // retain operates in place, visiting each element exactly once in the original order.
+        // s
+        self.vpm.retain_user_repos(|repo| {
+            let mut to_add = true;
+            if let Some(id) = repo.id() {
+                to_add = used_ids.insert(id.to_owned());
+            }
+            if to_add {
+                // this means new id
+                true
+            } else {
+                false
+            }
+        })
+    }
+
+    pub fn update_id(&mut self, loaded: &PackageCollection) -> bool {
+        self.vpm.update_id(loaded)
+    }
+
+    pub fn export_repositories(&self) -> String {
+        let mut builder = String::new();
+
+        for setting in self.get_user_repos() {
+            let Some(url) = setting.url() else { continue };
+            if setting.headers().is_empty() {
+                writeln!(builder, "{url}").unwrap();
+            } else {
+                let mut add_url = Url::parse("vcc://vpm/addRepo").unwrap();
+                let mut query_builder = add_url.query_pairs_mut();
+                query_builder.clear();
+                query_builder.append_pair("url", url.as_str());
+
+                for (header_name, value) in setting.headers() {
+                    query_builder.append_pair("headers[]", &format!("{}:{}", header_name, value));
+                }
+                drop(query_builder);
+
+                writeln!(builder, "{}", add_url).unwrap();
+            }
+        }
+
+        builder
     }
 }

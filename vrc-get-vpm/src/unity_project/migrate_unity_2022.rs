@@ -1,9 +1,8 @@
 use crate::io::ProjectIo;
-use crate::traits::EnvironmentIoHolder;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
 use crate::version::UnityVersion;
-use crate::{io, VRCHAT_RECOMMENDED_2022_UNITY};
-use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
+use crate::{io, PackageInstaller, VRCHAT_RECOMMENDED_2022_UNITY};
+use crate::{PackageCollection, UnityProject, VersionSelector};
 use log::warn;
 
 #[non_exhaustive]
@@ -53,18 +52,20 @@ impl From<io::Error> for MigrateUnity2022Error {
 type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
 
 impl<IO: ProjectIo> UnityProject<IO> {
-    pub async fn migrate_unity_2022<E>(&mut self, env: &E) -> Result
-    where
-        E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
-    {
-        migrate_unity_2022_beta(self, env).await
+    pub async fn migrate_unity_2022(
+        &mut self,
+        collection: &impl PackageCollection,
+        installer: &impl PackageInstaller,
+    ) -> Result {
+        migrate_unity_2022_beta(self, collection, installer).await
     }
 }
 
-async fn migrate_unity_2022_beta<E>(project: &mut UnityProject<impl ProjectIo>, env: &E) -> Result
-where
-    E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
-{
+async fn migrate_unity_2022_beta(
+    project: &mut UnityProject<impl ProjectIo>,
+    collection: &impl PackageCollection,
+    installer: &impl PackageInstaller,
+) -> Result {
     // See https://misskey.niri.la/notes/9nod7sk4sr for migration process
     if project.unity_version().map(UnityVersion::major) != Some(2019) {
         return Err(MigrateUnity2022Error::UnityVersionMismatch);
@@ -94,7 +95,7 @@ where
     for package in migrating_packages {
         if project.get_locked(package).is_some() {
             let unity_version = Some(VRCHAT_RECOMMENDED_2022_UNITY);
-            let Some(vrcsdk) = env
+            let Some(vrcsdk) = collection
                 .find_package_by_name(package, VersionSelector::latest_for(unity_version, false))
             else {
                 return Err(MigrateUnity2022Error::VpmPackageNotFound(package));
@@ -107,13 +108,13 @@ where
         // install packages
         let request = project
             .add_package_request(
-                env,
+                collection,
                 &packages,
                 AddPackageOperation::InstallToDependencies,
                 false,
             )
             .await?;
-        project.apply_pending_changes(env, request).await?;
+        project.apply_pending_changes(installer, request).await?;
     }
 
     Ok(())
