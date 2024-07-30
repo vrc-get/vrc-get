@@ -70,12 +70,12 @@ impl PackagesState {
         io: &DefaultEnvironmentIo,
         http: &reqwest::Client,
     ) -> io::Result<PackagesStateRef<'_>> {
-        let inner = self.inner.load();
+        let inner = self.inner.load_full();
 
         // If the data is new enough, we can use it.
-        if let Some(inner) = inner.as_ref().filter(|x| x.is_new()) {
+        if let Some(inner) = inner.filter(|x| x.is_new()) {
             return Ok(PackagesStateRef {
-                arc: inner.clone(),
+                arc: inner,
                 _phantom_data: PhantomData,
             });
         }
@@ -104,11 +104,11 @@ impl PackagesState {
 
         if !force {
             // if it's not forced, we can check if the data is already loaded.
-            let loaded = self.inner.load();
-            if let Some(loaded) = loaded.as_ref().filter(|x| x.is_new()) {
+            let loaded = self.inner.load_full();
+            if let Some(loaded) = loaded.filter(|x| x.is_new()) {
                 // Another thread loaded it while we were waiting.
                 return Ok(PackagesStateRef {
-                    arc: loaded.clone(),
+                    arc: loaded,
                     _phantom_data: PhantomData,
                 });
             }
@@ -132,11 +132,10 @@ impl PackagesState {
     }
 
     pub fn get_versioned(&self, version: u32) -> Option<PackagesVersionRef<'_>> {
-        let loaded = self.inner.load();
-        let loaded = loaded.as_ref()?;
+        let loaded = self.inner.load_full()?;
         if loaded.version == version {
             Some(PackagesVersionRef {
-                arc: loaded.clone(),
+                arc: loaded,
                 _phantom_data: PhantomData,
             })
         } else {

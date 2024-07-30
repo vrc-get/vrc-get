@@ -28,12 +28,12 @@ impl GuiConfigState {
     }
 
     pub fn get(&self) -> GuiConfigRef {
-        GuiConfigRef::new(self.inner.load().clone())
+        GuiConfigRef::new(self.inner.load_full())
     }
 
     pub async fn load_mut(&self) -> io::Result<GuiConfigMutRef<'_>> {
         let lock = self.mut_lock.lock().await;
-        let loaded = GuiConfigRef::new(self.inner.load().clone());
+        let loaded = GuiConfigRef::new(self.inner.load_full());
         Ok(GuiConfigMutRef {
             config: loaded.state.config.clone(),
             path: loaded.state.path.clone(),

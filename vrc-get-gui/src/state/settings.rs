@@ -44,17 +44,17 @@ impl SettingsState {
 
     pub async fn load(&self, io: &DefaultEnvironmentIo) -> io::Result<SettingsRef> {
         // If the data is new enough, we can use it.
-        let inner = self.inner.load();
-        if let Some(inner) = inner.as_ref().filter(|x| x.is_new()) {
-            return Ok(SettingsRef::new(inner.clone()));
+        let inner = self.inner.load_full();
+        if let Some(inner) = inner.filter(|x| x.is_new()) {
+            return Ok(SettingsRef::new(inner));
         }
 
         let guard = self.load_lock.lock().await;
 
         // Recheck after lock to get loaded from another thread
-        let inner = self.inner.load();
-        if let Some(inner) = inner.as_ref().filter(|x| x.is_new()) {
-            return Ok(SettingsRef::new(inner.clone()));
+        let inner = self.inner.load_full();
+        if let Some(inner) = inner.filter(|x| x.is_new()) {
+            return Ok(SettingsRef::new(inner));
         }
 
         // Loaded data is too old, reload it
