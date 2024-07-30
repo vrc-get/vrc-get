@@ -37,6 +37,21 @@ pub enum Project {
 
 multi_command!(Project is List, Add, Remove);
 
+async fn migrate_sanitize_projects(
+    connection: &mut VccDatabaseConnection,
+    io: &DefaultEnvironmentIo,
+    settings: &Settings,
+) {
+    // migrate from settings json
+    connection
+        .migrate(settings, io)
+        .await
+        .exit_context("migrating from settings.json");
+    connection
+        .dedup_projects()
+        .exit_context("deduplicating projects in DB");
+}
+
 /// List projects
 #[derive(Parser)]
 #[command(author, version)]
@@ -53,19 +68,12 @@ impl ProjectList {
         let mut connection =
             VccDatabaseConnection::connect(&io).exit_context("connecting to database");
 
-        connection
-            .migrate(&settings, &io)
-            .await
-            .exit_context("migrating from settings.json");
+        migrate_sanitize_projects(&mut connection, &io, &settings).await;
 
         connection
             .sync_with_real_projects(false, &io)
             .await
             .exit_context("syncing with real projects");
-
-        connection
-            .dedup_projects()
-            .exit_context("deduplicating projects");
 
         let mut projects = connection.get_projects().exit_context("getting projects");
 
@@ -115,10 +123,7 @@ impl ProjectAdd {
             return eprintln!("Invalid project at {}", self.path);
         }
 
-        connection
-            .migrate(&settings, &io)
-            .await
-            .exit_context("migrating from settings.json");
+        migrate_sanitize_projects(&mut connection, &io, &settings).await;
 
         connection
             .add_project(&project)
@@ -158,16 +163,13 @@ impl ProjectRemove {
             return println!("No project found at {}", self.path);
         };
 
-        connection
-            .migrate(&settings, &io)
-            .await
-            .exit_context("migrating from settings.json");
+        migrate_sanitize_projects(&mut connection, &io, &settings).await;
 
         connection
             .remove_project(&project)
             .exit_context("removing project");
-        connection.save(&io).await.exit_context("saving database");
 
+        connection.save(&io).await.exit_context("saving database");
         settings
             .load_from_db(&connection)
             .exit_context("saving database");

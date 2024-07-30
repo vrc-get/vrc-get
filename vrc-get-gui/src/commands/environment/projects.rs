@@ -11,7 +11,7 @@ use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::State;
 use tokio::fs::read_dir;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
-use vrc_get_vpm::environment::{PackageInstaller, UserProject, VccDatabaseConnection};
+use vrc_get_vpm::environment::{PackageInstaller, Settings, UserProject, VccDatabaseConnection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 use vrc_get_vpm::ProjectType;
 
@@ -89,6 +89,18 @@ impl TauriProject {
     }
 }
 
+async fn migrate_sanitize_projects(
+    connection: &mut VccDatabaseConnection,
+    io: &DefaultEnvironmentIo,
+    settings: &Settings,
+) -> io::Result<()> {
+    info!("migrating projects from settings.json");
+    // migrate from settings json
+    connection.migrate(settings, io).await?;
+    connection.dedup_projects()?;
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_projects(
@@ -99,12 +111,9 @@ pub async fn environment_projects(
     let mut settings = settings.load_mut(io.inner()).await?;
     let mut connection = VccDatabaseConnection::connect(io.inner())?;
 
-    info!("migrating projects from settings.json");
-    // migrate from settings json
-    connection.migrate(&settings, io.inner()).await?;
+    migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
     info!("syncing information with real projects");
     connection.sync_with_real_projects(true, io.inner()).await?;
-    connection.dedup_projects()?;
     settings.load_from_db(&connection)?;
     connection.save(io.inner()).await?;
     settings.save().await?;
@@ -156,7 +165,7 @@ pub async fn environment_add_project_with_picker(
     {
         let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner())?;
-        connection.migrate(&settings, io.inner()).await?;
+        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
         let projects = connection.get_projects()?;
         if projects
@@ -202,7 +211,7 @@ pub async fn environment_remove_project(
 
     let mut settings = settings.load_mut(io.inner()).await?;
     let mut connection = VccDatabaseConnection::connect(io.inner())?;
-    connection.migrate(&settings, io.inner()).await?;
+    migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
     connection.remove_project(project)?;
     connection.save(io.inner()).await?;
     settings.load_from_db(&connection)?;
@@ -233,7 +242,7 @@ pub async fn environment_remove_project_by_path(
     {
         let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner())?;
-        connection.migrate(&settings, io.inner()).await?;
+        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
         let projects: Vec<UserProject> = connection.get_projects()?;
 
@@ -337,7 +346,7 @@ pub async fn environment_copy_project_for_migration(
     {
         let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner())?;
-        connection.migrate(&settings, io.inner()).await?;
+        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
         settings.load_from_db(&connection)?;
@@ -674,7 +683,7 @@ pub async fn environment_create_project(
         // add the project to listing
         let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner())?;
-        connection.migrate(&settings, io.inner()).await?;
+        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
         settings.load_from_db(&connection)?;
