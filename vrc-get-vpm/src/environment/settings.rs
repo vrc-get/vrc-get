@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
-use futures::future::try_join;
 use indexmap::IndexMap;
 use url::Url;
 
@@ -34,9 +33,7 @@ impl Settings {
     }
 
     pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
-        try_join(self.vpm.save(io), self.vrc_get.save(io))
-            .await
-            .map(|_| ())?;
+        self.vpm.save(io).await?;
 
         Ok(())
     }

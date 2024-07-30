@@ -1,8 +1,7 @@
 use crate::io;
 use crate::io::EnvironmentIo;
-use crate::utils::{read_json_file, to_vec_pretty_os_eol};
+use crate::utils::read_json_file;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 
 /// since this file is vrc-get specific, additional keys can be removed
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -41,26 +40,7 @@ impl VrcGetSettings {
         self.parsed.ignore_official_repository
     }
 
-    #[allow(dead_code)]
-    pub fn set_ignore_official_repository(&mut self, value: bool) {
-        self.parsed.ignore_official_repository = value;
-    }
-
     pub fn ignore_curated_repository(&self) -> bool {
         self.parsed.ignore_curated_repository
-    }
-
-    #[allow(dead_code)]
-    pub fn set_ignore_curated_repository(&mut self, value: bool) {
-        self.parsed.ignore_curated_repository = value;
-    }
-
-    pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
-        let path = Path::new(JSON_PATH);
-        io.create_dir_all(path.parent().unwrap_or("".as_ref()))
-            .await?;
-        io.write_sync(path, &to_vec_pretty_os_eol(&self.parsed)?)
-            .await?;
-        Ok(())
     }
 }
