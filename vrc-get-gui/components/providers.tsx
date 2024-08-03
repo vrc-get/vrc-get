@@ -81,7 +81,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 				if (isDev) return;
 				const checkVersion = await utilCheckForUpdate();
 				if (cancel) return;
-				if (checkVersion.is_update_available) {
+				if (checkVersion) {
 					setUpdateState(checkVersion);
 				}
 			} catch (e) {

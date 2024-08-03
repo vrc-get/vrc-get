@@ -287,7 +287,7 @@ export function utilGetVersion() {
 }
 
 export function utilCheckForUpdate() {
-    return invoke()<CheckForUpdateResponse>("util_check_for_update")
+    return invoke()<CheckForUpdateResponse | null>("util_check_for_update")
 }
 
 export function utilInstallAndUpgrade(version: number) {
@@ -312,7 +312,7 @@ export function deepLinkInstallVcc() {
 
 export type AddRepositoryInfo = { url: string; headers: { [key: string]: string } }
 export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Started" } | { type: "UnusedProgress"; progress: P }
-export type CheckForUpdateResponse = { version: number; is_update_available: boolean; current_version: string; latest_version: string; update_description: string | null }
+export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; update_description: string | null }
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists"

@@ -458,7 +458,7 @@ function AlcomCard({
 	const checkForUpdate = async () => {
 		try {
 			const checkVersion = await utilCheckForUpdate();
-			if (checkVersion.is_update_available) {
+			if (checkVersion) {
 				setUpdateState(checkVersion);
 			} else {
 				toastNormal(tc("check update:toast:no updates"));

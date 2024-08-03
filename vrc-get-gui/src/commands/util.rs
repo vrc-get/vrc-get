@@ -1,13 +1,13 @@
 use std::path::Path;
 
-use tauri::updater::UpdateResponse;
-use tauri::{AppHandle, State, Wry};
-use tokio::fs::create_dir_all;
-
 use crate::commands::prelude::*;
 use crate::logging::LogEntry;
 use crate::os::open_that;
 use crate::utils::find_existing_parent_dir_or_home;
+use tauri::{AppHandle, State};
+use tauri_plugin_updater::{Update, UpdaterExt};
+use tokio::fs::create_dir_all;
+use url::Url;
 
 #[derive(serde::Deserialize, specta::Type)]
 #[allow(clippy::enum_variant_names)]
@@ -62,15 +62,16 @@ pub fn util_get_version() -> String {
 pub async fn check_for_update(
     app_handle: AppHandle,
     stable: bool,
-) -> tauri::updater::Result<UpdateResponse<Wry>> {
+) -> tauri_plugin_updater::Result<Option<Update>> {
     let endpoint = if stable {
-        "https://vrc-get.anatawa12.com/api/gui/tauri-updater.json"
+        Url::parse("https://vrc-get.anatawa12.com/api/gui/tauri-updater.json").unwrap()
     } else {
-        "https://vrc-get.anatawa12.com/api/gui/tauri-updater-beta.json"
+        Url::parse("https://vrc-get.anatawa12.com/api/gui/tauri-updater-beta.json").unwrap()
     };
-    tauri::updater::builder(app_handle)
-        .skip_events()
-        .endpoints(&[endpoint.into()])
+    app_handle
+        .updater_builder()
+        .endpoints(vec![endpoint])
+        .build()?
         .check()
         .await
 }
@@ -78,7 +79,6 @@ pub async fn check_for_update(
 #[derive(serde::Serialize, specta::Type)]
 pub struct CheckForUpdateResponse {
     version: u32,
-    is_update_available: bool,
     current_version: String,
     latest_version: String,
     update_description: Option<String>,
@@ -90,22 +90,22 @@ pub async fn util_check_for_update(
     app_handle: AppHandle,
     updater_state: State<'_, UpdaterState>,
     config: State<'_, GuiConfigState>,
-) -> Result<CheckForUpdateResponse, RustError> {
+) -> Result<Option<CheckForUpdateResponse>, RustError> {
     let stable = config.get().release_channel == "stable";
-    let response = check_for_update(app_handle, stable).await?;
-    let is_update_available = response.is_update_available();
-    let current_version = response.current_version().to_string();
-    let latest_version = response.latest_version().to_string();
-    let update_description = response.body().map(|s| s.to_string());
+    let Some(response) = check_for_update(app_handle, stable).await? else {
+        return Ok(None);
+    };
+    let current_version = response.current_version.clone();
+    let latest_version = response.version.clone();
+    let update_description = response.body.as_ref().map(|s| s.clone());
 
     let version = updater_state.set(response);
-    Ok(CheckForUpdateResponse {
+    Ok(Some(CheckForUpdateResponse {
         version,
-        is_update_available,
         current_version,
         latest_version,
         update_description,
-    })
+    }))
 }
 
 #[tauri::command]
@@ -123,7 +123,11 @@ pub async fn util_install_and_upgrade(
         return Err(RustError::unrecoverable("Update data version mismatch"));
     }
 
-    response.into_data().download_and_install().await?;
+    // TODO: make async command
+    response.into_data().download_and_install(
+        |_, _| {},
+        || {},
+    ).await?;
 
     app_handle.restart();
 }
