@@ -189,7 +189,7 @@
     "projects:manage:package": "Paket",
     "projects:manage:installed": "Installiert",
     "projects:manage:latest": "Neueste",
-    "projects:manage:yanked": "projects:manage:yanked",
+    "projects:manage:yanked": "yanked",
     "projects:manage:none": "keine",
     "projects:manage:incompatible packages": "Nicht unterstützt",
     "projects:manage:source not selected": "Inaktive Quelle",
