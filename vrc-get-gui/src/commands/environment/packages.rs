@@ -7,8 +7,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::commands::async_command::{async_command, AsyncCallResult, With};
 use serde::{Deserialize, Serialize};
-use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::{Manager, State, Window};
+use tauri_plugin_dialog::DialogExt;
 use tokio::fs::write;
 use url::Url;
 use vrc_get_vpm::environment::{
@@ -532,11 +532,15 @@ pub async fn environment_import_add_repositories(
 pub async fn environment_export_repositories(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<(), RustError> {
-    let Some(path) = FileDialogBuilder::new()
+    let Some(path) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
         .add_filter("Text", &["txt"])
         .set_file_name("repositories")
-        .save_file()
+        .blocking_save_file()
     else {
         return Ok(());
     };
@@ -601,8 +605,14 @@ pub async fn environment_add_user_package_with_picker(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<TauriAddUserPackageWithPickerResult, RustError> {
-    let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
+    let Some(project_path) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
+        .blocking_pick_folder()
+    else {
         return Ok(TauriAddUserPackageWithPickerResult::NoFolderSelected);
     };
 

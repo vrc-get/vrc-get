@@ -50,6 +50,7 @@ fn main() {
             process_args(&argv);
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(io.clone())
         .manage(state::new_http_client())
         .manage(state::SettingsState::new())

@@ -124,10 +124,10 @@ pub async fn util_install_and_upgrade(
     }
 
     // TODO: make async command
-    response.into_data().download_and_install(
-        |_, _| {},
-        || {},
-    ).await?;
+    response
+        .into_data()
+        .download_and_install(|_, _| {}, || {})
+        .await?;
 
     app_handle.restart();
 }
