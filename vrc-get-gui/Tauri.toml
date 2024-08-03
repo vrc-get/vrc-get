@@ -1,36 +1,22 @@
+productName = "ALCOM"
+identifier = "com.anatawa12.vrc-get-gui"
+
 [build]
 beforeBuildCommand = "npm run build"
 beforeDevCommand = "npm run dev"
-devPath = "http://localhost:3030"
-distDir = "out"
+devUrl = "http://localhost:3030"
+frontendDist = "out"
 
-[package]
-productName = "ALCOM"
-
-[tauri]
-
-[tauri.security]
-# csp =
-
-[tauri.updater]
-active = true
-dialog = false
-endpoints = []
-pubkey = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkyMjAzMkU2Q0ZGQjQ0MjYKUldRbVJQdlA1aklna2d2NnRoM3ZsT3lzWEQ3MC9zTGpaWVR4NGdQOXR0UGJaOHBlY2xCcFY5bHcK"
-
-[tauri.bundle]
+[bundle]
 active = true
 targets = [
     "appimage",
     "nsis", #-setup.exe
     "app", # needs for dmg
     "dmg",
-
-    "updater", # auto update # remove if ci # since this requires private key, which is not avaiable on ci
 ]
 longDescription = "ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
 shortDescription = "ALCOM - Alternative Creator Companion"
-identifier = "com.anatawa12.vrc-get-gui"
 category = "DeveloperTool"
 copyright = "(c) anatawa12 and other contributors"
 
@@ -45,14 +31,22 @@ icon = [
 resources = []
 publisher = "anatawa12"
 
-[tauri.bundle.deb]
+createUpdaterArtifacts = "v1Compatible"
+
+[bundle.linux.deb]
 depends = []
 
-[tauri.bundle.macOS]
+[bundle.macOS]
 exceptionDomain = ""
 frameworks = []
 providerShortName = "anatawa12"
 
-[tauri.bundle.windows]
+[bundle.windows]
 digestAlgorithm = "sha256"
 nsis.template = "installer.nsi"
+
+[plugins.updater]
+endpoints = []
+pubkey = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkyMjAzMkU2Q0ZGQjQ0MjYKUldRbVJQdlA1aklna2d2NnRoM3ZsT3lzWEQ3MC9zTGpaWVR4NGdQOXR0UGJaOHBlY2xCcFY5bHcK"
+
+[app.security]
