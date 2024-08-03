@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
+use tauri::{Manager, Wry};
 
 mod commands;
 mod config;
@@ -18,12 +18,12 @@ mod utils;
 
 // for clippy compatibility
 #[cfg(not(clippy))]
-fn tauri_context() -> tauri::Context<impl tauri::Assets> {
+fn tauri_context() -> tauri::Context {
     tauri::generate_context!()
 }
 
 #[cfg(clippy)]
-fn tauri_context() -> tauri::Context<tauri::utils::assets::EmbeddedAssets> {
+fn tauri_context() -> tauri::Context {
     panic!()
 }
 
@@ -39,7 +39,7 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             log::info!("single instance remote procedure, {argv:?}, {cwd}");
-            if let Some(window) = app.get_window("main") {
+            if let Some(window) = app.get_webview_window("main") {
                 if let Err(e) = window.unminimize() {
                     log::error!("error while unminimize: {}", e);
                 }
@@ -66,14 +66,14 @@ fn main() {
         .build(tauri_context())
         .expect("error while building tauri application");
 
-    os::initialize(app.handle());
+    os::initialize(app.handle().clone());
 
     // deep link support
     #[cfg(target_os = "macos")]
     objc_patch::patch_delegate();
-    deep_link_support::set_app_handle(app.handle());
+    deep_link_support::set_app_handle(app.handle().clone());
 
-    logging::set_app_handle(app.handle());
+    logging::set_app_handle(app.handle().clone());
     app.run(|_, _| {})
 }
 

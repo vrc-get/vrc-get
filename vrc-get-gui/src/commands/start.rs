@@ -3,7 +3,7 @@ use crate::commands::prelude::*;
 use log::{error, info};
 use std::io;
 use tauri::async_runtime::spawn;
-use tauri::{App, AppHandle, LogicalSize, Manager, State, Window, WindowEvent};
+use tauri::{App, AppHandle, LogicalSize, Manager, State, WebviewWindow, WindowEvent};
 use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_hub;
@@ -13,7 +13,7 @@ trait WindowExt {
     fn is_fullscreen_ish(&self) -> tauri::Result<bool>;
 }
 
-impl WindowExt for Window {
+impl WindowExt for WebviewWindow {
     fn make_fullscreen_ish(&self) -> tauri::Result<()> {
         if cfg!(windows) {
             self.maximize()
@@ -31,7 +31,7 @@ impl WindowExt for Window {
     }
 }
 pub fn startup(app: &mut App) {
-    let handle = app.handle();
+    let handle = app.handle().clone();
     tauri::async_runtime::spawn(async move {
         let state = handle.state();
         let io = handle.state();
@@ -40,7 +40,7 @@ pub fn startup(app: &mut App) {
         }
     });
 
-    let handle = app.handle();
+    let handle = app.handle().clone();
     tauri::async_runtime::spawn(async move {
         if let Err(e) = open_main(handle).await {
             error!("failed to open main window: {e}");
@@ -99,10 +99,10 @@ pub fn startup(app: &mut App) {
             .map(|x| x.path())
             .unwrap_or("/projects/");
 
-        let window = tauri::WindowBuilder::new(
+        let window = tauri::WebviewWindowBuilder::new(
             &app,
             "main", /* the unique window label */
-            tauri::WindowUrl::App(start_page.into()),
+            tauri::WebviewUrl::App(start_page.into()),
         )
         .title("ALCOM")
         .resizable(true)
@@ -170,7 +170,7 @@ pub fn startup(app: &mut App) {
         });
 
         async fn save_window_size(
-            window: Window,
+            window: WebviewWindow,
             size: LogicalSize<u32>,
             fullscreen: bool,
         ) -> tauri::Result<()> {

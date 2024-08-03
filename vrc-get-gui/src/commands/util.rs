@@ -126,7 +126,6 @@ pub async fn util_install_and_upgrade(
     response.into_data().download_and_install().await?;
 
     app_handle.restart();
-    unreachable!("app_handle.restart() should restart the app");
 }
 
 #[cfg(windows)]

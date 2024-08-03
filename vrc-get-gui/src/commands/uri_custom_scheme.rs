@@ -1,5 +1,6 @@
 use serde::Serialize;
-use tauri::http::{Request, Response, ResponseBuilder};
+use std::borrow::Cow;
+use tauri::http::{Request, Response};
 use tauri::{AppHandle, Manager};
 
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
@@ -7,22 +8,26 @@ use crate::state::GuiConfigState;
 
 pub fn handle_vrc_get_scheme(
     app: &AppHandle,
-    request: &Request,
-) -> Result<Response, Box<dyn std::error::Error>> {
+    request: Request<Vec<u8>>,
+) -> Response<Cow<'static, [u8]>> {
     let url = request.uri();
     log::info!("recived request: {url}");
-    let path = if let Some(path) = url.strip_prefix("vrc-get://localhost/") {
-        path
-    } else {
-        return ResponseBuilder::new().status(404).body(b"bad sceme".into());
+    if url.scheme().map(|x| x.as_str()) != Some("vrc-get") {
+        return Response::builder()
+            .status(404)
+            .body(b"bad sceme".into())
+            .unwrap();
     };
-    match path {
+    match url.path() {
         "global-info.js" => global_info_json(app),
-        _ => ResponseBuilder::new().status(404).body(b"bad".into()),
+        _ => Response::builder()
+            .status(404)
+            .body(b"bad url".into())
+            .unwrap(),
     }
 }
 
-pub fn global_info_json(app: &AppHandle) -> Result<Response, Box<dyn std::error::Error>> {
+pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     let config = app.state::<GuiConfigState>();
     let config = config.get();
 
@@ -74,12 +79,13 @@ pub fn global_info_json(app: &AppHandle) -> Result<Response, Box<dyn std::error:
 
     let mut script = b"globalThis.vrcGetGlobalInfo = ".to_vec();
 
-    serde_json::to_writer(&mut script, &global_info)?;
+    serde_json::to_writer(&mut script, &global_info).expect("failed to serialize global info");
 
     drop(config);
 
-    ResponseBuilder::new()
+    Response::builder()
         .status(200)
         .header("content-type", "application/javascript")
-        .body(script)
+        .body(script.into())
+        .unwrap()
 }

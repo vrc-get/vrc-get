@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::specta::IndexMapV2;
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use url::{Host, Url};
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
@@ -87,7 +87,7 @@ pub fn on_deep_link(deep_link: Url) {
             APP_HANDLE
                 .load()
                 .as_ref()
-                .map(|handle| handle.emit_all("deep-link-add-repository", ()));
+                .map(|handle| handle.emit("deep-link-add-repository", ()));
         }
     }
 }

@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use log::error;
 use serde::Serialize;
 use specta::specta;
-use tauri::{generate_handler, Invoke};
-
 pub use start::startup;
+use tauri::generate_handler;
+use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
@@ -33,7 +33,7 @@ pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 // Note: remember to change similar in typescript
 static DEFAULT_UNITY_ARGUMENTS: &[&str] = &["-debugCodeOptimization"];
 
-pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
+pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     generate_handler![
         environment::config::environment_language,
         environment::config::environment_set_language,
