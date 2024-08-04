@@ -141,6 +141,7 @@ pub async fn deep_link_install_vcc(_app: AppHandle) {
 #[specta::specta]
 #[cfg(target_os = "linux")]
 pub async fn deep_link_install_vcc(app: AppHandle) {
+    use tauri::Manager as _;
     // for linux, create a desktop entry
     // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
 
