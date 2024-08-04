@@ -200,34 +200,6 @@ pub(crate) fn export_ts() {
             export_path,
         )
         .unwrap();
-
-    return;
-
-    let ts_file = std::fs::read_to_string(export_path).unwrap();
-    let ts_file = ts_file.lines().collect::<Vec<_>>();
-    let export_file_start = ts_file
-        .iter()
-        .position(|x| x.starts_with("export type "))
-        .unwrap();
-    let export_file_last = ts_file
-        .iter()
-        .rposition(|x| x.starts_with("export type "))
-        .unwrap();
-
-    let pre_export = &ts_file[..export_file_start];
-    let mut export_range = ts_file[export_file_start..=export_file_last].to_vec();
-    let post_export = &ts_file[export_file_last + 1..];
-
-    // sort by type name
-    export_range.sort();
-
-    let file = [pre_export, &export_range, post_export]
-        .iter()
-        .flat_map(|x| x.iter())
-        .flat_map(|x| [x, "\n"].into_iter())
-        .collect::<String>();
-
-    std::fs::write(export_path, file).unwrap();
 }
 
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {

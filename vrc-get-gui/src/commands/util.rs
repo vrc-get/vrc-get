@@ -97,7 +97,7 @@ pub async fn util_check_for_update(
     };
     let current_version = response.current_version.clone();
     let latest_version = response.version.clone();
-    let update_description = response.body.as_ref().map(|s| s.clone());
+    let update_description = response.body.clone();
 
     let version = updater_state.set(response);
     Ok(Some(CheckForUpdateResponse {
