@@ -70,13 +70,17 @@ fn main() {
 
     os::initialize(app.handle().clone());
 
-    // deep link support
-    #[cfg(target_os = "macos")]
-    objc_patch::patch_delegate();
     deep_link_support::set_app_handle(app.handle().clone());
 
     logging::set_app_handle(app.handle().clone());
-    app.run(|_, _| {})
+    app.run(|_, event| {
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        if let tauri::RunEvent::Opened { urls } = event {
+            for url in urls {
+                deep_link_support::on_deep_link(url);
+            }
+        }
+    })
 }
 
 fn process_args(args: &[String]) {
@@ -116,107 +120,4 @@ fn process_args(args: &[String]) {
             }
         }
     }
-}
-
-#[cfg(target_os = "macos")]
-mod objc_patch {
-    use cocoa::base::{id, nil};
-    use cocoa::foundation::{NSArray, NSAutoreleasePool, NSString, NSURL};
-    use objc::declare::MethodImplementation;
-    use objc::runtime::*;
-    use objc::*;
-    use std::ffi::CString;
-
-    pub(crate) fn patch_delegate() {
-        unsafe {
-            // Note: this patch is heavily depending on tao's internal implementation
-            let delegate_class = class!(TaoAppDelegate);
-            add_method(
-                delegate_class,
-                sel!(applicationWillFinishLaunching:),
-                will_finish_launching as extern "C" fn(&Object, Sel, id),
-            );
-            log::debug!("applicationWillFinishLaunching patched");
-
-            add_method(
-                delegate_class,
-                sel!(application:openURLs:),
-                open_urls as extern "C" fn(&Object, Sel, id, id),
-            );
-            log::debug!("application:openURLs: patched");
-
-            // to enable the patch, we need to re-assign the delegate
-
-            let app_class = class!(TaoApp);
-            let app: id = msg_send![app_class, sharedApplication];
-
-            let pool = NSAutoreleasePool::new(nil);
-
-            let delegate: id = msg_send![app, delegate];
-            let _: () = msg_send![app, setDelegate: nil];
-            let _: () = msg_send![app, setDelegate: delegate];
-
-            let _: () = msg_send![pool, drain];
-        }
-    }
-
-    extern "C" fn will_finish_launching(_: &Object, _: Sel, _: id) {
-        log::debug!("applicationWillFinishLaunching:")
-    }
-
-    extern "C" fn open_urls(_: &Object, _: Sel, _application: id, urls: id) {
-        log::debug!("application:openURLs:");
-
-        let urls = unsafe {
-            (0..urls.count())
-                .flat_map(|i| {
-                    let string = urls.objectAtIndex(i).absoluteString();
-                    let as_slice =
-                        std::slice::from_raw_parts(string.UTF8String() as *const u8, string.len());
-                    let as_str = std::str::from_utf8(as_slice).ok()?;
-                    url::Url::parse(as_str).ok()
-                })
-                .collect::<Vec<_>>()
-        };
-        for x in urls {
-            log::debug!("URL: {x}");
-            if x.scheme() == "vcc" {
-                crate::deep_link_support::on_deep_link(x);
-            }
-        }
-    }
-
-    //region adding method implementation
-    unsafe fn add_method<F>(class: &Class, sel: Sel, func: F)
-    where
-        F: MethodImplementation<Callee = Object>,
-    {
-        let encs = F::Args::encodings();
-        let encs = encs.as_ref();
-        let sel_args = count_args(sel);
-        assert!(
-            sel_args == encs.len(),
-            "Selector accepts {} arguments, but function accepts {}",
-            sel_args,
-            encs.len(),
-        );
-
-        let types = method_type_encoding(&F::Ret::encode(), encs);
-        let success = class_addMethod(class as *const _ as *mut _, sel, func.imp(), types.as_ptr());
-        assert!(success != NO, "Failed to add method {:?}", sel);
-    }
-
-    fn count_args(sel: Sel) -> usize {
-        sel.name().chars().filter(|&c| c == ':').count()
-    }
-
-    fn method_type_encoding(ret: &Encoding, args: &[Encoding]) -> CString {
-        let mut types = ret.as_str().to_owned();
-        // First two arguments are always self and the selector
-        types.push_str(<*mut Object>::encode().as_str());
-        types.push_str(Sel::encode().as_str());
-        types.extend(args.iter().map(|e| e.as_str()));
-        CString::new(types).unwrap()
-    }
-    // endregion
 }

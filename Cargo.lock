@@ -5318,7 +5318,6 @@ dependencies = [
  "log",
  "log-panics",
  "nix 0.29.0",
- "objc",
  "open",
  "reqwest",
  "ringbuffer",
