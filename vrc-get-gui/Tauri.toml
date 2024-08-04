@@ -31,7 +31,7 @@ icon = [
 resources = []
 publisher = "anatawa12"
 
-createUpdaterArtifacts = "v1Compatible"
+createUpdaterArtifacts = "v1Compatible"  # remove if ci # we do not generate updater artifacts in CI
 
 [bundle.linux.deb]
 depends = []
