@@ -4162,6 +4162,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c55a15e1cd11cd8b7bb846d2770ac2870f661a3cfe0b9744acf9da4d902ad931"
 dependencies = [
  "chrono",
+ "indexmap 2.2.6",
  "paste",
  "specta-macros",
  "thiserror",
@@ -5325,6 +5326,7 @@ dependencies = [
  "serde",
  "serde_json",
  "specta",
+ "specta-typescript",
  "stable_deref_trait",
  "sys-locale",
  "tar",

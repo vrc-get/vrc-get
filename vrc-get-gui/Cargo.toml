@@ -20,8 +20,9 @@ serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "2.0.0-rc.0", features = [ "config-toml" ] }
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
 reqwest = "0.12.5"
-specta = { version = "2.0.0-rc.19", features = [ "chrono", "url" ] }
+specta = { version = "2.0.0-rc.19", features = [ "chrono", "url", "indexmap" ] }
 tauri-specta = { version = "2.0.0-rc.14", features = ["typescript"] }
+specta-typescript = "0.0.6"
 open = "5.3.0"
 arc-swap = "1.7.1"
 log = { version = "0.4.22", features = [ "std" ] }

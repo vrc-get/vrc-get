@@ -116,8 +116,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
 #[cfg(dev)]
 pub(crate) fn export_ts() {
     let export_path = "lib/bindings.ts";
-    tauri_specta::ts::export_with_cfg(
-        specta::collect_types![
+    tauri_specta::Builder::new()
+        .commands(tauri_specta::collect_commands![
             environment::config::environment_language,
             environment::config::environment_set_language,
             environment::config::environment_theme,
@@ -192,13 +192,16 @@ pub(crate) fn export_ts() {
             util::util_is_bad_hostname,
             crate::deep_link_support::deep_link_has_add_repository,
             crate::deep_link_support::deep_link_take_add_repository,
-            crate::deep_link_support::deep_link_install_vcc,
-        ]
-        .unwrap(),
-        specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
-        export_path,
-    )
-    .unwrap();
+            crate::deep_link_support::deep_link_install_vcc //,
+        ])
+        .export(
+            specta_typescript::Typescript::default()
+                .bigint(specta_typescript::BigIntExportBehavior::Number),
+            export_path,
+        )
+        .unwrap();
+
+    return;
 
     let ts_file = std::fs::read_to_string(export_path).unwrap();
     let ts_file = ts_file.lines().collect::<Vec<_>>();

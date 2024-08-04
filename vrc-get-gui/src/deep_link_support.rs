@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::specta::IndexMapV2;
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
 use tauri::{AppHandle, Emitter};
@@ -61,7 +60,7 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
 
             Some(DeepLink::AddRepository(AddRepositoryInfo {
                 url: url?,
-                headers: IndexMapV2(headers),
+                headers,
             }))
         }
         _ => {
@@ -74,7 +73,7 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
 #[derive(specta::Type, serde::Serialize, Debug, Eq, PartialEq)]
 pub struct AddRepositoryInfo {
     url: Url,
-    headers: IndexMapV2<String, String>,
+    headers: IndexMap<String, String>,
 }
 
 static PENDING_ADD_REPOSITORY: ArcSwapOption<AddRepositoryInfo> = ArcSwapOption::const_empty();
@@ -279,7 +278,7 @@ mod tests {
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
                 url: Url::parse("https://example.com").unwrap(),
-                headers: IndexMapV2(IndexMap::new()),
+                headers: IndexMap::new(),
             })
         );
 
@@ -291,7 +290,7 @@ mod tests {
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
                 url: Url::parse("https://vpm.anatawa12.com/vpm.json").unwrap(),
-                headers: IndexMapV2(IndexMap::new()),
+                headers: IndexMap::new(),
             })
         );
 
@@ -301,11 +300,11 @@ mod tests {
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
                 url: Url::parse("https://vpm.anatawa12.com/vpm.json").unwrap(),
-                headers: IndexMapV2({
+                headers: {
                     let mut map = IndexMap::new();
                     map.insert("Authorization".to_string(), "test".to_string());
                     map
-                }),
+                },
             })
         );
     }
