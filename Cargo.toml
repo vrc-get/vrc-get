@@ -26,3 +26,6 @@ authors = ["anatawa12 <anatawa12@icloud.com>"]
 homepage = "https://github.com/anatawa12/vrc-get#readme"
 repository = "https://github.com/anatawa12/vrc-get"
 readme = "README.md"
+
+[patch.crates-io]
+tauri-specta = { git = "https://github.com/anatawa12/tauri-specta", rev="42beb3585f0022e69bab9055f0410528665ffa0a" }

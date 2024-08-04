@@ -5,536 +5,206 @@
 
 
 export const commands = {
-async environmentLanguage() : Promise<Result<string, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_language") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentLanguage() : Promise<string> {
+    return await TAURI_INVOKE("environment_language");
 },
-async environmentSetLanguage(language: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_language", { language }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetLanguage(language: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_language", { language });
 },
-async environmentTheme() : Promise<Result<string, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_theme") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentTheme() : Promise<string> {
+    return await TAURI_INVOKE("environment_theme");
 },
-async environmentSetTheme(theme: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_theme", { theme }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetTheme(theme: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_theme", { theme });
 },
-async environmentGetProjectSorting() : Promise<Result<string, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_get_project_sorting") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentGetProjectSorting() : Promise<string> {
+    return await TAURI_INVOKE("environment_get_project_sorting");
 },
-async environmentSetProjectSorting(sorting: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_project_sorting", { sorting }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetProjectSorting(sorting: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_project_sorting", { sorting });
 },
-async environmentGetFinishedSetupPages() : Promise<Result<SetupPages[], RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_get_finished_setup_pages") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentGetFinishedSetupPages() : Promise<SetupPages[]> {
+    return await TAURI_INVOKE("environment_get_finished_setup_pages");
 },
-async environmentFinishedSetupPage(page: SetupPages) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_finished_setup_page", { page }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentFinishedSetupPage(page: SetupPages) : Promise<null> {
+    return await TAURI_INVOKE("environment_finished_setup_page", { page });
 },
-async environmentClearSetupProcess() : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_clear_setup_process") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentClearSetupProcess() : Promise<null> {
+    return await TAURI_INVOKE("environment_clear_setup_process");
 },
-async environmentProjects() : Promise<Result<TauriProject[], RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_projects") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentProjects() : Promise<TauriProject[]> {
+    return await TAURI_INVOKE("environment_projects");
 },
-async environmentAddProjectWithPicker() : Promise<Result<TauriAddProjectWithPickerResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_add_project_with_picker") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentAddProjectWithPicker() : Promise<TauriAddProjectWithPickerResult> {
+    return await TAURI_INVOKE("environment_add_project_with_picker");
 },
-async environmentRemoveProject(listVersion: number, index: number, directory: boolean) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_remove_project", { listVersion, index, directory }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentRemoveProject(listVersion: number, index: number, directory: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_remove_project", { listVersion, index, directory });
 },
-async environmentRemoveProjectByPath(path: string, directory: boolean) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_remove_project_by_path", { path, directory }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentRemoveProjectByPath(path: string, directory: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_remove_project_by_path", { path, directory });
 },
-async environmentCopyProjectForMigration(sourcePath: string) : Promise<Result<string, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_copy_project_for_migration", { sourcePath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentCopyProjectForMigration(sourcePath: string) : Promise<string> {
+    return await TAURI_INVOKE("environment_copy_project_for_migration", { sourcePath });
 },
-async environmentSetFavoriteProject(listVersion: number, index: number, favorite: boolean) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_favorite_project", { listVersion, index, favorite }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetFavoriteProject(listVersion: number, index: number, favorite: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_favorite_project", { listVersion, index, favorite });
 },
-async environmentProjectCreationInformation() : Promise<Result<TauriProjectCreationInformation, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_project_creation_information") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentProjectCreationInformation() : Promise<TauriProjectCreationInformation> {
+    return await TAURI_INVOKE("environment_project_creation_information");
 },
-async environmentCheckProjectName(basePath: string, projectName: string) : Promise<Result<TauriProjectDirCheckResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_check_project_name", { basePath, projectName }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentCheckProjectName(basePath: string, projectName: string) : Promise<TauriProjectDirCheckResult> {
+    return await TAURI_INVOKE("environment_check_project_name", { basePath, projectName });
 },
-async environmentCreateProject(basePath: string, projectName: string, template: TauriProjectTemplate) : Promise<Result<TauriCreateProjectResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_create_project", { basePath, projectName, template }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentCreateProject(basePath: string, projectName: string, template: TauriProjectTemplate) : Promise<TauriCreateProjectResult> {
+    return await TAURI_INVOKE("environment_create_project", { basePath, projectName, template });
 },
-async environmentRefetchPackages() : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_refetch_packages") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentRefetchPackages() : Promise<null> {
+    return await TAURI_INVOKE("environment_refetch_packages");
 },
-async environmentPackages() : Promise<Result<TauriPackage[], RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_packages") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentPackages() : Promise<TauriPackage[]> {
+    return await TAURI_INVOKE("environment_packages");
 },
-async environmentRepositoriesInfo() : Promise<Result<TauriRepositoriesInfo, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_repositories_info") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentRepositoriesInfo() : Promise<TauriRepositoriesInfo> {
+    return await TAURI_INVOKE("environment_repositories_info");
 },
-async environmentHideRepository(repository: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_hide_repository", { repository }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentHideRepository(repository: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_hide_repository", { repository });
 },
-async environmentShowRepository(repository: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_show_repository", { repository }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentShowRepository(repository: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_show_repository", { repository });
 },
-async environmentSetHideLocalUserPackages(value: boolean) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_hide_local_user_packages", { value }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetHideLocalUserPackages(value: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_hide_local_user_packages", { value });
 },
-async environmentDownloadRepository(url: string, headers: { [key in string]: string }) : Promise<Result<TauriDownloadRepository, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_download_repository", { url, headers }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentDownloadRepository(url: string, headers: { [key in string]: string }) : Promise<TauriDownloadRepository> {
+    return await TAURI_INVOKE("environment_download_repository", { url, headers });
 },
-async environmentAddRepository(url: string, headers: { [key in string]: string }) : Promise<Result<TauriAddRepositoryResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_add_repository", { url, headers }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentAddRepository(url: string, headers: { [key in string]: string }) : Promise<TauriAddRepositoryResult> {
+    return await TAURI_INVOKE("environment_add_repository", { url, headers });
 },
-async environmentRemoveRepository(id: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_remove_repository", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentRemoveRepository(id: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_remove_repository", { id });
 },
-async environmentImportRepositoryPick() : Promise<Result<TauriImportRepositoryPickResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_import_repository_pick") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentImportRepositoryPick() : Promise<TauriImportRepositoryPickResult> {
+    return await TAURI_INVOKE("environment_import_repository_pick");
 },
-async environmentImportDownloadRepositories(channel: string, repositories: TauriRepositoryDescriptor[]) : Promise<Result<AsyncCallResult<number, ([TauriRepositoryDescriptor, TauriDownloadRepository])[]>, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_import_download_repositories", { channel, repositories }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentImportDownloadRepositories(channel: string, repositories: TauriRepositoryDescriptor[]) : Promise<AsyncCallResult<number, ([TauriRepositoryDescriptor, TauriDownloadRepository])[]>> {
+    return await TAURI_INVOKE("environment_import_download_repositories", { channel, repositories });
 },
-async environmentImportAddRepositories(repositories: TauriRepositoryDescriptor[]) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_import_add_repositories", { repositories }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentImportAddRepositories(repositories: TauriRepositoryDescriptor[]) : Promise<null> {
+    return await TAURI_INVOKE("environment_import_add_repositories", { repositories });
 },
-async environmentExportRepositories() : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_export_repositories") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentExportRepositories() : Promise<null> {
+    return await TAURI_INVOKE("environment_export_repositories");
 },
-async environmentClearPackageCache() : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_clear_package_cache") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentClearPackageCache() : Promise<null> {
+    return await TAURI_INVOKE("environment_clear_package_cache");
 },
-async environmentGetUserPackages() : Promise<Result<TauriUserPackage[], RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_get_user_packages") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentGetUserPackages() : Promise<TauriUserPackage[]> {
+    return await TAURI_INVOKE("environment_get_user_packages");
 },
-async environmentAddUserPackageWithPicker() : Promise<Result<TauriAddUserPackageWithPickerResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_add_user_package_with_picker") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentAddUserPackageWithPicker() : Promise<TauriAddUserPackageWithPickerResult> {
+    return await TAURI_INVOKE("environment_add_user_package_with_picker");
 },
-async environmentRemoveUserPackages(path: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_remove_user_packages", { path }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentRemoveUserPackages(path: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_remove_user_packages", { path });
 },
-async environmentUnityVersions() : Promise<Result<TauriUnityVersions, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_unity_versions") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentUnityVersions() : Promise<TauriUnityVersions> {
+    return await TAURI_INVOKE("environment_unity_versions");
 },
-async environmentGetSettings() : Promise<Result<TauriEnvironmentSettings, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_get_settings") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentGetSettings() : Promise<TauriEnvironmentSettings> {
+    return await TAURI_INVOKE("environment_get_settings");
 },
-async environmentPickUnityHub() : Promise<Result<TauriPickUnityHubResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_pick_unity_hub") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentPickUnityHub() : Promise<TauriPickUnityHubResult> {
+    return await TAURI_INVOKE("environment_pick_unity_hub");
 },
-async environmentPickUnity() : Promise<Result<TauriPickUnityResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_pick_unity") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentPickUnity() : Promise<TauriPickUnityResult> {
+    return await TAURI_INVOKE("environment_pick_unity");
 },
-async environmentPickProjectDefaultPath() : Promise<Result<TauriPickProjectDefaultPathResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_pick_project_default_path") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentPickProjectDefaultPath() : Promise<TauriPickProjectDefaultPathResult> {
+    return await TAURI_INVOKE("environment_pick_project_default_path");
 },
-async environmentPickProjectBackupPath() : Promise<Result<TauriPickProjectBackupPathResult, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_pick_project_backup_path") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentPickProjectBackupPath() : Promise<TauriPickProjectBackupPathResult> {
+    return await TAURI_INVOKE("environment_pick_project_backup_path");
 },
-async environmentSetShowPrereleasePackages(value: boolean) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_show_prerelease_packages", { value }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetShowPrereleasePackages(value: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_show_prerelease_packages", { value });
 },
-async environmentSetBackupFormat(backupFormat: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_backup_format", { backupFormat }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetBackupFormat(backupFormat: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_backup_format", { backupFormat });
 },
-async environmentSetReleaseChannel(releaseChannel: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_release_channel", { releaseChannel }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetReleaseChannel(releaseChannel: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_release_channel", { releaseChannel });
 },
-async environmentSetUseAlcomForVccProtocol(useAlcomForVccProtocol: boolean) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_use_alcom_for_vcc_protocol", { useAlcomForVccProtocol }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetUseAlcomForVccProtocol(useAlcomForVccProtocol: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_use_alcom_for_vcc_protocol", { useAlcomForVccProtocol });
 },
-async environmentGetDefaultUnityArguments() : Promise<Result<string[], RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_get_default_unity_arguments") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentGetDefaultUnityArguments() : Promise<string[]> {
+    return await TAURI_INVOKE("environment_get_default_unity_arguments");
 },
-async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("environment_set_default_unity_arguments", { defaultUnityArguments }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_default_unity_arguments", { defaultUnityArguments });
 },
-async projectDetails(projectPath: string) : Promise<Result<TauriProjectDetails, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_details", { projectPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectDetails(projectPath: string) : Promise<TauriProjectDetails> {
+    return await TAURI_INVOKE("project_details", { projectPath });
 },
-async projectInstallPackage(projectPath: string, envVersion: number, packageIndex: number) : Promise<Result<TauriPendingProjectChanges, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_install_package", { projectPath, envVersion, packageIndex }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectInstallPackage(projectPath: string, envVersion: number, packageIndex: number) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_install_package", { projectPath, envVersion, packageIndex });
 },
-async projectInstallMultiplePackage(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<Result<TauriPendingProjectChanges, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_install_multiple_package", { projectPath, envVersion, packageIndices }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectInstallMultiplePackage(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_install_multiple_package", { projectPath, envVersion, packageIndices });
 },
-async projectUpgradeMultiplePackage(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<Result<TauriPendingProjectChanges, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_upgrade_multiple_package", { projectPath, envVersion, packageIndices }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectUpgradeMultiplePackage(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_upgrade_multiple_package", { projectPath, envVersion, packageIndices });
 },
-async projectResolve(projectPath: string) : Promise<Result<TauriPendingProjectChanges, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_resolve", { projectPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectResolve(projectPath: string) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_resolve", { projectPath });
 },
-async projectRemovePackages(projectPath: string, names: string[]) : Promise<Result<TauriPendingProjectChanges, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_remove_packages", { projectPath, names }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectRemovePackages(projectPath: string, names: string[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_remove_packages", { projectPath, names });
 },
-async projectApplyPendingChanges(projectPath: string, changesVersion: number) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_apply_pending_changes", { projectPath, changesVersion }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectApplyPendingChanges(projectPath: string, changesVersion: number) : Promise<null> {
+    return await TAURI_INVOKE("project_apply_pending_changes", { projectPath, changesVersion });
 },
-async projectClearPendingChanges() : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_clear_pending_changes") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectClearPendingChanges() : Promise<null> {
+    return await TAURI_INVOKE("project_clear_pending_changes");
 },
-async projectMigrateProjectTo2022(projectPath: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_migrate_project_to_2022", { projectPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectMigrateProjectTo2022(projectPath: string) : Promise<null> {
+    return await TAURI_INVOKE("project_migrate_project_to_2022", { projectPath });
 },
-async projectCallUnityForMigration(channel: string, projectPath: string, unityPath: string) : Promise<Result<AsyncCallResult<string, TauriCallUnityForMigrationResult>, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_call_unity_for_migration", { channel, projectPath, unityPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectCallUnityForMigration(channel: string, projectPath: string, unityPath: string) : Promise<AsyncCallResult<string, TauriCallUnityForMigrationResult>> {
+    return await TAURI_INVOKE("project_call_unity_for_migration", { channel, projectPath, unityPath });
 },
-async projectMigrateProjectToVpm(projectPath: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_migrate_project_to_vpm", { projectPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectMigrateProjectToVpm(projectPath: string) : Promise<null> {
+    return await TAURI_INVOKE("project_migrate_project_to_vpm", { projectPath });
 },
-async projectOpenUnity(projectPath: string, unityPath: string) : Promise<Result<boolean, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_open_unity", { projectPath, unityPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectOpenUnity(projectPath: string, unityPath: string) : Promise<boolean> {
+    return await TAURI_INVOKE("project_open_unity", { projectPath, unityPath });
 },
 async projectIsUnityLaunching(projectPath: string) : Promise<boolean> {
     return await TAURI_INVOKE("project_is_unity_launching", { projectPath });
 },
-async projectCreateBackup(channel: string, projectPath: string) : Promise<Result<AsyncCallResult<null, null>, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_create_backup", { channel, projectPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectCreateBackup(channel: string, projectPath: string) : Promise<AsyncCallResult<null, null>> {
+    return await TAURI_INVOKE("project_create_backup", { channel, projectPath });
 },
-async projectGetCustomUnityArgs(projectPath: string) : Promise<Result<string[] | null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_get_custom_unity_args", { projectPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectGetCustomUnityArgs(projectPath: string) : Promise<string[] | null> {
+    return await TAURI_INVOKE("project_get_custom_unity_args", { projectPath });
 },
-async projectSetCustomUnityArgs(projectPath: string, args: string[] | null) : Promise<Result<boolean, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_set_custom_unity_args", { projectPath, args }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectSetCustomUnityArgs(projectPath: string, args: string[] | null) : Promise<boolean> {
+    return await TAURI_INVOKE("project_set_custom_unity_args", { projectPath, args });
 },
-async projectGetUnityPath(projectPath: string) : Promise<Result<string | null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_get_unity_path", { projectPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectGetUnityPath(projectPath: string) : Promise<string | null> {
+    return await TAURI_INVOKE("project_get_unity_path", { projectPath });
 },
-async projectSetUnityPath(projectPath: string, unityPath: string | null) : Promise<Result<boolean, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("project_set_unity_path", { projectPath, unityPath }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async projectSetUnityPath(projectPath: string, unityPath: string | null) : Promise<boolean> {
+    return await TAURI_INVOKE("project_set_unity_path", { projectPath, unityPath });
 },
-async utilOpen(path: string, ifNotExists: OpenOptions) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("util_open", { path, ifNotExists }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async utilOpen(path: string, ifNotExists: OpenOptions) : Promise<null> {
+    return await TAURI_INVOKE("util_open", { path, ifNotExists });
 },
-async utilOpenUrl(url: string) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("util_open_url", { url }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async utilOpenUrl(url: string) : Promise<null> {
+    return await TAURI_INVOKE("util_open_url", { url });
 },
 async utilGetLogEntries() : Promise<LogEntry[]> {
     return await TAURI_INVOKE("util_get_log_entries");
@@ -542,29 +212,14 @@ async utilGetLogEntries() : Promise<LogEntry[]> {
 async utilGetVersion() : Promise<string> {
     return await TAURI_INVOKE("util_get_version");
 },
-async utilCheckForUpdate() : Promise<Result<CheckForUpdateResponse | null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("util_check_for_update") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async utilCheckForUpdate() : Promise<CheckForUpdateResponse | null> {
+    return await TAURI_INVOKE("util_check_for_update");
 },
-async utilInstallAndUpgrade(version: number) : Promise<Result<null, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("util_install_and_upgrade", { version }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async utilInstallAndUpgrade(version: number) : Promise<null> {
+    return await TAURI_INVOKE("util_install_and_upgrade", { version });
 },
-async utilIsBadHostname() : Promise<Result<boolean, RustError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("util_is_bad_hostname") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async utilIsBadHostname() : Promise<boolean> {
+    return await TAURI_INVOKE("util_is_bad_hostname");
 },
 async deepLinkHasAddRepository() : Promise<boolean> {
     return await TAURI_INVOKE("deep_link_has_add_repository");
