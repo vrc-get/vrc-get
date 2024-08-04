@@ -6,6 +6,7 @@
 			"node_modules",
 			".next",
 			"out",
+			"gen",
 			"lib/bindings.ts",
 			"build"
 		]
