@@ -19,7 +19,7 @@ pub fn handle_vrc_get_scheme(
             .unwrap();
     };
     match url.path() {
-        "global-info.js" => global_info_json(app),
+        "/global-info.js" => global_info_json(app),
         _ => Response::builder()
             .status(404)
             .body(b"bad url".into())
