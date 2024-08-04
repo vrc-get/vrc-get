@@ -10,8 +10,6 @@ import type { CheckForUpdateResponse } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
-import { useTauriListen } from "@/lib/use-tauri-listen";
-import type { UpdateStatusResult } from "@tauri-apps/api/updater";
 import { useState } from "react";
 
 type ConfirmStatus = "confirming" | "downloading" | "waitingForRelaunch";
@@ -33,24 +31,7 @@ export function CheckForUpdateMessage({
 	const [downloadedBytes, setDownloadedBytes] = useState(0);
 	const [totalBytes, setTotalBytes] = useState(100);
 
-	useTauriListen<UpdateStatusResult>("tauri://update-status", (e) => {
-		if ((e.payload.status as string) === "DOWNLOADED") {
-			setConfirmStatus("waitingForRelaunch");
-		}
-	});
-
-	useTauriListen<DownloadProgressEvent>(
-		"tauri://update-download-progress",
-		(e) => {
-			console.log(
-				"e.payload.chunk_length",
-				e.payload.chunkLength,
-				e.payload.contentLength,
-			);
-			setDownloadedBytes((x) => x + e.payload.chunkLength);
-			setTotalBytes(e.payload.contentLength);
-		},
-	);
+	// TODO: make utilInstallAndUpgrade async command
 	console.log("downloadedBytes / totalBytes", downloadedBytes, totalBytes);
 
 	const startDownload = async () => {
