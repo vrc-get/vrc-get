@@ -102,7 +102,7 @@ jobs:
           projectPath: vrc-get-gui
           tauriScript: npm run tauri
           args: |
-            --target ${{ matrix.triple }} -c '{"package":{"version":"${{ steps.version.outputs.version }}"}}'
+            --target ${{ matrix.triple }} -c '{"version":"${{ steps.version.outputs.version }}"}'
 
       - name: Upload built binary
         uses: actions/upload-artifact@v4
