@@ -5,7 +5,7 @@ import {
 	ProjectPathWarnings,
 } from "@/components/common-setting-parts";
 import { CardDescription } from "@/components/ui/card";
-import { environmentPickProjectDefaultPath } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { type BodyProps, SetupPageBase } from "../setup-page-base";
 
@@ -30,7 +30,7 @@ function Body({ environment, refetch }: BodyProps) {
 			<FilePathRow
 				withoutSelect
 				path={environment.default_project_path}
-				pick={environmentPickProjectDefaultPath}
+				pick={commands.environmentPickProjectDefaultPath}
 				refetch={refetch}
 				successMessage={tc("settings:toast:default project path updated")}
 			/>

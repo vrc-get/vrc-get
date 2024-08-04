@@ -33,22 +33,8 @@ import {
 	useUnityArgumentsSettings,
 } from "@/components/unity-arguments-settings";
 import { useBackupProjectModal } from "@/lib/backup-project";
-import {
-	type TauriProjectDetails,
-	type TauriUnityVersions,
-	environmentGetDefaultUnityArguments,
-	environmentPackages,
-	environmentRefetchPackages,
-	environmentRepositoriesInfo,
-	environmentUnityVersions,
-	projectDetails,
-	projectGetCustomUnityArgs,
-	projectGetUnityPath,
-	projectResolve,
-	projectSetCustomUnityArgs,
-	projectSetUnityPath,
-	utilOpen,
-} from "@/lib/bindings";
+import type { TauriProjectDetails, TauriUnityVersions } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { useRemoveProjectModal } from "@/lib/remove-project";
@@ -105,22 +91,22 @@ function PageBody() {
 			queries: [
 				{
 					queryKey: ["environmentRepositoriesInfo"],
-					queryFn: environmentRepositoriesInfo,
+					queryFn: commands.environmentRepositoriesInfo,
 					refetchOnWindowFocus: false,
 				},
 				{
 					queryKey: ["environmentPackages"],
-					queryFn: environmentPackages,
+					queryFn: commands.environmentPackages,
 					refetchOnWindowFocus: false,
 				},
 				{
 					queryKey: ["projectDetails", projectPath],
-					queryFn: () => projectDetails(projectPath),
+					queryFn: () => commands.projectDetails(projectPath),
 					refetchOnWindowFocus: false,
 				},
 				{
 					queryKey: ["environmentUnityVersions"],
-					queryFn: () => environmentUnityVersions(),
+					queryFn: () => commands.environmentUnityVersions(),
 				},
 			],
 		});
@@ -150,7 +136,7 @@ function PageBody() {
 	const onRefresh = useCallback(async () => {
 		try {
 			setManualRefething(true);
-			await environmentRefetchPackages();
+			await commands.environmentRefetchPackages();
 			packagesResult.refetch();
 			detailsResult.refetch();
 			repositoriesInfo.refetch();
@@ -203,7 +189,7 @@ function PageBody() {
 	const onResolveRequest = useCallback(() => {
 		packageChangeDialog.createChanges(
 			{ type: "resolve" },
-			projectResolve(projectPath),
+			commands.projectResolve(projectPath),
 		);
 	}, [packageChangeDialog, projectPath]);
 
@@ -513,8 +499,8 @@ function ProjectViewHeader({
 	>(false);
 
 	const onChangeLaunchOptions = async () => {
-		const initialArgs = await projectGetCustomUnityArgs(projectPath);
-		const defaultArgs = await environmentGetDefaultUnityArguments();
+		const initialArgs = await commands.projectGetCustomUnityArgs(projectPath);
+		const defaultArgs = await commands.environmentGetDefaultUnityArguments();
 		setOpenLaunchOptions({
 			initialArgs,
 			defaultArgs,
@@ -601,7 +587,7 @@ function LaunchSettings({
 	const context = useUnityArgumentsSettings(initialValue, defaultUnityArgs);
 
 	const saveAndClose = async () => {
-		await projectSetCustomUnityArgs(projectPath, context.currentValue);
+		await commands.projectSetCustomUnityArgs(projectPath, context.currentValue);
 		close();
 	};
 
@@ -638,10 +624,11 @@ function DropdownMenuContentBody({
 	onBackup?: () => void;
 	onChangeLaunchOptions?: () => void;
 }) {
-	const openProjectFolder = () => utilOpen(projectPath, "ErrorIfNotExists");
+	const openProjectFolder = () =>
+		commands.utilOpen(projectPath, "ErrorIfNotExists");
 	const forgetUnity = async () => {
 		try {
-			await projectSetUnityPath(projectPath, null);
+			await commands.projectSetUnityPath(projectPath, null);
 			toastSuccess(tc("projects:toast:forgot unity path"));
 		} catch (e) {
 			console.error(e);
@@ -649,7 +636,7 @@ function DropdownMenuContentBody({
 		}
 	};
 	const unityPathQuery = useQuery({
-		queryFn: () => projectGetUnityPath(projectPath),
+		queryFn: () => commands.projectGetUnityPath(projectPath),
 		queryKey: ["projectGetUnityPath", projectPath],
 		refetchOnWindowFocus: false,
 	});

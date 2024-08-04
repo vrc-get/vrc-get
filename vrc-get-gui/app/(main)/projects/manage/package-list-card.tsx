@@ -27,19 +27,12 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type TauriPackage,
-	type TauriPendingProjectChanges,
-	type TauriRepositoriesInfo,
-	environmentHideRepository,
-	environmentSetHideLocalUserPackages,
-	environmentShowRepository,
-	projectInstallMultiplePackage,
-	projectInstallPackage,
-	projectRemovePackages,
-	projectResolve,
-	projectUpgradeMultiplePackage,
+import type {
+	TauriPackage,
+	TauriPendingProjectChanges,
+	TauriRepositoriesInfo,
 } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastThrownError } from "@/lib/toast";
 import { toVersionString } from "@/lib/version";
@@ -182,7 +175,7 @@ export const PackageListCard = memo(function PackageListCard({
 					pkg,
 					hasUnityIncompatibleLatest,
 				},
-				projectInstallPackage(projectPath, pkg.env_version, pkg.index),
+				commands.projectInstallPackage(projectPath, pkg.env_version, pkg.index),
 			);
 		},
 		[projectPath, createChanges],
@@ -213,7 +206,11 @@ export const PackageListCard = memo(function PackageListCard({
 					type: "upgradeAll",
 					hasUnityIncompatibleLatest,
 				},
-				projectUpgradeMultiplePackage(projectPath, envVersion, packages),
+				commands.projectUpgradeMultiplePackage(
+					projectPath,
+					envVersion,
+					packages,
+				),
 			);
 		} catch (e) {
 			console.error(e);
@@ -222,7 +219,11 @@ export const PackageListCard = memo(function PackageListCard({
 	}, [createChanges, projectPath, packageRowsData]);
 
 	const onReinstallRequest = useCallback(
-		() => createChanges({ type: "reinstallAll" }, projectResolve(projectPath)),
+		() =>
+			createChanges(
+				{ type: "reinstallAll" },
+				commands.projectResolve(projectPath),
+			),
 		[createChanges, projectPath],
 	);
 
@@ -230,7 +231,7 @@ export const PackageListCard = memo(function PackageListCard({
 		async (pkg: PackageRowInfo) =>
 			createChanges(
 				{ type: "remove", displayName: pkg.displayName },
-				projectRemovePackages(projectPath, [pkg.id]),
+				commands.projectRemovePackages(projectPath, [pkg.id]),
 			),
 		[createChanges, projectPath],
 	);
@@ -265,7 +266,11 @@ export const PackageListCard = memo(function PackageListCard({
 					type: "upgradeAll",
 					hasUnityIncompatibleLatest,
 				},
-				projectUpgradeMultiplePackage(projectPath, envVersion, packages),
+				commands.projectUpgradeMultiplePackage(
+					projectPath,
+					envVersion,
+					packages,
+				),
 			);
 		} catch (e) {
 			console.error(e);
@@ -300,7 +305,11 @@ export const PackageListCard = memo(function PackageListCard({
 			}
 			createChanges(
 				{ type: "bulkInstalled", hasUnityIncompatibleLatest },
-				projectInstallMultiplePackage(projectPath, envVersion, packages),
+				commands.projectInstallMultiplePackage(
+					projectPath,
+					envVersion,
+					packages,
+				),
 			);
 		} catch (e) {
 			console.error(e);
@@ -311,7 +320,7 @@ export const PackageListCard = memo(function PackageListCard({
 	const onRemoveBulkRequested = useCallback(() => {
 		createChanges(
 			{ type: "bulkRemoved" },
-			projectRemovePackages(
+			commands.projectRemovePackages(
 				projectPath,
 				bulkUpdatePackageIds.map(([id, _]) => id),
 			),
@@ -615,9 +624,9 @@ function RepositoryMenuItem({
 	const selected = !hiddenUserRepositories.has(repositoryId);
 	const onChange = () => {
 		if (selected) {
-			environmentHideRepository(repositoryId).then(refetch);
+			commands.environmentHideRepository(repositoryId).then(refetch);
 		} else {
-			environmentShowRepository(repositoryId).then(refetch);
+			commands.environmentShowRepository(repositoryId).then(refetch);
 		}
 	};
 
@@ -654,9 +663,9 @@ function UserLocalRepositoryMenuItem({
 	const selected = !hideUserLocalPackages;
 	const onChange = () => {
 		if (selected) {
-			environmentSetHideLocalUserPackages(true).then(refetch);
+			commands.environmentSetHideLocalUserPackages(true).then(refetch);
 		} else {
-			environmentSetHideLocalUserPackages(false).then(refetch);
+			commands.environmentSetHideLocalUserPackages(false).then(refetch);
 		}
 	};
 

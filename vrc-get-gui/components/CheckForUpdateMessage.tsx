@@ -6,10 +6,8 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import {
-	type CheckForUpdateResponse,
-	utilInstallAndUpgrade,
-} from "@/lib/bindings";
+import type { CheckForUpdateResponse } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
@@ -58,7 +56,7 @@ export function CheckForUpdateMessage({
 	const startDownload = async () => {
 		setConfirmStatus("downloading");
 		try {
-			await utilInstallAndUpgrade(response.version);
+			await commands.utilInstallAndUpgrade(response.version);
 		} catch (e) {
 			toastThrownError(e);
 			console.error(e);

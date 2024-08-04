@@ -13,13 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type TauriDownloadRepository,
-	type TauriRepositoryDescriptor,
-	environmentImportAddRepositories,
-	environmentImportDownloadRepositories,
-	environmentImportRepositoryPick,
+import type {
+	TauriDownloadRepository,
+	TauriRepositoryDescriptor,
 } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
@@ -66,7 +64,7 @@ export function useImportRepositories({
 }): AddRepository {
 	const [state, setState] = useState<State>({ type: "normal" });
 	const [importRepositoryPick, pickDialog] = useFilePickerFunction(
-		environmentImportRepositoryPick,
+		commands.environmentImportRepositoryPick,
 	);
 
 	function cancel() {
@@ -104,7 +102,7 @@ export function useImportRepositories({
 		try {
 			const totalCount = repositories.length;
 			const [cancel, resultPromise] = callAsyncCommand(
-				environmentImportDownloadRepositories,
+				commands.environmentImportDownloadRepositories,
 				[repositories],
 				(downloaded) => {
 					setState({
@@ -136,7 +134,7 @@ export function useImportRepositories({
 		async function addRepositories(repositories: TauriRepositoryDescriptor[]) {
 			try {
 				setState({ type: "addingRepositories" });
-				await environmentImportAddRepositories(repositories);
+				await commands.environmentImportAddRepositories(repositories);
 				toastSuccess(tt("vpm repositories:toast:repositories added"));
 				refetch();
 				setState({ type: "normal" });
