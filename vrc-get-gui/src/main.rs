@@ -73,13 +73,14 @@ fn main() {
     deep_link_support::set_app_handle(app.handle().clone());
 
     logging::set_app_handle(app.handle().clone());
-    app.run(|_, event| {
+    app.run(|_, event| match event {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
-        if let tauri::RunEvent::Opened { urls } = event {
+        tauri::RunEvent::Opened { urls } => {
             for url in urls {
                 deep_link_support::on_deep_link(url);
             }
         }
+        _ => {}
     })
 }
 
