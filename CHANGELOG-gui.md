@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Unity Launched with ALCOM (AppImage) may crash on linux `#1362`
+  - Some environment variables still referred ALCOM AppDir.
+  - This PR fixes AppDir path for all environment variables.
 
 ### Security
 
