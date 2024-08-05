@@ -10,7 +10,7 @@ repository.workspace = true
 edition.workspace = true
 
 [build-dependencies]
-flate2 = "1.0.30"
+flate2 = "1.0.31"
 tar = "0.4.41"
 tauri-build = { version = "1.5.3", features = [ "config-toml" ] }
 
@@ -32,7 +32,7 @@ fs_extra = "1.3.0"
 indexmap = "2.2.6"
 futures = "0.3.30"
 tar = "0.4.41"
-flate2 = "1.0.30"
+flate2 = "1.0.31"
 uuid = { version = "1.10.0", features = ["v4"] }
 trash = "5.0.0"
 async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
