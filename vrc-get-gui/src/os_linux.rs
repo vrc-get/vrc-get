@@ -1,5 +1,6 @@
 // linux-specific functionality.
 
+use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 use std::io;
 use std::os::unix::prelude::OsStrExt;
@@ -122,29 +123,28 @@ pub(super) fn fix_env_variables(command: &mut Command) {
         return;
     }
 
+    // remove appimage specific variables
+    command.env_remove("ARGV0");
+    command.env_remove("APPIMAGE");
+    command.env_remove("APPDIR");
+
+    // PYTHONHOME is set by AppRun for compability
+    command.env_remove("PYTHONHOME");
+
+    let manually_sets = command
+        .get_envs()
+        .map(|(n, _)| n.to_os_string())
+        .collect::<HashSet<_>>();
+
     // process path-like variables (remove appdir-related paths)
     // see https://github.com/AppImage/AppImageKit/blob/e8dadbb09fed3ae3c3d5a5a9ba2c47a072f71c40/src/AppRun.c#L171-L194
     // LD_LIBRARY_PATH is necessary for xdg-open to work correctly
-    for var_name in [
-        "PATH",
-        "LD_LIBRARY_PATH",
-        "PYTHONPATH",
-        "XDG_DATA_DIRS",
-        "PERLLIB",
-        "GSETTINGS_SCHEMA_DIR",
-        "QT_PLUGIN_PATH",
-        // it looks incorrectly handled in AppRun.c
-        // "GST_PLUGIN_SYSTEM_PATH"
-        // "GST_PLUGIN_SYSTEM_PATH_1_0"
-    ] {
-        if command.get_envs().any(|(name, _)| name == var_name) {
+    for (var_name, current) in std::env::vars_os() {
+        if manually_sets.contains(var_name.as_os_str()) {
             continue; // do not change manually specified variables
         }
-        // in this case, the variable will be inherited from the environment
 
-        let Some(current) = std::env::var_os(var_name) else {
-            continue; // the variable is not set; nothing to do
-        };
+        // in this case, the variable will be inherited from the environment
 
         let current_bytes = current.as_bytes();
 
@@ -171,12 +171,4 @@ pub(super) fn fix_env_variables(command: &mut Command) {
             }
         }
     }
-
-    // remove other related variables
-    command.env_remove("ARGV0");
-    command.env_remove("APPIMAGE");
-    command.env_remove("APPDIR");
-
-    // it was set by AppRun
-    command.env_remove("PYTHONHOME");
 }
