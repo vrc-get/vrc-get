@@ -159,8 +159,7 @@ jobs:
 
   build-rust:
     name: Build rust
-    environment:
-      name: actions-code-signing
+    environment: ${{ matrix.enviroment }}
     strategy:
       fail-fast: false
       matrix:
@@ -191,6 +190,7 @@ jobs:
 
           - triple: universal-apple-darwin
             on: macos-14
+            environment: actions-code-signing
             setup: |
               rustup target add aarch64-apple-darwin
               rustup target add x86_64-apple-darwin
