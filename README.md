@@ -1,5 +1,9 @@
-`vrc-get`
+`vrc-get` Customized by GuraRil
 ====
+
+> [!NOTE]  
+> There is no available builds for this repository.  
+> All links about pre-built binaries are links to upstream.
 
 [![GitHub deployments][shields-github-deploy]][release-vrc-get]
 [![crates.io deployments][shields-crates-io-deploy]][crates-io-vrc-get]
