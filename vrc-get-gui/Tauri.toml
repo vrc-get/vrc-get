@@ -42,8 +42,13 @@ frameworks = []
 providerShortName = "anatawa12"
 
 [bundle.windows]
-digestAlgorithm = "sha256"
 nsis.template = "installer.nsi"
+
+# signing
+certificateThumbprint = "0D17F6395EC64A2B1D341BB7AC5B3163EB148BB7"
+timestampUrl = "http://ts.ssl.com"
+digestAlgorithm = "sha256"
+tsp = true
 
 [plugins.updater]
 endpoints = []
