@@ -14,7 +14,7 @@ on:
           - stable
       dry-run:
         type: boolean
-        description: If true, do not publish release to GitHub.
+        description: Dry Run, If true, do not publish release to GitHub.
         default: true
         required: false
 
@@ -253,6 +253,10 @@ jobs:
           username: ${{ secrets.WIN_ESIGNER_USERNAME }}
           password: ${{ secrets.WIN_ESIGNER_PASSWORD }}
           totp-secret: ${{ secrets.WIN_ESIGNER_TOTP_SECRET }}
+      - name: list certificates
+        if: ${{ matrix.esigner }}
+        shell: powershell
+        run: Get-ChildItem Cert:\CurrentUser\My | Select Thumbprint
 
       - name: Download Web Artifact
         uses: actions/download-artifact@v4
