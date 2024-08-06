@@ -260,6 +260,7 @@ jobs:
           Get-ChildItem Cert:\CurrentUser\My | Select Thumbprint
           echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           & "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\signtool.exe" /?
+          certutil -csptest -csp "eSignerKSP"
           certutil -user -store my 0D17F6395EC64A2B1D341BB7AC5B3163EB148BB7
 
       - name: Download Web Artifact
