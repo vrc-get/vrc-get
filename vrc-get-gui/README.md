@@ -1,4 +1,8 @@
-# ALCOM (experimental)
+# ALCOM (experimental) Customized by GuraRil
+
+> [!NOTE]  
+> There is no available builds for this repository.  
+> All links about pre-built binaries are links to upstream.
 
 This folder contains the experimental GUI version of vrc-get, ALCOM.
 
