@@ -256,7 +256,9 @@ jobs:
       - name: list certificates
         if: ${{ matrix.esigner }}
         shell: powershell
-        run: Get-ChildItem Cert:\CurrentUser\My | Select Thumbprint
+        run: |
+          Get-ChildItem Cert:\CurrentUser\My | Select Thumbprint
+          echo "C:\Program Files (x86)\Windows Kits" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Download Web Artifact
         uses: actions/download-artifact@v4
