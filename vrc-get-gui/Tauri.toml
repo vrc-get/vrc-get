@@ -60,3 +60,4 @@ nsis.template = "installer.nsi"
 certificateThumbprint = "0D17F6395EC64A2B1D341BB7AC5B3163EB148BB7"
 timestampUrl = "http://ts.ssl.com"
 digestAlgorithm = "sha256"
+tsp = true
