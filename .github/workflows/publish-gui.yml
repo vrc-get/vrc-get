@@ -246,13 +246,30 @@ jobs:
       - name: Setup
         run: ${{ matrix.setup }}
 
-      - uses: anatawa12/setup-eSigner-CKA@v1
+      - name: Install ESignerCKA Manually
         if: ${{ matrix.esigner }}
-        with:
-          mode: ${{ vars.WIN_ESIGNER_MODE }}
-          username: ${{ secrets.WIN_ESIGNER_USERNAME }}
-          password: ${{ secrets.WIN_ESIGNER_PASSWORD }}
-          totp-secret: ${{ secrets.WIN_ESIGNER_TOTP_SECRET }}
+        shell: powershell
+        run: |
+          # download installer
+          Invoke-WebRequest -OutFile eSigner_CKA_Setup.zip "https://github.com/SSLcom/eSignerCKA/releases/download/v1.0.6/SSL.COM-eSigner-CKA_1.0.6.zip"
+          Expand-Archive -Force eSigner_CKA_Setup.zip
+          Remove-Item eSigner_CKA_Setup.zip
+          Move-Item -Destination "eSigner_CKA_Installer.exe" -Path "eSigner_CKA_*\*.exe"
+          
+          
+          New-Item -ItemType Directory -Force -Path $env:INSTALL_DIR
+          ./eSigner_CKA_Installer.exe /CURRENTUSER /VERYSILENT /SUPPRESSMSGBOXES /DIR="$env:INSTALL_DIR" | Out-Null
+          & "$env:INSTALL_DIR/eSignerCKATool.exe" config -mode $env:WIN_ESIGNER_MODE -user "$env:WIN_ESIGNER_USERNAME" -pass "$env:WIN_ESIGNER_PASSWORD" -totp "$env:WIN_ESIGNER_TOTP_SECRET" -key "$env:MASTER_KEY_FILE" -r
+
+          & "$env:INSTALL_DIR/eSignerCKATool.exe" unload
+          & "$env:INSTALL_DIR/eSignerCKATool.exe" load
+        env:
+          INSTALL_DIR: ${{ github.workspace }}/eSignerCKA
+          MASTER_KEY_FILE: ${{ github.workspace }}/eSignerCKA/master.key
+          WIN_ESIGNER_MODE: ${{ vars.WIN_ESIGNER_MODE }}
+          WIN_ESIGNER_USERNAME: ${{ secrets.WIN_ESIGNER_USERNAME }}
+          WIN_ESIGNER_PASSWORD: ${{ secrets.WIN_ESIGNER_PASSWORD }}
+          WIN_ESIGNER_TOTP_SECRET: ${{ secrets.WIN_ESIGNER_TOTP_SECRET }}
       - name: list certificates
         if: ${{ matrix.esigner }}
         shell: powershell
