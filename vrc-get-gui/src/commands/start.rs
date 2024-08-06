@@ -15,19 +15,11 @@ trait WindowExt {
 
 impl WindowExt for Window {
     fn make_fullscreen_ish(&self) -> tauri::Result<()> {
-        if cfg!(windows) {
-            self.maximize()
-        } else {
-            self.set_fullscreen(true)
-        }
+        self.maximize()
     }
 
     fn is_fullscreen_ish(&self) -> tauri::Result<bool> {
-        if cfg!(windows) {
-            self.is_maximized()
-        } else {
-            self.is_fullscreen()
-        }
+        self.is_maximized()
     }
 }
 pub fn startup(app: &mut App) {
