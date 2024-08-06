@@ -68,14 +68,19 @@ jobs:
               echo "head is master or master-*"
               ;;
             * )
-              echo "invalid release kind: $RELEASE_KIND_IN is not allowd for $GITHUB_REF_NAME"
-              exit 255
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "head is not master, but DRY_RUN is true"
+              else
+                echo "head is not master, but DRY_RUN is false"
+                exit 255
+              fi
               ;;
           esac
 
           gh-export-variable GUI_VERSION "$(get-version -t gui)"
         env:
           RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
+          DRY_RUN: ${{ github.event.inputs.dry-run }}
 
       # region changelog
       - name: Create Changelog
