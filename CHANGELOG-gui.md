@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Save isMaximized instead of isFullScreen `#1367`
 
 ### Deprecated
 

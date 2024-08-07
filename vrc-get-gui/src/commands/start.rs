@@ -15,7 +15,7 @@ trait WindowExt {
 
 impl WindowExt for Window {
     fn make_fullscreen_ish(&self) -> tauri::Result<()> {
-        if cfg!(windows) {
+        if !cfg!(target_os = "macos") {
             self.maximize()
         } else {
             self.set_fullscreen(true)
@@ -23,7 +23,7 @@ impl WindowExt for Window {
     }
 
     fn is_fullscreen_ish(&self) -> tauri::Result<bool> {
-        if cfg!(windows) {
+        if !cfg!(target_os = "macos") {
             self.is_maximized()
         } else {
             self.is_fullscreen()
