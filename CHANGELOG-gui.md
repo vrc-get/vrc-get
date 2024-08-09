@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- Save isMaximized instead of isFullScreen `#1367`
+ - Save isMaximized instead of isFullScreen `#1367`
+- Migrated to Tauri v2 Release Candidate `#1350`
 
 ### Deprecated
 
