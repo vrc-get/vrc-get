@@ -10,12 +10,16 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Save isMaximized instead of isFullScreen `#1367`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Unity Launched with ALCOM (AppImage) may crash on linux `#1362`
+  - Some environment variables still referred ALCOM AppDir.
+  - This PR fixes AppDir path for all environment variables.
 
 ### Security
 
