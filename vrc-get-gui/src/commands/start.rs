@@ -111,7 +111,7 @@ pub fn startup(app: &mut App) {
                 return true;
             }
             if cfg!(windows) {
-                url.scheme() == "https" && url.host_str() == Some("tauri.localhost")
+                url.scheme() == "http" && url.host_str() == Some("tauri.localhost")
                     || url.host_str() == Some("vrc-get.localhost")
             } else {
                 url.scheme() == "tauri" || url.scheme() == "vrc-get"
