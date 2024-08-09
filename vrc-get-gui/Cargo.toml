@@ -9,6 +9,10 @@ license.workspace = true
 repository.workspace = true
 edition.workspace = true
 
+[[bin]]
+name = "ALCOM"
+path = "src/main.rs"
+
 [build-dependencies]
 flate2 = "1.0.30"
 tar = "0.4.41"
