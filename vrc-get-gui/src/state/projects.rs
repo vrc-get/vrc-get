@@ -46,6 +46,7 @@ pub struct ProjectsStateLoadResult<'a> {
     guard: MutexGuard<'a, ProjectsStateInner>,
 }
 
+#[allow(dead_code)]
 impl ProjectsStateLoadResult<'_> {
     pub fn version(&self) -> u32 {
         self.guard.version
