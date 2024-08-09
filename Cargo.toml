@@ -28,4 +28,4 @@ repository = "https://github.com/anatawa12/vrc-get"
 readme = "README.md"
 
 [patch.crates-io]
-tauri-specta = { git = "https://github.com/anatawa12/tauri-specta", rev="42beb3585f0022e69bab9055f0410528665ffa0a" }
+tauri-specta = { git = "https://github.com/anatawa12/tauri-specta", rev="63a68d5ed863b2cdbdcbe1a0101b2018439b15ab" }

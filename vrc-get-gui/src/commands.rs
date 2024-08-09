@@ -117,7 +117,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
 pub(crate) fn export_ts() {
     let export_path = "lib/bindings.ts";
     tauri_specta::Builder::new()
-        .throw_error_of_result(true)
+        .error_handling(tauri_specta::ErrorHandlingMode::Throw)
         .commands(tauri_specta::collect_commands![
             environment::config::environment_language,
             environment::config::environment_set_language,
