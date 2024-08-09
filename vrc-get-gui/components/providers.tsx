@@ -2,12 +2,8 @@
 
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import {
-	type CheckForUpdateResponse,
-	type LogEntry,
-	deepLinkHasAddRepository,
-	utilCheckForUpdate,
-} from "@/lib/bindings";
+import type { CheckForUpdateResponse, LogEntry } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import i18next from "@/lib/i18n";
 import { toastError, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
@@ -50,7 +46,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		let cancel = false;
-		deepLinkHasAddRepository().then((has) => {
+		commands.deepLinkHasAddRepository().then((has) => {
 			if (cancel) return;
 			if (has) {
 				moveToRepositories();
@@ -79,9 +75,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 			try {
 				const isDev = process.env.NODE_ENV === "development";
 				if (isDev) return;
-				const checkVersion = await utilCheckForUpdate();
+				const checkVersion = await commands.utilCheckForUpdate();
 				if (cancel) return;
-				if (checkVersion.is_update_available) {
+				if (checkVersion) {
 					setUpdateState(checkVersion);
 				}
 			} catch (e) {

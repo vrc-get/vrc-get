@@ -20,7 +20,7 @@ export default function RootLayout({
 				{/* eslint-disable-next-line @next/next/no-sync-scripts */}
 				<script src="vrc-get://localhost/global-info.js" />
 				{/* eslint-disable-next-line @next/next/no-sync-scripts */}
-				<script src="https://vrc-get.localhost/global-info.js" />
+				<script src="http://vrc-get.localhost/global-info.js" />
 			</head>
 			<body
 				className={

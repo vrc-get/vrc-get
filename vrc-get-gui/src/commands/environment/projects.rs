@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::io;
 use std::path::{Path, PathBuf};
-use tauri::api::dialog::blocking::FileDialogBuilder;
-use tauri::State;
+use tauri::{State, Window};
+use tauri_plugin_dialog::DialogExt;
 use tokio::fs::read_dir;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use vrc_get_vpm::environment::{PackageInstaller, Settings, UserProject, VccDatabaseConnection};
@@ -148,8 +148,14 @@ pub enum TauriAddProjectWithPickerResult {
 pub async fn environment_add_project_with_picker(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<TauriAddProjectWithPickerResult, RustError> {
-    let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
+    let Some(project_path) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
+        .blocking_pick_folder()
+    else {
         return Ok(TauriAddProjectWithPickerResult::NoFolderSelected);
     };
 

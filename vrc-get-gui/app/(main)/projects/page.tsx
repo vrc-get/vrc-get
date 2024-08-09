@@ -17,14 +17,8 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type TauriProject,
-	type TauriProjectType,
-	environmentAddProjectWithPicker,
-	environmentGetProjectSorting,
-	environmentProjects,
-	environmentSetProjectSorting,
-} from "@/lib/bindings";
+import type { TauriProject, TauriProjectType } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
@@ -56,7 +50,7 @@ function isSorting(s: string): s is Sorting {
 export default function Page() {
 	const result = useQuery({
 		queryKey: ["projects"],
-		queryFn: environmentProjects,
+		queryFn: commands.environmentProjects,
 	});
 	const [search, setSearch] = useState("");
 	const [loadingOther, setLoadingOther] = useState(false);
@@ -169,7 +163,7 @@ function ProjectsTableCard({
 
 	useEffect(() => {
 		(async () => {
-			let newSorting = await environmentGetProjectSorting();
+			let newSorting = await commands.environmentGetProjectSorting();
 			if (newSorting === null) newSorting = "lastModified";
 			if (!isSorting(newSorting)) {
 				setSortingState("lastModified");
@@ -239,7 +233,7 @@ function ProjectsTableCard({
 		setSortingState(newSorting);
 
 		try {
-			await environmentSetProjectSorting(newSorting);
+			await commands.environmentSetProjectSorting(newSorting);
 		} catch (e) {
 			console.error("Error setting project sorting", e);
 			toastThrownError(e);
@@ -349,7 +343,7 @@ function ProjectViewHeader({
 	setSearch: (search: string) => void;
 }) {
 	const [addProjectWithPicker, dialog] = useFilePickerFunction(
-		environmentAddProjectWithPicker,
+		commands.environmentAddProjectWithPicker,
 	);
 
 	const addProject = async () => {

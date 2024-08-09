@@ -19,15 +19,8 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useBackupProjectModal } from "@/lib/backup-project";
-import {
-	type TauriProject,
-	type TauriProjectType,
-	environmentCopyProjectForMigration,
-	environmentSetFavoriteProject,
-	projectIsUnityLaunching,
-	projectMigrateProjectToVpm,
-	utilOpen,
-} from "@/lib/bindings";
+import type { TauriProject, TauriProjectType } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
@@ -98,11 +91,12 @@ export function ProjectRow({
 	const lastModified = new Date(project.last_modified);
 	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, "0")}-${(lastModified.getMonth() + 1).toString().padStart(2, "0")}-${lastModified.getDate().toString().padStart(2, "0")} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
 
-	const openProjectFolder = () => utilOpen(project.path, "ErrorIfNotExists");
+	const openProjectFolder = () =>
+		commands.utilOpen(project.path, "ErrorIfNotExists");
 
 	const onToggleFavorite = async () => {
 		try {
-			await environmentSetFavoriteProject(
+			await commands.environmentSetFavoriteProject(
 				project.list_version,
 				project.index,
 				!project.favorite,
@@ -347,7 +341,7 @@ function MigrateButton({
 	});
 
 	const startMigrateVpm = async () => {
-		if (await projectIsUnityLaunching(project.path)) {
+		if (await commands.projectIsUnityLaunching(project.path)) {
 			toastError(tt("projects:toast:close unity before migration"));
 			return;
 		}
@@ -363,12 +357,12 @@ function MigrateButton({
 			} else {
 				// copy
 				setDialogStatus({ type: "migrateVpm:copyingProject" });
-				migrateProjectPath = await environmentCopyProjectForMigration(
+				migrateProjectPath = await commands.environmentCopyProjectForMigration(
 					project.path,
 				);
 			}
 			setDialogStatus({ type: "migrateVpm:updating" });
-			await projectMigrateProjectToVpm(migrateProjectPath);
+			await commands.projectMigrateProjectToVpm(migrateProjectPath);
 			setDialogStatus({ type: "normal" });
 			toastSuccess(tt("projects:toast:project migrated"));
 			refresh?.();

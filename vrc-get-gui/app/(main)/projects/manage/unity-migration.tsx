@@ -6,15 +6,8 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type TauriUnityVersions,
-	environmentCopyProjectForMigration,
-	environmentUnityVersions,
-	projectCallUnityForMigration,
-	projectIsUnityLaunching,
-	projectMigrateProjectTo2022,
-	utilOpenUrl,
-} from "@/lib/bindings";
+import type { TauriUnityVersions } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
@@ -57,7 +50,7 @@ export function useUnity2022Migration({
 	return useMigrationInternal({
 		projectPath,
 		updateProjectPreUnityLaunch: async (project) =>
-			await projectMigrateProjectTo2022(project),
+			await commands.projectMigrateProjectTo2022(project),
 		findUnity: findRecommendedUnity,
 		refresh,
 		ConfirmComponent: MigrationConfirmMigrationDialog,
@@ -156,7 +149,7 @@ export function useUnityVersionChange({
 				data.kind === "upgradeMajor" &&
 				data.targetUnityVersion.startsWith("2022.")
 			) {
-				await projectMigrateProjectTo2022(project);
+				await commands.projectMigrateProjectTo2022(project);
 			}
 		},
 		findUnity: findUnityForUnityChange,
@@ -474,11 +467,11 @@ function useMigrationInternal<Data>({
 	);
 
 	const request = async (data: Data) => {
-		if (await projectIsUnityLaunching(projectPath)) {
+		if (await commands.projectIsUnityLaunching(projectPath)) {
 			toastError(tt("projects:toast:close unity before migration"));
 			return;
 		}
-		const unityVersions = await environmentUnityVersions();
+		const unityVersions = await commands.environmentUnityVersions();
 		const findResult = findUnity(unityVersions, data);
 		if (!findResult.found) {
 			setInstallStatus({ state: "noExactUnity2022", data, findResult });
@@ -525,14 +518,14 @@ function useMigrationInternal<Data>({
 				// copy
 				setInstallStatus({ state: "copyingProject", data });
 				migrateProjectPath =
-					await environmentCopyProjectForMigration(projectPath);
+					await commands.environmentCopyProjectForMigration(projectPath);
 			}
 			setInstallStatus({ state: "updating", data });
 			await updateProjectPreUnityLaunch(migrateProjectPath, data);
 			setInstallStatus({ state: "finalizing", lines: [], data });
 			let lineNumber = 0;
 			const [, promise] = callAsyncCommand(
-				projectCallUnityForMigration,
+				commands.projectCallUnityForMigration,
 				[migrateProjectPath, unityPath],
 				(lineString) => {
 					setInstallStatus((prev) => {
@@ -711,7 +704,7 @@ function NoExactUnity2022Dialog({
 	close: () => void;
 }) {
 	const openUnityHub = async () => {
-		await utilOpenUrl(installWithUnityHubLink);
+		await commands.utilOpenUrl(installWithUnityHubLink);
 	};
 
 	return (

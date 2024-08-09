@@ -6,10 +6,7 @@ import {
 	FilePathRow,
 } from "@/components/common-setting-parts";
 import { CardDescription } from "@/components/ui/card";
-import {
-	environmentPickProjectBackupPath,
-	environmentSetBackupFormat,
-} from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
@@ -35,7 +32,7 @@ function Body({ environment, refetch }: BodyProps) {
 
 	const setBackupFormat = async (format: string) => {
 		try {
-			await environmentSetBackupFormat(format);
+			await commands.environmentSetBackupFormat(format);
 			refetch();
 		} catch (e) {
 			console.error(e);
@@ -52,7 +49,7 @@ function Body({ environment, refetch }: BodyProps) {
 			<FilePathRow
 				withoutSelect
 				path={projectBackupPath}
-				pick={environmentPickProjectBackupPath}
+				pick={commands.environmentPickProjectBackupPath}
 				refetch={refetch}
 				successMessage={tc("settings:toast:backup path updated")}
 			/>

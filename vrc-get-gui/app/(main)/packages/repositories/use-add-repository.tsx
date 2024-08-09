@@ -11,11 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type TauriRemoteRepositoryInfo,
-	environmentAddRepository,
-	environmentDownloadRepository,
-} from "@/lib/bindings";
+import type { TauriRemoteRepositoryInfo } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import type React from "react";
@@ -71,7 +68,7 @@ export function useAddRepository({
 	) {
 		try {
 			setState({ type: "loadingRepository" });
-			const info = await environmentDownloadRepository(url, headers);
+			const info = await commands.environmentDownloadRepository(url, headers);
 			switch (info.type) {
 				case "BadUrl":
 					toastError(tt("vpm repositories:toast:invalid url"));
@@ -120,7 +117,7 @@ export function useAddRepository({
 		case "confirming": {
 			const doAddRepository = async () => {
 				try {
-					await environmentAddRepository(state.url, state.headers);
+					await commands.environmentAddRepository(state.url, state.headers);
 					setState({ type: "normal" });
 					toastSuccess(tt("vpm repositories:toast:repository added"));
 					// noinspection ES6MissingAwait

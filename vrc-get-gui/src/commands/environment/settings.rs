@@ -2,15 +2,14 @@ use std::ffi::OsStr;
 use std::io;
 use std::path::Path;
 
-use log::info;
-use serde::Serialize;
-use tauri::api::dialog::blocking::FileDialogBuilder;
-use tauri::async_runtime::spawn;
-use tauri::{AppHandle, State};
-
 use crate::commands::prelude::*;
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
+use log::info;
+use serde::Serialize;
+use tauri::async_runtime::spawn;
+use tauri::{AppHandle, State, Window};
+use tauri_plugin_dialog::DialogExt;
 use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
@@ -140,6 +139,7 @@ pub enum TauriPickUnityHubResult {
 pub async fn environment_pick_unity_hub(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<TauriPickUnityHubResult, RustError> {
     let Some(mut path) = ({
         let settings = settings.load(io.inner()).await?;
@@ -158,12 +158,12 @@ pub async fn environment_pick_unity_hub(
             }
         }
 
-        let mut builder = FileDialogBuilder::new();
+        let mut builder = window.dialog().file().set_parent(&window);
 
         if unity_hub.parent().is_some() {
             builder = builder
                 .set_directory(unity_hub.parent().unwrap())
-                .set_file_name(&unity_hub.file_name().unwrap().to_string_lossy());
+                .set_file_name(unity_hub.file_name().unwrap().to_string_lossy());
         }
 
         if cfg!(target_os = "macos") {
@@ -174,7 +174,7 @@ pub async fn environment_pick_unity_hub(
             // no extension for executable on linux
         }
 
-        builder.pick_file()
+        builder.blocking_pick_file().map(|x| x.path)
     }) else {
         return Ok(TauriPickUnityHubResult::NoFolderSelected);
     };
@@ -218,9 +218,10 @@ pub enum TauriPickUnityResult {
 #[specta::specta]
 pub async fn environment_pick_unity(
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<TauriPickUnityResult, RustError> {
     let Some(mut path) = ({
-        let mut builder = FileDialogBuilder::new();
+        let mut builder = window.dialog().file().set_parent(&window);
         if cfg!(target_os = "macos") {
             builder = builder.add_filter("Application", &["app"]);
         } else if cfg!(target_os = "windows") {
@@ -229,7 +230,7 @@ pub async fn environment_pick_unity(
             // no extension for executable on linux
         }
 
-        builder.pick_file()
+        builder.blocking_pick_file().map(|x| x.path)
     }) else {
         return Ok(TauriPickUnityResult::NoFolderSelected);
     };
@@ -295,14 +296,18 @@ pub enum TauriPickProjectDefaultPathResult {
 pub async fn environment_pick_project_default_path(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<TauriPickProjectDefaultPathResult, RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
     let default_project_path = default_project_path(&mut settings);
-    let Some(dir) = FileDialogBuilder::new()
+    let Some(dir) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
         .set_directory(find_existing_parent_dir_or_home(
             default_project_path.as_ref(),
         ))
-        .pick_folder()
+        .blocking_pick_folder()
     else {
         settings.maybe_save().await?;
         return Ok(TauriPickProjectDefaultPathResult::NoFolderSelected);
@@ -332,14 +337,18 @@ pub enum TauriPickProjectBackupPathResult {
 pub async fn environment_pick_project_backup_path(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<TauriPickProjectBackupPathResult, RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
     let project_backup_path = project_backup_path(&mut settings);
-    let Some(dir) = FileDialogBuilder::new()
+    let Some(dir) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
         .set_directory(find_existing_parent_dir_or_home(
             project_backup_path.as_ref(),
         ))
-        .pick_folder()
+        .blocking_pick_folder()
     else {
         return Ok(TauriPickProjectBackupPathResult::NoFolderSelected);
     };

@@ -6,7 +6,8 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { assertNever } from "@/lib/assert-never";
-import { type TauriProject, projectCreateBackup } from "@/lib/bindings";
+import type { TauriProject } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
 import { nop } from "@/lib/nop";
@@ -41,7 +42,7 @@ export function useBackupProjectModal(): Result {
 	const startBackup = async (project: Project) => {
 		try {
 			const [cancel, promise] = callAsyncCommand(
-				projectCreateBackup,
+				commands.projectCreateBackup,
 				[project.path],
 				nop,
 			);

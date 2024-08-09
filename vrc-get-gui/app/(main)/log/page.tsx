@@ -2,7 +2,8 @@
 
 import { ScrollableCard } from "@/components/ScrollableCard";
 import { HNavBar, VStack } from "@/components/layout";
-import { type LogEntry, utilGetLogEntries } from "@/lib/bindings";
+import type { LogEntry } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import React, { useCallback, useEffect } from "react";
@@ -11,7 +12,9 @@ export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
 
 	useEffect(() => {
-		utilGetLogEntries().then((list) => setLogEntries([...list].reverse()));
+		commands
+			.utilGetLogEntries()
+			.then((list) => setLogEntries([...list].reverse()));
 	}, []);
 
 	useTauriListen<LogEntry>(

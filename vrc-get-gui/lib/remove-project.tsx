@@ -6,11 +6,8 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type TauriProject,
-	environmentRemoveProject,
-	environmentRemoveProjectByPath,
-} from "@/lib/bindings";
+import type { TauriProject } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { toastSuccess } from "@/lib/toast";
 import { type ReactNode, useState } from "react";
@@ -65,13 +62,16 @@ export function useRemoveProjectModal({ onRemoved }: Params): Result {
 				setState({ type: "removing" });
 				try {
 					if ("list_version" in project) {
-						await environmentRemoveProject(
+						await commands.environmentRemoveProject(
 							project.list_version,
 							project.index,
 							directory,
 						);
 					} else {
-						await environmentRemoveProjectByPath(project.path, directory);
+						await commands.environmentRemoveProjectByPath(
+							project.path,
+							directory,
+						);
 					}
 					toastSuccess(tt("projects:toast:project removed"));
 					setState({ type: "idle" });

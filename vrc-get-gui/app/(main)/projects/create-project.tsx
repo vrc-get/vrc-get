@@ -16,14 +16,11 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type TauriProjectDirCheckResult,
-	type TauriProjectTemplate,
-	environmentCheckProjectName,
-	environmentCreateProject,
-	environmentPickProjectDefaultPath,
-	environmentProjectCreationInformation,
+import type {
+	TauriProjectDirCheckResult,
+	TauriProjectTemplate,
 } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { pathSeparator } from "@/lib/os";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
@@ -88,12 +85,13 @@ export function CreateProject({
 	const projectNameDebounced = useDebounce(projectName, 500);
 
 	const [pickProjectDefaultPath, dialog] = useFilePickerFunction(
-		environmentPickProjectDefaultPath,
+		commands.environmentPickProjectDefaultPath,
 	);
 
 	useEffect(() => {
 		(async () => {
-			const information = await environmentProjectCreationInformation();
+			const information =
+				await commands.environmentProjectCreationInformation();
 			const customTemplates = information.templates.filter(
 				(template): template is CustomTemplate => template.type === "Custom",
 			);
@@ -109,7 +107,7 @@ export function CreateProject({
 		(async () => {
 			try {
 				setProjectNameCheckState("checking");
-				const result = await environmentCheckProjectName(
+				const result = await commands.environmentCheckProjectName(
 					projectLocation,
 					projectNameDebounced,
 				);
@@ -168,7 +166,11 @@ export function CreateProject({
 				default:
 					assertNever(templateType, "template type");
 			}
-			await environmentCreateProject(projectLocation, projectName, template);
+			await commands.environmentCreateProject(
+				projectLocation,
+				projectName,
+				template,
+			);
 			toastSuccess(tt("projects:toast:project created"));
 			close?.();
 			refetch?.();

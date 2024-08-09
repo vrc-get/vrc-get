@@ -6,16 +6,14 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type TauriBasePackageInfo,
-	type TauriPackage,
-	type TauriPackageChange,
-	type TauriPendingProjectChanges,
-	type TauriRemoveReason,
-	projectApplyPendingChanges,
-	projectClearPendingChanges,
-	utilOpenUrl,
+import type {
+	TauriBasePackageInfo,
+	TauriPackage,
+	TauriPackageChange,
+	TauriPendingProjectChanges,
+	TauriRemoveReason,
 } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareVersion, toVersionString } from "@/lib/version";
@@ -126,7 +124,7 @@ export function usePackageChangeDialog({
 			}) => {
 				try {
 					setInstallStatus({ status: "applyingChanges" });
-					await projectApplyPendingChanges(
+					await commands.projectApplyPendingChanges(
 						projectPath,
 						changes.changes_version,
 					);
@@ -204,7 +202,7 @@ export function usePackageChangeDialog({
 			const cancel = async () => {
 				setInstallStatus({ status: "normal" });
 				try {
-					await projectClearPendingChanges();
+					await commands.projectClearPendingChanges();
 				} catch (e) {
 					console.error(e);
 					toastThrownError(e);
@@ -317,7 +315,7 @@ function ProjectChangesDialog({
 					<Button
 						className={"ml-1 px-2"}
 						size={"sm"}
-						onClick={() => utilOpenUrl(url)}
+						onClick={() => commands.utilOpenUrl(url)}
 					>
 						{tc("projects:manage:button:see changelog")}
 					</Button>

@@ -9,13 +9,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { assertNever } from "@/lib/assert-never";
-import {
-	environmentLanguage,
-	environmentSetLanguage,
-	environmentSetTheme,
-	environmentTheme,
-	utilOpen,
-} from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import i18next, { languages, tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
@@ -28,13 +22,13 @@ import type { ToastContent } from "react-toastify";
 export function LanguageSelector() {
 	const { data: lang, refetch: refetchLang } = useQuery({
 		queryKey: ["environmentLanguage"],
-		queryFn: environmentLanguage,
+		queryFn: commands.environmentLanguage,
 	});
 
 	const changeLanguage = async (value: string) => {
 		await Promise.all([
 			i18next.changeLanguage(value),
-			environmentSetLanguage(value),
+			commands.environmentSetLanguage(value),
 		]);
 		await refetchLang();
 	};
@@ -68,13 +62,13 @@ export function ThemeSelector() {
 
 	React.useEffect(() => {
 		(async () => {
-			const theme = await environmentTheme();
+			const theme = await commands.environmentTheme();
 			setTheme(theme);
 		})();
 	}, []);
 
 	const changeTheme = async (theme: string) => {
-		await environmentSetTheme(theme);
+		await commands.environmentSetTheme(theme);
 		setTheme(theme);
 		document.documentElement.setAttribute("class", theme);
 	};
@@ -149,7 +143,7 @@ export function FilePathRow({
 
 	const openFolder = async () => {
 		try {
-			await utilOpen(path, "CreateFolderIfNotExists");
+			await commands.utilOpen(path, "CreateFolderIfNotExists");
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);

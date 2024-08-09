@@ -17,12 +17,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-	type TauriUserPackage,
-	environmentAddUserPackageWithPicker,
-	environmentGetUserPackages,
-	environmentRemoveUserPackages,
-} from "@/lib/bindings";
+import type { TauriUserPackage } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
@@ -43,11 +39,11 @@ export default function Page() {
 function PageBody() {
 	const result = useQuery({
 		queryKey: ["environmentGetUserPackages"],
-		queryFn: environmentGetUserPackages,
+		queryFn: commands.environmentGetUserPackages,
 	});
 
 	const [envAddUserPackage, dialog] = useFilePickerFunction(
-		environmentAddUserPackageWithPicker,
+		commands.environmentAddUserPackageWithPicker,
 	);
 
 	const addUserPackage = useCallback(
@@ -77,7 +73,7 @@ function PageBody() {
 	const removeUserPackage = useCallback(
 		async function removeUserPackage(path: string) {
 			try {
-				await environmentRemoveUserPackages(path);
+				await commands.environmentRemoveUserPackages(path);
 				toastSuccess(tc("user packages:toast:package removed"));
 				await result.refetch();
 			} catch (e) {
