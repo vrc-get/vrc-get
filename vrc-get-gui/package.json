@@ -45,7 +45,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^1",
 		"@tauri-apps/cli": "^1",
-		"@types/node": "^20",
+		"@types/node": "^22",
 		"@types/react": "18",
 		"@types/react-dom": "^18",
 		"autoprefixer": "^10",
