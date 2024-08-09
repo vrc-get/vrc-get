@@ -187,6 +187,7 @@ pub struct PackagesVersionRef<'a> {
     _phantom_data: PhantomData<&'a ()>,
 }
 
+#[allow(dead_code)]
 impl PackagesVersionRef<'_> {
     pub fn collection(&self) -> &PackageCollection {
         self.arc.data.backing_cart()
