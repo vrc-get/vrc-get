@@ -49,7 +49,7 @@ function onload(info: Readonly<GlobalInfo>) {
 export default globalInfo;
 
 export function useGlobalInfo(): Readonly<GlobalInfo> {
-	const [isClient, setIsClient] = useState(false);
+	const [isClient, setIsClient] = useState(() => typeof window !== "undefined");
 
 	useEffect(() => {
 		setIsClient(true);
