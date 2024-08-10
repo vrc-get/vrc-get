@@ -67,13 +67,15 @@ impl EnvironmentIo for DefaultEnvironmentIo {
     }
 
     #[cfg(feature = "vrc-get-litedb")]
-    async fn connect_lite_db(&self) -> io::Result<vrc_get_litedb::DatabaseConnection> {
+    async fn connect_lite_db(&self) -> io::Result<crate::environment::VccDatabaseConnection> {
         let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
         let path = path.to_str().expect("path is not utf8").to_string();
 
-        vrc_get_litedb::ConnectionString::new(&path)
-            .connect()
-            .map_err(Into::into)
+        let db_connection = vrc_get_litedb::ConnectionString::new(&path).connect()?;
+
+        Ok(crate::environment::VccDatabaseConnection::new(
+            db_connection,
+        ))
     }
 
     #[cfg(feature = "experimental-project-management")]

@@ -10,9 +10,11 @@ pub struct VccDatabaseConnection {
 
 impl VccDatabaseConnection {
     pub async fn connect(io: &impl EnvironmentIo) -> io::Result<Self> {
-        Ok(Self {
-            db: io.connect_lite_db().await?,
-        })
+        io.connect_lite_db().await
+    }
+
+    pub(crate) fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 
     pub async fn save(&self, _: &impl EnvironmentIo) -> io::Result<()> {
