@@ -24,7 +24,9 @@ pub trait EnvironmentIo: Sync + IoTrait {
     /// For example, to get the absolute path of the Repos folder for creating local cache and cleanup repos folder.
     fn resolve(&self, path: &Path) -> PathBuf;
     #[cfg(feature = "vrc-get-litedb")]
-    fn connect_lite_db(&self) -> Result<vrc_get_litedb::DatabaseConnection>;
+    fn connect_lite_db(
+        &self,
+    ) -> impl Future<Output = Result<crate::environment::VccDatabaseConnection>>;
     #[cfg(feature = "experimental-project-management")]
     type ProjectIo: ProjectIo;
 

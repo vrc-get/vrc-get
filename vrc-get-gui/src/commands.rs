@@ -229,7 +229,7 @@ pub(crate) fn export_ts() {
 
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
     async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), io::Error> {
-        let mut connection = VccDatabaseConnection::connect(io)?;
+        let mut connection = VccDatabaseConnection::connect(io).await?;
         connection.update_project_last_modified(project_dir)?;
         connection.save(io).await?;
         Ok(())

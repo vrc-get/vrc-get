@@ -65,8 +65,9 @@ impl ProjectList {
         let io = DefaultEnvironmentIo::new_default();
         let settings = Settings::load(&io).await.exit_context("loading settings");
 
-        let mut connection =
-            VccDatabaseConnection::connect(&io).exit_context("connecting to database");
+        let mut connection = VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
 
         migrate_sanitize_projects(&mut connection, &io, &settings).await;
 
@@ -110,8 +111,9 @@ impl ProjectAdd {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
         let mut settings = Settings::load(&io).await.exit_context("loading settings");
-        let mut connection =
-            VccDatabaseConnection::connect(&io).exit_context("connecting to database");
+        let mut connection = VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
 
         let project_path = absolute_path(Path::new(self.path.as_ref()));
         let project_io = DefaultProjectIo::new(project_path.into());
@@ -151,8 +153,9 @@ impl ProjectRemove {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
         let mut settings = Settings::load(&io).await.exit_context("loading settings");
-        let mut connection =
-            VccDatabaseConnection::connect(&io).exit_context("connecting to database");
+        let mut connection = VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
 
         let Some(project) = connection
             .get_projects()
@@ -200,7 +203,9 @@ pub struct UnityList {
 impl UnityList {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let connection = VccDatabaseConnection::connect(&io).exit_context("connecting to database");
+        let connection = VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
 
         let mut unity_installations = connection
             .get_unity_installations()
@@ -230,8 +235,9 @@ pub struct UnityAdd {
 impl UnityAdd {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let mut connection =
-            VccDatabaseConnection::connect(&io).exit_context("connecting to database");
+        let mut connection = VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
 
         let unity_version = vrc_get_vpm::unity::call_unity_for_version(self.path.as_ref().as_ref())
             .await
@@ -260,8 +266,9 @@ pub struct UnityRemove {
 impl UnityRemove {
     pub async fn run(self) {
         let io = DefaultEnvironmentIo::new_default();
-        let mut connection =
-            VccDatabaseConnection::connect(&io).exit_context("connecting to database");
+        let mut connection = VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
 
         let Some(unity) = connection
             .get_unity_installations()
@@ -306,8 +313,9 @@ impl UnityUpdate {
             .await
             .exit_context("loading unity list from unity hub");
 
-        let mut connection =
-            VccDatabaseConnection::connect(&io).exit_context("connecting to database");
+        let mut connection = VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
         connection
             .update_unity_from_unity_hub_and_fs(&paths_from_hub, &io)
             .await
