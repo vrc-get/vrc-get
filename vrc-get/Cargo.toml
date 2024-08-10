@@ -15,19 +15,19 @@ categories = ["command-line-utilities"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anstyle = "1.0.7"
-clap = { version = "4.5.10", features = ["derive"] }
-clap_complete = "4.5.8"
-color-print = "0.3.6"
-env_logger = "0.11.3"
-futures = "0.3.30"
-indexmap = { version = "2.2.6", features = ["serde"] }
-itertools = "0.13.0"
-log = "0.4.22"
-reqwest = { version = "0.12.5", default-features = false }
-serde = { version = "1.0.204", features = ["derive", "rc"] }
-serde_json = { version = "1.0.120", features = ["preserve_order"] }
-tokio = { version = "1.39.1", features = ["rt-multi-thread", "macros", "fs"] }
+anstyle = "1"
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+color-print = "0.3"
+env_logger = "0.11"
+futures = "0.3"
+indexmap = { version = "2", features = ["serde"] }
+itertools = "0.13"
+log = "0.4"
+reqwest = { version = "0.12", default-features = false }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs"] }
 
 [dependencies.vrc-get-vpm]
 version = "0.0.13-beta.0"
@@ -36,7 +36,7 @@ features = ["tokio"]
 default-features = false
 
 [build-dependencies]
-home = "0.5.9"
+home = "0.5"
 
 [features]
 default = ["rustls"]

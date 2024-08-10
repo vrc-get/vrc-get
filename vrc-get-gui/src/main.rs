@@ -55,6 +55,7 @@ fn main() {
         .manage(state::UpdaterState::new())
         .manage(state::ProjectsState::new())
         .manage(state::PackagesState::new())
+        .manage(state::ChangesState::new())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {
