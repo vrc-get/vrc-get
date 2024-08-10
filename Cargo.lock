@@ -5397,13 +5397,15 @@ dependencies = [
  "serde_json",
  "serde_path_to_error",
  "serde_repr",
+ "sha1",
  "sha2",
  "tokio",
  "tokio-util",
  "url",
  "uuid",
  "vrc-get-litedb 0.2.1",
- "winreg",
+ "windows 0.58.0",
+ "winreg 0.52.0",
 ]
 
 [[package]]

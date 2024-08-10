@@ -109,7 +109,7 @@ pub async fn environment_projects(
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<Vec<TauriProject>, RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
-    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
 
     migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
     info!("syncing information with real projects");
@@ -170,7 +170,7 @@ pub async fn environment_add_project_with_picker(
 
     {
         let mut settings = settings.load_mut(io.inner()).await?;
-        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
         let projects = connection.get_projects()?;
@@ -216,7 +216,7 @@ pub async fn environment_remove_project(
     };
 
     let mut settings = settings.load_mut(io.inner()).await?;
-    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
     connection.remove_project(project)?;
     connection.save(io.inner()).await?;
@@ -247,7 +247,7 @@ pub async fn environment_remove_project_by_path(
 ) -> Result<(), RustError> {
     {
         let mut settings = settings.load_mut(io.inner()).await?;
-        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
         let projects: Vec<UserProject> = connection.get_projects()?;
@@ -351,7 +351,7 @@ pub async fn environment_copy_project_for_migration(
 
     {
         let mut settings = settings.load_mut(io.inner()).await?;
-        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
@@ -381,7 +381,7 @@ pub async fn environment_set_favorite_project(
 
     project.set_favorite(favorite);
 
-    let mut connection = VccDatabaseConnection::connect(io.inner())?;
+    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     connection.update_project(project)?;
     connection.save(io.inner()).await?;
 
@@ -688,7 +688,7 @@ pub async fn environment_create_project(
 
         // add the project to listing
         let mut settings = settings.load_mut(io.inner()).await?;
-        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;

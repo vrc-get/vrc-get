@@ -26,7 +26,7 @@ pub struct TauriUnityVersions {
 pub async fn environment_unity_versions(
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriUnityVersions, RustError> {
-    let connection = VccDatabaseConnection::connect(io.inner())?;
+    let connection = VccDatabaseConnection::connect(io.inner()).await?;
 
     let unity_paths = connection
         .get_unity_installations()?
@@ -86,7 +86,7 @@ pub async fn environment_get_settings(
     }
 
     {
-        let connection = VccDatabaseConnection::connect(io.inner())?;
+        let connection = VccDatabaseConnection::connect(io.inner()).await?;
 
         unity_paths = connection
             .get_unity_installations()?
@@ -258,7 +258,7 @@ pub async fn environment_pick_unity(
     let unity_version = vrc_get_vpm::unity::call_unity_for_version(path.as_ref()).await?;
 
     {
-        let mut connection = VccDatabaseConnection::connect(io.inner())?;
+        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
 
         for x in connection.get_unity_installations()? {
             if x.path() == path {

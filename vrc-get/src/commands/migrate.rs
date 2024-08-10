@@ -66,6 +66,7 @@ impl Unity2022 {
 
         #[cfg(feature = "experimental-vcc")]
         let connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(&io)
+            .await
             .exit_context("connecting to database");
 
         project
