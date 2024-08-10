@@ -66,7 +66,7 @@ pub fn startup(app: &mut App) {
         let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
 
         {
-            let mut connection = VccDatabaseConnection::connect(io.inner())?;
+            let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
 
             connection
                 .update_unity_from_unity_hub_and_fs(&paths_from_hub, io.inner())

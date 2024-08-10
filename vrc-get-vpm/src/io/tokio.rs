@@ -67,7 +67,7 @@ impl EnvironmentIo for DefaultEnvironmentIo {
     }
 
     #[cfg(feature = "vrc-get-litedb")]
-    fn connect_lite_db(&self) -> io::Result<vrc_get_litedb::DatabaseConnection> {
+    async fn connect_lite_db(&self) -> io::Result<vrc_get_litedb::DatabaseConnection> {
         let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
         let path = path.to_str().expect("path is not utf8").to_string();
 

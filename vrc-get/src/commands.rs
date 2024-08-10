@@ -138,7 +138,7 @@ fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
 #[cfg(feature = "experimental-vcc")]
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
     async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), std::io::Error> {
-        let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io)?;
+        let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io).await?;
         connection.update_project_last_modified(&absolute_path(project_dir))?;
         connection.save(io).await?;
         Ok(())

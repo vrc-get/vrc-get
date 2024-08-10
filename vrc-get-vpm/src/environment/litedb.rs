@@ -9,9 +9,9 @@ pub struct VccDatabaseConnection {
 }
 
 impl VccDatabaseConnection {
-    pub fn connect(io: &impl EnvironmentIo) -> io::Result<Self> {
+    pub async fn connect(io: &impl EnvironmentIo) -> io::Result<Self> {
         Ok(Self {
-            db: io.connect_lite_db()?,
+            db: io.connect_lite_db().await?,
         })
     }
 

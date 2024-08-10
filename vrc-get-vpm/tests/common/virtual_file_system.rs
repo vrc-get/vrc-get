@@ -282,7 +282,7 @@ impl EnvironmentIo for VirtualFileSystem {
     }
 
     #[cfg(feature = "vrc-get-litedb")]
-    fn connect_lite_db(&self) -> io::Result<vrc_get_litedb::DatabaseConnection> {
+    async fn connect_lite_db(&self) -> io::Result<vrc_get_litedb::DatabaseConnection> {
         err(ErrorKind::Unsupported, "lite db")
     }
 
