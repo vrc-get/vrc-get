@@ -80,6 +80,7 @@ impl EnvironmentIo for DefaultEnvironmentIo {
             sha1.update(path_lower.as_bytes());
             let hash = &sha1.finalize()[..];
             let hash_hex = hex::encode(hash);
+            // this lock name is same as shared engine in litedb
             let name = format!("Global\\{hash_hex}.Mutex");
 
             Box::new(win_mutex::MutexGuard::new(name).await?)
