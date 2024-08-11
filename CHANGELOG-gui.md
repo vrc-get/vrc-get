@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog].
 - Unity Launched with ALCOM (AppImage) may crash on linux `#1362`
   - Some environment variables still referred ALCOM AppDir.
   - This PR fixes AppDir path for all environment variables.
+- Tooltips on the Manage Packages table are not shown `#1372`
 
 ### Security
 
