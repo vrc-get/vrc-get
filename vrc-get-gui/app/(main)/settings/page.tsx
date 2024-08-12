@@ -287,8 +287,10 @@ function LaunchArgumentsEditDialogBody({
 	refetch: () => void;
 	close: () => void;
 }) {
-	const defaultUnityArgs = useGlobalInfo().defaultUnityArguments;
-	const context = useUnityArgumentsSettings(unityArgs, defaultUnityArgs);
+	const context = useUnityArgumentsSettings(
+		unityArgs,
+		globalInfo.defaultUnityArguments,
+	);
 
 	const saveAndClose = async () => {
 		await commands.environmentSetDefaultUnityArguments(context.currentValue);
