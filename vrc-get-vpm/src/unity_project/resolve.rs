@@ -38,7 +38,8 @@ impl From<AddPackageErr> for ResolvePackageErr {
             }
             AddPackageErr::UpgradingNonLockedPackage { .. }
             | AddPackageErr::DowngradingNonLockedPackage { .. }
-            | AddPackageErr::UpgradingWithDowngrade { .. } => {
+            | AddPackageErr::UpgradingWithDowngrade { .. }
+            | AddPackageErr::InstalledAsUnlocked { .. } => {
                 panic!("{value:?} should not be happened")
             }
         }
