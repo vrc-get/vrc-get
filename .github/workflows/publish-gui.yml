@@ -12,6 +12,11 @@ on:
           - prerelease
           - start-rc
           - stable
+      dry-run:
+        type: boolean
+        description: Dry Run, If true, do not publish release to GitHub.
+        default: true
+        required: false
 
 jobs:
   pre-build:
@@ -63,14 +68,19 @@ jobs:
               echo "head is master or master-*"
               ;;
             * )
-              echo "invalid release kind: $RELEASE_KIND_IN is not allowd for $GITHUB_REF_NAME"
-              exit 255
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "head is not master, but DRY_RUN is true"
+              else
+                echo "head is not master, but DRY_RUN is false"
+                exit 255
+              fi
               ;;
           esac
 
           gh-export-variable GUI_VERSION "$(get-version -t gui)"
         env:
           RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
+          DRY_RUN: ${{ github.event.inputs.dry-run }}
 
       # region changelog
       - name: Create Changelog
@@ -318,6 +328,7 @@ jobs:
 
   publish-to-github:
     name: Publish to GitHub
+    if: ${{ !github.event.inputs.dry-run }}
     environment:
       name: actions-github-app
       url: https://github.com/anatawa12/vrc-get/releases/gui-v${{ needs.pre-build.outputs.gui-version }}
@@ -416,6 +427,7 @@ jobs:
 
   pull-request-to-website:
     name: Create PullRequest to vrc-get.anatawa12.com for updater.json
+    if: ${{ !github.event.inputs.dry-run }}
     environment:
       name: actions-github-app
     runs-on: ubuntu-latest

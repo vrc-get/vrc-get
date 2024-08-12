@@ -4,6 +4,7 @@
  */
 import { exec as execCallback } from "node:child_process";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 
@@ -20,6 +21,10 @@ async function shouldRebuild() {
 	}
 
 	try {
+		if (!existsSync("build/licenses.json")) {
+			console.log("build/licenses.json does not exist, rebuilding");
+			return true;
+		}
 		const oldHashes = await readHashes();
 		const oldPackageLockHash = oldHashes.packageLockHash;
 		const oldCargoLockHash = oldHashes.cargoLockHash;
@@ -60,7 +65,8 @@ async function shouldRebuild() {
 /**
  * @interface CargoAboutLicense
  * @property {string} name
- * @property {string} id
+ * @property {string | undefined} id
+ * @property {string} short_id
  * @property {string} text
  * @property {CargoAboutUsedBy[]} used_by
  */
@@ -422,6 +428,7 @@ for (const [pkgNameAndVersion, module] of Object.entries(licenseChecker)) {
 	if (pkgName.startsWith("@tauri-apps/")) continue; // tauri apps should be added as rust
 	const pkgVersion = pkgNameAndVersion.slice(at + 1);
 	const license = module.licenses;
+	if (license == null) throw new Error(`No license for ${pkgNameAndVersion}`);
 	const licenseByText = licenses.get(license) ?? new Map();
 	licenses.set(license, licenseByText);
 	const licenseText = module.licenseText ?? defaultLicenseTexts.get(license);
@@ -439,8 +446,11 @@ for (const [pkgNameAndVersion, module] of Object.entries(licenseChecker)) {
 // add rust libraries
 for (const license of cargoAbout.licenses) {
 	const licenseText = license.text;
-	const licenseByText = licenses.get(license.id) ?? new Map();
-	licenses.set(license.id, licenseByText);
+	const licneseId = license.id ?? license.short_id;
+	if (licneseId == null)
+		throw new Error(`No license for ${JSON.stringify(license)}`);
+	const licenseByText = licenses.get(licneseId) ?? new Map();
+	licenses.set(licneseId, licenseByText);
 	const packagesOfTheLicense = licenseByText.get(licenseText) ?? [];
 	licenseByText.set(licenseText, packagesOfTheLicense);
 	for (const usedBy of license.used_by) {
@@ -494,9 +504,9 @@ for (const license of cargoAbout.licenses) {
 const result = [];
 
 for (const [license, licenseByText] of licenses) {
+	const name = licenseNames.get(license);
+	if (!name) throw new Error(`Unknown license: ${license}`);
 	for (const [text, packages] of licenseByText) {
-		const name = licenseNames.get(license);
-		if (!name) throw new Error(`Unknown license: ${license}`);
 		result.push({
 			id: license,
 			name,
