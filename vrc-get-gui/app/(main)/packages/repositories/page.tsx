@@ -21,15 +21,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-	type TauriUserRepository,
-	deepLinkTakeAddRepository,
-	environmentExportRepositories,
-	environmentHideRepository,
-	environmentRemoveRepository,
-	environmentRepositoriesInfo,
-	environmentShowRepository,
-} from "@/lib/bindings";
+import type { TauriUserRepository } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
@@ -60,7 +53,7 @@ export default function Page() {
 function PageBody() {
 	const result = useQuery({
 		queryKey: ["environmentRepositoriesInfo"],
-		queryFn: environmentRepositoriesInfo,
+		queryFn: commands.environmentRepositoriesInfo,
 	});
 
 	const addRepositoryInfo = useAddRepository({
@@ -72,7 +65,7 @@ function PageBody() {
 	});
 
 	const [exportRepositoriesRaw, exportDialog] = useFilePickerFunction(
-		environmentExportRepositories,
+		commands.environmentExportRepositories,
 	);
 
 	const exportRepositories = useCallback(async () => {
@@ -90,7 +83,7 @@ function PageBody() {
 
 	async function removeRepository(id: string) {
 		try {
-			await environmentRemoveRepository(id);
+			await commands.environmentRemoveRepository(id);
 			await result.refetch();
 		} catch (e) {
 			toastThrownError(e);
@@ -100,7 +93,7 @@ function PageBody() {
 	const addRepository = addRepositoryInfo.addRepository;
 	const processDeepLink = useCallback(
 		async function processDeepLink() {
-			const data = await deepLinkTakeAddRepository();
+			const data = await commands.deepLinkTakeAddRepository();
 			if (data == null) return;
 			await addRepository(data.url, data.headers);
 		},
@@ -241,9 +234,9 @@ function RepositoryRow({
 	const selected = !hiddenUserRepos.has(repo.id);
 	const onChange = () => {
 		if (selected) {
-			environmentHideRepository(repo.id).then(refetch);
+			commands.environmentHideRepository(repo.id).then(refetch);
 		} else {
-			environmentShowRepository(repo.id).then(refetch);
+			commands.environmentShowRepository(repo.id).then(refetch);
 		}
 	};
 

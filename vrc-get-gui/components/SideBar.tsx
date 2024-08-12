@@ -11,10 +11,7 @@ import {
 	DialogHeader,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-	environmentClearSetupProcess,
-	utilIsBadHostname,
-} from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { toastNormal } from "@/lib/toast";
@@ -37,7 +34,7 @@ export function SideBar({ className }: { className?: string }) {
 
 	const isBadHostName = useQuery({
 		queryKey: ["util_is_bad_hostname"],
-		queryFn: utilIsBadHostname,
+		queryFn: commands.utilIsBadHostname,
 		refetchOnMount: false,
 		refetchOnReconnect: false,
 		refetchOnWindowFocus: false,
@@ -153,7 +150,7 @@ function BadHostNameDialogButton() {
 function DevRestartSetupButton() {
 	const router = useRouter();
 	const onClick = async () => {
-		await environmentClearSetupProcess();
+		await commands.environmentClearSetupProcess();
 		router.push("/setup/appearance");
 	};
 	return (

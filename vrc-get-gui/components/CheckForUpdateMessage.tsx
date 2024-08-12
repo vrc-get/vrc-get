@@ -6,17 +6,27 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import {
-	type CheckForUpdateResponse,
-	utilInstallAndUpgrade,
-} from "@/lib/bindings";
+import { assertNever } from "@/lib/assert-never";
+import type { CheckForUpdateResponse } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
+import { callAsyncCommand } from "@/lib/call-async-command";
+import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
-import { useTauriListen } from "@/lib/use-tauri-listen";
-import type { UpdateStatusResult } from "@tauri-apps/api/updater";
 import { useState } from "react";
 
-type ConfirmStatus = "confirming" | "downloading" | "waitingForRelaunch";
+type ConfirmStatus =
+	| {
+			state: "confirming";
+	  }
+	| {
+			state: "downloading";
+			total: number;
+			downloaded: number;
+	  }
+	| {
+			state: "waitingForRelaunch";
+	  };
 
 interface DownloadProgressEvent {
 	chunkLength: number;
@@ -30,35 +40,65 @@ export function CheckForUpdateMessage({
 	response: CheckForUpdateResponse;
 	close: () => void;
 }) {
-	const [confirmStatus, setConfirmStatus] =
-		useState<ConfirmStatus>("confirming");
-	const [downloadedBytes, setDownloadedBytes] = useState(0);
-	const [totalBytes, setTotalBytes] = useState(100);
-
-	useTauriListen<UpdateStatusResult>("tauri://update-status", (e) => {
-		if ((e.payload.status as string) === "DOWNLOADED") {
-			setConfirmStatus("waitingForRelaunch");
-		}
+	const [confirmStatus, setConfirmStatus] = useState<ConfirmStatus>({
+		state: "confirming",
 	});
 
-	useTauriListen<DownloadProgressEvent>(
-		"tauri://update-download-progress",
-		(e) => {
-			console.log(
-				"e.payload.chunk_length",
-				e.payload.chunkLength,
-				e.payload.contentLength,
-			);
-			setDownloadedBytes((x) => x + e.payload.chunkLength);
-			setTotalBytes(e.payload.contentLength);
-		},
-	);
-	console.log("downloadedBytes / totalBytes", downloadedBytes, totalBytes);
-
 	const startDownload = async () => {
-		setConfirmStatus("downloading");
+		setConfirmStatus({ state: "downloading", downloaded: 0, total: 100 });
 		try {
-			await utilInstallAndUpgrade(response.version);
+			const [cancel, promise] = callAsyncCommand(
+				commands.utilInstallAndUpgrade,
+				[response.version],
+				(progress) => {
+					switch (progress.type) {
+						case "DownloadProgress":
+							if (progress.total != null) {
+								// likely: there is known total size by Content-Length header
+								const { total, received } = progress;
+								setConfirmStatus((s) => {
+									if (s.state !== "downloading") return s;
+									return {
+										...s,
+										downloaded: s.downloaded + received,
+										total: total,
+									};
+								});
+							} else {
+								// unlikely: there is no Content-Length header
+
+								// this data is based on previous releases.
+								const estimatedTotalSize: number = {
+									WindowsNT: 6 * 1000 * 1000,
+									Linux: 90 * 1000 * 1000,
+									Darwin: 20 * 1000 * 1000,
+								}[globalInfo.osType];
+
+								const { received } = progress;
+
+								setConfirmStatus((s) => {
+									if (s.state !== "downloading") return s;
+									const downloadNew = s.downloaded + received;
+									return {
+										...s,
+										downloaded:
+											downloadNew > estimatedTotalSize
+												? estimatedTotalSize
+												: downloadNew,
+										total: estimatedTotalSize,
+									};
+								});
+							}
+							break;
+						case "DownloadComplete":
+							setConfirmStatus({ state: "waitingForRelaunch" });
+							break;
+						default:
+							assertNever(progress);
+					}
+				},
+			);
+			await promise;
 		} catch (e) {
 			toastThrownError(e);
 			console.error(e);
@@ -66,7 +106,7 @@ export function CheckForUpdateMessage({
 		}
 	};
 
-	switch (confirmStatus) {
+	switch (confirmStatus.state) {
 		case "confirming":
 			return (
 				<DialogOpen>
@@ -100,7 +140,10 @@ export function CheckForUpdateMessage({
 					<DialogTitle>{tc("check update:dialog:title")}</DialogTitle>
 					<DialogDescription>
 						<p>{tc("check update:dialog:downloading...")}</p>
-						<Progress value={downloadedBytes} max={totalBytes} />
+						<Progress
+							value={confirmStatus.downloaded}
+							max={confirmStatus.total}
+						/>
 					</DialogDescription>
 				</DialogOpen>
 			);

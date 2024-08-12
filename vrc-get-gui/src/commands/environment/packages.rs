@@ -7,8 +7,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::commands::async_command::{async_command, AsyncCallResult, With};
 use serde::{Deserialize, Serialize};
-use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::{Manager, State, Window};
+use tauri_plugin_dialog::DialogExt;
 use tokio::fs::write;
 use url::Url;
 use vrc_get_vpm::environment::{
@@ -20,7 +20,6 @@ use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::{HttpClient, PackageInfo, VersionSelector};
 
 use crate::commands::prelude::*;
-use crate::specta::IndexMapV2;
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriPackage {
@@ -199,8 +198,6 @@ pub enum TauriDownloadRepository {
     Success { value: TauriRemoteRepositoryInfo },
 }
 
-// workaround IndexMap v2 is not implemented in specta
-
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_download_repository(
@@ -208,7 +205,7 @@ pub async fn environment_download_repository(
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     url: String,
-    headers: IndexMapV2<Box<str>, Box<str>>,
+    headers: IndexMap<Box<str>, Box<str>>,
 ) -> Result<TauriDownloadRepository, RustError> {
     let url: Url = match url.parse() {
         Err(_) => {
@@ -225,7 +222,7 @@ pub async fn environment_download_repository(
         download_one_repository(
             http.inner(),
             &url,
-            &headers.0,
+            &headers,
             &user_repo_urls,
             &user_repo_ids,
         )
@@ -328,7 +325,7 @@ pub async fn environment_add_repository(
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     url: String,
-    headers: IndexMapV2<Box<str>, Box<str>>,
+    headers: IndexMap<Box<str>, Box<str>>,
 ) -> Result<TauriAddRepositoryResult, RustError> {
     let url: Url = match url.parse() {
         Err(_) => {
@@ -338,15 +335,7 @@ pub async fn environment_add_repository(
     };
 
     let mut settings = settings.load_mut(io.inner()).await?;
-    add_remote_repo(
-        &mut settings,
-        url,
-        None,
-        headers.0,
-        io.inner(),
-        http.inner(),
-    )
-    .await?;
+    add_remote_repo(&mut settings, url, None, headers, io.inner(), http.inner()).await?;
     settings.save().await?;
 
     // force update repository
@@ -392,7 +381,7 @@ pub enum TauriImportRepositoryPickResult {
 }
 
 // workaround bug in specta::Type derive macro
-type Headers = IndexMapV2<Box<str>, Box<str>>;
+type Headers = IndexMap<Box<str>, Box<str>>;
 
 #[derive(Serialize, Deserialize, specta::Type, Clone)]
 pub struct TauriRepositoryDescriptor {
@@ -403,10 +392,11 @@ pub struct TauriRepositoryDescriptor {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_import_repository_pick(
+    window: Window,
 ) -> Result<TauriImportRepositoryPickResult, RustError> {
-    let builder = FileDialogBuilder::new();
+    let builder = window.dialog().file().set_parent(&window);
 
-    let Some(repositories_path) = builder.pick_file() else {
+    let Some(repositories_path) = builder.blocking_pick_file().map(|x| x.path) else {
         return Ok(TauriImportRepositoryPickResult::NoFilePicked);
     };
 
@@ -421,7 +411,7 @@ pub async fn environment_import_repository_pick(
             .iter()
             .map(|x| TauriRepositoryDescriptor {
                 url: x.url().clone(),
-                headers: IndexMapV2(x.headers().clone()),
+                headers: x.headers().clone(),
             })
             .collect(),
         unparsable_lines: result.unparseable_lines().to_vec(),
@@ -464,7 +454,7 @@ pub async fn environment_import_download_repositories(
                         let downloaded = download_one_repository(
                             http.inner(),
                             &adding_repo.url,
-                            &adding_repo.headers.0,
+                            &adding_repo.headers,
                             user_repo_urls_ref,
                             user_repo_ids_ref,
                         )
@@ -513,7 +503,7 @@ pub async fn environment_import_add_repositories(
             &mut settings,
             adding_repo.url,
             None,
-            adding_repo.headers.0,
+            adding_repo.headers,
             io.inner(),
             http.inner(),
         )
@@ -532,11 +522,15 @@ pub async fn environment_import_add_repositories(
 pub async fn environment_export_repositories(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<(), RustError> {
-    let Some(path) = FileDialogBuilder::new()
+    let Some(path) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
         .add_filter("Text", &["txt"])
         .set_file_name("repositories")
-        .save_file()
+        .blocking_save_file()
     else {
         return Ok(());
     };
@@ -601,8 +595,14 @@ pub async fn environment_add_user_package_with_picker(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
 ) -> Result<TauriAddUserPackageWithPickerResult, RustError> {
-    let Some(project_path) = FileDialogBuilder::new().pick_folder() else {
+    let Some(project_path) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
+        .blocking_pick_folder()
+    else {
         return Ok(TauriAddUserPackageWithPickerResult::NoFolderSelected);
     };
 

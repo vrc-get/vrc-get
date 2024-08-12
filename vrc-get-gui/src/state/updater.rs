@@ -1,9 +1,8 @@
 use atomicbox::AtomicOptionBox;
 use std::sync::atomic::{AtomicU32, Ordering};
-use tauri::updater::UpdateResponse;
-use tauri::Wry;
+use tauri_plugin_updater::Update;
 
-type Data = UpdateResponse<Wry>;
+type Data = Update;
 
 struct UpdateResponseInfo {
     pub version: u32,

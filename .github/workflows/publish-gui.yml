@@ -183,7 +183,7 @@ jobs:
               sudo apt update && sudo apt install -y lld
               ld.lld --version
 
-              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
             rustflags: "-C link-arg=-fuse-ld=lld"
             dist-path: |
               bundle/appimage/alcom_${GUI_VERSION}_amd64.AppImage:alcom-${GUI_VERSION}-x86_64.AppImage
@@ -251,6 +251,9 @@ jobs:
           name: vrc-get-gui-web
           path: vrc-get-gui/out
 
+      - name: Use unreleased version of tauri-cli
+        run: cargo install --git https://github.com/tauri-apps/tauri tauri-cli --locked
+
       - uses: tauri-apps/tauri-action@v0
         env:
           # apple code signing
@@ -267,7 +270,7 @@ jobs:
         
         with:
           projectPath: vrc-get-gui
-          tauriScript: npm run tauri
+          tauriScript: cargo-tauri
           # disable beforeBuildCommand since we already build web
           args: |
             --target ${{ matrix.triple }} -c '{"build":{"beforeBuildCommand":null}}'

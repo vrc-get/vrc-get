@@ -27,24 +27,11 @@ import {
 	useUnityArgumentsSettings,
 } from "@/components/unity-arguments-settings";
 import { assertNever } from "@/lib/assert-never";
-import {
-	type CheckForUpdateResponse,
-	type TauriEnvironmentSettings,
-	deepLinkInstallVcc,
-	environmentClearPackageCache,
-	environmentGetSettings,
-	environmentPickProjectBackupPath,
-	environmentPickProjectDefaultPath,
-	environmentPickUnity,
-	environmentPickUnityHub,
-	environmentSetBackupFormat,
-	environmentSetDefaultUnityArguments,
-	environmentSetReleaseChannel,
-	environmentSetShowPrereleasePackages,
-	environmentSetUseAlcomForVccProtocol,
-	utilCheckForUpdate,
-	utilOpenUrl,
+import type {
+	CheckForUpdateResponse,
+	TauriEnvironmentSettings,
 } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import globalInfo, { useGlobalInfo } from "@/lib/global-info";
 import { tc, tt } from "@/lib/i18n";
 import {
@@ -62,7 +49,7 @@ import { useState } from "react";
 export default function Page() {
 	const result = useQuery({
 		queryKey: ["environmentGetSettings"],
-		queryFn: environmentGetSettings,
+		queryFn: commands.environmentGetSettings,
 	});
 
 	let body: React.ReactNode;
@@ -109,7 +96,7 @@ function Settings({
 					<FilePathRow
 						withoutSelect
 						path={settings.unity_hub}
-						pick={environmentPickUnityHub}
+						pick={commands.environmentPickUnityHub}
 						refetch={refetch}
 						notFoundMessage={"Unity Hub Not Found"}
 						successMessage={tc("settings:toast:unity hub path updated")}
@@ -130,7 +117,7 @@ function Settings({
 					</p>
 					<FilePathRow
 						path={settings.default_project_path}
-						pick={environmentPickProjectDefaultPath}
+						pick={commands.environmentPickProjectDefaultPath}
 						refetch={refetch}
 						successMessage={tc("settings:toast:default project path updated")}
 					/>
@@ -164,7 +151,9 @@ function UnityInstallationsCard({
 	refetch: () => void;
 	unityPaths: [path: string, version: string, fromHub: boolean][];
 }) {
-	const [pickUnity, unityDialog] = useFilePickerFunction(environmentPickUnity);
+	const [pickUnity, unityDialog] = useFilePickerFunction(
+		commands.environmentPickUnity,
+	);
 
 	const addUnity = async () => {
 		try {
@@ -302,7 +291,7 @@ function LaunchArgumentsEditDialogBody({
 	const context = useUnityArgumentsSettings(unityArgs, defaultUnityArgs);
 
 	const saveAndClose = async () => {
-		await environmentSetDefaultUnityArguments(context.currentValue);
+		await commands.environmentSetDefaultUnityArguments(context.currentValue);
 		close();
 		refetch();
 	};
@@ -339,7 +328,7 @@ function BackupCard({
 }) {
 	const setBackupFormat = async (format: string) => {
 		try {
-			await environmentSetBackupFormat(format);
+			await commands.environmentSetBackupFormat(format);
 			refetch();
 		} catch (e) {
 			console.error(e);
@@ -357,7 +346,7 @@ function BackupCard({
 				</p>
 				<FilePathRow
 					path={projectBackupPath}
-					pick={environmentPickProjectBackupPath}
+					pick={commands.environmentPickProjectBackupPath}
 					refetch={refetch}
 					successMessage={tc("settings:toast:backup path updated")}
 				/>
@@ -388,7 +377,7 @@ function PackagesCard({
 }) {
 	const clearPackageCache = async () => {
 		try {
-			await environmentClearPackageCache();
+			await commands.environmentClearPackageCache();
 			toastSuccess(tc("settings:toast:package cache cleared"));
 		} catch (e) {
 			console.error(e);
@@ -398,7 +387,7 @@ function PackagesCard({
 
 	const toggleShowPrereleasePackages = async (e: "indeterminate" | boolean) => {
 		try {
-			await environmentSetShowPrereleasePackages(e === true);
+			await commands.environmentSetShowPrereleasePackages(e === true);
 			refetch();
 		} catch (e) {
 			console.error(e);
@@ -457,8 +446,8 @@ function AlcomCard({
 
 	const checkForUpdate = async () => {
 		try {
-			const checkVersion = await utilCheckForUpdate();
-			if (checkVersion.is_update_available) {
+			const checkVersion = await commands.utilCheckForUpdate();
+			if (checkVersion) {
 				setUpdateState(checkVersion);
 			} else {
 				toastNormal(tc("check update:toast:no updates"));
@@ -482,22 +471,24 @@ function AlcomCard({
 		}
 		url.searchParams.append("version", version);
 
-		void utilOpenUrl(url.toString());
+		void commands.utilOpenUrl(url.toString());
 	};
 
 	const changeReleaseChannel = async (value: "indeterminate" | boolean) => {
-		await environmentSetReleaseChannel(value === true ? "beta" : "stable");
+		await commands.environmentSetReleaseChannel(
+			value === true ? "beta" : "stable",
+		);
 		refetch();
 	};
 
 	const changeUseAlcomForVcc = async (value: "indeterminate" | boolean) => {
-		await environmentSetUseAlcomForVccProtocol(value === true);
+		await commands.environmentSetUseAlcomForVccProtocol(value === true);
 		refetch();
 	};
 
 	const installVccProtocol = async () => {
 		try {
-			await deepLinkInstallVcc();
+			await commands.deepLinkInstallVcc();
 			toastSuccess(tc("settings:toast:vcc scheme installed"));
 		} catch (e) {
 			console.error(e);

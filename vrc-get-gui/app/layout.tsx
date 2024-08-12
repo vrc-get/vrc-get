@@ -17,10 +17,16 @@ export default function RootLayout({
 		// biome-ignore lint/a11y/useHtmlLang: we cannot determine the language of the content. we add in inner div.
 		<html>
 			<head>
+				{/* empty png to avoid erros */}
+				<link
+					rel="icon"
+					type="image/png"
+					href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="
+				/>
 				{/* eslint-disable-next-line @next/next/no-sync-scripts */}
 				<script src="vrc-get://localhost/global-info.js" />
 				{/* eslint-disable-next-line @next/next/no-sync-scripts */}
-				<script src="https://vrc-get.localhost/global-info.js" />
+				<script src="http://vrc-get.localhost/global-info.js" />
 			</head>
 			<body
 				className={

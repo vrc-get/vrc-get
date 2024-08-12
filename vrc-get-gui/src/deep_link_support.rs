@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use crate::specta::IndexMapV2;
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use url::{Host, Url};
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
@@ -61,7 +60,7 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
 
             Some(DeepLink::AddRepository(AddRepositoryInfo {
                 url: url?,
-                headers: IndexMapV2(headers),
+                headers,
             }))
         }
         _ => {
@@ -74,7 +73,7 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
 #[derive(specta::Type, serde::Serialize, Debug, Eq, PartialEq)]
 pub struct AddRepositoryInfo {
     url: Url,
-    headers: IndexMapV2<String, String>,
+    headers: IndexMap<String, String>,
 }
 
 static PENDING_ADD_REPOSITORY: ArcSwapOption<AddRepositoryInfo> = ArcSwapOption::const_empty();
@@ -87,7 +86,7 @@ pub fn on_deep_link(deep_link: Url) {
             APP_HANDLE
                 .load()
                 .as_ref()
-                .map(|handle| handle.emit_all("deep-link-add-repository", ()));
+                .map(|handle| handle.emit("deep-link-add-repository", ()));
         }
     }
 }
@@ -142,6 +141,7 @@ pub async fn deep_link_install_vcc(_app: AppHandle) {
 #[specta::specta]
 #[cfg(target_os = "linux")]
 pub async fn deep_link_install_vcc(app: AppHandle) {
+    use tauri::Manager as _;
     // for linux, create a desktop entry
     // https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
 
@@ -279,7 +279,7 @@ mod tests {
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
                 url: Url::parse("https://example.com").unwrap(),
-                headers: IndexMapV2(IndexMap::new()),
+                headers: IndexMap::new(),
             })
         );
 
@@ -291,7 +291,7 @@ mod tests {
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
                 url: Url::parse("https://vpm.anatawa12.com/vpm.json").unwrap(),
-                headers: IndexMapV2(IndexMap::new()),
+                headers: IndexMap::new(),
             })
         );
 
@@ -301,11 +301,11 @@ mod tests {
             deep_link,
             DeepLink::AddRepository(AddRepositoryInfo {
                 url: Url::parse("https://vpm.anatawa12.com/vpm.json").unwrap(),
-                headers: IndexMapV2({
+                headers: {
                     let mut map = IndexMap::new();
                     map.insert("Authorization".to_string(), "test".to_string());
                     map
-                }),
+                },
             })
         );
     }

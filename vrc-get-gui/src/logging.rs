@@ -6,7 +6,7 @@ use std::cmp::Reverse;
 use std::fmt::{Display, Formatter};
 use std::io::Write as _;
 use std::sync::{mpsc, Arc, Mutex};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
@@ -173,7 +173,7 @@ fn logging_thread_main(
                 // send to tauri
                 if let Some(app_handle) = APP_HANDLE.load().as_ref() {
                     app_handle
-                        .emit_all("log", Some(entry))
+                        .emit("log", Some(entry))
                         .expect("error while emitting log event");
                 }
             }

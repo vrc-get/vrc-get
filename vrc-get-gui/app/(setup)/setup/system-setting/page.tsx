@@ -1,10 +1,7 @@
 "use client";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-	environmentSetUseAlcomForVccProtocol,
-	utilIsBadHostname,
-} from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
@@ -27,12 +24,12 @@ function Body({ environment, refetch }: BodyProps) {
 
 	const isBadHostName = useQuery({
 		queryKey: ["util_is_bad_hostname"],
-		queryFn: utilIsBadHostname,
+		queryFn: commands.utilIsBadHostname,
 		initialData: false,
 	});
 
 	const changeUseAlcomForVcc = async (value: "indeterminate" | boolean) => {
-		await environmentSetUseAlcomForVccProtocol(value === true);
+		await commands.environmentSetUseAlcomForVccProtocol(value === true);
 		refetch();
 	};
 

@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use log::error;
 use serde::Serialize;
 use specta::specta;
-use tauri::{generate_handler, Invoke};
-
 pub use start::startup;
+use tauri::generate_handler;
+use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
@@ -33,7 +33,7 @@ pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 // Note: remember to change similar in typescript
 static DEFAULT_UNITY_ARGUMENTS: &[&str] = &["-debugCodeOptimization"];
 
-pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
+pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     generate_handler![
         environment::config::environment_language,
         environment::config::environment_set_language,
@@ -116,8 +116,9 @@ pub(crate) fn handlers() -> impl Fn(Invoke) + Send + Sync + 'static {
 #[cfg(dev)]
 pub(crate) fn export_ts() {
     let export_path = "lib/bindings.ts";
-    tauri_specta::ts::export_with_cfg(
-        specta::collect_types![
+    tauri_specta::Builder::new()
+        .error_handling(tauri_specta::ErrorHandlingMode::Throw)
+        .commands(tauri_specta::collect_commands![
             environment::config::environment_language,
             environment::config::environment_set_language,
             environment::config::environment_theme,
@@ -192,39 +193,14 @@ pub(crate) fn export_ts() {
             util::util_is_bad_hostname,
             crate::deep_link_support::deep_link_has_add_repository,
             crate::deep_link_support::deep_link_take_add_repository,
-            crate::deep_link_support::deep_link_install_vcc,
-        ]
-        .unwrap(),
-        specta::ts::ExportConfiguration::new().bigint(specta::ts::BigIntExportBehavior::Number),
-        export_path,
-    )
-    .unwrap();
-
-    let ts_file = std::fs::read_to_string(export_path).unwrap();
-    let ts_file = ts_file.lines().collect::<Vec<_>>();
-    let export_file_start = ts_file
-        .iter()
-        .position(|x| x.starts_with("export type "))
+            crate::deep_link_support::deep_link_install_vcc //,
+        ])
+        .export(
+            specta_typescript::Typescript::default()
+                .bigint(specta_typescript::BigIntExportBehavior::Number),
+            export_path,
+        )
         .unwrap();
-    let export_file_last = ts_file
-        .iter()
-        .rposition(|x| x.starts_with("export type "))
-        .unwrap();
-
-    let pre_export = &ts_file[..export_file_start];
-    let mut export_range = ts_file[export_file_start..=export_file_last].to_vec();
-    let post_export = &ts_file[export_file_last + 1..];
-
-    // sort by type name
-    export_range.sort();
-
-    let file = [pre_export, &export_range, post_export]
-        .iter()
-        .flat_map(|x| x.iter())
-        .flat_map(|x| [x, "\n"].into_iter())
-        .collect::<String>();
-
-    std::fs::write(export_path, file).unwrap();
 }
 
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {

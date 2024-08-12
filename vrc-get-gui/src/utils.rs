@@ -6,12 +6,10 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use tauri::api::dir::is_dir;
 use yoke::{CloneableCart, Yoke, Yokeable};
 
 pub(crate) fn home_dir() -> PathBuf {
-    use tauri::api::path::home_dir;
-    home_dir().unwrap()
+    dirs_next::home_dir().expect("Failed to get home directory")
 }
 
 pub(crate) fn default_backup_path() -> String {
@@ -47,7 +45,10 @@ pub(crate) fn default_project_path<'env>(settings: &'env mut SettingMutRef<'_>) 
 pub(crate) fn find_existing_parent_dir(path: &Path) -> Option<&Path> {
     let mut parent = path;
     loop {
-        if is_dir(parent).unwrap_or(false) {
+        if std::fs::metadata(parent)
+            .map(|x| x.is_dir())
+            .unwrap_or(false)
+        {
             return Some(parent);
         }
 

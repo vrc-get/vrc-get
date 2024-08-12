@@ -1,12 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
-import {
-	type SetupPages,
-	type TauriEnvironmentSettings,
-	environmentFinishedSetupPage,
-	environmentGetFinishedSetupPages,
-	environmentGetSettings,
-} from "@/lib/bindings";
+import type { SetupPages, TauriEnvironmentSettings } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
@@ -42,11 +37,11 @@ export function SetupPageBase({
 
 	const result = useQuery({
 		queryKey: ["environmentGetSettings"],
-		queryFn: environmentGetSettings,
+		queryFn: commands.environmentGetSettings,
 	});
 
 	const onNext = async () => {
-		if (pageId) await environmentFinishedSetupPage(pageId);
+		if (pageId) await commands.environmentFinishedSetupPage(pageId);
 		router.push(nextPage);
 	};
 
@@ -94,7 +89,7 @@ function StepCard({
 	// TODO: get progress from backend
 	const finisheds = useQuery({
 		queryKey: ["environmentGetFinishedSetupPages"],
-		queryFn: async () => environmentGetFinishedSetupPages(),
+		queryFn: async () => commands.environmentGetFinishedSetupPages(),
 		initialData: [],
 	}).data;
 

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { CardDescription } from "@/components/ui/card";
-import { environmentPickUnityHub, utilOpenUrl } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { type BodyProps, SetupPageBase } from "../setup-page-base";
 
@@ -42,7 +42,7 @@ function Body({ environment, refetch }: BodyProps) {
 					<FilePathRow
 						withoutSelect
 						path={environment.unity_hub ?? ""}
-						pick={environmentPickUnityHub}
+						pick={commands.environmentPickUnityHub}
 						refetch={refetch}
 						notFoundMessage={"Unity Hub Not Found"}
 						successMessage={tc("settings:toast:unity hub path updated")}
@@ -53,7 +53,9 @@ function Body({ environment, refetch }: BodyProps) {
 					<div className={"p-2"} />
 					<div className={"flex flex-row flex-wrap gap-2"}>
 						<Button
-							onClick={() => utilOpenUrl("https://unity.com/ja/download")}
+							onClick={() =>
+								commands.utilOpenUrl("https://unity.com/ja/download")
+							}
 						>
 							{tc("setup:unity-hub:download unity hub from unity.com")}
 						</Button>
@@ -73,7 +75,7 @@ function Body({ environment, refetch }: BodyProps) {
 								<FilePathRow
 									withoutSelect
 									path={environment.unity_hub}
-									pick={environmentPickUnityHub}
+									pick={commands.environmentPickUnityHub}
 									refetch={refetch}
 									notFoundMessage={"Unity Hub Not Found"}
 									successMessage={tc("settings:toast:unity hub path updated")}
