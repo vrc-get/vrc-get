@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Check and better error for installing unlocked packages `#1387`
 
 ### Changed
 - Save isMaximized instead of isFullScreen `#1367`
@@ -22,6 +23,7 @@ The format is based on [Keep a Changelog].
   - Some environment variables still referred ALCOM AppDir.
   - This PR fixes AppDir path for all environment variables.
 - Tooltips on the Manage Packages table are not shown `#1372`
+- Resolve needed button is shown if unlocked package in dependencies section `#1387`
 
 ### Security
 
