@@ -265,6 +265,8 @@
     "projects:manage:button:apply changes": "Apply Changes",
     "projects:manage:button:apply": "Apply",
 
+    "projects:manage:toast:package_already_installed_as_unlocked": "package {{package}} is already installed but not managed by VPM, please remove it manually before installing with ALCOM.",
+
 
 // Packages Page
     "packages": "Packages",

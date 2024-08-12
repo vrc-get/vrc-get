@@ -257,6 +257,8 @@
     "projects:manage:button:apply changes": "変更を適用",
     "projects:manage:button:apply": "適用",
 
+    "projects:manage:toast:package_already_installed_as_unlocked": "パッケージ{{package}}はすでにインストールされていますが、VPMによって管理されていません。ALCOMでインストールするには先に手動で削除してください",
+
 
 // Packages Page
     "packages": "パッケージ管理",

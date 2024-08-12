@@ -16,7 +16,7 @@ use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
-use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
+use vrc_get_vpm::unity_project::{AddPackageErr, AddPackageOperation, PendingProjectChanges};
 
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
@@ -210,6 +210,12 @@ pub async fn project_install_package(
             .await
         {
             Ok(request) => request,
+            Err(AddPackageErr::InstalledAsUnlocked { package_name }) => {
+                return Err(localizable_error!(
+                    "projects:manage:toast:package_already_installed_as_unlocked",
+                    package => package_name,
+                ));
+            }
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
     })
