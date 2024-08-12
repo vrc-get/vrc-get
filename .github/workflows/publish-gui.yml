@@ -241,6 +241,9 @@ jobs:
           name: vrc-get-gui-web
           path: vrc-get-gui/out
 
+      - name: Use unreleased version of tauri-cli
+        run: cargo install --git https://github.com/tauri-apps/tauri tauri-cli --locked
+
       - uses: tauri-apps/tauri-action@v0
         env:
           # apple code signing
@@ -257,7 +260,7 @@ jobs:
         
         with:
           projectPath: vrc-get-gui
-          tauriScript: npm run tauri
+          tauriScript: cargo-tauri
           # disable beforeBuildCommand since we already build web
           args: |
             --target ${{ matrix.triple }} -c '{"build":{"beforeBuildCommand":null}}'

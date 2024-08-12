@@ -97,10 +97,13 @@ jobs:
         run: |
           cargo add --package vrc-get-gui tauri --features devtools
 
+      - name: Use unreleased version of tauri-cli
+        run: cargo install --git https://github.com/tauri-apps/tauri tauri-cli --locked
+
       - uses: tauri-apps/tauri-action@v0
         with:
           projectPath: vrc-get-gui
-          tauriScript: npm run tauri
+          tauriScript: cargo-tauri
           args: |
             --target ${{ matrix.triple }} -c '{"version":"${{ steps.version.outputs.version }}"}'
 
