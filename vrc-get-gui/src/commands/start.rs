@@ -106,6 +106,7 @@ pub fn startup(app: &mut App) {
         )
         .title("ALCOM")
         .resizable(true)
+        .incognito(true) // this prevents the webview from saving data
         .on_navigation(|url| {
             if cfg!(debug_assertions) && url.host_str() == Some("localhost") {
                 return true;

@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog].
 ### Changed
 - Save isMaximized instead of isFullScreen `#1367`
 - Migrated to Tauri v2 Release Candidate `#1350` `#1386`
+- Incognito mode of webview is now used `#1388`
+  - This prevents webview from saving something to disk.
+  - For macOS platform, `~/Library/WebKit/` will never be used.
+  - For windows platform, due to WebView2 limitation, some cache will be saved.
 
 ### Deprecated
 
