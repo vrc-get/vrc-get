@@ -254,7 +254,7 @@ function UnityLaunchArgumentsCard({
 					<h2>{tc("settings:default unity arguments")}</h2>
 				</div>
 				<Button onClick={openDialog} size={"sm"} className={"m-1"}>
-					{tc("settings:button:edit unity arguments")}
+					{tc("general:button:edit")}
 				</Button>
 			</div>
 			<p className={"text-sm"}>

@@ -159,17 +159,17 @@ function UnityInstallWindow({
 
 	return (
 		<DialogOpen>
-			<DialogTitle>{tc("projects:manage:dialog:unity not found")}</DialogTitle>
+			<DialogTitle>{tc("projects:dialog:unity not found")}</DialogTitle>
 			<DialogDescription>
 				<p>
-					{tc("projects:manage:dialog:unity version of the project not found", {
+					{tc("projects:dialog:unity version of the project not found", {
 						unity: expectedVersion,
 					})}
 				</p>
 			</DialogDescription>
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={openUnityHub}>
-					{tc("projects:manage:dialog:open unity hub")}
+					{tc("projects:dialog:open unity hub")}
 				</Button>
 				<Button onClick={close} className="mr-1">
 					{tc("general:button:close")}

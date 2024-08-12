@@ -97,9 +97,7 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 			};
 			dialog = (
 				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>
-						{tc("projects:manage:dialog:select unity header")}
-					</DialogTitle>
+					<DialogTitle>{tc("projects:dialog:select unity header")}</DialogTitle>
 					<SelectUnityVersionDialog
 						unityVersions={installStatus.unityVersions}
 						cancel={cancel}
@@ -138,7 +136,7 @@ function SelectUnityVersionDialog({
 	return (
 		<>
 			<DialogDescription>
-				<p>{tc("projects:manage:dialog:multiple unity found")}</p>
+				<p>{tc("projects:dialog:multiple unity found")}</p>
 				{withKeepUsing && (
 					<div className={"my-2"}>
 						<label
@@ -151,7 +149,7 @@ function SelectUnityVersionDialog({
 								onCheckedChange={(e) => setKeepUsingThisVersion(e === true)}
 								className="hover:before:content-none"
 							/>
-							{tc("projects:manage:dialog:keep using this version")}
+							{tc("projects:dialog:keep using this version")}
 						</label>
 					</div>
 				)}
@@ -176,7 +174,7 @@ function SelectUnityVersionDialog({
 					onClick={() => onSelect(selectedUnityPath!, keepUsingThisVersion)}
 					disabled={selectedUnityPath == null}
 				>
-					{tc("projects:manage:button:continue")}
+					{tc("general:button:continue")}
 				</Button>
 			</DialogFooter>
 		</>
