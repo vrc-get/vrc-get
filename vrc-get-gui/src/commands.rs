@@ -14,6 +14,25 @@ use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
 
+// common macro for commands so put it here
+macro_rules! localizable_error {
+    ($id:literal $(,)?) => {
+        $crate::commands::RustError::Localizable(::std::boxed::Box::new($crate::commands::LocalizableRustError {
+            id: $id.to_string(),
+            args: indexmap::IndexMap::new(),
+        }))
+    };
+
+    ($id:literal, $($key:ident => $value:expr), * $(,)?) => {
+        $crate::commands::RustError::Localizable(::std::boxed::Box::new($crate::commands::LocalizableRustError {
+            id: $id.to_string(),
+            args: indexmap::indexmap! {
+                $(::std::stringify!($key).to_string() => $value.to_string()),*
+            }
+        }))
+    };
+}
+
 mod async_command;
 mod environment;
 mod project;
@@ -221,6 +240,13 @@ async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &P
 #[serde(tag = "type")]
 enum RustError {
     Unrecoverable { message: String },
+    Localizable(Box<LocalizableRustError>),
+}
+
+#[derive(Debug, Clone, Serialize, specta::Type)]
+struct LocalizableRustError {
+    id: String,
+    args: indexmap::IndexMap<String, String>,
 }
 
 impl RustError {
