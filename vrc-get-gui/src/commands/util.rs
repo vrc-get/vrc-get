@@ -1,10 +1,11 @@
 use std::path::Path;
 
+use crate::commands::async_command::{async_command, AsyncCallResult, With};
 use crate::commands::prelude::*;
 use crate::logging::LogEntry;
 use crate::os::open_that;
 use crate::utils::find_existing_parent_dir_or_home;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, State, Window};
 use tauri_plugin_updater::{Update, UpdaterExt};
 use tokio::fs::create_dir_all;
 use url::Url;
@@ -108,28 +109,49 @@ pub async fn util_check_for_update(
     }))
 }
 
+#[derive(serde::Serialize, specta::Type, Clone)]
+#[serde(tag = "type")]
+pub enum InstallUpgradeProgress {
+    DownloadProgress { received: usize, total: Option<u64> },
+    DownloadComplete,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn util_install_and_upgrade(
     updater_state: State<'_, UpdaterState>,
     app_handle: AppHandle,
+    window: Window,
+    channel: String,
     version: u32,
-) -> Result<(), RustError> {
-    let Some(response) = updater_state.take() else {
-        return Err(RustError::unrecoverable("No update response found"));
-    };
+) -> Result<AsyncCallResult<InstallUpgradeProgress, ()>, RustError> {
+    async_command(channel, window, async move {
+        let Some(response) = updater_state.take() else {
+            return Err(RustError::unrecoverable("No update response found"));
+        };
 
-    if response.version() != version {
-        return Err(RustError::unrecoverable("Update data version mismatch"));
-    }
+        if response.version() != version {
+            return Err(RustError::unrecoverable("Update data version mismatch"));
+        }
 
-    // TODO: make async command
-    response
-        .into_data()
-        .download_and_install(|_, _| {}, || {})
-        .await?;
+        With::<InstallUpgradeProgress>::continue_async(move |ctx| async move {
+            response
+                .into_data()
+                .download_and_install(
+                    |received, total| {
+                        ctx.emit(InstallUpgradeProgress::DownloadProgress { received, total })
+                            .ok();
+                    },
+                    || {
+                        ctx.emit(InstallUpgradeProgress::DownloadComplete).ok();
+                    },
+                )
+                .await?;
 
-    app_handle.restart();
+            app_handle.restart();
+        })
+    })
+    .await
 }
 
 #[cfg(windows)]

@@ -215,8 +215,8 @@ async utilGetVersion() : Promise<string> {
 async utilCheckForUpdate() : Promise<CheckForUpdateResponse | null> {
     return await TAURI_INVOKE("util_check_for_update");
 },
-async utilInstallAndUpgrade(version: number) : Promise<null> {
-    return await TAURI_INVOKE("util_install_and_upgrade", { version });
+async utilInstallAndUpgrade(channel: string, version: number) : Promise<AsyncCallResult<InstallUpgradeProgress, null>> {
+    return await TAURI_INVOKE("util_install_and_upgrade", { channel, version });
 },
 async utilIsBadHostname() : Promise<boolean> {
     return await TAURI_INVOKE("util_is_bad_hostname");
@@ -245,6 +245,7 @@ async deepLinkInstallVcc() : Promise<void> {
 export type AddRepositoryInfo = { url: string; headers: { [key in string]: string } }
 export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Started" } | { type: "UnusedProgress"; progress: P }
 export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; update_description: string | null }
+export type InstallUpgradeProgress = { type: "DownloadProgress"; received: number; total: number | null } | { type: "DownloadComplete" }
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists"
