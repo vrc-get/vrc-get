@@ -8,6 +8,7 @@
     "general:source": "来源",
 
     "general:button:add": "添加",
+    "general:button:edit": "编辑",
     "general:button:cancel": "取消",
     "general:button:close": "关闭",
     "general:button:ok": "完成",
@@ -196,6 +197,7 @@
     "projects:manage:button:uninstall selected": "卸载所选软件包",
     "projects:manage:button:clear selection": "清空选择",
     "projects:manage:toast:no upgradable": "没有可升级的软件包",
+    "projects:manage:toast:package_already_installed_as_unlocked": "软件包 {{package}} 已经安装但并不是由VPM进行管理, 请在使用 ALCOM 安装它之前手动删除它。",
     "projects:manage:toast:package installed": "已安装 {{name}} 版本 {{version}}。",
     "projects:manage:toast:the package has newer latest with incompatible unity": "软件包的更新版本与 Unity 版本不兼容。",
     "projects:manage:toast:package removed": "已删除 {{name}}。",
@@ -334,6 +336,10 @@
     "settings:toast:not unity": "所选文件不是有效的 Unity 可执行文件。",
     "settings:toast:unity already added": "所选的 Unity 版本已经添加过了。",
     "settings:toast:unity added": "添加 Unity 成功！",
+
+    "settings:default unity arguments": "默认的 Untiy 命令行参数",
+    "settings:default unity arguments description": "ALCOM 启动 Unity 时将使用这些命令行参数。",
+    "settings:dialog:default launch arguments": "默认的 Untiy 命令行参数",
 
     "settings:default project path": "默认的项目路径",
     "settings:default project path description": "默认项目路径是创建新项目时将使用的目录。",
