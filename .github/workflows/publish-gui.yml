@@ -261,7 +261,7 @@ jobs:
           path: vrc-get-gui/out
 
       - name: Use unreleased version of tauri-cli
-        run: cargo install --git https://github.com/tauri-apps/tauri tauri-cli --locked
+        run: cargo install --git https://github.com/tauri-apps/tauri tauri-cli --locked --force --rev 85b0c47dc6e3dabe1c7c299be054fccd2a78c65d
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -276,7 +276,10 @@ jobs:
           # tauri updater signing
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        
+
+          # we have to use x86 version of signtool since eSignerCKA does not work with x64 version
+          TAUIRI_SIGNTOOL_PATH: C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x86\signtool.exe
+
         with:
           projectPath: vrc-get-gui
           tauriScript: cargo-tauri
