@@ -79,8 +79,8 @@ jobs:
 
           gh-export-variable GUI_VERSION "$(get-version -t gui)"
         env:
-          RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
-          DRY_RUN: ${{ github.event.inputs.dry-run }}
+          RELEASE_KIND_IN: ${{ inputs.release_kind }}
+          DRY_RUN: ${{ inputs.dry-run }}
 
       # region changelog
       - name: Create Changelog
@@ -340,7 +340,7 @@ jobs:
 
   publish-to-github:
     name: Publish to GitHub
-    if: ${{ !github.event.inputs.dry-run }}
+    if: ${{ !inputs.dry-run }}
     environment:
       name: actions-github-app
       url: https://github.com/anatawa12/vrc-get/releases/gui-v${{ needs.pre-build.outputs.gui-version }}
@@ -439,7 +439,7 @@ jobs:
 
   pull-request-to-website:
     name: Create PullRequest to vrc-get.anatawa12.com for updater.json
-    if: ${{ !github.event.inputs.dry-run }}
+    if: ${{ !inputs.dry-run }}
     environment:
       name: actions-github-app
     runs-on: ubuntu-latest
