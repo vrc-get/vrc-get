@@ -105,7 +105,7 @@ jobs:
           projectPath: vrc-get-gui
           tauriScript: cargo-tauri
           args: |
-            --target ${{ matrix.triple }} -c '{"version":"${{ steps.version.outputs.version }}"}'
+            --target ${{ matrix.triple }} -c '{"version":"${{ steps.version.outputs.version }}", "bundle":{"windows":{"certificateThumbprint": null}}}'
 
       - name: Upload built binary
         uses: actions/upload-artifact@v4

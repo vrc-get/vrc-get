@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog].
 ## [Unreleased]
 ### Added
 - Check and better error for installing unlocked packages `#1387`
+- Code signing for windows distribution `#1391`
+  - I hope this would reduce problems with some protection system on windows
 
 ### Changed
 - Save isMaximized instead of isFullScreen `#1367`
