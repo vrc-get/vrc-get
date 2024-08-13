@@ -38,7 +38,8 @@ impl From<AddPackageErr> for ResolvePackageErr {
             }
             AddPackageErr::UpgradingNonLockedPackage { .. }
             | AddPackageErr::DowngradingNonLockedPackage { .. }
-            | AddPackageErr::UpgradingWithDowngrade { .. } => {
+            | AddPackageErr::UpgradingWithDowngrade { .. }
+            | AddPackageErr::InstalledAsUnlocked { .. } => {
                 panic!("{value:?} should not be happened")
             }
         }
@@ -58,9 +59,16 @@ impl<IO: ProjectIo> UnityProject<IO> {
         // check locked packages
         for locked in self.manifest.all_locked() {
             let Some(installed) = self.installed_packages.get(locked.name()) else {
+                log::info!("Package {} is not installed", locked.name());
                 return true;
             };
             if installed.version() != locked.version() {
+                log::info!(
+                    "Package {} is installed with version {} but locked to {}",
+                    locked.name(),
+                    installed.version(),
+                    locked.version()
+                );
                 return true;
             }
             installed_or_legacy.insert(locked.name());
@@ -75,6 +83,14 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 for legacy in pkg.legacy_packages() {
                     installed_or_legacy.insert(legacy.as_ref());
                 }
+
+                // using unlocked packages for resolving dependencies means broken vpm-manifest.json
+                // however, we cannot install package with same id as unlocked package
+                // so we add to installed_or_legacy and use them for checking
+                // if dependencies are installed
+                // note: this logic might be different from official VCC but this is our decision,
+                // we won't change this behavior unless we have a good reason
+                installed_or_legacy.insert(pkg.name());
             }
         }
 
@@ -82,15 +98,6 @@ impl<IO: ProjectIo> UnityProject<IO> {
         for (dependency, _) in self.manifest.dependencies() {
             if !installed_or_legacy.contains(dependency) {
                 return true;
-            }
-        }
-
-        // add unlocked packages to installed_or_legacy
-        // we won't include unlocked package for checking packages in vpm-manifest,
-        // so we add after checking locked and dependencies
-        for (_, pkg) in self.unlocked_packages() {
-            if let Some(pkg) = pkg {
-                installed_or_legacy.insert(pkg.name());
             }
         }
 

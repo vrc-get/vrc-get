@@ -203,6 +203,7 @@
     "projects:manage:button:uninstall selected": "Uninstall Selected",
     "projects:manage:button:clear selection": "Clear Selection",
     "projects:manage:toast:no upgradable": "No upgradable package",
+    "projects:manage:toast:package_already_installed_as_unlocked": "Package {{package}} is already installed but not managed by VPM, please remove it manually before installing with ALCOM.",
     "projects:manage:toast:package installed": "{{name}} version {{version}} was installed successfully.",
     // V used in single operation
     "projects:manage:toast:the package has newer latest with incompatible unity": "The package has a newer version that is incompatible with the Unity version.",

@@ -197,6 +197,7 @@
     "projects:manage:button:uninstall selected": "選択したものをアンインストール",
     "projects:manage:button:clear selection": "選択を解除",
     "projects:manage:toast:no upgradable": "更新可能なパッケージはありません。",
+    "projects:manage:toast:package_already_installed_as_unlocked": "{{package}}は既にインストールされていますが、VPMで管理されていません。ALCOMでインストールするには、先に手動でパッケージを削除してください。",
     "projects:manage:toast:package installed": "{{name}} バージョン {{version}} をインストールしました。",
     // V used in single operation
     "projects:manage:toast:the package has newer latest with incompatible unity": "このパッケージには、使用中のUnityバージョンと互換性のない新しいバージョンが公開されています。",
