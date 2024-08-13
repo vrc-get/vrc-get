@@ -8,30 +8,37 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Check and better error for installing unlocked packages `#1387`
-- Code signing for windows distribution `#1391`
-  - I hope this would reduce problems with some protection system on windows
 
 ### Changed
-- Save isMaximized instead of isFullScreen `#1367`
-- Migrated to Tauri v2 Release Candidate `#1350` `#1386`
-- Incognito mode of webview is now used `#1388`
-  - This prevents webview from saving something to disk.
-  - For macOS platform, `~/Library/WebKit/` will never be used.
-  - For windows platform, due to WebView2 limitation, some cache will be saved.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Unity Launched with ALCOM (AppImage) may crash on linux `#1362`
-  - Some environment variables still referred ALCOM AppDir.
-  - This PR fixes AppDir path for all environment variables.
-- Tooltips on the Manage Packages table are not shown `#1372`
-- Resolve needed button is shown if unlocked package in dependencies section `#1387`
 
 ### Security
+
+## [0.1.14] - 2024-08-13
+### Added
+- Check and better error for installing unlocked packages [`#1387`](https://github.com/vrc-get/vrc-get/pull/1387)
+- Code signing for windows distribution [`#1391`](https://github.com/vrc-get/vrc-get/pull/1391)
+  - I hope this would reduce problems with some protection system on windows
+
+### Changed
+- Save isMaximized instead of isFullScreen [`#1367`](https://github.com/vrc-get/vrc-get/pull/1367)
+- Migrated to Tauri v2 Release Candidate [`#1350`](https://github.com/vrc-get/vrc-get/pull/1350) [`#1386`](https://github.com/vrc-get/vrc-get/pull/1386)
+- Incognito mode of webview is now used [`#1388`](https://github.com/vrc-get/vrc-get/pull/1388)
+  - This prevents webview from saving something to disk.
+  - For macOS platform, `~/Library/WebKit/` will never be used.
+  - For windows platform, due to WebView2 limitation, some cache will be saved.
+
+### Fixed
+- Unity Launched with ALCOM (AppImage) may crash on linux [`#1362`](https://github.com/vrc-get/vrc-get/pull/1362)
+  - Some environment variables still referred ALCOM AppDir.
+  - This PR fixes AppDir path for all environment variables.
+- Tooltips on the Manage Packages table are not shown [`#1372`](https://github.com/vrc-get/vrc-get/pull/1372)
+- Resolve needed button is shown if unlocked package in dependencies section [`#1387`](https://github.com/vrc-get/vrc-get/pull/1387)
 
 ## [0.1.13] - 2024-07-27
 ### Fixed
@@ -421,7 +428,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.13...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.14...HEAD
+[0.1.14]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.13...gui-v0.1.14
 [0.1.13]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.12...gui-v0.1.13
 [0.1.12]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.11...gui-v0.1.12
 [0.1.11]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.10...gui-v0.1.11
