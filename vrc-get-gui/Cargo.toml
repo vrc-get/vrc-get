@@ -16,16 +16,16 @@ path = "src/main.rs"
 [build-dependencies]
 flate2 = "1"
 tar = "0.4"
-tauri-build = { version = "2.0.0-rc.2", features = [ "config-toml" ] }
+tauri-build = { version = "2.0.0-rc.3", features = [ "config-toml" ] }
 
 [dependencies]
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
-tauri = { version = "2.0.0-rc.2", features = [ "config-toml" ] }
+tauri = { version = "2.0.0-rc.3", features = [ "config-toml" ] }
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
 reqwest = "0.12"
 specta = { version = "2.0.0-rc.20", features = [ "chrono", "url", "indexmap" ] }
-tauri-specta = { version = "2.0.0-rc.15", features = ["typescript"] }
+tauri-specta = { version = "2.0.0-rc.16", features = ["typescript"] }
 specta-typescript = "0.0.7"
 open = "5"
 arc-swap = "1"
@@ -43,8 +43,8 @@ trash = "5"
 async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
 async-stream = "0.3"
 tauri-plugin-single-instance = "2.0.0-rc.0"
-tauri-plugin-updater = "2.0.0-rc.0"
-tauri-plugin-dialog = "2.0.0-rc.0"
+tauri-plugin-updater = "2.0.0-rc.1"
+tauri-plugin-dialog = "2.0.0-rc.1"
 sys-locale = "0.3"
 log-panics = { version = "2", features = ["with-backtrace"] }
 url = "2"
