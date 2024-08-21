@@ -29,6 +29,10 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Unity from Unity Hub will be registered as manually registered Unity `#1081`
+- Fails to uninstall packages on macOS with filesystem that doesn't support resource fork `#1402`
+  - This is typically seen on ExFAT or FAT32 filesystems, not on APFS or HFS+ filesystems.
+  - macOS internally creates files starting with `._` for resource fork if the filesystem does not support resource fork.
+  - vrc-get-vpm does not handle this file correctly and fails to uninstall the package.
 
 ### Security
 
