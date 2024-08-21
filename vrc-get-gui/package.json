@@ -14,6 +14,10 @@
 		"check": "biome check",
 		"lint": "biome lint"
 	},
+	"//": "Safari 13 is the last version in macOS Mojave (10.14), which is the oldest macOS version that supports 32bit apps",
+	"//": "Edge Webview will automatically upgraded by Windows so we support last 2 years of Edge versions, which is 26 releases (26 * 4 = 104 weeks ~= 2 years)",
+	"//": "Since we only are considering the webview, we don't need to consider browsers other than Safari and Edge",
+	"browserslist": ["Safari >=13.0", "last 26 Edge versions"],
 	"dependencies": {
 		"@radix-ui/react-accordion": "^1",
 		"@radix-ui/react-checkbox": "^1",
