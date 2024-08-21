@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Partial macOS Mojave Support `#1404`
 
 ### Changed
 
