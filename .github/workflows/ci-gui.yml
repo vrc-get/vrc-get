@@ -116,10 +116,31 @@ jobs:
             target/${{ matrix.triple }}/release/bundle/*/ALCOM*
             target/${{ matrix.triple }}/release/bundle/*/alcom*
 
+  js-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache javascript essentials
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ${{ github.workspace }}/vrc-get-gui/.next/cache
+            ${{ github.workspace }}/vrc-get-gui/build
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-${{ hashFiles('vrc-get-gui/**/*.js', 'vrc-get-gui/**/*.jsx', 'vrc-get-gui/**/*.ts', 'vrc-get-gui/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-
+      - name: Build web essentials
+        working-directory: vrc-get-gui
+        run: npm run build
+      - name: Check for ECMAScript Version
+        working-directory: vrc-get-gui
+        run: npm run es-check
+
   conclude-gui:
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [ build-gui ]
+    needs: [ build-gui, js-version ]
     steps:
       - name: Conclude Tests
         env: { NEEDS: "${{ toJSON(needs) }}" }
