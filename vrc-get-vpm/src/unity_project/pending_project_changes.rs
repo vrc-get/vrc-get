@@ -621,7 +621,29 @@ async fn move_packages_to_temp<'a>(
                     moved.pop();
                     moved.push(format!("{}{}", REMOVED_FILE_PREFIX, name));
                 }
-                io.rename(&original, &moved).await?;
+                log::trace!("move {} to {}", original.display(), moved.display());
+
+                // macOS uses ._ files internally to store resource fork and ACL information
+                // https://apple.stackexchange.com/questions/14980/why-are-dot-underscore-files-created-and-how-can-i-avoid-them
+                // https://github.com/vrc-get/vrc-get/issues/1402
+                #[cfg(target_vendor = "apple")]
+                let ignore_not_found = original
+                    .file_name()
+                    .unwrap()
+                    .as_encoded_bytes()
+                    .starts_with(b"._");
+                #[cfg(not(target_vendor = "apple"))]
+                let ignore_not_found = false;
+
+                match io.rename(&original, &moved).await {
+                    Ok(()) => {}
+                    Err(e) if e.kind() == io::ErrorKind::NotFound && ignore_not_found => {
+                        // ignore error for ._ files
+                    }
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
             }
         }
 
