@@ -570,7 +570,7 @@ function SystemInformationCard() {
 	const info = useGlobalInfo();
 
 	return (
-		<Card className={"flex-shrink-0 p-4"}>
+		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
 			<h2>{tc("settings:system information")}</h2>
 			<dl>
 				<dt>{tc("settings:os")}</dt>
