@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- System Information card to Settings Page `#1406`
 
 ### Changed
 
