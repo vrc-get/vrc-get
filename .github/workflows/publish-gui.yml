@@ -396,11 +396,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |-
-          # Always prerelease for now.
+          # latest = false because we need to have vrc-get cli in the latest release
           # always generating notes file for now
           # ${{ !needs.pre-build.outputs.prerelease && '--notes-file changelog/release-note.md' || '' }} \
           gh release create \
-            --prerelease \
+            ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} \
             --latest=false \
             --notes-file changelog/release-note.md \
             --verify-tag "gui-v$GUI_VERSION" \
