@@ -412,6 +412,13 @@
     "settings:licenses": "Lizenzen",
     "settings:licenses description": "Klicke <l>hier</l>, um die Lizenzen von Drittanbieter-Projekten zu sehen, die in ALCOM verwendet wurden.",
 
+    "settings:system information": "Systeminformationen",
+    "settings:os": "Betriebssystem",
+    "settings:architecture": "Architektur",
+    "settings:webview version": "Webview Version",
+    "settings:alcom version": "ALCOM Version",
+    "settings:alcom commit hash": "ALCOM Build Commit Hash",
+
 
 // Logs Page
     "logs": "Logs",
