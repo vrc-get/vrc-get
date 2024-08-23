@@ -139,6 +139,7 @@ function Settings({
 					useAlcomForVccProtocol={settings.use_alcom_for_vcc_protocol}
 					refetch={refetch}
 				/>
+				<SystemInformationCard />
 			</main>
 		</ScrollPageContainer>
 	);
@@ -561,6 +562,28 @@ function AlcomCard({
 					},
 				)}
 			</p>
+		</Card>
+	);
+}
+
+function SystemInformationCard() {
+	const info = useGlobalInfo();
+
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>{tc("settings:system information")}</h2>
+			<dl>
+				<dt>{tc("settings:os")}</dt>
+				<dd className={"ml-8 mb-1"}>{info.osInfo}</dd>
+				<dt>{tc("settings:architecture")}</dt>
+				<dd className={"ml-8 mb-1"}>{info.arch}</dd>
+				<dt>{tc("settings:webview version")}</dt>
+				<dd className={"ml-8 mb-1"}>{info.webviewVersion}</dd>
+				<dt>{tc("settings:alcom version")}</dt>
+				<dd className={"ml-8 mb-1"}>{info.version}</dd>
+				<dt>{tc("settings:alcom commit hash")}</dt>
+				<dd className={"ml-8 mb-1"}>{info.commitHash}</dd>
+			</dl>
 		</Card>
 	);
 }

@@ -412,6 +412,13 @@
     "settings:licenses": "Licenses",
     "settings:licenses description": "Click <l>here</l> to view licenses of the projects used in ALCOM.",
 
+    "settings:system information": "System Information",
+    "settings:os": "OS",
+    "settings:architecture": "Architecture",
+    "settings:webview version": "Webview Version",
+    "settings:alcom version": "ALCOM Version",
+    "settings:alcom commit hash": "ALCOM Build Commit Hash",
+
 
 // Logs Page
     "logs": "Logs",
