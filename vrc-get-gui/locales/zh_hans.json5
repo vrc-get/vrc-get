@@ -394,6 +394,13 @@
     "settings:licenses": "许可证",
     "settings:licenses description": "单击 <l>此处</l> 查看 ALCOM 中使用的相关组件的许可证",
 
+    "settings:system information": "系统信息",
+    "settings:os": "操作系统",
+    "settings:architecture": "架构",
+    "settings:webview version": "Webview 版本",
+    "settings:alcom version": "ALCOM 版本",
+    "settings:alcom commit hash": "ALCOM 构建哈希",
+
 
 // Logs Page
     "logs": "日志",
