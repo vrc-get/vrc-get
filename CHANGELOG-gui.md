@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog].
 - System Information card to Settings Page `#1406`
 
 ### Changed
+- GitHub Releases for ALCOM is no longer prereleases
 
 ### Deprecated
 
