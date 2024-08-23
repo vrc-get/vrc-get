@@ -12,6 +12,7 @@ interface GlobalInfo {
 	osType: OsType;
 	arch: Arch;
 	osInfo: string;
+	webviewVersion: string;
 	localAppData: string; // empty string for non-windows
 	defaultUnityArguments: string[];
 }
@@ -24,6 +25,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	osType: "WindowsNT",
 	arch: "x86_64",
 	osInfo: "unknown OS",
+	webviewVersion: "unknown",
 	localAppData: "",
 	defaultUnityArguments: [],
 };

@@ -42,6 +42,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         os_type: &'a str,
         arch: &'a str,
         os_info: &'a str,
+        webview_version: &'a str,
         local_app_data: &'a str,
         default_unity_arguments: &'a [&'a str],
     }
@@ -60,6 +61,9 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
 
     let os_info = crate::os::os_info();
 
+    let webview_version = tauri::webview_version();
+    let webview_version = webview_version.as_deref().unwrap_or("unknown");
+
     #[cfg(windows)]
     let local_app_data = crate::os::local_app_data();
     #[cfg(not(windows))]
@@ -73,6 +77,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         os_type,
         arch,
         os_info,
+        webview_version,
         local_app_data,
         default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
     };
