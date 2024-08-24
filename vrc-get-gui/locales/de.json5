@@ -284,8 +284,6 @@
     "vpm repositories:dialog:headers": "Header",
     "vpm repositories:dialog:header name": "Name",
     "vpm repositories:dialog:header value": "Wert",
-    "vpm repositories:tooltip:add header": "Header hinzufügen",
-    "vpm repositories:tooltip:remove header": "Header entfernen",
     "vpm repositories:hint:invalid header names": "Headername ist ungültig",
     "vpm repositories:hint:invalid header values": "Headerwert ist ungültig",
     "vpm repositories:hint:duplicate headers": "Headername existiert bereits",

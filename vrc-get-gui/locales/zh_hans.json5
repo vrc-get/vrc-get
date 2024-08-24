@@ -268,8 +268,6 @@
     "vpm repositories:dialog:headers": "标头设置",
     "vpm repositories:dialog:header name": "标头名称",
     "vpm repositories:dialog:header value": "标头值",
-    "vpm repositories:tooltip:add header": "添加标头",
-    "vpm repositories:tooltip:remove header": "删除标头",
     "vpm repositories:hint:invalid header names": "标头名称不可用。",
     "vpm repositories:hint:invalid header values": "标头值不可用。",
     "vpm repositories:hint:duplicate headers": "标头名称重复。",
