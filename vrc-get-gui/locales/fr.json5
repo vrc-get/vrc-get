@@ -211,8 +211,6 @@
     "vpm repositories:toast:invalid url": "L'URL est invalide",
     "vpm repositories:toast:load failed": "Echech de téléchargement du dépot: {{message}}",
     "vpm repositories:toast:repository added": "Le dépot a été ajouté avec succès.",
-    "vpm repositories:tooltip:add header": "Ajouter un header",
-    "vpm repositories:tooltip:remove header": "Supprimer un header",
     "sidebar:bad hostname": "Mauvais nom d'hôte ",
     "sidebar:dialog:bad hostname": "Il y a un problème avec votre nom d'hôte.",
     "sidebar:dialog:bad hostname description": "Vous utilisez des caracthères non-ASCII dans votre nom d'hôte (Nom de l'ordinateur). <br/>Cela peut provoquer des problèmes avec les versions modernes de Unity.<br/>Il est fortement recommandé de changer le nom de l'ordinateur en n'utilisant que des caracthères alphanumériques.",
