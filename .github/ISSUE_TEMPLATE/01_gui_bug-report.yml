@@ -75,10 +75,8 @@ body:
         これはブラウザのバージョンやOSのバージョンとは異なります。
         よく分からない場合は空欄にして下さい。
         この情報はALCOMの設定画面にあります。
-        ALCOMの設定画面から作成した場合、このフィールドは自動的に埋められます。
-      placeholder: Windows 10 Pro 22H2, macOS 14.3.1, etc.
-    validations:
-      required: true
+        ALCOMの設定画面からissueを作成した場合、このフィールドは自動的に埋められます。
+      placeholder: 19618.1.15.11.14
 
   - type: textarea
     attributes:
