@@ -404,6 +404,13 @@
     "settings:licenses": "ライセンス",
     "settings:licenses description": "ALCOMで利用しているプロジェクトのライセンスを表示するには、<l>ここをクリック</l>",
 
+    "settings:system information": "システム情報",
+    "settings:os": "OS",
+    "settings:architecture": "アーキテクチャ",
+    "settings:webview version": "Webviewのバージョン",
+    "settings:alcom version": "ALCOMのバージョン",
+    "settings:alcom commit hash": "ALCOMのBuild Commit Hash",
+
 
 // Logs Page
     "logs": "ログ",
