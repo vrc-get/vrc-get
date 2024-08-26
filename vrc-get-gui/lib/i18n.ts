@@ -5,6 +5,7 @@ import enJson from "@/locales/en.json5";
 import frJson from "@/locales/fr.json5";
 import jaJson from "@/locales/ja.json5";
 import zh_hansJson from "@/locales/zh_hans.json5";
+import zh_hantJson from "@/locales/zh_hant.json5";
 import i18next, { t as i18nextt, type Resource } from "i18next";
 import { initReactI18next } from "react-i18next";
 
@@ -14,6 +15,7 @@ const languageResources = {
 	ja: jaJson,
 	fr: frJson,
 	zh_hans: zh_hansJson,
+	zh_hant: zh_hantJson,
 };
 
 i18next.use(initReactI18next).init({
