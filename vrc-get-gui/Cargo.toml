@@ -44,7 +44,7 @@ async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
 async-stream = "0.3"
 tauri-plugin-single-instance = "2.0.0-rc.0"
 tauri-plugin-updater = "2.0.0-rc.1"
-tauri-plugin-dialog = "2.0.0-rc.1"
+tauri-plugin-dialog = "2.0.0-rc.2"
 sys-locale = "0.3"
 log-panics = { version = "2", features = ["with-backtrace"] }
 url = "2"
