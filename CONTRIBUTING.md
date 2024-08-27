@@ -1,35 +1,51 @@
 # Contributing
 
-This project is based on
+First, thank you for considering contributing to this project.
 
-- TypeScript
-- Rust
-- C# .NET
+This project consists of multiple projects.
+Each project may have its own contribution guidelines, so please read the `CONTRIBUTING.md` file in the project folder.
 
-By that mean, some dependencies are required to work with.
-Each of them is defined in the project folder.
+- [vrc-get CLI](vrc-get/CONTRIBUTING.md) (not available yet)
+- [vrc-get LiteDB](vrc-get-litedb/CONTRIBUTING.md)
+- [vrc-get GUI](vrc-get-gui/CONTRIBUTING.md)
+- [vrc-get VPM](vrc-get-vpm/CONTRIBUTING.md) (not available yet)
 
-In addition, each project has its own contribution guidelines.
-Please refer `CONTRIBUTING.md` file in the project folder.
+## Setup development environment
 
-## Projects
+### System configuration requirements
 
-- [vrc-get CLI](vrc-get/README.md)
-- [vrc-get LiteDB](vrc-get-litedb/README.md)
-- [vrc-get GUI](vrc-get-gui/README.md)
-- [vrc-get VPM](vrc-get-vpm/README.md)
+This project is generally based on Rust, so you need to install Rust to work with this project.
 
-## Configuration requirements
+Please refer to the [Rust installation guide](https://www.rust-lang.org/tools/install) to install Rust if you don't have it.
 
-You can work on any OS system but this repository uses
+This project is constantly updated to the latest stable version of Rust,\
+so it is recommended to install with rustup and update it regularly.
 
-- Git Submodules
-- Symbolic Links
+Not only Rust, some projects may require additional dependencies.
 
-For Windows machines, you need to setup so your current user can create symbolic links. Refer to this documentation page <https://github.com/git-for-windows/git/wiki/Symbolic-Links>
+For VCC-related features of vrc-get, and ALCOM, you need to install .NET SDK to work with.
 
-To setup your project, use the following commands.
+Please refer to the [.NET installation guide](https://dotnet.microsoft.com/download) to install .NET SDK if you don't have it.
+
+For ALCOM, you need to install any LTS version of Node.js and npm for building the frontend.
+
+Please refer to the [Node.js installation guide](https://nodejs.org/en/download/) to install Node.js if you don't have it.
+
+### Clonging requirements
+
+To set up your project, use the following commands.
 
 ```bash
+git clone https://github.com/vrc-get/vrc-get.git
+# or
 git clone --recurse-submodules https://github.com/vrc-get/vrc-get.git
 ```
+
+You can work on any OS system, but this repository generally uses Symbolic Links.
+
+For Windows machines, you may need to set up so your current user can create symbolic links.
+Please refer to git-for-windows documentation page <https://github.com/git-for-windows/git/wiki/Symbolic-Links>
+
+In addition, when you work with `vrc-get-litedb` project,
+you need to clone the repository with `--recurse-submodules` option
+(or setup submodules manually with `git submodule update --init --recursive` after cloning).
