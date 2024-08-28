@@ -30,12 +30,19 @@ pub fn initialize_logger() -> DefaultEnvironmentIo {
 }
 
 fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>, io: &DefaultEnvironmentIo) {
-    let log_folder = io.resolve("vrc-get-logs".as_ref());
-    std::fs::create_dir_all(&log_folder).ok();
+    let old_log_folder = io.resolve("vrc-get-logs".as_ref());
+    let new_log_folder = io.resolve("vrc-get/gui-logs".as_ref());
+    if !new_log_folder.exists() {
+        if old_log_folder.exists() {
+            std::fs::rename(&old_log_folder, &new_log_folder).ok();
+        } else {
+            std::fs::create_dir_all(&new_log_folder).ok();
+        }
+    }
     let timestamp = chrono::Utc::now()
         .format("%Y-%m-%d_%H-%M-%S.%6f")
         .to_string();
-    let log_file = log_folder.join(format!("vrc-get-{}.log", timestamp));
+    let log_file = new_log_folder.join(format!("vrc-get-{}.log", timestamp));
 
     let log_file = match std::fs::OpenOptions::new()
         .create(true)
@@ -61,7 +68,7 @@ fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>, io: &Defaul
 
     std::thread::Builder::new()
         .name("remove-old-logs".to_string())
-        .spawn(move || remove_old_logs(log_folder))
+        .spawn(move || remove_old_logs(new_log_folder))
         .expect("error while starting remove-old-logs thread");
 }
 
