@@ -32,6 +32,7 @@ pub use add_package::AddPackageOperation;
 pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use migrate_vpm::MigrateVpmError;
 pub use pending_project_changes::PendingProjectChanges;
+pub use remove_package::RemovePackageErr;
 pub use resolve::ResolvePackageErr;
 
 #[derive(Debug)]
