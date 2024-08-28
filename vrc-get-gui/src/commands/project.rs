@@ -180,7 +180,9 @@ pub async fn project_install_package(
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
     let Some(packages) = packages.get_versioned(env_version) else {
-        return Err(RustError::unrecoverable("environment version mismatch"));
+        return Err(RustError::unrecoverable(
+            "Internal Error: environment version mismatch",
+        ));
     };
 
     changes!(packages, changes, |collection, packages| {
@@ -234,7 +236,9 @@ pub async fn project_install_multiple_package(
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
     let Some(packages) = packages.get_versioned(env_version) else {
-        return Err(RustError::unrecoverable("environment version mismatch"));
+        return Err(RustError::unrecoverable(
+            "Internal Error: environment version mismatch",
+        ));
     };
 
     changes!(packages, changes, |collection, packages| {
@@ -277,7 +281,9 @@ pub async fn project_upgrade_multiple_package(
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
     let Some(packages) = packages.get_versioned(env_version) else {
-        return Err(RustError::unrecoverable("environment version mismatch"));
+        return Err(RustError::unrecoverable(
+            "Internal Error: environment version mismatch",
+        ));
     };
     let allow_prerelease = settings.show_prerelease_packages();
 
