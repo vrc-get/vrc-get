@@ -22,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		"log",
 		useCallback((event) => {
 			const entry = event.payload as LogEntry;
-			if (entry.level === "Error") {
+			if (entry.level === "Error" && entry.gui_toast) {
 				toastError(entry.message);
 			}
 		}, []),
