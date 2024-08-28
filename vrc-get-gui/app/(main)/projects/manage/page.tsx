@@ -149,7 +149,7 @@ function PageBody() {
 	const onRefreshProject = useCallback(() => {
 		detailsResult.refetch();
 		packagesResult.refetch(); // package changes require package list to be refreshed
-	}, [detailsResult]);
+	}, [detailsResult, packagesResult]);
 
 	const packageChangeDialog = usePackageChangeDialog({
 		projectPath,
