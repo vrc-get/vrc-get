@@ -259,6 +259,12 @@ pub async fn project_install_multiple_package(
             .await
         {
             Ok(request) => request,
+            Err(AddPackageErr::InstalledAsUnlocked { package_name }) => {
+                return Err(localizable_error!(
+                    "projects:manage:toast:package_already_installed_as_unlocked",
+                    package => package_name,
+                ));
+            }
             Err(e) => return Err(RustError::unrecoverable(e)),
         }
     })
