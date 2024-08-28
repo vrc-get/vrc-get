@@ -11,6 +11,7 @@ use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
+use vrc_get_vpm::unity_project::AddPackageErr;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
 
@@ -258,9 +259,41 @@ impl RustError {
     }
 }
 
-impl<E: Display> From<E> for RustError {
-    fn from(value: E) -> Self {
-        RustError::unrecoverable(format!("io error: {value}"))
+macro_rules! impl_from_error {
+    ($($error:ty),* $(,)?) => {
+        $(
+            impl From<$error> for RustError {
+                fn from(value: $error) -> Self {
+                    RustError::unrecoverable(value)
+                }
+            }
+        )*
+    };
+}
+
+impl_from_error!(
+    io::Error,
+    String,
+    async_zip::error::ZipError,
+    tauri_plugin_updater::Error,
+    vrc_get_vpm::environment::AddRepositoryErr,
+    vrc_get_vpm::unity_project::RemovePackageErr,
+    vrc_get_vpm::unity_project::MigrateVpmError,
+    vrc_get_vpm::unity_project::MigrateUnity2022Error,
+    fs_extra::error::Error,
+);
+
+impl From<AddPackageErr> for RustError {
+    fn from(value: AddPackageErr) -> Self {
+        match value {
+            AddPackageErr::InstalledAsUnlocked { package_name } => {
+                localizable_error!(
+                    "projects:manage:toast:package_already_installed_as_unlocked",
+                    package => package_name,
+                )
+            }
+            e => RustError::unrecoverable(e),
+        }
     }
 }
 
