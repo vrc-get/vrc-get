@@ -148,6 +148,7 @@ function PageBody() {
 
 	const onRefreshProject = useCallback(() => {
 		detailsResult.refetch();
+		packagesResult.refetch(); // package changes require package list to be refreshed
 	}, [detailsResult]);
 
 	const packageChangeDialog = usePackageChangeDialog({
