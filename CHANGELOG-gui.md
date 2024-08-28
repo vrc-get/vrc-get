@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog].
   - This is typically seen on ExFAT or FAT32 filesystems, not on APFS or HFS+ filesystems.
   - macOS internally creates files starting with `._` for resource fork if the filesystem does not support resource fork.
   - vrc-get-vpm does not handle this file correctly and fails to uninstall the package.
+- environment version mismatch error after resolving packages `#1447`
 
 ### Security
 
