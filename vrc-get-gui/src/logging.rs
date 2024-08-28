@@ -243,6 +243,7 @@ pub(crate) struct LogEntry {
     level: LogLevel,
     target: String,
     message: String,
+    gui_toast: bool,
 }
 
 fn to_rfc3339_micros<S>(
@@ -258,11 +259,17 @@ where
 
 impl LogEntry {
     pub fn new(record: &Record) -> Self {
+        let gui_toast = record
+            .key_values()
+            .get("gui_toast".into())
+            .and_then(|x| x.to_bool())
+            .unwrap_or(true);
         LogEntry {
             time: chrono::Local::now(),
             level: record.level().into(),
             target: record.target().to_string(),
             message: format!("{}", record.args()),
+            gui_toast,
         }
     }
 }
