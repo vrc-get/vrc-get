@@ -372,6 +372,7 @@ pub enum Command {
     Resolve(Resolve),
     #[command(alias = "rm")]
     Remove(Remove),
+    Reinstall(Reinstall),
     Update(Update),
     Outdated(Outdated),
     Upgrade(Upgrade),
@@ -401,6 +402,7 @@ multi_command!(Command is
     Install,
     Resolve,
     Remove,
+    Reinstall,
     Update,
     Outdated,
     Upgrade,
@@ -592,6 +594,60 @@ impl Remove {
             .await
             .exit_context("collecting packages to be removed");
         let installer = PackageInstaller::new(&io, None::<&reqwest::Client>);
+
+        print_prompt_install(&changes);
+
+        let confirm =
+            changes.package_changes().len() >= self.names.len() || !changes.conflicts().is_empty();
+
+        if confirm {
+            prompt_install(self.yes);
+        }
+
+        unity
+            .apply_pending_changes(&installer, changes)
+            .await
+            .exit_context("removing packages");
+
+        save_unity(&mut unity).await;
+        update_project_last_modified(&io, unity.project_dir()).await;
+    }
+}
+
+/// Reinstall specified packages
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Reinstall {
+    /// Name of Packages to reinstall
+    #[arg()]
+    names: Vec<String>,
+
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<Box<Path>>,
+    #[command(flatten)]
+    env_args: EnvArgs,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
+}
+
+impl Reinstall {
+    pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
+        let client = crate::create_client(self.env_args.offline);
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
+
+        let mut unity = load_unity(self.project).await;
+
+        let names = self.names.iter().map(String::as_ref).collect::<Vec<_>>();
+
+        let changes = unity
+            .reinstall_request(&collection, &names)
+            .await
+            .exit_context("collecting packages to be removed");
 
         print_prompt_install(&changes);
 
