@@ -152,6 +152,9 @@ async projectDetails(projectPath: string) : Promise<TauriProjectDetails> {
 async projectInstallPackages(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
     return await TAURI_INVOKE("project_install_packages", { projectPath, envVersion, packageIndices });
 },
+async projectReinstallPackages(projectPath: string, packageIds: string[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_reinstall_packages", { projectPath, packageIds });
+},
 async projectResolve(projectPath: string) : Promise<TauriPendingProjectChanges> {
     return await TAURI_INVOKE("project_resolve", { projectPath });
 },

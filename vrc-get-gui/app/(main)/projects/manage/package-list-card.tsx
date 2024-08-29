@@ -54,62 +54,7 @@ import {
 	CheckboxDisabledIfLoading,
 	usePageContext,
 } from "./page-context";
-
-type RequestedOperation =
-	| {
-			type: "install";
-			pkg: TauriPackage;
-			hasUnityIncompatibleLatest?: boolean;
-	  }
-	| {
-			type: "upgradeAll";
-			hasUnityIncompatibleLatest: boolean;
-	  }
-	| {
-			type: "resolve";
-	  }
-	| {
-			type: "reinstallAll";
-	  }
-	| {
-			type: "remove";
-			displayName: string;
-	  }
-	| {
-			type: "bulkInstalled";
-			hasUnityIncompatibleLatest: boolean;
-	  }
-	| {
-			type: "bulkRemoved";
-	  };
-
-type BulkUpdateMode =
-	| "install"
-	| "upgradeOrRemove"
-	| "remove"
-	| "upgrade"
-	| "any";
-type PackageBulkUpdateMode = "install" | "upgradeOrRemove" | "remove";
-
-function updateModeFromPackageModes(
-	map: PackageBulkUpdateMode[],
-): BulkUpdateMode {
-	const asSet = new Set(map);
-
-	if (asSet.size === 0) {
-		return "any";
-	}
-	if (asSet.size === 1) {
-		return [...asSet][0];
-	}
-	if (asSet.size === 2) {
-		if (asSet.has("remove") && asSet.has("upgradeOrRemove")) {
-			return "remove";
-		}
-	}
-
-	return "any";
-}
+import type { RequestedOperation } from "./use-package-change";
 
 export const PackageListCard = memo(function PackageListCard({
 	projectPath,
@@ -234,7 +179,7 @@ export const PackageListCard = memo(function PackageListCard({
 		[createChanges, projectPath],
 	);
 
-	const onUpgradeBulkRequested = useCallback(() => {
+	const onInstallOrUpgradeBulkRequested = useCallback(() => {
 		try {
 			const packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
 			const packages: number[] = [];
@@ -242,45 +187,10 @@ export const PackageListCard = memo(function PackageListCard({
 			let hasUnityIncompatibleLatest = false;
 			for (const packageRow of packageRowsData) {
 				if (packageIds.has(packageRow.id)) {
-					if (packageRow.latest.status !== "upgradable")
-						throw new Error("Package is not upgradable");
-
-					if (envVersion == null)
-						envVersion = packageRow.latest.pkg.env_version;
-					else if (envVersion !== packageRow.latest.pkg.env_version)
-						throw new Error("Inconsistent env_version");
-
-					packages.push(packageRow.latest.pkg.index);
-					hasUnityIncompatibleLatest ||=
-						packageRow.latest.hasUnityIncompatibleLatest;
-				}
-			}
-			if (envVersion == null) {
-				toastError(tt("projects:manage:toast:no upgradable"));
-				return;
-			}
-			createChanges(
-				{
-					type: "upgradeAll",
-					hasUnityIncompatibleLatest,
-				},
-				commands.projectInstallPackages(projectPath, envVersion, packages),
-			);
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-		}
-	}, [bulkUpdatePackageIds, createChanges, packageRowsData, projectPath]);
-
-	const onInstallBulkRequested = useCallback(() => {
-		try {
-			const packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
-			const packages: number[] = [];
-			let envVersion: number | undefined = undefined;
-			let hasUnityIncompatibleLatest = false;
-			for (const packageRow of packageRowsData) {
-				if (packageIds.has(packageRow.id)) {
-					if (packageRow.latest.status !== "contains")
+					if (
+						packageRow.latest.status !== "contains" &&
+						packageRow.latest.status !== "upgradable"
+					)
 						throw new Error("Package is not installable");
 
 					if (envVersion == null)
@@ -307,6 +217,21 @@ export const PackageListCard = memo(function PackageListCard({
 		}
 	}, [bulkUpdatePackageIds, createChanges, packageRowsData, projectPath]);
 
+	const onBulkReinstallRequested = useCallback(() => {
+		try {
+			createChanges(
+				{ type: "bulkReinstalled" },
+				commands.projectReinstallPackages(
+					projectPath,
+					bulkUpdatePackageIds.map(([id, _]) => id),
+				),
+			);
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	}, [bulkUpdatePackageIds, createChanges, projectPath]);
+
 	const onRemoveBulkRequested = useCallback(() => {
 		createChanges(
 			{ type: "bulkRemoved" },
@@ -318,10 +243,9 @@ export const PackageListCard = memo(function PackageListCard({
 	}, [bulkUpdatePackageIds, createChanges, projectPath]);
 
 	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
-		const possibleUpdate: PackageBulkUpdateMode | "nothing" =
-			bulkUpdateModeForPackage(row);
+		const possibleUpdate: PackageBulkUpdateMode = bulkUpdateModeForPackage(row);
 
-		if (possibleUpdate === "nothing") return;
+		if (!hasAnyUpdate(possibleUpdate)) return;
 		setBulkUpdatePackageIds((prev) => {
 			if (prev.some(([id, _]) => id === row.id)) return prev;
 			return [...prev, [row.id, possibleUpdate]];
@@ -357,9 +281,9 @@ export const PackageListCard = memo(function PackageListCard({
 				/>
 				<BulkUpdateCard
 					bulkUpdateMode={bulkUpdateMode}
-					bulkUpgradeAll={onUpgradeBulkRequested}
 					bulkRemoveAll={onRemoveBulkRequested}
-					bulkInstallAll={onInstallBulkRequested}
+					bulkInstallOrUpgradeAll={onInstallOrUpgradeBulkRequested}
+					bulkReinstallAll={onBulkReinstallRequested}
 					cancel={() => setBulkUpdatePackageIds([])}
 				/>
 				<ScrollableCardTable>
@@ -548,26 +472,86 @@ function ManagePackagesHeading({
 	);
 }
 
+// if installed and not latest, can upgrade, reinstall or remove
+// if installed, can reinstall or remove
+// if not installed, can install
+// we combined install and upgrade so we can:
+// - install or upgrade if not installed or not latest
+// - remove or reinstall if installed
+
+const possibleUpdateKind = [
+	"canInstallOrUpgrade",
+	"canReinstallOrRemove",
+] as const;
+
+type PackageBulkUpdateMode = {
+	[k in (typeof possibleUpdateKind)[number]]: boolean;
+};
+
+type BulkUpdateMode = PackageBulkUpdateMode & { hasPackages: boolean };
+
+function updateModeFromPackageModes(
+	map: PackageBulkUpdateMode[],
+): BulkUpdateMode {
+	let canInstallOrUpgrade = true;
+	let canReinstallOrRemove = true;
+
+	for (const mode of map) {
+		canInstallOrUpgrade &&= mode.canInstallOrUpgrade;
+		canReinstallOrRemove &&= mode.canReinstallOrRemove;
+	}
+
+	return {
+		canInstallOrUpgrade,
+		canReinstallOrRemove,
+		hasPackages: map.length > 0,
+	};
+}
+
+function bulkUpdateModeForPackage(pkg: PackageRowInfo): PackageBulkUpdateMode {
+	const canReinstallOrRemove: boolean = pkg.installed != null;
+	// there is possibility for installed and latest is newest or newer than latest
+	const canInstallOrUpgrade: boolean = pkg.installed
+		? pkg.latest.status === "upgradable"
+		: pkg.latest.status !== "none";
+	return {
+		canInstallOrUpgrade,
+		canReinstallOrRemove,
+	};
+}
+
+function hasAnyUpdate(pkg: PackageBulkUpdateMode): boolean {
+	for (const kind of possibleUpdateKind) {
+		if (pkg[kind]) return true;
+	}
+	return false;
+}
+
+function canBulkUpdate(
+	bulkUpdateMode: BulkUpdateMode,
+	possibleUpdate: PackageBulkUpdateMode,
+): boolean {
+	// if either is available, we can bulk update
+	for (const kind of possibleUpdateKind) {
+		if (bulkUpdateMode[kind] && possibleUpdate[kind]) return true;
+	}
+	return false;
+}
+
 function BulkUpdateCard({
 	bulkUpdateMode,
-	bulkUpgradeAll,
 	bulkRemoveAll,
-	bulkInstallAll,
+	bulkReinstallAll,
+	bulkInstallOrUpgradeAll,
 	cancel,
 }: {
 	bulkUpdateMode: BulkUpdateMode;
-	bulkUpgradeAll?: () => void;
 	bulkRemoveAll?: () => void;
-	bulkInstallAll?: () => void;
+	bulkReinstallAll?: () => void;
+	bulkInstallOrUpgradeAll?: () => void;
 	cancel?: () => void;
 }) {
-	if (bulkUpdateMode === "any") return null;
-
-	const canInstall = bulkUpdateMode === "install";
-	const canUpgrade =
-		bulkUpdateMode === "upgrade" || bulkUpdateMode === "upgradeOrRemove";
-	const canRemove =
-		bulkUpdateMode === "remove" || bulkUpdateMode === "upgradeOrRemove";
+	if (!bulkUpdateMode.hasPackages) return null;
 
 	return (
 		<Card
@@ -575,17 +559,17 @@ function BulkUpdateCard({
 				"flex-shrink-0 p-2 flex flex-row gap-2 bg-secondary text-secondary-foreground flex-wrap"
 			}
 		>
-			{canInstall && (
-				<ButtonDisabledIfLoading onClick={bulkInstallAll}>
-					{tc("projects:manage:button:install selected")}
+			{bulkUpdateMode.canInstallOrUpgrade && (
+				<ButtonDisabledIfLoading onClick={bulkInstallOrUpgradeAll}>
+					{tc("projects:manage:button:install selected latest")}
 				</ButtonDisabledIfLoading>
 			)}
-			{canUpgrade && (
-				<ButtonDisabledIfLoading onClick={bulkUpgradeAll} variant={"success"}>
-					{tc("projects:manage:button:upgrade selected")}
+			{bulkUpdateMode.canReinstallOrRemove && (
+				<ButtonDisabledIfLoading onClick={bulkReinstallAll}>
+					{tc("projects:manage:button:reinstall selected")}
 				</ButtonDisabledIfLoading>
 			)}
-			{canRemove && (
+			{bulkUpdateMode.canReinstallOrRemove && (
 				<ButtonDisabledIfLoading
 					onClick={bulkRemoveAll}
 					variant={"destructive"}
@@ -848,24 +832,6 @@ const PackageRow = memo(function PackageRow({
 	);
 });
 
-function bulkUpdateModeForPackage(
-	pkg: PackageRowInfo,
-): PackageBulkUpdateMode | "nothing" {
-	if (pkg.installed) {
-		if (pkg.latest.status === "upgradable") {
-			return "upgradeOrRemove";
-		} else {
-			return "remove";
-		}
-	} else {
-		if (pkg.latest.status !== "none") {
-			return "install";
-		} else {
-			return "nothing";
-		}
-	}
-}
-
 const PackageVersionSelector = memo(function PackageVersionSelector({
 	pkg,
 	onInstallRequested,
@@ -960,22 +926,6 @@ function PackageVersionList({
 			))}
 		</SelectGroup>
 	);
-}
-
-function canBulkUpdate(
-	bulkUpdateMode: BulkUpdateMode,
-	possibleUpdate: PackageBulkUpdateMode | "nothing",
-): boolean {
-	if (possibleUpdate === "nothing") return false;
-	if (bulkUpdateMode === "any") return true;
-	if (bulkUpdateMode === possibleUpdate) return true;
-	if (bulkUpdateMode === "upgradeOrRemove" && possibleUpdate === "remove")
-		return true;
-	if (bulkUpdateMode === "upgrade" && possibleUpdate === "upgradeOrRemove")
-		return true;
-	if (bulkUpdateMode === "remove" && possibleUpdate === "upgradeOrRemove")
-		return true;
-	return false;
 }
 
 function PackageInstalledInfo({

@@ -104,6 +104,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_set_default_unity_arguments,
         project::project_details,
         project::project_install_packages,
+        project::project_reinstall_packages,
         project::project_resolve,
         project::project_remove_packages,
         project::project_apply_pending_changes,
@@ -186,6 +187,7 @@ pub(crate) fn export_ts() {
             environment::settings::environment_set_default_unity_arguments,
             project::project_details,
             project::project_install_packages,
+            project::project_reinstall_packages,
             project::project_resolve,
             project::project_remove_packages,
             project::project_apply_pending_changes,
@@ -276,6 +278,7 @@ impl_from_error!(
     vrc_get_vpm::unity_project::RemovePackageErr,
     vrc_get_vpm::unity_project::MigrateVpmError,
     vrc_get_vpm::unity_project::MigrateUnity2022Error,
+    vrc_get_vpm::unity_project::ReinstalPackagesError,
     fs_extra::error::Error,
 );
 

@@ -12,7 +12,6 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
-
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
@@ -202,6 +201,31 @@ pub async fn project_install_packages(
                 AddPackageOperation::AutoDetected,
                 allow_prerelease,
             )
+            .await?
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn project_reinstall_packages(
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    changes: State<'_, ChangesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
+    project_path: String,
+    package_ids: Vec<String>,
+) -> Result<TauriPendingProjectChanges, RustError> {
+    let settings = settings.load(io.inner()).await?;
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+
+    changes!(packages, changes, |collection| {
+        let unity_project = load_project(project_path).await?;
+
+        let package_ids = package_ids.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+
+        unity_project
+            .reinstall_request(collection, &package_ids)
             .await?
     })
 }

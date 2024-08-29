@@ -21,7 +21,7 @@ import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { PackageRowInfo } from "./collect-package-row-info";
 
-type RequestedOperation =
+export type RequestedOperation =
 	| {
 			type: "install";
 			pkg: TauriPackage;
@@ -44,6 +44,9 @@ type RequestedOperation =
 	| {
 			type: "bulkInstalled";
 			hasUnityIncompatibleLatest: boolean;
+	  }
+	| {
+			type: "bulkReinstalled";
 	  }
 	| {
 			type: "bulkRemoved";
@@ -187,6 +190,11 @@ export function usePackageChangeDialog({
 						case "bulkRemoved":
 							toastSuccess(
 								tt("projects:manage:toast:selected packages removed"),
+							);
+							break;
+						case "bulkReinstalled":
+							toastSuccess(
+								tt("projects:manage:toast:selected packages reinstalled"),
 							);
 							break;
 						default:
