@@ -175,7 +175,9 @@ export const PackageListCard = memo(function PackageListCard({
 					pkg,
 					hasUnityIncompatibleLatest,
 				},
-				commands.projectInstallPackage(projectPath, pkg.env_version, pkg.index),
+				commands.projectInstallPackages(projectPath, pkg.env_version, [
+					pkg.index,
+				]),
 			);
 		},
 		[projectPath, createChanges],
@@ -206,11 +208,7 @@ export const PackageListCard = memo(function PackageListCard({
 					type: "upgradeAll",
 					hasUnityIncompatibleLatest,
 				},
-				commands.projectUpgradeMultiplePackage(
-					projectPath,
-					envVersion,
-					packages,
-				),
+				commands.projectInstallPackages(projectPath, envVersion, packages),
 			);
 		} catch (e) {
 			console.error(e);
@@ -266,11 +264,7 @@ export const PackageListCard = memo(function PackageListCard({
 					type: "upgradeAll",
 					hasUnityIncompatibleLatest,
 				},
-				commands.projectUpgradeMultiplePackage(
-					projectPath,
-					envVersion,
-					packages,
-				),
+				commands.projectInstallPackages(projectPath, envVersion, packages),
 			);
 		} catch (e) {
 			console.error(e);
@@ -305,11 +299,7 @@ export const PackageListCard = memo(function PackageListCard({
 			}
 			createChanges(
 				{ type: "bulkInstalled", hasUnityIncompatibleLatest },
-				commands.projectInstallMultiplePackage(
-					projectPath,
-					envVersion,
-					packages,
-				),
+				commands.projectInstallPackages(projectPath, envVersion, packages),
 			);
 		} catch (e) {
 			console.error(e);

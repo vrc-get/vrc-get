@@ -169,53 +169,7 @@ macro_rules! changes {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn project_install_package(
-    settings: State<'_, SettingsState>,
-    packages: State<'_, PackagesState>,
-    changes: State<'_, ChangesState>,
-    io: State<'_, DefaultEnvironmentIo>,
-    project_path: String,
-    env_version: u32,
-    package_index: usize,
-) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let Some(packages) = packages.get_versioned(env_version) else {
-        return Err(RustError::unrecoverable(
-            "Internal Error: environment version mismatch",
-        ));
-    };
-
-    changes!(packages, changes, |collection, packages| {
-        let installing_package = packages[package_index];
-
-        let unity_project = load_project(project_path).await?;
-
-        let operation = if let Some(locked) = unity_project.get_locked(installing_package.name()) {
-            if installing_package.version() < locked.version() {
-                AddPackageOperation::Downgrade
-            } else {
-                AddPackageOperation::UpgradeLocked
-            }
-        } else {
-            AddPackageOperation::InstallToDependencies
-        };
-
-        let allow_prerelease = settings.show_prerelease_packages();
-
-        unity_project
-            .add_package_request(
-                collection,
-                &[installing_package],
-                operation,
-                allow_prerelease,
-            )
-            .await?
-    })
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn project_install_multiple_package(
+pub async fn project_install_packages(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
@@ -239,55 +193,13 @@ pub async fn project_install_multiple_package(
 
         let unity_project = load_project(project_path).await?;
 
-        let operation = AddPackageOperation::InstallToDependencies;
-
         let allow_prerelease = settings.show_prerelease_packages();
 
         unity_project
             .add_package_request(
                 collection,
                 &installing_packages,
-                operation,
-                allow_prerelease,
-            )
-            .await?
-    })
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn project_upgrade_multiple_package(
-    settings: State<'_, SettingsState>,
-    packages: State<'_, PackagesState>,
-    changes: State<'_, ChangesState>,
-    io: State<'_, DefaultEnvironmentIo>,
-    project_path: String,
-    env_version: u32,
-    package_indices: Vec<usize>,
-) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let Some(packages) = packages.get_versioned(env_version) else {
-        return Err(RustError::unrecoverable(
-            "Internal Error: environment version mismatch",
-        ));
-    };
-    let allow_prerelease = settings.show_prerelease_packages();
-
-    changes!(packages, changes, |collection, packages| {
-        let installing_packages = package_indices
-            .iter()
-            .map(|&index| packages[index])
-            .collect::<Vec<_>>();
-
-        let unity_project = load_project(project_path).await?;
-
-        let operation = AddPackageOperation::UpgradeLocked;
-
-        unity_project
-            .add_package_request(
-                collection,
-                &installing_packages,
-                operation,
+                AddPackageOperation::AutoDetected,
                 allow_prerelease,
             )
             .await?

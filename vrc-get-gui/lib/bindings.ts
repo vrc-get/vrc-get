@@ -149,14 +149,8 @@ async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null
 async projectDetails(projectPath: string) : Promise<TauriProjectDetails> {
     return await TAURI_INVOKE("project_details", { projectPath });
 },
-async projectInstallPackage(projectPath: string, envVersion: number, packageIndex: number) : Promise<TauriPendingProjectChanges> {
-    return await TAURI_INVOKE("project_install_package", { projectPath, envVersion, packageIndex });
-},
-async projectInstallMultiplePackage(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
-    return await TAURI_INVOKE("project_install_multiple_package", { projectPath, envVersion, packageIndices });
-},
-async projectUpgradeMultiplePackage(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
-    return await TAURI_INVOKE("project_upgrade_multiple_package", { projectPath, envVersion, packageIndices });
+async projectInstallPackages(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_install_packages", { projectPath, envVersion, packageIndices });
 },
 async projectResolve(projectPath: string) : Promise<TauriPendingProjectChanges> {
     return await TAURI_INVOKE("project_resolve", { projectPath });
