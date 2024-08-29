@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog].
 ### Added
 - System Information card to Settings Page `#1406`
 - Traditional Chinese translation `#1442`
+- Reinstall some selected packages `#1450`
+- Install and Upgrade packages at once `#1450`
+- Upgrade to the stable latest version even if some package has newer prerelease version `#1450`
 
 ### Changed
 - GitHub Releases for ALCOM is no longer prereleases
