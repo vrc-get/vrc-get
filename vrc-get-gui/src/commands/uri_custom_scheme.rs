@@ -2,6 +2,7 @@ use serde::Serialize;
 use std::borrow::Cow;
 use tauri::http::{Request, Response};
 use tauri::{AppHandle, Manager};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
 
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::state::GuiConfigState;
@@ -41,11 +42,15 @@ pub struct GlobalInfo<'a> {
     webview_version: &'a str,
     local_app_data: &'a str,
     default_unity_arguments: &'a [&'a str],
+    vpm_home_folder: &'a std::path::Path,
 }
 
 pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
+    let io = app.state::<DefaultEnvironmentIo>();
     let config = app.state::<GuiConfigState>();
     let config = config.get();
+
+    let vpm_home_folder = io.inner().resolve("".as_ref());
 
     #[cfg(target_os = "macos")]
     let os_type = "Darwin";
@@ -80,6 +85,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         webview_version,
         local_app_data,
         default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
+        vpm_home_folder: &vpm_home_folder,
     };
 
     let mut script = b"globalThis.vrcGetGlobalInfo = ".to_vec();

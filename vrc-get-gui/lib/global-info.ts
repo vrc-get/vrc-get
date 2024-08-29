@@ -16,6 +16,7 @@ interface GlobalInfo {
 	webviewVersion: string;
 	localAppData: string; // empty string for non-windows
 	defaultUnityArguments: string[];
+	vpmHomeFolder: string;
 }
 
 const fallbackGlobalInfo: Readonly<GlobalInfo> = {
@@ -29,6 +30,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	webviewVersion: "unknown",
 	localAppData: "",
 	defaultUnityArguments: [],
+	vpmHomeFolder: "",
 };
 
 const globalInfo: Readonly<GlobalInfo> = load();
