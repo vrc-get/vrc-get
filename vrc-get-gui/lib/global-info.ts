@@ -1,3 +1,4 @@
+//import type { GlobalInfo } from "@/lib/bindings";
 // keep structure sync with uri_custom_scheme.rs
 import { useEffect, useState } from "react";
 

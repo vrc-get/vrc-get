@@ -213,6 +213,7 @@ pub(crate) fn export_ts() {
             crate::deep_link_support::deep_link_take_add_repository,
             crate::deep_link_support::deep_link_install_vcc //,
         ])
+        //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
         .export(
             specta_typescript::Typescript::default()
                 .bigint(specta_typescript::BigIntExportBehavior::Number),

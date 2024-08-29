@@ -27,25 +27,25 @@ pub fn handle_vrc_get_scheme(
     }
 }
 
+// keep structure sync with global-info.ts
+#[derive(Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct GlobalInfo<'a> {
+    language: &'a str,
+    theme: &'a str,
+    version: Option<&'a str>,
+    commit_hash: Option<&'a str>,
+    os_type: &'a str,
+    arch: &'a str,
+    os_info: &'a str,
+    webview_version: &'a str,
+    local_app_data: &'a str,
+    default_unity_arguments: &'a [&'a str],
+}
+
 pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     let config = app.state::<GuiConfigState>();
     let config = config.get();
-
-    // keep structure sync with global-info.ts
-    #[derive(Serialize)]
-    #[serde(rename_all = "camelCase")]
-    struct GlobalInfo<'a> {
-        language: &'a str,
-        theme: &'a str,
-        version: &'a str,
-        commit_hash: Option<&'a str>,
-        os_type: &'a str,
-        arch: &'a str,
-        os_info: &'a str,
-        webview_version: &'a str,
-        local_app_data: &'a str,
-        default_unity_arguments: &'a [&'a str],
-    }
 
     #[cfg(target_os = "macos")]
     let os_type = "Darwin";
@@ -72,7 +72,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     let global_info = GlobalInfo {
         language: &config.language,
         theme: &config.theme,
-        version: env!("CARGO_PKG_VERSION"),
+        version: Some(env!("CARGO_PKG_VERSION")),
         commit_hash: option_env!("COMMIT_HASH"),
         os_type,
         arch,
