@@ -128,38 +128,42 @@ export const PackageListCard = memo(function PackageListCard({
 		[projectPath, createChanges],
 	);
 
-	const onUpgradeAllRequest = useCallback(() => {
-		try {
-			const packages: number[] = [];
-			let envVersion: number | undefined = undefined;
-			let hasUnityIncompatibleLatest = false;
-			for (const packageRow of packageRowsData) {
-				if (packageRow.latest.status === "upgradable") {
-					if (envVersion == null)
-						envVersion = packageRow.latest.pkg.env_version;
-					else if (envVersion !== packageRow.latest.pkg.env_version)
-						throw new Error("Inconsistent env_version");
-					packages.push(packageRow.latest.pkg.index);
-					hasUnityIncompatibleLatest ||=
-						packageRow.latest.hasUnityIncompatibleLatest;
+	const onUpgradeAllRequest = useCallback(
+		(stable: boolean) => {
+			const latestKey = stable ? "stableLatest" : "latest";
+			try {
+				const packages: number[] = [];
+				let envVersion: number | undefined = undefined;
+				let hasUnityIncompatibleLatest = false;
+				for (const packageRow of packageRowsData) {
+					const latestInfo = packageRow[latestKey];
+					if (latestInfo.status === "upgradable") {
+						if (envVersion == null) envVersion = latestInfo.pkg.env_version;
+						else if (envVersion !== latestInfo.pkg.env_version)
+							throw new Error("Inconsistent env_version");
+						packages.push(latestInfo.pkg.index);
+						hasUnityIncompatibleLatest ||=
+							latestInfo.hasUnityIncompatibleLatest;
+					}
 				}
+				if (envVersion == null) {
+					toastError(tt("projects:manage:toast:no upgradable"));
+					return;
+				}
+				createChanges(
+					{
+						type: "upgradeAll",
+						hasUnityIncompatibleLatest,
+					},
+					commands.projectInstallPackages(projectPath, envVersion, packages),
+				);
+			} catch (e) {
+				console.error(e);
+				toastThrownError(e);
 			}
-			if (envVersion == null) {
-				toastError(tt("projects:manage:toast:no upgradable"));
-				return;
-			}
-			createChanges(
-				{
-					type: "upgradeAll",
-					hasUnityIncompatibleLatest,
-				},
-				commands.projectInstallPackages(projectPath, envVersion, packages),
-			);
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-		}
-	}, [createChanges, projectPath, packageRowsData]);
+		},
+		[createChanges, projectPath, packageRowsData],
+	);
 
 	const onReinstallRequest = useCallback(
 		() =>
@@ -179,43 +183,47 @@ export const PackageListCard = memo(function PackageListCard({
 		[createChanges, projectPath],
 	);
 
-	const onInstallOrUpgradeBulkRequested = useCallback(() => {
-		try {
-			const packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
-			const packages: number[] = [];
-			let envVersion: number | undefined = undefined;
-			let hasUnityIncompatibleLatest = false;
-			for (const packageRow of packageRowsData) {
-				if (packageIds.has(packageRow.id)) {
-					if (
-						packageRow.latest.status !== "contains" &&
-						packageRow.latest.status !== "upgradable"
-					)
-						throw new Error("Package is not installable");
+	const onInstallOrUpgradeBulkRequested = useCallback(
+		(stable: boolean) => {
+			const latestKey = stable ? "stableLatest" : "latest";
+			try {
+				const packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
+				const packages: number[] = [];
+				let envVersion: number | undefined = undefined;
+				let hasUnityIncompatibleLatest = false;
+				for (const packageRow of packageRowsData) {
+					if (packageIds.has(packageRow.id)) {
+						const latestInfo = packageRow[latestKey];
+						if (
+							latestInfo.status !== "contains" &&
+							latestInfo.status !== "upgradable"
+						)
+							throw new Error("Package is not installable");
 
-					if (envVersion == null)
-						envVersion = packageRow.latest.pkg.env_version;
-					else if (envVersion !== packageRow.latest.pkg.env_version)
-						throw new Error("Inconsistent env_version");
+						if (envVersion == null) envVersion = latestInfo.pkg.env_version;
+						else if (envVersion !== latestInfo.pkg.env_version)
+							throw new Error("Inconsistent env_version");
 
-					packages.push(packageRow.latest.pkg.index);
-					hasUnityIncompatibleLatest ||=
-						packageRow.latest.hasUnityIncompatibleLatest;
+						packages.push(latestInfo.pkg.index);
+						hasUnityIncompatibleLatest ||=
+							latestInfo.hasUnityIncompatibleLatest;
+					}
 				}
+				if (envVersion == null) {
+					toastError(tt("projects:manage:toast:no upgradable"));
+					return;
+				}
+				createChanges(
+					{ type: "bulkInstalled", hasUnityIncompatibleLatest },
+					commands.projectInstallPackages(projectPath, envVersion, packages),
+				);
+			} catch (e) {
+				console.error(e);
+				toastThrownError(e);
 			}
-			if (envVersion == null) {
-				toastError(tt("projects:manage:toast:no upgradable"));
-				return;
-			}
-			createChanges(
-				{ type: "bulkInstalled", hasUnityIncompatibleLatest },
-				commands.projectInstallPackages(projectPath, envVersion, packages),
-			);
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-		}
-	}, [bulkUpdatePackageIds, createChanges, packageRowsData, projectPath]);
+		},
+		[bulkUpdatePackageIds, createChanges, packageRowsData, projectPath],
+	);
 
 	const onBulkReinstallRequested = useCallback(() => {
 		try {
@@ -359,12 +367,23 @@ function ManagePackagesHeading({
 	repositoriesInfo: TauriRepositoriesInfo | undefined;
 	onRefresh: () => void;
 	onRefreshRepositories: () => void;
-	onUpgradeAllRequest: () => void;
+	onUpgradeAllRequest: (stable: boolean) => void;
 	onReinstallRequest: () => void;
 	search: string;
 	setSearch: (value: string) => void;
 }) {
 	const { isLoading } = usePageContext();
+
+	const upgradableToLatest = packageRowsData.some(
+		(row) => row.latest.status === "upgradable",
+	);
+	const upgradingToPrerelease = packageRowsData.some(
+		(row) =>
+			row.latest.status === "upgradable" && row.latest.pkg.version.pre !== "",
+	);
+	const upgradableToStable =
+		packageRowsData.some((row) => row.stableLatest.status === "upgradable") &&
+		upgradingToPrerelease;
 
 	return (
 		<div
@@ -403,14 +422,26 @@ function ManagePackagesHeading({
 				onChange={(e) => setSearch(e.target.value)}
 			/>
 
-			{packageRowsData.some((row) => row.latest.status === "upgradable") && (
+			{upgradableToLatest && (
 				<Button
 					className={"flex-shrink-0"}
-					onClick={onUpgradeAllRequest}
+					onClick={() => onUpgradeAllRequest(false)}
 					disabled={isLoading}
 					variant={"success"}
 				>
 					{tc("projects:manage:button:upgrade all")}
+				</Button>
+			)}
+
+			{/* show this button only if some packages are upgradable to prerelease and there is different stable */}
+			{upgradableToStable && (
+				<Button
+					className={"flex-shrink-0"}
+					onClick={() => onUpgradeAllRequest(true)}
+					disabled={isLoading}
+					variant={"success"}
+				>
+					{tc("projects:manage:button:upgrade all stable")}
 				</Button>
 			)}
 
@@ -482,28 +513,35 @@ function ManagePackagesHeading({
 const possibleUpdateKind = [
 	"canInstallOrUpgrade",
 	"canReinstallOrRemove",
+	"canInstallOrUpgradeStable",
 ] as const;
 
-type PackageBulkUpdateMode = {
+type BulkUpdateModeBase = {
 	[k in (typeof possibleUpdateKind)[number]]: boolean;
 };
-
-type BulkUpdateMode = PackageBulkUpdateMode & { hasPackages: boolean };
+type PackageBulkUpdateMode = BulkUpdateModeBase & { latestIsStable: boolean };
+type BulkUpdateMode = BulkUpdateModeBase & { hasPackages: boolean };
 
 function updateModeFromPackageModes(
 	map: PackageBulkUpdateMode[],
 ): BulkUpdateMode {
 	let canInstallOrUpgrade = true;
 	let canReinstallOrRemove = true;
+	let canInstallOrUpgradeStable = true;
+	let allLatestIsStable = true;
 
 	for (const mode of map) {
 		canInstallOrUpgrade &&= mode.canInstallOrUpgrade;
 		canReinstallOrRemove &&= mode.canReinstallOrRemove;
+		canInstallOrUpgradeStable &&= mode.canInstallOrUpgradeStable;
+		allLatestIsStable &&= mode.latestIsStable;
 	}
 
 	return {
 		canInstallOrUpgrade,
 		canReinstallOrRemove,
+		// if all packages latest is stable, installOrUpgrade is same as installOrUpgradeStable
+		canInstallOrUpgradeStable: !allLatestIsStable && canInstallOrUpgradeStable,
 		hasPackages: map.length > 0,
 	};
 }
@@ -514,9 +552,16 @@ function bulkUpdateModeForPackage(pkg: PackageRowInfo): PackageBulkUpdateMode {
 	const canInstallOrUpgrade: boolean = pkg.installed
 		? pkg.latest.status === "upgradable"
 		: pkg.latest.status !== "none";
+	const canInstallOrUpgradeStable: boolean = pkg.installed
+		? pkg.stableLatest.status === "upgradable"
+		: pkg.stableLatest.status !== "none";
+	const latestIsStable =
+		pkg.latest.status !== "none" && pkg.latest.pkg.version.pre === "";
 	return {
 		canInstallOrUpgrade,
 		canReinstallOrRemove,
+		canInstallOrUpgradeStable,
+		latestIsStable,
 	};
 }
 
@@ -548,7 +593,7 @@ function BulkUpdateCard({
 	bulkUpdateMode: BulkUpdateMode;
 	bulkRemoveAll?: () => void;
 	bulkReinstallAll?: () => void;
-	bulkInstallOrUpgradeAll?: () => void;
+	bulkInstallOrUpgradeAll?: (stable: boolean) => void;
 	cancel?: () => void;
 }) {
 	if (!bulkUpdateMode.hasPackages) return null;
@@ -560,8 +605,17 @@ function BulkUpdateCard({
 			}
 		>
 			{bulkUpdateMode.canInstallOrUpgrade && (
-				<ButtonDisabledIfLoading onClick={bulkInstallOrUpgradeAll}>
+				<ButtonDisabledIfLoading
+					onClick={() => bulkInstallOrUpgradeAll?.(false)}
+				>
 					{tc("projects:manage:button:install selected latest")}
+				</ButtonDisabledIfLoading>
+			)}
+			{bulkUpdateMode.canInstallOrUpgradeStable && (
+				<ButtonDisabledIfLoading
+					onClick={() => bulkInstallOrUpgradeAll?.(true)}
+				>
+					{tc("projects:manage:button:install selected stable latest")}
 				</ButtonDisabledIfLoading>
 			)}
 			{bulkUpdateMode.canReinstallOrRemove && (

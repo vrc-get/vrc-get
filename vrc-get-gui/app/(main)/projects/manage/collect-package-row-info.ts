@@ -42,6 +42,7 @@ export interface PackageRowInfo {
 		yanked: boolean;
 	};
 	latest: PackageLatestInfo;
+	stableLatest: PackageLatestInfo;
 }
 
 export const VRCSDK_PACKAGES = [
@@ -136,6 +137,7 @@ export function combinePackagesAndProjectDetails(
 					isThereSource: false,
 					installed: null,
 					latest: { status: "none" },
+					stableLatest: { status: "none" },
 				}),
 			);
 		}
@@ -202,8 +204,9 @@ export function combinePackagesAndProjectDetails(
 
 	// set latest info
 	for (const value of packagesTable.values()) {
-		const latestPackage = value.unityCompatible.values().next().value;
-		if (latestPackage) {
+		const hasLatest = value.unityCompatible.values().next();
+		if (!hasLatest.done) {
+			const latestPackage = hasLatest.value;
 			let hasUnityIncompatibleLatest = false;
 
 			const incompatibleLatestPackage = value.unityIncompatible
@@ -224,6 +227,40 @@ export function combinePackagesAndProjectDetails(
 				pkg: latestPackage,
 				hasUnityIncompatibleLatest,
 			};
+
+			function findFirstStable(
+				values: IterableIterator<TauriPackage>,
+			): TauriPackage | null {
+				for (const pkg of values) {
+					if (pkg.version.pre === "") return pkg;
+				}
+				return null;
+			}
+
+			const stableLatest = findFirstStable(value.unityCompatible.values());
+
+			if (stableLatest != null) {
+				let hasUnityIncompatibleLatest = false;
+
+				const incompatibleLatestPackage = findFirstStable(
+					value.unityIncompatible.values(),
+				);
+				if (
+					incompatibleLatestPackage &&
+					compareVersion(
+						stableLatest.version,
+						incompatibleLatestPackage.version,
+					) < 0
+				) {
+					hasUnityIncompatibleLatest = true;
+				}
+
+				value.stableLatest = {
+					status: "contains",
+					pkg: stableLatest,
+					hasUnityIncompatibleLatest,
+				};
+			}
 		}
 	}
 
@@ -255,6 +292,20 @@ export function combinePackagesAndProjectDetails(
 						pkg: packageRowInfo.latest.pkg,
 						hasUnityIncompatibleLatest:
 							packageRowInfo.latest.hasUnityIncompatibleLatest,
+					};
+				}
+			}
+			if (packageRowInfo.stableLatest.status !== "none") {
+				const compare = compareVersion(
+					pkg.version,
+					packageRowInfo.stableLatest.pkg.version,
+				);
+				if (compare < 0) {
+					packageRowInfo.stableLatest = {
+						status: "upgradable",
+						pkg: packageRowInfo.stableLatest.pkg,
+						hasUnityIncompatibleLatest:
+							packageRowInfo.stableLatest.hasUnityIncompatibleLatest,
 					};
 				}
 			}
