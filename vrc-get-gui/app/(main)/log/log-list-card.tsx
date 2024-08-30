@@ -2,27 +2,46 @@ import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogEntry } from "@/lib/bindings";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { commands, LogEntry } from "@/lib/bindings";
+import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 export const LogListCard = memo(function LogListCard({
-    LogEntry
+    logEntry
 }: {
-    LogEntry: LogEntry[]
+    logEntry: LogEntry[]
 }) {
     const [search, setSearch] = useState("");
+    const [shouldShowLogLevel, setShouldShowLogLevel] = useState([
+        "Info",
+        "Warn",
+        "Error",
+    ]);
+
+    const logsShown = useMemo(() => 
+        logEntry.filter((log) =>
+            log.message.toLowerCase().includes(search?.toLowerCase() ?? "") &&
+            shouldShowLogLevel.includes(log.level)
+        ), [search, shouldShowLogLevel]);
 
     const TABLE_HEAD = [
 		"logs:time",
 		"logs:log level",
-		"logs:detail",
+		"logs:message",
 	];
 
     return (
 		<Card className="flex-grow flex-shrink flex shadow-none w-full">
             <CardContent className="w-full p-2 flex flex-col gap-2">
+                <ManageLogsHeading 
+                    search={search} 
+                    setSearch={setSearch}
+                    shouldShowLogLevel={shouldShowLogLevel}
+                    setShouldShowLogLevel={setShouldShowLogLevel}
+                    />
 				<ScrollableCardTable>
 					<thead>
 						<tr>
@@ -45,10 +64,10 @@ export const LogListCard = memo(function LogListCard({
 						</tr>
 					</thead>
 					<tbody>
-						{LogEntry.map((row) => (
+						{logsShown.map((row) => (
 							<tr>
                                 <LogRow log={{
-                                    time: `${row.time}`,
+                                    time: row.time,
                                     level: row.level,
                                     target: row.target,
                                     message: row.message,
@@ -66,14 +85,59 @@ export const LogListCard = memo(function LogListCard({
 
 });
 
+function LogLevelMenuItem({
+	logLevel,
+    shouldShowLogLevel,
+    setShouldShowLogLevel,
+}: {
+	logLevel: string;
+    shouldShowLogLevel: string[];
+    setShouldShowLogLevel: React.Dispatch<React.SetStateAction<string[]>>;
+}) {
+	const selected = shouldShowLogLevel.includes(logLevel);
+	const onChange = () => {
+		if (selected) {
+            setShouldShowLogLevel((prev) =>
+              prev.filter((logLevelFilter) => logLevelFilter !== logLevel)
+            );
+          } else {
+            setShouldShowLogLevel((prev) => [...prev, logLevel]);
+          }
+	};
+
+	return (
+		<DropdownMenuItem
+			className="p-0"
+			onSelect={(e) => {
+				e.preventDefault();
+			}}
+		>
+			<label
+				className={
+					"flex cursor-pointer items-center gap-2 p-2 whitespace-normal"
+				}
+			>
+				<Checkbox
+					checked={selected}
+					onCheckedChange={onChange}
+					className="hover:before:content-none"
+				/>
+				{logLevel}
+			</label>
+		</DropdownMenuItem>
+	);
+}
+
 function ManageLogsHeading({
-	onRefresh,
 	search,
 	setSearch,
+    shouldShowLogLevel,
+    setShouldShowLogLevel,
 }: {
-	onRefresh: () => void;
 	search: string;
 	setSearch: (value: string) => void;
+    shouldShowLogLevel: string[];
+    setShouldShowLogLevel: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
     return (
 		<div
@@ -81,9 +145,6 @@ function ManageLogsHeading({
 				"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center"
 			}
 		>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-				{tc("projects:manage:manage packages")}
-			</p>
 
 			<SearchBox
 				className={"w-max flex-grow"}
@@ -94,10 +155,48 @@ function ManageLogsHeading({
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button className={"flex-shrink-0 p-3"}>
-						{tc("projects:manage:button:select repositories")}
+						{tc("logs:manage:select logs level")}
 					</Button>
 				</DropdownMenuTrigger>
+                <DropdownMenuContent className={"max-h-96 w-64"}>
+					<LogLevelMenuItem
+                        logLevel="Info"
+                        shouldShowLogLevel={shouldShowLogLevel}
+                        setShouldShowLogLevel={setShouldShowLogLevel}
+					/>
+                    <LogLevelMenuItem
+                        logLevel="Warn"
+                        shouldShowLogLevel={shouldShowLogLevel}
+                        setShouldShowLogLevel={setShouldShowLogLevel}
+					/>
+                    <LogLevelMenuItem
+                        logLevel="Error"
+                        shouldShowLogLevel={shouldShowLogLevel}
+                        setShouldShowLogLevel={setShouldShowLogLevel}
+					/>
+                    <LogLevelMenuItem
+                        logLevel="Debug"
+                        shouldShowLogLevel={shouldShowLogLevel}
+                        setShouldShowLogLevel={setShouldShowLogLevel}
+					/>
+                    <LogLevelMenuItem
+                        logLevel="Trace"
+                        shouldShowLogLevel={shouldShowLogLevel}
+                        setShouldShowLogLevel={setShouldShowLogLevel}
+					/>
+				</DropdownMenuContent>
 			</DropdownMenu>
+
+			<Button
+				onClick={() =>
+					commands.utilOpen(
+						`${globalInfo.vpmHomeFolder}/vrc-get/gui-logs`,
+						"ErrorIfNotExists",
+					)
+				}
+			>
+				{tc("settings:button:open logs")}
+			</Button>
 		</div>
 	);
 

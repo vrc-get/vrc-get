@@ -1,8 +1,6 @@
 "use client";
 
-import { ScrollableCard } from "@/components/ScrollableCard";
 import { HNavBar, VStack } from "@/components/layout";
-import { Button } from "@/components/ui/button";
 import type { LogEntry } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
@@ -38,19 +36,9 @@ export default function Page() {
 					{tc("logs")}
 				</p>
 				<div className={"flex-grow"} />
-				<Button
-					onClick={() =>
-						commands.utilOpen(
-							`${globalInfo.vpmHomeFolder}/vrc-get/gui-logs`,
-							"ErrorIfNotExists",
-						)
-					}
-				>
-					{tc("settings:button:open logs")}
-				</Button>
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex w-full">
-				<LogListCard LogEntry={logEntries.reverse()}>
+				<LogListCard logEntry={logEntries.reverse()}>
 				</LogListCard>
 			</main>
 		</VStack>
