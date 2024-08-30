@@ -9,6 +9,7 @@ import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import React, { useCallback, useEffect } from "react";
+import { LogListCard } from "./log-list-card";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
@@ -48,11 +49,10 @@ export default function Page() {
 					{tc("settings:button:open logs")}
 				</Button>
 			</HNavBar>
-			<ScrollableCard className={"w-full shadow-none"}>
-				<pre className="whitespace-pre font-mono text-muted-foreground">
-					{logEntries.map((entry) => logEntryToText(entry)).join("\n")}
-				</pre>
-			</ScrollableCard>
+			<main className="flex-shrink overflow-hidden flex w-full">
+				<LogListCard LogEntry={logEntries.reverse()}>
+				</LogListCard>
+			</main>
 		</VStack>
 	);
 }
