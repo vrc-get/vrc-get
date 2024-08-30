@@ -11,7 +11,6 @@ import { LogListCard } from "./log-list-card";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
-	const globalInfo = useGlobalInfo();
 
 	useEffect(() => {
 		commands
@@ -38,7 +37,7 @@ export default function Page() {
 				<div className={"flex-grow"} />
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex w-full">
-				<LogListCard logEntry={logEntries.reverse()}>
+				<LogListCard logEntry={logEntries}>
 				</LogListCard>
 			</main>
 		</VStack>
