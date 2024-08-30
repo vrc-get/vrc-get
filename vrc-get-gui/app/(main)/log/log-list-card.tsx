@@ -30,7 +30,7 @@ export const LogListCard = memo(function LogListCard({
 
     const TABLE_HEAD = [
 		"logs:time",
-		"logs:log level",
+		"logs:level",
 		"logs:message",
 	];
 
