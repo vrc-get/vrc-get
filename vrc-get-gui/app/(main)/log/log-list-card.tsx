@@ -151,7 +151,7 @@ function ManageLogsHeading({
 						{tc("logs:manage:select logs level")}
 					</Button>
 				</DropdownMenuTrigger>
-                <DropdownMenuContent className={"max-h-96 w-64"}>
+                <DropdownMenuContent>
 					<LogLevelMenuItem
                         logLevel="Info"
                         shouldShowLogLevel={shouldShowLogLevel}
