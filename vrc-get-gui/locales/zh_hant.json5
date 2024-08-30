@@ -184,6 +184,7 @@
     "projects:manage:manage packages": "管理套件",
     "projects:manage:tooltip:refresh packages": "刷新套件",
     "projects:manage:button:upgrade all": "升級全部",
+    "projects:manage:button:upgrade all stable": "升級全部至穩定版",
     "projects:manage:button:reinstall all": "重新安裝全部",
     "projects:manage:button:select repositories": "選擇儲存庫",
     "projects:manage:package": "套件",
@@ -198,11 +199,15 @@
     "projects:manage:tooltip:upgrade package": "升級套件",
     "projects:manage:tooltip:remove packages": "移除套件",
     "projects:manage:tooltip:incompatible with unity": "與 Unity 不相容",
-    "projects:manage:button:install selected": "安裝所選",
+    // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
+    //     It might be better to write both upgrade and latest depending on the language I think.
+    "projects:manage:button:install selected latest": "安裝所選的最新版",
+    "projects:manage:button:install selected stable latest": "安裝所選的最新穩定版",
+    "projects:manage:button:reinstall selected": "重新安裝所選",
     "projects:manage:button:upgrade selected": "升級所選",
     "projects:manage:button:uninstall selected": "解除安裝所選",
     "projects:manage:button:clear selection": "清除選取",
-    "projects:manage:toast:no upgradable": "無升級的套件",
+    "projects:manage:toast:no upgradable": "無可升級的套件",
     "projects:manage:toast:package_already_installed_as_unlocked": "已安裝套件 {{package}}，但它不由 VPM 管理，請在使用 ALCOM 安裝前手動移除。",
     "projects:manage:toast:package installed": "{{name}} 的 {{version}} 版本安裝成功。",
     // V used in single operation
@@ -215,6 +220,7 @@
     // V used in bulk operation
     "projects:manage:toast:some package has newer latest with incompatible unity": "某些套件有不相容於目前 Unity 版本的新版本。",
     "projects:manage:toast:selected packages removed": "所選套件移除成功。",
+    "projects:manage:toast:selected packages reinstalled": "所選套件重新安裝成功",
 
     // Notes for translators:
     // Each "projects:manage:dialog:(downgrade|upgrade) (major|minor)"
@@ -388,6 +394,10 @@
 
     "settings:check update": "檢查更新",
     "settings:button:open issue": "回報問題",
+    "settings:button:open settings.json": "開啟 settings.json",
+    "settings:button:open gui config.json": "開啟 gui-config.json",
+    "settings:button:open logs": "開啟日誌資料夾",
+    "settings:button:open custom templates": "開啟自訂範本資料夾",
     "settings:receive beta updates": "接收測試版更新",
     "settings:beta updates description": "Beta 頻道會頻繁接收到包含新功能和錯誤修復的更新。但若與穩定版相比，此頻道可能會有更多與新功能相關的錯誤。",
     "check update:toast:no updates": "無可用更新。",
