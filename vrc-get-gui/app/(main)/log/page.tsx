@@ -3,7 +3,6 @@
 import { HNavBar, VStack } from "@/components/layout";
 import type { LogEntry } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
-import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import React, { useCallback, useEffect } from "react";
@@ -42,8 +41,4 @@ export default function Page() {
 			</main>
 		</VStack>
 	);
-}
-
-function logEntryToText(entry: LogEntry) {
-	return `${entry.time} [${entry.level.padStart(5, " ")}] ${entry.target}: ${entry.message}`;
 }
