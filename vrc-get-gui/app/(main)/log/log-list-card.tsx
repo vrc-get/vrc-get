@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { commands, LogEntry } from "@/lib/bindings";
+import { commands, LogEntry, LogLevel } from "@/lib/bindings";
 import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
@@ -16,7 +16,7 @@ export const LogListCard = memo(function LogListCard({
     logEntry: LogEntry[]
 }) {
     const [search, setSearch] = useState("");
-    const [shouldShowLogLevel, setShouldShowLogLevel] = useState([
+    const [shouldShowLogLevel, setShouldShowLogLevel] = useState<LogLevel[]>([
         "Info",
         "Warn",
         "Error",
@@ -83,9 +83,9 @@ function LogLevelMenuItem({
     shouldShowLogLevel,
     setShouldShowLogLevel,
 }: {
-	logLevel: string;
-    shouldShowLogLevel: string[];
-    setShouldShowLogLevel: React.Dispatch<React.SetStateAction<string[]>>;
+	logLevel: LogLevel;
+    shouldShowLogLevel: LogLevel[];
+    setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
 }) {
 	const selected = shouldShowLogLevel.includes(logLevel);
 	const onChange = () => {
@@ -129,8 +129,8 @@ function ManageLogsHeading({
 }: {
 	search: string;
 	setSearch: (value: string) => void;
-    shouldShowLogLevel: string[];
-    setShouldShowLogLevel: React.Dispatch<React.SetStateAction<string[]>>;
+    shouldShowLogLevel: LogLevel[];
+    setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
 }) {
     return (
 		<div
@@ -172,11 +172,12 @@ function ManageLogsHeading({
                         shouldShowLogLevel={shouldShowLogLevel}
                         setShouldShowLogLevel={setShouldShowLogLevel}
 					/>
-                    <LogLevelMenuItem
+					{/* Currently no trace level logs will be passed to frontend */}
+                    {/*<LogLevelMenuItem
                         logLevel="Trace"
                         shouldShowLogLevel={shouldShowLogLevel}
                         setShouldShowLogLevel={setShouldShowLogLevel}
-					/>
+					/>*/}
 				</DropdownMenuContent>
 			</DropdownMenu>
 
