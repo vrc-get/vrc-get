@@ -409,5 +409,9 @@
 
 // Logs Page
     "logs": "日志",
+    "logs:time": "时间",
+    "logs:level": "等级",
+    "logs:message": "消息",
+    "logs:manage:select logs level": "日志等级过滤器",
   },
 }

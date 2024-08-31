@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 ### Changed
 - GitHub Releases for ALCOM is no longer prereleases
 - Moved log files to `<vpm-home>/vrc-get/gui-logs` `#1446`
+- Logs pages overhaul `#1456`
 
 ### Deprecated
 
