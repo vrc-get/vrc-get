@@ -430,5 +430,9 @@
 
 // Logs Page
     "logs": "Logs",
+    "logs:time": "Zeit",
+    "logs:level": "Kategorie",
+    "logs:message": "Nachricht",
+    "logs:manage:select logs level": "Filter",
   },
 }
