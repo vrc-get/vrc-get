@@ -430,5 +430,9 @@
 
 // Logs Page
     "logs": "日誌",
+    "logs:time": "時間",
+    "logs:level": "等級",
+    "logs:message": "訊息",
+    "logs:manage:select logs level": "篩選日誌等級",
   },
 }
