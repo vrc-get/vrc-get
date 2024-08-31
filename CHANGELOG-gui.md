@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog].
 - Install and Upgrade packages at once `#1450`
 - Upgrade to the stable latest version even if some package has newer prerelease version `#1450`
 - Buttons to open settings, logs, and templates location `#1451`
+- Error page `#1457`
 
 ### Changed
 - GitHub Releases for ALCOM is no longer prereleases
