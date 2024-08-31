@@ -36,8 +36,7 @@ export default function Page() {
 				<div className={"flex-grow"} />
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex w-full">
-				<LogListCard logEntry={logEntries}>
-				</LogListCard>
+				<LogListCard logEntry={logEntries} />
 			</main>
 		</VStack>
 	);

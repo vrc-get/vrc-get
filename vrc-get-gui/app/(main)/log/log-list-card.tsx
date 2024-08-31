@@ -3,46 +3,51 @@ import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { commands, LogEntry, LogLevel } from "@/lib/bindings";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { type LogEntry, type LogLevel, commands } from "@/lib/bindings";
 import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 
 export const LogListCard = memo(function LogListCard({
-    logEntry
+	logEntry,
 }: {
-    logEntry: LogEntry[]
+	logEntry: LogEntry[];
 }) {
-    const [search, setSearch] = useState("");
-    const [shouldShowLogLevel, setShouldShowLogLevel] = useState<LogLevel[]>([
-        "Info",
-        "Warn",
-        "Error",
-    ]);
+	const [search, setSearch] = useState("");
+	const [shouldShowLogLevel, setShouldShowLogLevel] = useState<LogLevel[]>([
+		"Info",
+		"Warn",
+		"Error",
+	]);
 
-    const logsShown = useMemo(() => 
-        logEntry.filter((log) =>
-            log.message.toLowerCase().includes(search?.toLowerCase() ?? "") &&
-            shouldShowLogLevel.includes(log.level)
-        ), [logEntry, search, shouldShowLogLevel]);
+	const logsShown = useMemo(
+		() =>
+			logEntry.filter(
+				(log) =>
+					log.message.toLowerCase().includes(search?.toLowerCase() ?? "") &&
+					shouldShowLogLevel.includes(log.level),
+			),
+		[logEntry, search, shouldShowLogLevel],
+	);
 
-    const TABLE_HEAD = [
-		"logs:time",
-		"logs:level",
-		"logs:message",
-	];
+	const TABLE_HEAD = ["logs:time", "logs:level", "logs:message"];
 
-    return (
+	return (
 		<Card className="flex-grow flex-shrink flex shadow-none w-full">
-            <CardContent className="w-full p-2 flex flex-col gap-2">
-                <ManageLogsHeading 
-                    search={search} 
-                    setSearch={setSearch}
-                    shouldShowLogLevel={shouldShowLogLevel}
-                    setShouldShowLogLevel={setShouldShowLogLevel}
-                    />
+			<CardContent className="w-full p-2 flex flex-col gap-2">
+				<ManageLogsHeading
+					search={search}
+					setSearch={setSearch}
+					shouldShowLogLevel={shouldShowLogLevel}
+					setShouldShowLogLevel={setShouldShowLogLevel}
+				/>
 				<ScrollableCardTable>
 					<thead>
 						<tr>
@@ -66,8 +71,8 @@ export const LogListCard = memo(function LogListCard({
 					</thead>
 					<tbody>
 						{logsShown.map((row) => (
-							<tr className="even:bg-secondary/30">
-                                <LogRow log={row} />
+							<tr key={row.time} className="even:bg-secondary/30">
+								<LogRow log={row} />
 							</tr>
 						))}
 					</tbody>
@@ -75,27 +80,26 @@ export const LogListCard = memo(function LogListCard({
 			</CardContent>
 		</Card>
 	);
-
 });
 
 function LogLevelMenuItem({
 	logLevel,
-    shouldShowLogLevel,
-    setShouldShowLogLevel,
+	shouldShowLogLevel,
+	setShouldShowLogLevel,
 }: {
 	logLevel: LogLevel;
-    shouldShowLogLevel: LogLevel[];
-    setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
+	shouldShowLogLevel: LogLevel[];
+	setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
 }) {
 	const selected = shouldShowLogLevel.includes(logLevel);
 	const onChange = () => {
 		if (selected) {
-            setShouldShowLogLevel((prev) =>
-              prev.filter((logLevelFilter) => logLevelFilter !== logLevel)
-            );
-          } else {
-            setShouldShowLogLevel((prev) => [...prev, logLevel]);
-          }
+			setShouldShowLogLevel((prev) =>
+				prev.filter((logLevelFilter) => logLevelFilter !== logLevel),
+			);
+		} else {
+			setShouldShowLogLevel((prev) => [...prev, logLevel]);
+		}
 	};
 
 	return (
@@ -124,21 +128,20 @@ function LogLevelMenuItem({
 function ManageLogsHeading({
 	search,
 	setSearch,
-    shouldShowLogLevel,
-    setShouldShowLogLevel,
+	shouldShowLogLevel,
+	setShouldShowLogLevel,
 }: {
 	search: string;
 	setSearch: (value: string) => void;
-    shouldShowLogLevel: LogLevel[];
-    setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
+	shouldShowLogLevel: LogLevel[];
+	setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
 }) {
-    return (
+	return (
 		<div
 			className={
 				"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center"
 			}
 		>
-
 			<SearchBox
 				className={"w-max flex-grow"}
 				value={search}
@@ -151,29 +154,29 @@ function ManageLogsHeading({
 						{tc("logs:manage:select logs level")}
 					</Button>
 				</DropdownMenuTrigger>
-                <DropdownMenuContent>
+				<DropdownMenuContent>
 					<LogLevelMenuItem
-                        logLevel="Info"
-                        shouldShowLogLevel={shouldShowLogLevel}
-                        setShouldShowLogLevel={setShouldShowLogLevel}
+						logLevel="Info"
+						shouldShowLogLevel={shouldShowLogLevel}
+						setShouldShowLogLevel={setShouldShowLogLevel}
 					/>
-                    <LogLevelMenuItem
-                        logLevel="Warn"
-                        shouldShowLogLevel={shouldShowLogLevel}
-                        setShouldShowLogLevel={setShouldShowLogLevel}
+					<LogLevelMenuItem
+						logLevel="Warn"
+						shouldShowLogLevel={shouldShowLogLevel}
+						setShouldShowLogLevel={setShouldShowLogLevel}
 					/>
-                    <LogLevelMenuItem
-                        logLevel="Error"
-                        shouldShowLogLevel={shouldShowLogLevel}
-                        setShouldShowLogLevel={setShouldShowLogLevel}
+					<LogLevelMenuItem
+						logLevel="Error"
+						shouldShowLogLevel={shouldShowLogLevel}
+						setShouldShowLogLevel={setShouldShowLogLevel}
 					/>
-                    <LogLevelMenuItem
-                        logLevel="Debug"
-                        shouldShowLogLevel={shouldShowLogLevel}
-                        setShouldShowLogLevel={setShouldShowLogLevel}
+					<LogLevelMenuItem
+						logLevel="Debug"
+						shouldShowLogLevel={shouldShowLogLevel}
+						setShouldShowLogLevel={setShouldShowLogLevel}
 					/>
 					{/* Currently no trace level logs will be passed to frontend */}
-                    {/*<LogLevelMenuItem
+					{/*<LogLevelMenuItem
                         logLevel="Trace"
                         shouldShowLogLevel={shouldShowLogLevel}
                         setShouldShowLogLevel={setShouldShowLogLevel}
@@ -193,7 +196,6 @@ function ManageLogsHeading({
 			</Button>
 		</div>
 	);
-
 }
 
 const LogRow = memo(function LogRow({
@@ -201,43 +203,38 @@ const LogRow = memo(function LogRow({
 }: {
 	log: LogEntry;
 }) {
-    const cellClass = "p-2.5";
-    const typeIconClass = "w-5 h-5";
+	const cellClass = "p-2.5";
+	const typeIconClass = "w-5 h-5";
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleString()
-    };
-    
-    return (
+	const formatDate = (dateString: string) => {
+		const date = new Date(dateString);
+		return date.toLocaleString();
+	};
+
+	return (
 		<>
+			<td className={`${cellClass} min-w-32 w-32`}>{formatDate(log.time)}</td>
 			<td className={`${cellClass} min-w-32 w-32`}>
-                {formatDate(log.time)}
-			</td>
-            <td className={`${cellClass} min-w-32 w-32`}>
-                <div className="flex flex-row gap-2">
-                    <div className="flex items-center">
-				        {log.level === "Info" ? (
-					        <Info className={typeIconClass} />
-				        ) : log.level === "Warn" ? (
-					        <OctagonAlert className={typeIconClass} />
-					    ) : log.level === "Error" ? (
-					        <CircleX className={typeIconClass} />
-					    ) : log.level === "Debug" ? (
-					        <BugOff className={typeIconClass} />
-					    ) : (
-                            <Info className={typeIconClass} />
-                        )}
-				    </div>
-                    <div className="flex flex-col justify-center">
+				<div className="flex flex-row gap-2">
+					<div className="flex items-center">
+						{log.level === "Info" ? (
+							<Info className={typeIconClass} />
+						) : log.level === "Warn" ? (
+							<OctagonAlert className={typeIconClass} />
+						) : log.level === "Error" ? (
+							<CircleX className={typeIconClass} />
+						) : log.level === "Debug" ? (
+							<BugOff className={typeIconClass} />
+						) : (
+							<Info className={typeIconClass} />
+						)}
+					</div>
+					<div className="flex flex-col justify-center">
 						<p className="font-normal">{log.level}</p>
 					</div>
-                </div>
+				</div>
 			</td>
-            <td className={`${cellClass} min-w-32 w-32`}>
-                {log.message}
-			</td>
+			<td className={`${cellClass} min-w-32 w-32`}>{log.message}</td>
 		</>
 	);
-
 });
