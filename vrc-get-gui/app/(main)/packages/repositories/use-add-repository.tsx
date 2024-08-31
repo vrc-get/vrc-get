@@ -184,10 +184,7 @@ function EnteringRepositoryInfo({
 			//   https://www.rfc-editor.org/rfc/rfc9110.html#name-field-names
 			// token is defined in 5.6.2
 			//   https://www.rfc-editor.org/rfc/rfc9110.html#name-tokens
-			if (
-				trimedName === "" ||
-				!trimedName.match(/[!#$%&'*+\-.^_`|~0-9a-zA-Z]/)
-			) {
+			if (!trimedName.match(/^[!#$%&'*+\-.^_`|~0-9a-zA-Z]+$/)) {
 				foundHeaderNameError = true;
 			}
 
@@ -215,8 +212,13 @@ function EnteringRepositoryInfo({
 		}
 	}
 
+	const urlError = url.trim() === "";
+
 	const hasError =
-		foundHeaderNameError || foundHeaderValueError || foundDuplicateHeader;
+		urlError ||
+		foundHeaderNameError ||
+		foundHeaderValueError ||
+		foundDuplicateHeader;
 
 	const onAddRepository = () => {
 		const headers: { [name: string]: string } = {};
@@ -264,30 +266,34 @@ function EnteringRepositoryInfo({
 									renderItem={(value, id) => (
 										<>
 											<td>
-												<Input
-													type={"text"}
-													value={value.name}
-													className={"w-full"}
-													onChange={(e) =>
-														reordableListContext.update(id, (old) => ({
-															...old,
-															name: e.target.value,
-														}))
-													}
-												/>
+												<div className={"flex"}>
+													<Input
+														type={"text"}
+														value={value.name}
+														className={"flex-grow"}
+														onChange={(e) =>
+															reordableListContext.update(id, (old) => ({
+																...old,
+																name: e.target.value,
+															}))
+														}
+													/>
+												</div>
 											</td>
 											<td>
-												<Input
-													type={"text"}
-													value={value.value}
-													className={"w-full"}
-													onChange={(e) =>
-														reordableListContext.update(id, (old) => ({
-															...old,
-															value: e.target.value,
-														}))
-													}
-												/>
+												<div className={"flex"}>
+													<Input
+														type={"text"}
+														value={value.value}
+														className={"flex-grow"}
+														onChange={(e) =>
+															reordableListContext.update(id, (old) => ({
+																...old,
+																value: e.target.value,
+															}))
+														}
+													/>
+												</div>
 											</td>
 										</>
 									)}
