@@ -184,6 +184,7 @@
     "projects:manage:manage packages": "Manage Packages",
     "projects:manage:tooltip:refresh packages": "Refresh Packages",
     "projects:manage:button:upgrade all": "Upgrade All",
+    "projects:manage:button:upgrade all stable": "Upgrade All to Stable",
     "projects:manage:button:reinstall all": "Reinstall All",
     "projects:manage:button:select repositories": "Select Repositories",
     "projects:manage:package": "Package",
@@ -198,7 +199,11 @@
     "projects:manage:tooltip:upgrade package": "Upgrade Package",
     "projects:manage:tooltip:remove packages": "Remove Package",
     "projects:manage:tooltip:incompatible with unity": "Incompatible with Unity",
-    "projects:manage:button:install selected": "Install Selected",
+    // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
+    //     It might be better to write both upgrade and latest depending on the language I think.
+    "projects:manage:button:install selected latest": "Install Latest Version of Selected",
+    "projects:manage:button:install selected stable latest": "Install Latest Stable Version of Selected",
+    "projects:manage:button:reinstall selected": "Reinstall Selected",
     "projects:manage:button:upgrade selected": "Upgrade Selected",
     "projects:manage:button:uninstall selected": "Uninstall Selected",
     "projects:manage:button:clear selection": "Clear Selection",
@@ -215,6 +220,7 @@
     // V used in bulk operation
     "projects:manage:toast:some package has newer latest with incompatible unity": "Some packages have newer versions that are incompatible with the Unity version.",
     "projects:manage:toast:selected packages removed": "Selected packages were removed successfully.",
+    "projects:manage:toast:selected packages reinstalled": "Selected packages were reinstalled successfully.",
 
     // Notes for translators:
     // Each "projects:manage:dialog:(downgrade|upgrade) (major|minor)"
@@ -284,8 +290,6 @@
     "vpm repositories:dialog:headers": "Headers",
     "vpm repositories:dialog:header name": "Header Name",
     "vpm repositories:dialog:header value": "Header Value",
-    "vpm repositories:tooltip:add header": "Add Header",
-    "vpm repositories:tooltip:remove header": "Remove Header",
     "vpm repositories:hint:invalid header names": "Header name is invalid.",
     "vpm repositories:hint:invalid header values": "Header value is invalid.",
     "vpm repositories:hint:duplicate headers": "Header name is duplicated.",
@@ -390,6 +394,10 @@
 
     "settings:check update": "Check for Updates",
     "settings:button:open issue": "Open an Issue",
+    "settings:button:open settings.json": "Open settings.json",
+    "settings:button:open gui config.json": "Open GUI Config json",
+    "settings:button:open logs": "Open log folder",
+    "settings:button:open custom templates": "Open Custom Templates Folder",
     "settings:receive beta updates": "Receive Beta Updates",
     "settings:beta updates description": "Beta channel will receive frequent updates with futures and bugfixes. However, it may have more bugs than the stable channel relates to the new features.",
     "check update:toast:no updates": "No updates available.",
@@ -411,6 +419,13 @@
 
     "settings:licenses": "Licenses",
     "settings:licenses description": "Click <l>here</l> to view licenses of the projects used in ALCOM.",
+
+    "settings:system information": "System Information",
+    "settings:os": "OS",
+    "settings:architecture": "Architecture",
+    "settings:webview version": "Webview Version",
+    "settings:alcom version": "ALCOM Version",
+    "settings:alcom commit hash": "ALCOM Build Commit Hash",
 
 
 // Logs Page

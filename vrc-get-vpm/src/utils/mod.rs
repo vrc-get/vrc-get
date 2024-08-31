@@ -136,8 +136,8 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
     paths: impl IntoIterator<Item = PathBuf>,
 ) -> impl Stream<Item = (PathBuf, IO::DirEntry)> + '_ {
     type FutureResult<IO> = Either<
-        io::Result<(<IO as IoTrait>::ReadDirStream, PathBuf)>,
-        io::Result<
+        Result<(<IO as IoTrait>::ReadDirStream, PathBuf)>,
+        Result<
             Option<(
                 <IO as IoTrait>::ReadDirStream,
                 PathBuf,
@@ -146,34 +146,42 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
         >,
     >;
 
+    type Result<T> = std::result::Result<T, WalkIoErr>;
+    struct WalkIoErr {
+        error: io::Error,
+        path: PathBuf,
+    }
+
+    trait IoErrExt {
+        type Result;
+        fn with_path(self, path: PathBuf) -> Self::Result;
+    }
+
+    impl IoErrExt for io::Error {
+        type Result = WalkIoErr;
+        fn with_path(self, path: PathBuf) -> WalkIoErr {
+            WalkIoErr { error: self, path }
+        }
+    }
+
     async fn read_dir_phase<IO: IoTrait>(
         io: &IO,
         relative: PathBuf,
-    ) -> io::Result<(IO::ReadDirStream, PathBuf)> {
-        log::trace!("s:read_dir_phase: {:?}", relative);
+    ) -> Result<(IO::ReadDirStream, PathBuf)> {
         match io.read_dir(&relative).await {
-            Ok(result) => {
-                log::trace!("e:read_dir_phase: {:?}", relative);
-                Ok((result, relative))
-            }
-            Err(e) => {
-                log::trace!("e:read_dir_phase: {:?}: {e:?}", relative);
-                Err(e)
-            }
+            Ok(result) => Ok((result, relative)),
+            Err(e) => Err(e.with_path(relative)),
         }
     }
 
     async fn next_phase<IO: IoTrait>(
         mut read_dir: IO::ReadDirStream,
         relative: PathBuf,
-    ) -> io::Result<Option<(IO::ReadDirStream, PathBuf, IO::DirEntry)>> {
-        log::trace!("s:next_phase: {:?}", relative);
-        if let Some(entry) = read_dir.try_next().await? {
-            log::trace!("e:next_phase: {:?}: {:?}", relative, entry.file_name());
-            Ok(Some((read_dir, relative, entry)))
-        } else {
-            log::trace!("e:next_phase: {:?}", relative);
-            Ok(None)
+    ) -> Result<Option<(IO::ReadDirStream, PathBuf, IO::DirEntry)>> {
+        match read_dir.try_next().await {
+            Ok(Some(entry)) => Ok(Some((read_dir, relative, entry))),
+            Ok(None) => Ok(None),
+            Err(e) => Err(e.with_path(relative)),
         }
     }
 
@@ -189,11 +197,13 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
         loop {
             match futures.next().await {
                 None => break,
-                Some(Either::Left(Err(_))) => continue,
+                Some(Either::Left(Err(e))) | Some(Either::Right(Err(e))) => {
+                    log::error!(gui_toast = false; "error reading directory {:?}: {}", e.path, e.error);
+                    continue;
+                },
                 Some(Either::Left(Ok((read_dir, dir_relative)))) => {
                     futures.push(Either::Right(next_phase::<IO>(read_dir, dir_relative).map(FutureResult::<IO>::Right)))
                 },
-                Some(Either::Right(Err(_))) => continue,
                 Some(Either::Right(Ok(None))) => continue,
                 Some(Either::Right(Ok(Some((read_dir_iter, dir_relative, entry))))) => {
                     let entry: IO::DirEntry = entry;

@@ -52,6 +52,7 @@ pub enum AddPackageOperation {
     InstallToDependencies,
     UpgradeLocked,
     Downgrade,
+    AutoDetected,
 }
 
 // adding package
@@ -73,9 +74,14 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let mut changes = super::pending_project_changes::Builder::new();
 
         for &request in packages {
-            match operation {
-                AddPackageOperation::InstallToDependencies => {
-                    if self.unlocked_packages.iter().any(|(dir, pkg)| {
+            {
+                fn install_to_dependencies<'env, IO: ProjectIo>(
+                    request: PackageInfo<'env>,
+                    this: &UnityProject<IO>,
+                    adding_packages: &mut Vec<PackageInfo<'env>>,
+                    changes: &mut super::pending_project_changes::Builder,
+                ) -> Result<(), AddPackageErr> {
+                    if this.unlocked_packages.iter().any(|(dir, pkg)| {
                         dir.as_ref() == request.name()
                             || pkg
                                 .as_ref()
@@ -87,7 +93,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
                         });
                     }
 
-                    let add_to_dependencies = self
+                    let add_to_dependencies = this
                         .manifest
                         .get_dependency(request.name())
                         .and_then(|range| range.as_single_version())
@@ -102,35 +108,28 @@ impl<IO: ProjectIo> UnityProject<IO> {
                         );
                     }
 
-                    check_and_add_adding_package(request, &mut adding_packages, &self.manifest);
+                    check_and_add_adding_package(request, adding_packages, &this.manifest);
+
+                    Ok(())
                 }
-                AddPackageOperation::UpgradeLocked => {
-                    if self.manifest.get_locked(request.name()).is_none() {
-                        // if package is not locked, it cannot be updated
-                        return Err(AddPackageErr::UpgradingNonLockedPackage {
-                            package_name: request.name().into(),
-                        });
-                    }
 
-                    check_and_add_adding_package(request, &mut adding_packages, &self.manifest);
+                fn upgrade_locked<'env, IO: ProjectIo>(
+                    request: PackageInfo<'env>,
+                    this: &UnityProject<IO>,
+                    adding_packages: &mut Vec<PackageInfo<'env>>,
+                    _changes: &mut super::pending_project_changes::Builder,
+                ) -> Result<(), AddPackageErr> {
+                    check_and_add_adding_package(request, adding_packages, &this.manifest);
+                    Ok(())
                 }
-                AddPackageOperation::Downgrade => {
-                    let Some(locked_version) = self.manifest.get_locked(request.name()) else {
-                        // if package is not locked, it cannot be updated
-                        return Err(AddPackageErr::DowngradingNonLockedPackage {
-                            package_name: request.name().into(),
-                        });
-                    };
 
-                    if locked_version.version() < request.version() {
-                        // if the locked version is older than the requested version,
-                        // it cannot be downgraded
-                        return Err(AddPackageErr::UpgradingWithDowngrade {
-                            package_name: request.name().into(),
-                        });
-                    }
-
-                    let downgrade_dependencies = self
+                fn downgrade<'env, IO: ProjectIo>(
+                    request: PackageInfo<'env>,
+                    this: &UnityProject<IO>,
+                    adding_packages: &mut Vec<PackageInfo<'env>>,
+                    changes: &mut super::pending_project_changes::Builder,
+                ) -> Result<(), AddPackageErr> {
+                    let downgrade_dependencies = this
                         .manifest
                         .get_dependency(request.name())
                         .map(|range| !range.matches(request.version()))
@@ -156,6 +155,81 @@ impl<IO: ProjectIo> UnityProject<IO> {
                         request.version()
                     );
                     adding_packages.push(request);
+
+                    Ok(())
+                }
+
+                match operation {
+                    AddPackageOperation::InstallToDependencies => {
+                        install_to_dependencies(request, self, &mut adding_packages, &mut changes)?;
+                    }
+                    AddPackageOperation::UpgradeLocked => {
+                        if self.manifest.get_locked(request.name()).is_none() {
+                            // if package is not locked, it cannot be updated
+                            return Err(AddPackageErr::UpgradingNonLockedPackage {
+                                package_name: request.name().into(),
+                            });
+                        }
+
+                        upgrade_locked(request, self, &mut adding_packages, &mut changes)?;
+                    }
+                    AddPackageOperation::Downgrade => {
+                        let Some(locked_version) = self.manifest.get_locked(request.name()) else {
+                            // if package is not locked, it cannot be updated
+                            return Err(AddPackageErr::DowngradingNonLockedPackage {
+                                package_name: request.name().into(),
+                            });
+                        };
+
+                        if locked_version.version() < request.version() {
+                            // if the locked version is older than the requested version,
+                            // it cannot be downgraded
+                            return Err(AddPackageErr::UpgradingWithDowngrade {
+                                package_name: request.name().into(),
+                            });
+                        }
+
+                        downgrade(request, self, &mut adding_packages, &mut changes)?;
+                    }
+                    AddPackageOperation::AutoDetected => {
+                        match self.manifest.get_locked(request.name()) {
+                            None => {
+                                // not installed: install to dependencies
+
+                                install_to_dependencies(
+                                    request,
+                                    self,
+                                    &mut adding_packages,
+                                    &mut changes,
+                                )?;
+                            }
+                            // already installed: upgrade, downgrade, or reinstall
+                            Some(locked) => match locked.version().cmp(request.version()) {
+                                std::cmp::Ordering::Less => {
+                                    // upgrade
+                                    upgrade_locked(
+                                        request,
+                                        self,
+                                        &mut adding_packages,
+                                        &mut changes,
+                                    )?;
+                                }
+                                std::cmp::Ordering::Equal => {
+                                    // reinstall
+                                    debug!(
+                                        "Reinstalling package {} at version {}",
+                                        request.name(),
+                                        request.version()
+                                    );
+                                    adding_packages.push(request);
+                                }
+                                std::cmp::Ordering::Greater => {
+                                    // downgrade
+                                    downgrade(request, self, &mut adding_packages, &mut changes)?;
+                                }
+                            },
+                        }
+                    }
                 }
             }
 

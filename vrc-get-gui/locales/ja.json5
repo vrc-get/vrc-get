@@ -276,8 +276,6 @@
     "vpm repositories:dialog:headers": "ヘッダー",
     "vpm repositories:dialog:header name": "ヘッダー名",
     "vpm repositories:dialog:header value": "ヘッダーの値",
-    "vpm repositories:tooltip:add header": "ヘッダーを追加",
-    "vpm repositories:tooltip:remove header": "ヘッダーを削除",
     "vpm repositories:hint:invalid header names": "ヘッダー名が不正です。",
     "vpm repositories:hint:invalid header values": "ヘッダーの値が不正です。",
     "vpm repositories:hint:duplicate headers": "ヘッダー名が重複しています。",
@@ -403,6 +401,13 @@
 
     "settings:licenses": "ライセンス",
     "settings:licenses description": "ALCOMで利用しているプロジェクトのライセンスを表示するには、<l>ここをクリック</l>",
+
+    "settings:system information": "システム情報",
+    "settings:os": "OS",
+    "settings:architecture": "アーキテクチャ",
+    "settings:webview version": "Webviewのバージョン",
+    "settings:alcom version": "ALCOMのバージョン",
+    "settings:alcom commit hash": "ALCOMのBuild Commit Hash",
 
 
 // Logs Page

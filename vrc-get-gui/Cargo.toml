@@ -25,11 +25,11 @@ tauri = { version = "2.0.0-rc.3", features = [ "config-toml" ] }
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
 reqwest = "0.12"
 specta = { version = "2.0.0-rc.20", features = [ "chrono", "url", "indexmap" ] }
-tauri-specta = { version = "2.0.0-rc.16", features = ["typescript"] }
+tauri-specta = { version = "2.0.0-rc.17", features = ["typescript"] }
 specta-typescript = "0.0.7"
 open = "5"
 arc-swap = "1"
-log = { version = "0.4", features = [ "std" ] }
+log = { version = "0.4", features = [ "std", "kv" ] }
 chrono = { version = "0.4", features = [ "serde" ] }
 ringbuffer = "0.15"
 tokio = { version = "1", features = ["process"] }
@@ -58,7 +58,7 @@ windows = { version = "0.58", features = ["Win32_Storage_FileSystem", "Win32_Sys
 winreg = "0.52"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.24"
+cocoa = "0.26"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["fs"] }

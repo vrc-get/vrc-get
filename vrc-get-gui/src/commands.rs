@@ -11,6 +11,7 @@ use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
+use vrc_get_vpm::unity_project::AddPackageErr;
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
 
@@ -102,9 +103,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_get_default_unity_arguments,
         environment::settings::environment_set_default_unity_arguments,
         project::project_details,
-        project::project_install_package,
-        project::project_install_multiple_package,
-        project::project_upgrade_multiple_package,
+        project::project_install_packages,
+        project::project_reinstall_packages,
         project::project_resolve,
         project::project_remove_packages,
         project::project_apply_pending_changes,
@@ -186,9 +186,8 @@ pub(crate) fn export_ts() {
             environment::settings::environment_get_default_unity_arguments,
             environment::settings::environment_set_default_unity_arguments,
             project::project_details,
-            project::project_install_package,
-            project::project_install_multiple_package,
-            project::project_upgrade_multiple_package,
+            project::project_install_packages,
+            project::project_reinstall_packages,
             project::project_resolve,
             project::project_remove_packages,
             project::project_apply_pending_changes,
@@ -214,6 +213,7 @@ pub(crate) fn export_ts() {
             crate::deep_link_support::deep_link_take_add_repository,
             crate::deep_link_support::deep_link_install_vcc //,
         ])
+        //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
         .export(
             specta_typescript::Typescript::default()
                 .bigint(specta_typescript::BigIntExportBehavior::Number),
@@ -258,9 +258,42 @@ impl RustError {
     }
 }
 
-impl<E: Display> From<E> for RustError {
-    fn from(value: E) -> Self {
-        RustError::unrecoverable(format!("io error: {value}"))
+macro_rules! impl_from_error {
+    ($($error:ty),* $(,)?) => {
+        $(
+            impl From<$error> for RustError {
+                fn from(value: $error) -> Self {
+                    RustError::unrecoverable(value)
+                }
+            }
+        )*
+    };
+}
+
+impl_from_error!(
+    io::Error,
+    String,
+    async_zip::error::ZipError,
+    tauri_plugin_updater::Error,
+    vrc_get_vpm::environment::AddRepositoryErr,
+    vrc_get_vpm::unity_project::RemovePackageErr,
+    vrc_get_vpm::unity_project::MigrateVpmError,
+    vrc_get_vpm::unity_project::MigrateUnity2022Error,
+    vrc_get_vpm::unity_project::ReinstalPackagesError,
+    fs_extra::error::Error,
+);
+
+impl From<AddPackageErr> for RustError {
+    fn from(value: AddPackageErr) -> Self {
+        match value {
+            AddPackageErr::InstalledAsUnlocked { package_name } => {
+                localizable_error!(
+                    "projects:manage:toast:package_already_installed_as_unlocked",
+                    package => package_name,
+                )
+            }
+            e => RustError::unrecoverable(e),
+        }
     }
 }
 

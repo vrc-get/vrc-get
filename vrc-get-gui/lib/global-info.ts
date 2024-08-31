@@ -1,5 +1,4 @@
-// keep structure sync with uri_custom_scheme.rs
-import { useEffect, useState } from "react";
+import { BailoutToCSRError } from "next/dist/shared/lib/lazy-dynamic/bailout-to-csr";
 
 type OsType = "Linux" | "Darwin" | "WindowsNT";
 type Arch = "x86_64" | "aarch64";
@@ -12,8 +11,10 @@ interface GlobalInfo {
 	osType: OsType;
 	arch: Arch;
 	osInfo: string;
+	webviewVersion: string;
 	localAppData: string; // empty string for non-windows
 	defaultUnityArguments: string[];
+	vpmHomeFolder: string;
 }
 
 const fallbackGlobalInfo: Readonly<GlobalInfo> = {
@@ -24,8 +25,10 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	osType: "WindowsNT",
 	arch: "x86_64",
 	osInfo: "unknown OS",
+	webviewVersion: "unknown",
 	localAppData: "",
 	defaultUnityArguments: [],
+	vpmHomeFolder: "",
 };
 
 const globalInfo: Readonly<GlobalInfo> = load();
@@ -49,11 +52,9 @@ function onload(info: Readonly<GlobalInfo>) {
 export default globalInfo;
 
 export function useGlobalInfo(): Readonly<GlobalInfo> {
-	const [isClient, setIsClient] = useState(false);
+	if (typeof window === "undefined") {
+		throw new BailoutToCSRError("useGlobalInfo");
+	}
 
-	useEffect(() => {
-		setIsClient(true);
-	}, []);
-
-	return isClient ? globalInfo : fallbackGlobalInfo;
+	return globalInfo;
 }

@@ -615,13 +615,27 @@ async fn move_packages_to_temp<'a>(
             let relative = original.strip_prefix(package_dir).unwrap();
             let mut moved = copied_dir.join(relative);
             if entry.file_type().await?.is_dir() {
-                io.create_dir_all(&moved).await?;
+                match io.create_dir_all(&moved).await {
+                    Ok(()) => {}
+                    Err(e) => {
+                        log::error!(gui_toast = false; "error creating directory {}: {}", moved.display(), e);
+                        return Err(e);
+                    }
+                }
             } else {
                 if let Some(name) = original.file_name().unwrap().to_str() {
                     moved.pop();
                     moved.push(format!("{}{}", REMOVED_FILE_PREFIX, name));
                 }
-                io.rename(&original, &moved).await?;
+                log::trace!("move {} to {}", original.display(), moved.display());
+
+                match io.rename(&original, &moved).await {
+                    Ok(()) => {}
+                    Err(e) => {
+                        // ignore error
+                        log::error!(gui_toast = false; "error moving {} to {}: {}", original.display(), moved.display(), e);
+                    }
+                }
             }
         }
 

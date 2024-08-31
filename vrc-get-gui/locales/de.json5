@@ -184,6 +184,7 @@
     "projects:manage:manage packages": "Pakete verwalten",
     "projects:manage:tooltip:refresh packages": "Pakete aktualisieren",
     "projects:manage:button:upgrade all": "Alle Updaten",
+    "projects:manage:button:upgrade all stable": "Alle Updaten (Stabil)",
     "projects:manage:button:reinstall all": "Alle Pakete neu installieren",
     "projects:manage:button:select repositories": "Paketquellen filtern",
     "projects:manage:package": "Paket",
@@ -198,9 +199,13 @@
     "projects:manage:tooltip:upgrade package": "Paket upgraden",
     "projects:manage:tooltip:remove packages": "Paket entfernen",
     "projects:manage:tooltip:incompatible with unity": "Nicht unterstützt",
-    "projects:manage:button:install selected": "Installiere Auswahl",
-    "projects:manage:button:upgrade selected": "Upgrade Auswahl",
-    "projects:manage:button:uninstall selected": "Deinstalliere Auswahl",
+    // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
+    //     It might be better to write both upgrade and latest depending on the language I think.
+    "projects:manage:button:install selected latest": "Installieren",
+    "projects:manage:button:install selected stable latest": "Installieren (Nur Stabile Versionen)",
+    "projects:manage:button:reinstall selected": "Neu installieren",
+    "projects:manage:button:upgrade selected": "Upgraden",
+    "projects:manage:button:uninstall selected": "Deinstallieren",
     "projects:manage:button:clear selection": "Auswahl aufheben",
     "projects:manage:toast:no upgradable": "Keine aktualisierbaren Pakete",
     "projects:manage:toast:package_already_installed_as_unlocked": "Paket {{package}} wurde bereits manuell installiert, bitte entferne dieses Paket bevor du es über ALCOM installierst.",
@@ -215,6 +220,7 @@
     // V used in bulk operation
     "projects:manage:toast:some package has newer latest with incompatible unity": "Einige Pakete haben eine neuere Version, welche für die genutzte Unity Version nicht verfügbar sind.",
     "projects:manage:toast:selected packages removed": "Ausgewählte Pakete wurden entfernt.",
+    "projects:manage:toast:selected packages reinstalled": "Ausgewählte Pakete wurden erfolgreich neu installiert.",
 
     // Notes for translators:
     // Each "projects:manage:dialog:(downgrade|upgrade) (major|minor)"
@@ -284,8 +290,6 @@
     "vpm repositories:dialog:headers": "Header",
     "vpm repositories:dialog:header name": "Name",
     "vpm repositories:dialog:header value": "Wert",
-    "vpm repositories:tooltip:add header": "Header hinzufügen",
-    "vpm repositories:tooltip:remove header": "Header entfernen",
     "vpm repositories:hint:invalid header names": "Headername ist ungültig",
     "vpm repositories:hint:invalid header values": "Headerwert ist ungültig",
     "vpm repositories:hint:duplicate headers": "Headername existiert bereits",
@@ -390,6 +394,10 @@
 
     "settings:check update": "Suche nach Updates",
     "settings:button:open issue": "Fehler melden",
+    "settings:button:open settings.json": "settings.json",
+    "settings:button:open gui config.json": "gui-config.json",
+    "settings:button:open logs": "Log Ordner",
+    "settings:button:open custom templates": "Eigene Vorlagen",
     "settings:receive beta updates": "Beta Updates erhalten",
     "settings:beta updates description": "Erhalte früher Updates mit neuen Funktionen und Fehlerbehebungen. Die Wahrscheinlichkeit auf unfertige Funktionen zu stoßen ist höher.",
     "check update:toast:no updates": "Keine Updates verfügbar.",
@@ -411,6 +419,13 @@
 
     "settings:licenses": "Lizenzen",
     "settings:licenses description": "Klicke <l>hier</l>, um die Lizenzen von Drittanbieter-Projekten zu sehen, die in ALCOM verwendet wurden.",
+
+    "settings:system information": "Systeminformationen",
+    "settings:os": "Betriebssystem",
+    "settings:architecture": "Architektur",
+    "settings:webview version": "Webview Version",
+    "settings:alcom version": "ALCOM Version",
+    "settings:alcom commit hash": "ALCOM Build Commit Hash",
 
 
 // Logs Page

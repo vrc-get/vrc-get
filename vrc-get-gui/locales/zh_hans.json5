@@ -178,6 +178,7 @@
     "projects:manage:manage packages": "管理软件包",
     "projects:manage:tooltip:refresh packages": "刷新软件包",
     "projects:manage:button:upgrade all": "升级所有软件包",
+    "projects:manage:button:upgrade all stable": "升级所有软件包到稳定版本",
     "projects:manage:button:reinstall all": "重新安装所有软件包",
     "projects:manage:button:select repositories": "选择存储库",
     "projects:manage:package": "软件包",
@@ -192,7 +193,9 @@
     "projects:manage:tooltip:upgrade package": "升级软件包",
     "projects:manage:tooltip:remove packages": "删除软件包",
     "projects:manage:tooltip:incompatible with unity": "与 Unity 不兼容",
-    "projects:manage:button:install selected": "安装所选软件包",
+    "projects:manage:button:install selected latest": "安装所选软件包的最新版本",
+    "projects:manage:button:install selected stable latest": "安装所选软件包的最新稳定版本",
+    "projects:manage:button:reinstall selected": "重装所选软件包",
     "projects:manage:button:upgrade selected": "升级所选软件包",
     "projects:manage:button:uninstall selected": "卸载所选软件包",
     "projects:manage:button:clear selection": "清空选择",
@@ -207,7 +210,7 @@
     "projects:manage:toast:selected packages installed": "所选软件包安装成功。",
     "projects:manage:toast:some package has newer latest with incompatible unity": "有些软件包的更新版本与 Unity 版本不兼容。",
     "projects:manage:toast:selected packages removed": "所选软件包删除成功。",
-
+    "projects:manage:toast:selected packages reinstalled": "所选软件包重装成功。",
     "projects:manage:dialog:unity change version header": "更改 Unity 版本",
     "projects:manage:dialog:downgrade major": "您将要把项目使用的 Unity 版本降级到另一个主要版本。这是一个不被 Unity 支持的操作，可能会损坏您的项目。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
     "projects:manage:dialog:downgrade minor": "您将要把项目使用的 Unity 版本降级。这是一个不被 Unity 支持的操作，可能会损坏您的项目。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
@@ -217,7 +220,7 @@
     "projects:manage:dialog:upgrade major": "您将要把项目使用的 Unity 版本升级到另一个主要版本。这将会变更您的库及脚本且需要重新构建。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
     "projects:manage:dialog:upgrade major vrchat supported": "您将要迁移项目的 Unity 版本。同时将会升级 VRCSDK，这可能会变更您的库及脚本且需要重新构建。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
     "projects:manage:dialog:upgrade major vrchat unsupported": "您将要迁移项目的 Unity 版本。同时将会升级 VRCSDK，这可能会变更您的库及脚本且需要重新构建。<br/>请在继续前备份您的项目。<br/>此外，该版本是一个不被 VRChat 支持的版本，所以在升级后您将无法继续上传您的项目。<br/>您想要继续吗？",
-    "projects:button:change unity version": "Change Unity Version",
+    "projects:button:change unity version": "更改 Unity 版本",
 
     "projects:dialog:launch options": "启动选项",
     "projects:dialog:command-line arguments": "命令行参数",
@@ -268,8 +271,6 @@
     "vpm repositories:dialog:headers": "标头设置",
     "vpm repositories:dialog:header name": "标头名称",
     "vpm repositories:dialog:header value": "标头值",
-    "vpm repositories:tooltip:add header": "添加标头",
-    "vpm repositories:tooltip:remove header": "删除标头",
     "vpm repositories:hint:invalid header names": "标头名称不可用。",
     "vpm repositories:hint:invalid header values": "标头值不可用。",
     "vpm repositories:hint:duplicate headers": "标头名称重复。",
@@ -372,6 +373,10 @@
 
     "settings:check update": "检查更新",
     "settings:button:open issue": "在 GitHub 上创建问题",
+    "settings:button:open settings.json": "打开 settings.json",
+    "settings:button:open gui config.json": "打开 GUI 配置文件",
+    "settings:button:open logs": "打开日志路径",
+    "settings:button:open custom templates": "打开自定义模板路径",
     "settings:receive beta updates": "接收 Beta 更新",
     "settings:beta updates description": "Beta 频道会定期更新新功能和错误修复。不过，与稳定版相比，Beta 版可能会出现更多与新功能相关的错误。",
     "check update:toast:no updates": "已是最新版本。",
@@ -393,6 +398,13 @@
 
     "settings:licenses": "许可证",
     "settings:licenses description": "单击 <l>此处</l> 查看 ALCOM 中使用的相关组件的许可证",
+
+    "settings:system information": "系统信息",
+    "settings:os": "操作系统",
+    "settings:architecture": "架构",
+    "settings:webview version": "Webview 版本",
+    "settings:alcom version": "ALCOM 版本",
+    "settings:alcom commit hash": "ALCOM 构建哈希",
 
 
 // Logs Page

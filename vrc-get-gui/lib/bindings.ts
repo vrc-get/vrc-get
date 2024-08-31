@@ -149,14 +149,11 @@ async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null
 async projectDetails(projectPath: string) : Promise<TauriProjectDetails> {
     return await TAURI_INVOKE("project_details", { projectPath });
 },
-async projectInstallPackage(projectPath: string, envVersion: number, packageIndex: number) : Promise<TauriPendingProjectChanges> {
-    return await TAURI_INVOKE("project_install_package", { projectPath, envVersion, packageIndex });
+async projectInstallPackages(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_install_packages", { projectPath, envVersion, packageIndices });
 },
-async projectInstallMultiplePackage(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
-    return await TAURI_INVOKE("project_install_multiple_package", { projectPath, envVersion, packageIndices });
-},
-async projectUpgradeMultiplePackage(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
-    return await TAURI_INVOKE("project_upgrade_multiple_package", { projectPath, envVersion, packageIndices });
+async projectReinstallPackages(projectPath: string, packageIds: string[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_reinstall_packages", { projectPath, packageIds });
 },
 async projectResolve(projectPath: string) : Promise<TauriPendingProjectChanges> {
     return await TAURI_INVOKE("project_resolve", { projectPath });
@@ -247,7 +244,7 @@ export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Star
 export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; update_description: string | null }
 export type InstallUpgradeProgress = { type: "DownloadProgress"; received: number; total: number | null } | { type: "DownloadComplete" }
 export type LocalizableRustError = { id: string; args: { [key in string]: string } }
-export type LogEntry = { time: string; level: LogLevel; target: string; message: string }
+export type LogEntry = { time: string; level: LogLevel; target: string; message: string; gui_toast: boolean }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists"
 export type RustError = { type: "Unrecoverable"; message: string } | ({ type: "Localizable" } & LocalizableRustError)

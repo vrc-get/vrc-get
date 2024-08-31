@@ -12,11 +12,10 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
-
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
-use vrc_get_vpm::unity_project::{AddPackageErr, AddPackageOperation, PendingProjectChanges};
+use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
@@ -169,61 +168,7 @@ macro_rules! changes {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn project_install_package(
-    settings: State<'_, SettingsState>,
-    packages: State<'_, PackagesState>,
-    changes: State<'_, ChangesState>,
-    io: State<'_, DefaultEnvironmentIo>,
-    project_path: String,
-    env_version: u32,
-    package_index: usize,
-) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let Some(packages) = packages.get_versioned(env_version) else {
-        return Err(RustError::unrecoverable("environment version mismatch"));
-    };
-
-    changes!(packages, changes, |collection, packages| {
-        let installing_package = packages[package_index];
-
-        let unity_project = load_project(project_path).await?;
-
-        let operation = if let Some(locked) = unity_project.get_locked(installing_package.name()) {
-            if installing_package.version() < locked.version() {
-                AddPackageOperation::Downgrade
-            } else {
-                AddPackageOperation::UpgradeLocked
-            }
-        } else {
-            AddPackageOperation::InstallToDependencies
-        };
-
-        let allow_prerelease = settings.show_prerelease_packages();
-
-        match unity_project
-            .add_package_request(
-                collection,
-                &[installing_package],
-                operation,
-                allow_prerelease,
-            )
-            .await
-        {
-            Ok(request) => request,
-            Err(AddPackageErr::InstalledAsUnlocked { package_name }) => {
-                return Err(localizable_error!(
-                    "projects:manage:toast:package_already_installed_as_unlocked",
-                    package => package_name,
-                ));
-            }
-            Err(e) => return Err(RustError::unrecoverable(e)),
-        }
-    })
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn project_install_multiple_package(
+pub async fn project_install_packages(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
@@ -234,7 +179,9 @@ pub async fn project_install_multiple_package(
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
     let Some(packages) = packages.get_versioned(env_version) else {
-        return Err(RustError::unrecoverable("environment version mismatch"));
+        return Err(RustError::unrecoverable(
+            "Internal Error: environment version mismatch",
+        ));
     };
 
     changes!(packages, changes, |collection, packages| {
@@ -245,64 +192,41 @@ pub async fn project_install_multiple_package(
 
         let unity_project = load_project(project_path).await?;
 
-        let operation = AddPackageOperation::InstallToDependencies;
-
         let allow_prerelease = settings.show_prerelease_packages();
 
-        match unity_project
+        unity_project
             .add_package_request(
                 collection,
                 &installing_packages,
-                operation,
+                AddPackageOperation::AutoDetected,
                 allow_prerelease,
             )
-            .await
-        {
-            Ok(request) => request,
-            Err(e) => return Err(RustError::unrecoverable(e)),
-        }
+            .await?
     })
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn project_upgrade_multiple_package(
+pub async fn project_reinstall_packages(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
+    http: State<'_, reqwest::Client>,
     project_path: String,
-    env_version: u32,
-    package_indices: Vec<usize>,
+    package_ids: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
-    let Some(packages) = packages.get_versioned(env_version) else {
-        return Err(RustError::unrecoverable("environment version mismatch"));
-    };
-    let allow_prerelease = settings.show_prerelease_packages();
+    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
 
-    changes!(packages, changes, |collection, packages| {
-        let installing_packages = package_indices
-            .iter()
-            .map(|&index| packages[index])
-            .collect::<Vec<_>>();
-
+    changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
 
-        let operation = AddPackageOperation::UpgradeLocked;
+        let package_ids = package_ids.iter().map(|x| x.as_str()).collect::<Vec<_>>();
 
-        match unity_project
-            .add_package_request(
-                collection,
-                &installing_packages,
-                operation,
-                allow_prerelease,
-            )
-            .await
-        {
-            Ok(request) => request,
-            Err(e) => return Err(RustError::unrecoverable(e)),
-        }
+        unity_project
+            .reinstall_request(collection, &package_ids)
+            .await?
     })
 }
 
@@ -321,10 +245,7 @@ pub async fn project_resolve(
     changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
 
-        match unity_project.resolve_request(collection).await {
-            Ok(request) => request,
-            Err(e) => return Err(RustError::unrecoverable(e)),
-        }
+        unity_project.resolve_request(collection).await?
     })
 }
 
@@ -339,10 +260,7 @@ pub async fn project_remove_packages(
 
     let names = names.iter().map(|x| x.as_str()).collect::<Vec<_>>();
 
-    let changes = match unity_project.remove_request(&names).await {
-        Ok(changes) => changes,
-        Err(e) => return Err(RustError::unrecoverable(e)),
-    };
+    let changes = unity_project.remove_request(&names).await?;
 
     Ok(changes_state.set(changes, TauriPendingProjectChanges::new))
 }
@@ -400,13 +318,9 @@ pub async fn project_migrate_project_to_2022(
 
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
-        match unity_project
+        unity_project
             .migrate_unity_2022(packages.collection(), &installer)
-            .await
-        {
-            Ok(()) => {}
-            Err(e) => return Err(RustError::unrecoverable(e)),
-        }
+            .await?;
 
         unity_project.save().await?;
         update_project_last_modified(&io, unity_project.project_dir()).await;
@@ -510,17 +424,13 @@ pub async fn project_migrate_project_to_vpm(
     let mut unity_project = load_project(project_path).await?;
     let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
 
-    match unity_project
+    unity_project
         .migrate_vpm(
             packages.collection(),
             &installer,
             settings.show_prerelease_packages(),
         )
-        .await
-    {
-        Ok(()) => {}
-        Err(e) => return Err(RustError::unrecoverable(e)),
-    }
+        .await?;
 
     unity_project.save().await?;
     update_project_last_modified(&io, unity_project.project_dir()).await;

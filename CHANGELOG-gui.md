@@ -8,15 +8,30 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- System Information card to Settings Page `#1406`
+- Traditional Chinese translation `#1442`
+- Reinstall some selected packages `#1450`
+- Install and Upgrade packages at once `#1450`
+- Upgrade to the stable latest version even if some package has newer prerelease version `#1450`
+- Buttons to open settings, logs, and templates location `#1451`
+- Error page `#1457`
 - Partial macOS Mojave Support `#1404`
 
 ### Changed
+- GitHub Releases for ALCOM is no longer prereleases
+- Moved log files to `<vpm-home>/vrc-get/gui-logs` `#1446`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Fails to uninstall packages on macOS with filesystem that doesn't support resource fork `#1402`
+  - This is typically seen on ExFAT or FAT32 filesystems, not on APFS or HFS+ filesystems.
+  - macOS internally creates files starting with `._` for resource fork if the filesystem does not support resource fork.
+  - vrc-get-vpm does not handle this file correctly and fails to uninstall the package.
+- environment version mismatch error after resolving packages `#1447`
+- Raw error for InstallAsUnlocked is shown on gui `#1448`
 
 ### Security
 

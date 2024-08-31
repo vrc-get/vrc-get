@@ -5,6 +5,7 @@ mod migrate_vpm;
 mod package_resolution;
 pub mod pending_project_changes;
 mod project_type;
+mod reinstall;
 mod remove_package;
 mod resolve;
 mod upm_manifest;
@@ -32,6 +33,8 @@ pub use add_package::AddPackageOperation;
 pub use migrate_unity_2022::MigrateUnity2022Error;
 pub use migrate_vpm::MigrateVpmError;
 pub use pending_project_changes::PendingProjectChanges;
+pub use reinstall::ReinstalPackagesError;
+pub use remove_package::RemovePackageErr;
 pub use resolve::ResolvePackageErr;
 
 #[derive(Debug)]
