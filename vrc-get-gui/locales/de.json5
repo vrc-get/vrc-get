@@ -204,7 +204,6 @@
     "projects:manage:button:install selected latest": "Installieren",
     "projects:manage:button:install selected stable latest": "Installieren (Nur Stabile Versionen)",
     "projects:manage:button:reinstall selected": "Neu installieren",
-    "projects:manage:button:upgrade selected": "Upgraden",
     "projects:manage:button:uninstall selected": "Deinstallieren",
     "projects:manage:button:clear selection": "Auswahl aufheben",
     "projects:manage:toast:no upgradable": "Keine aktualisierbaren Pakete",

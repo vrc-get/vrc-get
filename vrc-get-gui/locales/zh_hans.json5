@@ -196,7 +196,6 @@
     "projects:manage:button:install selected latest": "安装所选软件包的最新版本",
     "projects:manage:button:install selected stable latest": "安装所选软件包的最新稳定版本",
     "projects:manage:button:reinstall selected": "重装所选软件包",
-    "projects:manage:button:upgrade selected": "升级所选软件包",
     "projects:manage:button:uninstall selected": "卸载所选软件包",
     "projects:manage:button:clear selection": "清空选择",
     "projects:manage:toast:no upgradable": "没有可升级的软件包",

@@ -204,7 +204,6 @@
     "projects:manage:button:install selected latest": "Install Latest Version of Selected",
     "projects:manage:button:install selected stable latest": "Install Latest Stable Version of Selected",
     "projects:manage:button:reinstall selected": "Reinstall Selected",
-    "projects:manage:button:upgrade selected": "Upgrade Selected",
     "projects:manage:button:uninstall selected": "Uninstall Selected",
     "projects:manage:button:clear selection": "Clear Selection",
     "projects:manage:toast:no upgradable": "No upgradable package",

@@ -204,7 +204,6 @@
     "projects:manage:button:install selected latest": "安裝所選的最新版",
     "projects:manage:button:install selected stable latest": "安裝所選的最新穩定版",
     "projects:manage:button:reinstall selected": "重新安裝所選",
-    "projects:manage:button:upgrade selected": "升級所選",
     "projects:manage:button:uninstall selected": "解除安裝所選",
     "projects:manage:button:clear selection": "清除選取",
     "projects:manage:toast:no upgradable": "無可升級的套件",
