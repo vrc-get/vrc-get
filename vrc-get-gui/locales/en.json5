@@ -183,8 +183,8 @@
 
     "projects:manage:manage packages": "Manage Packages",
     "projects:manage:tooltip:refresh packages": "Refresh Packages",
-    "projects:manage:button:upgrade all": "Upgrade All",
-    "projects:manage:button:upgrade all stable": "Upgrade All to Stable",
+    "projects:manage:button:upgrade all": "Upgrade All (Latest)",
+    "projects:manage:button:upgrade all stable": "Upgrade All (Stable)",
     "projects:manage:button:reinstall all": "Reinstall All",
     "projects:manage:button:select repositories": "Select Repositories",
     "projects:manage:package": "Package",
@@ -201,8 +201,8 @@
     "projects:manage:tooltip:incompatible with unity": "Incompatible with Unity",
     // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
     //     It might be better to write both upgrade and latest depending on the language I think.
-    "projects:manage:button:install selected latest": "Install Latest Version of Selected",
-    "projects:manage:button:install selected stable latest": "Install Latest Stable Version of Selected",
+    "projects:manage:button:install selected latest": "Install Selected (Latest)",
+    "projects:manage:button:install selected stable latest": "Install Selected (Stable)",
     "projects:manage:button:reinstall selected": "Reinstall Selected",
     "projects:manage:button:uninstall selected": "Uninstall Selected",
     "projects:manage:button:clear selection": "Clear Selection",
