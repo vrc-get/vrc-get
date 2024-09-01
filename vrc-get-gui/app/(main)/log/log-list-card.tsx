@@ -84,10 +84,12 @@ export const LogListCard = memo(function LogListCard({
 
 function LogLevelMenuItem({
 	logLevel,
+	className,
 	shouldShowLogLevel,
 	setShouldShowLogLevel,
 }: {
 	logLevel: LogLevel;
+	className?: string;
 	shouldShowLogLevel: LogLevel[];
 	setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
 }) {
@@ -119,7 +121,7 @@ function LogLevelMenuItem({
 					onCheckedChange={onChange}
 					className="hover:before:content-none"
 				/>
-				{logLevel}
+				<p className={className}>{logLevel}</p>
 			</label>
 		</DropdownMenuItem>
 	);
@@ -162,16 +164,19 @@ function ManageLogsHeading({
 					/>
 					<LogLevelMenuItem
 						logLevel="Warn"
+						className="text-warning"
 						shouldShowLogLevel={shouldShowLogLevel}
 						setShouldShowLogLevel={setShouldShowLogLevel}
 					/>
 					<LogLevelMenuItem
 						logLevel="Error"
+						className="text-destructive"
 						shouldShowLogLevel={shouldShowLogLevel}
 						setShouldShowLogLevel={setShouldShowLogLevel}
 					/>
 					<LogLevelMenuItem
 						logLevel="Debug"
+						className="text-info"
 						shouldShowLogLevel={shouldShowLogLevel}
 						setShouldShowLogLevel={setShouldShowLogLevel}
 					/>
@@ -211,19 +216,19 @@ const LogRow = memo(function LogRow({
 	};
 
 	const getFontColorClass = (level: LogLevel) => {
-        switch (level) {
-            case "Info":
-                return "";
-            case "Warn":
-                return "text-yellow-500";
-            case "Error":
-                return "text-destructive";
-            case "Debug":
-                return "text-blue-500";
-            default:
-                return "";
-        }
-    };
+		switch (level) {
+			case "Info":
+				return "";
+			case "Warn":
+				return "text-warning";
+			case "Error":
+				return "text-destructive";
+			case "Debug":
+				return "text-info";
+			default:
+				return "";
+		}
+	};
 
 	const fontColorClass = getFontColorClass(log.level);
 	const typeIconClass = `${fontColorClass} w-5 h-5`;
