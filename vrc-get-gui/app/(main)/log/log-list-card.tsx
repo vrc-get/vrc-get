@@ -204,17 +204,34 @@ const LogRow = memo(function LogRow({
 	log: LogEntry;
 }) {
 	const cellClass = "p-2.5";
-	const typeIconClass = "w-5 h-5";
 
 	const formatDate = (dateString: string) => {
 		const date = new Date(dateString);
 		return date.toLocaleString();
 	};
 
+	const getFontColorClass = (level: LogLevel) => {
+        switch (level) {
+            case "Info":
+                return "";
+            case "Warn":
+                return "text-yellow-500";
+            case "Error":
+                return "text-destructive";
+            case "Debug":
+                return "text-blue-500";
+            default:
+                return "";
+        }
+    };
+
+	const fontColorClass = getFontColorClass(log.level);
+	const typeIconClass = `${fontColorClass} w-5 h-5`;
+
 	return (
 		<>
 			<td className={`${cellClass} min-w-32 w-32`}>{formatDate(log.time)}</td>
-			<td className={`${cellClass} min-w-32 w-32`}>
+			<td className={`${cellClass} min-w-28 w-28`}>
 				<div className="flex flex-row gap-2">
 					<div className="flex items-center">
 						{log.level === "Info" ? (
@@ -230,7 +247,7 @@ const LogRow = memo(function LogRow({
 						)}
 					</div>
 					<div className="flex flex-col justify-center">
-						<p className="font-normal">{log.level}</p>
+						<p className={`font-normal ${fontColorClass}`}>{log.level}</p>
 					</div>
 				</div>
 			</td>
