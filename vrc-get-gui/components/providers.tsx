@@ -1,6 +1,6 @@
 "use client";
 
-import "resize-observer-polyfill";
+import "@/lib/polyfill";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { CheckForUpdateResponse, LogEntry } from "@/lib/bindings";
