@@ -44,6 +44,7 @@
 		"react-dom": "^18",
 		"react-i18next": "^15",
 		"react-toastify": "^10",
+		"resize-observer-polyfill": "^1.5.1",
 		"tailwind-merge": "^2",
 		"tailwindcss-animate": "^1"
 	},
