@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog].
 - Upgrade to the stable latest version even if some package has newer prerelease version `#1450`
 - Buttons to open settings, logs, and templates location `#1451`
 - Error page `#1457`
+- Ctrl + F on Log, Projects List, and Project page will focus search box on the page `#1485`
 
 ### Changed
 - GitHub Releases for ALCOM is no longer prereleases
@@ -32,6 +33,7 @@ The format is based on [Keep a Changelog].
   - vrc-get-vpm does not handle this file correctly and fails to uninstall the package.
 - environment version mismatch error after resolving packages `#1447`
 - Raw error for InstallAsUnlocked is shown on gui `#1448`
+- Ctrl + F on Windows will show the search box by WebView2 `#1485`
 
 ### Security
 
