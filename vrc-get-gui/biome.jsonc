@@ -29,6 +29,18 @@
 				"noAssignInExpressions": "off"
 			},
 			"correctness": {
+				"useExhaustiveDependencies": {
+					"level": "error",
+					"options": {
+						"hooks": [
+							{
+								"name": "useDocumentEvent",
+								"closureIndex": 1,
+								"dependenciesIndex": 2
+							}
+						]
+					}
+				},
 				"noUnusedImports": "error"
 			}
 		},
