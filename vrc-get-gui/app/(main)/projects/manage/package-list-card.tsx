@@ -33,6 +33,7 @@ import type {
 	TauriRepositoriesInfo,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastThrownError } from "@/lib/toast";
 import { toVersionString } from "@/lib/version";
@@ -44,6 +45,7 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import type React from "react";
+import { useRef } from "react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type {
 	PackageLatestInfo,
@@ -385,6 +387,18 @@ function ManagePackagesHeading({
 		packageRowsData.some((row) => row.stableLatest.status === "upgradable") &&
 		upgradingToPrerelease;
 
+	const searchRef = useRef<HTMLInputElement>(null);
+
+	useDocumentEvent(
+		"keydown",
+		(e) => {
+			if (isFindKey(e)) {
+				searchRef.current?.focus();
+			}
+		},
+		[],
+	);
+
 	return (
 		<div
 			className={
@@ -420,6 +434,7 @@ function ManagePackagesHeading({
 				className={"w-max flex-grow"}
 				value={search}
 				onChange={(e) => setSearch(e.target.value)}
+				ref={searchRef}
 			/>
 
 			{upgradableToLatest && (

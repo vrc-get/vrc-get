@@ -10,10 +10,11 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { type LogEntry, type LogLevel, commands } from "@/lib/bindings";
+import { isFindKey, useDocumentEvent } from "@/lib/events";
 import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 
 export const LogListCard = memo(function LogListCard({
 	logEntry,
@@ -138,6 +139,18 @@ function ManageLogsHeading({
 	shouldShowLogLevel: LogLevel[];
 	setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
 }) {
+	const searchRef = useRef<HTMLInputElement>(null);
+
+	useDocumentEvent(
+		"keydown",
+		(e) => {
+			if (isFindKey(e)) {
+				searchRef.current?.focus();
+			}
+		},
+		[],
+	);
+
 	return (
 		<div
 			className={
@@ -148,6 +161,7 @@ function ManageLogsHeading({
 				className={"w-max flex-grow"}
 				value={search}
 				onChange={(e) => setSearch(e.target.value)}
+				ref={searchRef}
 			/>
 
 			<DropdownMenu>
