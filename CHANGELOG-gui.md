@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog].
   - vrc-get-vpm does not handle this file correctly and fails to uninstall the package.
 - environment version mismatch error after resolving packages `#1447`
 - Raw error for InstallAsUnlocked is shown on gui `#1448`
+- Project Path is shown instead of Project Name `#1484`
 
 ### Security
 
