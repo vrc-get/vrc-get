@@ -177,8 +177,8 @@
 
     "projects:manage:manage packages": "管理软件包",
     "projects:manage:tooltip:refresh packages": "刷新软件包",
-    "projects:manage:button:upgrade all": "升级所有软件包",
-    "projects:manage:button:upgrade all stable": "升级所有软件包到稳定版本",
+    "projects:manage:button:upgrade all": "升级所有软件包（最新）",
+    "projects:manage:button:upgrade all stable": "升级所有软件包（稳定）",
     "projects:manage:button:reinstall all": "重新安装所有软件包",
     "projects:manage:button:select repositories": "选择存储库",
     "projects:manage:package": "软件包",
@@ -189,14 +189,13 @@
     "projects:manage:incompatible packages": "不兼容",
     "projects:manage:source not selected": "未选择",
     "projects:manage:multiple sources": "多个源",
-    "projects:manage:tooltip:add package": "添加软件包",
+    "projects:manage:tooltip:add package": "安装软件包",
     "projects:manage:tooltip:upgrade package": "升级软件包",
     "projects:manage:tooltip:remove packages": "删除软件包",
     "projects:manage:tooltip:incompatible with unity": "与 Unity 不兼容",
-    "projects:manage:button:install selected latest": "安装所选软件包的最新版本",
-    "projects:manage:button:install selected stable latest": "安装所选软件包的最新稳定版本",
+    "projects:manage:button:install selected latest": "安装所选软件包（最新）",
+    "projects:manage:button:install selected stable latest": "安装所选软件包（稳定）",
     "projects:manage:button:reinstall selected": "重装所选软件包",
-    "projects:manage:button:upgrade selected": "升级所选软件包",
     "projects:manage:button:uninstall selected": "卸载所选软件包",
     "projects:manage:button:clear selection": "清空选择",
     "projects:manage:toast:no upgradable": "没有可升级的软件包",
@@ -409,5 +408,9 @@
 
 // Logs Page
     "logs": "日志",
+    "logs:time": "时间",
+    "logs:level": "等级",
+    "logs:message": "消息",
+    "logs:manage:select logs level": "日志等级过滤器",
   },
 }
