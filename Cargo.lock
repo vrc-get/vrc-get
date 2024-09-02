@@ -5112,9 +5112,9 @@ dependencies = [
 
 [[package]]
 name = "trash"
-version = "5.1.0"
+version = "5.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a154e8323dbd402514d5a3c0f12e0a5bddf72de674b565d58a5535500566428b"
+checksum = "33caf2a9be1812a263a4bfce74d2de225fcde12ee7b77001361abd2b34ffdcc4"
 dependencies = [
  "chrono",
  "libc",
