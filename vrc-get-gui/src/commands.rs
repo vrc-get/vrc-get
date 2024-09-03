@@ -43,7 +43,8 @@ mod util;
 
 mod prelude {
     pub(super) use super::{
-        load_project, update_project_last_modified, RustError, TauriBasePackageInfo, UnityProject,
+        load_project, update_project_last_modified, IntoPathBuf as _, RustError,
+        TauriBasePackageInfo, UnityProject,
     };
     pub use crate::state::*;
 }
@@ -359,4 +360,20 @@ impl TauriBasePackageInfo {
 
 async fn load_project(project_path: String) -> Result<UnityProject, RustError> {
     Ok(UnityProject::load(DefaultProjectIo::new(PathBuf::from(project_path).into())).await?)
+}
+
+trait IntoPathBuf {
+    fn into_path_buf(self) -> Result<PathBuf, RustError>;
+}
+
+impl IntoPathBuf for tauri_plugin_dialog::FilePath {
+    fn into_path_buf(self) -> Result<PathBuf, RustError> {
+        match self {
+            Self::Url(url) => url
+                .to_file_path()
+                .map(PathBuf::from)
+                .map_err(|_| RustError::unrecoverable("internal error: bad file url")),
+            Self::Path(p) => Ok(p),
+        }
+    }
 }

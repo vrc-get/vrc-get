@@ -396,7 +396,11 @@ pub async fn environment_import_repository_pick(
 ) -> Result<TauriImportRepositoryPickResult, RustError> {
     let builder = window.dialog().file().set_parent(&window);
 
-    let Some(repositories_path) = builder.blocking_pick_file().map(|x| x.path) else {
+    let Some(repositories_path) = builder
+        .blocking_pick_file()
+        .map(|x| x.into_path_buf())
+        .transpose()?
+    else {
         return Ok(TauriImportRepositoryPickResult::NoFilePicked);
     };
 
@@ -531,6 +535,8 @@ pub async fn environment_export_repositories(
         .add_filter("Text", &["txt"])
         .set_file_name("repositories")
         .blocking_save_file()
+        .map(|x| x.into_path_buf())
+        .transpose()?
     else {
         return Ok(());
     };
@@ -602,6 +608,8 @@ pub async fn environment_add_user_package_with_picker(
         .file()
         .set_parent(&window)
         .blocking_pick_folder()
+        .map(|x| x.into_path_buf())
+        .transpose()?
     else {
         return Ok(TauriAddUserPackageWithPickerResult::NoFolderSelected);
     };
