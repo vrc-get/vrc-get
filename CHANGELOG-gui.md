@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog].
 - environment version mismatch error after resolving packages `#1447`
 - Raw error for InstallAsUnlocked is shown on gui `#1448`
 - Ctrl + F on Windows will show the search box by WebView2 `#1485`
+- Project Path is shown instead of Project Name `#1484`
 
 ### Security
 

@@ -9,7 +9,7 @@ export function pathSeparator(): string {
 }
 
 export function nameFromPath(path: string): string {
-	if (globalInfo.osInfo === "WindowsNT") {
+	if (globalInfo.osType === "WindowsNT") {
 		const indexOfSlash = path.lastIndexOf("/");
 		const indexOfBackSlash = path.lastIndexOf("\\");
 		const indexOfSeparator = Math.max(indexOfSlash, indexOfBackSlash);
