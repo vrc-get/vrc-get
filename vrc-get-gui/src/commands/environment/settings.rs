@@ -174,7 +174,10 @@ pub async fn environment_pick_unity_hub(
             // no extension for executable on linux
         }
 
-        builder.blocking_pick_file().map(|x| x.path)
+        builder
+            .blocking_pick_file()
+            .map(|x| x.into_path_buf())
+            .transpose()?
     }) else {
         return Ok(TauriPickUnityHubResult::NoFolderSelected);
     };
@@ -230,7 +233,10 @@ pub async fn environment_pick_unity(
             // no extension for executable on linux
         }
 
-        builder.blocking_pick_file().map(|x| x.path)
+        builder
+            .blocking_pick_file()
+            .map(|x| x.into_path_buf())
+            .transpose()?
     }) else {
         return Ok(TauriPickUnityResult::NoFolderSelected);
     };
@@ -308,6 +314,8 @@ pub async fn environment_pick_project_default_path(
             default_project_path.as_ref(),
         ))
         .blocking_pick_folder()
+        .map(|x| x.into_path_buf())
+        .transpose()?
     else {
         settings.maybe_save().await?;
         return Ok(TauriPickProjectDefaultPathResult::NoFolderSelected);
@@ -349,6 +357,8 @@ pub async fn environment_pick_project_backup_path(
             project_backup_path.as_ref(),
         ))
         .blocking_pick_folder()
+        .map(|x| x.into_path_buf())
+        .transpose()?
     else {
         return Ok(TauriPickProjectBackupPathResult::NoFolderSelected);
     };

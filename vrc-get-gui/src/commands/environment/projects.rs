@@ -155,6 +155,8 @@ pub async fn environment_add_project_with_picker(
         .file()
         .set_parent(&window)
         .blocking_pick_folder()
+        .map(|x| x.into_path_buf())
+        .transpose()?
     else {
         return Ok(TauriAddProjectWithPickerResult::NoFolderSelected);
     };
