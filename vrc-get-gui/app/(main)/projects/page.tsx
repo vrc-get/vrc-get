@@ -19,6 +19,7 @@ import {
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
@@ -32,7 +33,7 @@ import {
 	RefreshCw,
 	Star,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CreateProject } from "./create-project";
 import { ProjectRow } from "./project-row";
 
@@ -372,6 +373,18 @@ function ProjectViewHeader({
 		}
 	};
 
+	const searchRef = useRef<HTMLInputElement>(null);
+
+	useDocumentEvent(
+		"keydown",
+		(e) => {
+			if (isFindKey(e)) {
+				searchRef.current?.focus();
+			}
+		},
+		[],
+	);
+
 	return (
 		<HNavBar className={`${className}`}>
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
@@ -400,6 +413,7 @@ function ProjectViewHeader({
 				className={"w-max flex-grow"}
 				value={search}
 				onChange={(e) => setSearch(e.target.value)}
+				ref={searchRef}
 			/>
 
 			<DropdownMenu>

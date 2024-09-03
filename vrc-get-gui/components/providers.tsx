@@ -4,10 +4,12 @@ import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { CheckForUpdateResponse, LogEntry } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { toastError, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import type React from "react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastContainer } from "react-toastify";
@@ -82,6 +84,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
 			cancel = true;
 		};
 	}, []);
+
+	useDocumentEvent(
+		"keydown",
+		(e) => {
+			if (isFindKey(e)) {
+				e.preventDefault();
+			}
+		},
+		[],
+	);
 
 	return (
 		<>
