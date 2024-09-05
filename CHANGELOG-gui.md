@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 - Buttons to open settings, logs, and templates location `#1451`
 - Error page `#1457`
 - Ctrl + F on Log, Projects List, and Project page will focus search box on the page `#1485`
+- Partial macOS Mojave Support `#1404`
 
 ### Changed
 - GitHub Releases for ALCOM is no longer prereleases
