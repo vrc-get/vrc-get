@@ -1,8 +1,2 @@
 # This is notes text for the updater json, which will be shown in the updater dialog.
 # Lines starting with '#' will be ignored (as comments).
-This release the following features!
-- Added Traditional Chinese Translation
-- Reinstalling some packages
-- Install and Upgrade at once
-- Upgrade to stable latest version
-- Many small improvements and bug fixes

@@ -8,35 +8,42 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- System Information card to Settings Page `#1406`
-- Traditional Chinese translation `#1442`
-- Reinstall some selected packages `#1450`
-- Install and Upgrade packages at once `#1450`
-- Upgrade to the stable latest version even if some package has newer prerelease version `#1450`
-- Buttons to open settings, logs, and templates location `#1451`
-- Error page `#1457`
-- Ctrl + F on Log, Projects List, and Project page will focus search box on the page `#1485`
 
 ### Changed
-- GitHub Releases for ALCOM is no longer prereleases
-- Moved log files to `<vpm-home>/vrc-get/gui-logs` `#1446`
-- Logs pages overhaul `#1456`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Fails to uninstall packages on macOS with filesystem that doesn't support resource fork `#1402`
+
+### Security
+
+## [0.1.15] - 2024-09-05
+### Added
+- System Information card to Settings Page [`#1406`](https://github.com/vrc-get/vrc-get/pull/1406)
+- Traditional Chinese translation [`#1442`](https://github.com/vrc-get/vrc-get/pull/1442)
+- Reinstall some selected packages [`#1450`](https://github.com/vrc-get/vrc-get/pull/1450)
+- Install and Upgrade packages at once [`#1450`](https://github.com/vrc-get/vrc-get/pull/1450)
+- Upgrade to the stable latest version even if some package has newer prerelease version [`#1450`](https://github.com/vrc-get/vrc-get/pull/1450)
+- Buttons to open settings, logs, and templates location [`#1451`](https://github.com/vrc-get/vrc-get/pull/1451)
+- Error page [`#1457`](https://github.com/vrc-get/vrc-get/pull/1457)
+- Ctrl + F on Log, Projects List, and Project page will focus search box on the page [`#1485`](https://github.com/vrc-get/vrc-get/pull/1485)
+
+### Changed
+- GitHub Releases for ALCOM is no longer prereleases
+- Moved log files to `<vpm-home>/vrc-get/gui-logs` [`#1446`](https://github.com/vrc-get/vrc-get/pull/1446)
+- Logs pages overhaul [`#1456`](https://github.com/vrc-get/vrc-get/pull/1456)
+
+### Fixed
+- Fails to uninstall packages on macOS with filesystem that doesn't support resource fork [`#1402`](https://github.com/vrc-get/vrc-get/pull/1402)
   - This is typically seen on ExFAT or FAT32 filesystems, not on APFS or HFS+ filesystems.
   - macOS internally creates files starting with `._` for resource fork if the filesystem does not support resource fork.
   - vrc-get-vpm does not handle this file correctly and fails to uninstall the package.
-- environment version mismatch error after resolving packages `#1447`
-- Raw error for InstallAsUnlocked is shown on gui `#1448`
-- Ctrl + F on Windows will show the search box by WebView2 `#1485`
-- Project Path is shown instead of Project Name `#1484`
-
-### Security
+- environment version mismatch error after resolving packages [`#1447`](https://github.com/vrc-get/vrc-get/pull/1447)
+- Raw error for InstallAsUnlocked is shown on gui [`#1448`](https://github.com/vrc-get/vrc-get/pull/1448)
+- Ctrl + F on Windows will show the search box by WebView2 [`#1485`](https://github.com/vrc-get/vrc-get/pull/1485)
+- Project Path is shown instead of Project Name [`#1484`](https://github.com/vrc-get/vrc-get/pull/1484)
 
 ## [0.1.14] - 2024-08-13
 ### Added
@@ -447,7 +454,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.14...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.15...HEAD
+[0.1.15]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.14...gui-v0.1.15
 [0.1.14]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.13...gui-v0.1.14
 [0.1.13]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.12...gui-v0.1.13
 [0.1.12]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.11...gui-v0.1.12
