@@ -4,6 +4,7 @@
  * It will
  *      merge all the root locale keys in a merged object
  *      sort the keys in an alphabetic way
+ *      remove the excessing keys not present in root locale
  *      overrite target locale keys with the merged keys
  * This process is not perfect but can help add missing keys in a quick way.
  *
@@ -71,9 +72,20 @@ const mergedTranslationContent = {
     ...localesContent[CLI_ARGUMENT_1].translation
 }
 
+const rootLocaleContentKeys = Object.keys(localesContent[ROOT_LOCALE].translation)
+console.info(`Removing excessing keys not present in root  locale.`)
+console.warn(`If you had upcoming keys that were not in root locale, they will be removed.`)
+const cleanedTranslationContent = Object.entries(mergedTranslationContent).reduce(
+    (cleanedContent, [key, value]) => {
+        if (rootLocaleContentKeys.includes(key)) {
+            cleanedContent[key] = value
+        }
+        return cleanedContent
+    }, {})
+
 console.info(`Sorting JSON keys in alphabetic order.`)
-const sortedTranslationContent = Object.keys(mergedTranslationContent).sort().reduce((obj, key) => {
-    obj[key] = mergedTranslationContent[key];
+const sortedTranslationContent = Object.keys(cleanedTranslationContent).sort().reduce((obj, key) => {
+    obj[key] = cleanedTranslationContent[key];
     return obj;
 }, {});
 
