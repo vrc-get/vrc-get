@@ -450,8 +450,8 @@ function FilesAndFoldersCard() {
 
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
-			<h2>{tc("settings:files and folders")}</h2>
-			{tc("settings:files and folders:description")}
+			<h2>{tc("settings:files and directories")}</h2>
+			{tc("settings:files and directories:description")}
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={openVpmFolderContent("settings.json")}>
 					{tc("settings:button:open settings.json")}

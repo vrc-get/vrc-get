@@ -391,8 +391,8 @@
     "settings:theme:light": "Light",
     "settings:theme:dark": "Dark",
 
-    "settings:files and folders": "Files & Folders",
-    "settings:files and folders:description": "Quickly access files and folders at static locations.",
+    "settings:files and directories": "Files & Directories",
+    "settings:files and directories:description": "Quickly access files and directories at static locations.",
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
     "settings:button:open logs": "Log folder",
