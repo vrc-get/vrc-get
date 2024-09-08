@@ -133,6 +133,7 @@ function Settings({
 					refetch={refetch}
 				/>
 				<AppearanceCard />
+				<FilesAndFoldersCard />
 				<AlcomCard
 					isMac={isMac}
 					releaseChannel={settings.release_channel}
@@ -432,6 +433,43 @@ function AppearanceCard() {
 	);
 }
 
+function FilesAndFoldersCard() {
+	const openVpmFolderContent = (subPath: string) => {
+		return async () => {
+			try {
+				await commands.utilOpen(
+					`${globalInfo.vpmHomeFolder}/${subPath}`,
+					"ErrorIfNotExists",
+				);
+			} catch (e) {
+				console.error(e);
+				toastThrownError(e);
+			}
+		};
+	};
+
+	return (
+		<Card className={"flex-shrink-0 p-4"}>
+			<h2>{tc("settings:files and folders")}</h2>
+			{tc("settings:files and folders:description")}
+			<div className={"flex flex-row flex-wrap gap-2"}>
+				<Button onClick={openVpmFolderContent("settings.json")}>
+					{tc("settings:button:open settings.json")}
+				</Button>
+				<Button onClick={openVpmFolderContent("vrc-get/gui-config.json")}>
+					{tc("settings:button:open gui config.json")}
+				</Button>
+				<Button onClick={openVpmFolderContent("vrc-get/gui-logs")}>
+					{tc("settings:button:open logs")}
+				</Button>
+				<Button onClick={openVpmFolderContent("Templates")}>
+					{tc("settings:button:open custom templates")}
+				</Button>
+			</div>
+		</Card>
+			);
+};
+
 function AlcomCard({
 	isMac,
 	releaseChannel,
@@ -501,19 +539,7 @@ function AlcomCard({
 		}
 	};
 
-	const openVpmFolderContent = (subPath: string) => {
-		return async () => {
-			try {
-				await commands.utilOpen(
-					`${globalInfo.vpmHomeFolder}/${subPath}`,
-					"ErrorIfNotExists",
-				);
-			} catch (e) {
-				console.error(e);
-				toastThrownError(e);
-			}
-		};
-	};
+
 
 	return (
 		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
@@ -528,20 +554,6 @@ function AlcomCard({
 				<Button onClick={checkForUpdate}>{tc("settings:check update")}</Button>
 				<Button onClick={reportIssue}>
 					{tc("settings:button:open issue")}
-				</Button>
-			</div>
-			<div className={"flex flex-row flex-wrap gap-2"}>
-				<Button onClick={openVpmFolderContent("settings.json")}>
-					{tc("settings:button:open settings.json")}
-				</Button>
-				<Button onClick={openVpmFolderContent("vrc-get/gui-config.json")}>
-					{tc("settings:button:open gui config.json")}
-				</Button>
-				<Button onClick={openVpmFolderContent("vrc-get/gui-logs")}>
-					{tc("settings:button:open logs")}
-				</Button>
-				<Button onClick={openVpmFolderContent("Templates")}>
-					{tc("settings:button:open custom templates")}
 				</Button>
 			</div>
 			<div>
