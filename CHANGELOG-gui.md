@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Separated quick open actions to own settings box. [`#1496`](https://github.com/vrc-get/vrc-get/pull/1496)
+- Updated French Translation [`#1442`](https://github.com/vrc-get/vrc-get/pull/1494)
 
 ### Deprecated
 
