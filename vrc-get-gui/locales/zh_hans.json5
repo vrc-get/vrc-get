@@ -370,12 +370,13 @@
     "settings:theme:light": "明亮",
     "settings:theme:dark": "暗黑",
 
-    "settings:check update": "检查更新",
-    "settings:button:open issue": "在 GitHub 上创建问题",
     "settings:button:open settings.json": "打开 settings.json",
     "settings:button:open gui config.json": "打开 GUI 配置文件",
     "settings:button:open logs": "打开日志路径",
     "settings:button:open custom templates": "打开自定义模板路径",
+
+    "settings:check update": "检查更新",
+    "settings:button:open issue": "在 GitHub 上创建问题",
     "settings:receive beta updates": "接收 Beta 更新",
     "settings:beta updates description": "Beta 频道会定期更新新功能和错误修复。不过，与稳定版相比，Beta 版可能会出现更多与新功能相关的错误。",
     "check update:toast:no updates": "已是最新版本。",

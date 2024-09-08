@@ -391,12 +391,13 @@
     "settings:theme:light": "淺色",
     "settings:theme:dark": "深色",
 
-    "settings:check update": "檢查更新",
-    "settings:button:open issue": "回報問題",
     "settings:button:open settings.json": "開啟 settings.json",
     "settings:button:open gui config.json": "開啟 gui-config.json",
     "settings:button:open logs": "開啟日誌資料夾",
     "settings:button:open custom templates": "開啟自訂範本資料夾",
+
+    "settings:check update": "檢查更新",
+    "settings:button:open issue": "回報問題",
     "settings:receive beta updates": "接收 Beta 更新",
     "settings:beta updates description": "Beta 頻道會經常收到新功能和錯誤修復的更新。但若與穩定版相比，beta 可能會有更多與新功能相關的錯誤。",
     "check update:toast:no updates": "無可用更新。",
