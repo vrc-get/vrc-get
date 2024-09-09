@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /**
  * Helper script to load missing translation keys from the root locale file.
  * It will strip all comments and rewrite the keys to match the JSON5 standard so first changes can be large.
