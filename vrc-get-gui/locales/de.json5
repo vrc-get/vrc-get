@@ -391,12 +391,15 @@
     "settings:theme:light": "Hell",
     "settings:theme:dark": "Dunkel",
 
-    "settings:check update": "Suche nach Updates",
-    "settings:button:open issue": "Fehler melden",
+    "settings:files and directories": "Dateien & Verzeichnisse",
+    "settings:files and directories:description": "Schneller Zugriff auf relevante Dateien und Verzeichnisse von ALCOM.",
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
     "settings:button:open logs": "Log Ordner",
     "settings:button:open custom templates": "Eigene Vorlagen",
+
+    "settings:check update": "Suche nach Updates",
+    "settings:button:open issue": "Fehler melden",
     "settings:receive beta updates": "Beta Updates erhalten",
     "settings:beta updates description": "Erhalte früher Updates mit neuen Funktionen und Fehlerbehebungen. Die Wahrscheinlichkeit auf unfertige Funktionen zu stoßen ist höher.",
     "check update:toast:no updates": "Keine Updates verfügbar.",
