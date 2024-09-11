@@ -231,6 +231,8 @@
     'settings:default unity arguments description': 'Ces arguments CLI seront utilisés lorsque vous ouvrirez Unity via ALCOM.',
     'settings:dialog:default launch arguments': 'Arguments de Untiy par défaut',
     'settings:error:load error': 'Erreur de chargement des réglages.',
+    'settings:files and directories': 'Fichiers et Dossiers',
+    'settings:files and directories:description': 'Accédez rapidement aux fichiers et dossiers relatifs à ALCOM.',
     'settings:langName': 'Français',
     'settings:language': 'Language',
     'settings:licenses': 'Licences',
