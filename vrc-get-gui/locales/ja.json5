@@ -383,6 +383,8 @@
     "settings:theme:light": "ライト",
     "settings:theme:dark": "ダーク",
 
+    "settings:files and directories": "設定ファイル",
+    "settings:files and directories:description": "ALCOMの設定ファイルや関連するフォルダを開くことが出来ます。",
     "settings:button:open settings.json": "settings.jsonを開く",
     "settings:button:open gui config.json": "gui-config.jsonを開く",
     "settings:button:open logs": "ログフォルダを開く",
