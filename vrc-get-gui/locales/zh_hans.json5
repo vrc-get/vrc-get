@@ -180,7 +180,7 @@
     "projects:manage:button:upgrade all": "升级所有软件包（最新）",
     "projects:manage:button:upgrade all stable": "升级所有软件包（稳定）",
     "projects:manage:button:reinstall all": "重新安装所有软件包",
-    "projects:manage:button:select repositories": "选择存储库",
+    "projects:manage:button:select repositories": "筛选存储库",
     "projects:manage:package": "软件包",
     "projects:manage:installed": "已安装版本",
     "projects:manage:latest": "最新版本",
@@ -370,6 +370,8 @@
     "settings:theme:light": "明亮",
     "settings:theme:dark": "暗黑",
 
+    "settings:files and directories": "文件 & 目录",
+    "settings:files and directories:description": "快速访问与 ALCOM 相关的文件和目录。",
     "settings:button:open settings.json": "打开 settings.json",
     "settings:button:open gui config.json": "打开 GUI 配置文件",
     "settings:button:open logs": "打开日志路径",
