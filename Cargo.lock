@@ -530,9 +530,9 @@ dependencies = [
 
 [[package]]
 name = "bson"
-version = "2.11.0"
+version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8a88e82b9106923b5c4d6edfca9e7db958d4e98a478ec115022e81b9b38e2c8"
+checksum = "068208f2b6fcfa27a7f1ee37488d2bb8ba2640f68f5475d08e1d9130696aba59"
 dependencies = [
  "ahash",
  "base64 0.13.1",
