@@ -114,13 +114,13 @@ function Settings({
 						successMessage={tc("settings:toast:unity hub path updated")}
 					/>
 					{isLinux && (
-						<div>
+						<div className={"pt-2 pl-1"}>
 							<label className={"flex items-center gap-2"}>
 								<Checkbox
 									checked={settings.use_flatpak_unity_hub}
 									onCheckedChange={(e) => toggleUseFlatpakUnityHub(e)}
 								/>
-								{"Use Flatpak Unity Hub"}
+								{tc("settings:use flatpak unity hub")}
 							</label>
 						</div>
 					)}

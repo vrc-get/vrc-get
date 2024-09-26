@@ -347,6 +347,7 @@
     "settings:unity hub path": "Unity Hub Path",
     "settings:toast:not unity hub": "Selected file is not Unity Hub.",
     "settings:toast:unity hub path updated": "Updated Unity Hub successfully!",
+    "settings:use flatpak unity hub": "Use Flatpak Unity Hub",
 
     "settings:unity installations": "Unity Installations",
     "settings:button:add unity": "Add Unity",
