@@ -469,9 +469,6 @@ pub async fn environment_set_use_flatpak_unity_hub(
     config: State<'_, GuiConfigState>,
     use_flatpak_unity_hub: bool,
 ) -> Result<(), RustError> {
-    if cfg!(target_os = "linux") {
-
-    }
     let mut config = config.load_mut().await?;
     config.use_flatpak_unity_hub = use_flatpak_unity_hub;
     config.save().await?;
