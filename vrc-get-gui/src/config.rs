@@ -29,6 +29,8 @@ pub struct GuiConfig {
     pub setup_process_progress: u32,
     #[serde(default)]
     pub default_unity_arguments: Option<Vec<String>>,
+    #[serde(default)]
+    pub use_flatpak_unity_hub: bool,
 }
 
 impl Default for GuiConfig {
@@ -46,6 +48,7 @@ impl Default for GuiConfig {
             use_alcom_for_vcc_protocol: false,
             setup_process_progress: 0,
             default_unity_arguments: None,
+            use_flatpak_unity_hub: false,
         }
     }
 }

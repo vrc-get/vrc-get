@@ -106,6 +106,7 @@ export function FilePathRow({
 	refetch,
 	successMessage,
 	withoutSelect = false,
+	disabled = false,
 }: {
 	path: string;
 	notFoundMessage?: string;
@@ -115,6 +116,7 @@ export function FilePathRow({
 	refetch: () => void;
 	successMessage: ToastContent;
 	withoutSelect?: boolean;
+	disabled?: boolean;
 }) {
 	const [pickPath, dialog] = useFilePickerFunction(pick);
 
@@ -161,11 +163,11 @@ export function FilePathRow({
 			) : (
 				<Input className="flex-auto" value={path} disabled />
 			)}
-			<Button className={"flex-none px-4"} onClick={selectFolder}>
+			<Button className={"flex-none px-4"} onClick={selectFolder} disabled={disabled}>
 				{tc("general:button:select")}
 			</Button>
 			{withoutSelect || (
-				<Button className={"flex-none px-4"} onClick={openFolder}>
+				<Button className={"flex-none px-4"} onClick={openFolder} disabled={disabled}>
 					{tc("general:button:open location")}
 				</Button>
 			)}

@@ -52,7 +52,13 @@ pub fn startup(app: &mut App) {
         io: State<'_, DefaultEnvironmentIo>,
     ) -> Result<(), io::Error> {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        let unity_hub_path = {
+
+        let config = GuiConfigState::new_load(io.inner()).await?;
+        let config = config.load_mut().await?;
+
+        let unity_hub_path = if config.use_flatpak_unity_hub {
+            "flatpak".to_string()
+        } else {
             let mut settings = settings.load_mut(io.inner()).await?;
             let Some(unity_hub_path) = find_unity_hub(&mut settings, io.inner()).await? else {
                 error!("Unity Hub not found");

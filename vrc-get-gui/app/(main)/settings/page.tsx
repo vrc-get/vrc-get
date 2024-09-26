@@ -87,6 +87,17 @@ function Settings({
 	refetch: () => void;
 }) {
 	const isMac = useGlobalInfo().osType === "Darwin";
+	const isLinux = useGlobalInfo().osType === "Linux";
+
+	const toggleUseFlatpakUnityHub = async (e: "indeterminate" | boolean) => {
+		try {
+			await commands.environmentSetUseFlatpakUnityHub(e === true);
+			refetch();
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
 
 	return (
 		<ScrollPageContainer>
@@ -95,12 +106,24 @@ function Settings({
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
 					<FilePathRow
 						withoutSelect
-						path={settings.unity_hub}
+						disabled={isLinux && settings.use_flatpak_unity_hub}
+						path={isLinux && settings.use_flatpak_unity_hub ? "flatpak run com.unity.UnityHub" : settings.unity_hub}
 						pick={commands.environmentPickUnityHub}
 						refetch={refetch}
 						notFoundMessage={"Unity Hub Not Found"}
 						successMessage={tc("settings:toast:unity hub path updated")}
 					/>
+					{isLinux && (
+						<div>
+							<label className={"flex items-center gap-2"}>
+								<Checkbox
+									checked={settings.use_flatpak_unity_hub}
+									onCheckedChange={(e) => toggleUseFlatpakUnityHub(e)}
+								/>
+								{"Use Flatpak Unity Hub"}
+							</label>
+						</div>
+					)}
 				</Card>
 				<UnityInstallationsCard
 					refetch={refetch}
