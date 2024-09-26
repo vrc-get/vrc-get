@@ -9,6 +9,11 @@ use tokio::process::Command;
 async fn headless_unity_hub(unity_hub_path: &OsStr, args: &[&OsStr]) -> io::Result<Output> {
     let args = {
         let mut vec = Vec::with_capacity(args.len() + 2);
+        if cfg!(target_os = "linux") && unity_hub_path.to_str() == Some("flatpak") {
+            vec.push("run".as_ref());
+            vec.push("com.unity.UnityHub".as_ref());
+            vec.push("--".as_ref());
+        }
         if !cfg!(target_os = "linux") {
             vec.push("--".as_ref());
         }
