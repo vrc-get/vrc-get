@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Added support for Flatpak version of Unity Hub. [`#1551`](https://github.com/vrc-get/vrc-get/pull/1551)
 
 ### Changed
 - Separated quick open actions to own settings box. [`#1496`](https://github.com/vrc-get/vrc-get/pull/1496)
