@@ -163,11 +163,19 @@ export function FilePathRow({
 			) : (
 				<Input className="flex-auto" value={path} disabled />
 			)}
-			<Button className={"flex-none px-4"} onClick={selectFolder} disabled={disabled}>
+			<Button
+				className={"flex-none px-4"}
+				onClick={selectFolder}
+				disabled={disabled}
+			>
 				{tc("general:button:select")}
 			</Button>
 			{withoutSelect || (
-				<Button className={"flex-none px-4"} onClick={openFolder} disabled={disabled}>
+				<Button
+					className={"flex-none px-4"}
+					onClick={openFolder}
+					disabled={disabled}
+				>
 					{tc("general:button:open location")}
 				</Button>
 			)}
@@ -224,11 +232,7 @@ export function BackupPathWarnings({ backupPath }: { backupPath: string }) {
 	);
 }
 
-export function WarningMessage({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+export function WarningMessage({ children }: { children: React.ReactNode }) {
 	return (
 		<div className={"flex items-center gap-2"}>
 			<div className="flex-grow-0 flex-shrink-0">

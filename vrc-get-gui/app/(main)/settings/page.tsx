@@ -107,7 +107,11 @@ function Settings({
 					<FilePathRow
 						withoutSelect
 						disabled={isLinux && settings.use_flatpak_unity_hub}
-						path={isLinux && settings.use_flatpak_unity_hub ? "flatpak run com.unity.UnityHub" : settings.unity_hub}
+						path={
+							isLinux && settings.use_flatpak_unity_hub
+								? "flatpak run com.unity.UnityHub"
+								: settings.unity_hub
+						}
 						pick={commands.environmentPickUnityHub}
 						refetch={refetch}
 						notFoundMessage={"Unity Hub Not Found"}
