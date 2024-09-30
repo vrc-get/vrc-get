@@ -4,10 +4,13 @@ use serde_json::json;
 use std::future::Future;
 use std::io;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 use vrc_get_vpm::io::{EnvironmentIo, IoTrait, ProjectIo};
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
-use vrc_get_vpm::{HttpClient, PackageInfo, PackageInstaller, PackageManifest, UnityProject};
+use vrc_get_vpm::{
+    AbortCheck, HttpClient, PackageInfo, PackageInstaller, PackageManifest, UnityProject,
+};
 
 pub struct VirtualEnvironment {
     vfs: VirtualFileSystem,
@@ -24,7 +27,8 @@ impl PackageInstaller for VirtualEnvironment {
         &self,
         _: &impl ProjectIo,
         _: PackageInfo<'_>,
-    ) -> impl Future<Output = std::io::Result<()>> {
+        _: &AbortCheck,
+    ) -> impl Future<Output = io::Result<()>> {
         std::future::ready(Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "install_package not supported in VirtualEnvironment",

@@ -1,18 +1,21 @@
 use crate::io::{DirEntry, ProjectIo};
+use crate::traits::AbortCheck;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
 use crate::utils::walk_dir_relative;
 use crate::version::DependencyRange;
 use crate::{io, PackageInstaller};
 use crate::{unity_compatible, PackageInfo, UnityProject};
 use either::Either;
-use futures::future::{join, join_all, try_join_all};
+use futures::future::{join, join_all};
 use futures::prelude::*;
 use log::debug;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::future::ready;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
+use std::sync::OnceLock;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -736,13 +739,24 @@ async fn install_packages<Env: PackageInstaller>(
     env: &Env,
     packages: &[PackageInfo<'_>],
 ) -> io::Result<()> {
+    let abort = AbortCheck::new();
+    let mut error_store = OnceLock::new();
+
     // resolve all packages
-    try_join_all(
-        packages
-            .iter()
-            .map(|package| env.install_package(io, *package)),
-    )
-    .await?;
+    join_all(packages.iter().map(|package| {
+        env.install_package(io, *package, &abort).then(|x| {
+            if let Err(e) = x {
+                error_store.set(e).ok();
+                abort.abort();
+            }
+            ready(())
+        })
+    }))
+    .await;
+
+    if let Some(err) = error_store.take() {
+        return Err(err);
+    }
 
     Ok(())
 }

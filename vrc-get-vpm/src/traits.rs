@@ -7,6 +7,7 @@ use core::option::Option;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use std::convert::Infallible;
+use std::sync::atomic::{AtomicBool, Ordering};
 use url::Url;
 
 pub trait PackageCollection {
@@ -41,7 +42,31 @@ pub trait PackageInstaller {
         &self,
         io: &impl ProjectIo,
         package: PackageInfo<'_>,
+        abort: &AbortCheck,
     ) -> impl Future<Output = io::Result<()>>;
+}
+
+pub struct AbortCheck {
+    abort: AtomicBool,
+}
+
+impl AbortCheck {
+    pub(crate) fn new() -> Self {
+        Self {
+            abort: AtomicBool::new(false),
+        }
+    }
+
+    pub fn check(&self) -> io::Result<()> {
+        if self.abort.load(Ordering::Relaxed) {
+            return Err(io::Error::new(io::ErrorKind::Interrupted, "Aborted"));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn abort(&self) {
+        self.abort.store(true, Ordering::Relaxed);
+    }
 }
 
 /// The HTTP Client.

@@ -35,6 +35,7 @@ use crate::repository::local::LocalCachedRepository;
 pub use package_manifest::PackageManifest;
 pub use package_manifest::PartialUnityVersion;
 pub use structs::setting::UserRepoSetting;
+pub use traits::AbortCheck;
 pub use traits::HttpClient;
 pub use traits::PackageCollection;
 pub use traits::PackageInstaller;

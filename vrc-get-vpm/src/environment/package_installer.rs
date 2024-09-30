@@ -1,6 +1,7 @@
 use crate::environment::REPO_CACHE_FOLDER;
 use crate::io::{EnvironmentIo, ProjectIo};
 use crate::repository::LocalCachedRepository;
+use crate::traits::AbortCheck;
 use crate::utils::Sha256AsyncWrite;
 use crate::{io, HttpClient, PackageInfo, PackageManifest};
 use futures::prelude::*;
@@ -28,17 +29,33 @@ impl<T: HttpClient, IO: EnvironmentIo> crate::PackageInstaller for PackageInstal
         &self,
         io: &impl ProjectIo,
         package: PackageInfo<'_>,
+        abort: &AbortCheck,
     ) -> io::Result<()> {
+        abort.check()?;
         use crate::PackageInfoInner;
         log::debug!("adding package {}", package.name());
         let dest_folder = PathBuf::from(format!("Packages/{}", package.name()));
         match package.inner {
             PackageInfoInner::Remote(package, user_repo) => {
                 let zip_file = get_package(self.io, self.http, user_repo, package).await?;
+
+                // downloading may take a long time, so check abort again
+                abort.check()?;
+
                 let zip_file = io::BufReader::new(zip_file);
 
                 // remove dest folder before extract if exists
-                crate::utils::extract_zip(zip_file, io, &dest_folder).await?;
+                if let Err(e) = crate::utils::extract_zip(zip_file, io, &dest_folder).await {
+                    // if an error occurs, try to remove the dest folder
+                    log::debug!(
+                        "Error occurred while extracting zip file for {}@{}: {}",
+                        package.name(),
+                        package.version(),
+                        e
+                    );
+                    let _ = io.remove_dir_all(&dest_folder).await;
+                    return Err(e);
+                }
 
                 Ok(())
             }
