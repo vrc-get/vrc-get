@@ -116,10 +116,11 @@
 		@apply bg-background text-foreground;
 		color: hsl(var(--foreground));
 		background: linear-gradient(
-			to bottom,
-			transparent,
-			hsl(var(--background-end))
-		) hsl(var(--background-start));
+				to bottom,
+				transparent,
+				hsl(var(--background-end))
+			)
+			hsl(var(--background-start));
 	}
 }
 
@@ -207,7 +208,10 @@ body {
  * Add padding end for horizontal scroll bar of scrollable card if vertical scroll bar is invisible
  * This prevents the horizontal scroll bar hide corner of the card
  */
-.vrc-get-scrollable-card:not(:has(> .vrc-get-scrollable-card-vertical-bar)) > div[data-radix-scroll-area-viewport] > div > div.vrc-get-scrollable-card-horizontal-bar {
+.vrc-get-scrollable-card:not(:has(> .vrc-get-scrollable-card-vertical-bar))
+	> div[data-radix-scroll-area-viewport]
+	> div
+	> div.vrc-get-scrollable-card-horizontal-bar {
 	@apply pe-2.5;
 }
 
