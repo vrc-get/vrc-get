@@ -378,7 +378,7 @@ function UnityVersionSelector({
 		>
 			<SelectTrigger>
 				{detailsResult.status === "success" ? (
-					detailsResult.data.unity_str ?? "unknown"
+					(detailsResult.data.unity_str ?? "unknown")
 				) : (
 					<span className={"text-primary"}>Loading...</span>
 				)}

@@ -259,123 +259,119 @@ export function CreateProject({
 				}
 			};
 			dialogBody = (
-				<>
-					<VStack>
+				<VStack>
+					<div className={"flex gap-1"}>
+						<div className={"flex items-center"}>
+							<label htmlFor={inputId}>{tc("projects:template:type")}</label>
+						</div>
+						<Select
+							defaultValue={templateType}
+							onValueChange={(value) => setTemplateType(value as TemplateType)}
+						>
+							<SelectTrigger id={inputId}>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectItem value={"avatars"}>
+										{tc("projects:type:avatars")}
+									</SelectItem>
+									<SelectItem value={"worlds"}>
+										{tc("projects:type:worlds")}
+									</SelectItem>
+									<SelectItem
+										value={"custom"}
+										disabled={customTemplates.length === 0}
+									>
+										{tc("projects:type:custom")}
+									</SelectItem>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					</div>
+					{templateType !== "custom" ? (
 						<div className={"flex gap-1"}>
 							<div className={"flex items-center"}>
-								<label htmlFor={inputId}>{tc("projects:template:type")}</label>
+								<label htmlFor={inputId}>
+									{tc("projects:template:unity version")}
+								</label>
 							</div>
 							<Select
-								defaultValue={templateType}
+								defaultValue={unityVersion}
 								onValueChange={(value) =>
-									setTemplateType(value as TemplateType)
+									setUnityVersion(value as TemplateUnityVersion)
 								}
 							>
 								<SelectTrigger id={inputId}>
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
+									{templateUnityVersions.map((unityVersion) => (
+										<SelectItem value={unityVersion} key={unityVersion}>
+											{renderUnityVersion(unityVersion)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					) : (
+						<div className={"flex gap-1"}>
+							<div className={"flex items-center"}>
+								<label htmlFor={inputId}>{tc("projects:template")}</label>
+							</div>
+							<Select
+								value={customTemplate?.name}
+								onValueChange={onCustomTemplateChange}
+							>
+								<SelectTrigger id={inputId}>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
 									<SelectGroup>
-										<SelectItem value={"avatars"}>
-											{tc("projects:type:avatars")}
-										</SelectItem>
-										<SelectItem value={"worlds"}>
-											{tc("projects:type:worlds")}
-										</SelectItem>
-										<SelectItem
-											value={"custom"}
-											disabled={customTemplates.length === 0}
-										>
-											{tc("projects:type:custom")}
-										</SelectItem>
+										{customTemplates.map((template) => (
+											<SelectItem value={template.name} key={template.name}>
+												{template.name}
+											</SelectItem>
+										))}
 									</SelectGroup>
 								</SelectContent>
 							</Select>
 						</div>
-						{templateType !== "custom" ? (
-							<div className={"flex gap-1"}>
-								<div className={"flex items-center"}>
-									<label htmlFor={inputId}>
-										{tc("projects:template:unity version")}
-									</label>
-								</div>
-								<Select
-									defaultValue={unityVersion}
-									onValueChange={(value) =>
-										setUnityVersion(value as TemplateUnityVersion)
-									}
-								>
-									<SelectTrigger id={inputId}>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{templateUnityVersions.map((unityVersion) => (
-											<SelectItem value={unityVersion} key={unityVersion}>
-												{renderUnityVersion(unityVersion)}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						) : (
-							<div className={"flex gap-1"}>
-								<div className={"flex items-center"}>
-									<label htmlFor={inputId}>{tc("projects:template")}</label>
-								</div>
-								<Select
-									value={customTemplate?.name}
-									onValueChange={onCustomTemplateChange}
-								>
-									<SelectTrigger id={inputId}>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectGroup>
-											{customTemplates.map((template) => (
-												<SelectItem value={template.name} key={template.name}>
-													{template.name}
-												</SelectItem>
-											))}
-										</SelectGroup>
-									</SelectContent>
-								</Select>
-							</div>
-						)}
-						<Input
-							value={projectNameRaw}
-							onChange={(e) => setProjectName(e.target.value)}
-						/>
-						<div className={"flex gap-1 items-center"}>
-							<Input className="flex-auto" value={projectLocation} disabled />
-							<Button
-								className="flex-none px-4"
-								onClick={selectProjectDefaultFolder}
-							>
-								{tc("general:button:select")}
-							</Button>
-						</div>
-						<small className={"whitespace-normal"}>
-							{tc(
-								"projects:hint:path of creating project",
-								{ path: `${projectLocation}${pathSeparator()}${projectName}` },
-								{
-									components: {
-										path: (
-											<span
-												className={
-													"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"
-												}
-											/>
-										),
-									},
+					)}
+					<Input
+						value={projectNameRaw}
+						onChange={(e) => setProjectName(e.target.value)}
+					/>
+					<div className={"flex gap-1 items-center"}>
+						<Input className="flex-auto" value={projectLocation} disabled />
+						<Button
+							className="flex-none px-4"
+							onClick={selectProjectDefaultFolder}
+						>
+							{tc("general:button:select")}
+						</Button>
+					</div>
+					<small className={"whitespace-normal"}>
+						{tc(
+							"projects:hint:path of creating project",
+							{ path: `${projectLocation}${pathSeparator()}${projectName}` },
+							{
+								components: {
+									path: (
+										<span
+											className={
+												"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"
+											}
+										/>
+									),
 								},
-							)}
-						</small>
-						<small className={`whitespace-normal ${projectNameStateClass}`}>
-							{projectNameCheck}
-						</small>
-					</VStack>
-				</>
+							},
+						)}
+					</small>
+					<small className={`whitespace-normal ${projectNameStateClass}`}>
+						{projectNameCheck}
+					</small>
+				</VStack>
 			);
 			break;
 		}
