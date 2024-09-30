@@ -74,8 +74,6 @@ impl Unity2022 {
             .await
             .exit_context("migrating unity project");
 
-        project.save().await.exit_context("saving project");
-
         info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
 
         #[cfg(not(feature = "experimental-vcc"))]
@@ -149,8 +147,6 @@ impl Vpm {
             .migrate_vpm(&collection, &installer, false)
             .await
             .exit_context("migrating unity project");
-
-        project.save().await.exit_context("saving project");
 
         info!("Migration finished.");
 

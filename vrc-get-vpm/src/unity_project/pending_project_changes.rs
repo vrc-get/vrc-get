@@ -505,19 +505,76 @@ static PKG_TEMP_DIR: &str = "Temp/vrc-get";
 
 impl<IO: ProjectIo> UnityProject<IO> {
     /// Applies the changes specified in `AddPackageRequest` to the project.
+    ///
+    /// This will also save the manifest changes
     pub async fn apply_pending_changes<'env, Env: PackageInstaller>(
         &mut self,
         env: &'env Env,
         request: PendingProjectChanges<'env>,
     ) -> io::Result<()> {
+        /*
+        Apply pending changes consists of following steps:
+        - Move packages to temp directory (remove packages)
+        - Apply changes to manifest (add packages)
+        - Install packages
+        - Remove legacy assets
+
+        This function will do those steps in the order above.
+        There are several things to consider:
+        - We remove package before applying changes to manifest because:
+          - If we update manifest before removing packages,
+            failing to remove packages will leave previously installed packages as unlocked packages.
+          - If we remove packages before updating manifest,
+            failing to install packages will leave packages as uninstalled locked packages,
+            which is easy to fix with Resolve command.
+        - We install packages after applying changes to manifest because:
+          - If we install packages before updating manifest,
+            failing to update manifest will leave packages as unlocked packages.
+          - If we update manifest before installing packages,
+            failing to install packages will leave packages as uninstalled locked packages,
+            which is easy to fix with Resolve command.
+        - We remove legacy assets after installing packages because:
+          - If we remove legacy assets before installing packages,
+            failing to install package will leave legacy assets removed.
+          - If we install packages before removing legacy assets,
+            failing to remove legacy assets will duplicate legacy assets.
+          - Both cases are not desirable, but the latter is less harmful.
+         */
+
         let mut installs = Vec::new();
         let mut remove_names = Vec::new();
 
-        for (name, change) in request.package_changes {
+        for (name, change) in &request.package_changes {
             match change {
                 PackageChange::Install(change) => {
                     if let Some(package) = change.package {
                         installs.push(package);
+                    }
+                }
+                PackageChange::Remove(_) => {
+                    remove_names.push(name.as_ref());
+                }
+            }
+        }
+
+        // remove packages
+        let remove_temp_dir = format!("{}/{}", PKG_TEMP_DIR, uuid::Uuid::new_v4());
+        let remove_temp_dir = Path::new(&remove_temp_dir);
+
+        self.io.create_dir_all(remove_temp_dir).await?;
+
+        move_packages_to_temp(
+            &self.io,
+            (remove_names.iter().copied()).chain(installs.iter().map(|x| x.name())),
+            remove_temp_dir,
+        )
+        .await?;
+
+        // apply changes to manifest
+        for (name, change) in &request.package_changes {
+            match change {
+                PackageChange::Install(change) => {
+                    if let Some(package) = change.package {
                         if change.add_to_locked {
                             self.manifest.add_locked(
                                 package.name(),
@@ -527,45 +584,30 @@ impl<IO: ProjectIo> UnityProject<IO> {
                         }
                     }
 
-                    if let Some(version) = change.to_dependencies {
-                        self.manifest.add_dependency(&name, version);
+                    if let Some(version) = &change.to_dependencies {
+                        self.manifest.add_dependency(name, version.clone());
                     }
                 }
-                PackageChange::Remove(_) => {
-                    remove_names.push(name);
-                }
+                PackageChange::Remove(_) => {}
             }
         }
 
-        self.manifest
-            .remove_packages(remove_names.iter().map(Box::as_ref));
+        self.manifest.remove_packages(remove_names.iter().copied());
 
-        let remove_temp_dir = format!("{}/{}", PKG_TEMP_DIR, uuid::Uuid::new_v4());
-        let remove_temp_dir = Path::new(&remove_temp_dir);
+        // save manifest
 
-        self.io.create_dir_all(remove_temp_dir).await?;
+        self.save().await?;
 
-        let removed = move_packages_to_temp(
-            &self.io,
-            (remove_names.iter().map(Box::as_ref)).chain(installs.iter().map(|x| x.name())),
-            remove_temp_dir,
-        )
-        .await?;
+        // add packages
 
-        match install_packages(&self.io, env, &installs).await {
-            Ok(()) => {}
-            Err(err) => {
-                // restore moved packages
-                restore_remove(&self.io, remove_temp_dir, removed.iter().copied()).await;
-
-                return Err(err);
-            }
-        }
+        install_packages(&self.io, env, &installs).await?;
 
         self.io.remove_dir_all(remove_temp_dir).await.ok();
         self.io.remove_dir_all(PKG_TEMP_DIR.as_ref()).await.ok();
         // remove temp dir also if it's empty
         self.io.remove_dir(TEMP_DIR.as_ref()).await.ok();
+
+        // remove legacy assets
 
         remove_assets(
             &self.io,

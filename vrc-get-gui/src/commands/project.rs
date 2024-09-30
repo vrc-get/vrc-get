@@ -288,7 +288,6 @@ pub async fn project_apply_pending_changes(
         .apply_pending_changes(&installer, changes)
         .await?;
 
-    unity_project.save().await?;
     update_project_last_modified(&io, unity_project.project_dir()).await;
     Ok(())
 }
@@ -322,7 +321,6 @@ pub async fn project_migrate_project_to_2022(
             .migrate_unity_2022(packages.collection(), &installer)
             .await?;
 
-        unity_project.save().await?;
         update_project_last_modified(&io, unity_project.project_dir()).await;
 
         Ok(())
@@ -432,7 +430,6 @@ pub async fn project_migrate_project_to_vpm(
         )
         .await?;
 
-    unity_project.save().await?;
     update_project_last_modified(&io, unity_project.project_dir()).await;
 
     Ok(())

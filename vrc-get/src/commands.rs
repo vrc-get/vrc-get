@@ -161,10 +161,6 @@ fn get_package<'env>(
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
 
-async fn save_unity(unity: &mut UnityProject) {
-    unity.save().await.exit_context("saving manifest file");
-}
-
 fn confirm_prompt(msg: &str) -> bool {
     use std::io;
     use std::io::Write;
@@ -521,7 +517,6 @@ impl Install {
             .await
             .exit_context("adding package");
 
-        unity.save().await.exit_context("saving manifest file");
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
@@ -560,8 +555,6 @@ impl Resolve {
             .apply_pending_changes(&installer, changes)
             .await
             .exit_context("installing packages");
-
-        unity.save().await.exit_context("saving manifest file");
     }
 }
 
@@ -609,7 +602,6 @@ impl Remove {
             .await
             .exit_context("removing packages");
 
-        save_unity(&mut unity).await;
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
@@ -663,7 +655,6 @@ impl Reinstall {
             .await
             .exit_context("removing packages");
 
-        save_unity(&mut unity).await;
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
@@ -856,7 +847,6 @@ impl Upgrade {
             println!("upgraded {} to {}", name, version);
         }
 
-        save_unity(&mut unity).await;
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
@@ -934,7 +924,6 @@ impl Downgrade {
             println!("downgraded {} to {}", name, version);
         }
 
-        save_unity(&mut unity).await;
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }

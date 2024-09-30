@@ -6,7 +6,7 @@ use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use hex::FromHex;
-use log::{debug, trace};
+use log::debug;
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
