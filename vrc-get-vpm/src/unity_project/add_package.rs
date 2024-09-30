@@ -5,6 +5,7 @@ use crate::unity_project::{package_resolution, PendingProjectChanges};
 use crate::version::DependencyRange;
 use crate::{PackageCollection, PackageInfo, UnityProject};
 use log::debug;
+use std::collections::HashSet;
 use std::fmt;
 
 #[derive(Debug)]
@@ -70,6 +71,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
         let mut adding_packages = Vec::with_capacity(packages.len());
+        let mut removing_unlocked_packages = HashSet::new();
 
         let mut changes = super::pending_project_changes::Builder::new();
 
@@ -77,22 +79,22 @@ impl<IO: ProjectIo> UnityProject<IO> {
             debug!("Validating Package: {}", request.name());
 
             {
-                fn install_to_dependencies<'env, IO: ProjectIo>(
+                fn install_to_dependencies<'env, 's, IO: ProjectIo>(
                     request: PackageInfo<'env>,
-                    this: &UnityProject<IO>,
+                    this: &'s UnityProject<IO>,
                     adding_packages: &mut Vec<PackageInfo<'env>>,
+                    removing_unlocked_packages: &mut HashSet<&'s str>,
                     changes: &mut super::pending_project_changes::Builder,
                 ) -> Result<(), AddPackageErr> {
-                    if this.unlocked_packages.iter().any(|(dir, pkg)| {
+                    for (dir, _) in this.unlocked_packages.iter().filter(|(dir, pkg)| {
                         dir.as_ref() == request.name()
                             || pkg
                                 .as_ref()
                                 .map(|x| x.name() == request.name())
                                 .unwrap_or(false)
                     }) {
-                        return Err(AddPackageErr::InstalledAsUnlocked {
-                            package_name: request.name().into(),
-                        });
+                        removing_unlocked_packages.insert(dir);
+                        changes.unlocked_installation_conflict(request.name().into(), dir.clone());
                     }
 
                     let add_to_dependencies = this
@@ -163,7 +165,13 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
                 match operation {
                     AddPackageOperation::InstallToDependencies => {
-                        install_to_dependencies(request, self, &mut adding_packages, &mut changes)?;
+                        install_to_dependencies(
+                            request,
+                            self,
+                            &mut adding_packages,
+                            &mut removing_unlocked_packages,
+                            &mut changes,
+                        )?;
                     }
                     AddPackageOperation::UpgradeLocked => {
                         if self.manifest.get_locked(request.name()).is_none() {
@@ -204,6 +212,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
                                     request,
                                     self,
                                     &mut adding_packages,
+                                    &mut removing_unlocked_packages,
                                     &mut changes,
                                 )?;
                             }
@@ -293,7 +302,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 }
             }),
             self.manifest.all_locked(),
-            &self.unlocked_packages,
+            self.unlocked_packages
+                .iter()
+                .filter(|(dir, _)| !removing_unlocked_packages.contains(dir.as_ref())),
             |pkg| self.manifest.get_locked(pkg),
             self.unity_version(),
             env,
@@ -301,13 +312,15 @@ impl<IO: ProjectIo> UnityProject<IO> {
             allow_prerelease,
         )?;
 
-        debug!("Resolving finished, appending dependencies to pending changes");
+        debug!("Resolving finished");
 
         for x in result.new_packages {
+            debug!("Installing package {}@{}", x.name(), x.version());
             changes.install_to_locked(x);
         }
 
         for (package, conflicts_with) in result.conflicts {
+            debug!("package {} conflicts with {:?}", package, conflicts_with);
             changes.conflict_multiple(package, conflicts_with);
         }
 
@@ -316,10 +329,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
             .into_iter()
             .filter(|name| self.is_locked(name))
         {
+            debug!("removing legacy package {}", name);
             changes.remove(name, RemoveReason::Legacy);
         }
 
-        debug!("Building changes (finding legacy, checking conflicts)");
+        debug!("Building changes (finding legacy assets, checking conflicts)");
 
         let changes = changes.build_resolve(self).await;
 

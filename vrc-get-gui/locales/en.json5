@@ -267,6 +267,7 @@
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> does not support your Unity version.",
     // TODO: plurals
     "projects:manage:dialog:files and directories are removed as legacy": "The following legacy files and directories will be removed.",
+    "projects:manage:dialog:packages installed in the following directories will be removed": "The packages installed in the following directories will be removed.",
     "projects:manage:button:see changelog": "See Changelog",
     "projects:manage:button:apply changes": "Apply Changes",
     "projects:manage:button:apply": "Apply",

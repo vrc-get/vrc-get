@@ -288,6 +288,24 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
             }
         }
     }
+
+    // process unlocked name conflicts
+    {
+        let mut unlocked_conflicts = changes
+            .conflicts()
+            .iter()
+            .flat_map(|(_, c)| c.unlocked_names())
+            .peekable();
+
+        if unlocked_conflicts.peek().is_some() {
+            println!("**Those directories are will be removed**");
+            println!("Those directory name conflicts with installing package,");
+            println!("or same packages are installed in those directories.");
+            for directory in unlocked_conflicts {
+                println!("- Packages/{}", directory);
+            }
+        }
+    }
 }
 
 fn prompt_install(yes: bool) {

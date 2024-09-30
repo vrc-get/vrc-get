@@ -390,7 +390,7 @@ pub struct PackageResolutionResult<'env> {
 pub(crate) fn collect_adding_packages<'a, 'env>(
     dependencies: impl Iterator<Item = (&'a str, &'a DependencyRange)>,
     locked_dependencies: impl Iterator<Item = LockedDependencyInfo<'a>>,
-    unlocked_packages: &'a [(Box<str>, Option<PackageManifest>)],
+    unlocked_packages: impl Iterator<Item = &'a (Box<str>, Option<PackageManifest>)>,
     get_locked: impl Fn(&str) -> Option<LockedDependencyInfo<'a>>,
     unity_version: Option<UnityVersion>,
     env: &'env impl PackageCollection,

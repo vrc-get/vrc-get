@@ -130,6 +130,7 @@ impl From<RemoveReason> for TauriRemoveReason {
 struct TauriConflictInfo {
     packages: Vec<String>,
     unity_conflict: bool,
+    unlocked_names: Vec<String>,
 }
 
 impl From<&ConflictInfo> for TauriConflictInfo {
@@ -141,6 +142,11 @@ impl From<&ConflictInfo> for TauriConflictInfo {
                 .map(|x| x.to_string())
                 .collect(),
             unity_conflict: value.conflicts_with_unity(),
+            unlocked_names: value
+                .unlocked_names()
+                .iter()
+                .map(|x| x.to_string())
+                .collect(),
         }
     }
 }

@@ -100,6 +100,8 @@ pub enum RemoveReason {
 pub struct ConflictInfo {
     conflicts_packages: Vec<Box<str>>,
     conflicts_with_unity: bool,
+    // The value is the name of directory that is installed as unlocked
+    unlocked_names: Vec<Box<str>>,
 }
 
 impl ConflictInfo {
@@ -109,6 +111,10 @@ impl ConflictInfo {
 
     pub fn conflicts_with_unity(&self) -> bool {
         self.conflicts_with_unity
+    }
+
+    pub fn unlocked_names(&self) -> &[Box<str>] {
+        self.unlocked_names.as_slice()
     }
 }
 
@@ -200,6 +206,19 @@ impl<'env> Builder<'env> {
                 }));
             }
         }
+        self
+    }
+
+    pub fn unlocked_installation_conflict(
+        &mut self,
+        name: Box<str>,
+        unlocked_name: Box<str>,
+    ) -> &mut Self {
+        self.conflicts
+            .entry(name)
+            .or_default()
+            .unlocked_names
+            .push(unlocked_name);
         self
     }
 
