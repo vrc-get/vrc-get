@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Separated quick open actions to own settings box. [`#1496`](https://github.com/vrc-get/vrc-get/pull/1496)
+- Improved behavior with downloading package error `#1557`
+- Installing unlocked package is now possible with warning `#1557`
+- Added many logs for installing package `#1557`
 
 ### Deprecated
 

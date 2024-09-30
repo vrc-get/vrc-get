@@ -1,18 +1,22 @@
 use crate::io::{DirEntry, ProjectIo};
+use crate::traits::AbortCheck;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
 use crate::utils::walk_dir_relative;
 use crate::version::DependencyRange;
 use crate::{io, PackageInstaller};
 use crate::{unity_compatible, PackageInfo, UnityProject};
 use either::Either;
-use futures::future::{join, join_all, try_join_all};
+use futures::future::{join, join_all};
 use futures::prelude::*;
+use indexmap::IndexSet;
 use log::debug;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::future::ready;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
+use std::sync::OnceLock;
 
 /// Represents Packages to be added and folders / packages to be removed
 ///
@@ -97,6 +101,8 @@ pub enum RemoveReason {
 pub struct ConflictInfo {
     conflicts_packages: Vec<Box<str>>,
     conflicts_with_unity: bool,
+    // The value is the name of directory that is installed as unlocked
+    unlocked_names: Vec<Box<str>>,
 }
 
 impl ConflictInfo {
@@ -106,6 +112,10 @@ impl ConflictInfo {
 
     pub fn conflicts_with_unity(&self) -> bool {
         self.conflicts_with_unity
+    }
+
+    pub fn unlocked_names(&self) -> &[Box<str>] {
+        self.unlocked_names.as_slice()
     }
 }
 
@@ -197,6 +207,19 @@ impl<'env> Builder<'env> {
                 }));
             }
         }
+        self
+    }
+
+    pub fn unlocked_installation_conflict(
+        &mut self,
+        name: Box<str>,
+        unlocked_name: Box<str>,
+    ) -> &mut Self {
+        self.conflicts
+            .entry(name)
+            .or_default()
+            .unlocked_names
+            .push(unlocked_name);
         self
     }
 
@@ -327,6 +350,8 @@ impl<'env> Builder<'env> {
                 .map(|x| x.package.unwrap()),
         );
 
+        debug!("checking for unity compatibility");
+
         if let Some(unity) = unity_project.unity_version {
             for package in installs
                 .iter()
@@ -337,9 +362,15 @@ impl<'env> Builder<'env> {
             }
         }
 
+        debug!("Finding unused packages");
+
         self.mark_and_sweep_packages(unity_project);
 
+        debug!("Collecting legacy assets");
+
         let legacy_assets = collect_legacy_assets(&unity_project.io, &installs).await;
+
+        debug!("Building PendingProjectChanges finished!");
 
         PendingProjectChanges {
             package_changes: self.package_changes,
@@ -497,19 +528,85 @@ static PKG_TEMP_DIR: &str = "Temp/vrc-get";
 
 impl<IO: ProjectIo> UnityProject<IO> {
     /// Applies the changes specified in `AddPackageRequest` to the project.
+    ///
+    /// This will also save the manifest changes
     pub async fn apply_pending_changes<'env, Env: PackageInstaller>(
         &mut self,
         env: &'env Env,
         request: PendingProjectChanges<'env>,
     ) -> io::Result<()> {
+        /*
+        Apply pending changes consists of following steps:
+        - Move packages to temp directory (remove packages)
+        - Apply changes to manifest (add packages)
+        - Install packages
+        - Remove legacy assets
+
+        This function will do those steps in the order above.
+        There are several things to consider:
+        - We remove package before applying changes to manifest because:
+          - If we update manifest before removing packages,
+            failing to remove packages will leave previously installed packages as unlocked packages.
+          - If we remove packages before updating manifest,
+            failing to install packages will leave packages as uninstalled locked packages,
+            which is easy to fix with Resolve command.
+        - We install packages after applying changes to manifest because:
+          - If we install packages before updating manifest,
+            failing to update manifest will leave packages as unlocked packages.
+          - If we update manifest before installing packages,
+            failing to install packages will leave packages as uninstalled locked packages,
+            which is easy to fix with Resolve command.
+        - We remove legacy assets after installing packages because:
+          - If we remove legacy assets before installing packages,
+            failing to install package will leave legacy assets removed.
+          - If we install packages before removing legacy assets,
+            failing to remove legacy assets will duplicate legacy assets.
+          - Both cases are not desirable, but the latter is less harmful.
+         */
+
         let mut installs = Vec::new();
         let mut remove_names = Vec::new();
+        let mut remove_unlocked_names = Vec::new();
 
-        for (name, change) in request.package_changes {
+        for (name, change) in &request.package_changes {
             match change {
                 PackageChange::Install(change) => {
                     if let Some(package) = change.package {
                         installs.push(package);
+                    }
+                }
+                PackageChange::Remove(_) => {
+                    remove_names.push(name.as_ref());
+                }
+            }
+        }
+
+        for info in request.conflicts.values() {
+            for x in &info.unlocked_names {
+                remove_unlocked_names.push(x.as_ref());
+            }
+        }
+
+        // remove packages
+        let remove_temp_dir = format!("{}/{}", PKG_TEMP_DIR, uuid::Uuid::new_v4());
+        let remove_temp_dir = Path::new(&remove_temp_dir);
+
+        self.io.create_dir_all(remove_temp_dir).await?;
+
+        move_packages_to_temp(
+            &self.io,
+            (remove_names.iter().copied())
+                .chain(installs.iter().map(|x| x.name()))
+                .chain(remove_unlocked_names.iter().copied()),
+            remove_temp_dir,
+        )
+        .await?;
+
+        // apply changes to manifest
+        for (name, change) in &request.package_changes {
+            match change {
+                PackageChange::Install(change) => {
+                    if let Some(package) = change.package {
                         if change.add_to_locked {
                             self.manifest.add_locked(
                                 package.name(),
@@ -519,45 +616,30 @@ impl<IO: ProjectIo> UnityProject<IO> {
                         }
                     }
 
-                    if let Some(version) = change.to_dependencies {
-                        self.manifest.add_dependency(&name, version);
+                    if let Some(version) = &change.to_dependencies {
+                        self.manifest.add_dependency(name, version.clone());
                     }
                 }
-                PackageChange::Remove(_) => {
-                    remove_names.push(name);
-                }
+                PackageChange::Remove(_) => {}
             }
         }
 
-        self.manifest
-            .remove_packages(remove_names.iter().map(Box::as_ref));
+        self.manifest.remove_packages(remove_names.iter().copied());
 
-        let remove_temp_dir = format!("{}/{}", PKG_TEMP_DIR, uuid::Uuid::new_v4());
-        let remove_temp_dir = Path::new(&remove_temp_dir);
+        // save manifest
 
-        self.io.create_dir_all(remove_temp_dir).await?;
+        self.save().await?;
 
-        let removed = move_packages_to_temp(
-            &self.io,
-            (remove_names.iter().map(Box::as_ref)).chain(installs.iter().map(|x| x.name())),
-            remove_temp_dir,
-        )
-        .await?;
+        // add packages
 
-        match install_packages(&self.io, env, &installs).await {
-            Ok(()) => {}
-            Err(err) => {
-                // restore moved packages
-                restore_remove(&self.io, remove_temp_dir, removed.iter().copied()).await;
-
-                return Err(err);
-            }
-        }
+        install_packages(&self.io, env, &installs).await?;
 
         self.io.remove_dir_all(remove_temp_dir).await.ok();
         self.io.remove_dir_all(PKG_TEMP_DIR.as_ref()).await.ok();
         // remove temp dir also if it's empty
         self.io.remove_dir(TEMP_DIR.as_ref()).await.ok();
+
+        // remove legacy assets
 
         remove_assets(
             &self.io,
@@ -583,12 +665,16 @@ async fn move_packages_to_temp<'a>(
     // it's expected to cheap to rename (link) packages to temp dir,
     // so we do it sequentially for simplicity
 
-    let mut moved = Vec::new();
+    let mut moved = IndexSet::new();
 
     for name in names {
+        if moved.contains(name) {
+            continue;
+        }
+
         match move_package(io, name, temp_dir).await {
             Ok(true) => {
-                moved.push(name);
+                moved.insert(name);
             }
             Ok(false) => {
                 // package not found, do nothing
@@ -602,7 +688,7 @@ async fn move_packages_to_temp<'a>(
         }
     }
 
-    return Ok(moved);
+    return Ok(moved.into_iter().collect());
 
     async fn move_package(io: &impl ProjectIo, name: &str, temp_dir: &Path) -> io::Result<bool> {
         let package_dir = format!("Packages/{}", name);
@@ -686,13 +772,24 @@ async fn install_packages<Env: PackageInstaller>(
     env: &Env,
     packages: &[PackageInfo<'_>],
 ) -> io::Result<()> {
+    let abort = AbortCheck::new();
+    let mut error_store = OnceLock::new();
+
     // resolve all packages
-    try_join_all(
-        packages
-            .iter()
-            .map(|package| env.install_package(io, *package)),
-    )
-    .await?;
+    join_all(packages.iter().map(|package| {
+        env.install_package(io, *package, &abort).then(|x| {
+            if let Err(e) = x {
+                error_store.set(e).ok();
+                abort.abort();
+            }
+            ready(())
+        })
+    }))
+    .await;
+
+    if let Some(err) = error_store.take() {
+        return Err(err);
+    }
 
     Ok(())
 }

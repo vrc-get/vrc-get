@@ -161,10 +161,6 @@ fn get_package<'env>(
         .unwrap_or_else(|| exit_with!("no matching package not found"))
 }
 
-async fn save_unity(unity: &mut UnityProject) {
-    unity.save().await.exit_context("saving manifest file");
-}
-
 fn confirm_prompt(msg: &str) -> bool {
     use std::io;
     use std::io::Write;
@@ -289,6 +285,24 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
             println!("**Those packages are incompatible with your unity version**");
             for package in unity_conflicts {
                 println!("- {}", package);
+            }
+        }
+    }
+
+    // process unlocked name conflicts
+    {
+        let mut unlocked_conflicts = changes
+            .conflicts()
+            .iter()
+            .flat_map(|(_, c)| c.unlocked_names())
+            .peekable();
+
+        if unlocked_conflicts.peek().is_some() {
+            println!("**Those directories are will be removed**");
+            println!("Those directory name conflicts with installing package,");
+            println!("or same packages are installed in those directories.");
+            for directory in unlocked_conflicts {
+                println!("- Packages/{}", directory);
             }
         }
     }
@@ -521,7 +535,6 @@ impl Install {
             .await
             .exit_context("adding package");
 
-        unity.save().await.exit_context("saving manifest file");
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
@@ -560,8 +573,6 @@ impl Resolve {
             .apply_pending_changes(&installer, changes)
             .await
             .exit_context("installing packages");
-
-        unity.save().await.exit_context("saving manifest file");
     }
 }
 
@@ -609,7 +620,6 @@ impl Remove {
             .await
             .exit_context("removing packages");
 
-        save_unity(&mut unity).await;
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
@@ -663,7 +673,6 @@ impl Reinstall {
             .await
             .exit_context("removing packages");
 
-        save_unity(&mut unity).await;
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
@@ -856,7 +865,6 @@ impl Upgrade {
             println!("upgraded {} to {}", name, version);
         }
 
-        save_unity(&mut unity).await;
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
@@ -934,7 +942,6 @@ impl Downgrade {
             println!("downgraded {} to {}", name, version);
         }
 
-        save_unity(&mut unity).await;
         update_project_last_modified(&io, unity.project_dir()).await;
     }
 }

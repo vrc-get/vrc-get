@@ -130,6 +130,7 @@ impl From<RemoveReason> for TauriRemoveReason {
 struct TauriConflictInfo {
     packages: Vec<String>,
     unity_conflict: bool,
+    unlocked_names: Vec<String>,
 }
 
 impl From<&ConflictInfo> for TauriConflictInfo {
@@ -141,6 +142,11 @@ impl From<&ConflictInfo> for TauriConflictInfo {
                 .map(|x| x.to_string())
                 .collect(),
             unity_conflict: value.conflicts_with_unity(),
+            unlocked_names: value
+                .unlocked_names()
+                .iter()
+                .map(|x| x.to_string())
+                .collect(),
         }
     }
 }
@@ -288,7 +294,6 @@ pub async fn project_apply_pending_changes(
         .apply_pending_changes(&installer, changes)
         .await?;
 
-    unity_project.save().await?;
     update_project_last_modified(&io, unity_project.project_dir()).await;
     Ok(())
 }
@@ -322,7 +327,6 @@ pub async fn project_migrate_project_to_2022(
             .migrate_unity_2022(packages.collection(), &installer)
             .await?;
 
-        unity_project.save().await?;
         update_project_last_modified(&io, unity_project.project_dir()).await;
 
         Ok(())
@@ -432,7 +436,6 @@ pub async fn project_migrate_project_to_vpm(
         )
         .await?;
 
-    unity_project.save().await?;
     update_project_last_modified(&io, unity_project.project_dir()).await;
 
     Ok(())

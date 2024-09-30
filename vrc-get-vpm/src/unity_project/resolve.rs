@@ -38,8 +38,7 @@ impl From<AddPackageErr> for ResolvePackageErr {
             }
             AddPackageErr::UpgradingNonLockedPackage { .. }
             | AddPackageErr::DowngradingNonLockedPackage { .. }
-            | AddPackageErr::UpgradingWithDowngrade { .. }
-            | AddPackageErr::InstalledAsUnlocked { .. } => {
+            | AddPackageErr::UpgradingWithDowngrade { .. } => {
                 panic!("{value:?} should not be happened")
             }
         }
@@ -179,7 +178,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
             self.manifest.all_locked(),
-            &self.unlocked_packages,
+            self.unlocked_packages.iter(),
             |pkg| self.manifest.get_locked(pkg),
             self.unity_version(),
             env,
@@ -289,7 +288,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies(),
             virtual_locked_dependencies.values().cloned(),
-            &self.unlocked_packages,
+            self.unlocked_packages.iter(),
             |pkg| virtual_locked_dependencies.get(pkg).cloned(),
             self.unity_version(),
             env,

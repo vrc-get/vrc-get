@@ -16,6 +16,7 @@ use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
 
 // common macro for commands so put it here
+#[allow(unused_macros)]
 macro_rules! localizable_error {
     ($id:literal $(,)?) => {
         $crate::commands::RustError::Localizable(::std::boxed::Box::new($crate::commands::LocalizableRustError {
@@ -240,7 +241,10 @@ async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &P
 #[specta(export)]
 #[serde(tag = "type")]
 enum RustError {
-    Unrecoverable { message: String },
+    Unrecoverable {
+        message: String,
+    },
+    #[allow(dead_code)]
     Localizable(Box<LocalizableRustError>),
 }
 
@@ -286,15 +290,7 @@ impl_from_error!(
 
 impl From<AddPackageErr> for RustError {
     fn from(value: AddPackageErr) -> Self {
-        match value {
-            AddPackageErr::InstalledAsUnlocked { package_name } => {
-                localizable_error!(
-                    "projects:manage:toast:package_already_installed_as_unlocked",
-                    package => package_name,
-                )
-            }
-            e => RustError::unrecoverable(e),
-        }
+        RustError::unrecoverable(value)
     }
 }
 

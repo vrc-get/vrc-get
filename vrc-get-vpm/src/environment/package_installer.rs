@@ -1,12 +1,13 @@
 use crate::environment::REPO_CACHE_FOLDER;
 use crate::io::{EnvironmentIo, ProjectIo};
 use crate::repository::LocalCachedRepository;
+use crate::traits::AbortCheck;
 use crate::utils::Sha256AsyncWrite;
 use crate::{io, HttpClient, PackageInfo, PackageManifest};
 use futures::prelude::*;
 use hex::FromHex;
 use indexmap::IndexMap;
-use log::error;
+use log::{debug, error};
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
@@ -28,17 +29,43 @@ impl<T: HttpClient, IO: EnvironmentIo> crate::PackageInstaller for PackageInstal
         &self,
         io: &impl ProjectIo,
         package: PackageInfo<'_>,
+        abort: &AbortCheck,
     ) -> io::Result<()> {
+        abort.check()?;
         use crate::PackageInfoInner;
         log::debug!("adding package {}", package.name());
         let dest_folder = PathBuf::from(format!("Packages/{}", package.name()));
         match package.inner {
             PackageInfoInner::Remote(package, user_repo) => {
                 let zip_file = get_package(self.io, self.http, user_repo, package).await?;
+
+                // downloading may take a long time, so check abort again
+                abort.check()?;
+
                 let zip_file = io::BufReader::new(zip_file);
 
+                debug!(
+                    "Extracting zip file for {}@{}",
+                    package.name(),
+                    package.version()
+                );
                 // remove dest folder before extract if exists
-                crate::utils::extract_zip(zip_file, io, &dest_folder).await?;
+                if let Err(e) = crate::utils::extract_zip(zip_file, io, &dest_folder).await {
+                    // if an error occurs, try to remove the dest folder
+                    log::debug!(
+                        "Error occurred while extracting zip file for {}@{}: {}",
+                        package.name(),
+                        package.version(),
+                        e
+                    );
+                    let _ = io.remove_dir_all(&dest_folder).await;
+                    return Err(e);
+                }
+                debug!(
+                    "Extracted zip file for {}@{}",
+                    package.name(),
+                    package.version()
+                );
 
                 Ok(())
             }
@@ -68,6 +95,7 @@ async fn get_package<T: HttpClient, IO: EnvironmentIo>(
     if let Some(cache_file) =
         try_load_package_cache(io, &zip_path, &sha_path, package.zip_sha_256()).await
     {
+        debug!("using cache for {}@{}", package.name(), package.version());
         Ok(cache_file)
     } else {
         io.create_dir_all(zip_path.parent().unwrap()).await?;
@@ -194,10 +222,12 @@ async fn download_package_zip<IO: EnvironmentIo>(
     // file not found: err
     let cache_file = io.create(zip_path).await?;
 
+    debug!("Download started for {}", url);
     let mut response = pin!(http.get(url, headers).await?);
 
     let mut writer = Sha256AsyncWrite::new(cache_file);
     io::copy(&mut response, &mut writer).await?;
+    debug!("finished downloading {}", url);
 
     let (mut cache_file, hash) = writer.finalize();
     let hash: [u8; 256 / 8] = hash.into();

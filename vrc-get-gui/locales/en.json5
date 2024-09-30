@@ -207,7 +207,6 @@
     "projects:manage:button:uninstall selected": "Uninstall Selected",
     "projects:manage:button:clear selection": "Clear Selection",
     "projects:manage:toast:no upgradable": "No upgradable package",
-    "projects:manage:toast:package_already_installed_as_unlocked": "Package {{package}} is already installed but not managed by VPM, please remove it manually before installing with ALCOM.",
     "projects:manage:toast:package installed": "{{name}} version {{version}} was installed successfully.",
     // V used in single operation
     "projects:manage:toast:the package has newer latest with incompatible unity": "The package has a newer version that is incompatible with the Unity version.",
@@ -267,6 +266,7 @@
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> does not support your Unity version.",
     // TODO: plurals
     "projects:manage:dialog:files and directories are removed as legacy": "The following legacy files and directories will be removed.",
+    "projects:manage:dialog:packages installed in the following directories will be removed": "The packages installed in the following directories will be removed.",
     "projects:manage:button:see changelog": "See Changelog",
     "projects:manage:button:apply changes": "Apply Changes",
     "projects:manage:button:apply": "Apply",

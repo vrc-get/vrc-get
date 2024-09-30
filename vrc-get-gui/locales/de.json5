@@ -207,7 +207,6 @@
     "projects:manage:button:uninstall selected": "Deinstallieren",
     "projects:manage:button:clear selection": "Auswahl aufheben",
     "projects:manage:toast:no upgradable": "Keine aktualisierbaren Pakete",
-    "projects:manage:toast:package_already_installed_as_unlocked": "Paket {{package}} wurde bereits manuell installiert, bitte entferne dieses Paket bevor du es über ALCOM installierst.",
     "projects:manage:toast:package installed": "Installiert {{name}} Version {{version}}",
     // V used in single operation
     "projects:manage:toast:the package has newer latest with incompatible unity": "Das Paket hat eine neuere Version, welche für die genutzte Unity Version nicht verfügbar ist.",

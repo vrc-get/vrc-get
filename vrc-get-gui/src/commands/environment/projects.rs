@@ -686,7 +686,6 @@ pub async fn environment_create_project(
         unity_project
             .apply_pending_changes(&installer, request)
             .await?;
-        unity_project.save().await?;
 
         // add the project to listing
         let mut settings = settings.load_mut(io.inner()).await?;

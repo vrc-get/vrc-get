@@ -198,7 +198,7 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
             match futures.next().await {
                 None => break,
                 Some(Either::Left(Err(e))) | Some(Either::Right(Err(e))) => {
-                    log::error!(gui_toast = false; "error reading directory {:?}: {}", e.path, e.error);
+                    log::warn!("error reading directory {:?}: {}", e.path, e.error);
                     continue;
                 },
                 Some(Either::Left(Ok((read_dir, dir_relative)))) => {

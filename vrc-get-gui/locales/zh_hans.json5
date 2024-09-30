@@ -199,7 +199,6 @@
     "projects:manage:button:uninstall selected": "卸载所选软件包",
     "projects:manage:button:clear selection": "清空选择",
     "projects:manage:toast:no upgradable": "没有可升级的软件包",
-    "projects:manage:toast:package_already_installed_as_unlocked": "软件包 {{package}} 已经安装但并不是由VPM进行管理, 请在使用 ALCOM 安装它之前手动删除它。",
     "projects:manage:toast:package installed": "已安装 {{name}} 版本 {{version}}。",
     "projects:manage:toast:the package has newer latest with incompatible unity": "软件包的更新版本与 Unity 版本不兼容。",
     "projects:manage:toast:package removed": "已删除 {{name}}。",

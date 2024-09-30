@@ -254,6 +254,9 @@ function ProjectChangesDialog({
 		([_, c]) => c.packages.length > 0,
 	);
 	const unityConflicts = changes.conflicts.filter(([_, c]) => c.unity_conflict);
+	const unlockedConflicts = changes.conflicts.flatMap(
+		([_, c]) => c.unlocked_names,
+	);
 
 	const getPackageDisplayName = useMemo(() => {
 		const packagesById = new Map(packages.map((p) => [p.id, p]));
@@ -463,6 +466,20 @@ function ProjectChangesDialog({
 								<TypographyItem key={f}>{f}</TypographyItem>
 							))}
 							{changes.remove_legacy_folders.map((f) => (
+								<TypographyItem key={f}>{f}</TypographyItem>
+							))}
+						</div>
+					</>
+				) : null}
+				{unlockedConflicts.length > 0 ? (
+					<>
+						<p className={"text-destructive"}>
+							{tc(
+								"projects:manage:dialog:packages installed in the following directories will be removed",
+							)}
+						</p>
+						<div className={"flex flex-col gap-1 p-2"}>
+							{unlockedConflicts.map((f) => (
 								<TypographyItem key={f}>{f}</TypographyItem>
 							))}
 						</div>
