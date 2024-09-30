@@ -15,7 +15,6 @@ pub enum AddPackageErr {
     UpgradingNonLockedPackage { package_name: Box<str> },
     DowngradingNonLockedPackage { package_name: Box<str> },
     UpgradingWithDowngrade { package_name: Box<str> },
-    InstalledAsUnlocked { package_name: Box<str> },
 }
 
 impl fmt::Display for AddPackageErr {
@@ -36,10 +35,6 @@ impl fmt::Display for AddPackageErr {
             AddPackageErr::UpgradingWithDowngrade { package_name } => write!(
                 f,
                 "Package {package_name} is locked, so it cannot be downgraded"
-            ),
-            AddPackageErr::InstalledAsUnlocked { package_name } => write!(
-                f,
-                "Package {package_name} is installed as unlocked, so it cannot be installed or upgraded"
             ),
         }
     }
