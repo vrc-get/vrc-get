@@ -6,7 +6,7 @@ use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use hex::FromHex;
-use log::trace;
+use log::{debug, trace};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -43,12 +43,12 @@ pub(crate) async fn collect_legacy_assets<'a>(
     // but the compiler fails so collect it here.
     let assets = folders.chain(files).collect::<Vec<_>>();
 
-    trace!("Collecting legacy assets by Path notation");
+    debug!("Collecting legacy assets by Path notation");
     let (mut found_files, mut found_folders, find_guids) =
         find_legacy_assets_by_path(io, assets.into_iter()).await;
 
     if !find_guids.is_empty() {
-        trace!("Collecting legacy assets with GUID");
+        debug!("Collecting legacy assets with GUID");
         find_legacy_assets_by_guid(io, find_guids, &mut found_files, &mut found_folders).await;
     }
 
