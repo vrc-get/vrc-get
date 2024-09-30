@@ -8,6 +8,7 @@ use crate::{unity_compatible, PackageInfo, UnityProject};
 use either::Either;
 use futures::future::{join, join_all};
 use futures::prelude::*;
+use indexmap::IndexSet;
 use log::debug;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -565,6 +566,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         let mut installs = Vec::new();
         let mut remove_names = Vec::new();
+        let mut remove_unlocked_names = Vec::new();
 
         for (name, change) in &request.package_changes {
             match change {
@@ -579,6 +581,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
             }
         }
 
+        for info in request.conflicts.values() {
+            for x in &info.unlocked_names {
+                remove_unlocked_names.push(x.as_ref());
+            }
+        }
+
         // remove packages
         let remove_temp_dir = format!("{}/{}", PKG_TEMP_DIR, uuid::Uuid::new_v4());
         let remove_temp_dir = Path::new(&remove_temp_dir);
@@ -587,7 +595,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         move_packages_to_temp(
             &self.io,
-            (remove_names.iter().copied()).chain(installs.iter().map(|x| x.name())),
+            (remove_names.iter().copied())
+                .chain(installs.iter().map(|x| x.name()))
+                .chain(remove_unlocked_names.iter().copied()),
             remove_temp_dir,
         )
         .await?;
@@ -655,12 +665,16 @@ async fn move_packages_to_temp<'a>(
     // it's expected to cheap to rename (link) packages to temp dir,
     // so we do it sequentially for simplicity
 
-    let mut moved = Vec::new();
+    let mut moved = IndexSet::new();
 
     for name in names {
+        if moved.contains(name) {
+            continue;
+        }
+
         match move_package(io, name, temp_dir).await {
             Ok(true) => {
-                moved.push(name);
+                moved.insert(name);
             }
             Ok(false) => {
                 // package not found, do nothing
@@ -674,7 +688,7 @@ async fn move_packages_to_temp<'a>(
         }
     }
 
-    return Ok(moved);
+    return Ok(moved.into_iter().collect());
 
     async fn move_package(io: &impl ProjectIo, name: &str, temp_dir: &Path) -> io::Result<bool> {
         let package_dir = format!("Packages/{}", name);
