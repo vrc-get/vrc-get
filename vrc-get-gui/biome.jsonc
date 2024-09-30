@@ -42,6 +42,18 @@
 					}
 				},
 				"noUnusedImports": "error"
+			},
+			"a11y": {
+				"noLabelWithoutControl": {
+					"level": "warn",
+					"options": {
+						"inputComponents": [
+							"Checkbox",
+							"SelectTrigger",
+							"BackupFormatSelect"
+						]
+					}
+				}
 			}
 		},
 		"enabled": true

@@ -29,6 +29,7 @@ import { useDebounce } from "@uidotdev/usehooks";
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
+import { useId } from "react";
 import { useEffect, useState } from "react";
 
 type CreateProjectstate =
@@ -236,6 +237,8 @@ export function CreateProject({
 	if (checking)
 		projectNameCheck = <RefreshCw className={"w-5 h-5 animate-spin"} />;
 
+	const inputId = useId();
+
 	let dialogBody: React.ReactNode;
 
 	switch (state) {
@@ -260,7 +263,7 @@ export function CreateProject({
 					<VStack>
 						<div className={"flex gap-1"}>
 							<div className={"flex items-center"}>
-								<label>{tc("projects:template:type")}</label>
+								<label htmlFor={inputId}>{tc("projects:template:type")}</label>
 							</div>
 							<Select
 								defaultValue={templateType}
@@ -268,7 +271,7 @@ export function CreateProject({
 									setTemplateType(value as TemplateType)
 								}
 							>
-								<SelectTrigger>
+								<SelectTrigger id={inputId}>
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -292,7 +295,9 @@ export function CreateProject({
 						{templateType !== "custom" ? (
 							<div className={"flex gap-1"}>
 								<div className={"flex items-center"}>
-									<label>{tc("projects:template:unity version")}</label>
+									<label htmlFor={inputId}>
+										{tc("projects:template:unity version")}
+									</label>
 								</div>
 								<Select
 									defaultValue={unityVersion}
@@ -300,7 +305,7 @@ export function CreateProject({
 										setUnityVersion(value as TemplateUnityVersion)
 									}
 								>
-									<SelectTrigger>
+									<SelectTrigger id={inputId}>
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
@@ -315,13 +320,13 @@ export function CreateProject({
 						) : (
 							<div className={"flex gap-1"}>
 								<div className={"flex items-center"}>
-									<label>{tc("projects:template")}</label>
+									<label htmlFor={inputId}>{tc("projects:template")}</label>
 								</div>
 								<Select
 									value={customTemplate?.name}
 									onValueChange={onCustomTemplateChange}
 								>
-									<SelectTrigger>
+									<SelectTrigger id={inputId}>
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
