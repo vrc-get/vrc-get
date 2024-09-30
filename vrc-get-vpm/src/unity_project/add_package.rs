@@ -74,6 +74,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
         let mut changes = super::pending_project_changes::Builder::new();
 
         for &request in packages {
+            debug!("Validating Package: {}", request.name());
+
             {
                 fn install_to_dependencies<'env, IO: ProjectIo>(
                     request: PackageInfo<'env>,
@@ -196,6 +198,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
                             None => {
                                 // not installed: install to dependencies
 
+                                debug!("Adding package {} to dependencies", request.name());
+
                                 install_to_dependencies(
                                     request,
                                     self,
@@ -207,6 +211,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
                             Some(locked) => match locked.version().cmp(request.version()) {
                                 std::cmp::Ordering::Less => {
                                     // upgrade
+                                    debug!(
+                                        "Upgrading package {} to version {}",
+                                        request.name(),
+                                        request.version()
+                                    );
                                     upgrade_locked(
                                         request,
                                         self,
@@ -225,6 +234,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
                                 }
                                 std::cmp::Ordering::Greater => {
                                     // downgrade
+                                    debug!(
+                                        "Downgrading package {} to version {}",
+                                        request.name(),
+                                        request.version()
+                                    );
                                     downgrade(request, self, &mut adding_packages, &mut changes)?;
                                 }
                             },
@@ -260,10 +274,15 @@ impl<IO: ProjectIo> UnityProject<IO> {
             }
         }
 
+        debug!("Validation finished");
+
         if adding_packages.is_empty() {
+            debug!("No new packages to add, returning early");
             // early return: nothing new to install
             return Ok(changes.build_no_resolve());
         }
+
+        debug!("Resolving dependencies");
 
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies().map(|(name, original_range)| {
@@ -282,6 +301,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
             allow_prerelease,
         )?;
 
+        debug!("Resolving finished, appending dependencies to pending changes");
+
         for x in result.new_packages {
             changes.install_to_locked(x);
         }
@@ -298,6 +319,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
             changes.remove(name, RemoveReason::Legacy);
         }
 
-        Ok(changes.build_resolve(self).await)
+        debug!("Building changes (finding legacy, checking conflicts)");
+
+        let changes = changes.build_resolve(self).await;
+
+        debug!("Resolving finished");
+
+        Ok(changes)
     }
 }

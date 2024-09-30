@@ -327,6 +327,8 @@ impl<'env> Builder<'env> {
                 .map(|x| x.package.unwrap()),
         );
 
+        debug!("checking for unity compatibility");
+
         if let Some(unity) = unity_project.unity_version {
             for package in installs
                 .iter()
@@ -337,9 +339,15 @@ impl<'env> Builder<'env> {
             }
         }
 
+        debug!("Finding unused packages");
+
         self.mark_and_sweep_packages(unity_project);
 
+        debug!("Collecting legacy assets");
+
         let legacy_assets = collect_legacy_assets(&unity_project.io, &installs).await;
+
+        debug!("Building PendingProjectChanges finished!");
 
         PendingProjectChanges {
             package_changes: self.package_changes,
