@@ -88,6 +88,7 @@ impl RepoHolder {
         io: &IO,
         sources: impl Iterator<Item = RepoSource<'a>>,
     ) -> io::Result<()> {
+        let start = std::time::Instant::now();
         let repos = join_all(sources.map(|src| async move {
             match Self::load_repo_from_source(http, io, &src).await {
                 Ok(Some(v)) => Some((v, src.cache_path().into())),
@@ -99,6 +100,8 @@ impl RepoHolder {
             }
         }))
         .await;
+        let duration = std::time::Instant::now() - start;
+        log::info!("downloading repos took {:?}", duration);
 
         for (repo, path) in repos.into_iter().flatten() {
             self.cached_repos_new.insert(path, repo);
@@ -133,6 +136,7 @@ impl RepoHolder {
         if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(io, path).await? {
             if let Some(client) = client {
                 // if it's possible to download remote repo, try to update with that
+                log::debug!("downloading remote repo '{}' with local cache", remote_url);
                 match RemoteRepository::download_with_etag(
                     client,
                     remote_url,
@@ -141,8 +145,9 @@ impl RepoHolder {
                 )
                 .await
                 {
-                    Ok(None) => log::debug!("cache matched downloading {}", remote_url),
+                    Ok(None) => log::debug!("cache matched downloading '{}'", remote_url),
                     Ok(Some((remote_repo, etag))) => {
+                        log::debug!("downloaded finished '{}'", remote_url);
                         loaded.set_repo(remote_repo);
                         loaded.set_etag(etag);
 
@@ -167,8 +172,10 @@ impl RepoHolder {
                     "offline mode",
                 ));
             };
+            log::debug!("downloading remote repo '{}'", remote_url);
             let (remote_repo, etag) =
                 RemoteRepository::download(client, remote_url, headers).await?;
+            log::debug!("downloaded finished '{}'", remote_url);
 
             let mut local_cache = LocalCachedRepository::new(remote_repo, headers.clone());
 
