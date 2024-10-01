@@ -39,7 +39,6 @@ pub struct Unity2022 {
 
 impl Unity2022 {
     pub async fn run(self) {
-        warn!("migrate unity-to-2022 is unstable command.");
         println!("You're migrating your project to Unity 2022 in-place.");
         println!("It's hard to undo this command.");
         println!("You MUST create backup of your project before running this command.");
@@ -118,7 +117,6 @@ pub struct Vpm {
 
 impl Vpm {
     pub async fn run(self) {
-        warn!("migrate vpm is unstable command.");
         println!("You're migrating your project to vpm in-place.");
         println!("It's hard to undo this command.");
         println!("You MUST create backup of your project before running this command.");
