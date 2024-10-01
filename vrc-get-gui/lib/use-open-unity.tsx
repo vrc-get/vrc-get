@@ -47,7 +47,7 @@ export function useOpenUnity(): Result {
 			toastError(i18next.t("projects:toast:invalid project unity version"));
 			return;
 		}
-		const [unityVersions, selectedPath] = await Promise.all([
+		let [unityVersions, selectedPath] = await Promise.all([
 			commands.environmentUnityVersions(),
 			commands.projectGetUnityPath(projectPath),
 		]);
@@ -60,9 +60,20 @@ export function useOpenUnity(): Result {
 			return;
 		}
 
-		const foundVersions = unityVersions.unity_paths.filter(
+		let foundVersions = unityVersions.unity_paths.filter(
 			([_p, v, _i]) => v === unityVersion,
 		);
+
+		if (foundVersions.length === 0) {
+			if (await commands.environmentIsLoadingFromUnityHubInProgress()) {
+				toastNormal(tc("projects:toast:loading unity from unity hub"));
+				await commands.environmentWaitForUnityHubUpdate();
+				unityVersions = await commands.environmentUnityVersions();
+				foundVersions = unityVersions.unity_paths.filter(
+					([_p, v, _i]) => v === unityVersion,
+				);
+			}
+		}
 
 		switch (foundVersions.length) {
 			case 0:

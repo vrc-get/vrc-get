@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { assertNever } from "@/lib/assert-never";
-import type { TauriRemoteRepositoryInfo } from "@/lib/bindings";
+import type {
+	TauriDuplicatedReason,
+	TauriRemoteRepositoryInfo,
+} from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
@@ -30,6 +33,8 @@ type State =
 	  }
 	| {
 			type: "duplicated";
+			reason: TauriDuplicatedReason;
+			duplicatedName: string;
 	  }
 	| {
 			type: "confirming";
@@ -81,7 +86,11 @@ export function useAddRepository({
 					setState({ type: "normal" });
 					return;
 				case "Duplicated":
-					setState({ type: "duplicated" });
+					setState({
+						type: "duplicated",
+						reason: info.reason,
+						duplicatedName: info.duplicated_name,
+					});
 					return;
 				case "Success":
 					break;
@@ -112,7 +121,13 @@ export function useAddRepository({
 			dialogBody = <LoadingRepository cancel={cancel} />;
 			break;
 		case "duplicated":
-			dialogBody = <Duplicated cancel={cancel} />;
+			dialogBody = (
+				<Duplicated
+					reason={state.reason}
+					duplicatedName={state.duplicatedName}
+					cancel={cancel}
+				/>
+			);
 			break;
 		case "confirming": {
 			const doAddRepository = async () => {
@@ -350,14 +365,39 @@ function LoadingRepository({
 }
 
 function Duplicated({
+	reason,
+	duplicatedName,
 	cancel,
 }: {
+	reason: TauriDuplicatedReason;
+	duplicatedName: string;
 	cancel: () => void;
 }) {
+	const duplicatedDisplayName =
+		duplicatedName === "com.vrchat.repos.curated"
+			? tt("vpm repositories:source:curated")
+			: duplicatedName === "com.vrchat.repos.official"
+				? tt("vpm repositories:source:official")
+				: duplicatedName;
+	let message: React.ReactNode;
+	switch (reason) {
+		case "URLDuplicated":
+			message = tc("vpm repositories:dialog:url duplicated", {
+				name: duplicatedDisplayName,
+			});
+			break;
+		case "IDDuplicated":
+			message = tc("vpm repositories:dialog:id duplicated", {
+				name: duplicatedDisplayName,
+			});
+			break;
+	}
+
 	return (
 		<>
 			<DialogDescription>
 				<p>{tc("vpm repositories:dialog:already added")}</p>
+				<p>{message}</p>
 			</DialogDescription>
 			<DialogFooter>
 				<Button onClick={cancel}>{tc("general:button:ok")}</Button>
