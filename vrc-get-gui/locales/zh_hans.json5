@@ -139,7 +139,7 @@
     "projects:tooltip:sdk2 migration hint": "旧版 SDK2 项目无法自动迁移。<br>请先手动迁移到 SDK3。",
     "projects:tooltip:git-vcc not supported": "不支持 git-VCC 项目",
     "projects:dialog:vpm migrate header": "迁移旧版项目",
-    "projects:dialog:vpm migrate description": "在 vrc-get 中，项目迁移是试验性的。<br>请在迁移前备份您的项目。",
+    "projects:dialog:vpm migrate description": "迁移项目可能会导致您的所做的更改丢失。请在迁移前备份您的项目。",
     "projects:button:migrate copy": "迁移副本",
     "projects:button:migrate in-place": "原地迁移",
     "projects:pre-migrate copying...": "复制项目以进行迁移...",
