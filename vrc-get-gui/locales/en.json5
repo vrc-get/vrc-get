@@ -280,10 +280,11 @@
     "vpm repositories:source:curated": "Curated",
     "vpm repositories:source:local": "User Local",
 
-    "packages:community repositories": "Community Repositories",
+    "packages:repositories": "Repositories",
     "vpm repositories:url": "URL",
     "vpm repositories:button:add repository": "Add Repository",
     "vpm repositories:remove repository": "Remove Repository",
+    "vpm repositories:remove curated or official repository": "You cannot remove curated or official repository",
     "vpm repositories:button:import repositories": "Import Repository List",
     "vpm repositories:button:export repositories": "Export Repository List",
 

@@ -23,10 +23,11 @@ import {
 } from "@/components/ui/tooltip";
 import type { TauriUserRepository } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
-import { tc } from "@/lib/i18n";
+import { tc, tt } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useTauriListen } from "@/lib/use-tauri-listen";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, CircleX } from "lucide-react";
 import type React from "react";
@@ -201,10 +202,27 @@ function RepositoryTableBody({
 				</tr>
 			</thead>
 			<tbody>
+				<RepositoryRow
+					repoId={"com.vrchat.repos.official"}
+					url={"https://packages.vrchat.com/official?download"}
+					displayName={tt("vpm repositories:source:official")}
+					hiddenUserRepos={hiddenUserRepos}
+					refetch={refetch}
+				/>
+				<RepositoryRow
+					repoId={"com.vrchat.repos.curated"}
+					url={"https://packages.vrchat.com/curated?download"}
+					displayName={tt("vpm repositories:source:curated")}
+					hiddenUserRepos={hiddenUserRepos}
+					refetch={refetch}
+					className={"border-b border-primary/10"}
+				/>
 				{userRepos.map((repo) => (
 					<RepositoryRow
 						key={repo.id}
-						repo={repo}
+						repoId={repo.id}
+						displayName={repo.display_name}
+						url={repo.url}
 						hiddenUserRepos={hiddenUserRepos}
 						remove={() => removeRepository(repo.id)}
 						refetch={refetch}
@@ -216,14 +234,20 @@ function RepositoryTableBody({
 }
 
 function RepositoryRow({
-	repo,
+	repoId,
+	displayName,
+	url,
 	hiddenUserRepos,
+	className,
 	remove,
 	refetch,
 }: {
-	repo: TauriUserRepository;
+	repoId: TauriUserRepository["id"];
+	displayName: TauriUserRepository["display_name"];
+	url: TauriUserRepository["url"];
 	hiddenUserRepos: Set<string>;
-	remove: () => void;
+	className?: string;
+	remove?: () => void;
 	refetch: () => void;
 }) {
 	const cellClass = "p-2.5";
@@ -231,12 +255,12 @@ function RepositoryRow({
 
 	const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
 
-	const selected = !hiddenUserRepos.has(repo.id);
+	const selected = !hiddenUserRepos.has(repoId);
 	const onChange = () => {
 		if (selected) {
-			commands.environmentHideRepository(repo.id).then(refetch);
+			commands.environmentHideRepository(repoId).then(refetch);
 		} else {
-			commands.environmentShowRepository(repo.id).then(refetch);
+			commands.environmentShowRepository(repoId).then(refetch);
 		}
 	};
 
@@ -248,7 +272,7 @@ function RepositoryRow({
 				<DialogDescription>
 					<p className={"whitespace-normal font-normal"}>
 						{tc("vpm repositories:dialog:confirm remove description", {
-							name: repo.display_name,
+							name: displayName,
 						})}
 					</p>
 				</DialogDescription>
@@ -258,7 +282,7 @@ function RepositoryRow({
 					</Button>
 					<Button
 						onClick={() => {
-							remove();
+							remove?.();
 							setRemoveDialogOpen(false);
 						}}
 						className={"ml-2"}
@@ -271,22 +295,23 @@ function RepositoryRow({
 	}
 
 	return (
-		<tr className="even:bg-secondary/30">
+		<tr className={cn("even:bg-secondary/30", className)}>
 			<td className={cellClass}>
 				<Checkbox id={id} checked={selected} onCheckedChange={onChange} />
 			</td>
 			<td className={cellClass}>
 				<label htmlFor={id}>
-					<p className="font-normal">{repo.display_name}</p>
+					<p className="font-normal">{displayName}</p>
 				</label>
 			</td>
 			<td className={cellClass}>
-				<p className="font-normal">{repo.url}</p>
+				<p className="font-normal">{url}</p>
 			</td>
 			<td className={`${cellClass} w-0`}>
 				<Tooltip>
-					<TooltipTrigger asChild>
+					<TooltipTrigger asChild={remove != null}>
 						<Button
+							disabled={remove == null}
 							onClick={() => setRemoveDialogOpen(true)}
 							variant={"ghost"}
 							size={"icon"}
@@ -295,7 +320,9 @@ function RepositoryRow({
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>
-						{tc("vpm repositories:remove repository")}
+						{remove == null
+							? tc("vpm repositories:remove curated or official repository")
+							: tc("vpm repositories:remove repository")}
 					</TooltipContent>
 				</Tooltip>
 			</td>
