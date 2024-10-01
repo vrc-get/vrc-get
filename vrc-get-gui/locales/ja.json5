@@ -131,6 +131,7 @@
     "projects:dialog:multiple unity found": "プロジェクトのUnityバージョン指定に一致するUnityが複数見つかりました。<br>どのUnityでプロジェクトを開くか選択してください。",
     "projects:dialog:keep using this version": "選択を保存する",
     "projects:toast:invalid project unity version": "プロジェクトのUnityバージョン指定が不正です。",
+    "projects:toast:loading unity from unity hub": "Unity HubからUnityの情報を取得しています...",
     "projects:toast:match version unity not found": "Unity {{unity}}が見つかりませんでした。該当するUnityをインストールするか、ALCOMに登録してください。",
     "projects:toast:unity already running": "Unityは既に起動しています。",
     "projects:toast:unity exits with non-zero": "Unityが0以外の終了コードで終了しました。",
@@ -139,7 +140,7 @@
     "projects:tooltip:sdk2 migration hint": "SDK2のプロジェクトを自動で移行することはできません。<br>先に手動でSDK3へ移行してください。",
     "projects:tooltip:git-vcc not supported": "git-VCCのプロジェクトはサポートされていません。",
     "projects:dialog:vpm migrate header": "レガシープロジェクトを移行",
-    "projects:dialog:vpm migrate description": "プロジェクト移行はvrc-getにおける実験的な機能です。<br>移行前にバックアップを作成することを忘れないでください。",
+    "projects:dialog:vpm migrate description": "プロジェクト移行では一部のデータが失われる場合があります。<br>移行前にバックアップを行うか、「複製して移行」を行うことをお勧めします。",
     "projects:button:migrate copy": "複製して移行",
     "projects:button:migrate in-place": "複製しないで移行",
     "projects:pre-migrate copying...": "プロジェクトを複製中...",
@@ -200,6 +201,7 @@
     "projects:manage:button:reinstall selected": "選択したものを入れ直す",
     "projects:manage:button:uninstall selected": "選択したものをアンインストール",
     "projects:manage:button:clear selection": "選択を解除",
+    "projects:manage:n packages selected": "{{count}}個のパッケージを選択中",
     "projects:manage:toast:no upgradable": "更新可能なパッケージはありません。",
     "projects:manage:toast:package installed": "{{name}} バージョン {{version}} をインストールしました。",
     // V used in single operation
@@ -258,6 +260,7 @@
     "projects:manage:dialog:unity version conflicts": "Unityバージョンの指定が競合しています。",
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> は使用中のUnityバージョンをサポートしていません。",
     "projects:manage:dialog:files and directories are removed as legacy": "以下のファイルとディレクトリはレガシーとして削除されます。",
+    "projects:manage:dialog:packages installed in the following directories will be removed": "以下のディレクトリにあるパッケージは削除されます。",
     "projects:manage:button:see changelog": "更新履歴を見る",
     "projects:manage:button:apply changes": "変更を適用",
     "projects:manage:button:apply": "適用",
@@ -269,10 +272,11 @@
     "vpm repositories:source:curated": "Curated",
     "vpm repositories:source:local": "User Local",
 
-    "packages:community repositories": "コミュニティリポジトリ",
+    "packages:repositories": "VPMリポジトリ",
     "vpm repositories:url": "URL",
     "vpm repositories:button:add repository": "VPMリポジトリを追加",
     "vpm repositories:remove repository": "VPMリポジトリを削除",
+    "vpm repositories:remove curated or official repository": "OfficialやCuratedのリポジトリは削除出来ません。",
     "vpm repositories:button:import repositories": "リポジトリ一覧の読み込み",
     "vpm repositories:button:export repositories": "リポジトリ一覧の出力",
 
@@ -286,6 +290,8 @@
 
     "vpm repositories:dialog:downloading...": "リポジトリ情報をダウンロード中...",
     "vpm repositories:dialog:already added": "このVPMリポジトリは既に登録されています。",
+    "vpm repositories:dialog:id duplicated": "リポジトリのIDが <b>{{name}}</b> と重複しています。",
+    "vpm repositories:dialog:url duplicated": "リポジトリのURLが <b>{{name}}</b> と重複しています。",
     "vpm repositories:dialog:name": "リポジトリ名: <b>{{name}}</b>",
     "vpm repositories:dialog:url": "URL: {{url}}",
     "vpm repositories:dialog:packages": "パッケージ:",
@@ -340,6 +346,8 @@
     "settings:toast:unity hub path updated": "Unity Hubの情報を更新しました。",
 
     "settings:unity installations": "インストール済みのUnity",
+    "settings:button:reload unity from unity hub": "Unityリストを再読み込み",
+    "settings:tooltip:reload unity from unity hub": "Unity Hubからの情報取得には、最大で数十秒掛かることがあります。",
     "settings:button:add unity": "Unityを追加",
     "settings:unity:version": "Unityバージョン",
     "settings:unity:path": "場所",
