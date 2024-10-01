@@ -23,6 +23,7 @@ import {
 	SelectLabel,
 	SelectTrigger,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
 	Tooltip,
 	TooltipContent,
@@ -35,6 +36,7 @@ import {
 import { useBackupProjectModal } from "@/lib/backup-project";
 import type { TauriProjectDetails, TauriUnityVersions } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { VRCSDK_PACKAGES, VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { useRemoveProjectModal } from "@/lib/remove-project";
@@ -48,11 +50,9 @@ import {
 } from "@tanstack/react-query";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type React from "react";
 import { Suspense, useCallback, useMemo, useState } from "react";
-import {
-	VRCSDK_PACKAGES,
-	combinePackagesAndProjectDetails,
-} from "./collect-package-row-info";
+import { combinePackagesAndProjectDetails } from "./collect-package-row-info";
 import { PackageListCard } from "./package-list-card";
 import { PageContextProvider } from "./page-context";
 import {
@@ -352,23 +352,74 @@ function UnityVersionSelector({
 		return versionNames;
 	}, [unityVersions]);
 
+	const isVRCProject =
+		detailsResult.data?.installed_packages.some(([id, _]) =>
+			VRCSDK_PACKAGES.includes(id),
+		) ?? false;
+
 	const onChange = useCallback(
 		async (version: string) => {
 			const detailsData = detailsResult.data;
 			if (detailsData == null) return;
 			const currentUnityVersion = detailsData.unity_str;
 			if (currentUnityVersion == null) return;
-			const isVRCProject = detailsData.installed_packages.some(([id, _]) =>
-				VRCSDK_PACKAGES.includes(id),
-			);
 			unityChangeVersion.request({
 				version,
 				isVRCProject,
 				currentUnityVersion,
 			});
 		},
-		[detailsResult.data, unityChangeVersion],
+		[detailsResult.data, isVRCProject, unityChangeVersion],
 	);
+
+	let unityVersionList: React.ReactNode;
+
+	if (unityVersionNames == null) {
+		unityVersionList = <SelectLabel>Loading...</SelectLabel>;
+	} else if (isVRCProject) {
+		const vrcSupportedVersions = unityVersionNames.filter((v) =>
+			VRCSDK_UNITY_VERSIONS.includes(v),
+		);
+		const vrcUnsupportedVersions = unityVersionNames.filter(
+			(v) => !VRCSDK_UNITY_VERSIONS.includes(v),
+		);
+
+		if (
+			vrcUnsupportedVersions.length === 0 ||
+			vrcUnsupportedVersions.length === 0
+		) {
+			unityVersionList = unityVersionNames.map((v) => (
+				<SelectItem key={v} value={v}>
+					{v}
+				</SelectItem>
+			));
+		} else {
+			// if there are both supported and unsupported versions, show them separately
+			unityVersionList = (
+				<>
+					{vrcSupportedVersions.map((v) => (
+						<SelectItem key={v} value={v}>
+							{v}
+						</SelectItem>
+					))}
+					<SelectLabel>
+						<Separator className={"-ml-6 mr-0 w-auto"} />
+					</SelectLabel>
+					{vrcUnsupportedVersions.map((v) => (
+						<SelectItem key={v} value={v}>
+							{v}
+						</SelectItem>
+					))}
+				</>
+			);
+		}
+	} else {
+		unityVersionList = unityVersionNames.map((v) => (
+			<SelectItem key={v} value={v}>
+				{v}
+			</SelectItem>
+		));
+	}
 
 	return (
 		<Select
@@ -384,17 +435,7 @@ function UnityVersionSelector({
 				)}
 			</SelectTrigger>
 			<SelectContent>
-				<SelectGroup>
-					{unityVersionNames == null ? (
-						<SelectLabel>Loading...</SelectLabel>
-					) : (
-						unityVersionNames.map((v) => (
-							<SelectItem key={v} value={v}>
-								{v}
-							</SelectItem>
-						))
-					)}
-				</SelectGroup>
+				<SelectGroup>{unityVersionList}</SelectGroup>
 			</SelectContent>
 			{unityChangeVersion.dialog}
 		</Select>
