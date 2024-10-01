@@ -206,6 +206,8 @@
     "projects:manage:button:reinstall selected": "Reinstall Selected",
     "projects:manage:button:uninstall selected": "Uninstall Selected",
     "projects:manage:button:clear selection": "Clear Selection",
+    "projects:manage:n packages selected_one": "{{count}} package selected",
+    "projects:manage:n packages selected_other": "{{count}} packages selected",
     "projects:manage:toast:no upgradable": "No upgradable package",
     "projects:manage:toast:package installed": "{{name}} version {{version}} was installed successfully.",
     // V used in single operation
