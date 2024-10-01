@@ -276,7 +276,7 @@
     "vpm repositories:url": "URL",
     "vpm repositories:button:add repository": "VPMリポジトリを追加",
     "vpm repositories:remove repository": "VPMリポジトリを削除",
-    "vpm repositories:remove curated or official repository": "OfficialやCuratedのリポジトリは削除出来ません。",
+    "vpm repositories:tooltip:remove curated or official repository": "OfficialやCuratedのリポジトリは削除出来ません。",
     "vpm repositories:button:import repositories": "リポジトリ一覧の読み込み",
     "vpm repositories:button:export repositories": "リポジトリ一覧の出力",
 
