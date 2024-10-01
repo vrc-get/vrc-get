@@ -380,9 +380,7 @@ function MigrateButton({
 				<DialogOpen className={"whitespace-normal"}>
 					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
 					<DialogDescription>
-						<p className={"text-destructive"}>
-							{tc("projects:dialog:vpm migrate description")}
-						</p>
+						<p>{tc("projects:dialog:vpm migrate description")}</p>
 					</DialogDescription>
 					<DialogFooter>
 						<Button

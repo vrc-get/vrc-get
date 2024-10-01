@@ -57,11 +57,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
         collection: &impl PackageCollection,
         installer: &impl PackageInstaller,
     ) -> Result {
-        migrate_unity_2022_beta(self, collection, installer).await
+        migrate_unity_2022(self, collection, installer).await
     }
 }
 
-async fn migrate_unity_2022_beta(
+async fn migrate_unity_2022(
     project: &mut UnityProject<impl ProjectIo>,
     collection: &impl PackageCollection,
     installer: &impl PackageInstaller,
