@@ -321,7 +321,9 @@ function RepositoryRow({
 					</TooltipTrigger>
 					<TooltipContent>
 						{remove == null
-							? tc("vpm repositories:remove curated or official repository")
+							? tc(
+									"vpm repositories:tooltip:remove curated or official repository",
+								)
 							: tc("vpm repositories:remove repository")}
 					</TooltipContent>
 				</Tooltip>
