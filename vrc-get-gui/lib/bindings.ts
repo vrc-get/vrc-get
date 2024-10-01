@@ -146,6 +146,12 @@ async environmentGetDefaultUnityArguments() : Promise<string[]> {
 async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null) : Promise<null> {
     return await TAURI_INVOKE("environment_set_default_unity_arguments", { defaultUnityArguments });
 },
+async environmentUpdateUnityPathsFromUnityHub() : Promise<boolean> {
+    return await TAURI_INVOKE("environment_update_unity_paths_from_unity_hub");
+},
+async environmentWaitForUnityHubUpdate() : Promise<void> {
+    await TAURI_INVOKE("environment_wait_for_unity_hub_update");
+},
 async projectDetails(projectPath: string) : Promise<TauriProjectDetails> {
     return await TAURI_INVOKE("project_details", { projectPath });
 },

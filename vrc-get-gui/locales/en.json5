@@ -354,6 +354,8 @@
     "settings:toast:unity hub path updated": "Updated Unity Hub successfully!",
 
     "settings:unity installations": "Unity Installations",
+    "settings:button:reload unity from unity hub": "Reload Unity from Unity Hub",
+    "settings:tooltip:reload unity from unity hub": "Loading Unity from Unity Hub took few tens of seconds.",
     "settings:button:add unity": "Add Unity",
     "settings:unity:version": "Unity Version",
     "settings:unity:path": "Unity Path",

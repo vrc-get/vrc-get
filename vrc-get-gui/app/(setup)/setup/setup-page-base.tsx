@@ -19,6 +19,7 @@ export function SetupPageBase({
 	Body,
 	nextPage,
 	prevPage,
+	onFinish,
 	backContent = tc("setup:back"),
 	nextContent = tc("setup:next"),
 	pageId,
@@ -28,6 +29,7 @@ export function SetupPageBase({
 	Body: React.ComponentType<BodyProps>;
 	nextPage: string;
 	prevPage: string | null;
+	onFinish?: () => void;
 	backContent?: React.ReactNode;
 	nextContent?: React.ReactNode;
 	pageId: SetupPages | null;
@@ -43,6 +45,7 @@ export function SetupPageBase({
 	const onNext = async () => {
 		if (pageId) await commands.environmentFinishedSetupPage(pageId);
 		router.push(nextPage);
+		onFinish?.();
 	};
 
 	return (
