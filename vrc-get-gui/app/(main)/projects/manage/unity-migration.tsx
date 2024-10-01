@@ -290,6 +290,9 @@ function UnityVersionChange({
 				mainMessage = tc("projects:manage:dialog:upgrade major");
 			}
 			break;
+		case "changeChina":
+			mainMessage = tc("projects:manage:dialog:changing china releases");
+			break;
 		default:
 			assertNever(data.kind);
 	}
@@ -312,6 +315,7 @@ function UnityVersionChange({
 }
 
 type ChangeUnityKind =
+	| "changeChina" // Changing between 'c' releases and non 'c' releases
 	| "downgradeMajor"
 	| "downgradePatchOrMinor"
 	| "upgradePatchOrMinor"
@@ -341,14 +345,16 @@ function detectChangeUnityKind(
 	// biome-ignore lint/style/noNonNullAssertion: the version is known to be valid
 	const parsedTarget = parseUnityVersion(targetUnityVersion)!;
 
+	const cmp = compareUnityVersionString(currentVersion, targetUnityVersion);
+	const majorOrMinor =
+		parsedCurrent.major === parsedTarget.major ? "PatchOrMinor" : "Major";
+
 	const kind: ChangeUnityData["kind"] =
-		compareUnityVersionString(currentVersion, targetUnityVersion) >= 0
-			? parsedCurrent.major === parsedTarget.major
-				? "downgradePatchOrMinor"
-				: "downgradeMajor"
-			: parsedCurrent.major === parsedTarget.major
-				? "upgradePatchOrMinor"
-				: "upgradeMajor";
+		cmp === 0
+			? "changeChina"
+			: cmp > 0
+				? `downgrade${majorOrMinor}`
+				: `upgrade${majorOrMinor}`;
 
 	if (isVRCProject) {
 		const supportedVersions = ["2019.4.31f1", "2022.3.6f1", "2022.3.22f1"];

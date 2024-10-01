@@ -235,6 +235,7 @@
     "projects:manage:dialog:upgrade major": "You're upgrading Unity major version. This may change your scripts and Library might be rebuilt.<br/>Backup project before proceeding this.<br/>Do you want to continue?",
     "projects:manage:dialog:upgrade major vrchat supported": "You're migrating Unity version. This will upgrade VRCSDK, may change your scripts and Library might be rebuilt.<br/>Backup project before proceeding this.<br/>Do you want to continue?",
     "projects:manage:dialog:upgrade major vrchat unsupported": "You're migrating Unity version. This will upgrade VRCSDK, may change your scripts and Library might be rebuilt.<br/>Backup project before proceeding this.<br/>In addition, you will use VRChat unsupported Unity version, so you will not able to upload your contents to VRChat after upgrade.<br/>Do you want to continue?",
+    "projects:manage:dialog:changing china releases": "You're changing Unity version between China releases. This may change your scripts and Library might be rebuilt.<br/>Backup project before proceeding this.<br/>Do you want to continue?",
     "projects:button:change unity version": "Change Unity Version",
 
     "projects:dialog:launch options": "Launch Options",
