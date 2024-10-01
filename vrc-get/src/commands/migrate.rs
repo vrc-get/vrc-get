@@ -13,21 +13,11 @@ use vrc_get_vpm::io::DefaultEnvironmentIo;
 #[derive(Subcommand)]
 #[command(author, version)]
 pub enum Migrate {
-    #[command(subcommand)]
-    Unity(Unity),
+    Unity2022(Unity2022),
     Vpm(Vpm),
 }
 
-multi_command!(Migrate is Unity, Vpm);
-
-#[derive(Subcommand)]
-#[command(author, version)]
-pub enum Unity {
-    #[command(name = "2022")]
-    Unity2022(Unity2022),
-}
-
-multi_command!(Unity is Unity2022);
+multi_command!(Migrate is Unity2022, Vpm);
 
 /// Migrate your project to Unity 2022
 #[derive(Parser)]
