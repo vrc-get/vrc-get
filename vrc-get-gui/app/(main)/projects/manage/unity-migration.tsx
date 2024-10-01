@@ -62,9 +62,7 @@ function MigrationConfirmMigrationDialog({ cancel, doMigrate }: ConfirmProps) {
 	return (
 		<>
 			<DialogDescription>
-				<p className={"text-destructive"}>
-					{tc("projects:dialog:vpm migrate description")}
-				</p>
+				<p>{tc("projects:dialog:vpm migrate description")}</p>
 			</DialogDescription>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">

@@ -13,21 +13,11 @@ use vrc_get_vpm::io::DefaultEnvironmentIo;
 #[derive(Subcommand)]
 #[command(author, version)]
 pub enum Migrate {
-    #[command(subcommand)]
-    Unity(Unity),
+    Unity2022(Unity2022),
     Vpm(Vpm),
 }
 
-multi_command!(Migrate is Unity, Vpm);
-
-#[derive(Subcommand)]
-#[command(author, version)]
-pub enum Unity {
-    #[command(name = "2022")]
-    Unity2022(Unity2022),
-}
-
-multi_command!(Unity is Unity2022);
+multi_command!(Migrate is Unity2022, Vpm);
 
 /// Migrate your project to Unity 2022
 #[derive(Parser)]
@@ -49,7 +39,6 @@ pub struct Unity2022 {
 
 impl Unity2022 {
     pub async fn run(self) {
-        warn!("migrate unity-to-2022 is unstable command.");
         println!("You're migrating your project to Unity 2022 in-place.");
         println!("It's hard to undo this command.");
         println!("You MUST create backup of your project before running this command.");
@@ -128,7 +117,6 @@ pub struct Vpm {
 
 impl Vpm {
     pub async fn run(self) {
-        warn!("migrate vpm is unstable command.");
         println!("You're migrating your project to vpm in-place.");
         println!("It's hard to undo this command.");
         println!("You MUST create backup of your project before running this command.");
