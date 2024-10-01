@@ -298,6 +298,8 @@
 
     "vpm repositories:dialog:downloading...": "Downloading the repository...",
     "vpm repositories:dialog:already added": "This repository was already added.",
+    "vpm repositories:dialog:id duplicated": "The repository ID is same as repository named {{name}}.",
+    "vpm repositories:dialog:url duplicated": "The repository ID is same as repository named {{name}}.",
     "vpm repositories:dialog:name": "Name: <b>{{name}}</b>",
     "vpm repositories:dialog:url": "URL: {{url}}",
     "vpm repositories:dialog:packages": "Packages:",
