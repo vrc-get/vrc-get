@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog].
   - Currently, official VCC does not verify the hash of the downloaded zip file, but it's better to verify the hash.
   - For compatibility, even if the hash does not match, the file will be extracted with an error message.
   - In the future, we may make this a hard error.
+- Migration feature is no longer marked as experimental `#1559`
 
 ### Deprecated
 
