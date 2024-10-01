@@ -149,6 +149,9 @@ async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null
 async environmentUpdateUnityPathsFromUnityHub() : Promise<boolean> {
     return await TAURI_INVOKE("environment_update_unity_paths_from_unity_hub");
 },
+async environmentIsLoadingFromUnityHubInProgress() : Promise<boolean> {
+    return await TAURI_INVOKE("environment_is_loading_from_unity_hub_in_progress");
+},
 async environmentWaitForUnityHubUpdate() : Promise<void> {
     await TAURI_INVOKE("environment_wait_for_unity_hub_update");
 },

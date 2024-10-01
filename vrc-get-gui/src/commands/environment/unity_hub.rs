@@ -45,6 +45,11 @@ pub async fn wait_for_unity_path_update() {
     }
 }
 
+pub async fn is_loading_from_unity_hub_in_progress() -> bool {
+    let guard = UPDATE_UNITY_PATH_SHARED_STATE.lock().await;
+    guard.is_some()
+}
+
 pub async fn update_unity_paths_from_unity_hub(
     settings: &SettingsState,
     io: &DefaultEnvironmentIo,
@@ -148,6 +153,12 @@ pub async fn environment_update_unity_paths_from_unity_hub(
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<bool, RustError> {
     Ok(update_unity_paths_from_unity_hub(&settings, &io).await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_is_loading_from_unity_hub_in_progress() -> bool {
+    is_loading_from_unity_hub_in_progress().await
 }
 
 #[tauri::command]

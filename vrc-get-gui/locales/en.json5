@@ -137,6 +137,7 @@
     "projects:dialog:multiple unity found": "Multiple Unity installations of the version were found.",
     "projects:dialog:keep using this version": "Keep using this version",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
+    "projects:toast:loading unity from unity hub": "Loading Unity from Unity Hub...",
     "projects:toast:match version unity not found": "Unity {{unity}} is not found. Please install Unity in your computer or add a Unity version in the ALCOM settings.",
     "projects:toast:unity already running": "Unity is already running.",
     "projects:toast:unity exits with non-zero": "Unity exited with non-zero code.",
