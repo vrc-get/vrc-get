@@ -1,11 +1,10 @@
 use std::ffi::OsStr;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::pin::pin;
 use std::process::Stdio;
 
 use futures::{Stream, TryStreamExt};
-use log::{error, warn};
+use log::{error, info, warn};
 use serde::Serialize;
 use tauri::{State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -556,13 +555,33 @@ async fn create_backup_zip(
     project_path: &Path,
     compression: async_zip::Compression,
     deflate_option: async_zip::DeflateOption,
+    ctx: AsyncCommandContext<TauriCreateBackupProgress>,
 ) -> Result<(), RustError> {
     let mut file = tokio::fs::File::create(&backup_path).await?;
     let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
 
-    let mut stream = pin!(folder_stream(PathBuf::from(project_path)));
+    info!("Collecting files to backup {}...", project_path.display());
 
-    while let Some((relative, entry)) = stream.try_next().await? {
+    let start = std::time::Instant::now();
+    let files = folder_stream(PathBuf::from(project_path))
+        .try_collect::<Vec<_>>()
+        .await?;
+
+    info!(
+        "Collecting files took {}, starting creating archive",
+        start.elapsed().as_secs_f64()
+    );
+
+    let total_files = files.len();
+
+    let _ = ctx.emit(TauriCreateBackupProgress {
+        total: total_files,
+        proceed: 0,
+        last_proceed: "Collecting files".to_string(),
+    });
+
+    let mut proceed = 0;
+    for (relative, entry) in files {
         let mut file_type = entry.file_type().await?;
         if file_type.is_symlink() {
             file_type = match tokio::fs::metadata(entry.path()).await {
@@ -575,7 +594,7 @@ async fn create_backup_zip(
             writer
                 .write_entry_whole(
                     async_zip::ZipEntryBuilder::new(
-                        relative.into(),
+                        relative.clone().into(),
                         async_zip::Compression::Stored,
                     ),
                     b"",
@@ -585,18 +604,31 @@ async fn create_backup_zip(
             let file = tokio::fs::read(entry.path()).await?;
             writer
                 .write_entry_whole(
-                    async_zip::ZipEntryBuilder::new(relative.into(), compression)
+                    async_zip::ZipEntryBuilder::new(relative.clone().into(), compression)
                         .deflate_option(deflate_option),
                     file.as_ref(),
                 )
                 .await?;
         }
+
+        proceed += 1;
+        let _ = ctx.emit(TauriCreateBackupProgress {
+            total: total_files,
+            proceed,
+            last_proceed: relative,
+        });
     }
 
     writer.close().await?;
     file.flush().await?;
     file.sync_data().await?;
     drop(file);
+
+    info!(
+        "Creating backup archive for {} finished!",
+        project_path.display()
+    );
+
     Ok(())
 }
 
@@ -618,6 +650,13 @@ impl Drop for RemoveOnDrop<'_> {
     }
 }
 
+#[derive(Serialize, specta::Type, Clone)]
+pub struct TauriCreateBackupProgress {
+    total: usize,
+    proceed: usize,
+    last_proceed: String,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn project_create_backup(
@@ -627,7 +666,7 @@ pub async fn project_create_backup(
     window: Window,
     channel: String,
     project_path: String,
-) -> Result<AsyncCallResult<(), ()>, RustError> {
+) -> Result<AsyncCallResult<TauriCreateBackupProgress, ()>, RustError> {
     async_command(channel, window, async {
         let backup_format = config.get().backup_format.to_ascii_lowercase();
 
@@ -635,7 +674,7 @@ pub async fn project_create_backup(
         let backup_dir = project_backup_path(&mut settings).to_string();
         settings.maybe_save().await?;
 
-        With::<()>::continue_async(move |_| async move {
+        With::<TauriCreateBackupProgress>::continue_async(move |ctx| async move {
             let project_name = Path::new(&project_path)
                 .file_name()
                 .unwrap()
@@ -666,6 +705,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Stored,
                         async_zip::DeflateOption::Normal,
+                        ctx,
                     )
                     .await?;
                 }
@@ -679,6 +719,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(1),
+                        ctx,
                     )
                     .await?;
                 }
@@ -692,6 +733,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(9),
+                        ctx,
                     )
                     .await?;
                 }
@@ -708,6 +750,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(1),
+                        ctx,
                     )
                     .await?;
                 }
