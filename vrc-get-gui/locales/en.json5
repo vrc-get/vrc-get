@@ -180,6 +180,7 @@
 
     "projects:manage:suggest unity migration": "Your project is using Unity 2019 which is no longer supported by VRChat SDK. VRChat recommends you migrate your project to Unity 2022.",
     "projects:manage:suggest unity patch migration": "Your project is using a bit older version of Unity 2022. VRChat recommends you migrate your project to newer version of Unity 2022.",
+    "projects:manage:suggest unity china to international migration": "Your project is using China version of Unity. We recommend you to use International version of Unity for better compatibility with VRChat.",
     "projects:manage:button:unity migrate": "Migrate Project",
 
     "projects:manage:manage packages": "Manage Packages",

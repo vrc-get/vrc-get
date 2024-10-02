@@ -121,7 +121,7 @@ export function useUnityVersionChange({
 					currentUnityVersion,
 					version,
 					isVRCProject,
-					mayUseChinaVariant,
+					mayUseChinaVariant ?? false,
 				);
 				request(v);
 			},

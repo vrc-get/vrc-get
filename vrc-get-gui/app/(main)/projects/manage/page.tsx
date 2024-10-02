@@ -42,7 +42,7 @@ import { nameFromPath } from "@/lib/os";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { useOpenUnity } from "@/lib/use-open-unity";
-import { compareUnityVersionString } from "@/lib/version";
+import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
 import {
 	type UseQueryResult,
 	useQueries,
@@ -431,6 +431,7 @@ function MigrationCards({
 	if (unityVersionsResult == null) return null;
 	if (detailsResult.unity == null) return false;
 	if (detailsResult.unity_str == null) return false;
+	const currentUnity = detailsResult.unity_str;
 
 	const isVRChatProject = detailsResult.installed_packages.some(([id, _]) =>
 		VRCSDK_PACKAGES.includes(id),
@@ -447,6 +448,9 @@ function MigrationCards({
 			detailsResult.unity_str,
 			unityVersionsResult.recommended_version,
 		) !== 0;
+
+	const isChinaToInternationalMigrationRecommended =
+		parseUnityVersion(detailsResult.unity_str)?.chinaIncrement != null;
 
 	return (
 		<>
@@ -470,6 +474,18 @@ function MigrationCards({
 							true,
 						)
 					}
+				/>
+			)}
+			{isChinaToInternationalMigrationRecommended && (
+				<SuggestChinaToInternationalMigrationCard
+					disabled={isLoading}
+					onMigrateRequested={() => {
+						const internationalVersion = currentUnity.slice(
+							0,
+							currentUnity.indexOf("c"),
+						);
+						requestChangeUnityVersion(internationalVersion);
+					}}
 				/>
 			)}
 		</>
@@ -511,6 +527,30 @@ function Suggest2022PatchMigrationCard({
 		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest unity patch migration")}
+			</p>
+			<div className={"flex-grow flex-shrink-0 w-2"} />
+			<Button
+				variant={"ghost-destructive"}
+				onClick={onMigrateRequested}
+				disabled={disabled}
+			>
+				{tc("projects:manage:button:unity migrate")}
+			</Button>
+		</Card>
+	);
+}
+
+function SuggestChinaToInternationalMigrationCard({
+	disabled,
+	onMigrateRequested,
+}: {
+	disabled?: boolean;
+	onMigrateRequested: () => void;
+}) {
+	return (
+		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
+			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+				{tc("projects:manage:suggest unity china to international migration")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"} />
 			<Button
