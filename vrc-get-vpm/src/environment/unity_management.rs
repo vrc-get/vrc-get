@@ -182,7 +182,7 @@ fn default_unity_hub_path() -> &'static [&'static str] {
                     winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
                         .open_subkey(r"Software\Unity Technologies\Hub")
                         .ok()
-                        .and_then(|key| key.get_value("InstallPath").ok())
+                        .and_then(|key| key.get_value("InstallLocation").ok())
                         .and_then(|str: std::ffi::OsString| str.into_string().ok())
                         .map(|s| PathBuf::from(s))
                         .map(|mut p| {
