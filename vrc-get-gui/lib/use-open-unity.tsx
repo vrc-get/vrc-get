@@ -5,10 +5,12 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import i18next, { tc } from "@/lib/i18n";
 import { toastError, toastNormal } from "@/lib/toast";
 import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
+import { parseUnityVersion } from "@/lib/version";
 import React from "react";
 
 export type OpenUnityFunction = (
@@ -27,6 +29,18 @@ type StateInternal =
 			state: "normal";
 	  }
 	| {
+			state: "ask-for-china-version";
+			projectUnityVersion: string;
+			chinaUnityVersion: string;
+			projectPath: string;
+	  }
+	| {
+			state: "ask-for-international-version";
+			projectUnityVersion: string;
+			internationalUnityVersion: string;
+			projectPath: string;
+	  }
+	| {
 			state: "suggest-unity-hub";
 			unityVersion: string;
 			unityHubLink: string;
@@ -42,6 +56,7 @@ export function useOpenUnity(): Result {
 		projectPath: string,
 		unityVersion: string | null,
 		unityRevision?: string | null,
+		freezeVersion?: boolean,
 	) => {
 		if (unityVersion == null) {
 			toastError(i18next.t("projects:toast:invalid project unity version"));
@@ -76,7 +91,42 @@ export function useOpenUnity(): Result {
 		}
 
 		switch (foundVersions.length) {
-			case 0:
+			case 0: {
+				if (!freezeVersion) {
+					// if requested version is not china version and china version is available, suggest to use china version
+					// if requested version is china version and international version is available, suggest to use international version
+					if (parseUnityVersion(unityVersion)?.chinaIncrement == null) {
+						// unityVersion is international version, find china version
+						const chinaVersion = `${unityVersion}c1`;
+						const hasChinaVersion = unityVersions.unity_paths.some(
+							([_p, v, _i]) => v === chinaVersion,
+						);
+						if (hasChinaVersion) {
+							setInstallStatus({
+								state: "ask-for-china-version",
+								projectUnityVersion: unityVersion,
+								chinaUnityVersion: chinaVersion,
+								projectPath,
+							});
+							return;
+						}
+					} else {
+						// unityVersion is china version, find international version
+						const internationalVersion = unityVersion.replace(/c\d+$/, "");
+						const hasInternationalRevision = unityVersions.unity_paths.some(
+							([_p, v, _i]) => v === internationalVersion,
+						);
+						if (hasInternationalRevision) {
+							setInstallStatus({
+								state: "ask-for-international-version",
+								projectUnityVersion: unityVersion,
+								internationalUnityVersion: internationalVersion,
+								projectPath,
+							});
+							return;
+						}
+					}
+				}
 				if (unityRevision) {
 					setInstallStatus({
 						state: "suggest-unity-hub",
@@ -91,6 +141,7 @@ export function useOpenUnity(): Result {
 					);
 				}
 				return;
+			}
 			case 1:
 				{
 					if (selectedPath) {
@@ -136,14 +187,57 @@ export function useOpenUnity(): Result {
 		}
 	};
 
-	const thisDialog =
-		installStatus.state === "suggest-unity-hub" ? (
-			<UnityInstallWindow
-				expectedVersion={installStatus.unityVersion}
-				installWithUnityHubLink={installStatus.unityHubLink}
-				close={() => setInstallStatus({ state: "normal" })}
-			/>
-		) : null;
+	let thisDialog: React.JSX.Element | null;
+	switch (installStatus.state) {
+		case "suggest-unity-hub":
+			thisDialog = (
+				<UnityInstallWindow
+					expectedVersion={installStatus.unityVersion}
+					installWithUnityHubLink={installStatus.unityHubLink}
+					close={() => setInstallStatus({ state: "normal" })}
+				/>
+			);
+			break;
+		case "ask-for-china-version":
+			thisDialog = (
+				<AskForChinaRevision
+					expectedVersion={installStatus.projectUnityVersion}
+					chinaUnityVersion={installStatus.chinaUnityVersion}
+					useChinaRevision={() =>
+						openUnity(
+							installStatus.projectPath,
+							installStatus.chinaUnityVersion,
+							undefined,
+							true,
+						)
+					}
+					close={() => setInstallStatus({ state: "normal" })}
+				/>
+			);
+			break;
+		case "ask-for-international-version":
+			thisDialog = (
+				<AskForInternationalRevision
+					expectedVersion={installStatus.projectUnityVersion}
+					internationalUnityVersion={installStatus.internationalUnityVersion}
+					useInternationalRevision={() =>
+						openUnity(
+							installStatus.projectPath,
+							installStatus.internationalUnityVersion,
+							undefined,
+							true,
+						)
+					}
+					close={() => setInstallStatus({ state: "normal" })}
+				/>
+			);
+			break;
+		case "normal":
+			thisDialog = null;
+			break;
+		default:
+			assertNever(installStatus);
+	}
 
 	const dialog = (
 		<>
@@ -181,6 +275,84 @@ function UnityInstallWindow({
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={openUnityHub}>
 					{tc("projects:dialog:open unity hub")}
+				</Button>
+				<Button onClick={close} className="mr-1">
+					{tc("general:button:close")}
+				</Button>
+			</DialogFooter>
+		</DialogOpen>
+	);
+}
+
+function AskForChinaRevision({
+	expectedVersion,
+	chinaUnityVersion,
+	useChinaRevision,
+	close,
+}: {
+	expectedVersion: string;
+	chinaUnityVersion: string;
+	useChinaRevision: () => void;
+	close: () => void;
+}) {
+	return (
+		<DialogOpen>
+			<DialogTitle>
+				{tc("projects:dialog:unity not found but china found")}
+			</DialogTitle>
+			<DialogDescription>
+				<p>
+					{tc(
+						"projects:dialog:unity version of the project not found but china found",
+						{
+							unity: expectedVersion,
+							chinaUnity: chinaUnityVersion,
+						},
+					)}
+				</p>
+			</DialogDescription>
+			<DialogFooter className={"gap-2"}>
+				<Button onClick={useChinaRevision}>
+					{tc("projects:dialog:use china version")}
+				</Button>
+				<Button onClick={close} className="mr-1">
+					{tc("general:button:close")}
+				</Button>
+			</DialogFooter>
+		</DialogOpen>
+	);
+}
+
+function AskForInternationalRevision({
+	expectedVersion,
+	internationalUnityVersion,
+	useInternationalRevision,
+	close,
+}: {
+	expectedVersion: string;
+	internationalUnityVersion: string;
+	useInternationalRevision: () => void;
+	close: () => void;
+}) {
+	return (
+		<DialogOpen>
+			<DialogTitle>
+				{tc("projects:dialog:unity not found but international found")}
+			</DialogTitle>
+			<DialogDescription>
+				<p>
+					{tc(
+						"projects:dialog:unity version of the project not found but international found",
+						{
+							unity: expectedVersion,
+							chinaUnity: internationalUnityVersion,
+						},
+					)}
+				</p>
+			</DialogDescription>
+			<DialogFooter className={"gap-2"}>
+				<Button onClick={useInternationalRevision}>
+					{tc("projects:dialog:use international version")}
 				</Button>
 				<Button onClick={close} className="mr-1">
 					{tc("general:button:close")}
