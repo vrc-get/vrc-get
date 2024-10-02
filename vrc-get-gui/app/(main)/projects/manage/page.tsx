@@ -159,7 +159,10 @@ function PageBody() {
 		refresh: () => detailsResult.refetch(),
 	});
 
-	const requestChangeUnityVersion = (version: string) => {
+	const requestChangeUnityVersion = (
+		version: string,
+		mayUseChinaVariant?: boolean,
+	) => {
 		if (detailsResult.data == null)
 			throw new Error("Project details not ready");
 		if (detailsResult.data.unity_str == null)
@@ -172,6 +175,7 @@ function PageBody() {
 			version: version,
 			isVRCProject,
 			currentUnityVersion,
+			mayUseChinaVariant,
 		});
 	};
 
@@ -418,7 +422,10 @@ function MigrationCards({
 	isLoading: boolean;
 	detailsResult?: TauriProjectDetails;
 	unityVersionsResult?: TauriUnityVersions;
-	requestChangeUnityVersion: (version: string) => void;
+	requestChangeUnityVersion: (
+		version: string,
+		keepChinaVariant?: boolean,
+	) => void;
 }) {
 	if (detailsResult == null) return null;
 	if (unityVersionsResult == null) return null;
@@ -447,7 +454,10 @@ function MigrationCards({
 				<SuggestMigrateTo2022Card
 					disabled={isLoading}
 					onMigrateRequested={() =>
-						requestChangeUnityVersion(unityVersionsResult.recommended_version)
+						requestChangeUnityVersion(
+							unityVersionsResult.recommended_version,
+							true,
+						)
 					}
 				/>
 			)}
@@ -455,7 +465,10 @@ function MigrationCards({
 				<Suggest2022PatchMigrationCard
 					disabled={isLoading}
 					onMigrateRequested={() =>
-						requestChangeUnityVersion(unityVersionsResult.recommended_version)
+						requestChangeUnityVersion(
+							unityVersionsResult.recommended_version,
+							true,
+						)
 					}
 				/>
 			)}

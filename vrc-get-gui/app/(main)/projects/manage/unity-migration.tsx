@@ -81,6 +81,7 @@ export function useUnityVersionChange({
 	version: string;
 	currentUnityVersion: string;
 	isVRCProject: boolean;
+	mayUseChinaVariant?: boolean;
 }> {
 	const use = useMigrationInternal({
 		projectPath,
@@ -114,12 +115,13 @@ export function useUnityVersionChange({
 	return {
 		dialog: use.dialog,
 		request: useCallback(
-			({ version, currentUnityVersion, isVRCProject }) => {
+			({ version, currentUnityVersion, isVRCProject, mayUseChinaVariant }) => {
 				if (currentUnityVersion == null) throw new Error("unexpected");
 				const v = detectChangeUnityKind(
 					currentUnityVersion,
 					version,
 					isVRCProject,
+					mayUseChinaVariant,
 				);
 				request(v);
 			},
@@ -274,12 +276,14 @@ type ChangeUnityData = (
 	  }
 ) & {
 	targetUnityVersion: string;
+	mayUseChinaVariant: boolean;
 };
 
 function detectChangeUnityKind(
 	currentVersion: string,
 	targetUnityVersion: string,
 	isVRCProject: boolean,
+	mayUseChinaVariant: boolean,
 ): ChangeUnityData {
 	// biome-ignore lint/style/noNonNullAssertion: the version is known to be valid
 	const parsedCurrent = parseUnityVersion(currentVersion)!;
@@ -304,12 +308,14 @@ function detectChangeUnityKind(
 			isTargetVersionSupportedByVRC:
 				VRCSDK_UNITY_VERSIONS.includes(targetUnityVersion),
 			targetUnityVersion,
+			mayUseChinaVariant,
 		};
 	} else {
 		return {
 			kind,
 			isVRC: false,
 			targetUnityVersion,
+			mayUseChinaVariant,
 		};
 	}
 }
@@ -318,18 +324,38 @@ function findUnityForUnityChange(
 	unityVersions: TauriUnityVersions,
 	data: ChangeUnityData,
 ): FindUnityResult {
-	const foundVersions = unityVersions.unity_paths.filter(
+	let foundVersions = unityVersions.unity_paths.filter(
 		([_p, v, _]) => v === data.targetUnityVersion,
 	);
+	// if international version not found, try to find china version
+	if (
+		foundVersions.length === 0 &&
+		data.mayUseChinaVariant &&
+		parseUnityVersion(data.targetUnityVersion)?.chinaIncrement == null
+	) {
+		const chinaVersion = `${data.targetUnityVersion}c1`;
+		foundVersions = unityVersions.unity_paths.filter(
+			([_p, v, _]) => v === chinaVersion,
+		);
+	}
 	if (foundVersions.length === 0) {
-		if (data.targetUnityVersion === unityVersions.recommended_version) {
+		if (
+			compareUnityVersionString(
+				data.targetUnityVersion,
+				unityVersions.recommended_version,
+			) === 0
+		) {
 			return {
-				expectingVersion: unityVersions.recommended_version,
+				expectingVersion: data.targetUnityVersion,
+				// This is using link to international version but china version of hub will handle international to china conversion
 				installLink: unityVersions.install_recommended_version_link,
 				found: false,
 			};
 		} else {
-			throw new Error("selected unity not found");
+			return {
+				expectingVersion: data.targetUnityVersion,
+				found: false,
+			};
 		}
 	}
 	return {
@@ -391,7 +417,7 @@ interface FindUnityFoundResult {
 
 interface FindUnityNotFoundResult {
 	expectingVersion: string;
-	installLink: string;
+	installLink?: string;
 	found: false;
 }
 
@@ -656,11 +682,12 @@ function NoExactUnity2022Dialog({
 	close,
 }: {
 	expectedVersion: string;
-	installWithUnityHubLink: string;
+	installWithUnityHubLink?: string;
 	close: () => void;
 }) {
 	const openUnityHub = async () => {
-		await commands.utilOpenUrl(installWithUnityHubLink);
+		if (installWithUnityHubLink != null)
+			await commands.utilOpenUrl(installWithUnityHubLink);
 	};
 
 	return (
@@ -674,9 +701,11 @@ function NoExactUnity2022Dialog({
 				</p>
 			</DialogDescription>
 			<DialogFooter className={"gap-2"}>
-				<Button onClick={openUnityHub}>
-					{tc("projects:dialog:open unity hub")}
-				</Button>
+				{installWithUnityHubLink && (
+					<Button onClick={openUnityHub}>
+						{tc("projects:dialog:open unity hub")}
+					</Button>
+				)}
 				<Button onClick={close} className="mr-1">
 					{tc("general:button:close")}
 				</Button>
