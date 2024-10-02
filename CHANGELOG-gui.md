@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Clicking VCC link while adding vpm repository would close previously opened add repository dialog `#1570`
 
 ### Security
 
