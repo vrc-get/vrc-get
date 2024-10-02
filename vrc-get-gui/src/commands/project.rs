@@ -1,9 +1,7 @@
 use std::ffi::OsStr;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use futures::{Stream, TryStreamExt};
 use log::{error, info, warn};
 use serde::Serialize;
 use tauri::{State, Window};
@@ -19,7 +17,7 @@ use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::utils::project_backup_path;
+use crate::utils::{collect_notable_project_files_tree, project_backup_path};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
@@ -495,61 +493,6 @@ pub fn project_is_unity_launching(project_path: String) -> bool {
     is_unity_running(project_path)
 }
 
-fn folder_stream(
-    path_buf: PathBuf,
-) -> impl Stream<Item = io::Result<(String, tokio::fs::DirEntry)>> {
-    async_stream::stream! {
-        let mut stack = Vec::new();
-        stack.push((String::from(""), tokio::fs::read_dir(&path_buf).await?));
-
-        while let Some((dir, read_dir)) = stack.last_mut() {
-            if let Some(entry) = read_dir.next_entry().await? {
-                let Ok(file_name) = entry.file_name().into_string() else {
-                    // non-utf8 file name
-                    warn!("skipping non-utf8 file name: {}", entry.path().display());
-                    continue;
-                };
-                log::trace!("process: {dir}{file_name}");
-
-                if entry.file_type().await?.is_dir() {
-                    let lower_name = file_name.to_ascii_lowercase();
-                    if dir.is_empty() {
-                        match lower_name.as_str() {
-                            "library" | "logs" | "obj" | "temp" => {
-                                continue;
-                            }
-                            lower_name => {
-                                // some people uses multple library folder to speed up switch platform
-                                if lower_name.starts_with("library") {
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-                    if lower_name.as_str() == ".git" {
-                        // any .git folder should be ignored
-                        continue;
-                    }
-
-                    let new_dir_relative = format!("{dir}{file_name}/");
-                    let new_read_dir = tokio::fs::read_dir(path_buf.join(&new_dir_relative)).await?;
-
-                    stack.push((new_dir_relative.clone(), new_read_dir));
-
-                    yield Ok((new_dir_relative, entry))
-                } else {
-                    let new_relative = format!("{dir}{file_name}");
-                    yield Ok((new_relative, entry))
-                }
-            } else {
-                log::trace!("read_end: {dir}");
-                stack.pop();
-                continue;
-            };
-        }
-    }
-}
-
 async fn create_backup_zip(
     backup_path: &Path,
     project_path: &Path,
@@ -563,16 +506,15 @@ async fn create_backup_zip(
     info!("Collecting files to backup {}...", project_path.display());
 
     let start = std::time::Instant::now();
-    let files = folder_stream(PathBuf::from(project_path))
-        .try_collect::<Vec<_>>()
-        .await?;
+    let file_tree = collect_notable_project_files_tree(PathBuf::from(project_path)).await?;
+
+    let total_files = file_tree.count_all();
 
     info!(
-        "Collecting files took {}, starting creating archive",
-        start.elapsed().as_secs_f64()
+        "Collecting files took {}, starting creating archive with {} files...",
+        start.elapsed().as_secs_f64(),
+        total_files
     );
-
-    let total_files = files.len();
 
     let _ = ctx.emit(TauriCreateBackupProgress {
         total: total_files,
@@ -580,42 +522,32 @@ async fn create_backup_zip(
         last_proceed: "Collecting files".to_string(),
     });
 
-    let mut proceed = 0;
-    for (relative, entry) in files {
-        let mut file_type = entry.file_type().await?;
-        if file_type.is_symlink() {
-            file_type = match tokio::fs::metadata(entry.path()).await {
-                Ok(metadata) => metadata.file_type(),
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => continue,
-                Err(e) => return Err(e.into()),
-            };
-        }
-        if file_type.is_dir() {
+    for (proceed, entry) in file_tree.recursive().enumerate() {
+        if entry.is_dir() {
             writer
                 .write_entry_whole(
                     async_zip::ZipEntryBuilder::new(
-                        relative.clone().into(),
+                        entry.relative_path().into(),
                         async_zip::Compression::Stored,
                     ),
                     b"",
                 )
                 .await?;
         } else {
-            let file = tokio::fs::read(entry.path()).await?;
+            let file = tokio::fs::read(entry.absolute_path()).await?;
             writer
                 .write_entry_whole(
-                    async_zip::ZipEntryBuilder::new(relative.clone().into(), compression)
+                    async_zip::ZipEntryBuilder::new(entry.relative_path().into(), compression)
                         .deflate_option(deflate_option),
                     file.as_ref(),
                 )
                 .await?;
         }
 
-        proceed += 1;
         let _ = ctx.emit(TauriCreateBackupProgress {
             total: total_files,
-            proceed,
-            last_proceed: relative,
+            proceed: proceed + 1,
+            last_proceed: entry.relative_path().to_string(),
         });
     }
 
