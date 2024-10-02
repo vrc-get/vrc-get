@@ -46,6 +46,7 @@ type State =
 interface AddRepository {
 	dialog: React.ReactNode;
 	openAddDialog: () => void;
+	inProgress: boolean;
 	addRepository: (
 		url: string,
 		headers: { [p: string]: string },
@@ -54,55 +55,64 @@ interface AddRepository {
 
 export function useAddRepository({
 	refetch,
+	onFinishAddRepository,
 }: {
 	refetch: () => void;
+	onFinishAddRepository?: () => void;
 }): AddRepository {
 	const [state, setState] = useState<State>({ type: "normal" });
 
 	function cancel() {
 		setState({ type: "normal" });
+		onFinishAddRepository?.();
 	}
 
 	const openAddDialog = useCallback(() => {
 		setState({ type: "enteringRepositoryInfo" });
 	}, []);
 
-	const addRepository = useCallback(async function addRepository(
-		url: string,
-		headers: { [key: string]: string },
-	) {
-		try {
-			setState({ type: "loadingRepository" });
-			const info = await commands.environmentDownloadRepository(url, headers);
-			switch (info.type) {
-				case "BadUrl":
-					toastError(tt("vpm repositories:toast:invalid url"));
-					setState({ type: "normal" });
-					return;
-				case "DownloadError":
-					toastError(
-						tt("vpm repositories:toast:load failed", { message: info.message }),
-					);
-					setState({ type: "normal" });
-					return;
-				case "Duplicated":
-					setState({
-						type: "duplicated",
-						reason: info.reason,
-						duplicatedName: info.duplicated_name,
-					});
-					return;
-				case "Success":
-					break;
-				default:
-					assertNever(info, "info");
+	const addRepository = useCallback(
+		async function addRepository(
+			url: string,
+			headers: { [key: string]: string },
+		) {
+			try {
+				setState({ type: "loadingRepository" });
+				const info = await commands.environmentDownloadRepository(url, headers);
+				switch (info.type) {
+					case "BadUrl":
+						toastError(tt("vpm repositories:toast:invalid url"));
+						setState({ type: "normal" });
+						return;
+					case "DownloadError":
+						toastError(
+							tt("vpm repositories:toast:load failed", {
+								message: info.message,
+							}),
+						);
+						setState({ type: "normal" });
+						return;
+					case "Duplicated":
+						setState({
+							type: "duplicated",
+							reason: info.reason,
+							duplicatedName: info.duplicated_name,
+						});
+						return;
+					case "Success":
+						break;
+					default:
+						assertNever(info, "info");
+				}
+				setState({ type: "confirming", repo: info.value, url, headers });
+			} catch (e) {
+				toastThrownError(e);
+				setState({ type: "normal" });
+				onFinishAddRepository?.();
 			}
-			setState({ type: "confirming", repo: info.value, url, headers });
-		} catch (e) {
-			toastThrownError(e);
-			setState({ type: "normal" });
-		}
-	}, []);
+		},
+		[onFinishAddRepository],
+	);
 
 	let dialogBody: React.ReactNode;
 	switch (state.type) {
@@ -137,9 +147,11 @@ export function useAddRepository({
 					toastSuccess(tt("vpm repositories:toast:repository added"));
 					// noinspection ES6MissingAwait
 					refetch();
+					onFinishAddRepository?.();
 				} catch (e) {
 					toastThrownError(e);
 					setState({ type: "normal" });
+					onFinishAddRepository?.();
 				}
 			};
 			dialogBody = (
@@ -167,6 +179,7 @@ export function useAddRepository({
 		dialog,
 		addRepository,
 		openAddDialog,
+		inProgress: state.type !== "normal",
 	};
 }
 

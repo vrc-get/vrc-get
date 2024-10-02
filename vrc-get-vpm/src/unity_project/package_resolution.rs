@@ -5,18 +5,22 @@ use crate::{PackageInfo, PackageManifest, VersionSelector};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 struct PackageQueue<'a> {
+    force_count: usize,
     pending_queue: VecDeque<PackageInfo<'a>>,
 }
 
 impl<'a> PackageQueue<'a> {
     fn new(packages: Vec<PackageInfo<'a>>) -> Self {
         Self {
+            force_count: packages.len(),
             pending_queue: VecDeque::from_iter(packages),
         }
     }
 
-    pub(crate) fn next_package(&mut self) -> Option<PackageInfo<'a>> {
-        self.pending_queue.pop_back()
+    pub(crate) fn next_package(&mut self) -> Option<(PackageInfo<'a>, bool)> {
+        let force = self.force_count > 0;
+        self.force_count = self.force_count.saturating_sub(1);
+        self.pending_queue.pop_back().map(|x| (x, force))
     }
 
     fn find_pending_package(&self, name: &str) -> Option<&PackageInfo<'a>> {
@@ -221,14 +225,14 @@ where
         }
     }
 
-    pub(crate) fn add_package(&mut self, package: PackageInfo<'env>) -> bool {
+    pub(crate) fn add_package(&mut self, package: PackageInfo<'env>, force: bool) -> bool {
         let entry = self.dependencies.entry(package.name()).or_default();
 
         if entry.is_legacy() {
             return false;
         }
 
-        if self.unlocked_names.contains(package.name()) {
+        if !force && self.unlocked_names.contains(package.name()) {
             return false;
         }
 
@@ -441,12 +445,12 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
         }
     }
 
-    while let Some(x) = context.pending_queue.next_package() {
+    while let Some((x, force)) = context.pending_queue.next_package() {
         log::debug!("processing package {} version {}", x.name(), x.version());
         let name = x.name();
         let vpm_dependencies = &x.vpm_dependencies();
 
-        if context.add_package(x) {
+        if context.add_package(x, force) {
             // add new dependencies
             for (dependency, range) in vpm_dependencies.iter() {
                 log::debug!("processing package {name}: dependency {dependency} version {range}");

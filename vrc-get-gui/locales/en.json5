@@ -153,6 +153,7 @@
     "projects:tooltip:git-vcc not supported": "git-VCC projects are not supported.",
     "projects:dialog:vpm migrate header": "Migrate legacy project",
     "projects:dialog:vpm migrate description": "Migrating project might loose your changes. Please make a backup of your project before migration.",
+    "projects:button:backup and migrate": "Backup and Migrate",
     "projects:button:migrate copy": "Migrate a Copy",
     "projects:button:migrate in-place": "Migrate in-place",
     "projects:pre-migrate copying...": "Copying project for migration...",
@@ -163,6 +164,7 @@
 
     "projects:dialog:backup header": "Backup Project",
     "projects:dialog:creating backup...": "Creating a backup...",
+    "projects:dialog:proceed k/n": "Processing {{count}}/{{total}} entries",
     "projects:toast:backup canceled": "Backup was canceled.",
     "projects:toast:backup succeeded": "Backup was created successfully.",
 
