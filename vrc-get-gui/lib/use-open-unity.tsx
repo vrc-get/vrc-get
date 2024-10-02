@@ -203,14 +203,15 @@ export function useOpenUnity(): Result {
 				<AskForChinaRevision
 					expectedVersion={installStatus.projectUnityVersion}
 					chinaUnityVersion={installStatus.chinaUnityVersion}
-					useChinaRevision={() =>
-						openUnity(
+					useChinaRevision={() => {
+						setInstallStatus({ state: "normal" });
+						void openUnity(
 							installStatus.projectPath,
 							installStatus.chinaUnityVersion,
 							undefined,
 							true,
-						)
-					}
+						);
+					}}
 					close={() => setInstallStatus({ state: "normal" })}
 				/>
 			);
@@ -220,14 +221,15 @@ export function useOpenUnity(): Result {
 				<AskForInternationalRevision
 					expectedVersion={installStatus.projectUnityVersion}
 					internationalUnityVersion={installStatus.internationalUnityVersion}
-					useInternationalRevision={() =>
-						openUnity(
+					useInternationalRevision={() => {
+						setInstallStatus({ state: "normal" });
+						void openUnity(
 							installStatus.projectPath,
 							installStatus.internationalUnityVersion,
 							undefined,
 							true,
-						)
-					}
+						);
+					}}
 					close={() => setInstallStatus({ state: "normal" })}
 				/>
 			);
