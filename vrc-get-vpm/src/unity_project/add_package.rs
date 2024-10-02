@@ -5,7 +5,6 @@ use crate::unity_project::{package_resolution, PendingProjectChanges};
 use crate::version::DependencyRange;
 use crate::{PackageCollection, PackageInfo, UnityProject};
 use log::debug;
-use std::collections::HashSet;
 use std::fmt;
 
 #[derive(Debug)]
@@ -66,7 +65,6 @@ impl<IO: ProjectIo> UnityProject<IO> {
         // if same or newer requested package is in locked dependencies,
         // just add requested version into dependencies
         let mut adding_packages = Vec::with_capacity(packages.len());
-        let mut removing_unlocked_packages = HashSet::new();
 
         let mut changes = super::pending_project_changes::Builder::new();
 
@@ -74,24 +72,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
             debug!("Validating Package: {}", request.name());
 
             {
-                fn install_to_dependencies<'env, 's, IO: ProjectIo>(
+                fn install_to_dependencies<'env, IO: ProjectIo>(
                     request: PackageInfo<'env>,
-                    this: &'s UnityProject<IO>,
+                    this: &UnityProject<IO>,
                     adding_packages: &mut Vec<PackageInfo<'env>>,
-                    removing_unlocked_packages: &mut HashSet<&'s str>,
                     changes: &mut super::pending_project_changes::Builder,
                 ) -> Result<(), AddPackageErr> {
-                    for (dir, _) in this.unlocked_packages.iter().filter(|(dir, pkg)| {
-                        dir.as_ref() == request.name()
-                            || pkg
-                                .as_ref()
-                                .map(|x| x.name() == request.name())
-                                .unwrap_or(false)
-                    }) {
-                        removing_unlocked_packages.insert(dir);
-                        changes.unlocked_installation_conflict(request.name().into(), dir.clone());
-                    }
-
                     let add_to_dependencies = this
                         .manifest
                         .get_dependency(request.name())
@@ -160,13 +146,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
                 match operation {
                     AddPackageOperation::InstallToDependencies => {
-                        install_to_dependencies(
-                            request,
-                            self,
-                            &mut adding_packages,
-                            &mut removing_unlocked_packages,
-                            &mut changes,
-                        )?;
+                        install_to_dependencies(request, self, &mut adding_packages, &mut changes)?;
                     }
                     AddPackageOperation::UpgradeLocked => {
                         if self.manifest.get_locked(request.name()).is_none() {
@@ -207,7 +187,6 @@ impl<IO: ProjectIo> UnityProject<IO> {
                                     request,
                                     self,
                                     &mut adding_packages,
-                                    &mut removing_unlocked_packages,
                                     &mut changes,
                                 )?;
                             }
@@ -297,9 +276,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 }
             }),
             self.manifest.all_locked(),
-            self.unlocked_packages
-                .iter()
-                .filter(|(dir, _)| !removing_unlocked_packages.contains(dir.as_ref())),
+            self.unlocked_packages.iter(),
             |pkg| self.manifest.get_locked(pkg),
             self.unity_version(),
             env,
@@ -309,9 +286,19 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         debug!("Resolving finished");
 
-        for x in result.new_packages {
-            debug!("Installing package {}@{}", x.name(), x.version());
-            changes.install_to_locked(x);
+        for pkg in result.new_packages {
+            debug!("Installing package {}@{}", pkg.name(), pkg.version());
+            changes.install_to_locked(pkg);
+
+            for (dir, _) in self.unlocked_packages.iter().filter(|(dir, unlocked)| {
+                dir.as_ref() == pkg.name()
+                    || unlocked
+                        .as_ref()
+                        .map(|x| x.name() == pkg.name())
+                        .unwrap_or(false)
+            }) {
+                changes.unlocked_installation_conflict(pkg.name().into(), dir.clone());
+            }
         }
 
         for (package, conflicts_with) in result.conflicts {
