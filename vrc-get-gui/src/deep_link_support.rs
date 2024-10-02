@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
@@ -76,13 +76,13 @@ pub struct AddRepositoryInfo {
     headers: IndexMap<String, String>,
 }
 
-static PENDING_ADD_REPOSITORY: ArcSwapOption<AddRepositoryInfo> = ArcSwapOption::const_empty();
+static PENDING_ADD_REPOSITORY: Mutex<Vec<AddRepositoryInfo>> = Mutex::new(Vec::new());
 
 pub fn on_deep_link(deep_link: Url) {
     match parse_deep_link(deep_link) {
         None => {}
         Some(DeepLink::AddRepository(add_repository)) => {
-            PENDING_ADD_REPOSITORY.store(Some(Arc::new(add_repository)));
+            PENDING_ADD_REPOSITORY.lock().unwrap().push(add_repository);
             APP_HANDLE
                 .load()
                 .as_ref()
@@ -94,15 +94,13 @@ pub fn on_deep_link(deep_link: Url) {
 #[tauri::command]
 #[specta::specta]
 pub fn deep_link_has_add_repository() -> bool {
-    PENDING_ADD_REPOSITORY.load().is_some()
+    !PENDING_ADD_REPOSITORY.lock().unwrap().is_empty()
 }
 
 #[tauri::command]
 #[specta::specta]
 pub fn deep_link_take_add_repository() -> Option<AddRepositoryInfo> {
-    PENDING_ADD_REPOSITORY
-        .swap(None)
-        .map(|arc| Arc::try_unwrap(arc).ok().unwrap())
+    PENDING_ADD_REPOSITORY.lock().unwrap().pop()
 }
 
 #[tauri::command]

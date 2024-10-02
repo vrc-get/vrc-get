@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, CircleX } from "lucide-react";
 import type React from "react";
+import { useRef } from "react";
 import {
 	Suspense,
 	useCallback,
@@ -56,9 +57,14 @@ function PageBody() {
 		queryKey: ["environmentRepositoriesInfo"],
 		queryFn: commands.environmentRepositoriesInfo,
 	});
+	const onFinishAddRepositoryCallbackRef = useRef<() => void>();
 
 	const addRepositoryInfo = useAddRepository({
 		refetch: () => result.refetch(),
+		onFinishAddRepository: useCallback(
+			() => onFinishAddRepositoryCallbackRef.current?.(),
+			[],
+		),
 	});
 
 	const importRepositoryInfo = useImportRepositories({
@@ -92,14 +98,18 @@ function PageBody() {
 	}
 
 	const addRepository = addRepositoryInfo.addRepository;
+	const inProgress = addRepositoryInfo.inProgress;
 	const processDeepLink = useCallback(
-		async function processDeepLink() {
+		async function processDeepLink(force?: boolean) {
+			if (!force && inProgress) return; // do not override opening dialog
 			const data = await commands.deepLinkTakeAddRepository();
 			if (data == null) return;
 			await addRepository(data.url, data.headers);
 		},
-		[addRepository],
+		[addRepository, inProgress],
 	);
+
+	onFinishAddRepositoryCallbackRef.current = () => processDeepLink(true);
 
 	useTauriListen<null>(
 		"deep-link-add-repository",
