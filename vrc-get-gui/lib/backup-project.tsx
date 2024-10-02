@@ -5,12 +5,12 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
-import type { TauriProject } from "@/lib/bindings";
+import type { TauriCreateBackupProgress, TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
-import { nop } from "@/lib/nop";
 import { toastNormal, toastSuccess, toastThrownError } from "@/lib/toast";
 import { type ReactNode, useState } from "react";
 
@@ -28,6 +28,7 @@ type State =
 	  }
 	| {
 			type: "backing-up";
+			progress: TauriCreateBackupProgress;
 			cancel: () => void;
 	  };
 
@@ -44,9 +45,25 @@ export function useBackupProjectModal(): Result {
 			const [cancel, promise] = callAsyncCommand(
 				commands.projectCreateBackup,
 				[project.path],
-				nop,
+				(progress) => {
+					setState((state) => {
+						if (state.type !== "backing-up") {
+							return state;
+						}
+						if (state.progress.proceed >= progress.total) return state;
+						return { ...state, progress };
+					});
+				},
 			);
-			setState({ type: "backing-up", cancel });
+			setState({
+				type: "backing-up",
+				progress: {
+					total: 100,
+					proceed: 0,
+					last_proceed: "",
+				},
+				cancel,
+			});
 			const channel = await promise;
 			if (channel === "cancelled") {
 				toastNormal(tt("projects:toast:backup canceled"));
@@ -71,7 +88,20 @@ export function useBackupProjectModal(): Result {
 				<DialogOpen className={"whitespace-normal"}>
 					<DialogTitle>{tc("projects:dialog:backup header")}</DialogTitle>
 					<DialogDescription>
-						{tc("projects:dialog:creating backup...")}
+						<p>{tc("projects:dialog:creating backup...")}</p>
+						<p>
+							{tc("projects:dialog:proceed k/n", {
+								count: state.progress.proceed,
+								total: state.progress.total,
+							})}
+						</p>
+						<p className={"overflow-hidden w-full whitespace-pre"}>
+							{state.progress.last_proceed || "Collecting files..."}
+						</p>
+						<Progress
+							value={state.progress.proceed}
+							max={state.progress.total}
+						/>
 					</DialogDescription>
 					<DialogFooter>
 						<Button className="mr-1" onClick={state.cancel}>
