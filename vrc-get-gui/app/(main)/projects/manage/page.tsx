@@ -55,11 +55,7 @@ import { Suspense, useCallback, useMemo, useState } from "react";
 import { combinePackagesAndProjectDetails } from "./collect-package-row-info";
 import { PackageListCard } from "./package-list-card";
 import { PageContextProvider } from "./page-context";
-import {
-	useUnity2022Migration,
-	useUnity2022PatchMigration,
-	useUnityVersionChange,
-} from "./unity-migration";
+import { useUnityVersionChange } from "./unity-migration";
 import { usePackageChangeDialog } from "./use-package-change";
 
 export default function Page() {
@@ -158,15 +154,26 @@ function PageBody() {
 		existingPackages: detailsResult.data?.installed_packages,
 	});
 
-	const unity2022Migration = useUnity2022Migration({
+	const unityChangeVersion = useUnityVersionChange({
 		projectPath,
-		refresh: onRefresh,
+		refresh: () => detailsResult.refetch(),
 	});
 
-	const unity2022PatchMigration = useUnity2022PatchMigration({
-		projectPath,
-		refresh: onRefresh,
-	});
+	const requestChangeUnityVersion = (version: string) => {
+		if (detailsResult.data == null)
+			throw new Error("Project details not ready");
+		if (detailsResult.data.unity_str == null)
+			throw new Error("Current unity version unknonw");
+		const isVRCProject = detailsResult.data.installed_packages.some(([id, _]) =>
+			VRCSDK_PACKAGES.includes(id),
+		);
+		const currentUnityVersion = detailsResult.data.unity_str;
+		unityChangeVersion.request({
+			version: version,
+			isVRCProject,
+			currentUnityVersion,
+		});
+	};
 
 	const onRefreshRepositories = useCallback(() => {
 		repositoriesInfo.refetch();
@@ -285,9 +292,9 @@ function PageBody() {
 						<div className={"flex-grow-0 flex-shrink-0"}>
 							<UnityVersionSelector
 								disabled={isLoading}
-								projectPath={projectPath}
 								detailsResult={detailsResult}
 								unityVersions={unityVersionsResult.data}
+								requestChangeUnityVersion={requestChangeUnityVersion}
 							/>
 						</div>
 					</div>
@@ -301,13 +308,23 @@ function PageBody() {
 				{isMigrationTo2022Recommended && (
 					<SuggestMigrateTo2022Card
 						disabled={isLoading}
-						onMigrateRequested={() => unity2022Migration.request({})}
+						onMigrateRequested={() =>
+							requestChangeUnityVersion(
+								// biome-ignore lint/style/noNonNullAssertion: is2022PatchMigrationRecommended guards
+								unityVersionsResult.data?.recommended_version!,
+							)
+						}
 					/>
 				)}
 				{is2022PatchMigrationRecommended && (
 					<Suggest2022PatchMigrationCard
 						disabled={isLoading}
-						onMigrateRequested={() => unity2022PatchMigration.request({})}
+						onMigrateRequested={() =>
+							requestChangeUnityVersion(
+								// biome-ignore lint/style/noNonNullAssertion: is2022PatchMigrationRecommended guards
+								unityVersionsResult.data?.recommended_version!,
+							)
+						}
 					/>
 				)}
 				<main className="flex-shrink overflow-hidden flex w-full">
@@ -321,8 +338,7 @@ function PageBody() {
 					/>
 				</main>
 				{packageChangeDialog.dialog}
-				{unity2022Migration.dialog}
-				{unity2022PatchMigration.dialog}
+				{unityChangeVersion.dialog}
 				{projectRemoveModal.dialog}
 				{backupProjectModal.dialog}
 			</VStack>
@@ -332,20 +348,15 @@ function PageBody() {
 
 function UnityVersionSelector({
 	disabled,
-	projectPath,
 	detailsResult,
+	requestChangeUnityVersion,
 	unityVersions,
 }: {
 	disabled?: boolean;
-	projectPath: string;
 	detailsResult: UseQueryResult<TauriProjectDetails>;
+	requestChangeUnityVersion: (version: string) => void;
 	unityVersions?: TauriUnityVersions;
 }) {
-	const unityChangeVersion = useUnityVersionChange({
-		projectPath,
-		refresh: () => detailsResult.refetch(),
-	});
-
 	const unityVersionNames = useMemo(() => {
 		if (unityVersions == null) return null;
 		const versionNames = [
@@ -359,21 +370,6 @@ function UnityVersionSelector({
 		detailsResult.data?.installed_packages.some(([id, _]) =>
 			VRCSDK_PACKAGES.includes(id),
 		) ?? false;
-
-	const onChange = useCallback(
-		async (version: string) => {
-			const detailsData = detailsResult.data;
-			if (detailsData == null) return;
-			const currentUnityVersion = detailsData.unity_str;
-			if (currentUnityVersion == null) return;
-			unityChangeVersion.request({
-				version,
-				isVRCProject,
-				currentUnityVersion,
-			});
-		},
-		[detailsResult.data, isVRCProject, unityChangeVersion],
-	);
 
 	let unityVersionList: React.ReactNode;
 
@@ -428,7 +424,7 @@ function UnityVersionSelector({
 		<Select
 			disabled={disabled}
 			value={detailsResult.data?.unity_str ?? undefined}
-			onValueChange={onChange}
+			onValueChange={requestChangeUnityVersion}
 		>
 			<SelectTrigger>
 				{detailsResult.status === "success" ? (
@@ -440,7 +436,6 @@ function UnityVersionSelector({
 			<SelectContent>
 				<SelectGroup>{unityVersionList}</SelectGroup>
 			</SelectContent>
-			{unityChangeVersion.dialog}
 		</Select>
 	);
 }

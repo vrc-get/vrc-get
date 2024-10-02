@@ -19,46 +19,6 @@ import React, { Fragment, useCallback } from "react";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
-function findRecommendedUnity(
-	unityVersions: TauriUnityVersions,
-): FindUnityResult {
-	const versions = unityVersions.unity_paths.filter(
-		([_p, v, _]) => v === unityVersions.recommended_version,
-	);
-
-	if (versions.length === 0) {
-		return {
-			expectingVersion: unityVersions.recommended_version,
-			installLink: unityVersions.install_recommended_version_link,
-			found: false,
-		};
-	} else {
-		return {
-			expectingVersion: unityVersions.recommended_version,
-			found: true,
-			installations: versions,
-		};
-	}
-}
-
-export function useUnity2022Migration({
-	projectPath,
-	refresh,
-}: {
-	projectPath: string;
-	refresh?: () => void;
-}): Result<Record<string, never>> {
-	return useMigrationInternal({
-		projectPath,
-		updateProjectPreUnityLaunch: async (project) =>
-			await commands.projectMigrateProjectTo2022(project),
-		findUnity: findRecommendedUnity,
-		refresh,
-		ConfirmComponent: MigrationConfirmMigrationDialog,
-		dialogHeader: () => tc("projects:manage:dialog:unity migrate header"),
-	});
-}
-
 function MigrationConfirmMigrationDialog({ cancel, doMigrate }: ConfirmProps) {
 	return (
 		<>
@@ -82,24 +42,6 @@ function MigrationConfirmMigrationDialog({ cancel, doMigrate }: ConfirmProps) {
 			</DialogFooter>
 		</>
 	);
-}
-
-export function useUnity2022PatchMigration({
-	projectPath,
-	refresh,
-}: {
-	projectPath: string;
-	refresh?: () => void;
-}): Result<Record<string, never>> {
-	return useMigrationInternal({
-		projectPath,
-		updateProjectPreUnityLaunch: async () => {}, // nothing pre-launch
-		findUnity: findRecommendedUnity,
-		refresh,
-
-		ConfirmComponent: MigrationConfirmMigrationPatchDialog,
-		dialogHeader: () => tc("projects:manage:dialog:unity migrate header"),
-	});
 }
 
 function MigrationConfirmMigrationPatchDialog({
@@ -379,7 +321,17 @@ function findUnityForUnityChange(
 	const foundVersions = unityVersions.unity_paths.filter(
 		([_p, v, _]) => v === data.targetUnityVersion,
 	);
-	if (foundVersions.length === 0) throw new Error("unreachable");
+	if (foundVersions.length === 0) {
+		if (data.targetUnityVersion === unityVersions.recommended_version) {
+			return {
+				expectingVersion: unityVersions.recommended_version,
+				installLink: unityVersions.install_recommended_version_link,
+				found: false,
+			};
+		} else {
+			throw new Error("selected unity not found");
+		}
+	}
 	return {
 		expectingVersion: data.targetUnityVersion,
 		found: true,
