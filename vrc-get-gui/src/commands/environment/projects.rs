@@ -1,15 +1,17 @@
 use crate::commands::prelude::*;
 
-use crate::utils::default_project_path;
+use crate::commands::async_command::{async_command, AsyncCallResult, AsyncCommandContext, With};
+use crate::utils::{collect_notable_project_files_tree, default_project_path, FileSystemTree};
+use futures::future::try_join_all;
 use futures::TryStreamExt;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicUsize;
 use tauri::{State, Window};
 use tauri_plugin_dialog::DialogExt;
-use tokio::fs::read_dir;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use vrc_get_vpm::environment::{PackageInstaller, Settings, UserProject, VccDatabaseConnection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
@@ -289,13 +291,20 @@ async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result
     }
 }
 
+#[derive(Serialize, specta::Type, Clone)]
+pub struct TauriCopyProjectForMigrationProgress {
+    total: usize,
+    proceed: usize,
+    last_proceed: String,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_copy_project_for_migration(
-    settings: State<'_, SettingsState>,
-    io: State<'_, DefaultEnvironmentIo>,
+    window: Window,
+    channel: String,
     source_path: String,
-) -> Result<String, RustError> {
+) -> Result<AsyncCallResult<TauriCopyProjectForMigrationProgress, String>, RustError> {
     async fn create_folder(folder: &Path, name: &OsStr) -> Option<String> {
         let name = name.to_str().unwrap();
         // first, try `-Migrated`
@@ -314,54 +323,103 @@ pub async fn environment_copy_project_for_migration(
         None
     }
 
-    let source_path_str = source_path;
-    let source_path = Path::new(&source_path_str);
-    let folder = source_path.parent().unwrap();
-    let name = source_path.file_name().unwrap();
+    async_command(channel, window, async {
+        let source_path_str = source_path;
+        let source_path = Path::new(&source_path_str);
+        let folder = source_path.parent().unwrap();
+        let name = source_path.file_name().unwrap();
 
-    let Some(new_path_str) = create_folder(folder, name).await else {
-        return Err(RustError::unrecoverable(
-            "failed to create a new folder for migration",
-        ));
-    };
-    let new_path = Path::new(&new_path_str);
+        let Some(new_path_str) = create_folder(folder, name).await else {
+            return Err(RustError::unrecoverable(
+                "failed to create a new folder for migration",
+            ));
+        };
 
-    info!("copying project for migration: {source_path_str} -> {new_path_str}");
+        With::<TauriCopyProjectForMigrationProgress>::continue_async(move |ctx| async move {
+            let source_path = Path::new(&source_path_str);
+            let new_path = Path::new(&new_path_str);
 
-    let mut source_path_read = read_dir(source_path).await?;
-    while let Some(entry) = source_path_read.next_entry().await? {
-        if entry.file_name().to_ascii_lowercase() == "library"
-            || entry.file_name().to_ascii_lowercase() == "temp"
-        {
-            continue;
-        }
+            info!("copying project for migration: {source_path_str} -> {new_path_str}");
 
-        if entry.file_type().await?.is_dir() {
-            copy_recursively(entry.path(), new_path.join(entry.file_name()))
-                .await
-                .map_err(|e| format!("copying {}: {e}", entry.path().display()))?;
-        } else {
-            tokio::fs::copy(entry.path(), new_path.join(entry.file_name()))
-                .await
-                .map_err(|e| format!("copying {}: {e}", entry.path().display()))?;
-        }
-    }
+            let file_tree = collect_notable_project_files_tree(PathBuf::from(source_path)).await?;
+            let total_files = file_tree.count_all();
 
-    info!("copied project for migration. adding to listing");
+            info!("collecting files for copy finished, total files: {total_files}");
 
-    let unity_project = load_project(new_path_str.clone()).await?;
+            struct CopyFileContext<'a> {
+                proceed: AtomicUsize,
+                total_files: usize,
+                new_path: &'a Path,
+                ctx: &'a AsyncCommandContext<TauriCopyProjectForMigrationProgress>,
+            }
 
-    {
-        let mut settings = settings.load_mut(io.inner()).await?;
-        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-        connection.add_project(&unity_project).await?;
-        connection.save(io.inner()).await?;
-        settings.load_from_db(&connection)?;
-        settings.save().await?;
-    }
+            impl<'a> CopyFileContext<'a> {
+                fn on_finish(&self, entry: &FileSystemTree) {
+                    let proceed = self
+                        .proceed
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let last_proceed = entry.relative_path().to_string();
 
-    Ok(new_path_str)
+                    self.ctx
+                        .emit(TauriCopyProjectForMigrationProgress {
+                            total: self.total_files,
+                            proceed: proceed + 1,
+                            last_proceed,
+                        })
+                        .ok();
+                }
+
+                async fn process(&self, entry: &FileSystemTree) -> io::Result<()> {
+                    let new_entry = self.new_path.join(entry.relative_path());
+
+                    if entry.is_dir() {
+                        if let Err(e) = tokio::fs::create_dir(&new_entry).await {
+                            if e.kind() != io::ErrorKind::AlreadyExists {
+                                return Err(e);
+                            }
+                        }
+
+                        try_join_all(entry.iter().map(|x| self.process(x))).await?;
+                    } else {
+                        tokio::fs::copy(entry.absolute_path(), new_entry).await?;
+
+                        self.on_finish(entry);
+                    }
+
+                    Ok(())
+                }
+            }
+
+            CopyFileContext {
+                proceed: AtomicUsize::new(0),
+                total_files,
+                new_path,
+                ctx: &ctx,
+            }
+            .process(&file_tree)
+            .await?;
+
+            info!("copied project for migration. adding to listing");
+
+            let unity_project = load_project(new_path_str.clone()).await?;
+
+            let settings = ctx.state::<SettingsState>();
+            let io = ctx.state::<DefaultEnvironmentIo>();
+
+            {
+                let mut settings = settings.load_mut(io.inner()).await?;
+                let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
+                migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
+                connection.add_project(&unity_project).await?;
+                connection.save(io.inner()).await?;
+                settings.load_from_db(&connection)?;
+                settings.save().await?;
+            }
+
+            Ok(new_path_str)
+        })
+    })
+    .await
 }
 
 #[tauri::command]

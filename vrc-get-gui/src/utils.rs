@@ -1,8 +1,11 @@
 use crate::state::*;
 
+use futures::future::try_join_all;
+use log::warn;
 use stable_deref_trait::StableDeref;
 use std::borrow::Cow;
 use std::future::Future;
+use std::io;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
@@ -115,4 +118,173 @@ impl<Y: for<'a> Yokeable<'a>, C> YokeExt<Y, C> for Yoke<Y, C> {
             )
         }
     }
+}
+
+#[derive(Debug)]
+pub struct FileSystemTree {
+    relative_path: String,
+    absolute_path: PathBuf,
+    children: Vec<FileSystemTree>,
+}
+
+impl FileSystemTree {
+    fn new_file(relative_path: String, absolute_path: PathBuf) -> Self {
+        assert!(!relative_path.is_empty() && !relative_path.ends_with('/'));
+        Self {
+            relative_path,
+            absolute_path,
+            children: Vec::new(),
+        }
+    }
+
+    fn new_dir(
+        relative_path: String,
+        absolute_path: PathBuf,
+        children: Vec<FileSystemTree>,
+    ) -> Self {
+        assert!(relative_path.is_empty() || relative_path.ends_with('/'));
+        Self {
+            relative_path,
+            absolute_path,
+            children,
+        }
+    }
+
+    pub fn is_dir(&self) -> bool {
+        self.relative_path.is_empty() || self.relative_path.ends_with('/')
+    }
+
+    pub fn relative_path(&self) -> &str {
+        &self.relative_path
+    }
+
+    pub fn absolute_path(&self) -> &Path {
+        &self.absolute_path
+    }
+
+    pub fn recursive(&self) -> FileSystemTreeRecursive {
+        FileSystemTreeRecursive {
+            stack: vec![(self, 0)],
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn iter(&self) -> FileSystemTreeIter {
+        FileSystemTreeIter {
+            back: self.children.iter(),
+        }
+    }
+
+    /// Count all files and directories in the tree excluding the root
+    pub fn count_all(&self) -> usize {
+        self.recursive().count()
+    }
+}
+
+pub struct FileSystemTreeRecursive<'a> {
+    stack: Vec<(&'a FileSystemTree, usize)>,
+}
+
+impl<'a> Iterator for FileSystemTreeRecursive<'a> {
+    type Item = &'a FileSystemTree;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (tree, index) = self.stack.pop()?;
+
+            if index < tree.children.len() {
+                self.stack.push((tree, index + 1));
+                let new_ent = &tree.children[index];
+                self.stack.push((new_ent, 0));
+                return Some(new_ent);
+            }
+        }
+    }
+}
+
+pub struct FileSystemTreeIter<'a> {
+    back: std::slice::Iter<'a, FileSystemTree>,
+}
+
+impl<'a> Iterator for FileSystemTreeIter<'a> {
+    type Item = &'a FileSystemTree;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.back.next()
+    }
+}
+
+pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result<FileSystemTree> {
+    // relative path must end with '/' or empty
+    async fn read_dir_to_tree(relative: String, absolute: PathBuf) -> io::Result<FileSystemTree> {
+        let mut read_dir = tokio::fs::read_dir(&absolute).await?;
+
+        // relative, entry, is_dir
+        let mut entries = Vec::new();
+
+        while let Some(entry) = read_dir.next_entry().await? {
+            let Ok(file_name) = entry.file_name().into_string() else {
+                // non-utf8 file name
+                warn!("skipping non-utf8 file name: {}", entry.path().display());
+                continue;
+            };
+            log::trace!("process: {relative}{file_name}");
+
+            let new_relative;
+            let is_dir;
+
+            let file_type = entry.file_type().await?;
+
+            if file_type.is_symlink() {
+                // skip symlink
+                // TODO: further handling
+                warn!("skipping symlink: {}", entry.path().display());
+                continue;
+            }
+
+            if entry.file_type().await?.is_dir() {
+                let lower_name = file_name.to_ascii_lowercase();
+                if relative.is_empty() {
+                    match lower_name.as_str() {
+                        "library" | "logs" | "obj" | "temp" => {
+                            continue;
+                        }
+                        lower_name => {
+                            // some people use multiple library folder to speed up switching platforms
+                            if lower_name.starts_with("library") {
+                                continue;
+                            }
+                        }
+                    }
+                }
+                if lower_name.as_str() == ".git" {
+                    // any .git folder should be ignored
+                    continue;
+                }
+
+                new_relative = format!("{relative}{file_name}/");
+                is_dir = true;
+            } else {
+                new_relative = format!("{relative}{file_name}");
+                is_dir = false;
+            }
+
+            entries.push((new_relative, entry, is_dir));
+        }
+
+        let children = try_join_all(entries.into_iter().map(
+            |(relative, entry, is_dir)| async move {
+                if is_dir {
+                    read_dir_to_tree(relative, entry.path()).await
+                } else {
+                    Ok(FileSystemTree::new_file(relative, entry.path()))
+                }
+            },
+        ))
+        .await?;
+
+        Ok(FileSystemTree::new_dir(relative, absolute, children))
+    }
+
+    read_dir_to_tree(String::new(), path_buf).await
 }
