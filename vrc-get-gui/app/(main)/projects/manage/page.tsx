@@ -224,8 +224,11 @@ function PageBody() {
 
 		if (data.unity == null) return false;
 		if (data.unity[0] !== 2022) return false;
-		// unity patch is 2022.
-		return data.unity_str !== unityData.recommended_version;
+		// unity patch is 2022. This warning should not be shown for a china version of unity.
+		return (
+			data.unity_str !== unityData.recommended_version &&
+			data.unity_str !== `${unityData.recommended_version}c1`
+		);
 	}
 
 	const isResolveRecommended = detailsResult?.data?.should_resolve;
