@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Clicking VCC link while adding vpm repository would close previously opened add repository dialog `#1570`
+- Correct typo in `projects:dialog:vpm migrate description` [`#1578`](https://github.com/vrc-get/vrc-get/pull/1578)
 
 ### Security
 
