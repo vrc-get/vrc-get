@@ -625,23 +625,29 @@ function AlcomCard({
 			)}
 			<h2>ALCOM</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
-				<Button onClick={checkForUpdate}>{tc("settings:check update")}</Button>
+				{globalInfo.checkForUpdates && (
+					<Button onClick={checkForUpdate}>
+						{tc("settings:check update")}
+					</Button>
+				)}
 				<Button onClick={reportIssue}>
 					{tc("settings:button:open issue")}
 				</Button>
 			</div>
-			<div>
-				<label className={"flex items-center gap-2"}>
-					<Checkbox
-						checked={releaseChannel === "beta"}
-						onCheckedChange={(e) => changeReleaseChannel(e)}
-					/>
-					{tc("settings:receive beta updates")}
-				</label>
-				<p className={"text-sm whitespace-normal"}>
-					{tc("settings:beta updates description")}
-				</p>
-			</div>
+			{globalInfo.checkForUpdates && (
+				<div>
+					<label className={"flex items-center gap-2"}>
+						<Checkbox
+							checked={releaseChannel === "beta"}
+							onCheckedChange={(e) => changeReleaseChannel(e)}
+						/>
+						{tc("settings:receive beta updates")}
+					</label>
+					<p className={"text-sm whitespace-normal"}>
+						{tc("settings:beta updates description")}
+					</p>
+				</div>
+			)}
 			{!isMac && (
 				<div>
 					<label className={"flex items-center gap-2"}>
