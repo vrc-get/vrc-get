@@ -124,16 +124,16 @@ export function ProjectRow({
 				className={`even:bg-secondary/30 ${removed || loading ? "opacity-50" : ""}`}
 			>
 				<td className={`${cellClass} w-3`}>
-					<div className={"relative inline-flex"}>
+					<div className={"relative flex"}>
 						<Checkbox
 							checked={project.favorite}
 							onCheckedChange={onToggleFavorite}
 							disabled={removed || loading}
-							className="hover:before:content-none before:transition-none border-none !text-primary peer"
+							className="before:transition-none border-none !text-primary peer"
 						/>
 						<span
 							className={
-								"text-background opacity-0 peer-data-[state=checked]:opacity-100 pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"
+								"text-foreground/30 peer-data-[state=checked]:text-background pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"
 							}
 						>
 							<Star strokeWidth={3} className={"size-3"} />
