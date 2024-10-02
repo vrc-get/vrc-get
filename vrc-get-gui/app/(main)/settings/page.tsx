@@ -23,6 +23,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
 	UnityArgumentsSettings,
 	useUnityArgumentsSettings,
 } from "@/components/unity-arguments-settings";
@@ -42,8 +47,10 @@ import {
 } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useQuery } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
+import { useEffect } from "react";
 import { useState } from "react";
 
 export default function Page() {
@@ -88,6 +95,32 @@ function Settings({
 }) {
 	const isMac = useGlobalInfo().osType === "Darwin";
 
+	const [updatingUnityPaths, setUpdatingUnityPaths] = useState(false);
+
+	const updateUnityPaths = async () => {
+		setUpdatingUnityPaths(true);
+		try {
+			await commands.environmentUpdateUnityPathsFromUnityHub();
+			refetch();
+		} finally {
+			setUpdatingUnityPaths(false);
+		}
+	};
+
+	// at the time settings page is opened, unity hub path update might be in progress so we wait for it
+	// biome-ignore lint/correctness/useExhaustiveDependencies(refetch): we want to do on mount
+	useEffect(() => {
+		(async () => {
+			setUpdatingUnityPaths(true);
+			try {
+				await commands.environmentWaitForUnityHubUpdate();
+				refetch();
+			} finally {
+				setUpdatingUnityPaths(false);
+			}
+		})();
+	}, []);
+
 	return (
 		<ScrollPageContainer>
 			<main className="flex flex-col gap-2 flex-shrink flex-grow">
@@ -97,13 +130,18 @@ function Settings({
 						withoutSelect
 						path={settings.unity_hub}
 						pick={commands.environmentPickUnityHub}
-						refetch={refetch}
+						refetch={() => {
+							refetch();
+							void updateUnityPaths();
+						}}
 						notFoundMessage={"Unity Hub Not Found"}
 						successMessage={tc("settings:toast:unity hub path updated")}
 					/>
 				</Card>
 				<UnityInstallationsCard
 					refetch={refetch}
+					updatingUnityPaths={updatingUnityPaths}
+					updateUnityPaths={updateUnityPaths}
 					unityPaths={settings.unity_paths}
 				/>
 				<UnityLaunchArgumentsCard
@@ -149,9 +187,13 @@ function Settings({
 function UnityInstallationsCard({
 	refetch,
 	unityPaths,
+	updatingUnityPaths,
+	updateUnityPaths,
 }: {
 	refetch: () => void;
 	unityPaths: [path: string, version: string, fromHub: boolean][];
+	updatingUnityPaths: boolean;
+	updateUnityPaths: () => void;
 }) {
 	const [pickUnity, unityDialog] = useFilePickerFunction(
 		commands.environmentPickUnity,
@@ -195,11 +237,45 @@ function UnityInstallationsCard({
 				<div className={"flex-grow flex items-center"}>
 					<h2>{tc("settings:unity installations")}</h2>
 				</div>
-				<Button onClick={addUnity} size={"sm"} className={"m-1"}>
+				{updatingUnityPaths && (
+					<div className={"flex items-center m-1"}>
+						<Tooltip>
+							<TooltipTrigger>
+								<RefreshCw className="w-5 h-5 animate-spin" />
+							</TooltipTrigger>
+							<TooltipContent>
+								{tc("settings:tooltip:reload unity from unity hub")}
+							</TooltipContent>
+						</Tooltip>
+					</div>
+				)}
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							disabled={updatingUnityPaths}
+							onClick={updateUnityPaths}
+							size={"sm"}
+							className={"m-1"}
+						>
+							{tc("settings:button:reload unity from unity hub")}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>
+						{tc("settings:tooltip:reload unity from unity hub")}
+					</TooltipContent>
+				</Tooltip>
+				<Button
+					disabled={updatingUnityPaths}
+					onClick={addUnity}
+					size={"sm"}
+					className={"m-1"}
+				>
 					{tc("settings:button:add unity")}
 				</Button>
 			</div>
-			<ScrollableCardTable className="w-full min-h-[20vh]">
+			<ScrollableCardTable
+				className={`w-full min-h-[20vh] ${updatingUnityPaths ? "opacity-50" : ""}`}
+			>
 				<thead>
 					<tr>
 						{UNITY_TABLE_HEAD.map((head, index) => (

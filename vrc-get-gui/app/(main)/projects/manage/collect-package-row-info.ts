@@ -6,6 +6,7 @@ import type {
 	TauriUserRepository,
 	TauriVersion,
 } from "@/lib/bindings";
+import { VRCSDK_PACKAGES } from "@/lib/constants";
 import {
 	compareUnityVersion,
 	compareVersion,
@@ -44,12 +45,6 @@ export interface PackageRowInfo {
 	latest: PackageLatestInfo;
 	stableLatest: PackageLatestInfo;
 }
-
-export const VRCSDK_PACKAGES = [
-	"com.vrchat.avatars",
-	"com.vrchat.worlds",
-	"com.vrchat.base",
-];
 
 export function combinePackagesAndProjectDetails(
 	packages: TauriPackage[],

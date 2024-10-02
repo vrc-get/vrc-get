@@ -17,7 +17,7 @@ export function HeadingPageName({
 					currentPage={pageType}
 					targetPage={"/packages/repositories"}
 				>
-					{tc("packages:community repositories")}
+					{tc("packages:repositories")}
 				</HeadingButton>
 				<HeadingButton
 					currentPage={pageType}

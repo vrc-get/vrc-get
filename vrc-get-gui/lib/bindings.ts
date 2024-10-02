@@ -146,6 +146,15 @@ async environmentGetDefaultUnityArguments() : Promise<string[]> {
 async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null) : Promise<null> {
     return await TAURI_INVOKE("environment_set_default_unity_arguments", { defaultUnityArguments });
 },
+async environmentUpdateUnityPathsFromUnityHub() : Promise<boolean> {
+    return await TAURI_INVOKE("environment_update_unity_paths_from_unity_hub");
+},
+async environmentIsLoadingFromUnityHubInProgress() : Promise<boolean> {
+    return await TAURI_INVOKE("environment_is_loading_from_unity_hub_in_progress");
+},
+async environmentWaitForUnityHubUpdate() : Promise<void> {
+    await TAURI_INVOKE("environment_wait_for_unity_hub_update");
+},
 async projectDetails(projectPath: string) : Promise<TauriProjectDetails> {
     return await TAURI_INVOKE("project_details", { projectPath });
 },
@@ -256,7 +265,8 @@ export type TauriBasePackageInfo = { name: string; display_name: string | null; 
 export type TauriCallUnityForMigrationResult = { type: "ExistsWithNonZero"; status: string } | { type: "FinishedSuccessfully" }
 export type TauriConflictInfo = { packages: string[]; unity_conflict: boolean; unlocked_names: string[] }
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful"
-export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated" } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }
+export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated"; reason: TauriDuplicatedReason; duplicated_name: string } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }
+export type TauriDuplicatedReason = "URLDuplicated" | "IDDuplicated"
 export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null }
 export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] }
 export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { env_version: number; index: number; source: TauriPackageSource }

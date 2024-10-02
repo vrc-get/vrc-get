@@ -1,12 +1,11 @@
 use crate::commands::prelude::*;
 
+use crate::commands::environment::unity_hub::update_unity_paths_from_unity_hub;
 use log::{error, info};
 use std::io;
 use tauri::async_runtime::spawn;
 use tauri::{App, AppHandle, LogicalSize, Manager, State, WebviewWindow, WindowEvent};
-use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
-use vrc_get_vpm::unity_hub;
 
 trait WindowExt {
     fn make_fullscreen_ish(&self) -> tauri::Result<()>;
@@ -32,7 +31,7 @@ impl WindowExt for WebviewWindow {
 }
 pub fn startup(app: &mut App) {
     let handle = app.handle().clone();
-    tauri::async_runtime::spawn(async move {
+    spawn(async move {
         let state = handle.state();
         let io = handle.state();
         if let Err(e) = update_unity_hub(state, io).await {
@@ -41,7 +40,7 @@ pub fn startup(app: &mut App) {
     });
 
     let handle = app.handle().clone();
-    tauri::async_runtime::spawn(async move {
+    spawn(async move {
         if let Err(e) = open_main(handle).await {
             error!("failed to open main window: {e}");
         }
@@ -52,30 +51,13 @@ pub fn startup(app: &mut App) {
         io: State<'_, DefaultEnvironmentIo>,
     ) -> Result<(), io::Error> {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        let unity_hub_path = {
-            let mut settings = settings.load_mut(io.inner()).await?;
-            let Some(unity_hub_path) = find_unity_hub(&mut settings, io.inner()).await? else {
-                error!("Unity Hub not found");
-                settings.save().await?;
-                return Ok(());
-            };
-            settings.save().await?;
-            unity_hub_path
-        };
 
-        let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
-
-        {
-            let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-
-            connection
-                .update_unity_from_unity_hub_and_fs(&paths_from_hub, io.inner())
-                .await?;
-
-            connection.save(io.inner()).await?;
+        if update_unity_paths_from_unity_hub(&settings, &io).await? {
+            info!("finished updating unity from unity hub");
+        } else {
+            error!("Unity Hub not found");
         }
 
-        info!("finished updating unity from unity hub");
         Ok(())
     }
 

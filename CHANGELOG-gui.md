@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog].
 - Improved behavior with downloading package error `#1557`
 - Installing unlocked package is now possible with warning `#1557`
 - Added many logs for installing package `#1557`
+- Migration feature is no longer marked as experimental `#1559`
+- Several UX improvements `#1561` `#1565`
 
 ### Deprecated
 

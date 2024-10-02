@@ -1,7 +1,7 @@
 use futures::future::{join_all, try_join_all};
 use indexmap::IndexMap;
 use log::info;
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -193,9 +193,23 @@ pub struct TauriRemoteRepositoryInfo {
 #[serde(tag = "type")]
 pub enum TauriDownloadRepository {
     BadUrl,
-    Duplicated,
-    DownloadError { message: String },
-    Success { value: TauriRemoteRepositoryInfo },
+    Duplicated {
+        reason: TauriDuplicatedReason,
+        // "com.vrchat.repos.official" or "com.vrchat.repos.curated" means such repository
+        duplicated_name: String,
+    },
+    DownloadError {
+        message: String,
+    },
+    Success {
+        value: TauriRemoteRepositoryInfo,
+    },
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+pub enum TauriDuplicatedReason {
+    URLDuplicated,
+    IDDuplicated,
 }
 
 #[tauri::command]
@@ -230,40 +244,60 @@ pub async fn environment_download_repository(
     }
 }
 
-fn user_repo_urls(settings: &Settings) -> HashSet<String> {
+fn user_repo_urls(settings: &Settings) -> HashMap<String, String> {
     let mut user_repo_urls = settings
         .get_user_repos()
         .iter()
-        .flat_map(|x| x.url())
-        .map(|x| x.to_string())
-        .collect::<HashSet<_>>();
+        .flat_map(|x| {
+            x.url().map(|u| {
+                (
+                    u.to_string(),
+                    x.name().or(x.id()).unwrap_or(u.as_str()).to_string(),
+                )
+            })
+        })
+        .collect::<HashMap<String, String>>();
 
     if !settings.ignore_curated_repository() {
         // should we check more urls?
-        user_repo_urls.insert("https://packages.vrchat.com/curated?download".to_owned());
+        user_repo_urls.insert(
+            "https://packages.vrchat.com/curated?download".to_owned(),
+            "com.vrchat.repos.official".to_string(),
+        );
     }
 
     if !settings.ignore_official_repository() {
-        user_repo_urls.insert("https://packages.vrchat.com/official?download".to_owned());
+        user_repo_urls.insert(
+            "https://packages.vrchat.com/official?download".to_owned(),
+            "com.vrchat.repos.curated".to_string(),
+        );
     }
 
     user_repo_urls
 }
 
-fn user_repo_ids(settings: &Settings) -> HashSet<String> {
+fn user_repo_ids(settings: &Settings) -> HashMap<String, String> {
     let mut user_repo_ids = settings
         .get_user_repos()
         .iter()
-        .flat_map(|x| x.id())
-        .map(|x| x.to_string())
-        .collect::<HashSet<_>>();
+        .flat_map(|x| {
+            x.id()
+                .map(|i| (i.to_string(), x.name().unwrap_or(i).to_string()))
+        })
+        .collect::<HashMap<String, String>>();
 
     if !settings.ignore_curated_repository() {
-        user_repo_ids.insert("com.vrchat.repos.curated".to_owned());
+        user_repo_ids.insert(
+            "com.vrchat.repos.curated".to_owned(),
+            "com.vrchat.repos.curated".to_string(),
+        );
     }
 
     if !settings.ignore_official_repository() {
-        user_repo_ids.insert("com.vrchat.repos.official".to_owned());
+        user_repo_ids.insert(
+            "com.vrchat.repos.official".to_owned(),
+            "com.vrchat.repos.official".to_string(),
+        );
     }
 
     user_repo_ids
@@ -273,11 +307,14 @@ async fn download_one_repository(
     client: &impl HttpClient,
     repository_url: &Url,
     headers: &IndexMap<Box<str>, Box<str>>,
-    user_repo_urls: &HashSet<String>,
-    user_repo_ids: &HashSet<String>,
+    user_repo_urls: &HashMap<String, String>,
+    user_repo_ids: &HashMap<String, String>,
 ) -> Result<TauriDownloadRepository, RustError> {
-    if user_repo_urls.contains(repository_url.as_str()) {
-        return Ok(TauriDownloadRepository::Duplicated);
+    if let Some(name) = user_repo_urls.get(repository_url.as_str()) {
+        return Ok(TauriDownloadRepository::Duplicated {
+            reason: TauriDuplicatedReason::URLDuplicated,
+            duplicated_name: name.to_string(),
+        });
     }
 
     let repo = match RemoteRepository::download(client, repository_url, headers).await {
@@ -292,8 +329,11 @@ async fn download_one_repository(
     let url = repo.url().unwrap_or(repository_url).as_str();
     let id = repo.id().unwrap_or(url);
 
-    if user_repo_ids.contains(id) {
-        return Ok(TauriDownloadRepository::Duplicated);
+    if let Some(name) = user_repo_ids.get(id) {
+        return Ok(TauriDownloadRepository::Duplicated {
+            reason: TauriDuplicatedReason::IDDuplicated,
+            duplicated_name: name.to_string(),
+        });
     }
 
     Ok(TauriDownloadRepository::Success {
@@ -476,11 +516,14 @@ pub async fn environment_import_download_repositories(
 
                 for (_, downloaded) in results.as_mut_slice() {
                     if let TauriDownloadRepository::Success { value } = &downloaded {
-                        if user_repo_ids.contains(&value.id) {
+                        if let Some(name) = user_repo_ids.get(&value.id) {
                             info!("duplicated repository in list: {}", value.url);
-                            *downloaded = TauriDownloadRepository::Duplicated;
+                            *downloaded = TauriDownloadRepository::Duplicated {
+                                reason: TauriDuplicatedReason::IDDuplicated,
+                                duplicated_name: name.to_string(),
+                            };
                         } else {
-                            user_repo_ids.insert(value.id.to_string());
+                            user_repo_ids.insert(value.id.to_string(), value.display_name.clone());
                         }
                     }
                 }

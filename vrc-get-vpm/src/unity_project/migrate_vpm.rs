@@ -64,11 +64,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
         installer: &impl PackageInstaller,
         include_prerelease: bool,
     ) -> Result {
-        migrate_vpm_beta(self, collection, installer, include_prerelease).await
+        migrate_vpm(self, collection, installer, include_prerelease).await
     }
 }
 
-async fn migrate_vpm_beta(
+async fn migrate_vpm(
     project: &mut UnityProject<impl ProjectIo>,
     collection: &impl PackageCollection,
     installer: &impl PackageInstaller,

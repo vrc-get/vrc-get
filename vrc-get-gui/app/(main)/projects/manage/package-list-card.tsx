@@ -294,6 +294,7 @@ export const PackageListCard = memo(function PackageListCard({
 					bulkRemoveAll={onRemoveBulkRequested}
 					bulkInstallOrUpgradeAll={onInstallOrUpgradeBulkRequested}
 					bulkReinstallAll={onBulkReinstallRequested}
+					count={bulkUpdatePackageIds.length}
 					cancel={() => setBulkUpdatePackageIds([])}
 				/>
 				<ScrollableCardTable>
@@ -603,12 +604,14 @@ function BulkUpdateCard({
 	bulkRemoveAll,
 	bulkReinstallAll,
 	bulkInstallOrUpgradeAll,
+	count,
 	cancel,
 }: {
 	bulkUpdateMode: BulkUpdateMode;
 	bulkRemoveAll?: () => void;
 	bulkReinstallAll?: () => void;
 	bulkInstallOrUpgradeAll?: (stable: boolean) => void;
+	count: number;
 	cancel?: () => void;
 }) {
 	if (!bulkUpdateMode.hasPackages) return null;
@@ -648,6 +651,9 @@ function BulkUpdateCard({
 			)}
 			<ButtonDisabledIfLoading onClick={cancel}>
 				{tc("projects:manage:button:clear selection")}
+				{" ("}
+				{tc("projects:manage:n packages selected", { count })}
+				{")"}
 			</ButtonDisabledIfLoading>
 		</Card>
 	);

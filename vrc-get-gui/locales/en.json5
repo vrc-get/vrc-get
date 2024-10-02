@@ -137,6 +137,7 @@
     "projects:dialog:multiple unity found": "Multiple Unity installations of the version were found.",
     "projects:dialog:keep using this version": "Keep using this version",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
+    "projects:toast:loading unity from unity hub": "Loading Unity from Unity Hub...",
     "projects:toast:match version unity not found": "Unity {{unity}} is not found. Please install Unity in your computer or add a Unity version in the ALCOM settings.",
     "projects:toast:unity already running": "Unity is already running.",
     "projects:toast:unity exits with non-zero": "Unity exited with non-zero code.",
@@ -145,7 +146,7 @@
     "projects:tooltip:sdk2 migration hint": "Legacy SDK2 project cannot be migrated automatically.<br>Please migrate to SDK3 manually first.",
     "projects:tooltip:git-vcc not supported": "git-VCC projects are not supported.",
     "projects:dialog:vpm migrate header": "Migrate legacy project",
-    "projects:dialog:vpm migrate description": "Project migration is an experimental feature in vrc-get. <br>Please make a backup of your project before migration.",
+    "projects:dialog:vpm migrate description": "Migrating project might loose your changes. Please make a backup of your project before migration.",
     "projects:button:migrate copy": "Migrate a Copy",
     "projects:button:migrate in-place": "Migrate in-place",
     "projects:pre-migrate copying...": "Copying project for migration...",
@@ -206,6 +207,8 @@
     "projects:manage:button:reinstall selected": "Reinstall Selected",
     "projects:manage:button:uninstall selected": "Uninstall Selected",
     "projects:manage:button:clear selection": "Clear Selection",
+    "projects:manage:n packages selected_one": "{{count}} package selected",
+    "projects:manage:n packages selected_other": "{{count}} packages selected",
     "projects:manage:toast:no upgradable": "No upgradable package",
     "projects:manage:toast:package installed": "{{name}} version {{version}} was installed successfully.",
     // V used in single operation
@@ -279,10 +282,11 @@
     "vpm repositories:source:curated": "Curated",
     "vpm repositories:source:local": "User Local",
 
-    "packages:community repositories": "Community Repositories",
+    "packages:repositories": "Repositories",
     "vpm repositories:url": "URL",
     "vpm repositories:button:add repository": "Add Repository",
     "vpm repositories:remove repository": "Remove Repository",
+    "vpm repositories:tooltip:remove curated or official repository": "You cannot remove curated or official repository",
     "vpm repositories:button:import repositories": "Import Repository List",
     "vpm repositories:button:export repositories": "Export Repository List",
 
@@ -296,6 +300,8 @@
 
     "vpm repositories:dialog:downloading...": "Downloading the repository...",
     "vpm repositories:dialog:already added": "This repository was already added.",
+    "vpm repositories:dialog:id duplicated": "The repository ID is same as repository named <b>{{name}}</b>.",
+    "vpm repositories:dialog:url duplicated": "The repository URL is same as repository named <b>{{name}}</b>.",
     "vpm repositories:dialog:name": "Name: <b>{{name}}</b>",
     "vpm repositories:dialog:url": "URL: {{url}}",
     "vpm repositories:dialog:packages": "Packages:",
@@ -350,6 +356,8 @@
     "settings:toast:unity hub path updated": "Updated Unity Hub successfully!",
 
     "settings:unity installations": "Unity Installations",
+    "settings:button:reload unity from unity hub": "Reload Unity from Unity Hub",
+    "settings:tooltip:reload unity from unity hub": "Loading Unity from Unity Hub took few tens of seconds.",
     "settings:button:add unity": "Add Unity",
     "settings:unity:version": "Unity Version",
     "settings:unity:path": "Unity Path",

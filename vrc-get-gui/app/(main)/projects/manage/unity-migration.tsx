@@ -9,6 +9,7 @@ import { assertNever } from "@/lib/assert-never";
 import type { TauriUnityVersions } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
+import { VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
@@ -62,9 +63,7 @@ function MigrationConfirmMigrationDialog({ cancel, doMigrate }: ConfirmProps) {
 	return (
 		<>
 			<DialogDescription>
-				<p className={"text-destructive"}>
-					{tc("projects:dialog:vpm migrate description")}
-				</p>
+				<p>{tc("projects:dialog:vpm migrate description")}</p>
 			</DialogDescription>
 			<DialogFooter>
 				<Button onClick={cancel} className="mr-1">
@@ -357,12 +356,11 @@ function detectChangeUnityKind(
 				: `upgrade${majorOrMinor}`;
 
 	if (isVRCProject) {
-		const supportedVersions = ["2019.4.31f1", "2022.3.6f1", "2022.3.22f1"];
 		return {
 			kind,
 			isVRC: true,
 			isTargetVersionSupportedByVRC:
-				supportedVersions.includes(targetUnityVersion),
+				VRCSDK_UNITY_VERSIONS.includes(targetUnityVersion),
 			targetUnityVersion,
 		};
 	} else {
