@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use tauri::{Emitter, EventId, Listener, Window};
+use tauri::{Emitter, EventId, Listener, Manager, State, Window};
 
 #[derive(Serialize, specta::Type)]
 #[serde(tag = "type")]
@@ -38,6 +38,13 @@ impl<P: Serialize + Clone> AsyncCommandContext<P> {
             Err(e) => Err(e),
             Ok(()) => Ok(()),
         }
+    }
+
+    pub(crate) fn state<T>(&self) -> State<T>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.window.state()
     }
 }
 
