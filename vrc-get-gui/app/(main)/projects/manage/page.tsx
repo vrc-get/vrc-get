@@ -211,45 +211,6 @@ function PageBody() {
 
 	console.log(`rerender: isloading: ${isLoading}`);
 
-	function checkIfMigrationTo2022Recommended(data: TauriProjectDetails) {
-		if (data.unity == null) return false;
-		// migrate if the project is using 2019 and has vrcsdk
-		if (data.unity[0] !== 2019) return false;
-		return data.installed_packages.some(([id, _]) =>
-			VRCSDK_PACKAGES.includes(id),
-		);
-	}
-
-	function checkIf2022PatchMigrationRecommended(
-		data: TauriProjectDetails,
-		unityData: TauriUnityVersions,
-	) {
-		if (
-			!data.installed_packages.some(([id, _]) => VRCSDK_PACKAGES.includes(id))
-		)
-			return false;
-
-		if (data.unity == null) return false;
-		if (data.unity[0] !== 2022) return false;
-		// unity patch is 2022. This warning should not be shown for a china version of unity.
-		return (
-			data.unity_str !== unityData.recommended_version &&
-			data.unity_str !== `${unityData.recommended_version}c1`
-		);
-	}
-
-	const isResolveRecommended = detailsResult?.data?.should_resolve;
-	const isMigrationTo2022Recommended =
-		detailsResult.status === "success" &&
-		checkIfMigrationTo2022Recommended(detailsResult.data);
-	const is2022PatchMigrationRecommended =
-		detailsResult.status === "success" &&
-		unityVersionsResult.status === "success" &&
-		checkIf2022PatchMigrationRecommended(
-			detailsResult.data,
-			unityVersionsResult.data,
-		);
-
 	const pageContext = useMemo(() => ({ isLoading }), [isLoading]);
 
 	return (
@@ -299,34 +260,18 @@ function PageBody() {
 						</div>
 					</div>
 				</Card>
-				{isResolveRecommended && (
+				{detailsResult?.data?.should_resolve && (
 					<SuggestResolveProjectCard
 						disabled={isLoading}
 						onResolveRequested={onResolveRequest}
 					/>
 				)}
-				{isMigrationTo2022Recommended && (
-					<SuggestMigrateTo2022Card
-						disabled={isLoading}
-						onMigrateRequested={() =>
-							requestChangeUnityVersion(
-								// biome-ignore lint/style/noNonNullAssertion: is2022PatchMigrationRecommended guards
-								unityVersionsResult.data?.recommended_version!,
-							)
-						}
-					/>
-				)}
-				{is2022PatchMigrationRecommended && (
-					<Suggest2022PatchMigrationCard
-						disabled={isLoading}
-						onMigrateRequested={() =>
-							requestChangeUnityVersion(
-								// biome-ignore lint/style/noNonNullAssertion: is2022PatchMigrationRecommended guards
-								unityVersionsResult.data?.recommended_version!,
-							)
-						}
-					/>
-				)}
+				<MigrationCards
+					isLoading={isLoading}
+					detailsResult={detailsResult.data}
+					unityVersionsResult={unityVersionsResult.data}
+					requestChangeUnityVersion={requestChangeUnityVersion}
+				/>
 				<main className="flex-shrink overflow-hidden flex w-full">
 					<PackageListCard
 						projectPath={projectPath}
@@ -461,6 +406,60 @@ function SuggestResolveProjectCard({
 				{tc("projects:manage:button:resolve")}
 			</Button>
 		</Card>
+	);
+}
+
+function MigrationCards({
+	isLoading,
+	detailsResult,
+	unityVersionsResult,
+	requestChangeUnityVersion,
+}: {
+	isLoading: boolean;
+	detailsResult?: TauriProjectDetails;
+	unityVersionsResult?: TauriUnityVersions;
+	requestChangeUnityVersion: (version: string) => void;
+}) {
+	if (detailsResult == null) return null;
+	if (unityVersionsResult == null) return null;
+	if (detailsResult.unity == null) return false;
+	if (detailsResult.unity_str == null) return false;
+
+	const isVRChatProject = detailsResult.installed_packages.some(([id, _]) =>
+		VRCSDK_PACKAGES.includes(id),
+	);
+
+	// we only migrate VRChat project (for now)
+	if (!isVRChatProject) return null;
+
+	// for 2019 projects, VRChat recommends migrating to 2022
+	const isMigrationTo2022Recommended = detailsResult.unity[0] === 2019;
+	const is2022PatchMigrationRecommended =
+		detailsResult.unity[0] === 2022 &&
+		compareUnityVersionString(
+			detailsResult.unity_str,
+			unityVersionsResult.recommended_version,
+		) !== 0;
+
+	return (
+		<>
+			{isMigrationTo2022Recommended && (
+				<SuggestMigrateTo2022Card
+					disabled={isLoading}
+					onMigrateRequested={() =>
+						requestChangeUnityVersion(unityVersionsResult.recommended_version)
+					}
+				/>
+			)}
+			{is2022PatchMigrationRecommended && (
+				<Suggest2022PatchMigrationCard
+					disabled={isLoading}
+					onMigrateRequested={() =>
+						requestChangeUnityVersion(unityVersionsResult.recommended_version)
+					}
+				/>
+			)}
+		</>
 	);
 }
 
