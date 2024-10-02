@@ -15,6 +15,7 @@ interface GlobalInfo {
 	localAppData: string; // empty string for non-windows
 	defaultUnityArguments: string[];
 	vpmHomeFolder: string;
+	checkForUpdates: boolean;
 }
 
 const fallbackGlobalInfo: Readonly<GlobalInfo> = {
@@ -29,6 +30,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	localAppData: "",
 	defaultUnityArguments: [],
 	vpmHomeFolder: "",
+	checkForUpdates: false,
 };
 
 const globalInfo: Readonly<GlobalInfo> = load();
