@@ -11,6 +11,8 @@ frontendDist = "out"
 active = true
 targets = [
     "appimage",
+    "deb",
+    "rpm",
     "nsis", #-setup.exe
     "app", # needs for dmg
     "dmg",

@@ -191,6 +191,9 @@ jobs:
               bundle/appimage/ALCOM_${GUI_VERSION}_amd64.AppImage.tar.gz:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz
               bundle/appimage/ALCOM_${GUI_VERSION}_amd64.AppImage.tar.gz.sig:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz.sig
 
+              bundle/deb/ALCOM_${GUI_VERSION}_amd64.deb:alcom_${GUI_VERSION}_amd64.deb
+              bundle/rpm/ALCOM-${GUI_VERSION}-1.x86_64.rpm:alcom-${GUI_VERSION}-1.x86_64.rpm
+
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
             esigner: true
