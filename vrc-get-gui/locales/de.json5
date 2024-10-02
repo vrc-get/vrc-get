@@ -137,6 +137,7 @@
     "projects:dialog:multiple unity found": "Es wurden mehrere Unity Installationen mit dieser Version gefunden.",
     "projects:dialog:keep using this version": "Diese Version weiterhin verwenden",
     "projects:toast:invalid project unity version": "Wir konnten keine gültige Unity Installation finden",
+    "projects:toast:loading unity from unity hub": "Lade Unity von Unity Hub...",
     "projects:toast:match version unity not found": "Unity Version {{unity}} nicht gefunden. Bitte installiere diese oder füge sie in den Einstellungen hinzu.",
     "projects:toast:unity already running": "Unity wird bereits ausgeführt.",
     "projects:toast:unity exits with non-zero": "Unity wurde unerwartet geschlossen.",
@@ -146,6 +147,7 @@
     "projects:tooltip:git-vcc not supported": "git-VCC Projekte werden nicht unterstützt",
     "projects:dialog:vpm migrate header": "VPM Migration",
     "projects:dialog:vpm migrate description": "Projektmigration mit vrc-get ist experimentell.<br>Bitte erstelle ein Backup vor der Migration.",
+    "projects:button:backup and migrate": "Backup und Migrieren",
     "projects:button:migrate copy": "Kopie migrieren",
     "projects:button:migrate in-place": "Direkt migrieren",
     "projects:pre-migrate copying...": "Kopiere Projekt für Migration...",
@@ -156,6 +158,7 @@
 
     "projects:dialog:backup header": "Backup erstellen",
     "projects:dialog:creating backup...": "Erstelle Backup, bitte warten...",
+    "projects:dialog:proceed k/n": "Verarbeite {{count}}/{{total}} Einträge",
     "projects:toast:backup canceled": "Backup abgebrochen",
     "projects:toast:backup succeeded": "Backup erfolgreich erstellt",
 
@@ -206,6 +209,8 @@
     "projects:manage:button:reinstall selected": "Neu installieren",
     "projects:manage:button:uninstall selected": "Deinstallieren",
     "projects:manage:button:clear selection": "Auswahl aufheben",
+    "projects:manage:n packages selected_one": "{{count}} Paket ausgewählt",
+    "projects:manage:n packages selected_other": "{{count}} Pakete ausgewählt",
     "projects:manage:toast:no upgradable": "Keine aktualisierbaren Pakete",
     "projects:manage:toast:package installed": "Installiert {{name}} Version {{version}}",
     // V used in single operation
@@ -266,6 +271,7 @@
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> unterstützt deine Unity Version nicht.",
     // TODO: plurals
     "projects:manage:dialog:files and directories are removed as legacy": "Die folgenden veralteten Daten und Ordner werden entfernt",
+    "projects:manage:dialog:packages installed in the following directories will be removed": "Pakete die in diesem Verzeichnis installiert sind werden entfernt.",
     "projects:manage:button:see changelog": "Changelog anzeigen",
     "projects:manage:button:apply changes": "Änderungen anwenden",
     "projects:manage:button:apply": "Anwenden",
@@ -277,10 +283,11 @@
     "vpm repositories:source:curated": "Geprüft",
     "vpm repositories:source:local": "Benutzerdefiniert",
 
-    "packages:community repositories": "Community Paketquellen",
+    "packages:repositories": "Paketquellen",
     "vpm repositories:url": "URL",
     "vpm repositories:button:add repository": "Paketquelle hinzufügen",
     "vpm repositories:remove repository": "Paketquelle entfernen",
+    "vpm repositories:tooltip:remove curated or official repository": "Offizielle oder geprüfte Paketquellen können nicht entfernt werden.",
     "vpm repositories:button:import repositories": "Importiere Paketquellen",
     "vpm repositories:button:export repositories": "Exportiere Paketquellen",
 
@@ -294,6 +301,8 @@
 
     "vpm repositories:dialog:downloading...": "Lade Paketquelle...",
     "vpm repositories:dialog:already added": "Diese Paketquelle wurde bereits hinzugefügt.",
+    "vpm repositories:dialog:id duplicated": "Die Paketquellen-ID ist identisch mit der Paketquelle <b>{{name}}</b>.",
+    "vpm repositories:dialog:url duplicated": "Die Paketquellen-URL ist identisch mit der Paketquelle <b>{{name}}</b>.",
     "vpm repositories:dialog:name": "Name: <b>{{name}}</b>",
     "vpm repositories:dialog:url": "URL: {{url}}",
     "vpm repositories:dialog:packages": "Pakete:",
@@ -348,6 +357,8 @@
     "settings:toast:unity hub path updated": "Unity Hub erfolgreich aktualisiert!",
 
     "settings:unity installations": "Unity Installationen",
+    "settings:button:reload unity from unity hub": "Lade Unity von Unity Hub",
+    "settings:tooltip:reload unity from unity hub": "Unity vom Unity Hub zu laden dauert einige Sekunden.",
     "settings:button:add unity": "Unity hinzufügen",
     "settings:unity:version": "Version",
     "settings:unity:path": "Pfad",
