@@ -329,7 +329,7 @@ async fn download_one_repository(
     let url = repo.url().unwrap_or(repository_url).as_str();
     let id = repo.id().unwrap_or(url);
 
-    if let Some(name) = user_repo_ids.get(repository_url.as_str()) {
+    if let Some(name) = user_repo_ids.get(id) {
         return Ok(TauriDownloadRepository::Duplicated {
             reason: TauriDuplicatedReason::IDDuplicated,
             duplicated_name: name.to_string(),

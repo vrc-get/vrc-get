@@ -15,13 +15,14 @@ The format is based on [Keep a Changelog].
 - Installing unlocked package is now possible with warning `#1557`
 - Added many logs for installing package `#1557`
 - Migration feature is no longer marked as experimental `#1559`
-- Several UX improvements `#1561`
+- Several UX improvements `#1561` `#1565` `#1569`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Clicking VCC link while adding vpm repository would close previously opened add repository dialog `#1570`
 
 ### Security
 
