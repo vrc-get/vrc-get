@@ -19,9 +19,11 @@ import {
 	TooltipPortal,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { assertNever } from "@/lib/assert-never";
 import { useBackupProjectModal } from "@/lib/backup-project";
 import type {
 	TauriCopyProjectForMigrationProgress,
+	TauriCreateBackupProgress,
 	TauriProject,
 	TauriProjectType,
 } from "@/lib/bindings";
@@ -340,8 +342,14 @@ function MigrateButton({
 				progress: TauriCopyProjectForMigrationProgress;
 		  }
 		| {
+				type: "migrateVpm:backingUpProject";
+				progress: TauriCreateBackupProgress;
+		  }
+		| {
 				type: "migrateVpm:updating";
 		  };
+
+	type ProjectBackupType = "none" | "copy" | "backupArchive";
 
 	const [dialogStatus, setDialogStatus] = useState<MigrateState>({
 		type: "normal",
@@ -355,34 +363,63 @@ function MigrateButton({
 		setDialogStatus({ type: "migrateVpm:confirm" });
 	};
 
-	const doMigrateVpm = async (inPlace: boolean) => {
+	const doMigrateVpm = async (backupType: ProjectBackupType) => {
 		setDialogStatus({ type: "normal" });
 		try {
 			let migrateProjectPath: string;
-			if (inPlace) {
-				migrateProjectPath = project.path;
-			} else {
-				// copy
-				setDialogStatus({
-					type: "migrateVpm:copyingProject",
-					progress: {
-						proceed: 0,
-						total: 1,
-						last_proceed: "Collecting files...",
-					},
-				});
-				const [, promise] = callAsyncCommand(
-					commands.environmentCopyProjectForMigration,
-					[project.path],
-					(progress) => {
-						setDialogStatus((prev) => {
-							if (prev.type !== "migrateVpm:copyingProject") return prev;
-							if (prev.progress.proceed > progress.proceed) return prev;
-							return { ...prev, progress };
-						});
-					},
-				);
-				migrateProjectPath = await promise;
+			switch (backupType) {
+				case "none":
+					migrateProjectPath = project.path;
+					break;
+				case "copy": {
+					setDialogStatus({
+						type: "migrateVpm:copyingProject",
+						progress: {
+							proceed: 0,
+							total: 1,
+							last_proceed: "Collecting files...",
+						},
+					});
+					const [, promise] = callAsyncCommand(
+						commands.environmentCopyProjectForMigration,
+						[project.path],
+						(progress) => {
+							setDialogStatus((prev) => {
+								if (prev.type !== "migrateVpm:copyingProject") return prev;
+								if (prev.progress.proceed > progress.proceed) return prev;
+								return { ...prev, progress };
+							});
+						},
+					);
+					migrateProjectPath = await promise;
+					break;
+				}
+				case "backupArchive": {
+					setDialogStatus({
+						type: "migrateVpm:backingUpProject",
+						progress: {
+							proceed: 0,
+							total: 1,
+							last_proceed: "Collecting files...",
+						},
+					});
+					const [, promise] = callAsyncCommand(
+						commands.projectCreateBackup,
+						[project.path],
+						(progress) => {
+							setDialogStatus((prev) => {
+								if (prev.type !== "migrateVpm:backingUpProject") return prev;
+								if (prev.progress.proceed > progress.proceed) return prev;
+								return { ...prev, progress };
+							});
+						},
+					);
+					await promise;
+					migrateProjectPath = project.path;
+					break;
+				}
+				default:
+					assertNever(backupType);
 			}
 			setDialogStatus({ type: "migrateVpm:updating" });
 			await commands.projectMigrateProjectToVpm(migrateProjectPath);
@@ -405,21 +442,20 @@ function MigrateButton({
 					<DialogDescription>
 						<p>{tc("projects:dialog:vpm migrate description")}</p>
 					</DialogDescription>
-					<DialogFooter>
-						<Button
-							onClick={() => setDialogStatus({ type: "normal" })}
-							className="mr-1"
-						>
+					<DialogFooter className={"gap-1"}>
+						<Button onClick={() => setDialogStatus({ type: "normal" })}>
 							{tc("general:button:cancel")}
 						</Button>
-						<Button
-							onClick={() => doMigrateVpm(false)}
-							variant={"destructive"}
-							className="mr-1"
-						>
+						<Button onClick={() => doMigrateVpm("backupArchive")}>
+							{tc("projects:button:backup and migrate")}
+						</Button>
+						<Button onClick={() => doMigrateVpm("copy")}>
 							{tc("projects:button:migrate copy")}
 						</Button>
-						<Button onClick={() => doMigrateVpm(true)} variant={"destructive"}>
+						<Button
+							onClick={() => doMigrateVpm("none")}
+							variant={"destructive"}
+						>
 							{tc("projects:button:migrate in-place")}
 						</Button>
 					</DialogFooter>
@@ -432,6 +468,26 @@ function MigrateButton({
 					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
 					<DialogDescription>
 						<p>{tc("projects:pre-migrate copying...")}</p>
+						<p>
+							{tc("projects:dialog:proceed k/n", {
+								count: dialogStatus.progress.proceed,
+								total: dialogStatus.progress.total,
+							})}
+						</p>
+						<Progress
+							value={dialogStatus.progress.proceed}
+							max={dialogStatus.progress.total}
+						/>
+					</DialogDescription>
+				</DialogOpen>
+			);
+			break;
+		case "migrateVpm:backingUpProject":
+			dialogContent = (
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+					<DialogDescription>
+						<p>{tc("projects:dialog:creating backup...")}</p>
 						<p>
 							{tc("projects:dialog:proceed k/n", {
 								count: dialogStatus.progress.proceed,

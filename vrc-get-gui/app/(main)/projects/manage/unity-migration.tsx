@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
 import type {
 	TauriCopyProjectForMigrationProgress,
+	TauriCreateBackupProgress,
 	TauriUnityVersions,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
@@ -69,18 +70,15 @@ function MigrationConfirmMigrationDialog({ cancel, doMigrate }: ConfirmProps) {
 			<DialogDescription>
 				<p>{tc("projects:dialog:vpm migrate description")}</p>
 			</DialogDescription>
-			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">
-					{tc("general:button:cancel")}
+			<DialogFooter className={"gap-1"}>
+				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
+				<Button onClick={() => doMigrate("backupArchive")}>
+					{tc("projects:button:backup and migrate")}
 				</Button>
-				<Button
-					onClick={() => doMigrate(false)}
-					variant={"destructive"}
-					className="mr-1"
-				>
+				<Button onClick={() => doMigrate("copy")}>
 					{tc("projects:button:migrate copy")}
 				</Button>
-				<Button onClick={() => doMigrate(true)} variant={"destructive"}>
+				<Button onClick={() => doMigrate("none")} variant={"destructive"}>
 					{tc("projects:button:migrate in-place")}
 				</Button>
 			</DialogFooter>
@@ -123,7 +121,7 @@ function MigrationConfirmMigrationPatchDialog({
 				<Button onClick={cancel} className="mr-1">
 					{tc("general:button:cancel")}
 				</Button>
-				<Button onClick={() => doMigrate(true)} variant={"destructive"}>
+				<Button onClick={() => doMigrate("none")} variant={"destructive"}>
 					{tc("projects:button:migrate in-place")}
 				</Button>
 			</DialogFooter>
@@ -306,7 +304,7 @@ function UnityVersionChange({
 				<Button onClick={cancel} className="mr-1">
 					{tc("general:button:cancel")}
 				</Button>
-				<Button onClick={() => doMigrate(true)} variant={"destructive"}>
+				<Button onClick={() => doMigrate("none")} variant={"destructive"}>
 					{tc("projects:button:change unity version")}
 				</Button>
 			</DialogFooter>
@@ -407,6 +405,11 @@ type StateInternal<Data> =
 			progress: TauriCopyProjectForMigrationProgress;
 	  }
 	| {
+			state: "backingUpProject";
+			data: Data;
+			progress: TauriCreateBackupProgress;
+	  }
+	| {
 			state: "updating";
 			data: Data;
 	  }
@@ -425,10 +428,12 @@ type ConfirmProps<Data = Record<string, never>> = {
 	result: FindUnityResult;
 	data: Data;
 	cancel: () => void;
-	doMigrate: (inPlace: boolean) => void;
+	doMigrate: (backupType: ProjectBackupType) => void;
 };
 
 type FindUnityResult = FindUnityFoundResult | FindUnityNotFoundResult;
+
+type ProjectBackupType = "none" | "copy" | "backupArchive";
 
 interface FindUnityFoundResult {
 	expectingVersion: string;
@@ -482,7 +487,7 @@ function useMigrationInternal<Data>({
 	};
 
 	const startChangeUnityVersion = async (
-		inPlace: boolean,
+		backupType: ProjectBackupType,
 		unityFound: UnityInstallation[],
 		data: Data,
 	) => {
@@ -491,13 +496,17 @@ function useMigrationInternal<Data>({
 				case 0:
 					throw new Error("unreachable");
 				case 1:
-					void continueChangeUnityVersion(inPlace, unityFound[0][0], data);
+					void continueChangeUnityVersion(backupType, unityFound[0][0], data);
 					break;
 				default: {
 					const selected = await unitySelector.select(unityFound);
 					if (selected == null) setInstallStatus({ state: "normal" });
 					else
-						void continueChangeUnityVersion(inPlace, selected.unityPath, data);
+						void continueChangeUnityVersion(
+							backupType,
+							selected.unityPath,
+							data,
+						);
 					break;
 				}
 			}
@@ -509,37 +518,67 @@ function useMigrationInternal<Data>({
 	};
 
 	const continueChangeUnityVersion = async (
-		inPlace: boolean,
+		backupType: ProjectBackupType,
 		unityPath: string,
 		data: Data,
 	) => {
 		try {
 			let migrateProjectPath: string;
-			if (inPlace) {
-				migrateProjectPath = projectPath;
-			} else {
-				// copy
-				setInstallStatus({
-					state: "copyingProject",
-					data,
-					progress: {
-						proceed: 0,
-						total: 1,
-						last_proceed: "Collecting files...",
-					},
-				});
-				const [, promise] = callAsyncCommand(
-					commands.environmentCopyProjectForMigration,
-					[projectPath],
-					(progress) => {
-						setInstallStatus((prev) => {
-							if (prev.state !== "copyingProject") return prev;
-							if (prev.progress.proceed > progress.proceed) return prev;
-							return { ...prev, progress };
-						});
-					},
-				);
-				migrateProjectPath = await promise;
+			switch (backupType) {
+				case "none":
+					migrateProjectPath = projectPath;
+					break;
+				case "copy": {
+					setInstallStatus({
+						state: "copyingProject",
+						data,
+						progress: {
+							proceed: 0,
+							total: 1,
+							last_proceed: "Collecting files...",
+						},
+					});
+					const [, promise] = callAsyncCommand(
+						commands.environmentCopyProjectForMigration,
+						[projectPath],
+						(progress) => {
+							setInstallStatus((prev) => {
+								if (prev.state !== "copyingProject") return prev;
+								if (prev.progress.proceed > progress.proceed) return prev;
+								return { ...prev, progress };
+							});
+						},
+					);
+					migrateProjectPath = await promise;
+					break;
+				}
+				case "backupArchive": {
+					setInstallStatus({
+						state: "backingUpProject",
+						data,
+						progress: {
+							proceed: 0,
+							total: 1,
+							last_proceed: "Collecting files...",
+						},
+					});
+					const [, promise] = callAsyncCommand(
+						commands.projectCreateBackup,
+						[projectPath],
+						(progress) => {
+							setInstallStatus((prev) => {
+								if (prev.state !== "backingUpProject") return prev;
+								if (prev.progress.proceed > progress.proceed) return prev;
+								return { ...prev, progress };
+							});
+						},
+					);
+					await promise;
+					migrateProjectPath = projectPath;
+					break;
+				}
+				default:
+					assertNever(backupType);
 			}
 			setInstallStatus({ state: "updating", data });
 			await updateProjectPreUnityLaunch(migrateProjectPath, data);
@@ -575,11 +614,10 @@ function useMigrationInternal<Data>({
 				default:
 					assertNever(finalizeResult);
 			}
-			if (inPlace) {
-				setInstallStatus({ state: "normal" });
+			setInstallStatus({ state: "normal" });
+			if (migrateProjectPath === projectPath) {
 				refresh?.();
 			} else {
-				setInstallStatus({ state: "normal" });
 				router.replace(
 					`/projects/manage?${new URLSearchParams({ projectPath: migrateProjectPath })}`,
 				);
@@ -609,9 +647,9 @@ function useMigrationInternal<Data>({
 					result={installStatus.findResult}
 					cancel={cancelChangeUnityVersion}
 					data={installStatus.data}
-					doMigrate={(inPlace) =>
+					doMigrate={(backupType) =>
 						startChangeUnityVersion(
-							inPlace,
+							backupType,
 							installStatus.findResult.installations,
 							installStatus.data,
 						)
@@ -623,6 +661,12 @@ function useMigrationInternal<Data>({
 			dialogHeaderForState = dialogHeader(installStatus.data);
 			dialogBodyForState = (
 				<MigrationCopyingDialog progress={installStatus.progress} />
+			);
+			break;
+		case "backingUpProject":
+			dialogHeaderForState = dialogHeader(installStatus.data);
+			dialogBodyForState = (
+				<MigrationBackingUpDialog progress={installStatus.progress} />
 			);
 			break;
 		case "updating":
@@ -673,6 +717,26 @@ function MigrationCopyingDialog({
 	return (
 		<DialogDescription>
 			<p>{tc("projects:pre-migrate copying...")}</p>
+			<p>
+				{tc("projects:dialog:proceed k/n", {
+					count: progress.proceed,
+					total: progress.total,
+				})}
+			</p>
+			<Progress value={progress.proceed} max={progress.total} />
+			<p>{tc("projects:do not close")}</p>
+		</DialogDescription>
+	);
+}
+
+function MigrationBackingUpDialog({
+	progress,
+}: {
+	progress: TauriCreateBackupProgress;
+}) {
+	return (
+		<DialogDescription>
+			<p>{tc("projects:dialog:creating backup...")}</p>
 			<p>
 				{tc("projects:dialog:proceed k/n", {
 					count: progress.proceed,
