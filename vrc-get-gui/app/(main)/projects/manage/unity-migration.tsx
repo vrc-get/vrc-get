@@ -5,8 +5,12 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
-import type { TauriUnityVersions } from "@/lib/bindings";
+import type {
+	TauriCopyProjectForMigrationProgress,
+	TauriUnityVersions,
+} from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
@@ -400,6 +404,7 @@ type StateInternal<Data> =
 	| {
 			state: "copyingProject";
 			data: Data;
+			progress: TauriCopyProjectForMigrationProgress;
 	  }
 	| {
 			state: "updating";
@@ -514,9 +519,27 @@ function useMigrationInternal<Data>({
 				migrateProjectPath = projectPath;
 			} else {
 				// copy
-				setInstallStatus({ state: "copyingProject", data });
-				migrateProjectPath =
-					await commands.environmentCopyProjectForMigration(projectPath);
+				setInstallStatus({
+					state: "copyingProject",
+					data,
+					progress: {
+						proceed: 0,
+						total: 1,
+						last_proceed: "Collecting files...",
+					},
+				});
+				const [, promise] = callAsyncCommand(
+					commands.environmentCopyProjectForMigration,
+					[projectPath],
+					(progress) => {
+						setInstallStatus((prev) => {
+							if (prev.state !== "copyingProject") return prev;
+							if (prev.progress.proceed > progress.proceed) return prev;
+							return { ...prev, progress };
+						});
+					},
+				);
+				migrateProjectPath = await promise;
 			}
 			setInstallStatus({ state: "updating", data });
 			await updateProjectPreUnityLaunch(migrateProjectPath, data);
@@ -598,7 +621,9 @@ function useMigrationInternal<Data>({
 			break;
 		case "copyingProject":
 			dialogHeaderForState = dialogHeader(installStatus.data);
-			dialogBodyForState = <MigrationCopyingDialog />;
+			dialogBodyForState = (
+				<MigrationCopyingDialog progress={installStatus.progress} />
+			);
 			break;
 		case "updating":
 			dialogHeaderForState = dialogHeader(installStatus.data);
@@ -640,10 +665,21 @@ function useMigrationInternal<Data>({
 	};
 }
 
-function MigrationCopyingDialog() {
+function MigrationCopyingDialog({
+	progress,
+}: {
+	progress: TauriCopyProjectForMigrationProgress;
+}) {
 	return (
 		<DialogDescription>
 			<p>{tc("projects:pre-migrate copying...")}</p>
+			<p>
+				{tc("projects:dialog:proceed k/n", {
+					count: progress.proceed,
+					total: progress.total,
+				})}
+			</p>
+			<Progress value={progress.proceed} max={progress.total} />
 			<p>{tc("projects:do not close")}</p>
 		</DialogDescription>
 	);

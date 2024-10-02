@@ -44,8 +44,8 @@ async environmentRemoveProject(listVersion: number, index: number, directory: bo
 async environmentRemoveProjectByPath(path: string, directory: boolean) : Promise<null> {
     return await TAURI_INVOKE("environment_remove_project_by_path", { path, directory });
 },
-async environmentCopyProjectForMigration(sourcePath: string) : Promise<string> {
-    return await TAURI_INVOKE("environment_copy_project_for_migration", { sourcePath });
+async environmentCopyProjectForMigration(channel: string, sourcePath: string) : Promise<AsyncCallResult<TauriCopyProjectForMigrationProgress, string>> {
+    return await TAURI_INVOKE("environment_copy_project_for_migration", { channel, sourcePath });
 },
 async environmentSetFavoriteProject(listVersion: number, index: number, favorite: boolean) : Promise<null> {
     return await TAURI_INVOKE("environment_set_favorite_project", { listVersion, index, favorite });
@@ -264,6 +264,7 @@ export type TauriAddUserPackageWithPickerResult = "NoFolderSelected" | "InvalidS
 export type TauriBasePackageInfo = { name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }
 export type TauriCallUnityForMigrationResult = { type: "ExistsWithNonZero"; status: string } | { type: "FinishedSuccessfully" }
 export type TauriConflictInfo = { packages: string[]; unity_conflict: boolean; unlocked_names: string[] }
+export type TauriCopyProjectForMigrationProgress = { total: number; proceed: number; last_proceed: string }
 export type TauriCreateBackupProgress = { total: number; proceed: number; last_proceed: string }
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful"
 export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated"; reason: TauriDuplicatedReason; duplicated_name: string } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }

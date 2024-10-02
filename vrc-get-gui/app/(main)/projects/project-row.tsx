@@ -12,6 +12,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 import {
 	Tooltip,
 	TooltipContent,
@@ -19,8 +20,13 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useBackupProjectModal } from "@/lib/backup-project";
-import type { TauriProject, TauriProjectType } from "@/lib/bindings";
+import type {
+	TauriCopyProjectForMigrationProgress,
+	TauriProject,
+	TauriProjectType,
+} from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
@@ -331,6 +337,7 @@ function MigrateButton({
 		  }
 		| {
 				type: "migrateVpm:copyingProject";
+				progress: TauriCopyProjectForMigrationProgress;
 		  }
 		| {
 				type: "migrateVpm:updating";
@@ -356,10 +363,26 @@ function MigrateButton({
 				migrateProjectPath = project.path;
 			} else {
 				// copy
-				setDialogStatus({ type: "migrateVpm:copyingProject" });
-				migrateProjectPath = await commands.environmentCopyProjectForMigration(
-					project.path,
+				setDialogStatus({
+					type: "migrateVpm:copyingProject",
+					progress: {
+						proceed: 0,
+						total: 1,
+						last_proceed: "Collecting files...",
+					},
+				});
+				const [, promise] = callAsyncCommand(
+					commands.environmentCopyProjectForMigration,
+					[project.path],
+					(progress) => {
+						setDialogStatus((prev) => {
+							if (prev.type !== "migrateVpm:copyingProject") return prev;
+							if (prev.progress.proceed > progress.proceed) return prev;
+							return { ...prev, progress };
+						});
+					},
 				);
+				migrateProjectPath = await promise;
 			}
 			setDialogStatus({ type: "migrateVpm:updating" });
 			await commands.projectMigrateProjectToVpm(migrateProjectPath);
@@ -409,6 +432,16 @@ function MigrateButton({
 					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
 					<DialogDescription>
 						<p>{tc("projects:pre-migrate copying...")}</p>
+						<p>
+							{tc("projects:dialog:proceed k/n", {
+								count: dialogStatus.progress.proceed,
+								total: dialogStatus.progress.total,
+							})}
+						</p>
+						<Progress
+							value={dialogStatus.progress.proceed}
+							max={dialogStatus.progress.total}
+						/>
 					</DialogDescription>
 				</DialogOpen>
 			);
