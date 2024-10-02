@@ -140,7 +140,8 @@
     "projects:tooltip:sdk2 migration hint": "SDK2のプロジェクトを自動で移行することはできません。<br>先に手動でSDK3へ移行してください。",
     "projects:tooltip:git-vcc not supported": "git-VCCのプロジェクトはサポートされていません。",
     "projects:dialog:vpm migrate header": "レガシープロジェクトを移行",
-    "projects:dialog:vpm migrate description": "プロジェクト移行では一部のデータが失われる場合があります。<br>移行前にバックアップを行うか、「複製して移行」を行うことをお勧めします。",
+    "projects:dialog:vpm migrate description": "プロジェクト移行では一部のデータが失われる場合があります。<br>「バックアップして移行」か「複製して移行」を行うことをお勧めします。",
+    "projects:button:backup and migrate": "バックアップして移行",
     "projects:button:migrate copy": "複製して移行",
     "projects:button:migrate in-place": "複製しないで移行",
     "projects:pre-migrate copying...": "プロジェクトを複製中...",
@@ -151,6 +152,7 @@
 
     "projects:dialog:backup header": "バックアップを作成",
     "projects:dialog:creating backup...": "バックアップを作成中...",
+    "projects:dialog:proceed k/n": "進捗: {{count}}/{{total}}",
     "projects:toast:backup canceled": "バックアップをキャンセルしました。",
     "projects:toast:backup succeeded": "バックアップを作成しました。",
 
