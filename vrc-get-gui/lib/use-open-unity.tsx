@@ -307,7 +307,7 @@ function AskForChinaRevision({
 					{tc(
 						"projects:dialog:unity version of the project not found but china found",
 						{
-							unity: expectedVersion,
+							expectedUnity: expectedVersion,
 							chinaUnity: chinaUnityVersion,
 						},
 					)}
@@ -346,8 +346,8 @@ function AskForInternationalRevision({
 					{tc(
 						"projects:dialog:unity version of the project not found but international found",
 						{
-							unity: expectedVersion,
-							chinaUnity: internationalUnityVersion,
+							expectedUnity: expectedVersion,
+							internationalUnity: internationalUnityVersion,
 						},
 					)}
 				</p>
