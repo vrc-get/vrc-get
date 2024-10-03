@@ -356,7 +356,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "The location is in LocalAppData folder, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
+    "settings:warning:in-local-app-data": "The location is in LocalAppData directory, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
     "settings:warning:whitespace": "The location contains whitespace. Whitespace in may cause problems with Unity and other tools. Please consider use another location.",
     "settings:warning:non-ascii": "The location contains non-ASCII characters. Non-ASCII characters in the location may cause problems with Unity. Please consider use another location.",
 
@@ -413,8 +413,8 @@
     "settings:files and directories:description": "Quickly access ALCOM related files and directories.",
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
-    "settings:button:open logs": "Log folder",
-    "settings:button:open custom templates": "Custom Templates Folder",
+    "settings:button:open logs": "Log Directory",
+    "settings:button:open custom templates": "Custom Templates Directory",
 
     "settings:check update": "Check for Updates",
     "settings:button:open issue": "Open an Issue",
