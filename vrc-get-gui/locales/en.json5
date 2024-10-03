@@ -152,7 +152,7 @@
     "projects:tooltip:sdk2 migration hint": "Legacy SDK2 project cannot be migrated automatically.<br>Please migrate to SDK3 manually first.",
     "projects:tooltip:git-vcc not supported": "git-VCC projects are not supported.",
     "projects:dialog:vpm migrate header": "Migrate legacy project",
-    "projects:dialog:vpm migrate description": "Migrating project might loose your changes. Please make a backup of your project before migration.",
+    "projects:dialog:vpm migrate description": "Migrating project might lose your changes. Please make a backup of your project before migration.",
     "projects:button:backup and migrate": "Backup and Migrate",
     "projects:button:migrate copy": "Migrate a Copy",
     "projects:button:migrate in-place": "Migrate in-place",
