@@ -137,10 +137,10 @@
     "projects:dialog:multiple unity found": "Multiple Unity installations of the version were found.",
     "projects:dialog:keep using this version": "Keep using this version",
     "projects:dialog:unity not found but china found": "Unity was not found but China version of Unity was found.",
-    "projects:dialog:unity version of the project not found but china found": "The Unity {{unity}} which is used in the project was not found.<br>However, we found China version of Unity {{chinaUnity}} in your computer.<br>Do you want to use the China version of Unity for this project?",
+    "projects:dialog:unity version of the project not found but china found": "The Unity {{expectedUnity}} which is used in the project was not found.<br>However, we found China version of Unity {{chinaUnity}} in your computer.<br>Do you want to use the China version of Unity for this project?",
     "projects:dialog:use china version": "Use China Version of Unity",
     "projects:dialog:unity not found but international found": "Unity was not found but international version of Unity was found.",
-    "projects:dialog:unity version of the project not found but international found": "The Unity {{unity}} which is used in the project was not found.<br>However, we found international version of Unity {{chinaUnity}} in your computer.<br>Do you want to use the international version of Unity for this project?",
+    "projects:dialog:unity version of the project not found but international found": "The Unity {{expectedUnity}} which is used in the project was not found.<br>However, we found international version of Unity {{internationalUnity}} in your computer.<br>Do you want to use the international version of Unity for this project?",
     "projects:dialog:use international version": "Use international Version of Unity",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
     "projects:toast:loading unity from unity hub": "Loading Unity from Unity Hub...",
@@ -356,7 +356,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "The location is in LocalAppData folder, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
+    "settings:warning:in-local-app-data": "The location is in LocalAppData directory, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
     "settings:warning:whitespace": "The location contains whitespace. Whitespace in may cause problems with Unity and other tools. Please consider use another location.",
     "settings:warning:non-ascii": "The location contains non-ASCII characters. Non-ASCII characters in the location may cause problems with Unity. Please consider use another location.",
 
@@ -413,8 +413,8 @@
     "settings:files and directories:description": "Quickly access ALCOM related files and directories.",
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
-    "settings:button:open logs": "Log folder",
-    "settings:button:open custom templates": "Custom Templates Folder",
+    "settings:button:open logs": "Log Directory",
+    "settings:button:open custom templates": "Custom Templates Directory",
 
     "settings:check update": "Check for Updates",
     "settings:button:open issue": "Open an Issue",
