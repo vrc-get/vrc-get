@@ -1,7 +1,7 @@
 use crate::io::BufReader;
 use crate::io::ProjectIo;
 use crate::utils::walk_dir_relative;
-use crate::PackageInfo;
+use crate::{PackageInfo, PackageManifest, UnityProject};
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
@@ -12,6 +12,7 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::pin::pin;
 
+#[derive(Default)]
 pub(crate) struct LegacyAssets<'a> {
     pub(crate) files: Vec<(Box<Path>, &'a str)>,
     pub(crate) folders: Vec<(Box<Path>, &'a str)>,
@@ -20,28 +21,59 @@ pub(crate) struct LegacyAssets<'a> {
 pub(crate) async fn collect_legacy_assets<'a>(
     io: &impl ProjectIo,
     packages: &[PackageInfo<'a>],
+    unity_project: &UnityProject<impl ProjectIo>,
 ) -> LegacyAssets<'a> {
-    let folders = packages.iter().flat_map(|pkg| {
-        let name = pkg.name();
-        pkg.package_json()
-            .legacy_folders()
-            .iter()
-            .map(|(path, guid)| {
-                DefinedLegacyInfo::new_dir(name, path, guid.as_deref().and_then(Guid::parse))
-            })
-    });
-    let files = packages.iter().flat_map(|pkg| {
-        let name = pkg.name();
-        pkg.package_json()
-            .legacy_files()
-            .iter()
-            .map(|(path, guid)| {
-                DefinedLegacyInfo::new_file(name, path, guid.as_deref().and_then(Guid::parse))
-            })
-    });
+    fn collect_legacy<'a, 'b>(
+        packages: &'b [PackageInfo<'a>],
+        unity_project: &'b UnityProject<impl ProjectIo>,
+        get_assets: impl Fn(&PackageManifest) -> &HashMap<Box<str>, Option<Box<str>>> + Copy + 'b,
+        new_legacy_info: impl Fn(&'a str, &'a str, Option<Guid>) -> DefinedLegacyInfo<'a> + Copy + 'b,
+    ) -> impl Iterator<Item = DefinedLegacyInfo<'a>> + 'b {
+        packages.iter().flat_map(move |pkg| {
+            let name = pkg.name();
+            let installed = unity_project.get_installed_package(name);
+            get_assets(pkg.package_json())
+                .iter()
+                .filter(move |(path, _)| {
+                    if let Some(installed) = installed {
+                        if get_assets(installed).contains_key(path.as_ref()) {
+                            debug!("skipping legacy asset {path} for {name} because it's defined in installed version");
+                            false
+                        } else {
+                            true
+                        }
+                    } else {
+                        true
+                    }
+                })
+                .map(move |(path, guid)| {
+                    new_legacy_info(name, path, guid.as_deref().and_then(Guid::parse))
+                })
+        })
+    }
+
+    let folders = collect_legacy(
+        packages,
+        unity_project,
+        PackageManifest::legacy_folders,
+        DefinedLegacyInfo::new_dir,
+    );
+
+    let files = collect_legacy(
+        packages,
+        unity_project,
+        PackageManifest::legacy_files,
+        DefinedLegacyInfo::new_file,
+    );
+
     // I think collecting here is not required for implementing Send for collect_legacy_assets,
     // but the compiler fails so collect it here.
     let assets = folders.chain(files).collect::<Vec<_>>();
+
+    if assets.is_empty() {
+        debug!("There are no legacy assets");
+        return LegacyAssets::default();
+    }
 
     debug!("Collecting legacy assets by Path notation");
     let (mut found_files, mut found_folders, find_guids) =

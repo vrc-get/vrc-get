@@ -368,7 +368,8 @@ impl<'env> Builder<'env> {
 
         debug!("Collecting legacy assets");
 
-        let legacy_assets = collect_legacy_assets(&unity_project.io, &installs).await;
+        let legacy_assets =
+            collect_legacy_assets(&unity_project.io, &installs, unity_project).await;
 
         debug!("Building PendingProjectChanges finished!");
 
