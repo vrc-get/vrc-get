@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog].
 - `rpm` `deb` packaging for Linux `#1575`
   - This is to test how good / bad `rpm` or `deb` distribution is.
   - We **may** create dnf / apt package repository in the future, but not planned for now.
+- Skipping finding legacy assets when downgrading / upgrading / reinstalling package `#1581`
+  - This will speed up the process of downgrading / upgrading / reinstalling package.
 
 ### Changed
 - Separated quick open actions to own settings box. [`#1496`](https://github.com/vrc-get/vrc-get/pull/1496)
