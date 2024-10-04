@@ -130,6 +130,12 @@
     "projects:dialog:select unity header": "选择 Unity",
     "projects:dialog:multiple unity found": "发现该版本有多个 Unity 安装。",
     "projects:dialog:keep using this version": "继续使用此版本",
+    "projects:dialog:unity not found but china found": "未找到匹配的 Unity 版本，但找到了对应的中国版 Unity。",
+    "projects:dialog:unity version of the project not found but china found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在您的设备中找到了对应的中国版 Unity {{chinaUnity}} 。<br>要让这个项目使用中国版 Unity 吗？",
+    "projects:dialog:use china version": "使用中国版 Unity",
+    "projects:dialog:unity not found but international found": "未找到匹配的 Unity 版本，但找到了对应的国际版 Unity。",
+    "projects:dialog:unity version of the project not found but international found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在你的设备中找到了对应的国际版 Unity {{internationalUnity}} 。<br>要让这个项目使用国际版 Unity 吗？",
+    "projects:dialog:use international version": "使用国际版 Unity",
     "projects:toast:invalid project unity version": "我们没有检测到合适的 Unity 版本",
     "projects:toast:loading unity from unity hub": "正在从 Unity Hub 获取已安装的 Unity...",
     "projects:toast:match version unity not found": "未找到匹配的 Unity 版本。请在 ALCOM 设置中安装或添加 Unity 版本",
@@ -141,6 +147,7 @@
     "projects:tooltip:git-vcc not supported": "不支持 git-VCC 项目",
     "projects:dialog:vpm migrate header": "迁移旧版项目",
     "projects:dialog:vpm migrate description": "迁移项目可能会导致您的所做的更改丢失。请在迁移前备份您的项目。",
+    "projects:button:backup and migrate": "备份并迁移",
     "projects:button:migrate copy": "迁移副本",
     "projects:button:migrate in-place": "原地迁移",
     "projects:pre-migrate copying...": "复制项目以进行迁移...",
@@ -151,6 +158,7 @@
 
     "projects:dialog:backup header": "备份项目",
     "projects:dialog:creating backup...": "正在创建备份...",
+    "projects:dialog:proceed k/n": "正在处理 {{count}}/{{total}}",
     "projects:toast:backup canceled": "备份操作已被取消。",
     "projects:toast:backup succeeded": "备份创建成功。",
 
@@ -174,6 +182,7 @@
 
     "projects:manage:suggest unity migration": "您的项目使用的是 VRChat SDK 不再支持的 Unity 2019。VRChat 建议您将项目迁移到 Unity 2022。",
     "projects:manage:suggest unity patch migration": "您的项目使用的是较旧版本的 Unity 2022。VRChat 建议您将项目迁移到较新版本的 Unity 2022。",
+    "projects:manage:suggest unity china to international migration": "您的项目使用的是中国版 Unity。我们建议您将项目迁移到国际版 Unity，以便更好地兼容 VRChat。",
     "projects:manage:button:unity migrate": "迁移项目",
 
     "projects:manage:manage packages": "管理软件包",
@@ -194,6 +203,8 @@
     "projects:manage:tooltip:upgrade package": "升级软件包",
     "projects:manage:tooltip:remove packages": "删除软件包",
     "projects:manage:tooltip:incompatible with unity": "与 Unity 不兼容",
+    // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
+    //     It might be better to write both upgrade and latest depending on the language I think.
     "projects:manage:button:install selected latest": "安装所选软件包（最新）",
     "projects:manage:button:install selected stable latest": "安装所选软件包（稳定）",
     "projects:manage:button:reinstall selected": "重装所选软件包",
@@ -202,15 +213,24 @@
     "projects:manage:n packages selected": "已选择 {{count}} 个软件包",
     "projects:manage:toast:no upgradable": "没有可升级的软件包",
     "projects:manage:toast:package installed": "已安装 {{name}} 版本 {{version}}。",
+    // V used in single operation
     "projects:manage:toast:the package has newer latest with incompatible unity": "软件包的更新版本与 Unity 版本不兼容。",
     "projects:manage:toast:package removed": "已删除 {{name}}。",
     "projects:manage:toast:resolved": "已解决软件包依赖性问题。",
     "projects:manage:toast:all packages upgraded": "所有软件包升级成功。",
     "projects:manage:toast:all packages reinstalled": "所有软件包重装成功。",
     "projects:manage:toast:selected packages installed": "所选软件包安装成功。",
+    // V used in bulk operation
     "projects:manage:toast:some package has newer latest with incompatible unity": "有些软件包的更新版本与 Unity 版本不兼容。",
     "projects:manage:toast:selected packages removed": "所选软件包删除成功。",
     "projects:manage:toast:selected packages reinstalled": "所选软件包重装成功。",
+
+    // Notes for translators:
+    // Each "projects:manage:dialog:(downgrade|upgrade) (major|minor)"
+    //   key has additional 2 variants for VRChat supported and unsupported.
+    //   (suffixed by " vrchat supported" and " vrchat unsupported"
+    // Even if english does not provide translation for VRChat supported and unsupported,
+    //   you can provide translation for them if you think it's better
     "projects:manage:dialog:unity change version header": "更改 Unity 版本",
     "projects:manage:dialog:downgrade major": "您将要把项目使用的 Unity 版本降级到另一个主要版本。这是一个不被 Unity 支持的操作，可能会损坏您的项目。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
     "projects:manage:dialog:downgrade minor": "您将要把项目使用的 Unity 版本降级。这是一个不被 Unity 支持的操作，可能会损坏您的项目。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
@@ -220,6 +240,7 @@
     "projects:manage:dialog:upgrade major": "您将要把项目使用的 Unity 版本升级到另一个主要版本。这将会变更您的库及脚本且需要重新构建。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
     "projects:manage:dialog:upgrade major vrchat supported": "您将要迁移项目的 Unity 版本。同时将会升级 VRCSDK，这可能会变更您的库及脚本且需要重新构建。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
     "projects:manage:dialog:upgrade major vrchat unsupported": "您将要迁移项目的 Unity 版本。同时将会升级 VRCSDK，这可能会变更您的库及脚本且需要重新构建。<br/>请在继续前备份您的项目。<br/>此外，该版本是一个不被 VRChat 支持的版本，所以在升级后您将无法继续上传您的项目。<br/>您想要继续吗？",
+    "projects:manage:dialog:changing china releases": "您将要迁移项目的 Unity 版本到不同地区的版本。这可能会变更您的库及脚本且需要重新构建。<br/>请在继续前备份您的项目。<br/>您想要继续吗？",
     "projects:button:change unity version": "更改 Unity 版本",
 
     "projects:dialog:launch options": "启动选项",
@@ -247,6 +268,7 @@
     "projects:manage:dialog:package version conflicts": "存在版本冲突。",
     "projects:manage:dialog:unity version conflicts": "存在 Unity 版本冲突。",
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> 不支持您的 Unity 版本。",
+    // TODO: plurals
     "projects:manage:dialog:files and directories are removed as legacy": "将删除以下旧文件和目录。",
     "projects:manage:dialog:packages installed in the following directories will be removed": "安装在以下目录中的软件包将被删除。",
     "projects:manage:button:see changelog": "查看更新日志",
@@ -264,7 +286,7 @@
     "vpm repositories:url": "URL",
     "vpm repositories:button:add repository": "添加存储库",
     "vpm repositories:remove repository": "删除存储库",
-    "vpm repositories:tooltip:remove curated or official repository": "您可以删除精选或官方存储库",
+    "vpm repositories:tooltip:remove curated or official repository": "您不可以删除官方或精选的存储库",
     "vpm repositories:button:import repositories": "导入存储库列表",
     "vpm repositories:button:export repositories": "导出存储库列表",
 
@@ -323,6 +345,8 @@
     "settings": "设置",
     "settings:error:load error": "加载设置时出错",
 
+    // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
+    // It's at Setting app > System > Recovery > Reset this PC
     "settings:warning:in-local-app-data": "该位置位于 LocalAppData 文件夹中，使用\"保留我的文件\"选项的\"重置此电脑\"功能重置系统后，该文件夹将被删除。\n建议选择其他位置。",
     "settings:warning:whitespace": "该位置包含空格，可能导致 Unity 或其他工具出现问题。请考虑使用其他位置。",
     "settings:warning:non-ascii": "该位置包含非 ASCII 字符，可能导致 Unity 出现问题。请考虑使用其他位置。",
