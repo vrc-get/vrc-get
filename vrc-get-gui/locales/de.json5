@@ -136,6 +136,12 @@
     "projects:dialog:select unity header": "Wähle Unity",
     "projects:dialog:multiple unity found": "Es wurden mehrere Unity Installationen mit dieser Version gefunden.",
     "projects:dialog:keep using this version": "Diese Version weiterhin verwenden",
+    "projects:dialog:unity not found but china found": "Chinesische Unity-Version gefunden.",
+    "projects:dialog:unity version of the project not found but china found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die Chinesische Unity Version {{chinaUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
+    "projects:dialog:use china version": "Verwende Chinesische Unity-Version",
+    "projects:dialog:unity not found but international found": "Internationale Unity-Version gefunden.",
+    "projects:dialog:unity version of the project not found but international found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die Internationale Unity Version {{internationalUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
+    "projects:dialog:use international version": "Verwende Internationale Unity-Version",
     "projects:toast:invalid project unity version": "Wir konnten keine gültige Unity Installation finden",
     "projects:toast:loading unity from unity hub": "Lade Unity von Unity Hub...",
     "projects:toast:match version unity not found": "Unity Version {{unity}} nicht gefunden. Bitte installiere diese oder füge sie in den Einstellungen hinzu.",
@@ -182,6 +188,7 @@
 
     "projects:manage:suggest unity migration": "Das Projekt verwendet Unity 2019, welches nicht mehr vom VRChat SDK unterstützt wird. Es wird empfohlen zu Unity 2022 zu migrieren.",
     "projects:manage:suggest unity patch migration": "Das Projekt verwendet einen älteren Unity 2022 patch. VRChat empfiehlt zu einer neueren Version von Unity 2022 zu migrieren.",
+    "projects:manage:suggest unity china to international migration": "Dieses Projekt verwendet die Chinesische Version von Unity. Für die beste Kompatibilität mit VRChat empfehlen wir die Internationale Version.",
     "projects:manage:button:unity migrate": "Migriere Projekt",
 
     "projects:manage:manage packages": "Pakete verwalten",
@@ -240,6 +247,7 @@
     "projects:manage:dialog:upgrade major": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Möchtest du fortfahren?",
     "projects:manage:dialog:upgrade major vrchat supported": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird das VRChat SDK aktualisieren, Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Möchtest du fortfahren?",
     "projects:manage:dialog:upgrade major vrchat unsupported": "Du bist dabei zu einer neueren Unity Version zu migrieren. Dies wird das VRChat SDK aktualisieren, Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Beachte dass die gewählte Unity Version vom VRChat SDK nicht unterstützt wird, Uploads sind daher nicht möglich.<br/>Möchtest du fortfahren?",
+    "projects:manage:dialog:changing china releases": "Du bist dabei die Unity Version dieses Projektes zu einer anderen China-Unity Version zu ändern. Dies wird Scripts neu kompilieren und den Cache zurücksetzen.<br/>Bitte erstelle ein Backup, bevor du die Migration durchführst.<br/>Möchtest du fortfahren?",
     "projects:button:change unity version": "Unity Version Ändern",
 
     "projects:dialog:launch options": "Startparameter Optionen",
