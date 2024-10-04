@@ -136,6 +136,12 @@
     "projects:dialog:select unity header": "Select Unity",
     "projects:dialog:multiple unity found": "Multiple Unity installations of the version were found.",
     "projects:dialog:keep using this version": "Keep using this version",
+    "projects:dialog:unity not found but china found": "Unity was not found but China version of Unity was found.",
+    "projects:dialog:unity version of the project not found but china found": "The Unity {{expectedUnity}} which is used in the project was not found.<br>However, we found China version of Unity {{chinaUnity}} in your computer.<br>Do you want to use the China version of Unity for this project?",
+    "projects:dialog:use china version": "Use China Version of Unity",
+    "projects:dialog:unity not found but international found": "Unity was not found but international version of Unity was found.",
+    "projects:dialog:unity version of the project not found but international found": "The Unity {{expectedUnity}} which is used in the project was not found.<br>However, we found international version of Unity {{internationalUnity}} in your computer.<br>Do you want to use the international version of Unity for this project?",
+    "projects:dialog:use international version": "Use international Version of Unity",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
     "projects:toast:loading unity from unity hub": "Loading Unity from Unity Hub...",
     "projects:toast:match version unity not found": "Unity {{unity}} is not found. Please install Unity in your computer or add a Unity version in the ALCOM settings.",
@@ -146,7 +152,7 @@
     "projects:tooltip:sdk2 migration hint": "Legacy SDK2 project cannot be migrated automatically.<br>Please migrate to SDK3 manually first.",
     "projects:tooltip:git-vcc not supported": "git-VCC projects are not supported.",
     "projects:dialog:vpm migrate header": "Migrate legacy project",
-    "projects:dialog:vpm migrate description": "Migrating project might loose your changes. Please make a backup of your project before migration.",
+    "projects:dialog:vpm migrate description": "Migrating project might lose your changes. Please make a backup of your project before migration.",
     "projects:button:backup and migrate": "Backup and Migrate",
     "projects:button:migrate copy": "Migrate a Copy",
     "projects:button:migrate in-place": "Migrate in-place",
@@ -182,6 +188,7 @@
 
     "projects:manage:suggest unity migration": "Your project is using Unity 2019 which is no longer supported by VRChat SDK. VRChat recommends you migrate your project to Unity 2022.",
     "projects:manage:suggest unity patch migration": "Your project is using a bit older version of Unity 2022. VRChat recommends you migrate your project to newer version of Unity 2022.",
+    "projects:manage:suggest unity china to international migration": "Your project is using China version of Unity. We recommend you to use International version of Unity for better compatibility with VRChat.",
     "projects:manage:button:unity migrate": "Migrate Project",
 
     "projects:manage:manage packages": "Manage Packages",
@@ -240,6 +247,7 @@
     "projects:manage:dialog:upgrade major": "You're upgrading Unity major version. This may change your scripts and Library might be rebuilt.<br/>Backup project before proceeding this.<br/>Do you want to continue?",
     "projects:manage:dialog:upgrade major vrchat supported": "You're migrating Unity version. This will upgrade VRCSDK, may change your scripts and Library might be rebuilt.<br/>Backup project before proceeding this.<br/>Do you want to continue?",
     "projects:manage:dialog:upgrade major vrchat unsupported": "You're migrating Unity version. This will upgrade VRCSDK, may change your scripts and Library might be rebuilt.<br/>Backup project before proceeding this.<br/>In addition, you will use VRChat unsupported Unity version, so you will not able to upload your contents to VRChat after upgrade.<br/>Do you want to continue?",
+    "projects:manage:dialog:changing china releases": "You're changing Unity version between China releases. This may change your scripts and Library might be rebuilt.<br/>Backup project before proceeding this.<br/>Do you want to continue?",
     "projects:button:change unity version": "Change Unity Version",
 
     "projects:dialog:launch options": "Launch Options",
@@ -348,7 +356,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "The location is in LocalAppData folder, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
+    "settings:warning:in-local-app-data": "The location is in LocalAppData directory, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
     "settings:warning:whitespace": "The location contains whitespace. Whitespace in may cause problems with Unity and other tools. Please consider use another location.",
     "settings:warning:non-ascii": "The location contains non-ASCII characters. Non-ASCII characters in the location may cause problems with Unity. Please consider use another location.",
 
@@ -405,8 +413,8 @@
     "settings:files and directories:description": "Quickly access ALCOM related files and directories.",
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
-    "settings:button:open logs": "Log folder",
-    "settings:button:open custom templates": "Custom Templates Folder",
+    "settings:button:open logs": "Log Directory",
+    "settings:button:open custom templates": "Custom Templates Directory",
 
     "settings:check update": "Check for Updates",
     "settings:button:open issue": "Open an Issue",

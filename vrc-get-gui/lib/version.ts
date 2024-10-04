@@ -78,6 +78,7 @@ export function compareUnityVersion(a: [number, number], b: [number, number]) {
 	return 0;
 }
 
+// This ignores china version changes
 export function compareUnityVersionString(a: string, b: string): 0 | 1 | -1 {
 	if (a === b) return 0;
 
@@ -117,10 +118,11 @@ interface UnityVersion {
 	patch: number;
 	channel: "a" | "b" | "f" | "c" | "p" | "x";
 	increment: number;
+	chinaIncrement: number | null;
 }
 
 export function parseUnityVersion(version: string): UnityVersion | null {
-	let match = version.match(/^(\d+)\.(\d+)\.(\d+)([abfcpx])(\d+)$/);
+	let match = version.match(/^(\d+)\.(\d+)\.(\d+)([abfcpx])(\d+)(?:c(\d+))?$/);
 	if (!match) {
 		match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
 		if (!match) {
@@ -133,6 +135,7 @@ export function parseUnityVersion(version: string): UnityVersion | null {
 		patch: Number.parseInt(match[3], 10),
 		channel: (match[4] || "f") as UnityVersion["channel"],
 		increment: Number.parseInt(match[5] || "1", 10),
+		chinaIncrement: match[6] ? Number.parseInt(match[6], 10) : null,
 	};
 }
 

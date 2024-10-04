@@ -43,6 +43,7 @@ pub struct GlobalInfo<'a> {
     local_app_data: &'a str,
     default_unity_arguments: &'a [&'a str],
     vpm_home_folder: &'a std::path::Path,
+    check_for_updates: bool,
 }
 
 pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
@@ -69,6 +70,12 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     let webview_version = tauri::webview_version();
     let webview_version = webview_version.as_deref().unwrap_or("unknown");
 
+    // we do not support updater with rpm or deb
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    let check_for_updates = true;
+    #[cfg(target_os = "linux")]
+    let check_for_updates = app.env().appimage.is_some();
+
     #[cfg(windows)]
     let local_app_data = crate::os::local_app_data();
     #[cfg(not(windows))]
@@ -86,6 +93,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         local_app_data,
         default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
         vpm_home_folder: &vpm_home_folder,
+        check_for_updates,
     };
 
     let mut script = b"globalThis.vrcGetGlobalInfo = ".to_vec();

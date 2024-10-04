@@ -24,46 +24,6 @@ import React, { Fragment, useCallback } from "react";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 
-function findRecommendedUnity(
-	unityVersions: TauriUnityVersions,
-): FindUnityResult {
-	const versions = unityVersions.unity_paths.filter(
-		([_p, v, _]) => v === unityVersions.recommended_version,
-	);
-
-	if (versions.length === 0) {
-		return {
-			expectingVersion: unityVersions.recommended_version,
-			installLink: unityVersions.install_recommended_version_link,
-			found: false,
-		};
-	} else {
-		return {
-			expectingVersion: unityVersions.recommended_version,
-			found: true,
-			installations: versions,
-		};
-	}
-}
-
-export function useUnity2022Migration({
-	projectPath,
-	refresh,
-}: {
-	projectPath: string;
-	refresh?: () => void;
-}): Result<Record<string, never>> {
-	return useMigrationInternal({
-		projectPath,
-		updateProjectPreUnityLaunch: async (project) =>
-			await commands.projectMigrateProjectTo2022(project),
-		findUnity: findRecommendedUnity,
-		refresh,
-		ConfirmComponent: MigrationConfirmMigrationDialog,
-		dialogHeader: () => tc("projects:manage:dialog:unity migrate header"),
-	});
-}
-
 function MigrationConfirmMigrationDialog({ cancel, doMigrate }: ConfirmProps) {
 	return (
 		<>
@@ -84,24 +44,6 @@ function MigrationConfirmMigrationDialog({ cancel, doMigrate }: ConfirmProps) {
 			</DialogFooter>
 		</>
 	);
-}
-
-export function useUnity2022PatchMigration({
-	projectPath,
-	refresh,
-}: {
-	projectPath: string;
-	refresh?: () => void;
-}): Result<Record<string, never>> {
-	return useMigrationInternal({
-		projectPath,
-		updateProjectPreUnityLaunch: async () => {}, // nothing pre-launch
-		findUnity: findRecommendedUnity,
-		refresh,
-
-		ConfirmComponent: MigrationConfirmMigrationPatchDialog,
-		dialogHeader: () => tc("projects:manage:dialog:unity migrate header"),
-	});
 }
 
 function MigrationConfirmMigrationPatchDialog({
@@ -141,6 +83,7 @@ export function useUnityVersionChange({
 	version: string;
 	currentUnityVersion: string;
 	isVRCProject: boolean;
+	mayUseChinaVariant?: boolean;
 }> {
 	const use = useMigrationInternal({
 		projectPath,
@@ -174,12 +117,13 @@ export function useUnityVersionChange({
 	return {
 		dialog: use.dialog,
 		request: useCallback(
-			({ version, currentUnityVersion, isVRCProject }) => {
+			({ version, currentUnityVersion, isVRCProject, mayUseChinaVariant }) => {
 				if (currentUnityVersion == null) throw new Error("unexpected");
 				const v = detectChangeUnityKind(
 					currentUnityVersion,
 					version,
 					isVRCProject,
+					mayUseChinaVariant ?? false,
 				);
 				request(v);
 			},
@@ -291,6 +235,9 @@ function UnityVersionChange({
 				mainMessage = tc("projects:manage:dialog:upgrade major");
 			}
 			break;
+		case "changeChina":
+			mainMessage = tc("projects:manage:dialog:changing china releases");
+			break;
 		default:
 			assertNever(data.kind);
 	}
@@ -313,6 +260,7 @@ function UnityVersionChange({
 }
 
 type ChangeUnityKind =
+	| "changeChina" // Changing between 'c' releases and non 'c' releases
 	| "downgradeMajor"
 	| "downgradePatchOrMinor"
 	| "upgradePatchOrMinor"
@@ -330,26 +278,30 @@ type ChangeUnityData = (
 	  }
 ) & {
 	targetUnityVersion: string;
+	mayUseChinaVariant: boolean;
 };
 
 function detectChangeUnityKind(
 	currentVersion: string,
 	targetUnityVersion: string,
 	isVRCProject: boolean,
+	mayUseChinaVariant: boolean,
 ): ChangeUnityData {
 	// biome-ignore lint/style/noNonNullAssertion: the version is known to be valid
 	const parsedCurrent = parseUnityVersion(currentVersion)!;
 	// biome-ignore lint/style/noNonNullAssertion: the version is known to be valid
 	const parsedTarget = parseUnityVersion(targetUnityVersion)!;
 
+	const cmp = compareUnityVersionString(currentVersion, targetUnityVersion);
+	const majorOrMinor =
+		parsedCurrent.major === parsedTarget.major ? "PatchOrMinor" : "Major";
+
 	const kind: ChangeUnityData["kind"] =
-		compareUnityVersionString(currentVersion, targetUnityVersion) >= 0
-			? parsedCurrent.major === parsedTarget.major
-				? "downgradePatchOrMinor"
-				: "downgradeMajor"
-			: parsedCurrent.major === parsedTarget.major
-				? "upgradePatchOrMinor"
-				: "upgradeMajor";
+		cmp === 0
+			? "changeChina"
+			: cmp > 0
+				? `downgrade${majorOrMinor}`
+				: `upgrade${majorOrMinor}`;
 
 	if (isVRCProject) {
 		return {
@@ -358,12 +310,14 @@ function detectChangeUnityKind(
 			isTargetVersionSupportedByVRC:
 				VRCSDK_UNITY_VERSIONS.includes(targetUnityVersion),
 			targetUnityVersion,
+			mayUseChinaVariant,
 		};
 	} else {
 		return {
 			kind,
 			isVRC: false,
 			targetUnityVersion,
+			mayUseChinaVariant,
 		};
 	}
 }
@@ -372,10 +326,40 @@ function findUnityForUnityChange(
 	unityVersions: TauriUnityVersions,
 	data: ChangeUnityData,
 ): FindUnityResult {
-	const foundVersions = unityVersions.unity_paths.filter(
+	let foundVersions = unityVersions.unity_paths.filter(
 		([_p, v, _]) => v === data.targetUnityVersion,
 	);
-	if (foundVersions.length === 0) throw new Error("unreachable");
+	// if international version not found, try to find china version
+	if (
+		foundVersions.length === 0 &&
+		data.mayUseChinaVariant &&
+		parseUnityVersion(data.targetUnityVersion)?.chinaIncrement == null
+	) {
+		const chinaVersion = `${data.targetUnityVersion}c1`;
+		foundVersions = unityVersions.unity_paths.filter(
+			([_p, v, _]) => v === chinaVersion,
+		);
+	}
+	if (foundVersions.length === 0) {
+		if (
+			compareUnityVersionString(
+				data.targetUnityVersion,
+				unityVersions.recommended_version,
+			) === 0
+		) {
+			return {
+				expectingVersion: data.targetUnityVersion,
+				// This is using link to international version but china version of hub will handle international to china conversion
+				installLink: unityVersions.install_recommended_version_link,
+				found: false,
+			};
+		} else {
+			return {
+				expectingVersion: data.targetUnityVersion,
+				found: false,
+			};
+		}
+	}
 	return {
 		expectingVersion: data.targetUnityVersion,
 		found: true,
@@ -443,7 +427,7 @@ interface FindUnityFoundResult {
 
 interface FindUnityNotFoundResult {
 	expectingVersion: string;
-	installLink: string;
+	installLink?: string;
 	found: false;
 }
 
@@ -798,11 +782,12 @@ function NoExactUnity2022Dialog({
 	close,
 }: {
 	expectedVersion: string;
-	installWithUnityHubLink: string;
+	installWithUnityHubLink?: string;
 	close: () => void;
 }) {
 	const openUnityHub = async () => {
-		await commands.utilOpenUrl(installWithUnityHubLink);
+		if (installWithUnityHubLink != null)
+			await commands.utilOpenUrl(installWithUnityHubLink);
 	};
 
 	return (
@@ -816,9 +801,11 @@ function NoExactUnity2022Dialog({
 				</p>
 			</DialogDescription>
 			<DialogFooter className={"gap-2"}>
-				<Button onClick={openUnityHub}>
-					{tc("projects:dialog:open unity hub")}
-				</Button>
+				{installWithUnityHubLink && (
+					<Button onClick={openUnityHub}>
+						{tc("projects:dialog:open unity hub")}
+					</Button>
+				)}
 				<Button onClick={close} className="mr-1">
 					{tc("general:button:close")}
 				</Button>
