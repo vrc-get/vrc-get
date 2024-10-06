@@ -1,14 +1,14 @@
 use serde::Serialize;
 use std::borrow::Cow;
 use tauri::http::{Request, Response};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, UriSchemeContext, Wry};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
 
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::state::GuiConfigState;
 
 pub fn handle_vrc_get_scheme(
-    app: &AppHandle,
+    app: UriSchemeContext<'_, Wry>,
     request: Request<Vec<u8>>,
 ) -> Response<Cow<'static, [u8]>> {
     let url = request.uri();
@@ -20,7 +20,7 @@ pub fn handle_vrc_get_scheme(
             .unwrap();
     };
     match url.path() {
-        "/global-info.js" => global_info_json(app),
+        "/global-info.js" => global_info_json(app.app_handle()),
         _ => Response::builder()
             .status(404)
             .body(b"bad url".into())

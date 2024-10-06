@@ -72,6 +72,7 @@ pub async fn check_for_update(
     app_handle
         .updater_builder()
         .endpoints(vec![endpoint])
+        .unwrap()
         .build()?
         .check()
         .await
