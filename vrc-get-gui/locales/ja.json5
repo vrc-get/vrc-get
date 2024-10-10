@@ -130,6 +130,12 @@
     "projects:dialog:select unity header": "Unityを選択",
     "projects:dialog:multiple unity found": "プロジェクトのUnityバージョン指定に一致するUnityが複数見つかりました。<br>どのUnityでプロジェクトを開くか選択してください。",
     "projects:dialog:keep using this version": "選択を保存する",
+    "projects:dialog:unity not found but china found": "Unityが見つかりません",
+    "projects:dialog:unity version of the project not found but china found": "このプロジェクトで使用されているUnity {{expectedUnity}}が見つかりませんでした。<br>しかし、対応する中国版Unity {{chinaUnity}}はインストールされているようです。<br>このプロジェクトで使用するUnityを中国版に切り替えますか？",
+    "projects:dialog:use china version": "中国版に切り替える",
+    "projects:dialog:unity not found but international found": "Unityが見つかりません",
+    "projects:dialog:unity version of the project not found but international found": "このプロジェクトで使用されているUnity {{expectedUnity}}が見つかりませんでした。<br>しかし、対応する通常版Unity {{internationalUnity}}はインストールされているようです。<br>このプロジェクトで使用するUnityを通常版に切り替えますか？",
+    "projects:dialog:use international version": "通常版に切り替える",
     "projects:toast:invalid project unity version": "プロジェクトのUnityバージョン指定が不正です。",
     "projects:toast:loading unity from unity hub": "Unity HubからUnityの情報を取得しています...",
     "projects:toast:match version unity not found": "Unity {{unity}}が見つかりませんでした。該当するUnityをインストールするか、ALCOMに登録してください。",
@@ -140,7 +146,7 @@
     "projects:tooltip:sdk2 migration hint": "SDK2のプロジェクトを自動で移行することはできません。<br>先に手動でSDK3へ移行してください。",
     "projects:tooltip:git-vcc not supported": "git-VCCのプロジェクトはサポートされていません。",
     "projects:dialog:vpm migrate header": "レガシープロジェクトを移行",
-    "projects:dialog:vpm migrate description": "プロジェクト移行では一部のデータが失われる場合があります。<br>「バックアップして移行」か「複製して移行」を行うことをお勧めします。",
+    "projects:dialog:vpm migrate description": "プロジェクト移行では一部のデータが失われる場合があります。<br>「バックアップして移行」か「複製して移行」を行うことを推奨します。",
     "projects:button:backup and migrate": "バックアップして移行",
     "projects:button:migrate copy": "複製して移行",
     "projects:button:migrate in-place": "複製しないで移行",
@@ -176,6 +182,7 @@
 
     "projects:manage:suggest unity migration": "このプロジェクトは、VRChat SDKによるサポートが終了したUnity 2019を使用しています。VRChatはUnity 2022に移行することを推奨しています。",
     "projects:manage:suggest unity patch migration": "このプロジェクトは少し古いバージョンのUnity 2022を使用しています。VRChatはより新しいバージョンのUnity 2022に移行することを推奨しています。",
+    "projects:manage:suggest unity china to international migration": "このプロジェクトは中国版Unityを使用しています。VRChatとの互換性のために、通常版Unityを使用することを推奨します。",
     "projects:manage:button:unity migrate": "プロジェクトを移行",
 
     "projects:manage:manage packages": "パッケージ管理",
@@ -234,6 +241,7 @@
     "projects:manage:dialog:upgrade major": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これにより、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
     "projects:manage:dialog:upgrade major vrchat supported": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これによりVRCSDKが更新されるほか、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
     "projects:manage:dialog:upgrade major vrchat unsupported": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これによりVRCSDKが更新されるほか、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。<br>また、変更先のバージョンはVRChatがサポートしていないバージョンであるため、VRChatにコンテンツをアップロードできないかもしれません。",
+    "projects:manage:dialog:changing china releases": "プロジェクトに使用するUnityを通常版と中国版の間で切り替えようとしています。<br>これにより、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
     "projects:button:change unity version": "変更する",
 
     "projects:dialog:launch options": "起動オプション",
