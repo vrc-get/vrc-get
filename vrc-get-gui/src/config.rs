@@ -1,12 +1,7 @@
-use futures::AsyncReadExt;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::ops::{Deref, DerefMut};
-use std::path::PathBuf;
-use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuiConfig {
     #[serde(default)]
@@ -19,10 +14,21 @@ pub struct GuiConfig {
     pub fullscreen: bool,
     #[serde(default = "language_default")]
     pub language: String,
+    #[serde(default = "theme_default")]
+    pub theme: String,
     #[serde(default = "backup_default")]
     pub backup_format: String,
     #[serde(default = "project_sorting_default")]
     pub project_sorting: String,
+    #[serde(default = "release_channel_default")]
+    // "stable" or "beta"
+    pub release_channel: String,
+    #[serde(default)]
+    pub use_alcom_for_vcc_protocol: bool,
+    #[serde(default)]
+    pub setup_process_progress: u32,
+    #[serde(default)]
+    pub default_unity_arguments: Option<Vec<String>>,
 }
 
 impl Default for GuiConfig {
@@ -33,16 +39,24 @@ impl Default for GuiConfig {
             window_size: WindowSize::default(),
             fullscreen: false,
             language: language_default(),
+            theme: theme_default(),
             backup_format: backup_default(),
             project_sorting: project_sorting_default(),
+            release_channel: release_channel_default(),
+            use_alcom_for_vcc_protocol: false,
+            setup_process_progress: 0,
+            default_unity_arguments: None,
         }
     }
 }
 
 impl GuiConfig {
-    fn fix_defaults(&mut self) {
+    pub(crate) fn fix_defaults(&mut self) {
         if self.language.is_empty() {
             self.language = language_default();
+        }
+        if self.language == "zh_cn" {
+            self.language = "zh_hans".to_string();
         }
         if self.backup_format.is_empty() {
             self.backup_format = backup_default();
@@ -65,11 +79,15 @@ fn language_default() -> String {
             return "ja".to_string();
         }
         if locale.starts_with("zh") {
-            return "zh_cn".to_string();
+            return "zh_hans".to_string();
         }
     }
 
     "en".to_string()
+}
+
+fn theme_default() -> String {
+    "system".to_string()
 }
 
 fn backup_default() -> String {
@@ -78,6 +96,10 @@ fn backup_default() -> String {
 
 fn project_sorting_default() -> String {
     "lastModified".to_string()
+}
+
+fn release_channel_default() -> String {
+    "stable".to_string()
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -89,71 +111,8 @@ pub struct WindowSize {
 impl Default for WindowSize {
     fn default() -> Self {
         WindowSize {
-            width: 1000,
+            width: 1300,
             height: 800,
         }
-    }
-}
-
-pub struct GuiConfigHandler<'a> {
-    config: &'a mut GuiConfig,
-    path: &'a PathBuf,
-}
-
-impl GuiConfigHandler<'_> {
-    pub async fn save(&self) -> io::Result<()> {
-        let json = serde_json::to_string_pretty(&self.config)?;
-        tokio::fs::create_dir_all(self.path.parent().unwrap()).await?;
-        tokio::fs::write(&self.path, json.as_bytes()).await
-    }
-}
-
-impl Deref for GuiConfigHandler<'_> {
-    type Target = GuiConfig;
-
-    #[inline(always)]
-    fn deref(&self) -> &GuiConfig {
-        self.config
-    }
-}
-
-impl DerefMut for GuiConfigHandler<'_> {
-    #[inline(always)]
-    fn deref_mut(&mut self) -> &mut GuiConfig {
-        self.config
-    }
-}
-
-pub struct GuiConfigHolder {
-    cached_value: Option<(GuiConfig, PathBuf)>,
-}
-
-impl GuiConfigHolder {
-    pub fn new() -> Self {
-        Self { cached_value: None }
-    }
-
-    pub async fn load(&mut self, io: &DefaultEnvironmentIo) -> io::Result<GuiConfigHandler> {
-        let (config, path) = if let Some((ref mut config, ref path)) = self.cached_value {
-            (config, path)
-        } else {
-            let path = io.resolve("vrc-get/gui-config.json".as_ref());
-            let value = match io.open(&path).await {
-                Ok(mut file) => {
-                    let mut buffer = Vec::new();
-                    file.read_to_end(&mut buffer).await?;
-                    let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
-                    loaded.fix_defaults();
-                    loaded
-                }
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => GuiConfig::default(),
-                Err(e) => return Err(e),
-            };
-            self.cached_value = Some((value, path));
-            let (config, path) = self.cached_value.as_mut().unwrap();
-            (config, &*path)
-        };
-
-        Ok(GuiConfigHandler { config, path })
     }
 }

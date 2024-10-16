@@ -1,10 +1,10 @@
 use crate::io;
 use crate::io::EnvironmentIo;
-use crate::utils::{read_json_file, SaveController};
+use crate::utils::read_json_file;
 use serde::{Deserialize, Serialize};
 
 /// since this file is vrc-get specific, additional keys can be removed
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct AsJson {
     #[serde(default)]
@@ -13,9 +13,9 @@ struct AsJson {
     ignore_curated_repository: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct VrcGetSettings {
-    controller: SaveController<AsJson>,
+    parsed: AsJson,
 }
 
 const JSON_PATH: &str = "vrc-get/settings.json";
@@ -33,30 +33,14 @@ impl VrcGetSettings {
             Err(e) => return Err(e),
         };
 
-        Ok(Self {
-            controller: SaveController::new(parsed),
-        })
+        Ok(Self { parsed })
     }
 
     pub fn ignore_official_repository(&self) -> bool {
-        self.controller.ignore_official_repository
-    }
-
-    #[allow(dead_code)]
-    pub fn set_ignore_official_repository(&mut self, value: bool) {
-        self.controller.as_mut().ignore_official_repository = value;
+        self.parsed.ignore_official_repository
     }
 
     pub fn ignore_curated_repository(&self) -> bool {
-        self.controller.ignore_curated_repository
-    }
-
-    #[allow(dead_code)]
-    pub fn set_ignore_curated_repository(&mut self, value: bool) {
-        self.controller.as_mut().ignore_curated_repository = value;
-    }
-
-    pub async fn save(&mut self, io: &impl EnvironmentIo) -> io::Result<()> {
-        self.controller.save(io, JSON_PATH.as_ref()).await
+        self.parsed.ignore_curated_repository
     }
 }

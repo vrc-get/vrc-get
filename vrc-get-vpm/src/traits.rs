@@ -1,13 +1,13 @@
 use crate::io;
-use crate::io::EnvironmentIo;
-use crate::repository::local::LocalCachedRepository;
+use crate::io::ProjectIo;
 use crate::utils::MapResultExt;
-use crate::{PackageInfo, PackageManifest, VersionSelector};
+use crate::{PackageInfo, VersionSelector};
 use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use std::convert::Infallible;
+use std::sync::atomic::{AtomicBool, Ordering};
 use url::Url;
 
 pub trait PackageCollection {
@@ -33,23 +33,40 @@ pub trait PackageCollection {
     ) -> Option<PackageInfo>;
 }
 
-pub trait EnvironmentIoHolder {
-    type EnvironmentIo: EnvironmentIo;
-    fn io(&self) -> &Self::EnvironmentIo;
+/// The trait for installing package
+///
+/// Caching packages is responsibility of this trait.
+pub trait PackageInstaller {
+    /// Installs the specified package.
+    fn install_package(
+        &self,
+        io: &impl ProjectIo,
+        package: PackageInfo<'_>,
+        abort: &AbortCheck,
+    ) -> impl Future<Output = io::Result<()>>;
 }
 
-/// The trait for downloading remote packages.
-///
-/// Caching packages is responsibility of this crate.
-pub trait RemotePackageDownloader {
-    type FileStream: AsyncRead + AsyncSeek + Unpin;
+pub struct AbortCheck {
+    abort: AtomicBool,
+}
 
-    /// Get package from remote server.
-    fn get_package(
-        &self,
-        repository: &LocalCachedRepository,
-        package: &PackageManifest,
-    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
+impl AbortCheck {
+    pub(crate) fn new() -> Self {
+        Self {
+            abort: AtomicBool::new(false),
+        }
+    }
+
+    pub fn check(&self) -> io::Result<()> {
+        if self.abort.load(Ordering::Relaxed) {
+            return Err(io::Error::new(io::ErrorKind::Interrupted, "Aborted"));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn abort(&self) {
+        self.abort.store(true, Ordering::Relaxed);
+    }
 }
 
 /// The HTTP Client.
@@ -60,7 +77,7 @@ pub trait HttpClient: Sync {
     fn get(
         &self,
         url: &Url,
-        headers: &IndexMap<Box<str>, Box<str>>,
+        headers: &IndexMap<&str, &str>,
     ) -> impl Future<Output = io::Result<impl AsyncRead + Send>> + Send;
 
     /// Get resource from the URL with specified headers and etag
@@ -79,17 +96,13 @@ pub trait HttpClient: Sync {
 }
 
 impl HttpClient for reqwest::Client {
-    async fn get(
-        &self,
-        url: &Url,
-        headers: &IndexMap<Box<str>, Box<str>>,
-    ) -> io::Result<impl AsyncRead> {
+    async fn get(&self, url: &Url, headers: &IndexMap<&str, &str>) -> io::Result<impl AsyncRead> {
         // file not found: err
 
         let mut request = self.get(url.to_owned());
 
-        for (name, header) in headers {
-            request = request.header(name.as_ref(), header.as_ref());
+        for (&name, &header) in headers {
+            request = request.header(name, header);
         }
 
         Ok(request
@@ -140,7 +153,7 @@ impl HttpClient for reqwest::Client {
 }
 
 impl HttpClient for Infallible {
-    async fn get(&self, _: &Url, _: &IndexMap<Box<str>, Box<str>>) -> io::Result<impl AsyncRead> {
+    async fn get(&self, _: &Url, _: &IndexMap<&str, &str>) -> io::Result<impl AsyncRead> {
         Ok(io::empty())
     }
 

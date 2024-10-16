@@ -2,21 +2,30 @@
 
 This folder contains the experimental GUI version of vrc-get, ALCOM.
 
+[Homepage (Help Wanted)](https://vrc-get.anatawa12.com/alcom/)
+
 ## Installation
 
 The recommended way to install ALCOM is download from [GitHub Releases][alcom-releases].
 
+If you want, you may download the HEAD build from [GitHub Actions][alcom-nightly]
+
 [alcom-releases]: https://github.com/anatawa12/vrc-get/releases?q=gui-v0
+[alcom-nightly]: https://github.com/vrc-get/vrc-get/actions/workflows/ci-gui.yml?query=branch%3Amaster
 
 ## Requirements (building)
 
 To build ALCOM, you need to have the following installed:
 
-- [Node.js] v20 (to build the web part of the project)
-- [npm] (to install the dependencies of the web part)
-- [cargo] (to build the Rust part of the project)
-- [cargo-about] (to generate the licenses json)
-- [.NET SDK] v8 (to build vrc-get-litedb crate)
+- [Node.js] LTS — to build the web part of the project
+- [npm] v10 — to install the dependencies of the web part (bundled with node.js so no extra attention needed in most case)
+- [cargo] latest — to build the most part of the project
+- [cargo-about] latest — to generate the licenses json (for development, not required but required for building release binary)
+- [.NET SDK] v8 — to build vrc-get-litedb crate
+
+Please note that ALCOM requires the latest version of cargo and cargo-about at that time. 
+We update the required version of cargo and cargo-about without notice.
+Therefore, you may need to update them before building the project.
 
 [Node.js]: https://nodejs.org/en
 [npm]: https://www.npmjs.com

@@ -1,31 +1,23 @@
 use crate::commands::{
-    confirm_prompt, load_env, load_unity, update_project_last_modified, EnvArgs, ResultExt,
+    confirm_prompt, load_collection, load_unity, update_project_last_modified, EnvArgs, ResultExt,
 };
 use clap::{Parser, Subcommand};
 use log::{info, warn};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use tokio::process::Command;
+use vrc_get_vpm::environment::PackageInstaller;
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 /// Migrate Unity Project
 #[derive(Subcommand)]
 #[command(author, version)]
 pub enum Migrate {
-    #[command(subcommand)]
-    Unity(Unity),
+    Unity2022(Unity2022),
     Vpm(Vpm),
 }
 
-multi_command!(Migrate is Unity, Vpm);
-
-#[derive(Subcommand)]
-#[command(author, version)]
-pub enum Unity {
-    #[command(name = "2022")]
-    Unity2022(Unity2022),
-}
-
-multi_command!(Unity is Unity2022);
+multi_command!(Migrate is Unity2022, Vpm);
 
 /// Migrate your project to Unity 2022
 #[derive(Parser)]
@@ -47,7 +39,6 @@ pub struct Unity2022 {
 
 impl Unity2022 {
     pub async fn run(self) {
-        warn!("migrate unity-to-2022 is unstable command.");
         println!("You're migrating your project to Unity 2022 in-place.");
         println!("It's hard to undo this command.");
         println!("You MUST create backup of your project before running this command.");
@@ -56,14 +47,21 @@ impl Unity2022 {
         }
 
         let mut project = load_unity(self.project).await;
-        let env = load_env(&self.env_args).await;
+
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
+
+        #[cfg(feature = "experimental-vcc")]
+        let connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(&io)
+            .await
+            .exit_context("connecting to database");
 
         project
-            .migrate_unity_2022(&env)
+            .migrate_unity_2022(&collection, &installer)
             .await
             .exit_context("migrating unity project");
-
-        project.save().await.exit_context("saving project");
 
         info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
 
@@ -73,7 +71,7 @@ impl Unity2022 {
         #[cfg(feature = "experimental-vcc")]
         let unity = self.unity.unwrap_or_else(|| {
             use vrc_get_vpm::VRCHAT_RECOMMENDED_2022_UNITY;
-            let Some(found) = env.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
+            let Some(found) = connection.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
                 .exit_context("getting unity 2022 path") else {
                 exit_with!("Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option.")
             };
@@ -103,7 +101,7 @@ impl Unity2022 {
 
         info!("Unity exited successfully. Migration finished.");
 
-        update_project_last_modified(env, project.project_dir()).await;
+        update_project_last_modified(&io, project.project_dir()).await;
     }
 }
 
@@ -119,7 +117,6 @@ pub struct Vpm {
 
 impl Vpm {
     pub async fn run(self) {
-        warn!("migrate vpm is unstable command.");
         println!("You're migrating your project to vpm in-place.");
         println!("It's hard to undo this command.");
         println!("You MUST create backup of your project before running this command.");
@@ -128,17 +125,19 @@ impl Vpm {
         }
 
         let mut project = load_unity(self.project).await;
-        let env = load_env(&self.env_args).await;
+
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
 
         project
-            .migrate_vpm(&env, false)
+            .migrate_vpm(&collection, &installer, false)
             .await
             .exit_context("migrating unity project");
 
-        project.save().await.exit_context("saving project");
-
         info!("Migration finished.");
 
-        update_project_last_modified(env, project.project_dir()).await;
+        update_project_last_modified(&io, project.project_dir()).await;
     }
 }

@@ -1,48 +1,79 @@
-import React, {ReactNode, useState} from "react";
-import {Button, Dialog, DialogBody, DialogFooter, DialogHeader} from "@material-tailwind/react";
-import {projectCreateBackup, TauriProject} from "@/lib/bindings";
-import {toastNormal, toastSuccess, toastThrownError} from "@/lib/toast";
-import {tc, tt} from "@/lib/i18n";
-import {nop} from "@/lib/nop";
-import {callAsyncCommand} from "@/lib/call-async-command";
+import { Button } from "@/components/ui/button";
+import {
+	DialogDescription,
+	DialogFooter,
+	DialogOpen,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { assertNever } from "@/lib/assert-never";
+import type { TauriCreateBackupProgress, TauriProject } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
+import { callAsyncCommand } from "@/lib/call-async-command";
+import { tc, tt } from "@/lib/i18n";
+import { toastNormal, toastSuccess, toastThrownError } from "@/lib/toast";
+import { type ReactNode, useState } from "react";
 
 // string if remove project by path
-type Project = TauriProject | {
-	path: string,
-	name: string,
-};
+type Project =
+	| TauriProject
+	| {
+			path: string;
+			name: string;
+	  };
 
-type State = {
-	type: 'idle',
-} | {
-	type: 'backing-up',
-	cancel: () => void,
-}
-
-type Params = {}
+type State =
+	| {
+			type: "idle";
+	  }
+	| {
+			type: "backing-up";
+			progress: TauriCreateBackupProgress;
+			cancel: () => void;
+	  };
 
 type Result = {
-	startBackup: (project: Project) => void,
-	dialog: ReactNode,
-}
+	startBackup: (project: Project) => void;
+	dialog: ReactNode;
+};
 
-export function useBackupProjectModal(_: Params = {}): Result {
-	const [state, setState] = useState<State>({type: 'idle'});
+export function useBackupProjectModal(): Result {
+	const [state, setState] = useState<State>({ type: "idle" });
 
 	const startBackup = async (project: Project) => {
 		try {
-			const [cancel, promise] = callAsyncCommand(projectCreateBackup, [project.path], nop);
-			setState({type: 'backing-up', cancel});
+			const [cancel, promise] = callAsyncCommand(
+				commands.projectCreateBackup,
+				[project.path],
+				(progress) => {
+					setState((state) => {
+						if (state.type !== "backing-up") {
+							return state;
+						}
+						if (state.progress.proceed >= progress.total) return state;
+						return { ...state, progress };
+					});
+				},
+			);
+			setState({
+				type: "backing-up",
+				progress: {
+					total: 100,
+					proceed: 0,
+					last_proceed: "",
+				},
+				cancel,
+			});
 			const channel = await promise;
-			if (channel == 'cancelled') {
+			if (channel === "cancelled") {
 				toastNormal(tt("projects:toast:backup canceled"));
 			} else {
 				toastSuccess(tt("projects:toast:backup succeeded"));
 			}
-			setState({type: 'idle'});
+			setState({ type: "idle" });
 		} catch (e) {
 			console.error("Error creating backup", e);
-			setState({type: 'idle'});
+			setState({ type: "idle" });
 			toastThrownError(e);
 		}
 	};
@@ -54,20 +85,35 @@ export function useBackupProjectModal(_: Params = {}): Result {
 			break;
 		case "backing-up":
 			dialog = (
-				<Dialog open handler={nop} className={'whitespace-normal'}>
-					<DialogHeader>{tc("projects:dialog:backup header")}</DialogHeader>
-					<DialogBody>
-						{tc("projects:dialog:creating backup...")}
-					</DialogBody>
+				<DialogOpen className={"whitespace-normal"}>
+					<DialogTitle>{tc("projects:dialog:backup header")}</DialogTitle>
+					<DialogDescription>
+						<p>{tc("projects:dialog:creating backup...")}</p>
+						<p>
+							{tc("projects:dialog:proceed k/n", {
+								count: state.progress.proceed,
+								total: state.progress.total,
+							})}
+						</p>
+						<p className={"overflow-hidden w-full whitespace-pre"}>
+							{state.progress.last_proceed || "Collecting files..."}
+						</p>
+						<Progress
+							value={state.progress.proceed}
+							max={state.progress.total}
+						/>
+					</DialogDescription>
 					<DialogFooter>
-						<Button className="mr-1" onClick={state.cancel}>{tc("general:button:cancel")}</Button>
+						<Button className="mr-1" onClick={state.cancel}>
+							{tc("general:button:cancel")}
+						</Button>
 					</DialogFooter>
-				</Dialog>
+				</DialogOpen>
 			);
 			break;
 		default:
-			let _: never = state;
+			assertNever(state);
 	}
 
-	return {startBackup, dialog}
+	return { startBackup, dialog };
 }

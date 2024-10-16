@@ -1,5 +1,7 @@
 use crate::io;
-use crate::io::{EnvironmentIo, FileSystemProjectIo, FileType, IoTrait, Metadata, ProjectIo};
+use crate::io::{
+    EnvironmentIo, FileStream, FileSystemProjectIo, FileType, IoTrait, Metadata, ProjectIo,
+};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::OsString;
@@ -8,6 +10,7 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::fs;
+use tokio::io::AsyncWriteExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 #[derive(Debug, Clone)]
@@ -64,13 +67,33 @@ impl EnvironmentIo for DefaultEnvironmentIo {
     }
 
     #[cfg(feature = "vrc-get-litedb")]
-    fn connect_lite_db(&self) -> io::Result<vrc_get_litedb::DatabaseConnection> {
+    async fn connect_lite_db(&self) -> io::Result<crate::environment::VccDatabaseConnection> {
         let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
         let path = path.to_str().expect("path is not utf8").to_string();
 
-        vrc_get_litedb::ConnectionString::new(&path)
-            .connect()
-            .map_err(Into::into)
+        #[cfg(windows)]
+        let lock = {
+            use sha1::Digest;
+
+            let path_lower = path.to_lowercase();
+            let mut sha1 = sha1::Sha1::new();
+            sha1.update(path_lower.as_bytes());
+            let hash = &sha1.finalize()[..];
+            let hash_hex = hex::encode(hash);
+            // this lock name is same as shared engine in litedb
+            let name = format!("Global\\{hash_hex}.Mutex");
+
+            Box::new(win_mutex::MutexGuard::new(name).await?)
+        };
+        #[cfg(not(windows))]
+        let lock = Box::new(());
+
+        let db_connection = vrc_get_litedb::ConnectionString::new(&path).connect()?;
+
+        Ok(crate::environment::VccDatabaseConnection::new(
+            db_connection,
+            lock,
+        ))
     }
 
     #[cfg(feature = "experimental-project-management")]
@@ -180,6 +203,15 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
         tokio::fs::write(self.resolve(path)?, content).await
     }
 
+    async fn write_sync(&self, path: &Path, content: &[u8]) -> io::Result<()> {
+        let path = self.resolve(path)?;
+        let mut file = fs::File::create(&path).await?;
+        file.write_all(content).await?;
+        file.flush().await?;
+        file.sync_data().await?;
+        Ok(())
+    }
+
     async fn remove_file(&self, path: &Path) -> io::Result<()> {
         fs::remove_file(self.resolve(path)?).await
     }
@@ -222,6 +254,7 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
     async fn create(&self, path: &Path) -> io::Result<Self::FileStream> {
         fs::OpenOptions::new()
             .create(true)
+            .truncate(true)
             .write(true)
             .read(true)
             .open(self.resolve(path)?)
@@ -233,6 +266,8 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
         Ok(fs::File::open(self.resolve(path)?).await?.compat())
     }
 }
+
+impl FileStream for tokio_util::compat::Compat<fs::File> {}
 
 pub struct ReadDir {
     inner: fs::ReadDir,
@@ -278,5 +313,75 @@ impl super::DirEntry for DirEntry {
 
     async fn metadata(&self) -> io::Result<Metadata> {
         self.inner.metadata().await.map(Into::into)
+    }
+}
+
+#[cfg(windows)]
+mod win_mutex {
+    use std::ffi::OsString;
+    use std::io;
+    use windows::Win32::Foundation::*;
+    use windows::Win32::System::Threading::*;
+
+    pub(super) struct MutexGuard {
+        wait_sender: std::sync::mpsc::Sender<()>,
+    }
+
+    impl MutexGuard {
+        pub async fn new(name: impl Into<OsString>) -> io::Result<Self> {
+            let name = name.into();
+            let (result_sender, mut result_receiver) =
+                tokio::sync::mpsc::channel::<io::Result<()>>(1);
+            let (wait_sender, wait_receiver) = std::sync::mpsc::channel::<()>();
+
+            // create thread for mutex creation and free
+            #[allow(unsafe_code)]
+            std::thread::spawn(move || {
+                // https://github.com/dotnet/runtime/blob/bcca12c1b14d25b3368106301748cb35c0894356/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.Constants.cs#L12
+                const MAXIMUM_ALLOWED: u32 = 0x02000000;
+                const ACCESS_RIGHTS: u32 =
+                    MAXIMUM_ALLOWED | PROCESS_SYNCHRONIZE.0 | MUTEX_MODIFY_STATE.0;
+
+                let name = windows::core::HSTRING::from(&name);
+
+                let handle = match unsafe { CreateMutexExW(None, &name, 0, ACCESS_RIGHTS) } {
+                    Ok(handle) => handle,
+                    Err(e) => {
+                        // failed to create
+                        result_sender.blocking_send(Err(e.into())).unwrap();
+                        return;
+                    }
+                };
+
+                unsafe {
+                    let r = WaitForSingleObject(handle, INFINITE);
+                    if r == WAIT_FAILED {
+                        result_sender
+                            .blocking_send(Err(io::Error::last_os_error()))
+                            .unwrap();
+                    }
+                }
+
+                result_sender.blocking_send(Ok(())).unwrap();
+
+                wait_receiver.recv().ok();
+
+                unsafe {
+                    ReleaseMutex(handle).ok();
+                    CloseHandle(handle).ok();
+                }
+            });
+
+            result_receiver.recv().await.unwrap()?;
+
+            Ok(Self { wait_sender })
+        }
+    }
+
+    impl Drop for MutexGuard {
+        fn drop(&mut self) {
+            println!("unlock");
+            self.wait_sender.send(()).unwrap();
+        }
     }
 }

@@ -8,22 +8,22 @@ mod sha256_async_write;
 use crate::io;
 use crate::io::{DirEntry, IoTrait};
 use async_zip::error::ZipError;
-use either::Either;
-use futures::prelude::*;
-use futures::stream::FuturesUnordered;
-use pin_project_lite::pin_project;
-use serde_json::error::Category;
-use serde_json::{Map, Value};
-use std::path::{Path, PathBuf};
-use std::pin::Pin;
-use std::task::{ready, Context, Poll};
-
 pub(crate) use copy_recursive::copy_recursive;
 pub(crate) use crlf_json_formatter::to_vec_pretty_os_eol;
 pub(crate) use deup_deserializer::DedupForwarder;
+use either::Either;
 pub(crate) use extract_zip::extract_zip;
+use futures::prelude::*;
+use futures::stream::FuturesUnordered;
+use pin_project_lite::pin_project;
 pub(crate) use save_controller::SaveController;
+use serde::Serialize;
+use serde_json::error::Category;
+use serde_json::{Map, Value};
 pub(crate) use sha256_async_write::Sha256AsyncWrite;
+use std::path::{Component, Path, PathBuf};
+use std::pin::Pin;
+use std::task::{ready, Context, Poll};
 
 pub(crate) trait PathBufExt {
     fn joined(self, into: impl AsRef<Path>) -> Self;
@@ -95,21 +95,6 @@ impl JsonMapExt for Map<String, Value> {
     }
 }
 
-pub(crate) trait OurTryStreamExt: Stream + Sized {
-    fn flatten_ok(self) -> FlattenOk<Self>
-    where
-        Self: TryStream,
-        Self::Ok: Stream,
-    {
-        FlattenOk {
-            stream: self,
-            next: None,
-        }
-    }
-}
-
-impl<T: Stream + Sized> OurTryStreamExt for T {}
-
 pin_project! {
     #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
     pub(crate) struct FlattenOk<S> where S: TryStream{
@@ -151,8 +136,8 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
     paths: impl IntoIterator<Item = PathBuf>,
 ) -> impl Stream<Item = (PathBuf, IO::DirEntry)> + '_ {
     type FutureResult<IO> = Either<
-        io::Result<(<IO as IoTrait>::ReadDirStream, PathBuf)>,
-        io::Result<
+        Result<(<IO as IoTrait>::ReadDirStream, PathBuf)>,
+        Result<
             Option<(
                 <IO as IoTrait>::ReadDirStream,
                 PathBuf,
@@ -161,34 +146,42 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
         >,
     >;
 
+    type Result<T> = std::result::Result<T, WalkIoErr>;
+    struct WalkIoErr {
+        error: io::Error,
+        path: PathBuf,
+    }
+
+    trait IoErrExt {
+        type Result;
+        fn with_path(self, path: PathBuf) -> Self::Result;
+    }
+
+    impl IoErrExt for io::Error {
+        type Result = WalkIoErr;
+        fn with_path(self, path: PathBuf) -> WalkIoErr {
+            WalkIoErr { error: self, path }
+        }
+    }
+
     async fn read_dir_phase<IO: IoTrait>(
         io: &IO,
         relative: PathBuf,
-    ) -> io::Result<(IO::ReadDirStream, PathBuf)> {
-        log::trace!("s:read_dir_phase: {:?}", relative);
+    ) -> Result<(IO::ReadDirStream, PathBuf)> {
         match io.read_dir(&relative).await {
-            Ok(result) => {
-                log::trace!("e:read_dir_phase: {:?}", relative);
-                Ok((result, relative))
-            }
-            Err(e) => {
-                log::trace!("e:read_dir_phase: {:?}: {e:?}", relative);
-                Err(e)
-            }
+            Ok(result) => Ok((result, relative)),
+            Err(e) => Err(e.with_path(relative)),
         }
     }
 
     async fn next_phase<IO: IoTrait>(
         mut read_dir: IO::ReadDirStream,
         relative: PathBuf,
-    ) -> io::Result<Option<(IO::ReadDirStream, PathBuf, IO::DirEntry)>> {
-        log::trace!("s:next_phase: {:?}", relative);
-        if let Some(entry) = read_dir.try_next().await? {
-            log::trace!("e:next_phase: {:?}: {:?}", relative, entry.file_name());
-            Ok(Some((read_dir, relative, entry)))
-        } else {
-            log::trace!("e:next_phase: {:?}", relative);
-            Ok(None)
+    ) -> Result<Option<(IO::ReadDirStream, PathBuf, IO::DirEntry)>> {
+        match read_dir.try_next().await {
+            Ok(Some(entry)) => Ok(Some((read_dir, relative, entry))),
+            Ok(None) => Ok(None),
+            Err(e) => Err(e.with_path(relative)),
         }
     }
 
@@ -204,11 +197,13 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
         loop {
             match futures.next().await {
                 None => break,
-                Some(Either::Left(Err(_))) => continue,
+                Some(Either::Left(Err(e))) | Some(Either::Right(Err(e))) => {
+                    log::warn!("error reading directory {:?}: {}", e.path, e.error);
+                    continue;
+                },
                 Some(Either::Left(Ok((read_dir, dir_relative)))) => {
                     futures.push(Either::Right(next_phase::<IO>(read_dir, dir_relative).map(FutureResult::<IO>::Right)))
                 },
-                Some(Either::Right(Err(_))) => continue,
                 Some(Either::Right(Ok(None))) => continue,
                 Some(Either::Right(Ok(Some((read_dir_iter, dir_relative, entry))))) => {
                     let entry: IO::DirEntry = entry;
@@ -289,4 +284,44 @@ where
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
         Err(e) => Err(e),
     }
+}
+
+pub(crate) fn normalize_path(input: &Path) -> PathBuf {
+    let mut result = PathBuf::with_capacity(input.as_os_str().len());
+
+    for component in input.components() {
+        match component {
+            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
+            Component::RootDir => result.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                result.pop();
+            }
+            Component::Normal(_) => result.push(component.as_os_str()),
+        }
+    }
+
+    result
+}
+
+#[allow(dead_code)] // used by some features
+pub(crate) fn check_absolute_path(path: impl AsRef<Path>) -> io::Result<()> {
+    if !path.as_ref().is_absolute() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "project path must be absolute",
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) async fn save_json(
+    io: &impl IoTrait,
+    path: &Path,
+    data: &impl Serialize,
+) -> io::Result<()> {
+    io.create_dir_all(path.parent().unwrap_or("".as_ref()))
+        .await?;
+    io.write_sync(path, &to_vec_pretty_os_eol(&data)?).await?;
+    Ok(())
 }

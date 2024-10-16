@@ -124,7 +124,7 @@ fn process_elf_64<E: Endian>(binary: &[u8]) -> bool {
         success = false;
     }
 
-    for segment in parsed.raw_segments() {
+    for segment in parsed.elf_program_headers() {
         if segment.p_type.get(parsed.endian()) == PT_INTERP {
             let data = segment.data(parsed.endian(), parsed.data()).unwrap();
             println!("interpreter: {:?}", std::str::from_utf8(data).unwrap());

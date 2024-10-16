@@ -1,0 +1,11 @@
+[{*.tsx,*.ts,*.js,*.json,*.jsonc}]
+indent_size = 2
+indent_style = tab
+
+[vrc-get-gui/lib/bindings.ts]
+indent_size = 4
+indent_style = space
+
+[*.css]
+indent_size = 4
+indent_style = tab

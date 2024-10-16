@@ -6,7 +6,7 @@ use std::cmp::Reverse;
 use std::fmt::{Display, Formatter};
 use std::io::Write as _;
 use std::sync::{mpsc, Arc, Mutex};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
@@ -30,12 +30,19 @@ pub fn initialize_logger() -> DefaultEnvironmentIo {
 }
 
 fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>, io: &DefaultEnvironmentIo) {
-    let log_folder = io.resolve("vrc-get-logs".as_ref());
-    std::fs::create_dir_all(&log_folder).ok();
+    let old_log_folder = io.resolve("vrc-get-logs".as_ref());
+    let new_log_folder = io.resolve("vrc-get/gui-logs".as_ref());
+    if !new_log_folder.exists() {
+        if old_log_folder.exists() {
+            std::fs::rename(&old_log_folder, &new_log_folder).ok();
+        } else {
+            std::fs::create_dir_all(&new_log_folder).ok();
+        }
+    }
     let timestamp = chrono::Utc::now()
         .format("%Y-%m-%d_%H-%M-%S.%6f")
         .to_string();
-    let log_file = log_folder.join(format!("vrc-get-{}.log", timestamp));
+    let log_file = new_log_folder.join(format!("vrc-get-{}.log", timestamp));
 
     let log_file = match std::fs::OpenOptions::new()
         .create(true)
@@ -61,7 +68,7 @@ fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>, io: &Defaul
 
     std::thread::Builder::new()
         .name("remove-old-logs".to_string())
-        .spawn(move || remove_old_logs(log_folder))
+        .spawn(move || remove_old_logs(new_log_folder))
         .expect("error while starting remove-old-logs thread");
 }
 
@@ -173,7 +180,7 @@ fn logging_thread_main(
                 // send to tauri
                 if let Some(app_handle) = APP_HANDLE.load().as_ref() {
                     app_handle
-                        .emit_all("log", Some(entry))
+                        .emit("log", Some(entry))
                         .expect("error while emitting log event");
                 }
             }
@@ -236,6 +243,7 @@ pub(crate) struct LogEntry {
     level: LogLevel,
     target: String,
     message: String,
+    gui_toast: bool,
 }
 
 fn to_rfc3339_micros<S>(
@@ -251,11 +259,17 @@ where
 
 impl LogEntry {
     pub fn new(record: &Record) -> Self {
+        let gui_toast = record
+            .key_values()
+            .get("gui_toast".into())
+            .and_then(|x| x.to_bool())
+            .unwrap_or(true);
         LogEntry {
             time: chrono::Local::now(),
             level: record.level().into(),
             target: record.target().to_string(),
             message: format!("{}", record.args()),
+            gui_toast,
         }
     }
 }

@@ -29,12 +29,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
 
-      - uses: giraffate/clippy-action@v1
+      - name: install dependencies
+        run:
+          sudo apt update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-dotnet@v4
         with:
-          reporter: github-pr-check
-          clippy_flags: --workspace --all-targets --all-features -- -Dclippy::todo
+          dotnet-version: 8.0.2xx
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: lints-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - uses: auguwu/clippy-action@1.4.0
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          check-args: --all --all-targets --all-features
+          args: -Dclippy::todo -Dwarnings
+  
+  
+  biome:
+    permissions:
+      contents: read
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run Biome
+        working-directory: vrc-get-gui
+        run: npm run biome -- ci

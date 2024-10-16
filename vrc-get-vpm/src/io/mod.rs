@@ -24,7 +24,9 @@ pub trait EnvironmentIo: Sync + IoTrait {
     /// For example, to get the absolute path of the Repos folder for creating local cache and cleanup repos folder.
     fn resolve(&self, path: &Path) -> PathBuf;
     #[cfg(feature = "vrc-get-litedb")]
-    fn connect_lite_db(&self) -> Result<vrc_get_litedb::DatabaseConnection>;
+    fn connect_lite_db(
+        &self,
+    ) -> impl Future<Output = Result<crate::environment::VccDatabaseConnection>>;
     #[cfg(feature = "experimental-project-management")]
     type ProjectIo: ProjectIo;
 
@@ -46,6 +48,7 @@ pub trait FileSystemProjectIo {
 pub trait IoTrait: Sync {
     fn create_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn write(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
+    fn write_sync(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
     fn remove_file(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn remove_dir(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn remove_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
@@ -75,12 +78,14 @@ pub trait IoTrait: Sync {
 
     fn read_dir(&self, path: &Path) -> impl Future<Output = Result<Self::ReadDirStream>> + Send;
 
-    type FileStream: AsyncRead + AsyncWrite + AsyncSeek + Unpin + Send;
+    type FileStream: FileStream;
 
     fn create_new(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn create(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
     fn open(&self, path: &Path) -> impl Future<Output = Result<Self::FileStream>> + Send;
 }
+
+pub trait FileStream: AsyncRead + AsyncWrite + AsyncSeek + Unpin + Send {}
 
 #[derive(Debug, Copy, Clone)]
 pub struct FileType {

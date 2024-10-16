@@ -1,7 +1,10 @@
-use serde::{Serialize, Serializer};
 use std::cmp::Ordering;
 use std::fmt;
+use std::num::NonZeroU8;
 use std::str::FromStr;
+
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct UnityVersion {
@@ -22,6 +25,10 @@ pub struct UnityVersion {
     type_: ReleaseType,
     // revision increment
     increment: u8,
+    // for china releases of Unity,
+    // we may see f1c1 so we have an additional one increment for china releases
+    // For example, https://unity.cn/releases/lts/2022 has 2022.3.22f1c1
+    china_increment: Option<NonZeroU8>,
 }
 
 impl UnityVersion {
@@ -38,6 +45,7 @@ impl UnityVersion {
             revision,
             type_,
             increment,
+            china_increment: None,
         }
     }
 
@@ -48,6 +56,24 @@ impl UnityVersion {
             revision,
             type_: ReleaseType::Normal,
             increment: 1,
+            china_increment: None,
+        }
+    }
+
+    pub const fn new_china(
+        major: u16,
+        minor: u8,
+        revision: u8,
+        increment: u8,
+        china_increment: NonZeroU8,
+    ) -> Self {
+        Self {
+            major,
+            minor,
+            revision,
+            type_: ReleaseType::China,
+            increment,
+            china_increment: Some(china_increment),
         }
     }
 
@@ -63,8 +89,16 @@ impl UnityVersion {
         let type_ = ReleaseType::try_from(rest.as_bytes()[revision_delimiter]).ok()?;
         let rest = &rest[revision_delimiter + 1..];
 
-        let (increment, _rest) = rest.split_once('-').unwrap_or((rest, ""));
-        let increment = u8::from_str(increment).ok()?;
+        let (increment_part, _rest) = rest.split_once('-').unwrap_or((rest, ""));
+        let (increment, china_increment);
+        if increment_part.contains('c') {
+            let (increment_str, increment_china_str) = increment_part.split_once('c')?;
+            increment = u8::from_str(increment_str).ok()?;
+            china_increment = Some(NonZeroU8::from_str(increment_china_str).ok()?);
+        } else {
+            increment = u8::from_str(increment_part).ok()?;
+            china_increment = None;
+        }
 
         return Some(Self {
             major,
@@ -72,11 +106,24 @@ impl UnityVersion {
             revision,
             type_,
             increment,
+            china_increment,
         });
 
         fn is_release_type_char(c: char) -> bool {
             c == 'a' || c == 'b' || c == 'f' || c == 'c' || c == 'p' || c == 'x'
         }
+    }
+
+    // expects major.minor.revision
+    pub fn parse_no_type_increment(input: &str) -> Option<Self> {
+        let (major, rest) = input.split_once('.')?;
+        let major = u16::from_str(major).ok()?;
+        let (minor, rest) = rest.split_once('.')?;
+        let minor = u8::from_str(minor).ok()?;
+        let revision = rest;
+        let revision = u8::from_str(revision).ok()?;
+
+        Some(Self::new_f1(major, minor, revision))
     }
 
     pub fn major(self) -> u16 {
@@ -98,19 +145,36 @@ impl UnityVersion {
     pub fn increment(self) -> u8 {
         self.increment
     }
+
+    pub fn china_increment(self) -> Option<NonZeroU8> {
+        self.china_increment
+    }
 }
 
 impl fmt::Display for UnityVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{maj}.{min}.{rev}{ty}{inc}",
-            maj = self.major,
-            min = self.minor,
-            rev = self.revision,
-            ty = self.type_,
-            inc = self.increment,
-        )
+        if let Some(china) = self.china_increment {
+            write!(
+                f,
+                "{maj}.{min}.{rev}{ty}{inc}c{china}",
+                maj = self.major,
+                min = self.minor,
+                rev = self.revision,
+                ty = self.type_,
+                inc = self.increment,
+                china = china.get(),
+            )
+        } else {
+            write!(
+                f,
+                "{maj}.{min}.{rev}{ty}{inc}",
+                maj = self.major,
+                min = self.minor,
+                rev = self.revision,
+                ty = self.type_,
+                inc = self.increment,
+            )
+        }
     }
 }
 
@@ -123,6 +187,16 @@ impl Serialize for UnityVersion {
     }
 }
 
+impl<'de> Deserialize<'de> for UnityVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        UnityVersion::parse(&String::deserialize(deserializer)?)
+            .ok_or_else(|| D::Error::custom("invalid unity version"))
+    }
+}
+
 impl PartialOrd<Self> for UnityVersion {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(Ord::cmp(self, other))
@@ -131,6 +205,7 @@ impl PartialOrd<Self> for UnityVersion {
 
 impl Ord for UnityVersion {
     fn cmp(&self, other: &Self) -> Ordering {
+        // We ignore china increment for comparing version
         major_ord(self.major(), other.major())
             .then_with(|| self.minor().cmp(&other.minor()))
             .then_with(|| self.revision().cmp(&other.revision()))
@@ -274,6 +349,22 @@ mod tests {
                 assert_eq!(version.revision, $revision);
                 assert!(matches!(version.type_, ReleaseType::$type_));
                 assert_eq!(version.increment, $increment);
+                assert_eq!(version.china_increment, None);
+            };
+        }
+
+        macro_rules! good_cn {
+            ($string: literal, $major: literal, $minor: literal, $revision: literal, $type_: ident, $increment: literal, $china_increment: literal) => {
+                let version = UnityVersion::parse($string).unwrap();
+                assert_eq!(version.major, $major);
+                assert_eq!(version.minor, $minor);
+                assert_eq!(version.revision, $revision);
+                assert!(matches!(version.type_, ReleaseType::$type_));
+                assert_eq!(version.increment, $increment);
+                assert_eq!(
+                    version.china_increment,
+                    Some(NonZeroU8::new($china_increment).unwrap())
+                );
             };
         }
 
@@ -294,6 +385,8 @@ mod tests {
         good!("2023.3.6x1", 2023, 3, 6, Experimental, 1);
 
         good!("2019.1.0a1-EXTRA", 2019, 1, 0, Alpha, 1);
+
+        good_cn!("2022.3.22f1c1", 2022, 3, 22, Normal, 1, 1);
 
         bad!("2022");
         bad!("2019.0");

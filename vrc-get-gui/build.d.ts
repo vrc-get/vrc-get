@@ -7,7 +7,7 @@ declare module "@/build/licenses.json" {
 			name: string;
 			version: string;
 			url: string;
-		}[]
+		}[];
 	}[];
 	export default value;
 }

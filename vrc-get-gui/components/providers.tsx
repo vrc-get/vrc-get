@@ -1,44 +1,99 @@
-"use client"
+"use client";
 
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {ToastContainer} from 'react-toastify';
-import {useEffect} from "react";
-import {listen} from "@tauri-apps/api/event";
-import {environmentLanguage, LogEntry} from "@/lib/bindings";
-import i18next from "@/lib/i18n";
-import {I18nextProvider} from "react-i18next";
-import {toastError} from "@/lib/toast";
-import {ThemeProvider} from "@material-tailwind/react";
+import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import type { CheckForUpdateResponse, LogEntry } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
+import { isFindKey, useDocumentEvent } from "@/lib/events";
+import { toastError, toastThrownError } from "@/lib/toast";
+import { useTauriListen } from "@/lib/use-tauri-listen";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import type React from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ToastContainer } from "react-toastify";
 
 const queryClient = new QueryClient();
 
-export function Providers({children}: { children: React.ReactNode }) {
-	useEffect(() => {
-		let unlisten: (() => void) | undefined = undefined;
-		let unlistened = false;
+export function Providers({ children }: { children: React.ReactNode }) {
+	const router = useRouter();
 
-		listen("log", (event) => {
+	useTauriListen<LogEntry>(
+		"log",
+		useCallback((event) => {
 			const entry = event.payload as LogEntry;
-			if (entry.level === "Error") {
+			if (entry.level === "Error" && entry.gui_toast) {
 				toastError(entry.message);
 			}
-		}).then((unlistenFn) => {
-			if (unlistened) {
-				unlistenFn();
-			} else {
-				unlisten = unlistenFn;
+		}, []),
+	);
+
+	const moveToRepositories = useCallback(() => {
+		if (location.pathname !== "/packages/repositories") {
+			router.push("/packages/repositories");
+		}
+	}, [router]);
+
+	useTauriListen<null>(
+		"deep-link-add-repository",
+		useCallback(
+			(_) => {
+				moveToRepositories();
+			},
+			[moveToRepositories],
+		),
+	);
+
+	useEffect(() => {
+		let cancel = false;
+		commands.deepLinkHasAddRepository().then((has) => {
+			if (cancel) return;
+			if (has) {
+				moveToRepositories();
 			}
 		});
-
 		return () => {
-			unlisten?.();
-			unlistened = true;
+			cancel = true;
+		};
+	}, [moveToRepositories]);
+
+	const { i18n } = useTranslation();
+
+	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(
+		null,
+	);
+
+	useEffect(() => {
+		let cancel = false;
+		(async () => {
+			try {
+				const isDev = process.env.NODE_ENV === "development";
+				if (isDev) return;
+				const checkVersion = await commands.utilCheckForUpdate();
+				if (cancel) return;
+				if (checkVersion) {
+					setUpdateState(checkVersion);
+				}
+			} catch (e) {
+				toastThrownError(e);
+				console.error(e);
+			}
+		})();
+		return () => {
+			cancel = true;
 		};
 	}, []);
 
-	useEffect(() => {
-		environmentLanguage().then((lang) => i18next.changeLanguage(lang))
-	}, []);
+	useDocumentEvent(
+		"keydown",
+		(e) => {
+			if (isFindKey(e)) {
+				e.preventDefault();
+			}
+		},
+		[],
+	);
 
 	return (
 		<>
@@ -56,17 +111,17 @@ export function Providers({children}: { children: React.ReactNode }) {
 				className={"whitespace-normal"}
 			/>
 			<QueryClientProvider client={queryClient}>
-				<I18nextProvider i18n={i18next}>
-					<ThemeProvider value={{
-						Typography: {
-							styles: {
-								font: 'normal'
-							}
-						}
-					}}>
-						{children as any}
-					</ThemeProvider>
-				</I18nextProvider>
+				<TooltipProvider>
+					{updateState && (
+						<CheckForUpdateMessage
+							response={updateState}
+							close={() => setUpdateState(null)}
+						/>
+					)}
+					<div lang={i18n.language} className="contents">
+						<Suspense fallback={"Loading..."}>{children}</Suspense>
+					</div>
+				</TooltipProvider>
 			</QueryClientProvider>
 		</>
 	);

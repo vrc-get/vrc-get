@@ -2,9 +2,10 @@ use clap::{Args, Parser, Subcommand};
 use indexmap::IndexMap;
 use itertools::Itertools;
 
+use futures::future::join_all;
 use log::warn;
 use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
-use reqwest::{Client, Url};
+use reqwest::Url;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
@@ -12,19 +13,24 @@ use std::error::Error as StdError;
 use std::ffi::OsStr;
 use std::fmt::{Debug, Display};
 use std::num::NonZeroU32;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
-use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
+use tokio::fs::read_to_string;
+use vrc_get_vpm::environment::{
+    add_remote_repo, cleanup_repos_folder, clear_package_cache, AddRepositoryErr,
+    AddUserPackageResult, PackageCollection, PackageInstaller, Settings, UserPackageCollection,
+};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, IoTrait};
+use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveReason};
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    PackageCollection, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
+    PackageCollection as _, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
 };
 
-type Environment = vrc_get_vpm::Environment<Client, DefaultEnvironmentIo>;
 type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
@@ -80,19 +86,25 @@ struct EnvArgs {
     no_update: bool,
 }
 
-async fn load_env(args: &EnvArgs) -> Environment {
-    let client = crate::create_client(args.offline);
-    let io = DefaultEnvironmentIo::new_default();
-    let mut env = Environment::load(client, io)
-        .await
-        .exit_context("loading global config");
-
-    env.load_package_infos(!args.no_update)
+async fn load_collection(
+    io: &DefaultEnvironmentIo,
+    http: Option<&reqwest::Client>,
+    no_update: bool,
+) -> PackageCollection {
+    let mut settings = Settings::load(io).await.exit_context("loading settings");
+    let mut collection = PackageCollection::load(&settings, io, http.filter(|_| !no_update))
         .await
         .exit_context("loading repositories");
-    env.save().await.exit_context("saving repositories updates");
 
-    env
+    if !no_update {
+        // dedup
+        settings.update_id(&collection);
+        let removed = settings.remove_id_duplication();
+        collection.remove_repositories(&removed, io).await;
+        settings.save(io).await.exit_context("saving settings");
+    }
+
+    collection
 }
 
 async fn load_unity(path: Option<Box<Path>>) -> UnityProject {
@@ -109,37 +121,44 @@ async fn load_unity(path: Option<Box<Path>>) -> UnityProject {
         .exit_context("loading unity project")
 }
 
+fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
+    fn impl_(path: &Path) -> PathBuf {
+        if path.is_absolute() {
+            path.to_owned()
+        } else {
+            env::current_dir()
+                .exit_context("getting current directory")
+                .join(path)
+        }
+    }
+
+    impl_(path.as_ref())
+}
+
 #[cfg(feature = "experimental-vcc")]
-async fn update_project_last_modified(env: Environment, project_dir: &Path) {
-    async fn inner(mut env: Environment, project_dir: &Path) -> Result<(), std::io::Error> {
-        env.update_project_last_modified(project_dir)?;
-        env.save().await?;
+async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
+    async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), std::io::Error> {
+        let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io).await?;
+        connection.update_project_last_modified(&absolute_path(project_dir))?;
+        connection.save(io).await?;
         Ok(())
     }
 
-    if let Err(err) = inner(env, project_dir).await {
+    if let Err(err) = inner(io, project_dir).await {
         eprintln!("error updating project updated_at on vcc: {err}");
     }
 }
 
 #[cfg(not(feature = "experimental-vcc"))]
-async fn update_project_last_modified(_: Environment, _: &Path) {}
+async fn update_project_last_modified(_: &DefaultEnvironmentIo, _: &Path) {}
 
 fn get_package<'env>(
-    env: &'env Environment,
+    env: &'env PackageCollection,
     name: &str,
     selector: VersionSelector,
 ) -> PackageInfo<'env> {
     env.find_package_by_name(name, selector)
         .unwrap_or_else(|| exit_with!("no matching package not found"))
-}
-
-async fn save_unity(unity: &mut UnityProject) {
-    unity.save().await.exit_context("saving manifest file");
-}
-
-async fn save_env(env: &mut Environment) {
-    env.save().await.exit_context("saving global config");
 }
 
 fn confirm_prompt(msg: &str) -> bool {
@@ -269,6 +288,24 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
             }
         }
     }
+
+    // process unlocked name conflicts
+    {
+        let mut unlocked_conflicts = changes
+            .conflicts()
+            .iter()
+            .flat_map(|(_, c)| c.unlocked_names())
+            .peekable();
+
+        if unlocked_conflicts.peek().is_some() {
+            println!("**Those directories are will be removed**");
+            println!("Those directory name conflicts with installing package,");
+            println!("or same packages are installed in those directories.");
+            for directory in unlocked_conflicts {
+                println!("- Packages/{}", directory);
+            }
+        }
+    }
 }
 
 fn prompt_install(yes: bool) {
@@ -349,6 +386,7 @@ pub enum Command {
     Resolve(Resolve),
     #[command(alias = "rm")]
     Remove(Remove),
+    Reinstall(Reinstall),
     Update(Update),
     Outdated(Outdated),
     Upgrade(Upgrade),
@@ -357,9 +395,13 @@ pub enum Command {
     #[command(subcommand)]
     Repo(Repo),
     #[command(subcommand)]
+    UserPackage(UserPackage),
+    #[command(subcommand)]
     Info(info::Info),
     #[command(subcommand)]
     Migrate(migrate::Migrate),
+    #[command(subcommand)]
+    Cache(Cache),
     #[cfg(feature = "experimental-vcc")]
     #[command(subcommand)]
     Vcc(vcc::Vcc),
@@ -374,14 +416,17 @@ multi_command!(Command is
     Install,
     Resolve,
     Remove,
+    Reinstall,
     Update,
     Outdated,
     Upgrade,
     Downgrade,
     Search,
     Repo,
+    UserPackage,
     Info,
     Migrate,
+    Cache,
     Vcc,
     Completion,
 );
@@ -432,7 +477,10 @@ impl Install {
             .await;
         };
 
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
 
         let version_selector = match self.version {
@@ -450,7 +498,7 @@ impl Install {
             }
 
             let normalized = normalize_name(&name);
-            let packages = env.find_whole_all_packages(version_selector, |pkg| {
+            let packages = collection.find_whole_all_packages(version_selector, |pkg| {
                 pkg.display_name().map(normalize_name).as_ref() == Some(&normalized)
                     || pkg
                         .aliases()
@@ -463,12 +511,12 @@ impl Install {
             }
             packages.into_iter().unique_by(|x| x.name()).collect()
         } else {
-            vec![get_package(&env, &name, version_selector)]
+            vec![get_package(&collection, &name, version_selector)]
         };
 
         let changes = unity
             .add_package_request(
-                &env,
+                &collection,
                 &packages,
                 AddPackageOperation::InstallToDependencies,
                 self.prerelease,
@@ -483,12 +531,11 @@ impl Install {
         }
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("adding package");
 
-        unity.save().await.exit_context("saving manifest file");
-        update_project_last_modified(env, unity.project_dir()).await;
+        update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
 
@@ -508,22 +555,24 @@ pub struct Resolve {
 
 impl Resolve {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
         let mut unity = load_unity(self.project).await;
 
+        let installer = PackageInstaller::new(&io, client.as_ref());
+
         let changes = unity
-            .resolve_request(&env)
+            .resolve_request(&collection)
             .await
             .exit_context("collecting packages to be installed");
 
         print_prompt_install(&changes);
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("installing packages");
-
-        unity.save().await.exit_context("saving manifest file");
     }
 }
 
@@ -548,11 +597,65 @@ pub struct Remove {
 
 impl Remove {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let io = DefaultEnvironmentIo::new_default();
         let mut unity = load_unity(self.project).await;
 
         let changes = unity
             .remove_request(&self.names.iter().map(String::as_ref).collect::<Vec<_>>())
+            .await
+            .exit_context("collecting packages to be removed");
+        let installer = PackageInstaller::new(&io, None::<&reqwest::Client>);
+
+        print_prompt_install(&changes);
+
+        let confirm =
+            changes.package_changes().len() >= self.names.len() || !changes.conflicts().is_empty();
+
+        if confirm {
+            prompt_install(self.yes);
+        }
+
+        unity
+            .apply_pending_changes(&installer, changes)
+            .await
+            .exit_context("removing packages");
+
+        update_project_last_modified(&io, unity.project_dir()).await;
+    }
+}
+
+/// Reinstall specified packages
+#[derive(Parser)]
+#[command(author, version)]
+pub struct Reinstall {
+    /// Name of Packages to reinstall
+    #[arg()]
+    names: Vec<String>,
+
+    /// Path to project dir. by default CWD or parents of CWD will be used
+    #[arg(short = 'p', long = "project")]
+    project: Option<Box<Path>>,
+    #[command(flatten)]
+    env_args: EnvArgs,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
+}
+
+impl Reinstall {
+    pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
+        let client = crate::create_client(self.env_args.offline);
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
+
+        let mut unity = load_unity(self.project).await;
+
+        let names = self.names.iter().map(String::as_ref).collect::<Vec<_>>();
+
+        let changes = unity
+            .reinstall_request(&collection, &names)
             .await
             .exit_context("collecting packages to be removed");
 
@@ -566,12 +669,11 @@ impl Remove {
         }
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("removing packages");
 
-        save_unity(&mut unity).await;
-        update_project_last_modified(env, unity.project_dir()).await;
+        update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
 
@@ -582,7 +684,9 @@ pub struct Update {}
 
 impl Update {
     pub async fn run(self) {
-        let _ = load_env(&EnvArgs::default()).await;
+        let client = crate::create_client(false);
+        let io = DefaultEnvironmentIo::new_default();
+        load_collection(&io, client.as_ref(), false).await;
     }
 }
 
@@ -607,7 +711,9 @@ pub struct Outdated {
 
 impl Outdated {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
         let unity = load_unity(self.project).await;
 
         let mut outdated_packages = HashMap::new();
@@ -615,7 +721,7 @@ impl Outdated {
         let selector = VersionSelector::latest_for(unity.unity_version(), self.prerelease);
 
         for locked in unity.locked_packages() {
-            match env.find_package_by_name(locked.name(), selector) {
+            match collection.find_package_by_name(locked.name(), selector) {
                 None => log::error!("latest version for package {} not found.", locked.name()),
                 // if found version is newer: add to outdated
                 Some(pkg) if locked.version() < pkg.version() => {
@@ -698,7 +804,10 @@ pub struct Upgrade {
 
 impl Upgrade {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let io = DefaultEnvironmentIo::new_default();
+        let client = crate::create_client(self.env_args.offline);
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
 
         let updates = if let Some(name) = &self.name {
@@ -706,7 +815,7 @@ impl Upgrade {
                 None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
                 Some(ref version) => VersionSelector::specific_version(version),
             };
-            let package = get_package(&env, name, version_selector);
+            let package = get_package(&collection, name, version_selector);
 
             vec![package]
         } else {
@@ -715,13 +824,13 @@ impl Upgrade {
 
             unity
                 .locked_packages()
-                .map(|locked| get_package(&env, locked.name(), version_selector))
+                .map(|locked| get_package(&collection, locked.name(), version_selector))
                 .collect()
         };
 
         let changes = unity
             .add_package_request(
-                &env,
+                &collection,
                 &updates,
                 AddPackageOperation::UpgradeLocked,
                 self.prerelease,
@@ -748,7 +857,7 @@ impl Upgrade {
             .collect::<Vec<_>>();
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("upgrading packages");
 
@@ -756,8 +865,7 @@ impl Upgrade {
             println!("upgraded {} to {}", name, version);
         }
 
-        save_unity(&mut unity).await;
-        update_project_last_modified(env, unity.project_dir()).await;
+        update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
 
@@ -791,18 +899,21 @@ pub struct Downgrade {
 
 impl Downgrade {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
+        let installer = PackageInstaller::new(&io, client.as_ref());
         let mut unity = load_unity(self.project).await;
 
         let updates = [get_package(
-            &env,
+            &collection,
             &self.name,
             VersionSelector::specific_version(&self.version),
         )];
 
         let changes = unity
             .add_package_request(
-                &env,
+                &collection,
                 &updates,
                 AddPackageOperation::Downgrade,
                 self.prerelease,
@@ -823,7 +934,7 @@ impl Downgrade {
             .collect::<Vec<_>>();
 
         unity
-            .apply_pending_changes(&env, changes)
+            .apply_pending_changes(&installer, changes)
             .await
             .exit_context("upgrading packages");
 
@@ -831,8 +942,7 @@ impl Downgrade {
             println!("downgraded {} to {}", name, version);
         }
 
-        save_unity(&mut unity).await;
-        update_project_last_modified(env, unity.project_dir()).await;
+        update_project_last_modified(&io, unity.project_dir()).await;
     }
 }
 
@@ -852,7 +962,9 @@ pub struct Search {
 
 impl Search {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let client = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
 
         let mut queries = self.queries;
         for query in &mut queries {
@@ -870,7 +982,7 @@ impl Search {
         }
 
         let found_packages =
-            env.find_whole_all_packages(VersionSelector::latest_for(None, true), |pkg| {
+            collection.find_whole_all_packages(VersionSelector::latest_for(None, true), |pkg| {
                 // filtering
                 let search_targets = search_targets(pkg);
 
@@ -907,9 +1019,11 @@ pub enum Repo {
     Remove(RepoRemove),
     Cleanup(RepoCleanup),
     Packages(RepoPackages),
+    Import(RepoImport),
+    Export(RepoExport),
 }
 
-multi_command!(Repo is List, Add, Remove, Cleanup, Packages);
+multi_command!(Repo is List, Add, Remove, Cleanup, Packages, Import, Export);
 
 /// List all repositories
 #[derive(Parser)]
@@ -921,17 +1035,17 @@ pub struct RepoList {
 
 impl RepoList {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
+        let io = DefaultEnvironmentIo::new_default();
+        let settings = Settings::load(&io).await.exit_context("loading settings");
 
-        for (local_path, repo) in env.get_repos() {
+        for repo in settings.get_user_repos() {
             println!(
-                "{}: {} (from {} at {})",
+                "{}: {} (from {})",
                 repo.id()
                     .or(repo.url().map(Url::as_str))
                     .unwrap_or("(no id)"),
                 repo.name().unwrap_or("(unnamed)"),
                 repo.url().map(Url::as_str).unwrap_or("(no remote)"),
-                local_path.display(),
             );
         }
     }
@@ -1009,47 +1123,37 @@ impl StdError for HeaderPairErr {
 
 impl RepoAdd {
     pub async fn run(self) {
-        let mut env = load_env(&self.env_args).await;
+        let http = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
 
         if let Ok(url) = Url::parse(&self.path_or_url) {
             let mut headers = IndexMap::<Box<str>, Box<str>>::new();
             for HeaderPair(name, value) in self.header {
                 headers.insert(name.as_str().into(), value.to_str().unwrap().into());
             }
-            env.add_remote_repo(url, self.name.as_deref(), headers)
-                .await
-                .exit_context("adding repository")
+            add_remote_repo(
+                &mut settings,
+                url,
+                self.name.as_deref(),
+                headers,
+                &io,
+                &http.unwrap_or_else(|| exit_with!("offline mode")),
+            )
+            .await
+            .exit_context("adding repository")
         } else {
-            let cwd = env::current_dir().exit_context("getting current directory");
-            let joined = cwd.join(&self.path_or_url);
-            let normalized = normalize_path(&joined);
+            let normalized = absolute_path(&self.path_or_url);
             if !normalized.exists() {
                 exit_with!("path not found: {}", normalized.display());
             }
-            env.add_local_repo(normalized.as_ref(), self.name.as_deref())
-                .exit_context("adding repository")
-        }
-
-        save_env(&mut env).await;
-    }
-}
-
-fn normalize_path(input: &Path) -> PathBuf {
-    let mut result = PathBuf::with_capacity(input.as_os_str().len());
-
-    for component in input.components() {
-        match component {
-            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
-            Component::RootDir => result.push(component.as_os_str()),
-            Component::CurDir => {}
-            Component::ParentDir => {
-                result.pop();
+            if !settings.add_local_repo(&normalized, self.name.as_deref()) {
+                exit_with!("repository already exists");
             }
-            Component::Normal(_) => result.push(component.as_os_str()),
         }
-    }
 
-    result
+        settings.save(&io).await.exit_context("saving settings");
+    }
 }
 
 /// Remove repository with specified url, path or name
@@ -1128,17 +1232,25 @@ impl RepoSearcher {
 
 impl RepoRemove {
     pub async fn run(self) {
-        let mut env = load_env(&self.env_args).await;
+        let io = DefaultEnvironmentIo::new_default();
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
 
         // we're using OsStr for paths.
         let finder = OsStr::new(self.finder.as_str());
         let searcher = self.searcher.as_searcher();
 
-        let count = env.remove_repo(|x| searcher.get(x) == Some(finder)).await;
+        let removed = settings.remove_repo(|x| searcher.get(x) == Some(finder));
 
-        println!("removed {} repositories with {}", count, searcher);
+        join_all(
+            removed
+                .iter()
+                .map(|x| async { io.remove_file(x.local_path()).await.ok() }),
+        )
+        .await;
 
-        save_env(&mut env).await;
+        println!("removed {} repositories with {}", removed.len(), searcher);
+
+        settings.save(&io).await.exit_context("saving settings");
     }
 }
 
@@ -1155,8 +1267,9 @@ pub struct RepoCleanup {
 
 impl RepoCleanup {
     pub async fn run(self) {
-        let env = load_env(&self.env_args).await;
-        env.cleanup_repos_folder()
+        let io = DefaultEnvironmentIo::new_default();
+        let settings = Settings::load(&io).await.exit_context("loading settings");
+        cleanup_repos_folder(&settings, &io)
             .await
             .exit_context("cleaning up Repos directory");
     }
@@ -1212,12 +1325,14 @@ impl RepoPackages {
 
             print_repo(&repo);
         } else {
-            let env = load_env(&self.env_args).await;
+            let client = crate::create_client(self.env_args.offline);
+            let io = DefaultEnvironmentIo::new_default();
+            let collection = load_collection(&io, client.as_ref(), self.env_args.no_update).await;
 
             let some_name = Some(self.name_or_url.as_str());
             let mut found = false;
 
-            for (_, repo) in env.get_repos() {
+            for repo in collection.get_remote() {
                 if repo.name() == some_name || repo.id() == some_name {
                     print_repo(repo.repo());
                     found = true;
@@ -1228,6 +1343,208 @@ impl RepoPackages {
                 exit_with!("no repository named {} found!", self.name_or_url);
             }
         }
+    }
+}
+
+/// Import repository list file
+#[derive(Parser)]
+#[command(author, version)]
+pub struct RepoImport {
+    repositories_file: String,
+
+    /// skip confirm
+    #[arg(short, long)]
+    yes: bool,
+
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl RepoImport {
+    pub async fn run(self) {
+        let http = crate::create_client(self.env_args.offline);
+        let io = DefaultEnvironmentIo::new_default();
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
+        let repositories_file = read_to_string(self.repositories_file)
+            .await
+            .exit_context("reading repositories file");
+
+        let result = RepositoriesFile::parse(&repositories_file);
+
+        println!("You're importing the following repositories:");
+        for repository in result.parsed().repositories() {
+            if repository.headers().is_empty() {
+                println!("- {}", repository.url());
+            } else {
+                println!("- {} (with headers)", repository.url());
+            }
+        }
+        println!("The following lines are invalid and will be ignored:");
+        for line in result.unparseable_lines() {
+            println!("- {}", line);
+        }
+
+        if self.yes {
+            println!("--yes is set. skipping confirm");
+        } else if !confirm_prompt("Do you want to install those repositories?") {
+            exit(1);
+        }
+
+        for repository in result.parsed().repositories() {
+            match add_remote_repo(
+                &mut settings,
+                repository.url().clone(),
+                None,
+                repository.headers().clone(),
+                &io,
+                http.as_ref().unwrap_or_else(|| exit_with!("offline mode")),
+            )
+            .await
+            {
+                Ok(()) => {}
+                Err(AddRepositoryErr::AlreadyAdded) => {
+                    warn!(
+                        "{} is already added so skipping that repository",
+                        repository.url()
+                    );
+                }
+                Err(err) => {
+                    exit_with!(
+                        "error adding repository {url}: {err}",
+                        url = repository.url()
+                    );
+                }
+            }
+        }
+
+        settings.save(&io).await.exit_context("saving settings");
+    }
+}
+
+/// Export user repository list file
+#[derive(Parser)]
+#[command(author, version)]
+pub struct RepoExport {
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl RepoExport {
+    pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
+        let settings = Settings::load(&io).await.exit_context("loading settings");
+        print!("{}", settings.export_repositories());
+    }
+}
+
+/// Commands around user packages
+#[derive(Subcommand)]
+#[command(author, version)]
+pub enum UserPackage {
+    List(UserPackageList),
+    Add(UserPackageAdd),
+    Remove(UserPackageRemove),
+}
+
+multi_command!(UserPackage is List, Add, Remove);
+
+/// List all user packages
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UserPackageList {}
+
+impl UserPackageList {
+    pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
+        let settings = Settings::load(&io).await.exit_context("loading settings");
+        let packages = UserPackageCollection::load(&settings, &io).await;
+
+        for (path, package) in packages.packages() {
+            println!(
+                "{}: {} version {} at {}",
+                package.name(),
+                package.display_name().unwrap_or(package.name()),
+                package.version(),
+                path.display(),
+            );
+        }
+    }
+}
+
+/// Add user package
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UserPackageAdd {
+    /// Path to package
+    #[arg()]
+    path: Box<Path>,
+}
+
+impl UserPackageAdd {
+    pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
+
+        let path = absolute_path(&self.path);
+        match settings.add_user_package(&path, &io).await {
+            AddUserPackageResult::BadPackage => {
+                exit_with!("bad package: {}", self.path.display())
+            }
+            AddUserPackageResult::AlreadyAdded => {
+                exit_with!("package already added: {}", self.path.display())
+            }
+            AddUserPackageResult::Success => {}
+            AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
+        }
+
+        settings.save(&io).await.exit_context("saving settings");
+    }
+}
+
+/// Remove user package
+#[derive(Parser)]
+#[command(author, version)]
+pub struct UserPackageRemove {
+    /// Path to package
+    #[arg()]
+    path: Box<Path>,
+}
+
+impl UserPackageRemove {
+    pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
+        let mut settings = Settings::load(&io).await.exit_context("loading settings");
+
+        let path = absolute_path(&self.path);
+        settings.remove_user_package(&path);
+
+        settings.save(&io).await.exit_context("saving settings");
+    }
+}
+
+/// Commands about cache control
+#[derive(Subcommand)]
+#[command(author, version)]
+pub enum Cache {
+    Clear(CacheClear),
+}
+
+multi_command!(Cache is Clear);
+
+/// Cleanup package cache
+#[derive(Parser)]
+#[command(author, version)]
+pub struct CacheClear {
+    #[command(flatten)]
+    env_args: EnvArgs,
+}
+
+impl CacheClear {
+    pub async fn run(self) {
+        let io = DefaultEnvironmentIo::new_default();
+        clear_package_cache(&io)
+            .await
+            .exit_context("clearing package cache");
     }
 }
 
@@ -1246,7 +1563,11 @@ impl Completion {
         };
         let mut bin_name = args().next().expect("bin name");
         if let Some(slash) = bin_name.rfind(&['/', '\\']) {
-            bin_name = bin_name[slash + 1..].to_owned();
+            // https://github.com/rust-lang/rust-clippy/issues/13070
+            #[allow(clippy::assigning_clones)]
+            {
+                bin_name = bin_name[slash + 1..].to_owned();
+            }
         }
 
         clap_complete::generate(

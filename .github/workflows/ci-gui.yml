@@ -21,7 +21,7 @@ jobs:
               sudo apt update && sudo apt install -y lld
               ld.lld --version
 
-              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+              sudo apt update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
             rustflags: "-C link-arg=-fuse-ld=lld"
 
           - triple: x86_64-pc-windows-msvc
@@ -69,6 +69,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-
       - uses: taiki-e/install-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           tool: cargo-about
 
@@ -84,12 +86,23 @@ jobs:
           cp vrc-get-gui/Cargo.toml vrc-get-gui/Cargo.toml.bak
           sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/Cargo.toml.bak > vrc-get-gui/Cargo.toml
 
+      - name: disable bundling updater
+        shell: bash
+        run: |
+          cp vrc-get-gui/Tauri.toml vrc-get-gui/Tauri.toml.bak
+          grep -v "remove if ci" < vrc-get-gui/Tauri.toml.bak > vrc-get-gui/Tauri.toml
+
+      - name: Enable Devtools Feature
+        shell: bash
+        run: |
+          cargo add --package vrc-get-gui tauri --features devtools
+
       - uses: tauri-apps/tauri-action@v0
         with:
           projectPath: vrc-get-gui
           tauriScript: npm run tauri
           args: |
-            --target ${{ matrix.triple }} -c '{"tauri":{"updater":{"active":false}},"package":{"version":"${{ steps.version.outputs.version }}"}}'
+            --target ${{ matrix.triple }} -c '{"version":"${{ steps.version.outputs.version }}", "bundle":{"windows":{"certificateThumbprint": null}}}'
 
       - name: Upload built binary
         uses: actions/upload-artifact@v4

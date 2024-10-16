@@ -1,14 +1,17 @@
 use crate::environment::repo_source::RepoSource;
-use crate::io;
+use crate::environment::{
+    Settings, CURATED_URL_STR, LOCAL_CURATED_PATH, LOCAL_OFFICIAL_PATH, OFFICIAL_URL_STR,
+};
 use crate::io::EnvironmentIo;
 use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
 use crate::traits::HttpClient;
 use crate::utils::{read_json_file, to_vec_pretty_os_eol, try_load_json};
-use crate::{PackageCollection, PackageInfo, VersionSelector};
+use crate::{io, UserRepoSetting};
 use futures::future::join_all;
 use indexmap::IndexMap;
-use log::error;
+use lazy_static::lazy_static;
+use log::{error, warn};
 use std::collections::HashMap;
 use std::path::Path;
 use url::Url;
@@ -28,12 +31,64 @@ impl RepoHolder {
 
 // new system
 impl RepoHolder {
+    pub(crate) async fn load(
+        settings: &Settings,
+        io: &impl EnvironmentIo,
+        http: Option<&impl HttpClient>,
+    ) -> io::Result<Self> {
+        let predefined_repos = Self::get_predefined_repos(settings).into_iter();
+        let user_repos = settings
+            .get_user_repos()
+            .iter()
+            .map(UserRepoSetting::to_source);
+        io.create_dir_all("Repos".as_ref()).await?;
+        let mut repo_cache = Self::new();
+        repo_cache
+            .load_repos(http, io, predefined_repos.chain(user_repos))
+            .await?;
+
+        Ok(repo_cache)
+    }
+
+    fn get_predefined_repos(settings: &Settings) -> Vec<RepoSource<'static>> {
+        lazy_static! {
+            static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
+            static ref OFFICIAL_URL: Url = Url::parse(OFFICIAL_URL_STR).unwrap();
+            static ref CURATED_URL: Url = Url::parse(CURATED_URL_STR).unwrap();
+        }
+
+        let mut repositories = Vec::with_capacity(2);
+
+        if !settings.ignore_official_repository() {
+            repositories.push(RepoSource::new(
+                LOCAL_OFFICIAL_PATH.as_ref(),
+                &EMPTY_HEADERS,
+                Some(&OFFICIAL_URL),
+            ));
+        } else {
+            warn!("ignoring official repository is experimental feature!");
+        }
+
+        if !settings.ignore_curated_repository() {
+            repositories.push(RepoSource::new(
+                LOCAL_CURATED_PATH.as_ref(),
+                &EMPTY_HEADERS,
+                Some(&CURATED_URL),
+            ));
+        } else {
+            warn!("ignoring curated repository is experimental feature!");
+        }
+
+        repositories
+    }
+
     pub(crate) async fn load_repos<'a, IO: EnvironmentIo>(
         &mut self,
         http: Option<&impl HttpClient>,
         io: &IO,
         sources: impl Iterator<Item = RepoSource<'a>>,
     ) -> io::Result<()> {
+        let start = std::time::Instant::now();
         let repos = join_all(sources.map(|src| async move {
             match Self::load_repo_from_source(http, io, &src).await {
                 Ok(Some(v)) => Some((v, src.cache_path().into())),
@@ -45,6 +100,8 @@ impl RepoHolder {
             }
         }))
         .await;
+        let duration = std::time::Instant::now() - start;
+        log::info!("downloading repos took {:?}", duration);
 
         for (repo, path) in repos.into_iter().flatten() {
             self.cached_repos_new.insert(path, repo);
@@ -79,6 +136,7 @@ impl RepoHolder {
         if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(io, path).await? {
             if let Some(client) = client {
                 // if it's possible to download remote repo, try to update with that
+                log::debug!("downloading remote repo '{}' with local cache", remote_url);
                 match RemoteRepository::download_with_etag(
                     client,
                     remote_url,
@@ -87,8 +145,9 @@ impl RepoHolder {
                 )
                 .await
                 {
-                    Ok(None) => log::debug!("cache matched downloading {}", remote_url),
+                    Ok(None) => log::debug!("cache matched downloading '{}'", remote_url),
                     Ok(Some((remote_repo, etag))) => {
+                        log::debug!("downloaded finished '{}'", remote_url);
                         loaded.set_repo(remote_repo);
                         loaded.set_etag(etag);
 
@@ -113,8 +172,10 @@ impl RepoHolder {
                     "offline mode",
                 ));
             };
+            log::debug!("downloading remote repo '{}'", remote_url);
             let (remote_repo, etag) =
                 RemoteRepository::download(client, remote_url, headers).await?;
+            log::debug!("downloaded finished '{}'", remote_url);
 
             let mut local_cache = LocalCachedRepository::new(remote_repo, headers.clone());
 
@@ -137,46 +198,7 @@ impl RepoHolder {
         read_json_file::<LocalCachedRepository>(io.open(path).await?, path).await
     }
 
-    pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
-        self.cached_repos_new.values().collect()
-    }
-
-    pub(crate) fn get_repo_with_path(
-        &self,
-    ) -> impl Iterator<Item = (&'_ Box<Path>, &'_ LocalCachedRepository)> {
-        self.cached_repos_new.iter()
-    }
-
-    pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
-        self.cached_repos_new.get(path)
-    }
-
-    pub(crate) fn remove_repo(&mut self, path: &Path) {
-        self.cached_repos_new.remove(path);
-    }
-}
-
-impl PackageCollection for RepoHolder {
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.get_all_packages())
-    }
-
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.find_packages(package))
-    }
-
-    fn find_package_by_name(
-        &self,
-        package: &str,
-        package_selector: VersionSelector,
-    ) -> Option<PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.find_package_by_name(package, package_selector))
-            .max_by_key(|x| x.version())
+    pub(crate) fn into_repos(self) -> HashMap<Box<Path>, LocalCachedRepository> {
+        self.cached_repos_new
     }
 }

@@ -8,14 +8,35 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Per-package `headers` field support `#718`
+  - Since this is adding support for missing features, I treat this as a bugfix and not bump minor version.
+- De-duplicating duplicated projects or Unity in VCC project list `#1081`
+- `vrc-get cache clear`, command to clear package cache `#1204`
+- Importing / Exporting Repositories list `#1209`
+  - `vrc-get repo import <list file>` and `vrc-get repo export`
+- User Package Management `#1222`
+  - This release adds `vrc-get user-package` subcommands to manage user packages.
+- `vrc-get reinstall <package id>` to reinstall specified packages `#1223`
+- Skipping finding legacy assets when downgrading / upgrading / reinstalling package `#1581`
+  - This will speed up the process of downgrading / upgrading / reinstalling package.
 
 ### Changed
+- Error message will be shown if the SHA256 hash of the downloaded zip file does not match with the hash in the repository `#1183`
+  - Currently, official VCC does not verify the hash of the downloaded zip file, but it's better to verify the hash.
+  - For compatibility, even if the hash does not match, the file will be extracted with an error message.
+  - In the future, we may make this a hard error.
+- Migration feature is no longer marked as experimental `#1559`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Unity from Unity Hub will be registered as manually registered Unity `#1081`
+- Fails to uninstall packages on macOS with filesystem that doesn't support resource fork `#1402`
+  - This is typically seen on ExFAT or FAT32 filesystems, not on APFS or HFS+ filesystems.
+  - macOS internally creates files starting with `._` for resource fork if the filesystem does not support resource fork.
+  - vrc-get-vpm does not handle this file correctly and fails to uninstall the package.
 
 ### Security
 

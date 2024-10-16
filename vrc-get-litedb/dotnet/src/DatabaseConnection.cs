@@ -9,7 +9,7 @@ using HandleType = LiteDatabase;
 public class DatabaseConnection
 {
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_new")]
-    public static unsafe HandleErrorResult New(ConnectionStringFFI *connectionString)
+    public static unsafe HandleErrorResult New(ConnectionStringFFI* connectionString)
     {
         try
         {
@@ -22,28 +22,30 @@ public class DatabaseConnection
         }
     }
 
-    interface ICollectionElementAccessor<T>
-        where T : unmanaged
-    {
-        string CollectionName { get; }
-        T FromBsonDocument(BsonDocument document);
-        BsonDocument ToBsonDocument(in T element);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe LiteDbError GetAll<TAccess, T>(GCHandle handle, RustSlice<T> *result)
-        where TAccess : struct, ICollectionElementAccessor<T>
-        where T : unmanaged
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_get_all")]
+    public static unsafe LiteDbError GetAll(
+        GCHandle handle,
+        /*in*/ RustSlice<byte> collectionName,
+        /*out*/ RustSlice<RustSlice<byte>>* result
+    )
     {
         try
         {
-            var accessor = default(TAccess);
+            // parse input
             var connection = (LiteDatabase)handle.Target!;
-            var projects = connection.GetCollection(accessor.CollectionName).FindAll().ToArray();
-            var slice = *result = RustSlice<T>.AllocRust((nuint)projects.Length);
-            var asSpan = slice.AsSpan();
+            var collectionNameString = collectionName.ToUtf8String();
+
+            var projects = connection.GetCollection(collectionNameString).FindAll().ToArray();
+            var bsonListSlice = *result = RustSlice<RustSlice<byte>>.AllocRust((nuint)projects.Length);
+            var bsonListSpan = bsonListSlice.AsSpan();
             for (var i = 0; i < projects.Length; i++)
-                asSpan[i] = accessor.FromBsonDocument(projects[i]);
+            {
+                var serialized = BsonSerializer.Serialize(projects[i]);
+                var bsonSlice = RustSlice<byte>.AllocRust((nuint)serialized.Length);
+                Marshal.Copy(serialized, 0, (IntPtr)bsonSlice.Data, serialized.Length);
+                bsonListSpan[i] = bsonSlice;
+            }
+
             return default;
         }
         catch (Exception e)
@@ -51,122 +53,75 @@ public class DatabaseConnection
             return LiteDbError.FromException(e);
         }
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe LiteDbError Update<TAccess, T>(GCHandle handle, T *project)
-        where TAccess : struct, ICollectionElementAccessor<T>
-        where T : unmanaged
-    {
-        try
-        {
-            var accessor = default(TAccess);
-            var connection = (LiteDatabase)handle.Target!;
-            connection.GetCollection(accessor.CollectionName).Update(accessor.ToBsonDocument(*project));
-            return default;
-        }
-        catch (Exception e)
-        {
-            return LiteDbError.FromException(e);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe LiteDbError Insert<TAccess, T>(GCHandle handle, T *project)
-        where TAccess : struct, ICollectionElementAccessor<T>
-        where T : unmanaged
-    {
-        try
-        {
-            var accessor = default(TAccess);
-            var connection = (LiteDatabase)handle.Target!;
-            connection.GetCollection(accessor.CollectionName).Insert(accessor.ToBsonDocument(*project));
-            return default;
-        }
-        catch (Exception e)
-        {
-            return LiteDbError.FromException(e);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static LiteDbError Delete<TAccess, T>(GCHandle handle, ObjectId objectId)
-        where TAccess : struct, ICollectionElementAccessor<T>
-        where T : unmanaged
-    {
-        try
-        {
-            var accessor = default(TAccess);
-            var connection = (LiteDatabase)handle.Target!;
-            connection.GetCollection(accessor.CollectionName).Delete(objectId.ToLiteObjectId());
-            return default;
-        }
-        catch (Exception e)
-        {
-            return LiteDbError.FromException(e);
-        }
-    }
-
-    struct ProjectsAccess : ICollectionElementAccessor<ProjectFFI>
-    {
-        public string CollectionName
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => "projects";
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ProjectFFI FromBsonDocument(BsonDocument document) => new(document);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BsonDocument ToBsonDocument(in ProjectFFI element) => element.ToBsonDocument();
-    }
-
-    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_get_projects")]
-    public static unsafe LiteDbError GetProjects(GCHandle handle, RustSlice<ProjectFFI>* result) =>
-        GetAll<ProjectsAccess, ProjectFFI>(handle, result);
 
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_update")]
-    public static unsafe LiteDbError UpdateProject(GCHandle handle, ProjectFFI* project) =>
-        Update<ProjectsAccess, ProjectFFI>(handle, project);
-
-    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_insert")]
-    public static unsafe LiteDbError InsertProject(GCHandle handle, ProjectFFI* project) =>
-        Insert<ProjectsAccess, ProjectFFI>(handle, project);
-
-    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_delete")]
-    public static LiteDbError DeleteProject(GCHandle handle, ObjectId objectId) => 
-        Delete<ProjectsAccess, ProjectFFI>(handle, objectId);
-
-    struct UnityVersionAccess : ICollectionElementAccessor<UnityVersionFFI>
+    public static LiteDbError Update(
+        GCHandle handle,
+        /*in*/ RustSlice<byte> collectionName,
+        /*in*/ RustSlice<byte> value
+    )
     {
-        public string CollectionName
+        try
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => "unityVersions";
+            // parse input
+            var connection = (LiteDatabase)handle.Target!;
+            var collectionNameString = collectionName.ToUtf8String();
+            var valueDocument = BsonSerializer.Deserialize(value.AsReadOnlySpan().ToArray(), true);
+
+            connection.GetCollection(collectionNameString).Update(valueDocument);
+            return default;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public UnityVersionFFI FromBsonDocument(BsonDocument document) => new(document);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BsonDocument ToBsonDocument(in UnityVersionFFI element) => element.ToBsonDocument();
+        catch (Exception e)
+        {
+            return LiteDbError.FromException(e);
+        }
     }
 
-    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_get_unity_versions")]
-    public static unsafe LiteDbError GetUnityVersions(GCHandle handle, RustSlice<UnityVersionFFI>* result) =>
-        GetAll<UnityVersionAccess, UnityVersionFFI>(handle, result);
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_insert")]
+    public static LiteDbError Insert(
+        GCHandle handle,
+        /*in*/ RustSlice<byte> collectionName,
+        /*in*/ RustSlice<byte> value
+    )
+    {
+        try
+        {
+            // parse input
+            var connection = (LiteDatabase)handle.Target!;
+            var collectionNameString = collectionName.ToUtf8String();
+            var valueDocument = BsonSerializer.Deserialize(value.AsReadOnlySpan().ToArray(), true);
 
-    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_update_unity_version")]
-    public static unsafe LiteDbError UpdateUnityVersion(GCHandle handle, UnityVersionFFI* project) =>
-        Update<UnityVersionAccess, UnityVersionFFI>(handle, project);
+            connection.GetCollection(collectionNameString).Insert(valueDocument);
+            return default;
+        }
+        catch (Exception e)
+        {
+            return LiteDbError.FromException(e);
+        }
+    }
 
-    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_insert_unity_version")]
-    public static unsafe LiteDbError InsertUnityVersion(GCHandle handle, UnityVersionFFI* project) =>
-        Insert<UnityVersionAccess, UnityVersionFFI>(handle, project);
+    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_delete")]
+    public static LiteDbError Delete(
+        GCHandle handle, 
+        /*in*/ RustSlice<byte> collectionName,
+        ObjectId objectId
+        )
+    {
+        try
+        {
+            // parse input
+            var connection = (LiteDatabase)handle.Target!;
+            var collectionNameString = collectionName.ToUtf8String();
+            var objectIdValue = objectId.ToLiteObjectId();
 
-    [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_delete_unity_version")]
-    public static LiteDbError DeleteUnityVersion(GCHandle handle, ObjectId objectId) => 
-        Delete<UnityVersionAccess, UnityVersionFFI>(handle, objectId);
+            connection.GetCollection(collectionNameString).Delete(objectIdValue);
+            return default;
+        }
+        catch (Exception e)
+        {
+            return LiteDbError.FromException(e);
+        }
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "vrc_get_litedb_database_connection_dispose")]
     public static void DisposeHandle(GCHandle handle)

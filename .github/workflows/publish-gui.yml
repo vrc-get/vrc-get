@@ -12,6 +12,11 @@ on:
           - prerelease
           - start-rc
           - stable
+      dry-run:
+        type: boolean
+        description: Dry Run, If true, do not publish release to GitHub.
+        default: true
+        required: false
 
 jobs:
   pre-build:
@@ -63,26 +68,28 @@ jobs:
               echo "head is master or master-*"
               ;;
             * )
-              echo "invalid release kind: $RELEASE_KIND_IN is not allowd for $GITHUB_REF_NAME"
-              exit 255
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "head is not master, but DRY_RUN is true"
+              else
+                echo "head is not master, but DRY_RUN is false"
+                exit 255
+              fi
               ;;
           esac
 
           gh-export-variable GUI_VERSION "$(get-version -t gui)"
         env:
-          RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
+          RELEASE_KIND_IN: ${{ inputs.release_kind }}
+          DRY_RUN: ${{ inputs.dry-run }}
 
       # region changelog
       - name: Create Changelog
         id: changelog
-        # if: ${{ !steps.update-version.outputs.prerelease }}
         uses: anatawa12/sh-actions/changelog/prepare-release@master
         with:
           path: CHANGELOG-gui.md
           version: ${{ env.GUI_VERSION }}
-          # use CHANGELOG-gui.md for all releases including beta for now
-          # there are several logics uses generated changelog, so remember to update them if you change this
-          prerelease: false # ${{ env.PRERELEASE }}
+          prerelease: ${{ env.PRERELEASE }}
           tag-prefix: gui-v
           prerelease-note-heading: |
             Version ${{ env.GUI_VERSION }}
@@ -91,24 +98,36 @@ jobs:
             Version ${{ env.GUI_VERSION }}
             ---
       - name: Upload CHANGELOG.md
-        # if: ${{ !steps.update-version.outputs.prerelease }}
         uses: actions/upload-artifact@v4
         with:
           name: CHANGELOG
           path: CHANGELOG.md
       - name: copy release note
-        # if: ${{ !steps.update-version.outputs.prerelease }}
         run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
       - name: Upload release note
-        # if: ${{ !steps.update-version.outputs.prerelease }}
         uses: actions/upload-artifact@v4
         with:
           name: release-note-for-release
           path: release-note.md
       - name: remove temp release note file
-        # if: ${{ !steps.update-version.outputs.prerelease }}
         run: rm release-note.md
       # endregion changelog
+
+      # region notes
+      - name: Reset notes.txt
+        if: ${{ !steps.update-version.outputs.prerelease }}
+        run: |
+          cat <<SHELL > vrc-get-gui/notes.txt
+          # This is notes text for the updater json, which will be shown in the updater dialog.
+          # Lines starting with '#' will be ignored (as comments).
+          SHELL
+      - name: Reset notes-beta.txt
+        run: |
+          cat <<SHELL > vrc-get-gui/notes-beta.txt
+          # This is notes text for the updater json, which will be shown in the updater dialog.
+          # Lines starting with '#' will be ignored (as comments).
+          SHELL
+      # endregion
 
       - name: Commit
         id: update
@@ -128,6 +147,8 @@ jobs:
           ref: 'releasing'
           submodules: recursive
       - uses: taiki-e/install-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           tool: cargo-about
 
@@ -155,16 +176,20 @@ jobs:
               sudo apt update && sudo apt install -y lld
               ld.lld --version
 
-              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
             rustflags: "-C link-arg=-fuse-ld=lld"
             dist-path: |
-              bundle/appimage/alcom_${GUI_VERSION}_amd64.AppImage:alcom-${GUI_VERSION}-x86_64.AppImage
+              bundle/appimage/ALCOM_${GUI_VERSION}_amd64.AppImage:alcom-${GUI_VERSION}-x86_64.AppImage
 
-              bundle/appimage/alcom_${GUI_VERSION}_amd64.AppImage.tar.gz:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz
-              bundle/appimage/alcom_${GUI_VERSION}_amd64.AppImage.tar.gz.sig:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz.sig
+              bundle/appimage/ALCOM_${GUI_VERSION}_amd64.AppImage.tar.gz:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz
+              bundle/appimage/ALCOM_${GUI_VERSION}_amd64.AppImage.tar.gz.sig:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz.sig
+
+              bundle/deb/ALCOM_${GUI_VERSION}_amd64.deb:alcom_${GUI_VERSION}_amd64.deb
+              bundle/rpm/ALCOM-${GUI_VERSION}-1.x86_64.rpm:alcom-${GUI_VERSION}-1.x86_64.rpm
 
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
+            esigner: true
             dist-path: |
               ALCOM.exe:ALCOM-${GUI_VERSION}-x86_64.exe
               bundle/nsis/ALCOM_${GUI_VERSION}_x64-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
@@ -209,11 +234,21 @@ jobs:
           cache-targets: false # for release build, do not cache build artifacts
           key: release-gui # there are no elements about build result, so it's ok to share between all builds
       - uses: taiki-e/install-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           tool: cargo-about
 
       - name: Setup
         run: ${{ matrix.setup }}
+
+      - uses: anatawa12/setup-eSigner-CKA@v1
+        if: ${{ matrix.esigner }}
+        with:
+          mode: ${{ vars.WIN_ESIGNER_MODE }}
+          username: ${{ secrets.WIN_ESIGNER_USERNAME }}
+          password: ${{ secrets.WIN_ESIGNER_PASSWORD }}
+          totp-secret: ${{ secrets.WIN_ESIGNER_TOTP_SECRET }}
 
       - name: Download Web Artifact
         uses: actions/download-artifact@v4
@@ -232,9 +267,12 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
           # tauri updater signing
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+
+          # we have to use x86 version of signtool since eSignerCKA does not work with x64 version
+          TAURI_WINDOWS_SIGNTOOL_PATH: C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x86\signtool.exe
+
         with:
           projectPath: vrc-get-gui
           tauriScript: npm run tauri
@@ -269,9 +307,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ pre-build, build-rust ]
     steps:
+      # use release 
       - uses: actions/checkout@v4
-        with:
-          ref: 'releasing'
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Download All Artifacts
@@ -290,10 +327,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: updater.json
-          path: updater.json
+          path: |
+            updater.json
+            updater-beta.json
 
   publish-to-github:
     name: Publish to GitHub
+    if: ${{ !inputs.dry-run }}
     environment:
       name: actions-github-app
       url: https://github.com/anatawa12/vrc-get/releases/gui-v${{ needs.pre-build.outputs.gui-version }}
@@ -308,7 +348,7 @@ jobs:
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.PRIVATE_KEY }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - uses: actions/checkout@v4
         with:
           ref: 'releasing'
@@ -352,11 +392,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |-
-          # Always prerelease for now.
+          # latest = false because we need to have vrc-get cli in the latest release
           # always generating notes file for now
           # ${{ !needs.pre-build.outputs.prerelease && '--notes-file changelog/release-note.md' || '' }} \
           gh release create \
-            --prerelease \
+            ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} \
             --latest=false \
             --notes-file changelog/release-note.md \
             --verify-tag "gui-v$GUI_VERSION" \
@@ -392,6 +432,7 @@ jobs:
 
   pull-request-to-website:
     name: Create PullRequest to vrc-get.anatawa12.com for updater.json
+    if: ${{ !inputs.dry-run }}
     environment:
       name: actions-github-app
     runs-on: ubuntu-latest
@@ -403,7 +444,7 @@ jobs:
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.PRIVATE_KEY }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: vrc-get
           repositories: vrc-get.anatawa12.com
       - uses: actions/checkout@v4
@@ -420,16 +461,22 @@ jobs:
           name: updater.json
           path: .
       - name: Move updater.json
+        env:
+          STABLE: ${{ !needs.pre-build.outputs.prerelease }}
         run: |
           mkdir -p public/api/gui
-          rm public/api/gui/tauri-updater.json || true # remove old file if exists
-          mv updater.json public/api/gui/tauri-updater.json
+          if $STABLE; then
+            rm public/api/gui/tauri-updater.json || true # remove old file if exists
+            mv updater.json public/api/gui/tauri-updater.json
+          fi
+          rm public/api/gui/tauri-updater-beta.json || true
+          mv updater-beta.json public/api/gui/tauri-updater-beta.json
 
       - name: Commit
         run: |-
           BRANCH_NAME="update-tauri-updater-json-v$GUI_VERSION"
           git switch -c "$BRANCH_NAME"
-          git add public/api/gui/tauri-updater.json
+          git add public/api/gui/tauri-updater.json public/api/gui/tauri-updater-beta.json
           git commit -m "chore: update tauri-updater.json to v$GUI_VERSION"
           git push -u origin "$BRANCH_NAME"
 
