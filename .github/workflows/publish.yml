@@ -63,8 +63,8 @@ jobs:
           esac
 
           case "$GITHUB_REF_NAME" in
-            master | master-* )
-              echo "head is master or master-*"
+            master | master-* | hotfix-* )
+              echo "head is master, master-*, or hotfix-*"
               ;;
             * )
               echo "invalid release kind: $RELEASE_KIND_IN is not allowd for $GITHUB_REF_NAME"
