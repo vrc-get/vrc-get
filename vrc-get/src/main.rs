@@ -47,9 +47,20 @@ pub(crate) fn create_client(offline: bool) -> Option<Client> {
     if offline {
         None
     } else {
+        let authors = env!("CARGO_PKG_AUTHORS");
+        let author = authors.split_once(':').unwrap_or(("", authors)).1;
+        let user_agent = format!(
+            "{product}/{version} (a open-source command-line vpm client by {author})",
+            product = env!("CARGO_PKG_NAME"),
+            version = env!("CARGO_PKG_VERSION"),
+            author = author
+        );
+
+        log::debug!("using user agent: {}", user_agent);
+
         Some(
             Client::builder()
-                .user_agent(concat!("vrc-get/", env!("CARGO_PKG_VERSION")))
+                .user_agent(user_agent)
                 .build()
                 .expect("building client"),
         )
