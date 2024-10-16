@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Hotfix: Added contact information about author of the project to the User-Agent
 
 ### Security
 
