@@ -275,16 +275,18 @@ jobs:
           path: changelog
 
       - name: Push tag
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |-
           # set tag and publish current version
           git tag "v$CLI_VERSION"
           git tag "vpm-v$VPM_VERSION"
           git push --tags
           # create master and push
-          git switch -c master
-          git fetch origin master --depth=1
+          git switch -c "$BRANCH"
+          git fetch origin "$BRANCH" --depth=1
           git log --all --graph
-          git push -u origin master
+          git push -u origin "$BRANCH"
           sleep 1
 
       - name: create release
