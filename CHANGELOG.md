@@ -40,6 +40,10 @@ The format is based on [Keep a Changelog].
 
 ### Security
 
+## [1.8.2] - 2024-10-16
+### Fixed
+- Hotfix: Added contact information about author of the project to the User-Agent
+
 ## [1.8.1] - 2024-05-13
 ### Changed
 - Relax validation for `package.json` for local user packages [`#750`](https://github.com/vrc-get/vrc-get/pull/750)
@@ -456,7 +460,8 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.8.2...HEAD
+[1.8.2]: https://github.com/vrc-get/vrc-get/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/vrc-get/vrc-get/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/vrc-get/vrc-get/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/anatawa12/vrc-get/compare/v1.7.0...v1.7.1

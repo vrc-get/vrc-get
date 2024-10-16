@@ -5271,7 +5271,7 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-vpm"
-version = "0.0.13-beta.1"
+version = "0.0.14-beta.0"
 dependencies = [
  "async-stream",
  "async_zip",
