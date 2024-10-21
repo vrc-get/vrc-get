@@ -34,7 +34,7 @@
 		"classnames": "^2",
 		"clsx": "^2",
 		"i18next": "^23",
-		"lucide-react": "^0.446",
+		"lucide-react": "^0.453",
 		"next": "14",
 		"react": "^18",
 		"react-dom": "^18",
