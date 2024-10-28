@@ -228,6 +228,7 @@ pub struct UnityInstallation {
     path: Box<str>,
     #[serde(rename = "Version")]
     #[serde(deserialize_with = "default_if_err")]
+    #[serde(default)]
     version: Option<UnityVersion>,
     #[serde(rename = "LoadedFromHub")]
     loaded_from_hub: bool,
