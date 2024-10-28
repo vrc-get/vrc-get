@@ -680,7 +680,7 @@ pub async fn environment_create_project(
     // because we want to fail if the project folder already exists.
 
     // create parent directory if not exists (unlikely to happen)
-    tokio::fs::create_dir_all(base_path).await?;
+    super::super::create_dir_all_with_err(base_path).await?;
 
     // create project directory
     match tokio::fs::create_dir(&path).await {

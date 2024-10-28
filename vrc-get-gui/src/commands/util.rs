@@ -7,7 +7,6 @@ use crate::os::open_that;
 use crate::utils::find_existing_parent_dir_or_home;
 use tauri::{AppHandle, State, Window};
 use tauri_plugin_updater::{Update, UpdaterExt};
-use tokio::fs::create_dir_all;
 use url::Url;
 
 #[derive(serde::Deserialize, specta::Type)]
@@ -28,7 +27,7 @@ pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), R
                 return Err(RustError::unrecoverable("Path does not exist"));
             }
             OpenOptions::CreateFolderIfNotExists => {
-                create_dir_all(&path).await?;
+                super::create_dir_all_with_err(&path).await?;
                 open_that(path)?;
             }
             OpenOptions::OpenParentIfNotExists => {

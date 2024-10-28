@@ -379,3 +379,31 @@ impl IntoPathBuf for tauri_plugin_dialog::FilePath {
         }
     }
 }
+
+async fn create_dir_all_with_err(path: impl AsRef<Path>) -> Result<(), RustError> {
+    async fn _create_dir_all_with_err(path: &Path) -> Result<(), RustError> {
+        if let Err(e) = tokio::fs::create_dir_all(&path).await {
+            log::error!(gui_toast = false; "failed to create dir: {e} (creating {path})", path = path.display());
+            return if root_dir(path).exists() {
+                // Drive exists, failed to create dir
+                Err(localizable_error!("general:error:failed to create dir", err => path.display()))
+            } else {
+                // Drive does not exist
+                Err(localizable_error!(
+                    "general:error:failed to create dir missing drive"
+                ))
+            };
+        }
+        Ok(())
+    }
+
+    _create_dir_all_with_err(path.as_ref()).await
+}
+
+fn root_dir(mut path: &Path) -> &Path {
+    while let Some(parent) = path.parent() {
+        path = parent;
+    }
+
+    path
+}
