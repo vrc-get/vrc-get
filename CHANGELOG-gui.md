@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog].
 - Clicking VCC link while adding vpm repository would close previously opened add repository dialog `#1570`
 - Opnening Templetes directory might fails `#1641`
 - Backup file name is incorrect if project name contains '.' `#1648`
+- Error creating project if the project path is "C:" `#1651`
 
 ### Security
 
