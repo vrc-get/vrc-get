@@ -110,10 +110,10 @@ jobs:
             target/${{ matrix.triple }}/debug/vrc-get*
             target/${{ matrix.triple }}/debug/libvrc-get*
       - name: Build tests
-        run: cargo build --tests --target ${{ matrix.triple }}
+        run: cargo build --tests --target ${{ matrix.triple }} --workspace --exclude vrc-get-litedb
       - name: Run tests
         if: ${{ matrix.run-test }}
-        run: cargo test --verbose --target ${{ matrix.triple }}
+        run: cargo test --verbose --target ${{ matrix.triple }} --workspace --exclude vrc-get-litedb
       - name: Check binary is statically linked
         shell: bash
         if: ${{ matrix.static-linked }}
