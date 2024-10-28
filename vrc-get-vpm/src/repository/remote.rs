@@ -223,7 +223,7 @@ impl RemotePackages {
 
 struct PackageNameToRemotePackages<'a>(&'a str);
 
-impl<'de, 'a> DeserializeSeed<'de> for PackageNameToRemotePackages<'a> {
+impl<'de> DeserializeSeed<'de> for PackageNameToRemotePackages<'_> {
     type Value = RemotePackages;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -232,7 +232,7 @@ impl<'de, 'a> DeserializeSeed<'de> for PackageNameToRemotePackages<'a> {
     {
         struct VisitorImpl<'a>(&'a str);
 
-        impl<'de, 'a> Visitor<'de> for VisitorImpl<'a> {
+        impl<'de> Visitor<'de> for VisitorImpl<'_> {
             type Value = RemotePackages;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -259,7 +259,7 @@ impl<'de, 'a> DeserializeSeed<'de> for PackageNameToRemotePackages<'a> {
 
 struct PackageNameToVersions<'a>(&'a str);
 
-impl<'de, 'a> DeserializeSeed<'de> for PackageNameToVersions<'a> {
+impl<'de> DeserializeSeed<'de> for PackageNameToVersions<'_> {
     type Value = HashMap<Version, PackageManifest>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -268,7 +268,7 @@ impl<'de, 'a> DeserializeSeed<'de> for PackageNameToVersions<'a> {
     {
         struct VisitorImpl<'a>(&'a str);
 
-        impl<'de, 'a> Visitor<'de> for VisitorImpl<'a> {
+        impl<'de> Visitor<'de> for VisitorImpl<'_> {
             type Value = HashMap<Version, PackageManifest>;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -296,7 +296,7 @@ impl<'de, 'a> DeserializeSeed<'de> for PackageNameToVersions<'a> {
 
 struct ErrorProofManifest<'a>(&'a str, &'a Version);
 
-impl<'de, 'a> DeserializeSeed<'de> for ErrorProofManifest<'a> {
+impl<'de> DeserializeSeed<'de> for ErrorProofManifest<'_> {
     type Value = Option<PackageManifest>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>

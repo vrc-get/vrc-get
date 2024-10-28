@@ -45,7 +45,7 @@ where
 
 struct Legacy<'env>(&'env [Box<str>]);
 
-impl<'env> Default for Legacy<'env> {
+impl Default for Legacy<'_> {
     fn default() -> Self {
         static VEC: Vec<Box<str>> = Vec::new();
         Self(&VEC)
@@ -119,7 +119,7 @@ where
     }
 }
 
-impl<'env, 'a> ResolutionContext<'env, 'a> {
+impl<'env> ResolutionContext<'env, '_> {
     fn new(allow_prerelease: bool, packages: Vec<PackageInfo<'env>>) -> Self {
         let mut this = Self {
             dependencies: HashMap::new(),
@@ -324,7 +324,7 @@ where
     }
 }
 
-impl<'env, 'a> ResolutionContext<'env, 'a> {
+impl<'env> ResolutionContext<'env, '_> {
     pub(crate) fn build_result(self) -> PackageResolutionResult<'env> {
         let mut conflicts = HashMap::<Box<str>, Vec<Box<str>>>::new();
         for (&name, info) in &self.dependencies {
