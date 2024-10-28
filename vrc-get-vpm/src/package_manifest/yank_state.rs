@@ -34,7 +34,7 @@ impl<'de> Deserialize<'de> for YankState {
         D: Deserializer<'de>,
     {
         struct VisitorImpl;
-        impl<'de> serde::de::Visitor<'de> for VisitorImpl {
+        impl serde::de::Visitor<'_> for VisitorImpl {
             type Value = YankState;
 
             fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {

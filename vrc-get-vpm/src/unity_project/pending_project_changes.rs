@@ -84,7 +84,7 @@ pub struct Remove<'env> {
     _phantom: PhantomData<&'env ()>,
 }
 
-impl<'env> Remove<'env> {
+impl Remove<'_> {
     pub fn reason(&self) -> RemoveReason {
         self.reason
     }
