@@ -619,7 +619,7 @@ pub async fn project_create_backup(
                 timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S"),
             );
 
-            tokio::fs::create_dir_all(&backup_dir).await?;
+            super::create_dir_all_with_err(&backup_dir).await?;
 
             log::info!("backup project: {project_name} with {backup_format}");
             let timer = std::time::Instant::now();

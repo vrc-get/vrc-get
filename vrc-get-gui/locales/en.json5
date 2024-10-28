@@ -27,6 +27,8 @@
 
     "search:placeholder": "Search...",
 
+    "general:error:failed to create dir": "Failed to create directory (missing permission?): {{err}}",
+    "general:error:failed to create dir missing drive": "Failed to create directory. You may forget to connect the drive.",
 
 // Setup Page
     "setup:loading": "Loading settings...",
