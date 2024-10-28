@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog].
 - Added many logs for installing package `#1557`
 - Migration feature is no longer marked as experimental `#1559`
 - Several UX improvements `#1561` `#1565` `#1569` `#1571` `#1573`
+- Added more error log `#1652`
 
 ### Deprecated
 
