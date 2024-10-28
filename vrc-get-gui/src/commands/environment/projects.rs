@@ -8,7 +8,7 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf, Prefix};
 use std::sync::atomic::AtomicUsize;
 use tauri::{State, Window};
 use tauri_plugin_dialog::DialogExt;
@@ -640,7 +640,40 @@ pub async fn environment_create_project(
     };
 
     let base_path = Path::new(&base_path);
-    let path = base_path.join(&project_name);
+    let path = {
+        let mut path;
+        if !base_path.has_root() {
+            let mut components = base_path.components().collect::<Vec<_>>();
+
+            match (components.first(), components.get(1)) {
+                (Some(Component::Prefix(_)), Some(Component::RootDir)) => {
+                    // starts with 'C:/', good!
+                }
+                (Some(Component::Prefix(prefix)), _) => {
+                    if matches!(prefix.kind(), Prefix::Disk(_)) {
+                        // starts with 'C:yourpath', we should insert / after prefix
+                        components.insert(1, Component::RootDir);
+                    } else {
+                        // starts with '\\?\', no problem
+                    }
+                }
+                (Some(Component::RootDir), _) => {
+                    // starts with '/', good!
+                }
+                (Some(_), _) => {
+                    // starts with 'yourpath', insert '/'
+                    components.insert(0, Component::RootDir);
+                }
+                _ => {}
+            }
+
+            path = components.iter().collect();
+        } else {
+            path = base_path.to_path_buf();
+        }
+        path.push(&project_name);
+        path
+    };
     let path_str = path.to_str().unwrap();
 
     // we split creating folder into two phases
