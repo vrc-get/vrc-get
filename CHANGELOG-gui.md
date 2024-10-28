@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog].
 - Opnening Templetes directory might fails `#1641`
 - Backup file name is incorrect if project name contains '.' `#1648`
 - Error creating project if the project path is "C:" `#1651`
+- "missing field Verison" error if some unity version is missing `#1654`
 
 ### Security
 
