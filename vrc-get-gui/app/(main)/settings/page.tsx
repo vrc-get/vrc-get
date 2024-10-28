@@ -34,6 +34,7 @@ import {
 import { assertNever } from "@/lib/assert-never";
 import type {
 	CheckForUpdateResponse,
+	OpenOptions,
 	TauriEnvironmentSettings,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
@@ -510,12 +511,15 @@ function AppearanceCard() {
 }
 
 function FilesAndFoldersCard() {
-	const openVpmFolderContent = (subPath: string) => {
+	const openVpmFolderContent = (
+		subPath: string,
+		ifNotExists: OpenOptions = "ErrorIfNotExists",
+	) => {
 		return async () => {
 			try {
 				await commands.utilOpen(
 					`${globalInfo.vpmHomeFolder}/${subPath}`,
-					"ErrorIfNotExists",
+					ifNotExists,
 				);
 			} catch (e) {
 				console.error(e);
@@ -538,7 +542,9 @@ function FilesAndFoldersCard() {
 				<Button onClick={openVpmFolderContent("vrc-get/gui-logs")}>
 					{tc("settings:button:open logs")}
 				</Button>
-				<Button onClick={openVpmFolderContent("Templates")}>
+				<Button
+					onClick={openVpmFolderContent("Templates", "CreateFolderIfNotExists")}
+				>
 					{tc("settings:button:open custom templates")}
 				</Button>
 			</div>
