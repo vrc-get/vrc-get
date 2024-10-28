@@ -4,6 +4,7 @@ use futures::future::try_join_all;
 use log::warn;
 use stable_deref_trait::StableDeref;
 use std::borrow::Cow;
+use std::ffi::OsStr;
 use std::future::Future;
 use std::io;
 use std::marker::PhantomData;
@@ -287,4 +288,43 @@ pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result
     }
 
     read_dir_to_tree(String::new(), path_buf).await
+}
+
+pub trait PathExt {
+    fn with_added_extension<S: AsRef<OsStr>>(&mut self, extension: S) -> PathBuf;
+}
+
+impl PathExt for PathBuf {
+    fn with_added_extension<S: AsRef<OsStr>>(&mut self, extension: S) -> PathBuf {
+        let mut new_path = self.clone();
+        #[allow(unstable_name_collisions)]
+        new_path.add_extension(extension);
+        new_path
+    }
+}
+
+pub trait PathBufExt {
+    fn add_extension<S: AsRef<OsStr>>(&mut self, extension: S) -> bool;
+}
+
+impl PathBufExt for PathBuf {
+    fn add_extension<S: AsRef<OsStr>>(&mut self, extension: S) -> bool {
+        fn _add_extension(this: &mut PathBuf, extension: &OsStr) -> bool {
+            if this.file_name().is_none() {
+                return false;
+            }
+
+            if let Some(ext) = this.extension() {
+                let mut new_ext = ext.to_os_string();
+                new_ext.push(".");
+                new_ext.push(extension);
+                this.set_extension(new_ext);
+            } else {
+                this.set_extension(extension);
+            }
+            true
+        }
+
+        _add_extension(self, extension.as_ref())
+    }
 }
