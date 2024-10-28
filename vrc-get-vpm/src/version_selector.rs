@@ -70,7 +70,7 @@ impl<'a> VersionSelector<'a> {
     }
 }
 
-impl<'a> VersionSelector<'a> {
+impl VersionSelector<'_> {
     pub(crate) fn as_specific(&self) -> Option<&Version> {
         match self.inner {
             SelectorInner::Specific(version) => Some(version),
@@ -79,7 +79,7 @@ impl<'a> VersionSelector<'a> {
     }
 }
 
-impl<'a> VersionSelector<'a> {
+impl VersionSelector<'_> {
     pub fn satisfies(&self, package: &PackageManifest) -> bool {
         fn unity_and_yank(package: &PackageManifest, project_unity: Option<UnityVersion>) -> bool {
             if package.is_yanked() {

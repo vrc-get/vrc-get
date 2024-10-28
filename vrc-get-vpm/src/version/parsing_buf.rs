@@ -9,7 +9,7 @@ pub(super) struct ParsingBuf<'a> {
 }
 
 impl<'a> ParsingBuf<'a> {
-    pub fn new(source: &'a str) -> ParsingBuf {
+    pub fn new(source: &'a str) -> Self {
         Self { buf: source }
     }
 

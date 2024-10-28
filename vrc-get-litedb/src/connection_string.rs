@@ -11,7 +11,7 @@ pub struct ConnectionString<'a> {
     readonly: bool,
 }
 
-impl<'a> ConnectionString<'a> {
+impl ConnectionString<'_> {
     pub fn connect(&self) -> crate::Result<DatabaseConnection> {
         DatabaseConnection::connect(self)
     }

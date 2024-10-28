@@ -1562,7 +1562,7 @@ impl Completion {
             exit_with!("shell not specified")
         };
         let mut bin_name = args().next().expect("bin name");
-        if let Some(slash) = bin_name.rfind(&['/', '\\']) {
+        if let Some(slash) = bin_name.rfind(['/', '\\']) {
             // https://github.com/rust-lang/rust-clippy/issues/13070
             #[allow(clippy::assigning_clones)]
             {

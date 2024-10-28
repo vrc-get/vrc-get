@@ -2,7 +2,7 @@ use crate::commands::{
     confirm_prompt, load_collection, load_unity, update_project_last_modified, EnvArgs, ResultExt,
 };
 use clap::{Parser, Subcommand};
-use log::{info, warn};
+use log::info;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use tokio::process::Command;
@@ -78,7 +78,7 @@ impl Unity2022 {
 
             if found.version() != Some(VRCHAT_RECOMMENDED_2022_UNITY) {
                 // since we know it's unity 2022, we can safely unwrap
-                warn!("Recommended Unity 2022 version is not found. Using found version: {}", found.version().unwrap());
+                log::warn!("Recommended Unity 2022 version is not found. Using found version: {}", found.version().unwrap());
             }
 
             PathBuf::from(found.path())
