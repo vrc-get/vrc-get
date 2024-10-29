@@ -27,6 +27,9 @@
 
     "search:placeholder": "Suchen...",
 
+    "general:error:failed to create dir": "Verzeichnis konnte nicht angelegt werden (fehlende Berechtigung?): {{err}}",
+    "general:error:failed to create dir missing drive": "Verzeichnis konnte nicht angelegt werden. Möglicherweise wurde das Laufwerk nicht verbunden.",
+
 
 // Setup Page
     "setup:loading": "Lade Einstellungen...",
