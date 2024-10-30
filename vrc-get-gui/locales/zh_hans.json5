@@ -26,6 +26,9 @@
     "general:not implemented": "该功能未实现",
 
     "search:placeholder": "搜索...",
+    
+    "general:error:failed to create dir": "目录创建失败（缺少权限？）： {{err}}",
+    "general:error:failed to create dir missing drive": "目录创建失败。硬盘不存在，您是不是忘记连接硬盘了？",
 
 
 // Setup Page
