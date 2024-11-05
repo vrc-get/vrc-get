@@ -9,6 +9,7 @@
 [![MacPorts Version][shields-macports-vrc-get]][macports-vrc-get]
 [![Scoop Version][shields-scoop-version]][scoop-vrc-get]
 [![AUR Version][shields-aur-version]][aur-vrc-get]
+[![WinGet Version][shields-winget-version]][winget-vrc-get]
 
 Open Source command line client of VRChat Package Manager, 
 the main feature of VRChat Creator Companion (VCC), which supports Windows, Linux, and macOS.
@@ -141,6 +142,7 @@ See [README of ALCOM][alcom] for more details.
 [shields-homebrew-version]: https://img.shields.io/homebrew/v/vrc-get
 [shields-macports-vrc-get]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fports.macports.org%2Fapi%2Fv1%2Fports%2Fvrc-get%2F&query=%24.version&label=macports
 [shields-scoop-version]: https://img.shields.io/scoop/v/vrc-get?bucket=https%3A%2F%2Fgithub.com%2Fbabo4d%2Fscoop-xrtools
+[shields-winget-version]: https://img.shields.io/winget/v/anatawa12.vrc-get
 
 <!-- TODO: macports: https://github.com/badges/shields/issues/9588 -->
 
@@ -162,6 +164,7 @@ See [README of ALCOM][alcom] for more details.
 [homebrew-vrc-get]: https://formulae.brew.sh/formula/vrc-get
 [macports-vrc-get]: https://ports.macports.org/port/vrc-get
 [scoop-vrc-get]: https://github.com/babo4d/scoop-xrtools/blob/master/bucket/vrc-get.json
+[winget-vrc-get]: https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/anatawa12/vrc-get
 
 ## Contribution
 
