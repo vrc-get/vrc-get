@@ -27,6 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CircleX } from "lucide-react";
 import { Suspense, useCallback, useId } from "react";
 import { HeadingPageName } from "../tab-selector";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Page() {
 	return (
@@ -86,18 +87,35 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<HeadingPageName pageType={"/packages/user-packages"} />
+				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
+					{tc("packages")}
+				</p>
 				<div className={"flex-grow"} />
-				<Button onClick={addUserPackage}>
-					{tc("user packages:button:add package")}
-				</Button>
 			</HNavBar>
-			<ScrollableCardTable>
-				<RepositoryTableBody
-					userPackages={result.data || []}
-					removeUserPackage={removeUserPackage}
-				/>
-			</ScrollableCardTable>
+			<main className="flex-shrink overflow-hidden flex w-full h-full">
+				<Card className="flex-grow flex-shrink flex shadow-none w-full">
+					<CardContent className="w-full p-2 flex flex-col gap-2">
+						<div
+							className={
+								"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center pl-3"
+							}
+						>
+							<HeadingPageName pageType={"/packages/user-packages"} />
+							<div className={"flex-grow"} />
+							<Button onClick={addUserPackage}>
+								{tc("user packages:button:add package")}
+							</Button>
+						</div>
+
+						<ScrollableCardTable className={"h-full"}>
+							<RepositoryTableBody
+								userPackages={result.data || []}
+								removeUserPackage={removeUserPackage}
+							/>
+						</ScrollableCardTable>
+					</CardContent>
+				</Card>
+			</main>
 			{dialog}
 		</VStack>
 	);

@@ -256,7 +256,7 @@ function ProjectsTableCard({
         );
 
     return (
-        <ScrollableCardTable>
+        <ScrollableCardTable className={"h-full"}>
             <thead>
                 <tr>
                     <th className={`${thClass} bg-secondary text-secondary-foreground`}>
