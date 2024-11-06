@@ -703,15 +703,15 @@ function SystemInformationCard() {
 			<h2>{tc("settings:system information")}</h2>
 			<dl>
 				<dt>{tc("settings:os")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.osInfo}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.osInfo}</dd>
 				<dt>{tc("settings:architecture")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.arch}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.arch}</dd>
 				<dt>{tc("settings:webview version")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.webviewVersion}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.webviewVersion}</dd>
 				<dt>{tc("settings:alcom version")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.version}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.version}</dd>
 				<dt>{tc("settings:alcom commit hash")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.commitHash}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.commitHash}</dd>
 			</dl>
 		</Card>
 	);
