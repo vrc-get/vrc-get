@@ -13,7 +13,7 @@ export default function Page() {
 				</p>
 				<div className={"flex-grow"} />
 			</HNavBar>
-			<main className="flex-shrink overflow-hidden flex w-full">
+			<main className="flex-shrink overflow-hidden flex w-full h-full">
 				<ProjectsListCard />
 			</main>
 		</VStack>

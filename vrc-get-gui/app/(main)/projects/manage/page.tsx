@@ -284,7 +284,7 @@ function PageBody() {
 					unityVersionsResult={unityVersionsResult.data}
 					requestChangeUnityVersion={requestChangeUnityVersion}
 				/>
-				<main className="flex-shrink overflow-hidden flex w-full">
+				<main className="flex-shrink overflow-hidden flex w-full h-full">
 					<PackageListCard
 						projectPath={projectPath}
 						createChanges={packageChangeDialog.createChanges}

@@ -49,7 +49,7 @@ export const LogsListCard = memo(function LogsListCard({
 					shouldShowLogLevel={shouldShowLogLevel}
 					setShouldShowLogLevel={setShouldShowLogLevel}
 				/>
-				<ScrollableCardTable>
+				<ScrollableCardTable className={"h-full"}>
 					<thead>
 						<tr>
 							{TABLE_HEAD.map((head, index) => (

@@ -297,7 +297,7 @@ export const PackageListCard = memo(function PackageListCard({
 					count={bulkUpdatePackageIds.length}
 					cancel={() => setBulkUpdatePackageIds([])}
 				/>
-				<ScrollableCardTable>
+				<ScrollableCardTable className={"h-full"}>
 					<thead>
 						<tr>
 							<th
