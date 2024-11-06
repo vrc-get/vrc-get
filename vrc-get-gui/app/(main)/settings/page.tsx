@@ -150,7 +150,7 @@ function Settings({
 					unityArgs={settings.default_unity_arguments}
 				/>
 				<Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("settings:default project path")}</h2>
+					<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
 					<p className={"whitespace-normal"}>
 						{tc("settings:default project path description")}
 					</p>
@@ -328,7 +328,7 @@ function UnityLaunchArgumentsCard({
 
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
-			<div className={"pb-2 flex align-middle"}>
+			<div className={"mb-2 flex align-middle"}>
 				<div className={"flex-grow flex items-center"}>
 					<h2>{tc("settings:default unity arguments")}</h2>
 				</div>
@@ -336,7 +336,7 @@ function UnityLaunchArgumentsCard({
 					{tc("general:button:edit")}
 				</Button>
 			</div>
-			<p className={"text-sm"}>
+			<p className={"whitespace-normal"}>
 				{tc("settings:default unity arguments description")}
 			</p>
 			<ol className={"flex flex-col"}>
@@ -531,7 +531,7 @@ function FilesAndFoldersCard() {
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
 			<h2>{tc("settings:files and directories")}</h2>
-			{tc("settings:files and directories:description")}
+			<p className={"mt-2"}>{tc("settings:files and directories:description")}</p>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={openVpmFolderContent("settings.json")}>
 					{tc("settings:button:open settings.json")}
