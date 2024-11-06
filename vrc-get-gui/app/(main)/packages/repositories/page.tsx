@@ -3,6 +3,7 @@
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DialogDescription,
@@ -43,7 +44,6 @@ import {
 import { HeadingPageName } from "../tab-selector";
 import { useAddRepository } from "./use-add-repository";
 import { useImportRepositories } from "./use-import-repositories";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function Page() {
 	return (
@@ -147,7 +147,6 @@ function PageBody() {
 								"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center pl-3"
 							}
 						>
-
 							<HeadingPageName pageType={"/packages/repositories"} />
 							<div className={"flex-grow"} />
 							<DropdownMenu>
@@ -158,7 +157,10 @@ function PageBody() {
 									>
 										{tc("vpm repositories:button:add repository")}
 									</Button>
-									<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
+									<DropdownMenuTrigger
+										asChild
+										className={"rounded-l-none pl-2 pr-2"}
+									>
 										<Button>
 											<ChevronDown className={"w-4 h-4"} />
 										</Button>
@@ -350,8 +352,8 @@ function RepositoryRow({
 					<TooltipContent>
 						{remove == null
 							? tc(
-								"vpm repositories:tooltip:remove curated or official repository",
-							)
+									"vpm repositories:tooltip:remove curated or official repository",
+								)
 							: tc("vpm repositories:remove repository")}
 					</TooltipContent>
 				</Tooltip>

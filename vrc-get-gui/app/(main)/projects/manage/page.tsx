@@ -220,9 +220,7 @@ function PageBody() {
 	return (
 		<PageContextProvider value={pageContext}>
 			<VStack>
-				<ProjectViewHeader
-					className={"flex-shrink-0"}
-				/>
+				<ProjectViewHeader className={"flex-shrink-0"} />
 				<Card className="flex-grow flex-shrink flex shadow-none w-full">
 					<CardContent className="w-full p-2 flex flex-grow gap-2 items-center">
 						<div className={"pl-2 space-y-0"}>
@@ -247,7 +245,7 @@ function PageBody() {
 								)}
 							</p>
 						</div>
-						<div className={"w-max flex-grow"}></div>
+						<div className={"w-max flex-grow"} />
 						<div className="flex items-center">
 							<p className="cursor-pointer py-1.5 font-bold">
 								{tc("projects:manage:unity version")}
@@ -267,8 +265,8 @@ function PageBody() {
 								unityVersion={detailsResult.data?.unity_str ?? null}
 								unityRevision={detailsResult.data?.unity_revision ?? null}
 								onRemove={onRemoveProject}
-								onBackup={onBackupProject}>
-							</ProjectButtoon>
+								onBackup={onBackupProject}
+							/>
 						</div>
 					</CardContent>
 				</Card>
@@ -711,15 +709,14 @@ function ProjectButtoon({
 	unityRevision: string | null;
 	onRemove?: () => void;
 	onBackup?: () => void;
-
 }) {
 	const openUnity = useOpenUnity();
 	const [openLaunchOptions, setOpenLaunchOptions] = useState<
 		| false
 		| {
-			initialArgs: null | string[];
-			defaultArgs: string[];
-		}
+				initialArgs: null | string[];
+				defaultArgs: string[];
+		  }
 	>(false);
 
 	const onChangeLaunchOptions = async () => {
@@ -762,18 +759,16 @@ function ProjectButtoon({
 				</DropdownMenuContent>
 			</DropdownMenu>
 			{openUnity.dialog}
-			{
-				openLaunchOptions !== false && (
-					<DialogOpen>
-						<LaunchSettings
-							projectPath={projectPath}
-							initialValue={openLaunchOptions.initialArgs}
-							defaultUnityArgs={openLaunchOptions.defaultArgs}
-							close={closeChangeLaunchOptions}
-						/>
-					</DialogOpen>
-				)
-			}
+			{openLaunchOptions !== false && (
+				<DialogOpen>
+					<LaunchSettings
+						projectPath={projectPath}
+						initialValue={openLaunchOptions.initialArgs}
+						defaultUnityArgs={openLaunchOptions.defaultArgs}
+						close={closeChangeLaunchOptions}
+					/>
+				</DialogOpen>
+			)}
 		</>
 	);
 }

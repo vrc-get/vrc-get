@@ -3,6 +3,7 @@
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogClose,
@@ -27,7 +28,6 @@ import { useQuery } from "@tanstack/react-query";
 import { CircleX } from "lucide-react";
 import { Suspense, useCallback, useId } from "react";
 import { HeadingPageName } from "../tab-selector";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function Page() {
 	return (
