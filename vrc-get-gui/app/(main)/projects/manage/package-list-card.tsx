@@ -406,9 +406,6 @@ function ManagePackagesHeading({
 				"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center"
 			}
 		>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-				{tc("projects:manage:manage packages")}
-			</p>
 
 			<Tooltip>
 				<TooltipTrigger>

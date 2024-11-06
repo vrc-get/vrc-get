@@ -6,7 +6,7 @@ import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import React, { useCallback, useEffect } from "react";
-import { LogListCard } from "./log-list-card";
+import { LogsListCard } from "./logs-list-card";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
@@ -36,7 +36,7 @@ export default function Page() {
 				<div className={"flex-grow"} />
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex w-full">
-				<LogListCard logEntry={logEntries} />
+				<LogsListCard logEntry={logEntries} />
 			</main>
 		</VStack>
 	);

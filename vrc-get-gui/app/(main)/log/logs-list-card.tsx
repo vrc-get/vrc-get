@@ -16,7 +16,7 @@ import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
 import { memo, useMemo, useRef, useState } from "react";
 
-export const LogListCard = memo(function LogListCard({
+export const LogsListCard = memo(function LogsListCard({
 	logEntry,
 }: {
 	logEntry: LogEntry[];
