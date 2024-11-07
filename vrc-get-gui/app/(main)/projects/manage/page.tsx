@@ -260,7 +260,7 @@ function PageBody() {
 							</div>
 						</div>
 						<div className={"flex-grow-0 flex-shrink-0 w-max"}>
-							<ProjectButtoon
+							<ProjectButton
 								projectPath={projectPath}
 								unityVersion={detailsResult.data?.unity_str ?? null}
 								unityRevision={detailsResult.data?.unity_revision ?? null}
@@ -697,7 +697,7 @@ function DropdownMenuContentBody({
 	);
 }
 
-function ProjectButtoon({
+function ProjectButton({
 	projectPath,
 	unityVersion,
 	unityRevision,
