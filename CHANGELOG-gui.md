@@ -8,35 +8,42 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Support for China version of Unity releases like `2022.3.22f1c1` `#1558
-- `rpm` `deb` packaging for Linux `#1575`
-  - This is to test how good / bad `rpm` or `deb` distribution is.
-  - We **may** create dnf / apt package repository in the future, but not planned for now.
-- Skipping finding legacy assets when downgrading / upgrading / reinstalling package `#1581`
-  - This will speed up the process of downgrading / upgrading / reinstalling package.
 
 ### Changed
-- Separated quick open actions to own settings box. [`#1496`](https://github.com/vrc-get/vrc-get/pull/1496)
-- Improved behavior with downloading package error `#1557`
-- Installing unlocked package is now possible with warning `#1557`
-- Added many logs for installing package `#1557`
-- Migration feature is no longer marked as experimental `#1559`
-- Several UX improvements `#1561` `#1565` `#1569` `#1571` `#1573`
-- Added more error log `#1652`
-- Improved error message when specified drive not found `#1653`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Clicking VCC link while adding vpm repository would close previously opened add repository dialog `#1570`
-- Opnening Templetes directory might fails `#1641`
-- Backup file name is incorrect if project name contains '.' `#1648`
-- Error creating project if the project path is "C:" `#1651`
-- "missing field Verison" error if some unity version is missing `#1654`
 
 ### Security
+
+## [0.1.16] - 2024-11-12
+### Added
+- Support for China version of Unity releases like `2022.3.22f1c1` `#1558
+- `rpm` `deb` packaging for Linux [`#1575`](https://github.com/vrc-get/vrc-get/pull/1575)
+  - This is to test how good / bad `rpm` or `deb` distribution is.
+  - We **may** create dnf / apt package repository in the future, but not planned for now.
+- Skipping finding legacy assets when downgrading / upgrading / reinstalling package [`#1581`](https://github.com/vrc-get/vrc-get/pull/1581)
+  - This will speed up the process of downgrading / upgrading / reinstalling package.
+
+### Changed
+- Separated quick open actions to own settings box. [`#1496`](https://github.com/vrc-get/vrc-get/pull/1496)
+- Improved behavior with downloading package error [`#1557`](https://github.com/vrc-get/vrc-get/pull/1557)
+- Installing unlocked package is now possible with warning [`#1557`](https://github.com/vrc-get/vrc-get/pull/1557)
+- Added many logs for installing package [`#1557`](https://github.com/vrc-get/vrc-get/pull/1557)
+- Migration feature is no longer marked as experimental [`#1559`](https://github.com/vrc-get/vrc-get/pull/1559)
+- Several UX improvements [`#1561`](https://github.com/vrc-get/vrc-get/pull/1561) [`#1565`](https://github.com/vrc-get/vrc-get/pull/1565) [`#1569`](https://github.com/vrc-get/vrc-get/pull/1569) [`#1571`](https://github.com/vrc-get/vrc-get/pull/1571) [`#1573`](https://github.com/vrc-get/vrc-get/pull/1573)
+- Added more error log [`#1652`](https://github.com/vrc-get/vrc-get/pull/1652)
+- Improved error message when specified drive not found [`#1653`](https://github.com/vrc-get/vrc-get/pull/1653)
+
+### Fixed
+- Clicking VCC link while adding vpm repository would close previously opened add repository dialog [`#1570`](https://github.com/vrc-get/vrc-get/pull/1570)
+- Opnening Templetes directory might fails [`#1641`](https://github.com/vrc-get/vrc-get/pull/1641)
+- Backup file name is incorrect if project name contains '.' [`#1648`](https://github.com/vrc-get/vrc-get/pull/1648)
+- Error creating project if the project path is "C:" [`#1651`](https://github.com/vrc-get/vrc-get/pull/1651)
+- "missing field Verison" error if some unity version is missing [`#1654`](https://github.com/vrc-get/vrc-get/pull/1654)
 
 ## [0.1.15] - 2024-09-05
 ### Added
@@ -473,7 +480,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.15...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.16...HEAD
+[0.1.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.15...gui-v0.1.16
 [0.1.15]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.14...gui-v0.1.15
 [0.1.14]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.13...gui-v0.1.14
 [0.1.13]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.12...gui-v0.1.13
