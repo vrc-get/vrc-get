@@ -581,7 +581,7 @@ function ProjectViewHeader({
 				<TooltipTrigger asChild>
 					<Button
 						variant={"ghost"}
-						size={"icon"}
+						size={"sm"}
 						onClick={() => history.back()}
 					>
 						<ArrowLeft className={"w-5 h-5"} />
@@ -593,7 +593,7 @@ function ProjectViewHeader({
 			</Tooltip>
 
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-				{tc("projects:manage:manage packages")}
+				{tc("projects:manage:manage project")}
 			</p>
 
 			<div className="relative flex gap-2 w-max flex-grow" />
