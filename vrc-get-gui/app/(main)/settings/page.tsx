@@ -123,7 +123,7 @@ function Settings({
 	}, []);
 
 	return (
-		<ScrollPageContainer>
+		<ScrollPageContainer viewportClassName={"rounded-xl shadow-xl h-full"}>
 			<main className="flex flex-col gap-2 flex-shrink flex-grow">
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
