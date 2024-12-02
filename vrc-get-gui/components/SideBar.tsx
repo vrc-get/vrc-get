@@ -24,7 +24,7 @@ import {
 	Settings,
 	SwatchBook,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type React from "react";
 
 export function SideBar({ className }: { className?: string }) {
@@ -98,10 +98,12 @@ function SideBarItem({
 }) {
 	const router = useRouter();
 	const IconElenment = icon;
+	const pathname = usePathname();
+	const isActive = pathname === href;
 	return (
 		<Button
 			variant={"ghost"}
-			className={"justify-start flex-shrink-0"}
+			className={`justify-start flex-shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
 			onClick={() => router.push(href)}
 		>
 			<div className={"mr-4"}>
