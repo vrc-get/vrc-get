@@ -243,7 +243,7 @@ function ManageLogsHeading({
 					<Button
 						variant={"ghost"}
 						onClick={() => setAutoScroll((prev) => !prev)}
-						className={autoScroll ? "bg-secondary" : "bg-transparent"}
+						className={autoScroll ? "bg-secondary border border-primary" : "bg-transparent"}
 					>
 						<ArrowDownFromLine className={"w-5 h-5"} />
 					</Button>
