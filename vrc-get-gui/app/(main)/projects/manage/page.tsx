@@ -579,11 +579,7 @@ function ProjectViewHeader({
 		<HNavBar className={className}>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<Button
-						variant={"ghost"}
-						size={"sm"}
-						onClick={() => history.back()}
-					>
+					<Button variant={"ghost"} size={"sm"} onClick={() => history.back()}>
 						<ArrowLeft className={"w-5 h-5"} />
 					</Button>
 				</TooltipTrigger>

@@ -9,12 +9,19 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { type LogEntry, type LogLevel, commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
-import { memo, useMemo, useRef, useState } from "react";
+import { ArrowDownFromLine } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 export const LogsListCard = memo(function LogsListCard({
 	logEntry,
@@ -27,6 +34,7 @@ export const LogsListCard = memo(function LogsListCard({
 		"Warn",
 		"Error",
 	]);
+	const [autoScroll, setAutoScroll] = useState(true);
 
 	const logsShown = useMemo(
 		() =>
@@ -38,6 +46,16 @@ export const LogsListCard = memo(function LogsListCard({
 		[logEntry, search, shouldShowLogLevel],
 	);
 
+	const scrollContainerRef = useRef<React.ElementRef<typeof ScrollArea>>(null);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies(logsShown): logsShown is necessary
+	useEffect(() => {
+		if (autoScroll && scrollContainerRef.current) {
+			scrollContainerRef.current.scrollTop =
+				scrollContainerRef.current.scrollHeight;
+		}
+	}, [logsShown, autoScroll]);
+
 	const TABLE_HEAD = ["logs:time", "logs:level", "logs:message"];
 
 	return (
@@ -48,8 +66,10 @@ export const LogsListCard = memo(function LogsListCard({
 					setSearch={setSearch}
 					shouldShowLogLevel={shouldShowLogLevel}
 					setShouldShowLogLevel={setShouldShowLogLevel}
+					setAutoScroll={(value) => setAutoScroll(value)}
+					autoScroll={autoScroll}
 				/>
-				<ScrollableCardTable className={"h-full"}>
+				<ScrollableCardTable className={"h-full"} ref={scrollContainerRef}>
 					<thead>
 						<tr>
 							{TABLE_HEAD.map((head, index) => (
@@ -133,11 +153,15 @@ function ManageLogsHeading({
 	setSearch,
 	shouldShowLogLevel,
 	setShouldShowLogLevel,
+	setAutoScroll,
+	autoScroll,
 }: {
 	search: string;
 	setSearch: (value: string) => void;
 	shouldShowLogLevel: LogLevel[];
 	setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
+	setAutoScroll: React.Dispatch<React.SetStateAction<boolean>>;
+	autoScroll: boolean;
 }) {
 	const searchRef = useRef<HTMLInputElement>(null);
 
@@ -213,6 +237,19 @@ function ManageLogsHeading({
 			>
 				{tc("settings:button:open logs")}
 			</Button>
+
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant={"ghost"}
+						onClick={() => setAutoScroll((prev) => !prev)}
+						className={autoScroll ? "bg-secondary" : "bg-transparent"}
+					>
+						<ArrowDownFromLine className={"w-5 h-5"} />
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent>{tc("logs:manage:auto scroll")}</TooltipContent>
+			</Tooltip>
 		</div>
 	);
 }

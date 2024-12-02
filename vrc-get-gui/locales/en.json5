@@ -458,5 +458,6 @@
     "logs:level": "Level",
     "logs:message": "Message",
     "logs:manage:select logs level": "Logs Level Filter",
+    "logs:manage:auto scroll": "Toggle Auto Scroll",
   },
 }

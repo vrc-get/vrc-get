@@ -12,9 +12,7 @@ export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
 
 	useEffect(() => {
-		commands
-			.utilGetLogEntries()
-			.then((list) => setLogEntries([...list].reverse()));
+		commands.utilGetLogEntries().then((list) => setLogEntries([...list]));
 	}, []);
 
 	useTauriListen<LogEntry>(
@@ -22,7 +20,7 @@ export default function Page() {
 		useCallback((event) => {
 			setLogEntries((entries) => {
 				const entry = event.payload as LogEntry;
-				return [entry, ...entries];
+				return [...entries, entry];
 			});
 		}, []),
 	);
