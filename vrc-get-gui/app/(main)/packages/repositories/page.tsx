@@ -134,60 +134,49 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					{tc("packages")}
-				</p>
-				<div className={"flex-grow"} />
+
+			<div className={"flex items-center ml-1 w-full"}>
+					<HeadingPageName pageType={"/packages/repositories"} />
+					<div className={"w-max flex-grow"} />
+					<DropdownMenu>
+						<div className={"flex divide-x"}>
+							<Button
+								className={"rounded-r-none"}
+								onClick={addRepositoryInfo.openAddDialog}
+							>
+								{tc("vpm repositories:button:add repository")}
+							</Button>
+							<DropdownMenuTrigger
+								asChild
+								className={"rounded-l-none pl-2 pr-2"}
+							>
+								<Button>
+									<ChevronDown className={"w-4 h-4"} />
+								</Button>
+							</DropdownMenuTrigger>
+						</div>
+						<DropdownMenuContent>
+							<DropdownMenuItem
+								onClick={importRepositoryInfo.startImportingRepositories}
+							>
+								{tc("vpm repositories:button:import repositories")}
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={exportRepositories}>
+								{tc("vpm repositories:button:export repositories")}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 			</HNavBar>
 			<main className="flex-shrink overflow-hidden flex w-full h-full">
-				<Card className="flex-grow flex-shrink flex shadow-none w-full">
-					<CardContent className="w-full p-2 flex flex-col gap-2">
-						<div
-							className={
-								"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center pl-3"
-							}
-						>
-							<HeadingPageName pageType={"/packages/repositories"} />
-							<div className={"flex-grow"} />
-							<DropdownMenu>
-								<div className={"flex divide-x"}>
-									<Button
-										className={"rounded-r-none"}
-										onClick={addRepositoryInfo.openAddDialog}
-									>
-										{tc("vpm repositories:button:add repository")}
-									</Button>
-									<DropdownMenuTrigger
-										asChild
-										className={"rounded-l-none pl-2 pr-2"}
-									>
-										<Button>
-											<ChevronDown className={"w-4 h-4"} />
-										</Button>
-									</DropdownMenuTrigger>
-								</div>
-								<DropdownMenuContent>
-									<DropdownMenuItem
-										onClick={importRepositoryInfo.startImportingRepositories}
-									>
-										{tc("vpm repositories:button:import repositories")}
-									</DropdownMenuItem>
-									<DropdownMenuItem onClick={exportRepositories}>
-										{tc("vpm repositories:button:export repositories")}
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						</div>
-						<ScrollableCardTable className={"h-full"}>
-							<RepositoryTableBody
-								userRepos={result.data?.user_repositories || []}
-								hiddenUserRepos={hiddenUserRepos}
-								removeRepository={removeRepository}
-								refetch={() => result.refetch()}
-							/>
-						</ScrollableCardTable>
-					</CardContent>
-				</Card>
+				<ScrollableCardTable className={"h-full w-full"}>
+					<RepositoryTableBody
+						userRepos={result.data?.user_repositories || []}
+						hiddenUserRepos={hiddenUserRepos}
+						removeRepository={removeRepository}
+						refetch={() => result.refetch()}
+					/>
+				</ScrollableCardTable>
 			</main>
 			{addRepositoryInfo.dialog}
 			{importRepositoryInfo.dialog}
@@ -352,8 +341,8 @@ function RepositoryRow({
 					<TooltipContent>
 						{remove == null
 							? tc(
-									"vpm repositories:tooltip:remove curated or official repository",
-								)
+								"vpm repositories:tooltip:remove curated or official repository",
+							)
 							: tc("vpm repositories:remove repository")}
 					</TooltipContent>
 				</Tooltip>
