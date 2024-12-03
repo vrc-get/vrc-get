@@ -32,6 +32,18 @@ async environmentFinishedSetupPage(page: SetupPages) : Promise<null> {
 async environmentClearSetupProcess() : Promise<null> {
     return await TAURI_INVOKE("environment_clear_setup_process");
 },
+async environmentLogsLevel() : Promise<LogLevel[]> {
+    return await TAURI_INVOKE("environment_logs_level");
+},
+async environmentSetLogsLevel(logsLevel: LogLevel[]) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_logs_level", { logsLevel });
+},
+async environmentLogsAutoScroll() : Promise<boolean> {
+    return await TAURI_INVOKE("environment_logs_auto_scroll");
+},
+async environmentSetLogsAutoScroll(logsAutoScroll: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_logs_auto_scroll", { logsAutoScroll });
+},
 async environmentProjects() : Promise<TauriProject[]> {
     return await TAURI_INVOKE("environment_projects");
 },

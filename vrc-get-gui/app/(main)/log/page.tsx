@@ -22,23 +22,43 @@ import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { ArrowDownFromLine } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LogsListCard } from "./logs-list-card";
 
 export default function Page() {
-	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
-
+	const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
 	const [search, setSearch] = useState("");
-	const [shouldShowLogLevel, setShouldShowLogLevel] = useState<LogLevel[]>([
-		"Info",
-		"Warn",
-		"Error",
-	]);
-	const [autoScroll, setAutoScroll] = useState(true);
+	const [shouldShowLogLevel, setShouldShowLogLevel] = useState<LogLevel[]>([]);
+	const [autoScroll, setAutoScroll] = useState(false);
 
 	useEffect(() => {
 		commands.utilGetLogEntries().then((list) => setLogEntries([...list]));
 	}, []);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies(shouldShowLogLevel): logsShown is necessary
+	// biome-ignore lint/correctness/useExhaustiveDependencies(autoScroll): logsShown is necessary
+	useEffect(() => {
+		(async () => {
+			const logLevel = await commands.environmentLogsLevel();
+			setShouldShowLogLevel(logLevel);
+			const autoScroll = await commands.environmentLogsAutoScroll();
+			setAutoScroll(autoScroll);
+		})();
+	}, [shouldShowLogLevel, autoScroll]);
+
+	const handleLogLevelChange = (newLogLevel: LogLevel[]) => {
+		setShouldShowLogLevel(newLogLevel);
+		commands.environmentSetLogsLevel(newLogLevel).catch((err) => {
+			console.error("Failed to update log level: ", err);
+		});
+	};
+
+	const handleLogAutoScrollChange = (newAutoScroll: boolean) => {
+		setAutoScroll(newAutoScroll);
+		commands.environmentSetLogsAutoScroll(newAutoScroll).catch((err) => {
+			console.error("Failed to update log auto scroll: ", err);
+		});
+	};
 
 	useTauriListen<LogEntry>(
 		"log",
@@ -57,8 +77,8 @@ export default function Page() {
 					search={search}
 					setSearch={setSearch}
 					shouldShowLogLevel={shouldShowLogLevel}
-					setShouldShowLogLevel={setShouldShowLogLevel}
-					setAutoScroll={(value) => setAutoScroll(value)}
+					handleLogLevelChange={handleLogLevelChange}
+					handleLogAutoScrollChange={handleLogAutoScrollChange}
 					autoScroll={autoScroll}
 				/>
 			</HNavBar>
@@ -78,15 +98,15 @@ function ManageLogsHeading({
 	search,
 	setSearch,
 	shouldShowLogLevel,
-	setShouldShowLogLevel,
-	setAutoScroll,
+	handleLogLevelChange,
+	handleLogAutoScrollChange,
 	autoScroll,
 }: {
 	search: string;
 	setSearch: (value: string) => void;
 	shouldShowLogLevel: LogLevel[];
-	setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
-	setAutoScroll: React.Dispatch<React.SetStateAction<boolean>>;
+	handleLogLevelChange: (newLogLevels: LogLevel[]) => void;
+	handleLogAutoScrollChange: (newAutoScroll: boolean) => void;
 	autoScroll: boolean;
 }) {
 	const searchRef = useRef<HTMLInputElement>(null);
@@ -128,32 +148,32 @@ function ManageLogsHeading({
 					<LogLevelMenuItem
 						logLevel="Info"
 						shouldShowLogLevel={shouldShowLogLevel}
-						setShouldShowLogLevel={setShouldShowLogLevel}
+						handleLogLevelChange={handleLogLevelChange}
 					/>
 					<LogLevelMenuItem
 						logLevel="Warn"
 						className="text-warning"
 						shouldShowLogLevel={shouldShowLogLevel}
-						setShouldShowLogLevel={setShouldShowLogLevel}
+						handleLogLevelChange={handleLogLevelChange}
 					/>
 					<LogLevelMenuItem
 						logLevel="Error"
 						className="text-destructive"
 						shouldShowLogLevel={shouldShowLogLevel}
-						setShouldShowLogLevel={setShouldShowLogLevel}
+						handleLogLevelChange={handleLogLevelChange}
 					/>
 					<LogLevelMenuItem
 						logLevel="Debug"
 						className="text-info"
 						shouldShowLogLevel={shouldShowLogLevel}
-						setShouldShowLogLevel={setShouldShowLogLevel}
+						handleLogLevelChange={handleLogLevelChange}
 					/>
 					{/* Currently no trace level logs will be passed to frontend */}
 					{/*<LogLevelMenuItem
                         logLevel="Trace"
                         shouldShowLogLevel={shouldShowLogLevel}
                         setShouldShowLogLevel={setShouldShowLogLevel}
-					/>*/}
+                    />*/}
 				</DropdownMenuContent>
 			</DropdownMenu>
 
@@ -172,7 +192,7 @@ function ManageLogsHeading({
 				<TooltipTrigger asChild>
 					<Button
 						variant={"ghost"}
-						onClick={() => setAutoScroll((prev) => !prev)}
+						onClick={() => handleLogAutoScrollChange(!autoScroll)}
 						className={
 							autoScroll
 								? "bg-secondary border border-primary"
@@ -192,22 +212,23 @@ function LogLevelMenuItem({
 	logLevel,
 	className,
 	shouldShowLogLevel,
-	setShouldShowLogLevel,
+	handleLogLevelChange,
 }: {
 	logLevel: LogLevel;
 	className?: string;
 	shouldShowLogLevel: LogLevel[];
-	setShouldShowLogLevel: React.Dispatch<React.SetStateAction<LogLevel[]>>;
+	handleLogLevelChange: (newLogLevels: LogLevel[]) => void;
 }) {
 	const selected = shouldShowLogLevel.includes(logLevel);
+
 	const onChange = () => {
-		if (selected) {
-			setShouldShowLogLevel((prev) =>
-				prev.filter((logLevelFilter) => logLevelFilter !== logLevel),
-			);
-		} else {
-			setShouldShowLogLevel((prev) => [...prev, logLevel]);
-		}
+		const newLogLevels = selected
+			? shouldShowLogLevel.filter(
+					(logLevelFilter) => logLevelFilter !== logLevel,
+				)
+			: [...shouldShowLogLevel, logLevel];
+
+		handleLogLevelChange(newLogLevels);
 	};
 
 	return (

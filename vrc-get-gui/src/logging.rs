@@ -1,7 +1,7 @@
 use arc_swap::ArcSwapOption;
 use log::{Log, Metadata, Record};
 use ringbuffer::{ConstGenericRingBuffer, RingBuffer};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::fmt::{Display, Formatter};
 use std::io::Write as _;
@@ -203,7 +203,7 @@ pub(crate) fn get_log_entries() -> Vec<LogEntry> {
     LOG_BUFFER.lock().unwrap().to_vec()
 }
 
-#[derive(Serialize, specta::Type, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize, specta::Type, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LogLevel {
     Error = 1,
     Warn,

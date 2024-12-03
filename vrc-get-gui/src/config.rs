@@ -1,5 +1,6 @@
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
+use crate::logging::LogLevel;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,6 +30,10 @@ pub struct GuiConfig {
     pub setup_process_progress: u32,
     #[serde(default)]
     pub default_unity_arguments: Option<Vec<String>>,
+    #[serde(default = "log_level_default")]
+    pub logs_level: Vec<LogLevel>,
+    #[serde(default)]
+    pub logs_auto_scroll: bool,
 }
 
 impl Default for GuiConfig {
@@ -46,6 +51,8 @@ impl Default for GuiConfig {
             use_alcom_for_vcc_protocol: false,
             setup_process_progress: 0,
             default_unity_arguments: None,
+            logs_level: log_level_default(),
+            logs_auto_scroll: true,
         }
     }
 }
@@ -100,6 +107,10 @@ fn project_sorting_default() -> String {
 
 fn release_channel_default() -> String {
     "stable".to_string()
+}
+
+fn log_level_default() -> Vec<LogLevel> {
+    vec![LogLevel::Debug, LogLevel::Error, LogLevel::Warn, LogLevel::Info]
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
