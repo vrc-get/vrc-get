@@ -220,56 +220,17 @@ function PageBody() {
 	return (
 		<PageContextProvider value={pageContext}>
 			<VStack>
-				<ProjectViewHeader className={"flex-shrink-0"} />
-				<Card className="flex-grow flex-shrink flex shadow-none w-full">
-					<CardContent className="w-full p-2 flex flex-grow gap-2 items-center">
-						<div className={"pl-2 space-y-0"}>
-							<p className="cursor-pointer font-bold flex-grow-0 whitespace-pre mb-0 leading-tight">
-								{projectName}
-							</p>
-							<p className="cursor-pointer text-sm leading-tight mt-0">
-								{tc(
-									"projects:manage:project location",
-									{ path: projectPath },
-									{
-										components: {
-											path: (
-												<span
-													className={
-														"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"
-													}
-												/>
-											),
-										},
-									},
-								)}
-							</p>
-						</div>
-						<div className={"w-max flex-grow"} />
-						<div className="flex items-center">
-							<p className="cursor-pointer py-1.5 font-bold">
-								{tc("projects:manage:unity version")}
-							</p>
-							<div className={"flex"}>
-								<UnityVersionSelector
-									disabled={isLoading}
-									detailsResult={detailsResult}
-									unityVersions={unityVersionsResult.data}
-									requestChangeUnityVersion={requestChangeUnityVersion}
-								/>
-							</div>
-						</div>
-						<div className={"flex-grow-0 flex-shrink-0 w-max"}>
-							<ProjectButton
-								projectPath={projectPath}
-								unityVersion={detailsResult.data?.unity_str ?? null}
-								unityRevision={detailsResult.data?.unity_revision ?? null}
-								onRemove={onRemoveProject}
-								onBackup={onBackupProject}
-							/>
-						</div>
-					</CardContent>
-				</Card>
+				<ProjectViewHeader 
+					className={"flex-shrink-0"}
+					projectName={projectName}
+					projectPath={projectPath}
+					isLoading={isLoading}
+					detailsResult={detailsResult}
+					unityVersionsResult={unityVersionsResult}
+					requestChangeUnityVersion={requestChangeUnityVersion}
+					onRemoveProject={onRemoveProject}
+					onBackupProject={onBackupProject}
+				/>
 				{detailsResult?.data?.should_resolve && (
 					<SuggestResolveProjectCard
 						disabled={isLoading}
@@ -572,8 +533,24 @@ function SuggestChinaToInternationalMigrationCard({
 
 function ProjectViewHeader({
 	className,
+	projectName,
+	projectPath,
+	isLoading,
+	detailsResult,
+	unityVersionsResult,
+	requestChangeUnityVersion,
+	onRemoveProject,
+	onBackupProject,
 }: {
 	className?: string;
+	projectName: string;
+	projectPath: string;
+	isLoading: boolean | undefined;
+	detailsResult: UseQueryResult<any, Error>; 
+	unityVersionsResult: UseQueryResult<any, Error>;
+	requestChangeUnityVersion: (version: string, mayUseChinaVariant?: boolean) => void;
+	onRemoveProject: () => void;
+	onBackupProject: () => void;
 }) {
 	return (
 		<HNavBar className={className}>
@@ -588,11 +565,52 @@ function ProjectViewHeader({
 				</TooltipContent>
 			</Tooltip>
 
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-				{tc("projects:manage:manage project")}
-			</p>
+			<div className={"pl-2 space-y-0"}>
+				<p className="cursor-pointer font-bold flex-grow-0 whitespace-pre mb-0 leading-tight">
+					{projectName}
+				</p>
+				<p className="cursor-pointer text-sm leading-tight mt-0">
+					{tc(
+						"projects:manage:project location",
+						{ path: projectPath },
+						{
+							components: {
+								path: (
+									<span
+										className={
+											"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"
+										}
+									/>
+								),
+							},
+						},
+					)}
+				</p>
+			</div>
 
-			<div className="relative flex gap-2 w-max flex-grow" />
+			<div className={"w-max flex-grow"} />
+			<div className="flex items-center">
+				<p className="cursor-pointer py-1.5 font-bold">
+					{tc("projects:manage:unity version")}
+				</p>
+				<div className={"flex"}>
+					<UnityVersionSelector
+						disabled={isLoading}
+						detailsResult={detailsResult}
+						unityVersions={unityVersionsResult.data}
+						requestChangeUnityVersion={requestChangeUnityVersion}
+					/>
+				</div>
+			</div>
+			<div className={"flex-grow-0 flex-shrink-0 w-max"}>
+				<ProjectButton
+					projectPath={projectPath}
+					unityVersion={detailsResult.data?.unity_str ?? null}
+					unityRevision={detailsResult.data?.unity_revision ?? null}
+					onRemove={onRemoveProject}
+					onBackup={onBackupProject}
+				/>
+			</div>
 		</HNavBar>
 	);
 }
@@ -710,9 +728,9 @@ function ProjectButton({
 	const [openLaunchOptions, setOpenLaunchOptions] = useState<
 		| false
 		| {
-				initialArgs: null | string[];
-				defaultArgs: string[];
-		  }
+			initialArgs: null | string[];
+			defaultArgs: string[];
+		}
 	>(false);
 
 	const onChangeLaunchOptions = async () => {

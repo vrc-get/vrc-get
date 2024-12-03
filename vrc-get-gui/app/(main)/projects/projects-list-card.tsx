@@ -22,7 +22,7 @@ import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { type OpenUnityFunction, useOpenUnity } from "@/lib/use-open-unity";
+import { type OpenUnityFunction, Result, useOpenUnity } from "@/lib/use-open-unity";
 import { compareUnityVersionString } from "@/lib/version";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -47,60 +47,50 @@ function isSorting(s: string): s is Sorting {
 	);
 }
 
-export default function ProjectsListCard() {
-	const result = useQuery({
-		queryKey: ["projects"],
-		queryFn: commands.environmentProjects,
-	});
-	const [search, setSearch] = useState("");
-	const [loadingOther, setLoadingOther] = useState(false);
-	const [createProjectState, setCreateProjectState] = useState<
-		"normal" | "creating"
-	>("normal");
-	const openUnity = useOpenUnity();
-
-	const startCreateProject = () => setCreateProjectState("creating");
-
-	const loading = result.isFetching || loadingOther;
+export default function ProjectsListCard({
+	result,
+	search,
+	createProjectState,
+	setCreateProjectState,
+	openUnity,
+	loading,
+}: {
+	result: any;
+	search: string;
+	createProjectState: "normal" | "creating";
+	setCreateProjectState: React.Dispatch<React.SetStateAction<"normal" | "creating">>;
+	openUnity: Result;
+	loading: boolean;
+}) {
 
 	return (
-		<Card className="flex-grow flex-shrink flex shadow-none w-full">
-			<CardContent className="w-full p-2 flex flex-col gap-2">
-				<ProjectViewHeader
-					className={"flex-shrink-0"}
-					refresh={() => result.refetch()}
-					startCreateProject={startCreateProject}
-					isLoading={loading}
+		<>
+			{result.status === "pending" ? (
+				<Card className="w-full shadow-none overflow-hidden p-4">
+					{tc("general:loading...")}
+				</Card>
+			) : result.status === "error" ? (
+				<Card className="w-full shadow-none overflow-hidden p-4">
+					{tc("projects:error:load error", { msg: result.error.message })}
+				</Card>
+			) : (
+				<ProjectsTableCard
+					projects={result.data}
 					search={search}
-					setSearch={setSearch}
+					loading={loading}
+					openUnity={openUnity.openUnity}
+					refresh={() => result.refetch()}
+					onRemoved={() => result.refetch()}
 				/>
-				{result.status === "pending" ? (
-					<Card className="w-full shadow-none overflow-hidden p-4">
-						{tc("general:loading...")}
-					</Card>
-				) : result.status === "error" ? (
-					<Card className="w-full shadow-none overflow-hidden p-4">
-						{tc("projects:error:load error", { msg: result.error.message })}
-					</Card>
-				) : (
-					<ProjectsTableCard
-						projects={result.data}
-						search={search}
-						loading={loading}
-						openUnity={openUnity.openUnity}
-						refresh={() => result.refetch()}
-						onRemoved={() => result.refetch()}
-					/>
-				)}
-				{createProjectState === "creating" && (
-					<CreateProject
-						close={() => setCreateProjectState("normal")}
-						refetch={() => result.refetch()}
-					/>
-				)}
-				{openUnity.dialog}
-			</CardContent>
-		</Card>
+			)}
+			{createProjectState === "creating" && (
+				<CreateProject
+					close={() => setCreateProjectState("normal")}
+					refetch={() => result.refetch()}
+				/>
+			)}
+			{openUnity.dialog}
+		</>
 	);
 }
 
@@ -255,7 +245,7 @@ function ProjectsTableCard({
 		);
 
 	return (
-		<ScrollableCardTable className={"h-full"}>
+		<ScrollableCardTable className={"h-full w-full"}>
 			<thead>
 				<tr>
 					<th className={`${thClass} bg-secondary text-secondary-foreground`}>
@@ -328,116 +318,4 @@ function ProjectsTableCard({
 	);
 }
 
-function ProjectViewHeader({
-	className,
-	refresh,
-	startCreateProject,
-	isLoading,
-	search,
-	setSearch,
-}: {
-	className?: string;
-	refresh?: () => void;
-	startCreateProject?: () => void;
-	isLoading?: boolean;
-	search: string;
-	setSearch: (search: string) => void;
-}) {
-	const [addProjectWithPicker, dialog] = useFilePickerFunction(
-		commands.environmentAddProjectWithPicker,
-	);
 
-	const addProject = async () => {
-		try {
-			const result = await addProjectWithPicker();
-			switch (result) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tt("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(tt("projects:toast:project added"));
-					refresh?.();
-					break;
-				case "AlreadyAdded":
-					toastError(tt("projects:toast:project already exists"));
-					break;
-				default:
-					assertNever(result);
-			}
-		} catch (e) {
-			console.error("Error adding project", e);
-			toastThrownError(e);
-		}
-	};
-
-	const searchRef = useRef<HTMLInputElement>(null);
-
-	useDocumentEvent(
-		"keydown",
-		(e) => {
-			if (isFindKey(e)) {
-				searchRef.current?.focus();
-			}
-		},
-		[],
-	);
-
-	return (
-		<div
-			className={
-				"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center"
-			}
-		>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						variant={"ghost"}
-						size={"icon"}
-						onClick={() => refresh?.()}
-						disabled={isLoading}
-					>
-						{isLoading ? (
-							<RefreshCw className="w-5 h-5 animate-spin" />
-						) : (
-							<RefreshCw className={"w-5 h-5"} />
-						)}
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent>{tc("projects:tooltip:refresh")}</TooltipContent>
-			</Tooltip>
-
-			<SearchBox
-				className={"w-max flex-grow"}
-				value={search}
-				onChange={(e) => setSearch(e.target.value)}
-				ref={searchRef}
-			/>
-
-			<DropdownMenu>
-				<div className={"flex divide-x"}>
-					<Button
-						className={"rounded-r-none pl-4 pr-3"}
-						onClick={startCreateProject}
-					>
-						{tc("projects:create new project")}
-					</Button>
-					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
-						<Button>
-							<ChevronDown className={"w-4 h-4"} />
-						</Button>
-					</DropdownMenuTrigger>
-				</div>
-				<DropdownMenuContent>
-					<DropdownMenuItem onClick={addProject}>
-						{tc("projects:add existing project")}
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-
-			{dialog}
-		</div>
-	);
-}
