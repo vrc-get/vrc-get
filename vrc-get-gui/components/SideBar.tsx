@@ -99,7 +99,7 @@ function SideBarItem({
 	const router = useRouter();
 	const IconElenment = icon;
 	const pathname = usePathname();
-	const isActive = pathname === href;
+	const isActive = pathname.startsWith(href);
 	return (
 		<Button
 			variant={"ghost"}
