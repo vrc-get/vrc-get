@@ -100,12 +100,11 @@ function SideBarItem({
 	const IconElenment = icon;
 	const pathname = usePathname();
 	const getFirstPathSegment = (path: string) => {
-		if (!path.includes("palette"))
-			return path.split('/')[1] || '';
-		else
-			return path;
+		if (!path.includes("palette")) return path.split("/")[1] || "";
+		else return path;
 	};
-	const isActive = getFirstPathSegment(pathname || '') === getFirstPathSegment(href);
+	const isActive =
+		getFirstPathSegment(pathname || "") === getFirstPathSegment(href);
 	return (
 		<Button
 			variant={"ghost"}
