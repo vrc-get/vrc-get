@@ -33,6 +33,7 @@
 		"class-variance-authority": "^0.7",
 		"classnames": "^2",
 		"clsx": "^2",
+		"framer-motion": "^11.13.1",
 		"i18next": "^23",
 		"lucide-react": "^0.456",
 		"next": "14",
