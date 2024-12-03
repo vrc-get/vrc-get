@@ -153,7 +153,9 @@ pub async fn environment_clear_setup_process(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn environment_logs_level(config: State<'_, GuiConfigState>) -> Result<Vec<LogLevel>, RustError> {
+pub async fn environment_logs_level(
+    config: State<'_, GuiConfigState>,
+) -> Result<Vec<LogLevel>, RustError> {
     Ok(config.get().logs_level.clone())
 }
 
@@ -171,7 +173,9 @@ pub async fn environment_set_logs_level(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn environment_logs_auto_scroll(config: State<'_, GuiConfigState>) -> Result<bool, RustError> {
+pub async fn environment_logs_auto_scroll(
+    config: State<'_, GuiConfigState>,
+) -> Result<bool, RustError> {
     Ok(config.get().logs_auto_scroll.clone())
 }
 

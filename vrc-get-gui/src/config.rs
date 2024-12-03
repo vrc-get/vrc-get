@@ -1,6 +1,6 @@
+use crate::logging::LogLevel;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use crate::logging::LogLevel;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -110,7 +110,12 @@ fn release_channel_default() -> String {
 }
 
 fn log_level_default() -> Vec<LogLevel> {
-    vec![LogLevel::Debug, LogLevel::Error, LogLevel::Warn, LogLevel::Info]
+    vec![
+        LogLevel::Debug,
+        LogLevel::Error,
+        LogLevel::Warn,
+        LogLevel::Info,
+    ]
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
