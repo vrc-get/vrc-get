@@ -99,7 +99,13 @@ function SideBarItem({
 	const router = useRouter();
 	const IconElenment = icon;
 	const pathname = usePathname();
-	const isActive = pathname.startsWith(href);
+	const getFirstPathSegment = (path: string) => {
+		if (!path.includes("palette"))
+			return path.split('/')[1] || '';
+		else
+			return path;
+	};
+	const isActive = getFirstPathSegment(pathname || '') === getFirstPathSegment(href);
 	return (
 		<Button
 			variant={"ghost"}
