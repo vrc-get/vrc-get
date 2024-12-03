@@ -1,21 +1,30 @@
 "use client";
 
-import { HNavBar, VStack } from "@/components/layout";
-import { tc, tt } from "@/lib/i18n";
-import ProjectsListCard from "./projects-list-card";
-import { commands } from "@/lib/bindings";
-import { type OpenUnityFunction, Result, useOpenUnity } from "@/lib/use-open-unity";
-import { useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
 import { SearchBox } from "@/components/SearchBox";
+import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
-import { useDocumentEvent, isFindKey } from "@/lib/events";
+import { commands } from "@/lib/bindings";
+import { isFindKey, useDocumentEvent } from "@/lib/events";
+import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { RefreshCw, ChevronDown } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useOpenUnity } from "@/lib/use-open-unity";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, RefreshCw } from "lucide-react";
+import { useRef, useState } from "react";
+import ProjectsListCard from "./projects-list-card";
 
 export default function Page() {
 	const result = useQuery({

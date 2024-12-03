@@ -1,24 +1,33 @@
 "use client";
 
-import { HNavBar, VStack } from "@/components/layout";
-import type { LogEntry, LogLevel } from "@/lib/bindings";
-import { commands } from "@/lib/bindings";
-import { tc } from "@/lib/i18n";
-import { useTauriListen } from "@/lib/use-tauri-listen";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { LogsListCard } from "./logs-list-card";
 import { SearchBox } from "@/components/SearchBox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowDownFromLine } from "lucide-react";
-import globalInfo from "@/lib/global-info";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { LogEntry, LogLevel } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
+import globalInfo from "@/lib/global-info";
+import { tc } from "@/lib/i18n";
+import { useTauriListen } from "@/lib/use-tauri-listen";
+import { ArrowDownFromLine } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { LogsListCard } from "./logs-list-card";
 
 export default function Page() {
 	const [logEntries, setLogEntries] = React.useState<LogEntry[]>([]);
-	
+
 	const [search, setSearch] = useState("");
 	const [shouldShowLogLevel, setShouldShowLogLevel] = useState<LogLevel[]>([
 		"Info",
@@ -65,8 +74,6 @@ export default function Page() {
 	);
 }
 
-
-
 function ManageLogsHeading({
 	search,
 	setSearch,
@@ -100,10 +107,9 @@ function ManageLogsHeading({
 				"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center w-full"
 			}
 		>
-			
 			<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					{tc("logs")}
-				</p>
+				{tc("logs")}
+			</p>
 
 			<SearchBox
 				className={"w-max flex-grow"}
@@ -181,7 +187,6 @@ function ManageLogsHeading({
 		</div>
 	);
 }
-
 
 function LogLevelMenuItem({
 	logLevel,

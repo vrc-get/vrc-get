@@ -1,27 +1,9 @@
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
-import { SearchBox } from "@/components/SearchBox";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { ScrollArea } from "@/components/ui/scroll-area";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { type LogEntry, type LogLevel, commands } from "@/lib/bindings";
-import { isFindKey, useDocumentEvent } from "@/lib/events";
-import globalInfo from "@/lib/global-info";
+import type { LogEntry, LogLevel } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
-import { ArrowDownFromLine } from "lucide-react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 
 export const LogsListCard = memo(function LogsListCard({
 	logEntry,
@@ -31,7 +13,7 @@ export const LogsListCard = memo(function LogsListCard({
 }: {
 	logEntry: LogEntry[];
 	shouldShowLogLevel: LogLevel[];
-	search: any;
+	search: string;
 	autoScroll: boolean;
 }) {
 	const logsShown = useMemo(

@@ -2,7 +2,7 @@
 
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
 	DialogDescription,
 	DialogFooter,
@@ -220,7 +220,7 @@ function PageBody() {
 	return (
 		<PageContextProvider value={pageContext}>
 			<VStack>
-				<ProjectViewHeader 
+				<ProjectViewHeader
 					className={"flex-shrink-0"}
 					projectName={projectName}
 					projectPath={projectPath}
@@ -546,9 +546,12 @@ function ProjectViewHeader({
 	projectName: string;
 	projectPath: string;
 	isLoading: boolean | undefined;
-	detailsResult: UseQueryResult<any, Error>; 
-	unityVersionsResult: UseQueryResult<any, Error>;
-	requestChangeUnityVersion: (version: string, mayUseChinaVariant?: boolean) => void;
+	detailsResult: UseQueryResult<TauriProjectDetails, Error>;
+	unityVersionsResult: UseQueryResult<TauriUnityVersions, Error>;
+	requestChangeUnityVersion: (
+		version: string,
+		mayUseChinaVariant?: boolean,
+	) => void;
 	onRemoveProject: () => void;
 	onBackupProject: () => void;
 }) {
@@ -728,9 +731,9 @@ function ProjectButton({
 	const [openLaunchOptions, setOpenLaunchOptions] = useState<
 		| false
 		| {
-			initialArgs: null | string[];
-			defaultArgs: string[];
-		}
+				initialArgs: null | string[];
+				defaultArgs: string[];
+		  }
 	>(false);
 
 	const onChangeLaunchOptions = async () => {

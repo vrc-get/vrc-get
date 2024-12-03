@@ -3,7 +3,6 @@
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogClose,

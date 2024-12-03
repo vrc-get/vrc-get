@@ -3,7 +3,6 @@
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DialogDescription,
@@ -134,8 +133,7 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-
-			<div className={"flex items-center ml-1 w-full"}>
+				<div className={"flex items-center ml-1 w-full"}>
 					<HeadingPageName pageType={"/packages/repositories"} />
 					<div className={"w-max flex-grow"} />
 					<DropdownMenu>
@@ -341,8 +339,8 @@ function RepositoryRow({
 					<TooltipContent>
 						{remove == null
 							? tc(
-								"vpm repositories:tooltip:remove curated or official repository",
-							)
+									"vpm repositories:tooltip:remove curated or official repository",
+								)
 							: tc("vpm repositories:remove repository")}
 					</TooltipContent>
 				</Tooltip>

@@ -1,38 +1,16 @@
 "use client";
 
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
-import { SearchBox } from "@/components/SearchBox";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Card } from "@/components/ui/card";
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
-import { isFindKey, useDocumentEvent } from "@/lib/events";
-import { tc, tt } from "@/lib/i18n";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { type OpenUnityFunction, Result, useOpenUnity } from "@/lib/use-open-unity";
+import { tc } from "@/lib/i18n";
+import { toastThrownError } from "@/lib/toast";
+import type { OpenUnityFunction, Result } from "@/lib/use-open-unity";
 import { compareUnityVersionString } from "@/lib/version";
-import { useQuery } from "@tanstack/react-query";
-import {
-	ChevronDown,
-	ChevronUp,
-	ChevronsUpDown,
-	RefreshCw,
-	Star,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Star } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { CreateProject } from "./create-project";
 import { ProjectRow } from "./project-row";
 
@@ -55,14 +33,16 @@ export default function ProjectsListCard({
 	openUnity,
 	loading,
 }: {
+	// biome-ignore lint/suspicious/noExplicitAny: none
 	result: any;
 	search: string;
 	createProjectState: "normal" | "creating";
-	setCreateProjectState: React.Dispatch<React.SetStateAction<"normal" | "creating">>;
+	setCreateProjectState: React.Dispatch<
+		React.SetStateAction<"normal" | "creating">
+	>;
 	openUnity: Result;
 	loading: boolean;
 }) {
-
 	return (
 		<>
 			{result.status === "pending" ? (
@@ -317,5 +297,3 @@ function ProjectsTableCard({
 		</ScrollableCardTable>
 	);
 }
-
-
