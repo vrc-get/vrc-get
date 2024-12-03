@@ -3,6 +3,7 @@ import type { ScrollArea } from "@/components/ui/scroll-area";
 import type { LogEntry, LogLevel } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
+import type React from "react";
 import { memo, useEffect, useMemo, useRef } from "react";
 
 export const LogsListCard = memo(function LogsListCard({
@@ -27,20 +28,23 @@ export const LogsListCard = memo(function LogsListCard({
 	);
 
 	const scrollContainerRef = useRef<React.ElementRef<typeof ScrollArea>>(null);
+	const previousLogsLength = useRef(0);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies(logsShown): logsShown is necessary
 	useEffect(() => {
 		if (autoScroll && scrollContainerRef.current) {
-			scrollContainerRef.current.scrollTop =
-				scrollContainerRef.current.scrollHeight;
+			if (logsShown.length > previousLogsLength.current) {
+				scrollContainerRef.current.scrollTop =
+					scrollContainerRef.current.scrollHeight;
+			}
+			previousLogsLength.current = logsShown.length;
 		}
 	}, [logsShown, autoScroll]);
 
 	const TABLE_HEAD = ["logs:time", "logs:level", "logs:message"];
 
 	return (
-		<ScrollableCardTable className={"h-full"} ref={scrollContainerRef}>
-			<thead>
+		<ScrollableCardTable className={"h-full w-full"} ref={scrollContainerRef}>
+			<thead className={"w-full"}>
 				<tr>
 					{TABLE_HEAD.map((head, index) => (
 						<th
@@ -124,7 +128,7 @@ const LogRow = memo(function LogRow({
 					</div>
 				</div>
 			</td>
-			<td className={`${cellClass} min-w-32 w-32`}>{log.message}</td>
+			<td className={`${cellClass} min-w-32 w-full`}>{log.message}</td>
 		</>
 	);
 });

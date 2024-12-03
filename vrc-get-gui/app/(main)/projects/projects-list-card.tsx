@@ -10,6 +10,7 @@ import { toastThrownError } from "@/lib/toast";
 import type { OpenUnityFunction, Result } from "@/lib/use-open-unity";
 import { compareUnityVersionString } from "@/lib/version";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Star } from "lucide-react";
+import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { CreateProject } from "./create-project";
 import { ProjectRow } from "./project-row";
