@@ -133,42 +133,49 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<HeadingPageName pageType={"/packages/repositories"} />
-				<div className={"flex-grow"} />
-				<DropdownMenu>
-					<div className={"flex divide-x"}>
-						<Button
-							className={"rounded-r-none"}
-							onClick={addRepositoryInfo.openAddDialog}
-						>
-							{tc("vpm repositories:button:add repository")}
-						</Button>
-						<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
-							<Button>
-								<ChevronDown className={"w-4 h-4"} />
+				<div className={"flex items-center ml-1 w-full"}>
+					<HeadingPageName pageType={"/packages/repositories"} />
+					<div className={"w-max flex-grow"} />
+					<DropdownMenu>
+						<div className={"flex divide-x"}>
+							<Button
+								className={"rounded-r-none"}
+								onClick={addRepositoryInfo.openAddDialog}
+							>
+								{tc("vpm repositories:button:add repository")}
 							</Button>
-						</DropdownMenuTrigger>
-					</div>
-					<DropdownMenuContent>
-						<DropdownMenuItem
-							onClick={importRepositoryInfo.startImportingRepositories}
-						>
-							{tc("vpm repositories:button:import repositories")}
-						</DropdownMenuItem>
-						<DropdownMenuItem onClick={exportRepositories}>
-							{tc("vpm repositories:button:export repositories")}
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
+							<DropdownMenuTrigger
+								asChild
+								className={"rounded-l-none pl-2 pr-2"}
+							>
+								<Button>
+									<ChevronDown className={"w-4 h-4"} />
+								</Button>
+							</DropdownMenuTrigger>
+						</div>
+						<DropdownMenuContent>
+							<DropdownMenuItem
+								onClick={importRepositoryInfo.startImportingRepositories}
+							>
+								{tc("vpm repositories:button:import repositories")}
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={exportRepositories}>
+								{tc("vpm repositories:button:export repositories")}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 			</HNavBar>
-			<ScrollableCardTable>
-				<RepositoryTableBody
-					userRepos={result.data?.user_repositories || []}
-					hiddenUserRepos={hiddenUserRepos}
-					removeRepository={removeRepository}
-					refetch={() => result.refetch()}
-				/>
-			</ScrollableCardTable>
+			<main className="flex-shrink overflow-hidden flex w-full h-full">
+				<ScrollableCardTable className={"h-full w-full"}>
+					<RepositoryTableBody
+						userRepos={result.data?.user_repositories || []}
+						hiddenUserRepos={hiddenUserRepos}
+						removeRepository={removeRepository}
+						refetch={() => result.refetch()}
+					/>
+				</ScrollableCardTable>
+			</main>
 			{addRepositoryInfo.dialog}
 			{importRepositoryInfo.dialog}
 			{exportDialog}
