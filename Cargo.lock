@@ -4783,15 +4783,15 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-single-instance"
-version = "2.0.1"
+version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a25ac834491d089699a2bc9266a662faf373c9f779f05a2235bc6e4d9e61769a"
+checksum = "494d348f82cfa766df4d2ebd96fc38b9cada6d120f13a36fd11395180213ec74"
 dependencies = [
- "log",
  "serde",
  "serde_json",
  "tauri",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
+ "tracing",
  "windows-sys 0.59.0",
  "zbus",
 ]
