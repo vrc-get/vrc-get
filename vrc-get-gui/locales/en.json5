@@ -178,6 +178,7 @@
     "projects:toast:project removed": "Project was removed successfully.",
 
   // Manage Projects
+    "projects:manage:manage project": "Manage Project",
     "projects:manage:tooltip:back to projects": "Back to projects",
     "projects:menuitem:change launch options": "Change Launch Options",
     "projects:menuitem:backup": "Make Backup",
@@ -457,5 +458,6 @@
     "logs:level": "Level",
     "logs:message": "Message",
     "logs:manage:select logs level": "Logs Level Filter",
+    "logs:manage:auto scroll": "Toggle Auto Scroll",
   },
 }

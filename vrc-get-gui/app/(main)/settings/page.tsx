@@ -1,5 +1,6 @@
 "use client";
 
+import Loading from "@/app/loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
@@ -66,7 +67,11 @@ export default function Page() {
 			body = <Card className={"p-4"}>{tc("settings:error:load error")}</Card>;
 			break;
 		case "pending":
-			body = <Card className={"p-4"}>{tc("general:loading...")}</Card>;
+			body = (
+				<Card className={"p-4"}>
+					<Loading loadingText={tc("general:loading...")} />
+				</Card>
+			);
 			break;
 		case "success":
 			body = <Settings settings={result.data} refetch={result.refetch} />;
@@ -123,7 +128,7 @@ function Settings({
 	}, []);
 
 	return (
-		<ScrollPageContainer>
+		<ScrollPageContainer viewportClassName={"rounded-xl shadow-xl h-full"}>
 			<main className="flex flex-col gap-2 flex-shrink flex-grow">
 				<Card className={"flex-shrink-0 p-4"}>
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
@@ -150,7 +155,7 @@ function Settings({
 					unityArgs={settings.default_unity_arguments}
 				/>
 				<Card className={"flex-shrink-0 p-4"}>
-					<h2>{tc("settings:default project path")}</h2>
+					<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
 					<p className={"whitespace-normal"}>
 						{tc("settings:default project path description")}
 					</p>
@@ -328,7 +333,7 @@ function UnityLaunchArgumentsCard({
 
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
-			<div className={"pb-2 flex align-middle"}>
+			<div className={"mb-2 flex align-middle"}>
 				<div className={"flex-grow flex items-center"}>
 					<h2>{tc("settings:default unity arguments")}</h2>
 				</div>
@@ -336,7 +341,7 @@ function UnityLaunchArgumentsCard({
 					{tc("general:button:edit")}
 				</Button>
 			</div>
-			<p className={"text-sm"}>
+			<p className={"whitespace-normal"}>
 				{tc("settings:default unity arguments description")}
 			</p>
 			<ol className={"flex flex-col"}>
@@ -531,7 +536,9 @@ function FilesAndFoldersCard() {
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
 			<h2>{tc("settings:files and directories")}</h2>
-			{tc("settings:files and directories:description")}
+			<p className={"mt-2"}>
+				{tc("settings:files and directories:description")}
+			</p>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={openVpmFolderContent("settings.json")}>
 					{tc("settings:button:open settings.json")}
@@ -701,15 +708,15 @@ function SystemInformationCard() {
 			<h2>{tc("settings:system information")}</h2>
 			<dl>
 				<dt>{tc("settings:os")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.osInfo}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.osInfo}</dd>
 				<dt>{tc("settings:architecture")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.arch}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.arch}</dd>
 				<dt>{tc("settings:webview version")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.webviewVersion}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.webviewVersion}</dd>
 				<dt>{tc("settings:alcom version")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.version}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.version}</dd>
 				<dt>{tc("settings:alcom commit hash")}</dt>
-				<dd className={"ml-8 mb-1"}>{info.commitHash}</dd>
+				<dd className={"opacity-50 mb-2"}>{info.commitHash}</dd>
 			</dl>
 		</Card>
 	);
