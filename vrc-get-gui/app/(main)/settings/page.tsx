@@ -1,5 +1,6 @@
 "use client";
 
+import Loading from "@/app/loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
@@ -66,7 +67,11 @@ export default function Page() {
 			body = <Card className={"p-4"}>{tc("settings:error:load error")}</Card>;
 			break;
 		case "pending":
-			body = <Card className={"p-4"}>{tc("general:loading...")}</Card>;
+			body = (
+				<Card className={"p-4"}>
+					<Loading loadingText={tc("general:loading...")} />
+				</Card>
+			);
 			break;
 		case "success":
 			body = <Settings settings={result.data} refetch={result.refetch} />;

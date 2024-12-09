@@ -224,7 +224,7 @@ body {
 	animation: fadeInUp 0.1s ease-in-out;
 }
 
-.slide-left{
+.slide-left {
 	animation: slideLeft 0.1s ease-in-out;
 }
 
@@ -264,4 +264,3 @@ body {
 		transform: translateX(0);
 	}
 }
-

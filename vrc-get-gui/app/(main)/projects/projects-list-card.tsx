@@ -1,5 +1,6 @@
 "use client";
 
+import Loading from "@/app/loading";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Card } from "@/components/ui/card";
 import { assertNever } from "@/lib/assert-never";
@@ -48,7 +49,7 @@ export default function ProjectsListCard({
 		<>
 			{result.status === "pending" ? (
 				<Card className="w-full shadow-none overflow-hidden p-4">
-					{tc("general:loading...")}
+					<Loading loadingText={tc("general:loading...")} />
 				</Card>
 			) : result.status === "error" ? (
 				<Card className="w-full shadow-none overflow-hidden p-4">

@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
 import { SideBar } from "@/components/SideBar";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function MainLayout({
-									   children,
-								   }: Readonly<{
+	children,
+}: Readonly<{
 	children: React.ReactNode;
 }>) {
 	const [animationState, setAnimationState] = useState("");
@@ -19,25 +19,26 @@ export default function MainLayout({
 	}, [pathName]);
 
 	useEffect(() => {
-		if (pathName.startsWith("/packages") && !previousPathName.includes("/packages")) {
+		if (
+			pathName.startsWith("/packages") &&
+			!previousPathName.includes("/packages")
+		) {
 			setAnimationState("fade-in");
-		}
-		else if (pathName === "/packages/repositories") {
+		} else if (pathName === "/packages/repositories") {
 			setAnimationState("slide-right");
-		}
-		else if (pathName === "/packages/user-packages") {
+		} else if (pathName === "/packages/user-packages") {
 			setAnimationState("slide-left");
-		}
-		else if (pathName.startsWith("/projects") && !previousPathName.includes("/projects")) {
+		} else if (
+			pathName.startsWith("/projects") &&
+			!previousPathName.includes("/projects")
+		) {
+			setAnimationState("fade-in");
+		} else if (pathName.startsWith("/projects/")) {
+			setAnimationState("slide-left");
+		} else {
 			setAnimationState("fade-in");
 		}
-		else if (pathName.startsWith("/projects/")){
-			setAnimationState("slide-left");
-		}
-		else {
-			setAnimationState("fade-in");
-		}
-	}, [pathName]);
+	}, [pathName, previousPathName]);
 
 	useEffect(() => {
 		setIsVisible(true);
