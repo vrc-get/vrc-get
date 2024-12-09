@@ -33,7 +33,7 @@
 		"class-variance-authority": "^0.7",
 		"classnames": "^2",
 		"clsx": "^2",
-		"i18next": "^23",
+		"i18next": "^24",
 		"lucide-react": "^0.456",
 		"next": "14",
 		"react": "^18",
