@@ -53,7 +53,7 @@ mod prelude {
 pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 // Note: remember to change similar in typescript
-static DEFAULT_UNITY_ARGUMENTS: &[&str] = &["-debugCodeOptimization"];
+static DEFAULT_UNITY_ARGUMENTS: &[&str] = &[];
 
 pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     generate_handler![

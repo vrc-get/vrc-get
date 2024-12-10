@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Removed `-debugCodeOptimization` from default unity arguments `#1742`
 
 ### Deprecated
 
