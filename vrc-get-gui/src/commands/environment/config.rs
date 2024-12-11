@@ -176,7 +176,7 @@ pub async fn environment_set_logs_level(
 pub async fn environment_logs_auto_scroll(
     config: State<'_, GuiConfigState>,
 ) -> Result<bool, RustError> {
-    Ok(config.get().logs_auto_scroll.clone())
+    Ok(config.get().logs_auto_scroll)
 }
 
 #[tauri::command]
@@ -196,7 +196,7 @@ pub async fn environment_set_logs_auto_scroll(
 pub async fn environment_gui_animation(
     config: State<'_, GuiConfigState>,
 ) -> Result<bool, RustError> {
-    Ok(config.get().gui_animation.clone())
+    Ok(config.get().gui_animation)
 }
 
 #[tauri::command]

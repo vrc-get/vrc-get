@@ -13,15 +13,14 @@
 use std::ffi::{OsStr, OsString};
 use std::fs::OpenOptions;
 use std::mem::MaybeUninit;
-use std::os::windows::ffi::EncodeWide;
 use std::os::windows::prelude::*;
 use std::path::Path;
 use std::sync::OnceLock;
-use std::{io, result};
+use std::io;
 use tokio::process::Command;
 use windows::Win32::Foundation::{ERROR_LOCK_VIOLATION, HANDLE};
 use windows::Win32::Storage::FileSystem::{
-    LockFileEx, UnlockFileEx, LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LOCK_FILE_FLAGS,
+    LockFileEx, UnlockFileEx, LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY,
 };
 use windows::Win32::System::IO::OVERLAPPED;
 
@@ -53,13 +52,13 @@ pub(crate) async fn start_command(
         .await?;
 
     if !status.success() {
-        return Err(std::io::Error::new(
+        Err(std::io::Error::new(
             std::io::ErrorKind::Other,
             format!(
                 "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {}",
                 status
             ),
-        ));
+        ))
     } else {
         Ok(())
     }
@@ -129,7 +128,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
         UnlockFileEx(HANDLE(file.as_raw_handle()), 0, !0, !0, &mut overlapped)?;
-        return Ok(true);
+        Ok(true)
     }
 }
 
@@ -174,7 +173,7 @@ pub fn local_app_data() -> &'static str {
     LOCAL_APP_DATA.get_or_init(|| {
         dirs_next::cache_dir()
             .map(|x| x.to_string_lossy().into_owned())
-            .unwrap_or_else(|| String::new())
+            .unwrap_or_default()
     })
 }
 

@@ -85,7 +85,7 @@ pub async fn environment_get_settings(
         release_channel = config.release_channel.to_string();
         use_alcom_for_vcc_protocol = config.use_alcom_for_vcc_protocol;
         default_unity_arguments = config.default_unity_arguments.clone();
-        gui_animation = config.gui_animation.clone();
+        gui_animation = config.gui_animation;
     }
 
     {
