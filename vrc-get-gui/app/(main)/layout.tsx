@@ -1,6 +1,7 @@
 "use client";
 
 import { SideBar } from "@/components/SideBar";
+import { commands } from "@/lib/bindings";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -12,13 +13,19 @@ export default function MainLayout({
 	const [animationState, setAnimationState] = useState("");
 	const [previousPathName, setPreviousPathName] = useState("");
 	const [isVisible, setIsVisible] = useState(false);
+	const [guiAnimation, setGuiAnimation] = useState(false);
 	const pathName = usePathname();
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies(previousPathName.startsWith): previousPathName is not required
 	useEffect(() => {
 		setPreviousPathName(pathName);
-	}, [pathName]);
 
-	useEffect(() => {
+		(async () => {
+			setGuiAnimation(await commands.environmentGuiAnimation());
+		})();
+
+		if (!guiAnimation) return;
+
 		if (
 			pathName.startsWith("/packages") &&
 			!previousPathName.startsWith("/packages/")
@@ -30,7 +37,7 @@ export default function MainLayout({
 			setAnimationState("slide-left");
 		} else if (
 			pathName.startsWith("/projects") &&
-			!previousPathName.includes("/projects")
+			!previousPathName.startsWith("/projects")
 		) {
 			setAnimationState("fade-in");
 		} else if (pathName.startsWith("/projects/")) {
@@ -38,7 +45,7 @@ export default function MainLayout({
 		} else {
 			setAnimationState("fade-in");
 		}
-	}, [pathName]);
+	}, [pathName, guiAnimation]);
 
 	useEffect(() => {
 		setIsVisible(true);

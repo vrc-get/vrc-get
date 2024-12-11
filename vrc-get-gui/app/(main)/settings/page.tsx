@@ -8,6 +8,7 @@ import {
 	BackupFormatSelect,
 	BackupPathWarnings,
 	FilePathRow,
+	GuiAnimationSwitch,
 	LanguageSelector,
 	ProjectPathWarnings,
 	ThemeSelector,
@@ -176,7 +177,7 @@ function Settings({
 					showPrereleasePackages={settings.show_prerelease_packages}
 					refetch={refetch}
 				/>
-				<AppearanceCard />
+				<AppearanceCard refetch={refetch} />
 				<FilesAndFoldersCard />
 				<AlcomCard
 					isMac={isMac}
@@ -505,12 +506,13 @@ function PackagesCard({
 	);
 }
 
-function AppearanceCard() {
+function AppearanceCard({ refetch }: { refetch: () => void }) {
 	return (
 		<Card className={"flex-shrink-0 p-4"}>
 			<h2>{tc("settings:appearance")}</h2>
 			<LanguageSelector />
 			<ThemeSelector />
+			<GuiAnimationSwitch refetch={refetch} />
 		</Card>
 	);
 }

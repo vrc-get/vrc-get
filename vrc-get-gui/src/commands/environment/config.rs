@@ -190,3 +190,23 @@ pub async fn environment_set_logs_auto_scroll(
     config.save().await?;
     Ok(())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_gui_animation(
+    config: State<'_, GuiConfigState>,
+) -> Result<bool, RustError> {
+    Ok(config.get().gui_animation.clone())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_gui_animation(
+    config: State<'_, GuiConfigState>,
+    gui_animation: bool,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.gui_animation = gui_animation;
+    config.save().await?;
+    Ok(())
+}

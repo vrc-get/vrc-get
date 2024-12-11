@@ -34,6 +34,8 @@ pub struct GuiConfig {
     pub logs_level: Vec<LogLevel>,
     #[serde(default)]
     pub logs_auto_scroll: bool,
+    #[serde(default)]
+    pub gui_animation: bool,
 }
 
 impl Default for GuiConfig {
@@ -53,6 +55,7 @@ impl Default for GuiConfig {
             default_unity_arguments: None,
             logs_level: log_level_default(),
             logs_auto_scroll: true,
+            gui_animation: true,
         }
     }
 }

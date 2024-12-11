@@ -1,10 +1,14 @@
-import { loadLicenses } from "@/lib/licenses";
-import RenderPage from "./render-client";
 import Loading from "@/app/loading";
-import React, {Suspense} from "react";
+import { loadLicenses } from "@/lib/licenses";
+import { Suspense } from "react";
+import RenderPage from "./render-client";
 
 const licenses = await loadLicenses();
 
 export default function Page() {
-	return <Suspense fallback={<Loading />}><RenderPage licenses={licenses} /></Suspense>;
+	return (
+		<Suspense fallback={<Loading />}>
+			<RenderPage licenses={licenses} />
+		</Suspense>
+	);
 }

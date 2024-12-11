@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	GuiAnimationSwitch,
 	LanguageSelector,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
@@ -33,6 +34,7 @@ function Body() {
 			</CardDescription>
 			<LanguageSelector />
 			<ThemeSelector />
+			<GuiAnimationSwitch />
 		</>
 	);
 }
