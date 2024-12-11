@@ -21,7 +21,7 @@ export default function MainLayout({
 	useEffect(() => {
 		if (
 			pathName.startsWith("/packages") &&
-			!previousPathName.includes("/packages")
+			!previousPathName.startsWith("/packages/")
 		) {
 			setAnimationState("fade-in");
 		} else if (pathName === "/packages/repositories") {
@@ -38,7 +38,7 @@ export default function MainLayout({
 		} else {
 			setAnimationState("fade-in");
 		}
-	}, [pathName, previousPathName]);
+	}, [pathName]);
 
 	useEffect(() => {
 		setIsVisible(true);
