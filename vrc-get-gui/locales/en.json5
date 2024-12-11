@@ -178,7 +178,6 @@
     "projects:toast:project removed": "Project was removed successfully.",
 
   // Manage Projects
-    "projects:manage:manage project": "Manage Project",
     "projects:manage:tooltip:back to projects": "Back to projects",
     "projects:menuitem:change launch options": "Change Launch Options",
     "projects:menuitem:backup": "Make Backup",
