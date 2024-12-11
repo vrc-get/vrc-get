@@ -123,7 +123,7 @@ pub struct ChangesVersionRef<'a> {
     _phantom_data: PhantomData<&'a ()>,
 }
 
-impl<'a> ChangesVersionRef<'a> {
+impl ChangesVersionRef<'_> {
     fn new(data: Data) -> Self {
         Self {
             _arc: data.backing_cart().clone(),
