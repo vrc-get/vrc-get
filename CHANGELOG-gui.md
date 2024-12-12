@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Prerelease version is choosen even if good stable version exists `#1745`
 
 ### Security
 

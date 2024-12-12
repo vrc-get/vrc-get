@@ -1,4 +1,4 @@
-use crate::version::{UnityVersion, Version, VersionRange};
+use crate::version::{PrereleaseAcceptance, UnityVersion, Version, VersionRange};
 use crate::{unity_compatible, PackageManifest};
 
 #[derive(Clone, Copy)]
@@ -16,12 +16,12 @@ enum SelectorInner<'a> {
     Range {
         project_unity: Option<UnityVersion>,
         range: &'a VersionRange,
-        allow_prerelease: bool,
+        allow_prerelease: PrereleaseAcceptance,
     },
     Ranges {
         project_unity: Option<UnityVersion>,
         ranges: &'a [&'a VersionRange],
-        allow_prerelease: bool,
+        allow_prerelease: PrereleaseAcceptance,
     },
 }
 
@@ -44,7 +44,7 @@ impl<'a> VersionSelector<'a> {
     pub fn range_for(
         unity_version: Option<UnityVersion>,
         range: &'a VersionRange,
-        allow_prerelease: bool,
+        allow_prerelease: PrereleaseAcceptance,
     ) -> Self {
         Self {
             inner: SelectorInner::Range {
@@ -58,7 +58,7 @@ impl<'a> VersionSelector<'a> {
     pub fn ranges_for(
         unity_version: Option<UnityVersion>,
         ranges: &'a [&'a VersionRange],
-        allow_prerelease: bool,
+        allow_prerelease: PrereleaseAcceptance,
     ) -> Self {
         Self {
             inner: SelectorInner::Ranges {
