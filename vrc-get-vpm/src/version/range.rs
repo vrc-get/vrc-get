@@ -88,7 +88,7 @@ impl VersionRange {
     }
 
     pub fn matches(&self, version: &Version) -> bool {
-        self.match_pre(version, PrereleaseAcceptance::Deny)
+        self.match_pre(version, PrereleaseAcceptance::Minimum)
     }
 
     pub fn match_pre(&self, version: &Version, allow_prerelease: PrereleaseAcceptance) -> bool {
