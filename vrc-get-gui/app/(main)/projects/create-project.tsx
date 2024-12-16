@@ -180,6 +180,7 @@ export function CreateProject({
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);
+			refetch?.();
 			close?.();
 		}
 	};
