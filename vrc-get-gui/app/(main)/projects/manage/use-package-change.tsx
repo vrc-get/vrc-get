@@ -14,14 +14,14 @@ import type {
 	TauriRemoveReason,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { isHandleable } from "@/lib/errors";
 import { tc, tt } from "@/lib/i18n";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareVersion, toVersionString } from "@/lib/version";
+import { CircleAlert } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { PackageRowInfo } from "./collect-package-row-info";
-import { isHandleable } from "@/lib/errors";
-import { CircleAlert } from "lucide-react";
 
 export type RequestedOperation =
 	| {
@@ -112,7 +112,7 @@ export function usePackageChangeDialog({
 					requested: operation,
 				});
 			} catch (e) {
-				if (isHandleable(e) && e.body.type == "MissingDependencies") {
+				if (isHandleable(e) && e.body.type === "MissingDependencies") {
 					setInstallStatus({
 						status: "missing-dependencies",
 						dependencies: e.body.dependencies,

@@ -1,4 +1,4 @@
-import { RustError } from "@/lib/bindings";
+import type { RustError } from "@/lib/bindings";
 
 export function isHandleable(
 	t: unknown,
