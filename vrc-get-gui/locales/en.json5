@@ -288,7 +288,7 @@
     "projects:manage:button:apply": "Apply",
 
     "projects:manage:dialog:missing dependencies": "Some packages are not found.",
-    "projects:manage:dialog:missing dependencies description": "The following packages are requested to install, but unable to find approprate version of the packages.<br/>Please search and add repositories that contain the packages.",
+    "projects:manage:dialog:missing dependencies description": "The following packages are requested to install, but unable to find appropriate version of the packages.<br/>Please search and add repositories that contain the packages.",
 
 
     // Packages Page
