@@ -759,33 +759,32 @@ pub async fn environment_create_project(
         drop(settings_file);
     }
 
+    let mut unity_project = load_project(path_str.into()).await?;
+
     let packages;
     {
-        let settings = settings.load(io.inner()).await?;
+        let mut settings = settings.load_mut(io.inner()).await?;
         packages = packages_state
             .load(&settings, io.inner(), http.inner())
             .await?;
-    }
-
-    {
-        let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
-
-        let mut unity_project = load_project(path_str.into()).await?;
-
-        // finally, resolve the project folder
-        let request = unity_project.resolve_request(packages.collection()).await?;
-        unity_project
-            .apply_pending_changes(&installer, request)
-            .await?;
 
         // add the project to listing
-        let mut settings = settings.load_mut(io.inner()).await?;
         let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
         settings.load_from_db(&connection)?;
         settings.save().await?;
+    }
+
+    {
+        let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
+
+        // finally, resolve the project folder
+        let request = unity_project.resolve_request(packages.collection()).await?;
+        unity_project
+            .apply_pending_changes(&installer, request)
+            .await?;
     }
     Ok(TauriCreateProjectResult::Successful)
 }
