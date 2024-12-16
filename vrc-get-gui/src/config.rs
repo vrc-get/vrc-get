@@ -118,7 +118,9 @@ fn log_level_default() -> Vec<LogLevel> {
     ]
 }
 
-fn gui_animation_default() -> bool { true }
+fn gui_animation_default() -> bool {
+    true
+}
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct WindowSize {
