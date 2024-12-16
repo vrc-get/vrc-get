@@ -29,7 +29,7 @@ export default function Page() {
 	const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
 	const [search, setSearch] = useState("");
 	const [shouldShowLogLevel, setShouldShowLogLevel] = useState<LogLevel[]>([]);
-	const [autoScroll, setAutoScroll] = useState(false);
+	const [autoScroll, setAutoScroll] = useState(true);
 
 	useEffect(() => {
 		commands.utilGetLogEntries().then(setLogEntries);
