@@ -251,12 +251,16 @@ async deepLinkInstallVcc() : Promise<void> {
 export type AddRepositoryInfo = { url: string; headers: { [key in string]: string } }
 export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Started" } | { type: "UnusedProgress"; progress: P }
 export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; update_description: string | null }
+/**
+ * Errors that is expected to be handled on the GUI side
+ */
+export type HandleableRustError = { type: "MissingDependencies"; dependencies: string[] }
 export type InstallUpgradeProgress = { type: "DownloadProgress"; received: number; total: number | null } | { type: "DownloadComplete" }
 export type LocalizableRustError = { id: string; args: { [key in string]: string } }
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string; gui_toast: boolean }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists"
-export type RustError = { type: "Unrecoverable"; message: string } | ({ type: "Localizable" } & LocalizableRustError)
+export type RustError = { type: "Unrecoverable"; message: string } | ({ type: "Localizable" } & LocalizableRustError) | { type: "Handleable"; message: string; body: HandleableRustError }
 export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting"
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriAddRepositoryResult = "BadUrl" | "Success"
