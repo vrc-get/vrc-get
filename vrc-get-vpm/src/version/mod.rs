@@ -6,6 +6,7 @@
 //! [semver.net]: https://github.com/adamreeve/semver.net
 
 pub use range::DependencyRange;
+pub use range::PrereleaseAcceptance;
 pub use range::VersionRange;
 use std::fmt::Debug;
 pub use unity_version::ReleaseType;

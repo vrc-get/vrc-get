@@ -10,12 +10,16 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Removed `-debugCodeOptimization` from default unity arguments `#1742`
+- Projects that failes to resolve will also be added to Project List now `#1748`
+  - Previsously project dir is created but not added to list
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Prerelease version is choosen even if good stable version exists `#1745`
 
 ### Security
 

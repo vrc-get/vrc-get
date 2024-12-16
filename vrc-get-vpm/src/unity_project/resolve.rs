@@ -8,7 +8,7 @@ use crate::unity_project::{
     package_resolution, pending_project_changes, AddPackageErr, LockedDependencyInfo,
     PendingProjectChanges,
 };
-use crate::version::DependencyRange;
+use crate::version::{DependencyRange, PrereleaseAcceptance};
 use crate::{PackageCollection, UnityProject, VersionSelector};
 
 #[derive(Debug)]
@@ -158,7 +158,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
                         VersionSelector::range_for(
                             self.unity_version(),
                             &range.as_range(),
-                            range.as_range().contains_pre(),
+                            PrereleaseAcceptance::allow_or_minimum(range.as_range().contains_pre()),
                         ),
                     )
                     .ok_or_else(|| AddPackageErr::DependencyNotFound {
@@ -273,7 +273,11 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 let allow_prerelease = packages.iter().any(|(_, pre)| *pre);
                 env.find_package_by_name(
                     pkg_name,
-                    VersionSelector::ranges_for(self.unity_version, &ranges, allow_prerelease),
+                    VersionSelector::ranges_for(
+                        self.unity_version,
+                        &ranges,
+                        PrereleaseAcceptance::allow_or_minimum(allow_prerelease),
+                    ),
                 )
                 .ok_or_else(|| AddPackageErr::DependencyNotFound {
                     dependency_name: pkg_name.clone(),
