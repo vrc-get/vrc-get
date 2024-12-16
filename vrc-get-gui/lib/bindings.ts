@@ -38,12 +38,6 @@ async environmentLogsLevel() : Promise<LogLevel[]> {
 async environmentSetLogsLevel(logsLevel: LogLevel[]) : Promise<null> {
     return await TAURI_INVOKE("environment_set_logs_level", { logsLevel });
 },
-async environmentLogsAutoScroll() : Promise<boolean> {
-    return await TAURI_INVOKE("environment_logs_auto_scroll");
-},
-async environmentSetLogsAutoScroll(logsAutoScroll: boolean) : Promise<null> {
-    return await TAURI_INVOKE("environment_set_logs_auto_scroll", { logsAutoScroll });
-},
 async environmentGuiAnimation() : Promise<boolean> {
     return await TAURI_INVOKE("environment_gui_animation");
 },

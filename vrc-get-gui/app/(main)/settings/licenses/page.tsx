@@ -7,8 +7,6 @@ const licenses = await loadLicenses();
 
 export default function Page() {
 	return (
-		<Suspense fallback={<Loading />}>
-			<RenderPage licenses={licenses} />
-		</Suspense>
+		<RenderPage licenses={licenses} />
 	);
 }

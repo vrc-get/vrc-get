@@ -32,32 +32,22 @@ export default function Page() {
 	const [autoScroll, setAutoScroll] = useState(false);
 
 	useEffect(() => {
-		commands.utilGetLogEntries().then((list) => setLogEntries([...list]));
+		commands.utilGetLogEntries().then(setLogEntries);
+		commands.environmentLogsLevel().then(setShouldShowLogLevel);
+		const logsAutoScroll = sessionStorage.getItem("logs_auto_scroll") === "true";
+		setAutoScroll(logsAutoScroll);
 	}, []);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies(shouldShowLogLevel): logsShown is necessary
-	// biome-ignore lint/correctness/useExhaustiveDependencies(autoScroll): logsShown is necessary
-	useEffect(() => {
-		(async () => {
-			const logLevel = await commands.environmentLogsLevel();
-			setShouldShowLogLevel(logLevel);
-			const autoScroll = await commands.environmentLogsAutoScroll();
-			setAutoScroll(autoScroll);
-		})();
-	}, [shouldShowLogLevel, autoScroll]);
-
-	const handleLogLevelChange = (newLogLevel: LogLevel[]) => {
-		setShouldShowLogLevel(newLogLevel);
-		commands.environmentSetLogsLevel(newLogLevel).catch((err) => {
+	const handleLogLevelChange = (value: LogLevel[]) => {
+		setShouldShowLogLevel(value);
+		commands.environmentSetLogsLevel(value).catch((err) => {
 			console.error("Failed to update log level: ", err);
 		});
 	};
 
-	const handleLogAutoScrollChange = (newAutoScroll: boolean) => {
-		setAutoScroll(newAutoScroll);
-		commands.environmentSetLogsAutoScroll(newAutoScroll).catch((err) => {
-			console.error("Failed to update log auto scroll: ", err);
-		});
+	const handleLogAutoScrollChange = (value: boolean) => {
+		sessionStorage.setItem("logs_auto_scroll", String(value));
+		setAutoScroll(value);
 	};
 
 	useTauriListen<LogEntry>(

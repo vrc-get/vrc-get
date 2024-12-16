@@ -113,9 +113,7 @@ export function GuiAnimationSwitch({ refetch }: { refetch?: () => void }) {
 	const changeGuiAnimation = async (value: "indeterminate" | boolean) => {
 		await commands.environmentSetGuiAnimation(value === true);
 		setGuiAnimation(value === true);
-		if (refetch) {
-			refetch();
-		}
+		refetch?.();
 	};
 
 	return (

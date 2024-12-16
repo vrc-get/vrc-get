@@ -100,8 +100,7 @@ function SideBarItem({
 	const IconElenment = icon;
 	const pathname = usePathname();
 	const getFirstPathSegment = (path: string) => {
-		if (!path.includes("palette")) return path.split("/")[1] || "";
-		else return path;
+		return path.split("/")[1] || "";
 	};
 	const isActive =
 		getFirstPathSegment(pathname || "") === getFirstPathSegment(href);

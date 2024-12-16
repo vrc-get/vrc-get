@@ -16,7 +16,7 @@ export default function MainLayout({
 	const [guiAnimation, setGuiAnimation] = useState(false);
 	const pathName = usePathname();
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies(previousPathName.startsWith): previousPathName is not required
+	// biome-ignore lint/correctness/useExhaustiveDependencies(previousPathName.startsWith): We only want to call useEffect when pathName is changed
 	useEffect(() => {
 		setPreviousPathName(pathName);
 
