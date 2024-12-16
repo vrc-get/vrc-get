@@ -32,7 +32,7 @@ pub struct GuiConfig {
     pub default_unity_arguments: Option<Vec<String>>,
     #[serde(default = "log_level_default")]
     pub logs_level: Vec<LogLevel>,
-    #[serde(default)]
+    #[serde(default = "gui_animation_default")]
     pub gui_animation: bool,
 }
 
@@ -52,7 +52,7 @@ impl Default for GuiConfig {
             setup_process_progress: 0,
             default_unity_arguments: None,
             logs_level: log_level_default(),
-            gui_animation: false,
+            gui_animation: true,
         }
     }
 }
@@ -117,6 +117,8 @@ fn log_level_default() -> Vec<LogLevel> {
         LogLevel::Info,
     ]
 }
+
+fn gui_animation_default() -> bool { true }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct WindowSize {
