@@ -20,6 +20,8 @@ import { compareVersion, toVersionString } from "@/lib/version";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { PackageRowInfo } from "./collect-package-row-info";
+import { isHandleable } from "@/lib/errors";
+import { CircleAlert } from "lucide-react";
 
 export type RequestedOperation =
 	| {
@@ -58,6 +60,10 @@ type InstallStatus =
 	  }
 	| {
 			status: "creatingChanges";
+	  }
+	| {
+			status: "missing-dependencies";
+			dependencies: string[];
 	  }
 	| {
 			status: "promptingChanges";
@@ -106,9 +112,16 @@ export function usePackageChangeDialog({
 					requested: operation,
 				});
 			} catch (e) {
-				console.error(e);
-				toastThrownError(e);
-				setInstallStatus({ status: "normal" });
+				if (isHandleable(e) && e.body.type == "MissingDependencies") {
+					setInstallStatus({
+						status: "missing-dependencies",
+						dependencies: e.body.dependencies,
+					});
+				} else {
+					console.error(e);
+					toastThrownError(e);
+					setInstallStatus({ status: "normal" });
+				}
 			}
 		},
 		[],
@@ -224,6 +237,15 @@ export function usePackageChangeDialog({
 					existingPackages={existingPackages}
 					cancel={cancel}
 					apply={() => applyChanges(installStatus)}
+				/>
+			);
+			break;
+		}
+		case "missing-dependencies": {
+			dialogForState = (
+				<MissingDependenciesDialog
+					dependencies={installStatus.dependencies}
+					onClose={() => setInstallStatus({ status: "normal" })}
 				/>
 			);
 			break;
@@ -503,4 +525,29 @@ function comparePackageChangeByName(
 	[bName, _2]: [string, TauriPackageChange],
 ): number {
 	return aName.localeCompare(bName);
+}
+
+function MissingDependenciesDialog({
+	dependencies,
+	onClose,
+}: { dependencies: string[]; onClose: () => void }) {
+	return (
+		<DialogOpen>
+			<DialogTitle className={"text-destructive"}>
+				<CircleAlert className="size-6 inline" />{" "}
+				{tc("projects:manage:dialog:missing dependencies")}
+			</DialogTitle>
+			<DialogDescription>
+				<p>{tc("projects:manage:dialog:missing dependencies description")}</p>
+				<ul className={"list-disc ml-4"}>
+					{dependencies.map((dep) => (
+						<li key={dep}>{dep}</li>
+					))}
+				</ul>
+			</DialogDescription>
+			<DialogFooter>
+				<Button onClick={onClose}>{tc("general:button:close")}</Button>
+			</DialogFooter>
+		</DialogOpen>
+	);
 }
