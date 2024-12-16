@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 - Removed `-debugCodeOptimization` from default unity arguments `#1742`
+- Projects that failes to resolve will also be added to Project List now `#1748`
+  - Previsously project dir is created but not added to list
 
 ### Deprecated
 
