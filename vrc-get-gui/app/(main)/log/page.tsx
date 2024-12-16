@@ -34,7 +34,8 @@ export default function Page() {
 	useEffect(() => {
 		commands.utilGetLogEntries().then(setLogEntries);
 		commands.environmentLogsLevel().then(setShouldShowLogLevel);
-		const logsAutoScroll = sessionStorage.getItem("logs_auto_scroll") === "true";
+		const logsAutoScroll =
+			sessionStorage.getItem("logs_auto_scroll") === "true";
 		setAutoScroll(logsAutoScroll);
 	}, []);
 
