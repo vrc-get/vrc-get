@@ -1,5 +1,5 @@
 use crate::traits::PackageCollection;
-use crate::unity_project::{AddPackageErr, LockedDependencyInfo};
+use crate::unity_project::LockedDependencyInfo;
 use crate::version::{DependencyRange, PrereleaseAcceptance, UnityVersion, Version, VersionRange};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -396,6 +396,30 @@ pub struct PackageResolutionResult<'env> {
     pub found_legacy_packages: Vec<Box<str>>,
 }
 
+pub struct MissingDependencies {
+    pub dependencies: HashSet<Box<str>>,
+}
+
+impl MissingDependencies {
+    pub fn new() -> Self {
+        Self {
+            dependencies: HashSet::new(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.dependencies.is_empty()
+    }
+
+    pub fn add(&mut self, dependency: &str) {
+        self.dependencies.insert(dependency.into());
+    }
+
+    pub fn into_vec(self) -> Vec<Box<str>> {
+        self.dependencies.into_iter().collect()
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn collect_adding_packages<'a, 'env>(
     dependencies: impl Iterator<Item = (&'a str, &'a DependencyRange)>,
@@ -406,7 +430,8 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
     env: &'env impl PackageCollection,
     packages: Vec<PackageInfo<'env>>,
     allow_prerelease: bool,
-) -> Result<PackageResolutionResult<'env>, AddPackageErr> {
+    missing_dependencies: &mut MissingDependencies,
+) -> PackageResolutionResult<'env> {
     let mut context = ResolutionContext::<'env, '_>::new(allow_prerelease, packages);
 
     // first, add dependencies
@@ -524,16 +549,15 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
                             .or_else(|| finder.find(None, PrereleaseAcceptance::Minimum));
                     }
 
-                    let found = found.ok_or_else(|| AddPackageErr::DependencyNotFound {
-                        dependency_name: dependency.clone(),
-                    })?;
-
-                    // remove existing if existing
-                    context.pending_queue.add_pending_package(found);
+                    if let Some(found) = found {
+                        context.pending_queue.add_pending_package(found);
+                    } else {
+                        missing_dependencies.add(dependency);
+                    }
                 }
             }
         }
     }
 
-    Ok(context.build_result())
+    context.build_result()
 }

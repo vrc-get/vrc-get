@@ -11,7 +11,7 @@ use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
-use vrc_get_vpm::unity_project::AddPackageErr;
+use vrc_get_vpm::unity_project::{AddPackageErr, ResolvePackageErr};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
 
@@ -296,6 +296,12 @@ impl_from_error!(
 
 impl From<AddPackageErr> for RustError {
     fn from(value: AddPackageErr) -> Self {
+        RustError::unrecoverable(value)
+    }
+}
+
+impl From<ResolvePackageErr> for RustError {
+    fn from(value: ResolvePackageErr) -> Self {
         RustError::unrecoverable(value)
     }
 }
