@@ -287,6 +287,9 @@
     "projects:manage:button:apply changes": "Änderungen anwenden",
     "projects:manage:button:apply": "Anwenden",
 
+    "projects:manage:dialog:missing dependencies": "Einige Pakete wurden nicht gefunden.",
+    "projects:manage:dialog:missing dependencies description": "Die folgenden Pakete wurden zur installation angefordert, konnten aber nicht in der angeforderten Version gefunden werden.<br/>Bitte füge die korrekte Paketquelle hinzu. Möglicherweise kann im <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> gefunden werden.",
+
 
 // Packages Page
     "packages": "Pakete",
@@ -405,6 +408,9 @@
     "settings:show prerelease": "Vorschau-Pakete anzeigen",
     "settings:show prerelease description": "Aktiviere Vorschau-Pakete, um diese in der Paketliste anzuzeigen. Sie werden auch bei der Auflösung von Abhängigkeiten verwendet.",
 
+    "settings:gui animation": "Aktiviere GUI-Animationen",
+    "settings:gui animation description": "Der Seitenwechsel wird animiert wenn diese Option aktiviert ist. Dies funktioniert auf Systemen mit älteren Webview Versionen evtl. nicht richtig.",
+
     "settings:appearance": "Darstellung",
     "settings:language": "Sprache",
     "settings:theme": "Design",
@@ -457,5 +463,6 @@
     "logs:level": "Kategorie",
     "logs:message": "Nachricht",
     "logs:manage:select logs level": "Filter",
+    "logs:manage:auto scroll": "Auto Scroll aktivieren",
   },
 }
