@@ -1,3 +1,4 @@
+import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -350,7 +351,9 @@ function ProjectChangesDialog({
 						size={"sm"}
 						onClick={() => commands.utilOpenUrl(url)}
 					>
-						{tc("projects:manage:button:see changelog")}
+						<ExternalLink>
+							{tc("projects:manage:button:see changelog")}
+						</ExternalLink>
 					</Button>
 				);
 			}
