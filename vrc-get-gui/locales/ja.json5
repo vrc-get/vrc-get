@@ -278,6 +278,8 @@
     "projects:manage:button:apply changes": "変更を適用",
     "projects:manage:button:apply": "適用",
 
+    "projects:manage:dialog:missing dependencies": "パッケージ情報が見つかりませんでした。",
+    "projects:manage:dialog:missing dependencies description": "以下のパッケージのインストールを試みましたが、対応するバージョンのパッケージ情報が見つかりませんでした。<br>該当するパッケージを含むVPMリポジトリを探し、ALCOMに登録してください。<br>適切なVPMリポジトリを見つけるには、<ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink>が役立つかもしれません。",
 
 // Packages Page
     "packages": "パッケージ管理",
@@ -396,6 +398,9 @@
     "settings:show prerelease": "プレリリース版のパッケージを表示する",
     "settings:show prerelease description": "プレリリース版のパッケージは、正式リリース前の動作確認等に用いられるパッケージです。<br>この設定を有効にすると、パッケージのバージョンリストにプレリリース版のパッケージも表示されるようになります。<br>また、パッケージの依存関係を解決する際に、プレリリース版のパッケージも含まれるようになります。",
 
+    "settings:gui animation": "UIのアニメーションを有効にする",
+    "settings:gui animation description": "ページを移動する際に遷移アニメーションが再生されます。Webviewのバージョンが低い場合は機能しないかもしれません。",
+
     "settings:appearance": "UI設定",
     "settings:language": "言語設定(Language)",
     "settings:theme": "UIのテーマ",
@@ -448,5 +453,6 @@
     "logs:level": "種類",
     "logs:message": "メッセージ内容",
     "logs:manage:select logs level": "フィルタ",
+    "logs:manage:auto scroll": "自動スクロール",
   },
 }
