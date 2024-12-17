@@ -114,6 +114,7 @@ export function GuiAnimationSwitch({ refetch }: { refetch?: () => void }) {
 		await commands.environmentSetGuiAnimation(value === true);
 		setGuiAnimation(value === true);
 		refetch?.();
+		document.dispatchEvent(new CustomEvent("gui-animation", { detail: value }));
 	};
 
 	return (

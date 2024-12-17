@@ -1,6 +1,13 @@
 import globalInfo from "@/lib/global-info";
 import { type DependencyList, useCallback, useEffect } from "react";
 
+//declare interface DocumentEventMap {}
+declare global {
+	interface DocumentEventMap {
+		"gui-animation": CustomEvent<boolean>;
+	}
+}
+
 export function useDocumentEvent<EventName extends keyof DocumentEventMap>(
 	eventName: EventName,
 	listener: (event: DocumentEventMap[EventName]) => void,

@@ -2,6 +2,8 @@
 
 import { SideBar } from "@/components/SideBar";
 import { commands } from "@/lib/bindings";
+import { useDocumentEvent } from "@/lib/events";
+import { useEffectEvent } from "@/lib/use-effect-event";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -16,8 +18,15 @@ export default function MainLayout({
 	const [guiAnimation, setGuiAnimation] = useState(false);
 	const pathName = usePathname();
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies(previousPathName.startsWith): We only want to call useEffect when pathName is changed
-	useEffect(() => {
+	useDocumentEvent(
+		"gui-animation",
+		(event) => {
+			setGuiAnimation(event.detail);
+		},
+		[],
+	);
+
+	const onPathChange = useEffectEvent((pathName: string) => {
 		setPreviousPathName(pathName);
 
 		(async () => {
@@ -45,7 +54,11 @@ export default function MainLayout({
 		} else {
 			setAnimationState("fade-in");
 		}
-	}, [pathName, guiAnimation]);
+	});
+
+	useEffect(() => {
+		onPathChange(pathName);
+	}, [pathName, onPathChange]);
 
 	useEffect(() => {
 		setIsVisible(true);
