@@ -1,3 +1,4 @@
+import { ExternalLink } from "@/components/ExternalLink";
 import globalInfo from "@/lib/global-info";
 import deJson from "@/locales/de.json5";
 import enJson from "@/locales/en.json5";
@@ -45,9 +46,14 @@ function VGTrans(props: TransProps<string>) {
 		throw new BailoutToCSRError("VGTrans");
 	}
 
+	const components = {
+		...props.components,
+		ExternalLink: React.createElement(ExternalLink),
+	};
+
 	const { t } = useTranslation();
 
-	return React.createElement(Trans, { ...props, t });
+	return React.createElement(Trans, { ...props, t, components });
 }
 
 export function tc(
