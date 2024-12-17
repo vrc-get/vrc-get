@@ -66,7 +66,7 @@ export function SideBar({ className }: { className?: string }) {
 				{isDev && <DevRestartSetupButton />}
 				{isDev && (
 					<SideBarItem
-						href={"/settings/palette"}
+						href={"/dev/palette"}
 						text={"UI Palette (dev only)"}
 						icon={SwatchBook}
 					/>
