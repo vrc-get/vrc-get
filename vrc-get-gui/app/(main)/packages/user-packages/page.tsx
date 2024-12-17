@@ -86,18 +86,22 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
-				<HeadingPageName pageType={"/packages/user-packages"} />
-				<div className={"flex-grow"} />
-				<Button onClick={addUserPackage}>
-					{tc("user packages:button:add package")}
-				</Button>
+				<div className={"flex items-center ml-1 w-full"}>
+					<HeadingPageName pageType={"/packages/user-packages"} />
+					<div className={"w-max flex-grow"} />
+					<Button onClick={addUserPackage}>
+						{tc("user packages:button:add package")}
+					</Button>
+				</div>
 			</HNavBar>
-			<ScrollableCardTable>
-				<RepositoryTableBody
-					userPackages={result.data || []}
-					removeUserPackage={removeUserPackage}
-				/>
-			</ScrollableCardTable>
+			<main className="flex-shrink overflow-hidden flex w-full h-full">
+				<ScrollableCardTable className={"h-full w-full"}>
+					<RepositoryTableBody
+						userPackages={result.data || []}
+						removeUserPackage={removeUserPackage}
+					/>
+				</ScrollableCardTable>
+			</main>
 			{dialog}
 		</VStack>
 	);

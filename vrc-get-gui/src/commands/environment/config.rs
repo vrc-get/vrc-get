@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::commands::prelude::*;
+use crate::logging::LogLevel;
 
 #[tauri::command]
 #[specta::specta]
@@ -146,6 +147,46 @@ pub async fn environment_clear_setup_process(
 ) -> Result<(), RustError> {
     let mut config = config.load_mut().await?;
     config.setup_process_progress = 0;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_logs_level(
+    config: State<'_, GuiConfigState>,
+) -> Result<Vec<LogLevel>, RustError> {
+    Ok(config.get().logs_level.clone())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_logs_level(
+    config: State<'_, GuiConfigState>,
+    logs_level: Vec<LogLevel>,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.logs_level = logs_level;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_gui_animation(
+    config: State<'_, GuiConfigState>,
+) -> Result<bool, RustError> {
+    Ok(config.get().gui_animation)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_gui_animation(
+    config: State<'_, GuiConfigState>,
+    gui_animation: bool,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.gui_animation = gui_animation;
     config.save().await?;
     Ok(())
 }

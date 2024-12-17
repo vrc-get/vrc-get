@@ -224,46 +224,13 @@ function PageBody() {
 					className={"flex-shrink-0"}
 					projectName={projectName}
 					projectPath={projectPath}
-					unityVersion={detailsResult.data?.unity_str ?? null}
-					unityRevision={detailsResult.data?.unity_revision ?? null}
-					onRemove={onRemoveProject}
-					onBackup={onBackupProject}
+					isLoading={isLoading}
+					detailsResult={detailsResult}
+					unityVersionsResult={unityVersionsResult}
+					requestChangeUnityVersion={requestChangeUnityVersion}
+					onRemoveProject={onRemoveProject}
+					onBackupProject={onBackupProject}
 				/>
-				<Card
-					className={"flex-shrink-0 p-2 flex flex-row flex-wrap items-center"}
-				>
-					<p className="cursor-pointer py-1.5 font-bold flex-grow flex-shrink overflow-hidden basis-52">
-						{tc(
-							"projects:manage:project location",
-							{ path: projectPath },
-							{
-								components: {
-									path: (
-										<span
-											className={
-												"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"
-											}
-										/>
-									),
-								},
-							},
-						)}
-					</p>
-					<div className={"flex-grow-0 flex-shrink-0 w-2"} />
-					<div className="flex-grow-0 flex-shrink-0 flex flex-row items-center">
-						<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink-0">
-							{tc("projects:manage:unity version")}
-						</p>
-						<div className={"flex-grow-0 flex-shrink-0"}>
-							<UnityVersionSelector
-								disabled={isLoading}
-								detailsResult={detailsResult}
-								unityVersions={unityVersionsResult.data}
-								requestChangeUnityVersion={requestChangeUnityVersion}
-							/>
-						</div>
-					</div>
-				</Card>
 				{detailsResult?.data?.should_resolve && (
 					<SuggestResolveProjectCard
 						disabled={isLoading}
@@ -276,7 +243,7 @@ function PageBody() {
 					unityVersionsResult={unityVersionsResult.data}
 					requestChangeUnityVersion={requestChangeUnityVersion}
 				/>
-				<main className="flex-shrink overflow-hidden flex w-full">
+				<main className="flex-shrink overflow-hidden flex w-full h-full">
 					<PackageListCard
 						projectPath={projectPath}
 						createChanges={packageChangeDialog.createChanges}
@@ -501,7 +468,7 @@ function SuggestMigrateTo2022Card({
 }) {
 	return (
 		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity migration")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"} />
@@ -525,7 +492,7 @@ function Suggest2022PatchMigrationCard({
 }) {
 	return (
 		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity patch migration")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"} />
@@ -549,7 +516,7 @@ function SuggestChinaToInternationalMigrationCard({
 }) {
 	return (
 		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity china to international migration")}
 			</p>
 			<div className={"flex-grow flex-shrink-0 w-2"} />
@@ -568,49 +535,31 @@ function ProjectViewHeader({
 	className,
 	projectName,
 	projectPath,
-	unityVersion,
-	unityRevision,
-	onRemove,
-	onBackup,
+	isLoading,
+	detailsResult,
+	unityVersionsResult,
+	requestChangeUnityVersion,
+	onRemoveProject,
+	onBackupProject,
 }: {
 	className?: string;
 	projectName: string;
 	projectPath: string;
-	unityVersion: string | null;
-	unityRevision: string | null;
-	onRemove?: () => void;
-	onBackup?: () => void;
+	isLoading: boolean | undefined;
+	detailsResult: UseQueryResult<TauriProjectDetails, Error>;
+	unityVersionsResult: UseQueryResult<TauriUnityVersions, Error>;
+	requestChangeUnityVersion: (
+		version: string,
+		mayUseChinaVariant?: boolean,
+	) => void;
+	onRemoveProject: () => void;
+	onBackupProject: () => void;
 }) {
-	const openUnity = useOpenUnity();
-	const [openLaunchOptions, setOpenLaunchOptions] = useState<
-		| false
-		| {
-				initialArgs: null | string[];
-				defaultArgs: string[];
-		  }
-	>(false);
-
-	const onChangeLaunchOptions = async () => {
-		const initialArgs = await commands.projectGetCustomUnityArgs(projectPath);
-		const defaultArgs = await commands.environmentGetDefaultUnityArguments();
-		setOpenLaunchOptions({
-			initialArgs,
-			defaultArgs,
-		});
-	};
-	const closeChangeLaunchOptions = () => {
-		setOpenLaunchOptions(false);
-	};
-
 	return (
 		<HNavBar className={className}>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<Button
-						variant={"ghost"}
-						size={"icon"}
-						onClick={() => history.back()}
-					>
+					<Button variant={"ghost"} size={"sm"} onClick={() => history.back()}>
 						<ArrowLeft className={"w-5 h-5"} />
 					</Button>
 				</TooltipTrigger>
@@ -619,48 +568,52 @@ function ProjectViewHeader({
 				</TooltipContent>
 			</Tooltip>
 
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 whitespace-pre">
-				{projectName}
-			</p>
+			<div className={"pl-2 space-y-0"}>
+				<p className="cursor-pointer font-bold flex-grow-0 whitespace-pre mb-0 leading-tight">
+					{projectName}
+				</p>
+				<p className="cursor-pointer text-sm leading-tight mt-0">
+					{tc(
+						"projects:manage:project location",
+						{ path: projectPath },
+						{
+							components: {
+								path: (
+									<span
+										className={
+											"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"
+										}
+									/>
+								),
+							},
+						},
+					)}
+				</p>
+			</div>
 
-			<div className="relative flex gap-2 w-max flex-grow" />
-
-			<DropdownMenu>
-				<div className={"flex divide-x"}>
-					<Button
-						onClick={() =>
-							openUnity.openUnity(projectPath, unityVersion, unityRevision)
-						}
-						className={"rounded-r-none pl-4 pr-3"}
-					>
-						{tc("projects:button:open unity")}
-					</Button>
-					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
-						<Button>
-							<ChevronDown className={"w-4 h-4"} />
-						</Button>
-					</DropdownMenuTrigger>
+			<div className={"w-max flex-grow"} />
+			<div className="flex items-center">
+				<p className="cursor-pointer py-1.5 font-bold">
+					{tc("projects:manage:unity version")}
+				</p>
+				<div className={"flex"}>
+					<UnityVersionSelector
+						disabled={isLoading}
+						detailsResult={detailsResult}
+						unityVersions={unityVersionsResult.data}
+						requestChangeUnityVersion={requestChangeUnityVersion}
+					/>
 				</div>
-				<DropdownMenuContent>
-					<DropdownMenuContentBody
-						projectPath={projectPath}
-						onRemove={onRemove}
-						onBackup={onBackup}
-						onChangeLaunchOptions={onChangeLaunchOptions}
-					/>
-				</DropdownMenuContent>
-			</DropdownMenu>
-			{openUnity.dialog}
-			{openLaunchOptions !== false && (
-				<DialogOpen>
-					<LaunchSettings
-						projectPath={projectPath}
-						initialValue={openLaunchOptions.initialArgs}
-						defaultUnityArgs={openLaunchOptions.defaultArgs}
-						close={closeChangeLaunchOptions}
-					/>
-				</DialogOpen>
-			)}
+			</div>
+			<div className={"flex-grow-0 flex-shrink-0 w-max"}>
+				<ProjectButton
+					projectPath={projectPath}
+					unityVersion={detailsResult.data?.unity_str ?? null}
+					unityRevision={detailsResult.data?.unity_revision ?? null}
+					onRemove={onRemoveProject}
+					onBackup={onBackupProject}
+				/>
+			</div>
 		</HNavBar>
 	);
 }
@@ -757,6 +710,82 @@ function DropdownMenuContentBody({
 			>
 				{tc("projects:remove project")}
 			</DropdownMenuItem>
+		</>
+	);
+}
+
+function ProjectButton({
+	projectPath,
+	unityVersion,
+	unityRevision,
+	onRemove,
+	onBackup,
+}: {
+	projectPath: string;
+	unityVersion: string | null;
+	unityRevision: string | null;
+	onRemove?: () => void;
+	onBackup?: () => void;
+}) {
+	const openUnity = useOpenUnity();
+	const [openLaunchOptions, setOpenLaunchOptions] = useState<
+		| false
+		| {
+				initialArgs: null | string[];
+				defaultArgs: string[];
+		  }
+	>(false);
+
+	const onChangeLaunchOptions = async () => {
+		const initialArgs = await commands.projectGetCustomUnityArgs(projectPath);
+		const defaultArgs = await commands.environmentGetDefaultUnityArguments();
+		setOpenLaunchOptions({
+			initialArgs,
+			defaultArgs,
+		});
+	};
+	const closeChangeLaunchOptions = () => {
+		setOpenLaunchOptions(false);
+	};
+
+	return (
+		<>
+			<DropdownMenu>
+				<div className={"flex divide-x"}>
+					<Button
+						onClick={() =>
+							openUnity.openUnity(projectPath, unityVersion, unityRevision)
+						}
+						className={"rounded-r-none pl-4 pr-3"}
+					>
+						{tc("projects:button:open unity")}
+					</Button>
+					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
+						<Button>
+							<ChevronDown className={"w-4 h-4"} />
+						</Button>
+					</DropdownMenuTrigger>
+				</div>
+				<DropdownMenuContent>
+					<DropdownMenuContentBody
+						projectPath={projectPath}
+						onRemove={onRemove}
+						onBackup={onBackup}
+						onChangeLaunchOptions={onChangeLaunchOptions}
+					/>
+				</DropdownMenuContent>
+			</DropdownMenu>
+			{openUnity.dialog}
+			{openLaunchOptions !== false && (
+				<DialogOpen>
+					<LaunchSettings
+						projectPath={projectPath}
+						initialValue={openLaunchOptions.initialArgs}
+						defaultUnityArgs={openLaunchOptions.defaultArgs}
+						close={closeChangeLaunchOptions}
+					/>
+				</DialogOpen>
+			)}
 		</>
 	);
 }

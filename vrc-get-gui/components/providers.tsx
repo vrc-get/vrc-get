@@ -1,5 +1,6 @@
 "use client";
 
+import Loading from "@/app/loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { CheckForUpdateResponse, LogEntry } from "@/lib/bindings";
@@ -119,7 +120,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 						/>
 					)}
 					<div lang={i18n.language} className="contents">
-						<Suspense fallback={"Loading..."}>{children}</Suspense>
+						<Suspense fallback={<Loading />}>{children}</Suspense>
 					</div>
 				</TooltipProvider>
 			</QueryClientProvider>

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -96,6 +97,38 @@ export function ThemeSelector() {
 				</SelectContent>
 			</Select>
 		</label>
+	);
+}
+
+export function GuiAnimationSwitch({ refetch }: { refetch?: () => void }) {
+	const [guiAnimation, setGuiAnimation] = React.useState<boolean>();
+
+	React.useEffect(() => {
+		(async () => {
+			const guiAnimation = await commands.environmentGuiAnimation();
+			setGuiAnimation(guiAnimation);
+		})();
+	}, []);
+
+	const changeGuiAnimation = async (value: "indeterminate" | boolean) => {
+		await commands.environmentSetGuiAnimation(value === true);
+		setGuiAnimation(value === true);
+		refetch?.();
+	};
+
+	return (
+		<div>
+			<label className={"flex items-center gap-2"}>
+				<Checkbox
+					checked={guiAnimation}
+					onCheckedChange={(e) => changeGuiAnimation(e)}
+				/>
+				{tc("settings:gui animation")}
+			</label>
+			<p className={"text-sm whitespace-normal"}>
+				{tc("settings:gui animation description")}
+			</p>
+		</div>
 	);
 }
 
