@@ -20,6 +20,10 @@ ALCOM runs on macOS, Windows, and Linux.
 We support modern versions of the platforms.
 Basically, we support the versions that the platform vendor supports.
 
+This support policy is to describe how my limited development resources use so it's welcome
+to pull requests that ports ALCOM to an older version of OSes.
+However, I won't maintain the backports so may break at any moment, I'll try to not break as possible though.
+
 Here are detailed version support policies for each platform:
 Version numbers shown here are as of the writing (Dec 2024), so might be outdated.
 
