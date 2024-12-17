@@ -40,10 +40,6 @@ export default function MainLayout({
 			!previousPathName.startsWith("/packages/")
 		) {
 			setAnimationState("fade-in");
-		} else if (pathName === "/packages/repositories") {
-			setAnimationState("slide-right");
-		} else if (pathName === "/packages/user-packages") {
-			setAnimationState("slide-left");
 		} else if (
 			pathName.startsWith("/projects") &&
 			!previousPathName.startsWith("/projects")
