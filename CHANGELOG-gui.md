@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog].
 - Removed `-debugCodeOptimization` from default unity arguments `#1742`
 - Projects that failes to resolve will also be added to Project List now `#1748`
   - Previsously project dir is created but not added to list
+- Dialog is shown when some installing packages are not found `#1749`
+  - The new dialog also suggest you to google & add repository for the package
+  - Previously the first package we could not found are shown on the error toast but now collect and show missing packages as many as possible
 
 ### Deprecated
 

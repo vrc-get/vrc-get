@@ -1,3 +1,4 @@
+import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -14,9 +15,11 @@ import type {
 	TauriRemoveReason,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { isHandleable } from "@/lib/errors";
 import { tc, tt } from "@/lib/i18n";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareVersion, toVersionString } from "@/lib/version";
+import { CircleAlert } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { PackageRowInfo } from "./collect-package-row-info";
@@ -58,6 +61,10 @@ type InstallStatus =
 	  }
 	| {
 			status: "creatingChanges";
+	  }
+	| {
+			status: "missing-dependencies";
+			dependencies: string[];
 	  }
 	| {
 			status: "promptingChanges";
@@ -106,9 +113,16 @@ export function usePackageChangeDialog({
 					requested: operation,
 				});
 			} catch (e) {
-				console.error(e);
-				toastThrownError(e);
-				setInstallStatus({ status: "normal" });
+				if (isHandleable(e) && e.body.type === "MissingDependencies") {
+					setInstallStatus({
+						status: "missing-dependencies",
+						dependencies: e.body.dependencies,
+					});
+				} else {
+					console.error(e);
+					toastThrownError(e);
+					setInstallStatus({ status: "normal" });
+				}
 			}
 		},
 		[],
@@ -228,6 +242,15 @@ export function usePackageChangeDialog({
 			);
 			break;
 		}
+		case "missing-dependencies": {
+			dialogForState = (
+				<MissingDependenciesDialog
+					dependencies={installStatus.dependencies}
+					onClose={() => setInstallStatus({ status: "normal" })}
+				/>
+			);
+			break;
+		}
 	}
 
 	return {
@@ -328,7 +351,9 @@ function ProjectChangesDialog({
 						size={"sm"}
 						onClick={() => commands.utilOpenUrl(url)}
 					>
-						{tc("projects:manage:button:see changelog")}
+						<ExternalLink>
+							{tc("projects:manage:button:see changelog")}
+						</ExternalLink>
 					</Button>
 				);
 			}
@@ -503,4 +528,31 @@ function comparePackageChangeByName(
 	[bName, _2]: [string, TauriPackageChange],
 ): number {
 	return aName.localeCompare(bName);
+}
+
+function MissingDependenciesDialog({
+	dependencies,
+	onClose,
+}: { dependencies: string[]; onClose: () => void }) {
+	return (
+		<DialogOpen>
+			<DialogTitle className={"text-destructive"}>
+				<CircleAlert className="size-6 inline" />{" "}
+				{tc("projects:manage:dialog:missing dependencies")}
+			</DialogTitle>
+			<DialogDescription>
+				<p className={"whitespace-normal"}>
+					{tc("projects:manage:dialog:missing dependencies description")}
+				</p>
+				<ul className={"list-disc ml-4"}>
+					{dependencies.map((dep) => (
+						<li key={dep}>{dep}</li>
+					))}
+				</ul>
+			</DialogDescription>
+			<DialogFooter>
+				<Button onClick={onClose}>{tc("general:button:close")}</Button>
+			</DialogFooter>
+		</DialogOpen>
+	);
 }

@@ -40,6 +40,7 @@ export function toastThrownError(error: unknown) {
 			if (error instanceof Error) {
 				toastError(error.message);
 			} else if ("message" in error && typeof error.message === "string") {
+				// some non-Error errors like Handleable errors from rust
 				toastError(error.message);
 			} else {
 				toastError(JSON.stringify(error));

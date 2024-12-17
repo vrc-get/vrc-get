@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::io::ProjectIo;
+use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::{pending_project_changes, PendingProjectChanges};
 use crate::{PackageCollection, UnityProject, VersionSelector};
 
@@ -8,7 +9,7 @@ use crate::{PackageCollection, UnityProject, VersionSelector};
 #[non_exhaustive]
 pub enum ReinstalPackagesError {
     NotInstalled { package_name: Box<str> },
-    DependencyNotFound { dependency_name: Box<str> },
+    DependenciesNotFound { dependencies: Vec<Box<str>> },
 }
 
 impl fmt::Display for ReinstalPackagesError {
@@ -17,10 +18,18 @@ impl fmt::Display for ReinstalPackagesError {
             ReinstalPackagesError::NotInstalled { package_name } => {
                 write!(f, "Package {} is not installed", package_name)
             }
-            ReinstalPackagesError::DependencyNotFound { dependency_name } => write!(
-                f,
-                "Package {dependency_name} (maybe dependencies of the package) not found"
-            ),
+            ReinstalPackagesError::DependenciesNotFound { dependencies } => {
+                write!(f, "Following dependencies are not found: ")?;
+                let mut first = true;
+                for dep in dependencies {
+                    if !first {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", dep)?;
+                    first = false;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -34,6 +43,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         packages: &[&str],
     ) -> Result<PendingProjectChanges<'env>, ReinstalPackagesError> {
         let mut changes = pending_project_changes::Builder::new();
+        let mut missing_dependencies = MissingDependencies::new();
 
         for &package in packages {
             let Some(locked) = self.manifest.get_locked(package) else {
@@ -42,16 +52,20 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 });
             };
 
-            let Some(pkg) = env.find_package_by_name(
+            if let Some(pkg) = env.find_package_by_name(
                 locked.name(),
                 VersionSelector::specific_version(locked.version()),
-            ) else {
-                return Err(ReinstalPackagesError::DependencyNotFound {
-                    dependency_name: locked.name().into(),
-                });
+            ) {
+                changes.install_already_locked(pkg);
+            } else {
+                missing_dependencies.add(locked.name());
             };
+        }
 
-            changes.install_already_locked(pkg);
+        if !missing_dependencies.is_empty() {
+            return Err(ReinstalPackagesError::DependenciesNotFound {
+                dependencies: missing_dependencies.into_vec(),
+            });
         }
 
         Ok(changes.build_resolve(self).await)

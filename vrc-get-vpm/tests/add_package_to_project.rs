@@ -885,8 +885,9 @@ fn not_found_err() {
             .expect_err("should fail");
 
         match &err {
-            AddPackageErr::DependencyNotFound { dependency_name } => {
-                assert_eq!(dependency_name.as_ref(), "com.vrchat.base");
+            AddPackageErr::DependenciesNotFound { dependencies } => {
+                assert_eq!(dependencies.len(), 1);
+                assert_eq!(dependencies[0].as_ref(), "com.vrchat.base");
             }
             _ => panic!("unexpected error: {:?}", err),
         }
