@@ -172,7 +172,7 @@
     "projects:toast:project removed": "项目删除成功。",
 
   // Manage Projects
-    "projects:manage:tooltip:back to projects": "返回项目",
+    "projects:manage:tooltip:back to projects": "返回项目列表",
     "projects:menuitem:change launch options": "更改启动选项",
     "projects:menuitem:backup": "生成备份",
     "projects:menuitem:forget unity path": "清除 Unity 版本设置",
@@ -277,6 +277,9 @@
     "projects:manage:button:see changelog": "查看更新日志",
     "projects:manage:button:apply changes": "应用更改",
     "projects:manage:button:apply": "应用",
+
+    "projects:manage:dialog:missing dependencies": "软件包依赖缺失。",
+    "projects:manage:dialog:missing dependencies description": "需要安装以下软件包，但我们无法在已添加的软件包存储库里找到它们。<br/>请添加包含这些软件包的软件包存储库。<br/>你可以前往 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 来找到相应的软件包存储库。",
 
 
 // Packages Page
