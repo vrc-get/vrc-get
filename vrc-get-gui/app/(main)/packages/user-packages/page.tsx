@@ -20,6 +20,7 @@ import {
 import type { TauriUserPackage } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
+import { usePrevPathName } from "@/lib/prev-page";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { toVersionString } from "@/lib/version";
@@ -83,6 +84,10 @@ function PageBody() {
 		[result],
 	);
 
+	const bodyAnimation = usePrevPathName().startsWith("/packages")
+		? "slide-left"
+		: "";
+
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
@@ -94,7 +99,9 @@ function PageBody() {
 					</Button>
 				</div>
 			</HNavBar>
-			<main className="flex-shrink overflow-hidden flex w-full h-full">
+			<main
+				className={`flex-shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
+			>
 				<ScrollableCardTable className={"h-full w-full"}>
 					<RepositoryTableBody
 						userPackages={result.data || []}
