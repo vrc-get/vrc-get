@@ -3,6 +3,7 @@
 import { SideBar } from "@/components/SideBar";
 import { commands } from "@/lib/bindings";
 import { useDocumentEvent } from "@/lib/events";
+import { updateCurrentPath, usePrevPathName } from "@/lib/prev-page";
 import { useEffectEvent } from "@/lib/use-effect-event";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,9 +14,9 @@ export default function MainLayout({
 	children: React.ReactNode;
 }>) {
 	const [animationState, setAnimationState] = useState("");
-	const [previousPathName, setPreviousPathName] = useState("");
 	const [isVisible, setIsVisible] = useState(false);
 	const [guiAnimation, setGuiAnimation] = useState(false);
+	const previousPathName = usePrevPathName();
 	const pathName = usePathname();
 
 	useDocumentEvent(
@@ -27,7 +28,7 @@ export default function MainLayout({
 	);
 
 	const onPathChange = useEffectEvent((pathName: string) => {
-		setPreviousPathName(pathName);
+		updateCurrentPath(pathName);
 
 		(async () => {
 			setGuiAnimation(await commands.environmentGuiAnimation());
@@ -35,24 +36,19 @@ export default function MainLayout({
 
 		if (!guiAnimation) return;
 
-		if (
-			pathName.startsWith("/packages") &&
-			!previousPathName.startsWith("/packages/")
-		) {
+		if (pathName === previousPathName) return;
+		const pageCategory = pathName.split("/")[1];
+		const previousPageCategory = previousPathName.split("/")[1];
+		if (pageCategory !== previousPageCategory) {
+			// category change is always fade-in
 			setAnimationState("fade-in");
-		} else if (pathName === "/packages/repositories") {
-			setAnimationState("slide-right");
-		} else if (pathName === "/packages/user-packages") {
-			setAnimationState("slide-left");
-		} else if (
-			pathName.startsWith("/projects") &&
-			!previousPathName.startsWith("/projects")
-		) {
-			setAnimationState("fade-in");
-		} else if (pathName.startsWith("/projects/")) {
-			setAnimationState("slide-left");
 		} else {
-			setAnimationState("fade-in");
+			// go deeper is slide-left, go back is slide-right, and no animation if not child-parent relation
+			if (pathName.startsWith(previousPathName)) {
+				setAnimationState("slide-left");
+			} else if (previousPathName.startsWith(pathName)) {
+				setAnimationState("slide-right");
+			}
 		}
 	});
 
