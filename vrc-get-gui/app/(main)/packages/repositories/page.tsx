@@ -24,6 +24,7 @@ import {
 import type { TauriUserRepository } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
+import { usePrevPathName } from "@/lib/prev-page";
 import { toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useTauriListen } from "@/lib/use-tauri-listen";
@@ -130,6 +131,10 @@ function PageBody() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	const bodyAnimation = usePrevPathName().startsWith("/packages")
+		? "slide-right"
+		: "";
+
 	return (
 		<VStack>
 			<HNavBar className={"flex-shrink-0"}>
@@ -166,7 +171,9 @@ function PageBody() {
 					</DropdownMenu>
 				</div>
 			</HNavBar>
-			<main className="flex-shrink overflow-hidden flex w-full h-full">
+			<main
+				className={`flex-shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
+			>
 				<ScrollableCardTable className={"h-full w-full"}>
 					<RepositoryTableBody
 						userRepos={result.data?.user_repositories || []}
