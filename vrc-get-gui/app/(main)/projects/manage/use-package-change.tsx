@@ -544,7 +544,7 @@ function MissingDependenciesDialog({
 				<p className={"whitespace-normal"}>
 					{tc("projects:manage:dialog:missing dependencies description")}
 				</p>
-				<ul className={"list-disc ml-4"}>
+				<ul className={"list-disc ml-4 mt-2"}>
 					{dependencies.map((dep) => (
 						<li key={dep}>{dep}</li>
 					))}
