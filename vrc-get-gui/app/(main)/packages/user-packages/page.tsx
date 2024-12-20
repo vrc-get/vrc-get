@@ -90,15 +90,15 @@ function PageBody() {
 
 	return (
 		<VStack>
-			<HNavBar className={"flex-shrink-0"}>
-				<div className={"flex items-center ml-1 w-full"}>
-					<HeadingPageName pageType={"/packages/user-packages"} />
-					<div className={"w-max flex-grow"} />
+			<HNavBar
+				className={"flex-shrink-0"}
+				leading={<HeadingPageName pageType={"/packages/user-packages"} />}
+				trailing={
 					<Button onClick={addUserPackage}>
 						{tc("user packages:button:add package")}
 					</Button>
-				</div>
-			</HNavBar>
+				}
+			/>
 			<main
 				className={`flex-shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
 			>

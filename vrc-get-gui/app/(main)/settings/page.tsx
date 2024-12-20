@@ -83,11 +83,14 @@ export default function Page() {
 
 	return (
 		<VStack>
-			<HNavBar className={"flex-shrink-0"}>
-				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					{tc("settings")}
-				</p>
-			</HNavBar>
+			<HNavBar
+				className={"flex-shrink-0"}
+				leading={
+					<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
+						{tc("settings")}
+					</p>
+				}
+			/>
 			{body}
 		</VStack>
 	);

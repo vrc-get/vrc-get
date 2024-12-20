@@ -556,65 +556,77 @@ function ProjectViewHeader({
 	onBackupProject: () => void;
 }) {
 	return (
-		<HNavBar className={className}>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button variant={"ghost"} size={"sm"} onClick={() => history.back()}>
-						<ArrowLeft className={"w-5 h-5"} />
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent>
-					{tc("projects:manage:tooltip:back to projects")}
-				</TooltipContent>
-			</Tooltip>
+		<HNavBar
+			className={`${className}`}
+			commonClassName={"min-h-12"}
+			leading={
+				<>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant={"ghost"}
+								size={"sm"}
+								onClick={() => history.back()}
+							>
+								<ArrowLeft className={"w-5 h-5"} />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							{tc("projects:manage:tooltip:back to projects")}
+						</TooltipContent>
+					</Tooltip>
 
-			<div className={"pl-2 space-y-0"}>
-				<p className="cursor-pointer font-bold flex-grow-0 whitespace-pre mb-0 leading-tight">
-					{projectName}
-				</p>
-				<p className="cursor-pointer text-sm leading-tight mt-0">
-					{tc(
-						"projects:manage:project location",
-						{ path: projectPath },
-						{
-							components: {
-								path: (
-									<span
-										className={
-											"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"
-										}
-									/>
-								),
-							},
-						},
-					)}
-				</p>
-			</div>
-
-			<div className={"w-max flex-grow"} />
-			<div className="flex items-center">
-				<p className="cursor-pointer py-1.5 font-bold">
-					{tc("projects:manage:unity version")}
-				</p>
-				<div className={"flex"}>
-					<UnityVersionSelector
-						disabled={isLoading}
-						detailsResult={detailsResult}
-						unityVersions={unityVersionsResult.data}
-						requestChangeUnityVersion={requestChangeUnityVersion}
-					/>
-				</div>
-			</div>
-			<div className={"flex-grow-0 flex-shrink-0 w-max"}>
-				<ProjectButton
-					projectPath={projectPath}
-					unityVersion={detailsResult.data?.unity_str ?? null}
-					unityRevision={detailsResult.data?.unity_revision ?? null}
-					onRemove={onRemoveProject}
-					onBackup={onBackupProject}
-				/>
-			</div>
-		</HNavBar>
+					<div className={"pl-2 space-y-0 my-1"}>
+						<p className="cursor-pointer font-bold flex-grow-0 whitespace-pre mb-0 leading-tight">
+							{projectName}
+						</p>
+						<p className="cursor-pointer text-sm leading-tight mt-0">
+							{tc(
+								"projects:manage:project location",
+								{ path: projectPath },
+								{
+									components: {
+										path: (
+											<span
+												className={
+													"p-0.5 font-path whitespace-pre bg-secondary text-secondary-foreground"
+												}
+											/>
+										),
+									},
+								},
+							)}
+						</p>
+					</div>
+				</>
+			}
+			trailing={
+				<>
+					<div className="flex items-center">
+						<p className="cursor-pointer py-1.5 font-bold">
+							{tc("projects:manage:unity version")}
+						</p>
+						<div className={"flex"}>
+							<UnityVersionSelector
+								disabled={isLoading}
+								detailsResult={detailsResult}
+								unityVersions={unityVersionsResult.data}
+								requestChangeUnityVersion={requestChangeUnityVersion}
+							/>
+						</div>
+					</div>
+					<div className={"flex-grow-0 flex-shrink-0 w-max"}>
+						<ProjectButton
+							projectPath={projectPath}
+							unityVersion={detailsResult.data?.unity_str ?? null}
+							unityRevision={detailsResult.data?.unity_revision ?? null}
+							onRemove={onRemoveProject}
+							onBackup={onBackupProject}
+						/>
+					</div>
+				</>
+			}
+		/>
 	);
 }
 
