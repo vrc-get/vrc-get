@@ -113,7 +113,6 @@ function ManageLogsHeading({
 	return (
 		<HNavBar
 			className={"flex-shrink-0"}
-			growLeading
 			leading={
 				<>
 					<p className="cursor-pointer py-1.5 font-bold flex-grow-0">

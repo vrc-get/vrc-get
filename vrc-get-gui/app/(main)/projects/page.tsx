@@ -126,7 +126,6 @@ function ProjectViewHeader({
 	return (
 		<HNavBar
 			className={"flex-shrink-0"}
-			growLeading
 			leading={
 				<>
 					<p className="cursor-pointer font-bold flex-grow-0 whitespace-pre mb-0 leading-tight">
