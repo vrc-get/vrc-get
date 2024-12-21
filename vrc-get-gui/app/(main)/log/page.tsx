@@ -63,16 +63,14 @@ export default function Page() {
 
 	return (
 		<VStack>
-			<HNavBar className={"flex-shrink-0"}>
-				<ManageLogsHeading
-					search={search}
-					setSearch={setSearch}
-					shouldShowLogLevel={shouldShowLogLevel}
-					handleLogLevelChange={handleLogLevelChange}
-					handleLogAutoScrollChange={handleLogAutoScrollChange}
-					autoScroll={autoScroll}
-				/>
-			</HNavBar>
+			<ManageLogsHeading
+				search={search}
+				setSearch={setSearch}
+				shouldShowLogLevel={shouldShowLogLevel}
+				handleLogLevelChange={handleLogLevelChange}
+				handleLogAutoScrollChange={handleLogAutoScrollChange}
+				autoScroll={autoScroll}
+			/>
 			<main className="flex-shrink overflow-hidden flex w-full h-full">
 				<LogsListCard
 					logEntry={logEntries}
@@ -113,89 +111,93 @@ function ManageLogsHeading({
 	);
 
 	return (
-		<div
-			className={
-				"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center w-full"
+		<HNavBar
+			className={"flex-shrink-0"}
+			leading={
+				<>
+					<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
+						{tc("logs")}
+					</p>
+
+					<SearchBox
+						className={"w-max flex-grow"}
+						value={search}
+						onChange={(e) => setSearch(e.target.value)}
+						ref={searchRef}
+					/>
+				</>
 			}
-		>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-				{tc("logs")}
-			</p>
-
-			<SearchBox
-				className={"w-max flex-grow"}
-				value={search}
-				onChange={(e) => setSearch(e.target.value)}
-				ref={searchRef}
-			/>
-
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button className={"flex-shrink-0 p-3"}>
-						{tc("logs:manage:select logs level")}
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent>
-					<LogLevelMenuItem
-						logLevel="Info"
-						shouldShowLogLevel={shouldShowLogLevel}
-						handleLogLevelChange={handleLogLevelChange}
-					/>
-					<LogLevelMenuItem
-						logLevel="Warn"
-						className="text-warning"
-						shouldShowLogLevel={shouldShowLogLevel}
-						handleLogLevelChange={handleLogLevelChange}
-					/>
-					<LogLevelMenuItem
-						logLevel="Error"
-						className="text-destructive"
-						shouldShowLogLevel={shouldShowLogLevel}
-						handleLogLevelChange={handleLogLevelChange}
-					/>
-					<LogLevelMenuItem
-						logLevel="Debug"
-						className="text-info"
-						shouldShowLogLevel={shouldShowLogLevel}
-						handleLogLevelChange={handleLogLevelChange}
-					/>
-					{/* Currently no trace level logs will be passed to frontend */}
-					{/*<LogLevelMenuItem
+			trailing={
+				<>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button className={"flex-shrink-0 p-3"}>
+								{tc("logs:manage:select logs level")}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent>
+							<LogLevelMenuItem
+								logLevel="Info"
+								shouldShowLogLevel={shouldShowLogLevel}
+								handleLogLevelChange={handleLogLevelChange}
+							/>
+							<LogLevelMenuItem
+								logLevel="Warn"
+								className="text-warning"
+								shouldShowLogLevel={shouldShowLogLevel}
+								handleLogLevelChange={handleLogLevelChange}
+							/>
+							<LogLevelMenuItem
+								logLevel="Error"
+								className="text-destructive"
+								shouldShowLogLevel={shouldShowLogLevel}
+								handleLogLevelChange={handleLogLevelChange}
+							/>
+							<LogLevelMenuItem
+								logLevel="Debug"
+								className="text-info"
+								shouldShowLogLevel={shouldShowLogLevel}
+								handleLogLevelChange={handleLogLevelChange}
+							/>
+							{/* Currently no trace level logs will be passed to frontend */}
+							{/*<LogLevelMenuItem
                         logLevel="Trace"
                         shouldShowLogLevel={shouldShowLogLevel}
                         setShouldShowLogLevel={setShouldShowLogLevel}
                     />*/}
-				</DropdownMenuContent>
-			</DropdownMenu>
+						</DropdownMenuContent>
+					</DropdownMenu>
 
-			<Button
-				onClick={() =>
-					commands.utilOpen(
-						`${globalInfo.vpmHomeFolder}/vrc-get/gui-logs`,
-						"ErrorIfNotExists",
-					)
-				}
-			>
-				{tc("settings:button:open logs")}
-			</Button>
-
-			<Tooltip>
-				<TooltipTrigger asChild>
 					<Button
-						variant={"ghost"}
-						onClick={() => handleLogAutoScrollChange(!autoScroll)}
-						className={
-							autoScroll
-								? "bg-secondary border border-primary"
-								: "bg-transparent"
+						onClick={() =>
+							commands.utilOpen(
+								`${globalInfo.vpmHomeFolder}/vrc-get/gui-logs`,
+								"ErrorIfNotExists",
+							)
 						}
 					>
-						<ArrowDownFromLine className={"w-5 h-5"} />
+						{tc("settings:button:open logs")}
 					</Button>
-				</TooltipTrigger>
-				<TooltipContent>{tc("logs:manage:auto scroll")}</TooltipContent>
-			</Tooltip>
-		</div>
+
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant={"ghost"}
+								onClick={() => handleLogAutoScrollChange(!autoScroll)}
+								className={
+									autoScroll
+										? "bg-secondary border border-primary"
+										: "bg-transparent"
+								}
+							>
+								<ArrowDownFromLine className={"w-5 h-5"} />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>{tc("logs:manage:auto scroll")}</TooltipContent>
+					</Tooltip>
+				</>
+			}
+		/>
 	);
 }
 

@@ -137,10 +137,10 @@ function PageBody() {
 
 	return (
 		<VStack>
-			<HNavBar className={"flex-shrink-0"}>
-				<div className={"flex items-center ml-1 w-full"}>
-					<HeadingPageName pageType={"/packages/repositories"} />
-					<div className={"w-max flex-grow"} />
+			<HNavBar
+				className={"flex-shrink-0"}
+				leading={<HeadingPageName pageType={"/packages/repositories"} />}
+				trailing={
 					<DropdownMenu>
 						<div className={"flex divide-x"}>
 							<Button
@@ -169,8 +169,8 @@ function PageBody() {
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
-				</div>
-			</HNavBar>
+				}
+			/>
 			<main
 				className={`flex-shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
 			>

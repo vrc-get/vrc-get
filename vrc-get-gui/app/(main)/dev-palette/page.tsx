@@ -21,11 +21,14 @@ import { toastError, toastInfo, toastNormal, toastSuccess } from "@/lib/toast";
 export default function Page() {
 	return (
 		<VStack>
-			<HNavBar className={"flex-shrink-0"}>
-				<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-					UI Palette (dev only)
-				</p>
-			</HNavBar>
+			<HNavBar
+				className={"flex-shrink-0"}
+				leading={
+					<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
+						UI Palette (dev only)
+					</p>
+				}
+			/>
 			<ScrollPageContainer>
 				<main className="flex flex-col gap-2 flex-shrink flex-grow">
 					<Card className={"flex-shrink-0 p-4"}>

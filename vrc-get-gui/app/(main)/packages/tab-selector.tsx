@@ -9,7 +9,7 @@ export function HeadingPageName({
 	pageType: PageType;
 }) {
 	return (
-		<div className={"-ml-2"}>
+		<div className={"-ml-1.5"}>
 			<div
 				className={"grid grid-cols-2 gap-1.5 bg-secondary p-1 -m-1 rounded-md"}
 			>
