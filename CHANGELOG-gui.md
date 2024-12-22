@@ -10,22 +10,27 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- Several GUI improvements `#1672` `#1771` `#1775` `#1772` `#1779`
-- Removed `-debugCodeOptimization` from default unity arguments `#1742`
-- Projects that failes to resolve will also be added to Project List now `#1748`
-  - Previsously project dir is created but not added to list
-- Dialog is shown when some installing packages are not found `#1749` `#1776`
-  - The new dialog also suggest you to google & add repository for the package
-  - Previously the first package we could not found are shown on the error toast but now collect and show missing packages as many as possible
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Prerelease version is choosen even if good stable version exists `#1745`
 
 ### Security
+
+## [0.1.17] - 2024-12-22
+### Changed
+- Several GUI improvements [`#1672`](https://github.com/vrc-get/vrc-get/pull/1672) [`#1771`](https://github.com/vrc-get/vrc-get/pull/1771) [`#1775`](https://github.com/vrc-get/vrc-get/pull/1775) [`#1772`](https://github.com/vrc-get/vrc-get/pull/1772) [`#1779`](https://github.com/vrc-get/vrc-get/pull/1779)
+- Removed `-debugCodeOptimization` from default unity arguments [`#1742`](https://github.com/vrc-get/vrc-get/pull/1742)
+- Projects that failes to resolve will also be added to Project List now [`#1748`](https://github.com/vrc-get/vrc-get/pull/1748)
+  - Previsously project dir is created but not added to list
+- Dialog is shown when some installing packages are not found [`#1749`](https://github.com/vrc-get/vrc-get/pull/1749) [`#1776`](https://github.com/vrc-get/vrc-get/pull/1776)
+  - The new dialog also suggest you to google & add repository for the package
+  - Previously the first package we could not found are shown on the error toast but now collect and show missing packages as many as possible
+
+### Fixed
+- Prerelease version is choosen even if good stable version exists [`#1745`](https://github.com/vrc-get/vrc-get/pull/1745)
 
 ## [0.1.16] - 2024-11-12
 ### Added
@@ -488,7 +493,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.16...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.17...HEAD
+[0.1.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.16...gui-v0.1.17
 [0.1.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.15...gui-v0.1.16
 [0.1.15]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.14...gui-v0.1.15
 [0.1.14]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.13...gui-v0.1.14
