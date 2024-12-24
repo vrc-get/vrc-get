@@ -318,11 +318,17 @@ impl_from_error!(
     io::Error,
     String,
     async_zip::error::ZipError,
-    tauri_plugin_updater::Error,
     vrc_get_vpm::environment::AddRepositoryErr,
     vrc_get_vpm::unity_project::RemovePackageErr,
     fs_extra::error::Error,
 );
+
+impl From<tauri_plugin_updater::Error> for RustError {
+    fn from(value: tauri_plugin_updater::Error) -> Self {
+        log::error!(gui_toast = false; "failed to load latest release: {value}");
+        Self::unrecoverable("failed to load the latest release")
+    }
+}
 
 impl From<MigrateVpmError> for RustError {
     fn from(value: MigrateVpmError) -> Self {
