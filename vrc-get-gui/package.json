@@ -52,6 +52,8 @@
 		"json5": "^2",
 		"license-checker": "^25",
 		"postcss": "^8",
+		"sharp-cli": "^5.1.0",
+		"svgo": "^3.3.2",
 		"tailwindcss": "^3",
 		"tailwindcss-animate": "^1",
 		"typescript": "^5"

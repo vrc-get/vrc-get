@@ -2,8 +2,8 @@
      xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve"
 >
     <rect x="0" y="0" width="4096" height="4096" style="fill:rgb(45,45,45);"/>
-    <image x="-95" y="1013" width="3149px" height="2021" xlink:href="./alcom-light.png"/>
-    <image x="980" y="1670" width="3216px" height="2064" xlink:href="./alcom-dark.png"/>
+    <image x="-95" y="1013" width="3149px" height="2021" xlink:href="alcom-light.png"/>
+    <image x="980" y="1670" width="3216px" height="2064" xlink:href="alcom-dark.png"/>
     <image x="254" y="138" width="844px" height="844px" xlink:href="../app-icon.png"/>
     <text x="1286" y="679" class="NotoSansBold Green">ALCOM</text>
     <text x="1286" y="918" class="NotoSansMediumItalic Green">Fast VCC alternative for any desktop</text>
@@ -52,8 +52,6 @@
             font-family: 'Noto Sans', sans-serif;
             font-weight: 600;
             font-size: 600px;
-            stroke: white;
-            stroke-width: 1px;
         }
         .NotoSansMedium {
             font-family: 'Noto Sans', sans-serif;
