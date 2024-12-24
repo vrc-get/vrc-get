@@ -105,6 +105,37 @@
 			--ring: 240 4.9% 83.9%;
 		}
 	}
+
+	:root {
+		--toastify-color-light: hsl(var(--background));
+		/*--toastify-color-info: #3498db;*/
+		--toastify-color-success: hsl(var(--success));
+		/*--toastify-color-warning: #f1c40f;*/
+		--toastify-color-error: hsl(var(--destructive));
+		/*--toastify-color-transparent: rgba(255, 255, 255, 0.7);*/
+
+		--toastify-icon-color-info: var(--toastify-color-info);
+		--toastify-icon-color-success: var(--toastify-color-success);
+		--toastify-icon-color-warning: var(--toastify-color-warning);
+		--toastify-icon-color-error: var(--toastify-color-error);
+
+		/* size and fonts are not customized */
+
+		--toastify-text-color-light: hsl(var(--foreground));
+
+		--toastify-color-progress-info: var(--toastify-color-info);
+		--toastify-color-progress-success: var(--toastify-color-success);
+		--toastify-color-progress-warning: var(--toastify-color-warning);
+		--toastify-color-progress-error: var(--toastify-color-error);
+
+		.Toastify__toast {
+			box-shadow: 0 4px 12px hsl(var(--primary) / 0.05);
+		}
+
+		.Toastify__close-button--light {
+			color: hsl(var(--foreground));
+		}
+	}
 }
 
 @layer base {
@@ -168,36 +199,6 @@ code {
  this is a ad-hoc way to apply toastify variables.
  We could not find way to correctly order the toastify css and this css so put in body to get higher specificity
  */
-body {
-	--toastify-color-light: hsl(var(--background));
-	/*--toastify-color-info: #3498db;*/
-	--toastify-color-success: hsl(var(--success));
-	/*--toastify-color-warning: #f1c40f;*/
-	--toastify-color-error: hsl(var(--destructive));
-	/*--toastify-color-transparent: rgba(255, 255, 255, 0.7);*/
-
-	--toastify-icon-color-info: var(--toastify-color-info);
-	--toastify-icon-color-success: var(--toastify-color-success);
-	--toastify-icon-color-warning: var(--toastify-color-warning);
-	--toastify-icon-color-error: var(--toastify-color-error);
-
-	/* size and fonts are not customized */
-
-	--toastify-text-color-light: hsl(var(--foreground));
-
-	--toastify-color-progress-info: var(--toastify-color-info);
-	--toastify-color-progress-success: var(--toastify-color-success);
-	--toastify-color-progress-warning: var(--toastify-color-warning);
-	--toastify-color-progress-error: var(--toastify-color-error);
-
-	.Toastify__toast {
-		box-shadow: 0 4px 12px hsl(var(--primary) / 0.05);
-	}
-
-	.Toastify__close-button--light {
-		color: hsl(var(--foreground));
-	}
-}
 
 /* Radix ui sets display:block for each scroll viewport element but it seem it make worse */
 [data-radix-scroll-area-viewport] > div {
