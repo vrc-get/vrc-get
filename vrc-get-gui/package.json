@@ -39,7 +39,7 @@
 		"react": "^18",
 		"react-dom": "^18",
 		"react-i18next": "^15",
-		"react-toastify": "^10",
+		"react-toastify": "^11",
 		"tailwind-merge": "^2"
 	},
 	"devDependencies": {
