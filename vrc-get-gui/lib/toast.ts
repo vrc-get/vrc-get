@@ -1,27 +1,33 @@
+import React from "react";
 import { type ToastContent, toast } from "react-toastify";
 import type { RustError } from "./bindings";
 import { tc } from "./i18n";
 
+function wrapWithDiv(content: ToastContent): ToastContent {
+	if (typeof content === "function") return content;
+	return React.createElement("div", {}, content);
+}
+
 export function toastNormal(message: ToastContent) {
-	toast(message, {
+	toast(wrapWithDiv(message), {
 		pauseOnFocusLoss: false,
 	});
 }
 
 export function toastInfo(message: ToastContent) {
-	toast.info(message, {
+	toast.info(wrapWithDiv(message), {
 		pauseOnFocusLoss: false,
 	});
 }
 
 export function toastSuccess(message: ToastContent) {
-	toast.success(message, {
+	toast.success(wrapWithDiv(message), {
 		pauseOnFocusLoss: false,
 	});
 }
 
 export function toastError(message: ToastContent) {
-	toast.error(message);
+	toast.error(wrapWithDiv(message));
 }
 
 export function toastThrownError(error: unknown) {

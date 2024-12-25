@@ -16,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { tc } from "@/lib/i18n";
 import { toastError, toastInfo, toastNormal, toastSuccess } from "@/lib/toast";
 
 export default function Page() {
@@ -122,6 +123,14 @@ export default function Page() {
 								onClick={() => toastInfo("Info Toast Body")}
 							>
 								Info
+							</Button>
+							<Button
+								variant={"info"}
+								onClick={() =>
+									toastInfo(tc("settings:toast:vcc scheme installed"))
+								}
+							>
+								Info with html inside
 							</Button>
 						</div>
 					</Card>
