@@ -315,6 +315,7 @@
     'setup:unity-hub:heading': 'Installer Unity Hub',
     'setup:unity-hub:not found': "Unity Hub n'a pas été trouvé.",
     'setup:unity-hub:recheck installation': "Vérification de l'installation",
+    'setup:unity-hub:unity hub link': 'https://unity.com/fr/download',
     'setup:unity-hub:using this unity hub': 'Utiliser cette version du Unity Hub',
     'sidebar:bad hostname': "Mauvais nom d'hôte ",
     'sidebar:dialog:bad hostname': "Il y a un problème avec votre nom d'hôte.",
