@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
 ### Fixed
 - Link to unity hub is hardcoded to Japanese `#1810`
   - Fixed link to respect currently configured language
+- Fixed Logs page autoscroll not enable on start `#1811`
 
 ### Security
 
