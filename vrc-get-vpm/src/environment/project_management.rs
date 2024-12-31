@@ -8,7 +8,7 @@ use bson::oid::ObjectId;
 use bson::DateTime;
 use futures::future::join_all;
 use log::error;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -291,6 +291,8 @@ pub struct UserProject {
     #[serde(rename = "Path")]
     path: Box<str>,
     #[serde(default, rename = "UnityVersion")]
+    #[serde(deserialize_with = "default_if_err")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     unity_version: Option<UnityVersion>,
     #[serde(rename = "CreatedAt")]
     created_at: DateTime,
@@ -417,5 +419,17 @@ impl UserProject {
         if let Some(x) = self.vrc_get.as_mut() {
             x.unity_path = None;
         }
+    }
+}
+
+// IDK much but VCC may produce "UnknownUnityVersion" so make it None
+fn default_if_err<'de, D, T>(de: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
+{
+    match T::deserialize(de) {
+        Ok(v) => Ok(v),
+        Err(_) => Ok(T::default()),
     }
 }
