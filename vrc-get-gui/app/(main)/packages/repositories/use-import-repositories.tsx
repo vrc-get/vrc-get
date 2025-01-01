@@ -135,7 +135,7 @@ export function useImportRepositories({
 			try {
 				setState({ type: "addingRepositories" });
 				await commands.environmentImportAddRepositories(repositories);
-				toastSuccess(tt("vpm repositories:toast:repositories added"));
+				toastSuccess(tt("vpm repositories:toast:repository added"));
 				refetch();
 				setState({ type: "normal" });
 			} catch (e) {
