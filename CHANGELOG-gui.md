@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Fixed toast message when adding repositories [`#1815`](https://github.com/vrc-get/vrc-get/pull/1815)
 
 ### Security
 
