@@ -16,12 +16,15 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Link to unity hub is hardcoded to Japanese `#1810`
-  - Fixed link to respect currently configured language
-- Fixed Logs page autoscroll not enable on start `#1811`
-- Fixed failed to load project list with invalid unity version stored `#1813`
 
 ### Security
+
+## [1.0.0] - 2025-01-01
+### Fixed
+- Link to unity hub is hardcoded to Japanese [`#1810`](https://github.com/vrc-get/vrc-get/pull/1810)
+  - Fixed link to respect currently configured language
+- Fixed Logs page autoscroll not enable on start [`#1811`](https://github.com/vrc-get/vrc-get/pull/1811)
+- Fixed failed to load project list with invalid unity version stored [`#1813`](https://github.com/vrc-get/vrc-get/pull/1813)
 
 ## [0.1.17] - 2024-12-22
 ### Changed
@@ -497,7 +500,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.17...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.0...HEAD
+[1.0.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.17...gui-v1.0.0
 [0.1.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.16...gui-v0.1.17
 [0.1.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.15...gui-v0.1.16
 [0.1.15]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.14...gui-v0.1.15
