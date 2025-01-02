@@ -33,7 +33,7 @@ A crossplatform fast open-source alternative of VRChat Creator Companion
 
 The recommended way to install ALCOM is download from [Website][alcom-site].
 
-Or you can install ALCOM from package managers like [Homebrew][homebrew-alcom], [Scoop][scoop-xrtools], [AUR][aur-alcom]<!--, or [WinGet][winget-alcom]-->.
+Or you can install ALCOM from package managers like [Homebrew][homebrew-alcom], [Scoop][scoop-xrtools], [AUR][aur-alcom], or [WinGet][winget-alcom].
 
 If you want, you may download the HEAD build from [GitHub Actions][alcom-nightly]
 
