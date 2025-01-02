@@ -23,6 +23,8 @@
 [winget-alcom]: https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/anatawa12/ALCOM
 <!-- [macports-vrc-get]: https://ports.macports.org/port/alcom -->
 
+[scoop-xrtools]: https://github.com/babo4d/scoop-xrtools/
+
 A crossplatform fast open-source alternative of VRChat Creator Companion
 
 [Homepage](https://vrc-get.anatawa12.com/alcom/)
@@ -30,6 +32,8 @@ A crossplatform fast open-source alternative of VRChat Creator Companion
 ## Installation
 
 The recommended way to install ALCOM is download from [Website][alcom-site].
+
+Or you can install ALCOM from package managers like [Homebrew][homebrew-alcom], [Scoop][scoop-xrtools], [AUR][aur-alcom]<!--, or [WinGet][winget-alcom]-->.
 
 If you want, you may download the HEAD build from [GitHub Actions][alcom-nightly]
 
