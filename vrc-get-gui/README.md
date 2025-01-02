@@ -4,7 +4,7 @@
 [![Homebrew Version][shields-homebrew-version]][homebrew-alcom]
 [![Scoop Version][shields-scoop-version]][scoop-alcom]
 [![AUR Version][shields-aur-version]][aur-alcom]
-[![WinGet Version][shields-winget-version]][winget-alcom]
+<!-- [![WinGet Version][shields-winget-version]][winget-alcom] -->
 <!-- [![MacPorts Version][shields-macports-vrc-get]][macports-vrc-get] -->
 
 [shields-github-version]: https://img.shields.io/github/v/release/vrc-get/vrc-get?filter=gui-v*
