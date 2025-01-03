@@ -16,6 +16,7 @@ interface GlobalInfo {
 	defaultUnityArguments: string[];
 	vpmHomeFolder: string;
 	checkForUpdates: boolean;
+	shouldInstallDeepLink: boolean;
 }
 
 const fallbackGlobalInfo: Readonly<GlobalInfo> = {
@@ -31,6 +32,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	defaultUnityArguments: [],
 	vpmHomeFolder: "",
 	checkForUpdates: false,
+	shouldInstallDeepLink: false,
 };
 
 const globalInfo: Readonly<GlobalInfo> = load();

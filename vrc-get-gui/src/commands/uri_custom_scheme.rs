@@ -44,6 +44,7 @@ pub struct GlobalInfo<'a> {
     default_unity_arguments: &'a [&'a str],
     vpm_home_folder: &'a std::path::Path,
     check_for_updates: bool,
+    should_install_deep_link: bool,
 }
 
 pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
@@ -81,6 +82,8 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     #[cfg(not(windows))]
     let local_app_data = "";
 
+    let should_install_deep_link = crate::deep_link_support::should_install_deep_link(app);
+
     let global_info = GlobalInfo {
         language: &config.language,
         theme: &config.theme,
@@ -94,6 +97,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
         vpm_home_folder: &vpm_home_folder,
         check_for_updates,
+        should_install_deep_link,
     };
 
     let mut script = b"globalThis.vrcGetGlobalInfo = ".to_vec();

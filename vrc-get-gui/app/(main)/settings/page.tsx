@@ -103,8 +103,6 @@ function Settings({
 	settings: TauriEnvironmentSettings;
 	refetch: () => void;
 }) {
-	const isMac = useGlobalInfo().osType === "Darwin";
-
 	const [updatingUnityPaths, setUpdatingUnityPaths] = useState(false);
 
 	const updateUnityPaths = async () => {
@@ -183,7 +181,6 @@ function Settings({
 				<AppearanceCard refetch={refetch} />
 				<FilesAndFoldersCard />
 				<AlcomCard
-					isMac={isMac}
 					releaseChannel={settings.release_channel}
 					useAlcomForVccProtocol={settings.use_alcom_for_vcc_protocol}
 					refetch={refetch}
@@ -565,12 +562,10 @@ function FilesAndFoldersCard() {
 }
 
 function AlcomCard({
-	isMac,
 	releaseChannel,
 	useAlcomForVccProtocol,
 	refetch,
 }: {
-	isMac: boolean;
 	releaseChannel: string;
 	useAlcomForVccProtocol: boolean;
 	refetch: () => void;
@@ -666,7 +661,7 @@ function AlcomCard({
 					</p>
 				</div>
 			)}
-			{!isMac && (
+			{globalInfo.shouldInstallDeepLink && (
 				<div>
 					<label className={"flex items-center gap-2"}>
 						<Checkbox
