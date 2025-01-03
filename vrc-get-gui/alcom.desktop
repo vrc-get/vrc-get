@@ -3,7 +3,7 @@ Categories={{categories}}
 {{#if comment}}
 Comment={{comment}}
 {{/if}}
-Exec={{exec}}
+Exec={{exec}} %u
 Icon={{icon}}
 Name={{name}}
 Terminal=false
