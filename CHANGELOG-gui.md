@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Add Korean localization [`#1822`](https://github.com/vrc-get/vrc-get/pull/1822)
 
 ### Changed
 
