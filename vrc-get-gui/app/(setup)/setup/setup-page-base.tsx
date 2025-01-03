@@ -96,7 +96,7 @@ function StepCard({
 		initialData: [],
 	}).data;
 
-	const isMac = useGlobalInfo().osType === "Darwin";
+	const shouldInstallDeepLink = useGlobalInfo().shouldInstallDeepLink;
 
 	return (
 		<Card className={"w-48 p-4"}>
@@ -121,7 +121,7 @@ function StepCard({
 					finisheds={finisheds}
 					pageId={"Backups"}
 				/>
-				{!isMac && (
+				{shouldInstallDeepLink && (
 					<StepElement
 						current={current}
 						finisheds={finisheds}

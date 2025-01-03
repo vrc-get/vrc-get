@@ -13,13 +13,15 @@ import { toastThrownError } from "@/lib/toast";
 import { type BodyProps, SetupPageBase } from "../setup-page-base";
 
 export default function Page() {
-	const isMac = useGlobalInfo().osType === "Darwin";
+	const shouldInstallDeepLink = useGlobalInfo().shouldInstallDeepLink;
 
 	return (
 		<SetupPageBase
 			heading={tc("setup:backups:heading")}
 			Body={Body}
-			nextPage={isMac ? "/setup/finish" : "/setup/system-setting"}
+			nextPage={
+				shouldInstallDeepLink ? "/setup/system-setting" : "/setup/finish"
+			}
 			prevPage={"/setup/project-path"}
 			pageId={"Backups"}
 		/>
