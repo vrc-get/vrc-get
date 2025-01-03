@@ -36,7 +36,10 @@ publisher = "anatawa12"
 createUpdaterArtifacts = "v1Compatible"  # remove if ci # we do not generate updater artifacts in CI
 
 [bundle.linux.deb]
-depends = []
+desktopTemplate = "alcom.desktop"
+
+[bundle.linux.rpm]
+desktopTemplate = "alcom.desktop"
 
 [bundle.macOS]
 exceptionDomain = ""
