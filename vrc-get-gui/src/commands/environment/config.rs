@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::commands::prelude::*;
 use crate::logging::LogLevel;
@@ -84,8 +84,9 @@ impl SetupPages {
         flags & self.as_flag() == self.as_flag()
     }
 
-    pub fn pages() -> &'static [SetupPages] {
-        if cfg!(target_os = "macos") {
+    pub fn pages(app: &AppHandle) -> &'static [SetupPages] {
+        // currently, SystemSetting page only has deep link support
+        if !crate::deep_link_support::should_install_deep_link(app) {
             &[
                 SetupPages::Appearance,
                 SetupPages::UnityHub,
@@ -117,11 +118,12 @@ impl SetupPages {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_get_finished_setup_pages(
+    app: AppHandle,
     config: State<'_, GuiConfigState>,
 ) -> Result<Vec<SetupPages>, RustError> {
     let setup_process_progress = config.get().setup_process_progress;
 
-    Ok(SetupPages::pages()
+    Ok(SetupPages::pages(&app)
         .iter()
         .copied()
         .filter(|page| page.is_finished(setup_process_progress))

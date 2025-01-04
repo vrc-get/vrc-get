@@ -69,12 +69,14 @@ pub fn startup(app: &mut App) {
         let config = app.state::<GuiConfigState>();
         let config = config.get().clone();
 
-        if !cfg!(target_os = "macos") && config.use_alcom_for_vcc_protocol {
+        if crate::deep_link_support::should_install_deep_link(&app)
+            && config.use_alcom_for_vcc_protocol
+        {
             spawn(crate::deep_link_support::deep_link_install_vcc(app.clone()));
         }
 
         use super::environment::config::SetupPages;
-        let start_page = SetupPages::pages()
+        let start_page = SetupPages::pages(&app)
             .iter()
             .copied()
             .find(|page| !page.is_finished(config.setup_process_progress))

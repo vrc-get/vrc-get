@@ -2,7 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
-use tauri::{AppHandle, Emitter};
+#[allow(unused_imports)] // Manager is used only on linux
+use tauri::{AppHandle, Emitter, Manager};
 use url::{Host, Url};
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
@@ -89,6 +90,16 @@ pub fn on_deep_link(deep_link: Url) {
                 .map(|handle| handle.emit("deep-link-add-repository", ()));
         }
     }
+}
+
+#[allow(unused_variables)]
+pub fn should_install_deep_link(app: &AppHandle) -> bool {
+    #[cfg(target_os = "linux")]
+    if app.env().appimage.is_some() {
+        return true;
+    }
+
+    cfg!(target_os = "windows")
 }
 
 #[tauri::command]
