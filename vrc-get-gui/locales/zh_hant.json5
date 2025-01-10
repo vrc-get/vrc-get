@@ -25,7 +25,10 @@
     "general:toast:not supported": "尚未支援 {{name}}。",
     "general:not implemented": "未實現",
 
-    "search:placeholder": "搜尋中...",
+    "search:placeholder": "搜尋...",
+
+    "general:error:failed to create dir": "創建資料夾失敗（沒有權限？）： {{err}}",
+    "general:error:failed to create dir missing drive": "創建資料夾失敗。你是否忘記連接硬碟？",
 
 
 // Setup Page
@@ -285,6 +288,9 @@
     "projects:manage:button:apply changes": "套用變更",
     "projects:manage:button:apply": "套用",
 
+    "projects:manage:dialog:missing dependencies": "部分套件缺失。",
+    "projects:manage:dialog:missing dependencies description": "需要匯入以下套件，但未在已有儲存庫內找到它們。<br/>請添加包含這些套件的儲存庫。<br/>你可以查看 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 以尋找對應的套件儲存庫。",
+
 
 // Packages Page
     "packages": "套件",
@@ -403,6 +409,9 @@
     "settings:show prerelease": "顯示預先發行版套件",
     "settings:show prerelease description": "啟用「顯示預先發行版套件」將在套件清單中顯示預先發行版的套件。此外，在解析依賴關係時也將使用預先發行版的套件。",
 
+    "settings:gui animation": "啟用 GUI 動畫",
+    "settings:gui animation description": "啟用 GUI 動畫時，頁面切換將帶有動畫效果。但 Webview 版本過舊時可能無效。",
+
     "settings:appearance": "外觀",
     "settings:language": "語言（Language）",
     "settings:theme": "色彩主題",
@@ -455,5 +464,6 @@
     "logs:level": "等級",
     "logs:message": "訊息",
     "logs:manage:select logs level": "篩選日誌等級",
+    "logs:manage:auto scroll": "自動滾動至底部",
   },
 }
