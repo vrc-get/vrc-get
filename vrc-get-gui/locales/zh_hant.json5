@@ -284,7 +284,7 @@
     // TODO: plurals
     "projects:manage:dialog:files and directories are removed as legacy": "將移除以下的舊檔案和資料夾。",
     "projects:manage:dialog:packages installed in the following directories will be removed": "將移除以下資料夾中的已安裝套件。",
-    "projects:manage:button:see changelog": "查看更新日誌",
+    "projects:manage:button:see changelog": "查看變更日誌",
     "projects:manage:button:apply changes": "套用變更",
     "projects:manage:button:apply": "套用",
 
@@ -436,7 +436,7 @@
     "check update:dialog:new version description": "有可用的新版 ALCOM",
     "check update:dialog:current version": "目前版本：",
     "check update:dialog:latest version": "最新版本：",
-    "check update:dialog:changelog": "更新日誌",
+    "check update:dialog:changelog": "變更日誌",
     "check update:dialog:dismiss": "忽略",
     "check update:dialog:update": "下載並更新！",
     "check update:dialog:downloading...": "下載更新中...",
