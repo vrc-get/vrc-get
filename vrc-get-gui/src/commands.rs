@@ -457,7 +457,6 @@ impl IntoPathBuf for tauri_plugin_dialog::FilePath {
         match self {
             Self::Url(url) => url
                 .to_file_path()
-                .map(PathBuf::from)
                 .map_err(|_| RustError::unrecoverable("internal error: bad file url")),
             Self::Path(p) => Ok(p),
         }
