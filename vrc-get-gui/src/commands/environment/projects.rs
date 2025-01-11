@@ -353,7 +353,7 @@ pub async fn environment_copy_project_for_migration(
                 ctx: &'a AsyncCommandContext<TauriCopyProjectForMigrationProgress>,
             }
 
-            impl<'a> CopyFileContext<'a> {
+            impl CopyFileContext<'_> {
                 fn on_finish(&self, entry: &FileSystemTree) {
                     let proceed = self
                         .proceed
