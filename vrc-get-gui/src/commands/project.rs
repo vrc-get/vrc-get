@@ -616,7 +616,7 @@ pub async fn project_create_backup(
             let backup_name = format!(
                 "{project_name}-{timestamp}",
                 project_name = project_name,
-                timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S"),
+                timestamp = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S"),
             );
 
             super::create_dir_all_with_err(&backup_dir).await?;
