@@ -500,7 +500,7 @@ async fn create_backup_zip(
     deflate_option: async_zip::DeflateOption,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
 ) -> Result<(), RustError> {
-    let mut file = tokio::fs::File::create(&backup_path).await?;
+    let mut file = tokio::fs::File::create_new(&backup_path).await?;
     let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
 
     info!("Collecting files to backup {}...", project_path.display());
@@ -616,7 +616,7 @@ pub async fn project_create_backup(
             let backup_name = format!(
                 "{project_name}-{timestamp}",
                 project_name = project_name,
-                timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S"),
+                timestamp = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S"),
             );
 
             super::create_dir_all_with_err(&backup_dir).await?;
