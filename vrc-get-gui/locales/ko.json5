@@ -63,7 +63,7 @@
 
     "setup:steps card:SystemSetting": "시스템 설정",
     "setup:system-setting:heading": "시스템 설정",
-    "setup:system-setting:vcc scheme description": "<code>vcc:</code>로 시작하는 URL은 브라우저에서 VCC를 실행해 VPM 저장소를 추가하기 위한 링크입니다.<br>ALCOM과 VCC는 같은 저장소 목록을 공유하지만, <code>vcc:</code> URL을 ALCOM과 연결하면 브라우저에서 VCC 대신 ALCOM을 실행하여 VPM 저장소를 추가할 수 있습니다.",
+    "setup:system-setting:vcc scheme description": "<code>vcc:</code>로 시작하는 URL은 브라우저에서 VCC를 실행해 VPM 저장소를 추가하기 위한 링크입니다.<br>ALCOM과 VCC는 같은 저장소 목록을 공유하므로, <code>vcc:</code> URL을 ALCOM과 연결하면 브라우저에서 VCC 대신 ALCOM을 실행하여 VPM 저장소를 추가할 수 있습니다.",
     "setup:system-setting:macos bug message": "macOS에서는 별도로 설정할 내용이 없습니다.<br>(이 페이지는 표시되지 않아야 하며, 표시된 경우 이는 버그입니다.)",
     "setup:system-setting:hostname-with-non-ascii": "PC 이름(호스트 이름)에 비ASCII 문자(영문, 숫자, 일부 특수문자가 아닌 문자)가 포함되어 있습니다.<br>이는 Unity에서 문제를 일으킬 수 있습니다.<br>PC 이름(호스트 이름)을 ASCII 문자로 변경할 것을 강력히 권장합니다.に変更することを強くお勧めします。",
 
@@ -263,12 +263,12 @@
     "projects:toast:unity migrated": "프로젝트를 Unity 2022로 변환했습니다.",
 
     "projects:manage:dialog:confirm changes description": "이 프로젝트에 다음 변경 사항을 적용하고 있습니다.",
-    "projects:manage:dialog:install package": "<b>{{name}}</b> 버전 {{version}} 을(를) 설치",
-    "projects:manage:dialog:reinstall package": "<b>{{name}}</b> 버전 {{version}} 을(를) 재설치",
-    "projects:manage:dialog:uninstall package as requested": "<b>{{name}}</b> 을(를) 제거",
-    "projects:manage:dialog:uninstall package as legacy": "구 버전 패키지이므로 <b>{{name}}</b> 을(를) 제거",
-    "projects:manage:dialog:uninstall package as unused": "사용되지 않으므로 <b>{{name}}</b> 을(를) 제거",
-    "projects:manage:dialog:conflicts with": "<b>{{pkg}}</b> 이(가) <b>{{other}}</b>와(과) 충돌합니다.",
+    "projects:manage:dialog:install package": "<b>{{name}}</b> {{version}} 버전 설치",
+    "projects:manage:dialog:reinstall package": "<b>{{name}}</b> {{version}} 버전 재설치",
+    "projects:manage:dialog:uninstall package as requested": "<b>{{name}}</b> 패키지 제거",
+    "projects:manage:dialog:uninstall package as legacy": "구 버전 <b>{{name}}</b> 패키지 제거",
+    "projects:manage:dialog:uninstall package as unused": "더 이상 사용되지 않는 <b>{{name}}</b> 패키지 제거",
+    "projects:manage:dialog:conflicts with": "<b>{{pkg}}</b> 패키지가 <b>{{other}}</b> 패키지와 충돌합니다.",
     "projects:manage:dialog:package version conflicts": "패키지 버전 충돌이 발생했습니다.",
     "projects:manage:dialog:unity version conflicts": "Unity 버전 충돌이 발생했습니다.",
     "projects:manage:dialog:package not supported your unity": "<b>{{pkg}}</b> 은(는) 현재 사용중인 Unity 버전을 지원하지 않습니다.",
@@ -352,7 +352,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "경로가 LocalAppData 폴더 내에 있습니다.<br>이 폴더는 Windows에서 \"이 PC 초기화\"를 실행하고 \"내 파일 유지\" 옵션을 선택해도 삭제됩니다.<br>따라서 경로를 다른 위치로 변경할 것을 권장합니다.",
+    "settings:warning:in-local-app-data": "경로가 LocalAppData 폴더 내에 있습니다.<br>이 폴더는 Windows에서 \"이 PC 초기화\"를 실행하고 \"내 파일 유지\" 옵션을 선택해도 삭제되므로 다른 경로로 변경할 것을 권장합니다.",
     "settings:warning:whitespace": "경로에 공백 문자가 포함되어 있습니다. 일부 Unity 도구에서 문제를 발생시킬 수 있습니다.",
     "settings:warning:non-ascii": "경로에 비ASCII 문자(영문, 숫자, 일부 특수문자가 아닌 문자)가 포함되어 있습니다. 이는 Unity에서 문제를 발생시킬 수 있습니다.",
 
@@ -396,7 +396,7 @@
     "settings:toast:package cache cleared": "패키지 캐시를 제거했습니다.",
 
     "settings:show prerelease": "프리릴리즈 패키지 표시",
-    "settings:show prerelease description": "프리릴리즈 패키지는 정식 릴리즈 이전에 동작 확인 등을 위해 사용되는 패키지입니다.<br>이 옵션을 활성화하면 패키지 목록에 프리릴리즈 패키지가 표시됩니다.<br>또한, 패키지의 종속성을 해결할 때 프리릴리즈 패키지가 사용됩니다.",
+    "settings:show prerelease description": "프리릴리즈 패키지는 정식 릴리즈 이전에 동작 확인 등을 위해 사용되는 패키지입니다.<br>이 옵션을 활성화하면 패키지 목록에 프리릴리즈 패키지가 표시되고, 패키지를 설치할 때 프리릴리즈 패키지가 설치될 수 있습니다.",
 
     "settings:gui animation": "UI 애니메이션 활성화",
     "settings:gui animation description": "페이지 전환 시 애니메이션이 재생됩니다. Webview 버전이 낮은 경우 제대로 동작하지 않을 수 있습니다.",
@@ -418,7 +418,7 @@
     "settings:check update": "업데이트 확인",
     "settings:button:open issue": "문제 보고",
     "settings:receive beta updates": "베타 업데이트 받기",
-    "settings:beta updates description": "베타 채널은 새로운 기능과 버그 수정을 포함한 빈번한 업데이트를 받습니다. 하지만 안정 채널보다 새로운 기능과 관련된 버그가 더 많을 수 있습니다.",
+    "settings:beta updates description": "베타 채널은 새로운 기능과 버그 수정을 포함한 업데이트를 먼저 받을 수 있지만, 안정 채널에 비해 새로운 기능과 관련된 버그가 더 많을 수 있습니다.",
     "check update:toast:no updates": "새 업데이트가 없습니다.",
 
     "check update:dialog:title": "ALCOM 업데이트",
@@ -432,12 +432,12 @@
     "check update:dialog:relaunching...": "ALCOM을 다시 시작하고 있습니다...",
 
     "settings:use alcom for vcc scheme": "ALCOM을 <code>vcc:</code> URL에 연결",
-    "settings:use vcc scheme description": "<code>vcc:</code>로 시작하는 URL은 브라우저에서 VCC를 실행해 VPM 저장소를 추가하기 위한 링크입니다.<br>ALCOM과 VCC는 같은 저장소 목록을 공유하지만, <code>vcc:</code> URL을 ALCOM과 연결하면 브라우저에서 VCC 대신 ALCOM을 실행하여 VPM 저장소를 추가할 수 있습니다.",
+    "settings:use vcc scheme description": "<code>vcc:</code>로 시작하는 URL은 브라우저에서 VCC를 실행해 VPM 저장소를 추가하기 위한 링크입니다.<br>ALCOM과 VCC는 같은 저장소 목록을 공유하므로, <code>vcc:</code> URL을 ALCOM과 연결하면 브라우저에서 VCC 대신 ALCOM을 실행하여 VPM 저장소를 추가할 수 있습니다.",
     "settings:register vcc scheme now": "지금 연결하기",
     "settings:toast:vcc scheme installed": "ALCOM을 <code>vcc:</code> URL에 연결했습니다.",
 
     "settings:licenses": "라이선스",
-    "settings:licenses description": "ALCOM에서 사용된 프로젝트들의 라이선스를 보려면<l>여기</l>를 클릭하세요.",
+    "settings:licenses description": "ALCOM에서 사용된 프로젝트들의 라이선스를 보려면 <l>여기</l>를 클릭하세요.",
 
     "settings:system information": "시스템 정보",
     "settings:os": "OS",
