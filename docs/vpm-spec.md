@@ -65,16 +65,12 @@ The term "VPM" refers to the VRChat Package Manager, which is the package manage
 The VPM consists of the VPM Client and the VPM Repository.
 
 The VPM Client is the software that manages the VPM Packages in the Unity project.
-The VPM Client fetches the package information from the VPM Repository and installs the package.
-The VPM Client acts as a User Agent in the HTTP request to the VPM Repository.
+It fetches the package information from the VPM Repository and installs the package.
 
 The VPM Clients usually have feature to manage VPM Repository installed for the VPM Manifest folder.
 The VPM Client **MAY** have feature to add VPM Repository from Web Browsers by using the `vcc:` URL scheme.
 
-The VPM Repository is the server that provides the package information and the package archive file.
-The VPM Repository provides the package information in [[JSON]] format and the package archive file in Unity Package format.
-One single VPM Repository can be consists of multiple servers, such as the package information server and the package archive server.
-The VPM Repository acts as an HTTP server to provide the package information and the package archive file.
+The VPM Repository is a [[JSON]] file on a HTTP(S) Server that provides package manifest and URL to the package archive.
 
 As described above, the VPM Client and VPM Repository communicate with each other via HTTP [[HTTP]].
 
@@ -90,11 +86,11 @@ Therefore, the VPM Package is a special type of UPM Package.
 ### 3.3. UPM Package Manifest, VPM Package Manifest, VPM Project Manifest
 The UPM Package Manifest is the JSON document that describes the package information.
 The UPM Package Manifest is located as `package.json` in the UPM Package and provides the package information,
-such as the package name, version, dependencies.
+such as the package name, version, UPM dependencies.
 
-The VPM Package Manifest is a special type of UPM Package Manifest that describes the VPM Package information.
+The VPM Package Manifest is a UPM Package Manifest that may have information for VPM.
 In addition to the UPM Package Manifest,
-the VPM Package Manifest includes the vpm-specific dependencies and the installation data.
+the VPM Package Manifest provides the vpm dependencies and other data used by VPM.
 
 The VPM Project Manifest is the JSON document that describes the installed package information.
 The VPM Project Manifest is located as `Packages/vpm-manifest.json` in the Unity project and provides the installed package information,
@@ -104,9 +100,9 @@ The `locked` section provides the all installed package information, including t
 
 ### 3.4. Requested Package, Dependency Package, Locked Package, and Unlocked Package
 Requested packages are VPM Packages that the user requested to install.
-The user can request to install the package by using the VPM Client.
+The VPM client will tries to install those packages.
 
-Dependency packages are VPM packages that are required to install the requested package.
+Dependency packages are VPM packages that are required to install the requested packages.
 VPM Client automatically installs dependency packages when installing the requested package.
 
 Locked packages are embedded UPM packages that are controlled by the VPM Client.
@@ -114,7 +110,7 @@ VPM Client manages locked packages based on the VPM Manifest.
 All requested packages and Dependency Packages are locked packages.
 
 Unlocked packages are the embedded UPM packages that are not controlled by the VPM Client.
-VPM Client does not install, update, or remove unlocked packages.
+VPM Client does not modify unlocked packages.
 However, may read the package information from the UPM Package Manifest.
 
 ## 4. VPM Package and Manifest
@@ -156,27 +152,29 @@ The document **MUST** be named `package.json` and located in the root directory 
 The document **MUST** be encoded in UTF-8 [[UNICODE]].
 VPM Package Manifest is a subset of the UPM Package Manifest.
 Some fields are required, and some fields are optional.
-Additional fields are allowed, but the VPM Client **SHOULD** ignore them.
+Additional fields are allowed, so the VPM Client **SHOULD NOT** cause error with them.
 Some VPM Clients **MAY** use the additional fields for their purposes.
 
 #### 4.2.1. Basic Fields
 The VPM Package Manifest **MUST** include the following two fields.
 
 ##### 4.2.1.1. `name` (string)
-The `name` field shows the globally unique name of the package.
-The type of the `name` field **MUST** be a string.
-The `name` field **MUST** be unique among all packages in the VPM Repository
+The `name` field shows the globally unique ID of the package.
+The type of this field **MUST** be a string.
+
+The package ID is used to identify single package, so this **MUST** be unique among all packages in the VPM Repository
 and **SHOULD** be unique among all packages in the VPM ecosystem.
-To The `name` field be unique among all packages in the VPM Repository,
-the package name **SHOULD** be prefixed with reverse domain name of the package author.
-If you doesnot have a domain name, you **MAY** use the `<username>.github.io` as your domain like `io.github.<username>.<package-name>`.
-The `name` field **SHOULD** be in lowercase and **MUST NOT** contain any characters other than ASCII Alphabets, Digits, Hyphen (`-`), and Dot (`.`).
-The VPM Client **MAY** allow the package name that does not follow the rule, but VPM Client **MAY** ignore such packages.
+VPM client will treat packages with same ID as same package.
+
+The Package ID **SHOULD** be prefixed with reverse domain name of the package author to be unique.
+
+The package ID **SHOULD** be in lowercase and **MUST NOT** contain any characters other than ASCII Alphabets, Digits, Hyphen (`-`), and Dot (`.`).
+The VPM Client **MAY** allow the package name that does not follow the rule.
 
 ##### 4.2.2.2. `version` (string)
 The `version` field shows the version of the package.
-The type of the `version` field **MUST** be a string.
-The `version` field **MUST** follow the Semantic Versioning 2.0.0 [[SEMVER]].
+The type of this field **MUST** be a string.
+The value of this field **MUST** follow the Semantic Versioning 2.0.0 [[SEMVER]].
 Because the UPM doesn't support that, the `version` **MUST NOT** include the build metadata.
 The VPM Client **MAY** support a loose version like `"1.0"`, `"  v1.0.0 "` or `"v1.0.0"`,
 however, some VPM Clients **MAY** ignore the packages with a loose version.
@@ -186,31 +184,30 @@ however, some VPM Clients **MAY** ignore the packages with a loose version.
 > The VCC currently does support the loose versions.
 > This came from the underlying library of the VCC, `semver.net` by Adam Reeve (https://github.com/adamreeve/semver.net)
 > In the future version of `semver.net`, accepting a loose version is going to be removed 
-> so that the VCC may not support the loose versions in the future.
+> so that the VCC may remove support the loose versions in the future.
 >
 > On the other hand, the vrc-get does not support the loose versions.
-> This is originally came from the `semver` crate by David Tolnay
-> but currently vrc-get is using own implementation of the Semantic Versioning.
+> This is originally came from the `semver` crate by David Tolnay.
 
-#### 4.2.3. Resolving Fields
+#### 4.2.3. Package Resolution Fields
 The VPM Package Manifest **MAY** include the following fields.
-Those fields are used to determine the package is compatible with the Project and collect dependencies.
+Those fields are used to determine the package is compatible with the Project and find dependency packages.
 
 ##### 4.2.3.1. `vpmDependencies` (object)
 The `vpmDependencies` field shows the dependencies of the package.
-The type of the `vpmDependencies` field **MUST** be an object.
+The type of this field **MUST** be an object. 
 
-The key of the `vpmDependencies` field **MUST** be the package name,
+The key of this field **MUST** be the package name,
 and the value **MUST** be a string that describes the version constraint.
 The format of the version constraint will be described in [!TODO:Section Version Constraint in Package Resolving].
 
-The VPM Client will resolve the dependencies of the package based on the `vpmDependencies` field.
+The VPM Client will resolve the dependencies of the package based on this field.
 More about the resolving process will be described in [!TODO:Section Package Resolving].
 
 ##### 4.2.3.2. `unity` (string)
 The `unity` field shows the minimum Unity version that the package is compatible with.
-The type of the `unity` field **MUST** be a string.
-The `unity` field **MUST** follow the Unity Version number described in [!TODO:Section Unity Version in Package Resolving].
+The type of the this field **MUST** be a string.
+The value of this field **MUST** follow the Unity Version number described in [!TODO:Section Unity Version in Package Resolving].
 
 The VPM Client will check the compatibility of the package with the Unity Project based on the `unity` field.
 If the package is not compatible with the Unity Project,
@@ -218,35 +215,41 @@ the VPM Client **MUST** reject the installation of the package or show a warning
 
 ##### 4.2.3.3. `legacyPackages` (array)
 The `legacyPackages` field shows the list of legacy packages that the package name is replacing.
-The type of the `legacyPackages` field **MUST** be an array of strings.
+The type of this field **MUST** be an array of strings.
 
 The UdonSharp and ClientShim was provided as a separate package in the past
 and since VRCSDK 3.4.0, they are provided as a part of the VRCSDK.
-However, at that time, may packages are depending on the UdonSharp and ClientShim.
+However, at that time, many packages are depending on the UdonSharp and ClientShim.
 Therefore, VRChat introduced the `legacyPackages` field to provide the compatibility with the old packages.
 
 The VPM Client **MUST** guarantee
-that the packages specified in the `legacyPackages` field are not installed if the package is installed.
+that packages specified in the `legacyPackages` field are not installed when the package is installed.
 
 #### 4.2.4. Installation Data Fields
 The VPM Package Manifest **MAY** include the following fields that are used to install the package.
 
 ##### 4.2.4.1. `url` (string)
 The `url` field shows the URL of the package archive file.
-The type of the `url` field **MUST** be a string.
-The `url` field **SHOULD** be a valid URL that points to the package archive file.
+The type of this field **MUST** be a string.
+The value of this field **MUST** be a valid URL that points to the package archive file.
 The VPM Package Manifest in the Remote Package Repository **MUST** include the `url` field with the valid URL.
 
-The VPM Client will download the package archive file from the URL specified in the `url` field.
+The VPM Client will download the package archive file from the URL specified with this field.
 If the `url` field is not included in the VPM Package Manifest,
 the VPM Client **MUST** reject the installation of the package.
+
+The VPM Repository **MUST NOT** chnange the contents of the URL this field points to. tjis is compared bitwicely.
+
+> [!NOTE]
+> 
+> Unfortunately, some known popular repository did change the contents of repository so it might be better to assume packages might change.
 
 ##### 4.2.4.2. `zipSHA256` (string)
 The `zipSHA256` field shows the SHA-256 hash of the package archive file.
 The type of the `zipSHA256` field **MUST** be a string.
 The `zipSHA256` field **MUST** be a valid SHA-256 hash of the package archive file.
 
-The VPM Client **MUST** use this hash to verify the integrity of the cached package archive file
+The VPM Client **MUST** use this hash to verify the integrity of the cached package archive file.
 and **MAY** use this hash to verify the integrity of the downloaded package archive file.
 
 The VPM Client **MAY** reject the installation of the package
@@ -258,9 +261,9 @@ The type of the `headers` field **MUST** be an object, and the keys and values *
 
 The VPM Client **MUST** add the headers specified in the `headers` field to fetch the package archive file.
 
-#### 4.2.5. Description Fields
-The VPM Package Manifest **MAY** include the following fields that are used to describe the package to the Human.
-Those fields **MUST NOT** affect the behavior of the VPM Client except for type mismatch.
+#### 4.2.5. Human-readable Fields
+The VPM Package Manifest **MAY** include the following fields that are used to provide Human-readable information of the package.
+Those fields **MUST NOT** affect the behavior of the VPM Client except for errors on type mismatch.
 
 ##### 4.2.5.1. `displayName` (string)
 The `displayName` field shows the human-readable name of the package.
@@ -280,62 +283,60 @@ The type of the `changelogUrl` field **MUST** be a string.
 The `changelogUrl` field **SHOULD** be a valid URL that points to the changelog of the package.
 The VPM Client **MAY** suggest users to open the URL with the Web Browser when the package is updated.
 
-#### 4.2.A. `vrc-get` extension
+#### 4.2.A. `vrc-get` extension (object)
 The VPM Package Manifest **MAY** include the `vrc-get` object that is used to provide the additional information for the vrc-get.
 The `vrc-get` object **MUST** be an object.
 The VPM Client **MAY** ignore the `vrc-get` object.
 The `vrc-get` object **MAY** include the following fields.
 
-##### 4.2.A.1. `yanked` (string or boolean)
-The `yanked` field of `vrc-get` shows the yanked status of the package.
-The type of the `yanked` field **MUST** be a string or boolean.
-If the `yanked` field is a string, the package is yanked and the string **MUST** be the reason of the yanked.
-If the `yanked` field is a boolean, the package is yanked if the value is `true` and not yanked if the value is `false`.
+##### 4.2.A.1. `vrc-get.yanked` (string or boolean)
+The `yanked` field shows the yanked status of the package.
+The type of the this field **MUST** be a non-empty string or boolean.
+If this field is a string, the package is yanked and the string **MUST** be the reason of the yanked.
+If this field is a boolean, the package is yanked if the value is `true` and not yanked if the value is `false`.
 
-The VPM Clients that recognizes the `yanked` field **SHOULD** show the warning
+The VPM Clients that recognizes this field **SHOULD** show the warning
 if the package is yanked and the package is already installed
-and **MUST NOT** allow users to install the yanked package except for resolving the packages.
+and **MUST** deny installing yanked packages except for resolving the packages.
 
-##### 4.2.A.2. `aliases` (array)
-The `aliases` field of `vrc-get` shows the list of the alternative package display names.
-The type of the `aliases` field **MUST** be an array of strings.
-The VPM Client **MAY** use the `aliases` field to better package search
+##### 4.2.A.2. `vrc-get.aliases` (array)
+The `vrc-get.aliases` field shows the list of the alternative package display names.
+The type of this field **MUST** be an array of strings.
+The VPM Client **MAY** use this field to better package search
 but this field **MUST NOT** affect the behavior of the VPM Client.
 
 ## 5. VPM Repository
-The VPM Repository is a server that provides the package information and the package archive file.
-The VPM Repository consists of the Package Information JSON file and the Package Archive file.
+The VPM Repository is a JSON file on a HTTP server that provides package manifest and the URL to the VPM Package Archive.
 The user provides the URL and Headers information to the VPM Client to access the VPM Repository.
 
-### 5.1. Package Information JSON File
-The Package Information JSON file is a JSON document that provides the package information.
-The Package Information JSON file **MUST** be encoded in UTF-8 [[UNICODE]].
-The Package information JSON file **MUST** be an object that contains the following fields.
+This section describes not only about contents of VPM Repository JSON file, but also about archive file VPM Repository points to.
+
+### 5.1.  VPM Repository JSON
+VPM Repository **MUST** be a JSON file encoded in UTF-8 [[UNICODE]] and **MUST** be an object that contains the following fields.
 
 #### 5.1.1. `packages` (object)
 The `packages` field shows the list of packages in the VPM Repository.
-The type of the `packages` field **MUST** be an object.
-The key of the `packages` field **MUST** be the package name,
-which is the unique identifier of the package.
-The value **MUST** be an object that contains the package information.
+The type of this field **MUST** be an object.
+The key of the value of this field **MUST** be the package ID
+and the value **MUST** be an object that contains the following fields.
 
-##### 5.1.1.1. `packages.<name>.versions` (object)
-The `packages.<name>.versions` field shows the list of versions of the package.
-The type of the `packages.<name>.versions` field **MUST** be an object.
-The key of the `packages.<name>.versions` field **MUST** be the version of the package,
+##### 5.1.1.1. `packages.<id>.versions` (object)
+The `packages.<id>.versions` field shows the list of versions of the package.
+The type of this field **MUST** be an object.
+The key of the value of this field **MUST** be the version of the package,
 which is a valid version name described in Semantic Versioning 2.0.0 [[SEMVER]].
 
 The value **MUST** be an object that contains the VPM Package Manifest,
 which is described in [Section 4.2](#42-structure-of-vpm-package-manifest).
 
-The VPM Package Manifest **MUST** have same package name as the key of `packages` object,
-and same version as the key of `packages.<name>.versions` object.
+The VPM Package Manifest **MUST** have same package ID as the key of `packages` object,
+and same version as the key of `packages.<id>.versions` object.
 The VPM Package Manifest **MUST** have the `url` field that points to the package archive file.
 
 #### 5.1.2. `url` (string)
 The `url` field shows the URL of the VPM Repository JSON.
-The type of the `url` field **MUST** be a string.
-The `url` field **MUST** be a valid URL that points to the VPM Repository JSON.
+The type of this field **MUST** be a string.
+The value of this field **MUST** be a valid URL that points to the VPM Repository JSON.
 
 According to The [[VCC Docs]], It should point to the VPM Repository JSON.
 However, for Some existing VPM Repositories,
@@ -344,15 +345,13 @@ Therefore, VPM Client **SHOULD NOT** use the `url` field to fetch the VPM Reposi
 
 #### 5.1.3. `id` (string)
 The `id` field shows the unique identifier of the VPM Repository.
-The type of the `id` field **MUST** be a string.
+The type of this field **MUST** be a string.
 VPM Repository **SHOULD** provide the `id` field to identify the VPM Repository.
-If the `id` field is not provided, the VPM Client **MAY** use the URL of the VPM Repository as the `id` field.
+If the `id` field is not provided, the VPM Client use the URL of the VPM Repository as the `id` field.
 
 The `id` field **MUST** be unique among all VPM Repositories.
-To the `id` field be unique among all packages in the VPM Repositories, 
+To the `id` field be unique among all repositories in the VPM ecosystem, 
 the `id` **SHOULD** be prefixed with reverse domain name of the VPM Repository author.
-If you don't have a domain name, you **MAY** use the `<username>.github.io`
-as your domain like `io.github.<username>.<repository-id>`.
 
 #### 5.1.4. `name` (string)
 The `name` field shows the human-readable name of the VPM Repository.
@@ -379,43 +378,43 @@ The `author` field should show the human-readable author of the VPM Repository.
 The Package Archive File is a Zip archive file that contains the package contents.
 The Package Manifest inside the Package Repository JSON **MUST** have the `url` field
 that points to the Package Archive File.
-The Package Archive File **MUST** be a valid Zip archive file that contains the package contents.
-The Package Archive File **MUST** be encoded in UTF-8 [[UNICODE]].
 
-The root directory of the Package Archive File **MUST** be the root directory of the VPM Package.
-In other words, `package.json` of the VPM Package **MUST** be located as `package.json` in the Package Archive File,
+The paths in the Package Archive File **MUST** be encoded in UTF-8 [[UNICODE]]. It's not necessary to set Language Encoding flag in zip.
+
+The root directory of the Package Archive File is the root directory of the VPM Package.
+In other words, `package.json` of the VPM Package will be located as `package.json` in the Package Archive File,
 not as `package/package.json` or `root/package.json`.
 
-The VPM Package **SHOULD** only use the relative path in the Package Archive File
-and use Deflate compression method or store uncompressed bytes in the Zip archive file.
+The VPM Package **MUST** use `/` as path separator, **MUST NOT** include paths starting with `/` (absolute path) or `../` (path traversal), or contains `\\` (Windows path separator), `/../` (path traversal), `/./` (path identity in archive), or `:` (Windows drive letter which can cause absolute path).
 
-TODO: link to zip file APPNOTE?
+The VPM Client **MUST** support compression method 0 (stored) and 8 (deflate). Package Archive Files **SHOULD NOT** use compression Methods other than 0 or 8.
 
 > [!NOTE]
 > 
 > Notes for the VPM Package Developers
 > 
-> In the recent OSes, when we compressed a directory, they create one more directory that contains the directory.
+> In the recent OSes, when we compress a directory, they create root directory that contains the directory.
 > Therefore, please be careful when you compress your VPM Package.
+>
+> In addition, you should not use Windows Explorer to create zip files since it may use deflate64, which will cause compatibility problems.
 
 > [!NOTE]
 > Notes About Deflate64 Compression Method
 > 
-> For better compatibility, the VPM Archive File **SHOULD NOT** use the compression method other than Deflate.
+> For better compatibility, the VPM Archive File should not use the compression method other than Deflate.
 > 
 > Most implementation of Zip file only supports the Deflate compression method or store uncompressed bytes.
 > For example, the standard library of go, python,
 > and java only supports the Deflate compression method and uncompressed bytes.
 > 
 > However, the Microsoft Windows built-in Zip file compressor may use the Deflate64 compression method.
-> The Deflare64 compression method is proprietary and not supported by most of the Zip file implementations.
+> The Deflare64 compression method is not supported by most of the Zip file implementations.
 > As a result, some existing VPM Packages may use the Deflate64 compression method in their Package Archive File.
-> Therefore, it might be better for VPM Clients to support the Deflate64 compression method,
-> but due to lack of the documentation, We think it's not suitable to mark as **SHOULD**.
+> Therefore, it might be better for VPM Clients to support the Deflate64 compression method.
 > 
 > Side Note: the Deflate64 compression method is not publicly documented.
 > In the APPNOTE.TXT by pkware, deflate64 is described as "Deflate64(tm) is supported by the Deflate extractor.",
-> but it requires larger window size, so it's impossible to decompress with existing Deflate implementation.
+> but it requires larger window size and no literal to code mapping on document, so it's impossible to decompress with existing Deflate implementation.
 > In addition, the Deflate64 is not documented in any public documents,
 > so there are very limited deflate 64 implementations.
 > Here's an incomplete list of known open-source implementations:
@@ -429,7 +428,7 @@ TODO: link to zip file APPNOTE?
 ### \[VCC Docs]
 VRChat provides documentation for VCC at https://vcc.docs.vrchat.com/.
 The document is also published on GitHub at https://github.com/vrchat-community/creator-companion.
-This spec is based on [2f09cfe](https://github.com/vrchat-community/creator-companion/tree/2f09cfef3734b34e6e2cf4d8107c955c4f123322).
+This spec is based on commit [2f09cfe](https://github.com/vrchat-community/creator-companion/tree/2f09cfef3734b34e6e2cf4d8107c955c4f123322).
 
 ### \[HTTP]
 Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke, Ed., "HTTP Semantics", STD 97, RFC 9110, DOI 10.17487/RFC9110, June 2022, <<https://www.rfc-editor.org/info/rfc9110>>.
