@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog].
 - Fixed toast message when adding repositories [`#1815`](https://github.com/vrc-get/vrc-get/pull/1815)
 - Improved several linux desktop support `#1821`
 - Backup file used UTC time instead of Local time `#1862`
+- Worlds templates doesn't have proper input axis settings `#1902`
 
 ### Security
 
