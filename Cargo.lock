@@ -5648,7 +5648,7 @@ dependencies = [
  "async-stream",
  "async_zip",
  "bson",
- "dirs-sys 0.4.1",
+ "dirs-sys 0.5.0",
  "either",
  "enum-map",
  "futures",
