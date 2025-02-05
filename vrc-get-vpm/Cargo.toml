@@ -45,7 +45,7 @@ serde_repr = "0.1"
 [target."cfg(windows)".dependencies]
 dirs-sys = "0.4"
 winreg = { version = "0.52", optional = true }
-windows = { version = "0.58", features = ["Win32_System_Threading", "Win32_Security"] }
+windows = { version = "0.59", features = ["Win32_System_Threading", "Win32_Security"] }
 sha1 = "0.10"
 
 [features]
