@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Add Korean localization [`#1822`](https://github.com/vrc-get/vrc-get/pull/1822)
 
 ### Changed
 
@@ -17,12 +16,18 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Fixed toast message when adding repositories [`#1815`](https://github.com/vrc-get/vrc-get/pull/1815)
-- Improved several linux desktop support `#1821`
-- Backup file used UTC time instead of Local time `#1862`
-- Worlds templates doesn't have proper input axis settings `#1902`
 
 ### Security
+
+## [1.0.1] - 2025-02-05
+### Added
+- Add Korean localization [`#1822`](https://github.com/vrc-get/vrc-get/pull/1822)
+
+### Fixed
+- Fixed toast message when adding repositories [`#1815`](https://github.com/vrc-get/vrc-get/pull/1815)
+- Improved several linux desktop support [`#1821`](https://github.com/vrc-get/vrc-get/pull/1821)
+- Backup file used UTC time instead of Local time [`#1862`](https://github.com/vrc-get/vrc-get/pull/1862)
+- Worlds templates doesn't have proper input axis settings [`#1902`](https://github.com/vrc-get/vrc-get/pull/1902)
 
 ## [1.0.0] - 2025-01-01
 ### Fixed
@@ -505,7 +510,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.0...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.1...HEAD
+[1.0.1]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.0...gui-v1.0.1
 [1.0.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.17...gui-v1.0.0
 [0.1.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.16...gui-v0.1.17
 [0.1.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.15...gui-v0.1.16
