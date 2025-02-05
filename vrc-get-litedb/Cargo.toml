@@ -31,7 +31,7 @@ include = [
 bson = "2"
 hex = "0.4"
 once_cell = "1"
-rand = "0.8"
+rand = "0.9"
 serde = "1"
 
 [build-dependencies]
