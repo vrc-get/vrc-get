@@ -10,21 +10,21 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				default:
-					"bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/50 hover:shadow-primary/50 shadow hover:shadow-md transition-shadow uppercase",
+					"bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/50 hover:shadow-primary/50 shadow hover:shadow-md transition-shadow",
 				destructive:
-					"bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-destructive/50 hover:shadow-destructive/50 shadow hover:shadow-md transition-shadow uppercase",
+					"bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-destructive/50 hover:shadow-destructive/50 shadow hover:shadow-md transition-shadow",
 				"outline-success":
 					"border border-input hover:text-accent-foreground border-success hover:border-success/70 text-success hover:text-success/70",
 				secondary:
-					"bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-secondary/50 hover:shadow-secondary/50 shadow hover:shadow-md transition-shadow uppercase",
+					"bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-secondary/50 hover:shadow-secondary/50 shadow hover:shadow-md transition-shadow",
 				ghost:
 					"hover:bg-accent text-accent-foreground hover:text-accent-foreground",
 				"ghost-destructive":
 					"hover:bg-destructive/10 text-destructive hover:text-destructive",
 				link: "text-primary underline-offset-4 hover:underline",
-				info: "bg-info text-info-foreground hover:bg-info/90 shadow-info/50 hover:shadow-info/50 shadow hover:shadow-md transition-shadow uppercase",
+				info: "bg-info text-info-foreground hover:bg-info/90 shadow-info/50 hover:shadow-info/50 shadow hover:shadow-md transition-shadow",
 				success:
-					"bg-success text-success-foreground hover:bg-success/90 shadow-success/50 hover:shadow-success/50 shadow hover:shadow-md transition-shadow uppercase",
+					"bg-success text-success-foreground hover:bg-success/90 shadow-success/50 hover:shadow-success/50 shadow hover:shadow-md transition-shadow",
 			},
 			size: {
 				default: "h-10 px-4 py-2",
