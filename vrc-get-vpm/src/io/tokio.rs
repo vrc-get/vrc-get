@@ -90,7 +90,7 @@ impl EnvironmentIo for DefaultEnvironmentIo {
             Box::new(
                 vrc_get_litedb::shared_mutex::SharedMutex::new(name)
                     .await?
-                    .lock()
+                    .lock_owned()
                     .await?,
             )
         };
