@@ -22,10 +22,6 @@ so it is recommended to install with rustup and update it regularly.
 
 Not only Rust, some projects may require additional dependencies.
 
-For VCC-related features of vrc-get, and ALCOM, you need to install .NET SDK to work with.
-
-Please refer to the [.NET installation guide](https://dotnet.microsoft.com/download) to install .NET SDK if you don't have it.
-
 For ALCOM, you need to install any LTS version of Node.js and npm for building the frontend.
 
 Please refer to the [Node.js installation guide](https://nodejs.org/en/download/) to install Node.js if you don't have it.
