@@ -4,11 +4,6 @@ use std::path::PathBuf;
 fn main() {
     tauri_build::build();
 
-    if std::env::var("TARGET").unwrap().contains("linux") {
-        // start stop gc is not supported by dotnet.
-        println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
-    }
-
     build_templates();
     get_commit_hash();
 }
