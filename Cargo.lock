@@ -5628,20 +5628,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vrc-get-litedb"
-version = "0.2.2-beta.0"
-dependencies = [
- "ar",
- "bson",
- "cc",
- "hex",
- "object",
- "once_cell",
- "rand 0.8.5",
- "serde",
-]
-
-[[package]]
 name = "vrc-get-vpm"
 version = "0.0.15-beta.0"
 dependencies = [
@@ -5670,7 +5656,7 @@ dependencies = [
  "tokio-util",
  "url",
  "uuid",
- "vrc-get-litedb 0.2.1",
+ "vrc-get-litedb",
  "windows 0.58.0",
  "winreg",
 ]
