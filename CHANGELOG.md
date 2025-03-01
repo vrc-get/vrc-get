@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Changed how we read VCC's project information `#1949`
+  - Along with this, building this project no longer needs dotnet SDK to build.
 
 ### Deprecated
 

@@ -1,3 +1,0 @@
-[submodule "vrc-get-litedb/dotnet/LiteDB"]
-	path = vrc-get-litedb/dotnet/LiteDB
-	url = https://github.com/anatawa12/LiteDB.git

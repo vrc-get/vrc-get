@@ -1,7 +1,0 @@
-<Project>
-    <PropertyGroup>
-        <VrcGetOutDir Condition="$(VrcGetOutDir) == ''">$([System.IO.Path]::GetDirectoryName('$(DirectoryBuildPropsPath)'))</VrcGetOutDir>
-        <BaseIntermediateOutputPath>$(VrcGetOutDir)/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
-        <BaseOutputPath>$(VrcGetOutDir)/bin/$(MSBuildProjectName)/</BaseOutputPath>
-    </PropertyGroup>
-</Project>

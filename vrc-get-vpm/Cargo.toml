@@ -35,11 +35,13 @@ uuid = { version = "1", features = ["v4"] }
 lazy_static = "1"
 enum-map = "2"
 
-vrc-get-litedb = { version = "0.2", optional = true }
+vrc-get-litedb = { version = "0.3.0-beta.6", optional = true, default-features = false, features = [
+    'tokio-fs',
+    'shared-mutex',
+] }
 tokio = { version = "1", features = ["fs", "process"], optional = true }
 serde_path_to_error = "0.1"
 serde-value = "0.7"
-bson = "2"
 serde_repr = "0.1"
 
 [target."cfg(windows)".dependencies]

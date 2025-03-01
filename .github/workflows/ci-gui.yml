@@ -55,9 +55,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ci-build-gui-${{ matrix.triple }}
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.2xx
       - name: Cache javascript essentials
         uses: actions/cache@v4
         with:

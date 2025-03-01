@@ -459,12 +459,14 @@ pub async fn project_open_unity(
 
     {
         let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-        if let Some(project) = connection.find_project(project_path.as_ref())? {
+        if let Some(project) = connection.find_project(project_path.as_ref()).await? {
             custom_args = project
                 .custom_unity_args()
                 .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
         }
-        connection.update_project_last_modified(project_path.as_ref())?;
+        connection
+            .update_project_last_modified(project_path.as_ref())
+            .await?;
         connection.save(io.inner()).await?;
     }
 
@@ -703,7 +705,7 @@ pub async fn project_get_custom_unity_args(
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
     let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref())? {
+    if let Some(project) = connection.find_project(project_path.as_ref()).await? {
         Ok(project
             .custom_unity_args()
             .map(|x| x.iter().map(ToOwned::to_owned).collect()))
@@ -720,13 +722,13 @@ pub async fn project_set_custom_unity_args(
     args: Option<Vec<String>>,
 ) -> Result<bool, RustError> {
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+    if let Some(mut project) = connection.find_project(project_path.as_ref()).await? {
         if let Some(args) = args {
             project.set_custom_unity_args(args);
         } else {
             project.clear_custom_unity_args();
         }
-        connection.update_project(&project)?;
+        connection.update_project(&project).await?;
         connection.save(io.inner()).await?;
         Ok(true)
     } else {
@@ -741,7 +743,7 @@ pub async fn project_get_unity_path(
     project_path: String,
 ) -> Result<Option<String>, RustError> {
     let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref())? {
+    if let Some(project) = connection.find_project(project_path.as_ref()).await? {
         Ok(project.unity_path().map(ToOwned::to_owned))
     } else {
         Ok(None)
@@ -756,13 +758,13 @@ pub async fn project_set_unity_path(
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+    if let Some(mut project) = connection.find_project(project_path.as_ref()).await? {
         if let Some(unity_path) = unity_path {
             project.set_unity_path(unity_path);
         } else {
             project.clear_unity_path();
         }
-        connection.update_project(&project)?;
+        connection.update_project(&project).await?;
         connection.save(io.inner()).await?;
         Ok(true)
     } else {

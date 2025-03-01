@@ -29,11 +29,12 @@ pub async fn environment_unity_versions(
     let connection = VccDatabaseConnection::connect(io.inner()).await?;
 
     let unity_paths = connection
-        .get_unity_installations()?
+        .get_unity_installations()
+        .await?
         .iter()
         .filter_map(|unity| {
             Some((
-                unity.path().to_string(),
+                unity.path()?.to_string(),
                 unity.version()?.to_string(),
                 unity.loaded_from_hub(),
             ))
@@ -92,11 +93,12 @@ pub async fn environment_get_settings(
         let connection = VccDatabaseConnection::connect(io.inner()).await?;
 
         unity_paths = connection
-            .get_unity_installations()?
+            .get_unity_installations()
+            .await?
             .iter()
             .filter_map(|unity| {
                 Some((
-                    unity.path().to_string(),
+                    unity.path()?.to_string(),
                     unity.version()?.to_string(),
                     unity.loaded_from_hub(),
                 ))
@@ -270,8 +272,8 @@ pub async fn environment_pick_unity(
     {
         let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
 
-        for x in connection.get_unity_installations()? {
-            if x.path() == path {
+        for x in connection.get_unity_installations().await? {
+            if x.path() == Some(&path) {
                 return Ok(TauriPickUnityResult::AlreadyAdded);
             }
         }

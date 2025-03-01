@@ -49,6 +49,7 @@ async fn migrate_sanitize_projects(
         .exit_context("migrating from settings.json");
     connection
         .dedup_projects()
+        .await
         .exit_context("deduplicating projects in DB");
 }
 
@@ -76,14 +77,16 @@ impl ProjectList {
             .await
             .exit_context("syncing with real projects");
 
-        let mut projects = connection.get_projects().exit_context("getting projects");
+        let mut projects = connection
+            .get_projects()
+            .await
+            .exit_context("getting projects");
 
-        projects.sort_by_key(|x| Reverse(x.last_modified().timestamp_millis()));
+        projects.sort_by_key(|x| Reverse(x.last_modified()));
 
         for project in projects.iter() {
-            let path = project.path();
-            // TODO: use '/' for unix
-            let name = project.name();
+            let Some(path) = project.path() else { continue };
+            let Some(name) = project.name() else { continue };
             let unity_version = project
                 .unity_version()
                 .map(|x| x.to_string())
@@ -135,6 +138,7 @@ impl ProjectAdd {
         connection.save(&io).await.exit_context("saving database");
         settings
             .load_from_db(&connection)
+            .await
             .exit_context("saving database");
         settings.save(&io).await.exit_context("saving settings");
     }
@@ -158,10 +162,9 @@ impl ProjectRemove {
             .exit_context("connecting to database");
 
         let Some(project) = connection
-            .get_projects()
+            .find_project(self.path.as_ref())
+            .await
             .exit_context("getting projects")
-            .into_iter()
-            .find(|x| x.path() == self.path.as_ref())
         else {
             return println!("No project found at {}", self.path);
         };
@@ -170,11 +173,13 @@ impl ProjectRemove {
 
         connection
             .remove_project(&project)
+            .await
             .exit_context("removing project");
 
         connection.save(&io).await.exit_context("saving database");
         settings
             .load_from_db(&connection)
+            .await
             .exit_context("saving database");
         settings.save(&io).await.exit_context("saving environment");
     }
@@ -209,15 +214,18 @@ impl UnityList {
 
         let mut unity_installations = connection
             .get_unity_installations()
+            .await
             .exit_context("getting installations");
 
         unity_installations.sort_by_key(|x| Reverse(x.version()));
 
         for unity in unity_installations.iter() {
-            if let Some(unity_version) = unity.version() {
-                println!("version {} at {}", unity_version, unity.path());
-            } else {
-                println!("unknown version at {}", unity.path());
+            if let Some(path) = unity.path() {
+                if let Some(unity_version) = unity.version() {
+                    println!("version {} at {}", unity_version, path);
+                } else {
+                    println!("unknown version at {}", path);
+                }
             }
         }
     }
@@ -272,9 +280,10 @@ impl UnityRemove {
 
         let Some(unity) = connection
             .get_unity_installations()
+            .await
             .exit_context("getting installations")
             .into_iter()
-            .find(|x| x.path() == self.path.as_ref())
+            .find(|x| x.path() == Some(self.path.as_ref()))
         else {
             return eprintln!("No unity installation found at {}", self.path);
         };

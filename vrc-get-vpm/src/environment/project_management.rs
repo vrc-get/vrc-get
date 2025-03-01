@@ -4,15 +4,31 @@ use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
 use crate::{io, ProjectType, UnityProject};
-use bson::oid::ObjectId;
-use bson::DateTime;
 use futures::future::join_all;
+use futures::prelude::*;
 use log::error;
-use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::ffi::OsStr;
 use std::path::Path;
+use std::pin::pin;
+use vrc_get_litedb::bson::{Array, DateTime, Document, Value};
+use vrc_get_litedb::document;
+use vrc_get_litedb::engine::{BsonAutoId, TransactionLiteEngine};
 
 pub(crate) static COLLECTION: &str = "projects";
+pub(crate) static ID: &str = "_id";
+pub(crate) static PATH: &str = "Path";
+pub(crate) static UNITY_VERSION: &str = "UnityVersion";
+pub(crate) static TYPE: &str = "Type";
+pub(crate) static FAVORITE: &str = "Favorite";
+pub(crate) static CREATED_AT: &str = "CreatedAt";
+pub(crate) static LAST_MODIFIED: &str = "LastModified";
+
+pub(crate) static VRC_GET: &str = "vrc-get";
+pub(crate) static CACHED_UNITY_REVISION: &str = "cached_unity_version";
+pub(crate) static UNITY_REVISION: &str = "unity_revision";
+pub(crate) static CUSTOM_UNITY_ARGS: &str = "custom_unity_args";
+pub(crate) static UNITY_PATH: &str = "unity_path";
 
 impl VccDatabaseConnection {
     pub async fn migrate(
@@ -34,16 +50,18 @@ impl VccDatabaseConnection {
             .map(|x| x.as_ref())
             .collect::<HashSet<_>>();
 
-        let db_projects = self
-            .db
-            .get_values::<UserProject>(COLLECTION)?
-            .into_iter()
-            .map(|x| (x.path().to_owned(), x))
+        let db_projects = self.db.get_all(COLLECTION).try_collect::<Vec<_>>().await?;
+
+        let db_projects_by_path = db_projects
+            .iter()
+            .filter_map(|x| Some((x.get("Path").as_str()?, x)))
             .collect::<HashMap<_, _>>();
+
+        let mut to_insert = vec![];
 
         // add new projects
         for project in &projects {
-            if !db_projects.contains_key(*project) {
+            if !db_projects_by_path.contains_key(*project) {
                 async fn get_project_type(
                     io: &impl EnvironmentIo,
                     path: &Path,
@@ -67,16 +85,34 @@ impl VccDatabaseConnection {
                 if let (Some(unity), Some(revision)) = (unity_version, unity_revision) {
                     project.set_unity_revision(unity, revision);
                 }
-                self.db.insert(COLLECTION, &project)?;
+                to_insert.push(project);
             }
         }
 
+        if !to_insert.is_empty() {
+            self.db
+                .insert(
+                    COLLECTION,
+                    to_insert.iter().map(|x| x.to_bson()).collect(),
+                    BsonAutoId::ObjectId,
+                )
+                .await?;
+        }
+
+        let mut ids_to_delete = vec![];
+
         // remove deleted projects
-        for (project_path, project) in db_projects.iter() {
-            if !projects.contains(project_path.as_str()) {
-                self.db.delete(COLLECTION, project.id)?;
+        for project in db_projects.iter() {
+            if project[PATH]
+                .as_str()
+                .map(|path| !projects.contains(path))
+                .unwrap_or(true)
+            {
+                ids_to_delete.push(project.get(ID).clone());
             }
         }
+
+        self.db.delete(COLLECTION, &ids_to_delete).await?;
 
         Ok(())
     }
@@ -88,24 +124,24 @@ impl VccDatabaseConnection {
         skip_not_found: bool,
         io: &impl EnvironmentIo,
     ) -> io::Result<()> {
-        let mut projects = self.db.get_values::<UserProject>(COLLECTION)?;
+        let projects = self.db.get_all(COLLECTION).try_collect::<Vec<_>>().await?;
 
         let changed_projects = join_all(
             projects
-                .iter_mut()
+                .into_iter()
                 .map(|x| update_project_with_actual_data(io, x, skip_not_found)),
         )
         .await;
 
-        for project in changed_projects.iter().flatten() {
-            self.db.update(COLLECTION, project)?;
-        }
+        self.db
+            .update(COLLECTION, changed_projects.into_iter().flatten().collect())
+            .await?;
 
-        async fn update_project_with_actual_data<'a>(
+        async fn update_project_with_actual_data(
             io: &impl EnvironmentIo,
-            project: &'a mut UserProject,
+            project: Document,
             skip_not_found: bool,
-        ) -> Option<&'a UserProject> {
+        ) -> Option<Document> {
             match update_project_with_actual_data_inner(io, project, skip_not_found).await {
                 Ok(Some(project)) => Some(project),
                 Ok(None) => None,
@@ -116,12 +152,15 @@ impl VccDatabaseConnection {
             }
         }
 
-        async fn update_project_with_actual_data_inner<'a>(
+        async fn update_project_with_actual_data_inner(
             io: &impl EnvironmentIo,
-            project: &'a mut UserProject,
+            mut project: Document,
             skip_not_found: bool,
-        ) -> io::Result<Option<&'a UserProject>> {
-            let path = project.path().as_ref();
+        ) -> io::Result<Option<Document>> {
+            let Some(path) = project[PATH].as_str() else {
+                return Ok(None);
+            };
+            let path = Path::new(path);
 
             if !io.is_dir(path).await {
                 if !skip_not_found {
@@ -141,31 +180,42 @@ impl VccDatabaseConnection {
 
             let loaded_project = UnityProject::load(io.new_project_io(path)).await?;
             if let Some(unity_version) = loaded_project.unity_version() {
+                let unity_version = unity_version.to_string();
                 if let Some(revision) = loaded_project.unity_revision() {
-                    if Some(unity_version) != project.unity_version()
-                        || Some(revision) != project.unity_revision()
+                    if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str()
+                        || Some(revision)
+                            != project[VRC_GET]
+                                .as_document()
+                                .filter(|x| {
+                                    x.get(CACHED_UNITY_REVISION).as_str()
+                                        == Some(unity_version.as_str())
+                                })
+                                .and_then(|x| x.get(UNITY_REVISION).as_str())
                     {
                         changed = true;
-                        project.set_unity_revision(unity_version, revision.to_owned());
+                        project.insert(UNITY_VERSION, unity_version.clone());
+                        let vrc_get = project.entry(VRC_GET).document_or_replace();
+                        vrc_get.insert(UNITY_REVISION, revision);
+                        vrc_get.insert(CACHED_UNITY_REVISION, unity_version);
                     }
                 } else {
                     #[allow(clippy::collapsible_else_if)]
-                    if project.unity_version() != Some(unity_version) {
+                    if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str() {
                         changed = true;
-                        project.set_unity_version(unity_version);
+                        project.insert(UNITY_VERSION, unity_version);
                     }
                 }
             }
 
             let project_type = loaded_project.detect_project_type().await?;
-            if project.project_type() != project_type {
+            if project[TYPE].as_i32() != Some(project_type as i32) {
                 changed = true;
-                project.project_type = project_type;
+                project.insert(TYPE, project_type as i32);
             }
 
             if let Some(normalized) = normalized {
                 changed = true;
-                project.path = normalized.to_str().unwrap().into();
+                project.insert(PATH, normalized.to_str().unwrap());
             }
 
             Ok(if changed { Some(project) } else { None })
@@ -174,83 +224,129 @@ impl VccDatabaseConnection {
         Ok(())
     }
 
-    pub fn dedup_projects(&mut self) -> io::Result<()> {
-        let projects = self.db.get_values::<UserProject>(COLLECTION)?;
+    pub async fn dedup_projects(&mut self) -> io::Result<()> {
+        self.db
+            .with_transaction(async |db: &mut TransactionLiteEngine| {
+                let projects = db.get_all(COLLECTION).try_collect::<Vec<_>>().await?;
 
-        let mut projects_by_path = HashMap::<_, Vec<_>>::new();
+                let mut projects_by_path = HashMap::<_, Vec<_>>::new();
 
-        for project in &projects {
-            projects_by_path
-                .entry(project.path())
-                .or_default()
-                .push(project);
-        }
+                for project in projects {
+                    if let Some(path) = project[PATH].as_str() {
+                        projects_by_path
+                            .entry(path.to_string())
+                            .or_default()
+                            .push(project);
+                    }
+                }
 
-        for (_, values) in projects_by_path {
-            if values.len() == 1 {
-                continue;
-            }
+                let mut updates = vec![];
+                let mut deletes = vec![];
 
-            // update favorite and last modified
+                for (_, values) in projects_by_path {
+                    if values.len() == 1 {
+                        continue;
+                    }
 
-            let favorite = values.iter().any(|x| x.favorite());
-            let last_modified = values.iter().map(|x| x.last_modified()).max().unwrap();
+                    // update favorite and last modified
 
-            let mut project = values[0].clone();
-            let mut changed = false;
-            if project.favorite() != favorite {
-                project.set_favorite(favorite);
-                changed = true;
-            }
-            if project.last_modified() != last_modified {
-                project.last_modified = last_modified;
-                changed = true;
-            }
+                    let favorite = values
+                        .iter()
+                        .any(|x| x[FAVORITE].as_bool().unwrap_or(false));
+                    let created_at = values
+                        .iter()
+                        .filter_map(|x| x[CREATED_AT].as_date_time())
+                        .min()
+                        .unwrap();
+                    let last_modified = values
+                        .iter()
+                        .filter_map(|x| x[LAST_MODIFIED].as_date_time())
+                        .max()
+                        .unwrap();
 
-            if changed {
-                self.db.update(COLLECTION, &project)?;
-            }
+                    let mut values_iter = values.into_iter();
+                    let mut project = values_iter.next().unwrap();
+                    let mut changed = false;
+                    if project[FAVORITE].as_bool() != Some(favorite) {
+                        project.insert(FAVORITE, favorite);
+                        changed = true;
+                    }
+                    if project[LAST_MODIFIED].as_date_time() != Some(last_modified) {
+                        project.insert(LAST_MODIFIED, last_modified);
+                        changed = true;
+                    }
+                    if project[CREATED_AT].as_date_time() != Some(created_at) {
+                        project.insert(CREATED_AT, created_at);
+                        changed = true;
+                    }
 
-            // remove rest
-            for project in values.iter().skip(1) {
-                self.db.delete(COLLECTION, project.id)?;
-            }
-        }
+                    if changed {
+                        updates.push(project);
+                    }
+
+                    // remove rest
+                    for project in values_iter {
+                        deletes.push(project[ID].clone());
+                    }
+                }
+
+                self.db.update(COLLECTION, updates).await?;
+                self.db.delete(COLLECTION, &deletes).await?;
+
+                Ok(())
+            })
+            .await?;
 
         Ok(())
     }
 
-    pub fn get_projects(&self) -> io::Result<Vec<UserProject>> {
-        Ok(self.db.get_values(COLLECTION)?)
+    pub async fn get_projects(&self) -> io::Result<Vec<UserProject>> {
+        Ok(self
+            .db
+            .get_all(COLLECTION)
+            .map_ok(UserProject::from_document)
+            .try_collect::<Vec<_>>()
+            .await?)
     }
 
-    pub fn find_project(&self, project_path: &Path) -> io::Result<Option<UserProject>> {
+    pub async fn find_project_bson(&self, project_path: &str) -> io::Result<Option<Document>> {
         check_absolute_path(project_path)?;
-        let project_path = normalize_path(project_path);
+        let project_path = normalize_path(project_path.as_ref());
 
-        let project = self.db.get_values::<UserProject>(COLLECTION)?;
-        Ok(project
-            .into_iter()
-            .find(|x| Path::new(x.path()) == project_path))
+        Ok(pin!(self
+            .db
+            .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into()))
+        .try_next()
+        .await?)
     }
 
-    pub fn update_project_last_modified(&mut self, project_path: &Path) -> io::Result<()> {
+    pub async fn find_project(&self, project_path: &str) -> io::Result<Option<UserProject>> {
+        Ok(self
+            .find_project_bson(project_path)
+            .await?
+            .map(UserProject::from_document))
+    }
+
+    pub async fn update_project_last_modified(&mut self, project_path: &str) -> io::Result<()> {
         check_absolute_path(project_path)?;
-        let Some(mut project) = self.find_project(project_path)? else {
+        let Some(mut project) = self.find_project_bson(project_path).await? else {
             return Ok(());
         };
 
-        project.last_modified = DateTime::now();
-        self.update_project(&project)?;
+        project.insert(LAST_MODIFIED, DateTime::now());
+        self.db.update(COLLECTION, vec![project]).await?;
         Ok(())
     }
 
-    pub fn update_project(&mut self, project: &UserProject) -> io::Result<()> {
-        Ok(self.db.update(COLLECTION, &project)?)
+    pub async fn update_project(&mut self, project: &UserProject) -> io::Result<()> {
+        self.db.update(COLLECTION, vec![project.to_bson()]).await?;
+        Ok(())
     }
 
-    pub fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
-        self.db.delete(COLLECTION, project.id)?;
+    pub async fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
+        self.db
+            .delete(COLLECTION, &[project.bson[ID].clone()])
+            .await?;
         Ok(())
     }
 
@@ -278,158 +374,155 @@ impl VccDatabaseConnection {
         let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
         new_project.set_unity_revision(unity_version, unity_revision.to_owned());
 
-        self.db.insert(COLLECTION, &new_project)?;
+        self.db
+            .insert(
+                COLLECTION,
+                vec![new_project.to_bson()],
+                BsonAutoId::ObjectId,
+            )
+            .await?;
 
         Ok(())
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
 pub struct UserProject {
-    #[serde(rename = "_id")]
-    id: ObjectId,
-    #[serde(rename = "Path")]
-    path: Box<str>,
-    #[serde(default, rename = "UnityVersion")]
-    #[serde(deserialize_with = "default_if_err")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    unity_version: Option<UnityVersion>,
-    #[serde(rename = "CreatedAt")]
-    created_at: DateTime,
-    #[serde(rename = "LastModified")]
-    last_modified: DateTime,
-    #[serde(rename = "Type")]
-    project_type: ProjectType,
-    #[serde(rename = "Favorite")]
-    favorite: bool,
-    #[serde(default, rename = "vrc-get")]
-    vrc_get: Option<VrcGetMeta>,
+    bson: Document,
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
-struct VrcGetMeta {
-    #[serde(default)]
-    cached_unity_version: Option<UnityVersion>,
-    #[serde(default)]
-    unity_revision: Option<String>,
-    custom_unity_args: Option<Vec<String>>,
-    unity_path: Option<String>,
+impl UserProject {
+    pub(crate) fn to_bson(&self) -> Document {
+        self.bson.clone()
+    }
 }
 
 impl UserProject {
     fn new(path: Box<str>, unity_version: Option<UnityVersion>, project_type: ProjectType) -> Self {
         let now = DateTime::now();
         Self {
-            id: ObjectId::new(),
-            path,
-            unity_version,
-            created_at: now,
-            last_modified: now,
-            project_type,
-            favorite: false,
-            vrc_get: None,
+            bson: document! {
+                PATH => path.as_ref(),
+                UNITY_VERSION => unity_version.as_ref().map(ToString::to_string),
+                CREATED_AT => now,
+                LAST_MODIFIED => now,
+                TYPE => project_type as i32,
+                FAVORITE => false,
+            },
         }
     }
 
-    pub fn path(&self) -> &str {
-        self.path.as_ref()
+    fn from_document(document: Document) -> Self {
+        Self { bson: document }
     }
 
-    pub fn name(&self) -> &str {
-        Path::new(self.path())
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
+    pub fn path(&self) -> Option<&str> {
+        self.bson[PATH].as_str()
     }
 
-    pub fn crated_at(&self) -> DateTime {
-        self.created_at
+    pub fn name(&self) -> Option<&str> {
+        self.path()
+            .map(Path::new)
+            .and_then(Path::file_name)
+            .and_then(OsStr::to_str)
     }
 
-    pub fn last_modified(&self) -> DateTime {
-        self.last_modified
+    pub fn crated_at(&self) -> Option<DateTime> {
+        self.bson[CREATED_AT].as_date_time()
+    }
+
+    pub fn last_modified(&self) -> Option<DateTime> {
+        self.bson[LAST_MODIFIED].as_date_time()
     }
 
     pub fn unity_version(&self) -> Option<UnityVersion> {
-        self.unity_version
+        self.bson[UNITY_VERSION]
+            .as_str()
+            .and_then(UnityVersion::parse)
     }
 
     pub fn project_type(&self) -> ProjectType {
-        self.project_type
+        self.bson[TYPE]
+            .as_i32()
+            .and_then(ProjectType::from_i32)
+            .unwrap_or(ProjectType::Unknown)
     }
 
     pub fn favorite(&self) -> bool {
-        self.favorite
+        self.bson[FAVORITE].as_bool().unwrap_or(false)
     }
 
     pub fn set_favorite(&mut self, favorite: bool) {
-        self.favorite = favorite;
+        self.bson.insert(FAVORITE, favorite);
     }
 
     pub fn set_unity_version(&mut self, unity_version: UnityVersion) {
-        self.unity_version = Some(unity_version);
-        if let Some(vrc_get) = self.vrc_get.as_mut() {
-            vrc_get.cached_unity_version = Some(unity_version);
-            vrc_get.unity_revision = None;
+        let version = unity_version.to_string();
+        self.bson.insert(UNITY_VERSION, version.clone());
+        if let Some(vrc_get) = self.bson.get_mut(VRC_GET).and_then(|x| x.as_document_mut()) {
+            vrc_get.insert(CACHED_UNITY_REVISION, version);
+            vrc_get.insert(UNITY_REVISION, Value::Null);
         }
     }
 
     pub fn set_unity_revision(&mut self, unity_version: UnityVersion, unity_revision: String) {
-        self.unity_version = Some(unity_version);
-        let vrc_get = self.vrc_get.get_or_insert_with(Default::default);
-        vrc_get.cached_unity_version = Some(unity_version);
-        vrc_get.unity_revision = Some(unity_revision);
+        let version = unity_version.to_string();
+        self.bson.insert(UNITY_VERSION, version.clone());
+        let vrc_get = self.bson.entry(VRC_GET).document_or_replace();
+        vrc_get.insert(CACHED_UNITY_REVISION, version);
+        vrc_get.insert(UNITY_REVISION, unity_revision);
     }
 
     pub fn unity_revision(&self) -> Option<&str> {
-        self.vrc_get
-            .as_ref()
-            .filter(|x| x.cached_unity_version == self.unity_version)
-            .and_then(|x| x.unity_revision.as_deref())
+        let unity_version = self.bson[UNITY_VERSION].as_str()?;
+        self.bson
+            .get(VRC_GET)
+            .as_document()
+            .filter(|x| x[CACHED_UNITY_REVISION].as_str() == Some(unity_version))
+            .and_then(|x| x[UNITY_REVISION].as_str())
     }
 
-    pub fn custom_unity_args(&self) -> Option<&[String]> {
-        self.vrc_get
-            .as_ref()
-            .and_then(|x| x.custom_unity_args.as_deref())
+    pub fn custom_unity_args(&self) -> Option<Vec<String>> {
+        self.bson
+            .get(VRC_GET)
+            .as_document()
+            .and_then(|x| x[CUSTOM_UNITY_ARGS].as_array())
+            .and_then(|x| {
+                x.as_slice()
+                    .iter()
+                    .map(|x| x.as_str().map(|x| x.to_owned()))
+                    .collect::<Option<Vec<_>>>()
+            })
     }
 
     pub fn set_custom_unity_args(&mut self, custom_unity_args: Vec<String>) {
-        self.vrc_get
-            .get_or_insert_with(Default::default)
-            .custom_unity_args = Some(custom_unity_args);
+        self.bson
+            .entry(VRC_GET)
+            .document_or_replace()
+            .insert(CUSTOM_UNITY_ARGS, Array::from(&custom_unity_args));
     }
 
     pub fn clear_custom_unity_args(&mut self) {
-        if let Some(x) = self.vrc_get.as_mut() {
-            x.custom_unity_args = None;
+        if let Some(x) = self.bson.get_mut(VRC_GET).and_then(|x| x.as_document_mut()) {
+            x.remove(CUSTOM_UNITY_ARGS);
         }
     }
 
     pub fn unity_path(&self) -> Option<&str> {
-        self.vrc_get.as_ref().and_then(|x| x.unity_path.as_deref())
+        self.bson[VRC_GET]
+            .as_document()
+            .and_then(|x| x[UNITY_PATH].as_str())
     }
 
     pub fn set_unity_path(&mut self, unity_path: String) {
-        self.vrc_get.get_or_insert_with(Default::default).unity_path = Some(unity_path);
+        self.bson
+            .entry(VRC_GET)
+            .document_or_replace()
+            .insert(UNITY_PATH, unity_path);
     }
 
     pub fn clear_unity_path(&mut self) {
-        if let Some(x) = self.vrc_get.as_mut() {
-            x.unity_path = None;
+        if let Some(x) = self.bson.get_mut(VRC_GET).and_then(|x| x.as_document_mut()) {
+            x.remove(UNITY_PATH);
         }
-    }
-}
-
-// IDK much but VCC may produce "UnknownUnityVersion" so make it None
-fn default_if_err<'de, D, T>(de: D) -> Result<T, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de> + Default,
-{
-    match T::deserialize(de) {
-        Ok(v) => Ok(v),
-        Err(_) => Ok(T::default()),
     }
 }
