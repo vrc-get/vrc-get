@@ -139,7 +139,10 @@ fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
     async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), std::io::Error> {
         let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io).await?;
-        connection.update_project_last_modified(&absolute_path(project_dir))?;
+        let project_dir = absolute_path(project_dir);
+        connection
+            .update_project_last_modified(&project_dir.to_string_lossy())
+            .await?;
         connection.save(io).await?;
         Ok(())
     }

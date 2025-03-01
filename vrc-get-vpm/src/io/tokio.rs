@@ -68,8 +68,11 @@ impl EnvironmentIo for DefaultEnvironmentIo {
 
     #[cfg(feature = "vrc-get-litedb")]
     async fn connect_lite_db(&self) -> io::Result<crate::environment::VccDatabaseConnection> {
+        use vrc_get_litedb::engine::{LiteEngine, LiteSettings};
+        use vrc_get_litedb::tokio_fs::TokioStreamFactory;
+
         let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
-        let path = path.to_str().expect("path is not utf8").to_string();
+        let log_path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
 
         #[cfg(windows)]
         let lock = {
@@ -83,17 +86,25 @@ impl EnvironmentIo for DefaultEnvironmentIo {
             // this lock name is same as shared engine in litedb
             let name = format!("Global\\{hash_hex}.Mutex");
 
-            Box::new(win_mutex::MutexGuard::new(name).await?)
+            Box::new(
+                vrc_get_litedb::shared_mutex::SharedMutex::new(name)
+                    .await?
+                    .lock()
+                    .await?,
+            )
         };
         #[cfg(not(windows))]
         let lock = Box::new(());
 
-        let db_connection = vrc_get_litedb::ConnectionString::new(&path).connect()?;
+        let engine = LiteEngine::new(LiteSettings {
+            data_stream: Box::new(TokioStreamFactory::new(path.clone())),
+            log_stream: Box::new(TokioStreamFactory::new(log_path.clone())),
+            auto_build: false,
+            collation: None,
+        })
+        .await?;
 
-        Ok(crate::environment::VccDatabaseConnection::new(
-            db_connection,
-            lock,
-        ))
+        Ok(crate::environment::VccDatabaseConnection::new(engine, lock))
     }
 
     #[cfg(feature = "experimental-project-management")]
