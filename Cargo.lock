@@ -5608,9 +5608,9 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-litedb"
-version = "0.3.0-beta.5"
+version = "0.3.0-beta.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8b2ed84bce23fe4e4347e0c632a3af829ae078e3f7c40682216ae12e2db9776"
+checksum = "c5f0b22cac27a7fa89233caf763673e0ff9602f20fa192902ec3ab2a38123bea"
 dependencies = [
  "async-lock",
  "async-stream",
