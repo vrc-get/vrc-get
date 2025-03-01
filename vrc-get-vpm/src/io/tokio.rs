@@ -78,6 +78,7 @@ impl EnvironmentIo for DefaultEnvironmentIo {
         let lock = {
             use sha1::Digest;
 
+            let path = path.to_string_lossy();
             let path_lower = path.to_lowercase();
             let mut sha1 = sha1::Sha1::new();
             sha1.update(path_lower.as_bytes());
