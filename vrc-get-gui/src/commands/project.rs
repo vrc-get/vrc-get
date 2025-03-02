@@ -468,6 +468,7 @@ pub async fn project_open_unity(
             .update_project_last_modified(project_path.as_ref())
             .await?;
         connection.save(io.inner()).await?;
+        connection.dispose().await?;
     }
 
     let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
@@ -705,13 +706,15 @@ pub async fn project_get_custom_unity_args(
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
     let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref()).await? {
+    let result = if let Some(project) = connection.find_project(project_path.as_ref()).await? {
         Ok(project
             .custom_unity_args()
             .map(|x| x.iter().map(ToOwned::to_owned).collect()))
     } else {
         Ok(None)
-    }
+    };
+    connection.dispose().await?;
+    result
 }
 
 #[tauri::command]
@@ -730,8 +733,10 @@ pub async fn project_set_custom_unity_args(
         }
         connection.update_project(&project).await?;
         connection.save(io.inner()).await?;
+        connection.dispose().await?;
         Ok(true)
     } else {
+        connection.dispose().await?;
         Ok(false)
     }
 }
@@ -743,11 +748,13 @@ pub async fn project_get_unity_path(
     project_path: String,
 ) -> Result<Option<String>, RustError> {
     let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref()).await? {
+    let result = if let Some(project) = connection.find_project(project_path.as_ref()).await? {
         Ok(project.unity_path().map(ToOwned::to_owned))
     } else {
         Ok(None)
-    }
+    };
+    connection.dispose().await?;
+    result
 }
 
 #[tauri::command]
@@ -758,7 +765,7 @@ pub async fn project_set_unity_path(
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref()).await? {
+    let result = if let Some(mut project) = connection.find_project(project_path.as_ref()).await? {
         if let Some(unity_path) = unity_path {
             project.set_unity_path(unity_path);
         } else {
@@ -769,5 +776,7 @@ pub async fn project_set_unity_path(
         Ok(true)
     } else {
         Ok(false)
-    }
+    };
+    connection.dispose().await?;
+    result
 }

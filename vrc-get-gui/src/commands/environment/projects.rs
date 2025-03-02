@@ -130,7 +130,7 @@ pub async fn environment_projects(
 
     let mut projects = connection.get_projects().await?;
     projects.retain(|x| x.path().is_some());
-    drop(connection);
+    connection.dispose().await?;
 
     let stored = projects_state.set(projects.into_boxed_slice()).await;
 

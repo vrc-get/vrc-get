@@ -82,6 +82,11 @@ impl ProjectList {
             .await
             .exit_context("getting projects");
 
+        connection
+            .dispose()
+            .await
+            .exit_context("disposing database");
+
         projects.sort_by_key(|x| Reverse(x.last_modified()));
 
         for project in projects.iter() {
@@ -141,6 +146,10 @@ impl ProjectAdd {
             .await
             .exit_context("saving database");
         settings.save(&io).await.exit_context("saving settings");
+        connection
+            .dispose()
+            .await
+            .exit_context("disposing database");
     }
 }
 
@@ -182,6 +191,10 @@ impl ProjectRemove {
             .await
             .exit_context("saving database");
         settings.save(&io).await.exit_context("saving environment");
+        connection
+            .dispose()
+            .await
+            .exit_context("disposing database");
     }
 }
 
@@ -216,6 +229,11 @@ impl UnityList {
             .get_unity_installations()
             .await
             .exit_context("getting installations");
+
+        connection
+            .dispose()
+            .await
+            .exit_context("disposing database");
 
         unity_installations.sort_by_key(|x| Reverse(x.version()));
 
@@ -257,6 +275,10 @@ impl UnityAdd {
             .exit_context("adding unity installation");
 
         connection.save(&io).await.exit_context("saving database");
+        connection
+            .dispose()
+            .await
+            .exit_context("disposing database");
 
         println!("Added version {} at {}", unity_version, self.path);
     }
@@ -294,6 +316,10 @@ impl UnityRemove {
             .exit_context("adding unity installation");
 
         connection.save(&io).await.exit_context("saving database");
+        connection
+            .dispose()
+            .await
+            .exit_context("disposing database");
     }
 }
 
@@ -332,5 +358,9 @@ impl UnityUpdate {
 
         connection.save(&io).await.exit_context("saving database");
         settings.save(&io).await.exit_context("saving settings");
+        connection
+            .dispose()
+            .await
+            .exit_context("disposing database");
     }
 }

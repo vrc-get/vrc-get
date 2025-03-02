@@ -144,6 +144,7 @@ async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &P
             .update_project_last_modified(&project_dir.to_string_lossy())
             .await?;
         connection.save(io).await?;
+        connection.dispose().await?;
         Ok(())
     }
 
