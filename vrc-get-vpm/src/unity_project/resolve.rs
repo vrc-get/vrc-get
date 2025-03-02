@@ -6,7 +6,7 @@ use itertools::Itertools;
 use crate::io::ProjectIo;
 use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::{
-    package_resolution, pending_project_changes, LockedDependencyInfo, PendingProjectChanges,
+    LockedDependencyInfo, PendingProjectChanges, package_resolution, pending_project_changes,
 };
 use crate::version::{DependencyRange, PrereleaseAcceptance};
 use crate::{PackageCollection, UnityProject, VersionSelector};

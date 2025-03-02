@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::commands::async_command::{async_command, AsyncCallResult, With};
+use crate::commands::async_command::{AsyncCallResult, With, async_command};
 use crate::commands::prelude::*;
 use crate::logging::LogEntry;
 use crate::os::open_that;
@@ -159,7 +159,7 @@ pub async fn util_install_and_upgrade(
 #[specta::specta]
 pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
     unsafe {
-        use windows::Win32::NetworkManagement::IpHelper::{GetNetworkParams, FIXED_INFO_W2KSP1};
+        use windows::Win32::NetworkManagement::IpHelper::{FIXED_INFO_W2KSP1, GetNetworkParams};
         let mut len = 0;
         // ignore error since expecting ERROR_BUFFER_OVERFLOW
         GetNetworkParams(None, &mut len).ok().ok();

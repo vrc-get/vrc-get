@@ -3,11 +3,11 @@ use futures::executor::block_on;
 use std::collections::HashSet;
 use std::io;
 use std::path::Path;
+use vrc_get_vpm::PackageManifest;
 use vrc_get_vpm::io::IoTrait;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
 use vrc_get_vpm::unity_project::{AddPackageErr, AddPackageOperation};
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::PackageManifest;
 
 mod common;
 

@@ -15,8 +15,8 @@ mod settings;
 mod unity_management;
 
 use crate::io;
-use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
+use crate::repository::local::LocalCachedRepository;
 use crate::traits::HttpClient;
 use crate::utils::to_vec_pretty_os_eol;
 use futures::prelude::*;

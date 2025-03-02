@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::io::ProjectIo;
 use crate::unity_project::package_resolution::MissingDependencies;
-use crate::unity_project::{pending_project_changes, PendingProjectChanges};
+use crate::unity_project::{PendingProjectChanges, pending_project_changes};
 use crate::{PackageCollection, UnityProject, VersionSelector};
 
 #[derive(Debug)]

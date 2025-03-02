@@ -1,5 +1,5 @@
 use crate::version::{PrereleaseAcceptance, UnityVersion, Version, VersionRange};
-use crate::{unity_compatible, PackageManifest};
+use crate::{PackageManifest, unity_compatible};
 
 #[derive(Clone, Copy)]
 pub struct VersionSelector<'a> {

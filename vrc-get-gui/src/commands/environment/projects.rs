@@ -1,9 +1,9 @@
 use crate::commands::prelude::*;
 
-use crate::commands::async_command::{async_command, AsyncCallResult, AsyncCommandContext, With};
-use crate::utils::{collect_notable_project_files_tree, default_project_path, FileSystemTree};
-use futures::future::try_join_all;
+use crate::commands::async_command::{AsyncCallResult, AsyncCommandContext, With, async_command};
+use crate::utils::{FileSystemTree, collect_notable_project_files_tree, default_project_path};
 use futures::TryStreamExt;
+use futures::future::try_join_all;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
@@ -13,9 +13,9 @@ use std::sync::atomic::AtomicUsize;
 use tauri::{State, Window};
 use tauri_plugin_dialog::DialogExt;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+use vrc_get_vpm::ProjectType;
 use vrc_get_vpm::environment::{PackageInstaller, Settings, UserProject, VccDatabaseConnection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
-use vrc_get_vpm::ProjectType;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct TauriProject {

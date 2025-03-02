@@ -2,10 +2,10 @@ use std::ffi::OsString;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
-pub(crate) use futures::io::{
-    copy, empty, sink, AsyncRead, AsyncSeek, AsyncWrite, BufReader, Error, ErrorKind, Result,
-};
 pub(crate) use futures::Stream;
+pub(crate) use futures::io::{
+    AsyncRead, AsyncSeek, AsyncWrite, BufReader, Error, ErrorKind, Result, copy, empty, sink,
+};
 pub(crate) use std::io::SeekFrom;
 
 #[cfg(feature = "tokio")]

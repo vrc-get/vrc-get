@@ -1,8 +1,8 @@
 use crate::io::ProjectIo;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
 use crate::version::UnityVersion;
-use crate::{io, PackageInstaller, VRCHAT_RECOMMENDED_2022_UNITY};
 use crate::{PackageCollection, UnityProject, VersionSelector};
+use crate::{PackageInstaller, VRCHAT_RECOMMENDED_2022_UNITY, io};
 use log::warn;
 
 #[non_exhaustive]

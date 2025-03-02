@@ -1,13 +1,13 @@
 use crate::environment::repo_source::RepoSource;
 use crate::environment::{
-    Settings, CURATED_URL_STR, LOCAL_CURATED_PATH, LOCAL_OFFICIAL_PATH, OFFICIAL_URL_STR,
+    CURATED_URL_STR, LOCAL_CURATED_PATH, LOCAL_OFFICIAL_PATH, OFFICIAL_URL_STR, Settings,
 };
 use crate::io::EnvironmentIo;
-use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
+use crate::repository::local::LocalCachedRepository;
 use crate::traits::HttpClient;
 use crate::utils::{read_json_file, to_vec_pretty_os_eol, try_load_json};
-use crate::{io, UserRepoSetting};
+use crate::{UserRepoSetting, io};
 use futures::future::join_all;
 use indexmap::IndexMap;
 use lazy_static::lazy_static;

@@ -20,7 +20,7 @@ use std::sync::OnceLock;
 use tokio::process::Command;
 use windows::Win32::Foundation::{ERROR_LOCK_VIOLATION, HANDLE};
 use windows::Win32::Storage::FileSystem::{
-    LockFileEx, UnlockFileEx, LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY,
+    LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LockFileEx, UnlockFileEx,
 };
 use windows::Win32::System::IO::OVERLAPPED;
 

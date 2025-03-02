@@ -4,8 +4,8 @@ use itertools::Itertools;
 
 use futures::future::join_all;
 use log::warn;
-use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use reqwest::Url;
+use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
@@ -18,8 +18,8 @@ use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::read_to_string;
 use vrc_get_vpm::environment::{
-    add_remote_repo, cleanup_repos_folder, clear_package_cache, AddRepositoryErr,
-    AddUserPackageResult, PackageCollection, PackageInstaller, Settings, UserPackageCollection,
+    AddRepositoryErr, AddUserPackageResult, PackageCollection, PackageInstaller, Settings,
+    UserPackageCollection, add_remote_repo, cleanup_repos_folder, clear_package_cache,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, IoTrait};
 use vrc_get_vpm::repositories_file::RepositoriesFile;

@@ -13,10 +13,10 @@ pub use virtual_environment::VirtualEnvironment;
 pub use virtual_file_system::VirtualFileSystem;
 pub use virtual_project_builder::VirtualProjectBuilder;
 
-use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
-use vrc_get_vpm::unity_project::PendingProjectChanges;
-use vrc_get_vpm::version::{DependencyRange, Version};
 use vrc_get_vpm::PackageInfo;
+use vrc_get_vpm::unity_project::PendingProjectChanges;
+use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
+use vrc_get_vpm::version::{DependencyRange, Version};
 
 pub fn assert_removed(result: &PendingProjectChanges, package: &str, reason: RemoveReason) {
     let package_change = result

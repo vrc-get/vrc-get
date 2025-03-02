@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog].
 ### Changed
 - Changed how we read VCC's project information `#1949` `#1955`
   - Along with this, building this project no longer needs dotnet SDK to build.
+- Migrated the project to Rust 2024 `#1956`
+  - This is internal changes should not cause behavior changes
+  - This would require Rust 1.85 for building this project
 
 ### Deprecated
 

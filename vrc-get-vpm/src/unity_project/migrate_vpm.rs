@@ -4,8 +4,8 @@ use std::collections::HashSet;
 
 use crate::io::ProjectIo;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
-use crate::{io, PackageInstaller, ProjectType};
 use crate::{PackageCollection, UnityProject, VersionSelector};
+use crate::{PackageInstaller, ProjectType, io};
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -112,7 +112,10 @@ async fn migrate_vpm(
             .get_curated_packages(version_selector)
             .collect::<Vec<_>>();
 
-        debug!("Trying to add the following curated packages to find legacy curated packages with legacyAssets: {:?}", curated_packages);
+        debug!(
+            "Trying to add the following curated packages to find legacy curated packages with legacyAssets: {:?}",
+            curated_packages
+        );
 
         let packages = project
             .add_package_request(
