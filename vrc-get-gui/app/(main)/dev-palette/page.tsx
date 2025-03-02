@@ -23,16 +23,16 @@ export default function Page() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"flex-shrink-0"}
+				className={"shrink-0"}
 				leading={
-					<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
+					<p className="cursor-pointer py-1.5 font-bold grow-0">
 						UI Palette (dev only)
 					</p>
 				}
 			/>
 			<ScrollPageContainer>
-				<main className="flex flex-col gap-2 flex-shrink flex-grow">
-					<Card className={"flex-shrink-0 p-4"}>
+				<main className="flex flex-col gap-2 shrink grow">
+					<Card className={"shrink-0 p-4"}>
 						<h2 className={"pb-2"}>File Selector</h2>
 						<div className={"flex gap-1 items-center"}>
 							<Input
@@ -43,9 +43,9 @@ export default function Page() {
 							<Button className={"flex-none px-4"}>Select</Button>
 						</div>
 					</Card>
-					<Card className={"flex-shrink-0 p-4"}>
+					<Card className={"shrink-0 p-4"}>
 						<div className={"pb-2 flex align-middle"}>
-							<div className={"flex-grow flex items-center"}>
+							<div className={"grow flex items-center"}>
 								<h2>Table</h2>
 							</div>
 							<Button size={"sm"} className={"m-1"}>
@@ -56,7 +56,7 @@ export default function Page() {
 							<UnityTableBody />
 						</ScrollableCardTable>
 					</Card>
-					<Card className={"flex-shrink-0 p-4"}>
+					<Card className={"shrink-0 p-4"}>
 						<h2>Dropdown Selector</h2>
 						<div className="mt-2">
 							<label className={"flex items-center"}>
@@ -78,7 +78,7 @@ export default function Page() {
 							</label>
 						</div>
 					</Card>
-					<Card className={"flex-shrink-0 p-4"}>
+					<Card className={"shrink-0 p-4"}>
 						<p className={"whitespace-normal"}>Some Description Here</p>
 						<label className={"flex items-center"}>
 							<div className={"p-3"}>
@@ -87,7 +87,7 @@ export default function Page() {
 							Checkbox
 						</label>
 					</Card>
-					<Card className={"flex-shrink-0 p-4"}>
+					<Card className={"shrink-0 p-4"}>
 						<h2 className={"pb-2"}>Buttons</h2>
 						<div className={"flex gap-2 items-center"}>
 							<Button>Normal</Button>
@@ -100,7 +100,7 @@ export default function Page() {
 							<Button variant={"ghost-destructive"}>Ghost Destructive</Button>
 						</div>
 					</Card>
-					<Card className={"flex-shrink-0 p-4"}>
+					<Card className={"shrink-0 p-4"}>
 						<h2 className={"pb-2"}>Toasts</h2>
 						<div className={"flex gap-2 items-center"}>
 							<Button onClick={() => toastNormal("Normal Toast Body")}>

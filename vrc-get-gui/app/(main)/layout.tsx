@@ -62,9 +62,9 @@ export default function MainLayout({
 
 	return (
 		<>
-			<SideBar className={`flex-grow-0 ${isVisible ? "slide-right" : ""}`} />
+			<SideBar className={`grow-0 ${isVisible ? "slide-right" : ""}`} />
 			<div
-				className={`h-screen flex-grow overflow-hidden flex p-4 ${animationState}`}
+				className={`h-screen grow overflow-hidden flex p-4 ${animationState}`}
 				onAnimationEnd={() => setAnimationState("")}
 			>
 				{children}

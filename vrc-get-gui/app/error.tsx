@@ -48,10 +48,10 @@ export default function ErrorPage({
 		<div className={"w-full flex items-center justify-center"}>
 			<div
 				className={
-					"rounded-xl border bg-card text-card-foreground shadow-sm min-w-[50vw] max-w-[100vw] p-4 flex gap-3"
+					"rounded-xl border bg-card text-card-foreground shadow-xs min-w-[50vw] max-w-[100vw] p-4 flex gap-3"
 				}
 			>
-				<div className={"flex flex-col flex-grow overflow-hidden"}>
+				<div className={"flex flex-col grow overflow-hidden"}>
 					<h2>Client-side unrecoverable error occurred</h2>
 					<p>This must be a bug! Please report this bug!</p>
 					<div>

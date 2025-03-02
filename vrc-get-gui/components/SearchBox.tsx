@@ -28,7 +28,7 @@ export const SearchBox = forwardRef<HTMLInputElement, SearchBoxProps>(
 					ref={ref}
 				/>
 				<Search
-					className="!absolute left-4 top-[17px]"
+					className="absolute! left-4 top-[17px]"
 					width={13}
 					height={14}
 				/>

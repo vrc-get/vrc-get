@@ -33,7 +33,7 @@ export function HNavBar({
 			<div className="mx-auto flex flex-wrap items-center justify-between text-primary gap-2">
 				<div
 					className={cn(
-						"flex items-center gap-2 me-auto flex-grow flex-shrink",
+						"flex items-center gap-2 me-auto grow shrink",
 						commonClassName,
 						leadingClassName,
 					)}

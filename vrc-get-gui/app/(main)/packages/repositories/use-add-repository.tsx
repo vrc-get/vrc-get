@@ -298,7 +298,7 @@ function EnteringRepositoryInfo({
 													<Input
 														type={"text"}
 														value={value.name}
-														className={"flex-grow"}
+														className={"grow"}
 														onChange={(e) =>
 															reordableListContext.update(id, (old) => ({
 																...old,
@@ -313,7 +313,7 @@ function EnteringRepositoryInfo({
 													<Input
 														type={"text"}
 														value={value.value}
-														className={"flex-grow"}
+														className={"grow"}
 														onChange={(e) =>
 															reordableListContext.update(id, (old) => ({
 																...old,
