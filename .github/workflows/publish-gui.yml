@@ -33,6 +33,7 @@ jobs:
           submodules: recursive
       - uses: anatawa12/something-releaser@v3
       - uses: snow-actions/git-config-user@v1.0.0
+      - run: rustup update stable
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -224,6 +225,7 @@ jobs:
         with:
           ref: 'releasing'
           submodules: recursive
+      - run: rustup update stable
       - name: Install cross-compilation tools
         uses: taiki-e/setup-cross-toolchain-action@v1
         if: ${{ matrix.triple != 'universal-apple-darwin' }}
