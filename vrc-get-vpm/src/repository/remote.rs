@@ -111,7 +111,10 @@ impl RemoteRepository {
         self.parsed.name.as_deref()
     }
 
-    pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageManifest> {
+    pub fn get_versions_of(
+        &self,
+        package: &str,
+    ) -> impl Iterator<Item = &'_ PackageManifest> + use<'_> {
         self.parsed
             .packages
             .get(package)

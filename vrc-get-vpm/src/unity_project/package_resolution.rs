@@ -334,7 +334,7 @@ impl<'env> ResolutionContext<'env, '_> {
                     let conflicts_with_this = info
                         .requirements
                         .iter()
-                        .filter(|(&source, _)| {
+                        .filter(|&(&source, _)| {
                             self.dependencies
                                 .get(source)
                                 .map(|x| !x.is_legacy())
