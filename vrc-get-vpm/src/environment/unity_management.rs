@@ -228,7 +228,7 @@ fn default_unity_hub_path() -> &'static [&'static str] {
                         .ok()
                         .and_then(|key| key.get_value("InstallLocation").ok())
                         .and_then(|str: std::ffi::OsString| str.into_string().ok())
-                        .map(|s| PathBuf::from(s))
+                        .map(PathBuf::from)
                         .map(|mut p| {
                             p.push("Unity Hub.exe");
                             p
