@@ -72,7 +72,7 @@ impl EnvironmentIo for DefaultEnvironmentIo {
         use vrc_get_litedb::tokio_fs::TokioStreamFactory;
 
         let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
-        let log_path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
+        let log_path = EnvironmentIo::resolve(self, "vcc-log.liteDb".as_ref());
 
         #[cfg(windows)]
         let lock = {

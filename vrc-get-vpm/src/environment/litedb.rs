@@ -36,6 +36,11 @@ impl VccDatabaseConnection {
         self.db.checkpoint().await?;
         Ok(())
     }
+
+    pub async fn dispose(self) -> io::Result<()> {
+        self.db.dispose().await?;
+        Ok(())
+    }
 }
 
 mod has_drop {

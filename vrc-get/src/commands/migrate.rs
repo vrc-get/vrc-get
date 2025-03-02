@@ -93,6 +93,12 @@ impl Unity2022 {
             }
         };
 
+        #[cfg(feature = "experimental-vcc")]
+        connection
+            .dispose()
+            .await
+            .exit_context("disposing database");
+
         let status = Command::new(&unity)
             .args([
                 "-quit".as_ref(),
