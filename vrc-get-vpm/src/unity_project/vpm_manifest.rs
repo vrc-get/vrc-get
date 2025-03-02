@@ -1,7 +1,7 @@
 use crate::io;
 use crate::io::ProjectIo;
 use crate::unity_project::LockedDependencyInfo;
-use crate::utils::{load_json_or_default, save_json, SaveController};
+use crate::utils::{SaveController, load_json_or_default, save_json};
 use crate::version::{DependencyRange, Version, VersionRange};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};

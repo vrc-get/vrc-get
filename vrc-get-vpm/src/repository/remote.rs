@@ -1,8 +1,8 @@
+use crate::PackageManifest;
 use crate::traits::HttpClient;
 use crate::utils::{deserialize_json, deserialize_json_slice};
 use crate::version::Version;
-use crate::PackageManifest;
-use crate::{io, VersionSelector};
+use crate::{VersionSelector, io};
 use futures::prelude::*;
 use indexmap::IndexMap;
 use serde::de::{DeserializeSeed, Visitor};

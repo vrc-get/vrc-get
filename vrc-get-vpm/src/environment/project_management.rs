@@ -1,9 +1,9 @@
-use crate::environment::settings::Settings;
 use crate::environment::VccDatabaseConnection;
+use crate::environment::settings::Settings;
 use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
-use crate::{io, ProjectType, UnityProject};
+use crate::{ProjectType, UnityProject, io};
 use futures::future::join_all;
 use futures::prelude::*;
 use log::error;
@@ -313,9 +313,10 @@ impl VccDatabaseConnection {
         check_absolute_path(project_path)?;
         let project_path = normalize_path(project_path.as_ref());
 
-        Ok(pin!(self
-            .db
-            .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into()))
+        Ok(pin!(
+            self.db
+                .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into())
+        )
         .try_next()
         .await?)
     }

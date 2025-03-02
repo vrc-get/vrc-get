@@ -24,7 +24,7 @@ pub(crate) use sha256_async_write::Sha256AsyncWrite;
 use std::error::Error;
 use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
-use std::task::{ready, Context, Poll};
+use std::task::{Context, Poll, ready};
 
 pub(crate) trait PathBufExt {
     fn joined(self, into: impl AsRef<Path>) -> Self;

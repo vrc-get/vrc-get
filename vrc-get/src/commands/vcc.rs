@@ -1,11 +1,11 @@
-use crate::commands::{absolute_path, ResultExt};
+use crate::commands::{ResultExt, absolute_path};
 use clap::{Parser, Subcommand};
 use log::warn;
 use std::cmp::Reverse;
 use std::path::Path;
-use vrc_get_vpm::environment::{find_unity_hub, Settings, VccDatabaseConnection};
+use vrc_get_vpm::environment::{Settings, VccDatabaseConnection, find_unity_hub};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
-use vrc_get_vpm::{unity_hub, UnityProject};
+use vrc_get_vpm::{UnityProject, unity_hub};
 
 /// Experimental VCC commands
 #[derive(Subcommand)]

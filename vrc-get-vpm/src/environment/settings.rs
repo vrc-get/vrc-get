@@ -12,7 +12,7 @@ use crate::io::EnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::repository::RemoteRepository;
 use crate::utils::{normalize_path, try_load_json};
-use crate::{io, UserRepoSetting};
+use crate::{UserRepoSetting, io};
 
 #[derive(Debug, Clone)]
 pub struct Settings {

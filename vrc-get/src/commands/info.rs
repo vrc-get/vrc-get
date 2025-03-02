@@ -1,4 +1,4 @@
-use super::{load_collection, UnityProject};
+use super::{UnityProject, load_collection};
 use crate::commands::load_unity;
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
@@ -6,9 +6,9 @@ use serde::Serialize;
 use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::Path;
+use vrc_get_vpm::PackageCollection;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::version::{UnityVersion, Version, VersionRange};
-use vrc_get_vpm::PackageCollection;
 
 /// Shows information for other program.
 #[derive(Subcommand)]

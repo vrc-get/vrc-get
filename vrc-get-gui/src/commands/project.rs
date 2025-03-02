@@ -14,10 +14,10 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 
+use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
-use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::utils::{collect_notable_project_files_tree, project_backup_path, PathExt};
+use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_path};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {

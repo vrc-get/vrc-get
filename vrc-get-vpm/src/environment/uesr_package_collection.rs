@@ -1,8 +1,8 @@
 use super::Settings;
+use crate::PackageManifest;
 use crate::io::EnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::utils::try_load_json;
-use crate::PackageManifest;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]

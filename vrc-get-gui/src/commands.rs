@@ -9,13 +9,13 @@ pub use start::startup;
 use tauri::generate_handler;
 use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
+use vrc_get_vpm::PackageManifest;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
 };
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::PackageManifest;
 
 // common macro for commands so put it here
 #[allow(unused_macros)]
@@ -46,8 +46,8 @@ mod util;
 
 mod prelude {
     pub(super) use super::{
-        load_project, update_project_last_modified, IntoPathBuf as _, RustError,
-        TauriBasePackageInfo, UnityProject,
+        IntoPathBuf as _, RustError, TauriBasePackageInfo, UnityProject, load_project,
+        update_project_last_modified,
     };
     pub use crate::state::*;
 }

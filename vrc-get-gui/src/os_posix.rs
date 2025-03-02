@@ -8,7 +8,7 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
-use nix::libc::{c_short, flock, F_UNLCK};
+use nix::libc::{F_UNLCK, c_short, flock};
 
 pub(crate) async fn start_command(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
     let mut command = Command::new(path);

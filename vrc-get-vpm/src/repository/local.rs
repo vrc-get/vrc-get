@@ -1,5 +1,5 @@
-use crate::repository::{RemotePackages, RemoteRepository};
 use crate::PackageManifest;
+use crate::repository::{RemotePackages, RemoteRepository};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use url::Url;

@@ -1,5 +1,5 @@
 use crate::commands::{
-    confirm_prompt, load_collection, load_unity, update_project_last_modified, EnvArgs, ResultExt,
+    EnvArgs, ResultExt, confirm_prompt, load_collection, load_unity, update_project_last_modified,
 };
 use clap::{Parser, Subcommand};
 use log::info;
@@ -63,7 +63,9 @@ impl Unity2022 {
             .await
             .exit_context("migrating unity project");
 
-        info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
+        info!(
+            "Updating manifest file finished successfully. Launching Unity to finalize migration..."
+        );
 
         #[cfg(not(feature = "experimental-vcc"))]
         let unity = self.unity;
@@ -78,7 +80,9 @@ impl Unity2022 {
                     .await
                     .exit_context("getting unity 2022 path")
                 else {
-                    exit_with!("Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option.")
+                    exit_with!(
+                        "Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option."
+                    )
                 };
 
                 if found.version() != Some(VRCHAT_RECOMMENDED_2022_UNITY) {

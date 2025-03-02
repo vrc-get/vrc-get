@@ -4,9 +4,9 @@ use std::io;
 use std::mem::forget;
 use tauri::State;
 use tokio::spawn;
-use tokio::sync::oneshot;
 use tokio::sync::Mutex;
-use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
+use tokio::sync::oneshot;
+use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_hub};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_hub;
 
@@ -65,7 +65,7 @@ pub async fn update_unity_paths_from_unity_hub(
                 Ok(UpdateUnityResultTiny::Success) => return Ok(true),
                 Ok(UpdateUnityResultTiny::NoUnityHub) => return Ok(false),
                 Ok(UpdateUnityResultTiny::IoError) => {
-                    return Err(io::Error::new(io::ErrorKind::Other, "io error"))
+                    return Err(io::Error::new(io::ErrorKind::Other, "io error"));
                 }
                 Err(_) => {
                     debug!("previous update failed with panic or was canceled, retrying");

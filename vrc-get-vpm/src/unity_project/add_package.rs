@@ -2,7 +2,7 @@ use crate::io::ProjectIo;
 use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::unity_project::{package_resolution, PendingProjectChanges};
+use crate::unity_project::{PendingProjectChanges, package_resolution};
 use crate::version::DependencyRange;
 use crate::{PackageCollection, PackageInfo, UnityProject};
 use log::debug;

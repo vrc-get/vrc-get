@@ -2,15 +2,15 @@ use std::ffi::OsStr;
 use std::io;
 use std::path::Path;
 
-use crate::commands::prelude::*;
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
+use crate::commands::prelude::*;
 use crate::utils::{default_project_path, find_existing_parent_dir_or_home, project_backup_path};
 use log::info;
 use serde::Serialize;
 use tauri::async_runtime::spawn;
 use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
-use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
+use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_hub};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{VRCHAT_RECOMMENDED_2022_UNITY, VRCHAT_RECOMMENDED_2022_UNITY_HUB_LINK};
 
@@ -283,7 +283,7 @@ pub async fn environment_pick_unity(
             .await
         {
             Err(ref e) if e.kind() == io::ErrorKind::InvalidInput => {
-                return Ok(TauriPickUnityResult::InvalidSelection)
+                return Ok(TauriPickUnityResult::InvalidSelection);
             }
             Err(e) => return Err(e.into()),
             Ok(_) => {}

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use crate::PackageCollection as _;
 use crate::environment::{RepoHolder, Settings, UserPackageCollection};
 use crate::io::EnvironmentIo;
 use crate::repository::LocalCachedRepository;
-use crate::PackageCollection as _;
-use crate::{io, HttpClient, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector};
+use crate::{HttpClient, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector, io};
 use futures::prelude::*;
 use itertools::Itertools;
 use log::error;

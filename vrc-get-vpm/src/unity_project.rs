@@ -13,9 +13,9 @@ mod vpm_manifest;
 
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::utils::{try_load_json, PathBufExt};
+use crate::utils::{PathBufExt, try_load_json};
 use crate::version::{UnityVersion, Version, VersionRange};
-use crate::{io, PackageManifest};
+use crate::{PackageManifest, io};
 use futures::future::try_join;
 use futures::prelude::*;
 use indexmap::IndexMap;
