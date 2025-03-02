@@ -58,7 +58,7 @@ function PageBody() {
 		queryKey: ["environmentRepositoriesInfo"],
 		queryFn: commands.environmentRepositoriesInfo,
 	});
-	const onFinishAddRepositoryCallbackRef = useRef<() => void>();
+	const onFinishAddRepositoryCallbackRef = useRef<() => void>(undefined);
 
 	const addRepositoryInfo = useAddRepository({
 		refetch: () => result.refetch(),

@@ -1,11 +1,11 @@
 /**
  * This file is used to generate a JSON file containing the licenses of all the dependencies.
- * This is based on the output of `cargo about generate --format=json` and `npx license-checker --production --json`.
+ * This is based on the output of `cargo about generate --format=json`.
  */
 import { exec as execCallback } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 
 const exec = promisify(execCallback);
@@ -15,31 +15,40 @@ async function shouldRebuild() {
 		try {
 			return JSON.parse(await readFile("build/licenses.hashes.json", "utf8"));
 		} catch (e) {
-			console.error(e);
 			return {};
 		}
 	}
 
+	// compute hashes first
+	let packageLockHash;
+	let cargoLockHash;
 	try {
-		if (!existsSync("build/licenses.json")) {
-			console.log("build/licenses.json does not exist, rebuilding");
-			return true;
-		}
-		const oldHashes = await readHashes();
-		const oldPackageLockHash = oldHashes.packageLockHash;
-		const oldCargoLockHash = oldHashes.cargoLockHash;
-
 		const packageLock = await readFile("package-lock.json", "utf8");
-		const packageLockHash = createHash("sha256")
-			.update(packageLock)
-			.digest("hex");
+		packageLockHash = createHash("sha256").update(packageLock).digest("hex");
 		const cargoLock = await readFile("../Cargo.lock", "utf8");
-		const cargoLockHash = createHash("sha256").update(cargoLock).digest("hex");
+		cargoLockHash = createHash("sha256").update(cargoLock).digest("hex");
+	} catch (e) {
+		console.error("Error computing hash of lock file", e);
+		return true;
+	}
 
-		console.log("Old package lock hash:", oldPackageLockHash);
-		console.log("New package lock hash:", packageLockHash);
-		console.log("Old cargo lock hash:", oldCargoLockHash);
-		console.log("New cargo lock hash:", cargoLockHash);
+	try {
+		let result;
+		if (existsSync("build/licenses.json")) {
+			const oldHashes = await readHashes();
+			const oldPackageLockHash = oldHashes.packageLockHash;
+			const oldCargoLockHash = oldHashes.cargoLockHash;
+			console.log("Old package lock hash:", oldPackageLockHash);
+			console.log("New package lock hash:", packageLockHash);
+			console.log("Old cargo lock hash:", oldCargoLockHash);
+			console.log("New cargo lock hash:", cargoLockHash);
+			result =
+				packageLockHash !== oldPackageLockHash ||
+				cargoLockHash !== oldCargoLockHash;
+		} else {
+			console.log("build/licenses.json does not exist, rebuilding");
+			result = true;
+		}
 
 		await mkdir("build", { recursive: true });
 		await writeFile(
@@ -47,10 +56,7 @@ async function shouldRebuild() {
 			JSON.stringify({ packageLockHash, cargoLockHash }),
 		);
 
-		return (
-			packageLockHash !== oldPackageLockHash ||
-			cargoLockHash !== oldCargoLockHash
-		);
+		return result;
 	} catch (e) {
 		console.error(e);
 		return true;
@@ -95,49 +101,70 @@ async function callCargoAbout() {
 }
 
 /**
- * @typedef {Record<string, LicenseCheckerModule>} LicenseChecker
- */
-
-/**
- * @interface LicenseCheckerModule
- * @property {string} licenses
- * @property {string|undefined} licenseFile
- */
-
-/**
- * @return {Promise<LicenseChecker>}
- */
-async function callLicenseChecker() {
-	const { stdout } = await exec("license-checker --production --json", {
-		encoding: "utf8",
-	});
-	return JSON.parse(stdout);
-}
-
-/**
  * @typedef {Record<string, LicenseCheckerModuleWithFile>} LicenseCheckerWithFiles
  */
 
 /**
  * @interface LicenseCheckerModuleWithFile
  * @property {string} licenses
- * @property {string|undefined} licenseFile
  * @property {string|undefined} licenseText
  */
 
 /**
  * @return {Promise<LicenseCheckerWithFiles>}
  */
-async function licenseCheckerWithLicenseText() {
-	const result = await callLicenseChecker();
-	await Promise.all(
-		Object.values(result).map(async (module) => {
-			if (!module.licenseFile) return;
-			if (module.licenseFile.endsWith("README.md")) return; // ignore README.md since it's not a license file
-			const file = await readFile(module.licenseFile, "utf8");
-			module.licenseText = file;
-		}),
-	);
+async function getLicencesFromPackageLockJson() {
+	/**
+	 * @type { {packages: {[p: string]: { dev?: boolean, license?: string, name?: string, version: string, optional?: boolean }}}}
+	 */
+	const data = JSON.parse(await readFile("package-lock.json", "utf8"));
+
+	// some package doesn't have license key so listing here
+	/** @type {Record<string, string>} */
+	const knownLicenses = {
+		streamsearch: "MIT",
+		busboy: "MIT",
+	};
+
+	/**
+	 * @type {LicenseCheckerWithFiles}
+	 */
+	const result = {};
+
+	for (const [packagePath, pkg] of Object.entries(data.packages)) {
+		if (pkg.dev) continue; // we don't have to list-up dev packages
+		if (packagePath === "") continue; // package itself
+		const name =
+			pkg.name ??
+			packagePath.substring(
+				packagePath.lastIndexOf("node_modules/") + "node_modules/".length,
+			);
+		const licenses = pkg.license ?? knownLicenses[name];
+		if (licenses == null) {
+			throw new Error(`no licenses for ${name}`);
+		}
+
+		let licenseText;
+		if (!pkg.optional) {
+			// find for LICENSE, LICENSE.txt, or license.md
+			const licensesFile = (await readdir(packagePath)).find(
+				(x) =>
+					x.toLowerCase() === "license" ||
+					x.toLowerCase() === "license.txt" ||
+					x.toLowerCase() === "license.md",
+			);
+			if (licensesFile)
+				licenseText = await readFile(`${packagePath}/${licensesFile}`, "utf-8");
+		}
+
+		result[`${name}@${pkg.version}`] = {
+			licenses,
+			licenseText,
+		};
+
+		// pkg.license
+	}
+
 	return result;
 }
 
@@ -151,7 +178,7 @@ if (!(await shouldRebuild())) {
  */
 const promise = await Promise.all([
 	callCargoAbout(),
-	licenseCheckerWithLicenseText(),
+	getLicencesFromPackageLockJson(),
 ]);
 const [cargoAbout, licenseChecker] = promise;
 
