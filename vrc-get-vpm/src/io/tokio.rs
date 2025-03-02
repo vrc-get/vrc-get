@@ -38,7 +38,7 @@ impl DefaultEnvironmentIo {
 
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
-        return dirs_sys::known_folder_local_app_data().expect("LocalAppData not found");
+        dirs_sys::known_folder_local_app_data().expect("LocalAppData not found")
     }
 
     #[cfg(not(windows))]
