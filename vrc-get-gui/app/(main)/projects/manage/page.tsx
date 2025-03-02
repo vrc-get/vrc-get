@@ -221,7 +221,7 @@ function PageBody() {
 		<PageContextProvider value={pageContext}>
 			<VStack>
 				<ProjectViewHeader
-					className={"flex-shrink-0"}
+					className={"shrink-0"}
 					projectName={projectName}
 					projectPath={projectPath}
 					isLoading={isLoading}
@@ -243,7 +243,7 @@ function PageBody() {
 					unityVersionsResult={unityVersionsResult.data}
 					requestChangeUnityVersion={requestChangeUnityVersion}
 				/>
-				<main className="flex-shrink overflow-hidden flex w-full h-full">
+				<main className="shrink overflow-hidden flex w-full h-full">
 					<PackageListCard
 						projectPath={projectPath}
 						createChanges={packageChangeDialog.createChanges}
@@ -364,11 +364,11 @@ function SuggestResolveProjectCard({
 	onResolveRequested: () => void;
 }) {
 	return (
-		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm">
+		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
+			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm">
 				{tc("projects:manage:suggest resolve")}
 			</p>
-			<div className={"flex-grow flex-shrink-0 w-2"} />
+			<div className={"grow shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
 				onClick={onResolveRequested}
@@ -467,11 +467,11 @@ function SuggestMigrateTo2022Card({
 	onMigrateRequested: () => void;
 }) {
 	return (
-		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm pl-2">
+		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
+			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity migration")}
 			</p>
-			<div className={"flex-grow flex-shrink-0 w-2"} />
+			<div className={"grow shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
 				onClick={onMigrateRequested}
@@ -491,11 +491,11 @@ function Suggest2022PatchMigrationCard({
 	onMigrateRequested: () => void;
 }) {
 	return (
-		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm pl-2">
+		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
+			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity patch migration")}
 			</p>
-			<div className={"flex-grow flex-shrink-0 w-2"} />
+			<div className={"grow shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
 				onClick={onMigrateRequested}
@@ -515,11 +515,11 @@ function SuggestChinaToInternationalMigrationCard({
 	onMigrateRequested: () => void;
 }) {
 	return (
-		<Card className={"flex-shrink-0 p-2 flex flex-row items-center"}>
-			<p className="cursor-pointer py-1.5 font-bold flex-grow-0 flex-shrink overflow-hidden whitespace-normal text-sm pl-2">
+		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
+			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity china to international migration")}
 			</p>
-			<div className={"flex-grow flex-shrink-0 w-2"} />
+			<div className={"grow shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
 				onClick={onMigrateRequested}
@@ -576,8 +576,8 @@ function ProjectViewHeader({
 						</TooltipContent>
 					</Tooltip>
 
-					<div className={"pl-2 space-y-0 my-1 flex-shrink min-w-0"}>
-						<p className="cursor-pointer font-bold flex-grow-0 whitespace-pre mb-0 leading-tight">
+					<div className={"pl-2 space-y-0 my-1 shrink min-w-0"}>
+						<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">
 							{projectName}
 						</p>
 						<p className="cursor-pointer text-sm leading-tight mt-0">
@@ -615,7 +615,7 @@ function ProjectViewHeader({
 							/>
 						</div>
 					</div>
-					<div className={"flex-grow-0 flex-shrink-0 w-max"}>
+					<div className={"grow-0 shrink-0 w-max"}>
 						<ProjectButton
 							projectPath={projectPath}
 							unityVersion={detailsResult.data?.unity_str ?? null}

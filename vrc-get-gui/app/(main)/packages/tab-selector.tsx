@@ -40,7 +40,7 @@ function HeadingButton({
 	children: React.ReactNode;
 }) {
 	const button =
-		"cursor-pointer py-1.5 font-bold flex-grow-0 hover:bg-background rounded-sm text-center p-2";
+		"cursor-pointer py-1.5 font-bold grow-0 hover:bg-background rounded-sm text-center p-2";
 
 	if (currentPage === targetPage) {
 		return <div className={`${button} bg-background`}>{children}</div>;

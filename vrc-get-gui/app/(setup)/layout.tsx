@@ -11,9 +11,7 @@ export default function SetupLayout({
 
 	return (
 		<>
-			<div className={"h-screen flex-grow overflow-hidden flex p-4"}>
-				{children}
-			</div>
+			<div className={"h-screen grow overflow-hidden flex p-4"}>{children}</div>
 			{isDev && <DevTools />}
 		</>
 	);

@@ -45,14 +45,14 @@ export default function Page() {
 	return (
 		<VStack>
 			<ProjectViewHeader
-				className={"flex-shrink-0"}
+				className={"shrink-0"}
 				refresh={() => result.refetch()}
 				startCreateProject={startCreateProject}
 				isLoading={loading}
 				search={search}
 				setSearch={setSearch}
 			/>
-			<main className="flex-shrink overflow-hidden flex w-full h-full">
+			<main className="shrink overflow-hidden flex w-full h-full">
 				<ProjectsListCard
 					result={result}
 					search={search}
@@ -125,10 +125,10 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar
-			className={"flex-shrink-0"}
+			className={"shrink-0"}
 			leading={
 				<>
-					<p className="cursor-pointer font-bold flex-grow-0 whitespace-pre mb-0 leading-tight">
+					<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">
 						{tc("projects")}
 					</p>
 					<Tooltip>
@@ -150,7 +150,7 @@ function ProjectViewHeader({
 					</Tooltip>
 
 					<SearchBox
-						className={"w-max flex-grow"}
+						className={"w-max grow"}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						ref={searchRef}

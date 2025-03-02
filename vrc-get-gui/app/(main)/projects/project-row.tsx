@@ -129,7 +129,7 @@ export function ProjectRow({
 							checked={project.favorite}
 							onCheckedChange={onToggleFavorite}
 							disabled={removed || loading}
-							className="before:transition-none border-none !text-primary peer"
+							className="before:transition-none border-none text-primary! peer"
 						/>
 						<span
 							className={
