@@ -40,7 +40,7 @@
 		"react-dom": "19.0.0",
 		"react-i18next": "^15",
 		"react-toastify": "^11",
-		"tailwind-merge": "^2"
+		"tailwind-merge": "^3"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1",
