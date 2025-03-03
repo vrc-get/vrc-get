@@ -101,17 +101,7 @@ async function callCargoAbout() {
 }
 
 /**
- * @typedef {Record<string, LicenseCheckerModuleWithFile>} LicenseCheckerWithFiles
- */
-
-/**
- * @interface LicenseCheckerModuleWithFile
- * @property {string} licenses
- * @property {string|undefined} licenseText
- */
-
-/**
- * @return {Promise<LicenseCheckerWithFiles>}
+ * @return {Promise<PackageLicenseInfo[]>}
  */
 async function getLicencesFromPackageLockJson() {
 	/**
@@ -127,9 +117,9 @@ async function getLicencesFromPackageLockJson() {
 	};
 
 	/**
-	 * @type {LicenseCheckerWithFiles}
+	 * @type {PackageLicenseInfo[]}
 	 */
-	const result = {};
+	const result = [];
 
 	for (const [packagePath, pkg] of Object.entries(data.packages)) {
 		if (pkg.dev) continue; // we don't have to list-up dev packages
@@ -139,8 +129,8 @@ async function getLicencesFromPackageLockJson() {
 			packagePath.substring(
 				packagePath.lastIndexOf("node_modules/") + "node_modules/".length,
 			);
-		const licenses = pkg.license ?? knownLicenses[name];
-		if (licenses == null) {
+		const licenseId = pkg.license ?? knownLicenses[name];
+		if (licenseId == null) {
 			throw new Error(`no licenses for ${name}`);
 		}
 
@@ -157,12 +147,13 @@ async function getLicencesFromPackageLockJson() {
 				licenseText = await readFile(`${packagePath}/${licensesFile}`, "utf-8");
 		}
 
-		result[`${name}@${pkg.version}`] = {
-			licenses,
+		result.push({
+			name,
+			version: pkg.version,
+			url: `https://www.npmjs.com/package/${name}/v/${pkg.version}`,
+			licenseId,
 			licenseText,
-		};
-
-		// pkg.license
+		});
 	}
 
 	return result;
@@ -174,13 +165,13 @@ if (!(await shouldRebuild())) {
 }
 
 /**
- * @type {Promise<[CargoAbout, LicenseCheckerWithFiles]>}
+ * @type {Promise<[CargoAbout, PackageLicenseInfo[]]>}
  */
 const promise = await Promise.all([
 	callCargoAbout(),
 	getLicencesFromPackageLockJson(),
 ]);
-const [cargoAbout, licenseChecker] = promise;
+const [cargoAbout, packageLockJson] = promise;
 
 /** @type {Map<string, string>} */
 const licenseNames = new Map();
@@ -438,6 +429,15 @@ defaultLicenseTexts.set(
 // ライセンスの種別、実テキストごとに分ける
 
 /**
+ * @interface PackageLicenseInfo
+ * @property {string} name
+ * @property {string} version
+ * @property {string} url
+ * @property {string} licenseId
+ * @property {string|undefined} licenseText
+ */
+
+/**
  * @interface PackageInfo
  * @property {string} name
  * @property {string} version
@@ -448,26 +448,22 @@ defaultLicenseTexts.set(
 const licenses = new Map();
 
 // add npm libraries
-for (const [pkgNameAndVersion, module] of Object.entries(licenseChecker)) {
-	const at = pkgNameAndVersion.lastIndexOf("@");
-	const pkgName = pkgNameAndVersion.slice(0, at);
-	if (pkgName === "vrc-get-gui") continue; // the package itself
+for (/** @type {PackageLicenseInfo} */ const packageInfo of packageLockJson) {
+	const pkgName = packageInfo.name;
+	const licenseId = packageInfo.licenseId;
+
 	if (pkgName.startsWith("@tauri-apps/")) continue; // tauri apps should be added as rust
-	const pkgVersion = pkgNameAndVersion.slice(at + 1);
-	const license = module.licenses;
-	if (license == null) throw new Error(`No license for ${pkgNameAndVersion}`);
-	const licenseByText = licenses.get(license) ?? new Map();
-	licenses.set(license, licenseByText);
-	const licenseText = module.licenseText ?? defaultLicenseTexts.get(license);
+	const licenseByText = licenses.get(licenseId) ?? new Map();
+	licenses.set(licenseId, licenseByText);
+	const licenseText =
+		packageInfo.licenseText ?? defaultLicenseTexts.get(licenseId);
 	if (!licenseText)
-		throw new Error(`No license text for ${pkgNameAndVersion}: ${license}`);
+		throw new Error(
+			`No license text for ${packageInfo.name}@${packageInfo.version}: ${licenseId}`,
+		);
 	const packagesOfTheLicense = licenseByText.get(licenseText) ?? [];
 	licenseByText.set(licenseText, packagesOfTheLicense);
-	packagesOfTheLicense.push({
-		name: pkgName,
-		version: pkgVersion,
-		url: `https://www.npmjs.com/package/${pkgName}/v/${pkgVersion}`,
-	});
+	packagesOfTheLicense.push(packageInfo);
 }
 
 // add rust libraries
