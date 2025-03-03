@@ -22,7 +22,7 @@ so it is recommended to install with rustup and update it regularly.
 
 Not only Rust, some projects may require additional dependencies.
 
-For ALCOM, you need to install any LTS version of Node.js and npm for building the frontend.
+For ALCOM, you need to install Node.js >=20 supported and npm for building the frontend.
 
 Please refer to the [Node.js installation guide](https://nodejs.org/en/download/) to install Node.js if you don't have it.
 

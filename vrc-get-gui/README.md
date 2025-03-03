@@ -70,7 +70,7 @@ Version numbers shown here are as of the writing (Dec 2024), so might be outdate
 
 To build ALCOM, you need to have the following installed:
 
-- [Node.js] LTS — to build the web part of the project
+- [Node.js] >=20 supported — to build the web part of the project
 - [npm] v10 — to install the dependencies of the web part (bundled with node.js so no extra attention needed in most case)
 - [cargo] latest — to build the most part of the project
 - And other requirements for tauri, see [tauri requirements](https://v2.tauri.app/start/prerequisites/#system-dependencies)
