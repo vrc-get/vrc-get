@@ -73,17 +73,15 @@ To build ALCOM, you need to have the following installed:
 - [Node.js] LTS — to build the web part of the project
 - [npm] v10 — to install the dependencies of the web part (bundled with node.js so no extra attention needed in most case)
 - [cargo] latest — to build the most part of the project
-- [cargo-about] latest — to generate the licenses json (not required for development, but required for building release binary)
 - And other requirements for tauri, see [tauri requirements](https://v2.tauri.app/start/prerequisites/#system-dependencies)
 
-Please note that ALCOM requires the latest version of cargo and cargo-about at that time. 
-We update the required version of cargo and cargo-about without notice.
+Please note that ALCOM requires the latest version of cargo at that time. 
+We update the required version of cargo without notice.
 Therefore, you may need to update them before building the project.
 
 [Node.js]: https://nodejs.org/en
 [npm]: https://www.npmjs.com
 [cargo]: https://doc.rust-lang.org/cargo/
-[cargo-about]: https://github.com/EmbarkStudios/cargo-about
 
 ## Building
 

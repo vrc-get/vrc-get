@@ -66,11 +66,6 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-${{ hashFiles('vrc-get-gui/**/*.js', 'vrc-get-gui/**/*.jsx', 'vrc-get-gui/**/*.ts', 'vrc-get-gui/**/*.tsx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-
-      - uses: taiki-e/install-action@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          tool: cargo-about
 
       - name: Setup
         run: ${{ matrix.setup }}
