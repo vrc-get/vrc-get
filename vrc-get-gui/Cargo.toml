@@ -49,7 +49,7 @@ sys-locale = "0.3"
 log-panics = { version = "2", features = ["with-backtrace"] }
 url = "2"
 dirs-next = "2"
-yoke = { version = "0.7", features = ["derive"] }
+yoke = { version = "0.8", features = ["derive"] }
 atomicbox = "0.4"
 stable_deref_trait = "1"
 
