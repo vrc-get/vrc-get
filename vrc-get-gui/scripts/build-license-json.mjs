@@ -447,81 +447,70 @@ defaultLicenseTexts.set(
 /** @type {Map<string, Map<string, PackageInfo[]>>} */
 const licenses = new Map();
 
-// add npm libraries
-for (/** @type {PackageLicenseInfo} */ const packageInfo of packageLockJson) {
-	const pkgName = packageInfo.name;
+/**
+ * @param packageInfo {PackageLicenseInfo}
+ */
+function addPackageToLicenses(packageInfo) {
 	const licenseId = packageInfo.licenseId;
+	let licenseText = packageInfo.licenseText;
 
-	if (pkgName.startsWith("@tauri-apps/")) continue; // tauri apps should be added as rust
+	if (licenseText == null) {
+		licenseText = defaultLicenseTexts.get(licenseId);
+		if (!licenseText) {
+			throw new Error(
+				`No license text for ${packageInfo.name}@${packageInfo.version}: ${licenseId}`,
+			);
+		}
+	}
+
 	const licenseByText = licenses.get(licenseId) ?? new Map();
 	licenses.set(licenseId, licenseByText);
-	const licenseText =
-		packageInfo.licenseText ?? defaultLicenseTexts.get(licenseId);
-	if (!licenseText)
-		throw new Error(
-			`No license text for ${packageInfo.name}@${packageInfo.version}: ${licenseId}`,
-		);
 	const packagesOfTheLicense = licenseByText.get(licenseText) ?? [];
 	licenseByText.set(licenseText, packagesOfTheLicense);
 	packagesOfTheLicense.push(packageInfo);
 }
 
+// add npm libraries
+for (/** @type {PackageLicenseInfo} */ const packageInfo of packageLockJson) {
+	if (packageInfo.name.startsWith("@tauri-apps/")) continue; // tauri apps should be added as rust
+
+	addPackageToLicenses(packageInfo);
+}
+
 // add rust libraries
 for (const license of cargoAbout.licenses) {
-	const licenseText = license.text;
 	const licneseId = license.id ?? license.short_id;
 	if (licneseId == null)
 		throw new Error(`No license for ${JSON.stringify(license)}`);
-	const licenseByText = licenses.get(licneseId) ?? new Map();
-	licenses.set(licneseId, licenseByText);
-	const packagesOfTheLicense = licenseByText.get(licenseText) ?? [];
-	licenseByText.set(licenseText, packagesOfTheLicense);
 	for (const usedBy of license.used_by) {
-		packagesOfTheLicense.push({
+		addPackageToLicenses({
 			name: usedBy.crate.name,
 			version: usedBy.crate.version,
-			url:
-				usedBy.crate.repository ??
-				`https://crates.io/crates/${usedBy.crate.name}`,
+			licenseId: license.id ?? license.short_id,
+			licenseText: license.text,
 		});
 	}
 }
 
 // other third-party things
-{
-	// Anton font
-	const licenseId = "OFL-1.1";
-	const licenseByText = licenses.get(licenseId) ?? new Map();
-	licenses.set(licenseId, licenseByText);
 
-	const licenseText = await readFile(
-		"third-party/Anton-Regular-OFL.txt",
-		"utf-8",
-	);
-	const packagesOfTheLicense = licenseByText.get(licenseText) ?? [];
-	licenseByText.set(licenseText, packagesOfTheLicense);
-	packagesOfTheLicense.push({
-		name: "Anton font",
-		version: "1.0.0",
-		url: "https://fonts.google.com/specimen/Anton",
-	});
-}
+// Anton font
+addPackageToLicenses({
+	name: "Anton font",
+	version: "1.0.0",
+	url: "https://fonts.google.com/specimen/Anton",
+	licenseId: "OFL-1.1",
+	licenseText: await readFile("third-party/Anton-Regular-OFL.txt", "utf-8"),
+});
 
-{
-	// The logo
-	const licenseId = "CC-BY-4.0";
-	const licenseByText = licenses.get(licenseId) ?? new Map();
-	licenses.set(licenseId, licenseByText);
-
-	const licenseText = await readFile("icon-LICENSE", "utf-8");
-	const packagesOfTheLicense = licenseByText.get(licenseText) ?? [];
-	licenseByText.set(licenseText, packagesOfTheLicense);
-	packagesOfTheLicense.push({
-		name: "ALCOM Icon",
-		version: "1.0.0",
-		url: "https://github.com/vrc-get/vrc-get",
-	});
-}
+// The logo
+addPackageToLicenses({
+	name: "ALCOM Icon",
+	version: "1.0.0",
+	url: "https://github.com/vrc-get/vrc-get",
+	licenseId: "CC-BY-4.0",
+	licenseText: await readFile("icon-LICENSE", "utf-8"),
+});
 
 // finally, put to array
 const result = [];
