@@ -147,11 +147,6 @@ jobs:
         with:
           ref: 'releasing'
           submodules: recursive
-      - uses: taiki-e/install-action@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          tool: cargo-about
 
       - run: npm run build
         working-directory: vrc-get-gui
@@ -235,11 +230,6 @@ jobs:
         with:
           cache-targets: false # for release build, do not cache build artifacts
           key: release-gui # there are no elements about build result, so it's ok to share between all builds
-      - uses: taiki-e/install-action@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          tool: cargo-about
 
       - name: Setup
         run: ${{ matrix.setup }}

@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog].
 - Migrated the project to Rust 2024 `#1956`
   - This is internal changes should not cause behavior changes
   - This would require Rust 1.85 for building this project
+- Removed `cargo-about` from build-time dependency `#1961`
+  - This is internal changes should not cause behavior changes
+  - I listed here since this may need update on package metadata of some package managers
 
 ### Deprecated
 
