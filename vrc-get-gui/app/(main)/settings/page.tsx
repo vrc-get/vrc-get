@@ -84,9 +84,9 @@ export default function Page() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"flex-shrink-0"}
+				className={"shrink-0"}
 				leading={
-					<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
+					<p className="cursor-pointer py-1.5 font-bold grow-0">
 						{tc("settings")}
 					</p>
 				}
@@ -103,8 +103,6 @@ function Settings({
 	settings: TauriEnvironmentSettings;
 	refetch: () => void;
 }) {
-	const isMac = useGlobalInfo().osType === "Darwin";
-
 	const [updatingUnityPaths, setUpdatingUnityPaths] = useState(false);
 
 	const updateUnityPaths = async () => {
@@ -133,8 +131,8 @@ function Settings({
 
 	return (
 		<ScrollPageContainer viewportClassName={"rounded-xl shadow-xl h-full"}>
-			<main className="flex flex-col gap-2 flex-shrink flex-grow">
-				<Card className={"flex-shrink-0 p-4"}>
+			<main className="flex flex-col gap-2 shrink grow">
+				<Card className={"shrink-0 p-4"}>
 					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
 					<FilePathRow
 						withoutSelect
@@ -158,7 +156,7 @@ function Settings({
 					refetch={refetch}
 					unityArgs={settings.default_unity_arguments}
 				/>
-				<Card className={"flex-shrink-0 p-4"}>
+				<Card className={"shrink-0 p-4"}>
 					<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
 					<p className={"whitespace-normal"}>
 						{tc("settings:default project path description")}
@@ -183,7 +181,6 @@ function Settings({
 				<AppearanceCard refetch={refetch} />
 				<FilesAndFoldersCard />
 				<AlcomCard
-					isMac={isMac}
 					releaseChannel={settings.release_channel}
 					useAlcomForVccProtocol={settings.use_alcom_for_vcc_protocol}
 					refetch={refetch}
@@ -242,9 +239,9 @@ function UnityInstallationsCard({
 	];
 
 	return (
-		<Card className={"flex-shrink-0 p-4"}>
+		<Card className={"shrink-0 p-4"}>
 			<div className={"pb-2 flex align-middle"}>
-				<div className={"flex-grow flex items-center"}>
+				<div className={"grow flex items-center"}>
 					<h2>{tc("settings:unity installations")}</h2>
 				</div>
 				{updatingUnityPaths && (
@@ -336,9 +333,9 @@ function UnityLaunchArgumentsCard({
 	const openDialog = () => setOpen(true);
 
 	return (
-		<Card className={"flex-shrink-0 p-4"}>
+		<Card className={"shrink-0 p-4"}>
 			<div className={"mb-2 flex align-middle"}>
-				<div className={"flex-grow flex items-center"}>
+				<div className={"grow flex items-center"}>
 					<h2>{tc("settings:default unity arguments")}</h2>
 				</div>
 				<Button onClick={openDialog} size={"sm"} className={"m-1"}>
@@ -427,7 +424,7 @@ function BackupCard({
 	};
 
 	return (
-		<Card className={"flex-shrink-0 p-4"}>
+		<Card className={"shrink-0 p-4"}>
 			<h2>{tc("projects:backup")}</h2>
 			<div className="mt-2">
 				<h3>{tc("settings:backup:path")}</h3>
@@ -486,7 +483,7 @@ function PackagesCard({
 	};
 
 	return (
-		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
+		<Card className={"shrink-0 p-4 flex flex-col gap-4"}>
 			<h2>{tc("settings:packages")}</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={clearPackageCache}>
@@ -511,7 +508,7 @@ function PackagesCard({
 
 function AppearanceCard({ refetch }: { refetch: () => void }) {
 	return (
-		<Card className={"flex-shrink-0 p-4"}>
+		<Card className={"shrink-0 p-4"}>
 			<h2>{tc("settings:appearance")}</h2>
 			<LanguageSelector />
 			<ThemeSelector />
@@ -539,7 +536,7 @@ function FilesAndFoldersCard() {
 	};
 
 	return (
-		<Card className={"flex-shrink-0 p-4"}>
+		<Card className={"shrink-0 p-4"}>
 			<h2>{tc("settings:files and directories")}</h2>
 			<p className={"mt-2"}>
 				{tc("settings:files and directories:description")}
@@ -565,12 +562,10 @@ function FilesAndFoldersCard() {
 }
 
 function AlcomCard({
-	isMac,
 	releaseChannel,
 	useAlcomForVccProtocol,
 	refetch,
 }: {
-	isMac: boolean;
 	releaseChannel: string;
 	useAlcomForVccProtocol: boolean;
 	refetch: () => void;
@@ -634,7 +629,7 @@ function AlcomCard({
 	};
 
 	return (
-		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
+		<Card className={"shrink-0 p-4 flex flex-col gap-4"}>
 			{updateState && (
 				<CheckForUpdateMessage
 					response={updateState}
@@ -666,7 +661,7 @@ function AlcomCard({
 					</p>
 				</div>
 			)}
-			{!isMac && (
+			{globalInfo.shouldInstallDeepLink && (
 				<div>
 					<label className={"flex items-center gap-2"}>
 						<Checkbox
@@ -709,7 +704,7 @@ function SystemInformationCard() {
 	const info = useGlobalInfo();
 
 	return (
-		<Card className={"flex-shrink-0 p-4 flex flex-col gap-4"}>
+		<Card className={"shrink-0 p-4 flex flex-col gap-4"}>
 			<h2>{tc("settings:system information")}</h2>
 			<dl>
 				<dt>{tc("settings:os")}</dt>

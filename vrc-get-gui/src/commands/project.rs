@@ -14,10 +14,10 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 
+use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
-use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::utils::{collect_notable_project_files_tree, project_backup_path, PathExt};
+use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_path};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
@@ -459,13 +459,16 @@ pub async fn project_open_unity(
 
     {
         let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-        if let Some(project) = connection.find_project(project_path.as_ref())? {
+        if let Some(project) = connection.find_project(project_path.as_ref()).await? {
             custom_args = project
                 .custom_unity_args()
                 .map(|x| Vec::from_iter(x.iter().map(ToOwned::to_owned)));
         }
-        connection.update_project_last_modified(project_path.as_ref())?;
+        connection
+            .update_project_last_modified(project_path.as_ref())
+            .await?;
         connection.save(io.inner()).await?;
+        connection.dispose().await?;
     }
 
     let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
@@ -500,7 +503,7 @@ async fn create_backup_zip(
     deflate_option: async_zip::DeflateOption,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
 ) -> Result<(), RustError> {
-    let mut file = tokio::fs::File::create(&backup_path).await?;
+    let mut file = tokio::fs::File::create_new(&backup_path).await?;
     let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
 
     info!("Collecting files to backup {}...", project_path.display());
@@ -616,7 +619,7 @@ pub async fn project_create_backup(
             let backup_name = format!(
                 "{project_name}-{timestamp}",
                 project_name = project_name,
-                timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S"),
+                timestamp = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S"),
             );
 
             super::create_dir_all_with_err(&backup_dir).await?;
@@ -703,13 +706,15 @@ pub async fn project_get_custom_unity_args(
     project_path: String,
 ) -> Result<Option<Vec<String>>, RustError> {
     let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref())? {
+    let result = if let Some(project) = connection.find_project(project_path.as_ref()).await? {
         Ok(project
             .custom_unity_args()
             .map(|x| x.iter().map(ToOwned::to_owned).collect()))
     } else {
         Ok(None)
-    }
+    };
+    connection.dispose().await?;
+    result
 }
 
 #[tauri::command]
@@ -720,16 +725,18 @@ pub async fn project_set_custom_unity_args(
     args: Option<Vec<String>>,
 ) -> Result<bool, RustError> {
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+    if let Some(mut project) = connection.find_project(project_path.as_ref()).await? {
         if let Some(args) = args {
             project.set_custom_unity_args(args);
         } else {
             project.clear_custom_unity_args();
         }
-        connection.update_project(&project)?;
+        connection.update_project(&project).await?;
         connection.save(io.inner()).await?;
+        connection.dispose().await?;
         Ok(true)
     } else {
+        connection.dispose().await?;
         Ok(false)
     }
 }
@@ -741,11 +748,13 @@ pub async fn project_get_unity_path(
     project_path: String,
 ) -> Result<Option<String>, RustError> {
     let connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(project) = connection.find_project(project_path.as_ref())? {
+    let result = if let Some(project) = connection.find_project(project_path.as_ref()).await? {
         Ok(project.unity_path().map(ToOwned::to_owned))
     } else {
         Ok(None)
-    }
+    };
+    connection.dispose().await?;
+    result
 }
 
 #[tauri::command]
@@ -756,16 +765,18 @@ pub async fn project_set_unity_path(
     unity_path: Option<String>,
 ) -> Result<bool, RustError> {
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+    let result = if let Some(mut project) = connection.find_project(project_path.as_ref()).await? {
         if let Some(unity_path) = unity_path {
             project.set_unity_path(unity_path);
         } else {
             project.clear_unity_path();
         }
-        connection.update_project(&project)?;
+        connection.update_project(&project).await?;
         connection.save(io.inner()).await?;
         Ok(true)
     } else {
         Ok(false)
-    }
+    };
+    connection.dispose().await?;
+    result
 }

@@ -34,6 +34,8 @@ export default function Page() {
 	useEffect(() => {
 		commands.utilGetLogEntries().then(setLogEntries);
 		commands.environmentLogsLevel().then(setShouldShowLogLevel);
+		if (sessionStorage.getItem("logs_auto_scroll") === null)
+			sessionStorage.setItem("logs_auto_scroll", String(true));
 		const logsAutoScroll =
 			sessionStorage.getItem("logs_auto_scroll") === "true";
 		setAutoScroll(logsAutoScroll);
@@ -71,7 +73,7 @@ export default function Page() {
 				handleLogAutoScrollChange={handleLogAutoScrollChange}
 				autoScroll={autoScroll}
 			/>
-			<main className="flex-shrink overflow-hidden flex w-full h-full">
+			<main className="shrink overflow-hidden flex w-full h-full">
 				<LogsListCard
 					logEntry={logEntries}
 					search={search}
@@ -112,15 +114,13 @@ function ManageLogsHeading({
 
 	return (
 		<HNavBar
-			className={"flex-shrink-0"}
+			className={"shrink-0"}
 			leading={
 				<>
-					<p className="cursor-pointer py-1.5 font-bold flex-grow-0">
-						{tc("logs")}
-					</p>
+					<p className="cursor-pointer py-1.5 font-bold grow-0">{tc("logs")}</p>
 
 					<SearchBox
-						className={"w-max flex-grow"}
+						className={"w-max grow"}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						ref={searchRef}
@@ -131,7 +131,7 @@ function ManageLogsHeading({
 				<>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button className={"flex-shrink-0 p-3"}>
+							<Button className={"shrink-0 p-3"}>
 								{tc("logs:manage:select logs level")}
 							</Button>
 						</DropdownMenuTrigger>

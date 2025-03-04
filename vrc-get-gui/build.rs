@@ -4,11 +4,6 @@ use std::path::PathBuf;
 fn main() {
     tauri_build::build();
 
-    if std::env::var("TARGET").unwrap().contains("linux") {
-        // start stop gc is not supported by dotnet.
-        println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
-    }
-
     build_templates();
     get_commit_hash();
 }
@@ -73,21 +68,23 @@ fn build_templates() {
 fn get_commit_hash() {
     use std::process::*;
 
-    let output = Command::new("git")
+    let Ok(output) = Command::new("git")
         .arg("rev-parse")
         .arg("HEAD")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .output()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let hash_value = std::str::from_utf8(&output.stdout)
-        .unwrap()
-        .lines()
-        .next()
-        .unwrap()
-        .trim();
+    let Some(hash_value) = (std::str::from_utf8(&output.stdout).ok())
+        .and_then(|x| x.lines().next())
+        .map(|x| x.trim())
+    else {
+        return;
+    };
 
     println!("cargo:rustc-env=COMMIT_HASH={}", hash_value);
 }

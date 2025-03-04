@@ -46,6 +46,7 @@
     "setup:unity-hub:description": "在开始之前，您需要先安装 Untiy Hub，它可以很方便地安装和管理 Unity 版本。<br/>如果您还没有项目，ALCOM 会建议您使用 Unity Hub 安装 Unity。",
     "setup:unity-hub:using this unity hub": "Unity Hub 路径",
     "setup:unity-hub:download unity hub from unity.com": "从 unity.com 下载 Unity Hub。",
+    "setup:unity-hub:unity hub link": "https://unity.com/cn/download",
     "setup:unity-hub:recheck installation": "重新检测",
     "setup:unity-hub:detection failed collapse": "您是否确定您已经安装了 Unity Hub?",
     "setup:unity-hub:detection failed description": "请点击上面的 \"重新检测\" 按钮重新检测 Unity Hub。如果不起作用，说明 ALCOM 无法检测到您的 Unity Hub。请在下面手动设置 Unity Hub。",

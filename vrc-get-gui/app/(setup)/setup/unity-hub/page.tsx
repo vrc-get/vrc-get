@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CardDescription } from "@/components/ui/card";
 import { commands } from "@/lib/bindings";
-import { tc } from "@/lib/i18n";
+import { tc, tt } from "@/lib/i18n";
 import { type BodyProps, SetupPageBase } from "../setup-page-base";
 
 export default function Page() {
@@ -56,7 +56,7 @@ function Body({ environment, refetch }: BodyProps) {
 					<div className={"flex flex-row flex-wrap gap-2"}>
 						<Button
 							onClick={() =>
-								commands.utilOpenUrl("https://unity.com/ja/download")
+								commands.utilOpenUrl(tt("setup:unity-hub:unity hub link"))
 							}
 						>
 							{tc("setup:unity-hub:download unity hub from unity.com")}

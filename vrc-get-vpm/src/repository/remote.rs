@@ -1,8 +1,8 @@
+use crate::PackageManifest;
 use crate::traits::HttpClient;
 use crate::utils::{deserialize_json, deserialize_json_slice};
 use crate::version::Version;
-use crate::PackageManifest;
-use crate::{io, VersionSelector};
+use crate::{VersionSelector, io};
 use futures::prelude::*;
 use indexmap::IndexMap;
 use serde::de::{DeserializeSeed, Visitor};
@@ -111,7 +111,10 @@ impl RemoteRepository {
         self.parsed.name.as_deref()
     }
 
-    pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageManifest> {
+    pub fn get_versions_of(
+        &self,
+        package: &str,
+    ) -> impl Iterator<Item = &'_ PackageManifest> + use<'_> {
         self.parsed
             .packages
             .get(package)

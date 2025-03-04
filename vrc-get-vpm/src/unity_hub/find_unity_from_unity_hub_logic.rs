@@ -1,10 +1,10 @@
 use crate::utils::PathBufExt;
 use crate::version::UnityVersion;
 use either::Either;
-use futures::future::{join_all, try_join3};
 use futures::FutureExt;
-use serde::de::DeserializeOwned;
+use futures::future::{join_all, try_join3};
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};
 use std::result;
 
@@ -459,8 +459,8 @@ mod os {
         #[cfg(target_os = "windows")] // windows-rs is optional dependency only for macos
         #[allow(unsafe_code)]
         pub async fn load_unity_version(unity: &Path) -> Result<UnityVersion> {
-            use ::windows::core::HSTRING;
             use ::windows::Win32::Storage::FileSystem::*;
+            use ::windows::core::HSTRING;
 
             // TODO: make fully async
             unsafe {

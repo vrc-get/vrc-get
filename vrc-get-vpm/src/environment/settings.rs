@@ -12,7 +12,7 @@ use crate::io::EnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::repository::RemoteRepository;
 use crate::utils::{normalize_path, try_load_json};
-use crate::{io, UserRepoSetting};
+use crate::{UserRepoSetting, io};
 
 #[derive(Debug, Clone)]
 pub struct Settings {
@@ -92,9 +92,15 @@ impl Settings {
         self.vpm.remove_user_project(path);
     }
 
-    pub fn load_from_db(&mut self, connection: &super::VccDatabaseConnection) -> io::Result<()> {
-        let projects = connection.get_projects()?;
-        let mut project_paths = projects.iter().map(|x| x.path()).collect::<HashSet<_>>();
+    pub async fn load_from_db(
+        &mut self,
+        connection: &super::VccDatabaseConnection,
+    ) -> io::Result<()> {
+        let projects = connection.get_projects().await?;
+        let mut project_paths = projects
+            .iter()
+            .filter_map(|x| x.path())
+            .collect::<HashSet<_>>();
 
         // remove removed projects
         self.vpm

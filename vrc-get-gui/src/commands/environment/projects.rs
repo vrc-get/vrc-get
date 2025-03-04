@@ -1,9 +1,9 @@
 use crate::commands::prelude::*;
 
-use crate::commands::async_command::{async_command, AsyncCallResult, AsyncCommandContext, With};
-use crate::utils::{collect_notable_project_files_tree, default_project_path, FileSystemTree};
-use futures::future::try_join_all;
+use crate::commands::async_command::{AsyncCallResult, AsyncCommandContext, With, async_command};
+use crate::utils::{FileSystemTree, collect_notable_project_files_tree, default_project_path};
 use futures::TryStreamExt;
+use futures::future::try_join_all;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
@@ -13,9 +13,9 @@ use std::sync::atomic::AtomicUsize;
 use tauri::{State, Window};
 use tauri_plugin_dialog::DialogExt;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+use vrc_get_vpm::ProjectType;
 use vrc_get_vpm::environment::{PackageInstaller, Settings, UserProject, VccDatabaseConnection};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
-use vrc_get_vpm::ProjectType;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct TauriProject {
@@ -68,23 +68,29 @@ impl From<ProjectType> for TauriProjectType {
 
 impl TauriProject {
     fn new(list_version: u32, index: usize, project: &UserProject) -> Self {
-        let is_exists = std::fs::metadata(project.path())
+        let is_exists = std::fs::metadata(project.path().unwrap())
             .map(|x| x.is_dir())
             .unwrap_or(false);
         Self {
             list_version,
             index,
 
-            name: project.name().to_string(),
-            path: project.path().to_string(),
+            name: project.name().unwrap().to_string(),
+            path: project.path().unwrap().to_string(),
             project_type: project.project_type().into(),
             unity: project
                 .unity_version()
                 .map(|v| v.to_string())
                 .unwrap_or_else(|| "unknown".into()),
             unity_revision: project.unity_revision().map(|x| x.to_string()),
-            last_modified: project.last_modified().timestamp_millis(),
-            created_at: project.crated_at().timestamp_millis(),
+            last_modified: project
+                .last_modified()
+                .map(|x| x.as_unix_milliseconds())
+                .unwrap_or(0),
+            created_at: project
+                .crated_at()
+                .map(|x| x.as_unix_milliseconds())
+                .unwrap_or(0),
             favorite: project.favorite(),
             is_exists,
         }
@@ -99,7 +105,7 @@ async fn migrate_sanitize_projects(
     info!("migrating projects from settings.json");
     // migrate from settings json
     connection.migrate(settings, io).await?;
-    connection.dedup_projects()?;
+    connection.dedup_projects().await?;
     Ok(())
 }
 
@@ -116,16 +122,17 @@ pub async fn environment_projects(
     migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
     info!("syncing information with real projects");
     connection.sync_with_real_projects(true, io.inner()).await?;
-    settings.load_from_db(&connection)?;
+    settings.load_from_db(&connection).await?;
     connection.save(io.inner()).await?;
     settings.save().await?;
 
     info!("fetching projects");
 
-    let projects = connection.get_projects()?.into_boxed_slice();
-    drop(connection);
+    let mut projects = connection.get_projects().await?;
+    projects.retain(|x| x.path().is_some());
+    connection.dispose().await?;
 
-    let stored = projects_state.set(projects).await;
+    let stored = projects_state.set(projects.into_boxed_slice()).await;
 
     let vec = stored
         .data()
@@ -177,16 +184,16 @@ pub async fn environment_add_project_with_picker(
         let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
-        let projects = connection.get_projects()?;
+        let projects = connection.get_projects().await?;
         if projects
             .iter()
-            .any(|x| Path::new(x.path()) == Path::new(&project_path))
+            .any(|x| x.path().map(Path::new) == Some(Path::new(&project_path)))
         {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
-        settings.load_from_db(&connection)?;
+        settings.load_from_db(&connection).await?;
         settings.save().await?;
     }
 
@@ -222,13 +229,13 @@ pub async fn environment_remove_project(
     let mut settings = settings.load_mut(io.inner()).await?;
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-    connection.remove_project(project)?;
+    connection.remove_project(project).await?;
     connection.save(io.inner()).await?;
-    settings.load_from_db(&connection)?;
+    settings.load_from_db(&connection).await?;
     settings.save().await?;
 
     if directory {
-        let path = project.path();
+        let path = project.path().unwrap();
         info!("removing project directory: {path}");
 
         if let Err(err) = trash_delete(PathBuf::from(path)).await {
@@ -254,12 +261,12 @@ pub async fn environment_remove_project_by_path(
         let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
-        let projects: Vec<UserProject> = connection.get_projects()?;
+        let projects: Vec<UserProject> = connection.get_projects().await?;
 
-        if let Some(x) = projects.iter().find(|x| x.path() == path) {
-            connection.remove_project(x)?;
+        if let Some(x) = projects.iter().find(|x| x.path() == Some(&path)) {
+            connection.remove_project(x).await?;
             connection.save(io.inner()).await?;
-            settings.load_from_db(&connection)?;
+            settings.load_from_db(&connection).await?;
             settings.save().await?;
         } else {
             drop(settings);
@@ -353,7 +360,7 @@ pub async fn environment_copy_project_for_migration(
                 ctx: &'a AsyncCommandContext<TauriCopyProjectForMigrationProgress>,
             }
 
-            impl<'a> CopyFileContext<'a> {
+            impl CopyFileContext<'_> {
                 fn on_finish(&self, entry: &FileSystemTree) {
                     let proceed = self
                         .proceed
@@ -412,7 +419,7 @@ pub async fn environment_copy_project_for_migration(
                 migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
                 connection.add_project(&unity_project).await?;
                 connection.save(io.inner()).await?;
-                settings.load_from_db(&connection)?;
+                settings.load_from_db(&connection).await?;
                 settings.save().await?;
             }
 
@@ -442,7 +449,7 @@ pub async fn environment_set_favorite_project(
     project.set_favorite(favorite);
 
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    connection.update_project(project)?;
+    connection.update_project(project).await?;
     connection.save(io.inner()).await?;
 
     Ok(())
@@ -773,7 +780,7 @@ pub async fn environment_create_project(
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
-        settings.load_from_db(&connection)?;
+        settings.load_from_db(&connection).await?;
         settings.save().await?;
     }
 

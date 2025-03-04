@@ -1,6 +1,6 @@
 [package]
 name = "vrc-get-gui"
-version = "1.0.0-rc.0"
+version = "1.0.2-beta.0"
 description = "A fast open-source alternative of VRChat Creator Companion"
 
 homepage.workspace = true
@@ -49,13 +49,13 @@ sys-locale = "0.3"
 log-panics = { version = "2", features = ["with-backtrace"] }
 url = "2"
 dirs-next = "2"
-yoke = { version = "0.7", features = ["derive"] }
+yoke = { version = "0.8", features = ["derive"] }
 atomicbox = "0.4"
 stable_deref_trait = "1"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.58", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
-winreg = "0.52"
+windows = { version = "0.60", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
+winreg = "0.55"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.26"

@@ -1,6 +1,6 @@
 use futures::Stream;
-use indexmap::map::Entry as IndexEntry;
 use indexmap::IndexMap;
+use indexmap::map::Entry as IndexEntry;
 use std::ffi::{OsStr, OsString};
 use std::future::Future;
 use std::io::ErrorKind;

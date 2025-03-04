@@ -1,6 +1,6 @@
 use crate::io;
 use crate::io::ProjectIo;
-use crate::utils::{load_json_or_default, save_json, JsonMapExt, SaveController};
+use crate::utils::{JsonMapExt, SaveController, load_json_or_default, save_json};
 use crate::version::Version;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};

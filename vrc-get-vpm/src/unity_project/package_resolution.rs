@@ -315,7 +315,9 @@ where
             // if already installed version is good, no need to reinstall
             if let Some(version) = &entry.current {
                 if range.match_pre(version, allow_prerelease) {
-                    log::debug!("processing package {name}: dependency {name} version {range}: existing matches");
+                    log::debug!(
+                        "processing package {name}: dependency {name} version {range}: existing matches"
+                    );
                     install = false;
                 }
             }
@@ -334,7 +336,7 @@ impl<'env> ResolutionContext<'env, '_> {
                     let conflicts_with_this = info
                         .requirements
                         .iter()
-                        .filter(|(&source, _)| {
+                        .filter(|&(&source, _)| {
                             self.dependencies
                                 .get(source)
                                 .map(|x| !x.is_legacy())

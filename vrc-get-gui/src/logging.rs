@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::fmt::{Display, Formatter};
 use std::io::Write as _;
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use tauri::{AppHandle, Emitter};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
 

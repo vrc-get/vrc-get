@@ -5,14 +5,14 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::commands::async_command::{async_command, AsyncCallResult, With};
+use crate::commands::async_command::{AsyncCallResult, With, async_command};
 use serde::{Deserialize, Serialize};
 use tauri::{Manager, State, Window};
 use tauri_plugin_dialog::DialogExt;
 use tokio::fs::write;
 use url::Url;
 use vrc_get_vpm::environment::{
-    add_remote_repo, clear_package_cache, AddUserPackageResult, Settings, UserPackageCollection,
+    AddUserPackageResult, Settings, UserPackageCollection, add_remote_repo, clear_package_cache,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::repositories_file::RepositoriesFile;

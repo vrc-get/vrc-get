@@ -46,6 +46,7 @@
     "setup:unity-hub:description": "Zuerst muss Unity Hub installiert werden. Unity Hub ist die bevorzugte Methode um Unity Versionen zu installieren und zu verwalten.<br/>ALCOM wird dir dabei helfen die richtige Unity Editor- und Hub Version zu installieren, wenn diese nicht vorhanden sind.",
     "setup:unity-hub:using this unity hub": "Verwendet folgendes Unity Hub",
     "setup:unity-hub:download unity hub from unity.com": "Download Unity Hub von unity.com",
+    "setup:unity-hub:unity hub link": "https://unity.com/de/download",
     "setup:unity-hub:recheck installation": "Prüfe Installation",
     "setup:unity-hub:detection failed collapse": "Hast du Unity Hub installiert?",
     "setup:unity-hub:detection failed description": "Bitte klicke die \"Prüfe Installation\" Schaltfläche um die Unity Hub Installation zu erkennen. Funktioniert dies nicht, kann ALCOM deine Unity Hub Installation nicht erkennen. Bitte definiere den Unity Hub-Pfad manuell.",

@@ -46,6 +46,7 @@
     "setup:unity-hub:description": "Unityをインストールしたり管理したりするために、Unity Hubをインストールする必要があります。<br>操作を行うために必要なUnityがインストールされていない場合、ALCOMはUnity Hub経由でのUnityインストールを提案します。",
     "setup:unity-hub:using this unity hub": "使用するUnity Hub",
     "setup:unity-hub:download unity hub from unity.com": "unity.comでUnity Hubをダウンロードする",
+    "setup:unity-hub:unity hub link": "https://unity.com/ja/download",
     "setup:unity-hub:recheck installation": "Unity Hubの有無を再確認する",
     "setup:unity-hub:detection failed collapse": "Unity Hubがインストール済みですか？",
     "setup:unity-hub:detection failed description": "Unity Hubの有無をもう一度確認させるには、\"Unity Hubの有無を再確認する\"ボタンを押してください。これが機能しない場合、ALCOMはUnity Hubの検出に失敗していますので、手動でUnity Hubの場所を指定してください。",

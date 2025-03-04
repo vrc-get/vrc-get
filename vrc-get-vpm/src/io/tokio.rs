@@ -38,7 +38,7 @@ impl DefaultEnvironmentIo {
 
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
-        return dirs_sys::known_folder_local_app_data().expect("LocalAppData not found");
+        dirs_sys::known_folder_local_app_data().expect("LocalAppData not found")
     }
 
     #[cfg(not(windows))]
@@ -68,13 +68,17 @@ impl EnvironmentIo for DefaultEnvironmentIo {
 
     #[cfg(feature = "vrc-get-litedb")]
     async fn connect_lite_db(&self) -> io::Result<crate::environment::VccDatabaseConnection> {
+        use vrc_get_litedb::engine::{LiteEngine, LiteSettings};
+        use vrc_get_litedb::tokio_fs::TokioStreamFactory;
+
         let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
-        let path = path.to_str().expect("path is not utf8").to_string();
+        let log_path = EnvironmentIo::resolve(self, "vcc-log.liteDb".as_ref());
 
         #[cfg(windows)]
         let lock = {
             use sha1::Digest;
 
+            let path = path.to_string_lossy();
             let path_lower = path.to_lowercase();
             let mut sha1 = sha1::Sha1::new();
             sha1.update(path_lower.as_bytes());
@@ -83,17 +87,25 @@ impl EnvironmentIo for DefaultEnvironmentIo {
             // this lock name is same as shared engine in litedb
             let name = format!("Global\\{hash_hex}.Mutex");
 
-            Box::new(win_mutex::MutexGuard::new(name).await?)
+            Box::new(
+                vrc_get_litedb::shared_mutex::SharedMutex::new(name)
+                    .await?
+                    .lock_owned()
+                    .await?,
+            )
         };
         #[cfg(not(windows))]
         let lock = Box::new(());
 
-        let db_connection = vrc_get_litedb::ConnectionString::new(&path).connect()?;
+        let engine = LiteEngine::new(LiteSettings {
+            data_stream: Box::new(TokioStreamFactory::new(path.clone())),
+            log_stream: Box::new(TokioStreamFactory::new(log_path.clone())),
+            auto_build: false,
+            collation: None,
+        })
+        .await?;
 
-        Ok(crate::environment::VccDatabaseConnection::new(
-            db_connection,
-            lock,
-        ))
+        Ok(crate::environment::VccDatabaseConnection::new(engine, lock))
     }
 
     #[cfg(feature = "experimental-project-management")]
@@ -313,75 +325,5 @@ impl super::DirEntry for DirEntry {
 
     async fn metadata(&self) -> io::Result<Metadata> {
         self.inner.metadata().await.map(Into::into)
-    }
-}
-
-#[cfg(windows)]
-mod win_mutex {
-    use std::ffi::OsString;
-    use std::io;
-    use windows::Win32::Foundation::*;
-    use windows::Win32::System::Threading::*;
-
-    pub(super) struct MutexGuard {
-        wait_sender: std::sync::mpsc::Sender<()>,
-    }
-
-    impl MutexGuard {
-        pub async fn new(name: impl Into<OsString>) -> io::Result<Self> {
-            let name = name.into();
-            let (result_sender, mut result_receiver) =
-                tokio::sync::mpsc::channel::<io::Result<()>>(1);
-            let (wait_sender, wait_receiver) = std::sync::mpsc::channel::<()>();
-
-            // create thread for mutex creation and free
-            #[allow(unsafe_code)]
-            std::thread::spawn(move || {
-                // https://github.com/dotnet/runtime/blob/bcca12c1b14d25b3368106301748cb35c0894356/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.Constants.cs#L12
-                const MAXIMUM_ALLOWED: u32 = 0x02000000;
-                const ACCESS_RIGHTS: u32 =
-                    MAXIMUM_ALLOWED | PROCESS_SYNCHRONIZE.0 | MUTEX_MODIFY_STATE.0;
-
-                let name = windows::core::HSTRING::from(&name);
-
-                let handle = match unsafe { CreateMutexExW(None, &name, 0, ACCESS_RIGHTS) } {
-                    Ok(handle) => handle,
-                    Err(e) => {
-                        // failed to create
-                        result_sender.blocking_send(Err(e.into())).unwrap();
-                        return;
-                    }
-                };
-
-                unsafe {
-                    let r = WaitForSingleObject(handle, INFINITE);
-                    if r == WAIT_FAILED {
-                        result_sender
-                            .blocking_send(Err(io::Error::last_os_error()))
-                            .unwrap();
-                    }
-                }
-
-                result_sender.blocking_send(Ok(())).unwrap();
-
-                wait_receiver.recv().ok();
-
-                unsafe {
-                    ReleaseMutex(handle).ok();
-                    CloseHandle(handle).ok();
-                }
-            });
-
-            result_receiver.recv().await.unwrap()?;
-
-            Ok(Self { wait_sender })
-        }
-    }
-
-    impl Drop for MutexGuard {
-        fn drop(&mut self) {
-            println!("unlock");
-            self.wait_sender.send(()).unwrap();
-        }
     }
 }

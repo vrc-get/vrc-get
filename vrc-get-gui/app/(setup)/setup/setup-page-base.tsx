@@ -55,7 +55,7 @@ export function SetupPageBase({
 				<Card
 					className={`${withoutSteps ? "w-[30rem]" : "w-96"} min-w-[50vw] min-h-[max(50dvh,20rem)] p-4 flex gap-3`}
 				>
-					<div className={"flex flex-col flex-grow"}>
+					<div className={"flex flex-col grow"}>
 						<CardHeader>
 							<h1 className={"text-center"}>{heading}</h1>
 						</CardHeader>
@@ -68,7 +68,7 @@ export function SetupPageBase({
 								refetch={() => result.refetch()}
 							/>
 						)}
-						<div className={"flex-grow"} />
+						<div className={"grow"} />
 						<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">
 							{prevPage && (
 								<Button onClick={() => router.push(prevPage)}>
@@ -96,7 +96,7 @@ function StepCard({
 		initialData: [],
 	}).data;
 
-	const isMac = useGlobalInfo().osType === "Darwin";
+	const shouldInstallDeepLink = useGlobalInfo().shouldInstallDeepLink;
 
 	return (
 		<Card className={"w-48 p-4"}>
@@ -121,7 +121,7 @@ function StepCard({
 					finisheds={finisheds}
 					pageId={"Backups"}
 				/>
-				{!isMac && (
+				{shouldInstallDeepLink && (
 					<StepElement
 						current={current}
 						finisheds={finisheds}

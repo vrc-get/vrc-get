@@ -54,7 +54,7 @@ export function SideBar({ className }: { className?: string }) {
 		<Card
 			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}
 		>
-			<div className="flex flex-col gap-1 p-2 min-w-40 flex-grow">
+			<div className="flex flex-col gap-1 p-2 min-w-40 grow">
 				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
 				<SideBarItem
 					href={"/packages/repositories"}
@@ -71,7 +71,7 @@ export function SideBar({ className }: { className?: string }) {
 						icon={SwatchBook}
 					/>
 				)}
-				<div className={"flex-grow"} />
+				<div className={"grow"} />
 				{isBadHostName.data && <BadHostNameDialogButton />}
 				<Button
 					variant={"ghost"}
@@ -107,7 +107,7 @@ function SideBarItem({
 	return (
 		<Button
 			variant={"ghost"}
-			className={`justify-start flex-shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
+			className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
 			onClick={() => router.push(href)}
 		>
 			<div className={"mr-4"}>
@@ -162,7 +162,7 @@ function DevRestartSetupButton() {
 	return (
 		<Button
 			variant={"ghost"}
-			className={"justify-start flex-shrink-0"}
+			className={"justify-start shrink-0"}
 			onClick={onClick}
 		>
 			<div className={"mr-4"}>

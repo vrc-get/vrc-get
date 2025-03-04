@@ -58,7 +58,7 @@ function PageBody() {
 		queryKey: ["environmentRepositoriesInfo"],
 		queryFn: commands.environmentRepositoriesInfo,
 	});
-	const onFinishAddRepositoryCallbackRef = useRef<() => void>();
+	const onFinishAddRepositoryCallbackRef = useRef<() => void>(undefined);
 
 	const addRepositoryInfo = useAddRepository({
 		refetch: () => result.refetch(),
@@ -138,7 +138,7 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"flex-shrink-0"}
+				className={"shrink-0"}
 				leading={<HeadingPageName pageType={"/packages/repositories"} />}
 				trailing={
 					<DropdownMenu>
@@ -172,7 +172,7 @@ function PageBody() {
 				}
 			/>
 			<main
-				className={`flex-shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
+				className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
 			>
 				<ScrollableCardTable className={"h-full w-full"}>
 					<RepositoryTableBody

@@ -3,17 +3,28 @@ use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
-use bson::oid::ObjectId;
+use futures::TryStreamExt;
 use log::info;
-use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::pin::pin;
+use vrc_get_litedb::bson::Document;
+use vrc_get_litedb::document;
+use vrc_get_litedb::engine::{BsonAutoId, TransactionLiteEngine};
 
 pub(crate) static COLLECTION: &str = "unityVersions";
+static PATH: &str = "Path";
+static VERSION: &str = "Version";
+static LOADED_FROM_HUB: &str = "LoadedFromHub";
 
 impl VccDatabaseConnection {
-    pub fn get_unity_installations(&self) -> io::Result<Vec<UnityInstallation>> {
-        Ok(self.db.get_values(COLLECTION)?)
+    pub async fn get_unity_installations(&self) -> io::Result<Vec<UnityInstallation>> {
+        Ok(self
+            .db
+            .get_all(COLLECTION)
+            .map_ok(UnityInstallation::from_document)
+            .try_collect()
+            .await?)
     }
 
     pub async fn add_unity_installation(
@@ -22,32 +33,37 @@ impl VccDatabaseConnection {
         version: UnityVersion,
     ) -> io::Result<()> {
         check_absolute_path(path)?;
-        self.add_unity_installation_internal(path, version, false)
-            .await
+        Ok(self
+            .db
+            .with_transaction(async |db| {
+                Ok(Self::add_unity_installation_internal(db, path, version, false).await?)
+            })
+            .await?)
     }
 
     async fn add_unity_installation_internal(
-        &mut self,
+        db: &mut TransactionLiteEngine<'_>,
         path: &str,
         version: UnityVersion,
         is_from_hub: bool,
     ) -> io::Result<()> {
-        let mut installation = UnityInstallation::new(path.into(), Some(version), false);
+        let installation = UnityInstallation::new(path.into(), Some(version), is_from_hub);
 
-        installation.loaded_from_hub = is_from_hub;
-
-        self.db.insert(COLLECTION, &installation)?;
+        db.insert(COLLECTION, vec![installation.bson], BsonAutoId::ObjectId)
+            .await?;
 
         Ok(())
     }
 
     pub async fn remove_unity_installation(&mut self, unity: &UnityInstallation) -> io::Result<()> {
-        self.db.delete(COLLECTION, unity.id)?;
+        self.db
+            .delete(COLLECTION, &[unity.bson["_id"].clone()])
+            .await?;
 
         Ok(())
     }
 
-    pub fn find_most_suitable_unity(
+    pub async fn find_most_suitable_unity(
         &self,
         expected: UnityVersion,
     ) -> io::Result<Option<UnityInstallation>> {
@@ -55,7 +71,12 @@ impl VccDatabaseConnection {
         let mut minor_match = None;
         let mut major_match = None;
 
-        for unity in self.db.get_values::<UnityInstallation>(COLLECTION)? {
+        let mut stream = pin!(self.db.get_all(COLLECTION));
+        while let Some(unity) = stream.try_next().await? {
+            let unity = UnityInstallation::from_document(unity);
+            if unity.path().is_none() {
+                continue;
+            }
             if let Some(version) = unity.version() {
                 if version == expected {
                     return Ok(Some(unity));
@@ -90,60 +111,83 @@ impl VccDatabaseConnection {
             .map(|(_, path)| path.as_path())
             .collect::<HashSet<_>>();
 
-        let mut installed = HashSet::new();
+        self.db
+            .with_transaction(async |db: &mut TransactionLiteEngine| {
+                let mut update = Vec::new();
+                let mut delete = Vec::new();
 
-        for mut in_db in self.db.get_values::<UnityInstallation>(COLLECTION)? {
-            let path = Path::new(in_db.path());
-            if !io.is_file(path).await {
-                // if the unity editor not found, remove it from the db
-                info!("Removed Unity that is not exists: {}", in_db.path());
-                self.db.delete(COLLECTION, in_db.id)?;
-                continue;
-            }
+                let mut registered = HashSet::new();
 
-            if installed.contains(path) {
-                // if the unity editor is already installed, remove it from the db
-                info!("Removed duplicated Unity: {}", in_db.path());
-                self.db.delete(COLLECTION, in_db.id)?;
-                continue;
-            }
+                let mut stream = pin!(self.db.get_all(COLLECTION));
+                while let Some(mut in_db) = stream.try_next().await? {
+                    let Some(path) = in_db[PATH].as_str() else {
+                        // if the unity editor not found, remove it from the db
+                        info!("Removed Unity has no path: {:?}", in_db["_id"]);
+                        delete.push(in_db["_id"].clone());
+                        continue;
+                    };
 
-            installed.insert(PathBuf::from(path));
+                    let path_path = Path::new(path);
+                    if !io.is_file(path_path).await {
+                        // if the unity editor not found, remove it from the db
+                        info!("Removed Unity that is not exists: {}", path);
+                        delete.push(in_db["_id"].clone());
+                        continue;
+                    }
 
-            let normalized = normalize_path(path).into_os_string().into_string().unwrap();
-            let exists_in_hub = paths_from_hub.contains(path);
+                    if registered.contains(path) {
+                        // if the unity editor is already installed, remove it from the db
+                        info!("Removed duplicated Unity: {}", path);
+                        delete.push(in_db["_id"].clone());
+                        continue;
+                    }
 
-            let mut update = false;
+                    registered.insert(path.to_string());
 
-            if exists_in_hub != in_db.loaded_from_hub() {
-                in_db.loaded_from_hub = exists_in_hub;
-                update = true;
-            }
+                    let normalized = normalize_path(path.as_ref())
+                        .into_os_string()
+                        .into_string()
+                        .unwrap();
+                    let exists_in_hub = paths_from_hub.contains(Path::new(path));
 
-            if normalized != in_db.path() {
-                in_db.path = normalized.into();
-                update = true;
-            }
+                    let mut changed = false;
 
-            if update {
-                self.db.update(COLLECTION, &in_db)?;
-            }
-        }
+                    if normalized != path {
+                        in_db.insert(PATH, normalized);
+                        changed = true;
+                    }
 
-        for &(version, ref path) in path_and_version_from_hub {
-            if !installed.contains(path) {
-                if version < UnityVersion::new_f1(2019, 4, 0) {
-                    info!(
-                        "Ignoring Unity from Unity Hub since old: {}",
-                        path.display()
-                    );
-                    continue;
+                    if Some(exists_in_hub) != in_db[LOADED_FROM_HUB].as_bool() {
+                        in_db.insert(LOADED_FROM_HUB, exists_in_hub);
+                        changed = true;
+                    }
+
+                    if changed {
+                        update.push(in_db);
+                    }
                 }
-                info!("Adding Unity from Unity Hub: {}", path.display());
-                self.add_unity_installation_internal(&path.to_string_lossy(), version, true)
-                    .await?;
-            }
-        }
+
+                for &(version, ref path) in path_and_version_from_hub {
+                    let Some(path) = path.as_os_str().to_str() else {
+                        info!(
+                            "Ignoring Unity from Unity Hub since non-utf8 path: {}",
+                            path.display()
+                        );
+                        continue;
+                    };
+                    if !registered.contains(path) {
+                        if version < UnityVersion::new_f1(2019, 4, 0) {
+                            info!("Ignoring Unity from Unity Hub since old: {}", path);
+                            continue;
+                        }
+                        info!("Adding Unity from Unity Hub: {}", path);
+                        Self::add_unity_installation_internal(db, path, version, true).await?;
+                    }
+                }
+
+                Ok(())
+            })
+            .await?;
 
         Ok(())
     }
@@ -184,7 +228,7 @@ fn default_unity_hub_path() -> &'static [&'static str] {
                         .ok()
                         .and_then(|key| key.get_value("InstallLocation").ok())
                         .and_then(|str: std::ffi::OsString| str.into_string().ok())
-                        .map(|s| PathBuf::from(s))
+                        .map(PathBuf::from)
                         .map(|mut p| {
                             p.push("Unity Hub.exe");
                             p
@@ -219,54 +263,34 @@ fn default_unity_hub_path() -> &'static [&'static str] {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Serialize, Deserialize)]
 pub struct UnityInstallation {
-    #[serde(rename = "_id")]
-    id: ObjectId,
-    #[serde(rename = "Path")]
-    path: Box<str>,
-    #[serde(rename = "Version")]
-    #[serde(deserialize_with = "default_if_err")]
-    #[serde(default)]
-    version: Option<UnityVersion>,
-    #[serde(rename = "LoadedFromHub")]
-    loaded_from_hub: bool,
+    bson: Document,
 }
 
 impl UnityInstallation {
     fn new(path: Box<str>, version: Option<UnityVersion>, loaded_from_hub: bool) -> Self {
         Self {
-            id: ObjectId::new(),
-            path,
-            version,
-            loaded_from_hub,
+            bson: document! {
+                PATH => path.as_ref(),
+                VERSION => version.as_ref().map(ToString::to_string),
+                LOADED_FROM_HUB => loaded_from_hub,
+            },
         }
     }
 
-    pub fn path(&self) -> &str {
-        &self.path
+    fn from_document(bson: Document) -> Self {
+        Self { bson }
+    }
+
+    pub fn path(&self) -> Option<&str> {
+        self.bson[PATH].as_str()
     }
 
     pub fn version(&self) -> Option<UnityVersion> {
-        self.version
+        self.bson[VERSION].as_str().and_then(UnityVersion::parse)
     }
 
     pub fn loaded_from_hub(&self) -> bool {
-        self.loaded_from_hub
-    }
-}
-
-// for unity 2018.x or older, VCC will parse version as "2018.4.0" instead of "2018.4.0f1"
-// and 2018.4.31f1 as "2018.4" instead of "2018.4.31f1"
-// Therefore, we need skip parsing such a version string.
-fn default_if_err<'de, D, T>(de: D) -> Result<T, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de> + Default,
-{
-    match T::deserialize(de) {
-        Ok(v) => Ok(v),
-        Err(_) => Ok(T::default()),
+        self.bson[LOADED_FROM_HUB].as_bool().unwrap_or(false)
     }
 }

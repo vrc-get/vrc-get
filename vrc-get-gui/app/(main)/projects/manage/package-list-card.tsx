@@ -276,7 +276,7 @@ export const PackageListCard = memo(function PackageListCard({
 	];
 
 	return (
-		<Card className="flex-grow flex-shrink flex shadow-none w-full">
+		<Card className="grow shrink flex shadow-none w-full">
 			<CardContent className="w-full p-2 flex flex-col gap-2">
 				<ManagePackagesHeading
 					packageRowsData={packageRowsData}
@@ -402,11 +402,9 @@ function ManagePackagesHeading({
 
 	return (
 		<div
-			className={
-				"flex flex-wrap flex-shrink-0 flex-grow-0 flex-row gap-2 items-center"
-			}
+			className={"flex flex-wrap shrink-0 grow-0 flex-row gap-2 items-center"}
 		>
-			<p className="cursor-pointer font-bold py-1.5 flex-grow-0 flex-shrink-0 pl-2">
+			<p className="cursor-pointer font-bold py-1.5 grow-0 shrink-0 pl-2">
 				{tc("projects:manage:manage packages")}
 			</p>
 
@@ -416,7 +414,7 @@ function ManagePackagesHeading({
 						variant={"ghost"}
 						size={"icon"}
 						onClick={onRefresh}
-						className={"flex-shrink-0"}
+						className={"shrink-0"}
 						disabled={isLoading}
 					>
 						{isLoading ? (
@@ -432,7 +430,7 @@ function ManagePackagesHeading({
 			</Tooltip>
 
 			<SearchBox
-				className={"w-max flex-grow"}
+				className={"w-max grow"}
 				value={search}
 				onChange={(e) => setSearch(e.target.value)}
 				ref={searchRef}
@@ -440,7 +438,7 @@ function ManagePackagesHeading({
 
 			{upgradableToLatest && (
 				<Button
-					className={"flex-shrink-0"}
+					className={"shrink-0"}
 					onClick={() => onUpgradeAllRequest(false)}
 					disabled={isLoading}
 					variant={"success"}
@@ -452,7 +450,7 @@ function ManagePackagesHeading({
 			{/* show this button only if some packages are upgradable to prerelease and there is different stable */}
 			{upgradableToStable && (
 				<Button
-					className={"flex-shrink-0"}
+					className={"shrink-0"}
 					onClick={() => onUpgradeAllRequest(true)}
 					disabled={isLoading}
 					variant={"success"}
@@ -463,7 +461,7 @@ function ManagePackagesHeading({
 
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<Button variant={"ghost"} size={"icon"} className={"flex-shrink-0"}>
+					<Button variant={"ghost"} size={"icon"} className={"shrink-0"}>
 						<Ellipsis className={"size-5"} />
 					</Button>
 				</DropdownMenuTrigger>
@@ -480,7 +478,7 @@ function ManagePackagesHeading({
 
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<Button className={"flex-shrink-0 p-3"}>
+					<Button className={"shrink-0 p-3"}>
 						{tc("projects:manage:button:select repositories")}
 					</Button>
 				</DropdownMenuTrigger>
@@ -619,7 +617,7 @@ function BulkUpdateCard({
 	return (
 		<Card
 			className={
-				"flex-shrink-0 p-2 flex flex-row gap-2 bg-secondary text-secondary-foreground flex-wrap"
+				"shrink-0 p-2 flex flex-row gap-2 bg-secondary text-secondary-foreground flex-wrap"
 			}
 		>
 			{bulkUpdateMode.canInstallOrUpgrade && (
@@ -802,7 +800,7 @@ const PackageRow = memo(function PackageRow({
 					className="hover:before:content-none"
 				/>
 			</td>
-			<td className={`${cellClass} overflow-hidden max-w-80 overflow-ellipsis`}>
+			<td className={`${cellClass} overflow-hidden max-w-80 text-ellipsis`}>
 				<Tooltip
 					open={
 						pkg.description ? undefined /* auto */ : false /* disable tooltip */
@@ -847,7 +845,7 @@ const PackageRow = memo(function PackageRow({
 				) : pkg.sources.size === 1 ? (
 					<Tooltip>
 						<TooltipTrigger>
-							<p className="overflow-hidden overflow-ellipsis">
+							<p className="overflow-hidden text-ellipsis">
 								{[...pkg.sources][0]}
 							</p>
 						</TooltipTrigger>

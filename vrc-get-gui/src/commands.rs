@@ -9,13 +9,13 @@ pub use start::startup;
 use tauri::generate_handler;
 use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
+use vrc_get_vpm::PackageManifest;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
 };
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::PackageManifest;
 
 // common macro for commands so put it here
 #[allow(unused_macros)]
@@ -46,8 +46,8 @@ mod util;
 
 mod prelude {
     pub(super) use super::{
-        load_project, update_project_last_modified, IntoPathBuf as _, RustError,
-        TauriBasePackageInfo, UnityProject,
+        IntoPathBuf as _, RustError, TauriBasePackageInfo, UnityProject, load_project,
+        update_project_last_modified,
     };
     pub use crate::state::*;
 }
@@ -243,8 +243,11 @@ pub(crate) fn export_ts() {
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
     async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), io::Error> {
         let mut connection = VccDatabaseConnection::connect(io).await?;
-        connection.update_project_last_modified(project_dir)?;
+        connection
+            .update_project_last_modified(&project_dir.to_string_lossy())
+            .await?;
         connection.save(io).await?;
+        connection.dispose().await?;
         Ok(())
     }
 
@@ -457,7 +460,6 @@ impl IntoPathBuf for tauri_plugin_dialog::FilePath {
         match self {
             Self::Url(url) => url
                 .to_file_path()
-                .map(PathBuf::from)
                 .map_err(|_| RustError::unrecoverable("internal error: bad file url")),
             Self::Path(p) => Ok(p),
         }

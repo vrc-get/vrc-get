@@ -2,9 +2,9 @@ use crate::io::BufReader;
 use crate::io::ProjectIo;
 use crate::utils::walk_dir_relative;
 use crate::{PackageInfo, PackageManifest, UnityProject};
+use futures::StreamExt;
 use futures::prelude::*;
 use futures::stream::FuturesUnordered;
-use futures::StreamExt;
 use hex::FromHex;
 use log::debug;
 use std::collections::HashMap;
@@ -116,35 +116,37 @@ async fn find_legacy_assets_by_path<'a>(
 ) {
     use LegacySearchResult::*;
 
-    let mut futures = pin!(assets
-        .map(|info| async move {
-            // some packages uses '/' as path separator.
-            let relative_path = PathBuf::from(info.path.replace('\\', "/")).into_boxed_path();
-            // for security, deny absolute path.
-            if relative_path.is_absolute() {
-                return None;
-            }
-            #[allow(clippy::manual_map)] // it's parallel, not just a if-else
-            if valid_path(&relative_path)
-                && io
-                    .metadata(&relative_path)
-                    .await
-                    .map(|x| x.is_file() == info.is_file)
-                    .unwrap_or(false)
-                && check_guid(io, relative_path.as_ref(), info.guid).await
-            {
-                Some(FoundWithPath(
-                    info.package_name,
-                    relative_path,
-                    info.is_file,
-                ))
-            } else if let Some(guid) = info.guid {
-                Some(SearchWithGuid(info.package_name, guid, info.is_file))
-            } else {
-                None
-            }
-        })
-        .collect::<FuturesUnordered<_>>());
+    let mut futures = pin!(
+        assets
+            .map(|info| async move {
+                // some packages uses '/' as path separator.
+                let relative_path = PathBuf::from(info.path.replace('\\', "/")).into_boxed_path();
+                // for security, deny absolute path.
+                if relative_path.is_absolute() {
+                    return None;
+                }
+                #[allow(clippy::manual_map)] // it's parallel, not just a if-else
+                if valid_path(&relative_path)
+                    && io
+                        .metadata(&relative_path)
+                        .await
+                        .map(|x| x.is_file() == info.is_file)
+                        .unwrap_or(false)
+                    && check_guid(io, relative_path.as_ref(), info.guid).await
+                {
+                    Some(FoundWithPath(
+                        info.package_name,
+                        relative_path,
+                        info.is_file,
+                    ))
+                } else if let Some(guid) = info.guid {
+                    Some(SearchWithGuid(info.package_name, guid, info.is_file))
+                } else {
+                    None
+                }
+            })
+            .collect::<FuturesUnordered<_>>()
+    );
 
     let mut found_files = HashMap::new();
     let mut found_folders = HashMap::new();

@@ -1,12 +1,39 @@
 # ALCOM
 
-This folder contains the GUI version of vrc-get, ALCOM.
+[![Github Release][shields-github-version]][release-alcom]
+[![Homebrew Version][shields-homebrew-version]][homebrew-alcom]
+[![Scoop Version][shields-scoop-version]][scoop-alcom]
+[![AUR Version][shields-aur-version]][aur-alcom]
+[![WinGet Version][shields-winget-version]][winget-alcom]
+<!-- [![MacPorts Version][shields-macports-vrc-get]][macports-vrc-get] -->
 
-[Homepage (Help Wanted)](https://vrc-get.anatawa12.com/alcom/)
+[shields-github-version]: https://img.shields.io/github/v/release/vrc-get/vrc-get?filter=gui-v*
+[shields-homebrew-version]: https://img.shields.io/homebrew/cask/v/alcom
+[shields-scoop-version]: https://img.shields.io/scoop/v/vrc-alcom?bucket=https%3A%2F%2Fgithub.com%2Fbabo4d%2Fscoop-xrtools
+[shields-aur-version]: https://img.shields.io/aur/version/alcom
+[shields-winget-version]: https://img.shields.io/winget/v/anatawa12.ALCOM
+<!-- [shields-macports-vrc-get]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fports.macports.org%2Fapi%2Fv1%2Fports%2Falcom%2F&query=%24.version&label=macports -->
+
+<!-- TODO: macports: https://github.com/badges/shields/issues/9588 -->
+
+[release-alcom]: https://github.com/vrc-get/vrc-get/releases?q=gui-v1
+[homebrew-alcom]: https://formulae.brew.sh/cask/alcom
+[scoop-alcom]: https://github.com/babo4d/scoop-xrtools/blob/master/bucket/vrc-alcom.json
+[aur-alcom]: https://aur.archlinux.org/packages/alcom
+[winget-alcom]: https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/anatawa12/ALCOM
+<!-- [macports-vrc-get]: https://ports.macports.org/port/alcom -->
+
+[scoop-xrtools]: https://github.com/babo4d/scoop-xrtools/
+
+A crossplatform fast open-source alternative of VRChat Creator Companion
+
+[Homepage](https://vrc-get.anatawa12.com/alcom/)
 
 ## Installation
 
 The recommended way to install ALCOM is download from [Website][alcom-site].
+
+Or you can install ALCOM from package managers like [Homebrew][homebrew-alcom], [Scoop][scoop-xrtools], [AUR][aur-alcom], or [WinGet][winget-alcom].
 
 If you want, you may download the HEAD build from [GitHub Actions][alcom-nightly]
 
@@ -43,21 +70,18 @@ Version numbers shown here are as of the writing (Dec 2024), so might be outdate
 
 To build ALCOM, you need to have the following installed:
 
-- [Node.js] LTS — to build the web part of the project
+- [Node.js] >=20 supported — to build the web part of the project
 - [npm] v10 — to install the dependencies of the web part (bundled with node.js so no extra attention needed in most case)
 - [cargo] latest — to build the most part of the project
-- [cargo-about] latest — to generate the licenses json (for development, not required but required for building release binary)
-- [.NET SDK] v8 — to build vrc-get-litedb crate
+- And other requirements for tauri, see [tauri requirements](https://v2.tauri.app/start/prerequisites/#system-dependencies)
 
-Please note that ALCOM requires the latest version of cargo and cargo-about at that time. 
-We update the required version of cargo and cargo-about without notice.
+Please note that ALCOM requires the latest version of cargo at that time. 
+We update the required version of cargo without notice.
 Therefore, you may need to update them before building the project.
 
 [Node.js]: https://nodejs.org/en
 [npm]: https://www.npmjs.com
 [cargo]: https://doc.rust-lang.org/cargo/
-[cargo-about]: https://github.com/EmbarkStudios/cargo-about
-[.NET SDK]: https://dotnet.microsoft.com/download
 
 ## Building
 

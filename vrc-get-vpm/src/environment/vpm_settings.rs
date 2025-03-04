@@ -1,8 +1,8 @@
+use crate::UserRepoSetting;
 use crate::environment::PackageCollection;
 use crate::io;
 use crate::io::EnvironmentIo;
 use crate::utils::{load_json_or_default, save_json};
-use crate::UserRepoSetting;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};

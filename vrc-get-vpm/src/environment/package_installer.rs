@@ -3,7 +3,7 @@ use crate::io::{EnvironmentIo, ProjectIo};
 use crate::repository::LocalCachedRepository;
 use crate::traits::AbortCheck;
 use crate::utils::Sha256AsyncWrite;
-use crate::{io, HttpClient, PackageInfo, PackageManifest};
+use crate::{HttpClient, PackageInfo, PackageManifest, io};
 use futures::prelude::*;
 use hex::FromHex;
 use indexmap::IndexMap;

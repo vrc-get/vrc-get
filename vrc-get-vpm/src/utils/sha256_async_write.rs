@@ -4,7 +4,7 @@ use pin_project_lite::pin_project;
 use sha2::digest::Output;
 use sha2::{Digest, Sha256};
 use std::pin::Pin;
-use std::task::{ready, Context, Poll};
+use std::task::{Context, Poll, ready};
 
 pin_project! {
 
