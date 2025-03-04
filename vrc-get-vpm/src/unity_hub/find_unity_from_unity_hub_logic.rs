@@ -469,7 +469,7 @@ mod os {
 
                 let mut version_info = vec![0u8; size as usize];
 
-                GetFileVersionInfoW(&filename, 0, size, version_info.as_mut_ptr() as _)?;
+                GetFileVersionInfoW(&filename, None, size, version_info.as_mut_ptr() as _)?;
 
                 let mut buffer_ptr = std::ptr::null::<u16>();
                 let mut size: u32 = 0;
