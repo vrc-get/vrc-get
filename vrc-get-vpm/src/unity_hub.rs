@@ -9,6 +9,7 @@ use std::process::Output;
 use tokio::process::Command;
 
 pub use find_unity_from_unity_hub_logic::find_available_editors;
+pub use os::load_unity_version;
 
 #[allow(dead_code)]
 async fn headless_unity_hub(unity_hub_path: &OsStr, args: &[&OsStr]) -> io::Result<Output> {
