@@ -459,42 +459,53 @@ mod os {
         #[cfg(target_os = "windows")] // windows-rs is optional dependency only for macos
         #[allow(unsafe_code)]
         pub async fn load_unity_version(unity: &Path) -> Result<UnityVersion> {
-            use ::windows::Win32::Storage::FileSystem::*;
-            use ::windows::core::HSTRING;
+            use std::io;
 
-            // TODO: make fully async
-            unsafe {
-                let filename = HSTRING::from(unity);
-                let size = GetFileVersionInfoSizeW(&filename, None);
+            fn inner(unity: &Path) -> Result<UnityVersion> {
+                use ::windows::Win32::Storage::FileSystem::*;
+                use ::windows::core::HSTRING;
+                unsafe {
+                    let filename = HSTRING::from(unity);
+                    let size = GetFileVersionInfoSizeW(&filename, None);
 
-                let mut version_info = vec![0u8; size as usize];
+                    let mut version_info = vec![0u8; size as usize];
 
-                GetFileVersionInfoW(&filename, None, size, version_info.as_mut_ptr() as _)?;
+                    GetFileVersionInfoW(&filename, None, size, version_info.as_mut_ptr() as _)?;
 
-                let mut buffer_ptr = std::ptr::null::<u16>();
-                let mut size: u32 = 0;
+                    let mut buffer_ptr = std::ptr::null::<u16>();
+                    let mut size: u32 = 0;
 
-                if !VerQueryValueW(
-                    version_info.as_ptr() as _,
-                    &HSTRING::from(r"\StringFileInfo\040904b0\Unity Version"),
-                    &mut buffer_ptr as *mut _ as _,
-                    &mut size as *mut _,
-                )
-                .as_bool()
-                {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "version info not found",
-                    ));
+                    if !VerQueryValueW(
+                        version_info.as_ptr() as _,
+                        &HSTRING::from(r"\StringFileInfo\040904b0\Unity Version"),
+                        &mut buffer_ptr as *mut _ as _,
+                        &mut size as *mut _,
+                    )
+                    .as_bool()
+                    {
+                        return Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "version info not found",
+                        ));
+                    }
+
+                    let slice = std::slice::from_raw_parts(buffer_ptr, size as usize);
+                    let str = String::from_utf16_lossy(slice);
+                    let version = str.split_once('_').unwrap_or((&str, "")).0;
+
+                    UnityVersion::parse(version).ok_or_else(|| {
+                        io::Error::new(io::ErrorKind::InvalidData, "invalid version")
+                    })
                 }
+            }
 
-                let slice = std::slice::from_raw_parts(buffer_ptr, size as usize);
-                let str = String::from_utf16_lossy(slice);
-                let version = str.split_once('_').unwrap_or((&str, "")).0;
-
-                UnityVersion::parse(version).ok_or_else(|| {
-                    std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid version")
-                })
+            let unity = unity.to_path_buf();
+            match tokio::task::spawn_blocking(move || inner(&unity)).await {
+                Ok(result) => result,
+                Err(_) => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "background task failed",
+                )),
             }
         }
 
