@@ -32,18 +32,20 @@ pub fn get_executable_path(path: &Path) -> Cow<Path> {
 ///
 /// On macOS, this function converts an executable file path to .app path.
 /// On other platforms, does nothing.
-pub fn get_app_path(path: &Path) -> &Path {
+pub fn get_app_path(path: &Path) -> Option<&Path> {
     #[cfg(not(target_os = "macos"))]
     {
-        path
+        Some(path)
     }
     #[cfg(target_os = "macos")]
     {
         if path.ends_with("Contents/MacOS/Unity") {
-            path.parent().unwrap().parent().unwrap().parent().unwrap()
+            Some(path.parent().unwrap().parent().unwrap().parent().unwrap())
+        } else if path.extension() == Some(OsStr::new("app")) {
+            Some(path)
         } else {
-            // Fallback to normal path.
-            path
+            // It looks the path is not path to executable nor app bundle so return none
+            None
         }
     }
 }
