@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog].
 - Removed `cargo-about` from build-time dependency `#1961`
   - This is internal changes should not cause behavior changes
   - I listed here since this may need update on package metadata of some package managers
+- The method to retrieve the list of Unity from Unity Hub `#1808`
 
 ### Deprecated
 
