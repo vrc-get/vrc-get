@@ -382,6 +382,8 @@
     "settings:toast:not unity": "Selected file is not Unity.",
     "settings:toast:unity already added": "Selected Unity was already added.",
     "settings:toast:unity added": "Added Unity successfully!",
+    "settings:use legacy unity hub loading": "Use legacy Unity Hub loading",
+    "settings:use legacy unity hub loading description": "Legacy Unity Hub loading is more reliable to load unity list from Unity Hub than new current method, but legacy method will take much time.\nLegacy method will be removed in future so if there is some problems with new method, please report developer from section below.",
 
     "settings:default unity arguments": "Default Unity Command-line Arguments",
     "settings:default unity arguments description": "Those command-line arguments will be used when opening Unity from ALCOM.",

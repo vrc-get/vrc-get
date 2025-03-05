@@ -38,7 +38,7 @@ pub struct GuiConfig {
     pub unity_hub_access_method: UnityHubAccessMethod,
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Default, specta::Type)]
 pub enum UnityHubAccessMethod {
     /// Reads config files of Unity Hub
     #[default]
