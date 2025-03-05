@@ -28,6 +28,8 @@
 		"@radix-ui/react-slot": "^1",
 		"@radix-ui/react-tooltip": "^1",
 		"@tanstack/react-query": "^5",
+		"@tanstack/react-router": "^1.112.13",
+		"@tanstack/router-devtools": "^1.112.13",
 		"@tauri-apps/api": "^2",
 		"@uidotdev/usehooks": "^2",
 		"class-variance-authority": "^0.7",
@@ -45,17 +47,20 @@
 	"devDependencies": {
 		"@biomejs/biome": "^1",
 		"@tailwindcss/postcss": "^4.0.9",
+		"@tanstack/router-plugin": "^1.112.13",
 		"@tauri-apps/cli": "^2",
 		"@types/node": "^20",
 		"@types/react": "19.0.10",
 		"@types/react-dom": "19.0.4",
+		"@vitejs/plugin-react-swc": "^3.8.0",
 		"json5": "^2",
 		"postcss": "^8",
 		"sharp-cli": "^5.1.0",
 		"svgo": "^3.3.2",
 		"tailwindcss": "^4.0.9",
 		"tailwindcss-animate": "^1",
-		"typescript": "^5"
+		"typescript": "^5",
+		"vite": "^6.2.0"
 	},
 	"overrides": {
 		"@types/react": "19.0.10",
