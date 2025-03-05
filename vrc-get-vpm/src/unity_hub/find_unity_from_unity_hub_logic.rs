@@ -24,7 +24,7 @@ pub struct UnityEditorInHub {
     pub architecture: Option<ChipArchitecture>,
 }
 
-pub async fn find_available_editors() -> Result<Vec<UnityEditorInHub>> {
+pub async fn load_unity_by_loading_unity_hub_files() -> Result<Vec<UnityEditorInHub>> {
     let install_path = os::app_path()
         .joined("Unity")
         .joined("Hub")

@@ -10,7 +10,7 @@ use std::process::Output;
 use std::str::from_utf8;
 use tokio::process::Command;
 
-pub use find_unity_from_unity_hub_logic::find_available_editors;
+pub use find_unity_from_unity_hub_logic::load_unity_by_loading_unity_hub_files;
 pub use os::load_unity_version;
 
 /// Returns the path to executable file
@@ -103,7 +103,7 @@ pub async fn get_unity_from_unity_hub(
 ) -> io::Result<Vec<(UnityVersion, PathBuf)>> {
     let mut result = Vec::new();
 
-    for x in find_available_editors().await? {
+    for x in load_unity_by_loading_unity_hub_files().await? {
         result.push((x.version, get_executable_path(&x.path).into_owned()));
     }
 
