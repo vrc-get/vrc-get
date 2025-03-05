@@ -1,6 +1,7 @@
 use crate::environment::{Settings, VccDatabaseConnection};
 use crate::io;
 use crate::io::EnvironmentIo;
+use crate::unity_hub::get_executable_path;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
 use futures::TryStreamExt;
@@ -106,9 +107,13 @@ impl VccDatabaseConnection {
         path_and_version_from_hub: &[(UnityVersion, PathBuf)],
         io: &impl EnvironmentIo,
     ) -> io::Result<()> {
+        let path_and_version_from_hub = path_and_version_from_hub
+            .iter()
+            .map(|(version, path)| (version, get_executable_path(path)))
+            .collect::<Vec<_>>();
         let paths_from_hub = path_and_version_from_hub
             .iter()
-            .map(|(_, path)| path.as_path())
+            .map(|(_, path)| path.as_ref())
             .collect::<HashSet<_>>();
 
         self.db
@@ -167,7 +172,10 @@ impl VccDatabaseConnection {
                     }
                 }
 
-                for &(version, ref path) in path_and_version_from_hub {
+                self.db.delete(COLLECTION, &delete).await?;
+                self.db.update(COLLECTION, update).await?;
+
+                for &(&version, ref path) in &path_and_version_from_hub {
                     let Some(path) = path.as_os_str().to_str() else {
                         info!(
                             "Ignoring Unity from Unity Hub since non-utf8 path: {}",
