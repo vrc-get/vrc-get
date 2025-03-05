@@ -1,4 +1,5 @@
 mod find_unity_from_unity_hub_logic;
+mod os;
 
 use crate::io;
 use crate::version::UnityVersion;
