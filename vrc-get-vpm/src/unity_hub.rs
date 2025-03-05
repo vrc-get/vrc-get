@@ -24,7 +24,11 @@ pub fn get_executable_path(path: &Path) -> Cow<Path> {
     }
     #[cfg(target_os = "macos")]
     {
-        Cow::Owned(path.join("Contents/MacOS/Unity"))
+        if path.extension() == Some(OsStr::new("app")) {
+            Cow::Owned(path.join("Contents/MacOS/Unity"))
+        } else {
+            Cow::Borrowed(path)
+        }
     }
 }
 
