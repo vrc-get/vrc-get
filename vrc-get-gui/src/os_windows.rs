@@ -154,13 +154,15 @@ pub fn os_info() -> &'static str {
 
         thread::spawn(move || {
             use serde::Deserialize;
+
             #[allow(non_camel_case_types)]
+            #[allow(non_snake_case)]
             #[derive(Deserialize, Debug)]
             struct Win32_OperatingSystem {
-                #[allow(non_snake_case)]
-                Caption: String,
-                #[allow(non_snake_case)]
-                Version: String,
+                #[serde(rename = "Caption")]
+                caption: String,
+                #[serde(rename = "Version")]
+                version: String,
             }
 
             let com_con = match COMLibrary::new() {
@@ -171,7 +173,7 @@ pub fn os_info() -> &'static str {
                 }
             };
 
-            let wmi_con = match WMIConnection::new(com_con.into()) {
+            let wmi_con = match WMIConnection::new(com_con) {
                 Ok(con) => con,
                 Err(_) => {
                     let _ = sender.send(Err(()));
@@ -182,7 +184,7 @@ pub fn os_info() -> &'static str {
             match wmi_con.query::<Win32_OperatingSystem>() {
                 Ok(mut results) => {
                     if let Some(os) = results.pop() {
-                        let _ = sender.send(Ok(format!("{} ({})", os.Caption, os.Version)));
+                        let _ = sender.send(Ok(format!("{} ({})", os.caption, os.version)));
                     } else {
                         let _ = sender.send(Err(()));
                     }
@@ -203,8 +205,10 @@ pub fn os_info() -> &'static str {
         use windows::Wdk::System::SystemServices::RtlGetVersion;
         use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
 
-        let mut info: OSVERSIONINFOW = Default::default();
-        info.dwOSVersionInfoSize = size_of::<OSVERSIONINFOW>() as u32;
+        let mut info = OSVERSIONINFOW {
+            dwOSVersionInfoSize: size_of::<OSVERSIONINFOW>() as u32,
+            ..Default::default()
+        };
 
         unsafe {
             if RtlGetVersion(&mut info).is_err() {
