@@ -64,7 +64,7 @@
 
     "setup:steps card:SystemSetting": "系统配置",
     "setup:system-setting:heading": "系统配置",
-    "setup:system-setting:vcc scheme description": "您可以使 ALCOM 代替 VCC 来处理 <code>vcc://</code> 快捷方式，以将存储库安装到你的电脑上。ALCOM 和 VCC 将共享相同的存储库列表，但使用 ALCOM 可以让你在不打开 VCC 的情况下快速安装存储库。",
+    "setup:system-setting:vcc scheme description": "您可以使 ALCOM 代替 VCC 来处理 <code>vcc://</code> 快捷方式，以将存储库安装到您的电脑上。ALCOM 和 VCC 将共享相同的存储库列表，但使用 ALCOM 可以让您在不打开 VCC 的情况下快速安装存储库。",
     "setup:system-setting:macos bug message": "在 macOS 上无需配置此功能。 (这个页面不应该被显示，显示此页面是一个错误)",
     "setup:system-setting:hostname-with-non-ascii": "您在设备名称中使用了非 ASCII 字符。<br/>这可能会导致 Unity 2022 出现问题。<br/>强烈建议您使用 ASCII 字符来命名设备。",
 
@@ -138,7 +138,7 @@
     "projects:dialog:unity version of the project not found but china found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在您的设备中找到了对应的中国版 Unity {{chinaUnity}} 。<br>要让这个项目使用中国版 Unity 吗？",
     "projects:dialog:use china version": "使用中国版 Unity",
     "projects:dialog:unity not found but international found": "未找到匹配的 Unity 版本，但找到了对应的国际版 Unity。",
-    "projects:dialog:unity version of the project not found but international found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在你的设备中找到了对应的国际版 Unity {{internationalUnity}} 。<br>要让这个项目使用国际版 Unity 吗？",
+    "projects:dialog:unity version of the project not found but international found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在您的设备中找到了对应的国际版 Unity {{internationalUnity}} 。<br>要让这个项目使用国际版 Unity 吗？",
     "projects:dialog:use international version": "使用国际版 Unity",
     "projects:toast:invalid project unity version": "我们没有检测到合适的 Unity 版本",
     "projects:toast:loading unity from unity hub": "正在从 Unity Hub 获取已安装的 Unity...",
@@ -280,7 +280,7 @@
     "projects:manage:button:apply": "应用",
 
     "projects:manage:dialog:missing dependencies": "软件包依赖缺失。",
-    "projects:manage:dialog:missing dependencies description": "需要安装以下软件包，但我们无法在已添加的软件包存储库里找到它们。<br/>请添加包含这些软件包的软件包存储库。<br/>你可以前往 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 来找到相应的软件包存储库。",
+    "projects:manage:dialog:missing dependencies description": "需要安装以下软件包，但我们无法在已添加的软件包存储库里找到它们。<br/>请添加包含这些软件包的软件包存储库。<br/>您可以前往 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 来找到相应的软件包存储库。",
 
 
 // Packages Page
@@ -373,6 +373,8 @@
     "settings:toast:not unity": "所选文件不是有效的 Unity 可执行文件。",
     "settings:toast:unity already added": "所选的 Unity 版本已经添加过了。",
     "settings:toast:unity added": "添加 Unity 成功！",
+    "settings:use legacy unity hub loading": "使用旧版方法获取 Unity Hub",
+    "settings:use legacy unity hub loading description": "旧版方法会比目前默认的新方法更加可靠，但会花费更多时间。\n这将会在未来被移除，所以如果您遇到任何问题，请及时向开发者反馈。",
 
     "settings:default unity arguments": "默认的 Untiy 命令行参数",
     "settings:default unity arguments description": "ALCOM 启动 Unity 时将使用这些命令行参数。",
@@ -434,7 +436,7 @@
     "check update:dialog:relaunching...": "正在重启 ALCOM...",
 
     "settings:use alcom for vcc scheme": "使 ALCOM 关联 URL 快捷方式 <code>vcc://</code>",
-    "settings:use vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为 URL 快捷方式 <code>vcc://</code> 唤起的默认应用程序，以从浏览器快捷添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式。<code>vcc://</code><br>每当 VCC 安装/重装/更新时，你都需要重启 ALCOM 或通过手动点击设置界面的按钮来覆盖 VCC 的对 URL 快捷方式的注册。",
+    "settings:use vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为 URL 快捷方式 <code>vcc://</code> 唤起的默认应用程序，以从浏览器快捷添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式。<code>vcc://</code><br>每当 VCC 安装/重装/更新时，您都需要重启 ALCOM 或通过手动点击设置界面的按钮来覆盖 VCC 的对 URL 快捷方式的注册。",
     "settings:register vcc scheme now": "立即注册 URL 快捷方式",
     "settings:toast:vcc scheme installed": "ALCOM 已被注册为 URL 快捷方式 <code>vcc://</code> 的默认启动程序。",
 
