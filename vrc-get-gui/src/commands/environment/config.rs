@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 use crate::commands::prelude::*;
+use crate::config::UnityHubAccessMethod;
 use crate::logging::LogLevel;
 
 #[tauri::command]
@@ -189,6 +190,18 @@ pub async fn environment_set_gui_animation(
 ) -> Result<(), RustError> {
     let mut config = config.load_mut().await?;
     config.gui_animation = gui_animation;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_unity_hub_access_method(
+    config: State<'_, GuiConfigState>,
+    unity_hub_access_method: UnityHubAccessMethod,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.unity_hub_access_method = unity_hub_access_method;
     config.save().await?;
     Ok(())
 }

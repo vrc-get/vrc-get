@@ -32,15 +32,6 @@ impl WindowExt for WebviewWindow {
 pub fn startup(app: &mut App) {
     let handle = app.handle().clone();
     spawn(async move {
-        let state = handle.state();
-        let io = handle.state();
-        if let Err(e) = update_unity_hub(state, io).await {
-            error!("failed to update unity from unity hub: {e}");
-        }
-    });
-
-    let handle = app.handle().clone();
-    spawn(async move {
         if let Err(e) = open_main(handle).await {
             error!("failed to open main window: {e}");
         }
@@ -48,11 +39,12 @@ pub fn startup(app: &mut App) {
 
     async fn update_unity_hub(
         settings: State<'_, SettingsState>,
+        config: State<'_, GuiConfigState>,
         io: State<'_, DefaultEnvironmentIo>,
     ) -> Result<(), io::Error> {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        if update_unity_paths_from_unity_hub(&settings, &io).await? {
+        if update_unity_paths_from_unity_hub(&settings, &config, &io).await? {
             info!("finished updating unity from unity hub");
         } else {
             error!("Unity Hub not found");
@@ -65,6 +57,16 @@ pub fn startup(app: &mut App) {
         let io = app.state::<DefaultEnvironmentIo>();
         let config = GuiConfigState::new_load(io.inner()).await?;
         app.manage(config);
+
+        let handle = app.clone();
+        spawn(async move {
+            let state = handle.state();
+            let config = handle.state();
+            let io = handle.state();
+            if let Err(e) = update_unity_hub(state, config, io).await {
+                error!("failed to update unity from unity hub: {e}");
+            }
+        });
 
         let config = app.state::<GuiConfigState>();
         let config = config.get().clone();

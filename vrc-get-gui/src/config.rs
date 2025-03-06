@@ -34,6 +34,17 @@ pub struct GuiConfig {
     pub logs_level: Vec<LogLevel>,
     #[serde(default = "gui_animation_default")]
     pub gui_animation: bool,
+    #[serde(default)]
+    pub unity_hub_access_method: UnityHubAccessMethod,
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Default, specta::Type)]
+pub enum UnityHubAccessMethod {
+    /// Reads config files of Unity Hub
+    #[default]
+    ReadConfig,
+    /// Launches headless Unity Hub in background
+    CallHub,
 }
 
 impl Default for GuiConfig {
@@ -53,6 +64,7 @@ impl Default for GuiConfig {
             default_unity_arguments: None,
             logs_level: log_level_default(),
             gui_animation: true,
+            unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
         }
     }
 }

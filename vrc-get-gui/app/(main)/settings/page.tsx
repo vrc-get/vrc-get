@@ -38,6 +38,7 @@ import type {
 	CheckForUpdateResponse,
 	OpenOptions,
 	TauriEnvironmentSettings,
+	UnityHubAccessMethod,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import globalInfo, { useGlobalInfo } from "@/lib/global-info";
@@ -151,6 +152,7 @@ function Settings({
 					updatingUnityPaths={updatingUnityPaths}
 					updateUnityPaths={updateUnityPaths}
 					unityPaths={settings.unity_paths}
+					unityHubAccessMethod={settings.unity_hub_access_method}
 				/>
 				<UnityLaunchArgumentsCard
 					refetch={refetch}
@@ -194,11 +196,13 @@ function Settings({
 function UnityInstallationsCard({
 	refetch,
 	unityPaths,
+	unityHubAccessMethod,
 	updatingUnityPaths,
 	updateUnityPaths,
 }: {
 	refetch: () => void;
 	unityPaths: [path: string, version: string, fromHub: boolean][];
+	unityHubAccessMethod: UnityHubAccessMethod;
 	updatingUnityPaths: boolean;
 	updateUnityPaths: () => void;
 }) {
@@ -239,8 +243,8 @@ function UnityInstallationsCard({
 	];
 
 	return (
-		<Card className={"shrink-0 p-4"}>
-			<div className={"pb-2 flex align-middle"}>
+		<Card className={"shrink-0 p-4 flex flex-col gap-2"}>
+			<div className={"flex align-middle"}>
 				<div className={"grow flex items-center"}>
 					<h2>{tc("settings:unity installations")}</h2>
 				</div>
@@ -312,6 +316,23 @@ function UnityInstallationsCard({
 					))}
 				</tbody>
 			</ScrollableCardTable>
+			<div>
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={unityHubAccessMethod === "CallHub"}
+						onCheckedChange={async (e) => {
+							await commands.environmentSetUnityHubAccessMethod(
+								e === true ? "CallHub" : "ReadConfig",
+							);
+							refetch?.();
+						}}
+					/>
+					{tc("settings:use legacy unity hub loading")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>
+					{tc("settings:use legacy unity hub loading description")}
+				</p>
+			</div>
 			{unityDialog}
 		</Card>
 	);
