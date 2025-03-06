@@ -203,7 +203,7 @@ pub fn os_info() -> &'static str {
         use windows::Wdk::System::SystemServices::RtlGetVersion;
         use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
 
-        let mut info: OSVERSIONINFOW = unsafe { std::mem::zeroed() };
+        let mut info: OSVERSIONINFOW = Default::default();
         info.dwOSVersionInfoSize = size_of::<OSVERSIONINFOW>() as u32;
 
         unsafe {
@@ -211,8 +211,6 @@ pub fn os_info() -> &'static str {
                 return "Unknown".to_string();
             }
         }
-
-        let build_number = info.dwBuildNumber;
 
         let ex_version = &info.szCSDVersion[..];
         let ex_version = &ex_version[..ex_version
@@ -226,10 +224,10 @@ pub fn os_info() -> &'static str {
             format!(" ({})", ex_version)
         };
 
-        format!("{}.{}.{}.{}",
+        format!("Windows {}.{}.{}{}",
                 info.dwMajorVersion,
                 info.dwMinorVersion,
-                build_number,
+                info.dwBuildNumber,
                 ex_version
         )
     }
