@@ -55,8 +55,7 @@ jobs:
           token: ${{secrets.GITHUB_TOKEN}}
           check-args: --all --all-targets --all-features
           args: -Dclippy::todo -Dwarnings
-  
-  
+
   biome:
     permissions:
       contents: read
@@ -68,3 +67,15 @@ jobs:
       - name: run Biome
         working-directory: vrc-get-gui
         run: npm run biome -- ci
+
+  typecheck:
+    permissions:
+      contents: read
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run Type Check
+        working-directory: vrc-get-gui
+        run: npm ci && npx tsc

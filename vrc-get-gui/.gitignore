@@ -4,11 +4,5 @@
 .pnp.js
 /gen
 
-# next.js
-/.next/
 /out/
 /build/
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts

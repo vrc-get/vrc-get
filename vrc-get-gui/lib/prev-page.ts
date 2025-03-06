@@ -1,10 +1,10 @@
-import { usePathname } from "next/navigation";
+import { useLocation } from "@tanstack/react-router";
 
 let currentPath: string | null = null;
 let prevPath: string | null = null;
 
 export function usePrevPathName() {
-	updateCurrentPath(usePathname());
+	updateCurrentPath(useLocation().pathname);
 	return prevPath ?? "";
 }
 

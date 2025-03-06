@@ -1,18 +1,17 @@
 {
 	"name": "vrc-get-gui",
 	"version": "0.1.0",
+	"type": "module",
 	"private": true,
 	"scripts": {
 		"tauri": "npm install && tauri",
 		"biome": "npm ci && biome",
-		"dev": "next dev -p 3030",
-		"build": "npm install && npm run build:licenses && npm run build:next",
-		"build:next": "next build",
-		"build:licenses": "node ./scripts/build-license-json.mjs",
+		"dev": "vite",
+		"build": "npm install && npm run build:vite",
+		"build:vite": "vite build",
 		"format": "biome format",
-		"start": "next start",
 		"check": "biome check",
-		"lint": "biome lint"
+		"lint": "tsc && biome lint"
 	},
 	"dependencies": {
 		"@radix-ui/react-accordion": "^1",
@@ -28,6 +27,8 @@
 		"@radix-ui/react-slot": "^1",
 		"@radix-ui/react-tooltip": "^1",
 		"@tanstack/react-query": "^5",
+		"@tanstack/react-router": "^1.112.13",
+		"@tanstack/router-devtools": "^1.112.13",
 		"@tauri-apps/api": "^2",
 		"@uidotdev/usehooks": "^2",
 		"class-variance-authority": "^0.7",
@@ -35,7 +36,6 @@
 		"clsx": "^2",
 		"i18next": "^24",
 		"lucide-react": "^0",
-		"next": "15.2.0",
 		"react": "19.0.0",
 		"react-dom": "19.0.0",
 		"react-i18next": "^15",
@@ -45,17 +45,21 @@
 	"devDependencies": {
 		"@biomejs/biome": "^1",
 		"@tailwindcss/postcss": "^4.0.9",
+		"@tanstack/router-plugin": "^1.112.13",
 		"@tauri-apps/cli": "^2",
 		"@types/node": "^20",
 		"@types/react": "19.0.10",
 		"@types/react-dom": "19.0.4",
+		"@vitejs/plugin-react-swc": "^3.8.0",
 		"json5": "^2",
 		"postcss": "^8",
 		"sharp-cli": "^5.1.0",
 		"svgo": "^3.3.2",
 		"tailwindcss": "^4.0.9",
 		"tailwindcss-animate": "^1",
-		"typescript": "^5"
+		"typescript": "^5",
+		"vite": "^6.2.0",
+		"vite-plugin-json5": "^1.1.6"
 	},
 	"overrides": {
 		"@types/react": "19.0.10",
