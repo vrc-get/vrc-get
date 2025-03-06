@@ -9,7 +9,7 @@ import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { toastError, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,7 +18,7 @@ import { ToastContainer } from "react-toastify";
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
-	const router = useRouter();
+	const navigate = useNavigate();
 
 	useTauriListen<LogEntry>(
 		"log",
@@ -32,9 +32,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 	const moveToRepositories = useCallback(() => {
 		if (location.pathname !== "/packages/repositories") {
-			router.push("/packages/repositories");
+			navigate({ to: "/packages/repositories" });
 		}
-	}, [router]);
+	}, [navigate]);
 
 	useTauriListen<null>(
 		"deep-link-add-repository",

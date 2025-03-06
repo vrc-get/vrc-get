@@ -8,7 +8,6 @@ import koJson from "@/locales/ko.json5";
 import zh_hansJson from "@/locales/zh_hans.json5";
 import zh_hantJson from "@/locales/zh_hant.json5";
 import i18next, { t as i18nextt, type Resource } from "i18next";
-import { BailoutToCSRError } from "next/dist/shared/lib/lazy-dynamic/bailout-to-csr";
 import React from "react";
 import { Trans, initReactI18next, useTranslation } from "react-i18next";
 import type { TransProps } from "react-i18next/TransWithoutContext";
@@ -44,10 +43,6 @@ export default i18next;
 export const languages = Object.keys(languageResources);
 
 function VGTrans(props: TransProps<string>) {
-	if (typeof window === "undefined") {
-		throw new BailoutToCSRError("VGTrans");
-	}
-
 	const components = {
 		...props.components,
 		ExternalLink: React.createElement(ExternalLink),

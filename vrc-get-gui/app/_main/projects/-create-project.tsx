@@ -25,9 +25,9 @@ import { tc, tt } from "@/lib/i18n";
 import { pathSeparator } from "@/lib/os";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import { useNavigate } from "@tanstack/react-router";
 import { useDebounce } from "@uidotdev/usehooks";
 import { RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
 import type React from "react";
 import { useId } from "react";
 import { useEffect, useState } from "react";
@@ -44,7 +44,7 @@ export function CreateProject({
 	close?: () => void;
 	refetch?: () => void;
 }) {
-	const router = useRouter();
+	const navigate = useNavigate();
 
 	const [state, setState] = useState<CreateProjectstate>(
 		"loadingInitialInformation",
@@ -176,7 +176,10 @@ export function CreateProject({
 			close?.();
 			refetch?.();
 			const projectPath = `${projectLocation}${pathSeparator()}${projectName}`;
-			router.push(`/projects/manage?${new URLSearchParams({ projectPath })}`);
+			navigate({
+				to: "/projects/manage",
+				search: { projectPath },
+			});
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);

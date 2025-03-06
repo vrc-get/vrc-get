@@ -48,9 +48,8 @@ import {
 	useQueries,
 	useQuery,
 } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
@@ -59,8 +58,15 @@ import { PageContextProvider } from "./-page-context";
 import { useUnityVersionChange } from "./-unity-migration";
 import { usePackageChangeDialog } from "./-use-package-change";
 
+interface SearchParams {
+	projectPath: string;
+}
+
 export const Route = createFileRoute("/_main/projects/manage/")({
 	component: Page,
+	validateSearch: (a): SearchParams => ({
+		projectPath: a.projectPath == null ? "" : `${a.projectPath}`,
+	}),
 });
 
 function Page() {
@@ -72,15 +78,14 @@ function Page() {
 }
 
 function PageBody() {
-	const searchParams = useSearchParams();
+	const { projectPath } = Route.useSearch();
 	const router = useRouter();
 
 	const projectRemoveModal = useRemoveProjectModal({
-		onRemoved: () => router.back(),
+		onRemoved: () => router.history.back(),
 	});
 	const backupProjectModal = useBackupProjectModal();
 
-	const projectPath = searchParams.get("projectPath") ?? "";
 	const projectName = nameFromPath(projectPath);
 
 	// repositoriesInfo: list of repositories and their visibility

@@ -1,5 +1,5 @@
 import { tc } from "@/lib/i18n";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 
 type PageType = "/packages/user-packages" | "/packages/repositories";
 
@@ -46,7 +46,7 @@ function HeadingButton({
 		return <div className={`${button} bg-background`}>{children}</div>;
 	} else {
 		return (
-			<Link href={targetPage} className={button}>
+			<Link to={targetPage} className={button}>
 				{children}
 			</Link>
 		);

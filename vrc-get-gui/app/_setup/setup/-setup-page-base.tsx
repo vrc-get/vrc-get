@@ -5,8 +5,8 @@ import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { Circle, CircleCheck, CircleChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
 import type React from "react";
 
 export type BodyProps = Readonly<{
@@ -35,7 +35,7 @@ export function SetupPageBase({
 	pageId: SetupPages | null;
 	withoutSteps?: boolean;
 }) {
-	const router = useRouter();
+	const navigate = useNavigate();
 
 	const result = useQuery({
 		queryKey: ["environmentGetSettings"],
@@ -44,7 +44,7 @@ export function SetupPageBase({
 
 	const onNext = async () => {
 		if (pageId) await commands.environmentFinishedSetupPage(pageId);
-		router.push(nextPage);
+		navigate({ to: nextPage });
 		onFinish?.();
 	};
 
@@ -71,7 +71,7 @@ export function SetupPageBase({
 						<div className={"grow"} />
 						<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">
 							{prevPage && (
-								<Button onClick={() => router.push(prevPage)}>
+								<Button onClick={() => navigate({ to: prevPage })}>
 									{backContent}
 								</Button>
 							)}

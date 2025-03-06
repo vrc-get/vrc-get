@@ -7,9 +7,7 @@ import { Card } from "@/components/ui/card";
 import { commands } from "@/lib/bindings";
 import type { Licenses } from "@/lib/licenses";
 
-export default function RenderPage({
-	licenses,
-}: { licenses: Licenses | null }) {
+function RenderPage({ licenses }: { licenses: Licenses | null }) {
 	if (licenses === null) {
 		return (
 			<div className={"whitespace-normal"}>

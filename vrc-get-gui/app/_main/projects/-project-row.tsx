@@ -33,6 +33,7 @@ import { tc, tt } from "@/lib/i18n";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import type { OpenUnityFunction } from "@/lib/use-open-unity";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	CircleHelp,
 	CircleUserRound,
@@ -40,7 +41,6 @@ import {
 	Globe,
 	Star,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import React, {
 	type ComponentProps,
 	forwardRef,
@@ -271,7 +271,7 @@ function ManageOrMigrateButton({
 	project: TauriProject;
 	refresh?: () => void;
 }) {
-	const router = useRouter();
+	const navigate = useNavigate();
 	switch (project.project_type) {
 		case "LegacySdk2":
 			return (
@@ -311,9 +311,10 @@ function ManageOrMigrateButton({
 			return (
 				<ButtonDisabledIfRemoved
 					onClick={() =>
-						router.push(
-							`/projects/manage?${new URLSearchParams({ projectPath: project.path })}`,
-						)
+						navigate({
+							to: "/projects/manage",
+							search: { projectPath: project.path },
+						})
 					}
 					variant="info"
 				>

@@ -19,7 +19,7 @@ import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import React, { Fragment, useCallback } from "react";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
@@ -451,7 +451,7 @@ function useMigrationInternal<Data>({
 	ConfirmComponent: React.ComponentType<ConfirmProps<Data>>;
 	dialogHeader: (data: Data) => React.ReactNode;
 }): Result<Data> {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const unitySelector = useUnitySelectorDialog();
 
 	const [installStatus, setInstallStatus] = React.useState<StateInternal<Data>>(
@@ -602,9 +602,11 @@ function useMigrationInternal<Data>({
 			if (migrateProjectPath === projectPath) {
 				refresh?.();
 			} else {
-				router.replace(
-					`/projects/manage?${new URLSearchParams({ projectPath: migrateProjectPath })}`,
-				);
+				navigate({
+					replace: true,
+					to: "/projects/manage",
+					search: { projectPath: migrateProjectPath },
+				});
 			}
 		} catch (e) {
 			console.error(e);

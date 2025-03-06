@@ -17,6 +17,11 @@ import { tc } from "@/lib/i18n";
 import { toastNormal } from "@/lib/toast";
 import { useQuery } from "@tanstack/react-query";
 import {
+	type RegisteredRouter,
+	useLocation,
+	useNavigate,
+} from "@tanstack/react-router";
+import {
 	AlignLeft,
 	CircleAlert,
 	List,
@@ -24,7 +29,6 @@ import {
 	Settings,
 	SwatchBook,
 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
 import type React from "react";
 
 export function SideBar({ className }: { className?: string }) {
@@ -92,23 +96,23 @@ function SideBarItem({
 	text,
 	icon,
 }: {
-	href: string;
+	href: keyof RegisteredRouter["routesByPath"];
 	text: React.ReactNode;
 	icon: React.ComponentType<{ className?: string }>;
 }) {
-	const router = useRouter();
+	const location = useLocation();
+	const navigate = useNavigate();
 	const IconElenment = icon;
-	const pathname = usePathname();
 	const getFirstPathSegment = (path: string) => {
 		return path.split("/")[1] || "";
 	};
 	const isActive =
-		getFirstPathSegment(pathname || "") === getFirstPathSegment(href);
+		getFirstPathSegment(location.pathname || "") === getFirstPathSegment(href);
 	return (
 		<Button
 			variant={"ghost"}
 			className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
-			onClick={() => router.push(href)}
+			onClick={() => navigate({ to: href })}
 		>
 			<div className={"mr-4"}>
 				<IconElenment className="h-5 w-5" />
@@ -154,10 +158,10 @@ function BadHostNameDialogButton() {
 }
 
 function DevRestartSetupButton() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const onClick = async () => {
 		await commands.environmentClearSetupProcess();
-		router.push("/setup/appearance");
+		navigate({ to: "/setup/appearance" });
 	};
 	return (
 		<Button

@@ -51,9 +51,8 @@ import {
 } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
-import Link from "next/link";
 import type React from "react";
 import { useEffect } from "react";
 import { useState } from "react";
@@ -717,7 +716,7 @@ function AlcomCard({
 					{},
 					{
 						components: {
-							l: <Link href={"/settings/licenses"} className={"underline"} />,
+							l: <Link to={"/settings/licenses"} className={"underline"} />,
 						},
 					},
 				)}

@@ -5,8 +5,7 @@ import { commands } from "@/lib/bindings";
 import { useDocumentEvent } from "@/lib/events";
 import { updateCurrentPath, usePrevPathName } from "@/lib/prev-page";
 import { useEffectEvent } from "@/lib/use-effect-event";
-import { createFileRoute } from "@tanstack/react-router";
-import { usePathname } from "next/navigation";
+import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_main")({
@@ -18,7 +17,7 @@ function MainLayout() {
 	const [isVisible, setIsVisible] = useState(false);
 	const [guiAnimation, setGuiAnimation] = useState(false);
 	const previousPathName = usePrevPathName();
-	const pathName = usePathname();
+	const pathName = useLocation().pathname;
 
 	useDocumentEvent(
 		"gui-animation",
