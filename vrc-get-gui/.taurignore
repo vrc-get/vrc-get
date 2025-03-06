@@ -25,6 +25,7 @@
 /*.ts
 /*.tsx
 /*.json
+/index.html
 
 # documentation
 /*.md

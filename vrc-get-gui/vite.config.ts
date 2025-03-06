@@ -27,5 +27,11 @@ export default defineConfig({
 	},
 	build: {
 		outDir: "out",
+		chunkSizeWarningLimit: Number.POSITIVE_INFINITY,
 	},
+	server: {
+		port: 3030,
+		strictPort: true,
+	},
+	clearScreen: false,
 });
