@@ -48,7 +48,7 @@ export function SideBar({ className }: { className?: string }) {
 			toastNormal(tc("sidebar:toast:version copied"));
 		}
 	};
-	const isDev = process.env.NODE_ENV === "development";
+	const isDev = import.meta.env.DEV;
 
 	return (
 		<Card
