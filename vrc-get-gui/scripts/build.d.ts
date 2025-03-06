@@ -1,4 +1,4 @@
-declare module "@/build/licenses.json" {
+declare module "build:licenses.json" {
 	const value: {
 		id: string;
 		name: string;

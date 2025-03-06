@@ -3,9 +3,9 @@
 		"lib": [
 			"dom",
 			"dom.iterable",
-			"es2015"
+			"es2021"
 		],
-		"target": "ES2020",
+		"target": "ES2021",
 		"skipLibCheck": true,
 		"strict": true,
 		"esModuleInterop": true,
@@ -36,7 +36,7 @@
 		}
 	},
 	"include": [
-		"build.d.ts",
+		"scripts/build.d.ts",
 		"**/*.ts",
 		"**/*.tsx",
 		"vite-env.d.ts"

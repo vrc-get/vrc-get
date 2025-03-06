@@ -7,12 +7,11 @@
 		"tauri": "npm install && tauri",
 		"biome": "npm ci && biome",
 		"dev": "vite",
-		"build": "npm install && npm run build:licenses && npm run build:vite",
+		"build": "npm install && npm run build:vite",
 		"build:vite": "vite build",
-		"build:licenses": "node ./scripts/build-license-json.mjs",
 		"format": "biome format",
 		"check": "biome check",
-		"lint": "biome lint"
+		"lint": "tsc && biome lint"
 	},
 	"dependencies": {
 		"@radix-ui/react-accordion": "^1",

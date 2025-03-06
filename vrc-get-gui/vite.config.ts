@@ -3,11 +3,15 @@ import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
 import json5Plugin from "vite-plugin-json5";
+import viteBuildLicenseJson from "./scripts/vite-build-license-json";
 
 // https://vitejs.dev/config/
 export default defineConfig({
 	plugins: [
 		json5Plugin(),
+		viteBuildLicenseJson({
+			rootDir: __dirname,
+		}),
 		TanStackRouterVite({
 			target: "react",
 			autoCodeSplitting: true,

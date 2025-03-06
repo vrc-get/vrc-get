@@ -2,11 +2,11 @@
  * This file is used to generate a JSON file containing the licenses of all the dependencies.
  */
 import { exec as execCallback } from "node:child_process";
-import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
+import type { LoadResult, ResolveIdResult } from "rollup";
+import { type Plugin, normalizePath } from "vite";
 
 const exec = promisify(execCallback);
 
@@ -14,52 +14,63 @@ const licenseNames = getLicenseNames();
 
 const defaultLicenseTexts = getLicenseDefaultTexts();
 
-await main();
+interface PackageLicenseInfo extends PackageInfo {
+	licenseId: string;
+	licenseText: string | null;
+}
 
-/**
- * @interface PackageLicenseInfo
- * @property {string} name
- * @property {string} version
- * @property {string} url
- * @property {string} licenseId
- * @property {string|null} licenseText
- */
+interface PackageInfo {
+	name: string;
+	version: string;
+	url: string;
+}
 
-/**
- * @interface PackageInfo
- * @property {string} name
- * @property {string} version
- * @property {string} url
- */
+export default function viteBuildLicenseJson({
+	rootDir,
+}: { rootDir: string }): Plugin {
+	const licenseJsonId = "build:licenses.json";
 
-/**
- * @return {Promise<void>}
- */
-async function main() {
-	if (!(await shouldRebuild())) {
-		console.log("Cache matched, skipping");
-		process.exit(0);
-	}
+	return {
+		name: "vrc-get-gui-build-license-json",
+		async resolveId(id): Promise<ResolveIdResult> {
+			if (id === "build:licenses.json") {
+				const pathToAdd = normalizePath(path.join(rootDir, "../Cargo.lock"));
+				//console.log(pathToAdd);
+				this.addWatchFile(pathToAdd);
+				this.addWatchFile(
+					normalizePath(path.join(rootDir, "package-lock.json")),
+				);
+				return {
+					id: licenseJsonId,
+					moduleSideEffects: false,
+				};
+			}
+			return null;
+		},
+		async load(id): Promise<LoadResult> {
+			if (id === "build:licenses.json") {
+				const json = await buildLicenseJson(rootDir);
+				return {
+					code: json,
+				};
+			}
+		},
+	};
+}
 
-	/**
-	 * @type {PackageLicenseInfo[]}
-	 */
-	const packages = (
+async function buildLicenseJson(rootDir: string): Promise<string> {
+	const packages: PackageLicenseInfo[] = (
 		await Promise.all([
-			getLicensesFromCargoMetadata(),
-			getLicencesFromPackageLockJson(),
+			getLicensesFromCargoMetadata(rootDir),
+			getLicencesFromPackageLockJson(rootDir),
 		])
 	).flat();
 
 	// ライセンスの種別、実テキストごとに分ける
 
-	/** @type {Map<string, Map<string, PackageInfo[]>>} */
-	const licenses = new Map();
+	const licenses = new Map<string, Map<string, PackageInfo[]>>();
 
-	/**
-	 * @param packageInfo {PackageLicenseInfo}
-	 */
-	function addPackageToLicenses(packageInfo) {
+	function addPackageToLicenses(packageInfo: PackageLicenseInfo) {
 		const licenseId = packageInfo.licenseId;
 		let licenseText = packageInfo.licenseText;
 
@@ -125,176 +136,90 @@ async function main() {
 		}
 	}
 
-	await mkdir("build", { recursive: true });
-	await writeFile("build/licenses.json", JSON.stringify(result));
+	return JSON.stringify(result);
 }
-
-async function shouldRebuild() {
-	async function readHashes() {
-		try {
-			return JSON.parse(await readFile("build/licenses.hashes.json", "utf8"));
-		} catch (e) {
-			return {};
-		}
-	}
-
-	// compute hashes first
-	let packageLockHash;
-	let cargoLockHash;
-	try {
-		const packageLock = await readFile("package-lock.json", "utf8");
-		packageLockHash = createHash("sha256").update(packageLock).digest("hex");
-		const cargoLock = await readFile("../Cargo.lock", "utf8");
-		cargoLockHash = createHash("sha256").update(cargoLock).digest("hex");
-	} catch (e) {
-		console.error("Error computing hash of lock file", e);
-		return true;
-	}
-
-	try {
-		let result;
-		if (existsSync("build/licenses.json")) {
-			const oldHashes = await readHashes();
-			const oldPackageLockHash = oldHashes.packageLockHash;
-			const oldCargoLockHash = oldHashes.cargoLockHash;
-			console.log("Old package lock hash:", oldPackageLockHash);
-			console.log("New package lock hash:", packageLockHash);
-			console.log("Old cargo lock hash:", oldCargoLockHash);
-			console.log("New cargo lock hash:", cargoLockHash);
-			result =
-				packageLockHash !== oldPackageLockHash ||
-				cargoLockHash !== oldCargoLockHash;
-		} else {
-			console.log("build/licenses.json does not exist, rebuilding");
-			result = true;
-		}
-
-		await mkdir("build", { recursive: true });
-		await writeFile(
-			"build/licenses.hashes.json",
-			JSON.stringify({ packageLockHash, cargoLockHash }),
-		);
-
-		return result;
-	} catch (e) {
-		console.error(e);
-		return true;
-	}
-}
-
-/**
- * @template T - type
- * @param promises {T}
- * @returns {Promise<{ -readonly [P in keyof T]: Awaited<T[P]>; }>}
- */
-function allSettledAggregate(promises) {
-	return Promise.allSettled(promises).then((settled) => {
-		const result = [];
-		const errors = [];
-		for (const element of settled) {
-			if (element.status === "fulfilled") {
-				result.push(element.value);
-			} else {
-				errors.push(element.reason);
+function allSettledAggregate<T extends readonly unknown[] | []>(
+	promises: T,
+): Promise<{ -readonly [P in keyof T]: Awaited<T[P]> }> {
+	return Promise.allSettled(promises).then(
+		(settled): { -readonly [P in keyof T]: Awaited<T[P]> } => {
+			const result: { -readonly [P in keyof T]: Awaited<T[P]> } & unknown[] =
+				// biome-ignore lint/suspicious/noExplicitAny:
+				[] as any;
+			const errors = [];
+			for (const element of settled) {
+				if (element.status === "fulfilled") {
+					result.push(element.value);
+				} else {
+					errors.push(element.reason);
+				}
 			}
-		}
-		if (errors.length !== 0) throw new AggregateError(errors);
-		return result;
-	});
+			if (errors.length !== 0) throw new AggregateError(errors);
+			return result;
+		},
+	);
 }
 
-/**
- * @interface CargoAbout
- * @property {CargoAboutLicense[]} licenses
- */
-
-/**
- * @interface CargoAboutLicense
- * @property {string} name
- * @property {string | undefined} id
- * @property {string} short_id
- * @property {string} text
- * @property {CargoAboutUsedBy[]} used_by
- */
-
-/**
- * @interface CargoAboutUsedBy
- * @property {CargoAboutCrate} crate
- */
-
-/**
- * @interface CargoAboutCrate
- * @property {string} name
- * @property {string} version
- * @property {string} repository
- */
-
-/**
- * @return {Promise<PackageLicenseInfo[]>}
- */
-async function getLicensesFromCargoMetadata() {
+async function getLicensesFromCargoMetadata(
+	rootDir: string,
+): Promise<PackageLicenseInfo[]> {
 	const { stdout } = await exec("cargo metadata", {
 		maxBuffer: Number.MAX_SAFE_INTEGER,
 		encoding: "utf8",
+		cwd: rootDir,
 	});
-	/**
-	 * @typedef {{
-	 *   name: string,
-	 *   version: string,
-	 *   id: string,
-	 *   source: string,
-	 *   license: string | null,
-	 *   manifest_path: string,
-	 *   homepage: string,
-	 *   repository: string,
-	 * }} CargoPackage
-	 */
-	/**
-	 * @typedef {{
-	 *   id: string,
-	 *   deps: {
-	 *     pkg: string,
-	 *     dep_kinds: [{
-	 *       kind: 'dev' | 'build' | null,
-	 *       target: string | null,
-	 *     }]
-	 *   }[]
-	 * }} CargoResolveNode
-	 */
 
-	/**
-	 * @type {{
-	 *   packages: CargoPackage[],
-	 *   resolve: {
-	 *     nodes: CargoResolveNode[],
-	 *     root: string,
-	 *   }
-	 * }}
-	 */
-	const cargoMetadata = JSON.parse(stdout);
+	interface CargoPackage {
+		name: string;
+		version: string;
+		id: string;
+		source: string;
+		license: string;
+		manifest_path: string;
+		homepage: string;
+		repository: string;
+	}
 
-	/** @type {Map<string, CargoPackage>} */
-	const packageById = new Map();
+	interface CargoResolveNode {
+		id: string;
+		deps: {
+			pkg: string;
+			dep_kinds: [
+				{
+					kind: "dev" | "build" | null;
+					target: string | null;
+				},
+			];
+		}[];
+	}
+
+	interface CargoMetadata {
+		packages: CargoPackage[];
+		resolve: {
+			nodes: CargoResolveNode[];
+			root: string;
+		};
+	}
+
+	const cargoMetadata: CargoMetadata = JSON.parse(stdout);
+
+	const packageById = new Map<string, CargoPackage>();
 	for (const pkg of cargoMetadata.packages) {
 		packageById.set(pkg.id, pkg);
 	}
 
-	/** @type {Map<string, CargoResolveNode>} */
-	const nodesById = new Map();
+	const nodesById = new Map<string, CargoResolveNode>();
 	for (const node of cargoMetadata.resolve.nodes) {
 		nodesById.set(node.id, node);
 	}
 
 	// collect runtime dependency packages
-	/** @type {string[]} */
-	const runtimePackages = [];
+	const runtimePackages: string[] = [];
 	{
-		/** @type {Set<string>} */
-		const processing = new Set();
-		const stack = [];
+		const processing = new Set<string>();
+		const stack: string[] = [];
 
-		/** @param id {string} */
-		function addPkg(id) {
+		function addPkg(id: string) {
 			if (!processing.has(id)) {
 				stack.push(id);
 				processing.add(id);
@@ -304,9 +229,11 @@ async function getLicensesFromCargoMetadata() {
 
 		addPkg(cargoMetadata.resolve.root);
 
-		while (stack.length !== 0) {
+		while (true) {
 			const pkgId = stack.pop();
+			if (pkgId == null) break;
 			const node = nodesById.get(pkgId);
+			if (node == null) throw new Error(`no package info for ${pkgId}`);
 			for (const dep of node.deps) {
 				if (dep.dep_kinds.some((x) => x.kind == null)) {
 					// if the package can be runtime dependency
@@ -316,11 +243,7 @@ async function getLicensesFromCargoMetadata() {
 		}
 	}
 
-	/**
-	 * @param text {string}
-	 * @return {string[][]}
-	 */
-	function parseSPDXLicense(text) {
+	function parseSPDXLicense(text: string): string[][] {
 		return text
 			.split(/\bAND\b/g)
 			.map((x) => x.trim())
@@ -331,15 +254,12 @@ async function getLicensesFromCargoMetadata() {
 			.map((ors) => ors.split(/\bOR\b|\//g).map((x) => x.trim()));
 	}
 
-	/**
-	 *
-	 * @param licenseId {string}
-	 * @param crateDir {string}
-	 * @param singleLicense {boolean}
-	 * @param pkg {CargoPackage} For fixtures
-	 * @return {Promise<string | null>}
-	 */
-	async function findLicenseFileName(licenseId, crateDir, singleLicense, pkg) {
+	async function findLicenseFileName(
+		licenseId: string,
+		crateDir: string,
+		singleLicense: boolean,
+		pkg: CargoPackage,
+	): Promise<string | null> {
 		const suffixes = [];
 		suffixes.push(licenseId.toUpperCase().replaceAll(" ", "_"));
 		if (licenseId === "Apache-2.0") suffixes.push("APACHE");
@@ -348,11 +268,12 @@ async function getLicensesFromCargoMetadata() {
 
 		// known fix suffixes
 		{
-			const fixSuffix = {
+			const fixes: { [k: string]: string | undefined } = {
 				"encoding_rs BSD-3-Clause": "WHATWG",
 				"ring Apache-2.0": "BoringSSL",
 				"ring ISC": "other-bits",
-			}[`${pkg.name} ${licenseId}`];
+			};
+			const fixSuffix = fixes[`${pkg.name} ${licenseId}`];
 			if (fixSuffix != null) {
 				suffixes.splice(0, Number.POSITIVE_INFINITY, fixSuffix.toUpperCase());
 			}
@@ -399,6 +320,7 @@ async function getLicensesFromCargoMetadata() {
 		await allSettledAggregate(
 			runtimePackages.map(async (id) => {
 				const pkg = packageById.get(id);
+				if (pkg == null) throw new Error(`no package information for ${id}`);
 				const licenseIds = parseSPDXLicense(pkg.license);
 				const chosenLicense = licenseIds.map((either) => {
 					const foundLicense = either.find((y) => licenseNames.has(y));
@@ -440,6 +362,7 @@ async function getLicensesFromCargoMetadata() {
 					url ??= `https://crates.io/crates/${pkg.name}`;
 				} else if (pkg.source?.startsWith("git+https://github.com/")) {
 					const match = pkg.source.match(/^git+(.*)#(.*)$/);
+					if (match == null) throw new Error("unreachable");
 					const repo = match[1];
 					const hash = match[2];
 					url = `${repo}/tree/${hash}`;
@@ -456,26 +379,28 @@ async function getLicensesFromCargoMetadata() {
 	).flat();
 }
 
-/**
- * @return {Promise<PackageLicenseInfo[]>}
- */
-async function getLicencesFromPackageLockJson() {
-	/**
-	 * @type { {packages: {[p: string]: { dev?: boolean, license?: string, name?: string, version: string, optional?: boolean }}}}
-	 */
-	const data = JSON.parse(await readFile("package-lock.json", "utf8"));
+async function getLicencesFromPackageLockJson(
+	rootDir: string,
+): Promise<PackageLicenseInfo[]> {
+	const data: {
+		packages: {
+			[p: string]: {
+				dev?: boolean;
+				license?: string;
+				name?: string;
+				version: string;
+				optional?: boolean;
+			};
+		};
+	} = JSON.parse(await readFile(`${rootDir}/package-lock.json`, "utf8"));
 
 	// some package doesn't have license key so listing here
-	/** @type {Record<string, string>} */
-	const knownLicenses = {
+	const knownLicenses: Record<string, string> = {
 		streamsearch: "MIT",
 		busboy: "MIT",
 	};
 
-	/**
-	 * @type {PackageLicenseInfo[]}
-	 */
-	const result = [];
+	const result: PackageLicenseInfo[] = [];
 
 	for (const [packagePath, pkg] of Object.entries(data.packages)) {
 		if (pkg.dev) continue; // we don't have to list-up dev packages
@@ -491,7 +416,7 @@ async function getLicencesFromPackageLockJson() {
 			throw new Error(`no licenses for ${name}`);
 		}
 
-		let licenseText;
+		let licenseText: string | null = null;
 		if (!pkg.optional) {
 			// find for LICENSE, LICENSE.txt, or license.md
 			const licensesFile = (await readdir(packagePath)).find(

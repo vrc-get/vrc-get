@@ -1,23 +1,13 @@
 "use client";
 
+import licenses from "build:licenses.json";
 import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { ScrollableCard } from "@/components/ScrollableCard";
 import { VStack } from "@/components/layout";
 import { Card } from "@/components/ui/card";
 import { commands } from "@/lib/bindings";
-import type { Licenses } from "@/lib/licenses";
 
-export default function RenderPage({
-	licenses,
-}: { licenses: Licenses | null }) {
-	if (licenses === null) {
-		return (
-			<div className={"whitespace-normal"}>
-				<p>Failed to load licenses.</p>
-			</div>
-		);
-	}
-
+export default function RenderPage() {
 	return (
 		<ScrollPageContainer>
 			<VStack>
