@@ -144,11 +144,11 @@ pub fn os_info() -> &'static str {
     }
 
     fn try_get_wmi_info() -> Result<String, ()> {
+        use serde::Deserialize;
         use std::sync::mpsc;
         use std::thread;
         use std::time::Duration;
         use wmi::{COMLibrary, WMIConnection};
-        use serde::Deserialize;
 
         let (sender, receiver) = mpsc::channel::<Result<String, ()>>();
 
@@ -228,11 +228,9 @@ pub fn os_info() -> &'static str {
             format!(" ({})", ex_version)
         };
 
-        format!("Windows {}.{}.{}{}",
-                info.dwMajorVersion,
-                info.dwMinorVersion,
-                info.dwBuildNumber,
-                ex_version
+        format!(
+            "Windows {}.{}.{}{}",
+            info.dwMajorVersion, info.dwMinorVersion, info.dwBuildNumber, ex_version
         )
     }
 
