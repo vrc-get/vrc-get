@@ -256,6 +256,10 @@ code {
 	@apply font-mono;
 }
 
+html {
+	overscroll-behavior: none;
+}
+
 /*
  this is a ad-hoc way to apply toastify variables.
  We could not find way to correctly order the toastify css and this css so put in body to get higher specificity
