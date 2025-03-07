@@ -374,7 +374,7 @@
     "settings:toast:unity already added": "所选的 Unity 版本已经添加过了。",
     "settings:toast:unity added": "添加 Unity 成功！",
     "settings:use legacy unity hub loading": "使用旧版方法获取 Unity Hub",
-    "settings:use legacy unity hub loading description": "旧版方法会比目前默认的新方法更加可靠，但会花费更多时间。\n这将会在未来被移除，所以如果您遇到任何问题，请及时向开发者反馈。",
+    "settings:use legacy unity hub loading description": "旧版方法会比目前默认的新方法更加可靠，但会花费更多时间。<br/>这将会在未来被移除，所以如果您遇到任何问题，请及时向开发者反馈。",
 
     "settings:default unity arguments": "默认的 Untiy 命令行参数",
     "settings:default unity arguments description": "ALCOM 启动 Unity 时将使用这些命令行参数。",
