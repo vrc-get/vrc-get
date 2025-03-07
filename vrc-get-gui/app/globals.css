@@ -144,14 +144,14 @@
 
 @media (prefers-color-scheme: dark) {
 	.system {
-		--bg-color: 240 10% 13%;
-		--fg-color: 240 10% 85%;
-		--secondary-bg: 240 3.7% 19%;
-		--primary-fg: 240 5.9% 15%;
+		--bg-color: hsl(240 10% 13%);
+		--fg-color: hsl(240 10% 85%);
+		--secondary-bg: hsl(240 3.7% 19%);
+		--primary-fg: hsl(240 5.9% 15%);
 
 		--background: var(--bg-color);
-		--background-start: 0 0% 3%;
-		--background-end: 10 8% 15%;
+		--background-start: hsl(0 0% 3%);
+		--background-end: hsl(10 8% 15%);
 		--foreground: var(--fg-color);
 		--card: var(--bg-color);
 		--card-foreground: var(--fg-color);
@@ -165,17 +165,17 @@
 		--muted-foreground: 240 5% 74%;
 		--accent: var(--secondary-bg);
 		--accent-foreground: var(--fg-color);
-		--info: 207 90% 54%;
-		--info-foreground: 210 40% 90%;
-		--success: 122 39% 49%;
-		--success-foreground: 210 40% 90%;
-		--warning: 52.15, 100%, 46.47%;
-		--warning-foreground: 210 40% 90%;
-		--destructive: 0 84.2% 60.2%;
+		--info: hsl(207 90% 54%);
+		--info-foreground: hsl(210 40% 90%);
+		--success: hsl(122 39% 49%);
+		--success-foreground: hsl(210 40% 90%);
+		--warning: hsl(52.15, 100%, 46.47%);
+		--warning-foreground: hsl(210 40% 90%);
+		--destructive: hsl(0 84.2% 60.2%);
 		--destructive-foreground: var(--fg-color);
 		--border: var(--secondary-bg);
 		--input: var(--secondary-bg);
-		--ring: 240 4.9% 83.9%;
+		--ring: hsl(240 4.9% 83.9%);
 	}
 }
 
