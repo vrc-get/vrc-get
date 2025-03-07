@@ -230,7 +230,7 @@ pub fn os_info() -> &'static str {
 
         format!(
             "Windows {}.{}.{}{}",
-            info.dwMajorVersion, info.dwMinorVersion, info.dwBuildNumber, ex_version
+            info.dwMajorVersion, info.dwMinorVersion, info.dwBuildNumber, ex_version,
         )
     }
 
