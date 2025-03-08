@@ -27,7 +27,7 @@ function RootComponent() {
 				<Outlet />
 			</Providers>
 			<Suspense>
-				<TanStackRouterDevtools />
+				<TanStackRouterDevtools position={"bottom-right"} />
 			</Suspense>
 		</>
 	);
