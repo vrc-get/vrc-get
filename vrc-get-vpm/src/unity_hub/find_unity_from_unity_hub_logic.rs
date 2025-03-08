@@ -171,6 +171,7 @@ async fn find_unity_editor_folder_in_folder(folder_path: &Path) -> Result<Vec<Pa
 async fn load_located_editors(local_settings: &LocalSettings) -> Vec<UnityEditorInHub> {
     #[derive(Deserialize)]
     struct LocatedEditor {
+        #[serde(with = "either::serde_untagged")]
         location: Either<String, Vec<String>>,
         version: String,
         architecture: String,
