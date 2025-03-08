@@ -372,6 +372,8 @@
     "settings:toast:not unity": "選択されたファイルはUnityではありません。",
     "settings:toast:unity already added": "選択されたUnityは既に登録されています。",
     "settings:toast:unity added": "選択されたUnityを登録しました。",
+    "settings:use legacy unity hub loading": "Unity Hubを使用して読み込む(廃止予定)",
+    "settings:use legacy unity hub loading description": "Unity Hubを使用したUnityリストの読み込みは、信頼性は高いですが処理に時間が掛かります。<br>この手法は近いうちに廃止される予定のため、新しい手法で何か問題が発生した場合は、ALCOM開発チームにご報告ください。",
 
     "settings:default unity arguments": "デフォルトのUnityコマンドライン引数",
     "settings:default unity arguments description": "これらのコマンドライン引数は、ALCOMからUnityを起動する際に使用されます。",
