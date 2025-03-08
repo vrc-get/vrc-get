@@ -136,10 +136,80 @@ pub fn os_info() -> &'static str {
     static OS_INFO: OnceLock<String> = OnceLock::new();
 
     fn compute_os_info() -> String {
+        if let Ok(full_info) = try_get_wmi_info() {
+            return full_info;
+        }
+
+        get_basic_version()
+    }
+
+    fn try_get_wmi_info() -> Result<String, ()> {
+        use serde::Deserialize;
+        use std::sync::mpsc;
+        use std::thread;
+        use std::time::Duration;
+        use wmi::{COMLibrary, WMIConnection};
+
+        let (sender, receiver) = mpsc::channel::<Result<String, ()>>();
+
+        thread::spawn(move || {
+            use serde::Deserialize;
+
+            #[allow(non_camel_case_types)]
+            #[allow(non_snake_case)]
+            #[derive(Deserialize, Debug)]
+            struct Win32_OperatingSystem {
+                #[serde(rename = "Caption")]
+                caption: String,
+                #[serde(rename = "Version")]
+                version: String,
+            }
+
+            let com_con = match COMLibrary::new() {
+                Ok(con) => con,
+                Err(_) => {
+                    let _ = sender.send(Err(()));
+                    return;
+                }
+            };
+
+            let wmi_con = match WMIConnection::new(com_con) {
+                Ok(con) => con,
+                Err(_) => {
+                    let _ = sender.send(Err(()));
+                    return;
+                }
+            };
+
+            match wmi_con.query::<Win32_OperatingSystem>() {
+                Ok(mut results) => {
+                    if let Some(os) = results.pop() {
+                        let _ = sender.send(Ok(format!("{} ({})", os.caption, os.version)));
+                    } else {
+                        let _ = sender.send(Err(()));
+                    }
+                }
+                Err(_) => {
+                    let _ = sender.send(Err(()));
+                }
+            }
+        });
+
+        match receiver.recv_timeout(Duration::from_secs(2)) {
+            Ok(Ok(info)) => Ok(info),
+            Ok(Err(_)) | Err(_) => Err(()),
+        }
+    }
+
+    fn get_basic_version() -> String {
         use windows::Wdk::System::SystemServices::RtlGetVersion;
         use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
-        let mut info: OSVERSIONINFOW = Default::default();
-        info.dwOSVersionInfoSize = std::mem::size_of_val(&info) as u32;
+
+        let mut info = OSVERSIONINFOW {
+            dwOSVersionInfoSize: size_of::<OSVERSIONINFOW>() as u32,
+            ..Default::default()
+        };
+
         unsafe {
             if RtlGetVersion(&mut info).is_err() {
                 return "Unknown".to_string();

@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
   - This is internal changes should not cause behavior changes
   - I listed here since this may need update on package metadata of some package managers
 - The method to retrieve the list of Unity from Unity Hub `#1808`
+- Enhance os info for windows `#1968`
 
 ### Deprecated
 
