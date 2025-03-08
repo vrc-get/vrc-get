@@ -18,7 +18,11 @@ The format is based on [Keep a Changelog].
 - Removed `cargo-about` from build-time dependency `#1961`
   - This is internal changes should not cause behavior changes
   - I listed here since this may need update on package metadata of some package managers
-- The method to retrieve the list of Unity from Unity Hub `#1808`
+- The method to retrieve the list of Unity from Unity Hub `#1808` `#1971`
+  - Since this version, ALCOM reads UnityHub's configuration files to get list of Unity installed to the machine.
+  - Before this version, ALCOM called headless Unity Hub in the background.
+  - New method might have some compatibility problem, especially with some sandbox system.
+  - Please report us if you find some problem with the new system.
 - Enhance os info for windows `#1968`
 
 ### Deprecated
