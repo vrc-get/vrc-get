@@ -27,7 +27,7 @@
 		"@radix-ui/react-slot": "^1",
 		"@radix-ui/react-tooltip": "^1",
 		"@tanstack/react-query": "^5",
-		"@tanstack/react-router": "^1.112.13",
+		"@tanstack/react-router": "^1.114.4",
 		"@tanstack/router-devtools": "^1.112.13",
 		"@tauri-apps/api": "^2",
 		"@uidotdev/usehooks": "^2",
