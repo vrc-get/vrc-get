@@ -382,6 +382,8 @@
     "settings:toast:not unity": "選定的檔案不是 Unity",
     "settings:toast:unity already added": "已添加過此 Unity。",
     "settings:toast:unity added": "添加 Unity 成功！",
+    "settings:use legacy unity hub loading": "使用舊版 Unity Hub 讀取方式",
+    "settings:use legacy unity hub loading description": "舊版方式比新版更可靠，但用時較長。<br/>由於此方式在未來將被移除，若新方式有任何問題，請即時反饋。",
 
     "settings:default unity arguments": "預設命令列參數",
     "settings:default unity arguments description": "從 ALCOM 開啟 Unity 時將會使用這些命令列參數。",
