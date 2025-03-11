@@ -728,7 +728,7 @@ function DropdownMenuContentBody({
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onClick={onRemove}
-				className={"bg-destructive text-destructive-foreground"}
+				className={"text-destructive focus:text-destructive"}
 			>
 				{tc("projects:remove project")}
 			</DropdownMenuItem>
