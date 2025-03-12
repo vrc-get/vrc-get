@@ -44,7 +44,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1",
-		"@tailwindcss/postcss": "^4.0.9",
+		"@tailwindcss/postcss": "^4.0.12",
 		"@tanstack/router-plugin": "^1.112.13",
 		"@tauri-apps/cli": "^2",
 		"@types/node": "^20",
