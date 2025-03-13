@@ -263,8 +263,15 @@ fn default_unity_hub_path() -> &'static [&'static str] {
                 let home = std::env::var("HOME").expect("HOME not set");
                 format!("{}/Applications/Unity Hub.AppImage", home)
             };
-            static ref INSTALLATIONS: [&'static str; 3] =
-                [&USER_INSTALLATION, "/usr/bin/unity-hub", "/opt/unityhub/unityhub"];
+            static ref INSTALLATIONS: [&'static str; 4] =
+                [
+                    &USER_INSTALLATION,
+                    "/usr/bin/unity-hub",
+                    // apt package
+                    "/opt/unityhub/unityhub",
+                    // flatpak
+                    "/var/lib/flatpak/export/bin/com.unity.UnityHub",
+                ];
         }
 
         INSTALLATIONS.as_ref()
