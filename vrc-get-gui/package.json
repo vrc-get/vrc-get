@@ -45,7 +45,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^1",
 		"@tailwindcss/vite": "^4.0.14",
-		"@tanstack/router-plugin": "^1.112.13",
+		"@tanstack/router-plugin": "^1.114.22",
 		"@tauri-apps/cli": "^2",
 		"@types/node": "^20",
 		"@types/react": "19.0.10",
