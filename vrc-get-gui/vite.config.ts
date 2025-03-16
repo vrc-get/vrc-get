@@ -1,4 +1,5 @@
 import path from "node:path";
+import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
@@ -8,6 +9,7 @@ import viteBuildLicenseJson from "./scripts/vite-build-license-json";
 // https://vitejs.dev/config/
 export default defineConfig({
 	plugins: [
+		tailwindcss(),
 		json5Plugin(),
 		viteBuildLicenseJson({
 			rootDir: __dirname,
