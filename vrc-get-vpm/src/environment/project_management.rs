@@ -5,15 +5,14 @@ use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
 use crate::{ProjectType, UnityProject, io};
 use futures::future::join_all;
-use futures::prelude::*;
 use log::error;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::path::Path;
-use std::pin::pin;
 use vrc_get_litedb::bson::{Array, DateTime, Document, Value};
 use vrc_get_litedb::document;
-use vrc_get_litedb::engine::{BsonAutoId, TransactionLiteEngine};
+use vrc_get_litedb::file_io::BsonAutoId;
 
 pub(crate) static COLLECTION: &str = "projects";
 pub(crate) static ID: &str = "_id";
@@ -50,7 +49,7 @@ impl VccDatabaseConnection {
             .map(|x| x.as_ref())
             .collect::<HashSet<_>>();
 
-        let db_projects = self.db.get_all(COLLECTION).try_collect::<Vec<_>>().await?;
+        let db_projects = self.db.get_all(COLLECTION).cloned().collect::<Vec<_>>();
 
         let db_projects_by_path = db_projects
             .iter()
@@ -96,7 +95,7 @@ impl VccDatabaseConnection {
                     to_insert.iter().map(|x| x.to_bson()).collect(),
                     BsonAutoId::ObjectId,
                 )
-                .await?;
+                .expect("inserting document");
         }
 
         let mut ids_to_delete = vec![];
@@ -112,7 +111,7 @@ impl VccDatabaseConnection {
             }
         }
 
-        self.db.delete(COLLECTION, &ids_to_delete).await?;
+        self.db.delete(COLLECTION, &ids_to_delete);
 
         Ok(())
     }
@@ -124,7 +123,7 @@ impl VccDatabaseConnection {
         skip_not_found: bool,
         io: &impl EnvironmentIo,
     ) -> io::Result<()> {
-        let projects = self.db.get_all(COLLECTION).try_collect::<Vec<_>>().await?;
+        let projects = self.db.get_all(COLLECTION).collect::<Vec<_>>();
 
         let changed_projects = join_all(
             projects
@@ -135,11 +134,11 @@ impl VccDatabaseConnection {
 
         self.db
             .update(COLLECTION, changed_projects.into_iter().flatten().collect())
-            .await?;
+            .expect("updating project");
 
         async fn update_project_with_actual_data(
             io: &impl EnvironmentIo,
-            project: Document,
+            project: &Document,
             skip_not_found: bool,
         ) -> Option<Document> {
             match update_project_with_actual_data_inner(io, project, skip_not_found).await {
@@ -154,9 +153,11 @@ impl VccDatabaseConnection {
 
         async fn update_project_with_actual_data_inner(
             io: &impl EnvironmentIo,
-            mut project: Document,
+            project: &Document,
             skip_not_found: bool,
         ) -> io::Result<Option<Document>> {
+            let mut project = Cow::Borrowed(project);
+
             let Some(path) = project[PATH].as_str() else {
                 return Ok(None);
             };
@@ -176,8 +177,6 @@ impl VccDatabaseConnection {
                 None
             };
 
-            let mut changed = false;
-
             let loaded_project = UnityProject::load(io.new_project_io(path)).await?;
             if let Some(unity_version) = loaded_project.unity_version() {
                 let unity_version = unity_version.to_string();
@@ -192,163 +191,147 @@ impl VccDatabaseConnection {
                                 })
                                 .and_then(|x| x.get(UNITY_REVISION).as_str())
                     {
-                        changed = true;
-                        project.insert(UNITY_VERSION, unity_version.clone());
-                        let vrc_get = project.entry(VRC_GET).document_or_replace();
+                        project
+                            .to_mut()
+                            .insert(UNITY_VERSION, unity_version.clone());
+                        let vrc_get = project.to_mut().entry(VRC_GET).document_or_replace();
                         vrc_get.insert(UNITY_REVISION, revision);
                         vrc_get.insert(CACHED_UNITY_REVISION, unity_version);
                     }
                 } else {
                     #[allow(clippy::collapsible_else_if)]
                     if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str() {
-                        changed = true;
-                        project.insert(UNITY_VERSION, unity_version);
+                        project.to_mut().insert(UNITY_VERSION, unity_version);
                     }
                 }
             }
 
             let project_type = loaded_project.detect_project_type().await?;
             if project[TYPE].as_i32() != Some(project_type as i32) {
-                changed = true;
-                project.insert(TYPE, project_type as i32);
+                project.to_mut().insert(TYPE, project_type as i32);
             }
 
             if let Some(normalized) = normalized {
-                changed = true;
-                project.insert(PATH, normalized.to_str().unwrap());
+                project.to_mut().insert(PATH, normalized.to_str().unwrap());
             }
 
-            Ok(if changed { Some(project) } else { None })
+            Ok(match project {
+                Cow::Owned(o) => Some(o),
+                Cow::Borrowed(_) => None,
+            })
         }
 
         Ok(())
     }
 
-    pub async fn dedup_projects(&mut self) -> io::Result<()> {
+    pub fn dedup_projects(&mut self) {
+        let projects = self.db.get_all(COLLECTION).collect::<Vec<_>>();
+
+        let mut projects_by_path = HashMap::<_, Vec<_>>::new();
+
+        for project in projects {
+            if let Some(path) = project[PATH].as_str() {
+                projects_by_path
+                    .entry(path.to_string())
+                    .or_default()
+                    .push(project);
+            }
+        }
+
+        let mut updates = vec![];
+        let mut deletes = vec![];
+
+        for (_, values) in projects_by_path {
+            if values.len() == 1 {
+                continue;
+            }
+
+            // update favorite and last modified
+
+            let favorite = values
+                .iter()
+                .any(|x| x[FAVORITE].as_bool().unwrap_or(false));
+            let created_at = values
+                .iter()
+                .filter_map(|x| x[CREATED_AT].as_date_time())
+                .min()
+                .unwrap();
+            let last_modified = values
+                .iter()
+                .filter_map(|x| x[LAST_MODIFIED].as_date_time())
+                .max()
+                .unwrap();
+
+            let mut values_iter = values.into_iter();
+            let mut project = Cow::Borrowed(values_iter.next().unwrap());
+            if project[FAVORITE].as_bool() != Some(favorite) {
+                project.to_mut().insert(FAVORITE, favorite);
+            }
+            if project[LAST_MODIFIED].as_date_time() != Some(last_modified) {
+                project.to_mut().insert(LAST_MODIFIED, last_modified);
+            }
+            if project[CREATED_AT].as_date_time() != Some(created_at) {
+                project.to_mut().insert(CREATED_AT, created_at);
+            }
+
+            if let Cow::Owned(project) = project {
+                updates.push(project);
+            }
+
+            // remove rest
+            for project in values_iter {
+                deletes.push(project[ID].clone());
+            }
+        }
+
+        self.db.update(COLLECTION, updates).expect("update");
+        self.db.delete(COLLECTION, &deletes);
+    }
+
+    pub fn get_projects(&self) -> Vec<UserProject> {
         self.db
-            .with_transaction(async |db: &mut TransactionLiteEngine| {
-                let projects = db.get_all(COLLECTION).try_collect::<Vec<_>>().await?;
-
-                let mut projects_by_path = HashMap::<_, Vec<_>>::new();
-
-                for project in projects {
-                    if let Some(path) = project[PATH].as_str() {
-                        projects_by_path
-                            .entry(path.to_string())
-                            .or_default()
-                            .push(project);
-                    }
-                }
-
-                let mut updates = vec![];
-                let mut deletes = vec![];
-
-                for (_, values) in projects_by_path {
-                    if values.len() == 1 {
-                        continue;
-                    }
-
-                    // update favorite and last modified
-
-                    let favorite = values
-                        .iter()
-                        .any(|x| x[FAVORITE].as_bool().unwrap_or(false));
-                    let created_at = values
-                        .iter()
-                        .filter_map(|x| x[CREATED_AT].as_date_time())
-                        .min()
-                        .unwrap();
-                    let last_modified = values
-                        .iter()
-                        .filter_map(|x| x[LAST_MODIFIED].as_date_time())
-                        .max()
-                        .unwrap();
-
-                    let mut values_iter = values.into_iter();
-                    let mut project = values_iter.next().unwrap();
-                    let mut changed = false;
-                    if project[FAVORITE].as_bool() != Some(favorite) {
-                        project.insert(FAVORITE, favorite);
-                        changed = true;
-                    }
-                    if project[LAST_MODIFIED].as_date_time() != Some(last_modified) {
-                        project.insert(LAST_MODIFIED, last_modified);
-                        changed = true;
-                    }
-                    if project[CREATED_AT].as_date_time() != Some(created_at) {
-                        project.insert(CREATED_AT, created_at);
-                        changed = true;
-                    }
-
-                    if changed {
-                        updates.push(project);
-                    }
-
-                    // remove rest
-                    for project in values_iter {
-                        deletes.push(project[ID].clone());
-                    }
-                }
-
-                self.db.update(COLLECTION, updates).await?;
-                self.db.delete(COLLECTION, &deletes).await?;
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn get_projects(&self) -> io::Result<Vec<UserProject>> {
-        Ok(self
-            .db
             .get_all(COLLECTION)
-            .map_ok(UserProject::from_document)
-            .try_collect::<Vec<_>>()
-            .await?)
+            .cloned()
+            .map(UserProject::from_document)
+            .collect::<Vec<_>>()
     }
 
-    pub async fn find_project_bson(&self, project_path: &str) -> io::Result<Option<Document>> {
+    pub fn find_project_bson(&self, project_path: &str) -> io::Result<Option<&Document>> {
         check_absolute_path(project_path)?;
         let project_path = normalize_path(project_path.as_ref());
 
-        Ok(pin!(
-            self.db
-                .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into())
-        )
-        .try_next()
-        .await?)
+        Ok(self
+            .db
+            .get_by_index(COLLECTION, "Path", &project_path.to_str().unwrap().into())
+            .next())
     }
 
-    pub async fn find_project(&self, project_path: &str) -> io::Result<Option<UserProject>> {
+    pub fn find_project(&self, project_path: &str) -> io::Result<Option<UserProject>> {
         Ok(self
-            .find_project_bson(project_path)
-            .await?
+            .find_project_bson(project_path)?
+            .cloned()
             .map(UserProject::from_document))
     }
 
-    pub async fn update_project_last_modified(&mut self, project_path: &str) -> io::Result<()> {
+    pub fn update_project_last_modified(&mut self, project_path: &str) -> io::Result<()> {
         check_absolute_path(project_path)?;
-        let Some(mut project) = self.find_project_bson(project_path).await? else {
+        let Some(mut project) = self.find_project_bson(project_path)?.cloned() else {
             return Ok(());
         };
 
         project.insert(LAST_MODIFIED, DateTime::now());
-        self.db.update(COLLECTION, vec![project]).await?;
+        self.db.update(COLLECTION, vec![project]).expect("update");
         Ok(())
     }
 
-    pub async fn update_project(&mut self, project: &UserProject) -> io::Result<()> {
-        self.db.update(COLLECTION, vec![project.to_bson()]).await?;
-        Ok(())
-    }
-
-    pub async fn remove_project(&mut self, project: &UserProject) -> io::Result<()> {
+    pub fn update_project(&mut self, project: &UserProject) {
         self.db
-            .delete(COLLECTION, &[project.bson[ID].clone()])
-            .await?;
-        Ok(())
+            .update(COLLECTION, vec![project.to_bson()])
+            .expect("update");
+    }
+
+    pub fn remove_project(&mut self, project: &UserProject) {
+        self.db.delete(COLLECTION, &[project.bson[ID].clone()]);
     }
 
     pub async fn add_project<ProjectIO: ProjectIo + FileSystemProjectIo>(
@@ -381,7 +364,7 @@ impl VccDatabaseConnection {
                 vec![new_project.to_bson()],
                 BsonAutoId::ObjectId,
             )
-            .await?;
+            .expect("insert");
 
         Ok(())
     }

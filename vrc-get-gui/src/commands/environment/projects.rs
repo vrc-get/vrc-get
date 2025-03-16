@@ -105,7 +105,7 @@ async fn migrate_sanitize_projects(
     info!("migrating projects from settings.json");
     // migrate from settings json
     connection.migrate(settings, io).await?;
-    connection.dedup_projects().await?;
+    connection.dedup_projects();
     Ok(())
 }
 
@@ -122,15 +122,14 @@ pub async fn environment_projects(
     migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
     info!("syncing information with real projects");
     connection.sync_with_real_projects(true, io.inner()).await?;
-    settings.load_from_db(&connection).await?;
+    settings.load_from_db(&connection)?;
     connection.save(io.inner()).await?;
     settings.save().await?;
 
     info!("fetching projects");
 
-    let mut projects = connection.get_projects().await?;
+    let mut projects = connection.get_projects();
     projects.retain(|x| x.path().is_some());
-    connection.dispose().await?;
 
     let stored = projects_state.set(projects.into_boxed_slice()).await;
 
@@ -184,7 +183,7 @@ pub async fn environment_add_project_with_picker(
         let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
-        let projects = connection.get_projects().await?;
+        let projects = connection.get_projects();
         if projects
             .iter()
             .any(|x| x.path().map(Path::new) == Some(Path::new(&project_path)))
@@ -193,7 +192,7 @@ pub async fn environment_add_project_with_picker(
         }
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
-        settings.load_from_db(&connection).await?;
+        settings.load_from_db(&connection)?;
         settings.save().await?;
     }
 
@@ -229,9 +228,9 @@ pub async fn environment_remove_project(
     let mut settings = settings.load_mut(io.inner()).await?;
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-    connection.remove_project(project).await?;
+    connection.remove_project(project);
     connection.save(io.inner()).await?;
-    settings.load_from_db(&connection).await?;
+    settings.load_from_db(&connection)?;
     settings.save().await?;
 
     if directory {
@@ -261,12 +260,12 @@ pub async fn environment_remove_project_by_path(
         let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
-        let projects: Vec<UserProject> = connection.get_projects().await?;
+        let projects = connection.get_projects();
 
         if let Some(x) = projects.iter().find(|x| x.path() == Some(&path)) {
-            connection.remove_project(x).await?;
+            connection.remove_project(x);
             connection.save(io.inner()).await?;
-            settings.load_from_db(&connection).await?;
+            settings.load_from_db(&connection)?;
             settings.save().await?;
         } else {
             drop(settings);
@@ -419,7 +418,7 @@ pub async fn environment_copy_project_for_migration(
                 migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
                 connection.add_project(&unity_project).await?;
                 connection.save(io.inner()).await?;
-                settings.load_from_db(&connection).await?;
+                settings.load_from_db(&connection)?;
                 settings.save().await?;
             }
 
@@ -449,7 +448,7 @@ pub async fn environment_set_favorite_project(
     project.set_favorite(favorite);
 
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    connection.update_project(project).await?;
+    connection.update_project(project);
     connection.save(io.inner()).await?;
 
     Ok(())
@@ -780,7 +779,7 @@ pub async fn environment_create_project(
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
         connection.add_project(&unity_project).await?;
         connection.save(io.inner()).await?;
-        settings.load_from_db(&connection).await?;
+        settings.load_from_db(&connection)?;
         settings.save().await?;
     }
 

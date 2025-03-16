@@ -1,4 +1,4 @@
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::future::Future;
 use std::path::{Path, PathBuf};
 
@@ -24,9 +24,9 @@ pub trait EnvironmentIo: Sync + IoTrait {
     /// For example, to get the absolute path of the Repos folder for creating local cache and cleanup repos folder.
     fn resolve(&self, path: &Path) -> PathBuf;
     #[cfg(feature = "vrc-get-litedb")]
-    fn connect_lite_db(
-        &self,
-    ) -> impl Future<Output = Result<crate::environment::VccDatabaseConnection>>;
+    type MutexGuard: Send + Sync + 'static;
+    #[cfg(feature = "vrc-get-litedb")]
+    fn new_mutex(&self, lock_name: &OsStr) -> impl Future<Output = Result<Self::MutexGuard>>;
     #[cfg(feature = "experimental-project-management")]
     type ProjectIo: ProjectIo;
 

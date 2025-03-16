@@ -75,10 +75,8 @@ impl Unity2022 {
             Some(path) => path,
             None => {
                 use vrc_get_vpm::VRCHAT_RECOMMENDED_2022_UNITY;
-                let Some(found) = connection
-                    .find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
-                    .await
-                    .exit_context("getting unity 2022 path")
+                let Some(found) =
+                    connection.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
                 else {
                     exit_with!(
                         "Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option."
@@ -96,12 +94,6 @@ impl Unity2022 {
                 PathBuf::from(found.path().unwrap())
             }
         };
-
-        #[cfg(feature = "experimental-vcc")]
-        connection
-            .dispose()
-            .await
-            .exit_context("disposing database");
 
         let status = Command::new(&unity)
             .args([

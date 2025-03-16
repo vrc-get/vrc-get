@@ -140,11 +140,8 @@ async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &P
     async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), std::io::Error> {
         let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io).await?;
         let project_dir = absolute_path(project_dir);
-        connection
-            .update_project_last_modified(&project_dir.to_string_lossy())
-            .await?;
+        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
         connection.save(io).await?;
-        connection.dispose().await?;
         Ok(())
     }
 
