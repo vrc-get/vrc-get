@@ -66,9 +66,11 @@ impl EnvironmentIo for DefaultEnvironmentIo {
         self.root.join(path)
     }
 
+    #[cfg(feature = "vrc-get-litedb")]
     #[cfg(windows)]
     type MutexGuard = vrc_get_litedb::shared_mutex::SharedMutexGuard;
 
+    #[cfg(feature = "vrc-get-litedb")]
     #[cfg(windows)]
     async fn new_mutex(&self, lock_name: impl AsRef<OsStr>) -> io::Result<Self::MutexGuard> {
         vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
@@ -77,9 +79,11 @@ impl EnvironmentIo for DefaultEnvironmentIo {
             .await?
     }
 
+    #[cfg(feature = "vrc-get-litedb")]
     #[cfg(not(windows))]
     type MutexGuard = ();
 
+    #[cfg(feature = "vrc-get-litedb")]
     #[cfg(not(windows))]
     async fn new_mutex(&self, _: &OsStr) -> io::Result<Self::MutexGuard> {
         Ok(())

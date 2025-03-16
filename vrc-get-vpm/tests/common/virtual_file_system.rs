@@ -281,8 +281,10 @@ impl EnvironmentIo for VirtualFileSystem {
             .collect()
     }
 
+    #[cfg(feature = "vrc-get-litedb")]
     type MutexGuard = ();
 
+    #[cfg(feature = "vrc-get-litedb")]
     async fn new_mutex(&self, _: &OsStr) -> io::Result<Self::MutexGuard> {
         err(ErrorKind::Unsupported, "shared mutex")
     }
