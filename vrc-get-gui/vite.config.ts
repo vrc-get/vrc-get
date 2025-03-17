@@ -38,6 +38,9 @@ export default defineConfig({
 	server: {
 		port: 3030,
 		strictPort: true,
+		watch: {
+			ignored: ["**/*.rs"],
+		},
 	},
 	clearScreen: false,
 });
