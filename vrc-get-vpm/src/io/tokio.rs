@@ -73,10 +73,10 @@ impl EnvironmentIo for DefaultEnvironmentIo {
     #[cfg(feature = "vrc-get-litedb")]
     #[cfg(windows)]
     async fn new_mutex(&self, lock_name: &OsStr) -> io::Result<Self::MutexGuard> {
-        vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
+        Ok(vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
             .await?
             .lock_owned()
-            .await?
+            .await?)
     }
 
     #[cfg(feature = "vrc-get-litedb")]
