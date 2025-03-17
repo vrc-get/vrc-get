@@ -5593,6 +5593,7 @@ dependencies = [
  "fs_extra",
  "futures",
  "indexmap 2.8.0",
+ "itertools",
  "log",
  "log-panics",
  "nix",

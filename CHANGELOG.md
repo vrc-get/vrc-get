@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog].
   - This is internal changes should not cause behavior changes
   - I listed here since this may need update on package metadata of some package managers
 - The method to retrieve the list of Unity from Unity Hub `#1808` `#1971`
+- You now can select multiple folders at once to adding project `#2018`
+  - I didn't know official VCC had such a feature. Sorry for lack of feature!
 
 ### Deprecated
 

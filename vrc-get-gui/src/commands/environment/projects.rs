@@ -2,8 +2,9 @@ use crate::commands::prelude::*;
 
 use crate::commands::async_command::{AsyncCallResult, AsyncCommandContext, With, async_command};
 use crate::utils::{FileSystemTree, collect_notable_project_files_tree, default_project_path};
-use futures::TryStreamExt;
 use futures::future::try_join_all;
+use futures::prelude::*;
+use itertools::Itertools;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
@@ -158,23 +159,31 @@ pub async fn environment_add_project_with_picker(
     io: State<'_, DefaultEnvironmentIo>,
     window: Window,
 ) -> Result<TauriAddProjectWithPickerResult, RustError> {
-    let Some(project_path) = window
+    let Some(project_paths) = window
         .dialog()
         .file()
         .set_parent(&window)
-        .blocking_pick_folder()
-        .map(|x| x.into_path_buf())
-        .transpose()?
+        .blocking_pick_folders()
     else {
         return Ok(TauriAddProjectWithPickerResult::NoFolderSelected);
     };
 
-    let Ok(project_path) = project_path.into_os_string().into_string() else {
+    let Ok(project_paths) = project_paths
+        .into_iter()
+        .map(|x| x.into_path_buf().map_err(|_| ()))
+        .map_ok(|x| x.into_os_string().into_string().map_err(|_| ()))
+        .flatten_ok()
+        .collect::<Result<Vec<_>, ()>>()
+    else {
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     };
 
-    let unity_project = load_project(project_path.clone()).await?;
-    if !unity_project.is_valid().await {
+    let unity_projects = try_join_all(project_paths.into_iter().map(load_project)).await?;
+
+    if stream::iter(unity_projects.iter())
+        .any(async |p| !p.is_valid().await)
+        .await
+    {
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     }
 
@@ -184,13 +193,14 @@ pub async fn environment_add_project_with_picker(
         migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
 
         let projects = connection.get_projects();
-        if projects
-            .iter()
-            .any(|x| x.path().map(Path::new) == Some(Path::new(&project_path)))
+        if (projects.iter().cartesian_product(unity_projects.iter()))
+            .any(|(in_db, adding)| in_db.path().map(Path::new) == Some(adding.project_dir()))
         {
             return Ok(TauriAddProjectWithPickerResult::AlreadyAdded);
         }
-        connection.add_project(&unity_project).await?;
+        for unity_project in unity_projects {
+            connection.add_project(&unity_project).await?;
+        }
         connection.save(io.inner()).await?;
         settings.load_from_db(&connection)?;
         settings.save().await?;

@@ -1,12 +1,13 @@
+use crate::commands::async_command::{AsyncCallResult, With, async_command};
+use crate::commands::prelude::*;
 use futures::future::{join_all, try_join_all};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use log::info;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
-use crate::commands::async_command::{AsyncCallResult, With, async_command};
-use serde::{Deserialize, Serialize};
 use tauri::{Manager, State, Window};
 use tauri_plugin_dialog::DialogExt;
 use tokio::fs::write;
@@ -18,8 +19,6 @@ use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
 use vrc_get_vpm::{HttpClient, PackageInfo, VersionSelector};
-
-use crate::commands::prelude::*;
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriPackage {
@@ -646,34 +645,40 @@ pub async fn environment_add_user_package_with_picker(
     io: State<'_, DefaultEnvironmentIo>,
     window: Window,
 ) -> Result<TauriAddUserPackageWithPickerResult, RustError> {
-    let Some(project_path) = window
+    let Some(package_paths) = window
         .dialog()
         .file()
         .set_parent(&window)
-        .blocking_pick_folder()
-        .map(|x| x.into_path_buf())
-        .transpose()?
+        .blocking_pick_folders()
     else {
         return Ok(TauriAddUserPackageWithPickerResult::NoFolderSelected);
     };
 
-    let Ok(project_path) = project_path.into_os_string().into_string() else {
+    let Ok(package_paths) = package_paths
+        .into_iter()
+        .map(|x| x.into_path_buf().map_err(|_| ()))
+        .map_ok(|x| x.into_os_string().into_string().map_err(|_| ()))
+        .flatten_ok()
+        .collect::<Result<Vec<_>, ()>>()
+    else {
         return Ok(TauriAddUserPackageWithPickerResult::InvalidSelection);
     };
 
     {
         let mut settings = settings.load_mut(io.inner()).await?;
-        match settings
-            .add_user_package(project_path.as_ref(), io.inner())
-            .await
-        {
-            AddUserPackageResult::Success => {}
-            AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
-            AddUserPackageResult::BadPackage => {
-                return Ok(TauriAddUserPackageWithPickerResult::InvalidSelection);
-            }
-            AddUserPackageResult::AlreadyAdded => {
-                return Ok(TauriAddUserPackageWithPickerResult::AlreadyAdded);
+        for package_path in package_paths {
+            match settings
+                .add_user_package(package_path.as_ref(), io.inner())
+                .await
+            {
+                AddUserPackageResult::Success => {}
+                AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
+                AddUserPackageResult::BadPackage => {
+                    return Ok(TauriAddUserPackageWithPickerResult::InvalidSelection);
+                }
+                AddUserPackageResult::AlreadyAdded => {
+                    return Ok(TauriAddUserPackageWithPickerResult::AlreadyAdded);
+                }
             }
         }
 

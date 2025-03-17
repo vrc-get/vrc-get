@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog].
   - New method might have some compatibility problem, especially with some sandbox system.
   - Please report us if you find some problem with the new system.
 - Enhance os info for windows `#1968`
+- You now can select multiple folders at once to adding project `#2018`
+  - I didn't know official VCC had such a feature. Sorry for lack of feature!
 
 ### Deprecated
 
