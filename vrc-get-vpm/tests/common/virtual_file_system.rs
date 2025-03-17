@@ -282,8 +282,11 @@ impl EnvironmentIo for VirtualFileSystem {
     }
 
     #[cfg(feature = "vrc-get-litedb")]
-    async fn connect_lite_db(&self) -> io::Result<vrc_get_vpm::environment::VccDatabaseConnection> {
-        err(ErrorKind::Unsupported, "lite db")
+    type MutexGuard = ();
+
+    #[cfg(feature = "vrc-get-litedb")]
+    async fn new_mutex(&self, _: &OsStr) -> io::Result<Self::MutexGuard> {
+        err(ErrorKind::Unsupported, "shared mutex")
     }
 
     #[cfg(feature = "experimental-project-management")]

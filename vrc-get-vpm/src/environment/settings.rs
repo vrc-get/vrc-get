@@ -92,11 +92,8 @@ impl Settings {
         self.vpm.remove_user_project(path);
     }
 
-    pub async fn load_from_db(
-        &mut self,
-        connection: &super::VccDatabaseConnection,
-    ) -> io::Result<()> {
-        let projects = connection.get_projects().await?;
+    pub fn load_from_db(&mut self, connection: &super::VccDatabaseConnection) -> io::Result<()> {
+        let projects = connection.get_projects();
         let mut project_paths = projects
             .iter()
             .filter_map(|x| x.path())

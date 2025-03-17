@@ -48,10 +48,7 @@ async fn migrate_sanitize_projects(
         .migrate(settings, io)
         .await
         .exit_context("migrating from settings.json");
-    connection
-        .dedup_projects()
-        .await
-        .exit_context("deduplicating projects in DB");
+    connection.dedup_projects();
 }
 
 /// List projects
@@ -78,15 +75,12 @@ impl ProjectList {
             .await
             .exit_context("syncing with real projects");
 
-        let mut projects = connection
-            .get_projects()
-            .await
-            .exit_context("getting projects");
+        let mut projects = connection.get_projects();
 
         connection
-            .dispose()
+            .save(&io)
             .await
-            .exit_context("disposing database");
+            .exit_context("saving updated database");
 
         projects.sort_by_key(|x| Reverse(x.last_modified()));
 
@@ -144,13 +138,8 @@ impl ProjectAdd {
         connection.save(&io).await.exit_context("saving database");
         settings
             .load_from_db(&connection)
-            .await
             .exit_context("saving database");
         settings.save(&io).await.exit_context("saving settings");
-        connection
-            .dispose()
-            .await
-            .exit_context("disposing database");
     }
 }
 
@@ -173,7 +162,6 @@ impl ProjectRemove {
 
         let Some(project) = connection
             .find_project(self.path.as_ref())
-            .await
             .exit_context("getting projects")
         else {
             return println!("No project found at {}", self.path);
@@ -181,21 +169,13 @@ impl ProjectRemove {
 
         migrate_sanitize_projects(&mut connection, &io, &settings).await;
 
-        connection
-            .remove_project(&project)
-            .await
-            .exit_context("removing project");
+        connection.remove_project(&project);
 
         connection.save(&io).await.exit_context("saving database");
         settings
             .load_from_db(&connection)
-            .await
             .exit_context("saving database");
         settings.save(&io).await.exit_context("saving environment");
-        connection
-            .dispose()
-            .await
-            .exit_context("disposing database");
     }
 }
 
@@ -226,15 +206,7 @@ impl UnityList {
             .await
             .exit_context("connecting to database");
 
-        let mut unity_installations = connection
-            .get_unity_installations()
-            .await
-            .exit_context("getting installations");
-
-        connection
-            .dispose()
-            .await
-            .exit_context("disposing database");
+        let mut unity_installations = connection.get_unity_installations();
 
         unity_installations.sort_by_key(|x| Reverse(x.version()));
 
@@ -272,14 +244,9 @@ impl UnityAdd {
 
         connection
             .add_unity_installation(self.path.as_ref(), unity_version)
-            .await
             .exit_context("adding unity installation");
 
         connection.save(&io).await.exit_context("saving database");
-        connection
-            .dispose()
-            .await
-            .exit_context("disposing database");
 
         println!("Added version {} at {}", unity_version, self.path);
     }
@@ -303,24 +270,15 @@ impl UnityRemove {
 
         let Some(unity) = connection
             .get_unity_installations()
-            .await
-            .exit_context("getting installations")
             .into_iter()
             .find(|x| x.path() == Some(self.path.as_ref()))
         else {
             return eprintln!("No unity installation found at {}", self.path);
         };
 
-        connection
-            .remove_unity_installation(&unity)
-            .await
-            .exit_context("adding unity installation");
+        connection.remove_unity_installation(&unity);
 
         connection.save(&io).await.exit_context("saving database");
-        connection
-            .dispose()
-            .await
-            .exit_context("disposing database");
     }
 }
 
@@ -390,9 +348,5 @@ impl UnityUpdate {
 
         connection.save(&io).await.exit_context("saving database");
         settings.save(&io).await.exit_context("saving settings");
-        connection
-            .dispose()
-            .await
-            .exit_context("disposing database");
     }
 }

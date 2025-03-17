@@ -4,14 +4,13 @@ use crate::io::EnvironmentIo;
 use crate::unity_hub::get_executable_path;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
-use futures::TryStreamExt;
 use log::info;
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::pin::pin;
 use vrc_get_litedb::bson::Document;
 use vrc_get_litedb::document;
-use vrc_get_litedb::engine::{BsonAutoId, TransactionLiteEngine};
+use vrc_get_litedb::file_io::{BsonAutoId, LiteDBFile};
 
 pub(crate) static COLLECTION: &str = "unityVersions";
 static PATH: &str = "Path";
@@ -19,68 +18,49 @@ static VERSION: &str = "Version";
 static LOADED_FROM_HUB: &str = "LoadedFromHub";
 
 impl VccDatabaseConnection {
-    pub async fn get_unity_installations(&self) -> io::Result<Vec<UnityInstallation>> {
-        Ok(self
-            .db
+    pub fn get_unity_installations(&self) -> Vec<UnityInstallation> {
+        self.db
             .get_all(COLLECTION)
-            .map_ok(UnityInstallation::from_document)
-            .try_collect()
-            .await?)
+            .cloned()
+            .map(UnityInstallation::from_document)
+            .collect()
     }
 
-    pub async fn add_unity_installation(
-        &mut self,
-        path: &str,
-        version: UnityVersion,
-    ) -> io::Result<()> {
+    pub fn add_unity_installation(&mut self, path: &str, version: UnityVersion) -> io::Result<()> {
         check_absolute_path(path)?;
-        Ok(self
-            .db
-            .with_transaction(async |db| {
-                Ok(Self::add_unity_installation_internal(db, path, version, false).await?)
-            })
-            .await?)
+        Self::add_unity_installation_internal(&mut self.db, path, version, false);
+        Ok(())
     }
 
-    async fn add_unity_installation_internal(
-        db: &mut TransactionLiteEngine<'_>,
+    fn add_unity_installation_internal(
+        db: &mut LiteDBFile,
         path: &str,
         version: UnityVersion,
         is_from_hub: bool,
-    ) -> io::Result<()> {
+    ) {
         let installation = UnityInstallation::new(path.into(), Some(version), is_from_hub);
 
         db.insert(COLLECTION, vec![installation.bson], BsonAutoId::ObjectId)
-            .await?;
-
-        Ok(())
+            .expect("insert");
     }
 
-    pub async fn remove_unity_installation(&mut self, unity: &UnityInstallation) -> io::Result<()> {
-        self.db
-            .delete(COLLECTION, &[unity.bson["_id"].clone()])
-            .await?;
-
-        Ok(())
+    pub fn remove_unity_installation(&mut self, unity: &UnityInstallation) {
+        self.db.delete(COLLECTION, &[unity.bson["_id"].clone()]);
     }
 
-    pub async fn find_most_suitable_unity(
-        &self,
-        expected: UnityVersion,
-    ) -> io::Result<Option<UnityInstallation>> {
+    pub fn find_most_suitable_unity(&self, expected: UnityVersion) -> Option<UnityInstallation> {
         let mut revision_match = None;
         let mut minor_match = None;
         let mut major_match = None;
 
-        let mut stream = pin!(self.db.get_all(COLLECTION));
-        while let Some(unity) = stream.try_next().await? {
-            let unity = UnityInstallation::from_document(unity);
+        for unity in self.db.get_all(COLLECTION) {
+            let unity = UnityInstallation::from_document(unity.clone());
             if unity.path().is_none() {
                 continue;
             }
             if let Some(version) = unity.version() {
                 if version == expected {
-                    return Ok(Some(unity));
+                    return Some(unity);
                 }
 
                 if version.major() == expected.major() {
@@ -99,7 +79,7 @@ impl VccDatabaseConnection {
             }
         }
 
-        Ok(revision_match.or(minor_match).or(major_match))
+        revision_match.or(minor_match).or(major_match)
     }
 
     pub async fn update_unity_from_unity_hub_and_fs(
@@ -116,86 +96,77 @@ impl VccDatabaseConnection {
             .map(|(_, path)| path.as_ref())
             .collect::<HashSet<_>>();
 
-        self.db
-            .with_transaction(async |db: &mut TransactionLiteEngine| {
-                let mut update = Vec::new();
-                let mut delete = Vec::new();
+        let mut update = Vec::new();
+        let mut delete = Vec::new();
 
-                let mut registered = HashSet::new();
+        let mut registered = HashSet::new();
 
-                let mut stream = pin!(self.db.get_all(COLLECTION));
-                while let Some(mut in_db) = stream.try_next().await? {
-                    let Some(path) = in_db[PATH].as_str() else {
-                        // if the unity editor not found, remove it from the db
-                        info!("Removed Unity has no path: {:?}", in_db["_id"]);
-                        delete.push(in_db["_id"].clone());
-                        continue;
-                    };
+        for in_db in self.db.get_all(COLLECTION) {
+            let Some(path) = in_db[PATH].as_str() else {
+                // if the unity editor not found, remove it from the db
+                info!("Removed Unity has no path: {:?}", in_db["_id"]);
+                delete.push(in_db["_id"].clone());
+                continue;
+            };
 
-                    let path_path = Path::new(path);
-                    if !io.is_file(path_path).await {
-                        // if the unity editor not found, remove it from the db
-                        info!("Removed Unity that is not exists: {}", path);
-                        delete.push(in_db["_id"].clone());
-                        continue;
-                    }
+            let path_path = Path::new(path);
+            if !io.is_file(path_path).await {
+                // if the unity editor not found, remove it from the db
+                info!("Removed Unity that is not exists: {}", path);
+                delete.push(in_db["_id"].clone());
+                continue;
+            }
 
-                    if registered.contains(path) {
-                        // if the unity editor is already installed, remove it from the db
-                        info!("Removed duplicated Unity: {}", path);
-                        delete.push(in_db["_id"].clone());
-                        continue;
-                    }
+            if registered.contains(path) {
+                // if the unity editor is already installed, remove it from the db
+                info!("Removed duplicated Unity: {}", path);
+                delete.push(in_db["_id"].clone());
+                continue;
+            }
 
-                    registered.insert(path.to_string());
+            registered.insert(path.to_string());
 
-                    let normalized = normalize_path(path.as_ref())
-                        .into_os_string()
-                        .into_string()
-                        .unwrap();
-                    let exists_in_hub = paths_from_hub.contains(Path::new(path));
+            let normalized = normalize_path(path.as_ref())
+                .into_os_string()
+                .into_string()
+                .unwrap();
+            let exists_in_hub = paths_from_hub.contains(Path::new(path));
 
-                    let mut changed = false;
+            let mut in_db = Cow::Borrowed(in_db);
 
-                    if normalized != path {
-                        in_db.insert(PATH, normalized);
-                        changed = true;
-                    }
+            if normalized != path {
+                in_db.to_mut().insert(PATH, normalized);
+            }
 
-                    if Some(exists_in_hub) != in_db[LOADED_FROM_HUB].as_bool() {
-                        in_db.insert(LOADED_FROM_HUB, exists_in_hub);
-                        changed = true;
-                    }
+            if Some(exists_in_hub) != in_db[LOADED_FROM_HUB].as_bool() {
+                in_db.to_mut().insert(LOADED_FROM_HUB, exists_in_hub);
+            }
 
-                    if changed {
-                        update.push(in_db);
-                    }
+            if let Cow::Owned(in_db) = in_db {
+                update.push(in_db);
+            }
+        }
+
+        self.db.delete(COLLECTION, &delete);
+        self.db.update(COLLECTION, update).expect("update");
+
+        for &(&version, ref path) in &path_and_version_from_hub {
+            let Some(path) = path.as_os_str().to_str() else {
+                info!(
+                    "Ignoring Unity from Unity Hub since non-utf8 path: {}",
+                    path.display()
+                );
+                continue;
+            };
+            if !registered.contains(path) {
+                if version < UnityVersion::new_f1(2019, 4, 0) {
+                    info!("Ignoring Unity from Unity Hub since old: {}", path);
+                    continue;
                 }
-
-                self.db.delete(COLLECTION, &delete).await?;
-                self.db.update(COLLECTION, update).await?;
-
-                for &(&version, ref path) in &path_and_version_from_hub {
-                    let Some(path) = path.as_os_str().to_str() else {
-                        info!(
-                            "Ignoring Unity from Unity Hub since non-utf8 path: {}",
-                            path.display()
-                        );
-                        continue;
-                    };
-                    if !registered.contains(path) {
-                        if version < UnityVersion::new_f1(2019, 4, 0) {
-                            info!("Ignoring Unity from Unity Hub since old: {}", path);
-                            continue;
-                        }
-                        info!("Adding Unity from Unity Hub: {}", path);
-                        Self::add_unity_installation_internal(db, path, version, true).await?;
-                    }
-                }
-
-                Ok(())
-            })
-            .await?;
+                info!("Adding Unity from Unity Hub: {}", path);
+                Self::add_unity_installation_internal(&mut self.db, path, version, true);
+            }
+        }
 
         Ok(())
     }

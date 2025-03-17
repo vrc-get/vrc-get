@@ -4,7 +4,7 @@ use crate::io::{
 };
 use futures::{Stream, TryFutureExt};
 use log::debug;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -67,45 +67,26 @@ impl EnvironmentIo for DefaultEnvironmentIo {
     }
 
     #[cfg(feature = "vrc-get-litedb")]
-    async fn connect_lite_db(&self) -> io::Result<crate::environment::VccDatabaseConnection> {
-        use vrc_get_litedb::engine::{LiteEngine, LiteSettings};
-        use vrc_get_litedb::tokio_fs::TokioStreamFactory;
+    #[cfg(windows)]
+    type MutexGuard = vrc_get_litedb::shared_mutex::SharedMutexOwnedGuard;
 
-        let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
-        let log_path = EnvironmentIo::resolve(self, "vcc-log.liteDb".as_ref());
+    #[cfg(feature = "vrc-get-litedb")]
+    #[cfg(windows)]
+    async fn new_mutex(&self, lock_name: &OsStr) -> io::Result<Self::MutexGuard> {
+        Ok(vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
+            .await?
+            .lock_owned()
+            .await?)
+    }
 
-        #[cfg(windows)]
-        let lock = {
-            use sha1::Digest;
+    #[cfg(feature = "vrc-get-litedb")]
+    #[cfg(not(windows))]
+    type MutexGuard = ();
 
-            let path = path.to_string_lossy();
-            let path_lower = path.to_lowercase();
-            let mut sha1 = sha1::Sha1::new();
-            sha1.update(path_lower.as_bytes());
-            let hash = &sha1.finalize()[..];
-            let hash_hex = hex::encode(hash);
-            // this lock name is same as shared engine in litedb
-            let name = format!("Global\\{hash_hex}.Mutex");
-
-            Box::new(
-                vrc_get_litedb::shared_mutex::SharedMutex::new(name)
-                    .await?
-                    .lock_owned()
-                    .await?,
-            )
-        };
-        #[cfg(not(windows))]
-        let lock = Box::new(());
-
-        let engine = LiteEngine::new(LiteSettings {
-            data_stream: Box::new(TokioStreamFactory::new(path.clone())),
-            log_stream: Box::new(TokioStreamFactory::new(log_path.clone())),
-            auto_build: false,
-            collation: None,
-        })
-        .await?;
-
-        Ok(crate::environment::VccDatabaseConnection::new(engine, lock))
+    #[cfg(feature = "vrc-get-litedb")]
+    #[cfg(not(windows))]
+    async fn new_mutex(&self, _: &OsStr) -> io::Result<Self::MutexGuard> {
+        Ok(())
     }
 
     #[cfg(feature = "experimental-project-management")]
