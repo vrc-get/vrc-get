@@ -76,17 +76,15 @@ const LegacyProjectTypes = [
 export function ProjectRow({
 	project,
 	openUnity,
-	onRemoved,
 	loading,
 	refresh,
 }: {
 	project: TauriProject;
 	openUnity: OpenUnityFunction;
-	onRemoved?: () => void;
 	loading?: boolean;
 	refresh?: () => void;
 }) {
-	const removeProjectModal = useRemoveProjectModal({ onRemoved });
+	const removeProjectModal = useRemoveProjectModal();
 	const backupProjectModal = useBackupProjectModal();
 
 	const cellClass = "p-2.5";

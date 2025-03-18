@@ -55,7 +55,6 @@ export default function ProjectsListCard({
 					loading={loading}
 					openUnity={openUnity.openUnity}
 					refresh={() => result.refetch()}
-					onRemoved={() => result.refetch()}
 				/>
 			)}
 		</>
@@ -106,7 +105,6 @@ function compareProjectType(
 function ProjectsTableCard({
 	projects,
 	search,
-	onRemoved,
 	loading,
 	refresh,
 	openUnity,
@@ -115,7 +113,6 @@ function ProjectsTableCard({
 	openUnity: OpenUnityFunction;
 	search?: string;
 	loading?: boolean;
-	onRemoved?: () => void;
 	refresh?: () => void;
 }) {
 	const sortingQuery = useQuery({
@@ -283,7 +280,6 @@ function ProjectsTableCard({
 						project={project}
 						loading={loading}
 						refresh={refresh}
-						onRemoved={onRemoved}
 						openUnity={openUnity}
 					/>
 				))}
