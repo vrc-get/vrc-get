@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog].
 - Enhance os info for windows `#1968`
 - You now can select multiple folders at once to adding project `#2018`
   - I didn't know official VCC had such a feature. Sorry for lack of feature!
+- You now can toggle "Show Prerelease Packages" from Manage Project page `#2020`
+  - You can toggle "Show Prerelease Packages" from Select Packages dropdown
 
 ### Deprecated
 
