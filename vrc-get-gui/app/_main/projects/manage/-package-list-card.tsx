@@ -4,13 +4,15 @@ import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DropdownMenu,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -479,38 +481,61 @@ function ManagePackagesHeading({
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button className={"shrink-0 p-3"}>
-						{tc("projects:manage:button:select repositories")}
+						{tc("projects:manage:button:select packages")}
 					</Button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent className={"max-h-96 w-64"}>
-					<RepositoryMenuItem
-						hiddenUserRepositories={hiddenUserRepositories}
-						repositoryName={tt("vpm repositories:source:official")}
-						repositoryId={"com.vrchat.repos.official"}
-						refetch={onRefreshRepositories}
-					/>
-					<RepositoryMenuItem
-						hiddenUserRepositories={hiddenUserRepositories}
-						repositoryName={tt("vpm repositories:source:curated")}
-						repositoryId={"com.vrchat.repos.curated"}
-						refetch={onRefreshRepositories}
-					/>
-					<UserLocalRepositoryMenuItem
-						hideUserLocalPackages={
-							repositoriesInfo?.hide_local_user_packages ?? false
-						}
-						refetch={onRefreshRepositories}
-					/>
-					<hr className="my-3" />
-					{repositoriesInfo?.user_repositories?.map((repository) => (
+				<DropdownMenuContent
+					className={"max-h-96 w-64 overflow-y-hidden flex flex-col"}
+				>
+					<DropdownMenuLabel>
+						{tc("projects:manage:menu:repositories")}
+					</DropdownMenuLabel>
+					<ScrollArea className={"flex flex-col"}>
 						<RepositoryMenuItem
 							hiddenUserRepositories={hiddenUserRepositories}
-							repositoryName={repository.display_name}
-							repositoryId={repository.id}
+							repositoryName={tt("vpm repositories:source:official")}
+							repositoryId={"com.vrchat.repos.official"}
 							refetch={onRefreshRepositories}
-							key={repository.id}
 						/>
-					))}
+						<RepositoryMenuItem
+							hiddenUserRepositories={hiddenUserRepositories}
+							repositoryName={tt("vpm repositories:source:curated")}
+							repositoryId={"com.vrchat.repos.curated"}
+							refetch={onRefreshRepositories}
+						/>
+						<UserLocalRepositoryMenuItem
+							hideUserLocalPackages={
+								repositoriesInfo?.hide_local_user_packages ?? false
+							}
+							refetch={onRefreshRepositories}
+						/>
+						<hr className="my-1.5" />
+						{repositoriesInfo?.user_repositories?.map((repository) => (
+							<RepositoryMenuItem
+								hiddenUserRepositories={hiddenUserRepositories}
+								repositoryName={repository.display_name}
+								repositoryId={repository.id}
+								refetch={onRefreshRepositories}
+								key={repository.id}
+							/>
+						))}
+					</ScrollArea>
+					<DropdownMenuLabel>
+						{tc("projects:manage:menu:other options")}
+					</DropdownMenuLabel>
+					<DropdownMenuCheckboxItem
+						checked={repositoriesInfo?.show_prerelease_packages}
+						onClick={(e) => {
+							e.preventDefault();
+							commands
+								.environmentSetShowPrereleasePackages(
+									!repositoriesInfo?.show_prerelease_packages,
+								)
+								.then(onRefreshRepositories);
+						}}
+					>
+						{tc("settings:show prerelease")}
+					</DropdownMenuCheckboxItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</div>
@@ -657,6 +682,8 @@ function BulkUpdateCard({
 	);
 }
 
+const preventDefault = (e: Event) => e.preventDefault();
+
 function RepositoryMenuItem({
 	hiddenUserRepositories,
 	repositoryName,
@@ -678,25 +705,13 @@ function RepositoryMenuItem({
 	};
 
 	return (
-		<DropdownMenuItem
-			className="p-0"
-			onSelect={(e) => {
-				e.preventDefault();
-			}}
+		<DropdownMenuCheckboxItem
+			checked={selected}
+			onCheckedChange={onChange}
+			onSelect={preventDefault}
 		>
-			<label
-				className={
-					"flex cursor-pointer items-center gap-2 p-2 whitespace-normal"
-				}
-			>
-				<Checkbox
-					checked={selected}
-					onCheckedChange={onChange}
-					className="hover:before:content-none"
-				/>
-				{repositoryName}
-			</label>
-		</DropdownMenuItem>
+			{repositoryName}
+		</DropdownMenuCheckboxItem>
 	);
 }
 
@@ -717,21 +732,13 @@ function UserLocalRepositoryMenuItem({
 	};
 
 	return (
-		<DropdownMenuItem
-			className="p-0"
-			onSelect={(e) => {
-				e.preventDefault();
-			}}
+		<DropdownMenuCheckboxItem
+			checked={selected}
+			onCheckedChange={onChange}
+			onSelect={preventDefault}
 		>
-			<label className={"flex cursor-pointer items-center gap-2 p-2"}>
-				<Checkbox
-					checked={selected}
-					onCheckedChange={onChange}
-					className="hover:before:content-none"
-				/>
-				{tc("vpm repositories:source:local")}
-			</label>
-		</DropdownMenuItem>
+			{tc("vpm repositories:source:local")}
+		</DropdownMenuCheckboxItem>
 	);
 }
 
