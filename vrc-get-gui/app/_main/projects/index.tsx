@@ -1,5 +1,6 @@
 "use client";
 
+import { CreateProject } from "@/app/_main/projects/-create-project";
 import { SearchBox } from "@/components/SearchBox";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/_main/projects/")({
 
 function Page() {
 	const result = useQuery({
-		queryKey: ["projects"],
+		queryKey: ["environmentProjects"],
 		queryFn: commands.environmentProjects,
 	});
 	const [search, setSearch] = useState("");
@@ -61,11 +62,16 @@ function Page() {
 				<ProjectsListCard
 					result={result}
 					search={search}
-					createProjectState={createProjectState}
-					setCreateProjectState={setCreateProjectState}
 					openUnity={openUnity}
 					loading={loading}
 				/>
+				{createProjectState === "creating" && (
+					<CreateProject
+						close={() => setCreateProjectState("normal")}
+						refetch={() => result.refetch()}
+					/>
+				)}
+				{openUnity.dialog}
 			</main>
 		</VStack>
 	);

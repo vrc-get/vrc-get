@@ -10,10 +10,9 @@ import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import type { OpenUnityFunction, Result } from "@/lib/use-open-unity";
 import { compareUnityVersionString } from "@/lib/version";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Star } from "lucide-react";
-import type React from "react";
-import { useEffect, useMemo, useState } from "react";
-import { CreateProject } from "./-create-project";
+import { useMemo } from "react";
 import { ProjectRow } from "./-project-row";
 
 const sortings = ["lastModified", "name", "unity", "type"] as const;
@@ -30,18 +29,12 @@ function isSorting(s: string | unknown): s is Sorting {
 export default function ProjectsListCard({
 	result,
 	search,
-	createProjectState,
-	setCreateProjectState,
 	openUnity,
 	loading,
 }: {
 	// biome-ignore lint/suspicious/noExplicitAny: none
 	result: any;
 	search: string;
-	createProjectState: "normal" | "creating";
-	setCreateProjectState: React.Dispatch<
-		React.SetStateAction<"normal" | "creating">
-	>;
 	openUnity: Result;
 	loading: boolean;
 }) {
@@ -65,13 +58,6 @@ export default function ProjectsListCard({
 					onRemoved={() => result.refetch()}
 				/>
 			)}
-			{createProjectState === "creating" && (
-				<CreateProject
-					close={() => setCreateProjectState("normal")}
-					refetch={() => result.refetch()}
-				/>
-			)}
-			{openUnity.dialog}
 		</>
 	);
 }
