@@ -25,15 +25,7 @@ type StateUnitySelector =
 			resolve: (unityInfo: SelectResult | null) => void;
 	  };
 
-type SelectResult =
-	| SelectResultWithoutInTheFuture
-	| SelectResultWithInTheFuture;
-
-type SelectResultWithoutInTheFuture = {
-	unityPath: string;
-};
-
-type SelectResultWithInTheFuture = {
+type SelectResult = {
 	unityPath: string;
 	keepUsingThisVersion: boolean;
 };
@@ -42,11 +34,8 @@ type ResultUnitySelector = {
 	dialog: React.ReactNode;
 	select(
 		unityList: UnityInstallation[],
-	): Promise<SelectResultWithoutInTheFuture | null>;
-	select(
-		unityList: UnityInstallation[],
-		supportKeepUsing: true,
-	): Promise<SelectResultWithInTheFuture | null>;
+		supportKeepUsing?: true,
+	): Promise<SelectResult | null>;
 };
 
 export function useUnitySelectorDialog(): ResultUnitySelector {
@@ -56,15 +45,8 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 
 	function select(
 		unityVersions: UnityInstallation[],
-	): Promise<SelectResultWithoutInTheFuture | null>;
-	function select(
-		unityVersions: UnityInstallation[],
-		supportKeepUsing: boolean,
-	): Promise<SelectResultWithInTheFuture | null>;
-	function select(
-		unityVersions: UnityInstallation[],
 		supportKeepUsing?: boolean,
-	) {
+	): Promise<SelectResult | null> {
 		return new Promise<SelectResult | null>((resolve) => {
 			setInstallStatus({
 				state: "selecting",
@@ -89,11 +71,7 @@ export function useUnitySelectorDialog(): ResultUnitySelector {
 				keepUsingThisVersion: boolean,
 			) => {
 				setInstallStatus({ state: "normal" });
-				installStatus.resolve(
-					installStatus.supportKeepUsing
-						? { unityPath, keepUsingThisVersion }
-						: { unityPath },
-				);
+				installStatus.resolve({ unityPath, keepUsingThisVersion });
 			};
 			dialog = (
 				<DialogOpen className={"whitespace-normal"}>
