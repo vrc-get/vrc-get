@@ -21,7 +21,6 @@ import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { useOpenUnity } from "@/lib/use-open-unity";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, RefreshCw } from "lucide-react";
@@ -42,7 +41,6 @@ function Page() {
 	const [createProjectState, setCreateProjectState] = useState<
 		"normal" | "creating"
 	>("normal");
-	const openUnity = useOpenUnity();
 
 	const startCreateProject = () => setCreateProjectState("creating");
 
@@ -59,19 +57,13 @@ function Page() {
 				setSearch={setSearch}
 			/>
 			<main className="shrink overflow-hidden flex w-full h-full">
-				<ProjectsListCard
-					result={result}
-					search={search}
-					openUnity={openUnity}
-					loading={loading}
-				/>
+				<ProjectsListCard result={result} search={search} loading={loading} />
 				{createProjectState === "creating" && (
 					<CreateProject
 						close={() => setCreateProjectState("normal")}
 						refetch={() => result.refetch()}
 					/>
 				)}
-				{openUnity.dialog}
 			</main>
 		</VStack>
 	);

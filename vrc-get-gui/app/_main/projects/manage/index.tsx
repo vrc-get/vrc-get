@@ -41,7 +41,7 @@ import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { useOpenUnity } from "@/lib/use-open-unity";
+import { openUnity } from "@/lib/use-open-unity";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
 import {
 	type UseQueryResult,
@@ -749,7 +749,6 @@ function ProjectButton({
 	onRemove?: () => void;
 	onBackup?: () => void;
 }) {
-	const openUnity = useOpenUnity();
 	const [openLaunchOptions, setOpenLaunchOptions] = useState<
 		| false
 		| {
@@ -775,9 +774,7 @@ function ProjectButton({
 			<DropdownMenu>
 				<div className={"flex divide-x"}>
 					<Button
-						onClick={() =>
-							openUnity.openUnity(projectPath, unityVersion, unityRevision)
-						}
+						onClick={() => openUnity(projectPath, unityVersion, unityRevision)}
 						className={"rounded-r-none pl-4 pr-3"}
 					>
 						{tc("projects:button:open unity")}
@@ -797,7 +794,6 @@ function ProjectButton({
 					/>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			{openUnity.dialog}
 			{openLaunchOptions !== false && (
 				<DialogOpen>
 					<LaunchSettings

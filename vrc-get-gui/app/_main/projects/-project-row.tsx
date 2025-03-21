@@ -32,7 +32,7 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import type { OpenUnityFunction } from "@/lib/use-open-unity";
+import { openUnity } from "@/lib/use-open-unity";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	CircleHelp,
@@ -75,12 +75,10 @@ const LegacyProjectTypes = [
 
 export function ProjectRow({
 	project,
-	openUnity,
 	loading,
 	refresh,
 }: {
 	project: TauriProject;
-	openUnity: OpenUnityFunction;
 	loading?: boolean;
 	refresh?: () => void;
 }) {

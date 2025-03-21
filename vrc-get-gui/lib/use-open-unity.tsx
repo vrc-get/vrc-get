@@ -6,257 +6,148 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
-import { assertNever } from "@/lib/assert-never";
-import { commands } from "@/lib/bindings";
-import { openSingleDialog } from "@/lib/dialog";
+import { type TauriUnityVersions, commands } from "@/lib/bindings";
+import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import i18next, { tc } from "@/lib/i18n";
 import { toastError, toastNormal } from "@/lib/toast";
 import { parseUnityVersion } from "@/lib/version";
-import React from "react";
 
-export type OpenUnityFunction = (
+export async function openUnity(
 	projectPath: string,
 	unityVersion: string | null,
 	unityRevision?: string | null,
-) => void;
+) {
+	if (unityVersion == null) {
+		toastError(i18next.t("projects:toast:invalid project unity version"));
+		return;
+	}
+	let [unityVersions, selectedPath] = await Promise.all([
+		commands.environmentUnityVersions(),
+		commands.projectGetUnityPath(projectPath),
+	]);
+	if (unityVersions == null) {
+		toastError(
+			i18next.t("projects:toast:match version unity not found", {
+				unity: unityVersion,
+			}),
+		);
+		return;
+	}
 
-export type Result = {
-	dialog: React.ReactNode;
-	openUnity: OpenUnityFunction;
-};
+	let foundVersions = unityVersions.unity_paths.filter(
+		([_p, v, _i]) => v === unityVersion,
+	);
 
-type StateInternal =
-	| {
-			state: "normal";
-	  }
-	| {
-			state: "ask-for-china-version";
-			projectUnityVersion: string;
-			chinaUnityVersion: string;
-			projectPath: string;
-	  }
-	| {
-			state: "ask-for-international-version";
-			projectUnityVersion: string;
-			internationalUnityVersion: string;
-			projectPath: string;
-	  }
-	| {
-			state: "suggest-unity-hub";
-			unityVersion: string;
-			unityHubLink: string;
-	  };
+	if (foundVersions.length === 0) {
+		if (await commands.environmentIsLoadingFromUnityHubInProgress()) {
+			toastNormal(tc("projects:toast:loading unity from unity hub"));
+			await commands.environmentWaitForUnityHubUpdate();
+			unityVersions = await commands.environmentUnityVersions();
+			foundVersions = unityVersions.unity_paths.filter(
+				([_p, v, _i]) => v === unityVersion,
+			);
+		}
+	}
 
-export function useOpenUnity(): Result {
-	const [installStatus, setInstallStatus] = React.useState<StateInternal>({
-		state: "normal",
-	});
-
-	const openUnity = async (
-		projectPath: string,
-		unityVersion: string | null,
-		unityRevision?: string | null,
-		freezeVersion?: boolean,
-	) => {
-		if (unityVersion == null) {
-			toastError(i18next.t("projects:toast:invalid project unity version"));
+	if (foundVersions.length === 0) {
+		// if requested version is not china version and china version is available, suggest to use china version
+		// if requested version is china version and international version is available, suggest to use international version
+		const askForChina = parseUnityVersion(unityVersion)?.chinaIncrement == null;
+		const altVersion = askForChina
+			? `${unityVersion}c1`
+			: unityVersion.replace(/c\d+$/, "");
+		const altInstalls = unityVersions.unity_paths.filter(
+			([, v]) => v === altVersion,
+		);
+		if (altInstalls.length !== 0) {
+			if (
+				await openSingleDialog(
+					askForChina ? AskForChinaRevision : AskForInternationalRevision,
+					{
+						expectedVersion: unityVersion,
+						alternativeVersion: altVersion,
+					},
+				)
+			) {
+				await openUnityWith(altInstalls, selectedPath, projectPath);
+			}
 			return;
 		}
-		let [unityVersions, selectedPath] = await Promise.all([
-			commands.environmentUnityVersions(),
-			commands.projectGetUnityPath(projectPath),
-		]);
-		if (unityVersions == null) {
+		// If there is revision information, we can ask unity hub for install
+		if (unityRevision) {
+			await openSingleDialog(UnityInstallWindow, {
+				expectedVersion: unityVersion,
+				installWithUnityHubLink: `unityhub://${unityVersion}/${unityRevision}`,
+			});
+		} else {
 			toastError(
-				i18next.t("projects:toast:match version unity not found", {
+				tc("projects:toast:match version unity not found", {
 					unity: unityVersion,
 				}),
 			);
-			return;
 		}
-
-		let foundVersions = unityVersions.unity_paths.filter(
-			([_p, v, _i]) => v === unityVersion,
-		);
-
-		if (foundVersions.length === 0) {
-			if (await commands.environmentIsLoadingFromUnityHubInProgress()) {
-				toastNormal(tc("projects:toast:loading unity from unity hub"));
-				await commands.environmentWaitForUnityHubUpdate();
-				unityVersions = await commands.environmentUnityVersions();
-				foundVersions = unityVersions.unity_paths.filter(
-					([_p, v, _i]) => v === unityVersion,
-				);
-			}
-		}
-
-		switch (foundVersions.length) {
-			case 0: {
-				if (!freezeVersion) {
-					// if requested version is not china version and china version is available, suggest to use china version
-					// if requested version is china version and international version is available, suggest to use international version
-					if (parseUnityVersion(unityVersion)?.chinaIncrement == null) {
-						// unityVersion is international version, find china version
-						const chinaVersion = `${unityVersion}c1`;
-						const hasChinaVersion = unityVersions.unity_paths.some(
-							([_p, v, _i]) => v === chinaVersion,
-						);
-						if (hasChinaVersion) {
-							setInstallStatus({
-								state: "ask-for-china-version",
-								projectUnityVersion: unityVersion,
-								chinaUnityVersion: chinaVersion,
-								projectPath,
-							});
-							return;
-						}
-					} else {
-						// unityVersion is china version, find international version
-						const internationalVersion = unityVersion.replace(/c\d+$/, "");
-						const hasInternationalRevision = unityVersions.unity_paths.some(
-							([_p, v, _i]) => v === internationalVersion,
-						);
-						if (hasInternationalRevision) {
-							setInstallStatus({
-								state: "ask-for-international-version",
-								projectUnityVersion: unityVersion,
-								internationalUnityVersion: internationalVersion,
-								projectPath,
-							});
-							return;
-						}
-					}
-				}
-				if (unityRevision) {
-					setInstallStatus({
-						state: "suggest-unity-hub",
-						unityVersion: unityVersion,
-						unityHubLink: `unityhub://${unityVersion}/${unityRevision}`,
-					});
-				} else {
-					toastError(
-						i18next.t("projects:toast:match version unity not found", {
-							unity: unityVersion,
-						}),
-					);
-				}
-				return;
-			}
-			case 1:
-				{
-					if (selectedPath) {
-						if (foundVersions[0][0] !== selectedPath) {
-							// if only unity is not
-							void commands.projectSetUnityPath(projectPath, null);
-						}
-					}
-					const result = await commands.projectOpenUnity(
-						projectPath,
-						foundVersions[0][0],
-					);
-					if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
-					else toastError(i18next.t("projects:toast:unity already running"));
-				}
-				return;
-			default: {
-				if (selectedPath) {
-					const found = foundVersions.find(([p, _v, _i]) => p === selectedPath);
-					if (found) {
-						const result = await commands.projectOpenUnity(
-							projectPath,
-							selectedPath,
-						);
-						if (result)
-							toastNormal(i18next.t("projects:toast:opening unity..."));
-						else toastError(i18next.t("projects:toast:unity already running"));
-						return;
-					}
-				}
-				const selected = await openSingleDialog(UnitySelectorDialog, {
-					unityVersions: foundVersions,
-					supportKeepUsing: true,
-				});
-				if (selected == null) return;
-				if (selected.keepUsingThisVersion) {
-					void commands.projectSetUnityPath(projectPath, selected.unityPath);
-				}
-				const result = await commands.projectOpenUnity(
-					projectPath,
-					selected.unityPath,
-				);
-				if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
-				else toastError("Unity already running");
-			}
-		}
-	};
-
-	let thisDialog: React.JSX.Element | null;
-	switch (installStatus.state) {
-		case "suggest-unity-hub":
-			thisDialog = (
-				<UnityInstallWindow
-					expectedVersion={installStatus.unityVersion}
-					installWithUnityHubLink={installStatus.unityHubLink}
-					close={() => setInstallStatus({ state: "normal" })}
-				/>
-			);
-			break;
-		case "ask-for-china-version":
-			thisDialog = (
-				<AskForChinaRevision
-					expectedVersion={installStatus.projectUnityVersion}
-					chinaUnityVersion={installStatus.chinaUnityVersion}
-					useChinaRevision={() => {
-						setInstallStatus({ state: "normal" });
-						void openUnity(
-							installStatus.projectPath,
-							installStatus.chinaUnityVersion,
-							undefined,
-							true,
-						);
-					}}
-					close={() => setInstallStatus({ state: "normal" })}
-				/>
-			);
-			break;
-		case "ask-for-international-version":
-			thisDialog = (
-				<AskForInternationalRevision
-					expectedVersion={installStatus.projectUnityVersion}
-					internationalUnityVersion={installStatus.internationalUnityVersion}
-					useInternationalRevision={() => {
-						setInstallStatus({ state: "normal" });
-						void openUnity(
-							installStatus.projectPath,
-							installStatus.internationalUnityVersion,
-							undefined,
-							true,
-						);
-					}}
-					close={() => setInstallStatus({ state: "normal" })}
-				/>
-			);
-			break;
-		case "normal":
-			thisDialog = null;
-			break;
-		default:
-			assertNever(installStatus);
+		return;
 	}
 
-	const dialog = <>{thisDialog}</>;
+	await openUnityWith(foundVersions, selectedPath, projectPath);
+}
 
-	return { dialog, openUnity };
+async function openUnityWith(
+	foundVersions: TauriUnityVersions["unity_paths"],
+	selectedPath: string | null,
+	projectPath: string,
+) {
+	if (foundVersions.length === 1) {
+		if (selectedPath) {
+			if (foundVersions[0][0] !== selectedPath) {
+				// if only unity is not
+				void commands.projectSetUnityPath(projectPath, null);
+			}
+		}
+		const result = await commands.projectOpenUnity(
+			projectPath,
+			foundVersions[0][0],
+		);
+		if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
+		else toastError(i18next.t("projects:toast:unity already running"));
+	} else {
+		if (selectedPath) {
+			const found = foundVersions.find(([p, _v, _i]) => p === selectedPath);
+			if (found) {
+				const result = await commands.projectOpenUnity(
+					projectPath,
+					selectedPath,
+				);
+				if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
+				else toastError(i18next.t("projects:toast:unity already running"));
+				return;
+			}
+		}
+		const selected = await openSingleDialog(UnitySelectorDialog, {
+			unityVersions: foundVersions,
+			supportKeepUsing: true,
+		});
+		if (selected == null) return;
+		if (selected.keepUsingThisVersion) {
+			void commands.projectSetUnityPath(projectPath, selected.unityPath);
+		}
+		const result = await commands.projectOpenUnity(
+			projectPath,
+			selected.unityPath,
+		);
+		if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
+		else toastError("Unity already running");
+	}
 }
 
 function UnityInstallWindow({
 	expectedVersion,
 	installWithUnityHubLink,
-	close,
+	dialog,
 }: {
 	expectedVersion: string;
 	installWithUnityHubLink: string;
-	close: () => void;
+	dialog: DialogContext<void>;
 }) {
 	const openUnityHub = async () => {
 		await commands.utilOpenUrl(installWithUnityHubLink);
@@ -276,7 +167,7 @@ function UnityInstallWindow({
 				<Button onClick={openUnityHub}>
 					{tc("projects:dialog:open unity hub")}
 				</Button>
-				<Button onClick={close} className="mr-1">
+				<Button onClick={() => dialog.close()} className="mr-1">
 					{tc("general:button:close")}
 				</Button>
 			</DialogFooter>
@@ -286,14 +177,12 @@ function UnityInstallWindow({
 
 function AskForChinaRevision({
 	expectedVersion,
-	chinaUnityVersion,
-	useChinaRevision,
-	close,
+	alternativeVersion,
+	dialog,
 }: {
 	expectedVersion: string;
-	chinaUnityVersion: string;
-	useChinaRevision: () => void;
-	close: () => void;
+	alternativeVersion: string;
+	dialog: DialogContext<boolean>;
 }) {
 	return (
 		<DialogOpen>
@@ -306,16 +195,16 @@ function AskForChinaRevision({
 						"projects:dialog:unity version of the project not found but china found",
 						{
 							expectedUnity: expectedVersion,
-							chinaUnity: chinaUnityVersion,
+							chinaUnity: alternativeVersion,
 						},
 					)}
 				</p>
 			</DialogDescription>
 			<DialogFooter className={"gap-2"}>
-				<Button onClick={useChinaRevision}>
+				<Button onClick={() => dialog.close(true)}>
 					{tc("projects:dialog:use china version")}
 				</Button>
-				<Button onClick={close} className="mr-1">
+				<Button onClick={() => dialog.close(false)} className="mr-1">
 					{tc("general:button:close")}
 				</Button>
 			</DialogFooter>
@@ -325,14 +214,12 @@ function AskForChinaRevision({
 
 function AskForInternationalRevision({
 	expectedVersion,
-	internationalUnityVersion,
-	useInternationalRevision,
-	close,
+	alternativeVersion,
+	dialog,
 }: {
 	expectedVersion: string;
-	internationalUnityVersion: string;
-	useInternationalRevision: () => void;
-	close: () => void;
+	alternativeVersion: string;
+	dialog: DialogContext<boolean>;
 }) {
 	return (
 		<DialogOpen>
@@ -345,16 +232,16 @@ function AskForInternationalRevision({
 						"projects:dialog:unity version of the project not found but international found",
 						{
 							expectedUnity: expectedVersion,
-							internationalUnity: internationalUnityVersion,
+							internationalUnity: alternativeVersion,
 						},
 					)}
 				</p>
 			</DialogDescription>
 			<DialogFooter className={"gap-2"}>
-				<Button onClick={useInternationalRevision}>
+				<Button onClick={() => dialog.close(true)}>
 					{tc("projects:dialog:use international version")}
 				</Button>
-				<Button onClick={close} className="mr-1">
+				<Button onClick={() => dialog.close(false)} className="mr-1">
 					{tc("general:button:close")}
 				</Button>
 			</DialogFooter>

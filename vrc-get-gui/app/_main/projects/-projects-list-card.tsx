@@ -8,7 +8,6 @@ import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
-import type { OpenUnityFunction, Result } from "@/lib/use-open-unity";
 import { compareUnityVersionString } from "@/lib/version";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Star } from "lucide-react";
@@ -29,13 +28,11 @@ function isSorting(s: string | unknown): s is Sorting {
 export default function ProjectsListCard({
 	result,
 	search,
-	openUnity,
 	loading,
 }: {
 	// biome-ignore lint/suspicious/noExplicitAny: none
 	result: any;
 	search: string;
-	openUnity: Result;
 	loading: boolean;
 }) {
 	return (
@@ -53,7 +50,6 @@ export default function ProjectsListCard({
 					projects={result.data}
 					search={search}
 					loading={loading}
-					openUnity={openUnity.openUnity}
 					refresh={() => result.refetch()}
 				/>
 			)}
@@ -107,10 +103,8 @@ function ProjectsTableCard({
 	search,
 	loading,
 	refresh,
-	openUnity,
 }: {
 	projects: TauriProject[];
-	openUnity: OpenUnityFunction;
 	search?: string;
 	loading?: boolean;
 	refresh?: () => void;
@@ -280,7 +274,6 @@ function ProjectsTableCard({
 						project={project}
 						loading={loading}
 						refresh={refresh}
-						openUnity={openUnity}
 					/>
 				))}
 			</tbody>
