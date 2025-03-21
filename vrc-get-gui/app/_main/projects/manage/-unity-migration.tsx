@@ -6,6 +6,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { assertNever } from "@/lib/assert-never";
 import type {
 	TauriCopyProjectForMigrationProgress,
@@ -15,9 +16,9 @@ import type {
 import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
+import { openSingleDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
 import { useNavigate } from "@tanstack/react-router";
 import React, { Fragment, useCallback } from "react";
@@ -452,7 +453,6 @@ function useMigrationInternal<Data>({
 	dialogHeader: (data: Data) => React.ReactNode;
 }): Result<Data> {
 	const navigate = useNavigate();
-	const unitySelector = useUnitySelectorDialog();
 
 	const [installStatus, setInstallStatus] = React.useState<StateInternal<Data>>(
 		{ state: "normal" },
@@ -483,7 +483,9 @@ function useMigrationInternal<Data>({
 					void continueChangeUnityVersion(backupType, unityFound[0][0], data);
 					break;
 				default: {
-					const selected = await unitySelector.select(unityFound);
+					const selected = await openSingleDialog(UnitySelectorDialog, {
+						unityVersions: unityFound,
+					});
 					if (selected == null) setInstallStatus({ state: "normal" });
 					else
 						void continueChangeUnityVersion(
@@ -682,7 +684,6 @@ function useMigrationInternal<Data>({
 	return {
 		dialog: (
 			<>
-				{unitySelector.dialog}
 				{dialogBodyForState == null ? null : (
 					<DialogOpen className={"whitespace-normal leading-relaxed"}>
 						<DialogTitle>{dialogHeaderForState}</DialogTitle>

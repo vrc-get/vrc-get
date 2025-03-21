@@ -5,11 +5,12 @@ import {
 	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
+import { openSingleDialog } from "@/lib/dialog";
 import i18next, { tc } from "@/lib/i18n";
 import { toastError, toastNormal } from "@/lib/toast";
-import { useUnitySelectorDialog } from "@/lib/use-unity-selector-dialog";
 import { parseUnityVersion } from "@/lib/version";
 import React from "react";
 
@@ -47,7 +48,6 @@ type StateInternal =
 	  };
 
 export function useOpenUnity(): Result {
-	const unitySelector = useUnitySelectorDialog();
 	const [installStatus, setInstallStatus] = React.useState<StateInternal>({
 		state: "normal",
 	});
@@ -172,7 +172,10 @@ export function useOpenUnity(): Result {
 						return;
 					}
 				}
-				const selected = await unitySelector.select(foundVersions, true);
+				const selected = await openSingleDialog(UnitySelectorDialog, {
+					unityVersions: foundVersions,
+					supportKeepUsing: true,
+				});
 				if (selected == null) return;
 				if (selected.keepUsingThisVersion) {
 					void commands.projectSetUnityPath(projectPath, selected.unityPath);
@@ -241,12 +244,7 @@ export function useOpenUnity(): Result {
 			assertNever(installStatus);
 	}
 
-	const dialog = (
-		<>
-			{unitySelector.dialog}
-			{thisDialog}
-		</>
-	);
+	const dialog = <>{thisDialog}</>;
 
 	return { dialog, openUnity };
 }
