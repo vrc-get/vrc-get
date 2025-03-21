@@ -5,6 +5,7 @@ import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { CheckForUpdateResponse, LogEntry } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { DialogRoot } from "@/lib/dialog";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { toastError, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
@@ -110,6 +111,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 				theme="light"
 				className={"whitespace-normal"}
 			/>
+			<DialogRoot />
 			<QueryClientProvider client={queryClient}>
 				<TooltipProvider>
 					{updateState && (
