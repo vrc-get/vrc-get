@@ -1,3 +1,4 @@
+import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -7,7 +8,6 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { assertNever } from "@/lib/assert-never";
-import { BackupDialog } from "@/lib/backup-project";
 import type {
 	TauriCallUnityForMigrationResult,
 	TauriCopyProjectForMigrationProgress,
@@ -116,7 +116,7 @@ export async function unityVersionChange({
 				break;
 			}
 			case "backupArchive": {
-				const result = await dialog.ask(BackupDialog, {
+				const result = await dialog.ask(BackupProjectDialog, {
 					projectPath,
 					header,
 				});

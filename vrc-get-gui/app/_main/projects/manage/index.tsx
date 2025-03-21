@@ -1,5 +1,6 @@
 "use client";
 
+import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,7 +34,6 @@ import {
 	UnityArgumentsSettings,
 	useUnityArgumentsSettings,
 } from "@/components/unity-arguments-settings";
-import { BackupDialog } from "@/lib/backup-project";
 import type { TauriProjectDetails, TauriUnityVersions } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { VRCSDK_PACKAGES, VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
@@ -691,7 +691,7 @@ function DropdownMenuContentBody({
 
 	const onBackup = async () => {
 		try {
-			await openSingleDialog(BackupDialog, {
+			await openSingleDialog(BackupProjectDialog, {
 				projectPath,
 			});
 		} catch (e) {

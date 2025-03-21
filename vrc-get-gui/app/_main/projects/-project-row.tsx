@@ -1,3 +1,4 @@
+import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,7 +21,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
-import { BackupDialog } from "@/lib/backup-project";
 import type {
 	TauriCopyProjectForMigrationProgress,
 	TauriProject,
@@ -219,7 +219,7 @@ export function ProjectRow({
 						<ButtonDisabledIfRemoved
 							onClick={async () => {
 								try {
-									await openSingleDialog(BackupDialog, {
+									await openSingleDialog(BackupProjectDialog, {
 										projectPath: project.path,
 									});
 								} catch (e) {
@@ -395,7 +395,7 @@ function MigrateButton({
 					break;
 				}
 				case "backupArchive": {
-					const result = await openSingleDialog(BackupDialog, {
+					const result = await openSingleDialog(BackupProjectDialog, {
 						projectPath: project.path,
 					});
 					if (result === "cancelled") {

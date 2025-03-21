@@ -16,7 +16,7 @@ import type React from "react";
 import { useRef } from "react";
 import { useEffect, useState } from "react";
 
-export function BackupDialog({
+export function BackupProjectDialog({
 	projectPath,
 	dialog,
 	header,
