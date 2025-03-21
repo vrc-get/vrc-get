@@ -31,7 +31,7 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import { openSingleDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
-import { useRemoveProjectModal } from "@/lib/remove-project";
+import { RemoveProjectDialog } from "@/lib/remove-project";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -82,8 +82,6 @@ export function ProjectRow({
 	loading?: boolean;
 	refresh?: () => void;
 }) {
-	const removeProjectModal = useRemoveProjectModal();
-
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
@@ -251,7 +249,9 @@ export function ProjectRow({
 									{tc("projects:menuitem:open directory")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={() => removeProjectModal.startRemove(project)}
+									onClick={() =>
+										openSingleDialog(RemoveProjectDialog, { project })
+									}
 									disabled={loading}
 									className={"text-destructive focus:text-destructive"}
 								>
@@ -260,7 +260,6 @@ export function ProjectRow({
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
-					{removeProjectModal.dialog}
 				</td>
 			</tr>
 		</ProjectRowContext.Provider>

@@ -41,7 +41,7 @@ import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
 import { nameFromPath } from "@/lib/os";
-import { useRemoveProjectModal } from "@/lib/remove-project";
+import { RemoveProjectDialog } from "@/lib/remove-project";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
 import {
@@ -81,10 +81,6 @@ function Page() {
 function PageBody() {
 	const { projectPath } = Route.useSearch();
 	const router = useRouter();
-
-	const projectRemoveModal = useRemoveProjectModal({
-		onRemoved: () => router.history.back(),
-	});
 
 	const projectName = nameFromPath(projectPath);
 
@@ -190,12 +186,14 @@ function PageBody() {
 	}, [repositoriesInfo]);
 
 	const onRemoveProject = useCallback(() => {
-		projectRemoveModal.startRemove({
-			path: projectPath,
-			name: projectName,
-			is_exists: true,
+		void openSingleDialog(RemoveProjectDialog, {
+			project: {
+				path: projectPath,
+				name: projectName,
+				is_exists: true,
+			},
 		});
-	}, [projectName, projectPath, projectRemoveModal]);
+	}, [projectName, projectPath]);
 
 	const onResolveRequest = useCallback(() => {
 		packageChangeDialog.createChanges(
@@ -252,7 +250,6 @@ function PageBody() {
 					/>
 				</main>
 				{packageChangeDialog.dialog}
-				{projectRemoveModal.dialog}
 			</VStack>
 		</PageContextProvider>
 	);

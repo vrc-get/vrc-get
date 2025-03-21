@@ -2,16 +2,15 @@ import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
 	DialogFooter,
-	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { assertNever } from "@/lib/assert-never";
 import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import type { DialogContext } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
-import { toastSuccess } from "@/lib/toast";
+import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { useLocation, useRouter } from "@tanstack/react-router";
 
 // string if remove project by path
 type Project =
@@ -22,27 +21,16 @@ type Project =
 			is_exists: boolean;
 	  };
 
-type State =
-	| {
-			type: "idle";
-	  }
-	| {
-			type: "confirm";
-			project: Project;
-	  };
-
-type Params = {
-	onRemoving?: () => void;
-	onRemoved?: () => void;
-};
-
-type Result = {
-	startRemove: (project: Project) => void;
-	dialog: ReactNode;
-};
-
-export function useRemoveProjectModal({ onRemoved }: Params = {}): Result {
+export function RemoveProjectDialog({
+	project,
+	dialog,
+}: {
+	project: Project;
+	dialog: DialogContext<boolean>;
+}) {
 	const queryClient = useQueryClient();
+	const router = useRouter();
+	const location = useLocation();
 
 	const removeProject = useMutation({
 		mutationFn: async ({
@@ -60,93 +48,64 @@ export function useRemoveProjectModal({ onRemoved }: Params = {}): Result {
 			}
 		},
 		onSuccess: () => {
+			dialog.close(true);
 			toastSuccess(tt("projects:toast:project removed"));
 		},
+		onError: (e) => {
+			console.error(e);
+			dialog.close(false);
+			toastThrownError(e);
+		},
 		onSettled: async () => {
-			setState({ type: "idle" });
 			await queryClient.invalidateQueries({
 				queryKey: ["environmentProjects"],
 			});
-			onRemoved?.();
+			if (
+				location.pathname === "/projects/manage" &&
+				location.search.projectPath === project.path
+			) {
+				router.history.back();
+			}
 		},
 	});
 
-	const [state, setState] = useState<State>({ type: "idle" });
-
-	const cancel = () => setState({ type: "idle" });
-	const startRemove = (project: Project) =>
-		setState({ type: "confirm", project });
-
-	let dialog: ReactNode = null;
-
-	switch (state.type) {
-		case "idle":
-			break;
-		case "confirm": {
-			const project = state.project;
-
-			if (removeProject.isPending) {
-				dialog = (
-					<DialogOpen className={"whitespace-normal"}>
-						<DialogTitle>{tc("projects:remove project")}</DialogTitle>
-						<DialogDescription>
-							{tc("projects:dialog:removing...")}
-						</DialogDescription>
-						<DialogFooter>
-							<Button className="mr-1" disabled>
-								{tc("general:button:cancel")}
-							</Button>
-							<Button className="mr-1 px-2" disabled>
-								{tc("projects:button:remove from list")}
-							</Button>
-							<Button variant={"destructive"} className="px-2" disabled>
-								{tc("projects:button:remove directory")}
-							</Button>
-						</DialogFooter>
-					</DialogOpen>
-				);
-			} else {
-				dialog = (
-					<DialogOpen className={"whitespace-normal"}>
-						<DialogTitle>{tc("projects:remove project")}</DialogTitle>
-						<DialogDescription>
-							<p className={"font-normal"}>
-								{tc("projects:dialog:warn removing project", {
-									name: project.name,
-								})}
-							</p>
-						</DialogDescription>
-						<DialogFooter>
-							<Button onClick={cancel} className="mr-1">
-								{tc("general:button:cancel")}
-							</Button>
-							<Button
-								onClick={() =>
-									removeProject.mutate({ project, removeDir: false })
-								}
-								className="mr-1 px-2"
-							>
-								{tc("projects:button:remove from list")}
-							</Button>
-							<Button
-								onClick={() =>
-									removeProject.mutate({ project, removeDir: true })
-								}
-								variant={"destructive"}
-								className="px-2"
-								disabled={!project.is_exists}
-							>
-								{tc("projects:button:remove directory")}
-							</Button>
-						</DialogFooter>
-					</DialogOpen>
-				);
-			}
-			break;
-		}
-		default:
-			assertNever(state);
-	}
-
-	return { startRemove, dialog };
+	return (
+		<div className={"contents whitespace-normal"}>
+			<DialogTitle>{tc("projects:remove project")}</DialogTitle>
+			<DialogDescription>
+				{removeProject.isPending ? (
+					<p className={"font-normal"}>{tc("projects:dialog:removing...")}</p>
+				) : (
+					<p className={"font-normal"}>
+						{tc("projects:dialog:warn removing project", {
+							name: project.name,
+						})}
+					</p>
+				)}
+			</DialogDescription>
+			<DialogFooter className={"flex gap-2"}>
+				<Button
+					onClick={() => dialog.close(false)}
+					disabled={removeProject.isPending}
+				>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button
+					onClick={() => removeProject.mutate({ project, removeDir: false })}
+					className="px-2"
+					disabled={removeProject.isPending}
+				>
+					{tc("projects:button:remove from list")}
+				</Button>
+				<Button
+					onClick={() => removeProject.mutate({ project, removeDir: true })}
+					variant={"destructive"}
+					className="px-2"
+					disabled={!project.is_exists || removeProject.isPending}
+				>
+					{tc("projects:button:remove directory")}
+				</Button>
+			</DialogFooter>
+		</div>
+	);
 }

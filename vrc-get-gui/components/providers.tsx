@@ -110,7 +110,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
 				theme="light"
 				className={"whitespace-normal"}
 			/>
-			<DialogRoot />
 			<QueryClientProvider client={queryClient}>
 				<TooltipProvider>
 					{updateState && (
@@ -122,6 +121,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 					<div lang={i18n.language} className="contents">
 						<Suspense fallback={<Loading />}>{children}</Suspense>
 					</div>
+					<DialogRoot />
 				</TooltipProvider>
 			</QueryClientProvider>
 		</>
