@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
 	DialogFooter,
-	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
@@ -154,7 +153,7 @@ function UnityInstallWindow({
 	};
 
 	return (
-		<DialogOpen>
+		<>
 			<DialogTitle>{tc("projects:dialog:unity not found")}</DialogTitle>
 			<DialogDescription>
 				<p>
@@ -171,7 +170,7 @@ function UnityInstallWindow({
 					{tc("general:button:close")}
 				</Button>
 			</DialogFooter>
-		</DialogOpen>
+		</>
 	);
 }
 
@@ -185,7 +184,7 @@ function AskForChinaRevision({
 	dialog: DialogContext<boolean>;
 }) {
 	return (
-		<DialogOpen>
+		<>
 			<DialogTitle>
 				{tc("projects:dialog:unity not found but china found")}
 			</DialogTitle>
@@ -208,7 +207,7 @@ function AskForChinaRevision({
 					{tc("general:button:close")}
 				</Button>
 			</DialogFooter>
-		</DialogOpen>
+		</>
 	);
 }
 
@@ -222,7 +221,7 @@ function AskForInternationalRevision({
 	dialog: DialogContext<boolean>;
 }) {
 	return (
-		<DialogOpen>
+		<>
 			<DialogTitle>
 				{tc("projects:dialog:unity not found but international found")}
 			</DialogTitle>
@@ -245,6 +244,6 @@ function AskForInternationalRevision({
 					{tc("general:button:close")}
 				</Button>
 			</DialogFooter>
-		</DialogOpen>
+		</>
 	);
 }

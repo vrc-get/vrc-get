@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-	DialogContent,
 	DialogDescription,
 	DialogFooter,
 	DialogTitle,
@@ -36,7 +35,7 @@ export function UnitySelectorDialog({
 	const [keepUsingThisVersion, setKeepUsingThisVersion] = useState(false);
 
 	return (
-		<DialogContent className={"whitespace-normal"}>
+		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:dialog:select unity header")}</DialogTitle>
 			<DialogDescription>
 				<p>{tc("projects:dialog:multiple unity found")}</p>
@@ -85,6 +84,6 @@ export function UnitySelectorDialog({
 					{tc("general:button:continue")}
 				</Button>
 			</DialogFooter>
-		</DialogContent>
+		</div>
 	);
 }

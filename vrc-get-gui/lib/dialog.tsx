@@ -1,4 +1,4 @@
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import React, {
 	useEffect,
 	useRef,
@@ -185,7 +185,7 @@ export function DialogRoot() {
 	return state.map(({ closing, key, element }) => {
 		return (
 			<Dialog open={!closing} key={key}>
-				{element}
+				<DialogContent>{element}</DialogContent>
 			</Dialog>
 		);
 	});
