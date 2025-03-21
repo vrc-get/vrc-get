@@ -55,7 +55,7 @@ import { Suspense, useCallback, useMemo, useState } from "react";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
-import { useUnityVersionChange } from "./-unity-migration";
+import { unityVersionChange } from "./-unity-migration";
 import { usePackageChangeDialog } from "./-use-package-change";
 
 interface SearchParams {
@@ -164,11 +164,6 @@ function PageBody() {
 		existingPackages: detailsResult.data?.installed_packages,
 	});
 
-	const unityChangeVersion = useUnityVersionChange({
-		projectPath,
-		refresh: () => detailsResult.refetch(),
-	});
-
 	const requestChangeUnityVersion = (
 		version: string,
 		mayUseChinaVariant?: boolean,
@@ -180,12 +175,13 @@ function PageBody() {
 		const isVRCProject = detailsResult.data.installed_packages.some(([id, _]) =>
 			VRCSDK_PACKAGES.includes(id),
 		);
-		const currentUnityVersion = detailsResult.data.unity_str;
-		unityChangeVersion.request({
-			version: version,
+		void unityVersionChange({
+			projectPath,
+			version,
 			isVRCProject,
-			currentUnityVersion,
+			currentUnityVersion: detailsResult.data.unity_str,
 			mayUseChinaVariant,
+			navigate: router.navigate,
 		});
 	};
 
@@ -264,7 +260,6 @@ function PageBody() {
 					/>
 				</main>
 				{packageChangeDialog.dialog}
-				{unityChangeVersion.dialog}
 				{projectRemoveModal.dialog}
 				{backupProjectModal.dialog}
 			</VStack>
