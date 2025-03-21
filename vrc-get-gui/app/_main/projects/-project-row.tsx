@@ -1,4 +1,5 @@
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
+import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -31,7 +32,6 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import { openSingleDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
-import { RemoveProjectDialog } from "@/lib/remove-project";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useNavigate } from "@tanstack/react-router";
 import {

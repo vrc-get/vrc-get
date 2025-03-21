@@ -1,6 +1,7 @@
 "use client";
 
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
+import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,7 +42,6 @@ import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
 import { nameFromPath } from "@/lib/os";
-import { RemoveProjectDialog } from "@/lib/remove-project";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
 import {
