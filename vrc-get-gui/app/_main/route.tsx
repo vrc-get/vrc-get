@@ -54,7 +54,7 @@ function MainLayout() {
 
 	useEffect(() => {
 		onPathChange(pathName);
-	}, [pathName, onPathChange]);
+	}, [pathName]);
 
 	useEffect(() => {
 		setIsVisible(true);
