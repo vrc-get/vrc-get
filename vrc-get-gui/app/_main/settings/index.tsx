@@ -35,12 +35,12 @@ import {
 } from "@/components/unity-arguments-settings";
 import { assertNever } from "@/lib/assert-never";
 import type {
-	CheckForUpdateResponse,
 	OpenOptions,
 	TauriEnvironmentSettings,
 	UnityHubAccessMethod,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { openSingleDialog } from "@/lib/dialog";
 import globalInfo, { useGlobalInfo } from "@/lib/global-info";
 import { tc, tt } from "@/lib/i18n";
 import {
@@ -595,16 +595,15 @@ function AlcomCard({
 	useAlcomForVccProtocol: boolean;
 	refetch: () => void;
 }) {
-	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(
-		null,
-	);
 	const globalInfo = useGlobalInfo();
 
 	const checkForUpdate = async () => {
 		try {
 			const checkVersion = await commands.utilCheckForUpdate();
 			if (checkVersion) {
-				setUpdateState(checkVersion);
+				await openSingleDialog(CheckForUpdateMessage, {
+					response: checkVersion,
+				});
 			} else {
 				toastNormal(tc("check update:toast:no updates"));
 			}
@@ -655,12 +654,6 @@ function AlcomCard({
 
 	return (
 		<Card className={"shrink-0 p-4 flex flex-col gap-4"}>
-			{updateState && (
-				<CheckForUpdateMessage
-					response={updateState}
-					close={() => setUpdateState(null)}
-				/>
-			)}
 			<h2>ALCOM</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				{globalInfo.checkForUpdates && (
