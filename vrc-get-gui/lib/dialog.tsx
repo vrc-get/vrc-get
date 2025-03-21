@@ -17,9 +17,8 @@ type DialogProps<R> = {
 
 type DialogResult<P> = P extends DialogProps<infer R> ? R : unknown;
 
-interface DialogApi<State> {
-	readonly currentState: State;
-	progress(state: State): void;
+interface DialogApi {
+	replace(state: React.ReactNode): void;
 
 	ask<P extends DialogProps<never>>(
 		component: React.JSXElementConstructor<P>,
@@ -32,15 +31,12 @@ interface DialogApi<State> {
 	close(): void;
 }
 
-function showDialog<State>(
-	initialState: State,
-	progressComponent: (state: State) => React.ReactElement,
-): DialogApi<State> {
+export function showDialog(initialContent: React.ReactNode): DialogApi {
 	if (dialogGlobalState == null) throw new Error("No Root is mounted");
 	const globalState = dialogGlobalState;
 
 	const key = globalState.getKey();
-	const stateStore = new SyncStore(initialState);
+	const contentStore = new SyncStore(initialContent);
 	const askStore = new SyncStore<React.ReactElement | null>(null);
 
 	function closeImpl() {
@@ -75,12 +71,9 @@ function showDialog<State>(
 		return promise;
 	}
 
-	const result: DialogApi<State> = {
-		get currentState() {
-			return stateStore.value;
-		},
-		progress(newState) {
-			stateStore.value = newState;
+	const result: DialogApi = {
+		replace(newContent) {
+			contentStore.value = newContent;
 		},
 		ask<P extends DialogProps<never>>(
 			component: React.JSXElementConstructor<P>,
@@ -101,11 +94,7 @@ function showDialog<State>(
 
 	globalState.openDialog(
 		key,
-		<DialogBodyElement
-			askStore={askStore}
-			stateStore={stateStore}
-			progressComponent={progressComponent}
-		/>,
+		<DialogBodyElement askStore={askStore} contentStore={contentStore} />,
 	);
 
 	return result;
@@ -115,7 +104,7 @@ export function openSingleDialog<P extends DialogProps<never>>(
 	component: React.JSXElementConstructor<P>,
 	props: NoInfer<Omit<P, "dialog">>,
 ): Promise<DialogResult<P>> {
-	return showDialog(null, () => <></>).askClosing(component, props);
+	return showDialog(null).askClosing(component, props);
 }
 
 interface GlobalState {
@@ -126,19 +115,17 @@ interface GlobalState {
 
 let dialogGlobalState: GlobalState | null = null;
 
-function DialogBodyElement<State>({
+function DialogBodyElement({
 	askStore,
-	stateStore,
-	progressComponent,
+	contentStore,
 }: {
 	askStore: SyncStore<React.ReactElement | null>;
-	stateStore: SyncStore<State>;
-	progressComponent: (state: State) => React.ReactElement;
+	contentStore: SyncStore<React.ReactNode>;
 }) {
 	const ask = askStore.use();
-	const state = stateStore.use();
+	const content = contentStore.use();
 	if (ask != null) return ask;
-	else return progressComponent(state);
+	else return content;
 }
 
 const closeDelayMs = 2000;
