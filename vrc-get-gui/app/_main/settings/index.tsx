@@ -20,7 +20,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DialogDescription,
 	DialogFooter,
-	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -40,7 +39,7 @@ import type {
 	UnityHubAccessMethod,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
-import { openSingleDialog } from "@/lib/dialog";
+import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import globalInfo, { useGlobalInfo } from "@/lib/global-info";
 import { tc, tt } from "@/lib/i18n";
 import {
@@ -50,7 +49,7 @@ import {
 	toastThrownError,
 } from "@/lib/toast";
 import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
 import type React from "react";
@@ -159,7 +158,6 @@ function Settings({
 					unityHubAccessMethod={settings.unity_hub_access_method}
 				/>
 				<UnityLaunchArgumentsCard
-					refetch={refetch}
 					unityArgs={settings.default_unity_arguments}
 				/>
 				<Card className={"shrink-0 p-4"}>
@@ -343,19 +341,12 @@ function UnityInstallationsCard({
 }
 
 function UnityLaunchArgumentsCard({
-	refetch,
 	unityArgs,
 }: {
-	refetch: () => void;
 	unityArgs: string[] | null;
 }) {
-	const [open, setOpen] = useState(false);
-
 	const defaultUnityArgs = useGlobalInfo().defaultUnityArguments;
 	const realUnityArgs = unityArgs ?? defaultUnityArgs;
-
-	const close = () => setOpen(false);
-	const openDialog = () => setOpen(true);
 
 	return (
 		<Card className={"shrink-0 p-4"}>
@@ -363,7 +354,13 @@ function UnityLaunchArgumentsCard({
 				<div className={"grow flex items-center"}>
 					<h2>{tc("settings:default unity arguments")}</h2>
 				</div>
-				<Button onClick={openDialog} size={"sm"} className={"m-1"}>
+				<Button
+					onClick={() =>
+						openSingleDialog(LaunchArgumentsEditDialogBody, { unityArgs })
+					}
+					size={"sm"}
+					className={"m-1"}
+				>
 					{tc("general:button:edit")}
 				</Button>
 			</div>
@@ -375,28 +372,18 @@ function UnityLaunchArgumentsCard({
 					<Input disabled key={i + v} value={v} className={"w-full"} />
 				))}
 			</ol>
-			{open && (
-				<DialogOpen>
-					<LaunchArgumentsEditDialogBody
-						unityArgs={unityArgs}
-						refetch={refetch}
-						close={close}
-					/>
-				</DialogOpen>
-			)}
 		</Card>
 	);
 }
 
 function LaunchArgumentsEditDialogBody({
 	unityArgs,
-	refetch,
-	close,
+	dialog,
 }: {
 	unityArgs: string[] | null;
-	refetch: () => void;
-	close: () => void;
+	dialog: DialogContext<boolean>;
 }) {
+	const queryClient = useQueryClient();
 	const context = useUnityArgumentsSettings(
 		unityArgs,
 		globalInfo.defaultUnityArguments,
@@ -404,8 +391,10 @@ function LaunchArgumentsEditDialogBody({
 
 	const saveAndClose = async () => {
 		await commands.environmentSetDefaultUnityArguments(context.currentValue);
-		close();
-		refetch();
+		dialog.close(true);
+		await queryClient.invalidateQueries({
+			queryKey: ["environmentGetSettings"],
+		});
 	};
 
 	return (
@@ -418,7 +407,7 @@ function LaunchArgumentsEditDialogBody({
 				<UnityArgumentsSettings context={context} />
 			</DialogDescription>
 			<DialogFooter>
-				<Button onClick={close} variant={"destructive"}>
+				<Button onClick={() => dialog.close(false)} variant={"destructive"}>
 					{tc("general:button:cancel")}
 				</Button>
 				<Button onClick={saveAndClose} disabled={context.hasError}>
