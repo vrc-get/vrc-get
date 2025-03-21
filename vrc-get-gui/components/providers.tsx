@@ -7,16 +7,15 @@ import type { CheckForUpdateResponse, LogEntry } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { DialogRoot } from "@/lib/dialog";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
+import { queryClient } from "@/lib/query-client";
 import { toastError, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastContainer } from "react-toastify";
-
-const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
 	const navigate = useNavigate();
