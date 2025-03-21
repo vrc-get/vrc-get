@@ -20,15 +20,15 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
-import { useBackupProjectModal } from "@/lib/backup-project";
+import { BackupDialog } from "@/lib/backup-project";
 import type {
 	TauriCopyProjectForMigrationProgress,
-	TauriCreateBackupProgress,
 	TauriProject,
 	TauriProjectType,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
+import { openSingleDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
 import { useRemoveProjectModal } from "@/lib/remove-project";
@@ -83,7 +83,6 @@ export function ProjectRow({
 	refresh?: () => void;
 }) {
 	const removeProjectModal = useRemoveProjectModal();
-	const backupProjectModal = useBackupProjectModal();
 
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
@@ -218,7 +217,16 @@ export function ProjectRow({
 						</ButtonDisabledIfRemoved>
 						<ManageOrMigrateButton project={project} refresh={refresh} />
 						<ButtonDisabledIfRemoved
-							onClick={() => backupProjectModal.startBackup(project)}
+							onClick={async () => {
+								try {
+									await openSingleDialog(BackupDialog, {
+										projectPath: project.path,
+									});
+								} catch (e) {
+									console.error(e);
+									toastThrownError(e);
+								}
+							}}
 							variant={"success"}
 						>
 							{tc("projects:backup")}
@@ -253,7 +261,6 @@ export function ProjectRow({
 						</DropdownMenu>
 					</div>
 					{removeProjectModal.dialog}
-					{backupProjectModal.dialog}
 				</td>
 			</tr>
 		</ProjectRowContext.Provider>
@@ -339,10 +346,6 @@ function MigrateButton({
 				progress: TauriCopyProjectForMigrationProgress;
 		  }
 		| {
-				type: "migrateVpm:backingUpProject";
-				progress: TauriCreateBackupProgress;
-		  }
-		| {
 				type: "migrateVpm:updating";
 		  };
 
@@ -392,26 +395,12 @@ function MigrateButton({
 					break;
 				}
 				case "backupArchive": {
-					setDialogStatus({
-						type: "migrateVpm:backingUpProject",
-						progress: {
-							proceed: 0,
-							total: 1,
-							last_proceed: "Collecting files...",
-						},
+					const result = await openSingleDialog(BackupDialog, {
+						projectPath: project.path,
 					});
-					const [, promise] = callAsyncCommand(
-						commands.projectCreateBackup,
-						[project.path],
-						(progress) => {
-							setDialogStatus((prev) => {
-								if (prev.type !== "migrateVpm:backingUpProject") return prev;
-								if (prev.progress.proceed > progress.proceed) return prev;
-								return { ...prev, progress };
-							});
-						},
-					);
-					await promise;
+					if (result === "cancelled") {
+						return;
+					}
 					migrateProjectPath = project.path;
 					break;
 				}
@@ -465,26 +454,6 @@ function MigrateButton({
 					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
 					<DialogDescription>
 						<p>{tc("projects:pre-migrate copying...")}</p>
-						<p>
-							{tc("projects:dialog:proceed k/n", {
-								count: dialogStatus.progress.proceed,
-								total: dialogStatus.progress.total,
-							})}
-						</p>
-						<Progress
-							value={dialogStatus.progress.proceed}
-							max={dialogStatus.progress.total}
-						/>
-					</DialogDescription>
-				</DialogOpen>
-			);
-			break;
-		case "migrateVpm:backingUpProject":
-			dialogContent = (
-				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-					<DialogDescription>
-						<p>{tc("projects:dialog:creating backup...")}</p>
 						<p>
 							{tc("projects:dialog:proceed k/n", {
 								count: dialogStatus.progress.proceed,

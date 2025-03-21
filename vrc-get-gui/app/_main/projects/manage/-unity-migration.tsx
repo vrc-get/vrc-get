@@ -7,10 +7,10 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { assertNever } from "@/lib/assert-never";
+import { BackupDialog } from "@/lib/backup-project";
 import type {
 	TauriCallUnityForMigrationResult,
 	TauriCopyProjectForMigrationProgress,
-	TauriCreateBackupProgress,
 	TauriUnityVersions,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
@@ -116,10 +116,11 @@ export async function unityVersionChange({
 				break;
 			}
 			case "backupArchive": {
-				await dialog.ask(MigrationBackingUpDialog, {
+				const result = await dialog.ask(BackupDialog, {
 					projectPath,
 					header,
 				});
+				if (result === "cancelled") return;
 				migrateProjectPath = projectPath;
 				break;
 			}
@@ -380,54 +381,6 @@ function MigrationCopyingDialog({
 			<DialogTitle>{header}</DialogTitle>
 			<DialogDescription>
 				<p>{tc("projects:pre-migrate copying...")}</p>
-				<p>
-					{tc("projects:dialog:proceed k/n", {
-						count: progress.proceed,
-						total: progress.total,
-					})}
-				</p>
-				<Progress value={progress.proceed} max={progress.total} />
-				<p>{tc("projects:do not close")}</p>
-			</DialogDescription>
-		</>
-	);
-}
-
-function MigrationBackingUpDialog({
-	projectPath,
-	dialog,
-	header,
-}: {
-	projectPath: string;
-	dialog: DialogContext<null | "cancelled">;
-	header: React.ReactNode;
-}) {
-	const [progress, setProgress] = useState<TauriCreateBackupProgress>({
-		proceed: 0,
-		total: 1,
-		last_proceed: "Collecting files...",
-	});
-
-	useEffect(() => {
-		const [, promise] = callAsyncCommand(
-			commands.projectCreateBackup,
-			[projectPath],
-			(progress) => {
-				setProgress((prev) => {
-					if (prev.proceed > progress.proceed) return prev;
-					return progress;
-				});
-			},
-		);
-
-		promise.then(dialog.close, dialog.error);
-	}, [projectPath, dialog.close, dialog.error]);
-
-	return (
-		<>
-			<DialogTitle>{header}</DialogTitle>
-			<DialogDescription>
-				<p>{tc("projects:dialog:creating backup...")}</p>
 				<p>
 					{tc("projects:dialog:proceed k/n", {
 						count: progress.proceed,

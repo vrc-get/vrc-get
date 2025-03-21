@@ -33,10 +33,11 @@ import {
 	UnityArgumentsSettings,
 	useUnityArgumentsSettings,
 } from "@/components/unity-arguments-settings";
-import { useBackupProjectModal } from "@/lib/backup-project";
+import { BackupDialog } from "@/lib/backup-project";
 import type { TauriProjectDetails, TauriUnityVersions } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { VRCSDK_PACKAGES, VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
+import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
 import { nameFromPath } from "@/lib/os";
@@ -84,7 +85,6 @@ function PageBody() {
 	const projectRemoveModal = useRemoveProjectModal({
 		onRemoved: () => router.history.back(),
 	});
-	const backupProjectModal = useBackupProjectModal();
 
 	const projectName = nameFromPath(projectPath);
 
@@ -197,13 +197,6 @@ function PageBody() {
 		});
 	}, [projectName, projectPath, projectRemoveModal]);
 
-	const onBackupProject = useCallback(() => {
-		backupProjectModal.startBackup({
-			path: projectPath,
-			name: projectName,
-		});
-	}, [backupProjectModal, projectName, projectPath]);
-
 	const onResolveRequest = useCallback(() => {
 		packageChangeDialog.createChanges(
 			{ type: "resolve" },
@@ -235,7 +228,6 @@ function PageBody() {
 					unityVersionsResult={unityVersionsResult}
 					requestChangeUnityVersion={requestChangeUnityVersion}
 					onRemoveProject={onRemoveProject}
-					onBackupProject={onBackupProject}
 				/>
 				{detailsResult?.data?.should_resolve && (
 					<SuggestResolveProjectCard
@@ -261,7 +253,6 @@ function PageBody() {
 				</main>
 				{packageChangeDialog.dialog}
 				{projectRemoveModal.dialog}
-				{backupProjectModal.dialog}
 			</VStack>
 		</PageContextProvider>
 	);
@@ -545,7 +536,6 @@ function ProjectViewHeader({
 	unityVersionsResult,
 	requestChangeUnityVersion,
 	onRemoveProject,
-	onBackupProject,
 }: {
 	className?: string;
 	projectName: string;
@@ -558,7 +548,6 @@ function ProjectViewHeader({
 		mayUseChinaVariant?: boolean,
 	) => void;
 	onRemoveProject: () => void;
-	onBackupProject: () => void;
 }) {
 	return (
 		<HNavBar
@@ -626,7 +615,6 @@ function ProjectViewHeader({
 							unityVersion={detailsResult.data?.unity_str ?? null}
 							unityRevision={detailsResult.data?.unity_revision ?? null}
 							onRemove={onRemoveProject}
-							onBackup={onBackupProject}
 						/>
 					</div>
 				</>
@@ -678,12 +666,10 @@ function LaunchSettings({
 function DropdownMenuContentBody({
 	projectPath,
 	onRemove,
-	onBackup,
 	onChangeLaunchOptions,
 }: {
 	projectPath: string;
 	onRemove?: () => void;
-	onBackup?: () => void;
 	onChangeLaunchOptions?: () => void;
 }) {
 	const openProjectFolder = () =>
@@ -702,6 +688,17 @@ function DropdownMenuContentBody({
 		queryKey: ["projectGetUnityPath", projectPath],
 		refetchOnWindowFocus: false,
 	});
+
+	const onBackup = async () => {
+		try {
+			await openSingleDialog(BackupDialog, {
+				projectPath,
+			});
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
 
 	const unityPath = unityPathQuery.data;
 
@@ -736,13 +733,11 @@ function ProjectButton({
 	unityVersion,
 	unityRevision,
 	onRemove,
-	onBackup,
 }: {
 	projectPath: string;
 	unityVersion: string | null;
 	unityRevision: string | null;
 	onRemove?: () => void;
-	onBackup?: () => void;
 }) {
 	const [openLaunchOptions, setOpenLaunchOptions] = useState<
 		| false
@@ -784,7 +779,6 @@ function ProjectButton({
 					<DropdownMenuContentBody
 						projectPath={projectPath}
 						onRemove={onRemove}
-						onBackup={onBackup}
 						onChangeLaunchOptions={onChangeLaunchOptions}
 					/>
 				</DropdownMenuContent>
