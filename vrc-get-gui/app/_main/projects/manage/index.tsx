@@ -38,10 +38,10 @@ import type { TauriProjectDetails, TauriUnityVersions } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { VRCSDK_PACKAGES, VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { tc } from "@/lib/i18n";
+import { openUnity } from "@/lib/open-unity";
 import { nameFromPath } from "@/lib/os";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { openUnity } from "@/lib/use-open-unity";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
 import {
 	type UseQueryResult,

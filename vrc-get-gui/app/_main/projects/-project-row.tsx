@@ -30,9 +30,9 @@ import type {
 import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
+import { openUnity } from "@/lib/open-unity";
 import { useRemoveProjectModal } from "@/lib/remove-project";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { openUnity } from "@/lib/use-open-unity";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	CircleHelp,
