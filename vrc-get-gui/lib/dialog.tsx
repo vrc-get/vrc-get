@@ -8,6 +8,7 @@ import React, {
 
 export interface DialogContext<in R> {
 	close: (arg: R) => void;
+	error: (arg: unknown) => void;
 	closing: boolean;
 }
 
@@ -29,6 +30,7 @@ interface DialogApi {
 		props: NoInfer<Omit<P, "dialog">>,
 	): Promise<DialogResult<P>>;
 	close(): void;
+	[Symbol.dispose](): void;
 }
 
 export function showDialog(initialContent: React.ReactNode): DialogApi {
@@ -51,7 +53,11 @@ export function showDialog(initialContent: React.ReactNode): DialogApi {
 		if (askStore.value != null) throw new Error("another ask in progress");
 
 		let resolve: (result: DialogResult<P>) => void;
-		const promise = new Promise<DialogResult<P>>((r) => (resolve = r));
+		let reject: (error: unknown) => void;
+		const promise = new Promise<DialogResult<P>>((r, j) => {
+			resolve = r;
+			reject = j;
+		});
 
 		const dialog: DialogContext<DialogResult<P>> = {
 			closing: closing,
@@ -60,6 +66,12 @@ export function showDialog(initialContent: React.ReactNode): DialogApi {
 				if (closing) closeImpl();
 				else askStore.value = null;
 				resolve(r);
+			},
+			error(e) {
+				// if the dialog is NOT closing, we don't detach the
+				if (closing) closeImpl();
+				else askStore.value = null;
+				reject(e);
 			},
 		};
 
@@ -90,6 +102,7 @@ export function showDialog(initialContent: React.ReactNode): DialogApi {
 		close() {
 			closeImpl();
 		},
+		[Symbol.dispose]: closeImpl,
 	};
 
 	globalState.openDialog(
