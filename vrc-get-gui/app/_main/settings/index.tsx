@@ -1,5 +1,4 @@
 "use client";
-
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { ScrollPageContainer } from "@/components/ScrollPageContainer";
@@ -33,11 +32,7 @@ import {
 	useUnityArgumentsSettings,
 } from "@/components/unity-arguments-settings";
 import { assertNever } from "@/lib/assert-never";
-import type {
-	OpenOptions,
-	TauriEnvironmentSettings,
-	UnityHubAccessMethod,
-} from "@/lib/bindings";
+import type { OpenOptions, UnityHubAccessMethod } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import globalInfo, { useGlobalInfo } from "@/lib/global-info";
@@ -52,12 +47,12 @@ import { useEffectEvent } from "@/lib/use-effect-event";
 import {
 	queryOptions,
 	useMutation,
-	useQuery,
 	useQueryClient,
+	useSuspenseQuery,
 } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
-import type React from "react";
+import { Suspense } from "react";
 import { useTransition } from "react";
 import { useEffect } from "react";
 
@@ -71,27 +66,6 @@ const environmentGetSettings = queryOptions({
 });
 
 function Page() {
-	const result = useQuery(environmentGetSettings);
-
-	let body: React.ReactNode;
-	switch (result.status) {
-		case "error":
-			body = <Card className={"p-4"}>{tc("settings:error:load error")}</Card>;
-			break;
-		case "pending":
-			body = (
-				<Card className={"p-4"}>
-					<Loading loadingText={tc("general:loading...")} />
-				</Card>
-			);
-			break;
-		case "success":
-			body = <Settings settings={result.data} />;
-			break;
-		default:
-			assertNever(result);
-	}
-
 	return (
 		<VStack>
 			<HNavBar
@@ -102,16 +76,20 @@ function Page() {
 					</p>
 				}
 			/>
-			{body}
+			<Suspense
+				fallback={
+					<Card className={"p-4"}>
+						<Loading loadingText={tc("general:loading...")} />
+					</Card>
+				}
+			>
+				<Settings />
+			</Suspense>
 		</VStack>
 	);
 }
 
-function Settings({
-	settings,
-}: {
-	settings: TauriEnvironmentSettings;
-}) {
+function Settings() {
 	const [updatingUnityPaths, updateUnityPathsTransition] = useTransition();
 
 	const queryClient = useQueryClient();
@@ -131,6 +109,43 @@ function Settings({
 		});
 	});
 	useEffect(() => void waitForHubUpdate(), []);
+
+	return (
+		<ScrollPageContainer viewportClassName={"rounded-xl shadow-xl h-full"}>
+			<main className="flex flex-col gap-2 shrink grow">
+				<UnityHubPathCard updateUnityPaths={updateUnityPaths} />
+				<UnityInstallationsCard
+					updatingUnityPaths={updatingUnityPaths}
+					updateUnityPaths={updateUnityPaths}
+				/>
+				<UnityLaunchArgumentsCard />
+				<DefaultProjectPathCard />
+				<BackupCard />
+				<PackagesCard />
+				<AppearanceCard />
+				<FilesAndFoldersCard />
+				<AlcomCard />
+				<SystemInformationCard />
+			</main>
+		</ScrollPageContainer>
+	);
+}
+
+function UnityHubPathCard({
+	updateUnityPaths,
+}: {
+	updateUnityPaths: () => Promise<void>;
+}) {
+	const queryClient = useQueryClient();
+
+	const {
+		data: { unityHub },
+	} = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => ({
+			unityHub: data.unity_hub,
+		}),
+	});
 
 	const pickUnityHub = useMutation({
 		mutationFn: async () => await commands.environmentPickUnityHub(),
@@ -159,95 +174,37 @@ function Settings({
 		},
 	});
 
-	const pickProjectDefaultPath = useMutation({
-		mutationFn: async () => await commands.environmentPickProjectDefaultPath(),
-		onError: (e) => {
-			console.error(e);
-			toastThrownError(e);
-		},
-		onSuccess: (result) => {
-			switch (result.type) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tc("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(tc("settings:toast:default project path updated"));
-					break;
-				default:
-					assertNever(result);
-			}
-		},
-		onSettled: async () => {
-			await queryClient.invalidateQueries(environmentGetSettings);
-		},
-	});
-
 	return (
-		<ScrollPageContainer viewportClassName={"rounded-xl shadow-xl h-full"}>
-			<main className="flex flex-col gap-2 shrink grow">
-				<Card className={"shrink-0 p-4"}>
-					<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
-					<FilePathRow
-						path={settings.unity_hub}
-						pick={pickUnityHub.mutate}
-						notFoundMessage={"Unity Hub Not Found"}
-						withOpen={false}
-					/>
-				</Card>
-				<UnityInstallationsCard
-					updatingUnityPaths={updatingUnityPaths}
-					updateUnityPaths={updateUnityPaths}
-					unityPaths={settings.unity_paths}
-					unityHubAccessMethod={settings.unity_hub_access_method}
-				/>
-				<UnityLaunchArgumentsCard
-					unityArgs={settings.default_unity_arguments}
-				/>
-				<Card className={"shrink-0 p-4"}>
-					<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
-					<p className={"whitespace-normal"}>
-						{tc("settings:default project path description")}
-					</p>
-					<FilePathRow
-						path={settings.default_project_path}
-						pick={pickProjectDefaultPath.mutate}
-					/>
-					<ProjectPathWarnings projectPath={settings.default_project_path} />
-				</Card>
-				<BackupCard
-					projectBackupPath={settings.project_backup_path}
-					backupFormat={settings.backup_format}
-				/>
-				<PackagesCard
-					showPrereleasePackages={settings.show_prerelease_packages}
-				/>
-				<AppearanceCard />
-				<FilesAndFoldersCard />
-				<AlcomCard
-					releaseChannel={settings.release_channel}
-					useAlcomForVccProtocol={settings.use_alcom_for_vcc_protocol}
-				/>
-				<SystemInformationCard />
-			</main>
-		</ScrollPageContainer>
+		<Card className={"shrink-0 p-4"}>
+			<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
+			<FilePathRow
+				path={unityHub}
+				pick={pickUnityHub.mutate}
+				notFoundMessage={"Unity Hub Not Found"}
+				withOpen={false}
+			/>
+		</Card>
 	);
 }
 
 function UnityInstallationsCard({
-	unityPaths,
-	unityHubAccessMethod,
 	updatingUnityPaths,
 	updateUnityPaths,
 }: {
-	unityPaths: [path: string, version: string, fromHub: boolean][];
-	unityHubAccessMethod: UnityHubAccessMethod;
 	updatingUnityPaths: boolean;
 	updateUnityPaths: () => void;
 }) {
 	const queryClient = useQueryClient();
+	const {
+		data: { unityPaths, unityHubAccessMethod },
+	} = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => ({
+			unityPaths: data.unity_paths,
+			unityHubAccessMethod: data.unity_hub_access_method,
+		}),
+	});
+
 	const addUnity = useMutation({
 		mutationFn: async () => await commands.environmentPickUnity(),
 		onError: (e) => {
@@ -398,11 +355,12 @@ function UnityInstallationsCard({
 	);
 }
 
-function UnityLaunchArgumentsCard({
-	unityArgs,
-}: {
-	unityArgs: string[] | null;
-}) {
+function UnityLaunchArgumentsCard() {
+	const { data: unityArgs } = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (d) => d.default_unity_arguments,
+	});
+
 	const defaultUnityArgs = useGlobalInfo().defaultUnityArguments;
 	const realUnityArgs = unityArgs ?? defaultUnityArgs;
 
@@ -449,6 +407,7 @@ function LaunchArgumentsEditDialogBody({
 	dialog: DialogContext<boolean>;
 }) {
 	const queryClient = useQueryClient();
+
 	const setDefaultArgs = useMutation({
 		mutationFn: async ({ value }: { value: string[] | null }) => {
 			return await commands.environmentSetDefaultUnityArguments(value);
@@ -475,6 +434,7 @@ function LaunchArgumentsEditDialogBody({
 			await queryClient.invalidateQueries(environmentGetSettings);
 		},
 	});
+
 	const context = useUnityArgumentsSettings(
 		unityArgs,
 		globalInfo.defaultUnityArguments,
@@ -506,14 +466,71 @@ function LaunchArgumentsEditDialogBody({
 	);
 }
 
-function BackupCard({
-	projectBackupPath,
-	backupFormat,
-}: {
-	projectBackupPath: string;
-	backupFormat: string;
-}) {
+function DefaultProjectPathCard() {
 	const queryClient = useQueryClient();
+
+	const {
+		data: { defaultProjectPath },
+	} = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => ({
+			defaultProjectPath: data.default_project_path,
+		}),
+	});
+
+	const pickProjectDefaultPath = useMutation({
+		mutationFn: async () => await commands.environmentPickProjectDefaultPath(),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSuccess: (result) => {
+			switch (result.type) {
+				case "NoFolderSelected":
+					// no-op
+					break;
+				case "InvalidSelection":
+					toastError(tc("general:toast:invalid directory"));
+					break;
+				case "Successful":
+					toastSuccess(tc("settings:toast:default project path updated"));
+					break;
+				default:
+					assertNever(result);
+			}
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGetSettings);
+		},
+	});
+
+	return (
+		<Card className={"shrink-0 p-4"}>
+			<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
+			<p className={"whitespace-normal"}>
+				{tc("settings:default project path description")}
+			</p>
+			<FilePathRow
+				path={defaultProjectPath}
+				pick={pickProjectDefaultPath.mutate}
+			/>
+			<ProjectPathWarnings projectPath={defaultProjectPath} />
+		</Card>
+	);
+}
+
+function BackupCard() {
+	const queryClient = useQueryClient();
+
+	const {
+		data: { projectBackupPath, backupFormat },
+	} = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => ({
+			projectBackupPath: data.project_backup_path,
+			backupFormat: data.backup_format,
+		}),
+	});
 
 	const pickProjectBackupPath = useMutation({
 		mutationFn: async () => await commands.environmentPickProjectBackupPath(),
@@ -568,12 +585,18 @@ function BackupCard({
 	);
 }
 
-function PackagesCard({
-	showPrereleasePackages,
-}: {
-	showPrereleasePackages: boolean;
-}) {
+function PackagesCard() {
 	const queryClient = useQueryClient();
+
+	const {
+		data: { showPrereleasePackages },
+	} = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => ({
+			showPrereleasePackages: data.show_prerelease_packages,
+		}),
+	});
+
 	const clearPackageCache = useMutation({
 		mutationFn: async () => await commands.environmentClearPackageCache(),
 		onError: (e) => {
@@ -589,6 +612,7 @@ function PackagesCard({
 			});
 		},
 	});
+
 	const setShowPrerelease = useMutation({
 		mutationFn: async (showPrerelease: boolean) =>
 			await commands.environmentSetShowPrereleasePackages(showPrerelease),
@@ -698,16 +722,21 @@ function FilesAndFoldersCard() {
 	);
 }
 
-function AlcomCard({
-	releaseChannel,
-	useAlcomForVccProtocol,
-}: {
-	releaseChannel: string;
-	useAlcomForVccProtocol: boolean;
-}) {
+function AlcomCard() {
 	const globalInfo = useGlobalInfo();
 
 	const queryClient = useQueryClient();
+
+	const {
+		data: { releaseChannel, useAlcomForVccProtocol },
+	} = useSuspenseQuery({
+		...environmentGetSettings,
+		select: (data) => ({
+			releaseChannel: data.release_channel,
+			useAlcomForVccProtocol: data.use_alcom_for_vcc_protocol,
+		}),
+	});
+
 	const setShowPrerelease = useMutation({
 		mutationFn: async (releaseChannel: string) =>
 			await commands.environmentSetReleaseChannel(releaseChannel),
@@ -731,6 +760,7 @@ function AlcomCard({
 			await queryClient.invalidateQueries(environmentGetSettings);
 		},
 	});
+
 	const setUseAlcomForVccProtocol = useMutation({
 		mutationFn: async (use: boolean) =>
 			await commands.environmentSetUseAlcomForVccProtocol(use),
@@ -754,6 +784,7 @@ function AlcomCard({
 			await queryClient.invalidateQueries(environmentGetSettings);
 		},
 	});
+
 	const installVccProtocol = useMutation({
 		mutationFn: async () => await commands.deepLinkInstallVcc(),
 		onSuccess: () => {
