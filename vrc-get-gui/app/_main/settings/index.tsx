@@ -673,10 +673,16 @@ function FilesAndFoldersCard() {
 				{tc("settings:files and directories:description")}
 			</p>
 			<div className={"flex flex-row flex-wrap gap-2"}>
-				<Button onClick={openVpmFolderContent("settings.json")}>
+				<Button
+					className={"normal-case"}
+					onClick={openVpmFolderContent("settings.json")}
+				>
 					{tc("settings:button:open settings.json")}
 				</Button>
-				<Button onClick={openVpmFolderContent("vrc-get/gui-config.json")}>
+				<Button
+					className={"normal-case"}
+					onClick={openVpmFolderContent("vrc-get/gui-config.json")}
+				>
 					{tc("settings:button:open gui config.json")}
 				</Button>
 				<Button onClick={openVpmFolderContent("vrc-get/gui-logs")}>
