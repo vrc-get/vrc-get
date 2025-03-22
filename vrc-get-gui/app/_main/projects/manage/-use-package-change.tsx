@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
 	DialogFooter,
-	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { assertNever } from "@/lib/assert-never";
@@ -15,13 +14,15 @@ import type {
 	TauriRemoveReason,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { isHandleable } from "@/lib/errors";
 import { tc, tt } from "@/lib/i18n";
+import { queryClient } from "@/lib/query-client";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareVersion, toVersionString } from "@/lib/version";
 import { CircleAlert } from "lucide-react";
 import type React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { PackageRowInfo } from "./-collect-package-row-info";
 
 export type RequestedOperation =
@@ -55,223 +56,123 @@ export type RequestedOperation =
 			type: "bulkRemoved";
 	  };
 
-type InstallStatus =
-	| {
-			status: "normal";
-	  }
-	| {
-			status: "creatingChanges";
-	  }
-	| {
-			status: "missing-dependencies";
-			dependencies: string[];
-	  }
-	| {
-			status: "promptingChanges";
-			changes: TauriPendingProjectChanges;
-			requested: RequestedOperation;
-	  }
-	| {
-			status: "applyingChanges";
-	  };
-
-interface PackageChangeDialog {
-	createChanges: (
-		operation: RequestedOperation,
-		createPromise: Promise<TauriPendingProjectChanges>,
-	) => void;
-	dialog: React.ReactNode;
-	installingPackage: boolean;
-}
-
-export function usePackageChangeDialog({
-	projectPath,
-	onRefreshProject,
-	packageRowsData,
-	existingPackages,
-}: {
-	projectPath: string;
-	onRefreshProject: () => void;
-	packageRowsData: PackageRowInfo[];
-	existingPackages?: [string, TauriBasePackageInfo][];
-}): PackageChangeDialog {
-	const [installStatus, setInstallStatus] = useState<InstallStatus>({
-		status: "normal",
-	});
-
-	const createChanges = useCallback(
-		async (
-			operation: RequestedOperation,
-			createPromise: Promise<TauriPendingProjectChanges>,
-		) => {
-			try {
-				setInstallStatus({ status: "creatingChanges" });
-				const changes = await createPromise;
-				setInstallStatus({
-					status: "promptingChanges",
-					changes,
-					requested: operation,
-				});
-			} catch (e) {
-				if (isHandleable(e) && e.body.type === "MissingDependencies") {
-					setInstallStatus({
-						status: "missing-dependencies",
-						dependencies: e.body.dependencies,
-					});
-				} else {
-					console.error(e);
-					toastThrownError(e);
-					setInstallStatus({ status: "normal" });
-				}
-			}
-		},
-		[],
-	);
-
-	let dialogForState: React.ReactNode = null;
-
-	switch (installStatus.status) {
-		case "promptingChanges": {
-			const applyChanges = async ({
+export async function applyChanges(
+	packageRowsData: PackageRowInfo[],
+	existingPackages: [string, TauriBasePackageInfo][] | undefined,
+	projectPath: string,
+	operation: RequestedOperation,
+	createPromise: () => Promise<TauriPendingProjectChanges>,
+) {
+	try {
+		const changes = await createPromise();
+		if (
+			!(await openSingleDialog(ProjectChangesDialog, {
+				packages: packageRowsData,
 				changes,
-				requested,
-			}: {
-				changes: TauriPendingProjectChanges;
-				requested: RequestedOperation;
-			}) => {
-				try {
-					setInstallStatus({ status: "applyingChanges" });
-					await commands.projectApplyPendingChanges(
-						projectPath,
-						changes.changes_version,
-					);
-					setInstallStatus({ status: "normal" });
-					onRefreshProject();
-
-					switch (requested.type) {
-						case "install":
-							toastSuccess(
-								tt("projects:manage:toast:package installed", {
-									name: requested.pkg.display_name ?? requested.pkg.name,
-									version: toVersionString(requested.pkg.version),
-								}),
-							);
-							if (requested.hasUnityIncompatibleLatest) {
-								toastInfo(
-									tt(
-										"projects:manage:toast:the package has newer latest with incompatible unity",
-									),
-								);
-							}
-							break;
-						case "remove":
-							toastSuccess(
-								tt("projects:manage:toast:package removed", {
-									name: requested.displayName,
-								}),
-							);
-							break;
-						case "resolve":
-							toastSuccess(tt("projects:manage:toast:resolved"));
-							break;
-						case "reinstallAll":
-							toastSuccess(
-								tt("projects:manage:toast:all packages reinstalled"),
-							);
-							break;
-						case "upgradeAll":
-							toastSuccess(tt("projects:manage:toast:all packages upgraded"));
-							if (requested.hasUnityIncompatibleLatest) {
-								toastInfo(
-									tt(
-										"projects:manage:toast:some package has newer latest with incompatible unity",
-									),
-								);
-							}
-							break;
-						case "bulkInstalled":
-							toastSuccess(
-								tt("projects:manage:toast:selected packages installed"),
-							);
-							if (requested.hasUnityIncompatibleLatest) {
-								toastInfo(
-									tt(
-										"projects:manage:toast:some package has newer latest with incompatible unity",
-									),
-								);
-							}
-							break;
-						case "bulkRemoved":
-							toastSuccess(
-								tt("projects:manage:toast:selected packages removed"),
-							);
-							break;
-						case "bulkReinstalled":
-							toastSuccess(
-								tt("projects:manage:toast:selected packages reinstalled"),
-							);
-							break;
-						default:
-							assertNever(requested);
-					}
-				} catch (e) {
-					console.error(e);
-					setInstallStatus({ status: "normal" });
-					toastThrownError(e);
-				}
-			};
-
-			const cancel = async () => {
-				setInstallStatus({ status: "normal" });
-				try {
-					await commands.projectClearPendingChanges();
-				} catch (e) {
-					console.error(e);
-					toastThrownError(e);
-				}
-			};
-
-			dialogForState = (
-				<ProjectChangesDialog
-					packages={packageRowsData}
-					changes={installStatus.changes}
-					existingPackages={existingPackages}
-					cancel={cancel}
-					apply={() => applyChanges(installStatus)}
-				/>
-			);
-			break;
+				existingPackages,
+			}))
+		) {
+			// close window
+			return;
 		}
-		case "missing-dependencies": {
-			dialogForState = (
-				<MissingDependenciesDialog
-					dependencies={installStatus.dependencies}
-					onClose={() => setInstallStatus({ status: "normal" })}
-				/>
-			);
-			break;
+		await commands.projectApplyPendingChanges(
+			projectPath,
+			changes.changes_version,
+		);
+		showToast(operation);
+		await invalidate(projectPath);
+	} catch (e) {
+		if (isHandleable(e) && e.body.type === "MissingDependencies") {
+			await openSingleDialog(MissingDependenciesDialog, {
+				dependencies: e.body.dependencies,
+			});
+		} else {
+			console.error(e);
+			toastThrownError(e);
 		}
 	}
+}
 
-	return {
-		dialog: dialogForState,
-		createChanges,
-		installingPackage: installStatus.status !== "normal",
-	};
+async function invalidate(projectPath: string) {
+	await queryClient.invalidateQueries({
+		queryKey: ["projectDetails", projectPath],
+	});
+	await queryClient.invalidateQueries({
+		queryKey: ["environmentPackages"],
+	});
+}
+
+function showToast(requested: RequestedOperation) {
+	switch (requested.type) {
+		case "install":
+			toastSuccess(
+				tt("projects:manage:toast:package installed", {
+					name: requested.pkg.display_name ?? requested.pkg.name,
+					version: toVersionString(requested.pkg.version),
+				}),
+			);
+			if (requested.hasUnityIncompatibleLatest) {
+				toastInfo(
+					tt(
+						"projects:manage:toast:the package has newer latest with incompatible unity",
+					),
+				);
+			}
+			break;
+		case "remove":
+			toastSuccess(
+				tt("projects:manage:toast:package removed", {
+					name: requested.displayName,
+				}),
+			);
+			break;
+		case "resolve":
+			toastSuccess(tt("projects:manage:toast:resolved"));
+			break;
+		case "reinstallAll":
+			toastSuccess(tt("projects:manage:toast:all packages reinstalled"));
+			break;
+		case "upgradeAll":
+			toastSuccess(tt("projects:manage:toast:all packages upgraded"));
+			if (requested.hasUnityIncompatibleLatest) {
+				toastInfo(
+					tt(
+						"projects:manage:toast:some package has newer latest with incompatible unity",
+					),
+				);
+			}
+			break;
+		case "bulkInstalled":
+			toastSuccess(tt("projects:manage:toast:selected packages installed"));
+			if (requested.hasUnityIncompatibleLatest) {
+				toastInfo(
+					tt(
+						"projects:manage:toast:some package has newer latest with incompatible unity",
+					),
+				);
+			}
+			break;
+		case "bulkRemoved":
+			toastSuccess(tt("projects:manage:toast:selected packages removed"));
+			break;
+		case "bulkReinstalled":
+			toastSuccess(tt("projects:manage:toast:selected packages reinstalled"));
+			break;
+		default:
+			assertNever(requested);
+	}
 }
 
 function ProjectChangesDialog({
 	changes,
 	packages,
 	existingPackages,
-	cancel,
-	apply,
+	dialog,
 }: {
 	changes: TauriPendingProjectChanges;
 	packages: PackageRowInfo[];
 	existingPackages?: [string, TauriBasePackageInfo][];
-	cancel: () => void;
-	apply: () => void;
+	dialog: DialogContext<boolean>;
 }) {
 	const versionConflicts = changes.conflicts.filter(
 		([_, c]) => c.packages.length > 0,
@@ -363,7 +264,7 @@ function ProjectChangesDialog({
 	};
 
 	return (
-		<DialogOpen className={"whitespace-normal"}>
+		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 			<DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
@@ -512,30 +413,30 @@ function ProjectChangesDialog({
 				) : null}
 			</DialogDescription>
 			<DialogFooter>
-				<Button onClick={cancel} className="mr-1">
+				<Button onClick={() => dialog.close(false)} className="mr-1">
 					{tc("general:button:cancel")}
 				</Button>
-				<Button onClick={apply} variant={"destructive"}>
+				<Button onClick={() => dialog.close(true)} variant={"destructive"}>
 					{tc("projects:manage:button:apply")}
 				</Button>
 			</DialogFooter>
-		</DialogOpen>
+		</div>
 	);
 }
 
 function comparePackageChangeByName(
-	[aName, _1]: [string, TauriPackageChange],
-	[bName, _2]: [string, TauriPackageChange],
+	[aName]: [string, TauriPackageChange],
+	[bName]: [string, TauriPackageChange],
 ): number {
 	return aName.localeCompare(bName);
 }
 
 function MissingDependenciesDialog({
 	dependencies,
-	onClose,
-}: { dependencies: string[]; onClose: () => void }) {
+	dialog,
+}: { dependencies: string[]; dialog: DialogContext<void> }) {
 	return (
-		<DialogOpen>
+		<div>
 			<DialogTitle className={"text-destructive"}>
 				<CircleAlert className="size-6 inline" />{" "}
 				{tc("projects:manage:dialog:missing dependencies")}
@@ -551,8 +452,10 @@ function MissingDependenciesDialog({
 				</ul>
 			</DialogDescription>
 			<DialogFooter>
-				<Button onClick={onClose}>{tc("general:button:close")}</Button>
+				<Button onClick={() => dialog.close()}>
+					{tc("general:button:close")}
+				</Button>
 			</DialogFooter>
-		</DialogOpen>
+		</div>
 	);
 }

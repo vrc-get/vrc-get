@@ -71,7 +71,7 @@ export const PackageListCard = memo(function PackageListCard({
 	projectPath: string;
 	createChanges: (
 		operation: RequestedOperation,
-		create: Promise<TauriPendingProjectChanges>,
+		create: () => Promise<TauriPendingProjectChanges>,
 	) => void;
 	packageRowsData: PackageRowInfo[];
 	repositoriesInfo: TauriRepositoriesInfo | undefined;
@@ -124,9 +124,10 @@ export const PackageListCard = memo(function PackageListCard({
 					pkg,
 					hasUnityIncompatibleLatest,
 				},
-				commands.projectInstallPackages(projectPath, pkg.env_version, [
-					pkg.index,
-				]),
+				() =>
+					commands.projectInstallPackages(projectPath, pkg.env_version, [
+						pkg.index,
+					]),
 			);
 		},
 		[projectPath, createChanges],
@@ -159,7 +160,8 @@ export const PackageListCard = memo(function PackageListCard({
 						type: "upgradeAll",
 						hasUnityIncompatibleLatest,
 					},
-					commands.projectInstallPackages(projectPath, envVersion, packages),
+					() =>
+						commands.projectInstallPackages(projectPath, envVersion, packages),
 				);
 			} catch (e) {
 				console.error(e);
@@ -171,8 +173,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	const onReinstallRequest = useCallback(
 		() =>
-			createChanges(
-				{ type: "reinstallAll" },
+			createChanges({ type: "reinstallAll" }, () =>
 				commands.projectResolve(projectPath),
 			),
 		[createChanges, projectPath],
@@ -180,8 +181,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	const onRemoveRequested = useCallback(
 		async (pkg: PackageRowInfo) =>
-			createChanges(
-				{ type: "remove", displayName: pkg.displayName },
+			createChanges({ type: "remove", displayName: pkg.displayName }, () =>
 				commands.projectRemovePackages(projectPath, [pkg.id]),
 			),
 		[createChanges, projectPath],
@@ -219,7 +219,8 @@ export const PackageListCard = memo(function PackageListCard({
 				}
 				createChanges(
 					{ type: "bulkInstalled", hasUnityIncompatibleLatest },
-					commands.projectInstallPackages(projectPath, envVersion, packages),
+					() =>
+						commands.projectInstallPackages(projectPath, envVersion, packages),
 				);
 			} catch (e) {
 				console.error(e);
@@ -231,8 +232,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	const onBulkReinstallRequested = useCallback(() => {
 		try {
-			createChanges(
-				{ type: "bulkReinstalled" },
+			createChanges({ type: "bulkReinstalled" }, () =>
 				commands.projectReinstallPackages(
 					projectPath,
 					bulkUpdatePackageIds.map(([id, _]) => id),
@@ -245,8 +245,7 @@ export const PackageListCard = memo(function PackageListCard({
 	}, [bulkUpdatePackageIds, createChanges, projectPath]);
 
 	const onRemoveBulkRequested = useCallback(() => {
-		createChanges(
-			{ type: "bulkRemoved" },
+		createChanges({ type: "bulkRemoved" }, () =>
 			commands.projectRemovePackages(
 				projectPath,
 				bulkUpdatePackageIds.map(([id, _]) => id),

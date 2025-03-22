@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import {
 	DialogDescription,
 	DialogFooter,
-	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -35,10 +34,14 @@ import {
 	UnityArgumentsSettings,
 	useUnityArgumentsSettings,
 } from "@/components/unity-arguments-settings";
-import type { TauriProjectDetails, TauriUnityVersions } from "@/lib/bindings";
+import type {
+	TauriPendingProjectChanges,
+	TauriProjectDetails,
+	TauriUnityVersions,
+} from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { VRCSDK_PACKAGES, VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
-import { openSingleDialog } from "@/lib/dialog";
+import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
 import { nameFromPath } from "@/lib/os";
@@ -52,12 +55,13 @@ import {
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import type React from "react";
+import { useTransition } from "react";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
 import { unityVersionChange } from "./-unity-migration";
-import { usePackageChangeDialog } from "./-use-package-change";
+import { type RequestedOperation, applyChanges } from "./-use-package-change";
 
 interface SearchParams {
 	projectPath: string;
@@ -148,17 +152,24 @@ function PageBody() {
 		}
 	}, [detailsResult, packagesResult, repositoriesInfo, unityVersionsResult]);
 
-	const onRefreshProject = useCallback(() => {
-		detailsResult.refetch();
-		packagesResult.refetch(); // package changes require package list to be refreshed
-	}, [detailsResult, packagesResult]);
+	const [installingPackage, installTransition] = useTransition();
 
-	const packageChangeDialog = usePackageChangeDialog({
-		projectPath,
-		onRefreshProject,
-		packageRowsData,
-		existingPackages: detailsResult.data?.installed_packages,
-	});
+	const packageChange = useCallback(
+		(
+			operation: RequestedOperation,
+			createPromise: () => Promise<TauriPendingProjectChanges>,
+		) =>
+			installTransition(() =>
+				applyChanges(
+					packageRowsData,
+					detailsResult.data?.installed_packages,
+					projectPath,
+					operation,
+					createPromise,
+				),
+			),
+		[packageRowsData, projectPath, detailsResult.data?.installed_packages],
+	);
 
 	const requestChangeUnityVersion = (
 		version: string,
@@ -196,18 +207,17 @@ function PageBody() {
 	}, [projectName, projectPath]);
 
 	const onResolveRequest = useCallback(() => {
-		packageChangeDialog.createChanges(
-			{ type: "resolve" },
+		packageChange({ type: "resolve" }, () =>
 			commands.projectResolve(projectPath),
 		);
-	}, [packageChangeDialog, projectPath]);
+	}, [packageChange, projectPath]);
 
 	const isLoading =
 		packagesResult.isFetching ||
 		detailsResult.isFetching ||
 		repositoriesInfo.isFetching ||
 		unityVersionsResult.isLoading ||
-		packageChangeDialog.installingPackage ||
+		installingPackage ||
 		manualRefetching;
 
 	console.log(`rerender: isloading: ${isLoading}`);
@@ -242,14 +252,13 @@ function PageBody() {
 				<main className="shrink overflow-hidden flex w-full h-full">
 					<PackageListCard
 						projectPath={projectPath}
-						createChanges={packageChangeDialog.createChanges}
+						createChanges={packageChange}
 						packageRowsData={packageRowsData}
 						repositoriesInfo={repositoriesInfo.data}
 						onRefresh={onRefresh}
 						onRefreshRepositories={onRefreshRepositories}
 					/>
 				</main>
-				{packageChangeDialog.dialog}
 			</VStack>
 		</PageContextProvider>
 	);
@@ -621,21 +630,18 @@ function ProjectViewHeader({
 }
 
 function LaunchSettings({
-	projectPath,
 	defaultUnityArgs,
 	initialValue,
-	close,
+	dialog,
 }: {
-	projectPath: string;
 	defaultUnityArgs: string[];
 	initialValue: string[] | null;
-	close: () => void;
+	dialog: DialogContext<string[] | null | false>;
 }) {
 	const context = useUnityArgumentsSettings(initialValue, defaultUnityArgs);
 
 	const saveAndClose = async () => {
-		await commands.projectSetCustomUnityArgs(projectPath, context.currentValue);
-		close();
+		dialog.close(context.currentValue);
 	};
 
 	return (
@@ -649,7 +655,7 @@ function LaunchSettings({
 				<UnityArgumentsSettings context={context} />
 			</DialogDescription>
 			<DialogFooter>
-				<Button onClick={close} variant={"destructive"}>
+				<Button onClick={() => dialog.close(false)} variant={"destructive"}>
 					{tc("general:button:cancel")}
 				</Button>
 				<Button onClick={saveAndClose} disabled={context.hasError}>
@@ -736,24 +742,15 @@ function ProjectButton({
 	unityRevision: string | null;
 	onRemove?: () => void;
 }) {
-	const [openLaunchOptions, setOpenLaunchOptions] = useState<
-		| false
-		| {
-				initialArgs: null | string[];
-				defaultArgs: string[];
-		  }
-	>(false);
-
 	const onChangeLaunchOptions = async () => {
 		const initialArgs = await commands.projectGetCustomUnityArgs(projectPath);
 		const defaultArgs = await commands.environmentGetDefaultUnityArguments();
-		setOpenLaunchOptions({
-			initialArgs,
-			defaultArgs,
+		const settings = await openSingleDialog(LaunchSettings, {
+			initialValue: initialArgs,
+			defaultUnityArgs: defaultArgs,
 		});
-	};
-	const closeChangeLaunchOptions = () => {
-		setOpenLaunchOptions(false);
+		if (settings === false) return;
+		await commands.projectSetCustomUnityArgs(projectPath, settings);
 	};
 
 	return (
@@ -780,16 +777,6 @@ function ProjectButton({
 					/>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			{openLaunchOptions !== false && (
-				<DialogOpen>
-					<LaunchSettings
-						projectPath={projectPath}
-						initialValue={openLaunchOptions.initialArgs}
-						defaultUnityArgs={openLaunchOptions.defaultArgs}
-						close={closeChangeLaunchOptions}
-					/>
-				</DialogOpen>
-			)}
 		</>
 	);
 }
