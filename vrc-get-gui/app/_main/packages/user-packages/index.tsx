@@ -22,7 +22,6 @@ import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { usePrevPathName } from "@/lib/prev-page";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { toVersionString } from "@/lib/version";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -48,14 +47,10 @@ function PageBody() {
 		queryFn: commands.environmentGetUserPackages,
 	});
 
-	const [envAddUserPackage, dialog] = useFilePickerFunction(
-		commands.environmentAddUserPackageWithPicker,
-	);
-
 	const addUserPackage = useCallback(
 		async function addUserPackage() {
 			try {
-				switch (await envAddUserPackage()) {
+				switch (await commands.environmentAddUserPackageWithPicker()) {
 					case "NoFolderSelected":
 						break;
 					case "InvalidSelection":
@@ -73,7 +68,7 @@ function PageBody() {
 				toastThrownError(e);
 			}
 		},
-		[envAddUserPackage, result],
+		[result],
 	);
 
 	const removeUserPackage = useCallback(
@@ -114,7 +109,6 @@ function PageBody() {
 					/>
 				</ScrollableCardTable>
 			</main>
-			{dialog}
 		</VStack>
 	);
 }

@@ -14,7 +14,6 @@ import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import i18next, { languages, tc } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import React from "react";
@@ -150,11 +149,9 @@ export function FilePathRow({
 	successMessage: ToastContent;
 	withoutSelect?: boolean;
 }) {
-	const [pickPath, dialog] = useFilePickerFunction(pick);
-
 	const selectFolder = async () => {
 		try {
-			const result = await pickPath();
+			const result = await pick();
 			switch (result.type) {
 				case "NoFolderSelected":
 					// no-op
@@ -203,7 +200,6 @@ export function FilePathRow({
 					{tc("general:button:open location")}
 				</Button>
 			)}
-			{dialog}
 		</div>
 	);
 }

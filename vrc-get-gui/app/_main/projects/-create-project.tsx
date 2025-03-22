@@ -24,7 +24,6 @@ import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { pathSeparator } from "@/lib/os";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { useDebounce } from "@uidotdev/usehooks";
 import { RefreshCw } from "lucide-react";
@@ -85,10 +84,6 @@ export function CreateProject({
 	const [projectLocation, setProjectLocation] = useState("");
 	const projectNameDebounced = useDebounce(projectName, 500);
 
-	const [pickProjectDefaultPath, dialog] = useFilePickerFunction(
-		commands.environmentPickProjectDefaultPath,
-	);
-
 	useEffect(() => {
 		(async () => {
 			const information =
@@ -126,7 +121,7 @@ export function CreateProject({
 
 	const selectProjectDefaultFolder = async () => {
 		try {
-			const result = await pickProjectDefaultPath();
+			const result = await commands.environmentPickProjectDefaultPath();
 			switch (result.type) {
 				case "NoFolderSelected":
 					// no-op
@@ -406,7 +401,6 @@ export function CreateProject({
 					{tc("projects:button:create")}
 				</Button>
 			</DialogFooter>
-			{dialog}
 		</DialogOpen>
 	);
 }

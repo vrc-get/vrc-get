@@ -21,7 +21,6 @@ import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { tc, tt } from "@/lib/i18n";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import type React from "react";
 import { useCallback, useState } from "react";
 
@@ -63,9 +62,6 @@ export function useImportRepositories({
 	refetch: () => void;
 }): AddRepository {
 	const [state, setState] = useState<State>({ type: "normal" });
-	const [importRepositoryPick, pickDialog] = useFilePickerFunction(
-		commands.environmentImportRepositoryPick,
-	);
 
 	function cancel() {
 		if ("cancel" in state) state.cancel();
@@ -75,7 +71,7 @@ export function useImportRepositories({
 	const startImportingRepositories = useCallback(
 		async function startImportingRepositories() {
 			try {
-				const pickResult = await importRepositoryPick();
+				const pickResult = await commands.environmentImportRepositoryPick();
 				switch (pickResult.type) {
 					case "NoFilePicked":
 						// no-op
@@ -93,7 +89,7 @@ export function useImportRepositories({
 				setState({ type: "normal" });
 			}
 		},
-		[importRepositoryPick],
+		[],
 	);
 
 	const downloadRepositories = useCallback(async function downloadRepositories(
@@ -195,12 +191,7 @@ export function useImportRepositories({
 	) : null;
 
 	return {
-		dialog: (
-			<>
-				{pickDialog}
-				{confirmDialog}
-			</>
-		),
+		dialog: <>{confirmDialog}</>,
 		startImportingRepositories,
 	};
 }

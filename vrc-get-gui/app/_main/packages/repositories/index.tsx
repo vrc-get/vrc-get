@@ -26,7 +26,6 @@ import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { usePrevPathName } from "@/lib/prev-page";
 import { toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -77,17 +76,13 @@ function PageBody() {
 		refetch: () => result.refetch(),
 	});
 
-	const [exportRepositoriesRaw, exportDialog] = useFilePickerFunction(
-		commands.environmentExportRepositories,
-	);
-
 	const exportRepositories = useCallback(async () => {
 		try {
-			await exportRepositoriesRaw();
+			await commands.environmentExportRepositories();
 		} catch (e) {
 			toastThrownError(e);
 		}
-	}, [exportRepositoriesRaw]);
+	}, []);
 
 	const hiddenUserRepos = useMemo(
 		() => new Set(result.data?.hidden_user_repositories),
@@ -190,7 +185,6 @@ function PageBody() {
 			</main>
 			{addRepositoryInfo.dialog}
 			{importRepositoryInfo.dialog}
-			{exportDialog}
 		</VStack>
 	);
 }

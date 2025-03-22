@@ -208,13 +208,9 @@ function UnityInstallationsCard({
 	updatingUnityPaths: boolean;
 	updateUnityPaths: () => void;
 }) {
-	const [pickUnity, unityDialog] = useFilePickerFunction(
-		commands.environmentPickUnity,
-	);
-
 	const addUnity = async () => {
 		try {
-			const result = await pickUnity();
+			const result = await commands.environmentPickUnity();
 			switch (result) {
 				case "NoFolderSelected":
 					// no-op
@@ -335,7 +331,6 @@ function UnityInstallationsCard({
 					{tc("settings:use legacy unity hub loading description")}
 				</p>
 			</div>
-			{unityDialog}
 		</Card>
 	);
 }

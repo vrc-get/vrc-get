@@ -20,7 +20,6 @@ import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, RefreshCw } from "lucide-react";
@@ -84,13 +83,9 @@ function ProjectViewHeader({
 	search: string;
 	setSearch: (search: string) => void;
 }) {
-	const [addProjectWithPicker, dialog] = useFilePickerFunction(
-		commands.environmentAddProjectWithPicker,
-	);
-
 	const addProject = async () => {
 		try {
-			const result = await addProjectWithPicker();
+			const result = await commands.environmentAddProjectWithPicker();
 			switch (result) {
 				case "NoFolderSelected":
 					// no-op
@@ -161,33 +156,26 @@ function ProjectViewHeader({
 				</>
 			}
 			trailing={
-				<>
-					<DropdownMenu>
-						<div className={"flex divide-x"}>
-							<Button
-								className={"rounded-r-none pl-4 pr-3"}
-								onClick={startCreateProject}
-							>
-								{tc("projects:create new project")}
+				<DropdownMenu>
+					<div className={"flex divide-x"}>
+						<Button
+							className={"rounded-r-none pl-4 pr-3"}
+							onClick={startCreateProject}
+						>
+							{tc("projects:create new project")}
+						</Button>
+						<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
+							<Button>
+								<ChevronDown className={"w-4 h-4"} />
 							</Button>
-							<DropdownMenuTrigger
-								asChild
-								className={"rounded-l-none pl-2 pr-2"}
-							>
-								<Button>
-									<ChevronDown className={"w-4 h-4"} />
-								</Button>
-							</DropdownMenuTrigger>
-						</div>
-						<DropdownMenuContent>
-							<DropdownMenuItem onClick={addProject}>
-								{tc("projects:add existing project")}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-
-					{dialog}
-				</>
+						</DropdownMenuTrigger>
+					</div>
+					<DropdownMenuContent>
+						<DropdownMenuItem onClick={addProject}>
+							{tc("projects:add existing project")}
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			}
 		/>
 	);
