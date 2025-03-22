@@ -9,15 +9,23 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import i18next, { languages, tc } from "@/lib/i18n";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useQuery } from "@tanstack/react-query";
+import { toastThrownError } from "@/lib/toast";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import React from "react";
-import type { ToastContent } from "react-toastify";
+
+const environmentGetSettings = queryOptions({
+	queryKey: ["environmentGetSettings"],
+	queryFn: commands.environmentGetSettings,
+});
 
 export function LanguageSelector() {
 	const { data: lang, refetch: refetchLang } = useQuery({
@@ -99,29 +107,52 @@ export function ThemeSelector() {
 	);
 }
 
-export function GuiAnimationSwitch({ refetch }: { refetch?: () => void }) {
-	const [guiAnimation, setGuiAnimation] = React.useState<boolean>();
+const environmentGuiAnimation = queryOptions({
+	queryKey: ["environmentGuiAnimation"],
+	queryFn: commands.environmentGuiAnimation,
+	initialData: true, // default value
+});
 
-	React.useEffect(() => {
-		(async () => {
-			const guiAnimation = await commands.environmentGuiAnimation();
-			setGuiAnimation(guiAnimation);
-		})();
-	}, []);
-
-	const changeGuiAnimation = async (value: "indeterminate" | boolean) => {
-		await commands.environmentSetGuiAnimation(value === true);
-		setGuiAnimation(value === true);
-		refetch?.();
-		document.dispatchEvent(new CustomEvent("gui-animation", { detail: value }));
-	};
+export function GuiAnimationSwitch() {
+	const queryClient = useQueryClient();
+	const guiAnimation = useQuery(environmentGuiAnimation);
+	const setShowPrerelease = useMutation({
+		mutationFn: async (guiAnimation: boolean) =>
+			await commands.environmentSetGuiAnimation(guiAnimation),
+		onMutate: async (guiAnimation) => {
+			await queryClient.cancelQueries(environmentGuiAnimation);
+			const current = queryClient.getQueryData(
+				environmentGuiAnimation.queryKey,
+			);
+			if (current != null) {
+				queryClient.setQueryData(
+					environmentGuiAnimation.queryKey,
+					guiAnimation,
+				);
+			}
+			return current;
+		},
+		onError: (e, _, prev) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentGuiAnimation.queryKey, prev);
+		},
+		onSuccess: (_, guiAnimation) => {
+			document.dispatchEvent(
+				new CustomEvent("gui-animation", { detail: guiAnimation }),
+			);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGuiAnimation);
+		},
+	});
 
 	return (
 		<div>
 			<label className={"flex items-center gap-2"}>
 				<Checkbox
-					checked={guiAnimation}
-					onCheckedChange={(e) => changeGuiAnimation(e)}
+					checked={guiAnimation.data}
+					onCheckedChange={(e) => setShowPrerelease.mutate(e === true)}
 				/>
 				{tc("settings:gui animation")}
 			</label>
@@ -136,42 +167,13 @@ export function FilePathRow({
 	path,
 	notFoundMessage,
 	pick,
-	refetch,
-	successMessage,
-	withoutSelect = false,
+	withOpen = true,
 }: {
 	path: string;
 	notFoundMessage?: string;
-	pick: () => Promise<{
-		type: "NoFolderSelected" | "InvalidSelection" | "Successful";
-	}>;
-	refetch: () => void;
-	successMessage: ToastContent;
-	withoutSelect?: boolean;
+	pick: () => void;
+	withOpen?: boolean;
 }) {
-	const selectFolder = async () => {
-		try {
-			const result = await pick();
-			switch (result.type) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tc("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(successMessage);
-					refetch();
-					break;
-				default:
-					assertNever(result.type);
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-		}
-	};
-
 	const openFolder = async () => {
 		try {
 			await commands.utilOpen(path, "CreateFolderIfNotExists");
@@ -182,7 +184,7 @@ export function FilePathRow({
 	};
 
 	return (
-		<div className={"flex gap-1 items-center"}>
+		<div className={"flex gap-2 items-center"}>
 			{!path && notFoundMessage ? (
 				<Input
 					className="flex-auto text-destructive"
@@ -192,10 +194,10 @@ export function FilePathRow({
 			) : (
 				<Input className="flex-auto" value={path} disabled />
 			)}
-			<Button className={"flex-none px-4"} onClick={selectFolder}>
+			<Button className={"flex-none px-4"} onClick={pick}>
 				{tc("general:button:select")}
 			</Button>
-			{withoutSelect || (
+			{withOpen && (
 				<Button className={"flex-none px-4"} onClick={openFolder}>
 					{tc("general:button:open location")}
 				</Button>
@@ -269,13 +271,36 @@ export function WarningMessage({
 
 export function BackupFormatSelect({
 	backupFormat,
-	setBackupFormat,
 }: {
 	backupFormat: string;
-	setBackupFormat: (format: string) => void;
 }) {
+	const queryClient = useQueryClient();
+	const setBackupFormat = useMutation({
+		mutationFn: async (format: string) =>
+			await commands.environmentSetBackupFormat(format),
+		onMutate: async (format: string) => {
+			await queryClient.cancelQueries(environmentGetSettings);
+			const current = queryClient.getQueryData(environmentGetSettings.queryKey);
+			if (current != null) {
+				queryClient.setQueryData(environmentGetSettings.queryKey, {
+					...current,
+					backup_format: format,
+				});
+			}
+			return current;
+		},
+		onError: (e, _, prev) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentGetSettings.queryKey, prev);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGetSettings);
+		},
+	});
+
 	return (
-		<Select value={backupFormat} onValueChange={setBackupFormat}>
+		<Select value={backupFormat} onValueChange={setBackupFormat.mutate}>
 			<SelectTrigger>
 				<SelectValue />
 			</SelectTrigger>

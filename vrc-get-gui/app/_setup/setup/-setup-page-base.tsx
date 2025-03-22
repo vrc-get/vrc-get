@@ -11,7 +11,6 @@ import type React from "react";
 
 export type BodyProps = Readonly<{
 	environment: TauriEnvironmentSettings;
-	refetch: () => void;
 }>;
 
 export function SetupPageBase({
@@ -63,10 +62,7 @@ export function SetupPageBase({
 						{!result.data ? (
 							<p>{tc("setup:loading")}</p>
 						) : (
-							<Body
-								environment={result.data}
-								refetch={() => result.refetch()}
-							/>
+							<Body environment={result.data} />
 						)}
 						<div className={"grow"} />
 						<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">

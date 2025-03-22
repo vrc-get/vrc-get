@@ -9,8 +9,11 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { CardDescription } from "@/components/ui/card";
+import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 
@@ -32,8 +35,38 @@ function Page() {
 	);
 }
 
-function Body({ environment, refetch }: BodyProps) {
+function Body({ environment }: BodyProps) {
 	const hubInstalled = !!environment.unity_hub;
+
+	const queryClient = useQueryClient();
+
+	const pickUnityHub = useMutation({
+		mutationFn: async () => await commands.environmentPickUnityHub(),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSuccess: (result) => {
+			switch (result.type) {
+				case "NoFolderSelected":
+					// no-op
+					break;
+				case "InvalidSelection":
+					toastError(tc("general:toast:invalid directory"));
+					break;
+				case "Successful":
+					toastSuccess(tc("settings:toast:unity hub path updated"));
+					break;
+				default:
+					assertNever(result);
+			}
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries({
+				queryKey: ["environmentGetSettings"],
+			});
+		},
+	});
 
 	return (
 		<>
@@ -47,12 +80,10 @@ function Body({ environment, refetch }: BodyProps) {
 						{tc("setup:unity-hub:using this unity hub")}:
 					</p>
 					<FilePathRow
-						withoutSelect
 						path={environment.unity_hub ?? ""}
-						pick={commands.environmentPickUnityHub}
-						refetch={refetch}
+						pick={pickUnityHub.mutate}
 						notFoundMessage={"Unity Hub Not Found"}
-						successMessage={tc("settings:toast:unity hub path updated")}
+						withOpen={false}
 					/>
 				</>
 			) : (
@@ -66,7 +97,13 @@ function Body({ environment, refetch }: BodyProps) {
 						>
 							{tc("setup:unity-hub:download unity hub from unity.com")}
 						</Button>
-						<Button onClick={refetch}>
+						<Button
+							onClick={() =>
+								queryClient.invalidateQueries({
+									queryKey: ["environmentGetSettings"],
+								})
+							}
+						>
 							{tc("setup:unity-hub:recheck installation")}
 						</Button>
 					</div>
@@ -80,12 +117,10 @@ function Body({ environment, refetch }: BodyProps) {
 									{tc("setup:unity-hub:detection failed description")}
 								</p>
 								<FilePathRow
-									withoutSelect
-									path={environment.unity_hub}
-									pick={commands.environmentPickUnityHub}
-									refetch={refetch}
+									path={environment.unity_hub ?? ""}
+									pick={pickUnityHub.mutate}
 									notFoundMessage={"Unity Hub Not Found"}
-									successMessage={tc("settings:toast:unity hub path updated")}
+									withOpen={false}
 								/>
 							</AccordionContent>
 						</AccordionItem>
