@@ -481,7 +481,7 @@ function ManagePackagesHeading({
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button className={"shrink-0 p-3"}>
-						{tc("projects:manage:button:package filter")}
+						{tc("projects:manage:button:package filters")}
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent

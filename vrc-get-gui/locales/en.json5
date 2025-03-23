@@ -200,7 +200,7 @@
     "projects:manage:button:upgrade all": "Upgrade All (Latest)",
     "projects:manage:button:upgrade all stable": "Upgrade All (Stable)",
     "projects:manage:button:reinstall all": "Reinstall All",
-    "projects:manage:button:package filter": "Package Filter",
+    "projects:manage:button:package filters": "Package Filters",
     "projects:manage:menu:repository filter": "Repository Filter",
     "projects:manage:menu:other filters": "Other Filters",
     "projects:manage:package": "Package",
