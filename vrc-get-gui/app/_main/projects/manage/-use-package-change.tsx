@@ -20,10 +20,9 @@ import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
 import { toastInfo, toastSuccess } from "@/lib/toast";
 import { compareVersion, toVersionString } from "@/lib/version";
+import { queryOptions } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import type React from "react";
-import { useMemo } from "react";
-import type { PackageRowInfo } from "./-collect-package-row-info";
 
 export type RequestedOperation =
 	| {
@@ -34,6 +33,7 @@ export type RequestedOperation =
 	| {
 			type: "upgradeAll";
 			hasUnityIncompatibleLatest: boolean;
+			packages: TauriPackage[];
 	  }
 	| {
 			type: "resolve";
@@ -44,34 +44,42 @@ export type RequestedOperation =
 	| {
 			type: "remove";
 			displayName: string;
+			packageId: string;
 	  }
 	| {
 			type: "bulkInstalled";
 			hasUnityIncompatibleLatest: boolean;
+			packages: TauriPackage[];
 	  }
 	| {
 			type: "bulkReinstalled";
+			packageIds: string[];
 	  }
 	| {
 			type: "bulkRemoved";
+			packageIds: string[];
 	  };
 
-export type CreateOperation = RequestedOperation & {
-	createPromise: () => Promise<TauriPendingProjectChanges>;
-};
+function environmentPackages(projectPath: string) {
+	return queryOptions({
+		queryKey: ["projectDetails", projectPath],
+		queryFn: () => commands.projectDetails(projectPath),
+		refetchOnWindowFocus: false,
+	});
+}
 
 export async function applyChanges(
-	packageRowsData: PackageRowInfo[],
-	existingPackages: [string, TauriBasePackageInfo][] | undefined,
-	projectPath: string,
-	operation: RequestedOperation,
-	createPromise: () => Promise<TauriPendingProjectChanges>,
+	operation: RequestedOperation & { projectPath: string },
 ) {
 	try {
-		const changes = await createPromise();
+		const projectPath = operation.projectPath;
+		const existingPackages = queryClient.getQueryData(
+			environmentPackages(projectPath).queryKey,
+		)?.installed_packages;
+
+		const changes = await createChanges(projectPath, operation);
 		if (
 			!(await openSingleDialog(ProjectChangesDialog, {
-				packages: packageRowsData,
 				changes,
 				existingPackages,
 			}))
@@ -94,6 +102,62 @@ export async function applyChanges(
 			throw e;
 		}
 	}
+}
+
+function createChanges(
+	projectPath: string,
+	operation: RequestedOperation,
+): Promise<TauriPendingProjectChanges> {
+	switch (operation.type) {
+		case "install":
+			return commands.projectInstallPackages(
+				projectPath,
+				operation.pkg.env_version,
+				[operation.pkg.index],
+			);
+		case "upgradeAll":
+			return commands.projectInstallPackages(
+				projectPath,
+				...packagesToIndexes(operation.packages),
+			);
+		case "resolve":
+		case "reinstallAll":
+			return commands.projectResolve(projectPath);
+		case "remove":
+			return commands.projectRemovePackages(projectPath, [operation.packageId]);
+		case "bulkInstalled":
+			return commands.projectInstallPackages(
+				projectPath,
+				...packagesToIndexes(operation.packages),
+			);
+		case "bulkReinstalled":
+			return commands.projectReinstallPackages(
+				projectPath,
+				operation.packageIds,
+			);
+		case "bulkRemoved":
+			return commands.projectRemovePackages(projectPath, operation.packageIds);
+		default:
+			assertNever(operation);
+	}
+}
+
+function packagesToIndexes(
+	packages: TauriPackage[],
+): [envVersion: number, packagesIndexes: number[]] {
+	let envVersion: number | undefined = undefined;
+	const packagesIndexes: number[] = [];
+	for (const pkg of packages) {
+		if (envVersion == null) envVersion = pkg.env_version;
+		else if (envVersion !== pkg.env_version)
+			throw new Error("Inconsistent env_version");
+
+		packagesIndexes.push(pkg.index);
+	}
+	if (envVersion == null) {
+		throw new Error("projects:manage:toast:no upgradable");
+	}
+	return [envVersion, packagesIndexes];
 }
 
 async function invalidate(projectPath: string) {
@@ -168,12 +232,10 @@ function showToast(requested: RequestedOperation) {
 
 function ProjectChangesDialog({
 	changes,
-	packages,
 	existingPackages,
 	dialog,
 }: {
 	changes: TauriPendingProjectChanges;
-	packages: PackageRowInfo[];
 	existingPackages?: [string, TauriBasePackageInfo][];
 	dialog: DialogContext<boolean>;
 }) {
@@ -184,11 +246,6 @@ function ProjectChangesDialog({
 	const unlockedConflicts = changes.conflicts.flatMap(
 		([_, c]) => c.unlocked_names,
 	);
-
-	const getPackageDisplayName = useMemo(() => {
-		const packagesById = new Map(packages.map((p) => [p.id, p]));
-		return (pkgId: string) => packagesById.get(pkgId)?.displayName ?? pkgId;
-	}, [packages]);
 
 	const TypographyItem = ({ children }: { children: React.ReactNode }) => (
 		<div className={"p-3"}>
@@ -212,6 +269,8 @@ function ProjectChangesDialog({
 
 	const installingPackages = changes.package_changes.filter(isInstallNew);
 	const removingPackages = changes.package_changes.filter(isRemove);
+
+	const installingPackageById = new Map(installingPackages);
 
 	const reInstallingPackages = installingPackages.filter(([pkgId, c]) => {
 		const info = existingPackageMap.get(pkgId);
@@ -310,7 +369,7 @@ function ProjectChangesDialog({
 						);
 					})}
 					{removingRequestedPackages.map(([pkgId, _]) => {
-						const name = getPackageDisplayName(pkgId);
+						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
 						return (
 							<TypographyItem key={pkgId}>
 								{tc("projects:manage:dialog:uninstall package as requested", {
@@ -320,7 +379,7 @@ function ProjectChangesDialog({
 						);
 					})}
 					{removingLegacyPackages.map(([pkgId, _]) => {
-						const name = getPackageDisplayName(pkgId);
+						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
 						return (
 							<TypographyItem key={pkgId}>
 								{tc("projects:manage:dialog:uninstall package as legacy", {
@@ -330,7 +389,7 @@ function ProjectChangesDialog({
 						);
 					})}
 					{removingUnusedPackages.map(([pkgId, _]) => {
-						const name = getPackageDisplayName(pkgId);
+						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
 						return (
 							<TypographyItem key={pkgId}>
 								{tc("projects:manage:dialog:uninstall package as unused", {
@@ -349,6 +408,13 @@ function ProjectChangesDialog({
 						</p>
 						<div className={"flex flex-col gap-1 p-2"}>
 							{versionConflicts.map(([pkgId, conflict]) => {
+								function getPackageDisplayName(id: string) {
+									return (
+										installingPackageById.get(id)?.InstallNew?.display_name ??
+										existingPackageMap.get(id)?.display_name ??
+										pkgId
+									);
+								}
 								return (
 									<TypographyItem key={pkgId}>
 										{tc("projects:manage:dialog:conflicts with", {
@@ -375,7 +441,11 @@ function ProjectChangesDialog({
 								<TypographyItem key={pkgId}>
 									{tc(
 										"projects:manage:dialog:package not supported your unity",
-										{ pkg: getPackageDisplayName(pkgId) },
+										{
+											pkg:
+												installingPackageById.get(pkgId)?.InstallNew
+													?.display_name ?? pkgId,
+										},
 									)}
 								</TypographyItem>
 							))}

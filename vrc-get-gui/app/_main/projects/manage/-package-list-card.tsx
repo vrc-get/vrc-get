@@ -1,6 +1,6 @@
 // noinspection ExceptionCaughtLocallyJS
 
-import type { CreateOperation } from "@/app/_main/projects/manage/-use-package-change";
+import type { RequestedOperation } from "@/app/_main/projects/manage/-use-package-change";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ import type { TauriPackage, TauriRepositoriesInfo } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc, tt } from "@/lib/i18n";
-import { toastError, toastThrownError } from "@/lib/toast";
+import { toastThrownError } from "@/lib/toast";
 import { toVersionString } from "@/lib/version";
 import {
 	queryOptions,
@@ -74,7 +74,7 @@ export const PackageListCard = memo(function PackageListCard({
 	onRefresh,
 }: {
 	projectPath: string;
-	createChanges: (operation: CreateOperation) => void;
+	createChanges: (operation: RequestedOperation) => void;
 	packageRowsData: PackageRowInfo[];
 	repositoriesInfo: TauriRepositoriesInfo | undefined;
 	onRefresh: () => void;
@@ -123,58 +123,41 @@ export const PackageListCard = memo(function PackageListCard({
 				type: "install",
 				pkg,
 				hasUnityIncompatibleLatest,
-				createPromise: () =>
-					commands.projectInstallPackages(projectPath, pkg.env_version, [
-						pkg.index,
-					]),
 			});
 		},
-		[projectPath, createChanges],
+		[createChanges],
 	);
 
 	const onUpgradeAllRequest = useCallback(
 		(stable: boolean) => {
 			const latestKey = stable ? "stableLatest" : "latest";
 			try {
-				const packages: number[] = [];
-				let envVersion: number | undefined = undefined;
+				const packages: TauriPackage[] = [];
 				let hasUnityIncompatibleLatest = false;
 				for (const packageRow of packageRowsData) {
 					const latestInfo = packageRow[latestKey];
 					if (latestInfo.status === "upgradable") {
-						if (envVersion == null) envVersion = latestInfo.pkg.env_version;
-						else if (envVersion !== latestInfo.pkg.env_version)
-							throw new Error("Inconsistent env_version");
-						packages.push(latestInfo.pkg.index);
+						packages.push(latestInfo.pkg);
 						hasUnityIncompatibleLatest ||=
 							latestInfo.hasUnityIncompatibleLatest;
 					}
 				}
-				if (envVersion == null) {
-					toastError(tt("projects:manage:toast:no upgradable"));
-					return;
-				}
 				createChanges({
 					type: "upgradeAll",
 					hasUnityIncompatibleLatest,
-					createPromise: () =>
-						commands.projectInstallPackages(projectPath, envVersion, packages),
+					packages,
 				});
 			} catch (e) {
 				console.error(e);
 				toastThrownError(e);
 			}
 		},
-		[createChanges, projectPath, packageRowsData],
+		[createChanges, packageRowsData],
 	);
 
 	const onReinstallRequest = useCallback(
-		() =>
-			createChanges({
-				type: "reinstallAll",
-				createPromise: () => commands.projectResolve(projectPath),
-			}),
-		[createChanges, projectPath],
+		() => createChanges({ type: "reinstallAll" }),
+		[createChanges],
 	);
 
 	const onRemoveRequested = useCallback(
@@ -182,10 +165,9 @@ export const PackageListCard = memo(function PackageListCard({
 			createChanges({
 				type: "remove",
 				displayName: pkg.displayName,
-				createPromise: () =>
-					commands.projectRemovePackages(projectPath, [pkg.id]),
+				packageId: pkg.id,
 			}),
-		[createChanges, projectPath],
+		[createChanges],
 	);
 
 	const onInstallOrUpgradeBulkRequested = useCallback(
@@ -193,8 +175,7 @@ export const PackageListCard = memo(function PackageListCard({
 			const latestKey = stable ? "stableLatest" : "latest";
 			try {
 				const packageIds = new Set(bulkUpdatePackageIds.map(([id, _]) => id));
-				const packages: number[] = [];
-				let envVersion: number | undefined = undefined;
+				const packages: TauriPackage[] = [];
 				let hasUnityIncompatibleLatest = false;
 				for (const packageRow of packageRowsData) {
 					if (packageIds.has(packageRow.id)) {
@@ -205,59 +186,42 @@ export const PackageListCard = memo(function PackageListCard({
 						)
 							throw new Error("Package is not installable");
 
-						if (envVersion == null) envVersion = latestInfo.pkg.env_version;
-						else if (envVersion !== latestInfo.pkg.env_version)
-							throw new Error("Inconsistent env_version");
-
-						packages.push(latestInfo.pkg.index);
+						packages.push(latestInfo.pkg);
 						hasUnityIncompatibleLatest ||=
 							latestInfo.hasUnityIncompatibleLatest;
 					}
 				}
-				if (envVersion == null) {
-					toastError(tt("projects:manage:toast:no upgradable"));
-					return;
-				}
 				createChanges({
 					type: "bulkInstalled",
 					hasUnityIncompatibleLatest,
-					createPromise: () =>
-						commands.projectInstallPackages(projectPath, envVersion, packages),
+					packages,
 				});
 			} catch (e) {
 				console.error(e);
 				toastThrownError(e);
 			}
 		},
-		[bulkUpdatePackageIds, createChanges, packageRowsData, projectPath],
+		[bulkUpdatePackageIds, createChanges, packageRowsData],
 	);
 
 	const onBulkReinstallRequested = useCallback(() => {
 		try {
 			createChanges({
 				type: "bulkReinstalled",
-				createPromise: () =>
-					commands.projectReinstallPackages(
-						projectPath,
-						bulkUpdatePackageIds.map(([id, _]) => id),
-					),
+				packageIds: bulkUpdatePackageIds.map(([id, _]) => id),
 			});
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);
 		}
-	}, [bulkUpdatePackageIds, createChanges, projectPath]);
+	}, [bulkUpdatePackageIds, createChanges]);
 
 	const onRemoveBulkRequested = useCallback(() => {
 		createChanges({
 			type: "bulkRemoved",
-			createPromise: () =>
-				commands.projectRemovePackages(
-					projectPath,
-					bulkUpdatePackageIds.map(([id, _]) => id),
-				),
+			packageIds: bulkUpdatePackageIds.map(([id, _]) => id),
 		});
-	}, [bulkUpdatePackageIds, createChanges, projectPath]);
+	}, [bulkUpdatePackageIds, createChanges]);
 
 	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
 		const possibleUpdate: PackageBulkUpdateMode = bulkUpdateModeForPackage(row);

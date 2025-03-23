@@ -57,7 +57,7 @@ import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
 import { unityVersionChange } from "./-unity-migration";
-import { type CreateOperation, applyChanges } from "./-use-package-change";
+import { type RequestedOperation, applyChanges } from "./-use-package-change";
 
 interface SearchParams {
 	projectPath: string;
@@ -149,14 +149,8 @@ function PageBody() {
 	}, [detailsResult, packagesResult, repositoriesInfo, unityVersionsResult]);
 
 	const packageChange = useMutation({
-		mutationFn: (operation: CreateOperation) =>
-			applyChanges(
-				packageRowsData,
-				detailsResult.data?.installed_packages,
-				projectPath,
-				operation,
-				operation.createPromise,
-			),
+		mutationFn: (operation: RequestedOperation) =>
+			applyChanges({ ...operation, projectPath }),
 		onError: (e) => {
 			console.error(e);
 			toastThrownError(e);
@@ -194,13 +188,6 @@ function PageBody() {
 		});
 	}, [projectName, projectPath]);
 
-	const onResolveRequest = useCallback(() => {
-		packageChange.mutate({
-			type: "resolve",
-			createPromise: () => commands.projectResolve(projectPath),
-		});
-	}, [packageChange, projectPath]);
-
 	const isLoading =
 		packagesResult.isFetching ||
 		detailsResult.isFetching ||
@@ -229,7 +216,7 @@ function PageBody() {
 				{detailsResult?.data?.should_resolve && (
 					<SuggestResolveProjectCard
 						disabled={isLoading}
-						onResolveRequested={onResolveRequest}
+						onResolveRequested={() => packageChange.mutate({ type: "resolve" })}
 					/>
 				)}
 				<MigrationCards
