@@ -4,7 +4,7 @@ import { routeTree } from "./routeTree.gen";
 import "./polyfill";
 
 // Set up a Router instance
-const router = createRouter({
+export const router = createRouter({
 	routeTree,
 	defaultPreload: "intent",
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { CreateProject } from "@/app/_main/projects/-create-project";
+import { createProject } from "@/app/_main/projects/-create-project";
 import { SearchBox } from "@/components/SearchBox";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -36,14 +36,10 @@ function Page() {
 		queryFn: commands.environmentProjects,
 	});
 	const [search, setSearch] = useState("");
-	const [loadingOther, setLoadingOther] = useState(false);
-	const [createProjectState, setCreateProjectState] = useState<
-		"normal" | "creating"
-	>("normal");
 
-	const startCreateProject = () => setCreateProjectState("creating");
+	const startCreateProject = () => void createProject();
 
-	const loading = result.isFetching || loadingOther;
+	const loading = result.isFetching;
 
 	return (
 		<VStack>
@@ -57,12 +53,6 @@ function Page() {
 			/>
 			<main className="shrink overflow-hidden flex w-full h-full">
 				<ProjectsListCard result={result} search={search} loading={loading} />
-				{createProjectState === "creating" && (
-					<CreateProject
-						close={() => setCreateProjectState("normal")}
-						refetch={() => result.refetch()}
-					/>
-				)}
 			</main>
 		</VStack>
 	);

@@ -345,7 +345,7 @@ function UnityVersionChange({
 	);
 }
 
-function MigrationCopyingDialog({
+export function MigrationCopyingDialog({
 	projectPath,
 	dialog,
 	header,
