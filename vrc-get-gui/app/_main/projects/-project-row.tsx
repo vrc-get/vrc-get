@@ -29,6 +29,11 @@ import { router } from "@/lib/main";
 import { openUnity } from "@/lib/open-unity";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import {
+	queryOptions,
+	useMutation,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	CircleHelp,
@@ -64,14 +69,17 @@ const LegacyProjectTypes = [
 	"UpmStarter",
 ];
 
+const environmentProjects = queryOptions({
+	queryKey: ["environmentProjects"],
+	queryFn: commands.environmentProjects,
+});
+
 export function ProjectRow({
 	project,
 	loading,
-	refresh,
 }: {
 	project: TauriProject;
 	loading?: boolean;
-	refresh?: () => void;
 }) {
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
@@ -86,19 +94,37 @@ export function ProjectRow({
 	const openProjectFolder = () =>
 		commands.utilOpen(project.path, "ErrorIfNotExists");
 
-	const onToggleFavorite = async () => {
-		try {
-			await commands.environmentSetFavoriteProject(
+	const queryClient = useQueryClient();
+	const setProjectFavorite = useMutation({
+		mutationFn: (
+			project: Pick<TauriProject, "list_version" | "index" | "favorite">,
+		) =>
+			commands.environmentSetFavoriteProject(
 				project.list_version,
 				project.index,
-				!project.favorite,
-			);
-			refresh?.();
-		} catch (e) {
+				project.favorite,
+			),
+		onMutate: async (project) => {
+			await queryClient.cancelQueries(environmentProjects);
+			const data = queryClient.getQueryData(environmentProjects.queryKey);
+			if (data !== undefined) {
+				queryClient.setQueryData(
+					environmentProjects.queryKey,
+					data.map((v) =>
+						v.list_version === project.list_version && v.index === project.index
+							? { ...v, favorite: project.favorite }
+							: v,
+					),
+				);
+			}
+			return data;
+		},
+		onError: (e, _, ctx) => {
 			console.error("Error migrating project", e);
 			toastThrownError(e);
-		}
-	};
+			queryClient.setQueryData(environmentProjects.queryKey, ctx);
+		},
+	});
 
 	const removed = !project.is_exists;
 
@@ -111,7 +137,12 @@ export function ProjectRow({
 					<div className={"relative flex"}>
 						<Checkbox
 							checked={project.favorite}
-							onCheckedChange={onToggleFavorite}
+							onCheckedChange={() =>
+								setProjectFavorite.mutate({
+									...project,
+									favorite: !project.favorite,
+								})
+							}
 							disabled={removed || loading}
 							className="before:transition-none border-none text-primary! peer"
 						/>

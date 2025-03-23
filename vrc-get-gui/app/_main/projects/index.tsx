@@ -1,9 +1,11 @@
 "use client";
 
+import Loading from "@/app/-loading";
 import { createProject } from "@/app/_main/projects/-create-project";
 import { SearchBox } from "@/components/SearchBox";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -20,21 +22,28 @@ import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useQuery } from "@tanstack/react-query";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
-import ProjectsListCard from "./-projects-list-card";
+import { ProjectsTableCard } from "./-projects-list-card";
 
 export const Route = createFileRoute("/_main/projects/")({
 	component: Page,
 });
 
+const environmentProjects = queryOptions({
+	queryKey: ["environmentProjects"],
+	queryFn: commands.environmentProjects,
+});
+
 function Page() {
-	const result = useQuery({
-		queryKey: ["environmentProjects"],
-		queryFn: commands.environmentProjects,
-	});
+	const result = useQuery(environmentProjects);
 	const [search, setSearch] = useState("");
 
 	const startCreateProject = () => void createProject();
@@ -44,38 +53,47 @@ function Page() {
 	return (
 		<VStack>
 			<ProjectViewHeader
-				className={"shrink-0"}
-				refresh={() => result.refetch()}
 				startCreateProject={startCreateProject}
 				isLoading={loading}
 				search={search}
 				setSearch={setSearch}
 			/>
 			<main className="shrink overflow-hidden flex w-full h-full">
-				<ProjectsListCard result={result} search={search} loading={loading} />
+				{result.status === "pending" ? (
+					<Card className="w-full shadow-none overflow-hidden p-4">
+						<Loading loadingText={tc("general:loading...")} />
+					</Card>
+				) : result.status === "error" ? (
+					<Card className="w-full shadow-none overflow-hidden p-4">
+						{tc("projects:error:load error", { msg: result.error.message })}
+					</Card>
+				) : (
+					<ProjectsTableCard
+						projects={result.data}
+						search={search}
+						loading={loading}
+					/>
+				)}
 			</main>
 		</VStack>
 	);
 }
 
 function ProjectViewHeader({
-	className,
-	refresh,
 	startCreateProject,
 	isLoading,
 	search,
 	setSearch,
 }: {
-	className?: string;
-	refresh?: () => void;
 	startCreateProject?: () => void;
 	isLoading?: boolean;
 	search: string;
 	setSearch: (search: string) => void;
 }) {
-	const addProject = async () => {
-		try {
-			const result = await commands.environmentAddProjectWithPicker();
+	const queryClient = useQueryClient();
+	const addProjectWithPicker = useMutation({
+		mutationFn: async () => await commands.environmentAddProjectWithPicker(),
+		onSuccess: (result) => {
 			switch (result) {
 				case "NoFolderSelected":
 					// no-op
@@ -85,7 +103,6 @@ function ProjectViewHeader({
 					break;
 				case "Successful":
 					toastSuccess(tt("projects:toast:project added"));
-					refresh?.();
 					break;
 				case "AlreadyAdded":
 					toastError(tt("projects:toast:project already exists"));
@@ -93,11 +110,15 @@ function ProjectViewHeader({
 				default:
 					assertNever(result);
 			}
-		} catch (e) {
+		},
+		onError: (e) => {
 			console.error("Error adding project", e);
 			toastThrownError(e);
-		}
-	};
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentProjects);
+		},
+	});
 
 	const searchRef = useRef<HTMLInputElement>(null);
 
@@ -124,7 +145,9 @@ function ProjectViewHeader({
 							<Button
 								variant={"ghost"}
 								size={"icon"}
-								onClick={() => refresh?.()}
+								onClick={() =>
+									queryClient.invalidateQueries(environmentProjects)
+								}
 								disabled={isLoading}
 							>
 								{isLoading ? (
@@ -161,7 +184,7 @@ function ProjectViewHeader({
 						</DropdownMenuTrigger>
 					</div>
 					<DropdownMenuContent>
-						<DropdownMenuItem onClick={addProject}>
+						<DropdownMenuItem onClick={() => addProjectWithPicker.mutate()}>
 							{tc("projects:add existing project")}
 						</DropdownMenuItem>
 					</DropdownMenuContent>

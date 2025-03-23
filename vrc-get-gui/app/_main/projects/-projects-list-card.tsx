@@ -1,8 +1,5 @@
 "use client";
-
-import Loading from "@/app/-loading";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
-import { Card } from "@/components/ui/card";
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
@@ -22,38 +19,6 @@ type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
 function isSorting(s: string | unknown): s is Sorting {
 	return sortings.some(
 		(sorting) => sorting === s || `${sorting}Reversed` === s,
-	);
-}
-
-export default function ProjectsListCard({
-	result,
-	search,
-	loading,
-}: {
-	// biome-ignore lint/suspicious/noExplicitAny: none
-	result: any;
-	search: string;
-	loading: boolean;
-}) {
-	return (
-		<>
-			{result.status === "pending" ? (
-				<Card className="w-full shadow-none overflow-hidden p-4">
-					<Loading loadingText={tc("general:loading...")} />
-				</Card>
-			) : result.status === "error" ? (
-				<Card className="w-full shadow-none overflow-hidden p-4">
-					{tc("projects:error:load error", { msg: result.error.message })}
-				</Card>
-			) : (
-				<ProjectsTableCard
-					projects={result.data}
-					search={search}
-					loading={loading}
-					refresh={() => result.refetch()}
-				/>
-			)}
-		</>
 	);
 }
 
@@ -98,16 +63,14 @@ function compareProjectType(
 	assertNever(a, "project type");
 }
 
-function ProjectsTableCard({
+export function ProjectsTableCard({
 	projects,
 	search,
 	loading,
-	refresh,
 }: {
 	projects: TauriProject[];
 	search?: string;
 	loading?: boolean;
-	refresh?: () => void;
 }) {
 	const sortingQuery = useQuery({
 		initialData: "lastModified" as Sorting,
@@ -269,12 +232,7 @@ function ProjectsTableCard({
 			</thead>
 			<tbody>
 				{projectsShown.map((project) => (
-					<ProjectRow
-						key={project.index}
-						project={project}
-						loading={loading}
-						refresh={refresh}
-					/>
+					<ProjectRow key={project.index} project={project} loading={loading} />
 				))}
 			</tbody>
 		</ScrollableCardTable>
