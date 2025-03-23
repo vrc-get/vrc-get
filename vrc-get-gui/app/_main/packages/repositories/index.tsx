@@ -28,7 +28,12 @@ import { usePrevPathName } from "@/lib/prev-page";
 import { toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, CircleX } from "lucide-react";
 import type React from "react";
@@ -57,11 +62,13 @@ function Page() {
 	);
 }
 
+const environmentRepositoriesInfo = queryOptions({
+	queryKey: ["environmentRepositoriesInfo"],
+	queryFn: commands.environmentRepositoriesInfo,
+});
+
 function PageBody() {
-	const result = useQuery({
-		queryKey: ["environmentRepositoriesInfo"],
-		queryFn: commands.environmentRepositoriesInfo,
-	});
+	const result = useQuery(environmentRepositoriesInfo);
 	const onFinishAddRepositoryCallbackRef = useRef<() => void>(undefined);
 
 	const addRepositoryInfo = useAddRepository({
@@ -76,27 +83,18 @@ function PageBody() {
 		refetch: () => result.refetch(),
 	});
 
-	const exportRepositories = useCallback(async () => {
-		try {
-			await commands.environmentExportRepositories();
-		} catch (e) {
+	const exportRepositories = useMutation({
+		mutationFn: async () => await commands.environmentExportRepositories(),
+		onError: (e) => {
+			console.error(e);
 			toastThrownError(e);
-		}
-	}, []);
+		},
+	});
 
 	const hiddenUserRepos = useMemo(
 		() => new Set(result.data?.hidden_user_repositories),
-		[result],
+		[result.data?.hidden_user_repositories],
 	);
-
-	async function removeRepository(id: string) {
-		try {
-			await commands.environmentRemoveRepository(id);
-			await result.refetch();
-		} catch (e) {
-			toastThrownError(e);
-		}
-	}
 
 	const addRepository = addRepositoryInfo.addRepository;
 	const inProgress = addRepositoryInfo.inProgress;
@@ -164,7 +162,7 @@ function PageBody() {
 							>
 								{tc("vpm repositories:button:import repositories")}
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={exportRepositories}>
+							<DropdownMenuItem onClick={() => exportRepositories.mutate()}>
 								{tc("vpm repositories:button:export repositories")}
 							</DropdownMenuItem>
 						</DropdownMenuContent>
@@ -178,8 +176,6 @@ function PageBody() {
 					<RepositoryTableBody
 						userRepos={result.data?.user_repositories || []}
 						hiddenUserRepos={hiddenUserRepos}
-						removeRepository={removeRepository}
-						refetch={() => result.refetch()}
 					/>
 				</ScrollableCardTable>
 			</main>
@@ -192,14 +188,29 @@ function PageBody() {
 function RepositoryTableBody({
 	userRepos,
 	hiddenUserRepos,
-	removeRepository,
-	refetch,
 }: {
 	userRepos: TauriUserRepository[];
 	hiddenUserRepos: Set<string>;
-	removeRepository: (id: string) => void;
-	refetch: () => void;
 }) {
+	const queryClient = useQueryClient();
+
+	const removeRepository = useMutation({
+		mutationFn: async (id: string) =>
+			await commands.environmentRemoveRepository(id),
+		onMutate: async (id) => {
+			await queryClient.cancelQueries(environmentRepositoriesInfo);
+			const data = queryClient.getQueryData(
+				environmentRepositoriesInfo.queryKey,
+			);
+			if (data !== undefined) {
+				queryClient.setQueryData(environmentRepositoriesInfo.queryKey, {
+					...data,
+					user_repositories: data.user_repositories.filter((x) => x.id !== id),
+				});
+			}
+		},
+	});
+
 	const TABLE_HEAD = [
 		"", // checkbox
 		"general:name",
@@ -230,14 +241,12 @@ function RepositoryTableBody({
 					url={"https://packages.vrchat.com/official?download"}
 					displayName={tt("vpm repositories:source:official")}
 					hiddenUserRepos={hiddenUserRepos}
-					refetch={refetch}
 				/>
 				<RepositoryRow
 					repoId={"com.vrchat.repos.curated"}
 					url={"https://packages.vrchat.com/curated?download"}
 					displayName={tt("vpm repositories:source:curated")}
 					hiddenUserRepos={hiddenUserRepos}
-					refetch={refetch}
 					className={"border-b border-primary/10"}
 				/>
 				{userRepos.map((repo) => (
@@ -247,8 +256,7 @@ function RepositoryTableBody({
 						displayName={repo.display_name}
 						url={repo.url}
 						hiddenUserRepos={hiddenUserRepos}
-						remove={() => removeRepository(repo.id)}
-						refetch={refetch}
+						remove={() => removeRepository.mutate(repo.id)}
 					/>
 				))}
 			</tbody>
@@ -263,7 +271,6 @@ function RepositoryRow({
 	hiddenUserRepos,
 	className,
 	remove,
-	refetch,
 }: {
 	repoId: TauriUserRepository["id"];
 	displayName: TauriUserRepository["display_name"];
@@ -271,21 +278,59 @@ function RepositoryRow({
 	hiddenUserRepos: Set<string>;
 	className?: string;
 	remove?: () => void;
-	refetch: () => void;
 }) {
 	const cellClass = "p-2.5";
 	const id = useId();
 
 	const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
 
+	const queryClient = useQueryClient();
+	const setHideRepository = useMutation({
+		mutationFn: async ({ id, shown }: { id: string; shown: boolean }) => {
+			console.log(`setHideRepository ${id}, ${shown}`);
+			if (shown) {
+				await commands.environmentShowRepository(id);
+			} else {
+				await commands.environmentHideRepository(id);
+			}
+		},
+		onMutate: async ({ id, shown }: { id: string; shown: boolean }) => {
+			await queryClient.cancelQueries(environmentRepositoriesInfo);
+			const data = queryClient.getQueryData(
+				environmentRepositoriesInfo.queryKey,
+			);
+			if (data !== undefined) {
+				let hidden_user_repositories: string[];
+				if (shown) {
+					if (data.hidden_user_repositories.includes(id)) {
+						hidden_user_repositories = data.hidden_user_repositories;
+					} else {
+						hidden_user_repositories = [...data.hidden_user_repositories, id];
+					}
+				} else {
+					hidden_user_repositories = data.hidden_user_repositories.filter(
+						(x) => x !== id,
+					);
+				}
+
+				queryClient.setQueryData(environmentRepositoriesInfo.queryKey, {
+					...data,
+					hidden_user_repositories,
+				});
+			}
+			return data;
+		},
+		onError: (e, _, ctx) => {
+			reportError(e);
+			console.error(e);
+			queryClient.setQueryData(environmentRepositoriesInfo.queryKey, ctx);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentRepositoriesInfo);
+		},
+	});
+
 	const selected = !hiddenUserRepos.has(repoId);
-	const onChange = () => {
-		if (selected) {
-			commands.environmentHideRepository(repoId).then(refetch);
-		} else {
-			commands.environmentShowRepository(repoId).then(refetch);
-		}
-	};
 
 	let dialog: React.ReactNode;
 	if (removeDialogOpen) {
@@ -320,7 +365,13 @@ function RepositoryRow({
 	return (
 		<tr className={cn("even:bg-secondary/30", className)}>
 			<td className={cellClass}>
-				<Checkbox id={id} checked={selected} onCheckedChange={onChange} />
+				<Checkbox
+					id={id}
+					checked={selected}
+					onCheckedChange={(x) =>
+						setHideRepository.mutate({ id: repoId, shown: x === true })
+					}
+				/>
 			</td>
 			<td className={cellClass}>
 				<label htmlFor={id}>
