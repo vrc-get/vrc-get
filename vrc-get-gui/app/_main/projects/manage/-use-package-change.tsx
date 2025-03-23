@@ -18,7 +18,7 @@ import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { isHandleable } from "@/lib/errors";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
-import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
+import { toastInfo, toastSuccess } from "@/lib/toast";
 import { compareVersion, toVersionString } from "@/lib/version";
 import { CircleAlert } from "lucide-react";
 import type React from "react";
@@ -56,6 +56,10 @@ export type RequestedOperation =
 			type: "bulkRemoved";
 	  };
 
+export type CreateOperation = RequestedOperation & {
+	createPromise: () => Promise<TauriPendingProjectChanges>;
+};
+
 export async function applyChanges(
 	packageRowsData: PackageRowInfo[],
 	existingPackages: [string, TauriBasePackageInfo][] | undefined,
@@ -87,8 +91,7 @@ export async function applyChanges(
 				dependencies: e.body.dependencies,
 			});
 		} else {
-			console.error(e);
-			toastThrownError(e);
+			throw e;
 		}
 	}
 }

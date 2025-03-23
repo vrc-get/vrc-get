@@ -34,11 +34,7 @@ import {
 	UnityArgumentsSettings,
 	useUnityArgumentsSettings,
 } from "@/components/unity-arguments-settings";
-import type {
-	TauriPendingProjectChanges,
-	TauriProjectDetails,
-	TauriUnityVersions,
-} from "@/lib/bindings";
+import type { TauriProjectDetails, TauriUnityVersions } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { VRCSDK_PACKAGES, VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
@@ -49,19 +45,19 @@ import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
 import {
 	type UseQueryResult,
+	useMutation,
 	useQueries,
 	useQuery,
 } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import type React from "react";
-import { useTransition } from "react";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
 import { unityVersionChange } from "./-unity-migration";
-import { type RequestedOperation, applyChanges } from "./-use-package-change";
+import { type CreateOperation, applyChanges } from "./-use-package-change";
 
 interface SearchParams {
 	projectPath: string;
@@ -152,24 +148,20 @@ function PageBody() {
 		}
 	}, [detailsResult, packagesResult, repositoriesInfo, unityVersionsResult]);
 
-	const [installingPackage, installTransition] = useTransition();
-
-	const packageChange = useCallback(
-		(
-			operation: RequestedOperation,
-			createPromise: () => Promise<TauriPendingProjectChanges>,
-		) =>
-			installTransition(() =>
-				applyChanges(
-					packageRowsData,
-					detailsResult.data?.installed_packages,
-					projectPath,
-					operation,
-					createPromise,
-				),
+	const packageChange = useMutation({
+		mutationFn: (operation: CreateOperation) =>
+			applyChanges(
+				packageRowsData,
+				detailsResult.data?.installed_packages,
+				projectPath,
+				operation,
+				operation.createPromise,
 			),
-		[packageRowsData, projectPath, detailsResult.data?.installed_packages],
-	);
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+	});
 
 	const requestChangeUnityVersion = (
 		version: string,
@@ -192,10 +184,6 @@ function PageBody() {
 		});
 	};
 
-	const onRefreshRepositories = useCallback(() => {
-		repositoriesInfo.refetch();
-	}, [repositoriesInfo]);
-
 	const onRemoveProject = useCallback(() => {
 		void openSingleDialog(RemoveProjectDialog, {
 			project: {
@@ -207,9 +195,10 @@ function PageBody() {
 	}, [projectName, projectPath]);
 
 	const onResolveRequest = useCallback(() => {
-		packageChange({ type: "resolve" }, () =>
-			commands.projectResolve(projectPath),
-		);
+		packageChange.mutate({
+			type: "resolve",
+			createPromise: () => commands.projectResolve(projectPath),
+		});
 	}, [packageChange, projectPath]);
 
 	const isLoading =
@@ -217,7 +206,7 @@ function PageBody() {
 		detailsResult.isFetching ||
 		repositoriesInfo.isFetching ||
 		unityVersionsResult.isLoading ||
-		installingPackage ||
+		packageChange.isPending ||
 		manualRefetching;
 
 	console.log(`rerender: isloading: ${isLoading}`);
@@ -252,11 +241,10 @@ function PageBody() {
 				<main className="shrink overflow-hidden flex w-full h-full">
 					<PackageListCard
 						projectPath={projectPath}
-						createChanges={packageChange}
+						createChanges={packageChange.mutate}
 						packageRowsData={packageRowsData}
 						repositoriesInfo={repositoriesInfo.data}
 						onRefresh={onRefresh}
-						onRefreshRepositories={onRefreshRepositories}
 					/>
 				</main>
 			</VStack>

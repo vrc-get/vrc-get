@@ -243,7 +243,6 @@ function RepositoryRow({
 	const queryClient = useQueryClient();
 	const setHideRepository = useMutation({
 		mutationFn: async ({ id, shown }: { id: string; shown: boolean }) => {
-			console.log(`setHideRepository ${id}, ${shown}`);
 			if (shown) {
 				await commands.environmentShowRepository(id);
 			} else {
