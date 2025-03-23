@@ -18,7 +18,7 @@ type DialogProps<R> = {
 
 type DialogResult<P> = P extends DialogProps<infer R> ? R : unknown;
 
-interface DialogApi {
+export interface DialogApi {
 	replace(state: React.ReactNode): void;
 
 	ask<P extends DialogProps<never>>(
