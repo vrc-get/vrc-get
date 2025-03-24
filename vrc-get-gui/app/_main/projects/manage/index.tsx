@@ -43,9 +43,11 @@ import { openUnity } from "@/lib/open-unity";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
+import type { DefaultError, MutationState } from "@tanstack/query-core";
 import {
 	type UseQueryResult,
 	useMutation,
+	useMutationState,
 	useQueries,
 	useQuery,
 } from "@tanstack/react-query";
@@ -57,7 +59,10 @@ import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
 import { unityVersionChange } from "./-unity-migration";
-import { applyChanges } from "./-use-package-change";
+import {
+	type RequestedOperation,
+	applyChangesMutation,
+} from "./-use-package-change";
 
 interface SearchParams {
 	projectPath: string;
@@ -148,13 +153,16 @@ function PageBody() {
 		}
 	}, [detailsResult, packagesResult, repositoriesInfo, unityVersionsResult]);
 
-	const packageChange = useMutation({
-		mutationFn: applyChanges,
-		onError: (e) => {
-			console.error(e);
-			toastThrownError(e);
+	const fetchingMutation = useMutationState<
+		MutationState<unknown, DefaultError, RequestedOperation>
+	>({
+		filters: {
+			mutationKey: applyChangesMutation.mutationKey,
+			status: "pending",
 		},
-	});
+	}).filter(
+		(x) => x.variables && x.variables.projectPath === projectPath,
+	).length;
 
 	const requestChangeUnityVersion = (
 		version: string,
@@ -192,7 +200,7 @@ function PageBody() {
 		detailsResult.isFetching ||
 		repositoriesInfo.isFetching ||
 		unityVersionsResult.isLoading ||
-		packageChange.isPending ||
+		fetchingMutation !== 0 ||
 		manualRefetching;
 
 	console.log(`rerender: isloading: ${isLoading}`);
@@ -213,12 +221,7 @@ function PageBody() {
 					onRemoveProject={onRemoveProject}
 				/>
 				{detailsResult?.data?.should_resolve && (
-					<SuggestResolveProjectCard
-						disabled={isLoading}
-						onResolveRequested={() =>
-							packageChange.mutate({ type: "resolve", projectPath })
-						}
-					/>
+					<SuggestResolveProjectCard disabled={isLoading} />
 				)}
 				<MigrationCards
 					isLoading={isLoading}
@@ -228,8 +231,6 @@ function PageBody() {
 				/>
 				<main className="shrink overflow-hidden flex w-full h-full">
 					<PackageListCard
-						projectPath={projectPath}
-						createChanges={packageChange.mutate}
 						packageRowsData={packageRowsData}
 						repositoriesInfo={repositoriesInfo.data}
 						onRefresh={onRefresh}
@@ -336,11 +337,12 @@ function UnityVersionSelector({
 
 function SuggestResolveProjectCard({
 	disabled,
-	onResolveRequested,
 }: {
 	disabled?: boolean;
-	onResolveRequested: () => void;
 }) {
+	const { projectPath } = Route.useSearch();
+	const packageChange = useMutation(applyChangesMutation);
+
 	return (
 		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm">
@@ -349,7 +351,7 @@ function SuggestResolveProjectCard({
 			<div className={"grow shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
-				onClick={onResolveRequested}
+				onClick={() => packageChange.mutate({ type: "resolve", projectPath })}
 				disabled={disabled}
 			>
 				{tc("projects:manage:button:resolve")}

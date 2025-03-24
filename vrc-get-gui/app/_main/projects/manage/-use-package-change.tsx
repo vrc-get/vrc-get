@@ -18,9 +18,10 @@ import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { isHandleable } from "@/lib/errors";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
-import { toastInfo, toastSuccess } from "@/lib/toast";
+import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareVersion, toVersionString } from "@/lib/version";
-import { queryOptions } from "@tanstack/react-query";
+import type { DefaultError } from "@tanstack/query-core";
+import { type UseMutationOptions, queryOptions } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import type React from "react";
 
@@ -69,6 +70,36 @@ function environmentPackages(projectPath: string) {
 	});
 }
 
+function mutationOptions<
+	TOptions extends UseMutationOptions<TData, TError, TVariables, TContext>,
+	TData = unknown,
+	TError = DefaultError,
+	TVariables = void,
+	TContext = unknown,
+>(
+	options: TOptions & UseMutationOptions<TData, TError, TVariables, TContext>,
+): TOptions {
+	return options;
+}
+
+export const applyChangesMutation = mutationOptions({
+	mutationKey: ["projectApplyChanges"],
+	mutationFn: async (operation: RequestedOperation) =>
+		await applyChanges(operation),
+	onError: (e) => {
+		console.error(e);
+		toastThrownError(e);
+	},
+	onSettled: async (_, _2, { projectPath }) => {
+		await queryClient.invalidateQueries({
+			queryKey: ["projectDetails", projectPath],
+		});
+		await queryClient.invalidateQueries({
+			queryKey: ["environmentPackages"],
+		});
+	},
+});
+
 export async function applyChanges(operation: RequestedOperation) {
 	try {
 		const projectPath = operation.projectPath;
@@ -91,7 +122,6 @@ export async function applyChanges(operation: RequestedOperation) {
 			changes.changes_version,
 		);
 		showToast(operation);
-		await invalidate(projectPath);
 	} catch (e) {
 		if (isHandleable(e) && e.body.type === "MissingDependencies") {
 			await openSingleDialog(MissingDependenciesDialog, {
@@ -157,15 +187,6 @@ function packagesToIndexes(
 		throw new Error("projects:manage:toast:no upgradable");
 	}
 	return [envVersion, packagesIndexes];
-}
-
-async function invalidate(projectPath: string) {
-	await queryClient.invalidateQueries({
-		queryKey: ["projectDetails", projectPath],
-	});
-	await queryClient.invalidateQueries({
-		queryKey: ["environmentPackages"],
-	});
 }
 
 function showToast(requested: RequestedOperation) {
