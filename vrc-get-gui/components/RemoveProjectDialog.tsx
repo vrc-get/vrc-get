@@ -8,6 +8,7 @@ import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import type { DialogContext } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
+import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
@@ -17,7 +18,6 @@ type Project =
 	| TauriProject
 	| {
 			path: string;
-			name: string;
 			is_exists: boolean;
 	  };
 
@@ -78,7 +78,7 @@ export function RemoveProjectDialog({
 				) : (
 					<p className={"font-normal"}>
 						{tc("projects:dialog:warn removing project", {
-							name: project.name,
+							name: nameFromPath(project.path),
 						})}
 					</p>
 				)}

@@ -43,26 +43,24 @@ import { openUnity } from "@/lib/open-unity";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
-import type { DefaultError, MutationState } from "@tanstack/query-core";
 import {
 	type UseQueryResult,
+	queryOptions,
+	useIsMutating,
 	useMutation,
-	useMutationState,
 	useQueries,
 	useQuery,
+	useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import type React from "react";
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useMemo } from "react";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
 import { unityVersionChange } from "./-unity-migration";
-import {
-	type RequestedOperation,
-	applyChangesMutation,
-} from "./-use-package-change";
+import { applyChangesMutation } from "./-use-package-change";
 
 interface SearchParams {
 	projectPath: string;
@@ -86,8 +84,6 @@ function Page() {
 function PageBody() {
 	const { projectPath } = Route.useSearch();
 	const router = useRouter();
-
-	const projectName = nameFromPath(projectPath);
 
 	// repositoriesInfo: list of repositories and their visibility
 	// packagesResult: list of packages
@@ -118,8 +114,6 @@ function PageBody() {
 			],
 		});
 
-	const [manualRefetching, setManualRefething] = useState<boolean>(false);
-
 	const packageRowsData = useMemo(() => {
 		const packages = packagesResult.data ?? [];
 		const details = detailsResult.data ?? null;
@@ -140,29 +134,33 @@ function PageBody() {
 		);
 	}, [repositoriesInfo.data, packagesResult.data, detailsResult.data]);
 
-	const onRefresh = useCallback(async () => {
-		try {
-			setManualRefething(true);
-			await commands.environmentRefetchPackages();
-			packagesResult.refetch();
-			detailsResult.refetch();
-			repositoriesInfo.refetch();
-			unityVersionsResult.refetch();
-		} finally {
-			setManualRefething(false);
-		}
-	}, [detailsResult, packagesResult, repositoriesInfo, unityVersionsResult]);
+	const queryClient = useQueryClient();
 
-	const fetchingMutation = useMutationState<
-		MutationState<unknown, DefaultError, RequestedOperation>
-	>({
-		filters: {
-			mutationKey: applyChangesMutation.mutationKey,
-			status: "pending",
+	const refetchPackages = useMutation({
+		mutationFn: async () => await commands.environmentRefetchPackages(),
+		onError: (e) => {
+			reportError(e);
+			console.error(e);
 		},
-	}).filter(
-		(x) => x.variables && x.variables.projectPath === projectPath,
-	).length;
+		onSettled: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: ["environmentRepositoriesInfo"],
+				}),
+				queryClient.invalidateQueries({ queryKey: ["environmentPackages"] }),
+				queryClient.invalidateQueries({
+					queryKey: ["projectDetails", projectPath],
+				}),
+				queryClient.invalidateQueries({
+					queryKey: ["environmentUnityVersions"],
+				}),
+			]);
+		},
+	});
+
+	const fetchingMutation = useIsMutating({
+		mutationKey: applyChangesMutation(projectPath).mutationKey,
+	});
 
 	const requestChangeUnityVersion = (
 		version: string,
@@ -185,23 +183,13 @@ function PageBody() {
 		});
 	};
 
-	const onRemoveProject = useCallback(() => {
-		void openSingleDialog(RemoveProjectDialog, {
-			project: {
-				path: projectPath,
-				name: projectName,
-				is_exists: true,
-			},
-		});
-	}, [projectName, projectPath]);
-
 	const isLoading =
 		packagesResult.isFetching ||
 		detailsResult.isFetching ||
 		repositoriesInfo.isFetching ||
 		unityVersionsResult.isLoading ||
 		fetchingMutation !== 0 ||
-		manualRefetching;
+		refetchPackages.isPending;
 
 	console.log(`rerender: isloading: ${isLoading}`);
 
@@ -212,13 +200,10 @@ function PageBody() {
 			<VStack>
 				<ProjectViewHeader
 					className={"shrink-0"}
-					projectName={projectName}
-					projectPath={projectPath}
 					isLoading={isLoading}
 					detailsResult={detailsResult}
 					unityVersionsResult={unityVersionsResult}
 					requestChangeUnityVersion={requestChangeUnityVersion}
-					onRemoveProject={onRemoveProject}
 				/>
 				{detailsResult?.data?.should_resolve && (
 					<SuggestResolveProjectCard disabled={isLoading} />
@@ -233,7 +218,7 @@ function PageBody() {
 					<PackageListCard
 						packageRowsData={packageRowsData}
 						repositoriesInfo={repositoriesInfo.data}
-						onRefresh={onRefresh}
+						onRefresh={() => refetchPackages.mutate()}
 					/>
 				</main>
 			</VStack>
@@ -341,7 +326,7 @@ function SuggestResolveProjectCard({
 	disabled?: boolean;
 }) {
 	const { projectPath } = Route.useSearch();
-	const packageChange = useMutation(applyChangesMutation);
+	const packageChange = useMutation(applyChangesMutation(projectPath));
 
 	return (
 		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
@@ -351,7 +336,7 @@ function SuggestResolveProjectCard({
 			<div className={"grow shrink-0 w-2"} />
 			<Button
 				variant={"ghost-destructive"}
-				onClick={() => packageChange.mutate({ type: "resolve", projectPath })}
+				onClick={() => packageChange.mutate({ type: "resolve" })}
 				disabled={disabled}
 			>
 				{tc("projects:manage:button:resolve")}
@@ -513,17 +498,12 @@ function SuggestChinaToInternationalMigrationCard({
 
 function ProjectViewHeader({
 	className,
-	projectName,
-	projectPath,
 	isLoading,
 	detailsResult,
 	unityVersionsResult,
 	requestChangeUnityVersion,
-	onRemoveProject,
 }: {
 	className?: string;
-	projectName: string;
-	projectPath: string;
 	isLoading: boolean | undefined;
 	detailsResult: UseQueryResult<TauriProjectDetails, Error>;
 	unityVersionsResult: UseQueryResult<TauriUnityVersions, Error>;
@@ -531,8 +511,10 @@ function ProjectViewHeader({
 		version: string,
 		mayUseChinaVariant?: boolean,
 	) => void;
-	onRemoveProject: () => void;
 }) {
+	const { projectPath } = Route.useSearch();
+	const projectName = nameFromPath(projectPath);
+
 	return (
 		<HNavBar
 			className={`${className}`}
@@ -598,13 +580,19 @@ function ProjectViewHeader({
 							projectPath={projectPath}
 							unityVersion={detailsResult.data?.unity_str ?? null}
 							unityRevision={detailsResult.data?.unity_revision ?? null}
-							onRemove={onRemoveProject}
 						/>
 					</div>
 				</>
 			}
 		/>
 	);
+}
+
+function projectGetCustomUnityArgs(projectPath: string) {
+	return queryOptions({
+		queryKey: ["projectGetCustomUnityArgs", projectPath],
+		queryFn: async () => await commands.projectGetCustomUnityArgs(projectPath),
+	});
 }
 
 function LaunchSettings({
@@ -644,31 +632,47 @@ function LaunchSettings({
 	);
 }
 
-function DropdownMenuContentBody({
-	projectPath,
-	onRemove,
-	onChangeLaunchOptions,
-}: {
-	projectPath: string;
-	onRemove?: () => void;
-	onChangeLaunchOptions?: () => void;
-}) {
-	const openProjectFolder = () =>
-		commands.utilOpen(projectPath, "ErrorIfNotExists");
-	const forgetUnity = async () => {
-		try {
-			await commands.projectSetUnityPath(projectPath, null);
-			toastSuccess(tc("projects:toast:forgot unity path"));
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-		}
-	};
-	const unityPathQuery = useQuery({
+function projectGetUnityPath(projectPath: string) {
+	return queryOptions({
 		queryFn: () => commands.projectGetUnityPath(projectPath),
 		queryKey: ["projectGetUnityPath", projectPath],
 		refetchOnWindowFocus: false,
 	});
+}
+
+function DropdownMenuContentBody({
+	projectPath,
+	removeProject,
+	onChangeLaunchOptions,
+}: {
+	projectPath: string;
+	removeProject?: () => void;
+	onChangeLaunchOptions?: () => void;
+}) {
+	const openProjectFolder = () =>
+		commands.utilOpen(projectPath, "ErrorIfNotExists");
+
+	const queryClient = useQueryClient();
+	const setUnityPath = useMutation({
+		mutationFn: async (unityPath: string | null) =>
+			await commands.projectSetUnityPath(projectPath, unityPath),
+		onMutate: async (unityPath) => {
+			const getUnityPath = projectGetUnityPath(projectPath);
+			await queryClient.invalidateQueries(getUnityPath);
+			const data = queryClient.getQueryData(getUnityPath.queryKey);
+			queryClient.setQueryData(getUnityPath.queryKey, unityPath);
+			return data;
+		},
+		onError: (e, _, data) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(projectGetUnityPath(projectPath).queryKey, data);
+		},
+		onSuccess: () => {
+			toastSuccess(tc("projects:toast:forgot unity path"));
+		},
+	});
+	const unityPathQuery = useQuery(projectGetUnityPath(projectPath));
 
 	const onBackup = async () => {
 		try {
@@ -689,7 +693,7 @@ function DropdownMenuContentBody({
 				{tc("projects:menuitem:change launch options")}
 			</DropdownMenuItem>
 			{unityPath && (
-				<DropdownMenuItem onClick={forgetUnity}>
+				<DropdownMenuItem onClick={() => setUnityPath.mutate(null)}>
 					{tc("projects:menuitem:forget unity path")}
 				</DropdownMenuItem>
 			)}
@@ -700,7 +704,7 @@ function DropdownMenuContentBody({
 				{tc("projects:menuitem:backup")}
 			</DropdownMenuItem>
 			<DropdownMenuItem
-				onClick={onRemove}
+				onClick={removeProject}
 				className={"text-destructive focus:text-destructive"}
 			>
 				{tc("projects:remove project")}
@@ -713,12 +717,10 @@ function ProjectButton({
 	projectPath,
 	unityVersion,
 	unityRevision,
-	onRemove,
 }: {
 	projectPath: string;
 	unityVersion: string | null;
 	unityRevision: string | null;
-	onRemove?: () => void;
 }) {
 	const onChangeLaunchOptions = async () => {
 		const initialArgs = await commands.projectGetCustomUnityArgs(projectPath);
@@ -750,7 +752,14 @@ function ProjectButton({
 				<DropdownMenuContent>
 					<DropdownMenuContentBody
 						projectPath={projectPath}
-						onRemove={onRemove}
+						removeProject={() => {
+							void openSingleDialog(RemoveProjectDialog, {
+								project: {
+									path: projectPath,
+									is_exists: true,
+								},
+							});
+						}}
 						onChangeLaunchOptions={onChangeLaunchOptions}
 					/>
 				</DropdownMenuContent>

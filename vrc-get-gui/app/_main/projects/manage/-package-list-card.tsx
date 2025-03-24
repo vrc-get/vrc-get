@@ -232,7 +232,7 @@ function ManagePackagesHeading({
 	const queryClient = useQueryClient();
 
 	const { projectPath } = Route.useSearch();
-	const packageChange = useMutation(applyChangesMutation);
+	const packageChange = useMutation(applyChangesMutation(projectPath));
 
 	const setShowPrereleasePackages = useMutation({
 		mutationFn: async (shown: boolean) => {
@@ -278,7 +278,6 @@ function ManagePackagesHeading({
 			type: "upgradeAll",
 			hasUnityIncompatibleLatest,
 			packages,
-			projectPath,
 		});
 	};
 	const upgradableToLatest = packageRowsData.some(
@@ -372,9 +371,7 @@ function ManagePackagesHeading({
 				<DropdownMenuContent>
 					<DropdownMenuItem
 						className={"p-3"}
-						onClick={() =>
-							packageChange.mutate({ type: "reinstallAll", projectPath })
-						}
+						onClick={() => packageChange.mutate({ type: "reinstallAll" })}
 						disabled={isLoading}
 					>
 						{tc("projects:manage:button:reinstall all")}
@@ -535,13 +532,12 @@ function BulkUpdateCard({
 
 	const count = bulkUpdatePackageIds.length;
 	const { projectPath } = Route.useSearch();
-	const packageChange = useMutation(applyChangesMutation);
+	const packageChange = useMutation(applyChangesMutation(projectPath));
 
 	const bulkRemoveAll = () => {
 		packageChange.mutate({
 			type: "bulkRemoved",
 			packageIds: bulkUpdatePackageIds,
-			projectPath,
 		});
 	};
 
@@ -549,7 +545,6 @@ function BulkUpdateCard({
 		packageChange.mutate({
 			type: "bulkReinstalled",
 			packageIds: bulkUpdatePackageIds,
-			projectPath,
 		});
 	};
 
@@ -588,7 +583,6 @@ function BulkUpdateCard({
 			type: "bulkInstalled",
 			hasUnityIncompatibleLatest,
 			packages,
-			projectPath,
 		});
 	};
 
@@ -773,7 +767,7 @@ const PackageRow = memo(function PackageRow({
 	const latestVersion: string | undefined = versionNames[0];
 
 	const { projectPath } = Route.useSearch();
-	const packageChange = useMutation(applyChangesMutation);
+	const packageChange = useMutation(applyChangesMutation(projectPath));
 
 	const installLatest = () => {
 		if (pkg.latest.status === "none") return;
@@ -782,7 +776,6 @@ const PackageRow = memo(function PackageRow({
 			type: "install",
 			pkg: pkg.latest.pkg,
 			hasUnityIncompatibleLatest: pkg.latest.hasUnityIncompatibleLatest,
-			projectPath,
 		});
 	};
 
@@ -791,7 +784,6 @@ const PackageRow = memo(function PackageRow({
 			type: "remove",
 			displayName: pkg.displayName,
 			packageId: pkg.id,
-			projectPath,
 		});
 	};
 
@@ -918,7 +910,7 @@ const PackageVersionSelector = memo(function PackageVersionSelector({
 	pkg: PackageRowInfo;
 }) {
 	const { projectPath } = Route.useSearch();
-	const packageChange = useMutation(applyChangesMutation);
+	const packageChange = useMutation(applyChangesMutation(projectPath));
 
 	const onChange = (version: string) => {
 		if (
@@ -932,7 +924,6 @@ const PackageVersionSelector = memo(function PackageVersionSelector({
 		packageChange.mutate({
 			type: "install",
 			pkg: pkgVersion,
-			projectPath,
 		});
 	};
 
@@ -1034,7 +1025,7 @@ function LatestPackageInfo({
 	info: PackageLatestInfo;
 }) {
 	const { projectPath } = Route.useSearch();
-	const packageChange = useMutation(applyChangesMutation);
+	const packageChange = useMutation(applyChangesMutation(projectPath));
 
 	switch (info.status) {
 		case "none":
@@ -1057,7 +1048,6 @@ function LatestPackageInfo({
 									type: "install",
 									pkg: info.pkg,
 									hasUnityIncompatibleLatest: info.hasUnityIncompatibleLatest,
-									projectPath,
 								})
 							}
 						>

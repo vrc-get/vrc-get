@@ -25,7 +25,7 @@ import { type UseMutationOptions, queryOptions } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import type React from "react";
 
-export type RequestedOperation = (
+export type RequestedOperation =
 	| {
 			type: "install";
 			pkg: TauriPackage;
@@ -59,8 +59,7 @@ export type RequestedOperation = (
 	| {
 			type: "bulkRemoved";
 			packageIds: string[];
-	  }
-) & { projectPath: string };
+	  };
 
 function environmentPackages(projectPath: string) {
 	return queryOptions({
@@ -82,27 +81,31 @@ function mutationOptions<
 	return options;
 }
 
-export const applyChangesMutation = mutationOptions({
-	mutationKey: ["projectApplyChanges"],
-	mutationFn: async (operation: RequestedOperation) =>
-		await applyChanges(operation),
-	onError: (e) => {
-		console.error(e);
-		toastThrownError(e);
-	},
-	onSettled: async (_, _2, { projectPath }) => {
-		await queryClient.invalidateQueries({
-			queryKey: ["projectDetails", projectPath],
-		});
-		await queryClient.invalidateQueries({
-			queryKey: ["environmentPackages"],
-		});
-	},
-});
+export function applyChangesMutation(projectPath: string) {
+	return mutationOptions({
+		mutationKey: ["projectApplyChanges", projectPath],
+		mutationFn: async (operation: RequestedOperation) =>
+			await applyChanges(projectPath, operation),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries({
+				queryKey: ["projectDetails", projectPath],
+			});
+			await queryClient.invalidateQueries({
+				queryKey: ["environmentPackages"],
+			});
+		},
+	});
+}
 
-export async function applyChanges(operation: RequestedOperation) {
+export async function applyChanges(
+	projectPath: string,
+	operation: RequestedOperation,
+) {
 	try {
-		const projectPath = operation.projectPath;
 		const existingPackages = queryClient.getQueryData(
 			environmentPackages(projectPath).queryKey,
 		)?.installed_packages;
