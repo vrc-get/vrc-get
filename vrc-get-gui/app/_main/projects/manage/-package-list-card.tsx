@@ -481,14 +481,14 @@ function ManagePackagesHeading({
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button className={"shrink-0 p-3"}>
-						{tc("projects:manage:button:select packages")}
+						{tc("projects:manage:button:package filters")}
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
 					className={"max-h-96 w-64 overflow-y-hidden flex flex-col"}
 				>
 					<DropdownMenuLabel>
-						{tc("projects:manage:menu:repositories")}
+						{tc("projects:manage:menu:repository filter")}
 					</DropdownMenuLabel>
 					<ScrollArea className={"flex flex-col"}>
 						<RepositoryMenuItem
@@ -521,7 +521,7 @@ function ManagePackagesHeading({
 						))}
 					</ScrollArea>
 					<DropdownMenuLabel>
-						{tc("projects:manage:menu:other options")}
+						{tc("projects:manage:menu:other filters")}
 					</DropdownMenuLabel>
 					<DropdownMenuCheckboxItem
 						checked={repositoriesInfo?.show_prerelease_packages}
