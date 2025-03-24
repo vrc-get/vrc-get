@@ -20,26 +20,37 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
-import React from "react";
+import type React from "react";
 
 const environmentGetSettings = queryOptions({
 	queryKey: ["environmentGetSettings"],
 	queryFn: commands.environmentGetSettings,
 });
 
-export function LanguageSelector() {
-	const { data: lang, refetch: refetchLang } = useQuery({
-		queryKey: ["environmentLanguage"],
-		queryFn: commands.environmentLanguage,
-	});
+const environmentLanguage = queryOptions({
+	queryKey: ["environmentLanguage"],
+	queryFn: commands.environmentLanguage,
+});
 
-	const changeLanguage = async (value: string) => {
-		await Promise.all([
-			i18next.changeLanguage(value),
-			commands.environmentSetLanguage(value),
-		]);
-		await refetchLang();
-	};
+export function LanguageSelector() {
+	const queryClient = useQueryClient();
+	const { data: lang } = useQuery(environmentLanguage);
+	const changeLanguage = useMutation({
+		mutationFn: async (language: string) =>
+			await commands.environmentSetLanguage(language),
+		onMutate: async (language) => {
+			await i18next.changeLanguage(language);
+			await queryClient.invalidateQueries(environmentLanguage);
+			const data = queryClient.getQueryData(environmentLanguage.queryKey);
+			queryClient.setQueryData(environmentLanguage.queryKey, language);
+			return data;
+		},
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: () => queryClient.invalidateQueries(environmentLanguage),
+	});
 
 	return (
 		<label className="flex items-center">
@@ -47,7 +58,7 @@ export function LanguageSelector() {
 				{tc("settings:language")}
 				{": "}
 			</span>
-			<Select value={lang} onValueChange={changeLanguage}>
+			<Select value={lang} onValueChange={changeLanguage.mutate}>
 				<SelectTrigger>
 					<SelectValue />
 				</SelectTrigger>
@@ -65,21 +76,32 @@ export function LanguageSelector() {
 	);
 }
 
+const environmentTheme = queryOptions({
+	queryKey: ["environmentTheme"],
+	queryFn: commands.environmentTheme,
+});
+
 export function ThemeSelector() {
-	const [theme, setTheme] = React.useState<string | null>(null);
-
-	React.useEffect(() => {
-		(async () => {
-			const theme = await commands.environmentTheme();
-			setTheme(theme);
-		})();
-	}, []);
-
-	const changeTheme = async (theme: string) => {
-		await commands.environmentSetTheme(theme);
-		setTheme(theme);
-		document.documentElement.setAttribute("class", theme);
-	};
+	const queryClient = useQueryClient();
+	const themeQuery = useQuery(environmentTheme);
+	const changeTheme = useMutation({
+		mutationFn: async (theme: string) =>
+			await commands.environmentSetTheme(theme),
+		onMutate: async (theme) => {
+			document.documentElement.setAttribute("class", theme);
+			await queryClient.invalidateQueries(environmentTheme);
+			const data = queryClient.getQueryData(environmentTheme.queryKey);
+			queryClient.setQueryData(environmentTheme.queryKey, theme);
+			return data;
+		},
+		onError: (e, _, ctx) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentTheme.queryKey, ctx);
+			if (ctx) document.documentElement.setAttribute("class", ctx);
+		},
+		onSettled: () => queryClient.invalidateQueries(environmentTheme),
+	});
 
 	return (
 		<label className={"flex items-center"}>
@@ -87,7 +109,7 @@ export function ThemeSelector() {
 				{tc("settings:theme")}
 				{": "}
 			</span>
-			<Select value={theme ?? undefined} onValueChange={changeTheme}>
+			<Select value={themeQuery.data} onValueChange={changeTheme.mutate}>
 				<SelectTrigger>
 					<SelectValue />
 				</SelectTrigger>
