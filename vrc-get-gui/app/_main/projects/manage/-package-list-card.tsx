@@ -123,9 +123,10 @@ export const PackageListCard = memo(function PackageListCard({
 				type: "install",
 				pkg,
 				hasUnityIncompatibleLatest,
+				projectPath,
 			});
 		},
-		[createChanges],
+		[createChanges, projectPath],
 	);
 
 	const onUpgradeAllRequest = useCallback(
@@ -146,18 +147,19 @@ export const PackageListCard = memo(function PackageListCard({
 					type: "upgradeAll",
 					hasUnityIncompatibleLatest,
 					packages,
+					projectPath,
 				});
 			} catch (e) {
 				console.error(e);
 				toastThrownError(e);
 			}
 		},
-		[createChanges, packageRowsData],
+		[createChanges, packageRowsData, projectPath],
 	);
 
 	const onReinstallRequest = useCallback(
-		() => createChanges({ type: "reinstallAll" }),
-		[createChanges],
+		() => createChanges({ type: "reinstallAll", projectPath }),
+		[createChanges, projectPath],
 	);
 
 	const onRemoveRequested = useCallback(
@@ -166,8 +168,9 @@ export const PackageListCard = memo(function PackageListCard({
 				type: "remove",
 				displayName: pkg.displayName,
 				packageId: pkg.id,
+				projectPath,
 			}),
-		[createChanges],
+		[createChanges, projectPath],
 	);
 
 	const onInstallOrUpgradeBulkRequested = useCallback(
@@ -195,13 +198,14 @@ export const PackageListCard = memo(function PackageListCard({
 					type: "bulkInstalled",
 					hasUnityIncompatibleLatest,
 					packages,
+					projectPath,
 				});
 			} catch (e) {
 				console.error(e);
 				toastThrownError(e);
 			}
 		},
-		[bulkUpdatePackageIds, createChanges, packageRowsData],
+		[bulkUpdatePackageIds, createChanges, packageRowsData, projectPath],
 	);
 
 	const onBulkReinstallRequested = useCallback(() => {
@@ -209,19 +213,21 @@ export const PackageListCard = memo(function PackageListCard({
 			createChanges({
 				type: "bulkReinstalled",
 				packageIds: bulkUpdatePackageIds.map(([id, _]) => id),
+				projectPath,
 			});
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);
 		}
-	}, [bulkUpdatePackageIds, createChanges]);
+	}, [bulkUpdatePackageIds, createChanges, projectPath]);
 
 	const onRemoveBulkRequested = useCallback(() => {
 		createChanges({
 			type: "bulkRemoved",
 			packageIds: bulkUpdatePackageIds.map(([id, _]) => id),
+			projectPath,
 		});
-	}, [bulkUpdatePackageIds, createChanges]);
+	}, [bulkUpdatePackageIds, createChanges, projectPath]);
 
 	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
 		const possibleUpdate: PackageBulkUpdateMode = bulkUpdateModeForPackage(row);

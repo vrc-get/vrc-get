@@ -24,7 +24,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import type React from "react";
 
-export type RequestedOperation =
+export type RequestedOperation = (
 	| {
 			type: "install";
 			pkg: TauriPackage;
@@ -58,7 +58,8 @@ export type RequestedOperation =
 	| {
 			type: "bulkRemoved";
 			packageIds: string[];
-	  };
+	  }
+) & { projectPath: string };
 
 function environmentPackages(projectPath: string) {
 	return queryOptions({
@@ -68,9 +69,7 @@ function environmentPackages(projectPath: string) {
 	});
 }
 
-export async function applyChanges(
-	operation: RequestedOperation & { projectPath: string },
-) {
+export async function applyChanges(operation: RequestedOperation) {
 	try {
 		const projectPath = operation.projectPath;
 		const existingPackages = queryClient.getQueryData(

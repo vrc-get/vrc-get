@@ -57,7 +57,7 @@ import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
 import { unityVersionChange } from "./-unity-migration";
-import { type RequestedOperation, applyChanges } from "./-use-package-change";
+import { applyChanges } from "./-use-package-change";
 
 interface SearchParams {
 	projectPath: string;
@@ -149,8 +149,7 @@ function PageBody() {
 	}, [detailsResult, packagesResult, repositoriesInfo, unityVersionsResult]);
 
 	const packageChange = useMutation({
-		mutationFn: (operation: RequestedOperation) =>
-			applyChanges({ ...operation, projectPath }),
+		mutationFn: applyChanges,
 		onError: (e) => {
 			console.error(e);
 			toastThrownError(e);
@@ -216,7 +215,9 @@ function PageBody() {
 				{detailsResult?.data?.should_resolve && (
 					<SuggestResolveProjectCard
 						disabled={isLoading}
-						onResolveRequested={() => packageChange.mutate({ type: "resolve" })}
+						onResolveRequested={() =>
+							packageChange.mutate({ type: "resolve", projectPath })
+						}
 					/>
 				)}
 				<MigrationCards
