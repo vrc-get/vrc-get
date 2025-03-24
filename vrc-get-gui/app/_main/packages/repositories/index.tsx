@@ -88,21 +88,13 @@ function PageBody() {
 		[result.data?.hidden_user_repositories],
 	);
 
-	useTauriListen<null>(
-		"deep-link-add-repository",
-		useCallback(
-			(_) => {
-				// noinspection JSIgnoredPromiseFromCall
-				processDeepLink();
-			},
-			[processDeepLink],
-		),
-	);
+	useTauriListen<null>("deep-link-add-repository", (_) => {
+		void processDeepLink();
+	});
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: we want to do on mount
 	useEffect(() => {
-		// noinspection JSIgnoredPromiseFromCall
-		processDeepLink();
+		void processDeepLink();
 		// Only for initial load
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);

@@ -20,15 +20,12 @@ import { ToastContainer } from "react-toastify";
 export function Providers({ children }: { children: React.ReactNode }) {
 	const navigate = useNavigate();
 
-	useTauriListen<LogEntry>(
-		"log",
-		useCallback((event) => {
-			const entry = event.payload as LogEntry;
-			if (entry.level === "Error" && entry.gui_toast) {
-				toastError(entry.message);
-			}
-		}, []),
-	);
+	useTauriListen<LogEntry>("log", (event) => {
+		const entry = event.payload as LogEntry;
+		if (entry.level === "Error" && entry.gui_toast) {
+			toastError(entry.message);
+		}
+	});
 
 	const moveToRepositories = useCallback(() => {
 		if (location.pathname !== "/packages/repositories") {
@@ -36,15 +33,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		}
 	}, [navigate]);
 
-	useTauriListen<null>(
-		"deep-link-add-repository",
-		useCallback(
-			(_) => {
-				moveToRepositories();
-			},
-			[moveToRepositories],
-		),
-	);
+	useTauriListen<null>("deep-link-add-repository", (_) => {
+		moveToRepositories();
+	});
 
 	useEffect(() => {
 		let cancel = false;

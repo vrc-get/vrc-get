@@ -58,15 +58,12 @@ function Page() {
 		setAutoScroll(value);
 	};
 
-	useTauriListen<LogEntry>(
-		"log",
-		useCallback((event) => {
-			setLogEntries((entries) => {
-				const entry = event.payload as LogEntry;
-				return [...entries, entry];
-			});
-		}, []),
-	);
+	useTauriListen<LogEntry>("log", (event) => {
+		setLogEntries((entries) => {
+			const entry = event.payload as LogEntry;
+			return [...entries, entry];
+		});
+	});
 
 	return (
 		<VStack>
