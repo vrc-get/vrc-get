@@ -12,7 +12,7 @@ pub struct VccDatabaseConnection {
     _guard: has_drop::MutexGuard,
 }
 
-static FILE_NAME: &str = "vcc.liteDB";
+static FILE_NAME: &str = "vcc.liteDb";
 
 impl VccDatabaseConnection {
     pub async fn connect(io: &impl EnvironmentIo) -> io::Result<Self> {
