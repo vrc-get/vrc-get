@@ -20,50 +20,77 @@ import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
+import { toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
+import { useSessionStorage } from "@/lib/useSessionStorage";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDownFromLine } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { LogsListCard } from "./-logs-list-card";
 
 export const Route = createFileRoute("/_main/log/")({
 	component: Page,
 });
 
+const utilGetLogEntries = queryOptions({
+	queryKey: ["utilGetLogEntries"],
+	queryFn: async () => commands.utilGetLogEntries(),
+});
+
+const environmentLogsLevel = queryOptions({
+	queryKey: ["environmentLogsLevel"],
+	queryFn: async () => commands.environmentLogsLevel(),
+});
+
 function Page() {
-	const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
 	const [search, setSearch] = useState("");
-	const [shouldShowLogLevel, setShouldShowLogLevel] = useState<LogLevel[]>([]);
-	const [autoScroll, setAutoScroll] = useState(true);
 
-	useEffect(() => {
-		commands.utilGetLogEntries().then(setLogEntries);
-		commands.environmentLogsLevel().then(setShouldShowLogLevel);
-		if (sessionStorage.getItem("logs_auto_scroll") === null)
-			sessionStorage.setItem("logs_auto_scroll", String(true));
-		const logsAutoScroll =
-			sessionStorage.getItem("logs_auto_scroll") === "true";
-		setAutoScroll(logsAutoScroll);
-	}, []);
+	const queryClient = useQueryClient();
+	const logEntriesQuery = useQuery(utilGetLogEntries);
+	const logsLevel = useQuery(environmentLogsLevel);
 
-	const handleLogLevelChange = (value: LogLevel[]) => {
-		setShouldShowLogLevel(value);
-		commands.environmentSetLogsLevel(value).catch((err) => {
-			console.error("Failed to update log level: ", err);
-		});
-	};
+	const handleLogLevelChange = useMutation({
+		mutationFn: async (value: LogLevel[]) =>
+			commands.environmentSetLogsLevel(value),
+		onMutate: async (value) => {
+			await queryClient.cancelQueries(environmentLogsLevel);
+			const data = queryClient.getQueryData(environmentLogsLevel.queryKey);
+			queryClient.setQueryData(environmentLogsLevel.queryKey, value);
+			return data;
+		},
+		onError: (e, _, data) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentLogsLevel.queryKey, data);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentLogsLevel);
+		},
+	});
+
+	const autoScroll = useSessionStorage({
+		key: "logs_auto_scroll",
+		parse: (value) => value === "true",
+		fallbackValue: true,
+	});
 
 	const handleLogAutoScrollChange = (value: boolean) => {
 		sessionStorage.setItem("logs_auto_scroll", String(value));
-		setAutoScroll(value);
 	};
 
 	useTauriListen<LogEntry>("log", (event) => {
-		setLogEntries((entries) => {
-			const entry = event.payload as LogEntry;
-			return [...entries, entry];
-		});
+		const entry = event.payload as LogEntry;
+		const entries = queryClient.getQueryData(utilGetLogEntries.queryKey) ?? [];
+		queryClient.setQueryData(utilGetLogEntries.queryKey, [...entries, entry]);
 	});
+
+	const shouldShowLogLevel = logsLevel.data ?? [];
 
 	return (
 		<VStack>
@@ -71,13 +98,13 @@ function Page() {
 				search={search}
 				setSearch={setSearch}
 				shouldShowLogLevel={shouldShowLogLevel}
-				handleLogLevelChange={handleLogLevelChange}
+				handleLogLevelChange={handleLogLevelChange.mutate}
 				handleLogAutoScrollChange={handleLogAutoScrollChange}
 				autoScroll={autoScroll}
 			/>
 			<main className="shrink overflow-hidden flex w-full h-full">
 				<LogsListCard
-					logEntry={logEntries}
+					logEntry={logEntriesQuery.data ?? []}
 					search={search}
 					shouldShowLogLevel={shouldShowLogLevel}
 					autoScroll={autoScroll}
