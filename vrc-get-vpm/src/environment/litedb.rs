@@ -3,7 +3,6 @@
 use crate::io;
 use crate::io::EnvironmentIo;
 use futures::prelude::*;
-use std::pin::pin;
 use vrc_get_litedb::expression::BsonExpression;
 use vrc_get_litedb::file_io::LiteDBFile;
 
@@ -16,8 +15,6 @@ static FILE_NAME: &str = "vcc.liteDb";
 
 impl VccDatabaseConnection {
     pub async fn connect(io: &impl EnvironmentIo) -> io::Result<Self> {
-        let mut buffer = vec![];
-
         let path = io.resolve(FILE_NAME.as_ref());
 
         let lock = {
@@ -35,11 +32,15 @@ impl VccDatabaseConnection {
             Box::new(io.new_mutex(name.as_ref()).await?)
         };
 
-        pin!(io.open(FILE_NAME.as_ref()).await?)
-            .read_to_end(&mut buffer)
-            .await?;
-
-        let mut litedb = LiteDBFile::parse(&buffer)?;
+        let mut litedb = match io.open(FILE_NAME.as_ref()).await {
+            Ok(mut file) => {
+                let mut buffer = vec![];
+                file.read_to_end(&mut buffer).await?;
+                LiteDBFile::parse(&buffer)?
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => LiteDBFile::new(),
+            Err(e) => return Err(e),
+        };
 
         litedb
             .ensure_index(
