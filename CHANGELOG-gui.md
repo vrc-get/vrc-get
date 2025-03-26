@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- Changed how we read VCC's project information `#1997`
+- Changed how we read VCC's project information `#1997` `#2036`
   - Along with this, building this project no longer needs dotnet SDK to build.
 - Migrated the project to Rust 2024 `#1956`
   - This is internal changes should not cause behavior changes
