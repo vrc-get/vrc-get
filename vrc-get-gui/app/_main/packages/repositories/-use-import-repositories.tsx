@@ -5,12 +5,7 @@ import {
 	AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogOpen,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
 import type {
@@ -19,190 +14,63 @@ import type {
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
+import { type DialogContext, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
-import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
+import { queryClient } from "@/lib/query-client";
+import { toastSuccess } from "@/lib/toast";
+import { useEffectEvent } from "@/lib/use-effect-event";
+import { queryOptions } from "@tanstack/react-query";
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useState } from "react";
 
 type ParsedRepositories = {
 	repositories: TauriRepositoryDescriptor[];
 	unparsable_lines: string[];
 };
 
-type State =
-	| {
-			type: "normal";
-	  }
-	| {
-			type: "confirmingRepositories";
-			pickResult: ParsedRepositories;
-	  }
-	| {
-			type: "loadingRepositories";
-			totalCount: number;
-			downloaded: number;
-			cancel: () => void;
-	  }
-	| {
-			type: "confirmingPackages";
-			repositories: [TauriRepositoryDescriptor, TauriDownloadRepository][];
-	  }
-	| {
-			type: "addingRepositories";
-	  };
+const environmentRepositoriesInfo = queryOptions({
+	queryKey: ["environmentRepositoriesInfo"],
+	queryFn: commands.environmentRepositoriesInfo,
+});
 
-interface AddRepository {
-	dialog: React.ReactNode;
-	startImportingRepositories: () => void;
-}
+export async function importRepositories() {
+	using dialog = showDialog(null);
 
-export function useImportRepositories({
-	refetch,
-}: {
-	refetch: () => void;
-}): AddRepository {
-	const [state, setState] = useState<State>({ type: "normal" });
-	const [importRepositoryPick, pickDialog] = useFilePickerFunction(
-		commands.environmentImportRepositoryPick,
-	);
-
-	function cancel() {
-		if ("cancel" in state) state.cancel();
-		setState({ type: "normal" });
-	}
-
-	const startImportingRepositories = useCallback(
-		async function startImportingRepositories() {
-			try {
-				const pickResult = await importRepositoryPick();
-				switch (pickResult.type) {
-					case "NoFilePicked":
-						// no-op
-						return;
-					case "ParsedRepositories":
-						// continue
-						break;
-					default:
-						assertNever(pickResult, "pickResult");
-				}
-				console.log("confirmingRepositories", pickResult);
-				setState({ type: "confirmingRepositories", pickResult });
-			} catch (e) {
-				toastThrownError(e);
-				setState({ type: "normal" });
-			}
-		},
-		[importRepositoryPick],
-	);
-
-	const downloadRepositories = useCallback(async function downloadRepositories(
-		repositories: TauriRepositoryDescriptor[],
-	) {
-		try {
-			const totalCount = repositories.length;
-			const [cancel, resultPromise] = callAsyncCommand(
-				commands.environmentImportDownloadRepositories,
-				[repositories],
-				(downloaded) => {
-					setState({
-						type: "loadingRepositories",
-						totalCount,
-						downloaded,
-						cancel,
-					});
-				},
-			);
-			setState({
-				type: "loadingRepositories",
-				totalCount,
-				downloaded: 0,
-				cancel,
-			});
-			const result = await resultPromise;
-			if (result === "cancelled") {
-				return;
-			}
-			setState({ type: "confirmingPackages", repositories: result });
-		} catch (e) {
-			toastThrownError(e);
-			setState({ type: "normal" });
-		}
-	}, []);
-
-	const addRepositories = useCallback(
-		async function addRepositories(repositories: TauriRepositoryDescriptor[]) {
-			try {
-				setState({ type: "addingRepositories" });
-				await commands.environmentImportAddRepositories(repositories);
-				toastSuccess(tt("vpm repositories:toast:repository added"));
-				refetch();
-				setState({ type: "normal" });
-			} catch (e) {
-				toastThrownError(e);
-				setState({ type: "normal" });
-			}
-		},
-		[refetch],
-	);
-
-	let dialogBody: React.ReactNode;
-	switch (state.type) {
-		case "normal":
-			dialogBody = null;
-			break;
-		case "confirmingRepositories":
-			dialogBody = (
-				<ConfirmingRepositoryList
-					pickResult={state.pickResult}
-					cancel={cancel}
-					importRepositories={downloadRepositories}
-				/>
-			);
-			break;
-		case "loadingRepositories":
-			dialogBody = (
-				<LoadingRepositories
-					cancel={cancel}
-					downloaded={state.downloaded}
-					totalCount={state.totalCount}
-				/>
-			);
-			break;
-		case "confirmingPackages":
-			dialogBody = (
-				<ConfirmingPackages
-					repositories={state.repositories}
-					cancel={cancel}
-					addRepositories={addRepositories}
-				/>
-			);
-			break;
-		case "addingRepositories":
-			dialogBody = <AddingRepositories />;
+	const pickResult = await commands.environmentImportRepositoryPick();
+	switch (pickResult.type) {
+		case "NoFilePicked":
+			// no-op
+			return;
+		case "ParsedRepositories":
+			// continue
 			break;
 		default:
-			assertNever(state, "state");
+			assertNever(pickResult, "pickResult");
 	}
+	console.log("confirmingRepositories", pickResult);
 
-	const confirmDialog = dialogBody ? (
-		<DialogOpen>
-			<DialogTitle>
-				{tc("vpm repositories:dialog:import repositories")}
-			</DialogTitle>
-			{dialogBody}
-		</DialogOpen>
-	) : null;
+	const repositories = await dialog.ask(ConfirmingRepositoryList, {
+		pickResult,
+	});
+	if (repositories == null) return;
 
-	return {
-		dialog: (
-			<>
-				{pickDialog}
-				{confirmDialog}
-			</>
-		),
-		startImportingRepositories,
-	};
+	const packages = await dialog.ask(LoadingRepositories, {
+		repositories,
+	});
+	if (packages == null) return;
+
+	const repositoriesToAdd = await dialog.ask(ConfirmingPackages, {
+		packages,
+	});
+	if (repositoriesToAdd == null) return;
+
+	dialog.replace(<AddingRepositories />);
+	await commands.environmentImportAddRepositories(repositoriesToAdd);
+	toastSuccess(tt("vpm repositories:toast:repository added"));
+	dialog.close();
+
+	await queryClient.invalidateQueries(environmentRepositoriesInfo);
 }
 
 function shortRepositoryDescription(
@@ -218,20 +86,11 @@ function shortRepositoryDescription(
 
 function ConfirmingRepositoryList({
 	pickResult,
-	cancel,
-	importRepositories,
+	dialog,
 }: {
 	pickResult: ParsedRepositories;
-	cancel: () => void;
-	importRepositories: (repositories: TauriRepositoryDescriptor[]) => void;
+	dialog: DialogContext<TauriRepositoryDescriptor[] | null>;
 }) {
-	const onContinue = useCallback(
-		async function onContinue() {
-			importRepositories(pickResult.repositories);
-		},
-		[importRepositories, pickResult.repositories],
-	);
-
 	return (
 		<>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
@@ -263,8 +122,10 @@ function ConfirmingRepositoryList({
 				)}
 			</DialogDescription>
 			<DialogFooter className={"gap-2"}>
-				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
-				<Button onClick={onContinue}>
+				<Button onClick={() => dialog.close(null)}>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button onClick={() => dialog.close(pickResult.repositories)}>
 					{tc("vpm repositories:dialog:button:continue importing repositories")}
 				</Button>
 			</DialogFooter>
@@ -273,14 +134,30 @@ function ConfirmingRepositoryList({
 }
 
 function LoadingRepositories({
-	cancel,
-	downloaded,
-	totalCount,
+	repositories,
+	dialog,
 }: {
-	cancel: () => void;
-	downloaded: number;
-	totalCount: number;
+	repositories: TauriRepositoryDescriptor[];
+	dialog: DialogContext<
+		[TauriRepositoryDescriptor, TauriDownloadRepository][] | null
+	>;
 }) {
+	const cancelRef = useRef<() => void>(() => {});
+	const totalCount = repositories.length;
+	const [downloaded, setDownloaded] = useState(0);
+
+	const event = useEffectEvent(() => {
+		const [cancel, resultPromise] = callAsyncCommand(
+			commands.environmentImportDownloadRepositories,
+			[repositories],
+			(downloaded) => setDownloaded(downloaded),
+		);
+		cancelRef.current = cancel;
+		resultPromise.then((x) => dialog.close(x === "cancelled" ? null : x));
+	});
+
+	useEffect(() => event(), []);
+
 	return (
 		<>
 			<DialogDescription>
@@ -294,31 +171,28 @@ function LoadingRepositories({
 				</div>
 			</DialogDescription>
 			<DialogFooter>
-				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
+				<Button onClick={() => cancelRef.current?.()}>
+					{tc("general:button:cancel")}
+				</Button>
 			</DialogFooter>
 		</>
 	);
 }
 
 function ConfirmingPackages({
-	repositories,
-	cancel,
-	addRepositories,
+	packages,
+	dialog,
 }: {
-	repositories: [TauriRepositoryDescriptor, TauriDownloadRepository][];
-	cancel: () => void;
-	addRepositories: (repositories: TauriRepositoryDescriptor[]) => void;
+	packages: [TauriRepositoryDescriptor, TauriDownloadRepository][];
+	dialog: DialogContext<TauriRepositoryDescriptor[] | null>;
 }) {
-	const add = useCallback(
-		async function add() {
-			addRepositories(
-				repositories
-					.filter(([_, download]) => download.type === "Success")
-					.map(([repo, _]) => repo),
-			);
-		},
-		[addRepositories, repositories],
-	);
+	async function add() {
+		dialog.close(
+			packages
+				.filter(([_, download]) => download.type === "Success")
+				.map(([repo, _]) => repo),
+		);
+	}
 
 	return (
 		<>
@@ -332,7 +206,7 @@ function ConfirmingPackages({
 					collapsible
 					className="max-h-[50vh] overflow-y-auto w-full"
 				>
-					{repositories.map(([repo, download]) => {
+					{packages.map(([repo, download]) => {
 						let error: boolean;
 						let content: React.ReactNode;
 						switch (download.type) {
@@ -378,7 +252,9 @@ function ConfirmingPackages({
 				</Accordion>
 			</DialogDescription>
 			<DialogFooter>
-				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
+				<Button onClick={() => dialog.close(null)}>
+					{tc("general:button:cancel")}
+				</Button>
 				<Button onClick={add} className={"ml-2"}>
 					{tc("vpm repositories:button:add repositories")}
 				</Button>

@@ -4,7 +4,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import { useQuery } from "@tanstack/react-query";
+import { toastThrownError } from "@/lib/toast";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 
@@ -23,7 +29,12 @@ function Page() {
 	);
 }
 
-function Body({ environment, refetch }: BodyProps) {
+const environmentGetSettings = queryOptions({
+	queryKey: ["environmentGetSettings"],
+	queryFn: commands.environmentGetSettings,
+});
+
+function Body({ environment }: BodyProps) {
 	const useAlcomForVccProtocol = environment.use_alcom_for_vcc_protocol;
 
 	const isBadHostName = useQuery({
@@ -32,10 +43,31 @@ function Body({ environment, refetch }: BodyProps) {
 		initialData: false,
 	});
 
-	const changeUseAlcomForVcc = async (value: "indeterminate" | boolean) => {
-		await commands.environmentSetUseAlcomForVccProtocol(value === true);
-		refetch();
-	};
+	const queryClient = useQueryClient();
+
+	const setUseAlcomForVccProtocol = useMutation({
+		mutationFn: async (use: boolean) =>
+			await commands.environmentSetUseAlcomForVccProtocol(use),
+		onMutate: async (use) => {
+			await queryClient.cancelQueries(environmentGetSettings);
+			const current = queryClient.getQueryData(environmentGetSettings.queryKey);
+			if (current != null) {
+				queryClient.setQueryData(environmentGetSettings.queryKey, {
+					...current,
+					use_alcom_for_vcc_protocol: use,
+				});
+			}
+			return current;
+		},
+		onError: (e, _, prev) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentGetSettings.queryKey, prev);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGetSettings);
+		},
+	});
 
 	const isMac = useGlobalInfo().osType === "Darwin";
 
@@ -46,7 +78,9 @@ function Body({ environment, refetch }: BodyProps) {
 					<label className={"flex items-center gap-2"}>
 						<Checkbox
 							checked={useAlcomForVccProtocol}
-							onCheckedChange={(e) => changeUseAlcomForVcc(e)}
+							onCheckedChange={(e) =>
+								setUseAlcomForVccProtocol.mutate(e === true)
+							}
 						/>
 						{tc("settings:use alcom for vcc scheme")}
 					</label>

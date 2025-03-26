@@ -6,10 +6,12 @@ import {
 	FilePathRow,
 } from "@/components/common-setting-parts";
 import { CardDescription } from "@/components/ui/card";
+import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import { toastThrownError } from "@/lib/toast";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 
@@ -33,19 +35,39 @@ function Page() {
 	);
 }
 
-function Body({ environment, refetch }: BodyProps) {
+function Body({ environment }: BodyProps) {
 	const projectBackupPath = environment.project_backup_path;
 	const backupFormat = environment.backup_format;
 
-	const setBackupFormat = async (format: string) => {
-		try {
-			await commands.environmentSetBackupFormat(format);
-			refetch();
-		} catch (e) {
+	const queryClient = useQueryClient();
+
+	const pickProjectBackupPath = useMutation({
+		mutationFn: async () => await commands.environmentPickProjectBackupPath(),
+		onError: (e) => {
 			console.error(e);
 			toastThrownError(e);
-		}
-	};
+		},
+		onSuccess: (result) => {
+			switch (result.type) {
+				case "NoFolderSelected":
+					// no-op
+					break;
+				case "InvalidSelection":
+					toastError(tc("general:toast:invalid directory"));
+					break;
+				case "Successful":
+					toastSuccess(tc("settings:toast:backup path updated"));
+					break;
+				default:
+					assertNever(result);
+			}
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries({
+				queryKey: ["environmentGetSettings"],
+			});
+		},
+	});
 
 	return (
 		<>
@@ -54,11 +76,9 @@ function Body({ environment, refetch }: BodyProps) {
 				{tc("setup:backups:location description")}
 			</CardDescription>
 			<FilePathRow
-				withoutSelect
 				path={projectBackupPath}
-				pick={commands.environmentPickProjectBackupPath}
-				refetch={refetch}
-				successMessage={tc("settings:toast:backup path updated")}
+				pick={pickProjectBackupPath.mutate}
+				withOpen={false}
 			/>
 			<BackupPathWarnings backupPath={projectBackupPath} />
 			<div className={"pb-3"} />
@@ -66,10 +86,7 @@ function Body({ environment, refetch }: BodyProps) {
 			<CardDescription className={"whitespace-normal"}>
 				{tc("settings:backup:format description")}
 			</CardDescription>
-			<BackupFormatSelect
-				backupFormat={backupFormat}
-				setBackupFormat={setBackupFormat}
-			/>
+			<BackupFormatSelect backupFormat={backupFormat} />
 		</>
 	);
 }

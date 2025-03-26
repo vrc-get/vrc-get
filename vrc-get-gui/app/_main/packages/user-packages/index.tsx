@@ -22,12 +22,16 @@ import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { usePrevPathName } from "@/lib/prev-page";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { toVersionString } from "@/lib/version";
-import { useQuery } from "@tanstack/react-query";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CircleX } from "lucide-react";
-import { Suspense, useCallback, useId } from "react";
+import { Suspense, useId } from "react";
 import { HeadingPageName } from "../-tab-selector";
 
 export const Route = createFileRoute("/_main/packages/user-packages/")({
@@ -42,52 +46,39 @@ function Page() {
 	);
 }
 
+const environmentGetUserPackages = queryOptions({
+	queryKey: ["environmentGetUserPackages"],
+	queryFn: commands.environmentGetUserPackages,
+});
+
 function PageBody() {
-	const result = useQuery({
-		queryKey: ["environmentGetUserPackages"],
-		queryFn: commands.environmentGetUserPackages,
+	const result = useQuery(environmentGetUserPackages);
+
+	const queryClient = useQueryClient();
+	const addUserPackageWithPicker = useMutation({
+		mutationFn: async () =>
+			await commands.environmentAddUserPackageWithPicker(),
+		onSuccess: async (result) => {
+			switch (result) {
+				case "NoFolderSelected":
+					break;
+				case "InvalidSelection":
+					toastError(tc("user packages:toast:invalid selection"));
+					break;
+				case "AlreadyAdded":
+					toastSuccess(tc("user packages:toast:package already added"));
+					break;
+				case "Successful":
+					toastSuccess(tc("user packages:toast:package added"));
+					await queryClient.invalidateQueries(environmentGetUserPackages);
+					break;
+			}
+		},
+		onError: (error) => {
+			console.error(error);
+			toastThrownError(error);
+		},
 	});
-
-	const [envAddUserPackage, dialog] = useFilePickerFunction(
-		commands.environmentAddUserPackageWithPicker,
-	);
-
-	const addUserPackage = useCallback(
-		async function addUserPackage() {
-			try {
-				switch (await envAddUserPackage()) {
-					case "NoFolderSelected":
-						break;
-					case "InvalidSelection":
-						toastError(tc("user packages:toast:invalid selection"));
-						break;
-					case "AlreadyAdded":
-						toastSuccess(tc("user packages:toast:package already added"));
-						break;
-					case "Successful":
-						toastSuccess(tc("user packages:toast:package added"));
-						await result.refetch();
-						break;
-				}
-			} catch (e) {
-				toastThrownError(e);
-			}
-		},
-		[envAddUserPackage, result],
-	);
-
-	const removeUserPackage = useCallback(
-		async function removeUserPackage(path: string) {
-			try {
-				await commands.environmentRemoveUserPackages(path);
-				toastSuccess(tc("user packages:toast:package removed"));
-				await result.refetch();
-			} catch (e) {
-				toastThrownError(e);
-			}
-		},
-		[result],
-	);
 
 	const bodyAnimation = usePrevPathName().startsWith("/packages")
 		? "slide-left"
@@ -99,7 +90,7 @@ function PageBody() {
 				className={"shrink-0"}
 				leading={<HeadingPageName pageType={"/packages/user-packages"} />}
 				trailing={
-					<Button onClick={addUserPackage}>
+					<Button onClick={() => addUserPackageWithPicker.mutate()}>
 						{tc("user packages:button:add package")}
 					</Button>
 				}
@@ -108,24 +99,45 @@ function PageBody() {
 				className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
 			>
 				<ScrollableCardTable className={"h-full w-full"}>
-					<RepositoryTableBody
-						userPackages={result.data || []}
-						removeUserPackage={removeUserPackage}
-					/>
+					<RepositoryTableBody userPackages={result.data || []} />
 				</ScrollableCardTable>
 			</main>
-			{dialog}
 		</VStack>
 	);
 }
 
 function RepositoryTableBody({
 	userPackages,
-	removeUserPackage,
 }: {
 	userPackages: TauriUserPackage[];
-	removeUserPackage: (path: string) => void;
 }) {
+	const queryClient = useQueryClient();
+	const removeUserPackages = useMutation({
+		mutationFn: async (path: string) =>
+			await commands.environmentRemoveUserPackages(path),
+		onMutate: async (path) => {
+			await queryClient.invalidateQueries(environmentGetUserPackages);
+			const data = queryClient.getQueryData(
+				environmentGetUserPackages.queryKey,
+			);
+			if (data !== undefined) {
+				queryClient.setQueryData(
+					environmentGetUserPackages.queryKey,
+					data.filter((x) => x.path === path),
+				);
+			}
+			return data;
+		},
+		onError: (error, _, ctx) => {
+			console.error(error);
+			toastThrownError(error);
+			queryClient.setQueryData(environmentGetUserPackages.queryKey, ctx);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGetUserPackages);
+		},
+	});
+
 	const TABLE_HEAD = [
 		"general:name",
 		"user packages:path",
@@ -155,7 +167,7 @@ function RepositoryTableBody({
 					<PackageRow
 						key={pkg.path}
 						pkg={pkg}
-						remove={() => removeUserPackage(pkg.path)}
+						remove={() => removeUserPackages.mutate(pkg.path)}
 					/>
 				))}
 			</tbody>

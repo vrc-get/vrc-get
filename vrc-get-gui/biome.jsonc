@@ -38,6 +38,10 @@
 								"name": "useDocumentEvent",
 								"closureIndex": 1,
 								"dependenciesIndex": 2
+							},
+							{
+								"name": "useEffectEvent",
+								"stableResult": true
 							}
 						]
 					}

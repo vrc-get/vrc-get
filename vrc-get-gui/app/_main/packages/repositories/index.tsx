@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DialogDescription,
 	DialogFooter,
-	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -23,28 +22,24 @@ import {
 } from "@/components/ui/tooltip";
 import type { TauriUserRepository } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { usePrevPathName } from "@/lib/prev-page";
 import { toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, CircleX } from "lucide-react";
-import type React from "react";
-import { useRef } from "react";
-import {
-	Suspense,
-	useCallback,
-	useEffect,
-	useId,
-	useMemo,
-	useState,
-} from "react";
+import { Suspense, useCallback, useEffect, useId, useMemo } from "react";
 import { HeadingPageName } from "../-tab-selector";
-import { useAddRepository } from "./-use-add-repository";
-import { useImportRepositories } from "./-use-import-repositories";
+import { addRepository, openAddRepositoryDialog } from "./-use-add-repository";
+import { importRepositories } from "./-use-import-repositories";
 
 export const Route = createFileRoute("/_main/packages/repositories/")({
 	component: Page,
@@ -58,80 +53,48 @@ function Page() {
 	);
 }
 
+const environmentRepositoriesInfo = queryOptions({
+	queryKey: ["environmentRepositoriesInfo"],
+	queryFn: commands.environmentRepositoriesInfo,
+});
+
 function PageBody() {
-	const result = useQuery({
-		queryKey: ["environmentRepositoriesInfo"],
-		queryFn: commands.environmentRepositoriesInfo,
-	});
-	const onFinishAddRepositoryCallbackRef = useRef<() => void>(undefined);
+	const result = useQuery(environmentRepositoriesInfo);
 
-	const addRepositoryInfo = useAddRepository({
-		refetch: () => result.refetch(),
-		onFinishAddRepository: useCallback(
-			() => onFinishAddRepositoryCallbackRef.current?.(),
-			[],
-		),
-	});
-
-	const importRepositoryInfo = useImportRepositories({
-		refetch: () => result.refetch(),
-	});
-
-	const [exportRepositoriesRaw, exportDialog] = useFilePickerFunction(
-		commands.environmentExportRepositories,
-	);
-
-	const exportRepositories = useCallback(async () => {
-		try {
-			await exportRepositoriesRaw();
-		} catch (e) {
+	const exportRepositories = useMutation({
+		mutationFn: async () => await commands.environmentExportRepositories(),
+		onError: (e) => {
+			console.error(e);
 			toastThrownError(e);
-		}
-	}, [exportRepositoriesRaw]);
+		},
+	});
+
+	const importRepositoriesMutation = useMutation({
+		mutationFn: async () => await importRepositories(),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+	});
+
+	const processDeepLink = useCallback(async function processDeepLink() {
+		const data = await commands.deepLinkTakeAddRepository();
+		if (data == null) return;
+		await addRepository(data.url, data.headers);
+	}, []);
 
 	const hiddenUserRepos = useMemo(
 		() => new Set(result.data?.hidden_user_repositories),
-		[result],
+		[result.data?.hidden_user_repositories],
 	);
 
-	async function removeRepository(id: string) {
-		try {
-			await commands.environmentRemoveRepository(id);
-			await result.refetch();
-		} catch (e) {
-			toastThrownError(e);
-		}
-	}
-
-	const addRepository = addRepositoryInfo.addRepository;
-	const inProgress = addRepositoryInfo.inProgress;
-	const processDeepLink = useCallback(
-		async function processDeepLink(force?: boolean) {
-			if (!force && inProgress) return; // do not override opening dialog
-			const data = await commands.deepLinkTakeAddRepository();
-			if (data == null) return;
-			await addRepository(data.url, data.headers);
-		},
-		[addRepository, inProgress],
-	);
-
-	onFinishAddRepositoryCallbackRef.current = () => processDeepLink(true);
-
-	useTauriListen<null>(
-		"deep-link-add-repository",
-		useCallback(
-			(_) => {
-				// noinspection JSIgnoredPromiseFromCall
-				processDeepLink();
-			},
-			[processDeepLink],
-		),
-	);
+	useTauriListen<null>("deep-link-add-repository", (_) => {
+		void processDeepLink();
+	});
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: we want to do on mount
 	useEffect(() => {
-		// noinspection JSIgnoredPromiseFromCall
-		processDeepLink();
+		void processDeepLink();
 		// Only for initial load
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
@@ -150,7 +113,7 @@ function PageBody() {
 						<div className={"flex divide-x"}>
 							<Button
 								className={"rounded-r-none"}
-								onClick={addRepositoryInfo.openAddDialog}
+								onClick={() => openAddRepositoryDialog()}
 							>
 								{tc("vpm repositories:button:add repository")}
 							</Button>
@@ -165,11 +128,11 @@ function PageBody() {
 						</div>
 						<DropdownMenuContent>
 							<DropdownMenuItem
-								onClick={importRepositoryInfo.startImportingRepositories}
+								onClick={() => importRepositoriesMutation.mutate()}
 							>
 								{tc("vpm repositories:button:import repositories")}
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={exportRepositories}>
+							<DropdownMenuItem onClick={() => exportRepositories.mutate()}>
 								{tc("vpm repositories:button:export repositories")}
 							</DropdownMenuItem>
 						</DropdownMenuContent>
@@ -183,14 +146,9 @@ function PageBody() {
 					<RepositoryTableBody
 						userRepos={result.data?.user_repositories || []}
 						hiddenUserRepos={hiddenUserRepos}
-						removeRepository={removeRepository}
-						refetch={() => result.refetch()}
 					/>
 				</ScrollableCardTable>
 			</main>
-			{addRepositoryInfo.dialog}
-			{importRepositoryInfo.dialog}
-			{exportDialog}
 		</VStack>
 	);
 }
@@ -198,13 +156,9 @@ function PageBody() {
 function RepositoryTableBody({
 	userRepos,
 	hiddenUserRepos,
-	removeRepository,
-	refetch,
 }: {
 	userRepos: TauriUserRepository[];
 	hiddenUserRepos: Set<string>;
-	removeRepository: (id: string) => void;
-	refetch: () => void;
 }) {
 	const TABLE_HEAD = [
 		"", // checkbox
@@ -236,15 +190,15 @@ function RepositoryTableBody({
 					url={"https://packages.vrchat.com/official?download"}
 					displayName={tt("vpm repositories:source:official")}
 					hiddenUserRepos={hiddenUserRepos}
-					refetch={refetch}
+					canRemove={false}
 				/>
 				<RepositoryRow
 					repoId={"com.vrchat.repos.curated"}
 					url={"https://packages.vrchat.com/curated?download"}
 					displayName={tt("vpm repositories:source:curated")}
 					hiddenUserRepos={hiddenUserRepos}
-					refetch={refetch}
 					className={"border-b border-primary/10"}
+					canRemove={false}
 				/>
 				{userRepos.map((repo) => (
 					<RepositoryRow
@@ -253,8 +207,6 @@ function RepositoryTableBody({
 						displayName={repo.display_name}
 						url={repo.url}
 						hiddenUserRepos={hiddenUserRepos}
-						remove={() => removeRepository(repo.id)}
-						refetch={refetch}
 					/>
 				))}
 			</tbody>
@@ -268,65 +220,75 @@ function RepositoryRow({
 	url,
 	hiddenUserRepos,
 	className,
-	remove,
-	refetch,
+	canRemove = true,
 }: {
 	repoId: TauriUserRepository["id"];
 	displayName: TauriUserRepository["display_name"];
 	url: TauriUserRepository["url"];
 	hiddenUserRepos: Set<string>;
 	className?: string;
-	remove?: () => void;
-	refetch: () => void;
+	canRemove?: boolean;
 }) {
 	const cellClass = "p-2.5";
 	const id = useId();
 
-	const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+	const queryClient = useQueryClient();
+	const setHideRepository = useMutation({
+		mutationFn: async ({ id, shown }: { id: string; shown: boolean }) => {
+			if (shown) {
+				await commands.environmentShowRepository(id);
+			} else {
+				await commands.environmentHideRepository(id);
+			}
+		},
+		onMutate: async ({ id, shown }: { id: string; shown: boolean }) => {
+			await queryClient.cancelQueries(environmentRepositoriesInfo);
+			const data = queryClient.getQueryData(
+				environmentRepositoriesInfo.queryKey,
+			);
+			if (data !== undefined) {
+				let hidden_user_repositories: string[];
+				if (shown) {
+					if (data.hidden_user_repositories.includes(id)) {
+						hidden_user_repositories = data.hidden_user_repositories;
+					} else {
+						hidden_user_repositories = [...data.hidden_user_repositories, id];
+					}
+				} else {
+					hidden_user_repositories = data.hidden_user_repositories.filter(
+						(x) => x !== id,
+					);
+				}
+
+				queryClient.setQueryData(environmentRepositoriesInfo.queryKey, {
+					...data,
+					hidden_user_repositories,
+				});
+			}
+			return data;
+		},
+		onError: (e, _, ctx) => {
+			reportError(e);
+			console.error(e);
+			queryClient.setQueryData(environmentRepositoriesInfo.queryKey, ctx);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentRepositoriesInfo);
+		},
+	});
 
 	const selected = !hiddenUserRepos.has(repoId);
-	const onChange = () => {
-		if (selected) {
-			commands.environmentHideRepository(repoId).then(refetch);
-		} else {
-			commands.environmentShowRepository(repoId).then(refetch);
-		}
-	};
-
-	let dialog: React.ReactNode;
-	if (removeDialogOpen) {
-		dialog = (
-			<DialogOpen>
-				<DialogTitle>{tc("vpm repositories:remove repository")}</DialogTitle>
-				<DialogDescription>
-					<p className={"whitespace-normal font-normal"}>
-						{tc("vpm repositories:dialog:confirm remove description", {
-							name: displayName,
-						})}
-					</p>
-				</DialogDescription>
-				<DialogFooter>
-					<Button onClick={() => setRemoveDialogOpen(false)}>
-						{tc("general:button:cancel")}
-					</Button>
-					<Button
-						onClick={() => {
-							remove?.();
-							setRemoveDialogOpen(false);
-						}}
-						className={"ml-2"}
-					>
-						{tc("vpm repositories:remove repository")}
-					</Button>
-				</DialogFooter>
-			</DialogOpen>
-		);
-	}
 
 	return (
 		<tr className={cn("even:bg-secondary/30", className)}>
 			<td className={cellClass}>
-				<Checkbox id={id} checked={selected} onCheckedChange={onChange} />
+				<Checkbox
+					id={id}
+					checked={selected}
+					onCheckedChange={(x) =>
+						setHideRepository.mutate({ id: repoId, shown: x === true })
+					}
+				/>
 			</td>
 			<td className={cellClass}>
 				<label htmlFor={id}>
@@ -338,10 +300,15 @@ function RepositoryRow({
 			</td>
 			<td className={`${cellClass} w-0`}>
 				<Tooltip>
-					<TooltipTrigger asChild={remove != null}>
+					<TooltipTrigger asChild={canRemove}>
 						<Button
-							disabled={remove == null}
-							onClick={() => setRemoveDialogOpen(true)}
+							disabled={!canRemove}
+							onClick={() => {
+								void openSingleDialog(RemoveRepositoryDialog, {
+									displayName,
+									id,
+								});
+							}}
 							variant={"ghost"}
 							size={"icon"}
 						>
@@ -349,15 +316,66 @@ function RepositoryRow({
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>
-						{remove == null
-							? tc(
+						{canRemove
+							? tc("vpm repositories:remove repository")
+							: tc(
 									"vpm repositories:tooltip:remove curated or official repository",
-								)
-							: tc("vpm repositories:remove repository")}
+								)}
 					</TooltipContent>
 				</Tooltip>
 			</td>
-			{dialog}
 		</tr>
+	);
+}
+
+async function RemoveRepositoryDialog({
+	dialog,
+	displayName,
+	id,
+}: { dialog: DialogContext<void>; displayName: string; id: string }) {
+	const queryClient = useQueryClient();
+
+	const removeRepository = useMutation({
+		mutationFn: async (id: string) =>
+			await commands.environmentRemoveRepository(id),
+		onMutate: async (id) => {
+			await queryClient.cancelQueries(environmentRepositoriesInfo);
+			const data = queryClient.getQueryData(
+				environmentRepositoriesInfo.queryKey,
+			);
+			if (data !== undefined) {
+				queryClient.setQueryData(environmentRepositoriesInfo.queryKey, {
+					...data,
+					user_repositories: data.user_repositories.filter((x) => x.id !== id),
+				});
+			}
+		},
+	});
+
+	return (
+		<>
+			<DialogTitle>{tc("vpm repositories:remove repository")}</DialogTitle>
+			<DialogDescription>
+				<p className={"whitespace-normal font-normal"}>
+					{tc("vpm repositories:dialog:confirm remove description", {
+						name: displayName,
+					})}
+				</p>
+			</DialogDescription>
+			<DialogFooter>
+				<Button onClick={() => dialog.close()}>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button
+					onClick={() => {
+						dialog.close();
+						removeRepository.mutate(id);
+					}}
+					className={"ml-2"}
+				>
+					{tc("vpm repositories:remove repository")}
+				</Button>
+			</DialogFooter>
+		</>
 	);
 }

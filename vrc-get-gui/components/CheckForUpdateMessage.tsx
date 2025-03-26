@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
 	DialogFooter,
-	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -10,9 +9,9 @@ import { assertNever } from "@/lib/assert-never";
 import type { CheckForUpdateResponse } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
+import type { DialogContext } from "@/lib/dialog";
 import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import { toastThrownError } from "@/lib/toast";
 import { useState } from "react";
 
 type ConfirmStatus =
@@ -28,17 +27,12 @@ type ConfirmStatus =
 			state: "waitingForRelaunch";
 	  };
 
-interface DownloadProgressEvent {
-	chunkLength: number;
-	contentLength: number;
-}
-
 export function CheckForUpdateMessage({
 	response,
-	close,
+	dialog,
 }: {
 	response: CheckForUpdateResponse;
-	close: () => void;
+	dialog: DialogContext<boolean>;
 }) {
 	const [confirmStatus, setConfirmStatus] = useState<ConfirmStatus>({
 		state: "confirming",
@@ -47,7 +41,7 @@ export function CheckForUpdateMessage({
 	const startDownload = async () => {
 		setConfirmStatus({ state: "downloading", downloaded: 0, total: 100 });
 		try {
-			const [cancel, promise] = callAsyncCommand(
+			const [, promise] = callAsyncCommand(
 				commands.utilInstallAndUpgrade,
 				[response.version],
 				(progress) => {
@@ -100,16 +94,14 @@ export function CheckForUpdateMessage({
 			);
 			await promise;
 		} catch (e) {
-			toastThrownError(e);
-			console.error(e);
-			close();
+			dialog.error(e);
 		}
 	};
 
 	switch (confirmStatus.state) {
 		case "confirming":
 			return (
-				<DialogOpen>
+				<>
 					<DialogTitle>{tc("check update:dialog:title")}</DialogTitle>
 					<DialogDescription>
 						<p>{tc("check update:dialog:new version description")}</p>
@@ -127,16 +119,18 @@ export function CheckForUpdateMessage({
 						</p>
 					</DialogDescription>
 					<DialogFooter className={"gap-2"}>
-						<Button onClick={close}>{tc("check update:dialog:dismiss")}</Button>
+						<Button onClick={() => dialog.close(false)}>
+							{tc("check update:dialog:dismiss")}
+						</Button>
 						<Button onClick={startDownload}>
 							{tc("check update:dialog:update")}
 						</Button>
 					</DialogFooter>
-				</DialogOpen>
+				</>
 			);
 		case "downloading":
 			return (
-				<DialogOpen>
+				<>
 					<DialogTitle>{tc("check update:dialog:title")}</DialogTitle>
 					<DialogDescription>
 						<p>{tc("check update:dialog:downloading...")}</p>
@@ -145,16 +139,16 @@ export function CheckForUpdateMessage({
 							max={confirmStatus.total}
 						/>
 					</DialogDescription>
-				</DialogOpen>
+				</>
 			);
 		case "waitingForRelaunch":
 			return (
-				<DialogOpen>
+				<>
 					<DialogTitle>{tc("check update:dialog:title")}</DialogTitle>
 					<DialogDescription>
 						<p>{tc("check update:dialog:relaunching...")}</p>
 					</DialogDescription>
-				</DialogOpen>
+				</>
 			);
 	}
 }

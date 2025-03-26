@@ -1,9 +1,11 @@
+import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
+import { BackupProjectDialog } from "@/components/BackupProjectDialog";
+import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DialogDescription,
 	DialogFooter,
-	DialogOpen,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -12,7 +14,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Progress } from "@/components/ui/progress";
 import {
 	Tooltip,
 	TooltipContent,
@@ -20,19 +21,19 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
-import { useBackupProjectModal } from "@/lib/backup-project";
-import type {
-	TauriCopyProjectForMigrationProgress,
-	TauriCreateBackupProgress,
-	TauriProject,
-	TauriProjectType,
-} from "@/lib/bindings";
+import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
-import { callAsyncCommand } from "@/lib/call-async-command";
+import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
-import { useRemoveProjectModal } from "@/lib/remove-project";
+import { router } from "@/lib/main";
+import { openUnity } from "@/lib/open-unity";
+import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import type { OpenUnityFunction } from "@/lib/use-open-unity";
+import {
+	queryOptions,
+	useMutation,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	CircleHelp,
@@ -41,12 +42,7 @@ import {
 	Globe,
 	Star,
 } from "lucide-react";
-import React, {
-	type ComponentProps,
-	forwardRef,
-	useContext,
-	useState,
-} from "react";
+import React, { type ComponentProps, forwardRef, useContext } from "react";
 
 const ProjectDisplayType: Record<
 	TauriProjectType,
@@ -73,22 +69,18 @@ const LegacyProjectTypes = [
 	"UpmStarter",
 ];
 
+const environmentProjects = queryOptions({
+	queryKey: ["environmentProjects"],
+	queryFn: commands.environmentProjects,
+});
+
 export function ProjectRow({
 	project,
-	openUnity,
-	onRemoved,
 	loading,
-	refresh,
 }: {
 	project: TauriProject;
-	openUnity: OpenUnityFunction;
-	onRemoved?: () => void;
 	loading?: boolean;
-	refresh?: () => void;
 }) {
-	const removeProjectModal = useRemoveProjectModal({ onRemoved });
-	const backupProjectModal = useBackupProjectModal();
-
 	const cellClass = "p-2.5";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
@@ -102,19 +94,37 @@ export function ProjectRow({
 	const openProjectFolder = () =>
 		commands.utilOpen(project.path, "ErrorIfNotExists");
 
-	const onToggleFavorite = async () => {
-		try {
-			await commands.environmentSetFavoriteProject(
+	const queryClient = useQueryClient();
+	const setProjectFavorite = useMutation({
+		mutationFn: (
+			project: Pick<TauriProject, "list_version" | "index" | "favorite">,
+		) =>
+			commands.environmentSetFavoriteProject(
 				project.list_version,
 				project.index,
-				!project.favorite,
-			);
-			refresh?.();
-		} catch (e) {
+				project.favorite,
+			),
+		onMutate: async (project) => {
+			await queryClient.cancelQueries(environmentProjects);
+			const data = queryClient.getQueryData(environmentProjects.queryKey);
+			if (data !== undefined) {
+				queryClient.setQueryData(
+					environmentProjects.queryKey,
+					data.map((v) =>
+						v.list_version === project.list_version && v.index === project.index
+							? { ...v, favorite: project.favorite }
+							: v,
+					),
+				);
+			}
+			return data;
+		},
+		onError: (e, _, ctx) => {
 			console.error("Error migrating project", e);
 			toastThrownError(e);
-		}
-	};
+			queryClient.setQueryData(environmentProjects.queryKey, ctx);
+		},
+	});
 
 	const removed = !project.is_exists;
 
@@ -127,7 +137,12 @@ export function ProjectRow({
 					<div className={"relative flex"}>
 						<Checkbox
 							checked={project.favorite}
-							onCheckedChange={onToggleFavorite}
+							onCheckedChange={() =>
+								setProjectFavorite.mutate({
+									...project,
+									favorite: !project.favorite,
+								})
+							}
 							disabled={removed || loading}
 							className="before:transition-none border-none text-primary! peer"
 						/>
@@ -220,9 +235,18 @@ export function ProjectRow({
 						>
 							{tc("projects:button:open unity")}
 						</ButtonDisabledIfRemoved>
-						<ManageOrMigrateButton project={project} refresh={refresh} />
+						<ManageOrMigrateButton project={project} />
 						<ButtonDisabledIfRemoved
-							onClick={() => backupProjectModal.startBackup(project)}
+							onClick={async () => {
+								try {
+									await openSingleDialog(BackupProjectDialog, {
+										projectPath: project.path,
+									});
+								} catch (e) {
+									console.error(e);
+									toastThrownError(e);
+								}
+							}}
 							variant={"success"}
 						>
 							{tc("projects:backup")}
@@ -247,7 +271,9 @@ export function ProjectRow({
 									{tc("projects:menuitem:open directory")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={() => removeProjectModal.startRemove(project)}
+									onClick={() =>
+										openSingleDialog(RemoveProjectDialog, { project })
+									}
 									disabled={loading}
 									className={"text-destructive focus:text-destructive"}
 								>
@@ -256,8 +282,6 @@ export function ProjectRow({
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
-					{removeProjectModal.dialog}
-					{backupProjectModal.dialog}
 				</td>
 			</tr>
 		</ProjectRowContext.Provider>
@@ -266,10 +290,8 @@ export function ProjectRow({
 
 function ManageOrMigrateButton({
 	project,
-	refresh,
 }: {
 	project: TauriProject;
-	refresh?: () => void;
 }) {
 	const navigate = useNavigate();
 	switch (project.project_type) {
@@ -288,7 +310,14 @@ function ManageOrMigrateButton({
 			);
 		case "LegacyWorlds":
 		case "LegacyAvatars":
-			return <MigrateButton project={project} refresh={refresh} />;
+			return (
+				<ButtonDisabledIfRemoved
+					variant={"success"}
+					onClick={() => void migrateVpm(project.path)}
+				>
+					{tc("projects:button:migrate")}
+				</ButtonDisabledIfRemoved>
+			);
 		case "UpmWorlds":
 		case "UpmAvatars":
 		case "UpmStarter":
@@ -324,204 +353,97 @@ function ManageOrMigrateButton({
 	}
 }
 
-function MigrateButton({
-	project,
-	refresh,
-}: {
-	project: TauriProject;
-	refresh?: () => void;
-}) {
-	type MigrateState =
-		| {
-				type: "normal";
-		  }
-		| {
-				type: "migrateVpm:confirm";
-		  }
-		| {
-				type: "migrateVpm:copyingProject";
-				progress: TauriCopyProjectForMigrationProgress;
-		  }
-		| {
-				type: "migrateVpm:backingUpProject";
-				progress: TauriCreateBackupProgress;
-		  }
-		| {
-				type: "migrateVpm:updating";
-		  };
+type MigrationProjectBackupType = "none" | "copy" | "backupArchive";
 
-	type ProjectBackupType = "none" | "copy" | "backupArchive";
-
-	const [dialogStatus, setDialogStatus] = useState<MigrateState>({
-		type: "normal",
-	});
-
-	const startMigrateVpm = async () => {
-		if (await commands.projectIsUnityLaunching(project.path)) {
-			toastError(tt("projects:toast:close unity before migration"));
-			return;
-		}
-		setDialogStatus({ type: "migrateVpm:confirm" });
-	};
-
-	const doMigrateVpm = async (backupType: ProjectBackupType) => {
-		setDialogStatus({ type: "normal" });
-		try {
-			let migrateProjectPath: string;
-			switch (backupType) {
-				case "none":
-					migrateProjectPath = project.path;
-					break;
-				case "copy": {
-					setDialogStatus({
-						type: "migrateVpm:copyingProject",
-						progress: {
-							proceed: 0,
-							total: 1,
-							last_proceed: "Collecting files...",
-						},
-					});
-					const [, promise] = callAsyncCommand(
-						commands.environmentCopyProjectForMigration,
-						[project.path],
-						(progress) => {
-							setDialogStatus((prev) => {
-								if (prev.type !== "migrateVpm:copyingProject") return prev;
-								if (prev.progress.proceed > progress.proceed) return prev;
-								return { ...prev, progress };
-							});
-						},
-					);
-					migrateProjectPath = await promise;
-					break;
-				}
-				case "backupArchive": {
-					setDialogStatus({
-						type: "migrateVpm:backingUpProject",
-						progress: {
-							proceed: 0,
-							total: 1,
-							last_proceed: "Collecting files...",
-						},
-					});
-					const [, promise] = callAsyncCommand(
-						commands.projectCreateBackup,
-						[project.path],
-						(progress) => {
-							setDialogStatus((prev) => {
-								if (prev.type !== "migrateVpm:backingUpProject") return prev;
-								if (prev.progress.proceed > progress.proceed) return prev;
-								return { ...prev, progress };
-							});
-						},
-					);
-					await promise;
-					migrateProjectPath = project.path;
-					break;
-				}
-				default:
-					assertNever(backupType);
-			}
-			setDialogStatus({ type: "migrateVpm:updating" });
-			await commands.projectMigrateProjectToVpm(migrateProjectPath);
-			setDialogStatus({ type: "normal" });
-			toastSuccess(tt("projects:toast:project migrated"));
-			refresh?.();
-		} catch (e) {
-			console.error("Error migrating project", e);
-			setDialogStatus({ type: "normal" });
-			toastThrownError(e);
-		}
-	};
-
-	let dialogContent: React.ReactNode = null;
-	switch (dialogStatus.type) {
-		case "migrateVpm:confirm":
-			dialogContent = (
-				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-					<DialogDescription>
-						<p>{tc("projects:dialog:vpm migrate description")}</p>
-					</DialogDescription>
-					<DialogFooter className={"gap-1"}>
-						<Button onClick={() => setDialogStatus({ type: "normal" })}>
-							{tc("general:button:cancel")}
-						</Button>
-						<Button onClick={() => doMigrateVpm("backupArchive")}>
-							{tc("projects:button:backup and migrate")}
-						</Button>
-						<Button onClick={() => doMigrateVpm("copy")}>
-							{tc("projects:button:migrate copy")}
-						</Button>
-						<Button
-							onClick={() => doMigrateVpm("none")}
-							variant={"destructive"}
-						>
-							{tc("projects:button:migrate in-place")}
-						</Button>
-					</DialogFooter>
-				</DialogOpen>
-			);
-			break;
-		case "migrateVpm:copyingProject":
-			dialogContent = (
-				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-					<DialogDescription>
-						<p>{tc("projects:pre-migrate copying...")}</p>
-						<p>
-							{tc("projects:dialog:proceed k/n", {
-								count: dialogStatus.progress.proceed,
-								total: dialogStatus.progress.total,
-							})}
-						</p>
-						<Progress
-							value={dialogStatus.progress.proceed}
-							max={dialogStatus.progress.total}
-						/>
-					</DialogDescription>
-				</DialogOpen>
-			);
-			break;
-		case "migrateVpm:backingUpProject":
-			dialogContent = (
-				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-					<DialogDescription>
-						<p>{tc("projects:dialog:creating backup...")}</p>
-						<p>
-							{tc("projects:dialog:proceed k/n", {
-								count: dialogStatus.progress.proceed,
-								total: dialogStatus.progress.total,
-							})}
-						</p>
-						<Progress
-							value={dialogStatus.progress.proceed}
-							max={dialogStatus.progress.total}
-						/>
-					</DialogDescription>
-				</DialogOpen>
-			);
-			break;
-		case "migrateVpm:updating":
-			dialogContent = (
-				<DialogOpen className={"whitespace-normal"}>
-					<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-					<DialogDescription>
-						<p>{tc("projects:migrating...")}</p>
-					</DialogDescription>
-				</DialogOpen>
-			);
-			break;
+async function migrateVpm(projectPath: string) {
+	if (await commands.projectIsUnityLaunching(projectPath)) {
+		toastError(tt("projects:toast:close unity before migration"));
+		return;
 	}
 
+	using dialog = showDialog(null);
+
+	const backupType = await dialog.ask(ConfirmVpmMigrationDialog, {});
+	if (backupType == null) return "";
+
+	let migrateProjectPath: string;
+	switch (backupType) {
+		case "none":
+			migrateProjectPath = projectPath;
+			break;
+		case "copy": {
+			migrateProjectPath = await dialog.ask(MigrationCopyingDialog, {
+				header: tc("projects:dialog:vpm migrate header"),
+				projectPath,
+			});
+			break;
+		}
+		case "backupArchive": {
+			const result = await dialog.ask(BackupProjectDialog, {
+				projectPath,
+			});
+			if (result === "cancelled") {
+				return;
+			}
+			migrateProjectPath = projectPath;
+			break;
+		}
+		default:
+			assertNever(backupType);
+	}
+	dialog.replace(<VpmMigrationUpdating />);
+	await commands.projectMigrateProjectToVpm(migrateProjectPath);
+	toastSuccess(tt("projects:toast:project migrated"));
+
+	await queryClient.invalidateQueries({
+		queryKey: ["environmentProjects"],
+	});
+
+	router.navigate({
+		to: "/projects/manage",
+		search: {
+			projectPath: migrateProjectPath,
+		},
+	});
+}
+
+function ConfirmVpmMigrationDialog({
+	dialog,
+}: {
+	dialog: DialogContext<MigrationProjectBackupType | null>;
+}) {
 	return (
-		<>
-			<ButtonDisabledIfRemoved variant={"success"} onClick={startMigrateVpm}>
-				{tc("projects:button:migrate")}
-			</ButtonDisabledIfRemoved>
-			{dialogContent}
-		</>
+		<div className={"contents whitespace-normal"}>
+			<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+			<DialogDescription>
+				<p>{tc("projects:dialog:vpm migrate description")}</p>
+			</DialogDescription>
+			<DialogFooter className={"gap-1"}>
+				<Button onClick={() => dialog.close(null)}>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button onClick={() => dialog.close("backupArchive")}>
+					{tc("projects:button:backup and migrate")}
+				</Button>
+				<Button onClick={() => dialog.close("copy")}>
+					{tc("projects:button:migrate copy")}
+				</Button>
+				<Button onClick={() => dialog.close("none")} variant={"destructive"}>
+					{tc("projects:button:migrate in-place")}
+				</Button>
+			</DialogFooter>
+		</div>
+	);
+}
+
+function VpmMigrationUpdating() {
+	return (
+		<div className={"contents whitespace-normal"}>
+			<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
+			<DialogDescription>
+				<p>{tc("projects:migrating...")}</p>
+			</DialogDescription>
+		</div>
 	);
 }
 

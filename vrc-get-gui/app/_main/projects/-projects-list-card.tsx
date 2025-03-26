@@ -1,19 +1,14 @@
 "use client";
-
-import Loading from "@/app/-loading";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
-import { Card } from "@/components/ui/card";
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
-import type { OpenUnityFunction, Result } from "@/lib/use-open-unity";
 import { compareUnityVersionString } from "@/lib/version";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, ChevronsUpDown, Star } from "lucide-react";
-import type React from "react";
-import { useEffect, useMemo, useState } from "react";
-import { CreateProject } from "./-create-project";
+import { useMemo } from "react";
 import { ProjectRow } from "./-project-row";
 
 const sortings = ["lastModified", "name", "unity", "type"] as const;
@@ -21,58 +16,9 @@ const sortings = ["lastModified", "name", "unity", "type"] as const;
 type SimpleSorting = (typeof sortings)[number];
 type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
 
-function isSorting(s: string): s is Sorting {
+function isSorting(s: string | unknown): s is Sorting {
 	return sortings.some(
 		(sorting) => sorting === s || `${sorting}Reversed` === s,
-	);
-}
-
-export default function ProjectsListCard({
-	result,
-	search,
-	createProjectState,
-	setCreateProjectState,
-	openUnity,
-	loading,
-}: {
-	// biome-ignore lint/suspicious/noExplicitAny: none
-	result: any;
-	search: string;
-	createProjectState: "normal" | "creating";
-	setCreateProjectState: React.Dispatch<
-		React.SetStateAction<"normal" | "creating">
-	>;
-	openUnity: Result;
-	loading: boolean;
-}) {
-	return (
-		<>
-			{result.status === "pending" ? (
-				<Card className="w-full shadow-none overflow-hidden p-4">
-					<Loading loadingText={tc("general:loading...")} />
-				</Card>
-			) : result.status === "error" ? (
-				<Card className="w-full shadow-none overflow-hidden p-4">
-					{tc("projects:error:load error", { msg: result.error.message })}
-				</Card>
-			) : (
-				<ProjectsTableCard
-					projects={result.data}
-					search={search}
-					loading={loading}
-					openUnity={openUnity.openUnity}
-					refresh={() => result.refetch()}
-					onRemoved={() => result.refetch()}
-				/>
-			)}
-			{createProjectState === "creating" && (
-				<CreateProject
-					close={() => setCreateProjectState("normal")}
-					refetch={() => result.refetch()}
-				/>
-			)}
-			{openUnity.dialog}
-		</>
 	);
 }
 
@@ -117,41 +63,48 @@ function compareProjectType(
 	assertNever(a, "project type");
 }
 
-function ProjectsTableCard({
+export function ProjectsTableCard({
 	projects,
 	search,
-	onRemoved,
 	loading,
-	refresh,
-	openUnity,
 }: {
 	projects: TauriProject[];
-	openUnity: OpenUnityFunction;
 	search?: string;
 	loading?: boolean;
-	onRemoved?: () => void;
-	refresh?: () => void;
 }) {
-	const [sorting, setSortingState] = useState<Sorting>("lastModified");
+	const sortingQuery = useQuery({
+		initialData: "lastModified" as Sorting,
+		queryKey: ["environmentGetProjectSorting"],
+		queryFn: async () => {
+			const newSorting = await commands.environmentGetProjectSorting();
+			return !isSorting(newSorting) ? "lastModified" : newSorting;
+		},
+	});
 
-	useEffect(() => {
-		(async () => {
-			let newSorting = await commands.environmentGetProjectSorting();
-			if (newSorting === null) newSorting = "lastModified";
-			if (!isSorting(newSorting)) {
-				setSortingState("lastModified");
-			} else {
-				setSortingState(newSorting);
-			}
-		})();
-	}, []);
+	const queryClient = useQueryClient();
+
+	const setSortingStateMutation = useMutation({
+		mutationFn: async ({ sorting }: { sorting: Sorting }) => {
+			await commands.environmentSetProjectSorting(sorting);
+		},
+		onMutate: async ({ sorting }) => {
+			await queryClient.cancelQueries({
+				queryKey: ["environmentGetProjectSorting"],
+			});
+			queryClient.setQueryData(["environmentGetProjectSorting"], () => sorting);
+		},
+		onError: (error) => {
+			console.error("Error setting project sorting", error);
+			toastThrownError(error);
+		},
+	});
 
 	const projectsShown = useMemo(() => {
 		const searched = projects.filter((project) =>
 			project.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
 		);
 		searched.sort((a, b) => b.last_modified - a.last_modified);
-		switch (sorting) {
+		switch (sortingQuery.data) {
 			case "lastModified":
 				// already sorted
 				break;
@@ -181,7 +134,7 @@ function ProjectsTableCard({
 				searched.sort((a, b) => compareUnityVersionString(b.unity, a.unity));
 				break;
 			default:
-				assertNever(sorting);
+				assertNever(sortingQuery.data);
 		}
 		searched.sort((a, b) => {
 			if (a.favorite && !b.favorite) return -1;
@@ -189,38 +142,31 @@ function ProjectsTableCard({
 			return 0;
 		});
 		return searched;
-	}, [projects, sorting, search]);
+	}, [projects, sortingQuery.data, search]);
 
 	const thClass = "sticky top-0 z-10 border-b border-primary p-2.5";
 	const iconClass = "size-3 invisible project-table-header-chevron-up-down";
 
 	const setSorting = async (simpleSorting: SimpleSorting) => {
 		let newSorting: Sorting;
-		if (sorting === simpleSorting) {
+		if (sortingQuery.data === simpleSorting) {
 			newSorting = `${simpleSorting}Reversed`;
-		} else if (sorting === `${simpleSorting}Reversed`) {
+		} else if (sortingQuery.data === `${simpleSorting}Reversed`) {
 			newSorting = simpleSorting;
 		} else {
 			newSorting = simpleSorting;
 		}
-		setSortingState(newSorting);
-
-		try {
-			await commands.environmentSetProjectSorting(newSorting);
-		} catch (e) {
-			console.error("Error setting project sorting", e);
-			toastThrownError(e);
-		}
+		setSortingStateMutation.mutate({ sorting: newSorting });
 	};
 
 	const headerBg = (target: SimpleSorting) =>
-		sorting === target || sorting === `${target}Reversed`
+		sortingQuery.data === target || sortingQuery.data === `${target}Reversed`
 			? "bg-primary text-primary-foreground"
 			: "bg-secondary text-secondary-foreground";
 	const icon = (target: SimpleSorting) =>
-		sorting === target ? (
+		sortingQuery.data === target ? (
 			<ChevronDown className={"size-3"} />
-		) : sorting === `${target}Reversed` ? (
+		) : sortingQuery.data === `${target}Reversed` ? (
 			<ChevronUp className={"size-3"} />
 		) : (
 			<ChevronsUpDown className={iconClass} />
@@ -286,14 +232,7 @@ function ProjectsTableCard({
 			</thead>
 			<tbody>
 				{projectsShown.map((project) => (
-					<ProjectRow
-						key={project.index}
-						project={project}
-						loading={loading}
-						refresh={refresh}
-						onRemoved={onRemoved}
-						openUnity={openUnity}
-					/>
+					<ProjectRow key={project.index} project={project} loading={loading} />
 				))}
 			</tbody>
 		</ScrollableCardTable>

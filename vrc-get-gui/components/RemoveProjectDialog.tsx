@@ -1,0 +1,111 @@
+import { Button } from "@/components/ui/button";
+import {
+	DialogDescription,
+	DialogFooter,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import type { TauriProject } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
+import type { DialogContext } from "@/lib/dialog";
+import { tc, tt } from "@/lib/i18n";
+import { nameFromPath } from "@/lib/os";
+import { toastSuccess, toastThrownError } from "@/lib/toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation, useRouter } from "@tanstack/react-router";
+
+// string if remove project by path
+type Project =
+	| TauriProject
+	| {
+			path: string;
+			is_exists: boolean;
+	  };
+
+export function RemoveProjectDialog({
+	project,
+	dialog,
+}: {
+	project: Project;
+	dialog: DialogContext<boolean>;
+}) {
+	const queryClient = useQueryClient();
+	const router = useRouter();
+	const location = useLocation();
+
+	const removeProject = useMutation({
+		mutationFn: async ({
+			project,
+			removeDir,
+		}: { project: Project; removeDir: boolean }) => {
+			if ("list_version" in project) {
+				await commands.environmentRemoveProject(
+					project.list_version,
+					project.index,
+					removeDir,
+				);
+			} else {
+				await commands.environmentRemoveProjectByPath(project.path, removeDir);
+			}
+		},
+		onSuccess: () => {
+			dialog.close(true);
+			toastSuccess(tt("projects:toast:project removed"));
+		},
+		onError: (e) => {
+			console.error(e);
+			dialog.close(false);
+			toastThrownError(e);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries({
+				queryKey: ["environmentProjects"],
+			});
+			if (
+				location.pathname === "/projects/manage" &&
+				location.search.projectPath === project.path
+			) {
+				router.history.back();
+			}
+		},
+	});
+
+	return (
+		<div className={"contents whitespace-normal"}>
+			<DialogTitle>{tc("projects:remove project")}</DialogTitle>
+			<DialogDescription>
+				{removeProject.isPending ? (
+					<p className={"font-normal"}>{tc("projects:dialog:removing...")}</p>
+				) : (
+					<p className={"font-normal"}>
+						{tc("projects:dialog:warn removing project", {
+							name: nameFromPath(project.path),
+						})}
+					</p>
+				)}
+			</DialogDescription>
+			<DialogFooter className={"flex gap-2"}>
+				<Button
+					onClick={() => dialog.close(false)}
+					disabled={removeProject.isPending}
+				>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button
+					onClick={() => removeProject.mutate({ project, removeDir: false })}
+					className="px-2"
+					disabled={removeProject.isPending}
+				>
+					{tc("projects:button:remove from list")}
+				</Button>
+				<Button
+					onClick={() => removeProject.mutate({ project, removeDir: true })}
+					variant={"destructive"}
+					className="px-2"
+					disabled={!project.is_exists || removeProject.isPending}
+				>
+					{tc("projects:button:remove directory")}
+				</Button>
+			</DialogFooter>
+		</div>
+	);
+}
