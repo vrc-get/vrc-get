@@ -2,15 +2,15 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type React from "react";
-import { forwardRef } from "react";
 
-export const ScrollableCardTable = forwardRef<
-	React.ElementRef<typeof ScrollArea>,
-	React.ComponentPropsWithoutRef<typeof ScrollArea> & {
-		children: React.ReactNode;
-		className?: string;
-	}
->(({ children, className }, ref) => {
+export const ScrollableCardTable = ({
+	children,
+	className,
+	ref,
+}: React.ComponentProps<typeof ScrollArea> & {
+	children: React.ReactNode;
+	className?: string;
+}) => {
 	return (
 		<Card className={cn("overflow-hidden", className)}>
 			<ScrollArea
@@ -30,4 +30,6 @@ export const ScrollableCardTable = forwardRef<
 			</ScrollArea>
 		</Card>
 	);
-});
+};
+
+ScrollableCardTable.displayName = "ScrollableCardTable";
