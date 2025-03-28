@@ -42,7 +42,7 @@ import {
 	Globe,
 	Star,
 } from "lucide-react";
-import React, { type ComponentProps, forwardRef, useContext } from "react";
+import React, { type ComponentProps, useContext } from "react";
 
 const ProjectDisplayType: Record<
 	TauriProjectType,
@@ -457,10 +457,9 @@ const ProjectRowContext = React.createContext<{
 	loading: false,
 });
 
-const ButtonDisabledIfRemoved = forwardRef<
-	HTMLButtonElement,
-	React.ComponentProps<typeof Button>
->(function RemovedButton(props, ref) {
+const ButtonDisabledIfRemoved = function RemovedButton(
+	props: React.ComponentProps<typeof Button>,
+) {
 	const rowContext = useContext(ProjectRowContext);
 	if (rowContext.removed) {
 		return (
@@ -470,7 +469,6 @@ const ButtonDisabledIfRemoved = forwardRef<
 						{...props}
 						className={`disabled:pointer-events-auto ${props.className}`}
 						disabled
-						ref={ref}
 					/>
 				</TooltipTrigger>
 				<TooltipPortal>
@@ -484,11 +482,10 @@ const ButtonDisabledIfRemoved = forwardRef<
 				{...props}
 				className={`disabled:pointer-events-auto ${props.className}`}
 				disabled={props.disabled || rowContext.loading || rowContext.removed}
-				ref={ref}
 			/>
 		);
 	}
-});
+};
 
 const TooltipTriggerIfRemoved = ({
 	children,
