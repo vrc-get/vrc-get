@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Layout shift on select package `#2045`
 
 ### Security
 

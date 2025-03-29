@@ -3,15 +3,21 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+export type ViewportRef = React.ComponentRef<
+	typeof ScrollAreaPrimitive.Viewport
+>;
+
 const ScrollArea = ({
 	className,
 	children,
 	scrollBarClassName,
 	viewportClassName,
+	viewportRef,
 	...props
 }: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
 	scrollBarClassName?: string;
 	viewportClassName?: string;
+	viewportRef?: React.Ref<ViewportRef>;
 }) => (
 	<ScrollAreaPrimitive.Root
 		className={cn("relative overflow-hidden", className)}
@@ -19,6 +25,7 @@ const ScrollArea = ({
 	>
 		<ScrollAreaPrimitive.Viewport
 			className={`h-full w-full rounded-[inherit] scroll-smooth ${viewportClassName}`}
+			ref={viewportRef}
 		>
 			{children}
 		</ScrollAreaPrimitive.Viewport>

@@ -50,6 +50,7 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import type React from "react";
+import { useLayoutEffect } from "react";
 import { useRef } from "react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type {
@@ -131,6 +132,26 @@ export const PackageListCard = memo(function PackageListCard({
 		setBulkUpdatePackageIds((prev) => prev.filter((id) => id !== row.id));
 	}, []);
 
+	// Fix scroll position when bulk update card visibility is changed
+	const scrollTableOuterRef = useRef<HTMLDivElement>(null);
+	const scrollTableScrollAreaRef = useRef<HTMLDivElement>(null);
+	// TODO: Is this a good way to get BoundingClientRect before dom update?
+	const preRenderOuterTop =
+		scrollTableOuterRef.current?.getBoundingClientRect()?.top;
+	useLayoutEffect(() => {
+		if (preRenderOuterTop == null) return;
+		if (scrollTableOuterRef.current == null) return;
+		if (scrollTableScrollAreaRef.current == null) return;
+		const postRenderOuterTop =
+			scrollTableOuterRef.current.getBoundingClientRect()?.top;
+		const heightDiff = postRenderOuterTop - preRenderOuterTop;
+		if (heightDiff === 0) return;
+		scrollTableScrollAreaRef.current.scrollBy({
+			top: heightDiff,
+			behavior: "instant",
+		});
+	});
+
 	const dialogForState: React.ReactNode = null;
 
 	const TABLE_HEAD = [
@@ -157,7 +178,11 @@ export const PackageListCard = memo(function PackageListCard({
 					packageRowsData={packageRowsData}
 					cancel={() => setBulkUpdatePackageIds([])}
 				/>
-				<ScrollableCardTable className={"h-full"}>
+				<ScrollableCardTable
+					className={"h-full"}
+					ref={scrollTableOuterRef}
+					viewportRef={scrollTableScrollAreaRef}
+				>
 					<thead>
 						<tr>
 							<th

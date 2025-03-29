@@ -6,7 +6,7 @@ import type React from "react";
 export const ScrollableCardTable = ({
 	children,
 	className,
-	ref,
+	...props
 }: React.ComponentProps<typeof ScrollArea> & {
 	children: React.ReactNode;
 	className?: string;
@@ -17,7 +17,7 @@ export const ScrollableCardTable = ({
 				type="auto"
 				className="h-full w-full vrc-get-scrollable-card"
 				scrollBarClassName="bg-background py-2.5 vrc-get-scrollable-card-vertical-bar"
-				ref={ref}
+				{...props}
 			>
 				<table className="relative table-auto text-left w-full">
 					{children}
