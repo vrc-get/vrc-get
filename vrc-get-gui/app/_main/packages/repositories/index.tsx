@@ -306,7 +306,7 @@ function RepositoryRow({
 							onClick={() => {
 								void openSingleDialog(RemoveRepositoryDialog, {
 									displayName,
-									id,
+									id: repoId,
 								});
 							}}
 							variant={"ghost"}
@@ -328,7 +328,7 @@ function RepositoryRow({
 	);
 }
 
-async function RemoveRepositoryDialog({
+function RemoveRepositoryDialog({
 	dialog,
 	displayName,
 	id,
