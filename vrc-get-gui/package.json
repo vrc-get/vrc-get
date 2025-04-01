@@ -59,9 +59,5 @@
 		"typescript": "^5",
 		"vite": "^6.2.2",
 		"vite-plugin-json5": "^1.1.6"
-	},
-	"overrides": {
-		"@types/react": "19.0.10",
-		"@types/react-dom": "19.0.4"
 	}
 }
