@@ -37,7 +37,7 @@ enum-map = "2"
 
 vrc-get-litedb = { git = "https://github.com/anatawa12/litedb-rs.git", optional = true, default-features = false, features = [
     'shared-mutex',
-], rev = "f0107548e425f7ac8886cbd77ff18bc1d9ebe2d5" }
+], branch = "master" }
 tokio = { version = "1", features = ["fs", "process"], optional = true }
 serde_path_to_error = "0.1"
 serde-value = "0.7"
