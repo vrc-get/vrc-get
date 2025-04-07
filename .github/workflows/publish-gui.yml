@@ -336,7 +336,7 @@ jobs:
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -432,7 +432,7 @@ jobs:
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
