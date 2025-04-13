@@ -18,7 +18,7 @@
     "general:button:open location": "打开所在位置",
     "general:button:continue": "继续",
 
-    "general:dialog:select file or directory header": "选择文件或目录。",
+    "general:dialog:select file or directory header": "选择文件或目录",
     "general:dialog:select file or directory": "请选择文件或目录。",
     "general:toast:invalid directory": "选择的路径无效。",
 
@@ -75,7 +75,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "异常的设备名称",
-    "sidebar:dialog:bad hostname": "您的设备名称存在问题。",
+    "sidebar:dialog:bad hostname": "您的设备名称存在问题",
     "sidebar:dialog:bad hostname description": "您在设备名称中使用了非 ASCII 字符。<br/>这可能会导致版本较新的 Unity 出现问题。<br/>强烈建议您使用数字与字母组合来命名设备。",
 
     "sidebar:toast:version copied": "已复制版本号。",
@@ -134,10 +134,10 @@
     "projects:dialog:select unity header": "选择 Unity",
     "projects:dialog:multiple unity found": "发现该版本有多个 Unity 安装。",
     "projects:dialog:keep using this version": "继续使用此版本",
-    "projects:dialog:unity not found but china found": "未找到匹配的 Unity 版本，但找到了对应的中国版 Unity。",
+    "projects:dialog:unity not found but china found": "未找到匹配的 Unity 版本，但找到了对应的中国版 Unity",
     "projects:dialog:unity version of the project not found but china found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在您的设备中找到了对应的中国版 Unity {{chinaUnity}} 。<br>要让这个项目使用中国版 Unity 吗？",
     "projects:dialog:use china version": "使用中国版 Unity",
-    "projects:dialog:unity not found but international found": "未找到匹配的 Unity 版本，但找到了对应的国际版 Unity。",
+    "projects:dialog:unity not found but international found": "未找到匹配的 Unity 版本，但找到了对应的国际版 Unity",
     "projects:dialog:unity version of the project not found but international found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在您的设备中找到了对应的国际版 Unity {{internationalUnity}} 。<br>要让这个项目使用国际版 Unity 吗？",
     "projects:dialog:use international version": "使用国际版 Unity",
     "projects:toast:invalid project unity version": "我们没有检测到合适的 Unity 版本",
@@ -281,7 +281,7 @@
     "projects:manage:button:apply changes": "应用更改",
     "projects:manage:button:apply": "应用",
 
-    "projects:manage:dialog:missing dependencies": "软件包依赖缺失。",
+    "projects:manage:dialog:missing dependencies": "软件包依赖缺失",
     "projects:manage:dialog:missing dependencies description": "需要安装以下软件包，但我们无法在已添加的软件包存储库里找到它们。<br/>请添加包含这些软件包的软件包存储库。<br/>您可以前往 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 来找到相应的软件包存储库。",
 
 

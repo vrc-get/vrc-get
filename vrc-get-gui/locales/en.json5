@@ -18,7 +18,7 @@
     "general:button:open location": "Open Location",
     "general:button:continue": "Continue",
 
-    "general:dialog:select file or directory header": "Selecting file or directory.",
+    "general:dialog:select file or directory header": "Selecting file or directory",
     "general:dialog:select file or directory": "Please select a file or directory.",
     "general:toast:invalid directory": "Invalid directory was selected.",
 
@@ -75,7 +75,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "Bad hostname",
-    "sidebar:dialog:bad hostname": "There are issues with your hostname.",
+    "sidebar:dialog:bad hostname": "There are issues with your hostname",
     "sidebar:dialog:bad hostname description": "You're using non-ASCII characters in hostname (PC Name). <br/>This may cause issues with modern Unity.<br/>It's highly recommended to change your PC Name to alphanumeric characters.",
 
     "sidebar:toast:version copied": "Version name was copied.",
@@ -140,10 +140,10 @@
     "projects:dialog:select unity header": "Select Unity",
     "projects:dialog:multiple unity found": "Multiple Unity installations of the version were found.",
     "projects:dialog:keep using this version": "Keep using this version",
-    "projects:dialog:unity not found but china found": "Unity was not found but China version of Unity was found.",
+    "projects:dialog:unity not found but china found": "Unity was not found but China version of Unity was found",
     "projects:dialog:unity version of the project not found but china found": "The Unity {{expectedUnity}} which is used in the project was not found.<br>However, we found China version of Unity {{chinaUnity}} in your computer.<br>Do you want to use the China version of Unity for this project?",
     "projects:dialog:use china version": "Use China Version of Unity",
-    "projects:dialog:unity not found but international found": "Unity was not found but international version of Unity was found.",
+    "projects:dialog:unity not found but international found": "Unity was not found but international version of Unity was found",
     "projects:dialog:unity version of the project not found but international found": "The Unity {{expectedUnity}} which is used in the project was not found.<br>However, we found international version of Unity {{internationalUnity}} in your computer.<br>Do you want to use the international version of Unity for this project?",
     "projects:dialog:use international version": "Use international Version of Unity",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
@@ -290,7 +290,7 @@
     "projects:manage:button:apply changes": "Apply Changes",
     "projects:manage:button:apply": "Apply",
 
-    "projects:manage:dialog:missing dependencies": "Some packages are not found.",
+    "projects:manage:dialog:missing dependencies": "Some packages are not found",
     "projects:manage:dialog:missing dependencies description": "The following packages are requested to install, but unable to find appropriate version of the packages.<br/>Please search and add repositories that contain the packages.<br/>You may check <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> to find the appropriate repositories.",
 
 
