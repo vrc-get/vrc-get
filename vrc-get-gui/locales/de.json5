@@ -75,7 +75,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "Ungültiger Hostname",
-    "sidebar:dialog:bad hostname": "Es gibt Probleme mit dem Hostnamen.",
+    "sidebar:dialog:bad hostname": "Es gibt Probleme mit dem Hostnamen",
     "sidebar:dialog:bad hostname description": "Du verwendest nicht-ASCII Zeichen im Hostnamen (PC Name). <br/>Dies könnte zu Problemen mit neueren Unity Versionen führen.<br/>Es wird empfohlen deinen Hostname zu Alphanumerischen Zeichen zu ändern.",
 
     "sidebar:toast:version copied": "Versionsnummer kopiert",
@@ -140,10 +140,10 @@
     "projects:dialog:select unity header": "Wähle Unity",
     "projects:dialog:multiple unity found": "Es wurden mehrere Unity Installationen mit dieser Version gefunden.",
     "projects:dialog:keep using this version": "Diese Version weiterhin verwenden",
-    "projects:dialog:unity not found but china found": "Chinesische Unity-Version gefunden.",
+    "projects:dialog:unity not found but china found": "Chinesische Unity-Version gefunden",
     "projects:dialog:unity version of the project not found but china found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die Chinesische Unity Version {{chinaUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
     "projects:dialog:use china version": "Verwende Chinesische Unity-Version",
-    "projects:dialog:unity not found but international found": "Internationale Unity-Version gefunden.",
+    "projects:dialog:unity not found but international found": "Internationale Unity-Version gefunden",
     "projects:dialog:unity version of the project not found but international found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die Internationale Unity Version {{internationalUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
     "projects:dialog:use international version": "Verwende Internationale Unity-Version",
     "projects:toast:invalid project unity version": "Wir konnten keine gültige Unity Installation finden",
@@ -290,7 +290,7 @@
     "projects:manage:button:apply changes": "Änderungen anwenden",
     "projects:manage:button:apply": "Anwenden",
 
-    "projects:manage:dialog:missing dependencies": "Einige Pakete wurden nicht gefunden.",
+    "projects:manage:dialog:missing dependencies": "Einige Pakete wurden nicht gefunden",
     "projects:manage:dialog:missing dependencies description": "Die folgenden Pakete wurden zur installation angefordert, konnten aber nicht in der angeforderten Version gefunden werden.<br/>Bitte füge die korrekte Paketquelle hinzu. Möglicherweise kann im <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> gefunden werden.",
 
 
