@@ -68,6 +68,12 @@ pub fn parse_alcom_template(json: &[u8]) -> serde_json::Result<AlcomTemplate> {
                 &"a valid alcom template id",
             ));
         }
+        if id.starts_with("com.anatawa12.vrc-get") {
+            return Err(serde_json::Error::invalid_value(
+                Unexpected::Str(id),
+                &"a valid alcom template id (reserved id)",
+            ));
+        }
     }
 
     Ok(template)
