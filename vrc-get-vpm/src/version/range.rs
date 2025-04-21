@@ -17,6 +17,21 @@ impl DependencyRange {
         })
     }
 
+    pub fn from_version_range(version_range: VersionRange) -> DependencyRange {
+        let range = DependencyRange(version_range);
+        if let Some(full_version) = range.as_single_version() {
+            // If the version is like '1.0.0', it will mean '>= 1.0.0' with DependencyRange,
+            // However, we should treat '1.0.0' as '=1.0.0' so replace with that
+            Self(VersionRange {
+                comparators: vec![ComparatorSet(vec![Comparator::Exact(
+                    PartialVersion::from(full_version),
+                )])],
+            })
+        } else {
+            range
+        }
+    }
+
     pub fn as_single_version(&self) -> Option<Version> {
         let [ComparatorSet(the_set)] = self.0.comparators.as_slice() else {
             return None;
@@ -95,6 +110,26 @@ impl VersionRange {
         self.comparators
             .iter()
             .any(|x| x.matches(version, allow_prerelease))
+    }
+
+    pub fn intersect(&self, other: &VersionRange) -> VersionRange {
+        VersionRange {
+            // TODO: remove contradictory
+            comparators: (self.comparators.iter())
+                .flat_map(|self_cmp| {
+                    other.comparators.iter().map(|other_cmp| {
+                        ComparatorSet(
+                            self_cmp
+                                .0
+                                .iter()
+                                .chain(other_cmp.0.iter())
+                                .cloned()
+                                .collect(),
+                        )
+                    })
+                })
+                .collect(),
+        }
     }
 }
 

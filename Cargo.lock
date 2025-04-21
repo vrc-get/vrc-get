@@ -5579,6 +5579,7 @@ name = "vrc-get-gui"
 version = "1.0.2-beta.0"
 dependencies = [
  "arc-swap",
+ "async-compression",
  "async-stream",
  "async_zip",
  "atomicbox",
@@ -5610,6 +5611,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tauri-specta",
  "tokio",
+ "tokio-util",
  "trash",
  "url",
  "uuid",

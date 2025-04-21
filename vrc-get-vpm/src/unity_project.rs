@@ -14,7 +14,7 @@ mod vpm_manifest;
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{PathBufExt, try_load_json};
-use crate::version::{UnityVersion, Version, VersionRange};
+use crate::version::{DependencyRange, UnityVersion, Version, VersionRange};
 use crate::{PackageManifest, io};
 use futures::future::try_join;
 use futures::prelude::*;
@@ -268,6 +268,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
     pub fn has_upm_package(&self, name: &str) -> bool {
         self.upm_manifest.get_dependency(name).is_some()
+    }
+
+    /// Adds dependency without actually adding package.
+    /// This only modifies manifest
+    pub fn add_dependency_raw(&mut self, name: &str, version: DependencyRange) {
+        self.manifest.add_dependency(name, version)
     }
 }
 
