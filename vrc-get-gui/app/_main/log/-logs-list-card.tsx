@@ -32,19 +32,17 @@ export const LogsListCard = memo(function LogsListCard({
 		if (!autoScroll) return;
 
 		requestAnimationFrame(() => {
-			requestAnimationFrame(() => {
-				if (!scrollContainerRef.current) return;
+			if (!scrollContainerRef.current) return;
 
-				const container = scrollContainerRef.current;
-				const isNearBottom =
-					container.scrollHeight -
-						(container.scrollTop + container.clientHeight) <
-					50;
+			const container = scrollContainerRef.current;
+			const isNearBottom =
+				container.scrollHeight -
+				(container.scrollTop + container.clientHeight) <
+				50;
 
-				if (!isNearBottom) {
-					container.scrollTop = container.scrollHeight;
-				}
-			});
+			if (!isNearBottom) {
+				container.scrollTop = container.scrollHeight;
+			}
 		});
 	}, [logsShown, autoScroll]);
 
