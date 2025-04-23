@@ -3,7 +3,7 @@ import type { ScrollArea } from "@/components/ui/scroll-area";
 import type { LogEntry, LogLevel } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
-import type React from "react";
+import React, {useCallback} from "react";
 import { memo, useEffect, useMemo, useRef } from "react";
 
 export const LogsListCard = memo(function LogsListCard({
@@ -27,23 +27,34 @@ export const LogsListCard = memo(function LogsListCard({
 		[logEntry, search, shouldShowLogLevel],
 	);
 
-	const scrollContainerRef = useRef<React.ElementRef<typeof ScrollArea>>(null);
-	const previousLogsLength = useRef(0);
+	const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+	const scrollToBottom = useCallback(() => {
+		if (!scrollContainerRef.current) return;
+
+		const container = scrollContainerRef.current;
+		const isNearBottom =
+			container.scrollHeight - (container.scrollTop + container.clientHeight) < 50;
+
+		if (!isNearBottom) {
+			container.scrollTop = container.scrollHeight;
+		}
+	}, []);
 
 	useEffect(() => {
-		if (autoScroll && scrollContainerRef.current) {
-			if (logsShown.length > previousLogsLength.current) {
-				scrollContainerRef.current.scrollTop =
-					scrollContainerRef.current.scrollHeight;
-			}
-			previousLogsLength.current = logsShown.length;
-		}
-	}, [logsShown, autoScroll]);
+		if (!autoScroll) return;
+
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				scrollToBottom();
+			});
+		});
+	}, [logsShown, autoScroll, scrollToBottom]);
 
 	const TABLE_HEAD = ["logs:time", "logs:level", "logs:message"];
 
 	return (
-		<ScrollableCardTable className={"h-full w-full"} ref={scrollContainerRef}>
+		<ScrollableCardTable className={"h-full w-full"} viewportRef={scrollContainerRef}>
 			<thead className={"w-full"}>
 				<tr>
 					{TABLE_HEAD.map((head, index) => (
