@@ -10,6 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::mem::forget;
 use std::path::{Path, PathBuf};
 use std::{fmt, io};
+use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 
@@ -330,6 +331,7 @@ pub async fn create_project(
     templates: &[ProjectTemplateInfo],
     id: &str,
     project_path: &Path,
+    project_name: &str,
     unity_version: UnityVersion,
 ) -> Result<(), CreateProjectErr> {
     enum BaseTemplate<'a> {
@@ -404,6 +406,9 @@ pub async fn create_project(
         let unity_package = tokio::fs::File::open(unity_package).await?;
         import_unitypackage(project_path, &mut BufReader::new(unity_package.compat())).await?;
     }
+
+    // update ProjectSettings.asset
+    update_project_name_and_guid(project_path, project_name).await?;
 
     // add dependencies
     let mut project = UnityProject::load(DefaultProjectIo::new(project_path.into())).await?;
@@ -703,6 +708,62 @@ async fn import_unitypackage_impl(
             try_join!(tokio::fs::write(meta_path, &entry.metadata))?;
         }
     }
+
+    Ok(())
+}
+
+async fn update_project_name_and_guid(path: &Path, project_name: &str) -> io::Result<()> {
+    let settings_path = path.join("ProjectSettings/ProjectSettings.asset");
+    let mut settings_file = match tokio::fs::File::options()
+        .read(true)
+        .write(true)
+        .open(&settings_path)
+        .await
+    {
+        Ok(file) => file,
+        Err(e) => return Ok(()),
+    };
+
+    let mut settings = String::new();
+    settings_file.read_to_string(&mut settings).await?;
+
+    fn set_value(buffer: &mut String, finder: &str, value: &str) {
+        if let Some(pos) = buffer.find(finder) {
+            let before_ws = buffer[..pos]
+                .chars()
+                .last()
+                .map(|x| x.is_ascii_whitespace())
+                .unwrap_or(true);
+            if before_ws {
+                if let Some(eol) = buffer[pos..].find('\n') {
+                    let eol = eol + pos;
+                    buffer.replace_range((pos + finder.len())..eol, value);
+                }
+            }
+        }
+    }
+
+    fn yaml_quote(value: &str) -> String {
+        let s = value
+            .replace('"', "\\\"")
+            .replace('\n', "\\n")
+            .replace('\r', "\\r");
+        format!("\"{}\"", s)
+    }
+
+    set_value(
+        &mut settings,
+        "productGUID: ",
+        &uuid::Uuid::new_v4().simple().to_string(),
+    );
+    set_value(&mut settings, "productName: ", &yaml_quote(&project_name));
+
+    settings_file.seek(std::io::SeekFrom::Start(0)).await?;
+    settings_file.set_len(0).await?;
+    settings_file.write_all(settings.as_bytes()).await?;
+    settings_file.flush().await?;
+    settings_file.sync_all().await?;
+    drop(settings_file);
 
     Ok(())
 }
