@@ -29,7 +29,7 @@ The following json is jsonc but in real file comments are not allowed.
   "displayName": "NDMF Tools With Anon",
   // The date when the template was updated
   // This is an optional field
-  "updateDate": "2025-04-17",
+  "updateDate": "2025-04-17T00:00:00",
   // Optional id of the package.
   // If null the package won't be a base package of other package.
   // Internally some id will be assgined in form of `com.anatawa12.vrc-get.user.<uuid>` like 

@@ -20,7 +20,7 @@ struct MagicParser {
 #[serde(rename_all = "camelCase")]
 pub struct AlcomTemplate {
     pub display_name: String,
-    pub update_date: String,
+    pub update_date: Option<chrono::DateTime<chrono::offset::Utc>>,
     pub id: Option<String>,
     pub base: String,
     pub unity_version: Option<VersionRange>,
