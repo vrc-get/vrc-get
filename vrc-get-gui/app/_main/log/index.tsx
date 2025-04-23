@@ -89,7 +89,7 @@ function Page() {
 				key: "logs_auto_scroll",
 				newValue: String(value),
 				storageArea: sessionStorage,
-			})
+			}),
 		);
 	};
 
