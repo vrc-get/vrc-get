@@ -1,7 +1,7 @@
 use async_compression::futures::bufread::GzipDecoder;
 use fs_extra::error::ErrorKind;
 use futures::io::BufReader;
-use futures::{AsyncBufRead, AsyncReadExt, TryStreamExt, try_join};
+use futures::*;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
 use log::warn;
@@ -10,7 +10,6 @@ use std::collections::{HashMap, HashSet};
 use std::mem::forget;
 use std::path::{Path, PathBuf};
 use std::{fmt, io};
-use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 use tokio_util::compat::*;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
 
@@ -18,8 +17,6 @@ use crate::commands::UnityProject;
 use crate::utils::PathExt;
 use crate::utils::TarArchive;
 pub use alcom_template::*;
-use vrc_get_vpm::environment::{PackageCollection, PackageInstaller};
-use vrc_get_vpm::unity_project::ResolvePackageErr;
 use vrc_get_vpm::version::{DependencyRange, UnityVersion, VersionRange};
 
 pub mod alcom_template;
@@ -287,14 +284,12 @@ async fn copy_recursively(from: PathBuf, to: PathBuf) -> io::Result<u64> {
 pub enum CreateProjectErr {
     Io(io::Error),
     NoSuchTemplate,
-    ResolveError(ResolvePackageErr),
 }
 
 impl std::error::Error for CreateProjectErr {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             CreateProjectErr::Io(e) => Some(e),
-            CreateProjectErr::ResolveError(e) => Some(e),
             CreateProjectErr::NoSuchTemplate => None,
         }
     }
@@ -304,7 +299,6 @@ impl fmt::Display for CreateProjectErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CreateProjectErr::Io(e) => fmt::Display::fmt(e, f),
-            CreateProjectErr::ResolveError(e) => fmt::Display::fmt(e, f),
             CreateProjectErr::NoSuchTemplate => f.write_str("no such template or base template"),
         }
     }
@@ -316,24 +310,19 @@ impl From<io::Error> for CreateProjectErr {
     }
 }
 
-impl From<ResolvePackageErr> for CreateProjectErr {
-    fn from(err: ResolvePackageErr) -> Self {
-        CreateProjectErr::ResolveError(err)
-    }
-}
-
-/// Caller should already created the empty dir at path.
+/// Creates a new project based on the specified template
+///
+/// Caller should have created the empty dir at path.
+/// This doesn't resolve dependencies of the project; caller should do.
 #[allow(dead_code)]
 pub async fn create_project(
     io: &DefaultEnvironmentIo,
-    packages: &PackageCollection,
-    installer: &PackageInstaller<'_, reqwest::Client, DefaultEnvironmentIo>,
     templates: &[ProjectTemplateInfo],
     id: &str,
     project_path: &Path,
     project_name: &str,
     unity_version: UnityVersion,
-) -> Result<(), CreateProjectErr> {
+) -> Result<UnityProject, CreateProjectErr> {
     enum BaseTemplate<'a> {
         BuiltIn(&'static [u8]),
         Blank(UnityVersion),
@@ -417,11 +406,9 @@ pub async fn create_project(
         project.add_dependency_raw(&pkg, DependencyRange::from_version_range(range));
     }
 
-    // resolve dependencies
-    let request = project.resolve_request(packages).await?;
-    // TODO: make error for package conflicts
-    project.apply_pending_changes(installer, request).await?;
-    return Ok(());
+    project.save().await?;
+
+    return Ok(project);
 
     fn resolve_template<'a>(
         templates: &HashMap<&'a str, &'a ProjectTemplateInfo>,
@@ -490,7 +477,7 @@ pub async fn create_project(
 /// and then move to corresponding directory
 pub async fn import_unitypackage(
     project_path: &Path,
-    unitypackage: &mut (dyn AsyncBufRead + Unpin),
+    unitypackage: &mut (dyn AsyncBufRead + Unpin + Send + Sync),
 ) -> io::Result<()> {
     let temp_dir = {
         let library = project_path.join("Library");
@@ -541,7 +528,7 @@ pub async fn import_unitypackage(
 async fn import_unitypackage_impl(
     project_path: &Path,
     temp_dir: &Path,
-    unitypackage: &mut (dyn AsyncBufRead + Unpin),
+    unitypackage: &mut (dyn AsyncBufRead + Unpin + Send + Sync),
 ) -> io::Result<()> {
     #[derive(Default)]
     struct UnityPackageEntry {
@@ -720,8 +707,8 @@ async fn update_project_name_and_guid(path: &Path, project_name: &str) -> io::Re
         .open(&settings_path)
         .await
     {
-        Ok(file) => file,
-        Err(e) => return Ok(()),
+        Ok(file) => file.compat(),
+        Err(_) => return Ok(()),
     };
 
     let mut settings = String::new();
@@ -756,13 +743,13 @@ async fn update_project_name_and_guid(path: &Path, project_name: &str) -> io::Re
         "productGUID: ",
         &uuid::Uuid::new_v4().simple().to_string(),
     );
-    set_value(&mut settings, "productName: ", &yaml_quote(&project_name));
+    set_value(&mut settings, "productName: ", &yaml_quote(project_name));
 
-    settings_file.seek(std::io::SeekFrom::Start(0)).await?;
-    settings_file.set_len(0).await?;
+    settings_file.seek(io::SeekFrom::Start(0)).await?;
+    settings_file.get_mut().set_len(0).await?;
     settings_file.write_all(settings.as_bytes()).await?;
     settings_file.flush().await?;
-    settings_file.sync_all().await?;
+    settings_file.get_mut().sync_all().await?;
     drop(settings_file);
 
     Ok(())
