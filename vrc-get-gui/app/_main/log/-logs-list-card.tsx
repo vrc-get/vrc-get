@@ -2,7 +2,6 @@ import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import type { LogEntry, LogLevel } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
-import { useCallback } from "react";
 import { memo, useEffect, useMemo, useRef } from "react";
 
 export const LogsListCard = memo(function LogsListCard({
@@ -28,29 +27,25 @@ export const LogsListCard = memo(function LogsListCard({
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-	const scrollToBottom = useCallback(() => {
-		if (!scrollContainerRef.current) return;
-
-		const container = scrollContainerRef.current;
-		const isNearBottom =
-			container.scrollHeight - (container.scrollTop + container.clientHeight) <
-			50;
-
-		if (!isNearBottom) {
-			container.scrollTop = container.scrollHeight;
-		}
-	}, []);
-
 	// biome-ignore lint/correctness/useExhaustiveDependencies: should scroll to the bottom whenever the logsShown changes.
 	useEffect(() => {
 		if (!autoScroll) return;
 
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
-				scrollToBottom();
+				if (!scrollContainerRef.current) return;
+
+				const container = scrollContainerRef.current;
+				const isNearBottom =
+					container.scrollHeight - (container.scrollTop + container.clientHeight) <
+					50;
+
+				if (!isNearBottom) {
+					container.scrollTop = container.scrollHeight;
+				}
 			});
 		});
-	}, [logsShown, autoScroll, scrollToBottom]);
+	}, [logsShown, autoScroll]);
 
 	const TABLE_HEAD = ["logs:time", "logs:level", "logs:message"];
 
