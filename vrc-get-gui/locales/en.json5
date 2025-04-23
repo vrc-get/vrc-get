@@ -131,6 +131,8 @@
     "projects:template-name:worlds": "VRChat Worlds",
     "projects:template-name:blank": "Blank",
     "projects:template:unity version": "Unity Version:",
+    "projects:tooltip:template-unavailable": "Base template of the template is not available",
+    "projects:tooltip:template-no-unity": "No unity versions for this template are available",
     "projects:latest": "Latest",
     "projects:hint:path of creating project": "The new project will be at <path>{{path}}</path>.",
     "projects:button:create": "Create",

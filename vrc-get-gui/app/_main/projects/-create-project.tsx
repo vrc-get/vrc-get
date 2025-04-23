@@ -16,6 +16,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
 import type {
 	TauriProjectDirCheckResult,
@@ -244,11 +249,41 @@ function EnteringInformation({
 									<SelectLabel>
 										{tc(`projects:template-category:${category}`)}
 									</SelectLabel>
-									{templates.map((template) => (
-										<SelectItem value={template.id} key={template.id}>
-											{templateName(template)}
-										</SelectItem>
-									))}
+									{templates.map((template) => {
+										const disabled =
+											!template.available ||
+											template.unity_versions.length === 0;
+										const contents = (
+											<SelectItem
+												value={template.id}
+												disabled={disabled}
+												key={template.id}
+											>
+												{templateName(template)}
+											</SelectItem>
+										);
+										if (!template.available) {
+											return (
+												<Tooltip key={template.id}>
+													<TooltipTrigger>{contents}</TooltipTrigger>
+													<TooltipContent>
+														{tc("projects:tooltip:template-unavailable")}
+													</TooltipContent>
+												</Tooltip>
+											);
+										} else if (template.unity_versions.length === 0) {
+											return (
+												<Tooltip key={template.id}>
+													<TooltipTrigger>{contents}</TooltipTrigger>
+													<TooltipContent>
+														{tc("projects:tooltip:template-no-unity")}
+													</TooltipContent>
+												</Tooltip>
+											);
+										} else {
+											return contents;
+										}
+									})}
 								</SelectGroup>
 							))}
 						</SelectContent>
