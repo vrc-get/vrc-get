@@ -4,7 +4,7 @@ use futures::io::BufReader;
 use futures::*;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
-use log::warn;
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::mem::forget;
@@ -52,20 +52,27 @@ pub async fn load_resolve_all_templates(
     io: &DefaultEnvironmentIo,
     unity_versions: &[UnityVersion],
 ) -> io::Result<Vec<ProjectTemplateInfo>> {
-    let (alcom, vcc) = try_join!(
+    let (alcom, vcc) = join!(
         load_resolve_alcom_templates(io, unity_versions),
         load_vcc_templates(io)
-    )?;
+    );
     Ok(alcom.into_iter().chain(vcc.into_iter()).collect())
 }
 
-pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> io::Result<Vec<ProjectTemplateInfo>> {
+pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> Vec<ProjectTemplateInfo> {
     let mut templates = Vec::new();
 
     let path = io.resolve("Templates".as_ref());
-    let mut dir = io.read_dir("Templates".as_ref()).await?;
-    while let Some(dir) = dir.try_next().await? {
-        if !dir.file_type().await?.is_dir() {
+    let mut dir = match io.read_dir("Templates".as_ref()).await {
+        Ok(dir) => dir,
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => return Vec::new(),
+        Err(e) => {
+            warn!("failed to read vrc-get/templates directory {path:?}: {e}");
+            return Vec::new();
+        }
+    };
+    while let Ok(Some(dir)) = dir.try_next().await {
+        if !dir.file_type().await.map(|x| x.is_dir()).unwrap_or(false) {
             continue;
         }
 
@@ -100,14 +107,14 @@ pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> io::Result<Vec<Pro
         }
     }
 
-    Ok(templates)
+    templates
 }
 
 pub async fn load_resolve_alcom_templates(
     io: &DefaultEnvironmentIo,
     unity_versions: &[UnityVersion],
-) -> io::Result<Vec<ProjectTemplateInfo>> {
-    let templates = load_alcom_templates(io).await?;
+) -> Vec<ProjectTemplateInfo> {
+    let templates = load_alcom_templates(io).await;
 
     let mut template_by_id = IndexMap::<String, ProjectTemplateInfo>::new();
 
@@ -136,7 +143,7 @@ pub async fn load_resolve_alcom_templates(
         BLANK_TEMPLATE_ID.into(),
         ProjectTemplateInfo {
             display_name: "Blank".into(),
-            id: AVATARS_TEMPLATE_ID.into(),
+            id: BLANK_TEMPLATE_ID.into(),
             unity_versions: unity_versions.into(),
             alcom_template: None,
             available: true,
@@ -211,14 +218,21 @@ pub async fn load_resolve_alcom_templates(
         updated
     } {}
 
-    Ok(template_by_id.into_values().collect())
+    template_by_id.into_values().collect()
 }
 
-pub async fn load_alcom_templates(io: &DefaultEnvironmentIo) -> io::Result<Vec<AlcomTemplate>> {
+pub async fn load_alcom_templates(io: &DefaultEnvironmentIo) -> Vec<AlcomTemplate> {
     let path = Path::new("vrc-get/templates");
-    let mut dir = io.read_dir(path).await?;
+    let mut dir = match io.read_dir(path).await {
+        Ok(dir) => dir,
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => return Vec::new(),
+        Err(e) => {
+            warn!("failed to read vrc-get/templates directory {path:?}: {e}");
+            return Vec::new();
+        }
+    };
     let mut templates = Vec::new();
-    while let Some(entry) = dir.try_next().await? {
+    while let Ok(Some(entry)) = dir.try_next().await {
         if entry
             .file_name()
             .as_encoded_bytes()
@@ -240,7 +254,8 @@ pub async fn load_alcom_templates(io: &DefaultEnvironmentIo) -> io::Result<Vec<A
             }
         }
     }
-    Ok(templates)
+
+    templates
 }
 
 pub async fn load_template(io: &DefaultEnvironmentIo, path: &Path) -> io::Result<AlcomTemplate> {
@@ -368,6 +383,7 @@ pub async fn create_project(
         resolve_template(&by_id, id, unity_version).ok_or(CreateProjectErr::NoSuchTemplate)?;
 
     // extract base template
+    info!("Extracting base template");
     match template_info.base_template {
         BaseTemplate::BuiltIn(tgz) => {
             let tar = flate2::read::GzDecoder::new(io::Cursor::new(tgz));
@@ -392,14 +408,17 @@ pub async fn create_project(
 
     // extract unity packages
     for unity_package in template_info.unity_packages {
+        info!("extracting unity package: {}", unity_package.display());
         let unity_package = tokio::fs::File::open(unity_package).await?;
         import_unitypackage(project_path, &mut BufReader::new(unity_package.compat())).await?;
     }
 
     // update ProjectSettings.asset
+    info!("Updating ProjectSettings.asset");
     update_project_name_and_guid(project_path, project_name).await?;
 
     // add dependencies
+    info!("Adding dependencies");
     let mut project = UnityProject::load(DefaultProjectIo::new(project_path.into())).await?;
 
     for (pkg, range) in template_info.packages {

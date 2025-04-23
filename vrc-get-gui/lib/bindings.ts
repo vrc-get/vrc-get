@@ -71,8 +71,8 @@ async environmentProjectCreationInformation() : Promise<TauriProjectCreationInfo
 async environmentCheckProjectName(basePath: string, projectName: string) : Promise<TauriProjectDirCheckResult> {
     return await TAURI_INVOKE("environment_check_project_name", { basePath, projectName });
 },
-async environmentCreateProject(basePath: string, projectName: string, template: TauriProjectTemplate) : Promise<TauriCreateProjectResult> {
-    return await TAURI_INVOKE("environment_create_project", { basePath, projectName, template });
+async environmentCreateProject(basePath: string, projectName: string, templateId: string, templateVersion: number, unityVersion: string) : Promise<TauriCreateProjectResult> {
+    return await TAURI_INVOKE("environment_create_project", { basePath, projectName, templateId, templateVersion, unityVersion });
 },
 async environmentRefetchPackages() : Promise<null> {
     return await TAURI_INVOKE("environment_refetch_packages");
@@ -299,10 +299,10 @@ export type TauriPickProjectDefaultPathResult = { type: "NoFolderSelected" } | {
 export type TauriPickUnityHubResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful" }
 export type TauriPickUnityResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriProject = { list_version: number; index: number; name: string; path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null; last_modified: number; created_at: number; favorite: boolean; is_exists: boolean }
-export type TauriProjectCreationInformation = { templates: TauriProjectTemplate[]; default_path: string }
+export type TauriProjectCreationInformation = { templates: TauriProjectTemplateInfo[]; templates_version: number; default_path: string }
 export type TauriProjectDetails = { unity: [number, number] | null; unity_str: string | null; unity_revision: string | null; installed_packages: ([string, TauriBasePackageInfo])[]; should_resolve: boolean }
 export type TauriProjectDirCheckResult = "InvalidNameForFolderName" | "MayCompatibilityProblem" | "WideChar" | "AlreadyExists" | "Ok"
-export type TauriProjectTemplate = { type: "Builtin"; id: string; name: string } | { type: "Custom"; name: string }
+export type TauriProjectTemplateInfo = { display_name: string; id: string; unity_versions: string[]; available: boolean }
 export type TauriProjectType = "Unknown" | "LegacySdk2" | "LegacyWorlds" | "LegacyAvatars" | "UpmWorlds" | "UpmAvatars" | "UpmStarter" | "Worlds" | "Avatars" | "VpmStarter"
 export type TauriRemoteRepositoryInfo = { display_name: string; id: string; url: string; packages: TauriBasePackageInfo[] }
 export type TauriRemoveReason = "Requested" | "Legacy" | "Unused"

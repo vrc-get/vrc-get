@@ -44,6 +44,7 @@ mod start;
 mod uri_custom_scheme;
 mod util;
 
+#[allow(unused_imports)]
 mod prelude {
     pub(super) use super::{
         IntoPathBuf as _, RustError, TauriBasePackageInfo, UnityProject, load_project,

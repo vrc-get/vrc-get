@@ -71,11 +71,6 @@ fn build_templates() {
 
     let mut file = std::fs::File::create(out_dir.join("templates.rs")).unwrap();
     file.write_all(constants.as_bytes()).unwrap();
-    writeln!(
-        file,
-        "pub const TEMPLATES: &[(&str, &str, &[u8])] = &{list:#?};"
-    )
-    .unwrap();
     file.flush().unwrap();
 
     for t in threads {
