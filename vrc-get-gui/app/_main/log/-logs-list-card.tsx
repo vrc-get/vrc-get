@@ -41,6 +41,7 @@ export const LogsListCard = memo(function LogsListCard({
 		}
 	}, []);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: should scroll to the bottom whenever the logsShown changes.
 	useEffect(() => {
 		if (!autoScroll) return;
 
