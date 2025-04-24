@@ -75,7 +75,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "PC名に問題あり",
-    "sidebar:dialog:bad hostname": "PC名の設定に問題があります。",
+    "sidebar:dialog:bad hostname": "PC名の設定に問題があります",
     "sidebar:dialog:bad hostname description": "PC名(ホスト名)に非ASCII文字(半角英数字や半角記号等ではない文字)が使用されています。<br>これはUnityで問題を引き起こす場合があります。<br>半角英数字のPC名(ホスト名)に変更することを強くお勧めします。",
 
     "sidebar:toast:version copied": "バージョン情報をコピーしました。",
@@ -281,7 +281,7 @@
     "projects:manage:button:apply changes": "変更を適用",
     "projects:manage:button:apply": "適用",
 
-    "projects:manage:dialog:missing dependencies": "パッケージ情報が見つかりませんでした。",
+    "projects:manage:dialog:missing dependencies": "パッケージ情報が見つかりませんでした",
     "projects:manage:dialog:missing dependencies description": "以下のパッケージのインストールを試みましたが、対応するバージョンのパッケージ情報が見つかりませんでした。<br>該当するパッケージを含むVPMリポジトリを探し、ALCOMに登録してください。<br>適切なVPMリポジトリを見つけるには、<ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink>が役立つかもしれません。",
 
 // Packages Page
