@@ -364,6 +364,19 @@
     "user packages:toast:package added": "The package was added successfully.",
     "user packages:toast:package removed": "The package was removed successfully.",
 
+    "packages:templates": "Templates",
+    "templates:create template": "Create Template",
+    "templates:category": "Category",
+    "templates:category:builtin": "Builtin",
+    "templates:tooltip:category:builtin": "Builtin Templates are templates built by ALCOM developers and shipped with ALCOM",
+    "templates:category:alcom": "Custom",
+    "templates:tooltip:category:alcom": "Custom Templates are templates you created and you can edit with ALCOM.",
+    "templates:category:vcc": "VCC",
+    "templates:tooltip:category:vcc": "VCC Templates are templates you created for VCC manually.",
+    "templates:tooltip:remove template": "Remove Template",
+    "templates:tooltip:remove builtin template": "You cannot remove Builtin Templates.",
+    "templates:tooltip:remove vcc template": "You cannot remove VCC templates here. You should remove from Templates directory instead.",
+
 
 // Settings Page
     "settings": "Settings",

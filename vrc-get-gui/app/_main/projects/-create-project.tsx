@@ -31,6 +31,11 @@ import { type DialogContext, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
 import { pathSeparator } from "@/lib/os";
+import {
+	type ProjectTemplateCategory,
+	projectTemplateCategory,
+	projectTemplateName,
+} from "@/lib/project-template";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -115,11 +120,6 @@ interface ProjectCreationInformation {
 	projectLocation: string;
 	projectName: string;
 }
-const AVATARS_TEMPLATE_ID = "com.anatawa12.vrc-get.vrchat.avatars";
-const WORLDS_TEMPLATE_ID = "com.anatawa12.vrc-get.vrchat.worlds";
-const BLANK_TEMPLATE_ID = "com.anatawa12.vrc-get.blank";
-const VCC_TEMPLATE_PREFIX = "com.anatawa12.vrc-get.vcc.";
-const UNNAMED_TEMPLATE_PREFIX = "com.anatawa12.vrc-get.user.";
 
 function EnteringInformation({
 	templates,
@@ -183,24 +183,17 @@ function EnteringInformation({
 	const templateInputId = useId();
 	const unityInputId = useId();
 
-	type TemplateCategory = "builtin" | "alcom" | "vcc";
 	const templatesByCategory = useMemo(() => {
-		const byCategory: { [k in TemplateCategory]: TauriProjectTemplateInfo[] } =
-			{
-				builtin: [],
-				alcom: [],
-				vcc: [],
-			};
-
-		const templateCategory = (id: string): TemplateCategory => {
-			if (id.startsWith(VCC_TEMPLATE_PREFIX)) return "vcc";
-			if (id.startsWith(UNNAMED_TEMPLATE_PREFIX)) return "alcom";
-			if (id.startsWith("com.anatawa12.vrc-get.")) return "builtin";
-			return "alcom";
+		const byCategory: {
+			[k in ProjectTemplateCategory]: TauriProjectTemplateInfo[];
+		} = {
+			builtin: [],
+			alcom: [],
+			vcc: [],
 		};
 
 		for (const template of templates) {
-			byCategory[templateCategory(template.id)].push(template);
+			byCategory[projectTemplateCategory(template.id)].push(template);
 		}
 
 		return (
@@ -208,7 +201,7 @@ function EnteringInformation({
 				["builtin", byCategory.builtin],
 				["alcom", byCategory.alcom],
 				["vcc", byCategory.vcc],
-			] as const
+			] satisfies [ProjectTemplateCategory, TauriProjectTemplateInfo[]][]
 		).filter((x) => x[1].length > 0);
 	}, [templates]);
 
@@ -259,7 +252,7 @@ function EnteringInformation({
 												disabled={disabled}
 												key={template.id}
 											>
-												{templateName(template)}
+												{projectTemplateName(template)}
 											</SelectItem>
 										);
 										if (!template.available) {
@@ -349,19 +342,6 @@ function EnteringInformation({
 			</VStack>
 		</DialogBase>
 	);
-}
-
-function templateName(template: TauriProjectTemplateInfo): React.ReactNode {
-	switch (template.id) {
-		case AVATARS_TEMPLATE_ID:
-			return tc("projects:template-name:avatars");
-		case WORLDS_TEMPLATE_ID:
-			return tc("projects:template-name:worlds");
-		case BLANK_TEMPLATE_ID:
-			return tc("projects:template-name:blank");
-		default:
-			return template.display_name;
-	}
 }
 
 function useProjectNameCheck(
