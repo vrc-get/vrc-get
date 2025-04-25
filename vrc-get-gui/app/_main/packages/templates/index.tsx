@@ -1,20 +1,43 @@
 import Loading from "@/app/-loading";
 import { HeadingPageName } from "@/app/_main/packages/-tab-selector";
+import { Overlay } from "@/components/Overlay";
+import {
+	ReorderableList,
+	useReorderableList,
+} from "@/components/ReorderableList";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
+import {
+	DialogDescription,
+	DialogFooter,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { type TauriProjectTemplateInfo, commands } from "@/lib/bindings";
+import {
+	type TauriAlcomTemplate,
+	type TauriProjectTemplateInfo,
+	commands,
+} from "@/lib/bindings";
+import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { usePrevPathName } from "@/lib/prev-page";
 import {
@@ -23,10 +46,17 @@ import {
 	projectTemplateName,
 } from "@/lib/project-template";
 import { toastThrownError } from "@/lib/toast";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
+import {
+	queryOptions,
+	useQuery,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CircleX, Ellipsis } from "lucide-react";
-import { Suspense, useId } from "react";
+import type React from "react";
+import { Suspense, useId, useState } from "react";
 
 export const Route = createFileRoute("/_main/packages/templates/")({
 	component: RouteComponent,
@@ -44,7 +74,7 @@ function RouteComponent() {
 			<HNavBar
 				className={"shrink-0"}
 				leading={<HeadingPageName pageType={"/packages/templates"} />}
-				trailing={<Button>{tc("templates:create template")}</Button>}
+				trailing={<CreateTemplateButton />}
 			/>
 			<main
 				className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
@@ -59,11 +89,13 @@ function RouteComponent() {
 	);
 }
 
+const environmentProjectCreationInformation = queryOptions({
+	queryKey: ["environmentProjectCreationInformation"],
+	queryFn: async () => await commands.environmentProjectCreationInformation(),
+});
+
 function TemplatesTableBody() {
-	const information = useSuspenseQuery({
-		queryKey: ["environmentProjectCreationInformation"],
-		queryFn: async () => await commands.environmentProjectCreationInformation(),
-	});
+	const information = useSuspenseQuery(environmentProjectCreationInformation);
 
 	const TABLE_HEAD = [
 		"general:name",
@@ -71,6 +103,19 @@ function TemplatesTableBody() {
 		"templates:category",
 		"", // actions
 	];
+
+	const editTemplate = async (id: string) => {
+		try {
+			const alcomTemplate = await commands.environmentGetAlcomTemplate(id);
+			await openSingleDialog(TemplateEditor, {
+				templates: information.data.templates,
+				template: { ...alcomTemplate, id },
+			});
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
 
 	return (
 		<>
@@ -91,7 +136,11 @@ function TemplatesTableBody() {
 			</thead>
 			<tbody>
 				{information.data.templates.map((template) => (
-					<TemplateRow key={template.id} template={template} />
+					<TemplateRow
+						key={template.id}
+						template={template}
+						edit={editTemplate}
+					/>
 				))}
 			</tbody>
 		</>
@@ -101,9 +150,11 @@ function TemplatesTableBody() {
 function TemplateRow({
 	template,
 	remove,
+	edit,
 }: {
 	template: TauriProjectTemplateInfo;
 	remove?: () => void;
+	edit?: (id: string) => void;
 }) {
 	const cellClass = "p-2.5";
 	const id = useId();
@@ -159,7 +210,7 @@ function TemplateRow({
 					</TooltipContent>
 				</Tooltip>
 
-				<TemplateDropdownMenu template={template} />
+				<TemplateDropdownMenu template={template} edit={edit} />
 			</td>
 		</tr>
 	);
@@ -180,7 +231,11 @@ function EllipsisButton(props: React.ComponentProps<typeof Button>) {
 
 function TemplateDropdownMenu({
 	template,
-}: { template: TauriProjectTemplateInfo }) {
+	edit,
+}: {
+	template: TauriProjectTemplateInfo;
+	edit?: (id: string) => void;
+}) {
 	const category = projectTemplateCategory(template.id);
 
 	// TODO: impleemnt edit template
@@ -203,7 +258,7 @@ function TemplateDropdownMenu({
 						<EllipsisButton />
 					</DropdownMenuTrigger>
 					<DropdownMenuContent>
-						<DropdownMenuItem>
+						<DropdownMenuItem onClick={() => edit?.(template.id)}>
 							{tc("templates:menuitem:edit template")}
 						</DropdownMenuItem>
 						{template.has_unitypackage ? (
@@ -255,4 +310,312 @@ function TemplateDropdownMenu({
 			);
 		}
 	}
+}
+
+function CreateTemplateButton() {
+	const information = useQuery(environmentProjectCreationInformation);
+
+	return (
+		<Button
+			disabled={information.isLoading}
+			onClick={() => {
+				if (information.data != null) {
+					void openSingleDialog(TemplateEditor, {
+						templates: information.data.templates,
+						template: null,
+					});
+				}
+			}}
+		>
+			{tc("templates:create template")}
+		</Button>
+	);
+}
+
+const regexp = String.raw;
+const versionSegment = regexp`(?:\*|x|0|[1-9]\d*)`;
+const prereleaseSegment = regexp`(?:0|[1-9]\d*|[0-9a-z-]*[a-z-][0-9a-z-]*)`;
+const prerelease = regexp`(?:-?${prereleaseSegment}(?:\.${prereleaseSegment})*)`;
+const buildSegment = regexp`(?:[0-9a-z-]+)`;
+const build = regexp`(?:${buildSegment}(?:\.${buildSegment})*)`;
+const rangeRegex = new RegExp(
+	regexp`^\s*(?:(?:>|<|>=|<=|=|\^|~)\s*)?v?${versionSegment}(?:\.${versionSegment}(?:\.${versionSegment}${prerelease}?${build}?)?)?\s*$`,
+	"i",
+);
+
+function TemplateEditor({
+	templates,
+	template,
+	dialog,
+}: {
+	templates: TauriProjectTemplateInfo[];
+	template: (TauriAlcomTemplate & { id: string }) | null;
+	dialog: DialogContext<boolean>;
+}) {
+	const [baseTemplate, setBaseTemplate] = useState<string>(
+		template?.base ?? "com.anatawa12.vrc-get.blank",
+	);
+	const [name, setName] = useState(template?.display_name ?? "");
+	const [unityRange, setUnityRange] = useState(template?.unity_version ?? "");
+
+	type Package = { name: string; range: string };
+	const packagesListContext = useReorderableList<Package>({
+		defaultValue: { name: "", range: "" },
+		defaultArray:
+			template == null
+				? [{ name: "", range: "" }]
+				: Object.entries(template.vpm_dependencies).map(([name, range]) => ({
+						name,
+						range,
+					})),
+		allowEmpty: false,
+		reorderable: false,
+	});
+
+	const unityPackagesListContext = useReorderableList<string>({
+		defaultValue: "",
+		defaultArray: template?.unity_packages ?? [],
+		allowEmpty: true,
+		reorderable: false,
+		addable: false,
+	});
+
+	const addUnityPackages = async () => {
+		try {
+			const packages = await commands.environmentPickUnityPackage();
+			for (const pkg of packages) {
+				unityPackagesListContext.add(pkg);
+			}
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
+
+	const queryClient = useQueryClient();
+	const saveTemplate = async () => {
+		try {
+			await commands.environmentSaveTemplate(
+				template?.id ?? null,
+				baseTemplate,
+				name,
+				unityRange,
+				packagesListContext.value.map(({ name, range }) => [name, range]),
+				unityPackagesListContext.value,
+			);
+			await queryClient.invalidateQueries(
+				environmentProjectCreationInformation,
+			);
+			dialog.close(true);
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
+
+	const validVersion = (p: Package) =>
+		(p.name === "" && p.range === "") || // the empty (non-set) row
+		(p.name !== "" && p.range.match(rangeRegex)); // ready to create
+	const readyToCreate =
+		packagesListContext.value.every(validVersion) &&
+		unityRange.match(rangeRegex) &&
+		name.length !== 0;
+
+	return (
+		<div className={"overflow-y-hidden flex flex-col"}>
+			<DialogTitle>
+				{template != null
+					? tc("templates:dialog:edit template")
+					: tc("templates:dialog:create template")}
+			</DialogTitle>
+			<DialogDescription asChild>
+				<div className={"flex flex-col gap-4 shrink min-h-0"}>
+					<section>
+						<h3 className={"font-bold w-full text-center content-center"}>
+							{tc("templates:dialog:general information")}
+						</h3>
+						<table
+							className={"grid grid-cols-[min-content_1fr] gap-x-4 gap-y-1"}
+						>
+							<tbody className={"contents"}>
+								<tr className={"contents"}>
+									<th className={"content-center text-start whitespace-nowrap"}>
+										{tc("general:name")}:
+									</th>
+									<td className={"flex"}>
+										<Input
+											className={cn(
+												"grow",
+												name.length === 0 &&
+													"border-destructive ring-destructive text-destructive",
+											)}
+											value={name}
+											onChange={(e) => setName(e.target.value)}
+											placeholder={"Your New Template"}
+										/>
+									</td>
+								</tr>
+								<tr className={"contents"}>
+									<th className={"content-center text-start whitespace-nowrap"}>
+										{tc("templates:dialog:base template")}:
+									</th>
+									<td className={"flex"}>
+										<Select
+											value={baseTemplate}
+											onValueChange={setBaseTemplate}
+										>
+											<SelectTrigger>
+												<SelectValue className={"grow"} />
+											</SelectTrigger>
+											<SelectContent>
+												{templates.map((template) => {
+													const id = projectTemplateDisplayId(template.id);
+													if (id == null) return null;
+													return (
+														<SelectItem key={id} value={id}>
+															{projectTemplateName(template)}
+														</SelectItem>
+													);
+												})}
+											</SelectContent>
+										</Select>
+									</td>
+								</tr>
+								<tr className={"contents"}>
+									<th className={"content-center text-start whitespace-nowrap"}>
+										{tc("templates:dialog:unity version")}:
+									</th>
+									<td className={"flex"}>
+										<Input
+											className={cn(
+												"grow",
+												unityRange.match(rangeRegex) ||
+													"border-destructive ring-destructive text-destructive",
+											)}
+											value={unityRange}
+											onChange={(e) => setUnityRange(e.target.value)}
+											placeholder={">=2022 * =2022.3.22"}
+										/>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</section>
+					<section className={"shrink overflow-hidden flex flex-col"}>
+						<h3 className={"font-bold w-full text-center content-center"}>
+							{tc("general:packages")}
+						</h3>
+						<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
+							<table className={"w-full"}>
+								<thead>
+									<tr>
+										<th className={"sticky top-0 z-10 bg-background"}>
+											{tc("general:name")}
+										</th>
+										<th className={"sticky top-0 z-10 bg-background"}>
+											{tc("general:version")}
+										</th>
+										<th className={"sticky top-0 z-10 bg-background"} />
+									</tr>
+								</thead>
+								<tbody>
+									<ReorderableList
+										context={packagesListContext}
+										renderItem={(value, id) => (
+											<>
+												<td>
+													<div className={"flex"}>
+														<Input
+															type={"text"}
+															value={value.name}
+															className={"grow"}
+															onChange={(e) =>
+																packagesListContext.update(id, (old) => ({
+																	...old,
+																	name: e.target.value,
+																}))
+															}
+														/>
+													</div>
+												</td>
+												<td>
+													<div className={"flex"}>
+														<Input
+															type={"text"}
+															value={value.range}
+															className={cn(
+																"grow",
+																validVersion(value) ||
+																	"border-destructive ring-destructive text-destructive",
+															)}
+															onChange={(e) =>
+																packagesListContext.update(id, (old) => ({
+																	...old,
+																	range: e.target.value,
+																}))
+															}
+														/>
+													</div>
+												</td>
+											</>
+										)}
+									/>
+								</tbody>
+							</table>
+						</div>
+					</section>
+					<section className={"shrink overflow-hidden flex flex-col"}>
+						<Overlay>
+							<h3 className={"font-bold w-full text-center content-center"}>
+								{tc("templates:dialog:unitypackages")}
+							</h3>
+							<div className={"text-right mb-2"}>
+								<Button onClick={addUnityPackages}>
+									{tc("general:button:add")}
+								</Button>
+							</div>
+						</Overlay>
+						<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
+							<table className={"w-full"}>
+								<tbody>
+									<ReorderableList
+										context={unityPackagesListContext}
+										ifEmpty={() => (
+											<td className={"text-center"}>
+												{tc("templates:dialog:no unitypackages")}
+											</td>
+										)}
+										renderItem={(value) => (
+											<td>
+												<div className={"flex"}>
+													<Input
+														type={"text"}
+														value={value}
+														className={"grow"}
+														disabled
+													/>
+												</div>
+											</td>
+										)}
+									/>
+								</tbody>
+							</table>
+						</div>
+					</section>
+				</div>
+			</DialogDescription>
+			<DialogFooter className={"mt-2"}>
+				<Button onClick={() => dialog.close(false)}>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button
+					className={"ml-1"}
+					disabled={!readyToCreate}
+					onClick={saveTemplate}
+				>
+					{tc("general:button:save")}
+				</Button>
+			</DialogFooter>
+		</div>
+	);
 }

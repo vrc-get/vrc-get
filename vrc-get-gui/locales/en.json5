@@ -5,6 +5,8 @@
 
     "general:loading...": "Loading...",
     "general:name": "Name",
+    "general:version": "Version",
+    "general:packages": "Packages",
     "general:source": "Source",
 
     "general:button:add": "Add",
@@ -382,6 +384,15 @@
     "templates:menuitem:export template": "Export Template",
     "templates:tooltip:export template with unitypackage": "You cannot export templates with unity packages since it's not portable.",
     "templates:menuitem:open vcc template": "Open Template Directory",
+    "templates:dialog:edit template": "Edit Template",
+    "templates:dialog:create template": "Create Template",
+    "templates:dialog:general information": "General Information",
+    "templates:dialog:base template": "Base Template",
+    "templates:dialog:unity version": "Unity Version",
+    "templates:dialog:version": "Version",
+    "templates:dialog:unitypackages": "UnityPackages",
+    "templates:dialog:no unitypackages": "No UnityPackages",
+    "templates:button:save template": "Save Template",
 
 
 // Settings Page

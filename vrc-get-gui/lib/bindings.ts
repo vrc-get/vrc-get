@@ -164,6 +164,15 @@ async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null
 async environmentExportTemplate(id: string) : Promise<null> {
     return await TAURI_INVOKE("environment_export_template", { id });
 },
+async environmentGetAlcomTemplate(id: string) : Promise<TauriAlcomTemplate> {
+    return await TAURI_INVOKE("environment_get_alcom_template", { id });
+},
+async environmentPickUnityPackage() : Promise<string[]> {
+    return await TAURI_INVOKE("environment_pick_unity_package");
+},
+async environmentSaveTemplate(id: string | null, base: string, name: string, unityRange: string, vpmPackages: ([string, string])[], unityPackages: string[]) : Promise<null> {
+    return await TAURI_INVOKE("environment_save_template", { id, base, name, unityRange, vpmPackages, unityPackages });
+},
 async environmentUpdateUnityPathsFromUnityHub() : Promise<boolean> {
     return await TAURI_INVOKE("environment_update_unity_paths_from_unity_hub");
 },
@@ -283,6 +292,7 @@ export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" |
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriAddRepositoryResult = "BadUrl" | "Success"
 export type TauriAddUserPackageWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
+export type TauriAlcomTemplate = { display_name: string; base: string; unity_version: string | null; vpm_dependencies: { [key in string]: string }; unity_packages: string[] }
 export type TauriBasePackageInfo = { name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }
 export type TauriCallUnityForMigrationResult = { type: "ExistsWithNonZero"; status: string } | { type: "FinishedSuccessfully" }
 export type TauriConflictInfo = { packages: string[]; unity_conflict: boolean; unlocked_names: string[] }
