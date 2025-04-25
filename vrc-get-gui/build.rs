@@ -12,7 +12,8 @@ fn main() {
 fn build_templates() {
     let out_dir = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
 
-    let templates = std::fs::read_to_string(std::path::Path::new("templates/list.txt")).unwrap();
+    let templates =
+        std::fs::read_to_string(std::path::Path::new("project-templates/list.txt")).unwrap();
 
     struct GzLoader<'a>(&'a str);
 
@@ -55,7 +56,7 @@ fn build_templates() {
         list.push((id, name, Variable(ident)));
 
         let tar_file = out_dir.join(format!("{id}.tgz"));
-        let dir = std::path::Path::new("templates").join(id);
+        let dir = std::path::Path::new("project-templates").join(id);
 
         threads.push(std::thread::spawn(move || build_tar(tar_file, dir)));
     }
