@@ -5,7 +5,6 @@ use futures::*;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
 use log::{info, warn};
-use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::mem::forget;
 use std::path::{Path, PathBuf};
@@ -37,7 +36,6 @@ const VRCHAT_UNITY_VERSIONS: &[UnityVersion] = &[
 const VCC_TEMPLATE_PREFIX: &str = "com.anatawa12.vrc-get.vcc.";
 const UNNAMED_TEMPLATE_PREFIX: &str = "com.anatawa12.vrc-get.user.";
 
-#[derive(Serialize, Deserialize)]
 pub struct ProjectTemplateInfo {
     pub display_name: String,
     pub id: String,
