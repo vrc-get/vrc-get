@@ -367,6 +367,8 @@
     "packages:templates": "Templates",
     "templates:create template": "Create Template",
     "templates:category": "Category",
+    "templates:id": "Template ID",
+    "template:no id": "No ID",
     "templates:category:builtin": "Builtin",
     "templates:tooltip:category:builtin": "Builtin Templates are templates built by ALCOM developers and shipped with ALCOM",
     "templates:category:alcom": "Custom",
@@ -376,6 +378,10 @@
     "templates:tooltip:remove template": "Remove Template",
     "templates:tooltip:remove builtin template": "You cannot remove Builtin Templates.",
     "templates:tooltip:remove vcc template": "You cannot remove VCC templates here. You should remove from Templates directory instead.",
+    "templates:menuitem:edit template": "Edit Template",
+    "templates:menuitem:export template": "Export Template",
+    "templates:tooltip:export template with unitypackage": "You cannot export templates with unity packages since it's not portable.",
+    "templates:menuitem:open vcc template": "Open Template Directory",
 
 
 // Settings Page

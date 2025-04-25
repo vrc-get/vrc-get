@@ -466,6 +466,8 @@ pub struct TauriProjectTemplateInfo {
     pub display_name: String,
     pub id: String,
     pub unity_versions: Vec<String>,
+    pub has_unitypackage: bool,
+    pub source_path: Option<String>,
     pub available: bool,
 }
 
@@ -481,6 +483,15 @@ impl From<&ProjectTemplateInfo> for TauriProjectTemplateInfo {
                 .map(|x| x.to_string())
                 .unique()
                 .collect(),
+            has_unitypackage: info
+                .alcom_template
+                .as_ref()
+                .map(|x| !x.unity_packages.is_empty())
+                .unwrap_or(false),
+            source_path: info
+                .source_path
+                .as_ref()
+                .map(|x| x.to_string_lossy().into_owned()),
             available: info.available,
         }
     }

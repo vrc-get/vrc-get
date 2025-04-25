@@ -44,6 +44,14 @@ impl TemplatesState {
         }
     }
 
+    pub fn get(&self) -> Option<TemplatesStateRef<'_>> {
+        let loaded = self.inner.load_full()?;
+        Some(TemplatesStateRef {
+            arc: loaded,
+            _phantom_data: PhantomData,
+        })
+    }
+
     pub fn get_versioned(&self, version: u32) -> Option<TemplatesStateRef<'_>> {
         let loaded = self.inner.load_full()?;
         if loaded.version == version {

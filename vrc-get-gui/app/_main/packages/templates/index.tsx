@@ -4,6 +4,12 @@ import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
@@ -13,11 +19,13 @@ import { tc } from "@/lib/i18n";
 import { usePrevPathName } from "@/lib/prev-page";
 import {
 	projectTemplateCategory,
+	projectTemplateDisplayId,
 	projectTemplateName,
 } from "@/lib/project-template";
+import { toastThrownError } from "@/lib/toast";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleX } from "lucide-react";
+import { CircleX, Ellipsis } from "lucide-react";
 import { Suspense, useId } from "react";
 
 export const Route = createFileRoute("/_main/packages/templates/")({
@@ -28,6 +36,8 @@ function RouteComponent() {
 	const bodyAnimation = usePrevPathName().startsWith("/packages")
 		? "slide-left"
 		: "";
+
+	// TODO: impleemnt create template
 
 	return (
 		<VStack>
@@ -57,6 +67,7 @@ function TemplatesTableBody() {
 
 	const TABLE_HEAD = [
 		"general:name",
+		"templates:id",
 		"templates:category",
 		"", // actions
 	];
@@ -98,6 +109,7 @@ function TemplateRow({
 	const id = useId();
 
 	const category = projectTemplateCategory(template.id);
+	const displayId = projectTemplateDisplayId(template.id);
 
 	return (
 		<tr className="even:bg-secondary/30">
@@ -105,6 +117,13 @@ function TemplateRow({
 				<label htmlFor={id}>
 					<p className="font-normal">{projectTemplateName(template)}</p>
 				</label>
+			</td>
+			<td className={cellClass}>
+				{displayId ? (
+					<p className="font-normal">{displayId}</p>
+				) : (
+					<p className="font-normal opacity-50">{tc("template:no id")}</p>
+				)}
 			</td>
 			<td className={cellClass}>
 				<Tooltip>
@@ -139,7 +158,101 @@ function TemplateRow({
 									: ""}
 					</TooltipContent>
 				</Tooltip>
+
+				<TemplateDropdownMenu template={template} />
 			</td>
 		</tr>
 	);
+}
+
+function EllipsisButton(props: React.ComponentProps<typeof Button>) {
+	return (
+		<Button
+			variant="ghost"
+			size={"icon"}
+			className={"hover:bg-primary/10 text-primary hover:text-primary"}
+			{...props}
+		>
+			<Ellipsis className={"size-5"} />
+		</Button>
+	);
+}
+
+function TemplateDropdownMenu({
+	template,
+}: { template: TauriProjectTemplateInfo }) {
+	const category = projectTemplateCategory(template.id);
+
+	// TODO: impleemnt edit template
+
+	switch (category) {
+		case "builtin":
+			return <EllipsisButton disabled />;
+		case "alcom": {
+			const exportTemplate = async () => {
+				try {
+					await commands.environmentExportTemplate(template.id);
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+			return (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<EllipsisButton />
+					</DropdownMenuTrigger>
+					<DropdownMenuContent>
+						<DropdownMenuItem>
+							{tc("templates:menuitem:edit template")}
+						</DropdownMenuItem>
+						{template.has_unitypackage ? (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<DropdownMenuItem
+										className={
+											"opacity-50" /* emulate disabled. we cannot disable for tooltip */
+										}
+									>
+										{tc("templates:menuitem:export template")}
+									</DropdownMenuItem>
+								</TooltipTrigger>
+								<TooltipContent>
+									{tc("templates:tooltip:export template with unitypackage")}
+								</TooltipContent>
+							</Tooltip>
+						) : (
+							<DropdownMenuItem onClick={exportTemplate}>
+								{tc("templates:menuitem:export template")}
+							</DropdownMenuItem>
+						)}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			);
+		}
+		case "vcc": {
+			const openTemplate = async () => {
+				try {
+					if (template.source_path == null)
+						throw new Error("VCC Template path not found (bug(");
+					await commands.utilOpen(template.source_path, "ErrorIfNotExists");
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+			return (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<EllipsisButton />
+					</DropdownMenuTrigger>
+					<DropdownMenuContent>
+						<DropdownMenuItem onClick={openTemplate}>
+							{tc("templates:menuitem:open vcc template")}
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			);
+		}
+	}
 }

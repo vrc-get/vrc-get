@@ -161,6 +161,9 @@ async environmentGetDefaultUnityArguments() : Promise<string[]> {
 async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null) : Promise<null> {
     return await TAURI_INVOKE("environment_set_default_unity_arguments", { defaultUnityArguments });
 },
+async environmentExportTemplate(id: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_export_template", { id });
+},
 async environmentUpdateUnityPathsFromUnityHub() : Promise<boolean> {
     return await TAURI_INVOKE("environment_update_unity_paths_from_unity_hub");
 },
@@ -302,7 +305,7 @@ export type TauriProject = { list_version: number; index: number; name: string; 
 export type TauriProjectCreationInformation = { templates: TauriProjectTemplateInfo[]; templates_version: number; default_path: string }
 export type TauriProjectDetails = { unity: [number, number] | null; unity_str: string | null; unity_revision: string | null; installed_packages: ([string, TauriBasePackageInfo])[]; should_resolve: boolean }
 export type TauriProjectDirCheckResult = "InvalidNameForFolderName" | "MayCompatibilityProblem" | "WideChar" | "AlreadyExists" | "Ok"
-export type TauriProjectTemplateInfo = { display_name: string; id: string; unity_versions: string[]; available: boolean }
+export type TauriProjectTemplateInfo = { display_name: string; id: string; unity_versions: string[]; has_unitypackage: boolean; source_path: string | null; available: boolean }
 export type TauriProjectType = "Unknown" | "LegacySdk2" | "LegacyWorlds" | "LegacyAvatars" | "UpmWorlds" | "UpmAvatars" | "UpmStarter" | "Worlds" | "Avatars" | "VpmStarter"
 export type TauriRemoteRepositoryInfo = { display_name: string; id: string; url: string; packages: TauriBasePackageInfo[] }
 export type TauriRemoveReason = "Requested" | "Legacy" | "Unused"

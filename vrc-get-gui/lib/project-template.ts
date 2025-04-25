@@ -33,3 +33,9 @@ export const projectTemplateCategory = (
 	if (id.startsWith("com.anatawa12.vrc-get.")) return "builtin";
 	return "alcom";
 };
+
+export const projectTemplateDisplayId = (id: string): string | null => {
+	if (id.startsWith(UNNAMED_TEMPLATE_PREFIX)) return null;
+	if (id.startsWith(VCC_TEMPLATE_PREFIX)) return null;
+	return id;
+};

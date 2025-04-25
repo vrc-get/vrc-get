@@ -43,6 +43,7 @@ pub struct ProjectTemplateInfo {
     pub id: String,
     pub unity_versions: Vec<UnityVersion>,
     pub alcom_template: Option<AlcomTemplate>,
+    pub source_path: Option<PathBuf>,
     // If the base template does not exist, the template is not available.
     pub available: bool,
 }
@@ -90,7 +91,7 @@ pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> Vec<ProjectTemplat
             continue;
         }
 
-        match UnityProject::load(DefaultProjectIo::new(path.into())).await {
+        match UnityProject::load(DefaultProjectIo::new(path.as_path().into())).await {
             Err(e) => {
                 warn!("failed to load user template {name}: {e}");
             }
@@ -102,6 +103,7 @@ pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> Vec<ProjectTemplat
                 id: format!("{}{}", VCC_TEMPLATE_PREFIX, name),
                 unity_versions: vec![p.unity_version().unwrap()],
                 alcom_template: None,
+                source_path: Some(path),
                 available: true,
             }),
         }
@@ -126,6 +128,7 @@ pub async fn load_resolve_alcom_templates(
             id: AVATARS_TEMPLATE_ID.into(),
             unity_versions: VRCHAT_UNITY_VERSIONS.into(),
             alcom_template: None,
+            source_path: None,
             available: true,
         },
     );
@@ -136,6 +139,7 @@ pub async fn load_resolve_alcom_templates(
             id: WORLDS_TEMPLATE_ID.into(),
             unity_versions: VRCHAT_UNITY_VERSIONS.into(),
             alcom_template: None,
+            source_path: None,
             available: true,
         },
     );
@@ -146,12 +150,13 @@ pub async fn load_resolve_alcom_templates(
             id: BLANK_TEMPLATE_ID.into(),
             unity_versions: unity_versions.into(),
             alcom_template: None,
+            source_path: None,
             available: true,
         },
     );
 
     // then ALCOM templates
-    for value in templates {
+    for (path, value) in templates {
         let id = value.id.clone().unwrap_or_else(|| {
             format!(
                 "{}{}",
@@ -166,6 +171,7 @@ pub async fn load_resolve_alcom_templates(
                 id,
                 unity_versions: vec![],
                 alcom_template: Some(value),
+                source_path: Some(path),
                 available: false,
             },
         );
@@ -221,7 +227,7 @@ pub async fn load_resolve_alcom_templates(
     template_by_id.into_values().collect()
 }
 
-pub async fn load_alcom_templates(io: &DefaultEnvironmentIo) -> Vec<AlcomTemplate> {
+pub async fn load_alcom_templates(io: &DefaultEnvironmentIo) -> Vec<(PathBuf, AlcomTemplate)> {
     let path = Path::new("vrc-get/templates");
     let mut dir = match io.read_dir(path).await {
         Ok(dir) => dir,
@@ -246,7 +252,7 @@ pub async fn load_alcom_templates(io: &DefaultEnvironmentIo) -> Vec<AlcomTemplat
             // The file is alcomtemplate
             let path = path.join(entry.file_name());
             match load_template(io, &path).await {
-                Ok(template) => templates.push(template),
+                Ok(template) => templates.push((path, template)),
                 Err(e) => log::warn!(
                     "Error loading template at {path}: {e}",
                     path = path.display()
