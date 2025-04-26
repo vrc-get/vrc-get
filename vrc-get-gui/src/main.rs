@@ -76,6 +76,7 @@ fn main() {
     deep_link_support::set_app_handle(app.handle().clone());
 
     logging::set_app_handle(app.handle().clone());
+    #[allow(unused_variables)]
     app.run(|app, event| match event {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         tauri::RunEvent::Opened { urls } => {
