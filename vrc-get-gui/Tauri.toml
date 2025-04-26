@@ -36,6 +36,13 @@ publisher = "anatawa12"
 
 createUpdaterArtifacts = "v1Compatible"  # remove if ci # we do not generate updater artifacts in CI
 
+[[bundle.fileAssociations]]
+# note: for macOS we directory use info.plist for registering file association.
+description = "ALCOM Project Template"
+ext = ['alcomtemplate']
+mimeType = "application/x-alcom-template+json"
+name = "ALCOM Project Template"
+
 [bundle.linux.deb]
 desktopTemplate = "alcom.desktop"
 
