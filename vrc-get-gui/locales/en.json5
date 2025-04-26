@@ -394,7 +394,9 @@
     "templates:dialog:no unitypackages": "No UnityPackages",
     "templates:button:save template": "Save Template",
     "templates:button:import template": "Import Template",
-    "templates:toast:imported n templates": "Imported {count} repositories",
+    "templates:toast:imported n templates_one": "Imported {{count}} template",
+    "templates:toast:imported n templates_other": "Imported {{count}} templates",
+    "template:toast:removed": "Removed the Template",
 
 
 // Settings Page

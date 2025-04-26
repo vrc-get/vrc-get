@@ -173,6 +173,9 @@ async environmentPickUnityPackage() : Promise<string[]> {
 async environmentSaveTemplate(id: string | null, base: string, name: string, unityRange: string, vpmPackages: ([string, string])[], unityPackages: string[]) : Promise<null> {
     return await TAURI_INVOKE("environment_save_template", { id, base, name, unityRange, vpmPackages, unityPackages });
 },
+async environmentRemoveTemplate(id: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_remove_template", { id });
+},
 async environmentImportTemplate() : Promise<number> {
     return await TAURI_INVOKE("environment_import_template");
 },
@@ -265,6 +268,12 @@ async deepLinkTakeAddRepository() : Promise<AddRepositoryInfo | null> {
 },
 async deepLinkInstallVcc() : Promise<void> {
     await TAURI_INVOKE("deep_link_install_vcc");
+},
+async deepLinkImportedClearNonToastedCount() : Promise<number> {
+    return await TAURI_INVOKE("deep_link_imported_clear_non_toasted_count");
+},
+async deepLinkReduceImportedClearNonToastedCount(reduce: number) : Promise<void> {
+    await TAURI_INVOKE("deep_link_reduce_imported_clear_non_toasted_count", { reduce });
 }
 }
 

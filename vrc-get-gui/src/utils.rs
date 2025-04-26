@@ -413,3 +413,10 @@ impl<R: AsyncRead + Unpin> AsyncRead for TarEntry<'_, R> {
         Poll::Ready(Ok(size))
     }
 }
+
+pub async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
+    tokio::runtime::Handle::current()
+        .spawn_blocking(move || trash::delete(path))
+        .await
+        .unwrap()
+}

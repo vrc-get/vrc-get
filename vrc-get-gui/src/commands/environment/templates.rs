@@ -1,8 +1,10 @@
 use crate::commands::prelude::*;
 use crate::templates::{AlcomTemplate, parse_alcom_template, serialize_alcom_template};
+use crate::utils::trash_delete;
 use futures::AsyncWriteExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -230,6 +232,39 @@ async fn save_template_file(
     file.write_all(template).await?;
     file.flush().await?;
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+#[allow(clippy::too_many_arguments)]
+pub async fn environment_remove_template(
+    templates: State<'_, TemplatesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    id: String,
+) -> Result<(), RustError> {
+    match templates
+        .get()
+        .as_ref()
+        .and_then(|x| x.iter().find(|x| x.id == id))
+        .take_if(|x| x.alcom_template.is_some())
+        .take_if(|x| x.source_path.is_some())
+    {
+        None => Err(RustError::unrecoverable(
+            "Template with such id not found (this is bug)",
+        )),
+        Some(template) => {
+            let template = io.resolve(template.source_path.as_ref().unwrap());
+            if let Err(err) = trash_delete(template.clone()).await {
+                error!("failed to remove template: {err}");
+            } else {
+                info!(
+                    "removed template directory: {path}",
+                    path = template.display()
+                );
+            }
+            Ok(())
+        }
+    }
 }
 
 #[tauri::command]

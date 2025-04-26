@@ -150,6 +150,21 @@ function TemplatesTableBody() {
 		}
 	};
 
+	const queryClient = useQueryClient();
+	const removeTemplate = async (id: string) => {
+		try {
+			await commands.environmentRemoveTemplate(id);
+			toastSuccess(tc("template:toast:removed"));
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		} finally {
+			await queryClient.invalidateQueries(
+				environmentProjectCreationInformation,
+			);
+		}
+	};
+
 	return (
 		<>
 			<thead>
@@ -172,6 +187,7 @@ function TemplatesTableBody() {
 					<TemplateRow
 						key={template.id}
 						template={template}
+						remove={removeTemplate}
 						edit={editTemplate}
 					/>
 				))}
@@ -186,7 +202,7 @@ function TemplateRow({
 	edit,
 }: {
 	template: TauriProjectTemplateInfo;
-	remove?: () => void;
+	remove?: (id: string) => void;
 	edit?: (id: string) => void;
 }) {
 	const cellClass = "p-2.5";
@@ -228,6 +244,9 @@ function TemplateRow({
 							variant={"ghost"}
 							size={"icon"}
 							className={category !== "alcom" ? "opacity-50" : ""}
+							onClick={
+								category === "alcom" ? () => remove?.(template.id) : undefined
+							}
 						>
 							<CircleX className={"size-5 text-destructive"} />
 						</Button>

@@ -4,7 +4,9 @@ use std::cmp::Reverse;
 use crate::commands::async_command::{AsyncCallResult, AsyncCommandContext, With, async_command};
 use crate::templates;
 use crate::templates::{CreateProjectErr, ProjectTemplateInfo};
-use crate::utils::{FileSystemTree, collect_notable_project_files_tree, default_project_path};
+use crate::utils::{
+    FileSystemTree, collect_notable_project_files_tree, default_project_path, trash_delete,
+};
 use futures::future::try_join_all;
 use futures::prelude::*;
 use itertools::Itertools;
@@ -210,13 +212,6 @@ pub async fn environment_add_project_with_picker(
     }
 
     Ok(TauriAddProjectWithPickerResult::Successful)
-}
-
-async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
-    tokio::runtime::Handle::current()
-        .spawn_blocking(move || trash::delete(path))
-        .await
-        .unwrap()
 }
 
 #[tauri::command]
