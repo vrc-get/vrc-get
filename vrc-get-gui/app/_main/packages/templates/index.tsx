@@ -45,7 +45,7 @@ import {
 	projectTemplateDisplayId,
 	projectTemplateName,
 } from "@/lib/project-template";
-import { toastThrownError } from "@/lib/toast";
+import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
 	queryOptions,
@@ -54,7 +54,7 @@ import {
 	useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleX, Ellipsis } from "lucide-react";
+import { ChevronDown, CircleX, Ellipsis } from "lucide-react";
 import type React from "react";
 import { Suspense, useId, useState } from "react";
 
@@ -67,14 +67,47 @@ function RouteComponent() {
 		? "slide-left"
 		: "";
 
-	// TODO: impleemnt create template
+	const queryClient = useQueryClient();
+	const importTemplates = async () => {
+		try {
+			const count = await commands.environmentImportTemplate();
+			await queryClient.invalidateQueries(
+				environmentProjectCreationInformation,
+			);
+			if (count !== 0) {
+				toastSuccess(tc("templates:toast:imported n templates", { count }));
+			}
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
 
 	return (
 		<VStack>
 			<HNavBar
 				className={"shrink-0"}
 				leading={<HeadingPageName pageType={"/packages/templates"} />}
-				trailing={<CreateTemplateButton />}
+				trailing={
+					<DropdownMenu>
+						<div className={"flex divide-x"}>
+							<CreateTemplateButton className={"rounded-r-none"} />
+							<DropdownMenuTrigger
+								asChild
+								className={"rounded-l-none pl-2 pr-2"}
+							>
+								<Button>
+									<ChevronDown className={"w-4 h-4"} />
+								</Button>
+							</DropdownMenuTrigger>
+						</div>
+						<DropdownMenuContent>
+							<DropdownMenuItem onClick={importTemplates}>
+								{tc("templates:button:import template")}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				}
 			/>
 			<main
 				className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
@@ -312,12 +345,13 @@ function TemplateDropdownMenu({
 	}
 }
 
-function CreateTemplateButton() {
+function CreateTemplateButton({ className }: { className: string }) {
 	const information = useQuery(environmentProjectCreationInformation);
 
 	return (
 		<Button
 			disabled={information.isLoading}
+			className={className}
 			onClick={() => {
 				if (information.data != null) {
 					void openSingleDialog(TemplateEditor, {

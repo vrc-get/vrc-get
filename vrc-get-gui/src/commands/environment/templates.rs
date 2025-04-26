@@ -1,9 +1,10 @@
 use crate::commands::prelude::*;
-use crate::templates::{AlcomTemplate, serialize_alcom_template};
+use crate::templates::{AlcomTemplate, parse_alcom_template, serialize_alcom_template};
 use futures::AsyncWriteExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use tauri::{State, Window};
@@ -163,63 +164,130 @@ pub async fn environment_save_template(
         io.write_sync(source_path, &template).await?;
     } else {
         // No id; create new one
+        save_template_file(&io, &name, &template).await?;
+    }
 
-        // First, determine file name based on display name
-        // Remove Windows Banned Characters
-        let file_name = name.replace(['<', '>', ':', '"', '/', '\\', '|', '?', '*'], "");
-        // Trim to 50 codepoints.
-        // We choose 50 codepoints since 50 codepoints will never exceed 200 bytes in UTF8, and want to be below 200 bytes
-        let file_name = {
-            let mut chars = file_name.chars();
-            // skip (up to) 50 elements
-            for _ in 0..100 {
-                chars.next();
-            }
-            // we remove last chars.as_str().len() bytes
-            let remainder = chars.as_str().len();
-            &file_name[..file_name.len() - remainder]
-        };
-        // Trim to remove trailing whitesspaces
-        let file_name = file_name.trim();
-        // Remove trailing '.'s since it's ambigous to extension separator '.'
-        let file_name = file_name.trim_end_matches('.');
-        // We now have base file name!
+    Ok(())
+}
 
-        let mut file = 'create_file: {
-            let template_dir = Path::new("vrc-get/templates");
-            let extension = "alcomtemplate";
-            // first, try original name
+async fn save_template_file(
+    io: &DefaultEnvironmentIo,
+    name: &str,
+    template: &[u8],
+) -> io::Result<()> {
+    // First, determine file name based on display name
+    // Remove Windows Banned Characters
+    let file_name = name.replace(['<', '>', ':', '"', '/', '\\', '|', '?', '*'], "");
+    // Trim to 50 codepoints.
+    // We choose 50 codepoints since 50 codepoints will never exceed 200 bytes in UTF8, and want to be below 200 bytes
+    let file_name = {
+        let mut chars = file_name.chars();
+        // skip (up to) 50 elements
+        for _ in 0..100 {
+            chars.next();
+        }
+        // we remove last chars.as_str().len() bytes
+        let remainder = chars.as_str().len();
+        &file_name[..file_name.len() - remainder]
+    };
+    // Trim to remove trailing whitesspaces
+    let file_name = file_name.trim();
+    // Remove trailing '.'s since it's ambigous to extension separator '.'
+    let file_name = file_name.trim_end_matches('.');
+    // We now have base file name!
+
+    let mut file = 'create_file: {
+        let template_dir = Path::new("vrc-get/templates");
+        let extension = "alcomtemplate";
+        // first, try original name
+        if let Ok(file) = io
+            .create_new(&template_dir.join(file_name).with_extension(extension))
+            .await
+        {
+            break 'create_file file;
+        }
+        // Then, try _numbers up to 10
+        for i in 1..=10 {
             if let Ok(file) = io
-                .create_new(&template_dir.join(file_name).with_extension(extension))
+                .create_new(
+                    &template_dir
+                        .join(format!("{file_name}_{i}"))
+                        .with_extension(extension),
+                )
                 .await
             {
                 break 'create_file file;
             }
-            // Then, try _numbers up to 10
-            for i in 1..=10 {
-                if let Ok(file) = io
-                    .create_new(
-                        &template_dir
-                            .join(format!("{file_name}_{i}"))
-                            .with_extension(extension),
-                    )
-                    .await
-                {
-                    break 'create_file file;
-                }
-            }
-            // Finally, try random instead of file name
-            io.create_new(
-                &template_dir
-                    .join(uuid::Uuid::new_v4().simple().to_string())
-                    .with_extension(extension),
-            )
-            .await?
-        };
+        }
+        // Finally, try random instead of file name
+        io.create_new(
+            &template_dir
+                .join(uuid::Uuid::new_v4().simple().to_string())
+                .with_extension(extension),
+        )
+        .await?
+    };
+    file.write_all(template).await?;
+    file.flush().await?;
+    Ok(())
+}
 
-        file.write_all(&template).await?;
-        file.flush().await?;
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_import_template(
+    window: Window,
+    io: State<'_, DefaultEnvironmentIo>,
+) -> Result<usize, RustError> {
+    let templates = window
+        .dialog()
+        .file()
+        .set_parent(&window)
+        .add_filter("ALCOM Project Template", &["alcomtemplate"])
+        .blocking_pick_files()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|x| x.into_path_buf())
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(import_templates(&io, &templates).await)
+}
+
+pub async fn import_templates(io: &DefaultEnvironmentIo, templates: &[PathBuf]) -> usize {
+    let mut imported = 0;
+
+    for template in templates {
+        let json = match tokio::fs::read(&template).await {
+            Ok(json) => json,
+            Err(e) => {
+                log::error!(
+                    "failed to load file: {}: {e}",
+                    template.file_name().unwrap().to_string_lossy()
+                );
+                continue;
+            }
+        };
+        let parsed = match parse_alcom_template(&json) {
+            Ok(parsed) => parsed,
+            Err(e) => {
+                log::error!(
+                    "Invalid template: {}: {e}",
+                    template.file_name().unwrap().to_string_lossy()
+                );
+                continue;
+            }
+        };
+        match save_template_file(io, &parsed.display_name, &json).await {
+            Ok(()) => {}
+            Err(e) => {
+                log::error!(
+                    "Failed to save imported template: {}: {e}",
+                    template.file_name().unwrap().to_string_lossy()
+                );
+                continue;
+            }
+        };
+        imported += 1;
     }
 
-    Ok(())
+    imported
 }

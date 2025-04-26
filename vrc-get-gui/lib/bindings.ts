@@ -173,6 +173,9 @@ async environmentPickUnityPackage() : Promise<string[]> {
 async environmentSaveTemplate(id: string | null, base: string, name: string, unityRange: string, vpmPackages: ([string, string])[], unityPackages: string[]) : Promise<null> {
     return await TAURI_INVOKE("environment_save_template", { id, base, name, unityRange, vpmPackages, unityPackages });
 },
+async environmentImportTemplate() : Promise<number> {
+    return await TAURI_INVOKE("environment_import_template");
+},
 async environmentUpdateUnityPathsFromUnityHub() : Promise<boolean> {
     return await TAURI_INVOKE("environment_update_unity_paths_from_unity_hub");
 },
