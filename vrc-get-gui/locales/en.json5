@@ -155,6 +155,7 @@
     "projects:button:migrate": "Migrate",
     "projects:tooltip:sdk2 migration hint": "Legacy SDK2 project cannot be migrated automatically.<br>Please migrate to SDK3 manually first.",
     "projects:tooltip:git-vcc not supported": "git-VCC projects are not supported.",
+    "projects:tooltip:no upm in unity": "VPM is not supported with Unity 2017 or older.",
     "projects:dialog:vpm migrate header": "Migrate legacy project",
     "projects:dialog:vpm migrate description": "Migrating project might lose your changes. Please make a backup of your project before migration.",
     "projects:button:backup and migrate": "Backup and Migrate",

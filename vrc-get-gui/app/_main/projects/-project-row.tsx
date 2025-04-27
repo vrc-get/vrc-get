@@ -29,6 +29,7 @@ import { router } from "@/lib/main";
 import { openUnity } from "@/lib/open-unity";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { compareUnityVersionString } from "@/lib/version";
 import {
 	queryOptions,
 	useMutation,
@@ -293,6 +294,22 @@ function ManageOrMigrateButton({
 }: {
 	project: TauriProject;
 }) {
+	if (compareUnityVersionString(project.unity, "2018.0.0f0") < 0) {
+		// No UPM is supported in unity 2017 or older
+		return (
+			<Tooltip>
+				<TooltipTriggerIfExists asChild>
+					<ButtonDisabledIfRemoved variant="success" disabled>
+						{tc("projects:button:manage")}
+					</ButtonDisabledIfRemoved>
+				</TooltipTriggerIfExists>
+				<TooltipContent>
+					{tc("projects:tooltip:no upm in unity")}
+				</TooltipContent>
+			</Tooltip>
+		);
+	}
+
 	const navigate = useNavigate();
 	switch (project.project_type) {
 		case "LegacySdk2":
