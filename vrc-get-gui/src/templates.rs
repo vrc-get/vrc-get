@@ -99,7 +99,7 @@ pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> Vec<ProjectTemplat
             Ok(p) => templates.push(ProjectTemplateInfo {
                 display_name: name.clone(),
                 id: format!("{}{}", VCC_TEMPLATE_PREFIX, name),
-                unity_versions: vec![p.unity_version().unwrap()],
+                unity_versions: vec![p.unity_version()],
                 alcom_template: None,
                 source_path: Some(path),
                 available: true,
