@@ -18,7 +18,7 @@
     "general:button:open location": "開啟位置",
     "general:button:continue": "繼續",
 
-    "general:dialog:select file or directory header": "選擇檔案或資料夾。",
+    "general:dialog:select file or directory header": "選擇檔案或資料夾",
     "general:dialog:select file or directory": "請選擇一個檔案或資料夾。",
     "general:toast:invalid directory": "選擇了無效路徑。",
 
@@ -75,7 +75,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "不好的裝置名稱",
-    "sidebar:dialog:bad hostname": "你的裝置名稱有問題。",
+    "sidebar:dialog:bad hostname": "你的裝置名稱有問題",
     "sidebar:dialog:bad hostname description": "你使用了非 ASCII 字元於裝置名稱（電腦名稱）裡。這可能會引起一些 Unity 問題，強烈建議將你的電腦名稱換成半形的英文字母與阿拉伯數字。",
 
     "sidebar:toast:version copied": "已複製版本號。",
@@ -140,10 +140,10 @@
     "projects:dialog:select unity header": "選擇 Unity",
     "projects:dialog:multiple unity found": "發現有安裝多個此版本的 Unity 。",
     "projects:dialog:keep using this version": "繼續使用此版本",
-    "projects:dialog:unity not found but china found": "找不到 Unity，但檢測到對應的中國版 Unity。",
+    "projects:dialog:unity not found but china found": "找不到 Unity，但檢測到對應的中國版 Unity",
     "projects:dialog:unity version of the project not found but china found": "找不到此專案使用的 Unity {{expectedUnity}}。<br>然而，在你的電腦中檢測到了對應的中國版 Unity {{chinaUnity}}。<br>你要為此專案使用中國版 Unity 嗎？",
     "projects:dialog:use china version": "使用中國版 Unity",
-    "projects:dialog:unity not found but international found": "找不到 Unity，但檢測到對應的國際版 Unity。",
+    "projects:dialog:unity not found but international found": "找不到 Unity，但檢測到對應的國際版 Unity",
     "projects:dialog:unity version of the project not found but international found": "找不到此專案使用的 Unity {{expectedUnity}}。<br>然而，在你的電腦中檢測到了對應的國際版 Unity {{internationalUnity}}。<br>你要為此專案使用國際版 Unity 嗎？",
     "projects:dialog:use international version": "使用國際版 Unity",
     "projects:toast:invalid project unity version": "我們沒有偵測到合適的 Unity 版本。",
@@ -290,7 +290,7 @@
     "projects:manage:button:apply changes": "套用變更",
     "projects:manage:button:apply": "套用",
 
-    "projects:manage:dialog:missing dependencies": "部分套件缺失。",
+    "projects:manage:dialog:missing dependencies": "部分套件缺失",
     "projects:manage:dialog:missing dependencies description": "需要匯入以下套件，但未在已有儲存庫內找到它們。<br/>請添加包含這些套件的儲存庫。<br/>你可以查看 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 以尋找對應的套件儲存庫。",
 
 
@@ -319,7 +319,7 @@
     "vpm repositories:dialog:downloading...": "下載儲存庫中...",
     "vpm repositories:dialog:already added": "已添加過此儲存庫。",
     "vpm repositories:dialog:id duplicated": "此儲存庫 ID 和儲存庫 <b>{{name}}</b> 相同。",
-    "vpm repositories:dialog:url duplicated": "此儲存庫 URL 和儲存庫 <b>{{name}}</b> 相同。.",
+    "vpm repositories:dialog:url duplicated": "此儲存庫 URL 和儲存庫 <b>{{name}}</b> 相同。",
     "vpm repositories:dialog:name": "名稱：<b>{{name}}</b>",
     "vpm repositories:dialog:url": "URL：{{url}}",
     "vpm repositories:dialog:packages": "套件：",

@@ -352,14 +352,12 @@ impl<'env> Builder<'env> {
 
         debug!("checking for unity compatibility");
 
-        if let Some(unity) = unity_project.unity_version {
-            for package in installs
-                .iter()
-                .filter(|pkg| !unity_compatible(pkg.package_json(), unity))
-                .map(|pkg| pkg.name().into())
-            {
-                self.conflicts_unity(package);
-            }
+        for package in installs
+            .iter()
+            .filter(|pkg| !unity_compatible(pkg.package_json(), unity_project.unity_version))
+            .map(|pkg| pkg.name().into())
+        {
+            self.conflicts_unity(package);
         }
 
         debug!("Finding unused packages");

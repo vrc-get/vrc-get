@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Support for Projects with Unity 2018 or older `#2106`
+  - Projects with Unity 2018 cannot be added before, but since this version you can add to your project list.
+  - Unity 2017 or older doesn't have Unity Package Manager, the base system for VPM,
+    so you cannot manage packages for projects with older unity.
+    You can only launch Unity to open the project.
+  - Projects with Unity 4 or older are still not supported, but I hope no one want to use such a vintage Unity with ALCOM.
 
 ### Changed
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`
@@ -28,6 +34,8 @@ The format is based on [Keep a Changelog].
   - I didn't know official VCC had such a feature. Sorry for lack of feature!
 - You now can toggle "Show Prerelease Packages" from Manage Project page `#2020`
   - You can toggle "Show Prerelease Packages" from Select Packages dropdown
+- The requirements for unity project `#2106`
+  - Since this version, `Projectsettings/ProjectVersion.txt` is required.
 
 ### Deprecated
 

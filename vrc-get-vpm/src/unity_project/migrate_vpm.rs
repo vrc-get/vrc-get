@@ -88,7 +88,8 @@ async fn migrate_vpm(
     );
 
     let mut adding_packages = vec![];
-    let version_selector = VersionSelector::latest_for(project.unity_version(), include_prerelease);
+    let version_selector =
+        VersionSelector::latest_for(Some(project.unity_version()), include_prerelease);
 
     // basic part: install SDK
     if is_worlds {
