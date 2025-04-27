@@ -81,8 +81,8 @@ impl VccDatabaseConnection {
                 .await
                 .unwrap_or((ProjectType::Unknown, None, None));
                 let mut project = UserProject::new((*project).into(), unity_version, project_type);
-                if let (Some(unity), Some(revision)) = (unity_version, unity_revision) {
-                    project.set_unity_revision(unity, revision);
+                if let Some(unity) = unity_version {
+                    project.set_unity_revision(unity, unity_revision);
                 }
                 to_insert.push(project);
             }
@@ -346,15 +346,12 @@ impl VccDatabaseConnection {
             "project path is not utf8",
         ))?;
         let unity_version = project.unity_version();
-        let unity_revision = project.unity_revision().ok_or(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "project has no unity revision",
-        ))?;
+        let unity_revision = project.unity_revision();
 
         let project_type = project.detect_project_type().await?;
 
         let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
-        new_project.set_unity_revision(unity_version, unity_revision.to_owned());
+        new_project.set_unity_revision(unity_version, unity_revision.map(ToOwned::to_owned));
 
         self.db
             .insert(
@@ -446,7 +443,11 @@ impl UserProject {
         }
     }
 
-    pub fn set_unity_revision(&mut self, unity_version: UnityVersion, unity_revision: String) {
+    pub fn set_unity_revision(
+        &mut self,
+        unity_version: UnityVersion,
+        unity_revision: Option<String>,
+    ) {
         let version = unity_version.to_string();
         self.bson.insert(UNITY_VERSION, version.clone());
         let vrc_get = self.bson.entry(VRC_GET).document_or_replace();
