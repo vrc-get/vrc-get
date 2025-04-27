@@ -21,8 +21,8 @@ use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_p
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
-    unity: Option<(u16, u8)>,
-    unity_str: Option<String>,
+    unity: (u16, u8),
+    unity_str: String,
     unity_revision: Option<String>,
     installed_packages: Vec<(String, TauriBasePackageInfo)>,
     should_resolve: bool,
@@ -34,10 +34,11 @@ pub async fn project_details(project_path: String) -> Result<TauriProjectDetails
     let unity_project = load_project(project_path).await?;
 
     Ok(TauriProjectDetails {
-        unity: unity_project
-            .unity_version()
-            .map(|v| (v.major(), v.minor())),
-        unity_str: unity_project.unity_version().map(|v| v.to_string()),
+        unity: (
+            unity_project.unity_version().major(),
+            unity_project.unity_version().minor(),
+        ),
+        unity_str: unity_project.unity_version().to_string(),
         unity_revision: unity_project.unity_revision().map(|x| x.to_string()),
         installed_packages: unity_project
             .installed_packages()

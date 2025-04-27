@@ -1,6 +1,5 @@
 use crate::io::ProjectIo;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
-use crate::version::UnityVersion;
 use crate::{PackageCollection, UnityProject, VersionSelector};
 use crate::{PackageInstaller, VRCHAT_RECOMMENDED_2022_UNITY, io};
 use log::warn;
@@ -67,7 +66,7 @@ async fn migrate_unity_2022(
     installer: &impl PackageInstaller,
 ) -> Result {
     // See https://misskey.niri.la/notes/9nod7sk4sr for migration process
-    if project.unity_version().map(UnityVersion::major) != Some(2019) {
+    if project.unity_version().major() != 2019 {
         return Err(MigrateUnity2022Error::UnityVersionMismatch);
     }
 
