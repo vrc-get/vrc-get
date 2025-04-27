@@ -11,6 +11,8 @@ pub struct VirtualProjectBuilder {
     locked: IndexMap<String, (Version, IndexMap<String, VersionRange>)>,
     files: IndexMap<String, String>,
     directories: Vec<String>,
+    unity_version: &'static str,
+    unity_revision: &'static str,
 }
 
 impl VirtualProjectBuilder {
@@ -20,7 +22,15 @@ impl VirtualProjectBuilder {
             locked: IndexMap::new(),
             files: IndexMap::new(),
             directories: vec![],
+            unity_version: "2019.4.31f1",
+            unity_revision: "bd5abf232a62",
         }
+    }
+
+    pub fn with_unity(&mut self, version: &'static str, revision: &'static str) -> &mut Self {
+        self.unity_version = version;
+        self.unity_revision = revision;
+        self
     }
 
     pub fn add_dependency(&mut self, name: &str, version: Version) -> &mut VirtualProjectBuilder {
@@ -110,6 +120,19 @@ impl VirtualProjectBuilder {
         fs.add_file(
             "Packages/vpm-manifest.json".as_ref(),
             vpm_manifest.to_string().as_bytes(),
+        )
+        .await?;
+
+        fs.add_file(
+            "ProjectSettings/ProjectVersion.txt".as_ref(),
+            format!(
+                "m_EditorVersion: {version}\n\
+                m_EditorVersionWithRevision: {version} ({revision})\n\
+                ",
+                version = self.unity_version,
+                revision = self.unity_revision,
+            )
+            .as_bytes(),
         )
         .await?;
 

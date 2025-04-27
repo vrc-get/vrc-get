@@ -70,7 +70,7 @@ impl VccDatabaseConnection {
                     let detected_type = project.detect_project_type().await?;
                     Ok((
                         detected_type,
-                        project.unity_version(),
+                        Some(project.unity_version()),
                         project.unity_revision().map(|x| x.to_owned()),
                     ))
                 }
@@ -178,7 +178,8 @@ impl VccDatabaseConnection {
             };
 
             let loaded_project = UnityProject::load(io.new_project_io(path)).await?;
-            if let Some(unity_version) = loaded_project.unity_version() {
+            {
+                let unity_version = loaded_project.unity_version();
                 let unity_version = unity_version.to_string();
                 if let Some(revision) = loaded_project.unity_revision() {
                     if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str()
@@ -344,10 +345,7 @@ impl VccDatabaseConnection {
             io::ErrorKind::InvalidData,
             "project path is not utf8",
         ))?;
-        let unity_version = project.unity_version().ok_or(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "project has no unity version",
-        ))?;
+        let unity_version = project.unity_version();
         let unity_revision = project.unity_revision().ok_or(io::Error::new(
             io::ErrorKind::InvalidData,
             "project has no unity revision",
