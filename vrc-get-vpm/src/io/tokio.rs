@@ -1,7 +1,5 @@
 use crate::io;
-use crate::io::{
-    EnvironmentIo, FileStream, FileSystemProjectIo, FileType, IoTrait, Metadata, ProjectIo,
-};
+use crate::io::{EnvironmentIo, FileStream, FileType, IoTrait, Metadata};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::{OsStr, OsString};
@@ -90,10 +88,7 @@ impl EnvironmentIo for DefaultEnvironmentIo {
     }
 
     #[cfg(feature = "experimental-project-management")]
-    type ProjectIo = DefaultProjectIo;
-
-    #[cfg(feature = "experimental-project-management")]
-    fn new_project_io(&self, path: &Path) -> Self::ProjectIo {
+    fn new_project_io(&self, path: &Path) -> DefaultProjectIo {
         DefaultProjectIo::new(path.into())
     }
 }
@@ -159,13 +154,9 @@ impl DefaultProjectIo {
             }
         }
     }
-}
 
-impl ProjectIo for DefaultProjectIo {}
-
-impl FileSystemProjectIo for DefaultProjectIo {
     #[inline]
-    fn location(&self) -> &Path {
+    pub fn location(&self) -> &Path {
         &self.root
     }
 }

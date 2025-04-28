@@ -1,6 +1,5 @@
 use std::fmt;
 
-use crate::io::ProjectIo;
 use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::{PendingProjectChanges, pending_project_changes};
 use crate::{PackageCollection, UnityProject, VersionSelector};
@@ -36,7 +35,7 @@ impl fmt::Display for ReinstalPackagesError {
 
 impl std::error::Error for ReinstalPackagesError {}
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub async fn reinstall_request<'env>(
         &self,
         env: &'env impl PackageCollection,

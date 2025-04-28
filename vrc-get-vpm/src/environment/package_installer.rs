@@ -1,5 +1,5 @@
 use crate::environment::REPO_CACHE_FOLDER;
-use crate::io::{EnvironmentIo, ProjectIo};
+use crate::io::{DefaultProjectIo, EnvironmentIo, IoTrait};
 use crate::repository::LocalCachedRepository;
 use crate::traits::AbortCheck;
 use crate::utils::Sha256AsyncWrite;
@@ -27,7 +27,7 @@ impl<'a, T: HttpClient, IO: EnvironmentIo> PackageInstaller<'a, T, IO> {
 impl<T: HttpClient, IO: EnvironmentIo> crate::PackageInstaller for PackageInstaller<'_, T, IO> {
     async fn install_package(
         &self,
-        io: &impl ProjectIo,
+        io: &DefaultProjectIo,
         package: PackageInfo<'_>,
         abort: &AbortCheck,
     ) -> io::Result<()> {

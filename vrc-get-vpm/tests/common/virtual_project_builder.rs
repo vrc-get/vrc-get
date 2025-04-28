@@ -89,7 +89,7 @@ impl VirtualProjectBuilder {
     }
 
     #[track_caller]
-    pub fn build(&self) -> impl Future<Output = std::io::Result<UnityProject<DefaultProjectIo>>> {
+    pub fn build(&self) -> impl Future<Output = std::io::Result<UnityProject>> {
         let project_path = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!(
             "test_projects/{}_L{}",
             env!("CARGO_CRATE_NAME"),
@@ -99,10 +99,7 @@ impl VirtualProjectBuilder {
         self.build_impl(project_path)
     }
 
-    async fn build_impl(
-        &self,
-        project_path: PathBuf,
-    ) -> std::io::Result<UnityProject<DefaultProjectIo>> {
+    async fn build_impl(&self, project_path: PathBuf) -> std::io::Result<UnityProject> {
         let vpm_manifest = {
             let mut dependencies = serde_json::Map::new();
             for (dependency, version) in &self.dependencies {

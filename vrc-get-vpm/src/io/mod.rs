@@ -11,6 +11,7 @@ pub(crate) use std::io::SeekFrom;
 mod tokio;
 pub use tokio::DefaultEnvironmentIo;
 pub use tokio::DefaultProjectIo;
+pub use tokio::DirEntry as TokioDirEntry;
 
 /// Wrapper for the file system operation for the Environment
 ///
@@ -24,22 +25,9 @@ pub trait EnvironmentIo: Sync + IoTrait {
     type MutexGuard: Send + Sync + 'static;
     #[cfg(feature = "vrc-get-litedb")]
     fn new_mutex(&self, lock_name: &OsStr) -> impl Future<Output = Result<Self::MutexGuard>>;
-    #[cfg(feature = "experimental-project-management")]
-    type ProjectIo: ProjectIo;
 
     #[cfg(feature = "experimental-project-management")]
-    fn new_project_io(&self, path: &Path) -> Self::ProjectIo;
-}
-
-/// Wrapper for the file system operation for the [UnityProject]
-///
-/// Absolute paths are not allowed and relative paths should be resolved as a relative path from the project folder.
-///
-/// [UnityProject]: crate::unity_project::UnityProject
-pub trait ProjectIo: Sync + IoTrait {}
-
-pub trait FileSystemProjectIo {
-    fn location(&self) -> &Path;
+    fn new_project_io(&self, path: &Path) -> DefaultProjectIo;
 }
 
 pub trait IoTrait: Sync {

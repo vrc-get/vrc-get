@@ -1,4 +1,4 @@
-use crate::io::{DirEntry, ProjectIo};
+use crate::io::{DefaultProjectIo, DirEntry, IoTrait};
 use crate::traits::AbortCheck;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
 use crate::utils::walk_dir_relative;
@@ -340,7 +340,7 @@ impl<'env> Builder<'env> {
 
     pub async fn build_resolve(
         mut self,
-        unity_project: &UnityProject<impl ProjectIo>,
+        unity_project: &UnityProject,
     ) -> PendingProjectChanges<'env> {
         let installs = Vec::from_iter(
             self.package_changes
@@ -380,7 +380,7 @@ impl<'env> Builder<'env> {
         }
     }
 
-    fn mark_and_sweep_packages(&mut self, unity_project: &UnityProject<impl ProjectIo>) {
+    fn mark_and_sweep_packages(&mut self, unity_project: &UnityProject) {
         fn mark_recursive<'a, F, I>(
             entrypoint: impl Iterator<Item = &'a str>,
             get_dependencies: F,
@@ -525,7 +525,7 @@ impl PendingProjectChanges<'_> {
 static TEMP_DIR: &str = "Temp";
 static PKG_TEMP_DIR: &str = "Temp/vrc-get";
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     /// Applies the changes specified in `AddPackageRequest` to the project.
     ///
     /// This will also save the manifest changes
@@ -657,7 +657,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 static REMOVED_FILE_PREFIX: &str = ".__removed_";
 
 async fn move_packages_to_temp<'a>(
-    io: &impl ProjectIo,
+    io: &DefaultProjectIo,
     names: impl Iterator<Item = &'a str>,
     temp_dir: &Path,
 ) -> io::Result<Vec<&'a str>> {
@@ -689,7 +689,7 @@ async fn move_packages_to_temp<'a>(
 
     return Ok(moved.into_iter().collect());
 
-    async fn move_package(io: &impl ProjectIo, name: &str, temp_dir: &Path) -> io::Result<bool> {
+    async fn move_package(io: &DefaultProjectIo, name: &str, temp_dir: &Path) -> io::Result<bool> {
         let package_dir = format!("Packages/{}", name);
         let package_dir = Path::new(&package_dir);
         let copied_dir = temp_dir.join(name);
@@ -738,7 +738,7 @@ async fn move_packages_to_temp<'a>(
     }
 }
 
-async fn restore_remove(io: &impl ProjectIo, temp_dir: &Path, names: impl Iterator<Item = &str>) {
+async fn restore_remove(io: &DefaultProjectIo, temp_dir: &Path, names: impl Iterator<Item = &str>) {
     for name in names {
         let package_dir = format!("Packages/{}", name);
         let package_dir = Path::new(&package_dir);
@@ -767,7 +767,7 @@ async fn restore_remove(io: &impl ProjectIo, temp_dir: &Path, names: impl Iterat
 }
 
 async fn install_packages<Env: PackageInstaller>(
-    io: &impl ProjectIo,
+    io: &DefaultProjectIo,
     env: &Env,
     packages: &[PackageInfo<'_>],
 ) -> io::Result<()> {
@@ -794,7 +794,7 @@ async fn install_packages<Env: PackageInstaller>(
 }
 
 async fn remove_assets(
-    io: &impl ProjectIo,
+    io: &DefaultProjectIo,
     legacy_files: impl Iterator<Item = &Path>,
     legacy_folders: impl Iterator<Item = &Path>,
 ) {
@@ -808,7 +808,7 @@ async fn remove_assets(
     )
     .await;
 
-    async fn remove_meta_file(io: &impl ProjectIo, path: PathBuf) {
+    async fn remove_meta_file(io: &DefaultProjectIo, path: PathBuf) {
         let mut building = path.into_os_string();
         building.push(".meta");
         let meta = PathBuf::from(building);
@@ -820,14 +820,14 @@ async fn remove_assets(
         }
     }
 
-    async fn remove_file(io: &impl ProjectIo, path: &Path) {
+    async fn remove_file(io: &DefaultProjectIo, path: &Path) {
         if let Some(err) = io.remove_file(path).await.err() {
             log::error!("error removing legacy asset at {}: {}", path.display(), err);
         }
         remove_meta_file(io, path.to_owned()).await;
     }
 
-    async fn remove_folder(io: &impl ProjectIo, path: &Path) {
+    async fn remove_folder(io: &DefaultProjectIo, path: &Path) {
         if let Some(err) = io.remove_dir_all(path).await.err() {
             log::error!("error removing legacy asset at {}: {}", path.display(), err);
         }

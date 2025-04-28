@@ -1,6 +1,6 @@
 use crate::environment::VccDatabaseConnection;
 use crate::environment::settings::Settings;
-use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
+use crate::io::EnvironmentIo;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
 use crate::{ProjectType, UnityProject, io};
@@ -335,10 +335,7 @@ impl VccDatabaseConnection {
         self.db.delete(COLLECTION, &[project.bson[ID].clone()]);
     }
 
-    pub async fn add_project<ProjectIO: ProjectIo + FileSystemProjectIo>(
-        &mut self,
-        project: &UnityProject<ProjectIO>,
-    ) -> io::Result<()> {
+    pub async fn add_project(&mut self, project: &UnityProject) -> io::Result<()> {
         check_absolute_path(project.project_dir())?;
         let path = normalize_path(project.project_dir());
         let path = path.to_str().ok_or(io::Error::new(
