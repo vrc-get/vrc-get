@@ -1,5 +1,4 @@
 use crate::common::*;
-use futures::executor::block_on;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
 use vrc_get_vpm::version::Version;
 
