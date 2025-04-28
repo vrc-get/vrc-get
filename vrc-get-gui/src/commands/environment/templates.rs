@@ -200,6 +200,7 @@ async fn save_template_file(
 
     let mut file = 'create_file: {
         let template_dir = Path::new("vrc-get/templates");
+        io.create_dir_all(template_dir).await?;
         let extension = "alcomtemplate";
         // first, try original name
         if let Ok(file) = io
