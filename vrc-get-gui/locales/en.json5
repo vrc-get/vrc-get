@@ -304,7 +304,7 @@
 
 
     // Packages Page
-    "packages": "Packages",
+    "resources": "Resources",
     "vpm repositories:source:official": "Official",
     "vpm repositories:source:curated": "Curated",
     "vpm repositories:source:local": "User Local",
