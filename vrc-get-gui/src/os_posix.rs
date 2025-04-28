@@ -4,17 +4,22 @@ use std::ffi::OsStr;
 use std::fs::OpenOptions;
 use std::io;
 use std::os::fd::AsRawFd;
+use std::os::unix::prelude::*;
 use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
 use nix::libc::{F_UNLCK, c_short, flock};
 
-pub(crate) async fn start_command(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
+pub(crate) use os_more::start_command;
+
+async fn start_command_posix(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
     let mut command = Command::new(path);
     command.args(args);
     os_more::fix_env_variables(&mut command);
-    command.spawn()?;
+    command.process_group(0);
+    let mut process = command.spawn()?;
+    std::thread::spawn(move || process.wait());
     Ok(())
 }
 

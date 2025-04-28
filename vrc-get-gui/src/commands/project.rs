@@ -469,21 +469,21 @@ pub async fn project_open_unity(
         connection.save(io.inner()).await?;
     }
 
-    let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
-    let config_default_args;
+    let unity_args = custom_args.or_else(|| config.get().default_unity_arguments.clone());
+    tokio::spawn(async move {
+        let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
 
-    if let Some(custom_args) = &custom_args {
-        args.extend(custom_args.iter().map(OsStr::new));
-    } else {
-        config_default_args = config.get().default_unity_arguments.clone();
-        if let Some(config_default_args) = &config_default_args {
-            args.extend(config_default_args.iter().map(OsStr::new));
+        if let Some(unity_args) = &unity_args {
+            args.extend(unity_args.iter().map(OsStr::new));
         } else {
             args.extend(DEFAULT_UNITY_ARGUMENTS.iter().map(OsStr::new));
         }
-    }
 
-    crate::os::start_command("Unity".as_ref(), unity_path.as_ref(), &args).await?;
+        if let Err(e) = crate::os::start_command("Unity".as_ref(), unity_path.as_ref(), &args).await
+        {
+            log::error!("Launching Unity: {e}");
+        }
+    });
 
     Ok(true)
 }

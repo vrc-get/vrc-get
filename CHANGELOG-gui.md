@@ -40,6 +40,9 @@ The format is based on [Keep a Changelog].
   - You can toggle "Show Prerelease Packages" from Select Packages dropdown
 - The requirements for unity project `#2106`
   - Since this version, `Projectsettings/ProjectVersion.txt` is required.
+- Improves launching unity behavior `#2124`
+  - On linux, ALCOM will now read exit code, therefore, Unity no longer remains as a defunct process.
+  - On macOS, we now launch Unity as a distinct / individual process, therefore several macOS subsystems should treat Unity as Unity instead of Unity as a part of ALCOM.
 
 ### Deprecated
 
