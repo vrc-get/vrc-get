@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use tauri::{State, Window};
 use tauri_plugin_dialog::DialogExt;
-use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::version::VersionRange;
 
 #[tauri::command]

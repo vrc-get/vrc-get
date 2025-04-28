@@ -1,5 +1,5 @@
 use crate::io;
-use crate::io::{EnvironmentIo, FileStream, FileType, IoTrait, Metadata};
+use crate::io::{FileStream, FileType, IoTrait, Metadata};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::{OsStr, OsString};
@@ -56,40 +56,31 @@ impl DefaultEnvironmentIo {
 
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
-}
 
-impl EnvironmentIo for DefaultEnvironmentIo {
     #[inline]
-    fn resolve(&self, path: &Path) -> PathBuf {
+    pub fn resolve(&self, path: &Path) -> PathBuf {
         self.root.join(path)
     }
 
-    #[cfg(feature = "vrc-get-litedb")]
-    #[cfg(windows)]
-    type MutexGuard = vrc_get_litedb::shared_mutex::SharedMutexOwnedGuard;
-
-    #[cfg(feature = "vrc-get-litedb")]
-    #[cfg(windows)]
-    async fn new_mutex(&self, lock_name: &OsStr) -> io::Result<Self::MutexGuard> {
-        Ok(vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
-            .await?
-            .lock_owned()
-            .await?)
-    }
-
-    #[cfg(feature = "vrc-get-litedb")]
-    #[cfg(not(windows))]
-    type MutexGuard = ();
-
-    #[cfg(feature = "vrc-get-litedb")]
-    #[cfg(not(windows))]
-    async fn new_mutex(&self, _: &OsStr) -> io::Result<Self::MutexGuard> {
-        Ok(())
-    }
-
-    #[cfg(feature = "experimental-project-management")]
-    fn new_project_io(&self, path: &Path) -> DefaultProjectIo {
+    #[allow(dead_code)]
+    pub fn new_project_io(&self, path: &Path) -> DefaultProjectIo {
         DefaultProjectIo::new(path.into())
+    }
+
+    #[cfg(feature = "vrc-get-litedb")]
+    #[allow(unused_variables)]
+    pub async fn new_mutex(&self, lock_name: &OsStr) -> io::Result<impl Send + Sync + 'static> {
+        #[cfg(not(windows))]
+        {
+            Ok(())
+        }
+        #[cfg(windows)]
+        {
+            Ok(vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
+                .await?
+                .lock_owned()
+                .await?)
+        }
     }
 }
 
@@ -252,6 +243,8 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
 }
 
 impl FileStream for tokio_util::compat::Compat<fs::File> {}
+
+pub type File = tokio_util::compat::Compat<fs::File>;
 
 pub struct ReadDir {
     inner: fs::ReadDir,

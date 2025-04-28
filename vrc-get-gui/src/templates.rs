@@ -10,7 +10,7 @@ use std::mem::forget;
 use std::path::{Path, PathBuf};
 use std::{fmt, io};
 use tokio_util::compat::*;
-use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, IoTrait};
 
 use crate::utils::PathExt;
 use crate::utils::TarArchive;

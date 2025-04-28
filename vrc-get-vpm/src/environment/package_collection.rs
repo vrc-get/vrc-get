@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::PackageCollection as _;
 use crate::environment::{RepoHolder, Settings, UserPackageCollection};
-use crate::io::EnvironmentIo;
+use crate::io::{DefaultEnvironmentIo, IoTrait};
 use crate::repository::LocalCachedRepository;
 use crate::{HttpClient, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector, io};
 use futures::prelude::*;
@@ -27,7 +27,7 @@ impl PackageCollection {
 
     pub async fn load(
         settings: &Settings,
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
         http: Option<&impl HttpClient>,
     ) -> io::Result<Self> {
         let (repositories, user_packages) = futures::try_join!(
@@ -44,7 +44,7 @@ impl PackageCollection {
     pub async fn remove_repositories(
         &mut self,
         remove_repos: &[UserRepoSetting],
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
     ) {
         for duplicated_repo in remove_repos {
             error!(

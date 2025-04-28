@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::{Mutex, MutexGuard};
-use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 struct GuiConfigStateInner {
     config: GuiConfig,

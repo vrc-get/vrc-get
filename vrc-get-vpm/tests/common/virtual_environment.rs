@@ -5,7 +5,7 @@ use std::future::Future;
 use std::io;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
-use vrc_get_vpm::io::{DefaultProjectIo, EnvironmentIo, IoTrait};
+use vrc_get_vpm::io::{DefaultProjectIo, IoTrait};
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::{

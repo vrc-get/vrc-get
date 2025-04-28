@@ -1,6 +1,6 @@
 use crate::environment::{Settings, VccDatabaseConnection};
 use crate::io;
-use crate::io::EnvironmentIo;
+use crate::io::{DefaultEnvironmentIo, IoTrait};
 use crate::unity_hub::get_executable_path;
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
@@ -85,7 +85,7 @@ impl VccDatabaseConnection {
     pub async fn update_unity_from_unity_hub_and_fs(
         &mut self,
         path_and_version_from_hub: &[(UnityVersion, PathBuf)],
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
     ) -> io::Result<()> {
         let path_and_version_from_hub = path_and_version_from_hub
             .iter()
@@ -174,7 +174,7 @@ impl VccDatabaseConnection {
 
 pub async fn find_unity_hub(
     settings: &mut Settings,
-    io: &impl EnvironmentIo,
+    io: &DefaultEnvironmentIo,
 ) -> io::Result<Option<String>> {
     let path = settings.unity_hub_path();
     if !path.is_empty() && io.is_file(path.as_ref()).await {
