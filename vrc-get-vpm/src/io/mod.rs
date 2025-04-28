@@ -8,11 +8,8 @@ pub(crate) use futures::io::{
 };
 pub(crate) use std::io::SeekFrom;
 
-#[cfg(feature = "tokio")]
 mod tokio;
-#[cfg(feature = "tokio")]
 pub use tokio::DefaultEnvironmentIo;
-#[cfg(feature = "tokio")]
 pub use tokio::DefaultProjectIo;
 
 /// Wrapper for the file system operation for the Environment

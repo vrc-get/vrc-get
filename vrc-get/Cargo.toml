@@ -32,7 +32,6 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs"] }
 [dependencies.vrc-get-vpm]
 version = "0.0.15-beta.0"
 path = "../vrc-get-vpm"
-features = ["tokio"]
 default-features = false
 
 [build-dependencies]
