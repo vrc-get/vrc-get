@@ -33,6 +33,7 @@ type ReorderableListContextInternal<T> = {
 	backedList: ReordeableListValue<T>[];
 	defaultValue: T;
 	reorderable: boolean;
+	addable: boolean;
 	swap: (index1: number, index2: number) => void;
 };
 
@@ -63,11 +64,13 @@ export function useReorderableList<T extends NonFunction>({
 	defaultArray,
 	allowEmpty = true,
 	reorderable = true,
+	addable = true,
 }: {
 	defaultValue: T;
 	defaultArray?: T[] | (() => T[]);
 	allowEmpty?: boolean;
 	reorderable?: boolean;
+	addable?: boolean;
 }): ReorderableListContext<T> {
 	const [backedList, setBackedList] = useState<ReordeableListValue<T>[]>(() => {
 		if (defaultArray != null) {
@@ -179,36 +182,55 @@ export function useReorderableList<T extends NonFunction>({
 				defaultValue,
 				swap,
 				reorderable,
+				addable,
 			},
 		}),
-		[setList, add, update, remove, backedList, defaultValue, swap, reorderable],
+		[
+			setList,
+			add,
+			update,
+			remove,
+			backedList,
+			defaultValue,
+			swap,
+			reorderable,
+			addable,
+		],
 	);
 }
 
 export function ReorderableList<T>({
 	context,
 	renderItem,
+	ifEmpty,
 	disabled,
 }: {
 	context: ReorderableListContext<T>;
 	renderItem: (value: T, id: Id) => React.ReactNode;
+	ifEmpty?: () => React.ReactNode;
 	disabled?: boolean;
 }) {
 	const internal = context[internalSymbol];
+
+	if (internal.backedList.length === 0) {
+		return ifEmpty?.();
+	}
 
 	return internal.backedList.map(({ value, id }, i) => (
 		<tr key={id[idSymbol]}>
 			{renderItem(value, id)}
 			<td className={"w-1"}>
 				<div className={"flex flex-row ml-1.5"}>
-					<Button
-						disabled={disabled}
-						variant={"ghost"}
-						size={"icon"}
-						onClick={() => context.add(internal.defaultValue, { after: id })}
-					>
-						<CirclePlus color={"green"} className={"size-5"} />
-					</Button>
+					{internal.addable && (
+						<Button
+							disabled={disabled}
+							variant={"ghost"}
+							size={"icon"}
+							onClick={() => context.add(internal.defaultValue, { after: id })}
+						>
+							<CirclePlus color={"green"} className={"size-5"} />
+						</Button>
+					)}
 					<Button
 						disabled={disabled}
 						variant={"ghost"}

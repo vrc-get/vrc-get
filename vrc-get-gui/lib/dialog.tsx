@@ -185,7 +185,11 @@ export function DialogRoot() {
 	return state.map(({ closing, key, element }) => {
 		return (
 			<Dialog open={!closing} key={key}>
-				<DialogContent>{element}</DialogContent>
+				<DialogContent
+					className={"max-h-[calc(100dvh-(var(--spacing)*8))] overflow-y-auto"}
+				>
+					{element}
+				</DialogContent>
 			</Dialog>
 		);
 	});

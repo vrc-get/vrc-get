@@ -1,11 +1,16 @@
 use crate::commands::prelude::*;
+use std::cmp::Reverse;
 
 use crate::commands::async_command::{AsyncCallResult, AsyncCommandContext, With, async_command};
-use crate::utils::{FileSystemTree, collect_notable_project_files_tree, default_project_path};
+use crate::templates;
+use crate::templates::{CreateProjectErr, ProjectTemplateInfo};
+use crate::utils::{
+    FileSystemTree, collect_notable_project_files_tree, default_project_path, trash_delete,
+};
 use futures::future::try_join_all;
 use futures::prelude::*;
 use itertools::Itertools;
-use log::{error, info, warn};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::io;
@@ -13,10 +18,10 @@ use std::path::{Component, Path, PathBuf, Prefix};
 use std::sync::atomic::AtomicUsize;
 use tauri::{State, Window};
 use tauri_plugin_dialog::DialogExt;
-use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use vrc_get_vpm::ProjectType;
 use vrc_get_vpm::environment::{PackageInstaller, Settings, UserProject, VccDatabaseConnection};
-use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
+use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::version::UnityVersion;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct TauriProject {
@@ -209,13 +214,6 @@ pub async fn environment_add_project_with_picker(
     Ok(TauriAddProjectWithPickerResult::Successful)
 }
 
-async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
-    tokio::runtime::Handle::current()
-        .spawn_blocking(move || trash::delete(path))
-        .await
-        .unwrap()
-}
-
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_remove_project(
@@ -291,19 +289,6 @@ pub async fn environment_remove_project_by_path(
         }
 
         Ok(())
-    }
-}
-
-async fn copy_recursively(from: PathBuf, to: PathBuf) -> fs_extra::error::Result<u64> {
-    let mut options = fs_extra::dir::CopyOptions::new();
-    options.copy_inside = false;
-    options.content_only = true;
-    match tokio::runtime::Handle::current()
-        .spawn_blocking(move || fs_extra::dir::copy(from, to, &options))
-        .await
-    {
-        Ok(r) => Ok(r?),
-        Err(_) => Err(io::Error::new(io::ErrorKind::Other, "background task failed").into()),
     }
 }
 
@@ -471,85 +456,77 @@ pub enum TauriProjectTemplate {
     Custom { name: String },
 }
 
-#[derive(Serialize, specta::Type)]
-pub struct TauriProjectCreationInformation {
-    templates: Vec<TauriProjectTemplate>,
-    default_path: String,
+#[derive(Serialize, Deserialize, specta::Type)]
+pub struct TauriProjectTemplateInfo {
+    pub display_name: String,
+    pub id: String,
+    pub unity_versions: Vec<String>,
+    pub has_unitypackage: bool,
+    pub source_path: Option<String>,
+    pub available: bool,
 }
 
-async fn load_user_templates(io: &DefaultEnvironmentIo) -> io::Result<Vec<String>> {
-    let mut templates = Vec::<String>::new();
-
-    let path = io.resolve("Templates".as_ref());
-    let mut dir = io.read_dir("Templates".as_ref()).await?;
-    while let Some(dir) = dir.try_next().await? {
-        if !dir.file_type().await?.is_dir() {
-            continue;
+impl From<&ProjectTemplateInfo> for TauriProjectTemplateInfo {
+    fn from(info: &ProjectTemplateInfo) -> Self {
+        Self {
+            display_name: info.display_name.clone(),
+            id: info.id.clone(),
+            unity_versions: info
+                .unity_versions
+                .iter()
+                .sorted_by_key(|&&x| Reverse(x))
+                .map(|x| x.to_string())
+                .unique()
+                .collect(),
+            has_unitypackage: info
+                .alcom_template
+                .as_ref()
+                .map(|x| !x.unity_packages.is_empty())
+                .unwrap_or(false),
+            source_path: info
+                .source_path
+                .as_ref()
+                .map(|x| x.to_string_lossy().into_owned()),
+            available: info.available,
         }
-
-        let Ok(name) = dir.file_name().into_string() else {
-            continue;
-        };
-
-        let path = path.join(&name);
-
-        // check package.json
-        let Ok(pkg_json) = tokio::fs::metadata(path.join("package.json")).await else {
-            continue;
-        };
-        if !pkg_json.is_file() {
-            continue;
-        }
-
-        match UnityProject::load(DefaultProjectIo::new(path.into())).await {
-            Err(e) => {
-                warn!("failed to load user template {name}: {e}");
-            }
-            Ok(ref p) if !p.is_valid().await => {
-                warn!("failed to load user template {name}: invalid project");
-            }
-            Ok(_) => {}
-        }
-
-        templates.push(name)
     }
+}
 
-    Ok(templates)
+#[derive(Serialize, specta::Type)]
+pub struct TauriProjectCreationInformation {
+    templates: Vec<TauriProjectTemplateInfo>,
+    templates_version: u32,
+    default_path: String,
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_project_creation_information(
     settings: State<'_, SettingsState>,
+    templates: State<'_, TemplatesState>,
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriProjectCreationInformation, RustError> {
-    {
-        let mut templates = crate::templates::TEMPLATES
+    let unity_paths = {
+        let connection = VccDatabaseConnection::connect(io.inner()).await?;
+
+        connection
+            .get_unity_installations()
             .iter()
-            .map(|&(id, name, _)| TauriProjectTemplate::Builtin {
-                id: id.into(),
-                name: name.into(),
-            })
-            .collect::<Vec<_>>();
+            .filter_map(|unity| unity.version())
+            .collect::<Vec<_>>()
+    };
 
-        templates.extend(
-            load_user_templates(&io)
-                .await
-                .ok()
-                .into_iter()
-                .flatten()
-                .map(|name| TauriProjectTemplate::Custom { name }),
-        );
+    let templates = templates.save(templates::load_resolve_all_templates(&io, &unity_paths).await?);
 
-        let mut settings = settings.load_mut(io.inner()).await?;
-        let default_path = default_project_path(&mut settings).to_string();
-        settings.maybe_save().await?;
+    let mut settings = settings.load_mut(io.inner()).await?;
+    let default_path = default_project_path(&mut settings).to_string();
+    settings.maybe_save().await?;
 
-        Ok(TauriProjectCreationInformation {
-            templates,
-            default_path,
-        })
-    }
+    Ok(TauriProjectCreationInformation {
+        templates: templates.iter().map(Into::into).collect(),
+        templates_version: templates.version(),
+        default_path,
+    })
 }
 
 #[derive(Serialize, specta::Type)]
@@ -614,46 +591,25 @@ pub enum TauriCreateProjectResult {
 
 #[tauri::command]
 #[specta::specta]
+#[allow(clippy::too_many_arguments)]
 pub async fn environment_create_project(
     packages_state: State<'_, PackagesState>,
     settings: State<'_, SettingsState>,
+    templates: State<'_, TemplatesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     base_path: String,
     project_name: String,
-    template: TauriProjectTemplate,
+    template_id: String,
+    template_version: u32,
+    unity_version: String,
 ) -> Result<TauriCreateProjectResult, RustError> {
-    enum Template {
-        Builtin(&'static [u8]),
-        Custom(PathBuf),
-    }
+    let templates = templates
+        .get_versioned(template_version)
+        .ok_or_else(|| RustError::unrecoverable("Templates info version mismatch (bug)"))?;
 
-    // first, check the template.
-    let template = match template {
-        TauriProjectTemplate::Builtin { id, .. } => {
-            let Some((_, _, template)) = crate::templates::TEMPLATES.iter().find(|x| x.0 == id)
-            else {
-                return Ok(TauriCreateProjectResult::TemplateNotFound);
-            };
-            Template::Builtin(template)
-        }
-        TauriProjectTemplate::Custom { name } => {
-            let template_path = io.resolve(format!("Templates/{name}").as_ref());
-            match tokio::fs::metadata(&template_path).await {
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-                    return Ok(TauriCreateProjectResult::TemplateNotFound);
-                }
-                Err(e) => {
-                    return Err(e.into());
-                }
-                Ok(ref meta) if !meta.is_dir() => {
-                    return Ok(TauriCreateProjectResult::TemplateNotFound);
-                }
-                Ok(_) => {}
-            }
-            Template::Custom(template_path)
-        }
-    };
+    let unity_version = UnityVersion::parse(&unity_version)
+        .ok_or_else(|| RustError::unrecoverable("Bad Unity Version (unparsable)"))?;
 
     let base_path = Path::new(&base_path);
     let path = {
@@ -690,7 +646,6 @@ pub async fn environment_create_project(
         path.push(&project_name);
         path
     };
-    let path_str = path.to_str().unwrap();
 
     // we split creating folder into two phases
     // because we want to fail if the project folder already exists.
@@ -709,73 +664,22 @@ pub async fn environment_create_project(
         }
     }
 
-    // copy template contents to the project directory
-    match template {
-        Template::Builtin(tgz) => {
-            let tar = flate2::read::GzDecoder::new(std::io::Cursor::new(tgz));
-            let mut archive = tar::Archive::new(tar);
-            archive.unpack(&path)?;
-        }
-        Template::Custom(template) => {
-            copy_recursively(template, path.clone()).await?;
-            // remove unnecessary package.json and README.md
-            tokio::fs::remove_file(path.join("package.json")).await.ok();
-            tokio::fs::remove_file(path.join("README.md")).await.ok();
-        }
-    }
-
-    // update ProjectSettings.asset
+    let mut unity_project = match templates::create_project(
+        &io,
+        &templates,
+        &template_id,
+        &path,
+        &project_name,
+        unity_version,
+    )
+    .await
     {
-        let settings_path = path.join("ProjectSettings/ProjectSettings.asset");
-        let mut settings_file = tokio::fs::File::options()
-            .read(true)
-            .write(true)
-            .open(&settings_path)
-            .await?;
-
-        let mut settings = String::new();
-        settings_file.read_to_string(&mut settings).await?;
-
-        fn set_value(buffer: &mut String, finder: &str, value: &str) {
-            if let Some(pos) = buffer.find(finder) {
-                let before_ws = buffer[..pos]
-                    .chars()
-                    .last()
-                    .map(|x| x.is_ascii_whitespace())
-                    .unwrap_or(true);
-                if before_ws {
-                    if let Some(eol) = buffer[pos..].find('\n') {
-                        let eol = eol + pos;
-                        buffer.replace_range((pos + finder.len())..eol, value);
-                    }
-                }
-            }
+        Ok(unity_project) => unity_project,
+        Err(CreateProjectErr::Io(e)) => return Err(e.into()),
+        Err(CreateProjectErr::NoSuchTemplate) => {
+            return Ok(TauriCreateProjectResult::TemplateNotFound);
         }
-
-        fn yaml_quote(value: &str) -> String {
-            let s = value
-                .replace('"', "\\\"")
-                .replace('\n', "\\n")
-                .replace('\r', "\\r");
-            format!("\"{}\"", s)
-        }
-
-        set_value(
-            &mut settings,
-            "productGUID: ",
-            &uuid::Uuid::new_v4().simple().to_string(),
-        );
-        set_value(&mut settings, "productName: ", &yaml_quote(&project_name));
-
-        settings_file.seek(std::io::SeekFrom::Start(0)).await?;
-        settings_file.set_len(0).await?;
-        settings_file.write_all(settings.as_bytes()).await?;
-        settings_file.flush().await?;
-        settings_file.sync_data().await?;
-        drop(settings_file);
-    }
-
-    let mut unity_project = load_project(path_str.into()).await?;
+    };
 
     let packages;
     {

@@ -31,7 +31,7 @@
 /*.md
 
 # template
-/templates/**
+/project-templates/**
 
 # icons
 /app-icon.afdesign
