@@ -1,4 +1,3 @@
-use crate::io::ProjectIo;
 use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::vpm_manifest::VpmManifest;
@@ -60,7 +59,7 @@ pub enum AddPackageOperation {
 }
 
 // adding package
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     /// Creates a new `AddPackageRequest` to add the specified packages.
     ///
     /// You should call `apply_pending_changes` to apply the changes after confirming to the user.
@@ -81,9 +80,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
             debug!("Validating Package: {}", request.name());
 
             {
-                fn install_to_dependencies<'env, IO: ProjectIo>(
+                fn install_to_dependencies<'env>(
                     request: PackageInfo<'env>,
-                    this: &UnityProject<IO>,
+                    this: &UnityProject,
                     adding_packages: &mut Vec<PackageInfo<'env>>,
                     changes: &mut super::pending_project_changes::Builder,
                 ) -> Result<(), AddPackageErr> {
@@ -107,9 +106,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
                     Ok(())
                 }
 
-                fn upgrade_locked<'env, IO: ProjectIo>(
+                fn upgrade_locked<'env>(
                     request: PackageInfo<'env>,
-                    this: &UnityProject<IO>,
+                    this: &UnityProject,
                     adding_packages: &mut Vec<PackageInfo<'env>>,
                     _changes: &mut super::pending_project_changes::Builder,
                 ) -> Result<(), AddPackageErr> {
@@ -117,9 +116,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
                     Ok(())
                 }
 
-                fn downgrade<'env, IO: ProjectIo>(
+                fn downgrade<'env>(
                     request: PackageInfo<'env>,
-                    this: &UnityProject<IO>,
+                    this: &UnityProject,
                     adding_packages: &mut Vec<PackageInfo<'env>>,
                     changes: &mut super::pending_project_changes::Builder,
                 ) -> Result<(), AddPackageErr> {

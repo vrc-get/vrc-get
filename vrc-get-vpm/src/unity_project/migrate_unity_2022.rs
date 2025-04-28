@@ -1,4 +1,3 @@
-use crate::io::ProjectIo;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
 use crate::{PackageCollection, UnityProject, VersionSelector};
 use crate::{PackageInstaller, VRCHAT_RECOMMENDED_2022_UNITY, io};
@@ -50,7 +49,7 @@ impl From<io::Error> for MigrateUnity2022Error {
 
 type Result<T = (), E = MigrateUnity2022Error> = std::result::Result<T, E>;
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub async fn migrate_unity_2022(
         &mut self,
         collection: &impl PackageCollection,
@@ -61,7 +60,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 }
 
 async fn migrate_unity_2022(
-    project: &mut UnityProject<impl ProjectIo>,
+    project: &mut UnityProject,
     collection: &impl PackageCollection,
     installer: &impl PackageInstaller,
 ) -> Result {
@@ -120,7 +119,7 @@ async fn migrate_unity_2022(
 }
 
 // memo /Applications/Unity/Hub/Editor/2022.3.6f1/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath .
-fn is_vpm_vrcsdk_installed(project: &UnityProject<impl ProjectIo>) -> bool {
+fn is_vpm_vrcsdk_installed(project: &UnityProject) -> bool {
     if project.get_locked("com.vrchat.base").is_some()
         || project.get_locked("com.vrchat.avatars").is_some()
         || project.get_locked("com.vrchat.worlds").is_some()

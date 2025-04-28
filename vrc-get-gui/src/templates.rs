@@ -10,12 +10,12 @@ use std::mem::forget;
 use std::path::{Path, PathBuf};
 use std::{fmt, io};
 use tokio_util::compat::*;
-use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, EnvironmentIo, IoTrait};
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, IoTrait};
 
-use crate::commands::UnityProject;
 use crate::utils::PathExt;
 use crate::utils::TarArchive;
 pub use alcom_template::*;
+use vrc_get_vpm::UnityProject;
 use vrc_get_vpm::version::{DependencyRange, UnityVersion, VersionRange};
 
 pub mod alcom_template;

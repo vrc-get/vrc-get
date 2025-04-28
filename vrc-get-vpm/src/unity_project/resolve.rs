@@ -3,7 +3,6 @@ use std::fmt;
 
 use itertools::Itertools;
 
-use crate::io::ProjectIo;
 use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::{
     LockedDependencyInfo, PendingProjectChanges, package_resolution, pending_project_changes,
@@ -38,7 +37,7 @@ impl fmt::Display for ResolvePackageErr {
 
 impl std::error::Error for ResolvePackageErr {}
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     /// Returns whether the project should be resolved.
     ///
     /// The project will be resolved if: (not exhaustive)

@@ -2,7 +2,7 @@ use futures::prelude::*;
 use log::{debug, info};
 use std::collections::HashSet;
 
-use crate::io::ProjectIo;
+use crate::io::IoTrait;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
 use crate::{PackageCollection, UnityProject, VersionSelector};
 use crate::{PackageInstaller, ProjectType, io};
@@ -57,7 +57,7 @@ impl From<io::Error> for MigrateVpmError {
 
 type Result<T = (), E = MigrateVpmError> = std::result::Result<T, E>;
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub async fn migrate_vpm(
         &mut self,
         collection: &impl PackageCollection,
@@ -69,7 +69,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 }
 
 async fn migrate_vpm(
-    project: &mut UnityProject<impl ProjectIo>,
+    project: &mut UnityProject,
     collection: &impl PackageCollection,
     installer: &impl PackageInstaller,
     include_prerelease: bool,

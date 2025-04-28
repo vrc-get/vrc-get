@@ -2,7 +2,7 @@ use crate::environment::repo_source::RepoSource;
 use crate::environment::{
     CURATED_URL_STR, LOCAL_CURATED_PATH, LOCAL_OFFICIAL_PATH, OFFICIAL_URL_STR, Settings,
 };
-use crate::io::EnvironmentIo;
+use crate::io::{DefaultEnvironmentIo, IoTrait};
 use crate::repository::RemoteRepository;
 use crate::repository::local::LocalCachedRepository;
 use crate::traits::HttpClient;
@@ -33,7 +33,7 @@ impl RepoHolder {
 impl RepoHolder {
     pub(crate) async fn load(
         settings: &Settings,
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
         http: Option<&impl HttpClient>,
     ) -> io::Result<Self> {
         let predefined_repos = Self::get_predefined_repos(settings).into_iter();
@@ -82,10 +82,10 @@ impl RepoHolder {
         repositories
     }
 
-    pub(crate) async fn load_repos<'a, IO: EnvironmentIo>(
+    pub(crate) async fn load_repos<'a>(
         &mut self,
         http: Option<&impl HttpClient>,
-        io: &IO,
+        io: &DefaultEnvironmentIo,
         sources: impl Iterator<Item = RepoSource<'a>>,
     ) -> io::Result<()> {
         let start = std::time::Instant::now();
@@ -110,9 +110,9 @@ impl RepoHolder {
         Ok(())
     }
 
-    async fn load_repo_from_source<IO: EnvironmentIo>(
+    async fn load_repo_from_source(
         client: Option<&impl HttpClient>,
-        io: &IO,
+        io: &DefaultEnvironmentIo,
         source: &RepoSource<'_>,
     ) -> io::Result<Option<LocalCachedRepository>> {
         if let Some(url) = &source.url() {
@@ -128,7 +128,7 @@ impl RepoHolder {
 
     async fn load_remote_repo(
         client: Option<&impl HttpClient>,
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
         headers: &IndexMap<Box<str>, Box<str>>,
         path: &Path,
         remote_url: &Url,
@@ -192,7 +192,7 @@ impl RepoHolder {
     }
 
     async fn load_local_repo(
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
         path: &Path,
     ) -> io::Result<LocalCachedRepository> {
         read_json_file::<LocalCachedRepository>(io.open(path).await?, path).await

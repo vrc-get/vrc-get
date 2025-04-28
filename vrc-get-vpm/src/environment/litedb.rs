@@ -1,7 +1,7 @@
 #![allow(unsafe_code)]
 
 use crate::io;
-use crate::io::EnvironmentIo;
+use crate::io::{DefaultEnvironmentIo, IoTrait};
 use futures::prelude::*;
 use vrc_get_litedb::expression::BsonExpression;
 use vrc_get_litedb::file_io::LiteDBFile;
@@ -14,7 +14,7 @@ pub struct VccDatabaseConnection {
 static FILE_NAME: &str = "vcc.liteDb";
 
 impl VccDatabaseConnection {
-    pub async fn connect(io: &impl EnvironmentIo) -> io::Result<Self> {
+    pub async fn connect(io: &DefaultEnvironmentIo) -> io::Result<Self> {
         let path = io.resolve(FILE_NAME.as_ref());
 
         let lock = {
@@ -58,7 +58,7 @@ impl VccDatabaseConnection {
         Self { db, _guard }
     }
 
-    pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
+    pub async fn save(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
         // nop for now but might have to do something in the future
         io.write_sync(FILE_NAME.as_ref(), &self.db.serialize())
             .await?;

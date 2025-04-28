@@ -1,6 +1,6 @@
 use crate::environment::VccDatabaseConnection;
 use crate::environment::settings::Settings;
-use crate::io::{EnvironmentIo, FileSystemProjectIo, ProjectIo};
+use crate::io::{DefaultEnvironmentIo, DefaultProjectIo, IoTrait};
 use crate::utils::{check_absolute_path, normalize_path};
 use crate::version::UnityVersion;
 use crate::{ProjectType, UnityProject, io};
@@ -33,7 +33,7 @@ impl VccDatabaseConnection {
     pub async fn migrate(
         &mut self,
         settings: &Settings,
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
     ) -> io::Result<()> {
         let projects = settings
             .user_projects()
@@ -62,11 +62,12 @@ impl VccDatabaseConnection {
         for project in &projects {
             if !db_projects_by_path.contains_key(*project) {
                 async fn get_project_type(
-                    io: &impl EnvironmentIo,
+                    io: &DefaultEnvironmentIo,
                     path: &Path,
                 ) -> io::Result<(ProjectType, Option<UnityVersion>, Option<String>)>
                 {
-                    let project = UnityProject::load(io.new_project_io(path)).await?;
+                    let project =
+                        UnityProject::load(DefaultProjectIo::new(io.resolve(path).into())).await?;
                     let detected_type = project.detect_project_type().await?;
                     Ok((
                         detected_type,
@@ -121,7 +122,7 @@ impl VccDatabaseConnection {
     pub async fn sync_with_real_projects(
         &mut self,
         skip_not_found: bool,
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
     ) -> io::Result<()> {
         let projects = self.db.get_all(COLLECTION).collect::<Vec<_>>();
 
@@ -137,7 +138,7 @@ impl VccDatabaseConnection {
             .expect("updating project");
 
         async fn update_project_with_actual_data(
-            io: &impl EnvironmentIo,
+            io: &DefaultEnvironmentIo,
             project: &Document,
             skip_not_found: bool,
         ) -> Option<Document> {
@@ -152,7 +153,7 @@ impl VccDatabaseConnection {
         }
 
         async fn update_project_with_actual_data_inner(
-            io: &impl EnvironmentIo,
+            io: &DefaultEnvironmentIo,
             project: &Document,
             skip_not_found: bool,
         ) -> io::Result<Option<Document>> {
@@ -335,10 +336,7 @@ impl VccDatabaseConnection {
         self.db.delete(COLLECTION, &[project.bson[ID].clone()]);
     }
 
-    pub async fn add_project<ProjectIO: ProjectIo + FileSystemProjectIo>(
-        &mut self,
-        project: &UnityProject<ProjectIO>,
-    ) -> io::Result<()> {
+    pub async fn add_project(&mut self, project: &UnityProject) -> io::Result<()> {
         check_absolute_path(project.project_dir())?;
         let path = normalize_path(project.project_dir());
         let path = path.to_str().ok_or(io::Error::new(

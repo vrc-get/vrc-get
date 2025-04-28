@@ -1,5 +1,5 @@
 use crate::io;
-use crate::io::EnvironmentIo;
+use crate::io::{DefaultEnvironmentIo, IoTrait};
 use crate::utils::read_json_file;
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +21,7 @@ pub(crate) struct VrcGetSettings {
 const JSON_PATH: &str = "vrc-get/settings.json";
 
 impl VrcGetSettings {
-    pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
+    pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
         //let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
         let parsed = match io.open(JSON_PATH.as_ref()).await {
