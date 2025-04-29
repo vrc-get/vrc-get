@@ -105,6 +105,7 @@ fn process_args(app: &AppHandle, args: &[String]) {
         let arg = &args[1];
         if is_deep_link(arg) {
             process_deep_link_string(app, arg);
+            return;
         }
     }
 
