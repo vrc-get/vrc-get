@@ -1,5 +1,6 @@
 import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
+import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,7 +27,6 @@ import { commands } from "@/lib/bindings";
 import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
-import { openUnity } from "@/lib/open-unity";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString } from "@/lib/version";
@@ -229,12 +229,12 @@ export function ProjectRow({
 				</td>
 				<td className={noGrowCellClass}>
 					<div className="flex flex-row gap-2 max-w-min">
-						<ButtonDisabledIfRemoved
-							onClick={() =>
-								openUnity(project.path, project.unity, project.unity_revision)
-							}
-						>
-							{tc("projects:button:open unity")}
+						<ButtonDisabledIfRemoved asChild>
+							<OpenUnityButton
+								projectPath={project.path}
+								unityVersion={project.unity}
+								unityRevision={project.unity_revision}
+							/>
 						</ButtonDisabledIfRemoved>
 						<ManageOrMigrateButton project={project} />
 						<ButtonDisabledIfRemoved
