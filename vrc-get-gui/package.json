@@ -57,7 +57,7 @@
 		"svgo": "^3.3.2",
 		"tw-animate-css": "^1.2.5",
 		"typescript": "^5",
-		"vite": "^6.2.2",
+		"vite": "^6.3.4",
 		"vite-plugin-json5": "^1.1.6"
 	}
 }
