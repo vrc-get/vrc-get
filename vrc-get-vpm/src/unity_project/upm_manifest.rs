@@ -1,5 +1,5 @@
 use crate::io;
-use crate::io::ProjectIo;
+use crate::io::DefaultProjectIo;
 use crate::utils::{JsonMapExt, SaveController, load_json_or_default, save_json};
 use crate::version::Version;
 use serde::de::Error;
@@ -104,7 +104,7 @@ pub(super) struct UpmManifest {
 }
 
 impl UpmManifest {
-    pub(super) async fn load(io: &impl ProjectIo) -> io::Result<Self> {
+    pub(super) async fn load(io: &DefaultProjectIo) -> io::Result<Self> {
         Ok(Self {
             controller: SaveController::new(
                 load_json_or_default(io, MANIFEST_PATH.as_ref()).await?,
@@ -152,7 +152,7 @@ impl UpmManifest {
         self.controller.as_mut().as_json.dependencies.remove(name);
     }
 
-    pub(super) async fn save(&mut self, io: &impl ProjectIo) -> io::Result<()> {
+    pub(super) async fn save(&mut self, io: &DefaultProjectIo) -> io::Result<()> {
         self.controller
             .save(|json| save_json(io, MANIFEST_PATH.as_ref(), json))
             .await

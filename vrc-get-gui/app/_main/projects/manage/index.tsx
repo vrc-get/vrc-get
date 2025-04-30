@@ -1,6 +1,7 @@
 "use client";
 
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
+import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,6 @@ import { commands } from "@/lib/bindings";
 import { VRCSDK_PACKAGES, VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
-import { openUnity } from "@/lib/open-unity";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
@@ -737,12 +737,12 @@ function ProjectButton({
 		<>
 			<DropdownMenu>
 				<div className={"flex divide-x"}>
-					<Button
-						onClick={() => openUnity(projectPath, unityVersion, unityRevision)}
+					<OpenUnityButton
+						projectPath={projectPath}
+						unityVersion={unityVersion}
+						unityRevision={unityRevision}
 						className={"rounded-r-none pl-4 pr-3"}
-					>
-						{tc("projects:button:open unity")}
-					</Button>
+					/>
 					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
 						<Button>
 							<ChevronDown className={"w-4 h-4"} />

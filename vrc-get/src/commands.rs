@@ -28,10 +28,9 @@ use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveR
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    PackageCollection as _, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
+    PackageCollection as _, PackageInfo, PackageManifest, UnityProject, UserRepoSetting,
+    VersionSelector,
 };
-
-type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
     ($class: ident is $($args:tt)*) => {

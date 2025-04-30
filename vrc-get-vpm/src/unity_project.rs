@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
-use crate::io::{DirEntry, FileSystemProjectIo, ProjectIo};
+use crate::io::{DefaultProjectIo, DirEntry, IoTrait, TokioDirEntry};
 use crate::package_manifest::LooseManifest;
 pub use add_package::AddPackageErr;
 pub use add_package::AddPackageOperation;
@@ -38,8 +38,8 @@ pub use remove_package::RemovePackageErr;
 pub use resolve::ResolvePackageErr;
 
 #[derive(Debug)]
-pub struct UnityProject<IO: ProjectIo> {
-    io: IO,
+pub struct UnityProject {
+    io: DefaultProjectIo,
     /// vpm-manifest.json
     manifest: VpmManifest,
     // manifest.json
@@ -55,8 +55,8 @@ pub struct UnityProject<IO: ProjectIo> {
 }
 
 // basic lifecycle
-impl<IO: ProjectIo> UnityProject<IO> {
-    pub async fn load(io: IO) -> io::Result<Self> {
+impl UnityProject {
+    pub async fn load(io: DefaultProjectIo) -> io::Result<Self> {
         let manifest = VpmManifest::load(&io).await?;
         let upm_manifest = UpmManifest::load(&io).await?;
 
@@ -107,10 +107,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 }
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     async fn try_read_unlocked_package(
-        io: &IO,
-        dir_entry: IO::DirEntry,
+        io: &DefaultProjectIo,
+        dir_entry: TokioDirEntry,
     ) -> (Box<str>, Option<PackageManifest>) {
         let name = dir_entry.file_name().to_string_lossy().into();
         let package_json_path = PathBuf::from("Packages")
@@ -123,7 +123,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
         (name, parsed.map(|x| x.0))
     }
 
-    async fn read_unity_version(io: &IO) -> io::Result<(UnityVersion, Option<String>)> {
+    async fn read_unity_version(
+        io: &DefaultProjectIo,
+    ) -> io::Result<(UnityVersion, Option<String>)> {
         let mut buffer = String::new();
         io.open("ProjectSettings/ProjectVersion.txt".as_ref())
             .await?
@@ -175,7 +177,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         true
     }
 
-    pub fn io(&self) -> &IO {
+    pub fn io(&self) -> &DefaultProjectIo {
         &self.io
     }
 
@@ -190,7 +192,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 }
 
 // accessors
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         self.manifest.all_locked()
     }
@@ -260,7 +262,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 }
 
-impl<IO: FileSystemProjectIo + ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub fn project_dir(&self) -> &Path {
         self.io.location()
     }

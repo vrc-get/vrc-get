@@ -9,13 +9,13 @@ pub use start::startup;
 use tauri::generate_handler;
 use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
-use vrc_get_vpm::PackageManifest;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
 };
 use vrc_get_vpm::version::Version;
+use vrc_get_vpm::{PackageManifest, UnityProject};
 
 // common macro for commands so put it here
 #[allow(unused_macros)]
@@ -54,8 +54,6 @@ mod prelude {
     };
     pub use crate::state::*;
 }
-
-pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 // Note: remember to change similar in typescript
 static DEFAULT_UNITY_ARGUMENTS: &[&str] = &[];

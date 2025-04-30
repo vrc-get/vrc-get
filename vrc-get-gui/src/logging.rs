@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::io::Write as _;
 use std::sync::{Arc, Mutex, mpsc};
 use tauri::{AppHandle, Emitter};
-use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 static APP_HANDLE: ArcSwapOption<AppHandle> = ArcSwapOption::const_empty();
 

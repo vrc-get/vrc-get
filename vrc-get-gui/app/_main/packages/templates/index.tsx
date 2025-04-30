@@ -211,6 +211,16 @@ function TemplateRow({
 	const category = projectTemplateCategory(template.id);
 	const displayId = projectTemplateDisplayId(template.id);
 
+	const deleteButton = async () => {
+		if (
+			await openSingleDialog(RemoveTemplateConfirmDialog, {
+				displayName: template.display_name,
+			})
+		) {
+			remove?.(template.id);
+		}
+	};
+
 	return (
 		<tr className="even:bg-secondary/30">
 			<td className={`${cellClass} w-full`}>
@@ -244,9 +254,7 @@ function TemplateRow({
 							variant={"ghost"}
 							size={"icon"}
 							className={category !== "alcom" ? "opacity-50" : ""}
-							onClick={
-								category === "alcom" ? () => remove?.(template.id) : undefined
-							}
+							onClick={category === "alcom" ? deleteButton : undefined}
 						>
 							<CircleX className={"size-5 text-destructive"} />
 						</Button>
@@ -265,6 +273,28 @@ function TemplateRow({
 				<TemplateDropdownMenu template={template} edit={edit} />
 			</td>
 		</tr>
+	);
+}
+
+function RemoveTemplateConfirmDialog({
+	dialog,
+	displayName,
+}: { dialog: DialogContext<boolean>; displayName: string }) {
+	return (
+		<>
+			<DialogTitle>{tc("templates:dialog:remove template")}</DialogTitle>
+			<DialogDescription>
+				{tc("templates:dialog:confirm remove template", { displayName })}
+			</DialogDescription>
+			<DialogFooter>
+				<Button onClick={() => dialog.close(false)}>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button variant={"destructive"} onClick={() => dialog.close(true)}>
+					{tc("general:button:delete")}
+				</Button>
+			</DialogFooter>
+		</>
 	);
 }
 

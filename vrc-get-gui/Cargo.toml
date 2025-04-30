@@ -22,7 +22,7 @@ tauri-build = { version = "2", features = [ "config-toml" ] }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 tauri = { version = "2", features = [ "config-toml" ] }
-vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
+vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management"] }
 reqwest = { version = "0.12", features = ["gzip", "brotli"] }
 specta = { version = "2.0.0-rc.20", features = [ "chrono", "url", "indexmap" ] }
 tauri-specta = { version = "2.0.0-rc.20", features = ["typescript"] }
@@ -63,6 +63,12 @@ wmi = "0.15"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.26"
+plist = { version = "1" }
+objc2-app-kit = { version = "0.3.0", features = ['NSWorkspace', "block2"] }
+objc2-foundation = "0.3.0"
+block2 = "0.6.0"
+objc2 = "0.6.0"
+dispatch2 = "0.2.0"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["fs"] }
