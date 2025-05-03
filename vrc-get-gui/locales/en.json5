@@ -304,7 +304,7 @@
     "projects:manage:dialog:missing dependencies description": "The following packages are requested to install, but unable to find appropriate version of the packages.<br/>Please search and add repositories that contain the packages.<br/>You may check <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> to find the appropriate repositories.",
 
 
-    // Packages Page
+// Resources Page
     "resources": "Resources",
     "vpm repositories:source:official": "Official",
     "vpm repositories:source:curated": "Curated",
