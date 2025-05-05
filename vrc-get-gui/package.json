@@ -34,7 +34,7 @@
 		"class-variance-authority": "^0.7",
 		"classnames": "^2",
 		"clsx": "^2",
-		"i18next": "^24",
+		"i18next": "^25",
 		"lucide-react": "^0",
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
