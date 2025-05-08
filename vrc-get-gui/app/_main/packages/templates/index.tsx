@@ -572,20 +572,15 @@ function TemplateEditor({
 
 	const saveTemplate = async () => {
 		try {
-			// Build vpmDependencies as { [packageId]: versionRange }
-			// For now, use "*" as the version range for all selected packages
 			const vpmDependencies: Record<string, string> = {};
 			for (const pkgId of selectedPackages) {
 				vpmDependencies[pkgId] = "*";
 			}
-			// Normalize unityRange before saving (remove dash before f/p/b)
-			let normalizedUnityRange = unityRange.replace(/-([fpb]\d+)$/i, '$1');
-			console.log('normalizedUnityRange (to be saved):', normalizedUnityRange);
 			await commands.environmentSaveTemplate(
 				template?.id ?? null,
 				baseTemplate,
 				name,
-				normalizedUnityRange,
+				unityRange,
 				Object.entries(vpmDependencies),
 				unityPackagesListContext.value as string[],
 			);
@@ -668,7 +663,7 @@ function TemplateEditor({
 												<SelectValue className={"grow"} />
 											</SelectTrigger>
 											<SelectContent>
-												{installedUnityVersions.map((version) => (
+												{[...new Set(installedUnityVersions)].map((version) => (
 													<SelectItem key={version} value={version}>
 														{version}
 													</SelectItem>
