@@ -59,6 +59,7 @@ import React, { Suspense, useId, useState } from "react";
 import { VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { PackageMultiSelect } from "@/components/PackageMultiSelect";
 import { combinePackagesAndProjectDetails } from "@/app/_main/projects/manage/-collect-package-row-info";
+import globalInfo from "@/lib/global-info";
 
 export const Route = createFileRoute("/_main/packages/templates/")({
 	component: RouteComponent,
@@ -114,11 +115,13 @@ function RouteComponent() {
 			<main
 				className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
 			>
-				<ScrollableCardTable className={"h-full w-full"}>
-					<Suspense fallback={<Loading />}>
-						<TemplatesTableBody />
-					</Suspense>
-				</ScrollableCardTable>
+				<div className="w-full max-h-[40vh] overflow-auto scrollbar-dark">
+					<ScrollableCardTable className="w-full">
+						<Suspense fallback={<Loading />}>
+							<TemplatesTableBody />
+						</Suspense>
+					</ScrollableCardTable>
+				</div>
 			</main>
 		</VStack>
 	);
@@ -334,12 +337,33 @@ function TemplateDropdownMenu({
 }) {
 	const category = projectTemplateCategory(template.id);
 
-	// TODO: impleemnt edit template
-
 	switch (category) {
 		case "builtin":
 			return <EllipsisButton disabled />;
 		case "alcom": {
+			const openTemplateDir = async () => {
+				try {
+					if (template.source_path == null)
+						throw new Error(tc("general:error:template path not found").toString());
+					await commands.utilOpen(template.source_path, "ErrorIfNotExists");
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+
+			const openAlcomTemplatesDir = async () => {
+				try {
+					await commands.utilOpen(
+						`${globalInfo.vpmHomeFolder}/vrc-get/templates`,
+						"CreateFolderIfNotExists"
+					);
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+
 			const exportTemplate = async () => {
 				try {
 					await commands.environmentExportTemplate(template.id);
@@ -356,6 +380,9 @@ function TemplateDropdownMenu({
 					<DropdownMenuContent>
 						<DropdownMenuItem onClick={() => edit?.(template.id)}>
 							{tc("templates:menuitem:edit template")}
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={openAlcomTemplatesDir}>
+							{tc("templates:menuitem:open custom template directory")}
 						</DropdownMenuItem>
 						{template.has_unitypackage ? (
 							<Tooltip>
@@ -385,13 +412,26 @@ function TemplateDropdownMenu({
 			const openTemplate = async () => {
 				try {
 					if (template.source_path == null)
-						throw new Error("VCC Template path not found (bug(");
+						throw new Error(tc("general:error:vcc template path not found").toString());
 					await commands.utilOpen(template.source_path, "ErrorIfNotExists");
 				} catch (e) {
 					console.error(e);
 					toastThrownError(e);
 				}
 			};
+
+			const openTemplatesDir = async () => {
+				try {
+					await commands.utilOpen(
+						`${globalInfo.vpmHomeFolder}/Templates`,
+						"CreateFolderIfNotExists"
+					);
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+
 			return (
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -601,9 +641,11 @@ function TemplateEditor({
 			<DialogDescription asChild>
 				<div className={"flex flex-col gap-8 shrink min-h-0"}>
 					<section style={{ marginBottom: 32 }}>
-						<h3 className={"font-bold w-full text-center content-center mb-4"}>
-							{tc("templates:dialog:general information")}
-						</h3>
+						<div className="flex justify-center items-center w-full mb-4">
+							<h3 className="font-bold text-center">
+								{tc("templates:dialog:general information")}
+							</h3>
+						</div>
 						<table className={"grid grid-cols-[min-content_1fr] gap-x-4 gap-y-3"}>
 							<tbody className={"contents"}>
 								<tr className={"contents"}>
@@ -620,7 +662,7 @@ function TemplateEditor({
 											value={name}
 											onChange={(e) => setName(e.target.value)}
 											onBlur={() => setNameTouched(true)}
-											placeholder={"Your New Template"}
+											placeholder={tc("templates:input:placeholder:new template name").toString()}
 										/>
 									</td>
 								</tr>
@@ -676,7 +718,7 @@ function TemplateEditor({
 						<h3 className={"font-bold w-full text-center content-center mb-4"}>
 							{tc("general:packages")}
 						</h3>
-						<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
+						<div className="w-full">
 							<PackageMultiSelect
 								packages={availablePackages}
 								selected={selectedPackages}
@@ -699,9 +741,9 @@ function TemplateEditor({
 							</div>
 						</Overlay>
 						<label className="block mb-1 font-medium">
-							UnityPackage Path
+							{tc("templates:dialog:unitypackage path")}
 						</label>
-						<div className="w-full max-h-[30vh] overflow-y-auto shrink">
+						<div className="w-full">
 							<table className={"w-full align-middle"}>
 								<tbody>
 									<ReorderableList

@@ -1,8 +1,9 @@
 import * as React from "react";
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import type { PackageRowInfo } from "@/app/_main/projects/manage/-collect-package-row-info";
+import { useTranslation } from "react-i18next";
+import { SearchBox } from "@/components/SearchBox";
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 
 interface PackageMultiSelectProps {
   packages: PackageRowInfo[];
@@ -13,7 +14,14 @@ interface PackageMultiSelectProps {
   checkboxSeparator?: boolean;
 }
 
-export function PackageMultiSelect({ packages, selected, onChange, cellClassName = '', headClassName = '', checkboxSeparator = false }: PackageMultiSelectProps) {
+export function PackageMultiSelect({
+  packages,
+  selected,
+  onChange,
+  cellClassName = '',
+  headClassName = '',
+  checkboxSeparator = false,
+}: PackageMultiSelectProps) {
   const [search, setSearch] = React.useState("");
 
   const filtered = React.useMemo(
@@ -33,39 +41,45 @@ export function PackageMultiSelect({ packages, selected, onChange, cellClassName
       onChange([...selected, id]);
     }
   };
+  const { t } = useTranslation();
 
   return (
     <div>
-      <Input
-        placeholder="Search packages..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="mb-2"
-      />
-      <ScrollableCardTable className="w-full min-h-[20vh]">
-        <thead>
+      <div className="mb-3 max-w-xs">
+        <SearchBox
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full"
+        />
+      </div>
+      
+      <ScrollableCardTable
+        className="w-full h-[45vh] rounded-lg shadow-lg bg-card"
+        viewportClassName="overflow-x-hidden"
+      >
+        <thead className="sticky top-0 z-10 bg-card shadow-sm">
           <tr>
-            <th className={headClassName + (checkboxSeparator ? ' border-r border-secondary' : '')}></th>
-            <th className={headClassName + ' pl-6'}>Package</th>
-            <th className={headClassName}>Description</th>
+            <th className={`${headClassName} py-3 ${checkboxSeparator ? 'border-r border-secondary' : ''} w-12 text-center`}></th>
+            <th className={`${headClassName} py-3 pl-6`}>Package</th>
+            <th className={`${headClassName} py-3`}>Description</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map((pkg) => (
-            <tr key={pkg.id}>
-              <td className={cellClassName + (checkboxSeparator ? ' border-r border-secondary' : '')}>
+            <tr key={pkg.id} className="hover:bg-accent/40 transition-colors">
+              <td className={`${cellClassName} py-2 ${checkboxSeparator ? 'border-r border-secondary' : ''} w-12 text-center`}>
                 <Checkbox
                   checked={selected.includes(pkg.id)}
                   onCheckedChange={() => toggle(pkg.id)}
                 />
               </td>
-              <td className={cellClassName + ' pl-6'}>
+              <td className={`${cellClassName} py-2 pl-6 overflow-hidden max-w-80 text-ellipsis`}>
                 <div>
                   <div>{pkg.displayName}</div>
-                  <div className="text-xs opacity-60">{pkg.id}</div>
+                  <div className="text-xs opacity-60 break-all">{pkg.id}</div>
                 </div>
               </td>
-              <td className={cellClassName}>{pkg.description}</td>
+              <td className={`${cellClassName} py-2 whitespace-normal break-words`}>{pkg.description}</td>
             </tr>
           ))}
         </tbody>

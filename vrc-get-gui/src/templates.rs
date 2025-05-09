@@ -190,7 +190,7 @@ pub async fn load_resolve_alcom_templates(
             let alcom = template.alcom_template.as_ref().unwrap();
             let Some(base) = template_by_id.get(&alcom.base) else {
                 // The template will never become available so remove from keys to update
-                log::warn!("Template {}: Base template {} not found.", k, alcom.base);
+                log::debug!("Template {}: Base template {} not found.", k, alcom.base);
                 return false;
             };
 
@@ -201,15 +201,12 @@ pub async fn load_resolve_alcom_templates(
             }
 
             // The base template is available! update this template based on the base template
-            log::info!("Processing custom template: {}", k);
+            log::debug!("Processing custom template: {}", k);
 
             let mut unity_versions = Vec::new(); // Start with empty
 
             if let Some(unity_filter) = &alcom.unity_version {
-                log::info!(" Template {} has unity_version filter: {:?}", k, unity_filter);
                 let unity_filter_str = unity_filter.to_string();
-                log::info!("  Filter to_string(): {}", unity_filter_str);
-
                 match vrc_get_vpm::version::UnityVersion::parse(&unity_filter_str) {
                     Some(specific_version) => {
                         log::info!("  Parsed as specific version: {}", specific_version);
@@ -221,23 +218,17 @@ pub async fn load_resolve_alcom_templates(
                         }
                     }
                     None => {
-                        log::warn!("  Could not parse '{}' as specific UnityVersion. Treating as range.", unity_filter_str);
-                        // If not a specific version string, treat it as a VersionRange filter.
                         unity_versions = base.unity_versions
                             .iter()
                             .copied()
                             .filter(|x| unity_filter.matches(&x.as_semver()))
                             .collect();
-                        log::info!("  Filtered base versions by range: {:?}", unity_versions);
                     }
                 }
             } else {
-                log::info!(" Template {} has no unity_version filter. Inheriting from base.", k);
-                // If no unity_version field in the template, inherit all from the base.
                 unity_versions = base.unity_versions.clone()
             }
 
-            log::info!(" Final calculated unity_versions for {}: {:?}", k, unity_versions);
             let template_mut = &mut template_by_id[k];
             template_mut.unity_versions = unity_versions;
             // Mark as available only if we found at least one compatible Unity version.

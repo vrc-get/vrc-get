@@ -1,6 +1,6 @@
 {
-  "translation": {
-// General
+  translation: {
+    // General
     "settings:langName": "English",
 
     "general:loading...": "Loading...",
@@ -32,9 +32,10 @@
 
     "general:error:failed to create dir": "Failed to create directory (missing permission?): {{err}}",
     "general:error:failed to create dir missing drive": "Failed to create directory. You may forget to connect the drive.",
+    "general:error:template path not found": "Template path not found (bug)",
+    "general:error:vcc template path not found": "VCC Template path not found (bug)",
 
-
-// Setup Page
+    // Setup Page
     "setup:loading": "Loading settings...",
     "setup:entry:welcome": "Welcome to ALCOM!",
     "setup:entry:welcome description": "ALCOM is an Open-Source Creator Companion for VRChat and other Unity Projects.",
@@ -52,7 +53,7 @@
     "setup:unity-hub:unity hub link": "https://unity.com/download",
     "setup:unity-hub:recheck installation": "Recheck Installation",
     "setup:unity-hub:detection failed collapse": "Have you installed Unity Hub?",
-    "setup:unity-hub:detection failed description": "Please click the above \"Recheck Installation\" button to re-detect Unity Hub installation. If this doesn't work, ALCOM fails to detect your Unity Hub installation. Please set Unity Hub Manually below.",
+    "setup:unity-hub:detection failed description": 'Please click the above "Recheck Installation" button to re-detect Unity Hub installation. If this doesn\'t work, ALCOM fails to detect your Unity Hub installation. Please set Unity Hub Manually below.',
     "setup:unity-hub:not found": "Unity Hub was not found.",
 
     "setup:steps card:ProjectPath": "Save Location",
@@ -75,17 +76,15 @@
     "setup:finish:description": "You have successfully completed the setup process!<br/>Let's start using ALCOM!",
     "setup:finish:next": "Start using ALCOM",
 
-
-// Side Bar
+    // Side Bar
     "sidebar:bad hostname": "Bad hostname",
     "sidebar:dialog:bad hostname": "There are issues with your hostname",
     "sidebar:dialog:bad hostname description": "You're using non-ASCII characters in hostname (PC Name). <br/>This may cause issues with modern Unity.<br/>It's highly recommended to change your PC Name to alphanumeric characters.",
 
     "sidebar:toast:version copied": "Version name was copied.",
 
-
-// Projects Page
-    "projects": "Projects",
+    // Projects Page
+    projects: "Projects",
     "projects:tooltip:refresh": "Refresh Projects",
     "projects:create new project": "Create New Project",
     "projects:add existing project": "Add Existing Project",
@@ -188,7 +187,7 @@
     "projects:dialog:removing...": "Removing the project...",
     "projects:toast:project removed": "Project was removed successfully.",
 
-  // Manage Projects
+    // Manage Projects
     "projects:manage:tooltip:back to projects": "Back to projects",
     "projects:menuitem:change launch options": "Change Launch Options",
     "projects:menuitem:backup": "Make Backup",
@@ -303,9 +302,8 @@
     "projects:manage:dialog:missing dependencies": "Some packages are not found",
     "projects:manage:dialog:missing dependencies description": "The following packages are requested to install, but unable to find appropriate version of the packages.<br/>Please search and add repositories that contain the packages.<br/>You may check <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> to find the appropriate repositories.",
 
-
-// Resources Page
-    "resources": "Resources",
+    // Resources Page
+    resources: "Resources",
     "vpm repositories:source:official": "Official",
     "vpm repositories:source:curated": "Curated",
     "vpm repositories:source:local": "User Local",
@@ -382,6 +380,7 @@
     "templates:tooltip:remove template": "Remove Template",
     "templates:tooltip:remove builtin template": "You cannot remove Builtin Templates.",
     "templates:tooltip:remove vcc template": "You cannot remove VCC templates here. You should remove from Templates directory instead.",
+    "templates:menuitem:open custom template directory": "Open Custom Template Directory",
     "templates:menuitem:edit template": "Edit Template",
     "templates:menuitem:export template": "Export Template",
     "templates:tooltip:export template with unitypackage": "You cannot export templates with unity packages since it's not portable.",
@@ -401,15 +400,16 @@
     "templates:toast:imported n templates_one": "Imported {{count}} template",
     "templates:toast:imported n templates_other": "Imported {{count}} templates",
     "template:toast:removed": "Removed the Template",
+    "templates:dialog:unitypackage path": "UnityPackage Path",
+    "templates:input:placeholder:new template name": "Your New Template",
 
-
-// Settings Page
-    "settings": "Settings",
+    // Settings Page
+    settings: "Settings",
     "settings:error:load error": "Error loading settings.",
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "The location is in LocalAppData directory, which will be deleted with \"Reset this PC\" with \"Keep my files\".<br>It's recommended to save your data in a different location.",
+    "settings:warning:in-local-app-data": 'The location is in LocalAppData directory, which will be deleted with "Reset this PC" with "Keep my files".<br>It\'s recommended to save your data in a different location.',
     "settings:warning:whitespace": "The location contains whitespace. Whitespace in may cause problems with Unity and other tools. Please consider use another location.",
     "settings:warning:non-ascii": "The location contains non-ASCII characters. Non-ASCII characters in the location may cause problems with Unity. Please consider use another location.",
 
@@ -505,9 +505,8 @@
     "settings:alcom version": "ALCOM Version",
     "settings:alcom commit hash": "ALCOM Build Commit Hash",
 
-
-// Logs Page
-    "logs": "Logs",
+    // Logs Page
+    logs: "Logs",
     "logs:time": "Time",
     "logs:level": "Level",
     "logs:message": "Message",
