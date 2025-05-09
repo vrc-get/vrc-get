@@ -123,13 +123,19 @@ pub async fn environment_save_template(
     vpm_packages: Vec<(String, String)>,
     unity_packages: Vec<String>,
 ) -> Result<(), RustError> {
+    // Determine effective id: keep given one or generate new
+    let effective_id = id.clone().unwrap_or_else(|| {
+        format!(
+            "{}{}",
+            "com.anatawa12.vrc-get.user.",
+            uuid::Uuid::new_v4().simple()
+        )
+    });
+
     let template = AlcomTemplate {
         display_name: name.clone(),
         update_date: Some(chrono::Utc::now()),
-        id: id
-            .as_ref()
-            .take_if(|x| !x.starts_with("com.anatawa12.vrc-get.user."))
-            .cloned(),
+        id: Some(effective_id.clone()),
         base,
         unity_version: Some(VersionRange::from_str(&unity_range).map_err(|x| {
             RustError::unrecoverable(format!("Bad Unity Version Range ({unity_range}): {x}"))
@@ -137,36 +143,38 @@ pub async fn environment_save_template(
         vpm_dependencies: vpm_packages
             .into_iter()
             .map(|(pkg, range)| {
-                Ok::<_, RustError>((
-                    pkg,
-                    VersionRange::from_str(&range).map_err(|x| {
-                        RustError::unrecoverable(format!("Bad Version Range ({range}): {x}"))
-                    })?,
-                ))
+                Ok::<_, RustError>(
+                    (
+                        pkg,
+                        VersionRange::from_str(&range).map_err(|x| {
+                            RustError::unrecoverable(format!("Bad Version Range ({range}): {x}"))
+                        })?,
+                    )
+                )
             })
             .collect::<Result<_, _>>()?,
         unity_packages: unity_packages.into_iter().map(PathBuf::from).collect(),
     };
 
-    let template = serialize_alcom_template(template)
+    let template_json = serialize_alcom_template(template)
         .map_err(|x| RustError::unrecoverable(format!("Failed to serialize template: {x}")))?;
 
-    if let Some(id) = id {
-        // There is id; overwrite existing one
-        let templates = templates.get();
-        let Some(source_path) = templates
+    if id.is_some() {
+        // overwrite existing template
+        let templates_state = templates.get();
+        let Some(source_path) = templates_state
             .as_ref()
-            .and_then(|x| x.iter().find(|x| x.id == id))
+            .and_then(|x| x.iter().find(|x| x.id == effective_id))
             .and_then(|x| x.source_path.as_ref())
         else {
             return Err(RustError::unrecoverable(
                 "Template with such id not found (this is bug)",
             ));
         };
-        io.write_sync(source_path, &template).await?;
+        io.write_sync(source_path, &template_json).await?;
     } else {
-        // No id; create new one
-        save_template_file(&io, &name, &template).await?;
+        // new template file
+        save_template_file(&io, &name, &template_json).await?;
     }
 
     Ok(())

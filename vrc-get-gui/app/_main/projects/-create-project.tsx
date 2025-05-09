@@ -131,7 +131,7 @@ function EnteringInformation({
 	dialog: DialogContext<null | ProjectCreationInformation>;
 }) {
 	const [unityVersion, setUnityVersion] = useState<string>(
-		templates[0].unity_versions[0],
+		(templates[0].unity_versions[0] || '').replace(/-([fpb]\d+)/gi, '$1')
 	);
 	const [templateId, setTemplateId] = useState<string>(templates[0].id);
 
@@ -205,7 +205,15 @@ function EnteringInformation({
 		).filter((x) => x[1].length > 0);
 	}, [templates]);
 
-	const unityVersions = templateById.get(templateId)?.unity_versions ?? [];
+	const selectedTemplateData = templateById.get(templateId);
+
+	// Get the raw versions which might have a dash from custom templates
+	const rawUnityVersions = selectedTemplateData?.unity_versions ?? [];
+
+	// Normalize them to remove the dash before populating the dropdown
+	const unityVersions = rawUnityVersions.map(version =>
+		version.replace(/-([fpb]\d+)/gi, '$1')
+	);
 
 	const badProjectName = ["AlreadyExists", "InvalidNameForFolderName"].includes(
 		projectNameCheckState,
@@ -215,8 +223,16 @@ function EnteringInformation({
 		projectNameCheckState !== "checking" && !badProjectName;
 
 	useEffect(() => {
-		setUnityVersion(unityVersions[0]);
-	}, [unityVersions]);
+		// Log versions again when templateId changes
+		const currentTemplateData = templateById.get(templateId);
+		const currentRawVersions = currentTemplateData?.unity_versions ?? [];
+		const currentNormalizedVersions = currentRawVersions.map(v => v.replace(/-([fpb]\d+)/gi, '$1'));
+		if (currentNormalizedVersions.length > 0) {
+			setUnityVersion(currentNormalizedVersions[0]);
+		} else {
+			setUnityVersion(''); // Or handle no available versions
+		}
+	}, [templateId, templateById]); // Rerun when template changes
 
 	return (
 		<DialogBase
@@ -243,9 +259,13 @@ function EnteringInformation({
 										{tc(`projects:template-category:${category}`)}
 									</SelectLabel>
 									{templates.map((template) => {
+										// Log each template's versions when rendering the list
+										const itemRawVersions = template.unity_versions ?? [];
+										const itemNormalizedVersions = itemRawVersions.map(v => v.replace(/-([fpb]\d+)/gi, '$1'));
+
 										const disabled =
 											!template.available ||
-											template.unity_versions.length === 0;
+											itemNormalizedVersions.length === 0; // Check normalized length
 										const contents = (
 											<SelectItem
 												value={template.id}
@@ -264,7 +284,7 @@ function EnteringInformation({
 													</TooltipContent>
 												</Tooltip>
 											);
-										} else if (template.unity_versions.length === 0) {
+										} else if (itemNormalizedVersions.length === 0) {
 											return (
 												<Tooltip key={template.id}>
 													<TooltipTrigger>{contents}</TooltipTrigger>

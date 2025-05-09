@@ -1,2 +1,4 @@
 /target
 /artifacts
+.cursor/rules/vrc-get.mdc
+.cursor/rules/vrc-get-gui.mdc
