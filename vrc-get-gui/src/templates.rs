@@ -514,13 +514,17 @@ pub async fn create_project(
                 for (pkg_id, range) in &template.vpm_dependencies {
                     match resolved.packages.entry(pkg_id.clone()) {
                         Entry::Occupied(mut e) => {
-                            log::info!("   Merging existing dependency: {} (Base: {}, Custom: {})", pkg_id, e.get(), range);
+                            log::info!(
+                                "Merging existing dependency: {} (Base: {}, Custom: {})",
+                                pkg_id,
+                                e.get(),
+                                range
+                            );
                             let intersected_range = range.intersect(e.get());
-                            log::info!("    -> Intersected Range: {}", intersected_range);
                             e.insert(intersected_range);
                         }
                         Entry::Vacant(e) => {
-                            log::info!("   Adding new dependency: {} {}", pkg_id, range);
+                            log::info!("Adding new dependency: {} {}", pkg_id, range);
                             e.insert(range.clone());
                         }
                     }
@@ -529,8 +533,12 @@ pub async fn create_project(
                 // Merge Unity packages
                 (resolved.unity_packages).extend(template.unity_packages.iter().cloned());
 
-                log::info!("  Final resolved packages for {}: {:?}", id, resolved.packages);
-                log::info!("  Final resolved unityPackages for {}: {:?}", id, resolved.unity_packages);
+                log::debug!("Final resolved packages for {}: {:?}", id, resolved.packages);
+                log::debug!(
+                    "Final resolved unityPackages for {}: {:?}",
+                    id,
+                    resolved.unity_packages
+                );
                 Some(resolved)
             }
         }

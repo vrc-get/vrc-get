@@ -18,6 +18,14 @@ The format is based on [Keep a Changelog].
   - You now can create Project Templates in ALCOM.
   - The new form of template can install multiple VPM packages at once, and you also can import unitypackages.
   - You now can create blank project along with this system change.
+- Template Builder UI foundations and initial features. `#16a6c4c`
+  - Added and expanded upon the WIP interface for creating and preparing custom project templates within ALCOM.
+  - Implemented UI elements for naming templates, selecting base templates, and choosing Unity versions.
+  - Integrated a package multi-selection component (`PackageMultiSelect.tsx`) for choosing VPM packages.
+- Enhanced project template system backend. `#9879596`
+  - Improved template resolution logic to support ALCOM templates deriving from base templates.
+  - Added support for VPM dependency merging and `.unitypackage` inclusion from custom templates.
+  - Refined Unity version filtering and inheritance for custom templates.
 
 ### Changed
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`
@@ -50,6 +58,9 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Layout shift on select package `#2045`
+- Correctly save custom template Unity version ranges during template creation/editing without premature normalization. `#9879596`
+- Prevented duplicate entries from appearing in the Unity version dropdown in the project template editor. `#9879596`
+- Ensured Unity versions in the project creation dialog are consistently displayed without internal formatting (e.g., dashes) and the initial default is correctly normalized. `#9879596`
 
 ### Security
 

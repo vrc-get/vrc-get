@@ -130,11 +130,7 @@ function EnteringInformation({
 	projectLocation: string;
 	dialog: DialogContext<null | ProjectCreationInformation>;
 }) {
-	// Log initial templates data
-	console.log('Initial templates data received:', templates);
-
 	const [unityVersion, setUnityVersion] = useState<string>(
-		// Normalize initial default version if needed
 		(templates[0].unity_versions[0] || '').replace(/-([fpb]\d+)/gi, '$1')
 	);
 	const [templateId, setTemplateId] = useState<string>(templates[0].id);
@@ -209,20 +205,15 @@ function EnteringInformation({
 		).filter((x) => x[1].length > 0);
 	}, [templates]);
 
-	// Log data for the currently selected template *before* deriving versions
-	console.log(`Selected template ID: ${templateId}`);
 	const selectedTemplateData = templateById.get(templateId);
-	console.log('Selected template data (before deriving versions):', selectedTemplateData);
 
 	// Get the raw versions which might have a dash from custom templates
 	const rawUnityVersions = selectedTemplateData?.unity_versions ?? [];
-	console.log('Raw unity versions from selected template:', rawUnityVersions);
 
 	// Normalize them to remove the dash before populating the dropdown
 	const unityVersions = rawUnityVersions.map(version =>
 		version.replace(/-([fpb]\d+)/gi, '$1')
 	);
-	console.log('Normalized unity versions for dropdown:', unityVersions);
 
 	const badProjectName = ["AlreadyExists", "InvalidNameForFolderName"].includes(
 		projectNameCheckState,
@@ -236,8 +227,6 @@ function EnteringInformation({
 		const currentTemplateData = templateById.get(templateId);
 		const currentRawVersions = currentTemplateData?.unity_versions ?? [];
 		const currentNormalizedVersions = currentRawVersions.map(v => v.replace(/-([fpb]\d+)/gi, '$1'));
-		console.log('useEffect - Raw unity versions:', currentRawVersions);
-		console.log('useEffect - Normalized unity versions:', currentNormalizedVersions);
 		if (currentNormalizedVersions.length > 0) {
 			setUnityVersion(currentNormalizedVersions[0]);
 		} else {
@@ -273,7 +262,6 @@ function EnteringInformation({
 										// Log each template's versions when rendering the list
 										const itemRawVersions = template.unity_versions ?? [];
 										const itemNormalizedVersions = itemRawVersions.map(v => v.replace(/-([fpb]\d+)/gi, '$1'));
-										console.log(`Template item ${template.id} - Raw: ${itemRawVersions.join(', ')} - Norm: ${itemNormalizedVersions.join(', ')}`);
 
 										const disabled =
 											!template.available ||

@@ -563,11 +563,6 @@ function TemplateEditor({
 		unityRange.match(rangeRegex) &&
 		name.length !== 0;
 
-	// Debug logging to trace Unity version formatting
-	console.log('unity_paths from backend:', unityVersionsResult.data?.unity_paths);
-	console.log('installedUnityVersions:', installedUnityVersions);
-	console.log('unityRange (selected):', unityRange);
-
 	const queryClient = useQueryClient();
 
 	const saveTemplate = async () => {
@@ -576,11 +571,13 @@ function TemplateEditor({
 			for (const pkgId of selectedPackages) {
 				vpmDependencies[pkgId] = "*";
 			}
+			// Normalize unityRange before saving (remove dash before f/p/b)
+			let normalizedUnityRange = unityRange.replace(/-([fpb]\d+)$/i, '$1');
 			await commands.environmentSaveTemplate(
 				template?.id ?? null,
 				baseTemplate,
 				name,
-				unityRange,
+				normalizedUnityRange,
 				Object.entries(vpmDependencies),
 				unityPackagesListContext.value as string[],
 			);
