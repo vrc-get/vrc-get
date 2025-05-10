@@ -66,7 +66,7 @@ cocoa = "0.26"
 plist = { version = "1" }
 objc2-app-kit = { version = "0.3.0", features = ['NSWorkspace', "block2"] }
 objc2-foundation = "0.3.0"
-block2 = "0.6.0"
+block2 = "0.6.1"
 objc2 = "0.6.0"
 dispatch2 = "0.2.0"
 
