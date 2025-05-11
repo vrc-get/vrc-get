@@ -11,7 +11,7 @@ import type {
 	TauriPackage,
 	TauriPackageChange,
 	TauriPendingProjectChanges,
-	TauriRemoveReason,
+	TauriVersion,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
@@ -19,11 +19,13 @@ import { isHandleable } from "@/lib/errors";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
+import { groupBy, keyComparator } from "@/lib/utils";
 import { compareVersion, toVersionString } from "@/lib/version";
 import type { DefaultError } from "@tanstack/query-core";
 import { type UseMutationOptions, queryOptions } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import type React from "react";
+import { Fragment } from "react";
 
 export type RequestedOperation =
 	| {
@@ -276,55 +278,30 @@ function ProjectChangesDialog({
 		</div>
 	);
 
-	function isInstallNew(
-		pair: [string, TauriPackageChange],
-	): pair is [string, { InstallNew: TauriPackage }] {
-		return "InstallNew" in pair[1];
-	}
-
-	function isRemove(
-		pair: [string, TauriPackageChange],
-	): pair is [string, { Remove: TauriRemoveReason }] {
-		return "Remove" in pair[1];
-	}
-
 	const existingPackageMap = new Map(existingPackages ?? []);
 
-	const installingPackages = changes.package_changes.filter(isInstallNew);
-	const removingPackages = changes.package_changes.filter(isRemove);
+	const categorizedChanges = changes.package_changes.map(([pkgId, change]) =>
+		categorizeChange(pkgId, change, existingPackageMap),
+	);
+	categorizedChanges.sort(keyComparator("packageId"));
+	const groupedChanges = Array.from(groupBy(categorizedChanges, (c) => c.type));
+	groupedChanges.sort(keyComparator(0));
 
-	const installingPackageById = new Map(installingPackages);
+	const installingPackageById = new Map(
+		changes.package_changes
+			.map(([id, change]) =>
+				"InstallNew" in change ? ([id, change.InstallNew] as const) : undefined,
+			)
+			.filter((x) => x != null),
+	);
 
-	const reInstallingPackages = installingPackages.filter(([pkgId, c]) => {
-		const info = existingPackageMap.get(pkgId);
+	function getPackageDisplayName(id: string) {
 		return (
-			info !== undefined &&
-			compareVersion(c.InstallNew.version, info.version) === 0
+			installingPackageById.get(id)?.display_name ??
+			existingPackageMap.get(id)?.display_name ??
+			id
 		);
-	});
-	const installingNewPackages = installingPackages.filter(([pkgId, c]) => {
-		const info = existingPackageMap.get(pkgId);
-		return (
-			info === undefined ||
-			compareVersion(c.InstallNew.version, info.version) !== 0
-		);
-	});
-
-	const removingRequestedPackages = removingPackages.filter(
-		([_, c]) => c.Remove === "Requested",
-	);
-	const removingLegacyPackages = removingPackages.filter(
-		([_, c]) => c.Remove === "Legacy",
-	);
-	const removingUnusedPackages = removingPackages.filter(
-		([_, c]) => c.Remove === "Unused",
-	);
-
-	reInstallingPackages.sort(comparePackageChangeByName);
-	installingNewPackages.sort(comparePackageChangeByName);
-	removingRequestedPackages.sort(comparePackageChangeByName);
-	removingLegacyPackages.sort(comparePackageChangeByName);
-	removingUnusedPackages.sort(comparePackageChangeByName);
+	}
 
 	return (
 		<div className={"contents whitespace-normal"}>
@@ -333,54 +310,14 @@ function ProjectChangesDialog({
 			<DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
 				<p>{tc("projects:manage:dialog:confirm changes description")}</p>
 				<div className={"flex flex-col gap-1 p-2"}>
-					{installingNewPackages.map(([pkgId, pkgChange]) => {
+					{groupedChanges.map(([category, changes], index) => {
 						return (
-							<InstallPackageInfo
-								key={pkgId}
-								pkgChange={pkgChange}
-								message={"projects:manage:dialog:install package"}
-							/>
-						);
-					})}
-					{installingNewPackages.length > 0 &&
-						reInstallingPackages.length > 0 && <hr />}
-					{reInstallingPackages.map(([pkgId, pkgChange]) => {
-						return (
-							<InstallPackageInfo
-								key={pkgId}
-								pkgChange={pkgChange}
-								message={"projects:manage:dialog:reinstall package"}
-							/>
-						);
-					})}
-					{removingRequestedPackages.map(([pkgId, _]) => {
-						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
-						return (
-							<TypographyItem key={pkgId}>
-								{tc("projects:manage:dialog:uninstall package as requested", {
-									name,
-								})}
-							</TypographyItem>
-						);
-					})}
-					{removingLegacyPackages.map(([pkgId, _]) => {
-						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
-						return (
-							<TypographyItem key={pkgId}>
-								{tc("projects:manage:dialog:uninstall package as legacy", {
-									name,
-								})}
-							</TypographyItem>
-						);
-					})}
-					{removingUnusedPackages.map(([pkgId, _]) => {
-						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
-						return (
-							<TypographyItem key={pkgId}>
-								{tc("projects:manage:dialog:uninstall package as unused", {
-									name,
-								})}
-							</TypographyItem>
+							<Fragment key={category}>
+								{index !== 0 && <hr />}
+								{changes.map((change) => (
+									<PackageChange key={change.packageId} change={change} />
+								))}
+							</Fragment>
 						);
 					})}
 				</div>
@@ -393,13 +330,6 @@ function ProjectChangesDialog({
 						</p>
 						<div className={"flex flex-col gap-1 p-2"}>
 							{versionConflicts.map(([pkgId, conflict]) => {
-								function getPackageDisplayName(id: string) {
-									return (
-										installingPackageById.get(id)?.InstallNew?.display_name ??
-										existingPackageMap.get(id)?.display_name ??
-										pkgId
-									);
-								}
 								return (
 									<TypographyItem key={pkgId}>
 										{tc("projects:manage:dialog:conflicts with", {
@@ -427,9 +357,7 @@ function ProjectChangesDialog({
 									{tc(
 										"projects:manage:dialog:package not supported your unity",
 										{
-											pkg:
-												installingPackageById.get(pkgId)?.InstallNew
-													?.display_name ?? pkgId,
+											pkg: getPackageDisplayName(pkgId),
 										},
 									)}
 								</TypographyItem>
@@ -482,27 +410,216 @@ function ProjectChangesDialog({
 	);
 }
 
-function InstallPackageInfo({
-	pkgChange,
-	message,
+function PackageChange({
+	change,
 }: {
-	pkgChange: { InstallNew: TauriBasePackageInfo };
-	message: string;
+	change: PackageChangeDisplayInformation;
 }) {
-	const name = pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name;
-	const version = toVersionString(pkgChange.InstallNew.version);
+	switch (change.type) {
+		case PackageChangeCategory.Upgrade:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:upgrade package", {
+							name: change.displayName,
+							previousVersion: toVersionString(change.previousVersion),
+							version: toVersionString(change.version),
+						})}
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+		case PackageChangeCategory.Downgrade:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:downgrade package", {
+							name: change.displayName,
+							previousVersion: toVersionString(change.previousVersion),
+							version: toVersionString(change.version),
+						})}
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+		case PackageChangeCategory.InstallNew:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:install package", {
+							name: change.displayName,
+							version: toVersionString(change.version),
+						})}
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+		case PackageChangeCategory.UninstallRequested:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:uninstall package as requested", {
+							name: change.displayName,
+						})}
+					</p>
+				</div>
+			);
+		case PackageChangeCategory.UninstallUnused:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:uninstall package as unused", {
+							name: change.displayName,
+						})}
+					</p>
+				</div>
+			);
+		case PackageChangeCategory.UninstallLegacy:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:uninstall package as legacy", {
+							name: change.displayName,
+						})}
+					</p>
+				</div>
+			);
+		case PackageChangeCategory.Reinstall:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal select-text"}>
+						{tc("projects:manage:dialog:reinstall package", {
+							name: change.displayName,
+							version: toVersionString(change.version),
+						})}
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+	}
+}
 
-	return (
-		<div className={"flex items-center p-3"}>
-			<p className={"font-normal"}>
-				{tc(message, {
-					name,
-					version,
-				})}
-			</p>
-			<ChangelogButton url={pkgChange.InstallNew.changelog_url} />
-		</div>
-	);
+enum PackageChangeCategory {
+	InstallNew = 0,
+	Upgrade = 1,
+	Downgrade = 2,
+	UninstallRequested = 3,
+	UninstallUnused = 4,
+	UninstallLegacy = 5,
+	Reinstall = 6,
+}
+
+type PackageChangeDisplayInformation = {
+	packageId: string;
+	displayName: string;
+} & (
+	| {
+			type: PackageChangeCategory.Upgrade;
+			version: TauriVersion;
+			previousVersion: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.Downgrade;
+			version: TauriVersion;
+			previousVersion: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.Reinstall;
+			version: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.InstallNew;
+			version: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.UninstallRequested;
+	  }
+	| {
+			type: PackageChangeCategory.UninstallUnused;
+	  }
+	| {
+			type: PackageChangeCategory.UninstallLegacy;
+	  }
+);
+
+function categorizeChange(
+	pkgId: string,
+	change: TauriPackageChange,
+	installedPackages: Map<string, TauriBasePackageInfo>,
+): PackageChangeDisplayInformation {
+	if ("InstallNew" in change) {
+		const name = change.InstallNew.display_name ?? change.InstallNew.name;
+
+		const installed = installedPackages.get(pkgId);
+		if (installed == null) {
+			return {
+				packageId: pkgId,
+				displayName: name,
+				type: PackageChangeCategory.InstallNew,
+				version: change.InstallNew.version,
+				changelogUrl: change.InstallNew.changelog_url,
+			};
+		} else {
+			const compare = compareVersion(
+				installed.version,
+				change.InstallNew.version,
+			);
+			switch (compare) {
+				case 1:
+					return {
+						packageId: pkgId,
+						displayName: name,
+						type: PackageChangeCategory.Downgrade,
+						version: change.InstallNew.version,
+						previousVersion: installed.version,
+						changelogUrl: change.InstallNew.changelog_url,
+					};
+				case 0:
+					return {
+						packageId: pkgId,
+						displayName: name,
+						type: PackageChangeCategory.Reinstall,
+						version: change.InstallNew.version,
+						changelogUrl: change.InstallNew.changelog_url,
+					};
+				case -1:
+					return {
+						packageId: pkgId,
+						displayName: name,
+						type: PackageChangeCategory.Upgrade,
+						version: change.InstallNew.version,
+						previousVersion: installed.version,
+						changelogUrl: change.InstallNew.changelog_url,
+					};
+			}
+		}
+	} else {
+		const name = installedPackages.get(pkgId)?.display_name ?? pkgId;
+		switch (change.Remove) {
+			case "Requested":
+				return {
+					packageId: pkgId,
+					displayName: name,
+					type: PackageChangeCategory.UninstallRequested,
+				};
+			case "Legacy":
+				return {
+					packageId: pkgId,
+					displayName: name,
+					type: PackageChangeCategory.UninstallLegacy,
+				};
+			case "Unused":
+				return {
+					packageId: pkgId,
+					displayName: name,
+					type: PackageChangeCategory.UninstallUnused,
+				};
+		}
+	}
 }
 
 function ChangelogButton({ url }: { url?: string | null }) {
