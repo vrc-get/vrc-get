@@ -78,19 +78,37 @@ impl UnityVersion {
         }
     }
 
-    // expects major.minor.revision[type]increment
+    // expects major.minor.revision[type]increment OR major.minor.revision-[type]increment
     pub fn parse(input: &str) -> Option<Self> {
         let (major, rest) = input.split_once('.')?;
         let major = u16::from_str(major).ok()?;
         let (minor, rest) = rest.split_once('.')?;
         let minor = u8::from_str(minor).ok()?;
-        let revision_delimiter = rest.find(is_release_type_char)?;
-        let revision = &rest[..revision_delimiter];
-        let revision = u8::from_str(revision).ok()?;
-        let type_ = ReleaseType::try_from(rest.as_bytes()[revision_delimiter]).ok()?;
-        let rest = &rest[revision_delimiter + 1..];
 
-        let (increment_part, _rest) = rest.split_once('-').unwrap_or((rest, ""));
+        // Find the start of the type character (a, b, f, c, p, x)
+        // It might be immediately after the revision, or after a dash.
+        let revision_part;
+        let type_and_increment_part;
+        if let Some(delimiter_pos) = rest.find(|c: char| is_release_type_char(c)) {
+            if delimiter_pos > 0 && rest.as_bytes()[delimiter_pos - 1] == b'-' {
+                // Format is like 2022.3.22-f1
+                revision_part = &rest[..delimiter_pos - 1];
+                type_and_increment_part = &rest[delimiter_pos..];
+            } else {
+                // Format is like 2022.3.22f1
+                revision_part = &rest[..delimiter_pos];
+                type_and_increment_part = &rest[delimiter_pos..];
+            }
+        } else {
+            // No type character found, invalid format
+            return None;
+        }
+
+        let revision = u8::from_str(revision_part).ok()?;
+        let type_ = ReleaseType::try_from(type_and_increment_part.as_bytes()[0]).ok()?;
+        let rest_after_type = &type_and_increment_part[1..];
+
+        let (increment_part, _rest) = rest_after_type.split_once('-').unwrap_or((rest_after_type, ""));
         let (increment, china_increment);
         if increment_part.contains('c') {
             let (increment_str, increment_china_str) = increment_part.split_once('c')?;
