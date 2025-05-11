@@ -326,28 +326,6 @@ function ProjectChangesDialog({
 	removingLegacyPackages.sort(comparePackageChangeByName);
 	removingUnusedPackages.sort(comparePackageChangeByName);
 
-	const ChangelogButton = ({ url }: { url?: string | null }) => {
-		if (url == null) return null;
-		try {
-			const parsed = new URL(url);
-			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-				return (
-					<Button
-						className={"ml-1 px-2"}
-						size={"sm"}
-						onClick={() => commands.utilOpenUrl(url)}
-					>
-						<ExternalLink>
-							{tc("projects:manage:button:see changelog")}
-						</ExternalLink>
-					</Button>
-				);
-			}
-		} catch {}
-
-		return null;
-	};
-
 	return (
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
@@ -356,39 +334,23 @@ function ProjectChangesDialog({
 				<p>{tc("projects:manage:dialog:confirm changes description")}</p>
 				<div className={"flex flex-col gap-1 p-2"}>
 					{installingNewPackages.map(([pkgId, pkgChange]) => {
-						const name =
-							pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name;
-						const version = toVersionString(pkgChange.InstallNew.version);
-
 						return (
-							<div key={pkgId} className={"flex items-center p-3"}>
-								<p className={"font-normal"}>
-									{tc("projects:manage:dialog:install package", {
-										name,
-										version,
-									})}
-								</p>
-								<ChangelogButton url={pkgChange.InstallNew.changelog_url} />
-							</div>
+							<InstallPackageInfo
+								key={pkgId}
+								pkgChange={pkgChange}
+								message={"projects:manage:dialog:install package"}
+							/>
 						);
 					})}
 					{installingNewPackages.length > 0 &&
 						reInstallingPackages.length > 0 && <hr />}
 					{reInstallingPackages.map(([pkgId, pkgChange]) => {
-						const name =
-							pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name;
-						const version = toVersionString(pkgChange.InstallNew.version);
-
 						return (
-							<div key={pkgId} className={"flex items-center p-3"}>
-								<p className={"font-normal"}>
-									{tc("projects:manage:dialog:reinstall package", {
-										name,
-										version,
-									})}
-								</p>
-								<ChangelogButton url={pkgChange.InstallNew.changelog_url} />
-							</div>
+							<InstallPackageInfo
+								key={pkgId}
+								pkgChange={pkgChange}
+								message={"projects:manage:dialog:reinstall package"}
+							/>
 						);
 					})}
 					{removingRequestedPackages.map(([pkgId, _]) => {
@@ -518,6 +480,51 @@ function ProjectChangesDialog({
 			</DialogFooter>
 		</div>
 	);
+}
+
+function InstallPackageInfo({
+	pkgChange,
+	message,
+}: {
+	pkgChange: { InstallNew: TauriBasePackageInfo };
+	message: string;
+}) {
+	const name = pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name;
+	const version = toVersionString(pkgChange.InstallNew.version);
+
+	return (
+		<div className={"flex items-center p-3"}>
+			<p className={"font-normal"}>
+				{tc(message, {
+					name,
+					version,
+				})}
+			</p>
+			<ChangelogButton url={pkgChange.InstallNew.changelog_url} />
+		</div>
+	);
+}
+
+function ChangelogButton({ url }: { url?: string | null }) {
+	if (url == null) return null;
+	try {
+		const parsed = new URL(url);
+		if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+			return (
+				<Button
+					className={"ml-1 px-2"}
+					size={"sm"}
+					onClick={() => commands.utilOpenUrl(url)}
+				>
+					<ExternalLink>
+						{tc("projects:manage:button:see changelog")}
+					</ExternalLink>
+				</Button>
+			);
+		}
+	} catch {}
+
+	return null;
 }
 
 function comparePackageChangeByName(
