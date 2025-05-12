@@ -1,3 +1,4 @@
+import { DelayedButton } from "@/components/DelayedButton";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
 import {
@@ -309,6 +310,8 @@ function ProjectChangesDialog({
 
 	const incompatibility = changes.conflicts.length !== 0;
 
+	const needsCare = breakingChanges || incompatibility;
+
 	return (
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
@@ -420,9 +423,13 @@ function ProjectChangesDialog({
 				<Button onClick={() => dialog.close(false)} className="mr-1">
 					{tc("general:button:cancel")}
 				</Button>
-				<Button onClick={() => dialog.close(true)} variant={"destructive"}>
+				<DelayedButton
+					onClick={() => dialog.close(true)}
+					variant={needsCare ? "destructive" : "warning"}
+					delay={needsCare ? 1000 : 0}
+				>
 					{tc("projects:manage:button:apply")}
-				</Button>
+				</DelayedButton>
 			</DialogFooter>
 		</div>
 	);
@@ -692,7 +699,7 @@ function isUpgradingMajorly(
 	newVersion: TauriVersion,
 ): boolean {
 	function firstNonZeroVersionNum(version: TauriVersion): number {
-		if (version.major !== 0) return version.minor;
+		if (version.major !== 0) return version.major;
 		if (version.minor !== 0) return version.minor;
 		return version.patch;
 	}
