@@ -43,6 +43,9 @@ The format is based on [Keep a Changelog].
 - Improves launching unity behavior `#2124`
   - On linux, ALCOM will now read exit code, therefore, Unity no longer remains as a defunct process.
   - On macOS, we now launch Unity as a distinct / individual process, therefore several macOS subsystems should treat Unity as Unity instead of Unity as a part of ALCOM.
+- Downgraded glibc requirements for linux images `#2160`
+  - This release will be built on ubuntu 22.04 so glibc 2.35 is new requirements
+  - If you want to use on platforms with older glibc, build yourself or pull request to build on older environments.
 
 ### Deprecated
 
