@@ -320,13 +320,13 @@ function ProjectChangesDialog({
 				<p>{tc("projects:manage:dialog:confirm changes description")}</p>
 				{breakingChanges && (
 					<div className={"flex border border-solid border-warning mt-3 py-2"}>
-						<CircleAlert className={"text-warning self-center mx-2"} />
+						<CircleAlert className={"text-warning self-center mx-2 shrink-0"} />
 						<p>{tc("projects:manage:dialog:note breaking changes")}</p>
 					</div>
 				)}
 				{incompatibility && (
 					<div className={"flex border border-solid border-warning mt-3 py-2"}>
-						<CircleAlert className={"text-warning self-center mx-2"} />
+						<CircleAlert className={"text-warning self-center mx-2 shrink-0"} />
 						<p>{tc("projects:manage:dialog:note incompatibility")}</p>
 					</div>
 				)}
