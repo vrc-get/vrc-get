@@ -49,13 +49,39 @@ export default function viteBuildLicenseJson({
 		},
 		async load(id): Promise<LoadResult> {
 			if (id === "build:licenses.json") {
-				const json = await buildLicenseJson(rootDir);
-				return {
-					code: json,
-				};
+				try {
+					const json = await buildLicenseJson(rootDir);
+					return {
+						code: json,
+					};
+				} catch (e) {
+					console.error(flattenAggregateError(e));
+				}
 			}
 		},
 	};
+}
+
+function flattenAggregateError(e: unknown): unknown {
+	if (!(e instanceof AggregateError)) {
+		return e;
+	}
+
+	const errors: unknown[] = [];
+
+	function collect(e: unknown) {
+		if (e instanceof AggregateError) {
+			for (const e1 of e.errors) {
+				collect(e1);
+			}
+		} else {
+			errors.push(e);
+		}
+	}
+
+	collect(e);
+
+	return new AggregateError(errors);
 }
 
 async function buildLicenseJson(rootDir: string): Promise<string> {
