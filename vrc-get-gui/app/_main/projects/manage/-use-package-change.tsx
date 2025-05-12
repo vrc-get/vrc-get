@@ -416,6 +416,28 @@ function PackageChange({
 	change: PackageChangeDisplayInformation;
 }) {
 	switch (change.type) {
+		case PackageChangeCategory.UpgradeMajor:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:upgrade package", {
+							name: change.displayName,
+							previousVersion: toVersionString(change.previousVersion),
+							version: toVersionString(change.version),
+						})}
+						<span className={"text-warning"}>
+							{"\u200B"}
+							<CircleAlert
+								className={
+									"inline px-1 size-5 -mt-0.5 box-content align-middle"
+								}
+							/>
+							{tc("projects:manage:dialog:breaking changes")}
+						</span>
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
 		case PackageChangeCategory.Upgrade:
 			return (
 				<div className={"flex items-center p-3 justify-between"}>
@@ -501,18 +523,25 @@ function PackageChange({
 
 enum PackageChangeCategory {
 	InstallNew = 0,
-	Upgrade = 1,
-	Downgrade = 2,
-	UninstallRequested = 3,
-	UninstallUnused = 4,
-	UninstallLegacy = 5,
-	Reinstall = 6,
+	UpgradeMajor = 1,
+	Upgrade = 2,
+	Downgrade = 3,
+	UninstallRequested = 4,
+	UninstallUnused = 5,
+	UninstallLegacy = 6,
+	Reinstall = 7,
 }
 
 type PackageChangeDisplayInformation = {
 	packageId: string;
 	displayName: string;
 } & (
+	| {
+			type: PackageChangeCategory.UpgradeMajor;
+			version: TauriVersion;
+			previousVersion: TauriVersion;
+			changelogUrl: string | null;
+	  }
 	| {
 			type: PackageChangeCategory.Upgrade;
 			version: TauriVersion;
@@ -587,14 +616,31 @@ function categorizeChange(
 						changelogUrl: change.InstallNew.changelog_url,
 					};
 				case -1:
-					return {
-						packageId: pkgId,
-						displayName: name,
-						type: PackageChangeCategory.Upgrade,
-						version: change.InstallNew.version,
-						previousVersion: installed.version,
-						changelogUrl: change.InstallNew.changelog_url,
-					};
+					if (
+						isUpgradingMajorly(
+							pkgId,
+							installed.version,
+							change.InstallNew.version,
+						)
+					) {
+						return {
+							packageId: pkgId,
+							displayName: name,
+							type: PackageChangeCategory.UpgradeMajor,
+							version: change.InstallNew.version,
+							previousVersion: installed.version,
+							changelogUrl: change.InstallNew.changelog_url,
+						};
+					} else {
+						return {
+							packageId: pkgId,
+							displayName: name,
+							type: PackageChangeCategory.Upgrade,
+							version: change.InstallNew.version,
+							previousVersion: installed.version,
+							changelogUrl: change.InstallNew.changelog_url,
+						};
+					}
 			}
 		}
 	} else {
@@ -620,6 +666,41 @@ function categorizeChange(
 				};
 		}
 	}
+}
+
+function isUpgradingMajorly(
+	pkgId: string,
+	prevVersion: TauriVersion,
+	newVersion: TauriVersion,
+): boolean {
+	function firstNonZeroVersionNum(version: TauriVersion): number {
+		if (version.major !== 0) return version.minor;
+		if (version.minor !== 0) return version.minor;
+		return version.patch;
+	}
+
+	// generic case: non-zero first version number will be the major version
+	if (
+		firstNonZeroVersionNum(prevVersion) !== firstNonZeroVersionNum(newVersion)
+	) {
+		return true;
+	}
+	// Special case: VRChat SDK uses Branding.Breaking.Bumps.
+	// Therefore the second number bump means major version bump.
+	// See https://vcc.docs.vrchat.com/vpm/packages/#brandingbreakingbumps
+	// See https://feedback.vrchat.com/sdk-bug-reports/p/feedback-please-dont-make-vrcsdk-to-4x-unless-as-big-breaking-changes-as-2-to-3
+	if (
+		pkgId === "com.vrchat.avatars" ||
+		pkgId === "com.vrchat.worlds" ||
+		pkgId === "com.vrchat.base"
+	) {
+		if (prevVersion.minor !== newVersion.minor) {
+			return true;
+		}
+	}
+
+	// No conditions met so it's not major bump
+	return false;
 }
 
 function ChangelogButton({ url }: { url?: string | null }) {

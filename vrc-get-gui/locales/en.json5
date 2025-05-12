@@ -286,6 +286,7 @@
     "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} to {{version}}",
     "projects:manage:dialog:install package": "Install <b>{{name}}</b> version {{version}}",
     "projects:manage:dialog:reinstall package": "Reinstall <b>{{name}}</b> version {{version}}",
+    "projects:manage:dialog:breaking changes": "Includes breaking changes",
     "projects:manage:dialog:uninstall package as requested": "Remove <b>{{name}}</b> as you requested",
     "projects:manage:dialog:uninstall package as legacy": "Remove <b>{{name}}</b> since it's a legacy package",
     "projects:manage:dialog:uninstall package as unused": "Remove <b>{{name}}</b> which is unused",
