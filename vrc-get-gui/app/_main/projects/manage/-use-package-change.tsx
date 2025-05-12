@@ -303,12 +303,30 @@ function ProjectChangesDialog({
 		);
 	}
 
+	const breakingChanges = groupedChanges.some(
+		([a]) => a === PackageChangeCategory.UpgradeMajor,
+	);
+
+	const incompatibility = changes.conflicts.length !== 0;
+
 	return (
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 			<DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
 				<p>{tc("projects:manage:dialog:confirm changes description")}</p>
+				{breakingChanges && (
+					<div className={"flex border border-solid border-warning mt-3 py-2"}>
+						<CircleAlert className={"text-warning self-center mx-2"} />
+						<p>{tc("projects:manage:dialog:note breaking changes")}</p>
+					</div>
+				)}
+				{incompatibility && (
+					<div className={"flex border border-solid border-warning mt-3 py-2"}>
+						<CircleAlert className={"text-warning self-center mx-2"} />
+						<p>{tc("projects:manage:dialog:note incompatibility")}</p>
+					</div>
+				)}
 				<div className={"flex flex-col gap-1 p-2"}>
 					{groupedChanges.map(([category, changes], index) => {
 						return (
@@ -418,7 +436,7 @@ function PackageChange({
 	switch (change.type) {
 		case PackageChangeCategory.UpgradeMajor:
 			return (
-				<div className={"flex items-center p-3 justify-between"}>
+				<div className={"flex items-center p-3 justify-between bg-warning/10"}>
 					<p className={"font-normal"}>
 						{tc("projects:manage:dialog:upgrade package", {
 							name: change.displayName,
