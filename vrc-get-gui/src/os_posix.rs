@@ -3,7 +3,6 @@
 use std::ffi::OsStr;
 use std::fs::OpenOptions;
 use std::io;
-use std::os::fd::AsRawFd;
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::process::Command;
@@ -33,7 +32,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
     };
     let file = OpenOptions::new().read(true).open(path)?;
 
-    nix::fcntl::fcntl(file.as_raw_fd(), nix::fcntl::F_GETLK(&mut lock))?;
+    nix::fcntl::fcntl(file, nix::fcntl::F_GETLK(&mut lock))?;
 
     Ok(lock.l_type != F_UNLCK as c_short)
 }
