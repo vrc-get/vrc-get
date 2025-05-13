@@ -191,6 +191,7 @@
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Zurück zu Projekte",
     "projects:menuitem:change launch options": "Startparameter ändern",
+    "projects:menuitem:copy project": "Projekt duplizieren",
     "projects:menuitem:backup": "Backup erstellen",
     "projects:menuitem:forget unity path": "Unity Version zurücksetzen",
     "projects:manage:project location": "Pfad: <path>{{path}}</path>",
@@ -307,6 +308,11 @@
 
     "projects:manage:dialog:missing dependencies": "Einige Pakete wurden nicht gefunden",
     "projects:manage:dialog:missing dependencies description": "Die folgenden Pakete wurden zur installation angefordert, konnten aber nicht in der angeforderten Version gefunden werden.<br/>Bitte füge die korrekte Paketquelle hinzu. Möglicherweise kann im <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> gefunden werden.",
+
+    // copy project
+    "projects:dialog:copy project": "Projekt duplizieren: {{name}}",
+    "projects:dialog:copying...": "Dupliziere Projekt...",
+    "projects:toast:successfully copied project": "Projekt <b>{{name}}</b> erfolgreich dupliziert",
 
 
 // Packages Page
