@@ -35,8 +35,7 @@ export const LogsListCard = memo(function LogsListCard({
 
 		const container = scrollContainerRef.current;
 		const isNearBottom =
-			container.scrollHeight -
-			(container.scrollTop + container.clientHeight) <
+			container.scrollHeight - (container.scrollTop + container.clientHeight) <
 			50;
 
 		if (!isNearBottom) {
