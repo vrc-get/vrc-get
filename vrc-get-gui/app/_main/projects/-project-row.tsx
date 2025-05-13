@@ -1,3 +1,4 @@
+import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
@@ -94,6 +95,15 @@ export function ProjectRow({
 
 	const openProjectFolder = () =>
 		commands.utilOpen(project.path, "ErrorIfNotExists");
+
+	const onCopyProject = async () => {
+		try {
+			await copyProject(project.path);
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
 
 	const queryClient = useQueryClient();
 	const setProjectFavorite = useMutation({
@@ -270,6 +280,9 @@ export function ProjectRow({
 									disabled={removed || loading}
 								>
 									{tc("projects:menuitem:open directory")}
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={onCopyProject}>
+									{tc("projects:menuitem:copy project")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() =>

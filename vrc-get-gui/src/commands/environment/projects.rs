@@ -329,6 +329,24 @@ pub async fn environment_copy_project_for_migration(
     copy_project(window, channel, source_path, create_folder).await
 }
 
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_copy_project(
+    window: Window,
+    channel: String,
+    source_path: String,
+    new_path: String,
+) -> Result<AsyncCallResult<TauriCopyProjectProgress, String>, RustError> {
+    copy_project(window, channel, source_path, async move |_| {
+        if let Ok(()) = tokio::fs::create_dir(&new_path).await {
+            Some(PathBuf::from(new_path))
+        } else {
+            None
+        }
+    })
+    .await
+}
+
 pub async fn copy_project<F, Fut>(
     window: Window,
     channel: String,

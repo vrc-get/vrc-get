@@ -62,6 +62,9 @@ async environmentRemoveProjectByPath(path: string, directory: boolean) : Promise
 async environmentCopyProjectForMigration(channel: string, sourcePath: string) : Promise<AsyncCallResult<TauriCopyProjectProgress, string>> {
     return await TAURI_INVOKE("environment_copy_project_for_migration", { channel, sourcePath });
 },
+async environmentCopyProject(channel: string, sourcePath: string, newPath: string) : Promise<AsyncCallResult<TauriCopyProjectProgress, string>> {
+    return await TAURI_INVOKE("environment_copy_project", { channel, sourcePath, newPath });
+},
 async environmentSetFavoriteProject(listVersion: number, index: number, favorite: boolean) : Promise<null> {
     return await TAURI_INVOKE("environment_set_favorite_project", { listVersion, index, favorite });
 },
@@ -259,6 +262,9 @@ async utilInstallAndUpgrade(channel: string, version: number) : Promise<AsyncCal
 },
 async utilIsBadHostname() : Promise<boolean> {
     return await TAURI_INVOKE("util_is_bad_hostname");
+},
+async utilPickDirectory(current: string) : Promise<TauriPickProjectDefaultPathResult> {
+    return await TAURI_INVOKE("util_pick_directory", { current });
 },
 async deepLinkHasAddRepository() : Promise<boolean> {
     return await TAURI_INVOKE("deep_link_has_add_repository");
