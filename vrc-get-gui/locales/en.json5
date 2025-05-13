@@ -141,6 +141,7 @@
     "projects:button:create": "Create",
     "projects:creating project...": "Creating the project...",
     "projects:toast:project created": "Project was created successfully.",
+    "templates:dialog:unitypackage path": "Unity package path",
 
     "projects:toast:opening unity...": "Opening Unity...",
     "projects:dialog:unity not found": "Unity was not found",
