@@ -10,7 +10,7 @@ import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { assertNever } from "@/lib/assert-never";
 import type {
 	TauriCallUnityForMigrationResult,
-	TauriCopyProjectForMigrationProgress,
+	TauriCopyProjectProgress,
 	TauriUnityVersions,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
@@ -354,12 +354,11 @@ export function MigrationCopyingDialog({
 	dialog: DialogContext<string>;
 	header: React.ReactNode;
 }) {
-	const [progress, setProgress] =
-		useState<TauriCopyProjectForMigrationProgress>({
-			proceed: 0,
-			total: 1,
-			last_proceed: "Collecting files...",
-		});
+	const [progress, setProgress] = useState<TauriCopyProjectProgress>({
+		proceed: 0,
+		total: 1,
+		last_proceed: "Collecting files...",
+	});
 
 	useEffect(() => {
 		const [_, promise] = callAsyncCommand(

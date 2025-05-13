@@ -1,5 +1,6 @@
 "use client";
 
+import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
@@ -52,7 +53,11 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import type React from "react";
 import { Suspense, useMemo } from "react";
@@ -674,6 +679,16 @@ function DropdownMenuContentBody({
 	});
 	const unityPathQuery = useQuery(projectGetUnityPath(projectPath));
 
+	const navigate = useNavigate();
+	const onCopyProject = async () => {
+		try {
+			await copyProject(projectPath, navigate);
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
+
 	const onBackup = async () => {
 		try {
 			await openSingleDialog(BackupProjectDialog, {
@@ -699,6 +714,9 @@ function DropdownMenuContentBody({
 			)}
 			<DropdownMenuItem onClick={openProjectFolder}>
 				{tc("projects:menuitem:open directory")}
+			</DropdownMenuItem>
+			<DropdownMenuItem onClick={onCopyProject}>
+				{tc("projects:menuitem:copy project")}
 			</DropdownMenuItem>
 			<DropdownMenuItem onClick={onBackup}>
 				{tc("projects:menuitem:backup")}

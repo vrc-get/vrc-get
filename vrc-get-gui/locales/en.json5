@@ -191,6 +191,7 @@
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Back to projects",
     "projects:menuitem:change launch options": "Change Launch Options",
+    "projects:menuitem:copy project": "Copy Project",
     "projects:menuitem:backup": "Make Backup",
     "projects:menuitem:forget unity path": "Forget Unity for this Project",
     "projects:manage:project location": "Located at: <path>{{path}}</path>",
@@ -307,6 +308,11 @@
 
     "projects:manage:dialog:missing dependencies": "Some packages are not found",
     "projects:manage:dialog:missing dependencies description": "The following packages are requested to install, but unable to find appropriate version of the packages.<br/>Please search and add repositories that contain the packages.<br/>You may check <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> to find the appropriate repositories.",
+
+    // copy project
+    "projects:dialog:copy project": "Copy Project: {{name}}",
+    "projects:dialog:copying...": "Copying Project...",
+    "projects:toast:successfully copied project": "Successfully copied project <b>{{name}}</b>",
 
 
 // Resources Page
