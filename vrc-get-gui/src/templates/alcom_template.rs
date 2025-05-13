@@ -107,7 +107,12 @@ pub fn parse_alcom_template(json: &[u8]) -> serde_json::Result<AlcomTemplate> {
 
     // few validations
     if let Some(id) = &template.id {
-        if id.0.starts_with("com.anatawa12.vrc-get") {
+        // Reserve `com.anatawa12.vrc-get.*` except for known namespaces which are allowed for user-created
+        // templates (".user") and imported VCC templates (".vcc").
+        if id.0.starts_with("com.anatawa12.vrc-get")
+            && !(id.0.starts_with("com.anatawa12.vrc-get.user.")
+                || id.0.starts_with("com.anatawa12.vrc-get.vcc."))
+        {
             return Err(serde_json::Error::invalid_value(
                 Unexpected::Str(&id.0),
                 &"a valid alcom template id (reserved id)",
