@@ -3,7 +3,6 @@ use std::fmt;
 
 use itertools::Itertools;
 
-use crate::io::ProjectIo;
 use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::{
     LockedDependencyInfo, PendingProjectChanges, package_resolution, pending_project_changes,
@@ -38,7 +37,7 @@ impl fmt::Display for ResolvePackageErr {
 
 impl std::error::Error for ResolvePackageErr {}
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     /// Returns whether the project should be resolved.
     ///
     /// The project will be resolved if: (not exhaustive)
@@ -156,7 +155,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 if let Some(pkg) = env.find_package_by_name(
                     name,
                     VersionSelector::range_for(
-                        self.unity_version(),
+                        Some(self.unity_version()),
                         &range.as_range(),
                         PrereleaseAcceptance::allow_or_minimum(range.as_range().contains_pre()),
                     ),
@@ -180,7 +179,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
             self.manifest.all_locked(),
             self.unlocked_packages.iter(),
             |pkg| self.manifest.get_locked(pkg),
-            self.unity_version(),
+            Some(self.unity_version()),
             env,
             to_install,
             allow_prerelease,
@@ -276,7 +275,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
                 if let Some(pkg) = env.find_package_by_name(
                     pkg_name,
                     VersionSelector::ranges_for(
-                        self.unity_version,
+                        Some(self.unity_version),
                         &ranges,
                         PrereleaseAcceptance::allow_or_minimum(allow_prerelease),
                     ),
@@ -298,7 +297,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
             virtual_locked_dependencies.values().cloned(),
             self.unlocked_packages.iter(),
             |pkg| virtual_locked_dependencies.get(pkg).cloned(),
-            self.unity_version(),
+            Some(self.unity_version()),
             env,
             unlocked_dependencies,
             allow_prerelease,

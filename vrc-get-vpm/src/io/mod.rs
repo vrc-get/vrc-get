@@ -1,6 +1,6 @@
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::future::Future;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub(crate) use futures::Stream;
 pub(crate) use futures::io::{
@@ -8,42 +8,11 @@ pub(crate) use futures::io::{
 };
 pub(crate) use std::io::SeekFrom;
 
-#[cfg(feature = "tokio")]
 mod tokio;
-#[cfg(feature = "tokio")]
 pub use tokio::DefaultEnvironmentIo;
-#[cfg(feature = "tokio")]
 pub use tokio::DefaultProjectIo;
-
-/// Wrapper for the file system operation for the Environment
-///
-/// All relative paths should be resolved as a relative path from the environment folder.
-/// Which is `%APPDATA%\\VRChatCreatorCompanion` or `${XDG_DATA_HOME}/VRChatCreatorCompanion` by default.
-pub trait EnvironmentIo: Sync + IoTrait {
-    /// We may need to resolve a relative path to an absolute path for some reason.
-    /// For example, to get the absolute path of the Repos folder for creating local cache and cleanup repos folder.
-    fn resolve(&self, path: &Path) -> PathBuf;
-    #[cfg(feature = "vrc-get-litedb")]
-    type MutexGuard: Send + Sync + 'static;
-    #[cfg(feature = "vrc-get-litedb")]
-    fn new_mutex(&self, lock_name: &OsStr) -> impl Future<Output = Result<Self::MutexGuard>>;
-    #[cfg(feature = "experimental-project-management")]
-    type ProjectIo: ProjectIo;
-
-    #[cfg(feature = "experimental-project-management")]
-    fn new_project_io(&self, path: &Path) -> Self::ProjectIo;
-}
-
-/// Wrapper for the file system operation for the [UnityProject]
-///
-/// Absolute paths are not allowed and relative paths should be resolved as a relative path from the project folder.
-///
-/// [UnityProject]: crate::unity_project::UnityProject
-pub trait ProjectIo: Sync + IoTrait {}
-
-pub trait FileSystemProjectIo {
-    fn location(&self) -> &Path;
-}
+pub use tokio::DirEntry as TokioDirEntry;
+pub use tokio::File as TokioFile;
 
 pub trait IoTrait: Sync {
     fn create_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;

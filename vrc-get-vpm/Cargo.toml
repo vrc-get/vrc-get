@@ -38,7 +38,7 @@ enum-map = "2"
 vrc-get-litedb = { git = "https://github.com/anatawa12/litedb-rs.git", optional = true, default-features = false, features = [
     'shared-mutex',
 ], branch = "master" }
-tokio = { version = "1", features = ["fs", "process"], optional = true }
+tokio = { version = "1", features = ["fs", "process"] }
 serde_path_to_error = "0.1"
 serde-value = "0.7"
 serde_repr = "0.1"
@@ -52,13 +52,16 @@ windows = { version = "0.61", features = ["Win32_System_Threading", "Win32_Secur
 [target."cfg(target_os = \"macos\")".dependencies]
 plist = { version = "1", optional = true }
 
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread"] }
+
 [features]
 default = ["rustls"]
 native-tls = ["reqwest/native-tls-vendored"]
 rustls = ["reqwest/rustls-tls-native-roots"]
 
-unity-hub = ["tokio", "dep:plist", "windows/Win32_Storage_FileSystem"]
-unity = ["tokio"]
+unity-hub = ["dep:plist", "windows/Win32_Storage_FileSystem"]
+unity = []
 
 experimental-project-management = ["vrc-get-litedb", 'unity-hub', 'unity']
 experimental-unity-management = ["vrc-get-litedb", 'dep:winreg']

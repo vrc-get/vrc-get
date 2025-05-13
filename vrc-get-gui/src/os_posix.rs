@@ -3,18 +3,22 @@
 use std::ffi::OsStr;
 use std::fs::OpenOptions;
 use std::io;
-use std::os::fd::AsRawFd;
+use std::os::unix::prelude::*;
 use std::path::Path;
 use std::process::Command;
 use std::sync::OnceLock;
 
 use nix::libc::{F_UNLCK, c_short, flock};
 
-pub(crate) async fn start_command(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
+pub(crate) use os_more::start_command;
+
+async fn start_command_posix(_: &OsStr, path: &OsStr, args: &[&OsStr]) -> std::io::Result<()> {
     let mut command = Command::new(path);
     command.args(args);
     os_more::fix_env_variables(&mut command);
-    command.spawn()?;
+    command.process_group(0);
+    let mut process = command.spawn()?;
+    std::thread::spawn(move || process.wait());
     Ok(())
 }
 
@@ -28,7 +32,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
     };
     let file = OpenOptions::new().read(true).open(path)?;
 
-    nix::fcntl::fcntl(file.as_raw_fd(), nix::fcntl::F_GETLK(&mut lock))?;
+    nix::fcntl::fcntl(file, nix::fcntl::F_GETLK(&mut lock))?;
 
     Ok(lock.l_type != F_UNLCK as c_short)
 }

@@ -1,7 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager};
 
 mod commands;
 mod config;
@@ -47,7 +48,7 @@ fn main() {
                     log::error!("error while setting focus: {}", e);
                 }
             }
-            process_args(&argv);
+            process_args(app, &argv);
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
@@ -58,12 +59,13 @@ fn main() {
         .manage(state::ProjectsState::new())
         .manage(state::PackagesState::new())
         .manage(state::ChangesState::new())
+        .manage(state::TemplatesState::new())
         .register_uri_scheme_protocol("vrc-get", commands::handle_vrc_get_scheme)
         .invoke_handler(commands::handlers())
         .setup(move |app| {
             commands::startup(app);
             // process args
-            process_args(&std::env::args().collect::<Vec<_>>());
+            process_args(app.handle(), &std::env::args().collect::<Vec<_>>());
             Ok(())
         })
         .build(tauri_context())
@@ -74,18 +76,25 @@ fn main() {
     deep_link_support::set_app_handle(app.handle().clone());
 
     logging::set_app_handle(app.handle().clone());
-    app.run(|_, event| match event {
+    #[allow(unused_variables)]
+    app.run(|app, event| match event {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         tauri::RunEvent::Opened { urls } => {
+            let mut files = vec![];
             for url in urls {
-                deep_link_support::on_deep_link(url);
+                if let Ok(file) = url.to_file_path() {
+                    files.push(file)
+                } else {
+                    deep_link_support::on_deep_link(url);
+                }
             }
+            deep_link_support::process_files(app, files);
         }
         _ => {}
     })
 }
 
-fn process_args(args: &[String]) {
+fn process_args(app: &AppHandle, args: &[String]) {
     if args.len() <= 1 {
         // no additional args
         return;
@@ -94,8 +103,9 @@ fn process_args(args: &[String]) {
     if args.len() == 2 {
         // we have a single argument. it might be a deep link
         let arg = &args[1];
-        if arg.starts_with("vcc://") {
-            process_deep_link_string(arg);
+        if is_deep_link(arg) {
+            process_deep_link_string(app, arg);
+            return;
         }
     }
 
@@ -105,21 +115,29 @@ fn process_args(args: &[String]) {
                 log::error!("link command requires a URL argument");
                 return;
             };
-            process_deep_link_string(url);
+            process_deep_link_string(app, url);
         }
         _ => {
             log::error!("Unknown command: {}", args[1]);
         }
     }
 
-    fn process_deep_link_string(url: &str) {
-        match url::Url::parse(url) {
-            Ok(url) => {
-                deep_link_support::on_deep_link(url);
-            }
-            Err(e) => {
-                log::error!("Failed to parse deep link: {}", e);
-            }
+    fn is_deep_link(url: &str) -> bool {
+        url.starts_with("vcc://") || url.ends_with(".alcomtemplate")
+    }
+
+    fn process_deep_link_string(app: &AppHandle, url: &str) {
+        if let Some(url) = url::Url::parse(url)
+            .ok()
+            .take_if(|url| url.scheme() == "vcc")
+        {
+            deep_link_support::on_deep_link(url);
+            return;
         }
+        if std::fs::exists(url).unwrap_or(false) {
+            deep_link_support::process_files(app, vec![PathBuf::from(url)]);
+            return;
+        }
+        log::error!("Invalid deep link: {}", url);
     }
 }

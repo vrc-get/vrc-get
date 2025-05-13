@@ -11,6 +11,10 @@ use arc_swap::ArcSwapOption;
 use nix::libc::uname;
 use tauri::Manager;
 
+pub(crate) async fn start_command(name: &OsStr, path: &OsStr, args: &[&OsStr]) -> io::Result<()> {
+    super::start_command_posix(name, path, args).await
+}
+
 pub(super) fn compute_os_info() -> String {
     let kernel = kernel_version();
 

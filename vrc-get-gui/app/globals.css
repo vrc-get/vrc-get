@@ -97,7 +97,7 @@
 	--success: hsl(122 39% 49%);
 	--success-foreground: hsl(210 40% 98%);
 	--warning: hsl(52.15, 100%, 46.47%);
-	--warning-foreground: hsl(210 40% 98%);
+	--warning-foreground: hsl(240 10% 13%);
 	--destructive: hsl(0 84.2% 60.2%);
 	--destructive-foreground: hsl(0 0% 98%);
 	--border: hsl(240 5.9% 90%);
@@ -133,7 +133,7 @@
 	--success: hsl(122 39% 49%);
 	--success-foreground: hsl(210 40% 90%);
 	--warning: hsl(52.15, 100%, 46.47%);
-	--warning-foreground: hsl(210 40% 90%);
+	--warning-foreground: hsl(240 10% 13%);
 	--destructive: hsl(0 84.2% 60.2%);
 	--destructive-foreground: var(--fg-color);
 	--border: var(--secondary-bg);
@@ -169,7 +169,7 @@
 		--success: hsl(122 39% 49%);
 		--success-foreground: hsl(210 40% 90%);
 		--warning: hsl(52.15, 100%, 46.47%);
-		--warning-foreground: hsl(210 40% 90%);
+		--warning-foreground: hsl(240 10% 13%);
 		--destructive: hsl(0 84.2% 60.2%);
 		--destructive-foreground: var(--fg-color);
 		--border: var(--secondary-bg);

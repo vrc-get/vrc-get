@@ -62,7 +62,7 @@ export function SideBar({ className }: { className?: string }) {
 				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
 				<SideBarItem
 					href={"/packages/repositories"}
-					text={tc("packages")}
+					text={tc("resources")}
 					icon={Package}
 				/>
 				<SideBarItem href={"/settings"} text={tc("settings")} icon={Settings} />

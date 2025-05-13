@@ -1,31 +1,29 @@
-use crate::common::{PackageCollection, VirtualFileSystem};
+use crate::common::PackageCollection;
 use indexmap::IndexMap;
 use serde_json::json;
 use std::future::Future;
 use std::io;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
-use vrc_get_vpm::io::{EnvironmentIo, IoTrait, ProjectIo};
+use vrc_get_vpm::io::{DefaultProjectIo, IoTrait};
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::{
     AbortCheck, HttpClient, PackageInfo, PackageInstaller, PackageManifest, UnityProject,
 };
 
-pub struct VirtualEnvironment {
-    vfs: VirtualFileSystem,
-}
+pub struct VirtualInstaller {}
 
-impl VirtualEnvironment {
-    pub fn new(vfs: VirtualFileSystem) -> Self {
-        Self { vfs }
+impl VirtualInstaller {
+    pub fn new() -> Self {
+        Self {}
     }
 }
 
-impl PackageInstaller for VirtualEnvironment {
+impl PackageInstaller for VirtualInstaller {
     fn install_package(
         &self,
-        _: &impl ProjectIo,
+        _: &DefaultProjectIo,
         _: PackageInfo<'_>,
         _: &AbortCheck,
     ) -> impl Future<Output = io::Result<()>> {

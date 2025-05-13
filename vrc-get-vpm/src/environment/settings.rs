@@ -8,7 +8,7 @@ use url::Url;
 use crate::environment::vpm_settings::VpmSettings;
 use crate::environment::vrc_get_settings::VrcGetSettings;
 use crate::environment::{AddUserPackageResult, PackageCollection};
-use crate::io::EnvironmentIo;
+use crate::io::DefaultEnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::repository::RemoteRepository;
 use crate::utils::{normalize_path, try_load_json};
@@ -22,7 +22,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
+    pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
         let settings = VpmSettings::load(io).await?;
         let vrc_get_settings = VrcGetSettings::load(io).await?;
 
@@ -32,7 +32,7 @@ impl Settings {
         })
     }
 
-    pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
+    pub async fn save(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
         self.vpm.save(io).await?;
 
         Ok(())
@@ -140,7 +140,7 @@ impl Settings {
     pub async fn add_user_package(
         &mut self,
         pkg_path: &Path,
-        io: &impl EnvironmentIo,
+        io: &DefaultEnvironmentIo,
     ) -> AddUserPackageResult {
         if !pkg_path.is_absolute() {
             return AddUserPackageResult::NonAbsolute;
