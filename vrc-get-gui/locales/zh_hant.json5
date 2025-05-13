@@ -282,8 +282,13 @@
     "projects:toast:unity migrated": "此專案已遷移到 Unity 20222",
 
     "projects:manage:dialog:confirm changes description": "你正在對專案套用以下變更。",
+    "projects:manage:dialog:note breaking changes": "部分套件之間存在重大變更。<br/>專案中的資產、設定與工具可能不再相容。<br/>請查閱相容性資訊並小心升級。",
+    "projects:manage:dialog:note incompatibility": "與部分其他套件存在相容性問題。<br/>這些工具在載入專案或使用過程中可能會報錯。<br/>請查閱相容性資訊並升級相關套件，或者謹慎安裝。",
+    "projects:manage:dialog:upgrade package": "將 <b>{{name}}</b> 的 {{previousVersion}} 版本升級到 <b>{{version}}</b>",
+    "projects:manage:dialog:downgrade package": "將 <b>{{name}}</b> 的 {{previousVersion}} 版本降級到 <b>{{version}}</b>",
     "projects:manage:dialog:install package": "安裝 <b>{{name}}</b> 的 {{version}} 版本",
     "projects:manage:dialog:reinstall package": "重新安裝 <b>{{name}}</b> 的 {{version}} 版本",
+    "projects:manage:dialog:breaking changes": "Includes breaking changes",
     "projects:manage:dialog:uninstall package as requested": "移除 <b>{{name}}</b>，依照你的要求",
     "projects:manage:dialog:uninstall package as legacy": "移除 <b>{{name}}</b>，因為這是舊版套件",
     "projects:manage:dialog:uninstall package as unused": "移除 <b>{{name}}</b>，因為這未被使用",
