@@ -243,7 +243,7 @@ jobs:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
