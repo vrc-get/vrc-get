@@ -1,11 +1,13 @@
 use std::path::Path;
 
 use crate::commands::async_command::{AsyncCallResult, With, async_command};
+use crate::commands::environment::settings::TauriPickProjectDefaultPathResult;
 use crate::commands::prelude::*;
 use crate::logging::LogEntry;
 use crate::os::open_that;
 use crate::utils::find_existing_parent_dir_or_home;
 use tauri::{AppHandle, State, Window};
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
 use url::Url;
 
@@ -182,4 +184,29 @@ pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
 #[specta::specta]
 pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
     Ok(false)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn util_pick_directory(
+    window: Window,
+    current: String,
+) -> Result<TauriPickProjectDefaultPathResult, RustError> {
+    let Some(dir) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
+        .set_directory(find_existing_parent_dir_or_home(current.as_ref()))
+        .blocking_pick_folder()
+        .map(|x| x.into_path_buf())
+        .transpose()?
+    else {
+        return Ok(TauriPickProjectDefaultPathResult::NoFolderSelected);
+    };
+
+    let Ok(dir) = dir.into_os_string().into_string() else {
+        return Ok(TauriPickProjectDefaultPathResult::InvalidSelection);
+    };
+
+    Ok(TauriPickProjectDefaultPathResult::Successful { new_path: dir })
 }
