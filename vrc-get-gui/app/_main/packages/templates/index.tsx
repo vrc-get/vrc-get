@@ -573,12 +573,11 @@ function TemplateEditor({
 				vpmDependencies[pkgId] = "*";
 			}
 			// Normalize unityRange before saving (remove dash before f/p/b)
-			let normalizedUnityRange = unityRange.replace(/-([fpb]\d+)$/i, '$1');
 			await commands.environmentSaveTemplate(
 				template?.id ?? null,
 				baseTemplate,
 				name,
-				normalizedUnityRange,
+				unityRange,
 				Object.entries(vpmDependencies),
 				unityPackagesListContext.value as string[],
 			);
