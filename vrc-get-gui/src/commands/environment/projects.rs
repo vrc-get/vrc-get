@@ -12,7 +12,6 @@ use futures::prelude::*;
 use itertools::Itertools;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use std::ffi::OsStr;
 use std::io;
 use std::path::{Component, Path, PathBuf, Prefix};
 use std::sync::atomic::AtomicUsize;
@@ -293,7 +292,7 @@ pub async fn environment_remove_project_by_path(
 }
 
 #[derive(Serialize, specta::Type, Clone)]
-pub struct TauriCopyProjectForMigrationProgress {
+pub struct TauriCopyProjectProgress {
     total: usize,
     proceed: usize,
     last_proceed: String,
@@ -305,38 +304,53 @@ pub async fn environment_copy_project_for_migration(
     window: Window,
     channel: String,
     source_path: String,
-) -> Result<AsyncCallResult<TauriCopyProjectForMigrationProgress, String>, RustError> {
-    async fn create_folder(folder: &Path, name: &OsStr) -> Option<String> {
+) -> Result<AsyncCallResult<TauriCopyProjectProgress, String>, RustError> {
+    async fn create_folder(source_path: PathBuf) -> Option<PathBuf> {
+        let folder = source_path.parent().unwrap();
+        let name = source_path.file_name().unwrap();
+
         let name = name.to_str().unwrap();
         // first, try `-Migrated`
         let new_path = folder.join(format!("{name}-Migrated"));
         if let Ok(()) = tokio::fs::create_dir(&new_path).await {
-            return Some(new_path.into_os_string().into_string().unwrap());
+            return Some(new_path);
         }
 
         for i in 1..100 {
             let new_path = folder.join(format!("{name}-Migrated-{i}"));
             if let Ok(()) = tokio::fs::create_dir(&new_path).await {
-                return Some(new_path.into_os_string().into_string().unwrap());
+                return Some(new_path);
             }
         }
 
         None
     }
 
+    copy_project(window, channel, source_path, create_folder).await
+}
+
+pub async fn copy_project<F, Fut>(
+    window: Window,
+    channel: String,
+    source_path: String,
+    create_folder: F,
+) -> Result<AsyncCallResult<TauriCopyProjectProgress, String>, RustError>
+where
+    F: FnOnce(PathBuf) -> Fut + Send + Sync,
+    Fut: Future<Output = Option<PathBuf>> + Send + Sync,
+{
     async_command(channel, window, async {
         let source_path_str = source_path;
         let source_path = Path::new(&source_path_str);
-        let folder = source_path.parent().unwrap();
-        let name = source_path.file_name().unwrap();
 
-        let Some(new_path_str) = create_folder(folder, name).await else {
+        let Some(new_path) = create_folder(source_path.into()).await else {
             return Err(RustError::unrecoverable(
                 "failed to create a new folder for migration",
             ));
         };
+        let new_path_str = new_path.into_os_string().into_string().unwrap();
 
-        With::<TauriCopyProjectForMigrationProgress>::continue_async(move |ctx| async move {
+        With::<TauriCopyProjectProgress>::continue_async(move |ctx| async move {
             let source_path = Path::new(&source_path_str);
             let new_path = Path::new(&new_path_str);
 
@@ -351,7 +365,7 @@ pub async fn environment_copy_project_for_migration(
                 proceed: AtomicUsize,
                 total_files: usize,
                 new_path: &'a Path,
-                ctx: &'a AsyncCommandContext<TauriCopyProjectForMigrationProgress>,
+                ctx: &'a AsyncCommandContext<TauriCopyProjectProgress>,
             }
 
             impl CopyFileContext<'_> {
@@ -362,7 +376,7 @@ pub async fn environment_copy_project_for_migration(
                     let last_proceed = entry.relative_path().to_string();
 
                     self.ctx
-                        .emit(TauriCopyProjectForMigrationProgress {
+                        .emit(TauriCopyProjectProgress {
                             total: self.total_files,
                             proceed: proceed + 1,
                             last_proceed,
