@@ -1,7 +1,9 @@
-use std::sync::{Arc, Mutex};
-
+use crate::commands::import_templates;
 use arc_swap::ArcSwapOption;
 use indexmap::IndexMap;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 #[allow(unused_imports)] // Manager is used only on linux
 use tauri::{AppHandle, Emitter, Manager};
 use url::{Host, Url};
@@ -100,6 +102,20 @@ pub fn should_install_deep_link(app: &AppHandle) -> bool {
     }
 
     cfg!(target_os = "windows")
+}
+
+static IMPORTED_NON_TOASTED_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+pub fn process_files(app: &AppHandle, files: Vec<PathBuf>) {
+    if files.is_empty() {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let imported = import_templates(&app.state(), &files).await;
+        app.emit("templates-imported", imported).ok();
+        IMPORTED_NON_TOASTED_COUNT.fetch_add(1, Ordering::SeqCst);
+    });
 }
 
 #[tauri::command]
@@ -272,6 +288,18 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
     {
         log::error!("Failed to call update-desktop-database: {}", e);
     }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn deep_link_imported_clear_non_toasted_count() -> usize {
+    IMPORTED_NON_TOASTED_COUNT.swap(0, Ordering::SeqCst)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn deep_link_reduce_imported_clear_non_toasted_count(reduce: usize) {
+    IMPORTED_NON_TOASTED_COUNT.fetch_sub(reduce, Ordering::SeqCst);
 }
 
 #[cfg(test)]

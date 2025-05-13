@@ -14,7 +14,7 @@ mod vpm_manifest;
 use crate::unity_project::upm_manifest::UpmManifest;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::utils::{PathBufExt, try_load_json};
-use crate::version::{UnityVersion, Version, VersionRange};
+use crate::version::{DependencyRange, UnityVersion, Version, VersionRange};
 use crate::{PackageManifest, io};
 use futures::future::try_join;
 use futures::prelude::*;
@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 // note: this module only declares basic small operations.
 // there are module for each complex operations.
 
-use crate::io::{DirEntry, FileSystemProjectIo, ProjectIo};
+use crate::io::{DefaultProjectIo, DirEntry, IoTrait, TokioDirEntry};
 use crate::package_manifest::LooseManifest;
 pub use add_package::AddPackageErr;
 pub use add_package::AddPackageOperation;
@@ -38,14 +38,14 @@ pub use remove_package::RemovePackageErr;
 pub use resolve::ResolvePackageErr;
 
 #[derive(Debug)]
-pub struct UnityProject<IO: ProjectIo> {
-    io: IO,
+pub struct UnityProject {
+    io: DefaultProjectIo,
     /// vpm-manifest.json
     manifest: VpmManifest,
     // manifest.json
     upm_manifest: UpmManifest,
     /// unity version parsed
-    unity_version: Option<UnityVersion>,
+    unity_version: UnityVersion,
     /// unity revision parsed
     unity_revision: Option<String>,
     /// packages installed in the directory but not locked in vpm-manifest.json
@@ -55,8 +55,8 @@ pub struct UnityProject<IO: ProjectIo> {
 }
 
 // basic lifecycle
-impl<IO: ProjectIo> UnityProject<IO> {
-    pub async fn load(io: IO) -> io::Result<Self> {
+impl UnityProject {
+    pub async fn load(io: DefaultProjectIo) -> io::Result<Self> {
         let manifest = VpmManifest::load(&io).await?;
         let upm_manifest = UpmManifest::load(&io).await?;
 
@@ -65,7 +65,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         match io.read_dir("Packages".as_ref()).await {
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-                log::error!("Packages directory not found");
+                log::warn!("Packages directory not found");
             }
             Err(e) => {
                 return Err(e);
@@ -93,7 +93,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
             }
         }
 
-        let (unity_version, unity_revision) = Self::try_read_unity_version(&io).await;
+        let (unity_version, unity_revision) = Self::read_unity_version(&io).await?;
 
         Ok(Self {
             io,
@@ -107,10 +107,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 }
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     async fn try_read_unlocked_package(
-        io: &IO,
-        dir_entry: IO::DirEntry,
+        io: &DefaultProjectIo,
+        dir_entry: TokioDirEntry,
     ) -> (Box<str>, Option<PackageManifest>) {
         let name = dir_entry.file_name().to_string_lossy().into();
         let package_json_path = PathBuf::from("Packages")
@@ -123,52 +123,37 @@ impl<IO: ProjectIo> UnityProject<IO> {
         (name, parsed.map(|x| x.0))
     }
 
-    async fn try_read_unity_version(io: &IO) -> (Option<UnityVersion>, Option<String>) {
-        let mut project_version_file =
-            match io.open("ProjectSettings/ProjectVersion.txt".as_ref()).await {
-                Ok(file) => file,
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-                    log::error!("ProjectVersion.txt not found");
-                    return (None, None);
-                }
-                Err(e) => {
-                    log::error!("opening ProjectVersion.txt failed with error: {e}");
-                    return (None, None);
-                }
-            };
-
+    async fn read_unity_version(
+        io: &DefaultProjectIo,
+    ) -> io::Result<(UnityVersion, Option<String>)> {
         let mut buffer = String::new();
+        io.open("ProjectSettings/ProjectVersion.txt".as_ref())
+            .await?
+            .read_to_string(&mut buffer)
+            .await?;
 
-        if let Err(e) = project_version_file.read_to_string(&mut buffer).await {
-            log::error!("reading ProjectVersion.txt failed with error: {e}");
-            return (None, None);
+        let Some(unity_version) =
+            Self::find_attribute(buffer.as_str(), "m_EditorVersion:").and_then(UnityVersion::parse)
+        else {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Failed to parse m_EditorVersion",
+            ));
         };
 
-        let unity_version = match Self::find_attribute(buffer.as_str(), "m_EditorVersion:") {
-            None => None,
-            Some(version_info) => {
-                let parsed = UnityVersion::parse(version_info);
-                if parsed.is_none() {
-                    log::error!("failed to parse m_EditorVersion in ProjectVersion.txt");
-                }
-                parsed
-            }
-        };
+        let revision = Self::find_attribute(buffer.as_str(), "m_EditorVersionWithRevision:")
+            .map(|version_info| {
+                Self::parse_version_with_revision(version_info).ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "Failed to parse m_EditorVersionWithRevision",
+                    )
+                })
+            })
+            .transpose()?
+            .map(ToOwned::to_owned);
 
-        let revision = match Self::find_attribute(buffer.as_str(), "m_EditorVersionWithRevision:") {
-            None => None,
-            Some(version_info) => {
-                let parsed = Self::parse_version_with_revision(version_info);
-                if parsed.is_none() {
-                    log::error!(
-                        "failed to parse m_EditorVersionWithRevision in ProjectVersion.txt"
-                    );
-                }
-                parsed
-            }
-        };
-
-        (unity_version, revision.map(|x| x.to_string()))
+        Ok((unity_version, revision))
     }
 
     fn find_attribute<'a>(buffer: &'a str, attribute: &str) -> Option<&'a str> {
@@ -189,10 +174,10 @@ impl<IO: ProjectIo> UnityProject<IO> {
     }
 
     pub async fn is_valid(&self) -> bool {
-        self.unity_version.is_some()
+        true
     }
 
-    pub fn io(&self) -> &IO {
+    pub fn io(&self) -> &DefaultProjectIo {
         &self.io
     }
 
@@ -207,7 +192,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 }
 
 // accessors
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
         self.manifest.all_locked()
     }
@@ -258,7 +243,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
         )
     }
 
-    pub fn unity_version(&self) -> Option<UnityVersion> {
+    pub fn unity_version(&self) -> UnityVersion {
         self.unity_version
     }
 
@@ -269,9 +254,15 @@ impl<IO: ProjectIo> UnityProject<IO> {
     pub fn has_upm_package(&self, name: &str) -> bool {
         self.upm_manifest.get_dependency(name).is_some()
     }
+
+    /// Adds dependency without actually adding package.
+    /// This only modifies manifest
+    pub fn add_dependency_raw(&mut self, name: &str, version: DependencyRange) {
+        self.manifest.add_dependency(name, version)
+    }
 }
 
-impl<IO: FileSystemProjectIo + ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub fn project_dir(&self) -> &Path {
         self.io.location()
     }

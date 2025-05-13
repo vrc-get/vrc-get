@@ -1,6 +1,6 @@
 use crate::io;
-use crate::io::ProjectIo;
 use crate::io::SeekFrom;
+use crate::io::{DefaultProjectIo, IoTrait};
 use crate::utils::MapResultExt;
 use async_zip::base::read::seek::ZipFileReader;
 use futures::prelude::*;
@@ -8,7 +8,7 @@ use std::path::{Component, Path};
 
 pub(crate) async fn extract_zip(
     mut zip_file: impl AsyncBufRead + AsyncSeek + Unpin,
-    io: &impl ProjectIo,
+    io: &DefaultProjectIo,
     dest_folder: &Path,
 ) -> io::Result<()> {
     // extract zip file

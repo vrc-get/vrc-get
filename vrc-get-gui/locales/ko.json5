@@ -75,7 +75,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "PC 이름 문제",
-    "sidebar:dialog:bad hostname": "PC 이름에 문제가 있습니다.",
+    "sidebar:dialog:bad hostname": "PC 이름에 문제가 있습니다",
     "sidebar:dialog:bad hostname description": "PC 이름(호스트 이름)에 비ASCII 문자(영문, 숫자, 일부 특수문자가 아닌 문자)가 포함되어 있습니다.<br>이는 Unity에서 문제를 일으킬 수 있습니다.<br>PC 이름(호스트 이름)을 ASCII 문자로 변경할 것을 강력히 권장합니다.に変更することを強くお勧めします。",
 
     "sidebar:toast:version copied": "버전 정보를 복사했습니다.",
@@ -134,10 +134,10 @@
     "projects:dialog:select unity header": "Unity 선택",
     "projects:dialog:multiple unity found": "해당 버전의 Unity가 여러 개 설치되어 있습니다.",
     "projects:dialog:keep using this version": "이 버전을 계속 사용하기",
-    "projects:dialog:unity not found but china found": "Unity를 찾을 수 없습니다.",
+    "projects:dialog:unity not found but china found": "Unity를 찾을 수 없습니다",
     "projects:dialog:unity version of the project not found but china found": "이 프로젝트에서 사용하는 Unity {{expectedUnity}}를 찾을 수 없습니다.<br>그러나 해당하는 중국 버전 Unity {{chinaUnity}}가 설치되어 있는 것 같습니다.<br>이 프로젝트에서 사용하는 Unity를 중국 버전으로 변경할까요?",
     "projects:dialog:use china version": "중국 버전으로 변경",
-    "projects:dialog:unity not found but international found": "Unity를 찾을 수 없습니다.",
+    "projects:dialog:unity not found but international found": "Unity를 찾을 수 없습니다",
     "projects:dialog:unity version of the project not found but international found": "이 프로젝트에서 사용하는 Unity {{expectedUnity}}를 찾을 수 없습니다.<br>그러나 해당하는 국제 버전 Unity {{internationalUnity}}가 설치되어 있는 것 같습니다.<br>이 프로젝트에서 사용하는 Unity를 국제 버전으로 변경할까요?",
     "projects:dialog:use international version": "국제 버전으로 변경",
     "projects:toast:invalid project unity version": "프로젝트에서 사용하는 Unity 버전을 감지하지 못했습니다.",
@@ -281,7 +281,7 @@
     "projects:manage:button:apply changes": "변경 사항 적용",
     "projects:manage:button:apply": "적용",
 
-    "projects:manage:dialog:missing dependencies": "패키지 정보를 찾을 수 없습니다.",
+    "projects:manage:dialog:missing dependencies": "패키지 정보를 찾을 수 없습니다",
     "projects:manage:dialog:missing dependencies description": "다음 패키지의 설치를 시도했으나, 해당 버전에 맞는 패키지 정보를 찾을 수 없습니다.<br>해당 패키지를 포함한 VPM 저장소를 찾아 ALCOM에 등록해주세요.<br>적절한 VPM 저장소를 찾는 데는 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink>가 도움이 될 수 있습니다.",
 
 // Packages Page

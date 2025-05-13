@@ -1,5 +1,4 @@
-use crate::io::BufReader;
-use crate::io::ProjectIo;
+use crate::io::{BufReader, DefaultProjectIo, IoTrait};
 use crate::utils::walk_dir_relative;
 use crate::{PackageInfo, PackageManifest, UnityProject};
 use futures::StreamExt;
@@ -19,13 +18,13 @@ pub(crate) struct LegacyAssets<'a> {
 }
 
 pub(crate) async fn collect_legacy_assets<'a>(
-    io: &impl ProjectIo,
+    io: &DefaultProjectIo,
     packages: &[PackageInfo<'a>],
-    unity_project: &UnityProject<impl ProjectIo>,
+    unity_project: &UnityProject,
 ) -> LegacyAssets<'a> {
     fn collect_legacy<'a, 'b>(
         packages: &'b [PackageInfo<'a>],
-        unity_project: &'b UnityProject<impl ProjectIo>,
+        unity_project: &'b UnityProject,
         get_assets: impl Fn(&PackageManifest) -> &HashMap<Box<str>, Option<Box<str>>> + Copy + 'b,
         new_legacy_info: impl Fn(&'a str, &'a str, Option<Guid>) -> DefinedLegacyInfo<'a> + Copy + 'b,
     ) -> impl Iterator<Item = DefinedLegacyInfo<'a>> + 'b {
@@ -107,7 +106,7 @@ fn valid_path(path: &Path) -> bool {
 }
 
 async fn find_legacy_assets_by_path<'a>(
-    io: &impl ProjectIo,
+    io: &DefaultProjectIo,
     assets: impl Iterator<Item = DefinedLegacyInfo<'a>>,
 ) -> (
     HashMap<Box<Path>, &'a str>,
@@ -170,7 +169,7 @@ async fn find_legacy_assets_by_path<'a>(
     (found_files, found_folders, find_guids)
 }
 
-async fn check_guid(io: &impl ProjectIo, path: &Path, guid: Option<Guid>) -> bool {
+async fn check_guid(io: &DefaultProjectIo, path: &Path, guid: Option<Guid>) -> bool {
     // for paths other than UdonSharp, we don't need to check the guid.
     if path != Path::new("Assets/UdonSharp") {
         return true;
@@ -185,7 +184,7 @@ async fn check_guid(io: &impl ProjectIo, path: &Path, guid: Option<Guid>) -> boo
     true
 }
 
-async fn try_parse_meta(io: &impl ProjectIo, path: &Path) -> Option<Guid> {
+async fn try_parse_meta(io: &DefaultProjectIo, path: &Path) -> Option<Guid> {
     let mut file = BufReader::new(io.open(path).await.ok()?);
     let mut buffer = String::new();
     while file.read_line(&mut buffer).await.ok()? != 0 {
@@ -201,12 +200,12 @@ async fn try_parse_meta(io: &impl ProjectIo, path: &Path) -> Option<Guid> {
 }
 
 async fn find_legacy_assets_by_guid<'a>(
-    io: &impl ProjectIo,
+    io: &DefaultProjectIo,
     mut find_guids: HashMap<Guid, (&'a str, bool)>,
     found_files: &mut HashMap<Box<Path>, &'a str>,
     found_folders: &mut HashMap<Box<Path>, &'a str>,
 ) {
-    async fn get_guid<IO: ProjectIo>(io: &IO, relative: PathBuf) -> Option<(Guid, bool, PathBuf)> {
+    async fn get_guid(io: &DefaultProjectIo, relative: PathBuf) -> Option<(Guid, bool, PathBuf)> {
         if relative.extension() != Some(OsStr::new("meta")) {
             None
         } else if let Some(guid) = try_parse_meta(io, &relative).await {

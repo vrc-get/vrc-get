@@ -3,6 +3,7 @@ use std::fmt;
 use std::num::NonZeroU8;
 use std::str::FromStr;
 
+use crate::version::Version;
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -148,6 +149,10 @@ impl UnityVersion {
 
     pub fn china_increment(self) -> Option<NonZeroU8> {
         self.china_increment
+    }
+
+    pub fn as_semver(self) -> Version {
+        Version::new(self.major as u64, self.minor as u64, self.revision as u64)
     }
 }
 

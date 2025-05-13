@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog].
 - The method to retrieve the list of Unity from Unity Hub `#1808` `#1971`
 - You now can select multiple folders at once to adding project `#2018`
   - I didn't know official VCC had such a feature. Sorry for lack of feature!
+- The requirements for unity project `#2106`
+  - Since this version, `Projectsettings/ProjectVersion.txt` is required.
 
 ### Deprecated
 

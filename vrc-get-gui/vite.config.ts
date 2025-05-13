@@ -39,7 +39,7 @@ export default defineConfig({
 		port: 3030,
 		strictPort: true,
 		watch: {
-			ignored: ["**/*.rs"],
+			ignored: ["**/*.rs", "project-templates/"],
 		},
 	},
 	clearScreen: false,

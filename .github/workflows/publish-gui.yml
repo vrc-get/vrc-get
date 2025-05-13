@@ -167,7 +167,7 @@ jobs:
           # note: when you changed paths for tauri updater (which are files with .sig),
           # remember keep in sync with build-updater-json
           - triple: x86_64-unknown-linux-gnu
-            on: ubuntu-latest
+            on: ubuntu-22.04
             setup: |
               sudo apt update && sudo apt install -y lld
               ld.lld --version
@@ -336,7 +336,7 @@ jobs:
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -432,7 +432,7 @@ jobs:
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}

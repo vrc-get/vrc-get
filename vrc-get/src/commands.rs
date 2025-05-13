@@ -28,10 +28,9 @@ use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveR
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    PackageCollection as _, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
+    PackageCollection as _, PackageInfo, PackageManifest, UnityProject, UserRepoSetting,
+    VersionSelector,
 };
-
-type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
     ($class: ident is $($args:tt)*) => {
@@ -485,7 +484,7 @@ impl Install {
         let mut unity = load_unity(self.project).await;
 
         let version_selector = match self.version {
-            None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+            None => VersionSelector::latest_for(Some(unity.unity_version()), self.prerelease),
             Some(ref version) => VersionSelector::specific_version(version),
         };
         let packages = if self.name {
@@ -719,7 +718,7 @@ impl Outdated {
 
         let mut outdated_packages = HashMap::new();
 
-        let selector = VersionSelector::latest_for(unity.unity_version(), self.prerelease);
+        let selector = VersionSelector::latest_for(Some(unity.unity_version()), self.prerelease);
 
         for locked in unity.locked_packages() {
             match collection.find_package_by_name(locked.name(), selector) {
@@ -813,7 +812,7 @@ impl Upgrade {
 
         let updates = if let Some(name) = &self.name {
             let version_selector = match self.version {
-                None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+                None => VersionSelector::latest_for(Some(unity.unity_version()), self.prerelease),
                 Some(ref version) => VersionSelector::specific_version(version),
             };
             let package = get_package(&collection, name, version_selector);
@@ -821,7 +820,7 @@ impl Upgrade {
             vec![package]
         } else {
             let version_selector =
-                VersionSelector::latest_for(unity.unity_version(), self.prerelease);
+                VersionSelector::latest_for(Some(unity.unity_version()), self.prerelease);
 
             unity
                 .locked_packages()

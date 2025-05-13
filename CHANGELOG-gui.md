@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Support for Projects with Unity 2018 or older `#2106`
+  - Projects with Unity 2018 cannot be added before, but since this version you can add to your project list.
+  - Unity 2017 or older doesn't have Unity Package Manager, the base system for VPM,
+    so you cannot manage packages for projects with older unity.
+    You can only launch Unity to open the project.
+  - Projects with Unity 4 or older are still not supported, but I hope no one want to use such a vintage Unity with ALCOM.
+- New Project Template System `#2105` `#2114` `#2125` `#2129`
+  - You now can create Project Templates in ALCOM.
+  - The new form of template can install multiple VPM packages at once, and you also can import unitypackages.
+  - You now can create blank project along with this system change.
+- Warning on upgrading major version or installing incompatible versions `#2159`
+  - When you're upgrading package versions majorly, you'll see the warning message about breaking changes.
+  - I hope this should reduce problems with unexpectedly upgrading packages majorly.
+  - In addition, we added more messages when you're installing packages with some compatibility concerns.
+  - The previous version only has those messages at the bottom of the window, so you may not notice the message.
+  - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
 
 ### Changed
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`
@@ -28,6 +44,14 @@ The format is based on [Keep a Changelog].
   - I didn't know official VCC had such a feature. Sorry for lack of feature!
 - You now can toggle "Show Prerelease Packages" from Manage Project page `#2020`
   - You can toggle "Show Prerelease Packages" from Select Packages dropdown
+- The requirements for unity project `#2106`
+  - Since this version, `Projectsettings/ProjectVersion.txt` is required.
+- Improves launching unity behavior `#2124`
+  - On linux, ALCOM will now read exit code, therefore, Unity no longer remains as a defunct process.
+  - On macOS, we now launch Unity as a distinct / individual process, therefore several macOS subsystems should treat Unity as Unity instead of Unity as a part of ALCOM.
+- Downgraded glibc requirements for linux images `#2160`
+  - This release will be built on ubuntu 22.04 so glibc 2.35 is new requirements
+  - If you want to use on platforms with older glibc, build yourself or pull request to build on older environments.
 
 ### Deprecated
 

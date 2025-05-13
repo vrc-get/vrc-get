@@ -1,8 +1,8 @@
 use crate::io;
-use crate::io::ProjectIo;
+use crate::io::IoTrait;
 use crate::{ProjectType, UnityProject};
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub async fn detect_project_type(&self) -> io::Result<ProjectType> {
         if self.get_locked("com.vrchat.avatars").is_some() {
             return Ok(ProjectType::Avatars);

@@ -2,7 +2,7 @@ use serde::Serialize;
 use std::borrow::Cow;
 use tauri::http::{Request, Response};
 use tauri::{AppHandle, Manager, UriSchemeContext, Wry};
-use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::state::GuiConfigState;

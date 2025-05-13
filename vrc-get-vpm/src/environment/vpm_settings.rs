@@ -1,7 +1,7 @@
 use crate::UserRepoSetting;
 use crate::environment::PackageCollection;
 use crate::io;
-use crate::io::EnvironmentIo;
+use crate::io::DefaultEnvironmentIo;
 use crate::utils::{load_json_or_default, save_json};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -68,7 +68,7 @@ pub(crate) struct VpmSettings {
 const JSON_PATH: &str = "settings.json";
 
 impl VpmSettings {
-    pub async fn load(io: &impl EnvironmentIo) -> io::Result<Self> {
+    pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
         let parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
         Ok(Self { parsed })
@@ -164,7 +164,7 @@ impl VpmSettings {
         self.parsed.path_to_unity_hub = path.into();
     }
 
-    pub async fn save(&self, io: &impl EnvironmentIo) -> io::Result<()> {
+    pub async fn save(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
         save_json(io, JSON_PATH.as_ref(), &self.parsed).await
     }
 }

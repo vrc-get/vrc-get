@@ -9,13 +9,13 @@ pub use start::startup;
 use tauri::generate_handler;
 use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
-use vrc_get_vpm::PackageManifest;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
 };
 use vrc_get_vpm::version::Version;
+use vrc_get_vpm::{PackageManifest, UnityProject};
 
 // common macro for commands so put it here
 #[allow(unused_macros)]
@@ -44,6 +44,9 @@ mod start;
 mod uri_custom_scheme;
 mod util;
 
+pub use environment::templates::import_templates;
+
+#[allow(unused_imports)]
 mod prelude {
     pub(super) use super::{
         IntoPathBuf as _, RustError, TauriBasePackageInfo, UnityProject, load_project,
@@ -51,8 +54,6 @@ mod prelude {
     };
     pub use crate::state::*;
 }
-
-pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 // Note: remember to change similar in typescript
 static DEFAULT_UNITY_ARGUMENTS: &[&str] = &[];
@@ -111,6 +112,12 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_set_use_alcom_for_vcc_protocol,
         environment::settings::environment_get_default_unity_arguments,
         environment::settings::environment_set_default_unity_arguments,
+        environment::templates::environment_export_template,
+        environment::templates::environment_get_alcom_template,
+        environment::templates::environment_pick_unity_package,
+        environment::templates::environment_save_template,
+        environment::templates::environment_remove_template,
+        environment::templates::environment_import_template,
         environment::unity_hub::environment_update_unity_paths_from_unity_hub,
         environment::unity_hub::environment_is_loading_from_unity_hub_in_progress,
         environment::unity_hub::environment_wait_for_unity_hub_update,
@@ -141,6 +148,8 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         crate::deep_link_support::deep_link_has_add_repository,
         crate::deep_link_support::deep_link_take_add_repository,
         crate::deep_link_support::deep_link_install_vcc,
+        crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
+        crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
     ]
 }
 
@@ -202,6 +211,12 @@ pub(crate) fn export_ts() {
             environment::settings::environment_set_use_alcom_for_vcc_protocol,
             environment::settings::environment_get_default_unity_arguments,
             environment::settings::environment_set_default_unity_arguments,
+            environment::templates::environment_export_template,
+            environment::templates::environment_get_alcom_template,
+            environment::templates::environment_pick_unity_package,
+            environment::templates::environment_save_template,
+            environment::templates::environment_remove_template,
+            environment::templates::environment_import_template,
             environment::unity_hub::environment_update_unity_paths_from_unity_hub,
             environment::unity_hub::environment_is_loading_from_unity_hub_in_progress,
             environment::unity_hub::environment_wait_for_unity_hub_update,
@@ -231,7 +246,9 @@ pub(crate) fn export_ts() {
             util::util_is_bad_hostname,
             crate::deep_link_support::deep_link_has_add_repository,
             crate::deep_link_support::deep_link_take_add_repository,
-            crate::deep_link_support::deep_link_install_vcc //,
+            crate::deep_link_support::deep_link_install_vcc,
+            crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
+            crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
         ])
         //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
         .export(
