@@ -33,7 +33,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
     };
     let file = OpenOptions::new().read(true).open(path)?;
 
-    nix::fcntl::fcntl(file.as_raw_fd(), nix::fcntl::F_GETLK(&mut lock))?;
+    nix::fcntl::fcntl(file, nix::fcntl::F_GETLK(&mut lock))?;
 
     Ok(lock.l_type != F_UNLCK as c_short)
 }
