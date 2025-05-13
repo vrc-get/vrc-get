@@ -1,3 +1,4 @@
+import { DelayedButton } from "@/components/DelayedButton";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,7 @@ import type {
 	TauriPackage,
 	TauriPackageChange,
 	TauriPendingProjectChanges,
-	TauriRemoveReason,
+	TauriVersion,
 } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
@@ -19,11 +20,13 @@ import { isHandleable } from "@/lib/errors";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
+import { groupBy, keyComparator } from "@/lib/utils";
 import { compareVersion, toVersionString } from "@/lib/version";
 import type { DefaultError } from "@tanstack/query-core";
 import { type UseMutationOptions, queryOptions } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import type React from "react";
+import { Fragment } from "react";
 
 export type RequestedOperation =
 	| {
@@ -276,77 +279,38 @@ function ProjectChangesDialog({
 		</div>
 	);
 
-	function isInstallNew(
-		pair: [string, TauriPackageChange],
-	): pair is [string, { InstallNew: TauriPackage }] {
-		return "InstallNew" in pair[1];
-	}
-
-	function isRemove(
-		pair: [string, TauriPackageChange],
-	): pair is [string, { Remove: TauriRemoveReason }] {
-		return "Remove" in pair[1];
-	}
-
 	const existingPackageMap = new Map(existingPackages ?? []);
 
-	const installingPackages = changes.package_changes.filter(isInstallNew);
-	const removingPackages = changes.package_changes.filter(isRemove);
+	const categorizedChanges = changes.package_changes.map(([pkgId, change]) =>
+		categorizeChange(pkgId, change, existingPackageMap),
+	);
+	categorizedChanges.sort(keyComparator("packageId"));
+	const groupedChanges = Array.from(groupBy(categorizedChanges, (c) => c.type));
+	groupedChanges.sort(keyComparator(0));
 
-	const installingPackageById = new Map(installingPackages);
+	const installingPackageById = new Map(
+		changes.package_changes
+			.map(([id, change]) =>
+				"InstallNew" in change ? ([id, change.InstallNew] as const) : undefined,
+			)
+			.filter((x) => x != null),
+	);
 
-	const reInstallingPackages = installingPackages.filter(([pkgId, c]) => {
-		const info = existingPackageMap.get(pkgId);
+	function getPackageDisplayName(id: string) {
 		return (
-			info !== undefined &&
-			compareVersion(c.InstallNew.version, info.version) === 0
+			installingPackageById.get(id)?.display_name ??
+			existingPackageMap.get(id)?.display_name ??
+			id
 		);
-	});
-	const installingNewPackages = installingPackages.filter(([pkgId, c]) => {
-		const info = existingPackageMap.get(pkgId);
-		return (
-			info === undefined ||
-			compareVersion(c.InstallNew.version, info.version) !== 0
-		);
-	});
+	}
 
-	const removingRequestedPackages = removingPackages.filter(
-		([_, c]) => c.Remove === "Requested",
-	);
-	const removingLegacyPackages = removingPackages.filter(
-		([_, c]) => c.Remove === "Legacy",
-	);
-	const removingUnusedPackages = removingPackages.filter(
-		([_, c]) => c.Remove === "Unused",
+	const breakingChanges = groupedChanges.some(
+		([a]) => a === PackageChangeCategory.UpgradeMajor,
 	);
 
-	reInstallingPackages.sort(comparePackageChangeByName);
-	installingNewPackages.sort(comparePackageChangeByName);
-	removingRequestedPackages.sort(comparePackageChangeByName);
-	removingLegacyPackages.sort(comparePackageChangeByName);
-	removingUnusedPackages.sort(comparePackageChangeByName);
+	const incompatibility = changes.conflicts.length !== 0;
 
-	const ChangelogButton = ({ url }: { url?: string | null }) => {
-		if (url == null) return null;
-		try {
-			const parsed = new URL(url);
-			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-				return (
-					<Button
-						className={"ml-1 px-2"}
-						size={"sm"}
-						onClick={() => commands.utilOpenUrl(url)}
-					>
-						<ExternalLink>
-							{tc("projects:manage:button:see changelog")}
-						</ExternalLink>
-					</Button>
-				);
-			}
-		} catch {}
-
-		return null;
-	};
+	const needsCare = breakingChanges || incompatibility;
 
 	return (
 		<div className={"contents whitespace-normal"}>
@@ -354,71 +318,27 @@ function ProjectChangesDialog({
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
 			<DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
 				<p>{tc("projects:manage:dialog:confirm changes description")}</p>
+				{breakingChanges && (
+					<div className={"flex border border-solid border-warning mt-3 py-2"}>
+						<CircleAlert className={"text-warning self-center mx-2 shrink-0"} />
+						<p>{tc("projects:manage:dialog:note breaking changes")}</p>
+					</div>
+				)}
+				{incompatibility && (
+					<div className={"flex border border-solid border-warning mt-3 py-2"}>
+						<CircleAlert className={"text-warning self-center mx-2 shrink-0"} />
+						<p>{tc("projects:manage:dialog:note incompatibility")}</p>
+					</div>
+				)}
 				<div className={"flex flex-col gap-1 p-2"}>
-					{installingNewPackages.map(([pkgId, pkgChange]) => {
-						const name =
-							pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name;
-						const version = toVersionString(pkgChange.InstallNew.version);
-
+					{groupedChanges.map(([category, changes], index) => {
 						return (
-							<div key={pkgId} className={"flex items-center p-3"}>
-								<p className={"font-normal"}>
-									{tc("projects:manage:dialog:install package", {
-										name,
-										version,
-									})}
-								</p>
-								<ChangelogButton url={pkgChange.InstallNew.changelog_url} />
-							</div>
-						);
-					})}
-					{installingNewPackages.length > 0 &&
-						reInstallingPackages.length > 0 && <hr />}
-					{reInstallingPackages.map(([pkgId, pkgChange]) => {
-						const name =
-							pkgChange.InstallNew.display_name ?? pkgChange.InstallNew.name;
-						const version = toVersionString(pkgChange.InstallNew.version);
-
-						return (
-							<div key={pkgId} className={"flex items-center p-3"}>
-								<p className={"font-normal"}>
-									{tc("projects:manage:dialog:reinstall package", {
-										name,
-										version,
-									})}
-								</p>
-								<ChangelogButton url={pkgChange.InstallNew.changelog_url} />
-							</div>
-						);
-					})}
-					{removingRequestedPackages.map(([pkgId, _]) => {
-						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
-						return (
-							<TypographyItem key={pkgId}>
-								{tc("projects:manage:dialog:uninstall package as requested", {
-									name,
-								})}
-							</TypographyItem>
-						);
-					})}
-					{removingLegacyPackages.map(([pkgId, _]) => {
-						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
-						return (
-							<TypographyItem key={pkgId}>
-								{tc("projects:manage:dialog:uninstall package as legacy", {
-									name,
-								})}
-							</TypographyItem>
-						);
-					})}
-					{removingUnusedPackages.map(([pkgId, _]) => {
-						const name = existingPackageMap.get(pkgId)?.display_name ?? pkgId;
-						return (
-							<TypographyItem key={pkgId}>
-								{tc("projects:manage:dialog:uninstall package as unused", {
-									name,
-								})}
-							</TypographyItem>
+							<Fragment key={category}>
+								{index !== 0 && <hr />}
+								{changes.map((change) => (
+									<PackageChange key={change.packageId} change={change} />
+								))}
+							</Fragment>
 						);
 					})}
 				</div>
@@ -431,13 +351,6 @@ function ProjectChangesDialog({
 						</p>
 						<div className={"flex flex-col gap-1 p-2"}>
 							{versionConflicts.map(([pkgId, conflict]) => {
-								function getPackageDisplayName(id: string) {
-									return (
-										installingPackageById.get(id)?.InstallNew?.display_name ??
-										existingPackageMap.get(id)?.display_name ??
-										pkgId
-									);
-								}
 								return (
 									<TypographyItem key={pkgId}>
 										{tc("projects:manage:dialog:conflicts with", {
@@ -465,9 +378,7 @@ function ProjectChangesDialog({
 									{tc(
 										"projects:manage:dialog:package not supported your unity",
 										{
-											pkg:
-												installingPackageById.get(pkgId)?.InstallNew
-													?.display_name ?? pkgId,
+											pkg: getPackageDisplayName(pkgId),
 										},
 									)}
 								</TypographyItem>
@@ -512,12 +423,331 @@ function ProjectChangesDialog({
 				<Button onClick={() => dialog.close(false)} className="mr-1">
 					{tc("general:button:cancel")}
 				</Button>
-				<Button onClick={() => dialog.close(true)} variant={"destructive"}>
+				<DelayedButton
+					onClick={() => dialog.close(true)}
+					variant={needsCare ? "destructive" : "warning"}
+					delay={needsCare ? 1000 : 0}
+				>
 					{tc("projects:manage:button:apply")}
-				</Button>
+				</DelayedButton>
 			</DialogFooter>
 		</div>
 	);
+}
+
+function PackageChange({
+	change,
+}: {
+	change: PackageChangeDisplayInformation;
+}) {
+	switch (change.type) {
+		case PackageChangeCategory.UpgradeMajor:
+			return (
+				<div className={"flex items-center p-3 justify-between bg-warning/10"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:upgrade package", {
+							name: change.displayName,
+							previousVersion: toVersionString(change.previousVersion),
+							version: toVersionString(change.version),
+						})}
+						<span className={"text-warning"}>
+							{"\u200B"}
+							<CircleAlert
+								className={
+									"inline px-1 size-5 -mt-0.5 box-content align-middle"
+								}
+							/>
+							{tc("projects:manage:dialog:breaking changes")}
+						</span>
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+		case PackageChangeCategory.Upgrade:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:upgrade package", {
+							name: change.displayName,
+							previousVersion: toVersionString(change.previousVersion),
+							version: toVersionString(change.version),
+						})}
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+		case PackageChangeCategory.Downgrade:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:downgrade package", {
+							name: change.displayName,
+							previousVersion: toVersionString(change.previousVersion),
+							version: toVersionString(change.version),
+						})}
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+		case PackageChangeCategory.InstallNew:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:install package", {
+							name: change.displayName,
+							version: toVersionString(change.version),
+						})}
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+		case PackageChangeCategory.UninstallRequested:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:uninstall package as requested", {
+							name: change.displayName,
+						})}
+					</p>
+				</div>
+			);
+		case PackageChangeCategory.UninstallUnused:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:uninstall package as unused", {
+							name: change.displayName,
+						})}
+					</p>
+				</div>
+			);
+		case PackageChangeCategory.UninstallLegacy:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal"}>
+						{tc("projects:manage:dialog:uninstall package as legacy", {
+							name: change.displayName,
+						})}
+					</p>
+				</div>
+			);
+		case PackageChangeCategory.Reinstall:
+			return (
+				<div className={"flex items-center p-3 justify-between"}>
+					<p className={"font-normal select-text"}>
+						{tc("projects:manage:dialog:reinstall package", {
+							name: change.displayName,
+							version: toVersionString(change.version),
+						})}
+					</p>
+					<ChangelogButton url={change.changelogUrl} />
+				</div>
+			);
+	}
+}
+
+enum PackageChangeCategory {
+	InstallNew = 0,
+	UpgradeMajor = 1,
+	Upgrade = 2,
+	Downgrade = 3,
+	UninstallRequested = 4,
+	UninstallUnused = 5,
+	UninstallLegacy = 6,
+	Reinstall = 7,
+}
+
+type PackageChangeDisplayInformation = {
+	packageId: string;
+	displayName: string;
+} & (
+	| {
+			type: PackageChangeCategory.UpgradeMajor;
+			version: TauriVersion;
+			previousVersion: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.Upgrade;
+			version: TauriVersion;
+			previousVersion: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.Downgrade;
+			version: TauriVersion;
+			previousVersion: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.Reinstall;
+			version: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.InstallNew;
+			version: TauriVersion;
+			changelogUrl: string | null;
+	  }
+	| {
+			type: PackageChangeCategory.UninstallRequested;
+	  }
+	| {
+			type: PackageChangeCategory.UninstallUnused;
+	  }
+	| {
+			type: PackageChangeCategory.UninstallLegacy;
+	  }
+);
+
+function categorizeChange(
+	pkgId: string,
+	change: TauriPackageChange,
+	installedPackages: Map<string, TauriBasePackageInfo>,
+): PackageChangeDisplayInformation {
+	if ("InstallNew" in change) {
+		const name = change.InstallNew.display_name ?? change.InstallNew.name;
+
+		const installed = installedPackages.get(pkgId);
+		if (installed == null) {
+			return {
+				packageId: pkgId,
+				displayName: name,
+				type: PackageChangeCategory.InstallNew,
+				version: change.InstallNew.version,
+				changelogUrl: change.InstallNew.changelog_url,
+			};
+		} else {
+			const compare = compareVersion(
+				installed.version,
+				change.InstallNew.version,
+			);
+			switch (compare) {
+				case 1:
+					return {
+						packageId: pkgId,
+						displayName: name,
+						type: PackageChangeCategory.Downgrade,
+						version: change.InstallNew.version,
+						previousVersion: installed.version,
+						changelogUrl: change.InstallNew.changelog_url,
+					};
+				case 0:
+					return {
+						packageId: pkgId,
+						displayName: name,
+						type: PackageChangeCategory.Reinstall,
+						version: change.InstallNew.version,
+						changelogUrl: change.InstallNew.changelog_url,
+					};
+				case -1:
+					if (
+						isUpgradingMajorly(
+							pkgId,
+							installed.version,
+							change.InstallNew.version,
+						)
+					) {
+						return {
+							packageId: pkgId,
+							displayName: name,
+							type: PackageChangeCategory.UpgradeMajor,
+							version: change.InstallNew.version,
+							previousVersion: installed.version,
+							changelogUrl: change.InstallNew.changelog_url,
+						};
+					} else {
+						return {
+							packageId: pkgId,
+							displayName: name,
+							type: PackageChangeCategory.Upgrade,
+							version: change.InstallNew.version,
+							previousVersion: installed.version,
+							changelogUrl: change.InstallNew.changelog_url,
+						};
+					}
+			}
+		}
+	} else {
+		const name = installedPackages.get(pkgId)?.display_name ?? pkgId;
+		switch (change.Remove) {
+			case "Requested":
+				return {
+					packageId: pkgId,
+					displayName: name,
+					type: PackageChangeCategory.UninstallRequested,
+				};
+			case "Legacy":
+				return {
+					packageId: pkgId,
+					displayName: name,
+					type: PackageChangeCategory.UninstallLegacy,
+				};
+			case "Unused":
+				return {
+					packageId: pkgId,
+					displayName: name,
+					type: PackageChangeCategory.UninstallUnused,
+				};
+		}
+	}
+}
+
+function isUpgradingMajorly(
+	pkgId: string,
+	prevVersion: TauriVersion,
+	newVersion: TauriVersion,
+): boolean {
+	function firstNonZeroVersionNum(version: TauriVersion): number {
+		if (version.major !== 0) return version.major;
+		if (version.minor !== 0) return version.minor;
+		return version.patch;
+	}
+
+	// generic case: non-zero first version number will be the major version
+	if (
+		firstNonZeroVersionNum(prevVersion) !== firstNonZeroVersionNum(newVersion)
+	) {
+		return true;
+	}
+	// Special case: VRChat SDK uses Branding.Breaking.Bumps.
+	// Therefore the second number bump means major version bump.
+	// See https://vcc.docs.vrchat.com/vpm/packages/#brandingbreakingbumps
+	// See https://feedback.vrchat.com/sdk-bug-reports/p/feedback-please-dont-make-vrcsdk-to-4x-unless-as-big-breaking-changes-as-2-to-3
+	if (
+		pkgId === "com.vrchat.avatars" ||
+		pkgId === "com.vrchat.worlds" ||
+		pkgId === "com.vrchat.base"
+	) {
+		if (prevVersion.minor !== newVersion.minor) {
+			return true;
+		}
+	}
+
+	// No conditions met so it's not major bump
+	return false;
+}
+
+function ChangelogButton({ url }: { url?: string | null }) {
+	if (url == null) return null;
+	try {
+		const parsed = new URL(url);
+		if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+			return (
+				<Button
+					className={"ml-1 px-2"}
+					size={"sm"}
+					onClick={() => commands.utilOpenUrl(url)}
+				>
+					<ExternalLink>
+						{tc("projects:manage:button:see changelog")}
+					</ExternalLink>
+				</Button>
+			);
+		}
+	} catch {}
+
+	return null;
 }
 
 function comparePackageChangeByName(
