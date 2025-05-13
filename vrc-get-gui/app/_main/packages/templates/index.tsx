@@ -115,11 +115,13 @@ function RouteComponent() {
 			<main
 				className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
 			>
-				<ScrollableCardTable className={"h-full w-full"}>
-					<Suspense fallback={<Loading />}>
-						<TemplatesTableBody />
-					</Suspense>
-				</ScrollableCardTable>
+				<div className="w-full scrollbar-dark">
+					<ScrollableCardTable className="w-full">
+						<Suspense fallback={<Loading />}>
+							<TemplatesTableBody />
+						</Suspense>
+					</ScrollableCardTable>
+				</div>
 			</main>
 		</VStack>
 	);
@@ -335,12 +337,33 @@ function TemplateDropdownMenu({
 }) {
 	const category = projectTemplateCategory(template.id);
 
-	// TODO: impleemnt edit template
-
 	switch (category) {
 		case "builtin":
 			return <EllipsisButton disabled />;
 		case "alcom": {
+			const openTemplateDir = async () => {
+				try {
+					if (template.source_path == null)
+						throw new Error(tc("general:error:template path not found").toString());
+					await commands.utilOpen(template.source_path, "ErrorIfNotExists");
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+
+			const openAlcomTemplatesDir = async () => {
+				try {
+					await commands.utilOpen(
+						`${globalInfo.vpmHomeFolder}/vrc-get/templates`,
+						"CreateFolderIfNotExists"
+					);
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+
 			const exportTemplate = async () => {
 				try {
 					await commands.environmentExportTemplate(template.id);
@@ -357,6 +380,9 @@ function TemplateDropdownMenu({
 					<DropdownMenuContent>
 						<DropdownMenuItem onClick={() => edit?.(template.id)}>
 							{tc("templates:menuitem:edit template")}
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={openAlcomTemplatesDir}>
+							{tc("templates:menuitem:open custom template directory")}
 						</DropdownMenuItem>
 						{template.has_unitypackage ? (
 							<Tooltip>
@@ -386,13 +412,26 @@ function TemplateDropdownMenu({
 			const openTemplate = async () => {
 				try {
 					if (template.source_path == null)
-						throw new Error("VCC Template path not found (bug(");
+						throw new Error(tc("general:error:vcc template path not found").toString());
 					await commands.utilOpen(template.source_path, "ErrorIfNotExists");
 				} catch (e) {
 					console.error(e);
 					toastThrownError(e);
 				}
 			};
+
+			const openTemplatesDir = async () => {
+				try {
+					await commands.utilOpen(
+						`${globalInfo.vpmHomeFolder}/Templates`,
+						"CreateFolderIfNotExists"
+					);
+				} catch (e) {
+					console.error(e);
+					toastThrownError(e);
+				}
+			};
+
 			return (
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -451,7 +490,7 @@ function TemplateEditor({
 	dialog: DialogContext<boolean>;
 }) {
 	const [baseTemplate, setBaseTemplate] = useState<string>(
-		template?.base ?? "com.anatawa12.vrc-get.vrchat.avatars",
+		template?.base ?? "com.anatawa12.vrc-get.blank",
 	);
 	const [name, setName] = useState(template?.display_name ?? "New Template");
 	const [unityRange, setUnityRange] = useState(template?.unity_version ?? VRCSDK_UNITY_VERSIONS[0]);
@@ -556,7 +595,6 @@ function TemplateEditor({
 		if (installedUnityVersions.length > 0 && (!unityRange || !installedUnityVersions.includes(unityRange))) {
 			setUnityRange(installedUnityVersions[0] || '');
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [installedUnityVersions.length]);
 
 	const readyToCreate =
@@ -591,30 +629,22 @@ function TemplateEditor({
 		}
 	};
 
-	const validVersion = (p: Package) =>
-		(p.name === "" && p.range === "") || // the empty (non-set) row
-		(p.name !== "" && p.range.match(rangeRegex)); // ready to create
-	const readyToCreate =
-		packagesListContext.value.every(validVersion) &&
-		unityRange.match(rangeRegex) &&
-		name.length !== 0;
-
 	return (
-		<div className={"overflow-y-hidden flex flex-col"}>
+		<div className={"overflow-y-hidden flex flex-col max-w-[700px] p-8"} >
 			<DialogTitle>
 				{template != null
 					? tc("templates:dialog:edit template")
 					: tc("templates:dialog:create template")}
 			</DialogTitle>
 			<DialogDescription asChild>
-				<div className={"flex flex-col gap-4 shrink min-h-0"}>
-					<section>
-						<h3 className={"font-bold w-full text-center content-center"}>
-							{tc("templates:dialog:general information")}
-						</h3>
-						<table
-							className={"grid grid-cols-[min-content_1fr] gap-x-4 gap-y-1"}
-						>
+				<div className={"flex flex-col gap-8 shrink min-h-0"}>
+					<section className="mb-8">
+						<div className="flex justify-center items-center w-full mb-4">
+							<h3 className="font-bold text-center">
+								{tc("templates:dialog:general information")}
+							</h3>
+						</div>
+						<table className={"grid grid-cols-[min-content_1fr] gap-x-4 gap-y-3"}>
 							<tbody className={"contents"}>
 								<tr className={"contents"}>
 									<th className={"content-center text-start whitespace-nowrap"}>
@@ -682,7 +712,7 @@ function TemplateEditor({
 							</tbody>
 						</table>
 					</section>
-					<section style={{ marginBottom: 32 }}>
+					<section className="mb-8">
 						<h3 className={"font-bold w-full text-center content-center mb-4"}>
 							{tc("general:packages")}
 						</h3>
