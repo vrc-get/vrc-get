@@ -600,7 +600,7 @@ function TemplateEditor({
 					: tc("templates:dialog:create template")}
 			</DialogTitle>
 			<DialogDescription asChild>
-				<div className={"flex flex-col gap-8 shrink min-h-0"}>
+				<div className={"flex flex-col gap-8 shrink min-h-0 overflow-y-auto"}>
 					<section className="mb-8">
 						<div className="flex justify-center items-center w-full mb-4">
 							<h3 className="font-bold text-center">

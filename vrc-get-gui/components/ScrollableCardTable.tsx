@@ -19,7 +19,7 @@ export const ScrollableCardTable = ({
 				scrollBarClassName="bg-background py-2.5 vrc-get-scrollable-card-vertical-bar"
 				{...props}
 			>
-				<table className="relative table-fixed text-left w-full -mt-px">
+				<table className="relative table-auto text-left w-full">
 					{children}
 				</table>
 				<div className={"pb-2.5"} />
