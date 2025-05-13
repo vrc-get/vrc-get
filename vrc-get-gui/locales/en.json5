@@ -283,7 +283,7 @@
 
     "projects:manage:dialog:confirm changes description": "You're applying the following changes to the project.",
     "projects:manage:dialog:note breaking changes": "There are some breaking changes among packages. <br/>Your assets, configuration, tools in your project can be incompatible. <br/>Check for compatibility information and upgrade with care.",
-    "projects:manage:dialog:note incompatibility": "There are some incompatibility with some other packages. Those tools may report error when loading project or while using. Check for compatibility information and upgrade related packages at once, or install with care.",
+    "projects:manage:dialog:note incompatibility": "There are some incompatibility with some other packages. <br/>Those tools may report error when loading project or while using. <br/>Check for compatibility information and upgrade related packages at once, or install with care.",
     "projects:manage:dialog:upgrade package": "Upgrade <b>{{name}}</b> version {{previousVersion}} to <b>{{version}}</b>",
     "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} to <b>{{version}}</b>",
     "projects:manage:dialog:install package": "Install <b>{{name}}</b> version <b>{{version}}</b>",
