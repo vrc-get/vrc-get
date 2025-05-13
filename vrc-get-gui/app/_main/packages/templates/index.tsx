@@ -55,8 +55,11 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, CircleX, Ellipsis } from "lucide-react";
-import type React from "react";
-import { Suspense, useId, useState } from "react";
+import React, { Suspense, useId, useState } from "react";
+import { VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
+import { PackageMultiSelect } from "@/components/PackageMultiSelect";
+import { combinePackagesAndProjectDetails } from "@/app/_main/projects/manage/-collect-package-row-info";
+import globalInfo from "@/lib/global-info";
 
 export const Route = createFileRoute("/_main/packages/templates/")({
 	component: RouteComponent,
@@ -125,6 +128,18 @@ function RouteComponent() {
 const environmentProjectCreationInformation = queryOptions({
 	queryKey: ["environmentProjectCreationInformation"],
 	queryFn: async () => await commands.environmentProjectCreationInformation(),
+});
+const environmentPackages = queryOptions({
+	queryKey: ["environmentPackages"],
+	queryFn: async () => await commands.environmentPackages(),
+});
+const environmentRepositoriesInfo = queryOptions({
+	queryKey: ["environmentRepositoriesInfo"],
+	queryFn: async () => await commands.environmentRepositoriesInfo(),
+});
+const environmentUnityVersions = queryOptions({
+	queryKey: ["environmentUnityVersions"],
+	queryFn: async () => await commands.environmentUnityVersions(),
 });
 
 function TemplatesTableBody() {
@@ -436,24 +451,82 @@ function TemplateEditor({
 	dialog: DialogContext<boolean>;
 }) {
 	const [baseTemplate, setBaseTemplate] = useState<string>(
-		template?.base ?? "com.anatawa12.vrc-get.blank",
+		template?.base ?? "com.anatawa12.vrc-get.vrchat.avatars",
 	);
-	const [name, setName] = useState(template?.display_name ?? "");
-	const [unityRange, setUnityRange] = useState(template?.unity_version ?? "");
+	const [name, setName] = useState(template?.display_name ?? "New Template");
+	const [unityRange, setUnityRange] = useState(template?.unity_version ?? VRCSDK_UNITY_VERSIONS[0]);
+	const [nameTouched, setNameTouched] = useState(false);
 
-	type Package = { name: string; range: string };
-	const packagesListContext = useReorderableList<Package>({
-		defaultValue: { name: "", range: "" },
-		defaultArray:
-			template == null
-				? [{ name: "", range: "" }]
-				: Object.entries(template.vpm_dependencies).map(([name, range]) => ({
-						name,
-						range,
-					})),
-		allowEmpty: false,
-		reorderable: false,
-	});
+	// Package IDs for each base template
+	const AVATARS_PACKAGES = [
+		"com.vrchat.avatars",
+		"com.vrchat.base",
+		"com.vrchat.core.vpm-resolver",
+	];
+	const WORLDS_PACKAGES = [
+		"com.vrchat.worlds",
+		"com.vrchat.base",
+		"com.vrchat.core.vpm-resolver",
+	];
+
+	// State for selected packages (by package id)
+	const [selectedPackages, setSelectedPackages] = useState<string[]>(
+		template ? Object.keys(template.vpm_dependencies) : AVATARS_PACKAGES
+	);
+
+	// When baseTemplate changes, update selectedPackages accordingly
+	React.useEffect(() => {
+		if (baseTemplate === "com.anatawa12.vrc-get.vrchat.avatars") {
+			setSelectedPackages((prev) => {
+				// Remove worlds SDK if present, add avatars SDK
+				let next = prev.filter(
+					(id) => id !== "com.vrchat.worlds" && id !== "com.vrchat.avatars"
+				);
+				next = next.filter(
+					(id) => !AVATARS_PACKAGES.includes(id)
+				);
+				return [...next, ...AVATARS_PACKAGES];
+			});
+		} else if (baseTemplate === "com.anatawa12.vrc-get.vrchat.worlds") {
+			setSelectedPackages((prev) => {
+				// Remove avatars SDK if present, add worlds SDK
+				let next = prev.filter(
+					(id) => id !== "com.vrchat.avatars" && id !== "com.vrchat.worlds"
+				);
+				next = next.filter(
+					(id) => !WORLDS_PACKAGES.includes(id)
+				);
+				return [...next, ...WORLDS_PACKAGES];
+			});
+		} else if (baseTemplate === "com.anatawa12.vrc-get.blank") {
+			setSelectedPackages((prev) => prev.filter(
+				id =>
+				id !== "com.vrchat.avatars" &&
+				id !== "com.vrchat.worlds" &&
+				id !== "com.vrchat.base" &&
+				id !== "com.vrchat.core.vpm-resolver"
+			));
+		}
+	}, [baseTemplate]);
+
+	// Fetch available packages and repository info
+	const information = useSuspenseQuery(environmentProjectCreationInformation);
+	const packagesResult = useSuspenseQuery(environmentPackages);
+	const repositoriesInfo = useSuspenseQuery(environmentRepositoriesInfo);
+	const unityVersionsResult = useSuspenseQuery(environmentUnityVersions);
+
+	const availablePackages = React.useMemo(
+		() =>
+			combinePackagesAndProjectDetails(
+				Array.isArray(packagesResult.data) ? packagesResult.data : [],
+				null,
+				repositoriesInfo.data?.hidden_user_repositories ?? [],
+				repositoriesInfo.data?.hide_local_user_packages ?? false,
+				repositoriesInfo.data?.user_repositories ?? [],
+				repositoriesInfo.data?.show_prerelease_packages ?? false,
+			),
+		[packagesResult.data, repositoriesInfo.data]
+	);
 
 	const unityPackagesListContext = useReorderableList<string>({
 		defaultValue: "",
@@ -475,16 +548,39 @@ function TemplateEditor({
 		}
 	};
 
+	// Parse installed unity versions as version strings (e.g., '2022.3.22f1') from the unity_paths
+	const installedUnityVersions = unityVersionsResult.data?.unity_paths?.map(([, version]) => version) || [];
+
+	// Auto-select unity version if only one is installed, or select the first available if none is selected
+	React.useEffect(() => {
+		if (installedUnityVersions.length > 0 && (!unityRange || !installedUnityVersions.includes(unityRange))) {
+			setUnityRange(installedUnityVersions[0] || '');
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [installedUnityVersions.length]);
+
+	const readyToCreate =
+		selectedPackages.every(pkgId => availablePackages.find(p => p.id === pkgId)) &&
+		unityRange.match(rangeRegex) &&
+		name.length !== 0;
+
 	const queryClient = useQueryClient();
+
 	const saveTemplate = async () => {
 		try {
+			const vpmDependencies: Record<string, string> = {};
+			for (const pkgId of selectedPackages) {
+				vpmDependencies[pkgId] = "*";
+			}
+			// Normalize unityRange before saving (remove dash before f/p/b)
+			let normalizedUnityRange = unityRange.replace(/-([fpb]\d+)$/i, '$1');
 			await commands.environmentSaveTemplate(
 				template?.id ?? null,
 				baseTemplate,
 				name,
-				unityRange,
-				packagesListContext.value.map(({ name, range }) => [name, range]),
-				unityPackagesListContext.value,
+				normalizedUnityRange,
+				Object.entries(vpmDependencies),
+				unityPackagesListContext.value as string[],
 			);
 			await queryClient.invalidateQueries(
 				environmentProjectCreationInformation,
@@ -529,12 +625,13 @@ function TemplateEditor({
 										<Input
 											className={cn(
 												"grow",
-												name.length === 0 &&
-													"border-destructive ring-destructive text-destructive",
+												name.length === 0 && nameTouched &&
+												"border-destructive ring-destructive text-destructive",
 											)}
 											value={name}
 											onChange={(e) => setName(e.target.value)}
-											placeholder={"Your New Template"}
+											onBlur={() => setNameTouched(true)}
+											placeholder={tc("templates:input:placeholder:new template name").toString()}
 										/>
 									</td>
 								</tr>
@@ -569,108 +666,65 @@ function TemplateEditor({
 										{tc("templates:dialog:unity version")}:
 									</th>
 									<td className={"flex"}>
-										<Input
-											className={cn(
-												"grow",
-												unityRange.match(rangeRegex) ||
-													"border-destructive ring-destructive text-destructive",
-											)}
-											value={unityRange}
-											onChange={(e) => setUnityRange(e.target.value)}
-											placeholder={">=2022 * =2022.3.22"}
-										/>
+										<Select value={unityRange || ''} onValueChange={setUnityRange}>
+											<SelectTrigger>
+												<SelectValue className={"grow"} />
+											</SelectTrigger>
+											<SelectContent>
+												{[...new Set(installedUnityVersions)].map((version) => (
+													<SelectItem key={version} value={version}>
+														{version}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</td>
 								</tr>
 							</tbody>
 						</table>
 					</section>
-					<section className={"shrink overflow-hidden flex flex-col"}>
-						<h3 className={"font-bold w-full text-center content-center"}>
+					<section style={{ marginBottom: 32 }}>
+						<h3 className={"font-bold w-full text-center content-center mb-4"}>
 							{tc("general:packages")}
 						</h3>
-						<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
-							<table className={"w-full"}>
-								<thead>
-									<tr>
-										<th className={"sticky top-0 z-10 bg-background"}>
-											{tc("general:name")}
-										</th>
-										<th className={"sticky top-0 z-10 bg-background"}>
-											{tc("general:version")}
-										</th>
-										<th className={"sticky top-0 z-10 bg-background"} />
-									</tr>
-								</thead>
-								<tbody>
-									<ReorderableList
-										context={packagesListContext}
-										renderItem={(value, id) => (
-											<>
-												<td>
-													<div className={"flex"}>
-														<Input
-															type={"text"}
-															value={value.name}
-															className={"grow"}
-															onChange={(e) =>
-																packagesListContext.update(id, (old) => ({
-																	...old,
-																	name: e.target.value,
-																}))
-															}
-														/>
-													</div>
-												</td>
-												<td>
-													<div className={"flex"}>
-														<Input
-															type={"text"}
-															value={value.range}
-															className={cn(
-																"grow",
-																validVersion(value) ||
-																	"border-destructive ring-destructive text-destructive",
-															)}
-															onChange={(e) =>
-																packagesListContext.update(id, (old) => ({
-																	...old,
-																	range: e.target.value,
-																}))
-															}
-														/>
-													</div>
-												</td>
-											</>
-										)}
-									/>
-								</tbody>
-							</table>
+						<div className="w-full">
+							<PackageMultiSelect
+								packages={availablePackages}
+								selected={selectedPackages}
+								onChange={setSelectedPackages}
+								cellClassName="p-3 align-middle border-b border-secondary pl-6"
+								headClassName="bg-secondary/50 border-b border-primary font-semibold"
+								checkboxSeparator
+							/>
 						</div>
 					</section>
-					<section className={"shrink overflow-hidden flex flex-col"}>
+					<section>
 						<Overlay>
-							<h3 className={"font-bold w-full text-center content-center"}>
-								{tc("templates:dialog:unitypackages")}
-							</h3>
-							<div className={"text-right mb-2"}>
+							<div className="flex items-center justify-between mb-2">
+								<h3 className={"font-bold content-center"}>
+									{tc("templates:dialog:unitypackages")}
+								</h3>
 								<Button onClick={addUnityPackages}>
 									{tc("general:button:add")}
 								</Button>
 							</div>
 						</Overlay>
-						<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
-							<table className={"w-full"}>
+						<label className="block mb-1 font-medium">
+							{tc("templates:dialog:unitypackage path")}
+						</label>
+						<div className="w-full">
+							<table className={"w-full align-middle"}>
 								<tbody>
 									<ReorderableList
 										context={unityPackagesListContext}
 										ifEmpty={() => (
-											<td className={"text-center"}>
+											<td className={"text-center p-2 align-middle"}>
 												{tc("templates:dialog:no unitypackages")}
 											</td>
 										)}
 										renderItem={(value) => (
-											<td>
-												<div className={"flex"}>
+											<td className="p-2 align-middle">
+												<div className={"flex items-center"}>
 													<Input
 														type={"text"}
 														value={value}
