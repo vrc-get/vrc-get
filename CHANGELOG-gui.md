@@ -18,6 +18,12 @@ The format is based on [Keep a Changelog].
   - You now can create Project Templates in ALCOM.
   - The new form of template can install multiple VPM packages at once, and you also can import unitypackages.
   - You now can create blank project along with this system change.
+- Warning on upgrading major version or installing incompatible versions `#2159`
+  - When you're upgrading package versions majorly, you'll see the warning message about breaking changes.
+  - I hope this should reduce problems with unexpectedly upgrading packages majorly.
+  - In addition, we added more messages when you're installing packages with some compatibility concerns.
+  - The previous version only has those messages at the bottom of the window, so you may not notice the message.
+  - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
 
 ### Changed
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`
