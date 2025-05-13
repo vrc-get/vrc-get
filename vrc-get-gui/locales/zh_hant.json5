@@ -191,6 +191,7 @@
   // Manage Projects
     "projects:manage:tooltip:back to projects": "回到專案頁面",
     "projects:menuitem:change launch options": "變更啟動選項",
+    "projects:menuitem:copy project": "複製專案",
     "projects:menuitem:backup": "進行備份",
     "projects:menuitem:forget unity path": "清除 Unity 版本設定",
     "projects:manage:project location": "位於：<path>{{path}}</path>",
@@ -307,6 +308,11 @@
 
     "projects:manage:dialog:missing dependencies": "部分套件缺失",
     "projects:manage:dialog:missing dependencies description": "需要匯入以下套件，但未在已有儲存庫內找到它們。<br/>請添加包含這些套件的儲存庫。<br/>你可以查看 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 以尋找對應的套件儲存庫。",
+
+    // copy project
+    "projects:dialog:copy project": "複製專案：{{name}}",
+    "projects:dialog:copying...": "複製專案中...",
+    "projects:toast:successfully copied project": "已成功複製專案：<b>{{name}}</b>",
 
 
 // Packages Page
