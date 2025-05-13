@@ -282,8 +282,13 @@
     "projects:toast:unity migrated": "Das Projekt wurde zu Unity 2022 migriert",
 
     "projects:manage:dialog:confirm changes description": "Du bist dabei, die folgenden Änderungen vorzunehmen",
+    "projects:manage:dialog:note breaking changes": "Eine Pakete haben inkompatible Änderungen. <br/>Deine Assets, Einstellungen und Tools in diesem Projekt sind hiermit möglicherweise inkompatibel. <br/>Prüfe Kompatibilität und upgrade auf eigene Gefahr.",
+    "projects:manage:dialog:note incompatibility": "Es besteht Inkompatibilität zu anderen Paketen. <br/>Bei Nutzung kommt es möglicherweise zu Fehlermeldungen. <br/>Prüfe die Kompatibilität und upgrade alle Pakete, oder fahre auf eigene Gefahr fort.",
+    "projects:manage:dialog:upgrade package": "Upgrade <b>{{name}}</b> version {{previousVersion}} auf <b>{{version}}</b>",
+    "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} zu <b>{{version}}</b>",
     "projects:manage:dialog:install package": "Installiere <b>{{name}}</b> Version {{version}}",
     "projects:manage:dialog:reinstall package": "Installiere <b>{{name}}</b> version {{version}} erneut",
+    "projects:manage:dialog:breaking changes": "Beinhaltet inkompatible Änderungen",
     "projects:manage:dialog:uninstall package as requested": "Entferne <b>{{name}}</b>",
     "projects:manage:dialog:uninstall package as legacy": "Entferne <b>{{name}}</b>, da es veraltet ist",
     "projects:manage:dialog:uninstall package as unused": "Entferne <b>{{name}}</b>, da es nicht verwendet wird",
