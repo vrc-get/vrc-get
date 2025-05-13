@@ -31,19 +31,17 @@ export const LogsListCard = memo(function LogsListCard({
 	useEffect(() => {
 		if (!autoScroll) return;
 
-		requestAnimationFrame(() => {
-			if (!scrollContainerRef.current) return;
+		if (!scrollContainerRef.current) return;
 
-			const container = scrollContainerRef.current;
-			const isNearBottom =
-				container.scrollHeight -
-					(container.scrollTop + container.clientHeight) <
-				50;
+		const container = scrollContainerRef.current;
+		const isNearBottom =
+			container.scrollHeight -
+			(container.scrollTop + container.clientHeight) <
+			50;
 
-			if (!isNearBottom) {
-				container.scrollTop = container.scrollHeight;
-			}
-		});
+		if (!isNearBottom) {
+			container.scrollTop = container.scrollHeight;
+		}
 	}, [logsShown, autoScroll]);
 
 	const TABLE_HEAD = ["logs:time", "logs:level", "logs:message"];
