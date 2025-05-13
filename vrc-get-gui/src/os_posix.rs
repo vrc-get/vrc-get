@@ -3,7 +3,6 @@
 use std::ffi::OsStr;
 use std::fs::OpenOptions;
 use std::io;
-use std::os::fd::AsRawFd;
 use std::os::unix::prelude::*;
 use std::path::Path;
 use std::process::Command;
