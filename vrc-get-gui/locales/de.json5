@@ -191,6 +191,7 @@
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Zurück zu Projekte",
     "projects:menuitem:change launch options": "Startparameter ändern",
+    "projects:menuitem:copy project": "Projekt duplizieren",
     "projects:menuitem:backup": "Backup erstellen",
     "projects:menuitem:forget unity path": "Unity Version zurücksetzen",
     "projects:manage:project location": "Pfad: <path>{{path}}</path>",
@@ -282,8 +283,13 @@
     "projects:toast:unity migrated": "Das Projekt wurde zu Unity 2022 migriert",
 
     "projects:manage:dialog:confirm changes description": "Du bist dabei, die folgenden Änderungen vorzunehmen",
+    "projects:manage:dialog:note breaking changes": "Eine Pakete haben inkompatible Änderungen. <br/>Deine Assets, Einstellungen und Tools in diesem Projekt sind hiermit möglicherweise inkompatibel. <br/>Prüfe Kompatibilität und upgrade auf eigene Gefahr.",
+    "projects:manage:dialog:note incompatibility": "Es besteht Inkompatibilität zu anderen Paketen. <br/>Bei Nutzung kommt es möglicherweise zu Fehlermeldungen. <br/>Prüfe die Kompatibilität und upgrade alle Pakete, oder fahre auf eigene Gefahr fort.",
+    "projects:manage:dialog:upgrade package": "Upgrade <b>{{name}}</b> version {{previousVersion}} auf <b>{{version}}</b>",
+    "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} zu <b>{{version}}</b>",
     "projects:manage:dialog:install package": "Installiere <b>{{name}}</b> Version {{version}}",
     "projects:manage:dialog:reinstall package": "Installiere <b>{{name}}</b> version {{version}} erneut",
+    "projects:manage:dialog:breaking changes": "Beinhaltet inkompatible Änderungen",
     "projects:manage:dialog:uninstall package as requested": "Entferne <b>{{name}}</b>",
     "projects:manage:dialog:uninstall package as legacy": "Entferne <b>{{name}}</b>, da es veraltet ist",
     "projects:manage:dialog:uninstall package as unused": "Entferne <b>{{name}}</b>, da es nicht verwendet wird",
@@ -302,6 +308,11 @@
 
     "projects:manage:dialog:missing dependencies": "Einige Pakete wurden nicht gefunden",
     "projects:manage:dialog:missing dependencies description": "Die folgenden Pakete wurden zur installation angefordert, konnten aber nicht in der angeforderten Version gefunden werden.<br/>Bitte füge die korrekte Paketquelle hinzu. Möglicherweise kann im <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> gefunden werden.",
+
+    // copy project
+    "projects:dialog:copy project": "Projekt duplizieren: {{name}}",
+    "projects:dialog:copying...": "Dupliziere Projekt...",
+    "projects:toast:successfully copied project": "Projekt <b>{{name}}</b> erfolgreich dupliziert",
 
 
 // Packages Page
