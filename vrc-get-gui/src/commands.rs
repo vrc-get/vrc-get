@@ -255,6 +255,7 @@ pub(crate) fn export_ts() {
             crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
         ])
         //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
+        .typ::<environment::projects::TauriUpdatedRealProjectInfo>()
         .export(
             specta_typescript::Typescript::default()
                 .bigint(specta_typescript::BigIntExportBehavior::Number),

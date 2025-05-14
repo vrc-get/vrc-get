@@ -340,6 +340,7 @@ export type TauriRemoveReason = "Requested" | "Legacy" | "Unused"
 export type TauriRepositoriesInfo = { user_repositories: TauriUserRepository[]; hidden_user_repositories: string[]; hide_local_user_packages: boolean; show_prerelease_packages: boolean }
 export type TauriRepositoryDescriptor = { url: string; headers: { [key in string]: string } }
 export type TauriUnityVersions = { unity_paths: ([string, string, boolean])[]; recommended_version: string; install_recommended_version_link: string }
+export type TauriUpdatedRealProjectInfo = { path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null }
 export type TauriUserPackage = { path: string; package: TauriBasePackageInfo }
 export type TauriUserRepository = { id: string; url: string | null; display_name: string }
 export type TauriVersion = { major: number; minor: number; patch: number; pre: string; build: string }

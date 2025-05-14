@@ -21,6 +21,7 @@ import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc, tt } from "@/lib/i18n";
+import { useProjectUpdateInProgress } from "@/lib/project-update";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import {
 	queryOptions,
@@ -120,6 +121,8 @@ function ProjectViewHeader({
 		},
 	});
 
+	const inProgress = useProjectUpdateInProgress();
+
 	const searchRef = useRef<HTMLInputElement>(null);
 
 	useDocumentEvent(
@@ -148,7 +151,7 @@ function ProjectViewHeader({
 								onClick={() =>
 									queryClient.invalidateQueries(environmentProjects)
 								}
-								disabled={isLoading}
+								disabled={isLoading || inProgress}
 							>
 								{isLoading ? (
 									<RefreshCw className="w-5 h-5 animate-spin" />
