@@ -72,7 +72,8 @@ impl DefaultEnvironmentIo {
     pub async fn new_mutex(&self, lock_name: &OsStr) -> io::Result<impl Send + Sync + 'static> {
         #[cfg(not(windows))]
         {
-            Ok(())
+            static SHARED_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+            Ok(SHARED_LOCK.lock().await)
         }
         #[cfg(windows)]
         {
