@@ -386,7 +386,6 @@
     "templates:dialog:no unitypackages": "なし",
     "templates:dialog:remove template": "テンプレートを削除",
     "templates:dialog:confirm remove template": "テンプレート <b>{{displayName}}</b> を削除しますか？(ゴミ箱に移動されます)",
-    "templates:button:save template": "テンプレートを保存",
     "templates:button:import template": "テンプレートをインポート",
     "templates:toast:imported n templates": "テンプレートを{{count}}個インポートしました。",
     "template:toast:removed": "テンプレートを削除しました。",

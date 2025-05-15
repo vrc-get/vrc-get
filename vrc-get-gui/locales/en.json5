@@ -141,7 +141,6 @@
     "projects:button:create": "Create",
     "projects:creating project...": "Creating the project...",
     "projects:toast:project created": "Project was created successfully.",
-    "templates:dialog:unitypackage path": "Unity package path",
 
     "projects:toast:opening unity...": "Opening Unity...",
     "projects:dialog:unity not found": "Unity was not found",
@@ -404,15 +403,19 @@
     "templates:dialog:base template": "Base Template",
     "templates:dialog:unity version": "Unity Version",
     "templates:dialog:version": "Version",
-    "templates:dialog:unitypackages": "UnityPackages",
+    "templates:dialog:unitypackages": "Unity Packages",
     "templates:dialog:no unitypackages": "No UnityPackages",
     "templates:dialog:remove template": "Remove Template",
     "templates:dialog:confirm remove template": "Are you sure remove template {{displayName}}?",
-    "templates:button:save template": "Save Template",
     "templates:button:import template": "Import Template",
     "templates:toast:imported n templates_one": "Imported {{count}} template",
     "templates:toast:imported n templates_other": "Imported {{count}} templates",
     "template:toast:removed": "Removed the Template",
+    "templates:dialog:no unity version found": "No Unity versions found.",
+    "templates:dialog:invalid unity version format": "Invalid Unity version. Valid combo: '.', 'x', '*', or comparators like >=, ~, ^.",
+    "templates:dialog:invalid unity version format hint": "or select an installed version from the dropdown list.",
+    "templates:dialog:implicitly includes": "Base template includes",
+    "templates:dialog:default new template name": "New Template",
 
 
 // Settings Page
