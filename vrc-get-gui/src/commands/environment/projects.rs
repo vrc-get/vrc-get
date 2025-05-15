@@ -157,7 +157,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
     }
 
     async fn sync_with_real_project(projects: Vec<String>, app: AppHandle) {
-        app.emit("projects-update-started", ()).ok();
+        app.emit("projects-update-in-progress", true).ok();
 
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
@@ -186,7 +186,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
             }
         }))
         .await;
-        app.emit("projects-update-finished", ()).ok();
+        app.emit("projects-update-in-progress", false).ok();
 
         info!(
             "updating database real project information of {} projects",

@@ -24,34 +24,39 @@ void tauriListen<TauriUpdatedRealProjectInfo>("projects-updated", (e) => {
 	});
 });
 
-let projectUpdateInProgress = false;
-const projectUpdateInProgressListeners: (() => void)[] = [];
+class EventSyncedVariable<T> {
+	#value: T;
+	#changeListeners: Set<() => void>;
 
-function setProjectUpdateInProgress(value: boolean) {
-	projectUpdateInProgress = value;
-	for (const l of projectUpdateInProgressListeners) {
-		l();
+	constructor(eventName: string, initialValue: T) {
+		this.#value = initialValue;
+		this.#changeListeners = new Set();
+		this.useValue = this.useValue.bind(this);
+		void tauriListen<T>(eventName, (e) => this.#setValue(e.payload));
 	}
-}
 
-void tauriListen<TauriUpdatedRealProjectInfo>("projects-update-started", () =>
-	setProjectUpdateInProgress(true),
-);
-void tauriListen<TauriUpdatedRealProjectInfo>("projects-update-finished", () =>
-	setProjectUpdateInProgress(false),
-);
+	get value(): T {
+		return this.#value;
+	}
 
-function subscribeProjectUpdateInProgress(onChange: () => void): () => void {
-	projectUpdateInProgressListeners.push(onChange);
-	return () => {
-		const index = projectUpdateInProgressListeners.indexOf(onChange);
-		if (index !== -1) projectUpdateInProgressListeners.splice(index, 1);
+	useValue() {
+		return useSyncExternalStore<T>(this.#subscriber, this.#getValue);
+	}
+
+	#getValue = (): T => this.#value;
+
+	#setValue = (value: T) => {
+		this.#value = value;
+		for (const listener of this.#changeListeners) listener();
+	};
+
+	#subscriber: (callcack: () => void) => () => void = (callcack) => {
+		this.#changeListeners.add(callcack);
+		return () => this.#changeListeners.delete(callcack);
 	};
 }
 
-export function useProjectUpdateInProgress(): boolean {
-	return useSyncExternalStore<boolean>(
-		subscribeProjectUpdateInProgress,
-		() => projectUpdateInProgress,
-	);
-}
+export const useProjectUpdateInProgress = new EventSyncedVariable(
+	"projects-update-in-progress",
+	false,
+).useValue;
