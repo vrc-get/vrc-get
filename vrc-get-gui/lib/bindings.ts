@@ -53,11 +53,8 @@ async environmentProjects() : Promise<TauriProject[]> {
 async environmentAddProjectWithPicker() : Promise<TauriAddProjectWithPickerResult> {
     return await TAURI_INVOKE("environment_add_project_with_picker");
 },
-async environmentRemoveProject(listVersion: number, index: number, directory: boolean) : Promise<null> {
-    return await TAURI_INVOKE("environment_remove_project", { listVersion, index, directory });
-},
-async environmentRemoveProjectByPath(path: string, directory: boolean) : Promise<null> {
-    return await TAURI_INVOKE("environment_remove_project_by_path", { path, directory });
+async environmentRemoveProjectByPath(projectPath: string, directory: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_remove_project_by_path", { projectPath, directory });
 },
 async environmentCopyProjectForMigration(channel: string, sourcePath: string) : Promise<AsyncCallResult<TauriCopyProjectProgress, string>> {
     return await TAURI_INVOKE("environment_copy_project_for_migration", { channel, sourcePath });
@@ -65,8 +62,8 @@ async environmentCopyProjectForMigration(channel: string, sourcePath: string) : 
 async environmentCopyProject(channel: string, sourcePath: string, newPath: string) : Promise<AsyncCallResult<TauriCopyProjectProgress, string>> {
     return await TAURI_INVOKE("environment_copy_project", { channel, sourcePath, newPath });
 },
-async environmentSetFavoriteProject(listVersion: number, index: number, favorite: boolean) : Promise<null> {
-    return await TAURI_INVOKE("environment_set_favorite_project", { listVersion, index, favorite });
+async environmentSetFavoriteProject(projectPath: string, favorite: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_favorite_project", { projectPath, favorite });
 },
 async environmentProjectCreationInformation() : Promise<TauriProjectCreationInformation> {
     return await TAURI_INVOKE("environment_project_creation_information");
@@ -329,7 +326,7 @@ export type TauriPickProjectBackupPathResult = { type: "NoFolderSelected" } | { 
 export type TauriPickProjectDefaultPathResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful"; new_path: string }
 export type TauriPickUnityHubResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful" }
 export type TauriPickUnityResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
-export type TauriProject = { list_version: number; index: number; name: string; path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null; last_modified: number; created_at: number; favorite: boolean; is_exists: boolean }
+export type TauriProject = { name: string; path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null; last_modified: number; created_at: number; favorite: boolean; is_exists: boolean }
 export type TauriProjectCreationInformation = { templates: TauriProjectTemplateInfo[]; templates_version: number; default_path: string }
 export type TauriProjectDetails = { unity: [number, number]; unity_str: string; unity_revision: string | null; installed_packages: ([string, TauriBasePackageInfo])[]; should_resolve: boolean }
 export type TauriProjectDirCheckResult = "InvalidNameForFolderName" | "MayCompatibilityProblem" | "WideChar" | "AlreadyExists" | "Ok"

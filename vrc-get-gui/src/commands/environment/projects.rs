@@ -27,10 +27,6 @@ use vrc_get_vpm::version::UnityVersion;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct TauriProject {
-    // the project identifier
-    list_version: u32,
-    index: usize,
-
     // projet information
     name: String,
     path: String,
@@ -84,14 +80,11 @@ impl From<ProjectType> for TauriProjectType {
 }
 
 impl TauriProject {
-    fn new(list_version: u32, index: usize, project: &UserProject) -> Self {
+    fn new(project: &UserProject) -> Self {
         let is_exists = std::fs::metadata(project.path().unwrap())
             .map(|x| x.is_dir())
             .unwrap_or(false);
         Self {
-            list_version,
-            index,
-
             name: project.name().unwrap().to_string(),
             path: project.path().unwrap().to_string(),
             project_type: project.project_type().into(),
@@ -224,7 +217,6 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
 #[specta::specta]
 pub async fn environment_projects(
     settings: State<'_, SettingsState>,
-    projects_state: State<'_, ProjectsState>,
     io: State<'_, DefaultEnvironmentIo>,
     app: AppHandle,
 ) -> Result<Vec<TauriProject>, RustError> {
@@ -243,14 +235,7 @@ pub async fn environment_projects(
 
     sync_with_real_project_background(&projects, &app);
 
-    let stored = projects_state.set(projects.into_boxed_slice()).await;
-
-    let vec = stored
-        .data()
-        .iter()
-        .enumerate()
-        .map(|(index, value)| TauriProject::new(stored.version(), index, value))
-        .collect::<Vec<_>>();
+    let vec = projects.iter().map(TauriProject::new).collect::<Vec<_>>();
 
     Ok(vec)
 }
@@ -322,27 +307,19 @@ pub async fn environment_add_project_with_picker(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn environment_remove_project(
-    projects_state: State<'_, ProjectsState>,
+pub async fn environment_remove_project_by_path(
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
-    list_version: u32,
-    index: usize,
+    project_path: String,
     directory: bool,
 ) -> Result<(), RustError> {
-    let projects = projects_state.get().await;
-    if list_version != projects.version() {
-        return Err(RustError::unrecoverable("project list version mismatch"));
-    }
-
-    let Some(project) = projects.get(index) else {
-        return Err(RustError::unrecoverable("project not found"));
-    };
-
     let mut settings = settings.load_mut(io.inner()).await?;
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-    connection.remove_project(project);
+    let Some(project) = connection.find_project(&project_path).unwrap() else {
+        return Err(RustError::unrecoverable("project not found"));
+    };
+    connection.remove_project(&project);
     connection.save(io.inner()).await?;
     settings.load_from_db(&connection)?;
     settings.save().await?;
@@ -359,43 +336,6 @@ pub async fn environment_remove_project(
     }
 
     Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn environment_remove_project_by_path(
-    settings: State<'_, SettingsState>,
-    io: State<'_, DefaultEnvironmentIo>,
-    path: String,
-    directory: bool,
-) -> Result<(), RustError> {
-    {
-        let mut settings = settings.load_mut(io.inner()).await?;
-        let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-        migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
-
-        let projects = connection.get_projects();
-
-        if let Some(x) = projects.iter().find(|x| x.path() == Some(&path)) {
-            connection.remove_project(x);
-            connection.save(io.inner()).await?;
-            settings.load_from_db(&connection)?;
-            settings.save().await?;
-        } else {
-            drop(settings);
-        }
-
-        if directory {
-            info!("removing project directory: {path}");
-            if let Err(err) = trash_delete(PathBuf::from(&path)).await {
-                error!("failed to remove project directory: {err}");
-            } else {
-                info!("removed project directory: {path}");
-            }
-        }
-
-        Ok(())
-    }
 }
 
 #[derive(Serialize, specta::Type, Clone)]
@@ -565,26 +505,17 @@ where
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_favorite_project(
-    projects_state: State<'_, ProjectsState>,
     io: State<'_, DefaultEnvironmentIo>,
-    list_version: u32,
-    index: usize,
+    project_path: String,
     favorite: bool,
 ) -> Result<(), RustError> {
-    let mut projects = projects_state.get().await;
-    if list_version != projects.version() {
-        return Err(RustError::unrecoverable("project list version mismatch"));
-    }
-    let Some(project) = projects.get_mut(index) else {
+    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
+    let Some(mut project) = connection.find_project(&project_path).unwrap() else {
         return Err(RustError::unrecoverable("project not found"));
     };
-
     project.set_favorite(favorite);
-
-    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
-    connection.update_project(project);
+    connection.update_project(&project);
     connection.save(io.inner()).await?;
-
     Ok(())
 }
 
