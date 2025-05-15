@@ -489,7 +489,7 @@ function TemplateEditor({
 	const [baseTemplate, setBaseTemplate] = useState<string>(
 		template?.base ?? "com.anatawa12.vrc-get.vrchat.avatars",
 	);
-	const [name, setName] = useState(template?.display_name ?? "New Template");
+	const [name, setName] = useState(template?.display_name ?? tt("templates:dialog:default new template name"));
 
 	const [unityRange, setUnityRange] = useState(() => {
 		const initialValFromFile = template?.unity_version?.toString();
