@@ -135,6 +135,8 @@ function ProjectViewHeader({
 		[],
 	);
 
+	isLoading = isLoading || inProgress;
+
 	return (
 		<HNavBar
 			className={"shrink-0"}
@@ -151,7 +153,7 @@ function ProjectViewHeader({
 								onClick={() =>
 									queryClient.invalidateQueries(environmentProjects)
 								}
-								disabled={isLoading || inProgress}
+								disabled={isLoading}
 							>
 								{isLoading ? (
 									<RefreshCw className="w-5 h-5 animate-spin" />
