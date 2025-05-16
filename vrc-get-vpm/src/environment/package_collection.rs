@@ -24,6 +24,18 @@ impl PackageCollection {
         }
     }
 
+    pub async fn load_cache(settings: &Settings, io: &DefaultEnvironmentIo) -> io::Result<Self> {
+        let (repositories, user_packages) = futures::try_join!(
+            RepoHolder::load_cache(settings, io),
+            UserPackageCollection::load(settings, io).map(Ok)
+        )?;
+
+        Ok(Self {
+            repositories,
+            user_packages: user_packages.into_packages(),
+        })
+    }
+
     pub async fn load(
         settings: &Settings,
         io: &DefaultEnvironmentIo,
