@@ -67,7 +67,7 @@ pub async fn update_unity_paths_from_unity_hub(
                 Ok(UpdateUnityResultTiny::Success) => return Ok(true),
                 Ok(UpdateUnityResultTiny::NoUnityHub) => return Ok(false),
                 Ok(UpdateUnityResultTiny::IoError) => {
-                    return Err(io::Error::new(io::ErrorKind::Other, "io error"));
+                    return Err(io::Error::other("io error"));
                 }
                 Err(_) => {
                     debug!("previous update failed with panic or was canceled, retrying");

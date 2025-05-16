@@ -110,22 +110,10 @@ impl VpmSettings {
         &mut self,
         mut f: impl FnMut(&UserRepoSetting) -> bool,
     ) -> Vec<UserRepoSetting> {
-        let mut removed = Vec::new();
-
-        // awaiting extract_if but not stable yet so use cloned method
-        let json = &mut self.parsed;
-        let cloned = json.user_repos.to_vec();
-        json.user_repos.clear();
-
-        for element in cloned {
-            if f(&element) {
-                json.user_repos.push(element);
-            } else {
-                removed.push(element);
-            }
-        }
-
-        removed
+        self.parsed
+            .user_repos
+            .extract_if(.., |r| !f(r))
+            .collect::<Vec<_>>()
     }
 
     pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {
@@ -179,22 +167,10 @@ impl VpmSettings {
         &mut self,
         mut f: impl FnMut(&str) -> bool,
     ) -> Vec<Box<str>> {
-        let mut removed = Vec::new();
-
-        // awaiting extract_if but not stable yet so use cloned method
-
-        let cloned = self.parsed.user_projects.to_vec();
-        self.parsed.user_projects.clear();
-
-        for element in cloned {
-            if f(element.as_ref()) {
-                self.parsed.user_projects.push(element);
-            } else {
-                removed.push(element);
-            }
-        }
-
-        removed
+        self.parsed
+            .user_projects
+            .extract_if(.., |x| !f(x))
+            .collect()
     }
 
     pub(crate) fn remove_user_project(&mut self, path: &str) {

@@ -52,13 +52,10 @@ pub(crate) async fn start_command(
         .await?;
 
     if !status.success() {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!(
-                "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {}",
-                status
-            ),
-        ))
+        Err(std::io::Error::other(format!(
+            "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {}",
+            status
+        )))
     } else {
         Ok(())
     }
