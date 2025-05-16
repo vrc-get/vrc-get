@@ -18,7 +18,24 @@ use url::Url;
 
 #[derive(Debug, Clone)]
 pub(crate) struct RepoHolder {
-    cached_repos_new: HashMap<Box<Path>, LocalCachedRepository>,
+    cached_repos_new: HashMap<Box<Path>, Repository>,
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug, Clone)]
+enum Repository {
+    Loaded(LocalCachedRepository),
+    NotDownloaded(#[allow(dead_code)] Url),
+    UnableToLoad,
+}
+
+impl Repository {
+    fn as_loaded(&self) -> Option<&LocalCachedRepository> {
+        match self {
+            Repository::Loaded(x) => Some(x),
+            _ => None,
+        }
+    }
 }
 
 impl RepoHolder {
@@ -36,15 +53,15 @@ impl RepoHolder {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &LocalCachedRepository> + Sized {
-        self.cached_repos_new.values()
+        self.cached_repos_new.values().filter_map(|x| x.as_loaded())
     }
 
     pub fn find_by_id(&self, id: &str) -> Option<&LocalCachedRepository> {
-        self.cached_repos_new.values().find(|x| x.id() == Some(id))
+        self.iter().find(|x| x.id() == Some(id))
     }
 
     pub fn get_by_path(&self, path: &Path) -> Option<&LocalCachedRepository> {
-        self.cached_repos_new.get(path)
+        self.cached_repos_new.get(path).and_then(|x| x.as_loaded())
     }
 }
 
@@ -110,11 +127,21 @@ impl RepoHolder {
         let start = std::time::Instant::now();
         let repos = join_all(sources.map(|src| async move {
             match Self::load_repo_from_source(http, io, &src).await {
-                Ok(Some(v)) => Some((v, src.cache_path().into())),
-                Ok(None) => None,
+                Ok(Some(v)) => (src.cache_path().into(), Repository::Loaded(v)),
+                Ok(None) => (
+                    src.cache_path().into(),
+                    src.url()
+                        .map(|u| Repository::NotDownloaded(u.clone()))
+                        .unwrap_or(Repository::UnableToLoad),
+                ),
                 Err(e) => {
                     error!("loading repo '{}': {}", src.cache_path().display(), e);
-                    None
+                    (
+                        src.cache_path().into(),
+                        src.url()
+                            .map(|u| Repository::NotDownloaded(u.clone()))
+                            .unwrap_or(Repository::UnableToLoad),
+                    )
                 }
             }
         }))
@@ -122,7 +149,7 @@ impl RepoHolder {
         let duration = std::time::Instant::now() - start;
         log::info!("downloading repos took {:?}", duration);
 
-        for (repo, path) in repos.into_iter().flatten() {
+        for (path, repo) in repos.into_iter() {
             self.cached_repos_new.insert(path, repo);
         }
 
