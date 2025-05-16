@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::PackageCollection as _;
 use crate::environment::{RepoHolder, Settings, UserPackageCollection};
@@ -13,14 +12,14 @@ use log::error;
 /// A immutable structure that holds information about all the packages.
 #[derive(Debug, Clone)]
 pub struct PackageCollection {
-    pub(super) repositories: HashMap<Box<Path>, LocalCachedRepository>,
+    pub(super) repositories: RepoHolder,
     pub(super) user_packages: Vec<(PathBuf, PackageManifest)>,
 }
 
 impl PackageCollection {
     pub fn empty() -> Self {
         Self {
-            repositories: HashMap::new(),
+            repositories: RepoHolder::new(),
             user_packages: Vec::new(),
         }
     }
@@ -36,7 +35,7 @@ impl PackageCollection {
         )?;
 
         Ok(Self {
-            repositories: repositories.into_repos(),
+            repositories,
             user_packages: user_packages.into_packages(),
         })
     }
@@ -59,7 +58,7 @@ impl PackageCollection {
 
 impl PackageCollection {
     pub fn get_remote(&self) -> impl Iterator<Item = &'_ LocalCachedRepository> {
-        self.repositories.values()
+        self.repositories.iter()
     }
 
     pub fn user_packages(&self) -> &[(PathBuf, PackageManifest)] {
@@ -88,18 +87,19 @@ impl crate::PackageCollection for PackageCollection {
         version_selector: VersionSelector,
     ) -> impl Iterator<Item = PackageInfo> {
         self.repositories
-            .values()
-            .filter(|x| x.repo.id() == Some("com.vrchat.repos.curated"))
-            .flat_map(move |repo| {
+            .find_by_id("com.vrchat.repos.curated")
+            .map(move |repo| {
                 repo.repo()
                     .get_packages()
                     .filter_map(move |x| x.get_latest(version_selector))
                     .map(|json| PackageInfo::remote(json, repo))
             })
+            .into_iter()
+            .flatten()
     }
 
     fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        let remote = self.repositories.values().flat_map(|repo| {
+        let remote = self.repositories.iter().flat_map(|repo| {
             repo.repo
                 .get_packages()
                 .flat_map(|x| x.all_versions())
@@ -114,7 +114,7 @@ impl crate::PackageCollection for PackageCollection {
     }
 
     fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        let remote = self.repositories.values().flat_map(|repo| {
+        let remote = self.repositories.iter().flat_map(|repo| {
             repo.repo
                 .get_package(package)
                 .into_iter()
@@ -134,7 +134,7 @@ impl crate::PackageCollection for PackageCollection {
         package: &str,
         package_selector: VersionSelector,
     ) -> Option<PackageInfo> {
-        let remote = self.repositories.values().flat_map(|repo| {
+        let remote = self.repositories.iter().flat_map(|repo| {
             repo.repo
                 .get_package(package)
                 .into_iter()

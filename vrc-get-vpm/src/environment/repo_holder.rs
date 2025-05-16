@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use url::Url;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct RepoHolder {
     cached_repos_new: HashMap<Box<Path>, LocalCachedRepository>,
 }
@@ -26,6 +26,25 @@ impl RepoHolder {
         RepoHolder {
             cached_repos_new: HashMap::new(),
         }
+    }
+}
+
+/// accessors
+impl RepoHolder {
+    pub fn remove(&mut self, path: &Path) {
+        self.cached_repos_new.remove(path);
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &LocalCachedRepository> + Sized {
+        self.cached_repos_new.values()
+    }
+
+    pub fn find_by_id(&self, id: &str) -> Option<&LocalCachedRepository> {
+        self.cached_repos_new.values().find(|x| x.id() == Some(id))
+    }
+
+    pub fn get_by_path(&self, path: &Path) -> Option<&LocalCachedRepository> {
+        self.cached_repos_new.get(path)
     }
 }
 
@@ -196,9 +215,5 @@ impl RepoHolder {
         path: &Path,
     ) -> io::Result<LocalCachedRepository> {
         read_json_file::<LocalCachedRepository>(io.open(path).await?, path).await
-    }
-
-    pub(crate) fn into_repos(self) -> HashMap<Box<Path>, LocalCachedRepository> {
-        self.cached_repos_new
     }
 }
