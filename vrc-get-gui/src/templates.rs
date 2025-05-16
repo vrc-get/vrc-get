@@ -290,12 +290,9 @@ async fn copy_recursively(from: PathBuf, to: PathBuf) -> io::Result<u64> {
             ErrorKind::InvalidFileName => Err(io::Error::new(io::ErrorKind::InvalidInput, e)),
             ErrorKind::InvalidPath => Err(io::Error::new(io::ErrorKind::InvalidInput, e)),
             ErrorKind::OsString(_) => Err(io::Error::new(io::ErrorKind::InvalidData, e)),
-            ErrorKind::Other => Err(io::Error::new(io::ErrorKind::Other, e)),
+            ErrorKind::Other => Err(io::Error::other(e)),
         },
-        Err(_) => Err(io::Error::new(
-            io::ErrorKind::Other,
-            "background task failed",
-        )),
+        Err(_) => Err(io::Error::other("background task failed")),
     }
 }
 

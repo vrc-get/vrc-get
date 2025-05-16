@@ -376,10 +376,7 @@ impl<R: AsyncRead + Unpin> TarArchive<R> {
             + 8 * b' ' as u32;
         let cksum = header.cksum()?;
         if sum != cksum {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "archive header checksum mismatch",
-            ));
+            return Err(io::Error::other("archive header checksum mismatch"));
         }
 
         let size = header.size()?;

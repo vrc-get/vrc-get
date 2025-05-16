@@ -102,10 +102,10 @@ pub fn open_that(path: impl AsRef<OsStr>) -> io::Result<()> {
         .status()?;
 
     if !status.success() {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("Launcher xdg-open failed with {:?}", status),
-        ));
+        return Err(io::Error::other(format!(
+            "Launcher xdg-open failed with {:?}",
+            status
+        )));
     }
 
     Ok(())
