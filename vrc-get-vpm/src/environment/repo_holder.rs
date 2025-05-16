@@ -97,7 +97,7 @@ impl RepoHolder {
         let mut repo_cache = Self::load_cache(settings, io).await?;
 
         if let Some(http) = http {
-            repo_cache.update_cache(http, io).await;
+            repo_cache.update_cache(io, http).await;
         }
 
         Ok(repo_cache)
@@ -211,9 +211,10 @@ impl RepoHolder {
 
     pub(crate) async fn update_cache(
         &mut self,
-        client: &impl HttpClient,
         io: &DefaultEnvironmentIo,
+        client: &impl HttpClient,
     ) {
+        let start = std::time::Instant::now();
         let result = futures::future::join_all(self.cached_repos_new.iter_mut().map(
             async |(path, repository)| {
                 if let Some(info) = repository.remote_download_info() {
@@ -275,6 +276,8 @@ impl RepoHolder {
             },
         ))
         .await;
+
+        log::debug!("updating repo from remote took {:?}", start.elapsed());
 
         handle_error(result);
 

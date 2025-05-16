@@ -52,6 +52,10 @@ impl PackageCollection {
         })
     }
 
+    pub async fn update_cache(&mut self, io: &DefaultEnvironmentIo, http: &impl HttpClient) {
+        self.repositories.update_cache(io, http).await
+    }
+
     pub async fn remove_repositories(
         &mut self,
         remove_repos: &[UserRepoSetting],
