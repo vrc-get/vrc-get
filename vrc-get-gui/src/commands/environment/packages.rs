@@ -22,9 +22,6 @@ use vrc_get_vpm::{HttpClient, PackageInfo, VersionSelector};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriPackage {
-    env_version: u32,
-    index: usize,
-
     #[serde(flatten)]
     base: TauriBasePackageInfo,
 
@@ -38,7 +35,7 @@ enum TauriPackageSource {
 }
 
 impl TauriPackage {
-    fn new(env_version: u32, index: usize, package: &PackageInfo) -> Self {
+    fn new(package: &PackageInfo) -> Self {
         let source = if let Some(repo) = package.repo() {
             let id = repo.id().or(repo.url().map(|x| x.as_str())).unwrap();
             TauriPackageSource::Remote {
@@ -50,8 +47,6 @@ impl TauriPackage {
         };
 
         Self {
-            env_version,
-            index,
             base: TauriBasePackageInfo::new(package.package_json()),
             source,
         }
@@ -85,12 +80,9 @@ pub async fn environment_packages(
     let settings = settings.load(io.inner()).await?;
     let packages = packages.load(&settings, io.inner(), http.inner()).await?;
 
-    let version = packages.version();
-
     Ok(packages
         .packages()
-        .enumerate()
-        .map(|(index, value)| TauriPackage::new(version, index, value))
+        .map(|value| TauriPackage::new(value))
         .collect::<Vec<_>>())
 }
 

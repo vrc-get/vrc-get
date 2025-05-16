@@ -1,9 +1,13 @@
+use crate::commands::DEFAULT_UNITY_ARGUMENTS;
+use crate::commands::async_command::*;
+use crate::commands::prelude::*;
+use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_path};
+use log::{error, info, warn};
+use serde::Serialize;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-
-use log::{error, info, warn};
-use serde::Serialize;
+use std::str::FromStr;
 use tauri::{State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
@@ -13,11 +17,7 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
-
-use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::commands::async_command::*;
-use crate::commands::prelude::*;
-use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_path};
+use vrc_get_vpm::version::{StrictEqVersion, Version};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
@@ -178,21 +178,37 @@ pub async fn project_install_packages(
     changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
-    env_version: u32,
-    package_indices: Vec<usize>,
+    installs: Vec<(String, String)>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
-    let Some(packages) = packages.get_versioned(env_version) else {
+    let Some(packages) = packages.get() else {
         return Err(RustError::unrecoverable(
             "Internal Error: environment version mismatch",
         ));
     };
+    let Some(installs) = installs
+        .into_iter()
+        .map(|(id, v)| Some((id, Version::from_str(&v).ok()?)))
+        .collect::<Option<Vec<_>>>()
+    else {
+        return Err(RustError::unrecoverable("bad version file"));
+    };
 
     changes!(packages, changes, |collection, packages| {
-        let installing_packages = package_indices
+        let Some(installing_packages) = installs
             .iter()
-            .map(|&index| packages[index])
-            .collect::<Vec<_>>();
+            .map(|(id, version)| {
+                packages
+                    .iter()
+                    .find(|&p| {
+                        p.name() == id && StrictEqVersion(p.version()) == StrictEqVersion(version)
+                    })
+                    .copied()
+            })
+            .collect::<Option<Vec<_>>>()
+        else {
+            return Err(RustError::unrecoverable("some packages not found"));
+        };
 
         let unity_project = load_project(project_path).await?;
 

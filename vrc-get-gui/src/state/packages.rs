@@ -4,7 +4,6 @@ use std::future::Future;
 use std::io;
 use std::marker::PhantomData;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 use vrc_get_vpm::environment::{PackageCollection, Settings};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
@@ -25,25 +24,14 @@ impl<'env> YokeData<'env> {
 type Data = Yoke<YokeData<'static>, Arc<PackageCollection>>;
 
 struct PackagesStateInner {
-    pub version: u32,
     pub data: Data,
     pub crated_at: std::time::Instant,
 }
 
 impl PackagesStateInner {
-    fn new_version() -> u32 {
-        static VERSION: AtomicU32 = AtomicU32::new(0);
-        VERSION.fetch_add(1, Ordering::AcqRel)
-    }
-
     pub fn new(data: Data) -> Self {
-        let version = Self::new_version();
         let crated_at = std::time::Instant::now();
-        Self {
-            version,
-            data,
-            crated_at,
-        }
+        Self { data, crated_at }
     }
 
     pub fn is_new(&self) -> bool {
@@ -131,16 +119,12 @@ impl PackagesState {
         })
     }
 
-    pub fn get_versioned(&self, version: u32) -> Option<PackagesVersionRef<'_>> {
+    pub fn get(&self) -> Option<PackagesVersionRef<'_>> {
         let loaded = self.inner.load_full()?;
-        if loaded.version == version {
-            Some(PackagesVersionRef {
-                arc: loaded,
-                _phantom_data: PhantomData,
-            })
-        } else {
-            None
-        }
+        Some(PackagesVersionRef {
+            arc: loaded,
+            _phantom_data: PhantomData,
+        })
     }
 
     pub fn clear_cache(&self) {
@@ -156,10 +140,6 @@ pub struct PackagesStateRef<'a> {
 impl PackagesStateRef<'_> {
     pub fn collection(&self) -> &PackageCollection {
         self.arc.data.backing_cart()
-    }
-
-    pub fn version(&self) -> u32 {
-        self.arc.version
     }
 
     pub fn packages(&self) -> impl Iterator<Item = &PackageInfo> {

@@ -191,8 +191,8 @@ async environmentWaitForUnityHubUpdate() : Promise<void> {
 async projectDetails(projectPath: string) : Promise<TauriProjectDetails> {
     return await TAURI_INVOKE("project_details", { projectPath });
 },
-async projectInstallPackages(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
-    return await TAURI_INVOKE("project_install_packages", { projectPath, envVersion, packageIndices });
+async projectInstallPackages(projectPath: string, installs: ([string, string])[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_install_packages", { projectPath, installs });
 },
 async projectReinstallPackages(projectPath: string, packageIds: string[]) : Promise<TauriPendingProjectChanges> {
     return await TAURI_INVOKE("project_reinstall_packages", { projectPath, packageIds });
@@ -318,7 +318,7 @@ export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated";
 export type TauriDuplicatedReason = "URLDuplicated" | "IDDuplicated"
 export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null; gui_animation: boolean; unity_hub_access_method: UnityHubAccessMethod }
 export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] }
-export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { env_version: number; index: number; source: TauriPackageSource }
+export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { source: TauriPackageSource }
 export type TauriPackageChange = { InstallNew: TauriBasePackageInfo } | { Remove: TauriRemoveReason }
 export type TauriPackageSource = "LocalUser" | { Remote: { id: string; display_name: string } }
 export type TauriPendingProjectChanges = { changes_version: number; package_changes: ([string, TauriPackageChange])[]; remove_legacy_files: string[]; remove_legacy_folders: string[]; conflicts: ([string, TauriConflictInfo])[] }
