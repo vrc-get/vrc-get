@@ -20,6 +20,7 @@ import {
 import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
+import { useProjectUpdateInProgress } from "@/lib/global-events";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import {
@@ -120,6 +121,8 @@ function ProjectViewHeader({
 		},
 	});
 
+	const inProgress = useProjectUpdateInProgress();
+
 	const searchRef = useRef<HTMLInputElement>(null);
 
 	useDocumentEvent(
@@ -131,6 +134,8 @@ function ProjectViewHeader({
 		},
 		[],
 	);
+
+	isLoading = isLoading || inProgress;
 
 	return (
 		<HNavBar

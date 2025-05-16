@@ -1,10 +1,14 @@
+use crate::commands::DEFAULT_UNITY_ARGUMENTS;
+use crate::commands::async_command::*;
+use crate::commands::prelude::*;
+use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_path};
+use log::{error, info, warn};
+use serde::Serialize;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-
-use log::{error, info, warn};
-use serde::Serialize;
-use tauri::{State, Window};
+use std::str::FromStr;
+use tauri::{AppHandle, State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
@@ -13,11 +17,7 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
-
-use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::commands::async_command::*;
-use crate::commands::prelude::*;
-use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_path};
+use vrc_get_vpm::version::{StrictEqVersion, Version};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
@@ -178,21 +178,37 @@ pub async fn project_install_packages(
     changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
-    env_version: u32,
-    package_indices: Vec<usize>,
+    installs: Vec<(String, String)>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
-    let Some(packages) = packages.get_versioned(env_version) else {
+    let Some(packages) = packages.get() else {
         return Err(RustError::unrecoverable(
             "Internal Error: environment version mismatch",
         ));
     };
+    let Some(installs) = installs
+        .into_iter()
+        .map(|(id, v)| Some((id, Version::from_str(&v).ok()?)))
+        .collect::<Option<Vec<_>>>()
+    else {
+        return Err(RustError::unrecoverable("bad version file"));
+    };
 
     changes!(packages, changes, |collection, packages| {
-        let installing_packages = package_indices
+        let Some(installing_packages) = installs
             .iter()
-            .map(|&index| packages[index])
-            .collect::<Vec<_>>();
+            .map(|(id, version)| {
+                packages
+                    .iter()
+                    .find(|&p| {
+                        p.name() == id && StrictEqVersion(p.version()) == StrictEqVersion(version)
+                    })
+                    .copied()
+            })
+            .collect::<Option<Vec<_>>>()
+        else {
+            return Err(RustError::unrecoverable("some packages not found"));
+        };
 
         let unity_project = load_project(project_path).await?;
 
@@ -211,7 +227,9 @@ pub async fn project_install_packages(
 
 #[tauri::command]
 #[specta::specta]
+#[allow(clippy::too_many_arguments)]
 pub async fn project_reinstall_packages(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
@@ -220,8 +238,8 @@ pub async fn project_reinstall_packages(
     project_path: String,
     package_ids: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
 
     changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
@@ -237,6 +255,7 @@ pub async fn project_reinstall_packages(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_resolve(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
@@ -244,8 +263,8 @@ pub async fn project_resolve(
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
     changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
 
@@ -308,6 +327,7 @@ pub async fn project_clear_pending_changes(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_2022(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
@@ -316,7 +336,7 @@ pub async fn project_migrate_project_to_2022(
 ) -> Result<(), RustError> {
     {
         let settings = settings.load(io.inner()).await?;
-        let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+        let packages = packages.load(&settings, &io, &http, app_handle).await?;
         let mut unity_project = load_project(project_path).await?;
 
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
@@ -414,14 +434,15 @@ pub async fn project_call_unity_for_migration(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_vpm(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<(), RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
 
     let mut unity_project = load_project(project_path).await?;
     let installer = PackageInstaller::new(io.inner(), Some(http.inner()));

@@ -145,15 +145,16 @@ function createChanges(
 ): Promise<TauriPendingProjectChanges> {
 	switch (operation.type) {
 		case "install":
-			return commands.projectInstallPackages(
-				projectPath,
-				operation.pkg.env_version,
-				[operation.pkg.index],
-			);
+			return commands.projectInstallPackages(projectPath, [
+				[operation.pkg.name, toVersionString(operation.pkg.version)],
+			]);
 		case "upgradeAll":
 			return commands.projectInstallPackages(
 				projectPath,
-				...packagesToIndexes(operation.packages),
+				operation.packages.map((pkg) => [
+					pkg.name,
+					toVersionString(pkg.version),
+				]),
 			);
 		case "resolve":
 		case "reinstallAll":
@@ -163,7 +164,10 @@ function createChanges(
 		case "bulkInstalled":
 			return commands.projectInstallPackages(
 				projectPath,
-				...packagesToIndexes(operation.packages),
+				operation.packages.map((pkg) => [
+					pkg.name,
+					toVersionString(pkg.version),
+				]),
 			);
 		case "bulkReinstalled":
 			return commands.projectReinstallPackages(
@@ -176,25 +180,6 @@ function createChanges(
 			assertNever(operation);
 	}
 }
-
-function packagesToIndexes(
-	packages: TauriPackage[],
-): [envVersion: number, packagesIndexes: number[]] {
-	let envVersion: number | undefined = undefined;
-	const packagesIndexes: number[] = [];
-	for (const pkg of packages) {
-		if (envVersion == null) envVersion = pkg.env_version;
-		else if (envVersion !== pkg.env_version)
-			throw new Error("Inconsistent env_version");
-
-		packagesIndexes.push(pkg.index);
-	}
-	if (envVersion == null) {
-		throw new Error("projects:manage:toast:no upgradable");
-	}
-	return [envVersion, packagesIndexes];
-}
-
 function showToast(requested: RequestedOperation) {
 	switch (requested.type) {
 		case "install":

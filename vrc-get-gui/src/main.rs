@@ -56,7 +56,6 @@ fn main() {
         .manage(state::new_http_client())
         .manage(state::SettingsState::new())
         .manage(state::UpdaterState::new())
-        .manage(state::ProjectsState::new())
         .manage(state::PackagesState::new())
         .manage(state::ChangesState::new())
         .manage(state::TemplatesState::new())

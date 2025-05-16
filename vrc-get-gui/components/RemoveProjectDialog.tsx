@@ -4,7 +4,6 @@ import {
 	DialogFooter,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import type { DialogContext } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
@@ -13,13 +12,10 @@ import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 
-// string if remove project by path
-type Project =
-	| TauriProject
-	| {
-			path: string;
-			is_exists: boolean;
-	  };
+type Project = {
+	path: string;
+	is_exists: boolean;
+};
 
 export function RemoveProjectDialog({
 	project,
@@ -37,15 +33,7 @@ export function RemoveProjectDialog({
 			project,
 			removeDir,
 		}: { project: Project; removeDir: boolean }) => {
-			if ("list_version" in project) {
-				await commands.environmentRemoveProject(
-					project.list_version,
-					project.index,
-					removeDir,
-				);
-			} else {
-				await commands.environmentRemoveProjectByPath(project.path, removeDir);
-			}
+			await commands.environmentRemoveProjectByPath(project.path, removeDir);
 		},
 		onSuccess: () => {
 			dialog.close(true);

@@ -103,6 +103,10 @@ impl RemoteRepository {
         self.parsed.url.as_ref()
     }
 
+    pub(crate) fn set_url(&mut self, url: Url) {
+        self.parsed.url = Some(url);
+    }
+
     pub fn id(&self) -> Option<&str> {
         self.parsed.id.as_deref()
     }
