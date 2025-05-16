@@ -15,7 +15,7 @@ use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
 };
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::{PackageManifest, UnityProject};
+use vrc_get_vpm::{PackageInfo, PackageManifest, UnityProject};
 
 // common macro for commands so put it here
 #[allow(unused_macros)]
@@ -49,8 +49,8 @@ pub use environment::templates::import_templates;
 #[allow(unused_imports)]
 mod prelude {
     pub(super) use super::{
-        IntoPathBuf as _, RustError, TauriBasePackageInfo, UnityProject, load_project,
-        update_project_last_modified,
+        IntoPathBuf as _, RustError, TauriBasePackageInfo, TauriPackage, UnityProject,
+        load_project, update_project_last_modified,
     };
     pub use crate::state::*;
 }
@@ -462,6 +462,39 @@ impl TauriBasePackageInfo {
                 .map(|x| x.to_string())
                 .collect(),
             is_yanked: package.is_yanked(),
+        }
+    }
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+pub struct TauriPackage {
+    #[serde(flatten)]
+    base: TauriBasePackageInfo,
+
+    source: TauriPackageSource,
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+enum TauriPackageSource {
+    LocalUser,
+    Remote { id: String, display_name: String },
+}
+
+impl TauriPackage {
+    pub fn new(package: &PackageInfo) -> Self {
+        let source = if let Some(repo) = package.repo() {
+            let id = repo.id().or(repo.url().map(|x| x.as_str())).unwrap();
+            TauriPackageSource::Remote {
+                id: id.to_string(),
+                display_name: repo.name().unwrap_or(id).to_string(),
+            }
+        } else {
+            TauriPackageSource::LocalUser
+        };
+
+        Self {
+            base: TauriBasePackageInfo::new(package.package_json()),
+            source,
         }
     }
 }

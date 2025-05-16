@@ -755,7 +755,7 @@ pub async fn environment_create_project(
     {
         let mut settings = settings.load_mut(io.inner()).await?;
         packages = packages_state
-            .load(&settings, io.inner(), http.inner())
+            .load_fully(&settings, io.inner(), http.inner())
             .await?;
 
         // add the project to listing

@@ -8,7 +8,7 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::str::FromStr;
-use tauri::{State, Window};
+use tauri::{AppHandle, State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
@@ -227,7 +227,9 @@ pub async fn project_install_packages(
 
 #[tauri::command]
 #[specta::specta]
+#[allow(clippy::too_many_arguments)]
 pub async fn project_reinstall_packages(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
@@ -236,8 +238,8 @@ pub async fn project_reinstall_packages(
     project_path: String,
     package_ids: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
 
     changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
@@ -253,6 +255,7 @@ pub async fn project_reinstall_packages(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_resolve(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
@@ -260,8 +263,8 @@ pub async fn project_resolve(
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
     changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
 
@@ -324,6 +327,7 @@ pub async fn project_clear_pending_changes(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_2022(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
@@ -332,7 +336,7 @@ pub async fn project_migrate_project_to_2022(
 ) -> Result<(), RustError> {
     {
         let settings = settings.load(io.inner()).await?;
-        let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+        let packages = packages.load(&settings, &io, &http, app_handle).await?;
         let mut unity_project = load_project(project_path).await?;
 
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
@@ -430,14 +434,15 @@ pub async fn project_call_unity_for_migration(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_vpm(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<(), RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
 
     let mut unity_project = load_project(project_path).await?;
     let installer = PackageInstaller::new(io.inner(), Some(http.inner()));

@@ -34,6 +34,7 @@ import { assertNever } from "@/lib/assert-never";
 import type { TauriPackage, TauriRepositoriesInfo } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
+import { usePackageUpdateInProgress } from "@/lib/global-events";
 import { tc, tt } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { toVersionString } from "@/lib/version";
@@ -253,6 +254,7 @@ function ManagePackagesHeading({
 	setSearch: (value: string) => void;
 }) {
 	const { isLoading } = usePageContext();
+	const backgroundLoading = usePackageUpdateInProgress();
 
 	const queryClient = useQueryClient();
 
@@ -343,9 +345,9 @@ function ManagePackagesHeading({
 						size={"icon"}
 						onClick={onRefresh}
 						className={"shrink-0"}
-						disabled={isLoading}
+						disabled={isLoading || backgroundLoading}
 					>
-						{isLoading ? (
+						{isLoading || backgroundLoading ? (
 							<RefreshCw className="w-5 h-5 animate-spin" />
 						) : (
 							<RefreshCw className={"w-5 h-5"} />

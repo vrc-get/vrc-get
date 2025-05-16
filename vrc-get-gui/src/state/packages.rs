@@ -5,6 +5,7 @@ use std::io;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
+use tauri::{AppHandle, Emitter};
 use vrc_get_vpm::environment::{PackageCollection, Settings};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::{PackageCollection as _, PackageInfo};
@@ -40,19 +41,19 @@ impl PackagesStateInner {
 }
 
 pub struct PackagesState {
-    inner: ArcSwapOption<PackagesStateInner>,
+    inner: Arc<ArcSwapOption<PackagesStateInner>>,
     load_lock: tokio::sync::Mutex<()>,
 }
 
 impl PackagesState {
     pub fn new() -> Self {
         Self {
-            inner: ArcSwapOption::new(None),
+            inner: Arc::new(ArcSwapOption::new(None)),
             load_lock: tokio::sync::Mutex::new(()),
         }
     }
 
-    pub async fn load(
+    pub async fn load_fully(
         &self,
         settings: &Settings,
         io: &DefaultEnvironmentIo,
@@ -68,7 +69,28 @@ impl PackagesState {
             });
         }
 
-        self.load_impl(settings, io, http, false).await
+        self.load_impl(settings, io, http, None, false).await
+    }
+
+    pub async fn load(
+        &self,
+        settings: &Settings,
+        io: &DefaultEnvironmentIo,
+        http: &reqwest::Client,
+        app_handle: AppHandle,
+    ) -> io::Result<PackagesStateRef<'_>> {
+        let inner = self.inner.load_full();
+
+        // If the data is new enough, we can use it.
+        if let Some(inner) = inner.filter(|x| x.is_new()) {
+            return Ok(PackagesStateRef {
+                arc: inner,
+                _phantom_data: PhantomData,
+            });
+        }
+
+        self.load_impl(settings, io, http, Some(app_handle), false)
+            .await
     }
 
     pub async fn load_force(
@@ -77,7 +99,7 @@ impl PackagesState {
         io: &DefaultEnvironmentIo,
         http: &reqwest::Client,
     ) -> io::Result<PackagesStateRef> {
-        self.load_impl(settings, io, http, true).await
+        self.load_impl(settings, io, http, None, true).await
     }
 
     async fn load_impl(
@@ -85,6 +107,7 @@ impl PackagesState {
         settings: &Settings,
         io: &DefaultEnvironmentIo,
         http: &reqwest::Client,
+        app_handle: Option<AppHandle>,
         force: bool,
     ) -> io::Result<PackagesStateRef> {
         // We won't allow multiple threads to load the data at the same time.
@@ -102,13 +125,49 @@ impl PackagesState {
             }
         }
 
-        let collection = PackageCollection::load(settings, io, Some(http)).await?;
+        let collection = if let Some(app_handle) = app_handle {
+            let collection = PackageCollection::load_cache(settings, io).await?;
 
-        let yoke = Yoke::<YokeData<'static>, _>::attach_to_cart(Arc::new(collection), |x| {
-            YokeData::new(x.get_all_packages().collect())
-        });
+            tokio::spawn({
+                let mut collection = collection.clone();
+                let inner_arc = Arc::clone(&self.inner);
+                let io = io.clone();
+                let http = http.clone();
+                async move {
+                    app_handle.emit("package-update-in-progress", true).ok();
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    collection.update_cache(&io, &http).await;
+                    let arc = Arc::new(PackagesStateInner::new(collect_packages(collection)));
+                    inner_arc.store(Some(arc.clone()));
+                    app_handle.emit("package-update-in-progress", false).ok();
+                    app_handle
+                        .emit(
+                            "package-update-background",
+                            arc.data
+                                .get()
+                                .packages
+                                .iter()
+                                .map(crate::commands::TauriPackage::new)
+                                .collect::<Vec<_>>(),
+                        )
+                        .ok();
+                }
+            });
 
-        let arc = Arc::new(PackagesStateInner::new(yoke));
+            collection
+        } else {
+            PackageCollection::load(settings, io, Some(http)).await?
+        };
+
+        fn collect_packages(
+            collection: PackageCollection,
+        ) -> Yoke<YokeData<'static>, Arc<PackageCollection>> {
+            Yoke::<YokeData<'static>, _>::attach_to_cart(Arc::new(collection), |x| {
+                YokeData::new(x.get_all_packages().collect())
+            })
+        }
+
+        let arc = Arc::new(PackagesStateInner::new(collect_packages(collection)));
         self.inner.store(Some(arc.clone()));
 
         drop(guard);

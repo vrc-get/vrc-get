@@ -1,4 +1,8 @@
-import type { TauriUpdatedRealProjectInfo, commands } from "@/lib/bindings";
+import type {
+	TauriPackage,
+	TauriUpdatedRealProjectInfo,
+	commands,
+} from "@/lib/bindings";
 import { queryClient } from "@/lib/query-client";
 import { queryOptions } from "@tanstack/react-query";
 import { listen as tauriListen } from "@tauri-apps/api/event";
@@ -22,6 +26,15 @@ void tauriListen<TauriUpdatedRealProjectInfo>("projects-updated", (e) => {
 		newList[index] = project;
 		return newList;
 	});
+});
+
+void tauriListen<TauriPackage[]>("package-update-background", (e) => {
+	const options = queryOptions<
+		Awaited<ReturnType<typeof commands.environmentPackages>>
+	>({
+		queryKey: ["environmentPackages"],
+	});
+	queryClient.setQueryData(options.queryKey, e.payload);
 });
 
 class EventSyncedVariable<T> {
@@ -58,5 +71,10 @@ class EventSyncedVariable<T> {
 
 export const useProjectUpdateInProgress = new EventSyncedVariable(
 	"projects-update-in-progress",
+	false,
+).useValue;
+
+export const usePackageUpdateInProgress = new EventSyncedVariable(
+	"package-update-in-progress",
 	false,
 ).useValue;
