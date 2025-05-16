@@ -54,6 +54,9 @@ The format is based on [Keep a Changelog].
 - Downgraded glibc requirements for linux images `#2160`
   - This release will be built on ubuntu 22.04 so glibc 2.35 is new requirements
   - If you want to use on platforms with older glibc, build yourself or pull request to build on older environments.
+- Loading projects / repositories is now asynchronously `#2169`
+  - You should be able to open a project / install packages much quickly than before!
+  - The reload button will keep rotating while loading asynchronously
 
 ### Deprecated
 
