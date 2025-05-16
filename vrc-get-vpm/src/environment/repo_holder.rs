@@ -283,28 +283,15 @@ impl RepoHolder {
 
         fn handle_error(result: Vec<Result<bool, (Url, io::Error)>>) {
             // We want to workaround 'Connection Refused' spam on offline environment,
-            // so if all repositories reported ConnectionRefused error,
-            // we report single "Unable to connect to any servers"
-            // with ConnectionRefused category.
+            // so if all repositories reported error,
+            // we report single "Unable to connect to any servers".
 
             if result.is_empty() || result.iter().any(|x| x.is_ok()) {
                 // some succeeded, so normal error handling
                 return log_error(result);
             }
 
-            // now everything are failure or not fetched
-            if result
-                .iter()
-                .filter_map(|x| x.as_ref().err())
-                .all(|(_, e)| e.kind() == io::ErrorKind::ConnectionRefused)
-            {
-                // All errors are ConnectionRefused so log single error
-                error!("fetching remote repo: Unable to connect to any servers");
-                return;
-            }
-
-            // otherwise, simple logging
-            log_error(result);
+            error!("fetching remote repo: Unable to download to servers");
         }
 
         fn log_error(result: Vec<Result<bool, (Url, io::Error)>>) {
