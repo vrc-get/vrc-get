@@ -200,31 +200,17 @@ pub async fn load_resolve_alcom_templates(
                 return true;
             }
 
-            let mut unity_versions = Vec::new(); // Start with empty
+            // The base template is available! update this template based on the base template
 
-            if let Some(unity_filter) = &alcom.unity_version {
-                let unity_filter_str = unity_filter.to_string();
-                match vrc_get_vpm::version::UnityVersion::parse(&unity_filter_str) {
-                    Some(specific_version) => {
-                        log::debug!("  Parsed as specific version: {}", specific_version);
-                        if base.unity_versions.contains(&specific_version) {
-                            log::debug!("   Specific version is compatible with base.");
-                            unity_versions.push(specific_version); // Use only this specific version
-                        } else {
-                            log::warn!("   Specific version {} is NOT compatible with base versions: {:?}", specific_version, base.unity_versions);
-                        }
-                    }
-                    None => {
-                        unity_versions = base.unity_versions
-                            .iter()
-                            .copied()
-                            .filter(|x| unity_filter.matches(&x.as_semver()))
-                            .collect();
-                    }
-                }
+            let unity_versions = if let Some(unity_filter) = &alcom.unity_version {
+                base.unity_versions
+                    .iter()
+                    .copied()
+                    .filter(|x| unity_filter.matches(&x.as_semver()))
+                    .collect()
             } else {
-                unity_versions = base.unity_versions.clone()
-            }
+                base.unity_versions.clone()
+            };
 
             let template_mut = &mut template_by_id[k];
             template_mut.unity_versions = unity_versions;
@@ -505,14 +491,11 @@ pub async fn create_project(
                                 range
                             );
                             let intersected_range = range.intersect(e.get());
-                            e.insert(intersected_range);
-                        }
-                        Entry::Vacant(e) => {
-                            log::debug!("Adding new dependency: {} {}", pkg_id, range);
-                            e.insert(range.clone());
-                        }
-                    }
-                }
+                            log::debug!(
+                                "Merged existing dependency: {} {}",
+                                pkg_id,
+                                intersected_range,
+                            );
 
                 // Merge Unity packages
                 (resolved.unity_packages).extend(template.unity_packages.iter().cloned());
