@@ -123,13 +123,19 @@ pub async fn environment_save_template(
     vpm_packages: Vec<(String, String)>,
     unity_packages: Vec<String>,
 ) -> Result<(), RustError> {
+    // Determine effective id: keep given one or generate new
+    let effective_id = id.clone().unwrap_or_else(|| {
+        format!(
+            "{}{}",
+            "com.anatawa12.vrc-get.user.",
+            uuid::Uuid::new_v4().simple()
+        )
+    });
+    
     let template = AlcomTemplate {
         display_name: name.clone(),
         update_date: Some(chrono::Utc::now()),
-        id: id
-            .as_ref()
-            .take_if(|x| !x.starts_with("com.anatawa12.vrc-get.user."))
-            .cloned(),
+        id: Some(effective_id.clone()),
         base,
         unity_version: Some(VersionRange::from_str(&unity_range).map_err(|x| {
             RustError::unrecoverable(format!("Bad Unity Version Range ({unity_range}): {x}"))

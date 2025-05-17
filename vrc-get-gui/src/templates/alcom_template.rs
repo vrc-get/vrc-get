@@ -106,19 +106,32 @@ pub fn parse_alcom_template(json: &[u8]) -> serde_json::Result<AlcomTemplate> {
     let template = serde_json::from_slice::<AlcomTemplateContent>(json)?;
 
     // few validations
-    if let Some(id) = &template.id {
-        if id.0.starts_with("com.anatawa12.vrc-get") {
+    if let Some(id_wrapper) = &template.id { // id_wrapper is &TemplateId
+        // Reserve `com.anatawa12.vrc-get.*` except for known namespaces which are allowed for user-created
+        // templates (".user") and imported VCC templates (".vcc").
+        if id_wrapper.0.starts_with("com.anatawa12.vrc-get")
+            && !(id_wrapper.0.starts_with("com.anatawa12.vrc-get.user.")
+                || id_wrapper.0.starts_with("com.anatawa12.vrc-get.vcc."))
+        {
             return Err(serde_json::Error::invalid_value(
-                Unexpected::Str(&id.0),
-                &"a valid alcom template id (reserved id)",
+                Unexpected::Str(&id_wrapper.0),
+                &"a valid alcom template id (reserved id, or disallowed com.anatawa12.vrc-get.* namespace)",
             ));
         }
+    }
+
+    // Validation for template.base
+    if template.base.0.starts_with("com.anatawa12.vrc-get.user.") {
+        return Err(serde_json::Error::invalid_value(
+            Unexpected::Str(&template.base.0),
+            &"user-defined templates (com.anatawa12.vrc-get.user.*) cannot be used as a base template",
+        ));
     }
 
     Ok(AlcomTemplate {
         display_name: template.display_name,
         update_date: template.update_date,
-        id: template.id.map(|id| id.0),
+        id: template.id.map(|id_wrapper| id_wrapper.0),
         base: template.base.0,
         unity_version: template.unity_version,
         vpm_dependencies: template.vpm_dependencies,
