@@ -190,11 +190,13 @@ pub async fn load_resolve_alcom_templates(
             let alcom = template.alcom_template.as_ref().unwrap();
             let Some(base) = template_by_id.get(&alcom.base) else {
                 // The template will never become available so remove from keys to update
+                log::debug!("Template {}: Base template {} not found.", k, alcom.base);
                 return false;
             };
 
             if !base.available {
                 // The base template is not available yet. Retry later
+                log::debug!("Template {}: Base template {} not available yet.", k, alcom.base);
                 return true;
             }
 
@@ -212,7 +214,9 @@ pub async fn load_resolve_alcom_templates(
 
             let template_mut = &mut template_by_id[k];
             template_mut.unity_versions = unity_versions;
-            template_mut.available = true;
+            // Mark as available only if we found at least one compatible Unity version.
+            template_mut.available = !template_mut.unity_versions.is_empty();
+            log::debug!(" Template {} marked as available: {}", k, template_mut.available);
 
             updated = true;
 
@@ -469,22 +473,36 @@ pub async fn create_project(
                     .alcom_template
                     .as_ref()
                     .expect("no .alcomtemplate info");
+                log::debug!("Resolving custom template: {} based on {}", id, template.base);
+
                 let mut resolved = resolve_template(templates, &template.base, unity_version)?;
 
+                // Merge VPM dependencies
                 for (pkg_id, range) in &template.vpm_dependencies {
                     match resolved.packages.entry(pkg_id.clone()) {
                         Entry::Occupied(mut e) => {
-                            let range = range.intersect(e.get());
-                            e.insert(range);
-                        }
-                        Entry::Vacant(e) => {
-                            e.insert(range.clone());
-                        }
-                    }
-                }
+                            log::debug!(
+                                "Merging existing dependency: {} (Base: {}, Custom: {})",
+                                pkg_id,
+                                e.get(),
+                                range
+                            );
+                            let intersected_range = range.intersect(e.get());
+                            log::debug!(
+                                "Merged existing dependency: {} {}",
+                                pkg_id,
+                                intersected_range,
+                            );
 
+                // Merge Unity packages
                 (resolved.unity_packages).extend(template.unity_packages.iter().cloned());
 
+                log::debug!("Final resolved packages for {}: {:?}", id, resolved.packages);
+                log::debug!(
+                    "Final resolved unityPackages for {}: {:?}",
+                    id,
+                    resolved.unity_packages
+                );
                 Some(resolved)
             }
         }
