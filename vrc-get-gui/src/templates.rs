@@ -223,8 +223,8 @@ pub async fn load_resolve_alcom_templates(
                     }
                 }
             } else {
-                unity_versions = base.unity_versions.clone()
-            }
+                base.unity_versions.clone()
+            };
 
             let template_mut = &mut template_by_id[k];
             template_mut.unity_versions = unity_versions;
@@ -505,14 +505,11 @@ pub async fn create_project(
                                 range
                             );
                             let intersected_range = range.intersect(e.get());
-                            e.insert(intersected_range);
-                        }
-                        Entry::Vacant(e) => {
-                            log::debug!("Adding new dependency: {} {}", pkg_id, range);
-                            e.insert(range.clone());
-                        }
-                    }
-                }
+                            log::debug!(
+                                "Merged existing dependency: {} {}",
+                                pkg_id,
+                                intersected_range,
+                            );
 
                 // Merge Unity packages
                 (resolved.unity_packages).extend(template.unity_packages.iter().cloned());
