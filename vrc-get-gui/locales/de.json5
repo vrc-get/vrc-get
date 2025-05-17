@@ -407,7 +407,6 @@
     "templates:dialog:no unitypackages": "Keine UnityPackages",
     "templates:dialog:remove template": "Vorlage Löschen",
     "templates:dialog:confirm remove template": "Bist du sicher dass die Vorlage {{displayName}} gelöscht werden soll?",
-    "templates:button:save template": "Vorlage Speichern",
     "templates:button:import template": "Vorlage Importieren",
     "templates:toast:imported n templates_one": "Vorlage importiert",
     "templates:toast:imported n templates_other": "{{count}} Vorlagen importiert",

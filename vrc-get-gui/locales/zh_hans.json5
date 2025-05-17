@@ -392,7 +392,6 @@
     "templates:dialog:no unitypackages": "没有 Unity 软件包",
     "templates:dialog:remove template": "删除模板",
     "templates:dialog:confirm remove template": "你确定要删除模板 {{displayName}} 吗？",
-    "templates:button:save template": "保存模板",
     "templates:button:import template": "导入模板",
     "templates:toast:imported n templates": "已导入 {{count}} 个模板",
     "template:toast:removed": "模板已删除",
