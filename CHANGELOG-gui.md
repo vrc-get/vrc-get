@@ -14,10 +14,12 @@ The format is based on [Keep a Changelog].
     so you cannot manage packages for projects with older unity.
     You can only launch Unity to open the project.
   - Projects with Unity 4 or older are still not supported, but I hope no one want to use such a vintage Unity with ALCOM.
-- New Project Template System `#2105` `#2114` `#2125` `#2129`
+- New Project Template System `#2105` `#2114` `#2125` `#2129` `#2167`
   - You now can create Project Templates in ALCOM.
   - The new form of template can install multiple VPM packages at once, and you also can import unitypackages.
   - You now can create blank project along with this system change.
+  - Autocompletion and filtering for installed and supported Unity versions.
+  - Clear indication of installed vs. supported-only Unity versions.
 - Warning on upgrading major version or installing incompatible versions `#2159`
   - When you're upgrading package versions majorly, you'll see the warning message about breaking changes.
   - I hope this should reduce problems with unexpectedly upgrading packages majorly.
@@ -28,6 +30,9 @@ The format is based on [Keep a Changelog].
   - Simple enough, you can copy a project.
 
 ### Changed
+- Revamped the "Create/Edit Template" dialog for a more intuitive user experience: `#2167`
+  - Improved layout with distinct sections for general information, VPM packages, and Unity packages.
+  - VPM package selection now uses a searchable, sortable table with individual version dropdowns for selected packages.
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`
   - Along with this, building this project no longer needs dotnet SDK to build.
 - Migrated the project to Rust 2024 `#1956`
