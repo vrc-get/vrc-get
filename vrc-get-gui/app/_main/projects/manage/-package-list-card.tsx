@@ -2,6 +2,7 @@
 
 import { applyChangesMutation } from "@/app/_main/projects/manage/-use-package-change";
 import { Route } from "@/app/_main/projects/manage/index";
+import { ExternalLink } from "@/components/ExternalLink";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,6 @@ import {
 	CheckboxDisabledIfLoading,
 	usePageContext,
 } from "./-page-context";
-import { ExternalLink } from "@/components/ExternalLink";
 
 const environmentRepositoriesInfo = queryOptions({
 	queryKey: ["environmentRepositoriesInfo"],
