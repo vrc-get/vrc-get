@@ -55,6 +55,7 @@ export async function createProject() {
 	const result = await dialog.ask(EnteringInformation, {
 		templates: information.templates,
 		projectLocation: information.default_path,
+		recentProjectLocations: information.recent_project_locations,
 	});
 
 	if (result == null) return;
@@ -124,10 +125,12 @@ interface ProjectCreationInformation {
 function EnteringInformation({
 	templates,
 	projectLocation: projectLocationFirst,
+	recentProjectLocations: recentProjectLocationsReversed,
 	dialog,
 }: {
 	templates: TauriProjectTemplateInfo[];
 	projectLocation: string;
+	recentProjectLocations: string[];
 	dialog: DialogContext<null | ProjectCreationInformation>;
 }) {
 	const [unityVersion, setUnityVersion] = useState<string>(
@@ -143,6 +146,8 @@ function EnteringInformation({
 	const [projectNameRaw, setProjectName] = useState("New Project");
 	const projectName = projectNameRaw.trim();
 	const [projectLocation, setProjectLocation] = useState(projectLocationFirst);
+	const [lastPickedLocation, setLastPickedLocation] =
+		useState(projectLocationFirst);
 	const projectNameCheckState = useProjectNameCheck(
 		projectLocation,
 		projectName,
@@ -160,6 +165,7 @@ function EnteringInformation({
 					break;
 				case "Successful":
 					setProjectLocation(result.new_path);
+					setLastPickedLocation(result.new_path);
 					break;
 				default:
 					assertNever(result);
@@ -217,6 +223,12 @@ function EnteringInformation({
 	useEffect(() => {
 		setUnityVersion(unityVersions[0]);
 	}, [unityVersions]);
+
+	const recentProjectLocations = useMemo(() => {
+		const copied = [...recentProjectLocationsReversed];
+		copied.reverse();
+		return copied;
+	}, [recentProjectLocationsReversed]);
 
 	return (
 		<DialogBase
@@ -313,7 +325,24 @@ function EnteringInformation({
 					onChange={(e) => setProjectName(e.target.value)}
 				/>
 				<div className={"flex gap-1 items-center"}>
-					<Input className="flex-auto" value={projectLocation} disabled />
+					{/*Note that this is an abuse of Select*/}
+					<Select value={""} onValueChange={(v) => setProjectLocation(v)}>
+						<SelectTrigger>
+							<SelectValue placeholder={projectLocation} />
+						</SelectTrigger>
+						<SelectContent>
+							{!recentProjectLocations.includes(lastPickedLocation) && (
+								<SelectItem value={lastPickedLocation}>
+									{lastPickedLocation}
+								</SelectItem>
+							)}
+							{recentProjectLocations.map((path) => (
+								<SelectItem value={path} key={path}>
+									{path}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 					<Button
 						className="flex-none px-4"
 						onClick={() => usePickProjectDefaultPath.mutate()}
