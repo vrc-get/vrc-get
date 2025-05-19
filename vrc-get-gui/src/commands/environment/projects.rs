@@ -421,7 +421,8 @@ where
 
             info!("copying project for migration: {source_path_str} -> {new_path_str}");
 
-            let file_tree = collect_notable_project_files_tree(PathBuf::from(source_path)).await?;
+            let file_tree =
+                collect_notable_project_files_tree(PathBuf::from(source_path), false).await?;
             let total_files = file_tree.count_all();
 
             info!("collecting files for copy finished, total files: {total_files}");
