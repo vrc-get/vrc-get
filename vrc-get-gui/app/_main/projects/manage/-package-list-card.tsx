@@ -63,6 +63,7 @@ import {
 	CheckboxDisabledIfLoading,
 	usePageContext,
 } from "./-page-context";
+import { ExternalLink } from "@/components/ExternalLink";
 
 const environmentRepositoriesInfo = queryOptions({
 	queryKey: ["environmentRepositoriesInfo"],
@@ -822,6 +823,11 @@ const PackageRow = memo(function PackageRow({
 		}
 	};
 
+	const documentationUrl = pkg.documentationUrl
+		? pkg.documentationUrl.url
+		: null;
+	const changelogUrl = pkg.changelogUrl ? pkg.changelogUrl.url : null;
+
 	return (
 		<>
 			<td className={`${cellClass} w-1`}>
@@ -925,6 +931,33 @@ const PackageRow = memo(function PackageRow({
 							</TooltipContent>
 						</Tooltip>
 					)}
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant={"ghost"}
+								size={"icon"}
+								disabled={documentationUrl == null && changelogUrl == null}
+							>
+								<Ellipsis className={"size-5"} />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent>
+							{changelogUrl && (
+								<DropdownMenuItem>
+									<ExternalLink href={changelogUrl}>
+										{tc("projects:manage:menuitem:see changelog")}
+									</ExternalLink>
+								</DropdownMenuItem>
+							)}
+							{documentationUrl && (
+								<DropdownMenuItem>
+									<ExternalLink href={documentationUrl}>
+										{tc("projects:manage:menuitem:see documentation")}
+									</ExternalLink>
+								</DropdownMenuItem>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 			</td>
 		</>
