@@ -66,6 +66,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Layout shift on select package `#2045`
+- Unable to change the unity version from "unknown" if ProjectVersion.txt does not exists `#2183`
 
 ### Security
 

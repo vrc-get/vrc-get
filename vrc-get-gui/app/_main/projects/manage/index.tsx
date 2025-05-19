@@ -173,8 +173,6 @@ function PageBody() {
 	) => {
 		if (detailsResult.data == null)
 			throw new Error("Project details not ready");
-		if (detailsResult.data.unity_str == null)
-			throw new Error("Current unity version unknonw");
 		const isVRCProject = detailsResult.data.installed_packages.some(([id, _]) =>
 			VRCSDK_PACKAGES.includes(id),
 		);
@@ -182,7 +180,7 @@ function PageBody() {
 			projectPath,
 			version,
 			isVRCProject,
-			currentUnityVersion: detailsResult.data.unity_str,
+			currentUnityVersion: detailsResult.data.unity_str ?? "unknown",
 			mayUseChinaVariant,
 			navigate: router.navigate,
 		});
