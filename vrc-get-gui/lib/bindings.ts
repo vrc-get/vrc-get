@@ -149,6 +149,9 @@ async environmentSetShowPrereleasePackages(value: boolean) : Promise<null> {
 async environmentSetBackupFormat(backupFormat: string) : Promise<null> {
     return await TAURI_INVOKE("environment_set_backup_format", { backupFormat });
 },
+async environmentSetExcludeVpmPackagesFromBackup(excludeVpmPackagesFromBackup: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_exclude_vpm_packages_from_backup", { excludeVpmPackagesFromBackup });
+},
 async environmentSetReleaseChannel(releaseChannel: string) : Promise<null> {
     return await TAURI_INVOKE("environment_set_release_channel", { releaseChannel });
 },
@@ -316,7 +319,7 @@ export type TauriCreateBackupProgress = { total: number; proceed: number; last_p
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful"
 export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated"; reason: TauriDuplicatedReason; duplicated_name: string } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }
 export type TauriDuplicatedReason = "URLDuplicated" | "IDDuplicated"
-export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null; gui_animation: boolean; unity_hub_access_method: UnityHubAccessMethod }
+export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null; gui_animation: boolean; unity_hub_access_method: UnityHubAccessMethod; exclude_vpm_packages_from_backup: boolean }
 export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] }
 export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; documentation_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { source: TauriPackageSource }
 export type TauriPackageChange = { InstallNew: TauriBasePackageInfo } | { Remove: TauriRemoveReason }

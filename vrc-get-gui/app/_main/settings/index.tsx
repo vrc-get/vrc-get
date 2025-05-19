@@ -523,12 +523,13 @@ function BackupCard() {
 	const queryClient = useQueryClient();
 
 	const {
-		data: { projectBackupPath, backupFormat },
+		data: { projectBackupPath, backupFormat, excludeVpmPackagesFromBackup },
 	} = useSuspenseQuery({
 		...environmentGetSettings,
 		select: (data) => ({
 			projectBackupPath: data.project_backup_path,
 			backupFormat: data.backup_format,
+			excludeVpmPackagesFromBackup: data.exclude_vpm_packages_from_backup,
 		}),
 	});
 
@@ -558,6 +559,24 @@ function BackupCard() {
 		},
 	});
 
+	const setExcludeVpmPackagesFromBackup = useMutation({
+		mutationFn: async (flag: boolean) =>
+			await commands.environmentSetExcludeVpmPackagesFromBackup(flag),
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSuccess: (_, flag) => {
+			queryClient.setQueryData(environmentGetSettings.queryKey, (old) => {
+				if (old == null) return old;
+				return { ...old, excludeVpmPackagesFromBackup: flag };
+			});
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGetSettings);
+		},
+	});
+
 	return (
 		<Card className={"shrink-0 p-4"}>
 			<h2>{tc("projects:backup")}</h2>
@@ -580,6 +599,20 @@ function BackupCard() {
 				<label className={"flex items-center"}>
 					<BackupFormatSelect backupFormat={backupFormat} />
 				</label>
+			</div>
+			<div className="mt-2">
+				<label className={"flex items-center gap-2"}>
+					<Checkbox
+						checked={excludeVpmPackagesFromBackup}
+						onCheckedChange={(e) =>
+							setExcludeVpmPackagesFromBackup.mutate(e === true)
+						}
+					/>
+					{tc("settings:backup:exclude vpm packages from backup")}
+				</label>
+				<p className={"text-sm whitespace-normal"}>
+					{tc("settings:backup:exclude vpm packages from backup description")}
+				</p>
 			</div>
 		</Card>
 	);
