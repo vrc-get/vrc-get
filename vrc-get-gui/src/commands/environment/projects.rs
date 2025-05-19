@@ -565,6 +565,7 @@ impl From<&ProjectTemplateInfo> for TauriProjectTemplateInfo {
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectCreationInformation {
     templates: Vec<TauriProjectTemplateInfo>,
+    recent_project_locations: Vec<String>,
     templates_version: u32,
     default_path: String,
 }
@@ -574,6 +575,7 @@ pub struct TauriProjectCreationInformation {
 pub async fn environment_project_creation_information(
     settings: State<'_, SettingsState>,
     templates: State<'_, TemplatesState>,
+    config: State<'_, GuiConfigState>,
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<TauriProjectCreationInformation, RustError> {
     let unity_paths = {
@@ -586,6 +588,8 @@ pub async fn environment_project_creation_information(
             .collect::<Vec<_>>()
     };
 
+    let recent_project_locations = config.get().recent_project_locations.clone();
+
     let templates = templates.save(templates::load_resolve_all_templates(&io, &unity_paths).await?);
 
     let mut settings = settings.load_mut(io.inner()).await?;
@@ -594,6 +598,7 @@ pub async fn environment_project_creation_information(
 
     Ok(TauriProjectCreationInformation {
         templates: templates.iter().map(Into::into).collect(),
+        recent_project_locations,
         templates_version: templates.version(),
         default_path,
     })
@@ -663,17 +668,20 @@ pub enum TauriCreateProjectResult {
 #[specta::specta]
 #[allow(clippy::too_many_arguments)]
 pub async fn environment_create_project(
-    packages_state: State<'_, PackagesState>,
-    settings: State<'_, SettingsState>,
-    templates: State<'_, TemplatesState>,
-    io: State<'_, DefaultEnvironmentIo>,
-    http: State<'_, reqwest::Client>,
+    app_handle: AppHandle,
     base_path: String,
     project_name: String,
     template_id: String,
     template_version: u32,
     unity_version: String,
 ) -> Result<TauriCreateProjectResult, RustError> {
+    let packages_state: State<'_, PackagesState> = app_handle.state();
+    let settings: State<'_, SettingsState> = app_handle.state();
+    let config: State<'_, GuiConfigState> = app_handle.state();
+    let templates: State<'_, TemplatesState> = app_handle.state();
+    let io: State<'_, DefaultEnvironmentIo> = app_handle.state();
+    let http: State<'_, reqwest::Client> = app_handle.state();
+
     let templates = templates
         .get_versioned(template_version)
         .ok_or_else(|| RustError::unrecoverable("Templates info version mismatch (bug)"))?;
@@ -682,8 +690,7 @@ pub async fn environment_create_project(
         .ok_or_else(|| RustError::unrecoverable("Bad Unity Version (unparsable)"))?;
 
     let base_path = Path::new(&base_path);
-    let path = {
-        let mut path;
+    let base_path = {
         if !base_path.has_root() {
             let mut components = base_path.components().collect::<Vec<_>>();
 
@@ -709,13 +716,33 @@ pub async fn environment_create_project(
                 _ => {}
             }
 
-            path = components.iter().collect();
+            components.iter().collect()
         } else {
-            path = base_path.to_path_buf();
+            base_path.to_path_buf()
         }
-        path.push(&project_name);
-        path
     };
+    let path = base_path.join(&project_name);
+
+    // update recent locations
+    {
+        let mut config = config.load_mut().await?;
+        let base_path_str = base_path.as_os_str().to_str().unwrap();
+        if let Some(path_index) = config
+            .recent_project_locations
+            .iter()
+            .position(|x| x == base_path_str)
+        {
+            let base_path = config.recent_project_locations.remove(path_index);
+            config.recent_project_locations.push(base_path);
+        } else {
+            let to_remove = config.recent_project_locations.len().saturating_sub(8 - 1);
+            config.recent_project_locations.drain(0..to_remove);
+            config
+                .recent_project_locations
+                .push(base_path_str.to_string());
+        }
+        config.save().await?;
+    }
 
     // we split creating folder into two phases
     // because we want to fail if the project folder already exists.

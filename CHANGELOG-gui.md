@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog].
   - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
 - Menu option to copy a project `#2168`
   - Simple enough, you can copy a project.
+- Remember recent project locations `#2182`
+  - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations
 
 ### Changed
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`
