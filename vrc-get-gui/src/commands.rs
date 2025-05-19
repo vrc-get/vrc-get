@@ -436,6 +436,7 @@ struct TauriBasePackageInfo {
     version: TauriVersion,
     unity: Option<(u16, u8)>,
     changelog_url: Option<String>,
+    documentation_url: Option<String>,
     vpm_dependencies: Vec<String>,
     legacy_packages: Vec<String>,
     is_yanked: bool,
@@ -451,6 +452,7 @@ impl TauriBasePackageInfo {
             version: package.version().into(),
             unity: package.unity().map(|v| (v.major(), v.minor())),
             changelog_url: package.changelog_url().map(|v| v.to_string()),
+            documentation_url: package.documentation_url().map(|v| v.to_string()),
             vpm_dependencies: package
                 .vpm_dependencies()
                 .keys()

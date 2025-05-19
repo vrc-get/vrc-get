@@ -28,6 +28,12 @@ export type PackageLatestInfo =
 			hasUnityIncompatibleLatest: boolean;
 	  };
 
+type UrlInfo = {
+	// null source means URL comes from installed one which has the highest priority
+	url: string;
+	source: TauriVersion | null;
+};
+
 export interface PackageRowInfo {
 	id: string;
 	infoSource: TauriVersion;
@@ -44,6 +50,8 @@ export interface PackageRowInfo {
 	};
 	latest: PackageLatestInfo;
 	stableLatest: PackageLatestInfo;
+	changelogUrl: null | UrlInfo;
+	documentationUrl: null | UrlInfo;
 }
 
 export function combinePackagesAndProjectDetails(
@@ -133,6 +141,8 @@ export function combinePackagesAndProjectDetails(
 					installed: null,
 					latest: { status: "none" },
 					stableLatest: { status: "none" },
+					changelogUrl: null,
+					documentationUrl: null,
 				}),
 			);
 		}
@@ -142,6 +152,14 @@ export function combinePackagesAndProjectDetails(
 	function addPackage(pkg: TauriPackage) {
 		const packageRowInfo = getRowInfo(pkg);
 		packageRowInfo.isThereSource = true;
+
+		setUrlInfo(packageRowInfo, "changelogUrl", pkg.changelog_url, pkg.version);
+		setUrlInfo(
+			packageRowInfo,
+			"documentationUrl",
+			pkg.documentation_url,
+			pkg.version,
+		);
 
 		if (compareVersion(pkg.version, packageRowInfo.infoSource) > 0) {
 			// use display name from the latest version
@@ -264,6 +282,14 @@ export function combinePackagesAndProjectDetails(
 		for (const [_, pkg] of project.installed_packages) {
 			const packageRowInfo = getRowInfo(pkg);
 
+			setUrlInfo(packageRowInfo, "changelogUrl", pkg.changelog_url, null);
+			setUrlInfo(
+				packageRowInfo,
+				"documentationUrl",
+				pkg.documentation_url,
+				null,
+			);
+
 			// if installed, use the installed version to get the display name
 			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
 			packageRowInfo.aliases = [...pkg.aliases, ...packageRowInfo.aliases];
@@ -369,4 +395,26 @@ export function combinePackagesAndProjectDetails(
 	});
 
 	return asArray;
+}
+
+function setUrlInfo<K extends string>(
+	obj: { [P in K]: null | UrlInfo },
+	key: K,
+	url: string | null,
+	version: TauriVersion | null,
+) {
+	if (url == null) return;
+	const current = obj[key];
+	if (current == null) {
+		obj[key] = { url, source: version };
+	} else {
+		if (version == null) {
+			obj[key] = { url, source: version };
+		} else if (current.source == null) {
+			// do not update
+		} else if (compareVersion(current.source, version) < 0) {
+			// if this version is newer than current, update
+			obj[key] = { url, source: version };
+		}
+	}
 }
