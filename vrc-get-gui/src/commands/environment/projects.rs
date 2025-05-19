@@ -682,8 +682,7 @@ pub async fn environment_create_project(
         .ok_or_else(|| RustError::unrecoverable("Bad Unity Version (unparsable)"))?;
 
     let base_path = Path::new(&base_path);
-    let path = {
-        let mut path;
+    let base_path = {
         if !base_path.has_root() {
             let mut components = base_path.components().collect::<Vec<_>>();
 
@@ -709,13 +708,12 @@ pub async fn environment_create_project(
                 _ => {}
             }
 
-            path = components.iter().collect();
+            components.iter().collect()
         } else {
-            path = base_path.to_path_buf();
+            base_path.to_path_buf()
         }
-        path.push(&project_name);
-        path
     };
+    let path = base_path.join(&project_name);
 
     // we split creating folder into two phases
     // because we want to fail if the project folder already exists.
