@@ -59,6 +59,8 @@ The format is based on [Keep a Changelog].
 - Loading projects / repositories is now asynchronously `#2169`
   - You should be able to open a project / install packages much quickly than before!
   - The reload button will keep rotating while loading asynchronously
+- Open Changelog and documentation from package list `#2184`
+  - You can open the changelog and documentation from `...` button at the right of package list
 
 ### Deprecated
 
