@@ -61,6 +61,10 @@ The format is based on [Keep a Changelog].
   - The reload button will keep rotating while loading asynchronously
 - Open Changelog and documentation from package list `#2184`
   - You can open the changelog and documentation from `...` button at the right of package list
+- Option to exclude VPM Packages from backups `#2185`
+  - You can exclude VPM Packages from backups to reduce size of backup a little
+  - However, if the package author ignored the recommendation from VRChat and us, and removed package from their repository, you may need to install another version when restoring the backup.
+  - Since many of the repository maintainers have removed many packages in their repository and VPM Packages are relatively small, this feature is disabled by default. You can enable this on the settings page.
 
 ### Deprecated
 

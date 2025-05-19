@@ -462,6 +462,8 @@
     "settings:backup:format:zip-store": "Uncompressed zip (Fast)",
     "settings:backup:format:zip-fast": "Low Compression zip (Slow)",
     "settings:backup:format:zip-best": "High Compression zip (Slowest)",
+    "settings:backup:exclude vpm packages from backup": "Exclude VPM Packages from bacup",
+    "settings:backup:exclude vpm packages from backup description": "This reduces the size of the backup, but if the package creator violates the recommendation and removes a package from their repository, you'll be need to use another version of the package when restoring the backup.",
 
     "settings:packages": "Packages",
     "settings:clear package cache": "Clear Downloaded Package Cache",

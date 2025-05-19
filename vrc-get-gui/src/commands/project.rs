@@ -520,6 +520,7 @@ async fn create_backup_zip(
     project_path: &Path,
     compression: async_zip::Compression,
     deflate_option: async_zip::DeflateOption,
+    exclude_vpm: bool,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
 ) -> Result<(), RustError> {
     let mut file = tokio::fs::File::create_new(&backup_path).await?;
@@ -528,7 +529,8 @@ async fn create_backup_zip(
     info!("Collecting files to backup {}...", project_path.display());
 
     let start = std::time::Instant::now();
-    let file_tree = collect_notable_project_files_tree(PathBuf::from(project_path)).await?;
+    let file_tree =
+        collect_notable_project_files_tree(PathBuf::from(project_path), exclude_vpm).await?;
 
     let total_files = file_tree.count_all();
 
@@ -623,6 +625,7 @@ pub async fn project_create_backup(
 ) -> Result<AsyncCallResult<TauriCreateBackupProgress, ()>, RustError> {
     async_command(channel, window, async {
         let backup_format = config.get().backup_format.to_ascii_lowercase();
+        let exclude_vpm = config.get().exclude_vpm_packages_from_backup;
 
         let mut settings = settings.load_mut(io.inner()).await?;
         let backup_dir = project_backup_path(&mut settings).to_string();
@@ -659,6 +662,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Stored,
                         async_zip::DeflateOption::Normal,
+                        exclude_vpm,
                         ctx,
                     )
                     .await?;
@@ -673,6 +677,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(1),
+                        exclude_vpm,
                         ctx,
                     )
                     .await?;
@@ -687,6 +692,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(9),
+                        exclude_vpm,
                         ctx,
                     )
                     .await?;
@@ -704,6 +710,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(1),
+                        exclude_vpm,
                         ctx,
                     )
                     .await?;

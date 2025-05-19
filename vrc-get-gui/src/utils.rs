@@ -14,6 +14,8 @@ use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::task::{Context, Poll, ready};
 use tar::Header;
+use vrc_get_vpm::UnityProject;
+use vrc_get_vpm::io::DefaultProjectIo;
 use yoke::{CloneableCart, Yoke, Yokeable};
 
 pub(crate) fn home_dir() -> PathBuf {
@@ -219,9 +221,16 @@ impl<'a> Iterator for FileSystemTreeIter<'a> {
     }
 }
 
-pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result<FileSystemTree> {
+pub async fn collect_notable_project_files_tree(
+    path_buf: PathBuf,
+    exclude_vpm: bool,
+) -> io::Result<FileSystemTree> {
     // relative path must end with '/' or empty
-    async fn read_dir_to_tree(relative: String, absolute: PathBuf) -> io::Result<FileSystemTree> {
+    async fn read_dir_to_tree(
+        relative: String,
+        absolute: PathBuf,
+        excluded_packages: &[String],
+    ) -> io::Result<FileSystemTree> {
         let mut read_dir = tokio::fs::read_dir(&absolute).await?;
 
         // relative, entry, is_dir
@@ -262,6 +271,12 @@ pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result
                         }
                     }
                 }
+                if relative.eq_ignore_ascii_case("packages/") {
+                    // the package is excluded
+                    if excluded_packages.contains(&lower_name) {
+                        continue;
+                    }
+                }
                 if lower_name.as_str() == ".git" {
                     // any .git folder should be ignored
                     continue;
@@ -280,7 +295,7 @@ pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result
         let children = try_join_all(entries.into_iter().map(
             |(relative, entry, is_dir)| async move {
                 if is_dir {
-                    read_dir_to_tree(relative, entry.path()).await
+                    read_dir_to_tree(relative, entry.path(), excluded_packages).await
                 } else {
                     Ok(FileSystemTree::new_file(relative, entry.path()))
                 }
@@ -291,7 +306,24 @@ pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result
         Ok(FileSystemTree::new_dir(relative, absolute, children))
     }
 
-    read_dir_to_tree(String::new(), path_buf).await
+    let excluded_packages = if exclude_vpm {
+        async fn get_packages(path: &Path) -> Option<Vec<String>> {
+            let unity_project = UnityProject::load(DefaultProjectIo::new(path.into()))
+                .await
+                .ok()?;
+            Some(
+                unity_project
+                    .locked_packages()
+                    .map(|x| x.name().into())
+                    .collect(),
+            )
+        }
+        get_packages(&path_buf).await.unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    read_dir_to_tree(String::new(), path_buf, &excluded_packages).await
 }
 
 pub trait PathExt {
