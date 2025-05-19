@@ -1,19 +1,20 @@
+use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-
-use itertools::Itertools;
 
 use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::{
     LockedDependencyInfo, PendingProjectChanges, package_resolution, pending_project_changes,
 };
-use crate::version::{DependencyRange, PrereleaseAcceptance};
+use crate::version::{DependencyRange, PrereleaseAcceptance, VersionRange};
 use crate::{PackageCollection, UnityProject, VersionSelector};
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ResolvePackageErr {
-    DependenciesNotFound { dependencies: Vec<Box<str>> },
+    DependenciesNotFound {
+        dependencies: Vec<(Box<str>, VersionRange)>,
+    },
 }
 
 impl fmt::Display for ResolvePackageErr {
@@ -22,11 +23,11 @@ impl fmt::Display for ResolvePackageErr {
             ResolvePackageErr::DependenciesNotFound { dependencies } => {
                 write!(f, "Following dependencies are not found: ")?;
                 let mut first = true;
-                for dep in dependencies {
+                for (dep, range) in dependencies {
                     if !first {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", dep)?;
+                    write!(f, "{dep}@{range}")?;
                     first = false;
                 }
                 Ok(())
@@ -121,7 +122,8 @@ impl UnityProject {
             {
                 changes.install_already_locked(pkg);
             } else {
-                missing_dependencies.add(dep.name());
+                missing_dependencies
+                    .add(dep.name(), &VersionRange::specific(dep.version().clone()));
             }
         }
 
@@ -162,7 +164,7 @@ impl UnityProject {
                 ) {
                     to_install.push(pkg);
                 } else {
-                    missing_dependencies.add(name);
+                    missing_dependencies.add(name, &range.as_range());
                 }
                 install_names.insert(name);
             }
@@ -282,7 +284,15 @@ impl UnityProject {
                 ) {
                     Some(pkg)
                 } else {
-                    missing_dependencies.add(pkg_name);
+                    missing_dependencies.add(
+                        pkg_name,
+                        &ranges
+                            .iter()
+                            .copied()
+                            .cloned()
+                            .reduce(|x, range| x.intersect(&range))
+                            .unwrap(),
+                    );
                     None
                 }
             })

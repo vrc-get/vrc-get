@@ -299,7 +299,7 @@ export type CheckForUpdateResponse = { version: number; current_version: string;
 /**
  * Errors that is expected to be handled on the GUI side
  */
-export type HandleableRustError = { type: "MissingDependencies"; dependencies: string[] }
+export type HandleableRustError = { type: "MissingDependencies"; dependencies: ([string, string])[] }
 export type InstallUpgradeProgress = { type: "DownloadProgress"; received: number; total: number | null } | { type: "DownloadComplete" }
 export type LocalizableRustError = { id: string; args: { [key in string]: string } }
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string; gui_toast: boolean }
