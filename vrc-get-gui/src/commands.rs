@@ -14,7 +14,7 @@ use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
 };
-use vrc_get_vpm::version::Version;
+use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::{PackageInfo, PackageManifest, UnityProject};
 
 // common macro for commands so put it here
@@ -302,7 +302,9 @@ struct LocalizableRustError {
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(tag = "type")]
 enum HandleableRustError {
-    MissingDependencies { dependencies: Vec<Box<str>> },
+    MissingDependencies {
+        dependencies: Vec<(Box<str>, Box<str>)>,
+    },
 }
 
 impl RustError {
@@ -318,10 +320,18 @@ impl RustError {
         Self::Handleable { message, body }
     }
 
-    fn handleable_missing_dependencies(message: String, dependencies: Vec<Box<str>>) -> Self {
+    fn handleable_missing_dependencies(
+        message: String,
+        dependencies: Vec<(Box<str>, VersionRange)>,
+    ) -> Self {
         Self::handleable(
             message,
-            HandleableRustError::MissingDependencies { dependencies },
+            HandleableRustError::MissingDependencies {
+                dependencies: dependencies
+                    .into_iter()
+                    .map(|(pkg, range)| (pkg, range.to_string().into()))
+                    .collect(),
+            },
         )
     }
 }

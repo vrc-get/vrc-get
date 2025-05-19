@@ -2,13 +2,18 @@ use std::fmt;
 
 use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::{PendingProjectChanges, pending_project_changes};
+use crate::version::VersionRange;
 use crate::{PackageCollection, UnityProject, VersionSelector};
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ReinstalPackagesError {
-    NotInstalled { package_name: Box<str> },
-    DependenciesNotFound { dependencies: Vec<Box<str>> },
+    NotInstalled {
+        package_name: Box<str>,
+    },
+    DependenciesNotFound {
+        dependencies: Vec<(Box<str>, VersionRange)>,
+    },
 }
 
 impl fmt::Display for ReinstalPackagesError {
@@ -20,11 +25,11 @@ impl fmt::Display for ReinstalPackagesError {
             ReinstalPackagesError::DependenciesNotFound { dependencies } => {
                 write!(f, "Following dependencies are not found: ")?;
                 let mut first = true;
-                for dep in dependencies {
+                for (dep, range) in dependencies {
                     if !first {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", dep)?;
+                    write!(f, "{dep}@{range}")?;
                     first = false;
                 }
                 Ok(())
@@ -57,7 +62,10 @@ impl UnityProject {
             ) {
                 changes.install_already_locked(pkg);
             } else {
-                missing_dependencies.add(locked.name());
+                missing_dependencies.add(
+                    locked.name(),
+                    &VersionRange::specific(locked.version().clone()),
+                );
             };
         }
 

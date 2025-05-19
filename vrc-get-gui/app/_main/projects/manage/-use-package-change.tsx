@@ -745,7 +745,10 @@ function comparePackageChangeByName(
 function MissingDependenciesDialog({
 	dependencies,
 	dialog,
-}: { dependencies: string[]; dialog: DialogContext<void> }) {
+}: {
+	dependencies: [pkg: string, range: string][];
+	dialog: DialogContext<void>;
+}) {
 	return (
 		<div>
 			<DialogTitle className={"text-destructive"}>
@@ -757,8 +760,10 @@ function MissingDependenciesDialog({
 					{tc("projects:manage:dialog:missing dependencies description")}
 				</p>
 				<ul className={"list-disc ml-4 mt-2"}>
-					{dependencies.map((dep) => (
-						<li key={dep}>{dep}</li>
+					{dependencies.map(([dep, range]) => (
+						<li key={dep}>
+							{dep} version {range}
+						</li>
 					))}
 				</ul>
 			</DialogDescription>
