@@ -65,6 +65,7 @@ The format is based on [Keep a Changelog].
   - You can exclude VPM Packages from backups to reduce size of backup a little
   - However, if the package author ignored the recommendation from VRChat and us, and removed package from their repository, you may need to install another version when restoring the backup.
   - Since many of the repository maintainers have removed many packages in their repository and VPM Packages are relatively small, this feature is disabled by default. You can enable this on the settings page.
+- Show the range of requested package in missing dependencies dialog `#2187`
 
 ### Deprecated
 
