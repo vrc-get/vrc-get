@@ -61,6 +61,7 @@ pub struct TauriEnvironmentSettings {
     default_unity_arguments: Option<Vec<String>>,
     gui_animation: bool,
     unity_hub_access_method: UnityHubAccessMethod,
+    exclude_vpm_packages_from_backup: bool,
 }
 
 #[tauri::command]
@@ -81,6 +82,7 @@ pub async fn environment_get_settings(
     let show_prerelease_packages;
     let gui_animation;
     let unity_hub_access_method;
+    let exclude_vpm_packages_from_backup;
 
     {
         let config = config.get();
@@ -90,6 +92,7 @@ pub async fn environment_get_settings(
         default_unity_arguments = config.default_unity_arguments.clone();
         gui_animation = config.gui_animation;
         unity_hub_access_method = config.unity_hub_access_method;
+        exclude_vpm_packages_from_backup = config.exclude_vpm_packages_from_backup;
     }
 
     {
@@ -132,6 +135,7 @@ pub async fn environment_get_settings(
         default_unity_arguments,
         gui_animation,
         unity_hub_access_method,
+        exclude_vpm_packages_from_backup,
     })
 }
 
@@ -400,6 +404,18 @@ pub async fn environment_set_backup_format(
 ) -> Result<(), RustError> {
     let mut config = config.load_mut().await?;
     config.backup_format = backup_format;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_exclude_vpm_packages_from_backup(
+    config: State<'_, GuiConfigState>,
+    exclude_vpm_packages_from_backup: bool,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.exclude_vpm_packages_from_backup = exclude_vpm_packages_from_backup;
     config.save().await?;
     Ok(())
 }
