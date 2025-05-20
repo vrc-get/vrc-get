@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog].
   - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
 - Menu option to copy a project `#2168`
   - Simple enough, you can copy a project.
+- Remember recent project locations `#2182`
+  - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations
 
 ### Changed
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`
@@ -54,6 +56,16 @@ The format is based on [Keep a Changelog].
 - Downgraded glibc requirements for linux images `#2160`
   - This release will be built on ubuntu 22.04 so glibc 2.35 is new requirements
   - If you want to use on platforms with older glibc, build yourself or pull request to build on older environments.
+- Loading projects / repositories is now asynchronously `#2169`
+  - You should be able to open a project / install packages much quickly than before!
+  - The reload button will keep rotating while loading asynchronously
+- Open Changelog and documentation from package list `#2184`
+  - You can open the changelog and documentation from `...` button at the right of package list
+- Option to exclude VPM Packages from backups `#2185`
+  - You can exclude VPM Packages from backups to reduce size of backup a little
+  - However, if the package author ignored the recommendation from VRChat and us, and removed package from their repository, you may need to install another version when restoring the backup.
+  - Since many of the repository maintainers have removed many packages in their repository and VPM Packages are relatively small, this feature is disabled by default. You can enable this on the settings page.
+- Show the range of requested package in missing dependencies dialog `#2187`
 
 ### Deprecated
 
@@ -61,6 +73,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Layout shift on select package `#2045`
+- Unable to change the unity version from "unknown" if ProjectVersion.txt does not exists `#2183`
 
 ### Security
 

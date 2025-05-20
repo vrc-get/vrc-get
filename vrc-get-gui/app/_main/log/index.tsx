@@ -82,6 +82,15 @@ function Page() {
 
 	const handleLogAutoScrollChange = (value: boolean) => {
 		sessionStorage.setItem("logs_auto_scroll", String(value));
+		// Manually dispatch storage event to force state synchronization within the same page,
+		// as native sessionStorage.setItem doesn't trigger storage event for the current origin
+		window.dispatchEvent(
+			new StorageEvent("storage", {
+				key: "logs_auto_scroll",
+				newValue: String(value),
+				storageArea: sessionStorage,
+			}),
+		);
 	};
 
 	useTauriListen<LogEntry>("log", (event) => {

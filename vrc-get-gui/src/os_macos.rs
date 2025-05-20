@@ -159,7 +159,7 @@ fn launch_new_app_with_ns_workspace(
                 Some(&*block2::RcBlock::new(
                     move |_: *mut NSRunningApplication, err: *mut NSError| {
                         let result = if !err.is_null() {
-                            Err(io::Error::new(io::ErrorKind::Other, &*err))
+                            Err(io::Error::other(&*err))
                         } else {
                             Ok(())
                         };

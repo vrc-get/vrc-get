@@ -14,8 +14,8 @@ use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::unity_project::{
     AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
 };
-use vrc_get_vpm::version::Version;
-use vrc_get_vpm::{PackageManifest, UnityProject};
+use vrc_get_vpm::version::{Version, VersionRange};
+use vrc_get_vpm::{PackageInfo, PackageManifest, UnityProject};
 
 // common macro for commands so put it here
 #[allow(unused_macros)]
@@ -49,8 +49,8 @@ pub use environment::templates::import_templates;
 #[allow(unused_imports)]
 mod prelude {
     pub(super) use super::{
-        IntoPathBuf as _, RustError, TauriBasePackageInfo, UnityProject, load_project,
-        update_project_last_modified,
+        IntoPathBuf as _, RustError, TauriBasePackageInfo, TauriPackage, UnityProject,
+        load_project, update_project_last_modified,
     };
     pub use crate::state::*;
 }
@@ -76,7 +76,6 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::config::environment_set_unity_hub_access_method,
         environment::projects::environment_projects,
         environment::projects::environment_add_project_with_picker,
-        environment::projects::environment_remove_project,
         environment::projects::environment_remove_project_by_path,
         environment::projects::environment_copy_project_for_migration,
         environment::projects::environment_copy_project,
@@ -109,6 +108,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_pick_project_backup_path,
         environment::settings::environment_set_show_prerelease_packages,
         environment::settings::environment_set_backup_format,
+        environment::settings::environment_set_exclude_vpm_packages_from_backup,
         environment::settings::environment_set_release_channel,
         environment::settings::environment_set_use_alcom_for_vcc_protocol,
         environment::settings::environment_get_default_unity_arguments,
@@ -177,7 +177,6 @@ pub(crate) fn export_ts() {
             environment::config::environment_set_unity_hub_access_method,
             environment::projects::environment_projects,
             environment::projects::environment_add_project_with_picker,
-            environment::projects::environment_remove_project,
             environment::projects::environment_remove_project_by_path,
             environment::projects::environment_copy_project_for_migration,
             environment::projects::environment_copy_project,
@@ -210,6 +209,7 @@ pub(crate) fn export_ts() {
             environment::settings::environment_pick_project_backup_path,
             environment::settings::environment_set_show_prerelease_packages,
             environment::settings::environment_set_backup_format,
+            environment::settings::environment_set_exclude_vpm_packages_from_backup,
             environment::settings::environment_set_release_channel,
             environment::settings::environment_set_use_alcom_for_vcc_protocol,
             environment::settings::environment_get_default_unity_arguments,
@@ -255,6 +255,7 @@ pub(crate) fn export_ts() {
             crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
         ])
         //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
+        .typ::<environment::projects::TauriUpdatedRealProjectInfo>()
         .export(
             specta_typescript::Typescript::default()
                 .bigint(specta_typescript::BigIntExportBehavior::Number),
@@ -301,7 +302,9 @@ struct LocalizableRustError {
 #[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(tag = "type")]
 enum HandleableRustError {
-    MissingDependencies { dependencies: Vec<Box<str>> },
+    MissingDependencies {
+        dependencies: Vec<(Box<str>, Box<str>)>,
+    },
 }
 
 impl RustError {
@@ -317,10 +320,18 @@ impl RustError {
         Self::Handleable { message, body }
     }
 
-    fn handleable_missing_dependencies(message: String, dependencies: Vec<Box<str>>) -> Self {
+    fn handleable_missing_dependencies(
+        message: String,
+        dependencies: Vec<(Box<str>, VersionRange)>,
+    ) -> Self {
         Self::handleable(
             message,
-            HandleableRustError::MissingDependencies { dependencies },
+            HandleableRustError::MissingDependencies {
+                dependencies: dependencies
+                    .into_iter()
+                    .map(|(pkg, range)| (pkg, range.to_string().into()))
+                    .collect(),
+            },
         )
     }
 }
@@ -437,6 +448,7 @@ struct TauriBasePackageInfo {
     version: TauriVersion,
     unity: Option<(u16, u8)>,
     changelog_url: Option<String>,
+    documentation_url: Option<String>,
     vpm_dependencies: Vec<String>,
     legacy_packages: Vec<String>,
     is_yanked: bool,
@@ -452,6 +464,7 @@ impl TauriBasePackageInfo {
             version: package.version().into(),
             unity: package.unity().map(|v| (v.major(), v.minor())),
             changelog_url: package.changelog_url().map(|v| v.to_string()),
+            documentation_url: package.documentation_url().map(|v| v.to_string()),
             vpm_dependencies: package
                 .vpm_dependencies()
                 .keys()
@@ -463,6 +476,39 @@ impl TauriBasePackageInfo {
                 .map(|x| x.to_string())
                 .collect(),
             is_yanked: package.is_yanked(),
+        }
+    }
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+pub struct TauriPackage {
+    #[serde(flatten)]
+    base: TauriBasePackageInfo,
+
+    source: TauriPackageSource,
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+enum TauriPackageSource {
+    LocalUser,
+    Remote { id: String, display_name: String },
+}
+
+impl TauriPackage {
+    pub fn new(package: &PackageInfo) -> Self {
+        let source = if let Some(repo) = package.repo() {
+            let id = repo.id().or(repo.url().map(|x| x.as_str())).unwrap();
+            TauriPackageSource::Remote {
+                id: id.to_string(),
+                display_name: repo.name().unwrap_or(id).to_string(),
+            }
+        } else {
+            TauriPackageSource::LocalUser
+        };
+
+        Self {
+            base: TauriBasePackageInfo::new(package.package_json()),
+            source,
         }
     }
 }

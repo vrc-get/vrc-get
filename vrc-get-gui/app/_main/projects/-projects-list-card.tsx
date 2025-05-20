@@ -232,7 +232,7 @@ export function ProjectsTableCard({
 			</thead>
 			<tbody>
 				{projectsShown.map((project) => (
-					<ProjectRow key={project.index} project={project} loading={loading} />
+					<ProjectRow key={project.path} project={project} loading={loading} />
 				))}
 			</tbody>
 		</ScrollableCardTable>

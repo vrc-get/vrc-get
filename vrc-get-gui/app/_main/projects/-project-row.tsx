@@ -107,14 +107,8 @@ export function ProjectRow({
 
 	const queryClient = useQueryClient();
 	const setProjectFavorite = useMutation({
-		mutationFn: (
-			project: Pick<TauriProject, "list_version" | "index" | "favorite">,
-		) =>
-			commands.environmentSetFavoriteProject(
-				project.list_version,
-				project.index,
-				project.favorite,
-			),
+		mutationFn: (project: Pick<TauriProject, "path" | "favorite">) =>
+			commands.environmentSetFavoriteProject(project.path, project.favorite),
 		onMutate: async (project) => {
 			await queryClient.cancelQueries(environmentProjects);
 			const data = queryClient.getQueryData(environmentProjects.queryKey);
@@ -122,9 +116,7 @@ export function ProjectRow({
 				queryClient.setQueryData(
 					environmentProjects.queryKey,
 					data.map((v) =>
-						v.list_version === project.list_version && v.index === project.index
-							? { ...v, favorite: project.favorite }
-							: v,
+						v.path === project.path ? { ...v, favorite: project.favorite } : v,
 					),
 				);
 			}

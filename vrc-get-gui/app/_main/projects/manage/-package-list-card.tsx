@@ -2,6 +2,7 @@
 
 import { applyChangesMutation } from "@/app/_main/projects/manage/-use-package-change";
 import { Route } from "@/app/_main/projects/manage/index";
+import { ExternalLink } from "@/components/ExternalLink";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import { assertNever } from "@/lib/assert-never";
 import type { TauriPackage, TauriRepositoriesInfo } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
+import { usePackageUpdateInProgress } from "@/lib/global-events";
 import { tc, tt } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { toVersionString } from "@/lib/version";
@@ -253,6 +255,7 @@ function ManagePackagesHeading({
 	setSearch: (value: string) => void;
 }) {
 	const { isLoading } = usePageContext();
+	const backgroundLoading = usePackageUpdateInProgress();
 
 	const queryClient = useQueryClient();
 
@@ -343,9 +346,9 @@ function ManagePackagesHeading({
 						size={"icon"}
 						onClick={onRefresh}
 						className={"shrink-0"}
-						disabled={isLoading}
+						disabled={isLoading || backgroundLoading}
 					>
-						{isLoading ? (
+						{isLoading || backgroundLoading ? (
 							<RefreshCw className="w-5 h-5 animate-spin" />
 						) : (
 							<RefreshCw className={"w-5 h-5"} />
@@ -820,6 +823,11 @@ const PackageRow = memo(function PackageRow({
 		}
 	};
 
+	const documentationUrl = pkg.documentationUrl
+		? pkg.documentationUrl.url
+		: null;
+	const changelogUrl = pkg.changelogUrl ? pkg.changelogUrl.url : null;
+
 	return (
 		<>
 			<td className={`${cellClass} w-1`}>
@@ -923,6 +931,33 @@ const PackageRow = memo(function PackageRow({
 							</TooltipContent>
 						</Tooltip>
 					)}
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant={"ghost"}
+								size={"icon"}
+								disabled={documentationUrl == null && changelogUrl == null}
+							>
+								<Ellipsis className={"size-5"} />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent>
+							{changelogUrl && (
+								<DropdownMenuItem>
+									<ExternalLink href={changelogUrl}>
+										{tc("projects:manage:menuitem:see changelog")}
+									</ExternalLink>
+								</DropdownMenuItem>
+							)}
+							{documentationUrl && (
+								<DropdownMenuItem>
+									<ExternalLink href={documentationUrl}>
+										{tc("projects:manage:menuitem:see documentation")}
+									</ExternalLink>
+								</DropdownMenuItem>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 			</td>
 		</>

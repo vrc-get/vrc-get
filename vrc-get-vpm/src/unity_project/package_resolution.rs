@@ -2,6 +2,7 @@ use crate::traits::PackageCollection;
 use crate::unity_project::LockedDependencyInfo;
 use crate::version::{DependencyRange, PrereleaseAcceptance, UnityVersion, Version, VersionRange};
 use crate::{PackageInfo, PackageManifest, VersionSelector};
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 struct PackageQueue<'a> {
@@ -399,13 +400,13 @@ pub struct PackageResolutionResult<'env> {
 }
 
 pub struct MissingDependencies {
-    pub dependencies: HashSet<Box<str>>,
+    pub dependencies: HashMap<Box<str>, VersionRange>,
 }
 
 impl MissingDependencies {
     pub fn new() -> Self {
         Self {
-            dependencies: HashSet::new(),
+            dependencies: HashMap::new(),
         }
     }
 
@@ -413,11 +414,18 @@ impl MissingDependencies {
         self.dependencies.is_empty()
     }
 
-    pub fn add(&mut self, dependency: &str) {
-        self.dependencies.insert(dependency.into());
+    pub fn add(&mut self, dependency: &str, range: &VersionRange) {
+        match self.dependencies.entry(dependency.into()) {
+            Entry::Occupied(mut e) => {
+                e.insert(range.intersect(e.get()));
+            }
+            Entry::Vacant(e) => {
+                e.insert(range.clone());
+            }
+        }
     }
 
-    pub fn into_vec(self) -> Vec<Box<str>> {
+    pub fn into_vec(self) -> Vec<(Box<str>, VersionRange)> {
         self.dependencies.into_iter().collect()
     }
 }
@@ -554,7 +562,7 @@ pub(crate) fn collect_adding_packages<'a, 'env>(
                     if let Some(found) = found {
                         context.pending_queue.add_pending_package(found);
                     } else {
-                        missing_dependencies.add(dependency);
+                        missing_dependencies.add(dependency, range);
                     }
                 }
             }

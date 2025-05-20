@@ -224,10 +224,7 @@ mod windows {
         let unity = unity.to_path_buf();
         match tokio::task::spawn_blocking(move || inner(&unity)).await {
             Ok(result) => result,
-            Err(_) => Err(io::Error::new(
-                io::ErrorKind::Other,
-                "background task failed",
-            )),
+            Err(_) => Err(io::Error::other("background task failed")),
         }
     }
 

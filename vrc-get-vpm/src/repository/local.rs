@@ -53,6 +53,10 @@ impl LocalCachedRepository {
         self.repo().url()
     }
 
+    pub fn set_url(&mut self, url: Url) {
+        self.repo.set_url(url);
+    }
+
     pub fn id(&self) -> Option<&str> {
         self.repo().id()
     }

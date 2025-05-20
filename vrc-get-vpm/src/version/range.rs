@@ -98,6 +98,14 @@ impl VersionRange {
         }
     }
 
+    pub fn specific(version: Version) -> VersionRange {
+        Self {
+            comparators: vec![ComparatorSet(vec![Comparator::Exact(
+                PartialVersion::from(version),
+            )])],
+        }
+    }
+
     pub fn contains_pre(&self) -> bool {
         self.comparators.iter().any(ComparatorSet::contains_pre)
     }

@@ -2,7 +2,7 @@ use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::vpm_manifest::VpmManifest;
 use crate::unity_project::{PendingProjectChanges, package_resolution};
-use crate::version::DependencyRange;
+use crate::version::{DependencyRange, VersionRange};
 use crate::{PackageCollection, PackageInfo, UnityProject};
 use log::debug;
 use std::fmt;
@@ -10,10 +10,18 @@ use std::fmt;
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum AddPackageErr {
-    DependenciesNotFound { dependencies: Vec<Box<str>> },
-    UpgradingNonLockedPackage { package_name: Box<str> },
-    DowngradingNonLockedPackage { package_name: Box<str> },
-    UpgradingWithDowngrade { package_name: Box<str> },
+    DependenciesNotFound {
+        dependencies: Vec<(Box<str>, VersionRange)>,
+    },
+    UpgradingNonLockedPackage {
+        package_name: Box<str>,
+    },
+    DowngradingNonLockedPackage {
+        package_name: Box<str>,
+    },
+    UpgradingWithDowngrade {
+        package_name: Box<str>,
+    },
 }
 
 impl fmt::Display for AddPackageErr {
@@ -22,11 +30,11 @@ impl fmt::Display for AddPackageErr {
             AddPackageErr::DependenciesNotFound { dependencies } => {
                 write!(f, "Following dependencies are not found: ")?;
                 let mut first = true;
-                for dep in dependencies {
+                for (dep, range) in dependencies {
                     if !first {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", dep)?;
+                    write!(f, "{dep}@{range}")?;
                     first = false;
                 }
                 Ok(())

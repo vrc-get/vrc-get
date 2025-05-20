@@ -36,6 +36,12 @@ pub struct GuiConfig {
     pub gui_animation: bool,
     #[serde(default)]
     pub unity_hub_access_method: UnityHubAccessMethod,
+    // last element is the most recent one
+    // 8 paths are saved
+    #[serde(default)]
+    pub recent_project_locations: Vec<String>,
+    #[serde(default)]
+    pub exclude_vpm_packages_from_backup: bool,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, Default, specta::Type)]
@@ -65,6 +71,8 @@ impl Default for GuiConfig {
             logs_level: log_level_default(),
             gui_animation: true,
             unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
+            recent_project_locations: Vec::new(),
+            exclude_vpm_packages_from_backup: false,
         }
     }
 }

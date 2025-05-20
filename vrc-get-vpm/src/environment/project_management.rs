@@ -119,72 +119,91 @@ impl VccDatabaseConnection {
 }
 
 impl VccDatabaseConnection {
+    pub fn normalize_path(&mut self) {
+        let mut to_update = vec![];
+
+        for project in self.db.get_all(COLLECTION) {
+            let Some(path) = project[PATH].as_str() else {
+                continue;
+            };
+
+            let normalized = normalize_path(path.as_ref());
+            if normalized.to_str().unwrap() != path {
+                let mut project = project.clone();
+                project.insert(PATH, normalized.into_os_string().into_string().unwrap());
+
+                to_update.push(project);
+            }
+        }
+
+        if !to_update.is_empty() {
+            self.db
+                .update(COLLECTION, to_update)
+                .expect("updating project");
+        }
+    }
+
+    /// It might be better to call `normalize_path`, `RealProjectInformation::load_from_fs` and
+    /// then `sync_with_real_projects_information` since `load_from_fs` may take some time.
     pub async fn sync_with_real_projects(
         &mut self,
         skip_not_found: bool,
         io: &DefaultEnvironmentIo,
     ) -> io::Result<()> {
+        self.normalize_path();
+
         let projects = self.db.get_all(COLLECTION).collect::<Vec<_>>();
 
-        let changed_projects = join_all(
-            projects
-                .into_iter()
-                .map(|x| update_project_with_actual_data(io, x, skip_not_found)),
-        )
-        .await;
-
-        self.db
-            .update(COLLECTION, changed_projects.into_iter().flatten().collect())
-            .expect("updating project");
-
-        async fn update_project_with_actual_data(
-            io: &DefaultEnvironmentIo,
-            project: &Document,
-            skip_not_found: bool,
-        ) -> Option<Document> {
-            match update_project_with_actual_data_inner(io, project, skip_not_found).await {
+        let projects = join_all(projects.into_iter().map(|project| async {
+            let path = project[PATH].as_str()?;
+            match RealProjectInformation::load_from_fs(io, path.to_owned()).await {
                 Ok(Some(project)) => Some(project),
-                Ok(None) => None,
+                Ok(None) => {
+                    if !skip_not_found {
+                        error!("Project {} not found", path);
+                    }
+                    None
+                }
                 Err(err) => {
                     error!("Error updating project information: {}", err);
                     None
                 }
             }
-        }
+        }))
+        .await;
 
-        async fn update_project_with_actual_data_inner(
-            io: &DefaultEnvironmentIo,
-            project: &Document,
-            skip_not_found: bool,
-        ) -> io::Result<Option<Document>> {
+        self.sync_with_real_projects_information(projects.into_iter().flatten().collect());
+
+        Ok(())
+    }
+
+    pub fn sync_with_real_projects_information(
+        &mut self,
+        information: Vec<RealProjectInformation>,
+    ) {
+        let by_path = information
+            .iter()
+            .map(|x| (x.path.as_str(), x))
+            .collect::<HashMap<_, _>>();
+
+        let mut to_update = vec![];
+
+        for project in self.db.get_all(COLLECTION) {
+            let Some(path) = project[PATH].as_str() else {
+                continue;
+            };
+
+            let Some(&real) = by_path.get(path) else {
+                continue;
+            };
+
             let mut project = Cow::Borrowed(project);
 
-            let Some(path) = project[PATH].as_str() else {
-                return Ok(None);
-            };
-            let path = Path::new(path);
-
-            if !io.is_dir(path).await {
-                if !skip_not_found {
-                    error!("Project {} not found", path.display());
-                }
-                return Ok(None);
-            }
-
-            let normalized = normalize_path(path);
-            let normalized = if normalized != path {
-                Some(normalized)
-            } else {
-                None
-            };
-
-            let loaded_project = UnityProject::load(io.new_project_io(path)).await?;
             {
-                let unity_version = loaded_project.unity_version();
-                let unity_version = unity_version.to_string();
-                if let Some(revision) = loaded_project.unity_revision() {
+                let unity_version = real.unity_version.to_string();
+                if let Some(revision) = &real.unity_revision {
                     if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str()
-                        || Some(revision)
+                        || Some(revision.as_str())
                             != project[VRC_GET]
                                 .as_document()
                                 .filter(|x| {
@@ -207,23 +226,20 @@ impl VccDatabaseConnection {
                     }
                 }
             }
-
-            let project_type = loaded_project.detect_project_type().await?;
-            if project[TYPE].as_i32() != Some(project_type as i32) {
-                project.to_mut().insert(TYPE, project_type as i32);
+            if project[TYPE].as_i32() != Some(real.project_type as i32) {
+                project.to_mut().insert(TYPE, real.project_type as i32);
             }
 
-            if let Some(normalized) = normalized {
-                project.to_mut().insert(PATH, normalized.to_str().unwrap());
+            if let Cow::Owned(project) = project {
+                to_update.push(project);
             }
-
-            Ok(match project {
-                Cow::Owned(o) => Some(o),
-                Cow::Borrowed(_) => None,
-            })
         }
 
-        Ok(())
+        if !to_update.is_empty() {
+            self.db
+                .update(COLLECTION, to_update)
+                .expect("updating project");
+        }
     }
 
     pub fn dedup_projects(&mut self) {
@@ -360,6 +376,50 @@ impl VccDatabaseConnection {
             .expect("insert");
 
         Ok(())
+    }
+}
+
+/// The Data Structure to store information required for updating information in the Database
+pub struct RealProjectInformation {
+    path: String,
+    unity_version: UnityVersion,
+    unity_revision: Option<String>,
+    project_type: ProjectType,
+}
+
+impl RealProjectInformation {
+    pub async fn load_from_fs(io: &DefaultEnvironmentIo, path: String) -> io::Result<Option<Self>> {
+        if !io.is_dir(path.as_ref()).await {
+            return Ok(None);
+        }
+
+        let loaded_project = UnityProject::load(io.new_project_io(path.as_ref())).await?;
+        let unity_version = loaded_project.unity_version();
+        let unity_revision = loaded_project.unity_revision().map(ToOwned::to_owned);
+        let project_type = loaded_project.detect_project_type().await?;
+
+        Ok(Some(RealProjectInformation {
+            path,
+            unity_version,
+            unity_revision,
+            project_type,
+        }))
+    }
+
+    pub fn path(&self) -> &str {
+        self.path.as_str()
+    }
+
+    pub fn unity_version(&self) -> UnityVersion {
+        self.unity_version
+    }
+
+    pub fn unity_revision(&self) -> Option<&str> {
+        self.unity_revision.as_deref()
+    }
+
+    pub fn project_type(&self) -> ProjectType {
+        self.project_type
     }
 }
 
