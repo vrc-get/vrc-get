@@ -2,12 +2,13 @@
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"files": {
 		"ignore": [
-			"templates",
+			"project-templates",
 			"node_modules",
 			".next",
 			"out",
 			"gen",
 			"lib/bindings.ts",
+			"lib/routeTree.gen.ts",
 			"build"
 		]
 	},
@@ -37,6 +38,10 @@
 								"name": "useDocumentEvent",
 								"closureIndex": 1,
 								"dependenciesIndex": 2
+							},
+							{
+								"name": "useEffectEvent",
+								"stableResult": true
 							}
 						]
 					}

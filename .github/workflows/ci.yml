@@ -87,9 +87,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ci-build-${{ matrix.triple }}
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.2xx
 
       - name: Setup
         run: ${{ matrix.setup }}
@@ -110,10 +107,10 @@ jobs:
             target/${{ matrix.triple }}/debug/vrc-get*
             target/${{ matrix.triple }}/debug/libvrc-get*
       - name: Build tests
-        run: cargo build --tests --target ${{ matrix.triple }}
+        run: cargo build --tests --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm
       - name: Run tests
         if: ${{ matrix.run-test }}
-        run: cargo test --verbose --target ${{ matrix.triple }}
+        run: cargo test --verbose --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm
       - name: Check binary is statically linked
         shell: bash
         if: ${{ matrix.static-linked }}

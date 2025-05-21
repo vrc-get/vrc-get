@@ -1,6 +1,7 @@
 use crate::version::parsing_buf::{FromParsingBuf, ParseVersionError, ParsingBuf};
 use crate::version::segment::Segment;
 use crate::version::{BuildMetadata, Prerelease};
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Write};
 use std::hash::{Hash, Hasher};
@@ -166,3 +167,23 @@ impl Version {
         self.pre.is_empty()
     }
 }
+
+pub struct StrictEqVersion<V: Borrow<Version> = Version>(pub V);
+
+impl<V1, V2> PartialEq<StrictEqVersion<V2>> for StrictEqVersion<V1>
+where
+    V1: Borrow<Version>,
+    V2: Borrow<Version>,
+{
+    fn eq(&self, other: &StrictEqVersion<V2>) -> bool {
+        let this = self.0.borrow();
+        let other = other.0.borrow();
+        this.major == other.major
+            && this.minor == other.minor
+            && this.patch == other.patch
+            && this.pre == other.pre
+            && this.build == other.build
+    }
+}
+
+impl Eq for StrictEqVersion {}

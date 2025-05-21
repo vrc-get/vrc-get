@@ -1,8 +1,8 @@
-use crate::io::ProjectIo;
+use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::pending_project_changes::RemoveReason;
 use crate::unity_project::vpm_manifest::VpmManifest;
-use crate::unity_project::{package_resolution, PendingProjectChanges};
-use crate::version::DependencyRange;
+use crate::unity_project::{PendingProjectChanges, package_resolution};
+use crate::version::{DependencyRange, VersionRange};
 use crate::{PackageCollection, PackageInfo, UnityProject};
 use log::debug;
 use std::fmt;
@@ -10,19 +10,35 @@ use std::fmt;
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum AddPackageErr {
-    DependencyNotFound { dependency_name: Box<str> },
-    UpgradingNonLockedPackage { package_name: Box<str> },
-    DowngradingNonLockedPackage { package_name: Box<str> },
-    UpgradingWithDowngrade { package_name: Box<str> },
+    DependenciesNotFound {
+        dependencies: Vec<(Box<str>, VersionRange)>,
+    },
+    UpgradingNonLockedPackage {
+        package_name: Box<str>,
+    },
+    DowngradingNonLockedPackage {
+        package_name: Box<str>,
+    },
+    UpgradingWithDowngrade {
+        package_name: Box<str>,
+    },
 }
 
 impl fmt::Display for AddPackageErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AddPackageErr::DependencyNotFound { dependency_name } => write!(
-                f,
-                "Package {dependency_name} (maybe dependencies of the package) not found"
-            ),
+            AddPackageErr::DependenciesNotFound { dependencies } => {
+                write!(f, "Following dependencies are not found: ")?;
+                let mut first = true;
+                for (dep, range) in dependencies {
+                    if !first {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{dep}@{range}")?;
+                    first = false;
+                }
+                Ok(())
+            }
             AddPackageErr::UpgradingNonLockedPackage { package_name } => write!(
                 f,
                 "Package {package_name} is not locked, so it cannot be upgraded"
@@ -51,7 +67,7 @@ pub enum AddPackageOperation {
 }
 
 // adding package
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     /// Creates a new `AddPackageRequest` to add the specified packages.
     ///
     /// You should call `apply_pending_changes` to apply the changes after confirming to the user.
@@ -72,9 +88,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
             debug!("Validating Package: {}", request.name());
 
             {
-                fn install_to_dependencies<'env, IO: ProjectIo>(
+                fn install_to_dependencies<'env>(
                     request: PackageInfo<'env>,
-                    this: &UnityProject<IO>,
+                    this: &UnityProject,
                     adding_packages: &mut Vec<PackageInfo<'env>>,
                     changes: &mut super::pending_project_changes::Builder,
                 ) -> Result<(), AddPackageErr> {
@@ -98,9 +114,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
                     Ok(())
                 }
 
-                fn upgrade_locked<'env, IO: ProjectIo>(
+                fn upgrade_locked<'env>(
                     request: PackageInfo<'env>,
-                    this: &UnityProject<IO>,
+                    this: &UnityProject,
                     adding_packages: &mut Vec<PackageInfo<'env>>,
                     _changes: &mut super::pending_project_changes::Builder,
                 ) -> Result<(), AddPackageErr> {
@@ -108,9 +124,9 @@ impl<IO: ProjectIo> UnityProject<IO> {
                     Ok(())
                 }
 
-                fn downgrade<'env, IO: ProjectIo>(
+                fn downgrade<'env>(
                     request: PackageInfo<'env>,
-                    this: &UnityProject<IO>,
+                    this: &UnityProject,
                     adding_packages: &mut Vec<PackageInfo<'env>>,
                     changes: &mut super::pending_project_changes::Builder,
                 ) -> Result<(), AddPackageErr> {
@@ -267,6 +283,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         debug!("Resolving dependencies");
 
+        let mut missing_dependencies = MissingDependencies::new();
         let result = package_resolution::collect_adding_packages(
             self.manifest.dependencies().map(|(name, original_range)| {
                 if let Some(new_range) = changes.get_dependencies(name) {
@@ -278,11 +295,17 @@ impl<IO: ProjectIo> UnityProject<IO> {
             self.manifest.all_locked(),
             self.unlocked_packages.iter(),
             |pkg| self.manifest.get_locked(pkg),
-            self.unity_version(),
+            Some(self.unity_version()),
             env,
             adding_packages,
             allow_prerelease,
-        )?;
+            &mut missing_dependencies,
+        );
+        if !missing_dependencies.is_empty() {
+            return Err(AddPackageErr::DependenciesNotFound {
+                dependencies: missing_dependencies.into_vec(),
+            });
+        }
 
         debug!("Resolving finished");
 

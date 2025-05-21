@@ -17,6 +17,11 @@ import { tc } from "@/lib/i18n";
 import { toastNormal } from "@/lib/toast";
 import { useQuery } from "@tanstack/react-query";
 import {
+	type RegisteredRouter,
+	useLocation,
+	useNavigate,
+} from "@tanstack/react-router";
+import {
 	AlignLeft,
 	CircleAlert,
 	List,
@@ -24,7 +29,6 @@ import {
 	Settings,
 	SwatchBook,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import type React from "react";
 
 export function SideBar({ className }: { className?: string }) {
@@ -48,17 +52,17 @@ export function SideBar({ className }: { className?: string }) {
 			toastNormal(tc("sidebar:toast:version copied"));
 		}
 	};
-	const isDev = process.env.NODE_ENV === "development";
+	const isDev = import.meta.env.DEV;
 
 	return (
 		<Card
 			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}
 		>
-			<div className="flex flex-col gap-1 p-2 min-w-40 flex-grow">
+			<div className="flex flex-col gap-1 p-2 min-w-40 grow">
 				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
 				<SideBarItem
 					href={"/packages/repositories"}
-					text={tc("packages")}
+					text={tc("resources")}
 					icon={Package}
 				/>
 				<SideBarItem href={"/settings"} text={tc("settings")} icon={Settings} />
@@ -66,12 +70,12 @@ export function SideBar({ className }: { className?: string }) {
 				{isDev && <DevRestartSetupButton />}
 				{isDev && (
 					<SideBarItem
-						href={"/settings/palette"}
+						href={"/dev-palette"}
 						text={"UI Palette (dev only)"}
 						icon={SwatchBook}
 					/>
 				)}
-				<div className={"flex-grow"} />
+				<div className={"grow"} />
 				{isBadHostName.data && <BadHostNameDialogButton />}
 				<Button
 					variant={"ghost"}
@@ -92,17 +96,23 @@ function SideBarItem({
 	text,
 	icon,
 }: {
-	href: string;
+	href: keyof RegisteredRouter["routesByPath"];
 	text: React.ReactNode;
 	icon: React.ComponentType<{ className?: string }>;
 }) {
-	const router = useRouter();
+	const location = useLocation();
+	const navigate = useNavigate();
 	const IconElenment = icon;
+	const getFirstPathSegment = (path: string) => {
+		return path.split("/")[1] || "";
+	};
+	const isActive =
+		getFirstPathSegment(location.pathname || "") === getFirstPathSegment(href);
 	return (
 		<Button
 			variant={"ghost"}
-			className={"justify-start flex-shrink-0"}
-			onClick={() => router.push(href)}
+			className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
+			onClick={() => navigate({ to: href })}
 		>
 			<div className={"mr-4"}>
 				<IconElenment className="h-5 w-5" />
@@ -148,15 +158,15 @@ function BadHostNameDialogButton() {
 }
 
 function DevRestartSetupButton() {
-	const router = useRouter();
+	const navigate = useNavigate();
 	const onClick = async () => {
 		await commands.environmentClearSetupProcess();
-		router.push("/setup/appearance");
+		navigate({ to: "/setup/appearance" });
 	};
 	return (
 		<Button
 			variant={"ghost"}
-			className={"justify-start flex-shrink-0"}
+			className={"justify-start shrink-0"}
 			onClick={onClick}
 		>
 			<div className={"mr-4"}>

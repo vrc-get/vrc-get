@@ -1,7 +1,7 @@
 [package]
 name = "vrc-get-gui"
-version = "0.1.16-beta.1"
-description = "A Tauri App"
+version = "1.0.2-beta.0"
+description = "A fast open-source alternative of VRChat Creator Companion"
 
 homepage.workspace = true
 authors.workspace = true
@@ -16,16 +16,16 @@ path = "src/main.rs"
 [build-dependencies]
 flate2 = "1"
 tar = "0.4"
-tauri-build = { version = "2.0.0-rc.3", features = [ "config-toml" ] }
+tauri-build = { version = "2", features = [ "config-toml" ] }
 
 [dependencies]
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
-tauri = { version = "2.0.0-rc.3", features = [ "config-toml" ] }
-vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management", "tokio"] }
+tauri = { version = "2", features = [ "config-toml" ] }
+vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management"] }
 reqwest = { version = "0.12", features = ["gzip", "brotli"] }
 specta = { version = "2.0.0-rc.20", features = [ "chrono", "url", "indexmap" ] }
-tauri-specta = { version = "2.0.0-rc.17", features = ["typescript"] }
+tauri-specta = { version = "2.0.0-rc.20", features = ["typescript"] }
 specta-typescript = "0.0.7"
 open = "5"
 arc-swap = "1"
@@ -33,6 +33,7 @@ log = { version = "0.4", features = [ "std", "kv" ] }
 chrono = { version = "0.4", features = [ "serde" ] }
 ringbuffer = "0.15"
 tokio = { version = "1", features = ["process"] }
+tokio-util = "0.7"
 fs_extra = "1"
 indexmap = "2"
 futures = "0.3"
@@ -41,35 +42,39 @@ flate2 = "1"
 uuid = { version = "1", features = ["v4"] }
 trash = "5"
 async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
+async-compression = { version = "0.4", features = ["gzip", "futures-io"] }
 async-stream = "0.3"
-tauri-plugin-single-instance = "2.0.0-rc.0"
-tauri-plugin-updater = "2.0.0-rc.1"
-tauri-plugin-dialog = "2.0.0-rc.1"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-dialog = "2"
 sys-locale = "0.3"
 log-panics = { version = "2", features = ["with-backtrace"] }
 url = "2"
 dirs-next = "2"
-yoke = { version = "0.7", features = ["derive"] }
+yoke = { version = "0.8", features = ["derive"] }
 atomicbox = "0.4"
 stable_deref_trait = "1"
+itertools = "0.14"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.58", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
-winreg = "0.52"
+windows = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
+winreg = "0.55"
+wmi = "0.17"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.26"
+plist = { version = "1" }
+objc2-app-kit = { version = "0.3.0", features = ['NSWorkspace', "block2"] }
+objc2-foundation = "0.3.0"
+block2 = "0.6.0"
+objc2 = "0.6.0"
+dispatch2 = "0.3.0"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.29", features = ["fs"] }
+nix = { version = "0.30", features = ["fs"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
 # DO NOT REMOVE!!
 custom-protocol = [ "tauri/custom-protocol" ]
-
-# rustc-check-cfg is not supported by tauri 1.x yet so we need to ignore it
-# https://github.com/tauri-apps/tauri/pull/10392
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(dev)'] }

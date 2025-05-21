@@ -1,12 +1,13 @@
+import { ExternalLink } from "@/components/ExternalLink";
 import globalInfo from "@/lib/global-info";
 import deJson from "@/locales/de.json5";
 import enJson from "@/locales/en.json5";
 import frJson from "@/locales/fr.json5";
 import jaJson from "@/locales/ja.json5";
+import koJson from "@/locales/ko.json5";
 import zh_hansJson from "@/locales/zh_hans.json5";
 import zh_hantJson from "@/locales/zh_hant.json5";
 import i18next, { t as i18nextt, type Resource } from "i18next";
-import { BailoutToCSRError } from "next/dist/shared/lib/lazy-dynamic/bailout-to-csr";
 import React from "react";
 import { Trans, initReactI18next, useTranslation } from "react-i18next";
 import type { TransProps } from "react-i18next/TransWithoutContext";
@@ -15,6 +16,7 @@ const languageResources = {
 	en: enJson,
 	de: deJson,
 	ja: jaJson,
+	ko: koJson,
 	fr: frJson,
 	zh_hans: zh_hansJson,
 	zh_hant: zh_hantJson,
@@ -41,13 +43,14 @@ export default i18next;
 export const languages = Object.keys(languageResources);
 
 function VGTrans(props: TransProps<string>) {
-	if (typeof window === "undefined") {
-		throw new BailoutToCSRError("VGTrans");
-	}
+	const components = {
+		...props.components,
+		ExternalLink: React.createElement(ExternalLink),
+	};
 
 	const { t } = useTranslation();
 
-	return React.createElement(Trans, { ...props, t });
+	return React.createElement(Trans, { ...props, t, components });
 }
 
 export function tc(

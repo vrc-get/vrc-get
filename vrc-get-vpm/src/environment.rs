@@ -15,8 +15,8 @@ mod settings;
 mod unity_management;
 
 use crate::io;
-use crate::repository::local::LocalCachedRepository;
 use crate::repository::RemoteRepository;
+use crate::repository::local::LocalCachedRepository;
 use crate::traits::HttpClient;
 use crate::utils::to_vec_pretty_os_eol;
 use futures::prelude::*;
@@ -27,7 +27,7 @@ use std::fmt;
 use std::path::Path;
 use url::Url;
 
-use crate::io::{DirEntry, EnvironmentIo};
+use crate::io::{DefaultEnvironmentIo, DirEntry, IoTrait};
 #[cfg(feature = "experimental-project-management")]
 pub use project_management::*;
 pub(crate) use repo_holder::RepoHolder;
@@ -53,7 +53,7 @@ pub async fn add_remote_repo(
     url: Url,
     name: Option<&str>,
     headers: IndexMap<Box<str>, Box<str>>,
-    io: &impl EnvironmentIo,
+    io: &DefaultEnvironmentIo,
     http: &impl HttpClient,
 ) -> Result<(), AddRepositoryErr> {
     let (remote_repo, etag) = RemoteRepository::download(http, &url, &headers).await?;
@@ -82,7 +82,10 @@ pub async fn add_remote_repo(
     Ok(())
 }
 
-pub async fn cleanup_repos_folder(settings: &Settings, io: &impl EnvironmentIo) -> io::Result<()> {
+pub async fn cleanup_repos_folder(
+    settings: &Settings,
+    io: &DefaultEnvironmentIo,
+) -> io::Result<()> {
     let mut uesr_repo_file_names = HashSet::<OsString>::from_iter([
         OsString::from("vrc-official.json"),
         OsString::from("vrc-curated.json"),
@@ -126,7 +129,7 @@ pub async fn cleanup_repos_folder(settings: &Settings, io: &impl EnvironmentIo) 
 
 async fn write_new_repo(
     local_cache: &LocalCachedRepository,
-    io: &impl EnvironmentIo,
+    io: &DefaultEnvironmentIo,
 ) -> io::Result<String> {
     io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
 
@@ -168,7 +171,7 @@ async fn write_new_repo(
     unreachable!();
 }
 
-pub async fn clear_package_cache(io: &impl EnvironmentIo) -> io::Result<()> {
+pub async fn clear_package_cache(io: &DefaultEnvironmentIo) -> io::Result<()> {
     let repo_folder_stream = io.read_dir(REPO_CACHE_FOLDER.as_ref()).await?;
 
     let pkg_folder_entries = repo_folder_stream.try_filter_map(|pkg_entry| async move {

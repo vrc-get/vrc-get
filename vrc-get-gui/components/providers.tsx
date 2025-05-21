@@ -1,49 +1,42 @@
 "use client";
 
+import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { CheckForUpdateResponse, LogEntry } from "@/lib/bindings";
+import type { LogEntry } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { DialogRoot, openSingleDialog } from "@/lib/dialog";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
-import { toastError, toastThrownError } from "@/lib/toast";
+import { tc } from "@/lib/i18n";
+import { queryClient } from "@/lib/query-client";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ToastContainer } from "react-toastify";
 
-const queryClient = new QueryClient();
-
 export function Providers({ children }: { children: React.ReactNode }) {
-	const router = useRouter();
+	const navigate = useNavigate();
 
-	useTauriListen<LogEntry>(
-		"log",
-		useCallback((event) => {
-			const entry = event.payload as LogEntry;
-			if (entry.level === "Error" && entry.gui_toast) {
-				toastError(entry.message);
-			}
-		}, []),
-	);
+	useTauriListen<LogEntry>("log", (event) => {
+		const entry = event.payload as LogEntry;
+		if (entry.level === "Error" && entry.gui_toast) {
+			toastError(entry.message);
+		}
+	});
 
 	const moveToRepositories = useCallback(() => {
 		if (location.pathname !== "/packages/repositories") {
-			router.push("/packages/repositories");
+			navigate({ to: "/packages/repositories" });
 		}
-	}, [router]);
+	}, [navigate]);
 
-	useTauriListen<null>(
-		"deep-link-add-repository",
-		useCallback(
-			(_) => {
-				moveToRepositories();
-			},
-			[moveToRepositories],
-		),
-	);
+	useTauriListen<null>("deep-link-add-repository", (_) => {
+		moveToRepositories();
+	});
 
 	useEffect(() => {
 		let cancel = false;
@@ -58,22 +51,35 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		};
 	}, [moveToRepositories]);
 
-	const { i18n } = useTranslation();
+	useTauriListen<number>("templates-imported", async ({ payload: count }) => {
+		await queryClient.invalidateQueries({
+			queryKey: ["environmentProjectCreationInformation"],
+		});
+		toastSuccess(tc("templates:toast:imported n templates", { count }));
+	});
 
-	const [updateState, setUpdateState] = useState<CheckForUpdateResponse | null>(
-		null,
-	);
+	useEffect(() => {
+		(async () => {
+			const count = await commands.deepLinkImportedClearNonToastedCount();
+			if (count !== 0) {
+				toastSuccess(tc("templates:toast:imported n templates", { count }));
+			}
+		})();
+	}, []);
+
+	const { i18n } = useTranslation();
 
 	useEffect(() => {
 		let cancel = false;
 		(async () => {
 			try {
-				const isDev = process.env.NODE_ENV === "development";
-				if (isDev) return;
+				if (import.meta.env.DEV) return;
 				const checkVersion = await commands.utilCheckForUpdate();
 				if (cancel) return;
 				if (checkVersion) {
-					setUpdateState(checkVersion);
+					await openSingleDialog(CheckForUpdateMessage, {
+						response: checkVersion,
+					});
 				}
 			} catch (e) {
 				toastThrownError(e);
@@ -112,15 +118,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 			/>
 			<QueryClientProvider client={queryClient}>
 				<TooltipProvider>
-					{updateState && (
-						<CheckForUpdateMessage
-							response={updateState}
-							close={() => setUpdateState(null)}
-						/>
-					)}
 					<div lang={i18n.language} className="contents">
-						<Suspense fallback={"Loading..."}>{children}</Suspense>
+						<Suspense fallback={<Loading />}>{children}</Suspense>
 					</div>
+					<DialogRoot />
 				</TooltipProvider>
 			</QueryClientProvider>
 		</>

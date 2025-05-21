@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           - triple: x86_64-unknown-linux-gnu
-            on: ubuntu-latest
+            on: ubuntu-22.04
             setup: |
               sudo apt update && sudo apt install -y lld
               ld.lld --version
@@ -47,6 +47,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - run: rustup update stable
       - name: Install cross-compilation tools
         uses: taiki-e/setup-cross-toolchain-action@v1
         if: ${{ matrix.triple != 'universal-apple-darwin' }}
@@ -55,9 +56,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ci-build-gui-${{ matrix.triple }}
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.2xx
       - name: Cache javascript essentials
         uses: actions/cache@v4
         with:
@@ -68,11 +66,6 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-${{ hashFiles('vrc-get-gui/**/*.js', 'vrc-get-gui/**/*.jsx', 'vrc-get-gui/**/*.ts', 'vrc-get-gui/**/*.tsx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('vrc-get-gui/package-lock.json') }}-
-      - uses: taiki-e/install-action@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          tool: cargo-about
 
       - name: Setup
         run: ${{ matrix.setup }}

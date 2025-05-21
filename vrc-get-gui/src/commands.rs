@@ -11,9 +11,11 @@ use tauri::ipc::Invoke;
 pub use uri_custom_scheme::handle_vrc_get_scheme;
 use vrc_get_vpm::environment::VccDatabaseConnection;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
-use vrc_get_vpm::unity_project::AddPackageErr;
-use vrc_get_vpm::version::Version;
-use vrc_get_vpm::PackageManifest;
+use vrc_get_vpm::unity_project::{
+    AddPackageErr, MigrateUnity2022Error, MigrateVpmError, ReinstalPackagesError, ResolvePackageErr,
+};
+use vrc_get_vpm::version::{Version, VersionRange};
+use vrc_get_vpm::{PackageInfo, PackageManifest, UnityProject};
 
 // common macro for commands so put it here
 #[allow(unused_macros)]
@@ -42,18 +44,19 @@ mod start;
 mod uri_custom_scheme;
 mod util;
 
+pub use environment::templates::import_templates;
+
+#[allow(unused_imports)]
 mod prelude {
     pub(super) use super::{
-        load_project, update_project_last_modified, IntoPathBuf as _, RustError,
-        TauriBasePackageInfo, UnityProject,
+        IntoPathBuf as _, RustError, TauriBasePackageInfo, TauriPackage, UnityProject,
+        load_project, update_project_last_modified,
     };
     pub use crate::state::*;
 }
 
-pub type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
-
 // Note: remember to change similar in typescript
-static DEFAULT_UNITY_ARGUMENTS: &[&str] = &["-debugCodeOptimization"];
+static DEFAULT_UNITY_ARGUMENTS: &[&str] = &[];
 
 pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     generate_handler![
@@ -66,11 +69,16 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::config::environment_get_finished_setup_pages,
         environment::config::environment_finished_setup_page,
         environment::config::environment_clear_setup_process,
+        environment::config::environment_logs_level,
+        environment::config::environment_set_logs_level,
+        environment::config::environment_gui_animation,
+        environment::config::environment_set_gui_animation,
+        environment::config::environment_set_unity_hub_access_method,
         environment::projects::environment_projects,
         environment::projects::environment_add_project_with_picker,
-        environment::projects::environment_remove_project,
         environment::projects::environment_remove_project_by_path,
         environment::projects::environment_copy_project_for_migration,
+        environment::projects::environment_copy_project,
         environment::projects::environment_set_favorite_project,
         environment::projects::environment_project_creation_information,
         environment::projects::environment_check_project_name,
@@ -100,10 +108,17 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_pick_project_backup_path,
         environment::settings::environment_set_show_prerelease_packages,
         environment::settings::environment_set_backup_format,
+        environment::settings::environment_set_exclude_vpm_packages_from_backup,
         environment::settings::environment_set_release_channel,
         environment::settings::environment_set_use_alcom_for_vcc_protocol,
         environment::settings::environment_get_default_unity_arguments,
         environment::settings::environment_set_default_unity_arguments,
+        environment::templates::environment_export_template,
+        environment::templates::environment_get_alcom_template,
+        environment::templates::environment_pick_unity_package,
+        environment::templates::environment_save_template,
+        environment::templates::environment_remove_template,
+        environment::templates::environment_import_template,
         environment::unity_hub::environment_update_unity_paths_from_unity_hub,
         environment::unity_hub::environment_is_loading_from_unity_hub_in_progress,
         environment::unity_hub::environment_wait_for_unity_hub_update,
@@ -131,9 +146,12 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         util::util_check_for_update,
         util::util_install_and_upgrade,
         util::util_is_bad_hostname,
+        util::util_pick_directory,
         crate::deep_link_support::deep_link_has_add_repository,
         crate::deep_link_support::deep_link_take_add_repository,
         crate::deep_link_support::deep_link_install_vcc,
+        crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
+        crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
     ]
 }
 
@@ -152,11 +170,16 @@ pub(crate) fn export_ts() {
             environment::config::environment_get_finished_setup_pages,
             environment::config::environment_finished_setup_page,
             environment::config::environment_clear_setup_process,
+            environment::config::environment_logs_level,
+            environment::config::environment_set_logs_level,
+            environment::config::environment_gui_animation,
+            environment::config::environment_set_gui_animation,
+            environment::config::environment_set_unity_hub_access_method,
             environment::projects::environment_projects,
             environment::projects::environment_add_project_with_picker,
-            environment::projects::environment_remove_project,
             environment::projects::environment_remove_project_by_path,
             environment::projects::environment_copy_project_for_migration,
+            environment::projects::environment_copy_project,
             environment::projects::environment_set_favorite_project,
             environment::projects::environment_project_creation_information,
             environment::projects::environment_check_project_name,
@@ -186,10 +209,17 @@ pub(crate) fn export_ts() {
             environment::settings::environment_pick_project_backup_path,
             environment::settings::environment_set_show_prerelease_packages,
             environment::settings::environment_set_backup_format,
+            environment::settings::environment_set_exclude_vpm_packages_from_backup,
             environment::settings::environment_set_release_channel,
             environment::settings::environment_set_use_alcom_for_vcc_protocol,
             environment::settings::environment_get_default_unity_arguments,
             environment::settings::environment_set_default_unity_arguments,
+            environment::templates::environment_export_template,
+            environment::templates::environment_get_alcom_template,
+            environment::templates::environment_pick_unity_package,
+            environment::templates::environment_save_template,
+            environment::templates::environment_remove_template,
+            environment::templates::environment_import_template,
             environment::unity_hub::environment_update_unity_paths_from_unity_hub,
             environment::unity_hub::environment_is_loading_from_unity_hub_in_progress,
             environment::unity_hub::environment_wait_for_unity_hub_update,
@@ -217,11 +247,15 @@ pub(crate) fn export_ts() {
             util::util_check_for_update,
             util::util_install_and_upgrade,
             util::util_is_bad_hostname,
+            util::util_pick_directory,
             crate::deep_link_support::deep_link_has_add_repository,
             crate::deep_link_support::deep_link_take_add_repository,
-            crate::deep_link_support::deep_link_install_vcc //,
+            crate::deep_link_support::deep_link_install_vcc,
+            crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
+            crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
         ])
         //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
+        .typ::<environment::projects::TauriUpdatedRealProjectInfo>()
         .export(
             specta_typescript::Typescript::default()
                 .bigint(specta_typescript::BigIntExportBehavior::Number),
@@ -233,7 +267,7 @@ pub(crate) fn export_ts() {
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
     async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), io::Error> {
         let mut connection = VccDatabaseConnection::connect(io).await?;
-        connection.update_project_last_modified(project_dir)?;
+        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
         connection.save(io).await?;
         Ok(())
     }
@@ -252,6 +286,10 @@ enum RustError {
     },
     #[allow(dead_code)]
     Localizable(Box<LocalizableRustError>),
+    Handleable {
+        message: String,
+        body: HandleableRustError,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -260,12 +298,41 @@ struct LocalizableRustError {
     args: indexmap::IndexMap<String, String>,
 }
 
+/// Errors that is expected to be handled on the GUI side
+#[derive(Debug, Clone, Serialize, specta::Type)]
+#[serde(tag = "type")]
+enum HandleableRustError {
+    MissingDependencies {
+        dependencies: Vec<(Box<str>, Box<str>)>,
+    },
+}
+
 impl RustError {
     fn unrecoverable<T: Display>(value: T) -> Self {
         error!("{value}");
         Self::Unrecoverable {
             message: value.to_string(),
         }
+    }
+
+    fn handleable(message: String, body: HandleableRustError) -> Self {
+        error!(gui_toast = false; "{message}");
+        Self::Handleable { message, body }
+    }
+
+    fn handleable_missing_dependencies(
+        message: String,
+        dependencies: Vec<(Box<str>, VersionRange)>,
+    ) -> Self {
+        Self::handleable(
+            message,
+            HandleableRustError::MissingDependencies {
+                dependencies: dependencies
+                    .into_iter()
+                    .map(|(pkg, range)| (pkg, range.to_string().into()))
+                    .collect(),
+            },
+        )
     }
 }
 
@@ -285,18 +352,69 @@ impl_from_error!(
     io::Error,
     String,
     async_zip::error::ZipError,
-    tauri_plugin_updater::Error,
     vrc_get_vpm::environment::AddRepositoryErr,
     vrc_get_vpm::unity_project::RemovePackageErr,
-    vrc_get_vpm::unity_project::MigrateVpmError,
-    vrc_get_vpm::unity_project::MigrateUnity2022Error,
-    vrc_get_vpm::unity_project::ReinstalPackagesError,
     fs_extra::error::Error,
 );
 
+impl From<tauri_plugin_updater::Error> for RustError {
+    fn from(value: tauri_plugin_updater::Error) -> Self {
+        log::error!(gui_toast = false; "failed to load latest release: {value}");
+        Self::unrecoverable("failed to load the latest release")
+    }
+}
+
+impl From<MigrateVpmError> for RustError {
+    fn from(value: MigrateVpmError) -> Self {
+        match value {
+            MigrateVpmError::AddPackageErr(add_err) => add_err.into(),
+            value => RustError::unrecoverable(value),
+        }
+    }
+}
+
+impl From<MigrateUnity2022Error> for RustError {
+    fn from(value: MigrateUnity2022Error) -> Self {
+        match value {
+            MigrateUnity2022Error::AddPackageErr(add_err) => add_err.into(),
+            value => RustError::unrecoverable(value),
+        }
+    }
+}
+
+impl From<ReinstalPackagesError> for RustError {
+    fn from(value: ReinstalPackagesError) -> Self {
+        let message = value.to_string();
+        match value {
+            ReinstalPackagesError::DependenciesNotFound { dependencies } => {
+                RustError::handleable_missing_dependencies(message, dependencies)
+            }
+            _ => RustError::unrecoverable(message),
+        }
+    }
+}
+
 impl From<AddPackageErr> for RustError {
     fn from(value: AddPackageErr) -> Self {
-        RustError::unrecoverable(value)
+        let message = value.to_string();
+        match value {
+            AddPackageErr::DependenciesNotFound { dependencies } => {
+                RustError::handleable_missing_dependencies(message, dependencies)
+            }
+            _ => RustError::unrecoverable(message),
+        }
+    }
+}
+
+impl From<ResolvePackageErr> for RustError {
+    fn from(value: ResolvePackageErr) -> Self {
+        let message = value.to_string();
+        match value {
+            ResolvePackageErr::DependenciesNotFound { dependencies } => {
+                RustError::handleable_missing_dependencies(message, dependencies)
+            }
+            _ => RustError::unrecoverable(message),
+        }
     }
 }
 
@@ -330,6 +448,7 @@ struct TauriBasePackageInfo {
     version: TauriVersion,
     unity: Option<(u16, u8)>,
     changelog_url: Option<String>,
+    documentation_url: Option<String>,
     vpm_dependencies: Vec<String>,
     legacy_packages: Vec<String>,
     is_yanked: bool,
@@ -345,6 +464,7 @@ impl TauriBasePackageInfo {
             version: package.version().into(),
             unity: package.unity().map(|v| (v.major(), v.minor())),
             changelog_url: package.changelog_url().map(|v| v.to_string()),
+            documentation_url: package.documentation_url().map(|v| v.to_string()),
             vpm_dependencies: package
                 .vpm_dependencies()
                 .keys()
@@ -356,6 +476,39 @@ impl TauriBasePackageInfo {
                 .map(|x| x.to_string())
                 .collect(),
             is_yanked: package.is_yanked(),
+        }
+    }
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+pub struct TauriPackage {
+    #[serde(flatten)]
+    base: TauriBasePackageInfo,
+
+    source: TauriPackageSource,
+}
+
+#[derive(Serialize, specta::Type, Clone)]
+enum TauriPackageSource {
+    LocalUser,
+    Remote { id: String, display_name: String },
+}
+
+impl TauriPackage {
+    pub fn new(package: &PackageInfo) -> Self {
+        let source = if let Some(repo) = package.repo() {
+            let id = repo.id().or(repo.url().map(|x| x.as_str())).unwrap();
+            TauriPackageSource::Remote {
+                id: id.to_string(),
+                display_name: repo.name().unwrap_or(id).to_string(),
+            }
+        } else {
+            TauriPackageSource::LocalUser
+        };
+
+        Self {
+            base: TauriBasePackageInfo::new(package.package_json()),
+            source,
         }
     }
 }
@@ -373,9 +526,36 @@ impl IntoPathBuf for tauri_plugin_dialog::FilePath {
         match self {
             Self::Url(url) => url
                 .to_file_path()
-                .map(PathBuf::from)
                 .map_err(|_| RustError::unrecoverable("internal error: bad file url")),
             Self::Path(p) => Ok(p),
         }
     }
+}
+
+async fn create_dir_all_with_err(path: impl AsRef<Path>) -> Result<(), RustError> {
+    async fn _create_dir_all_with_err(path: &Path) -> Result<(), RustError> {
+        if let Err(e) = tokio::fs::create_dir_all(&path).await {
+            log::error!(gui_toast = false; "failed to create dir: {e} (creating {path})", path = path.display());
+            return if root_dir(path).exists() {
+                // Drive exists, failed to create dir
+                Err(localizable_error!("general:error:failed to create dir", err => path.display()))
+            } else {
+                // Drive does not exist
+                Err(localizable_error!(
+                    "general:error:failed to create dir missing drive"
+                ))
+            };
+        }
+        Ok(())
+    }
+
+    _create_dir_all_with_err(path.as_ref()).await
+}
+
+fn root_dir(mut path: &Path) -> &Path {
+    while let Some(parent) = path.parent() {
+        path = parent;
+    }
+
+    path
 }

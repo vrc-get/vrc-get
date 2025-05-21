@@ -5,11 +5,14 @@
 
     "general:loading...": "Laden...",
     "general:name": "Name",
+    "general:version": "Version",
+    "general:packages": "Pakete",
     "general:source": "Quelle",
 
     "general:button:add": "Hinzufügen",
     "general:button:edit": "Bearbeiten",
     "general:button:cancel": "Abbrechen",
+    "general:button:delete": "Löschen",
     "general:button:close": "Schließen",
     "general:button:ok": "OK",
     "general:button:reset": "Zurücksetzen",
@@ -27,6 +30,9 @@
 
     "search:placeholder": "Suchen...",
 
+    "general:error:failed to create dir": "Verzeichnis konnte nicht angelegt werden (fehlende Berechtigung?): {{err}}",
+    "general:error:failed to create dir missing drive": "Verzeichnis konnte nicht angelegt werden. Möglicherweise wurde das Laufwerk nicht verbunden.",
+
 
 // Setup Page
     "setup:loading": "Lade Einstellungen...",
@@ -43,6 +49,7 @@
     "setup:unity-hub:description": "Zuerst muss Unity Hub installiert werden. Unity Hub ist die bevorzugte Methode um Unity Versionen zu installieren und zu verwalten.<br/>ALCOM wird dir dabei helfen die richtige Unity Editor- und Hub Version zu installieren, wenn diese nicht vorhanden sind.",
     "setup:unity-hub:using this unity hub": "Verwendet folgendes Unity Hub",
     "setup:unity-hub:download unity hub from unity.com": "Download Unity Hub von unity.com",
+    "setup:unity-hub:unity hub link": "https://unity.com/de/download",
     "setup:unity-hub:recheck installation": "Prüfe Installation",
     "setup:unity-hub:detection failed collapse": "Hast du Unity Hub installiert?",
     "setup:unity-hub:detection failed description": "Bitte klicke die \"Prüfe Installation\" Schaltfläche um die Unity Hub Installation zu erkennen. Funktioniert dies nicht, kann ALCOM deine Unity Hub Installation nicht erkennen. Bitte definiere den Unity Hub-Pfad manuell.",
@@ -71,7 +78,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "Ungültiger Hostname",
-    "sidebar:dialog:bad hostname": "Es gibt Probleme mit dem Hostnamen.",
+    "sidebar:dialog:bad hostname": "Es gibt Probleme mit dem Hostnamen",
     "sidebar:dialog:bad hostname description": "Du verwendest nicht-ASCII Zeichen im Hostnamen (PC Name). <br/>Dies könnte zu Problemen mit neueren Unity Versionen führen.<br/>Es wird empfohlen deinen Hostname zu Alphanumerischen Zeichen zu ändern.",
 
     "sidebar:toast:version copied": "Versionsnummer kopiert",
@@ -119,15 +126,21 @@
     "projects:hint:warn multibyte char in project name": "Multibyte Symbole wie z.B. Umlaute könnten Probleme verursachen.",
     "projects:hint:project already exists": "Es existiert bereits ein Projekt mit diesem Namen!",
     "projects:hint:create project ready": "Projektname verfügbar!",
-    "projects:template:type": "Typ:",
     "projects:template": "Vorlage:",
-    "projects:type:custom": "Eigene Vorlagen",
+    "projects:template-category:builtin": "Integriert",
+    "projects:template-category:alcom": "Benutzerdefinierte Vorlagen",
+    "projects:template-category:vcc": "VCC Vorlagen",
+    "projects:template-name:avatars": "VRChat Avatar",
+    "projects:template-name:worlds": "VRChat Welt",
+    "projects:template-name:blank": "Blank",
     "projects:template:unity version": "Unity Version:",
+    "projects:tooltip:template-unavailable": "Base template of the template is not available",
+    "projects:tooltip:template-no-unity": "No unity versions for this template are available",
     "projects:latest": "Neueste",
-    "projects:hint:path of creating project": "Projektpfad: <path>{{path}}</path>",
+    "projects:hint:path of creating project": "Pfad des neuen Projektes: <path>{{path}}</path>.",
     "projects:button:create": "Erstellen",
     "projects:creating project...": "Erstelle Projekt...",
-    "projects:toast:project created": "Projekt erfolgreich erstellt",
+    "projects:toast:project created": "Projekt wurde erfolgreich erstellt.",
 
     "projects:toast:opening unity...": "Öffne Unity...",
     "projects:dialog:unity not found": "Unity wurde nicht gefunden",
@@ -136,10 +149,10 @@
     "projects:dialog:select unity header": "Wähle Unity",
     "projects:dialog:multiple unity found": "Es wurden mehrere Unity Installationen mit dieser Version gefunden.",
     "projects:dialog:keep using this version": "Diese Version weiterhin verwenden",
-    "projects:dialog:unity not found but china found": "Chinesische Unity-Version gefunden.",
+    "projects:dialog:unity not found but china found": "Chinesische Unity-Version gefunden",
     "projects:dialog:unity version of the project not found but china found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die Chinesische Unity Version {{chinaUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
     "projects:dialog:use china version": "Verwende Chinesische Unity-Version",
-    "projects:dialog:unity not found but international found": "Internationale Unity-Version gefunden.",
+    "projects:dialog:unity not found but international found": "Internationale Unity-Version gefunden",
     "projects:dialog:unity version of the project not found but international found": "Die Unity Version {{expectedUnity}}, welche für dieses Projekt verwendet wurde, konnte nicht gefunden werden.<br>Allerdings konnten wir die Internationale Unity Version {{internationalUnity}} finden.<br>Möchtest du diese für das Projekt verwenden?",
     "projects:dialog:use international version": "Verwende Internationale Unity-Version",
     "projects:toast:invalid project unity version": "Wir konnten keine gültige Unity Installation finden",
@@ -151,6 +164,7 @@
     "projects:button:migrate": "Migrieren",
     "projects:tooltip:sdk2 migration hint": "SDK2 Projekte können nicht automatisch migriert werden.<br>Bitte migriere das Projekt manuell zu SDK3.",
     "projects:tooltip:git-vcc not supported": "git-VCC Projekte werden nicht unterstützt",
+    "projects:tooltip:no upm in unity": "VPM wird von Unity 2017 oder älter nicht unterstützt.",
     "projects:dialog:vpm migrate header": "VPM Migration",
     "projects:dialog:vpm migrate description": "Projektmigration mit vrc-get ist experimentell.<br>Bitte erstelle ein Backup vor der Migration.",
     "projects:button:backup and migrate": "Backup und Migrieren",
@@ -177,6 +191,7 @@
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Zurück zu Projekte",
     "projects:menuitem:change launch options": "Startparameter ändern",
+    "projects:menuitem:copy project": "Projekt duplizieren",
     "projects:menuitem:backup": "Backup erstellen",
     "projects:menuitem:forget unity path": "Unity Version zurücksetzen",
     "projects:manage:project location": "Pfad: <path>{{path}}</path>",
@@ -196,7 +211,9 @@
     "projects:manage:button:upgrade all": "Alle Updaten",
     "projects:manage:button:upgrade all stable": "Alle Updaten (Stabil)",
     "projects:manage:button:reinstall all": "Alle Pakete neu installieren",
-    "projects:manage:button:select repositories": "Paketquellen filtern",
+    "projects:manage:button:package filters": "Paketquellen filtern",
+    "projects:manage:menu:repository filter": "Paketquellen",
+    "projects:manage:menu:other filters": "Andere Optionen",
     "projects:manage:package": "Paket",
     "projects:manage:installed": "Installiert",
     "projects:manage:latest": "Neueste",
@@ -266,8 +283,13 @@
     "projects:toast:unity migrated": "Das Projekt wurde zu Unity 2022 migriert",
 
     "projects:manage:dialog:confirm changes description": "Du bist dabei, die folgenden Änderungen vorzunehmen",
+    "projects:manage:dialog:note breaking changes": "Eine Pakete haben inkompatible Änderungen. <br/>Deine Assets, Einstellungen und Tools in diesem Projekt sind hiermit möglicherweise inkompatibel. <br/>Prüfe Kompatibilität und upgrade auf eigene Gefahr.",
+    "projects:manage:dialog:note incompatibility": "Es besteht Inkompatibilität zu anderen Paketen. <br/>Bei Nutzung kommt es möglicherweise zu Fehlermeldungen. <br/>Prüfe die Kompatibilität und upgrade alle Pakete, oder fahre auf eigene Gefahr fort.",
+    "projects:manage:dialog:upgrade package": "Upgrade <b>{{name}}</b> version {{previousVersion}} auf <b>{{version}}</b>",
+    "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} zu <b>{{version}}</b>",
     "projects:manage:dialog:install package": "Installiere <b>{{name}}</b> Version {{version}}",
     "projects:manage:dialog:reinstall package": "Installiere <b>{{name}}</b> version {{version}} erneut",
+    "projects:manage:dialog:breaking changes": "Beinhaltet inkompatible Änderungen",
     "projects:manage:dialog:uninstall package as requested": "Entferne <b>{{name}}</b>",
     "projects:manage:dialog:uninstall package as legacy": "Entferne <b>{{name}}</b>, da es veraltet ist",
     "projects:manage:dialog:uninstall package as unused": "Entferne <b>{{name}}</b>, da es nicht verwendet wird",
@@ -284,9 +306,17 @@
     "projects:manage:button:apply changes": "Änderungen anwenden",
     "projects:manage:button:apply": "Anwenden",
 
+    "projects:manage:dialog:missing dependencies": "Einige Pakete wurden nicht gefunden",
+    "projects:manage:dialog:missing dependencies description": "Die folgenden Pakete wurden zur installation angefordert, konnten aber nicht in der angeforderten Version gefunden werden.<br/>Bitte füge die korrekte Paketquelle hinzu. Möglicherweise kann im <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> gefunden werden.",
+
+    // copy project
+    "projects:dialog:copy project": "Projekt duplizieren: {{name}}",
+    "projects:dialog:copying...": "Dupliziere Projekt...",
+    "projects:toast:successfully copied project": "Projekt <b>{{name}}</b> erfolgreich dupliziert",
+
 
 // Packages Page
-    "packages": "Pakete",
+    "resources": "Resourcen",
     "vpm repositories:source:official": "Offiziell",
     "vpm repositories:source:curated": "Geprüft",
     "vpm repositories:source:local": "Benutzerdefiniert",
@@ -349,6 +379,39 @@
     "user packages:toast:package added": "Paket erfolgreich hinzugefügt.",
     "user packages:toast:package removed": "Paket erfolgreich entfernt.",
 
+    "packages:templates": "Vorlagen",
+    "templates:create template": "Vorlage erstellen",
+    "templates:category": "Kategorie",
+    "templates:id": "Vorlagen ID",
+    "template:no id": "Keine ID",
+    "templates:category:builtin": "Integriert",
+    "templates:tooltip:category:builtin": "Integrierte Vorlagen sind Vorlagen der ALCOM Entwickler.",
+    "templates:category:alcom": "Benutzerdefiniert",
+    "templates:tooltip:category:alcom": "Benutzerdefinierte Vorlagen sind Vorlagen die in ALCOM erstellt wurden.",
+    "templates:category:vcc": "VCC",
+    "templates:tooltip:category:vcc": "VCC Vorlagen sind Benutzerdefinierte Vorlagen die in VCC definiert wurden.",
+    "templates:tooltip:remove template": "Vorlage entfernen",
+    "templates:tooltip:remove builtin template": "Integrierte Vorlagen können nicht entfernt werden.",
+    "templates:tooltip:remove vcc template": "VCC Vorlagen können hier nicht entfernt werden. Entferne sie stattdessen im Vorlagen-Verzeichnis von VCC.",
+    "templates:menuitem:edit template": "Vorlage Bearbeiten",
+    "templates:menuitem:export template": "Vorlage Exportieren",
+    "templates:tooltip:export template with unitypackage": "Vorlagen mit Unity Packages können nicht exportiert werden.",
+    "templates:menuitem:open vcc template": "Öffne Vorlagen-Verzeichnis",
+    "templates:dialog:edit template": "Vorlage Bearbeiten",
+    "templates:dialog:create template": "Vorlage Erstellen",
+    "templates:dialog:general information": "Allgemeine Informationen",
+    "templates:dialog:base template": "Referenz-Vorlage",
+    "templates:dialog:unity version": "Unity Version",
+    "templates:dialog:version": "Version",
+    "templates:dialog:unitypackages": "UnityPackages",
+    "templates:dialog:no unitypackages": "Keine UnityPackages",
+    "templates:dialog:remove template": "Vorlage Löschen",
+    "templates:dialog:confirm remove template": "Bist du sicher dass die Vorlage {{displayName}} gelöscht werden soll?",
+    "templates:button:save template": "Vorlage Speichern",
+    "templates:button:import template": "Vorlage Importieren",
+    "templates:toast:imported n templates_one": "Vorlage importiert",
+    "templates:toast:imported n templates_other": "{{count}} Vorlagen importiert",
+    "template:toast:removed": "Template entfernt",
 
 // Settings Page
     "settings": "Einstellungen",
@@ -375,6 +438,8 @@
     "settings:toast:not unity": "Ungültige Unity-Datei",
     "settings:toast:unity already added": "Ausgewähltes Unity bereits vorhanden",
     "settings:toast:unity added": "Unity erfolgreich hinzugefügt!",
+    "settings:use legacy unity hub loading": "Verwende alte Unity Hub Installationserkennung",
+    "settings:use legacy unity hub loading description": "Die alte Installationserkennung ist möglicherweise zuverlässiger, benötigt aber wesentlich mehr Zeit.<br/>Diese alte Methode wird in Zukunft entfernt, bitte melde Probleme über 'Fehler melden' weiter unten.",
 
     "settings:default unity arguments": "Standard Unity Befehlzeilen Parameter",
     "settings:default unity arguments description": "Diese Befehlzeilen Parameter werden benutzt wenn Unity über ALCOM geöffnet wird.",
@@ -401,6 +466,9 @@
 
     "settings:show prerelease": "Vorschau-Pakete anzeigen",
     "settings:show prerelease description": "Aktiviere Vorschau-Pakete, um diese in der Paketliste anzuzeigen. Sie werden auch bei der Auflösung von Abhängigkeiten verwendet.",
+
+    "settings:gui animation": "Aktiviere GUI-Animationen",
+    "settings:gui animation description": "Der Seitenwechsel wird animiert wenn diese Option aktiviert ist. Dies funktioniert auf Systemen mit älteren Webview Versionen evtl. nicht richtig.",
 
     "settings:appearance": "Darstellung",
     "settings:language": "Sprache",
@@ -454,5 +522,6 @@
     "logs:level": "Kategorie",
     "logs:message": "Nachricht",
     "logs:manage:select logs level": "Filter",
+    "logs:manage:auto scroll": "Auto Scroll aktivieren",
   },
 }

@@ -1,4 +1,4 @@
-use super::{load_collection, UnityProject};
+use super::{UnityProject, load_collection};
 use crate::commands::load_unity;
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
@@ -6,9 +6,9 @@ use serde::Serialize;
 use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::Path;
+use vrc_get_vpm::PackageCollection;
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::version::{UnityVersion, Version, VersionRange};
-use vrc_get_vpm::PackageCollection;
 
 /// Shows information for other program.
 #[derive(Subcommand)]
@@ -53,11 +53,7 @@ impl Project {
 
     pub async fn human_readable(unity: &UnityProject) {
         eprintln!("Project at {}", unity.project_dir().display());
-        if let Some(unity_version) = unity.unity_version() {
-            eprintln!("Using unity {unity_version}");
-        } else {
-            eprintln!("Using unknown unity");
-        }
+        eprintln!("Using unity {}", unity.unity_version());
         eprintln!();
         eprintln!("Locked Packages:");
         for locked in unity.locked_packages() {
@@ -157,7 +153,7 @@ impl Project {
         }
 
         let project = Project {
-            unity_version: unity.unity_version(),
+            unity_version: Some(unity.unity_version()),
             packages: packages.as_slice(),
         };
 

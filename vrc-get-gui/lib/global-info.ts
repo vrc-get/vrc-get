@@ -1,5 +1,3 @@
-import { BailoutToCSRError } from "next/dist/shared/lib/lazy-dynamic/bailout-to-csr";
-
 type OsType = "Linux" | "Darwin" | "WindowsNT";
 type Arch = "x86_64" | "aarch64";
 
@@ -16,6 +14,7 @@ interface GlobalInfo {
 	defaultUnityArguments: string[];
 	vpmHomeFolder: string;
 	checkForUpdates: boolean;
+	shouldInstallDeepLink: boolean;
 }
 
 const fallbackGlobalInfo: Readonly<GlobalInfo> = {
@@ -31,6 +30,7 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	defaultUnityArguments: [],
 	vpmHomeFolder: "",
 	checkForUpdates: false,
+	shouldInstallDeepLink: false,
 };
 
 const globalInfo: Readonly<GlobalInfo> = load();
@@ -54,9 +54,5 @@ function onload(info: Readonly<GlobalInfo>) {
 export default globalInfo;
 
 export function useGlobalInfo(): Readonly<GlobalInfo> {
-	if (typeof window === "undefined") {
-		throw new BailoutToCSRError("useGlobalInfo");
-	}
-
 	return globalInfo;
 }

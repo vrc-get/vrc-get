@@ -1,51 +1,44 @@
+use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-use itertools::Itertools;
-
-use crate::io::ProjectIo;
+use crate::unity_project::package_resolution::MissingDependencies;
 use crate::unity_project::{
-    package_resolution, pending_project_changes, AddPackageErr, LockedDependencyInfo,
-    PendingProjectChanges,
+    LockedDependencyInfo, PendingProjectChanges, package_resolution, pending_project_changes,
 };
-use crate::version::DependencyRange;
+use crate::version::{DependencyRange, PrereleaseAcceptance, VersionRange};
 use crate::{PackageCollection, UnityProject, VersionSelector};
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ResolvePackageErr {
-    DependencyNotFound { dependency_name: Box<str> },
+    DependenciesNotFound {
+        dependencies: Vec<(Box<str>, VersionRange)>,
+    },
 }
 
 impl fmt::Display for ResolvePackageErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ResolvePackageErr::DependencyNotFound { dependency_name } => write!(
-                f,
-                "Package {dependency_name} (maybe dependencies of the package) not found"
-            ),
+            ResolvePackageErr::DependenciesNotFound { dependencies } => {
+                write!(f, "Following dependencies are not found: ")?;
+                let mut first = true;
+                for (dep, range) in dependencies {
+                    if !first {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{dep}@{range}")?;
+                    first = false;
+                }
+                Ok(())
+            }
         }
     }
 }
 
 impl std::error::Error for ResolvePackageErr {}
 
-impl From<AddPackageErr> for ResolvePackageErr {
-    fn from(value: AddPackageErr) -> Self {
-        match value {
-            AddPackageErr::DependencyNotFound { dependency_name } => {
-                Self::DependencyNotFound { dependency_name }
-            }
-            AddPackageErr::UpgradingNonLockedPackage { .. }
-            | AddPackageErr::DowngradingNonLockedPackage { .. }
-            | AddPackageErr::UpgradingWithDowngrade { .. } => {
-                panic!("{value:?} should not be happened")
-            }
-        }
-    }
-}
-
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     /// Returns whether the project should be resolved.
     ///
     /// The project will be resolved if: (not exhaustive)
@@ -118,53 +111,61 @@ impl<IO: ProjectIo> UnityProject<IO> {
     pub async fn resolve_request<'env>(
         &self,
         env: &'env impl PackageCollection,
-    ) -> Result<PendingProjectChanges<'env>, AddPackageErr> {
+    ) -> Result<PendingProjectChanges<'env>, ResolvePackageErr> {
         let mut changes = pending_project_changes::Builder::new();
+        let mut missing_dependencies = MissingDependencies::new();
 
         // first, process locked dependencies
         for dep in self.manifest.all_locked() {
-            let pkg = env
+            if let Some(pkg) = env
                 .find_package_by_name(dep.name(), VersionSelector::specific_version(dep.version()))
-                .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                    dependency_name: dep.name().into(),
-                })?;
-
-            changes.install_already_locked(pkg);
+            {
+                changes.install_already_locked(pkg);
+            } else {
+                missing_dependencies
+                    .add(dep.name(), &VersionRange::specific(dep.version().clone()));
+            }
         }
 
         // then, process packages in dependencies but not in locked.
         // This usually happens with template projects.
-        self.add_just_dependency(env, &mut changes)?;
+        self.add_just_dependency(env, &mut changes, &mut missing_dependencies)?;
 
         // finally, process dependencies of unlocked packages.
-        self.resolve_unlocked(env, &mut changes)?;
+        self.resolve_unlocked(env, &mut changes, &mut missing_dependencies)?;
 
-        Ok(changes.build_resolve(self).await)
+        if missing_dependencies.is_empty() {
+            Ok(changes.build_resolve(self).await)
+        } else {
+            Err(ResolvePackageErr::DependenciesNotFound {
+                dependencies: missing_dependencies.into_vec(),
+            })
+        }
     }
 
     fn add_just_dependency<'env>(
         &self,
         env: &'env impl PackageCollection,
         changes: &mut pending_project_changes::Builder<'env>,
-    ) -> Result<(), AddPackageErr> {
+        missing_dependencies: &mut MissingDependencies,
+    ) -> Result<(), ResolvePackageErr> {
         let mut to_install = vec![];
         let mut install_names = HashSet::new();
 
         for (name, range) in self.manifest.dependencies() {
             if self.manifest.get_locked(name).is_none() {
-                to_install.push(
-                    env.find_package_by_name(
-                        name,
-                        VersionSelector::range_for(
-                            self.unity_version(),
-                            &range.as_range(),
-                            range.as_range().contains_pre(),
-                        ),
-                    )
-                    .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                        dependency_name: name.into(),
-                    })?,
-                );
+                if let Some(pkg) = env.find_package_by_name(
+                    name,
+                    VersionSelector::range_for(
+                        Some(self.unity_version()),
+                        &range.as_range(),
+                        PrereleaseAcceptance::allow_or_minimum(range.as_range().contains_pre()),
+                    ),
+                ) {
+                    to_install.push(pkg);
+                } else {
+                    missing_dependencies.add(name, &range.as_range());
+                }
                 install_names.insert(name);
             }
         }
@@ -180,11 +181,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
             self.manifest.all_locked(),
             self.unlocked_packages.iter(),
             |pkg| self.manifest.get_locked(pkg),
-            self.unity_version(),
+            Some(self.unity_version()),
             env,
             to_install,
             allow_prerelease,
-        )?;
+            missing_dependencies,
+        );
 
         for x in result.new_packages {
             changes.install_to_locked(x);
@@ -207,7 +209,8 @@ impl<IO: ProjectIo> UnityProject<IO> {
         &self,
         env: &'env impl PackageCollection,
         changes: &mut pending_project_changes::Builder<'env>,
-    ) -> Result<(), AddPackageErr> {
+        missing_dependencies: &mut MissingDependencies,
+    ) -> Result<(), ResolvePackageErr> {
         if self.unlocked_packages().is_empty() {
             // if there are no unlocked packages, early return
             return Ok(());
@@ -264,22 +267,36 @@ impl<IO: ProjectIo> UnityProject<IO> {
 
         let unlocked_dependencies = unlocked_dependencies_versions
             .into_iter()
-            .map(|(pkg_name, packages)| {
+            .filter_map(|(pkg_name, packages)| {
                 let ranges = packages
                     .iter()
                     .map(|(range, _)| range)
                     .copied()
                     .collect::<Vec<_>>();
                 let allow_prerelease = packages.iter().any(|(_, pre)| *pre);
-                env.find_package_by_name(
+                if let Some(pkg) = env.find_package_by_name(
                     pkg_name,
-                    VersionSelector::ranges_for(self.unity_version, &ranges, allow_prerelease),
-                )
-                .ok_or_else(|| AddPackageErr::DependencyNotFound {
-                    dependency_name: pkg_name.clone(),
-                })
+                    VersionSelector::ranges_for(
+                        Some(self.unity_version),
+                        &ranges,
+                        PrereleaseAcceptance::allow_or_minimum(allow_prerelease),
+                    ),
+                ) {
+                    Some(pkg)
+                } else {
+                    missing_dependencies.add(
+                        pkg_name,
+                        &ranges
+                            .iter()
+                            .copied()
+                            .cloned()
+                            .reduce(|x, range| x.intersect(&range))
+                            .unwrap(),
+                    );
+                    None
+                }
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Vec<_>>();
 
         let allow_prerelease = unlocked_dependencies
             .iter()
@@ -290,11 +307,12 @@ impl<IO: ProjectIo> UnityProject<IO> {
             virtual_locked_dependencies.values().cloned(),
             self.unlocked_packages.iter(),
             |pkg| virtual_locked_dependencies.get(pkg).cloned(),
-            self.unity_version(),
+            Some(self.unity_version()),
             env,
             unlocked_dependencies,
             allow_prerelease,
-        )?;
+            missing_dependencies,
+        );
 
         for x in result.new_packages {
             changes.install_to_locked(x);

@@ -14,7 +14,7 @@ export function ScrollableCard({
 		<Card className={cn("pl-2.5 pt-2.5 overflow-hidden flex", className)}>
 			<ScrollArea
 				type="always"
-				className={"w-full flex-shrink overflow-hidden vrc-get-scrollable-card"}
+				className={"w-full shrink overflow-hidden vrc-get-scrollable-card"}
 				scrollBarClassName={"bg-background pb-2.5"}
 			>
 				{children}

@@ -1,14 +1,14 @@
 use serde::Serialize;
 use std::borrow::Cow;
 use tauri::http::{Request, Response};
-use tauri::{AppHandle, Manager};
-use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo};
+use tauri::{AppHandle, Manager, UriSchemeContext, Wry};
+use vrc_get_vpm::io::DefaultEnvironmentIo;
 
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::state::GuiConfigState;
 
 pub fn handle_vrc_get_scheme(
-    app: &AppHandle,
+    app: UriSchemeContext<'_, Wry>,
     request: Request<Vec<u8>>,
 ) -> Response<Cow<'static, [u8]>> {
     let url = request.uri();
@@ -20,7 +20,7 @@ pub fn handle_vrc_get_scheme(
             .unwrap();
     };
     match url.path() {
-        "/global-info.js" => global_info_json(app),
+        "/global-info.js" => global_info_json(app.app_handle()),
         _ => Response::builder()
             .status(404)
             .body(b"bad url".into())
@@ -44,6 +44,7 @@ pub struct GlobalInfo<'a> {
     default_unity_arguments: &'a [&'a str],
     vpm_home_folder: &'a std::path::Path,
     check_for_updates: bool,
+    should_install_deep_link: bool,
 }
 
 pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
@@ -81,6 +82,8 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     #[cfg(not(windows))]
     let local_app_data = "";
 
+    let should_install_deep_link = crate::deep_link_support::should_install_deep_link(app);
+
     let global_info = GlobalInfo {
         language: &config.language,
         theme: &config.theme,
@@ -94,6 +97,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
         vpm_home_folder: &vpm_home_folder,
         check_for_updates,
+        should_install_deep_link,
     };
 
     let mut script = b"globalThis.vrcGetGlobalInfo = ".to_vec();

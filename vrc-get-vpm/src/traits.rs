@@ -1,5 +1,5 @@
 use crate::io;
-use crate::io::ProjectIo;
+use crate::io::DefaultProjectIo;
 use crate::utils::MapResultExt;
 use crate::{PackageInfo, VersionSelector};
 use core::iter::Iterator;
@@ -40,7 +40,7 @@ pub trait PackageInstaller {
     /// Installs the specified package.
     fn install_package(
         &self,
-        io: &impl ProjectIo,
+        io: &DefaultProjectIo,
         package: PackageInfo<'_>,
         abort: &AbortCheck,
     ) -> impl Future<Output = io::Result<()>>;

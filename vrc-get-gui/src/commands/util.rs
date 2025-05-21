@@ -1,13 +1,14 @@
 use std::path::Path;
 
-use crate::commands::async_command::{async_command, AsyncCallResult, With};
+use crate::commands::async_command::{AsyncCallResult, With, async_command};
+use crate::commands::environment::settings::TauriPickProjectDefaultPathResult;
 use crate::commands::prelude::*;
 use crate::logging::LogEntry;
 use crate::os::open_that;
 use crate::utils::find_existing_parent_dir_or_home;
 use tauri::{AppHandle, State, Window};
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
-use tokio::fs::create_dir_all;
 use url::Url;
 
 #[derive(serde::Deserialize, specta::Type)]
@@ -28,7 +29,7 @@ pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), R
                 return Err(RustError::unrecoverable("Path does not exist"));
             }
             OpenOptions::CreateFolderIfNotExists => {
-                create_dir_all(&path).await?;
+                super::create_dir_all_with_err(&path).await?;
                 open_that(path)?;
             }
             OpenOptions::OpenParentIfNotExists => {
@@ -72,6 +73,7 @@ pub async fn check_for_update(
     app_handle
         .updater_builder()
         .endpoints(vec![endpoint])
+        .unwrap()
         .build()?
         .check()
         .await
@@ -159,7 +161,7 @@ pub async fn util_install_and_upgrade(
 #[specta::specta]
 pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
     unsafe {
-        use windows::Win32::NetworkManagement::IpHelper::{GetNetworkParams, FIXED_INFO_W2KSP1};
+        use windows::Win32::NetworkManagement::IpHelper::{FIXED_INFO_W2KSP1, GetNetworkParams};
         let mut len = 0;
         // ignore error since expecting ERROR_BUFFER_OVERFLOW
         GetNetworkParams(None, &mut len).ok().ok();
@@ -182,4 +184,29 @@ pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
 #[specta::specta]
 pub async fn util_is_bad_hostname() -> Result<bool, RustError> {
     Ok(false)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn util_pick_directory(
+    window: Window,
+    current: String,
+) -> Result<TauriPickProjectDefaultPathResult, RustError> {
+    let Some(dir) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
+        .set_directory(find_existing_parent_dir_or_home(current.as_ref()))
+        .blocking_pick_folder()
+        .map(|x| x.into_path_buf())
+        .transpose()?
+    else {
+        return Ok(TauriPickProjectDefaultPathResult::NoFolderSelected);
+    };
+
+    let Ok(dir) = dir.into_os_string().into_string() else {
+        return Ok(TauriPickProjectDefaultPathResult::InvalidSelection);
+    };
+
+    Ok(TauriPickProjectDefaultPathResult::Successful { new_path: dir })
 }

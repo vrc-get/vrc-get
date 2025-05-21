@@ -1,5 +1,5 @@
-use crate::version::{UnityVersion, Version, VersionRange};
-use crate::{unity_compatible, PackageManifest};
+use crate::version::{PrereleaseAcceptance, UnityVersion, Version, VersionRange};
+use crate::{PackageManifest, unity_compatible};
 
 #[derive(Clone, Copy)]
 pub struct VersionSelector<'a> {
@@ -16,12 +16,12 @@ enum SelectorInner<'a> {
     Range {
         project_unity: Option<UnityVersion>,
         range: &'a VersionRange,
-        allow_prerelease: bool,
+        allow_prerelease: PrereleaseAcceptance,
     },
     Ranges {
         project_unity: Option<UnityVersion>,
         ranges: &'a [&'a VersionRange],
-        allow_prerelease: bool,
+        allow_prerelease: PrereleaseAcceptance,
     },
 }
 
@@ -44,7 +44,7 @@ impl<'a> VersionSelector<'a> {
     pub fn range_for(
         unity_version: Option<UnityVersion>,
         range: &'a VersionRange,
-        allow_prerelease: bool,
+        allow_prerelease: PrereleaseAcceptance,
     ) -> Self {
         Self {
             inner: SelectorInner::Range {
@@ -58,7 +58,7 @@ impl<'a> VersionSelector<'a> {
     pub fn ranges_for(
         unity_version: Option<UnityVersion>,
         ranges: &'a [&'a VersionRange],
-        allow_prerelease: bool,
+        allow_prerelease: PrereleaseAcceptance,
     ) -> Self {
         Self {
             inner: SelectorInner::Ranges {
@@ -70,7 +70,7 @@ impl<'a> VersionSelector<'a> {
     }
 }
 
-impl<'a> VersionSelector<'a> {
+impl VersionSelector<'_> {
     pub(crate) fn as_specific(&self) -> Option<&Version> {
         match self.inner {
             SelectorInner::Specific(version) => Some(version),
@@ -79,7 +79,7 @@ impl<'a> VersionSelector<'a> {
     }
 }
 
-impl<'a> VersionSelector<'a> {
+impl VersionSelector<'_> {
     pub fn satisfies(&self, package: &PackageManifest) -> bool {
         fn unity_and_yank(package: &PackageManifest, project_unity: Option<UnityVersion>) -> bool {
             if package.is_yanked() {

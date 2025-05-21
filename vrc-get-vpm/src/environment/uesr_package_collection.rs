@@ -1,8 +1,8 @@
 use super::Settings;
-use crate::io::EnvironmentIo;
+use crate::PackageManifest;
+use crate::io::DefaultEnvironmentIo;
 use crate::package_manifest::LooseManifest;
 use crate::utils::try_load_json;
-use crate::PackageManifest;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -11,7 +11,7 @@ pub struct UserPackageCollection {
 }
 
 impl UserPackageCollection {
-    pub async fn load(settings: &Settings, io: &impl EnvironmentIo) -> Self {
+    pub async fn load(settings: &Settings, io: &DefaultEnvironmentIo) -> Self {
         let mut user_packages = UserPackageCollection::new();
         for x in settings.user_package_folders() {
             user_packages.try_add_package(io, x).await;
@@ -29,7 +29,7 @@ impl UserPackageCollection {
         }
     }
 
-    pub(crate) async fn try_add_package(&mut self, io: &impl EnvironmentIo, folder: &Path) {
+    pub(crate) async fn try_add_package(&mut self, io: &DefaultEnvironmentIo, folder: &Path) {
         match try_load_json::<LooseManifest>(io, &folder.join("package.json")).await {
             Ok(Some(LooseManifest(package_json))) => {
                 self.user_packages.push((folder.to_owned(), package_json));

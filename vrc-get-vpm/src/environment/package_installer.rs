@@ -1,9 +1,9 @@
 use crate::environment::REPO_CACHE_FOLDER;
-use crate::io::{EnvironmentIo, ProjectIo};
+use crate::io::{DefaultEnvironmentIo, DefaultProjectIo, IoTrait, TokioFile};
 use crate::repository::LocalCachedRepository;
 use crate::traits::AbortCheck;
 use crate::utils::Sha256AsyncWrite;
-use crate::{io, HttpClient, PackageInfo, PackageManifest};
+use crate::{HttpClient, PackageInfo, PackageManifest, io};
 use futures::prelude::*;
 use hex::FromHex;
 use indexmap::IndexMap;
@@ -13,21 +13,21 @@ use std::path::{Path, PathBuf};
 use std::pin::pin;
 use url::Url;
 
-pub struct PackageInstaller<'a, T: HttpClient, IO: EnvironmentIo> {
-    pub(super) io: &'a IO,
+pub struct PackageInstaller<'a, T: HttpClient> {
+    pub(super) io: &'a DefaultEnvironmentIo,
     pub(super) http: Option<&'a T>,
 }
 
-impl<'a, T: HttpClient, IO: EnvironmentIo> PackageInstaller<'a, T, IO> {
-    pub fn new(io: &'a IO, http: Option<&'a T>) -> Self {
+impl<'a, T: HttpClient> PackageInstaller<'a, T> {
+    pub fn new(io: &'a DefaultEnvironmentIo, http: Option<&'a T>) -> Self {
         Self { io, http }
     }
 }
 
-impl<T: HttpClient, IO: EnvironmentIo> crate::PackageInstaller for PackageInstaller<'_, T, IO> {
+impl<T: HttpClient> crate::PackageInstaller for PackageInstaller<'_, T> {
     async fn install_package(
         &self,
-        io: &impl ProjectIo,
+        io: &DefaultProjectIo,
         package: PackageInfo<'_>,
         abort: &AbortCheck,
     ) -> io::Result<()> {
@@ -77,12 +77,12 @@ impl<T: HttpClient, IO: EnvironmentIo> crate::PackageInstaller for PackageInstal
     }
 }
 
-async fn get_package<T: HttpClient, IO: EnvironmentIo>(
-    io: &IO,
+async fn get_package<T: HttpClient>(
+    io: &DefaultEnvironmentIo,
     http: Option<&T>,
     repository: &LocalCachedRepository,
     package: &PackageManifest,
-) -> io::Result<IO::FileStream> {
+) -> io::Result<TokioFile> {
     let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name(), package.version());
     let zip_path = PathBuf::from(format!(
         "{}/{}/{}",
@@ -156,12 +156,12 @@ async fn get_package<T: HttpClient, IO: EnvironmentIo>(
 /// * `sha256`: sha256 hash if specified
 ///
 /// returns: Option<File> readable zip file or None
-async fn try_load_package_cache<IO: EnvironmentIo>(
-    io: &IO,
+async fn try_load_package_cache(
+    io: &DefaultEnvironmentIo,
     zip_path: &Path,
     sha_path: &Path,
     sha256: Option<&str>,
-) -> Option<IO::FileStream> {
+) -> Option<TokioFile> {
     let mut cache_file = io.open(zip_path).await.ok()?;
 
     let mut buf = [0u8; 256 / 4];
@@ -206,15 +206,15 @@ async fn try_load_package_cache<IO: EnvironmentIo>(
 /// * `url`: url to zip file
 ///
 /// returns: Result<File, Error> the readable zip file.
-async fn download_package_zip<IO: EnvironmentIo>(
+async fn download_package_zip(
     http: Option<&impl HttpClient>,
-    io: &IO,
+    io: &DefaultEnvironmentIo,
     headers: &IndexMap<&str, &str>,
     zip_path: &Path,
     sha_path: &Path,
     zip_file_name: &str,
     url: &Url,
-) -> io::Result<(IO::FileStream, [u8; 256 / 8])> {
+) -> io::Result<(TokioFile, [u8; 256 / 8])> {
     let Some(http) = http else {
         return Err(io::Error::new(io::ErrorKind::NotFound, "Offline mode"));
     };

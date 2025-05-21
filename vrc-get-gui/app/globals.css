@@ -1,48 +1,156 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@layer base {
-	:root {
-		--background: 0 0% 100%;
-		--background-start: 190 7.89% 85.1%;
-		--background-end: 0, 0%, 100%;
-		--foreground: 240 10% 20%;
-		--card: 0 0% 100%;
-		--card-foreground: 240 10% 35%;
-		--popover: 0 0% 100%;
-		--popover-foreground: 240 10% 20%;
-		--primary: 240 5.9% 20%;
-		--primary-foreground: 0 0% 98%;
-		--secondary: 240 4.8% 95.9%;
-		--secondary-foreground: 240 5.9% 10%;
-		--muted: 240 4.8% 95.9%;
-		--muted-foreground: 240 3.8% 46.1%;
-		--accent: 240 4.8% 95.9%;
-		--accent-foreground: 240 5.9% 30%;
-		--info: 207 90% 54%;
-		--info-foreground: 210 40% 98%;
-		--success: 122 39% 49%;
-		--success-foreground: 210 40% 98%;
-		--warning: 52.15, 100%, 46.47%;
-		--warning-foreground: 210 40% 98%;
-		--destructive: 0 84.2% 60.2%;
-		--destructive-foreground: 0 0% 98%;
-		--border: 240 5.9% 90%;
-		--input: 240 5.9% 90%;
-		--ring: 240 5.9% 10%;
-		--radius: 0.75rem;
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+	--background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
+	--background-image-gradient-conic: conic-gradient(
+		from 180deg at 50% 50%,
+		var(--tw-gradient-stops)
+	);
+
+	--font-sans: system-ui;
+	--font-path: system-ui;
+	--font-mono: consolas, monospace;
+
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+
+	--color-info: var(--info);
+	--color-info-foreground: var(--info-foreground);
+
+	--color-success: var(--success);
+	--color-success-foreground: var(--success-foreground);
+
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
+
+	--radius-lg: var(--radius);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-sm: calc(var(--radius) - 4px);
+
+	--animate-accordion-down: accordion-down 0.2s ease-out;
+	--animate-accordion-up: accordion-up 0.2s ease-out;
+
+	@keyframes accordion-down {
+		from {
+			height: 0;
+		}
+		to {
+			height: var(--radix-accordion-content-height);
+		}
 	}
+	@keyframes accordion-up {
+		from {
+			height: var(--radix-accordion-content-height);
+		}
+		to {
+			height: 0;
+		}
+	}
+}
 
-	.dark {
-		--bg-color: 240 10% 13%;
-		--fg-color: 240 10% 85%;
-		--secondary-bg: 240 3.7% 19%;
-		--primary-fg: 240 5.9% 15%;
+:root {
+	--background: hsl(0 0% 100%);
+	--background-start: hsl(190 7.89% 85.1%);
+	--background-end: hsl(0, 0%, 100%);
+	--foreground: hsl(240 10% 20%);
+	--card: hsl(0 0% 100%);
+	--card-foreground: hsl(240 10% 35%);
+	--popover: hsl(0 0% 100%);
+	--popover-foreground: hsl(240 10% 20%);
+	--primary: hsl(240 5.9% 20%);
+	--primary-foreground: hsl(0 0% 98%);
+	--secondary: hsl(240 4.8% 95.9%);
+	--secondary-foreground: hsl(240 5.9% 10%);
+	--muted: hsl(240 4.8% 95.9%);
+	--muted-foreground: hsl(240 3.8% 46.1%);
+	--accent: hsl(240 4.8% 95.9%);
+	--accent-foreground: hsl(240 5.9% 30%);
+	--info: hsl(207 90% 54%);
+	--info-foreground: hsl(210 40% 98%);
+	--success: hsl(122 39% 49%);
+	--success-foreground: hsl(210 40% 98%);
+	--warning: hsl(52.15, 100%, 46.47%);
+	--warning-foreground: hsl(240 10% 13%);
+	--destructive: hsl(0 84.2% 60.2%);
+	--destructive-foreground: hsl(0 0% 98%);
+	--border: hsl(240 5.9% 90%);
+	--input: hsl(240 5.9% 90%);
+	--ring: hsl(240 5.9% 10%);
+	--radius: 0.75rem;
+}
+
+.dark {
+	--bg-color: hsl(240 10% 13%);
+	--fg-color: hsl(240 10% 85%);
+	--secondary-bg: hsl(240 3.7% 19%);
+	--primary-fg: hsl(240 5.9% 15%);
+
+	--background: var(--bg-color);
+	--background-start: hsl(0 0% 3%);
+	--background-end: hsl(10 8% 15%);
+	--foreground: var(--fg-color);
+	--card: var(--bg-color);
+	--card-foreground: var(--fg-color);
+	--popover: var(--bg-color);
+	--popover-foreground: var(--fg-color);
+	--primary: var(--fg-color);
+	--primary-foreground: var(--primary-fg);
+	--secondary: var(--secondary-bg);
+	--secondary-foreground: var(--fg-color);
+	--muted: var(--secondary-bg);
+	--muted-foreground: 240 5% 74%;
+	--accent: var(--secondary-bg);
+	--accent-foreground: var(--fg-color);
+	--info: hsl(207 90% 54%);
+	--info-foreground: hsl(210 40% 90%);
+	--success: hsl(122 39% 49%);
+	--success-foreground: hsl(210 40% 90%);
+	--warning: hsl(52.15, 100%, 46.47%);
+	--warning-foreground: hsl(240 10% 13%);
+	--destructive: hsl(0 84.2% 60.2%);
+	--destructive-foreground: var(--fg-color);
+	--border: var(--secondary-bg);
+	--input: var(--secondary-bg);
+	--ring: hsl(240 4.9% 83.9%);
+}
+
+@media (prefers-color-scheme: dark) {
+	.system {
+		--bg-color: hsl(240 10% 13%);
+		--fg-color: hsl(240 10% 85%);
+		--secondary-bg: hsl(240 3.7% 19%);
+		--primary-fg: hsl(240 5.9% 15%);
 
 		--background: var(--bg-color);
-		--background-start: 0 0% 3%;
-		--background-end: 10 8% 15%;
+		--background-start: hsl(0 0% 3%);
+		--background-end: hsl(10 8% 15%);
 		--foreground: var(--fg-color);
 		--card: var(--bg-color);
 		--card-foreground: var(--fg-color);
@@ -56,54 +164,49 @@
 		--muted-foreground: 240 5% 74%;
 		--accent: var(--secondary-bg);
 		--accent-foreground: var(--fg-color);
-		--info: 207 90% 54%;
-		--info-foreground: 210 40% 90%;
-		--success: 122 39% 49%;
-		--success-foreground: 210 40% 90%;
-		--warning: 52.15, 100%, 46.47%;
-		--warning-foreground: 210 40% 90%;
-		--destructive: 0 84.2% 60.2%;
+		--info: hsl(207 90% 54%);
+		--info-foreground: hsl(210 40% 90%);
+		--success: hsl(122 39% 49%);
+		--success-foreground: hsl(210 40% 90%);
+		--warning: hsl(52.15, 100%, 46.47%);
+		--warning-foreground: hsl(240 10% 13%);
+		--destructive: hsl(0 84.2% 60.2%);
 		--destructive-foreground: var(--fg-color);
 		--border: var(--secondary-bg);
 		--input: var(--secondary-bg);
-		--ring: 240 4.9% 83.9%;
+		--ring: hsl(240 4.9% 83.9%);
+	}
+}
+
+:root {
+	--toastify-font-family: var(--font-sans);
+	--toastify-color-light: var(--background);
+	/*--toastify-color-info: #3498db;*/
+	--toastify-color-success: var(--success);
+	/*--toastify-color-warning: #f1c40f;*/
+	--toastify-color-error: var(--destructive);
+	/*--toastify-color-transparent: rgba(255, 255, 255, 0.7);*/
+
+	--toastify-icon-color-info: var(--toastify-color-info);
+	--toastify-icon-color-success: var(--toastify-color-success);
+	--toastify-icon-color-warning: var(--toastify-color-warning);
+	--toastify-icon-color-error: var(--toastify-color-error);
+
+	/* size and fonts are not customized */
+
+	--toastify-text-color-light: var(--foreground);
+
+	--toastify-color-progress-info: var(--toastify-color-info);
+	--toastify-color-progress-success: var(--toastify-color-success);
+	--toastify-color-progress-warning: var(--toastify-color-warning);
+	--toastify-color-progress-error: var(--toastify-color-error);
+
+	.Toastify__toast {
+		box-shadow: 0 4px 12px hsl(var(--primary) / 0.05);
 	}
 
-	@media (prefers-color-scheme: dark) {
-		.system {
-			--bg-color: 240 10% 13%;
-			--fg-color: 240 10% 85%;
-			--secondary-bg: 240 3.7% 19%;
-			--primary-fg: 240 5.9% 15%;
-
-			--background: var(--bg-color);
-			--background-start: 0 0% 3%;
-			--background-end: 10 8% 15%;
-			--foreground: var(--fg-color);
-			--card: var(--bg-color);
-			--card-foreground: var(--fg-color);
-			--popover: var(--bg-color);
-			--popover-foreground: var(--fg-color);
-			--primary: var(--fg-color);
-			--primary-foreground: var(--primary-fg);
-			--secondary: var(--secondary-bg);
-			--secondary-foreground: var(--fg-color);
-			--muted: var(--secondary-bg);
-			--muted-foreground: 240 5% 74%;
-			--accent: var(--secondary-bg);
-			--accent-foreground: var(--fg-color);
-			--info: 207 90% 54%;
-			--info-foreground: 210 40% 90%;
-			--success: 122 39% 49%;
-			--success-foreground: 210 40% 90%;
-			--warning: 52.15, 100%, 46.47%;
-			--warning-foreground: 210 40% 90%;
-			--destructive: 0 84.2% 60.2%;
-			--destructive-foreground: var(--fg-color);
-			--border: var(--secondary-bg);
-			--input: var(--secondary-bg);
-			--ring: 240 4.9% 83.9%;
-		}
+	.Toastify__close-button--light {
+		color: hsl(var(--foreground));
 	}
 }
 
@@ -114,19 +217,8 @@
 
 	body {
 		@apply bg-background text-foreground;
-		color: hsl(var(--foreground));
-		background: linear-gradient(
-				to bottom,
-				transparent,
-				hsl(var(--background-end))
-			)
-			hsl(var(--background-start));
-	}
-}
-
-@layer utilities {
-	.text-balance {
-		text-wrap: balance;
+		background: linear-gradient(to bottom, transparent, var(--background-end))
+			var(--background-start);
 	}
 }
 
@@ -164,40 +256,14 @@ code {
 	@apply font-mono;
 }
 
+html {
+	overscroll-behavior: none;
+}
+
 /*
  this is a ad-hoc way to apply toastify variables.
  We could not find way to correctly order the toastify css and this css so put in body to get higher specificity
  */
-body {
-	--toastify-color-light: hsl(var(--background));
-	/*--toastify-color-info: #3498db;*/
-	--toastify-color-success: hsl(var(--success));
-	/*--toastify-color-warning: #f1c40f;*/
-	--toastify-color-error: hsl(var(--destructive));
-	/*--toastify-color-transparent: rgba(255, 255, 255, 0.7);*/
-
-	--toastify-icon-color-info: var(--toastify-color-info);
-	--toastify-icon-color-success: var(--toastify-color-success);
-	--toastify-icon-color-warning: var(--toastify-color-warning);
-	--toastify-icon-color-error: var(--toastify-color-error);
-
-	/* size and fonts are not customized */
-
-	--toastify-text-color-light: hsl(var(--foreground));
-
-	--toastify-color-progress-info: var(--toastify-color-info);
-	--toastify-color-progress-success: var(--toastify-color-success);
-	--toastify-color-progress-warning: var(--toastify-color-warning);
-	--toastify-color-progress-error: var(--toastify-color-error);
-
-	.Toastify__toast {
-		box-shadow: 0 4px 12px hsl(var(--primary) / 0.05);
-	}
-
-	.Toastify__close-button--light {
-		color: hsl(var(--foreground));
-	}
-}
 
 /* Radix ui sets display:block for each scroll viewport element but it seem it make worse */
 [data-radix-scroll-area-viewport] > div {
@@ -218,4 +284,49 @@ body {
 .vrc-get-sidebar-hostname-warning-container {
 	contain-intrinsic-size: 0 7em;
 	contain: size;
+}
+
+.fade-in {
+	animation: fadeInUp 0.1s ease-in-out;
+}
+
+.slide-left {
+	animation: slideLeft 0.1s ease-in-out;
+}
+
+.slide-right {
+	animation: slideRight 0.1s ease-in-out;
+}
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes slideLeft {
+	from {
+		opacity: 0;
+		transform: translateX(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slideRight {
+	from {
+		opacity: 0;
+		transform: translateX(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
 }

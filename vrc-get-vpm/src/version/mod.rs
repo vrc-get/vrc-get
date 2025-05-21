@@ -6,10 +6,12 @@
 //! [semver.net]: https://github.com/adamreeve/semver.net
 
 pub use range::DependencyRange;
+pub use range::PrereleaseAcceptance;
 pub use range::VersionRange;
 use std::fmt::Debug;
 pub use unity_version::ReleaseType;
 pub use unity_version::UnityVersion;
+pub use version::StrictEqVersion;
 pub use version::Version;
 
 macro_rules! from_str_impl {

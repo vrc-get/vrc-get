@@ -1,10 +1,8 @@
 use crate::io;
-use crate::io::{
-    EnvironmentIo, FileStream, FileSystemProjectIo, FileType, IoTrait, Metadata, ProjectIo,
-};
+use crate::io::{FileStream, FileType, IoTrait, Metadata};
 use futures::{Stream, TryFutureExt};
 use log::debug;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -38,7 +36,7 @@ impl DefaultEnvironmentIo {
 
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
-        return dirs_sys::known_folder_local_app_data().expect("LocalAppData not found");
+        dirs_sys::known_folder_local_app_data().expect("LocalAppData not found")
     }
 
     #[cfg(not(windows))]
@@ -58,50 +56,32 @@ impl DefaultEnvironmentIo {
 
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
-}
 
-impl EnvironmentIo for DefaultEnvironmentIo {
     #[inline]
-    fn resolve(&self, path: &Path) -> PathBuf {
+    pub fn resolve(&self, path: &Path) -> PathBuf {
         self.root.join(path)
     }
 
-    #[cfg(feature = "vrc-get-litedb")]
-    async fn connect_lite_db(&self) -> io::Result<crate::environment::VccDatabaseConnection> {
-        let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
-        let path = path.to_str().expect("path is not utf8").to_string();
-
-        #[cfg(windows)]
-        let lock = {
-            use sha1::Digest;
-
-            let path_lower = path.to_lowercase();
-            let mut sha1 = sha1::Sha1::new();
-            sha1.update(path_lower.as_bytes());
-            let hash = &sha1.finalize()[..];
-            let hash_hex = hex::encode(hash);
-            // this lock name is same as shared engine in litedb
-            let name = format!("Global\\{hash_hex}.Mutex");
-
-            Box::new(win_mutex::MutexGuard::new(name).await?)
-        };
-        #[cfg(not(windows))]
-        let lock = Box::new(());
-
-        let db_connection = vrc_get_litedb::ConnectionString::new(&path).connect()?;
-
-        Ok(crate::environment::VccDatabaseConnection::new(
-            db_connection,
-            lock,
-        ))
+    #[allow(dead_code)]
+    pub fn new_project_io(&self, path: &Path) -> DefaultProjectIo {
+        DefaultProjectIo::new(path.into())
     }
 
-    #[cfg(feature = "experimental-project-management")]
-    type ProjectIo = DefaultProjectIo;
-
-    #[cfg(feature = "experimental-project-management")]
-    fn new_project_io(&self, path: &Path) -> Self::ProjectIo {
-        DefaultProjectIo::new(path.into())
+    #[cfg(feature = "vrc-get-litedb")]
+    #[allow(unused_variables)]
+    pub async fn new_mutex(&self, lock_name: &OsStr) -> io::Result<impl Send + Sync + 'static> {
+        #[cfg(not(windows))]
+        {
+            static SHARED_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+            Ok(SHARED_LOCK.lock().await)
+        }
+        #[cfg(windows)]
+        {
+            Ok(vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
+                .await?
+                .lock_owned()
+                .await?)
+        }
     }
 }
 
@@ -166,13 +146,9 @@ impl DefaultProjectIo {
             }
         }
     }
-}
 
-impl ProjectIo for DefaultProjectIo {}
-
-impl FileSystemProjectIo for DefaultProjectIo {
     #[inline]
-    fn location(&self) -> &Path {
+    pub fn location(&self) -> &Path {
         &self.root
     }
 }
@@ -269,6 +245,8 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
 
 impl FileStream for tokio_util::compat::Compat<fs::File> {}
 
+pub type File = tokio_util::compat::Compat<fs::File>;
+
 pub struct ReadDir {
     inner: fs::ReadDir,
 }
@@ -313,75 +291,5 @@ impl super::DirEntry for DirEntry {
 
     async fn metadata(&self) -> io::Result<Metadata> {
         self.inner.metadata().await.map(Into::into)
-    }
-}
-
-#[cfg(windows)]
-mod win_mutex {
-    use std::ffi::OsString;
-    use std::io;
-    use windows::Win32::Foundation::*;
-    use windows::Win32::System::Threading::*;
-
-    pub(super) struct MutexGuard {
-        wait_sender: std::sync::mpsc::Sender<()>,
-    }
-
-    impl MutexGuard {
-        pub async fn new(name: impl Into<OsString>) -> io::Result<Self> {
-            let name = name.into();
-            let (result_sender, mut result_receiver) =
-                tokio::sync::mpsc::channel::<io::Result<()>>(1);
-            let (wait_sender, wait_receiver) = std::sync::mpsc::channel::<()>();
-
-            // create thread for mutex creation and free
-            #[allow(unsafe_code)]
-            std::thread::spawn(move || {
-                // https://github.com/dotnet/runtime/blob/bcca12c1b14d25b3368106301748cb35c0894356/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.Constants.cs#L12
-                const MAXIMUM_ALLOWED: u32 = 0x02000000;
-                const ACCESS_RIGHTS: u32 =
-                    MAXIMUM_ALLOWED | PROCESS_SYNCHRONIZE.0 | MUTEX_MODIFY_STATE.0;
-
-                let name = windows::core::HSTRING::from(&name);
-
-                let handle = match unsafe { CreateMutexExW(None, &name, 0, ACCESS_RIGHTS) } {
-                    Ok(handle) => handle,
-                    Err(e) => {
-                        // failed to create
-                        result_sender.blocking_send(Err(e.into())).unwrap();
-                        return;
-                    }
-                };
-
-                unsafe {
-                    let r = WaitForSingleObject(handle, INFINITE);
-                    if r == WAIT_FAILED {
-                        result_sender
-                            .blocking_send(Err(io::Error::last_os_error()))
-                            .unwrap();
-                    }
-                }
-
-                result_sender.blocking_send(Ok(())).unwrap();
-
-                wait_receiver.recv().ok();
-
-                unsafe {
-                    ReleaseMutex(handle).ok();
-                    CloseHandle(handle).ok();
-                }
-            });
-
-            result_receiver.recv().await.unwrap()?;
-
-            Ok(Self { wait_sender })
-        }
-    }
-
-    impl Drop for MutexGuard {
-        fn drop(&mut self) {
-            println!("unlock");
-            self.wait_sender.send(()).unwrap();
-        }
     }
 }

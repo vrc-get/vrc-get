@@ -33,6 +33,7 @@ jobs:
           submodules: recursive
       - uses: anatawa12/something-releaser@v3
       - uses: snow-actions/git-config-user@v1.0.0
+      - run: rustup update stable
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -146,11 +147,6 @@ jobs:
         with:
           ref: 'releasing'
           submodules: recursive
-      - uses: taiki-e/install-action@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          tool: cargo-about
 
       - run: npm run build
         working-directory: vrc-get-gui
@@ -171,7 +167,7 @@ jobs:
           # note: when you changed paths for tauri updater (which are files with .sig),
           # remember keep in sync with build-updater-json
           - triple: x86_64-unknown-linux-gnu
-            on: ubuntu-latest
+            on: ubuntu-22.04
             setup: |
               sudo apt update && sudo apt install -y lld
               ld.lld --version
@@ -224,6 +220,7 @@ jobs:
         with:
           ref: 'releasing'
           submodules: recursive
+      - run: rustup update stable
       - name: Install cross-compilation tools
         uses: taiki-e/setup-cross-toolchain-action@v1
         if: ${{ matrix.triple != 'universal-apple-darwin' }}
@@ -233,11 +230,6 @@ jobs:
         with:
           cache-targets: false # for release build, do not cache build artifacts
           key: release-gui # there are no elements about build result, so it's ok to share between all builds
-      - uses: taiki-e/install-action@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          tool: cargo-about
 
       - name: Setup
         run: ${{ matrix.setup }}
@@ -344,7 +336,7 @@ jobs:
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -440,7 +432,7 @@ jobs:
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}

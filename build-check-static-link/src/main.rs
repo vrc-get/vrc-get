@@ -22,11 +22,7 @@ fn main() {
         };
     }
 
-    if success {
-        exit(0)
-    } else {
-        exit(1)
-    }
+    if success { exit(0) } else { exit(1) }
 }
 
 fn process_mach_64<E: Endian>(binary: &[u8]) -> bool {
@@ -75,8 +71,8 @@ fn process_mach_64<E: Endian>(binary: &[u8]) -> bool {
 }
 
 fn process_pe_64(binary: &[u8]) -> bool {
-    use object::read::pe::*;
     use object::LittleEndian as LE;
+    use object::read::pe::*;
 
     let mut success = true;
     let parsed = PeFile64::parse(binary).expect("failed to parse binary");

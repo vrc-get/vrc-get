@@ -27,6 +27,7 @@ macro_rules! initialize_from_package_json_like {
             legacy_packages: $source.legacy_packages,
             headers: $source.headers,
             changelog_url: $source.changelog_url,
+            documentation_url: $source.documentation_url,
             vrc_get: VrcGetMeta {
                 yanked: $source.vrc_get.yanked,
                 aliases: $source.vrc_get.aliases,
@@ -84,6 +85,8 @@ macro_rules! package_json_struct {
 
             $(#[$optional])?
             $optional_vis changelog_url: Option<Url>,
+            $(#[$optional])?
+            $optional_vis documentation_url: Option<Url>,
 
             $(#[$optional])?
             #[serde(rename = "vrc-get")]
@@ -155,6 +158,9 @@ impl PackageManifest {
     pub fn changelog_url(&self) -> Option<&Url> {
         self.changelog_url.as_ref()
     }
+    pub fn documentation_url(&self) -> Option<&Url> {
+        self.documentation_url.as_ref()
+    }
     pub fn unity(&self) -> Option<&PartialUnityVersion> {
         self.unity.as_ref()
     }
@@ -184,6 +190,7 @@ impl PackageManifest {
             vrc_get: VrcGetMeta::default(),
             zip_sha_256: None,
             changelog_url: None,
+            documentation_url: None,
         }
     }
 

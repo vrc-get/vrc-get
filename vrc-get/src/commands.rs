@@ -4,8 +4,8 @@ use itertools::Itertools;
 
 use futures::future::join_all;
 use log::warn;
-use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use reqwest::Url;
+use reqwest::header::{HeaderName, HeaderValue, InvalidHeaderName, InvalidHeaderValue};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::env;
@@ -18,8 +18,8 @@ use std::process::exit;
 use std::str::FromStr;
 use tokio::fs::read_to_string;
 use vrc_get_vpm::environment::{
-    add_remote_repo, cleanup_repos_folder, clear_package_cache, AddRepositoryErr,
-    AddUserPackageResult, PackageCollection, PackageInstaller, Settings, UserPackageCollection,
+    AddRepositoryErr, AddUserPackageResult, PackageCollection, PackageInstaller, Settings,
+    UserPackageCollection, add_remote_repo, cleanup_repos_folder, clear_package_cache,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, IoTrait};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
@@ -28,10 +28,9 @@ use vrc_get_vpm::unity_project::pending_project_changes::{PackageChange, RemoveR
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::Version;
 use vrc_get_vpm::{
-    PackageCollection as _, PackageInfo, PackageManifest, UserRepoSetting, VersionSelector,
+    PackageCollection as _, PackageInfo, PackageManifest, UnityProject, UserRepoSetting,
+    VersionSelector,
 };
-
-type UnityProject = vrc_get_vpm::UnityProject<DefaultProjectIo>;
 
 macro_rules! multi_command {
     ($class: ident is $($args:tt)*) => {
@@ -139,7 +138,8 @@ fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
 async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &Path) {
     async fn inner(io: &DefaultEnvironmentIo, project_dir: &Path) -> Result<(), std::io::Error> {
         let mut connection = vrc_get_vpm::environment::VccDatabaseConnection::connect(io).await?;
-        connection.update_project_last_modified(&absolute_path(project_dir))?;
+        let project_dir = absolute_path(project_dir);
+        connection.update_project_last_modified(&project_dir.to_string_lossy())?;
         connection.save(io).await?;
         Ok(())
     }
@@ -484,7 +484,7 @@ impl Install {
         let mut unity = load_unity(self.project).await;
 
         let version_selector = match self.version {
-            None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+            None => VersionSelector::latest_for(Some(unity.unity_version()), self.prerelease),
             Some(ref version) => VersionSelector::specific_version(version),
         };
         let packages = if self.name {
@@ -718,7 +718,7 @@ impl Outdated {
 
         let mut outdated_packages = HashMap::new();
 
-        let selector = VersionSelector::latest_for(unity.unity_version(), self.prerelease);
+        let selector = VersionSelector::latest_for(Some(unity.unity_version()), self.prerelease);
 
         for locked in unity.locked_packages() {
             match collection.find_package_by_name(locked.name(), selector) {
@@ -812,7 +812,7 @@ impl Upgrade {
 
         let updates = if let Some(name) = &self.name {
             let version_selector = match self.version {
-                None => VersionSelector::latest_for(unity.unity_version(), self.prerelease),
+                None => VersionSelector::latest_for(Some(unity.unity_version()), self.prerelease),
                 Some(ref version) => VersionSelector::specific_version(version),
             };
             let package = get_package(&collection, name, version_selector);
@@ -820,7 +820,7 @@ impl Upgrade {
             vec![package]
         } else {
             let version_selector =
-                VersionSelector::latest_for(unity.unity_version(), self.prerelease);
+                VersionSelector::latest_for(Some(unity.unity_version()), self.prerelease);
 
             unity
                 .locked_packages()
@@ -1562,7 +1562,7 @@ impl Completion {
             exit_with!("shell not specified")
         };
         let mut bin_name = args().next().expect("bin name");
-        if let Some(slash) = bin_name.rfind(&['/', '\\']) {
+        if let Some(slash) = bin_name.rfind(['/', '\\']) {
             // https://github.com/rust-lang/rust-clippy/issues/13070
             #[allow(clippy::assigning_clones)]
             {

@@ -17,6 +17,21 @@ impl DependencyRange {
         })
     }
 
+    pub fn from_version_range(version_range: VersionRange) -> DependencyRange {
+        let range = DependencyRange(version_range);
+        if let Some(full_version) = range.as_single_version() {
+            // If the version is like '1.0.0', it will mean '>= 1.0.0' with DependencyRange,
+            // However, we should treat '1.0.0' as '=1.0.0' so replace with that
+            Self(VersionRange {
+                comparators: vec![ComparatorSet(vec![Comparator::Exact(
+                    PartialVersion::from(full_version),
+                )])],
+            })
+        } else {
+            range
+        }
+    }
+
     pub fn as_single_version(&self) -> Option<Version> {
         let [ComparatorSet(the_set)] = self.0.comparators.as_slice() else {
             return None;
@@ -35,7 +50,7 @@ impl DependencyRange {
         if let Some(single) = self.as_single_version() {
             &single <= version
         } else {
-            self.0.match_pre(version, true)
+            self.0.match_pre(version, PrereleaseAcceptance::Allow)
         }
     }
 
@@ -57,10 +72,35 @@ pub struct VersionRange {
     comparators: Vec<ComparatorSet>,
 }
 
+#[derive(Clone, Copy)]
+pub enum PrereleaseAcceptance {
+    Deny,
+    Allow,
+    Minimum,
+}
+
+impl PrereleaseAcceptance {
+    pub(crate) fn allow_or_minimum(allow: bool) -> PrereleaseAcceptance {
+        if allow {
+            PrereleaseAcceptance::Allow
+        } else {
+            PrereleaseAcceptance::Minimum
+        }
+    }
+}
+
 impl VersionRange {
     pub fn same_or_later(version: Version) -> Self {
         Self {
             comparators: vec![ComparatorSet(vec![Comparator::GreaterThanOrEqual(
+                PartialVersion::from(version),
+            )])],
+        }
+    }
+
+    pub fn specific(version: Version) -> VersionRange {
+        Self {
+            comparators: vec![ComparatorSet(vec![Comparator::Exact(
                 PartialVersion::from(version),
             )])],
         }
@@ -71,13 +111,33 @@ impl VersionRange {
     }
 
     pub fn matches(&self, version: &Version) -> bool {
-        self.match_pre(version, false)
+        self.match_pre(version, PrereleaseAcceptance::Minimum)
     }
 
-    pub fn match_pre(&self, version: &Version, allow_prerelease: bool) -> bool {
+    pub fn match_pre(&self, version: &Version, allow_prerelease: PrereleaseAcceptance) -> bool {
         self.comparators
             .iter()
             .any(|x| x.matches(version, allow_prerelease))
+    }
+
+    pub fn intersect(&self, other: &VersionRange) -> VersionRange {
+        VersionRange {
+            // TODO: remove contradictory
+            comparators: (self.comparators.iter())
+                .flat_map(|self_cmp| {
+                    other.comparators.iter().map(|other_cmp| {
+                        ComparatorSet(
+                            self_cmp
+                                .0
+                                .iter()
+                                .chain(other_cmp.0.iter())
+                                .cloned()
+                                .collect(),
+                        )
+                    })
+                })
+                .collect(),
+        }
     }
 }
 
@@ -146,7 +206,7 @@ impl FromParsingBuf for ComparatorSet {
 }
 
 impl ComparatorSet {
-    fn matches(&self, version: &Version, allow_prerelease: bool) -> bool {
+    fn matches(&self, version: &Version, allow_prerelease: PrereleaseAcceptance) -> bool {
         self.0.iter().all(|x| x.matches(version, allow_prerelease))
     }
 
@@ -190,46 +250,41 @@ impl Display for Comparator {
 }
 
 impl Comparator {
-    fn matches(&self, version: &Version, allow_prerelease: bool) -> bool {
+    fn matches(&self, version: &Version, allow_prerelease: PrereleaseAcceptance) -> bool {
         if !self.matches_internal(version) {
             return false;
         }
 
-        macro_rules! allow {
-            ($cond: expr) => {
-                if $cond {
-                    return true;
+        if version.is_stable() {
+            return true;
+        }
+
+        // for pre-release, depends on allow_prerelease
+        match allow_prerelease {
+            PrereleaseAcceptance::Deny => false,
+            PrereleaseAcceptance::Allow => true,
+            PrereleaseAcceptance::Minimum => {
+                let in_versions: &[&PartialVersion] = match self {
+                    Self::Tilde(c) => &[c],
+                    Self::Caret(c) => &[c],
+                    Self::Exact(c) => &[c],
+                    Self::GreaterThan(c) => &[c],
+                    Self::GreaterThanOrEqual(c) => &[c],
+                    Self::LessThan(c) => &[c],
+                    Self::LessThanOrEqual(c) => &[c],
+                    Self::Star(c) => &[c],
+                    Self::Hyphen(c, d) => &[c, d],
+                };
+
+                for version in in_versions {
+                    let version = version.to_zeros();
+                    if version.is_pre() && version.base_version() == version.base_version() {
+                        return true;
+                    }
                 }
-            };
+                false
+            }
         }
-
-        allow!(allow_prerelease || version.is_stable());
-
-        // might be prerelease & prerelease is not allowed: check for version existence
-
-        let in_version = match self {
-            Self::Tilde(c) => c,
-            Self::Caret(c) => c,
-            Self::Exact(c) => c,
-            Self::GreaterThan(c) => c,
-            Self::GreaterThanOrEqual(c) => c,
-            Self::LessThan(c) => c,
-            Self::LessThanOrEqual(c) => c,
-            Self::Star(c) => c,
-            Self::Hyphen(c, _) => c,
-        };
-        let in_version = in_version.to_zeros();
-
-        allow!(in_version.is_pre() && in_version.base_version() == version.base_version());
-
-        // for Hyphen, we have two versions
-        if let Self::Hyphen(_, in_version) = self {
-            let in_version = in_version.to_zeros();
-
-            allow!(in_version.is_pre() && in_version.base_version() == version.base_version());
-        }
-
-        false
     }
 
     fn matches_internal(&self, version: &Version) -> bool {
@@ -701,7 +756,7 @@ mod tests {
             let range = VersionRange::from_str(range).expect(range);
             let version = Version::from_str(version).expect(version);
             assert!(
-                range.match_pre(&version, true),
+                range.match_pre(&version, PrereleaseAcceptance::Allow),
                 "{} matches {}",
                 range,
                 version
@@ -865,7 +920,7 @@ mod tests {
             let range = VersionRange::from_str(range).expect(range);
             let version = Version::from_str(version).expect(version);
             assert!(
-                !range.match_pre(&version, true),
+                !range.match_pre(&version, PrereleaseAcceptance::Allow),
                 "{} should not matches {}",
                 range,
                 version

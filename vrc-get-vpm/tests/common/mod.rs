@@ -4,19 +4,17 @@
 
 mod package_collection;
 mod virtual_environment;
-mod virtual_file_system;
 mod virtual_project_builder;
 
 pub use package_collection::PackageCollection;
 pub use package_collection::PackageCollectionBuilder;
-pub use virtual_environment::VirtualEnvironment;
-pub use virtual_file_system::VirtualFileSystem;
+pub use virtual_environment::VirtualInstaller;
 pub use virtual_project_builder::VirtualProjectBuilder;
 
-use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
-use vrc_get_vpm::unity_project::PendingProjectChanges;
-use vrc_get_vpm::version::{DependencyRange, Version};
 use vrc_get_vpm::PackageInfo;
+use vrc_get_vpm::unity_project::PendingProjectChanges;
+use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
+use vrc_get_vpm::version::{DependencyRange, Version};
 
 pub fn assert_removed(result: &PendingProjectChanges, package: &str, reason: RemoveReason) {
     let package_change = result
@@ -94,4 +92,11 @@ pub fn assert_installing_to_dependencies_only(
         .to_dependencies()
         .expect("not installing to dependencies");
     assert_eq!(base_range, &DependencyRange::version(version));
+}
+
+pub fn block_on<F: Future>(f: F) -> F::Output {
+    tokio::runtime::Builder::new_multi_thread()
+        .build()
+        .unwrap()
+        .block_on(f)
 }

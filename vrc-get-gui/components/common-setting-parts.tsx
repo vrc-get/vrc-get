@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -8,30 +9,48 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import i18next, { languages, tc } from "@/lib/i18n";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useFilePickerFunction } from "@/lib/use-file-picker-dialog";
-import { useQuery } from "@tanstack/react-query";
+import { toastThrownError } from "@/lib/toast";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
-import React from "react";
-import type { ToastContent } from "react-toastify";
+import type React from "react";
+
+const environmentGetSettings = queryOptions({
+	queryKey: ["environmentGetSettings"],
+	queryFn: commands.environmentGetSettings,
+});
+
+const environmentLanguage = queryOptions({
+	queryKey: ["environmentLanguage"],
+	queryFn: commands.environmentLanguage,
+});
 
 export function LanguageSelector() {
-	const { data: lang, refetch: refetchLang } = useQuery({
-		queryKey: ["environmentLanguage"],
-		queryFn: commands.environmentLanguage,
+	const queryClient = useQueryClient();
+	const { data: lang } = useQuery(environmentLanguage);
+	const changeLanguage = useMutation({
+		mutationFn: async (language: string) =>
+			await commands.environmentSetLanguage(language),
+		onMutate: async (language) => {
+			await i18next.changeLanguage(language);
+			await queryClient.invalidateQueries(environmentLanguage);
+			const data = queryClient.getQueryData(environmentLanguage.queryKey);
+			queryClient.setQueryData(environmentLanguage.queryKey, language);
+			return data;
+		},
+		onError: (e) => {
+			console.error(e);
+			toastThrownError(e);
+		},
+		onSettled: () => queryClient.invalidateQueries(environmentLanguage),
 	});
-
-	const changeLanguage = async (value: string) => {
-		await Promise.all([
-			i18next.changeLanguage(value),
-			commands.environmentSetLanguage(value),
-		]);
-		await refetchLang();
-	};
 
 	return (
 		<label className="flex items-center">
@@ -39,7 +58,7 @@ export function LanguageSelector() {
 				{tc("settings:language")}
 				{": "}
 			</span>
-			<Select value={lang} onValueChange={changeLanguage}>
+			<Select value={lang} onValueChange={changeLanguage.mutate}>
 				<SelectTrigger>
 					<SelectValue />
 				</SelectTrigger>
@@ -57,21 +76,32 @@ export function LanguageSelector() {
 	);
 }
 
+const environmentTheme = queryOptions({
+	queryKey: ["environmentTheme"],
+	queryFn: commands.environmentTheme,
+});
+
 export function ThemeSelector() {
-	const [theme, setTheme] = React.useState<string | null>(null);
-
-	React.useEffect(() => {
-		(async () => {
-			const theme = await commands.environmentTheme();
-			setTheme(theme);
-		})();
-	}, []);
-
-	const changeTheme = async (theme: string) => {
-		await commands.environmentSetTheme(theme);
-		setTheme(theme);
-		document.documentElement.setAttribute("class", theme);
-	};
+	const queryClient = useQueryClient();
+	const themeQuery = useQuery(environmentTheme);
+	const changeTheme = useMutation({
+		mutationFn: async (theme: string) =>
+			await commands.environmentSetTheme(theme),
+		onMutate: async (theme) => {
+			document.documentElement.setAttribute("class", theme);
+			await queryClient.invalidateQueries(environmentTheme);
+			const data = queryClient.getQueryData(environmentTheme.queryKey);
+			queryClient.setQueryData(environmentTheme.queryKey, theme);
+			return data;
+		},
+		onError: (e, _, ctx) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentTheme.queryKey, ctx);
+			if (ctx) document.documentElement.setAttribute("class", ctx);
+		},
+		onSettled: () => queryClient.invalidateQueries(environmentTheme),
+	});
 
 	return (
 		<label className={"flex items-center"}>
@@ -79,7 +109,7 @@ export function ThemeSelector() {
 				{tc("settings:theme")}
 				{": "}
 			</span>
-			<Select value={theme ?? undefined} onValueChange={changeTheme}>
+			<Select value={themeQuery.data} onValueChange={changeTheme.mutate}>
 				<SelectTrigger>
 					<SelectValue />
 				</SelectTrigger>
@@ -99,48 +129,73 @@ export function ThemeSelector() {
 	);
 }
 
+const environmentGuiAnimation = queryOptions({
+	queryKey: ["environmentGuiAnimation"],
+	queryFn: commands.environmentGuiAnimation,
+	initialData: true, // default value
+});
+
+export function GuiAnimationSwitch() {
+	const queryClient = useQueryClient();
+	const guiAnimation = useQuery(environmentGuiAnimation);
+	const setShowPrerelease = useMutation({
+		mutationFn: async (guiAnimation: boolean) =>
+			await commands.environmentSetGuiAnimation(guiAnimation),
+		onMutate: async (guiAnimation) => {
+			await queryClient.cancelQueries(environmentGuiAnimation);
+			const current = queryClient.getQueryData(
+				environmentGuiAnimation.queryKey,
+			);
+			if (current != null) {
+				queryClient.setQueryData(
+					environmentGuiAnimation.queryKey,
+					guiAnimation,
+				);
+			}
+			return current;
+		},
+		onError: (e, _, prev) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentGuiAnimation.queryKey, prev);
+		},
+		onSuccess: (_, guiAnimation) => {
+			document.dispatchEvent(
+				new CustomEvent("gui-animation", { detail: guiAnimation }),
+			);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGuiAnimation);
+		},
+	});
+
+	return (
+		<div>
+			<label className={"flex items-center gap-2"}>
+				<Checkbox
+					checked={guiAnimation.data}
+					onCheckedChange={(e) => setShowPrerelease.mutate(e === true)}
+				/>
+				{tc("settings:gui animation")}
+			</label>
+			<p className={"text-sm whitespace-normal"}>
+				{tc("settings:gui animation description")}
+			</p>
+		</div>
+	);
+}
+
 export function FilePathRow({
 	path,
 	notFoundMessage,
 	pick,
-	refetch,
-	successMessage,
-	withoutSelect = false,
+	withOpen = true,
 }: {
 	path: string;
 	notFoundMessage?: string;
-	pick: () => Promise<{
-		type: "NoFolderSelected" | "InvalidSelection" | "Successful";
-	}>;
-	refetch: () => void;
-	successMessage: ToastContent;
-	withoutSelect?: boolean;
+	pick: () => void;
+	withOpen?: boolean;
 }) {
-	const [pickPath, dialog] = useFilePickerFunction(pick);
-
-	const selectFolder = async () => {
-		try {
-			const result = await pickPath();
-			switch (result.type) {
-				case "NoFolderSelected":
-					// no-op
-					break;
-				case "InvalidSelection":
-					toastError(tc("general:toast:invalid directory"));
-					break;
-				case "Successful":
-					toastSuccess(successMessage);
-					refetch();
-					break;
-				default:
-					assertNever(result.type);
-			}
-		} catch (e) {
-			console.error(e);
-			toastThrownError(e);
-		}
-	};
-
 	const openFolder = async () => {
 		try {
 			await commands.utilOpen(path, "CreateFolderIfNotExists");
@@ -151,7 +206,7 @@ export function FilePathRow({
 	};
 
 	return (
-		<div className={"flex gap-1 items-center"}>
+		<div className={"flex gap-2 items-center"}>
 			{!path && notFoundMessage ? (
 				<Input
 					className="flex-auto text-destructive"
@@ -161,15 +216,14 @@ export function FilePathRow({
 			) : (
 				<Input className="flex-auto" value={path} disabled />
 			)}
-			<Button className={"flex-none px-4"} onClick={selectFolder}>
+			<Button className={"flex-none px-4"} onClick={pick}>
 				{tc("general:button:select")}
 			</Button>
-			{withoutSelect || (
+			{withOpen && (
 				<Button className={"flex-none px-4"} onClick={openFolder}>
 					{tc("general:button:open location")}
 				</Button>
 			)}
-			{dialog}
 		</div>
 	);
 }
@@ -229,7 +283,7 @@ export function WarningMessage({
 }) {
 	return (
 		<div className={"flex items-center gap-2"}>
-			<div className="flex-grow-0 flex-shrink-0">
+			<div className="grow-0 shrink-0">
 				<CircleAlert className="text-warning w-5 h-5" />
 			</div>
 			<p className={"whitespace-normal text-sm"}>{children}</p>
@@ -239,13 +293,36 @@ export function WarningMessage({
 
 export function BackupFormatSelect({
 	backupFormat,
-	setBackupFormat,
 }: {
 	backupFormat: string;
-	setBackupFormat: (format: string) => void;
 }) {
+	const queryClient = useQueryClient();
+	const setBackupFormat = useMutation({
+		mutationFn: async (format: string) =>
+			await commands.environmentSetBackupFormat(format),
+		onMutate: async (format: string) => {
+			await queryClient.cancelQueries(environmentGetSettings);
+			const current = queryClient.getQueryData(environmentGetSettings.queryKey);
+			if (current != null) {
+				queryClient.setQueryData(environmentGetSettings.queryKey, {
+					...current,
+					backup_format: format,
+				});
+			}
+			return current;
+		},
+		onError: (e, _, prev) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentGetSettings.queryKey, prev);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGetSettings);
+		},
+	});
+
 	return (
-		<Select value={backupFormat} onValueChange={setBackupFormat}>
+		<Select value={backupFormat} onValueChange={setBackupFormat.mutate}>
 			<SelectTrigger>
 				<SelectValue />
 			</SelectTrigger>

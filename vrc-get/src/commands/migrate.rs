@@ -1,8 +1,8 @@
 use crate::commands::{
-    confirm_prompt, load_collection, load_unity, update_project_last_modified, EnvArgs, ResultExt,
+    EnvArgs, ResultExt, confirm_prompt, load_collection, load_unity, update_project_last_modified,
 };
 use clap::{Parser, Subcommand};
-use log::{info, warn};
+use log::info;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use tokio::process::Command;
@@ -63,26 +63,37 @@ impl Unity2022 {
             .await
             .exit_context("migrating unity project");
 
-        info!("Updating manifest file finished successfully. Launching Unity to finalize migration...");
+        info!(
+            "Updating manifest file finished successfully. Launching Unity to finalize migration..."
+        );
 
         #[cfg(not(feature = "experimental-vcc"))]
         let unity = self.unity;
 
         #[cfg(feature = "experimental-vcc")]
-        let unity = self.unity.unwrap_or_else(|| {
-            use vrc_get_vpm::VRCHAT_RECOMMENDED_2022_UNITY;
-            let Some(found) = connection.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
-                .exit_context("getting unity 2022 path") else {
-                exit_with!("Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option.")
-            };
+        let unity = match self.unity {
+            Some(path) => path,
+            None => {
+                use vrc_get_vpm::VRCHAT_RECOMMENDED_2022_UNITY;
+                let Some(found) =
+                    connection.find_most_suitable_unity(VRCHAT_RECOMMENDED_2022_UNITY)
+                else {
+                    exit_with!(
+                        "Unity 2022 not found. please load from unity hub with `vrc-get vcc unity update` or specify path with `--unity` option."
+                    )
+                };
 
-            if found.version() != Some(VRCHAT_RECOMMENDED_2022_UNITY) {
-                // since we know it's unity 2022, we can safely unwrap
-                warn!("Recommended Unity 2022 version is not found. Using found version: {}", found.version().unwrap());
+                if found.version() != Some(VRCHAT_RECOMMENDED_2022_UNITY) {
+                    // since we know it's unity 2022, we can safely unwrap
+                    log::warn!(
+                        "Recommended Unity 2022 version is not found. Using found version: {}",
+                        found.version().unwrap()
+                    );
+                }
+
+                PathBuf::from(found.path().unwrap())
             }
-
-            PathBuf::from(found.path())
-        });
+        };
 
         let status = Command::new(&unity)
             .args([

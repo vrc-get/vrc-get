@@ -12,16 +12,15 @@
 
 use std::ffi::{OsStr, OsString};
 use std::fs::OpenOptions;
+use std::io;
 use std::mem::MaybeUninit;
-use std::os::windows::ffi::EncodeWide;
 use std::os::windows::prelude::*;
 use std::path::Path;
 use std::sync::OnceLock;
-use std::{io, result};
 use tokio::process::Command;
 use windows::Win32::Foundation::{ERROR_LOCK_VIOLATION, HANDLE};
 use windows::Win32::Storage::FileSystem::{
-    LockFileEx, UnlockFileEx, LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LOCK_FILE_FLAGS,
+    LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LockFileEx, UnlockFileEx,
 };
 use windows::Win32::System::IO::OVERLAPPED;
 
@@ -53,13 +52,10 @@ pub(crate) async fn start_command(
         .await?;
 
     if !status.success() {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!(
-                "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {}",
-                status
-            ),
-        ));
+        Err(std::io::Error::other(format!(
+            "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {}",
+            status
+        )))
     } else {
         Ok(())
     }
@@ -111,7 +107,7 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         match LockFileEx(
             HANDLE(file.as_raw_handle()),
             LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-            0,
+            None,
             0,
             0,
             &mut overlapped,
@@ -128,8 +124,8 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
-        UnlockFileEx(HANDLE(file.as_raw_handle()), 0, !0, !0, &mut overlapped)?;
-        return Ok(true);
+        UnlockFileEx(HANDLE(file.as_raw_handle()), None, !0, !0, &mut overlapped)?;
+        Ok(true)
     }
 }
 
@@ -137,10 +133,80 @@ pub fn os_info() -> &'static str {
     static OS_INFO: OnceLock<String> = OnceLock::new();
 
     fn compute_os_info() -> String {
+        if let Ok(full_info) = try_get_wmi_info() {
+            return full_info;
+        }
+
+        get_basic_version()
+    }
+
+    fn try_get_wmi_info() -> Result<String, ()> {
+        use serde::Deserialize;
+        use std::sync::mpsc;
+        use std::thread;
+        use std::time::Duration;
+        use wmi::{COMLibrary, WMIConnection};
+
+        let (sender, receiver) = mpsc::channel::<Result<String, ()>>();
+
+        thread::spawn(move || {
+            use serde::Deserialize;
+
+            #[allow(non_camel_case_types)]
+            #[allow(non_snake_case)]
+            #[derive(Deserialize, Debug)]
+            struct Win32_OperatingSystem {
+                #[serde(rename = "Caption")]
+                caption: String,
+                #[serde(rename = "Version")]
+                version: String,
+            }
+
+            let com_con = match COMLibrary::new() {
+                Ok(con) => con,
+                Err(_) => {
+                    let _ = sender.send(Err(()));
+                    return;
+                }
+            };
+
+            let wmi_con = match WMIConnection::new(com_con) {
+                Ok(con) => con,
+                Err(_) => {
+                    let _ = sender.send(Err(()));
+                    return;
+                }
+            };
+
+            match wmi_con.query::<Win32_OperatingSystem>() {
+                Ok(mut results) => {
+                    if let Some(os) = results.pop() {
+                        let _ = sender.send(Ok(format!("{} ({})", os.caption, os.version)));
+                    } else {
+                        let _ = sender.send(Err(()));
+                    }
+                }
+                Err(_) => {
+                    let _ = sender.send(Err(()));
+                }
+            }
+        });
+
+        match receiver.recv_timeout(Duration::from_secs(2)) {
+            Ok(Ok(info)) => Ok(info),
+            Ok(Err(_)) | Err(_) => Err(()),
+        }
+    }
+
+    fn get_basic_version() -> String {
         use windows::Wdk::System::SystemServices::RtlGetVersion;
         use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
-        let mut info: OSVERSIONINFOW = Default::default();
-        info.dwOSVersionInfoSize = std::mem::size_of_val(&info) as u32;
+
+        let mut info = OSVERSIONINFOW {
+            dwOSVersionInfoSize: size_of::<OSVERSIONINFOW>() as u32,
+            ..Default::default()
+        };
+
         unsafe {
             if RtlGetVersion(&mut info).is_err() {
                 return "Unknown".to_string();
@@ -174,7 +240,7 @@ pub fn local_app_data() -> &'static str {
     LOCAL_APP_DATA.get_or_init(|| {
         dirs_next::cache_dir()
             .map(|x| x.to_string_lossy().into_owned())
-            .unwrap_or_else(|| String::new())
+            .unwrap_or_default()
     })
 }
 

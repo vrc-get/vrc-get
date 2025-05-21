@@ -63,8 +63,8 @@ jobs:
           esac
 
           case "$GITHUB_REF_NAME" in
-            master | master-* )
-              echo "head is master or master-*"
+            master | master-* | hotfix-* )
+              echo "head is master, master-*, or hotfix-*"
               ;;
             * )
               echo "invalid release kind: $RELEASE_KIND_IN is not allowd for $GITHUB_REF_NAME"
@@ -243,7 +243,7 @@ jobs:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -275,16 +275,18 @@ jobs:
           path: changelog
 
       - name: Push tag
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |-
           # set tag and publish current version
           git tag "v$CLI_VERSION"
           git tag "vpm-v$VPM_VERSION"
           git push --tags
           # create master and push
-          git switch -c master
-          git fetch origin master --depth=1
+          git switch -c "$BRANCH"
+          git fetch origin "$BRANCH" --depth=1
           git log --all --graph
-          git push -u origin master
+          git push -u origin "$BRANCH"
           sleep 1
 
       - name: create release

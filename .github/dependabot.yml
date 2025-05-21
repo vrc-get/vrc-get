@@ -23,3 +23,7 @@ updates:
         patterns: [ "@radix-ui/*" ]
       react:
         patterns: [ "react", "react-dom", "@types/react", "@types/react-dom" ]
+      tanstack-router:
+        patterns: [ "@tanstack/*router*" ]
+      tailwindcss:
+        patterns: [ "tailwindcss", "@tailwindcss/*" ]

@@ -1,3 +1,4 @@
+use crate::logging::LogLevel;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +30,27 @@ pub struct GuiConfig {
     pub setup_process_progress: u32,
     #[serde(default)]
     pub default_unity_arguments: Option<Vec<String>>,
+    #[serde(default = "log_level_default")]
+    pub logs_level: Vec<LogLevel>,
+    #[serde(default = "gui_animation_default")]
+    pub gui_animation: bool,
+    #[serde(default)]
+    pub unity_hub_access_method: UnityHubAccessMethod,
+    // last element is the most recent one
+    // 8 paths are saved
+    #[serde(default)]
+    pub recent_project_locations: Vec<String>,
+    #[serde(default)]
+    pub exclude_vpm_packages_from_backup: bool,
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Default, specta::Type)]
+pub enum UnityHubAccessMethod {
+    /// Reads config files of Unity Hub
+    #[default]
+    ReadConfig,
+    /// Launches headless Unity Hub in background
+    CallHub,
 }
 
 impl Default for GuiConfig {
@@ -46,6 +68,11 @@ impl Default for GuiConfig {
             use_alcom_for_vcc_protocol: false,
             setup_process_progress: 0,
             default_unity_arguments: None,
+            logs_level: log_level_default(),
+            gui_animation: true,
+            unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
+            recent_project_locations: Vec::new(),
+            exclude_vpm_packages_from_backup: false,
         }
     }
 }
@@ -100,6 +127,19 @@ fn project_sorting_default() -> String {
 
 fn release_channel_default() -> String {
     "stable".to_string()
+}
+
+fn log_level_default() -> Vec<LogLevel> {
+    vec![
+        LogLevel::Debug,
+        LogLevel::Error,
+        LogLevel::Warn,
+        LogLevel::Info,
+    ]
+}
+
+fn gui_animation_default() -> bool {
+    true
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

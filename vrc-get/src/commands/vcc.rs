@@ -1,11 +1,12 @@
-use crate::commands::{absolute_path, ResultExt};
-use clap::{Parser, Subcommand};
+use crate::commands::{ResultExt, absolute_path};
+use clap::{Parser, Subcommand, ValueEnum};
 use log::warn;
 use std::cmp::Reverse;
+use std::fmt::{Display, Formatter};
 use std::path::Path;
-use vrc_get_vpm::environment::{find_unity_hub, Settings, VccDatabaseConnection};
+use vrc_get_vpm::environment::{Settings, VccDatabaseConnection, find_unity_hub};
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
-use vrc_get_vpm::{unity_hub, UnityProject};
+use vrc_get_vpm::{UnityProject, unity_hub};
 
 /// Experimental VCC commands
 #[derive(Subcommand)]
@@ -47,9 +48,7 @@ async fn migrate_sanitize_projects(
         .migrate(settings, io)
         .await
         .exit_context("migrating from settings.json");
-    connection
-        .dedup_projects()
-        .exit_context("deduplicating projects in DB");
+    connection.dedup_projects();
 }
 
 /// List projects
@@ -76,14 +75,18 @@ impl ProjectList {
             .await
             .exit_context("syncing with real projects");
 
-        let mut projects = connection.get_projects().exit_context("getting projects");
+        let mut projects = connection.get_projects();
 
-        projects.sort_by_key(|x| Reverse(x.last_modified().timestamp_millis()));
+        connection
+            .save(&io)
+            .await
+            .exit_context("saving updated database");
+
+        projects.sort_by_key(|x| Reverse(x.last_modified()));
 
         for project in projects.iter() {
-            let path = project.path();
-            // TODO: use '/' for unix
-            let name = project.name();
+            let Some(path) = project.path() else { continue };
+            let Some(name) = project.name() else { continue };
             let unity_version = project
                 .unity_version()
                 .map(|x| x.to_string())
@@ -158,19 +161,15 @@ impl ProjectRemove {
             .exit_context("connecting to database");
 
         let Some(project) = connection
-            .get_projects()
+            .find_project(self.path.as_ref())
             .exit_context("getting projects")
-            .into_iter()
-            .find(|x| x.path() == self.path.as_ref())
         else {
             return println!("No project found at {}", self.path);
         };
 
         migrate_sanitize_projects(&mut connection, &io, &settings).await;
 
-        connection
-            .remove_project(&project)
-            .exit_context("removing project");
+        connection.remove_project(&project);
 
         connection.save(&io).await.exit_context("saving database");
         settings
@@ -207,17 +206,17 @@ impl UnityList {
             .await
             .exit_context("connecting to database");
 
-        let mut unity_installations = connection
-            .get_unity_installations()
-            .exit_context("getting installations");
+        let mut unity_installations = connection.get_unity_installations();
 
         unity_installations.sort_by_key(|x| Reverse(x.version()));
 
         for unity in unity_installations.iter() {
-            if let Some(unity_version) = unity.version() {
-                println!("version {} at {}", unity_version, unity.path());
-            } else {
-                println!("unknown version at {}", unity.path());
+            if let Some(path) = unity.path() {
+                if let Some(unity_version) = unity.version() {
+                    println!("version {} at {}", unity_version, path);
+                } else {
+                    println!("unknown version at {}", path);
+                }
             }
         }
     }
@@ -245,7 +244,6 @@ impl UnityAdd {
 
         connection
             .add_unity_installation(self.path.as_ref(), unity_version)
-            .await
             .exit_context("adding unity installation");
 
         connection.save(&io).await.exit_context("saving database");
@@ -272,17 +270,13 @@ impl UnityRemove {
 
         let Some(unity) = connection
             .get_unity_installations()
-            .exit_context("getting installations")
             .into_iter()
-            .find(|x| x.path() == self.path.as_ref())
+            .find(|x| x.path() == Some(self.path.as_ref()))
         else {
             return eprintln!("No unity installation found at {}", self.path);
         };
 
-        connection
-            .remove_unity_installation(&unity)
-            .await
-            .exit_context("adding unity installation");
+        connection.remove_unity_installation(&unity);
 
         connection.save(&io).await.exit_context("saving database");
     }
@@ -297,6 +291,27 @@ impl UnityRemove {
 pub struct UnityUpdate {
     #[command(flatten)]
     env_args: super::EnvArgs,
+    /// The method to get the list of Unity from Unity Hub.
+    #[arg(long, default_value_t)]
+    method: UnityHubAccessMethod,
+}
+
+#[derive(Default, Copy, Clone, Eq, Ord, PartialOrd, PartialEq, ValueEnum)]
+enum UnityHubAccessMethod {
+    /// Reads config files of Unity Hub
+    #[default]
+    ReadConfig,
+    /// Launches headless Unity Hub in background
+    CallHub,
+}
+
+impl Display for UnityHubAccessMethod {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnityHubAccessMethod::ReadConfig => f.write_str("read-config"),
+            UnityHubAccessMethod::CallHub => f.write_str("call-hub"),
+        }
+    }
 }
 
 impl UnityUpdate {
@@ -309,15 +324,25 @@ impl UnityUpdate {
             .exit_context("loading unity hub path")
             .unwrap_or_else(|| exit_with!("Unity Hub not found"));
 
-        let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref())
-            .await
-            .exit_context("loading unity list from unity hub");
+        let unity_list = match self.method {
+            UnityHubAccessMethod::ReadConfig => unity_hub::load_unity_by_loading_unity_hub_files()
+                .await
+                .exit_context("loading list of unity from config file")
+                .into_iter()
+                .map(|x| (x.version, x.path))
+                .collect::<Vec<_>>(),
+            UnityHubAccessMethod::CallHub => {
+                unity_hub::load_unity_by_calling_unity_hub(unity_hub_path.as_ref())
+                    .await
+                    .exit_context("loading unity list from unity hub")
+            }
+        };
 
         let mut connection = VccDatabaseConnection::connect(&io)
             .await
             .exit_context("connecting to database");
         connection
-            .update_unity_from_unity_hub_and_fs(&paths_from_hub, &io)
+            .update_unity_from_unity_hub_and_fs(&unity_list, &io)
             .await
             .exit_context("updating unity from unity hub");
 

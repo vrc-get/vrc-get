@@ -5,11 +5,14 @@
 
     "general:loading...": "Loading...",
     "general:name": "Name",
+    "general:version": "Version",
+    "general:packages": "Packages",
     "general:source": "Source",
 
     "general:button:add": "Add",
     "general:button:edit": "Edit",
     "general:button:cancel": "Cancel",
+    "general:button:delete": "Delete",
     "general:button:close": "Close",
     "general:button:ok": "OK",
     "general:button:reset": "Reset",
@@ -18,7 +21,7 @@
     "general:button:open location": "Open Location",
     "general:button:continue": "Continue",
 
-    "general:dialog:select file or directory header": "Selecting file or directory.",
+    "general:dialog:select file or directory header": "Selecting file or directory",
     "general:dialog:select file or directory": "Please select a file or directory.",
     "general:toast:invalid directory": "Invalid directory was selected.",
 
@@ -26,6 +29,9 @@
     "general:not implemented": "Not Implemented",
 
     "search:placeholder": "Search...",
+
+    "general:error:failed to create dir": "Failed to create directory (missing permission?): {{err}}",
+    "general:error:failed to create dir missing drive": "Failed to create directory. You may forget to connect the drive.",
 
 
 // Setup Page
@@ -43,6 +49,7 @@
     "setup:unity-hub:description": "To get started, you need to install Unity Hub. Unity Hub is the preferred way to install and manage Unity versions.<br/>ALCOM will suggest you installing Unity with Unity Hub if you don't have and necessary for the project or operation.",
     "setup:unity-hub:using this unity hub": "Using this Unity Hub",
     "setup:unity-hub:download unity hub from unity.com": "Download Unity Hub from unity.com",
+    "setup:unity-hub:unity hub link": "https://unity.com/download",
     "setup:unity-hub:recheck installation": "Recheck Installation",
     "setup:unity-hub:detection failed collapse": "Have you installed Unity Hub?",
     "setup:unity-hub:detection failed description": "Please click the above \"Recheck Installation\" button to re-detect Unity Hub installation. If this doesn't work, ALCOM fails to detect your Unity Hub installation. Please set Unity Hub Manually below.",
@@ -71,7 +78,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "Bad hostname",
-    "sidebar:dialog:bad hostname": "There are issues with your hostname.",
+    "sidebar:dialog:bad hostname": "There are issues with your hostname",
     "sidebar:dialog:bad hostname description": "You're using non-ASCII characters in hostname (PC Name). <br/>This may cause issues with modern Unity.<br/>It's highly recommended to change your PC Name to alphanumeric characters.",
 
     "sidebar:toast:version copied": "Version name was copied.",
@@ -119,10 +126,16 @@
     "projects:hint:warn multibyte char in project name": "Using multibyte characters may cause problems.",
     "projects:hint:project already exists": "The directory already exists.",
     "projects:hint:create project ready": "Ready to create a project!",
-    "projects:template:type": "Type:",
     "projects:template": "Template:",
-    "projects:type:custom": "Custom Template",
+    "projects:template-category:builtin": "Built-in",
+    "projects:template-category:alcom": "Custom Templates",
+    "projects:template-category:vcc": "VCC Templates",
+    "projects:template-name:avatars": "VRChat Avatars",
+    "projects:template-name:worlds": "VRChat Worlds",
+    "projects:template-name:blank": "Blank",
     "projects:template:unity version": "Unity Version:",
+    "projects:tooltip:template-unavailable": "Base template of the template is not available",
+    "projects:tooltip:template-no-unity": "No unity versions for this template are available",
     "projects:latest": "Latest",
     "projects:hint:path of creating project": "The new project will be at <path>{{path}}</path>.",
     "projects:button:create": "Create",
@@ -136,10 +149,10 @@
     "projects:dialog:select unity header": "Select Unity",
     "projects:dialog:multiple unity found": "Multiple Unity installations of the version were found.",
     "projects:dialog:keep using this version": "Keep using this version",
-    "projects:dialog:unity not found but china found": "Unity was not found but China version of Unity was found.",
+    "projects:dialog:unity not found but china found": "Unity was not found but China version of Unity was found",
     "projects:dialog:unity version of the project not found but china found": "The Unity {{expectedUnity}} which is used in the project was not found.<br>However, we found China version of Unity {{chinaUnity}} in your computer.<br>Do you want to use the China version of Unity for this project?",
     "projects:dialog:use china version": "Use China Version of Unity",
-    "projects:dialog:unity not found but international found": "Unity was not found but international version of Unity was found.",
+    "projects:dialog:unity not found but international found": "Unity was not found but international version of Unity was found",
     "projects:dialog:unity version of the project not found but international found": "The Unity {{expectedUnity}} which is used in the project was not found.<br>However, we found international version of Unity {{internationalUnity}} in your computer.<br>Do you want to use the international version of Unity for this project?",
     "projects:dialog:use international version": "Use international Version of Unity",
     "projects:toast:invalid project unity version": "We couldn't detect suitable Unity installations.",
@@ -151,6 +164,7 @@
     "projects:button:migrate": "Migrate",
     "projects:tooltip:sdk2 migration hint": "Legacy SDK2 project cannot be migrated automatically.<br>Please migrate to SDK3 manually first.",
     "projects:tooltip:git-vcc not supported": "git-VCC projects are not supported.",
+    "projects:tooltip:no upm in unity": "VPM is not supported with Unity 2017 or older.",
     "projects:dialog:vpm migrate header": "Migrate legacy project",
     "projects:dialog:vpm migrate description": "Migrating project might lose your changes. Please make a backup of your project before migration.",
     "projects:button:backup and migrate": "Backup and Migrate",
@@ -177,6 +191,7 @@
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Back to projects",
     "projects:menuitem:change launch options": "Change Launch Options",
+    "projects:menuitem:copy project": "Copy Project",
     "projects:menuitem:backup": "Make Backup",
     "projects:menuitem:forget unity path": "Forget Unity for this Project",
     "projects:manage:project location": "Located at: <path>{{path}}</path>",
@@ -196,7 +211,9 @@
     "projects:manage:button:upgrade all": "Upgrade All (Latest)",
     "projects:manage:button:upgrade all stable": "Upgrade All (Stable)",
     "projects:manage:button:reinstall all": "Reinstall All",
-    "projects:manage:button:select repositories": "Select Repositories",
+    "projects:manage:button:package filters": "Package Filters",
+    "projects:manage:menu:repository filter": "Repository Filter",
+    "projects:manage:menu:other filters": "Other Filters",
     "projects:manage:package": "Package",
     "projects:manage:installed": "Installed",
     "projects:manage:latest": "Latest",
@@ -209,6 +226,8 @@
     "projects:manage:tooltip:upgrade package": "Upgrade Package",
     "projects:manage:tooltip:remove packages": "Remove Package",
     "projects:manage:tooltip:incompatible with unity": "Incompatible with Unity",
+    "projects:manage:menuitem:see changelog": "See Changelog",
+    "projects:manage:menuitem:see documentation": "See Documentation",
     // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
     //     It might be better to write both upgrade and latest depending on the language I think.
     "projects:manage:button:install selected latest": "Install Selected (Latest)",
@@ -266,8 +285,13 @@
     "projects:toast:unity migrated": "The project was migrated to Unity 2022",
 
     "projects:manage:dialog:confirm changes description": "You're applying the following changes to the project.",
-    "projects:manage:dialog:install package": "Install <b>{{name}}</b> version {{version}}",
-    "projects:manage:dialog:reinstall package": "Reinstall <b>{{name}}</b> version {{version}}",
+    "projects:manage:dialog:note breaking changes": "There are some breaking changes among packages. <br/>Your assets, configuration, tools in your project can be incompatible. <br/>Check for compatibility information and upgrade with care.",
+    "projects:manage:dialog:note incompatibility": "There are some incompatibility with some other packages. <br/>Those tools may report error when loading project or while using. <br/>Check for compatibility information and upgrade related packages at once, or install with care.",
+    "projects:manage:dialog:upgrade package": "Upgrade <b>{{name}}</b> version {{previousVersion}} to <b>{{version}}</b>",
+    "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} to <b>{{version}}</b>",
+    "projects:manage:dialog:install package": "Install <b>{{name}}</b> version <b>{{version}}</b>",
+    "projects:manage:dialog:reinstall package": "Reinstall <b>{{name}}</b> version <b>{{version}}</b>",
+    "projects:manage:dialog:breaking changes": "Includes breaking changes",
     "projects:manage:dialog:uninstall package as requested": "Remove <b>{{name}}</b> as you requested",
     "projects:manage:dialog:uninstall package as legacy": "Remove <b>{{name}}</b> since it's a legacy package",
     "projects:manage:dialog:uninstall package as unused": "Remove <b>{{name}}</b> which is unused",
@@ -284,9 +308,17 @@
     "projects:manage:button:apply changes": "Apply Changes",
     "projects:manage:button:apply": "Apply",
 
+    "projects:manage:dialog:missing dependencies": "Some packages are not found",
+    "projects:manage:dialog:missing dependencies description": "The following packages are requested to install, but unable to find appropriate version of the packages.<br/>Please search and add repositories that contain the packages.<br/>You may check <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> to find the appropriate repositories.",
 
-// Packages Page
-    "packages": "Packages",
+    // copy project
+    "projects:dialog:copy project": "Copy Project: {{name}}",
+    "projects:dialog:copying...": "Copying Project...",
+    "projects:toast:successfully copied project": "Successfully copied project <b>{{name}}</b>",
+
+
+// Resources Page
+    "resources": "Resources",
     "vpm repositories:source:official": "Official",
     "vpm repositories:source:curated": "Curated",
     "vpm repositories:source:local": "User Local",
@@ -349,6 +381,40 @@
     "user packages:toast:package added": "The package was added successfully.",
     "user packages:toast:package removed": "The package was removed successfully.",
 
+    "packages:templates": "Templates",
+    "templates:create template": "Create Template",
+    "templates:category": "Category",
+    "templates:id": "Template ID",
+    "template:no id": "No ID",
+    "templates:category:builtin": "Builtin",
+    "templates:tooltip:category:builtin": "Builtin Templates are templates built by ALCOM developers and shipped with ALCOM",
+    "templates:category:alcom": "Custom",
+    "templates:tooltip:category:alcom": "Custom Templates are templates you created and you can edit with ALCOM.",
+    "templates:category:vcc": "VCC",
+    "templates:tooltip:category:vcc": "VCC Templates are templates you created for VCC manually.",
+    "templates:tooltip:remove template": "Remove Template",
+    "templates:tooltip:remove builtin template": "You cannot remove Builtin Templates.",
+    "templates:tooltip:remove vcc template": "You cannot remove VCC templates here. You should remove from Templates directory instead.",
+    "templates:menuitem:edit template": "Edit Template",
+    "templates:menuitem:export template": "Export Template",
+    "templates:tooltip:export template with unitypackage": "You cannot export templates with unity packages since it's not portable.",
+    "templates:menuitem:open vcc template": "Open Template Directory",
+    "templates:dialog:edit template": "Edit Template",
+    "templates:dialog:create template": "Create Template",
+    "templates:dialog:general information": "General Information",
+    "templates:dialog:base template": "Base Template",
+    "templates:dialog:unity version": "Unity Version",
+    "templates:dialog:version": "Version",
+    "templates:dialog:unitypackages": "UnityPackages",
+    "templates:dialog:no unitypackages": "No UnityPackages",
+    "templates:dialog:remove template": "Remove Template",
+    "templates:dialog:confirm remove template": "Are you sure remove template {{displayName}}?",
+    "templates:button:save template": "Save Template",
+    "templates:button:import template": "Import Template",
+    "templates:toast:imported n templates_one": "Imported {{count}} template",
+    "templates:toast:imported n templates_other": "Imported {{count}} templates",
+    "template:toast:removed": "Removed the Template",
+
 
 // Settings Page
     "settings": "Settings",
@@ -375,6 +441,8 @@
     "settings:toast:not unity": "Selected file is not Unity.",
     "settings:toast:unity already added": "Selected Unity was already added.",
     "settings:toast:unity added": "Added Unity successfully!",
+    "settings:use legacy unity hub loading": "Use legacy Unity Hub loading",
+    "settings:use legacy unity hub loading description": "Legacy Unity Hub loading is more reliable to load unity list from Unity Hub than new current method, but legacy method will take much time.<br/>Legacy method will be removed in future so if there is some problems with new method, please report developer from section below.",
 
     "settings:default unity arguments": "Default Unity Command-line Arguments",
     "settings:default unity arguments description": "Those command-line arguments will be used when opening Unity from ALCOM.",
@@ -394,6 +462,8 @@
     "settings:backup:format:zip-store": "Uncompressed zip (Fast)",
     "settings:backup:format:zip-fast": "Low Compression zip (Slow)",
     "settings:backup:format:zip-best": "High Compression zip (Slowest)",
+    "settings:backup:exclude vpm packages from backup": "Exclude VPM Packages from bacup",
+    "settings:backup:exclude vpm packages from backup description": "This reduces the size of the backup, but if the package creator violates the recommendation and removes a package from their repository, you'll be need to use another version of the package when restoring the backup.",
 
     "settings:packages": "Packages",
     "settings:clear package cache": "Clear Downloaded Package Cache",
@@ -401,6 +471,9 @@
 
     "settings:show prerelease": "Show Prerelease Packages",
     "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list. In addition, prerelease packages will be used when resolving dependencies.",
+
+    "settings:gui animation": "Enable GUI Animation",
+    "settings:gui animation description": "Page transitions are animated when GUI animation is enabled. But it may not work on lower webview versions.",
 
     "settings:appearance": "Appearance",
     "settings:language": "Language",
@@ -454,5 +527,6 @@
     "logs:level": "Level",
     "logs:message": "Message",
     "logs:manage:select logs level": "Logs Level Filter",
+    "logs:manage:auto scroll": "Toggle Auto Scroll",
   },
 }

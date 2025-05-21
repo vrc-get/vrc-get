@@ -2,10 +2,10 @@ use futures::prelude::*;
 use log::{debug, info};
 use std::collections::HashSet;
 
-use crate::io::ProjectIo;
+use crate::io::IoTrait;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
-use crate::{io, PackageInstaller, ProjectType};
 use crate::{PackageCollection, UnityProject, VersionSelector};
+use crate::{PackageInstaller, ProjectType, io};
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -57,7 +57,7 @@ impl From<io::Error> for MigrateVpmError {
 
 type Result<T = (), E = MigrateVpmError> = std::result::Result<T, E>;
 
-impl<IO: ProjectIo> UnityProject<IO> {
+impl UnityProject {
     pub async fn migrate_vpm(
         &mut self,
         collection: &impl PackageCollection,
@@ -69,7 +69,7 @@ impl<IO: ProjectIo> UnityProject<IO> {
 }
 
 async fn migrate_vpm(
-    project: &mut UnityProject<impl ProjectIo>,
+    project: &mut UnityProject,
     collection: &impl PackageCollection,
     installer: &impl PackageInstaller,
     include_prerelease: bool,
@@ -88,7 +88,8 @@ async fn migrate_vpm(
     );
 
     let mut adding_packages = vec![];
-    let version_selector = VersionSelector::latest_for(project.unity_version(), include_prerelease);
+    let version_selector =
+        VersionSelector::latest_for(Some(project.unity_version()), include_prerelease);
 
     // basic part: install SDK
     if is_worlds {
@@ -112,7 +113,10 @@ async fn migrate_vpm(
             .get_curated_packages(version_selector)
             .collect::<Vec<_>>();
 
-        debug!("Trying to add the following curated packages to find legacy curated packages with legacyAssets: {:?}", curated_packages);
+        debug!(
+            "Trying to add the following curated packages to find legacy curated packages with legacyAssets: {:?}",
+            curated_packages
+        );
 
         let packages = project
             .add_package_request(

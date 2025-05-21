@@ -1,14 +1,21 @@
 use crate::state::*;
 
 use futures::future::try_join_all;
+use futures::{AsyncRead, AsyncReadExt};
 use log::warn;
 use stable_deref_trait::StableDeref;
 use std::borrow::Cow;
+use std::ffi::OsStr;
 use std::future::Future;
 use std::io;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+use std::pin::Pin;
+use std::task::{Context, Poll, ready};
+use tar::Header;
+use vrc_get_vpm::UnityProject;
+use vrc_get_vpm::io::DefaultProjectIo;
 use yoke::{CloneableCart, Yoke, Yokeable};
 
 pub(crate) fn home_dir() -> PathBuf {
@@ -214,9 +221,16 @@ impl<'a> Iterator for FileSystemTreeIter<'a> {
     }
 }
 
-pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result<FileSystemTree> {
+pub async fn collect_notable_project_files_tree(
+    path_buf: PathBuf,
+    exclude_vpm: bool,
+) -> io::Result<FileSystemTree> {
     // relative path must end with '/' or empty
-    async fn read_dir_to_tree(relative: String, absolute: PathBuf) -> io::Result<FileSystemTree> {
+    async fn read_dir_to_tree(
+        relative: String,
+        absolute: PathBuf,
+        excluded_packages: &[String],
+    ) -> io::Result<FileSystemTree> {
         let mut read_dir = tokio::fs::read_dir(&absolute).await?;
 
         // relative, entry, is_dir
@@ -257,6 +271,12 @@ pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result
                         }
                     }
                 }
+                if relative.eq_ignore_ascii_case("packages/") {
+                    // the package is excluded
+                    if excluded_packages.contains(&lower_name) {
+                        continue;
+                    }
+                }
                 if lower_name.as_str() == ".git" {
                     // any .git folder should be ignored
                     continue;
@@ -275,7 +295,7 @@ pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result
         let children = try_join_all(entries.into_iter().map(
             |(relative, entry, is_dir)| async move {
                 if is_dir {
-                    read_dir_to_tree(relative, entry.path()).await
+                    read_dir_to_tree(relative, entry.path(), excluded_packages).await
                 } else {
                     Ok(FileSystemTree::new_file(relative, entry.path()))
                 }
@@ -286,5 +306,146 @@ pub async fn collect_notable_project_files_tree(path_buf: PathBuf) -> io::Result
         Ok(FileSystemTree::new_dir(relative, absolute, children))
     }
 
-    read_dir_to_tree(String::new(), path_buf).await
+    let excluded_packages = if exclude_vpm {
+        async fn get_packages(path: &Path) -> Option<Vec<String>> {
+            let unity_project = UnityProject::load(DefaultProjectIo::new(path.into()))
+                .await
+                .ok()?;
+            Some(
+                unity_project
+                    .locked_packages()
+                    .map(|x| x.name().into())
+                    .collect(),
+            )
+        }
+        get_packages(&path_buf).await.unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    read_dir_to_tree(String::new(), path_buf, &excluded_packages).await
+}
+
+pub trait PathExt {
+    fn with_added_extension<S: AsRef<OsStr>>(&self, extension: S) -> PathBuf;
+}
+
+impl PathExt for PathBuf {
+    fn with_added_extension<S: AsRef<OsStr>>(&self, extension: S) -> PathBuf {
+        let mut new_path = self.clone();
+        #[allow(unstable_name_collisions)]
+        new_path.add_extension(extension);
+        new_path
+    }
+}
+
+pub trait PathBufExt {
+    fn add_extension<S: AsRef<OsStr>>(&mut self, extension: S) -> bool;
+}
+
+impl PathBufExt for PathBuf {
+    fn add_extension<S: AsRef<OsStr>>(&mut self, extension: S) -> bool {
+        fn _add_extension(this: &mut PathBuf, extension: &OsStr) -> bool {
+            if this.file_name().is_none() {
+                return false;
+            }
+
+            if let Some(ext) = this.extension() {
+                let mut new_ext = ext.to_os_string();
+                new_ext.push(".");
+                new_ext.push(extension);
+                this.set_extension(new_ext);
+            } else {
+                this.set_extension(extension);
+            }
+            true
+        }
+
+        _add_extension(self, extension.as_ref())
+    }
+}
+
+pub struct TarArchive<R: ?Sized + AsyncRead + Unpin> {
+    to_skip: u64,
+    reader: R,
+}
+
+pub struct TarEntry<'a, R: AsyncRead + Unpin> {
+    archive: &'a mut TarArchive<R>,
+    remaining: u64,
+    header: Header,
+}
+
+impl<R: AsyncRead + Unpin> TarArchive<R> {
+    pub fn new(reader: R) -> Self
+    where
+        R: Sized,
+    {
+        Self { reader, to_skip: 0 }
+    }
+
+    pub async fn next_entry(&mut self) -> io::Result<Option<TarEntry<R>>> {
+        const BLOCK_SIZE: u64 = 512;
+        let mut header = Header::new_old();
+        // skip bytes
+        while self.to_skip != 0 {
+            let size = std::cmp::min(self.to_skip, BLOCK_SIZE) as usize;
+            self.reader
+                .read_exact(&mut header.as_mut_bytes()[..size])
+                .await?;
+            self.to_skip -= size as u64;
+        }
+        self.reader.read_exact(header.as_mut_bytes()).await?;
+        if header.as_bytes().iter().all(|&b| b == 0) {
+            // the header is all zeros; trailing header
+            return Ok(None);
+        }
+
+        // Make sure the checksum is ok
+        let sum = (header.as_bytes()[..148].iter())
+            .chain(&header.as_bytes()[156..])
+            .fold(0, |a, b| a + (*b as u32))
+            + 8 * b' ' as u32;
+        let cksum = header.cksum()?;
+        if sum != cksum {
+            return Err(io::Error::other("archive header checksum mismatch"));
+        }
+
+        let size = header.size()?;
+        let to_skip = (size + BLOCK_SIZE - 1) & !(BLOCK_SIZE - 1);
+        self.to_skip = to_skip;
+        Ok(Some(TarEntry {
+            archive: self,
+            remaining: size,
+            header,
+        }))
+    }
+}
+
+impl<R: AsyncRead + Unpin> TarEntry<'_, R> {
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+}
+
+impl<R: AsyncRead + Unpin> AsyncRead for TarEntry<'_, R> {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
+        let buffer_size = std::cmp::min(buf.len() as u64, self.remaining) as usize;
+        let size =
+            ready!(Pin::new(&mut self.archive.reader).poll_read(cx, &mut buf[..buffer_size])?);
+        self.remaining -= size as u64;
+        self.archive.to_skip -= size as u64;
+        Poll::Ready(Ok(size))
+    }
+}
+
+pub async fn trash_delete(path: PathBuf) -> Result<(), trash::Error> {
+    tokio::runtime::Handle::current()
+        .spawn_blocking(move || trash::delete(path))
+        .await
+        .unwrap()
 }

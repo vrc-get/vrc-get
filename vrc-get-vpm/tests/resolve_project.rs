@@ -1,7 +1,6 @@
 use crate::common::*;
-use futures::executor::block_on;
-use vrc_get_vpm::version::Version;
 use vrc_get_vpm::PackageManifest;
+use vrc_get_vpm::version::Version;
 
 mod common;
 

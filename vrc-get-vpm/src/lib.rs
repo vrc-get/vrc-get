@@ -167,6 +167,24 @@ pub enum ProjectType {
     VpmStarter = 9,
 }
 
+impl ProjectType {
+    pub fn from_i32(i: i32) -> Option<ProjectType> {
+        match i {
+            0 => Some(Self::Unknown),
+            1 => Some(Self::LegacySdk2),
+            2 => Some(Self::LegacyWorlds),
+            3 => Some(Self::LegacyAvatars),
+            4 => Some(Self::UpmWorlds),
+            5 => Some(Self::UpmAvatars),
+            6 => Some(Self::UpmStarter),
+            7 => Some(Self::Worlds),
+            8 => Some(Self::Avatars),
+            9 => Some(Self::VpmStarter),
+            _ => None,
+        }
+    }
+}
+
 impl Display for ProjectType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

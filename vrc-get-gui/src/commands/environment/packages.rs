@@ -1,63 +1,24 @@
+use crate::commands::async_command::{AsyncCallResult, With, async_command};
+use crate::commands::prelude::*;
 use futures::future::{join_all, try_join_all};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use log::info;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
-use crate::commands::async_command::{async_command, AsyncCallResult, With};
-use serde::{Deserialize, Serialize};
-use tauri::{Manager, State, Window};
+use tauri::{AppHandle, Manager, State, Window};
 use tauri_plugin_dialog::DialogExt;
 use tokio::fs::write;
 use url::Url;
 use vrc_get_vpm::environment::{
-    add_remote_repo, clear_package_cache, AddUserPackageResult, Settings, UserPackageCollection,
+    AddUserPackageResult, Settings, UserPackageCollection, add_remote_repo, clear_package_cache,
 };
 use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
-use vrc_get_vpm::{HttpClient, PackageInfo, VersionSelector};
-
-use crate::commands::prelude::*;
-
-#[derive(Serialize, specta::Type)]
-pub struct TauriPackage {
-    env_version: u32,
-    index: usize,
-
-    #[serde(flatten)]
-    base: TauriBasePackageInfo,
-
-    source: TauriPackageSource,
-}
-
-#[derive(Serialize, specta::Type)]
-enum TauriPackageSource {
-    LocalUser,
-    Remote { id: String, display_name: String },
-}
-
-impl TauriPackage {
-    fn new(env_version: u32, index: usize, package: &PackageInfo) -> Self {
-        let source = if let Some(repo) = package.repo() {
-            let id = repo.id().or(repo.url().map(|x| x.as_str())).unwrap();
-            TauriPackageSource::Remote {
-                id: id.to_string(),
-                display_name: repo.name().unwrap_or(id).to_string(),
-            }
-        } else {
-            TauriPackageSource::LocalUser
-        };
-
-        Self {
-            env_version,
-            index,
-            base: TauriBasePackageInfo::new(package.package_json()),
-            source,
-        }
-    }
-}
+use vrc_get_vpm::{HttpClient, VersionSelector};
 
 #[tauri::command]
 #[specta::specta]
@@ -78,20 +39,20 @@ pub async fn environment_refetch_packages(
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_packages(
+    app_handle: AppHandle,
     packages: State<'_, PackagesState>,
     settings: State<'_, SettingsState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
 ) -> Result<Vec<TauriPackage>, RustError> {
     let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
-
-    let version = packages.version();
+    let packages = packages
+        .load(&settings, io.inner(), http.inner(), app_handle)
+        .await?;
 
     Ok(packages
         .packages()
-        .enumerate()
-        .map(|(index, value)| TauriPackage::new(version, index, value))
+        .map(|value| TauriPackage::new(value))
         .collect::<Vec<_>>())
 }
 
@@ -646,34 +607,40 @@ pub async fn environment_add_user_package_with_picker(
     io: State<'_, DefaultEnvironmentIo>,
     window: Window,
 ) -> Result<TauriAddUserPackageWithPickerResult, RustError> {
-    let Some(project_path) = window
+    let Some(package_paths) = window
         .dialog()
         .file()
         .set_parent(&window)
-        .blocking_pick_folder()
-        .map(|x| x.into_path_buf())
-        .transpose()?
+        .blocking_pick_folders()
     else {
         return Ok(TauriAddUserPackageWithPickerResult::NoFolderSelected);
     };
 
-    let Ok(project_path) = project_path.into_os_string().into_string() else {
+    let Ok(package_paths) = package_paths
+        .into_iter()
+        .map(|x| x.into_path_buf().map_err(|_| ()))
+        .map_ok(|x| x.into_os_string().into_string().map_err(|_| ()))
+        .flatten_ok()
+        .collect::<Result<Vec<_>, ()>>()
+    else {
         return Ok(TauriAddUserPackageWithPickerResult::InvalidSelection);
     };
 
     {
         let mut settings = settings.load_mut(io.inner()).await?;
-        match settings
-            .add_user_package(project_path.as_ref(), io.inner())
-            .await
-        {
-            AddUserPackageResult::Success => {}
-            AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
-            AddUserPackageResult::BadPackage => {
-                return Ok(TauriAddUserPackageWithPickerResult::InvalidSelection);
-            }
-            AddUserPackageResult::AlreadyAdded => {
-                return Ok(TauriAddUserPackageWithPickerResult::AlreadyAdded);
+        for package_path in package_paths {
+            match settings
+                .add_user_package(package_path.as_ref(), io.inner())
+                .await
+            {
+                AddUserPackageResult::Success => {}
+                AddUserPackageResult::NonAbsolute => unreachable!("absolute path"),
+                AddUserPackageResult::BadPackage => {
+                    return Ok(TauriAddUserPackageWithPickerResult::InvalidSelection);
+                }
+                AddUserPackageResult::AlreadyAdded => {
+                    return Ok(TauriAddUserPackageWithPickerResult::AlreadyAdded);
+                }
             }
         }
 

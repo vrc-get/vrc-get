@@ -6,7 +6,6 @@ members = [
     "build-updater-json",
     "vrc-get",
     "vrc-get-gui",
-    "vrc-get-litedb",
     "vrc-get-vpm",
 ]
 
@@ -14,12 +13,11 @@ members = [
 # "build-check-static-link" is excluded since "build-check-static-link" is not a part of the main project, a utility for project
 default-members = [
     "vrc-get",
-    "vrc-get-litedb",
     "vrc-get-vpm",
 ]
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 
 license = "MIT"
 authors = ["anatawa12 <anatawa12@icloud.com>"]

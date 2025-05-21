@@ -8,29 +8,130 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Support for China version of Unity releases like `2022.3.22f1c1` `#1558
-- `rpm` `deb` packaging for Linux `#1575`
-  - This is to test how good / bad `rpm` or `deb` distribution is.
-  - We **may** create dnf / apt package repository in the future, but not planned for now.
-- Skipping finding legacy assets when downgrading / upgrading / reinstalling package `#1581`
-  - This will speed up the process of downgrading / upgrading / reinstalling package.
+- Support for Projects with Unity 2018 or older `#2106`
+  - Projects with Unity 2018 cannot be added before, but since this version you can add to your project list.
+  - Unity 2017 or older doesn't have Unity Package Manager, the base system for VPM,
+    so you cannot manage packages for projects with older unity.
+    You can only launch Unity to open the project.
+  - Projects with Unity 4 or older are still not supported, but I hope no one want to use such a vintage Unity with ALCOM.
+- New Project Template System `#2105` `#2114` `#2125` `#2129`
+  - You now can create Project Templates in ALCOM.
+  - The new form of template can install multiple VPM packages at once, and you also can import unitypackages.
+  - You now can create blank project along with this system change.
+- Warning on upgrading major version or installing incompatible versions `#2159`
+  - When you're upgrading package versions majorly, you'll see the warning message about breaking changes.
+  - I hope this should reduce problems with unexpectedly upgrading packages majorly.
+  - In addition, we added more messages when you're installing packages with some compatibility concerns.
+  - The previous version only has those messages at the bottom of the window, so you may not notice the message.
+  - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
+- Menu option to copy a project `#2168`
+  - Simple enough, you can copy a project.
+- Remember recent project locations `#2182`
+  - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations
 
 ### Changed
-- Separated quick open actions to own settings box. [`#1496`](https://github.com/vrc-get/vrc-get/pull/1496)
-- Improved behavior with downloading package error `#1557`
-- Installing unlocked package is now possible with warning `#1557`
-- Added many logs for installing package `#1557`
-- Migration feature is no longer marked as experimental `#1559`
-- Several UX improvements `#1561` `#1565` `#1569` `#1571` `#1573`
+- Changed how we read VCC's project information `#1997` `#2036` `#2041`
+  - Along with this, building this project no longer needs dotnet SDK to build.
+- Migrated the project to Rust 2024 `#1956`
+  - This is internal changes should not cause behavior changes
+  - This would require Rust 1.85 for building this project
+- Removed `cargo-about` from build-time dependency `#1961`
+  - This is internal changes should not cause behavior changes
+  - I listed here since this may need update on package metadata of some package managers
+- The method to retrieve the list of Unity from Unity Hub `#1808` `#1971`
+  - Since this version, ALCOM reads UnityHub's configuration files to get list of Unity installed to the machine.
+  - Before this version, ALCOM called headless Unity Hub in the background.
+  - New method might have some compatibility problem, especially with some sandbox system.
+  - Please report us if you find some problem with the new system.
+- Enhance os info for windows `#1968`
+- You now can select multiple folders at once to adding project `#2018`
+  - I didn't know official VCC had such a feature. Sorry for lack of feature!
+- You now can toggle "Show Prerelease Packages" from Manage Project page `#2020`
+  - You can toggle "Show Prerelease Packages" from Select Packages dropdown
+- The requirements for unity project `#2106`
+  - Since this version, `Projectsettings/ProjectVersion.txt` is required.
+- Improves launching unity behavior `#2124`
+  - On linux, ALCOM will now read exit code, therefore, Unity no longer remains as a defunct process.
+  - On macOS, we now launch Unity as a distinct / individual process, therefore several macOS subsystems should treat Unity as Unity instead of Unity as a part of ALCOM.
+- Downgraded glibc requirements for linux images `#2160`
+  - This release will be built on ubuntu 22.04 so glibc 2.35 is new requirements
+  - If you want to use on platforms with older glibc, build yourself or pull request to build on older environments.
+- Loading projects / repositories is now asynchronously `#2169`
+  - You should be able to open a project / install packages much quickly than before!
+  - The reload button will keep rotating while loading asynchronously
+- Open Changelog and documentation from package list `#2184`
+  - You can open the changelog and documentation from `...` button at the right of package list
+- Option to exclude VPM Packages from backups `#2185`
+  - You can exclude VPM Packages from backups to reduce size of backup a little
+  - However, if the package author ignored the recommendation from VRChat and us, and removed package from their repository, you may need to install another version when restoring the backup.
+  - Since many of the repository maintainers have removed many packages in their repository and VPM Packages are relatively small, this feature is disabled by default. You can enable this on the settings page.
+- Show the range of requested package in missing dependencies dialog `#2187`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Clicking VCC link while adding vpm repository would close previously opened add repository dialog `#1570`
+- Layout shift on select package `#2045`
+- Unable to change the unity version from "unknown" if ProjectVersion.txt does not exists `#2183`
 
 ### Security
+
+## [1.0.1] - 2025-02-05
+### Added
+- Add Korean localization [`#1822`](https://github.com/vrc-get/vrc-get/pull/1822)
+
+### Fixed
+- Fixed toast message when adding repositories [`#1815`](https://github.com/vrc-get/vrc-get/pull/1815)
+- Improved several linux desktop support [`#1821`](https://github.com/vrc-get/vrc-get/pull/1821)
+- Backup file used UTC time instead of Local time [`#1862`](https://github.com/vrc-get/vrc-get/pull/1862)
+- Worlds templates doesn't have proper input axis settings [`#1902`](https://github.com/vrc-get/vrc-get/pull/1902)
+
+## [1.0.0] - 2025-01-01
+### Fixed
+- Link to unity hub is hardcoded to Japanese [`#1810`](https://github.com/vrc-get/vrc-get/pull/1810)
+  - Fixed link to respect currently configured language
+- Fixed Logs page autoscroll not enable on start [`#1811`](https://github.com/vrc-get/vrc-get/pull/1811)
+- Fixed failed to load project list with invalid unity version stored [`#1813`](https://github.com/vrc-get/vrc-get/pull/1813)
+
+## [0.1.17] - 2024-12-22
+### Changed
+- Several GUI improvements [`#1672`](https://github.com/vrc-get/vrc-get/pull/1672) [`#1771`](https://github.com/vrc-get/vrc-get/pull/1771) [`#1775`](https://github.com/vrc-get/vrc-get/pull/1775) [`#1772`](https://github.com/vrc-get/vrc-get/pull/1772) [`#1779`](https://github.com/vrc-get/vrc-get/pull/1779)
+- Removed `-debugCodeOptimization` from default unity arguments [`#1742`](https://github.com/vrc-get/vrc-get/pull/1742)
+- Projects that failes to resolve will also be added to Project List now [`#1748`](https://github.com/vrc-get/vrc-get/pull/1748)
+  - Previsously project dir is created but not added to list
+- Dialog is shown when some installing packages are not found [`#1749`](https://github.com/vrc-get/vrc-get/pull/1749) [`#1776`](https://github.com/vrc-get/vrc-get/pull/1776)
+  - The new dialog also suggest you to google & add repository for the package
+  - Previously the first package we could not found are shown on the error toast but now collect and show missing packages as many as possible
+
+### Fixed
+- Prerelease version is choosen even if good stable version exists [`#1745`](https://github.com/vrc-get/vrc-get/pull/1745)
+
+## [0.1.16] - 2024-11-12
+### Added
+- Support for China version of Unity releases like `2022.3.22f1c1` `#1558
+- `rpm` `deb` packaging for Linux [`#1575`](https://github.com/vrc-get/vrc-get/pull/1575)
+  - This is to test how good / bad `rpm` or `deb` distribution is.
+  - We **may** create dnf / apt package repository in the future, but not planned for now.
+- Skipping finding legacy assets when downgrading / upgrading / reinstalling package [`#1581`](https://github.com/vrc-get/vrc-get/pull/1581)
+  - This will speed up the process of downgrading / upgrading / reinstalling package.
+
+### Changed
+- Separated quick open actions to own settings box. [`#1496`](https://github.com/vrc-get/vrc-get/pull/1496)
+- Improved behavior with downloading package error [`#1557`](https://github.com/vrc-get/vrc-get/pull/1557)
+- Installing unlocked package is now possible with warning [`#1557`](https://github.com/vrc-get/vrc-get/pull/1557)
+- Added many logs for installing package [`#1557`](https://github.com/vrc-get/vrc-get/pull/1557)
+- Migration feature is no longer marked as experimental [`#1559`](https://github.com/vrc-get/vrc-get/pull/1559)
+- Several UX improvements [`#1561`](https://github.com/vrc-get/vrc-get/pull/1561) [`#1565`](https://github.com/vrc-get/vrc-get/pull/1565) [`#1569`](https://github.com/vrc-get/vrc-get/pull/1569) [`#1571`](https://github.com/vrc-get/vrc-get/pull/1571) [`#1573`](https://github.com/vrc-get/vrc-get/pull/1573)
+- Added more error log [`#1652`](https://github.com/vrc-get/vrc-get/pull/1652)
+- Improved error message when specified drive not found [`#1653`](https://github.com/vrc-get/vrc-get/pull/1653)
+
+### Fixed
+- Clicking VCC link while adding vpm repository would close previously opened add repository dialog [`#1570`](https://github.com/vrc-get/vrc-get/pull/1570)
+- Opnening Templetes directory might fails [`#1641`](https://github.com/vrc-get/vrc-get/pull/1641)
+- Backup file name is incorrect if project name contains '.' [`#1648`](https://github.com/vrc-get/vrc-get/pull/1648)
+- Error creating project if the project path is "C:" [`#1651`](https://github.com/vrc-get/vrc-get/pull/1651)
+- "missing field Verison" error if some unity version is missing [`#1654`](https://github.com/vrc-get/vrc-get/pull/1654)
 
 ## [0.1.15] - 2024-09-05
 ### Added
@@ -467,7 +568,11 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.15...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.1...HEAD
+[1.0.1]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.0...gui-v1.0.1
+[1.0.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.17...gui-v1.0.0
+[0.1.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.16...gui-v0.1.17
+[0.1.16]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.15...gui-v0.1.16
 [0.1.15]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.14...gui-v0.1.15
 [0.1.14]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.13...gui-v0.1.14
 [0.1.13]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.12...gui-v0.1.13

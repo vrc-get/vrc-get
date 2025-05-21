@@ -4,13 +4,14 @@ use std::io;
 use std::mem::forget;
 use tauri::State;
 use tokio::spawn;
-use tokio::sync::oneshot;
 use tokio::sync::Mutex;
-use vrc_get_vpm::environment::{find_unity_hub, VccDatabaseConnection};
+use tokio::sync::oneshot;
+use vrc_get_vpm::environment::{VccDatabaseConnection, find_unity_hub};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_hub;
 
 use crate::commands::prelude::*;
+use crate::config::UnityHubAccessMethod;
 
 #[derive(Debug, Clone, Copy)]
 enum UpdateUnityResultTiny {
@@ -52,6 +53,7 @@ pub async fn is_loading_from_unity_hub_in_progress() -> bool {
 
 pub async fn update_unity_paths_from_unity_hub(
     settings: &SettingsState,
+    config: &GuiConfigState,
     io: &DefaultEnvironmentIo,
 ) -> io::Result<bool> {
     loop {
@@ -65,7 +67,7 @@ pub async fn update_unity_paths_from_unity_hub(
                 Ok(UpdateUnityResultTiny::Success) => return Ok(true),
                 Ok(UpdateUnityResultTiny::NoUnityHub) => return Ok(false),
                 Ok(UpdateUnityResultTiny::IoError) => {
-                    return Err(io::Error::new(io::ErrorKind::Other, "io error"))
+                    return Err(io::Error::other("io error"));
                 }
                 Err(_) => {
                     debug!("previous update failed with panic or was canceled, retrying");
@@ -93,7 +95,7 @@ pub async fn update_unity_paths_from_unity_hub(
 
             debug!("updating unity paths from unity hub");
 
-            let result = update_unity_paths_from_unity_hub_impl(settings, io).await;
+            let result = update_unity_paths_from_unity_hub_impl(settings, config, io).await;
 
             debug!("updating unity paths from unity hub finished, notifying waiters");
 
@@ -119,19 +121,29 @@ pub async fn update_unity_paths_from_unity_hub(
 
 async fn update_unity_paths_from_unity_hub_impl(
     settings: &SettingsState,
+    config: &GuiConfigState,
     io: &DefaultEnvironmentIo,
 ) -> io::Result<bool> {
-    let unity_hub_path = {
-        let mut settings = settings.load_mut(io).await?;
-        let Some(unity_hub_path) = find_unity_hub(&mut settings, io).await? else {
-            settings.save().await?;
-            return Ok(false);
-        };
-        settings.save().await?;
-        unity_hub_path
-    };
+    let paths_from_hub = match config.get().unity_hub_access_method {
+        UnityHubAccessMethod::ReadConfig => unity_hub::load_unity_by_loading_unity_hub_files()
+            .await?
+            .into_iter()
+            .map(|x| (x.version, x.path))
+            .collect::<Vec<_>>(),
+        UnityHubAccessMethod::CallHub => {
+            let unity_hub_path = {
+                let mut settings = settings.load_mut(io).await?;
+                let Some(unity_hub_path) = find_unity_hub(&mut settings, io).await? else {
+                    settings.save().await?;
+                    return Ok(false);
+                };
+                settings.save().await?;
+                unity_hub_path
+            };
 
-    let paths_from_hub = unity_hub::get_unity_from_unity_hub(unity_hub_path.as_ref()).await?;
+            unity_hub::load_unity_by_calling_unity_hub(unity_hub_path.as_ref()).await?
+        }
+    };
 
     {
         let mut connection = VccDatabaseConnection::connect(io).await?;
@@ -150,9 +162,10 @@ async fn update_unity_paths_from_unity_hub_impl(
 #[specta::specta]
 pub async fn environment_update_unity_paths_from_unity_hub(
     settings: State<'_, SettingsState>,
+    config: State<'_, GuiConfigState>,
     io: State<'_, DefaultEnvironmentIo>,
 ) -> Result<bool, RustError> {
-    Ok(update_unity_paths_from_unity_hub(&settings, &io).await?)
+    Ok(update_unity_paths_from_unity_hub(&settings, &config, &io).await?)
 }
 
 #[tauri::command]

@@ -1,5 +1,5 @@
-use crate::repository::{RemotePackages, RemoteRepository};
 use crate::PackageManifest;
+use crate::repository::{RemotePackages, RemoteRepository};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -53,6 +53,10 @@ impl LocalCachedRepository {
         self.repo().url()
     }
 
+    pub fn set_url(&mut self, url: Url) {
+        self.repo.set_url(url);
+    }
+
     pub fn id(&self) -> Option<&str> {
         self.repo().id()
     }
@@ -61,7 +65,10 @@ impl LocalCachedRepository {
         self.repo().name()
     }
 
-    pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageManifest> {
+    pub fn get_versions_of(
+        &self,
+        package: &str,
+    ) -> impl Iterator<Item = &'_ PackageManifest> + use<'_> {
         self.repo().get_versions_of(package)
     }
 

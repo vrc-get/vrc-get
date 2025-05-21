@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::commands::prelude::*;
+use crate::config::UnityHubAccessMethod;
+use crate::logging::LogLevel;
 
 #[tauri::command]
 #[specta::specta]
@@ -83,8 +85,9 @@ impl SetupPages {
         flags & self.as_flag() == self.as_flag()
     }
 
-    pub fn pages() -> &'static [SetupPages] {
-        if cfg!(target_os = "macos") {
+    pub fn pages(app: &AppHandle) -> &'static [SetupPages] {
+        // currently, SystemSetting page only has deep link support
+        if !crate::deep_link_support::should_install_deep_link(app) {
             &[
                 SetupPages::Appearance,
                 SetupPages::UnityHub,
@@ -116,11 +119,12 @@ impl SetupPages {
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_get_finished_setup_pages(
+    app: AppHandle,
     config: State<'_, GuiConfigState>,
 ) -> Result<Vec<SetupPages>, RustError> {
     let setup_process_progress = config.get().setup_process_progress;
 
-    Ok(SetupPages::pages()
+    Ok(SetupPages::pages(&app)
         .iter()
         .copied()
         .filter(|page| page.is_finished(setup_process_progress))
@@ -146,6 +150,58 @@ pub async fn environment_clear_setup_process(
 ) -> Result<(), RustError> {
     let mut config = config.load_mut().await?;
     config.setup_process_progress = 0;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_logs_level(
+    config: State<'_, GuiConfigState>,
+) -> Result<Vec<LogLevel>, RustError> {
+    Ok(config.get().logs_level.clone())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_logs_level(
+    config: State<'_, GuiConfigState>,
+    logs_level: Vec<LogLevel>,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.logs_level = logs_level;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_gui_animation(
+    config: State<'_, GuiConfigState>,
+) -> Result<bool, RustError> {
+    Ok(config.get().gui_animation)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_gui_animation(
+    config: State<'_, GuiConfigState>,
+    gui_animation: bool,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.gui_animation = gui_animation;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_unity_hub_access_method(
+    config: State<'_, GuiConfigState>,
+    unity_hub_access_method: UnityHubAccessMethod,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.unity_hub_access_method = unity_hub_access_method;
     config.save().await?;
     Ok(())
 }

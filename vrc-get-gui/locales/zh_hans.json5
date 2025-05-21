@@ -5,11 +5,14 @@
 
     "general:loading...": "加载中...",
     "general:name": "名称",
+    "general:version": "版本",
+    "general:packages": "软件包",
     "general:source": "来源",
 
     "general:button:add": "添加",
     "general:button:edit": "编辑",
     "general:button:cancel": "取消",
+    "general:button:delete": "删除",
     "general:button:close": "关闭",
     "general:button:ok": "完成",
     "general:button:reset": "重置",
@@ -18,7 +21,7 @@
     "general:button:open location": "打开所在位置",
     "general:button:continue": "继续",
 
-    "general:dialog:select file or directory header": "选择文件或目录。",
+    "general:dialog:select file or directory header": "选择文件或目录",
     "general:dialog:select file or directory": "请选择文件或目录。",
     "general:toast:invalid directory": "选择的路径无效。",
 
@@ -26,6 +29,9 @@
     "general:not implemented": "该功能未实现",
 
     "search:placeholder": "搜索...",
+    
+    "general:error:failed to create dir": "目录创建失败（缺少权限？）： {{err}}",
+    "general:error:failed to create dir missing drive": "目录创建失败。硬盘不存在，您是不是忘记连接硬盘了？",
 
 
 // Setup Page
@@ -43,6 +49,7 @@
     "setup:unity-hub:description": "在开始之前，您需要先安装 Untiy Hub，它可以很方便地安装和管理 Unity 版本。<br/>如果您还没有项目，ALCOM 会建议您使用 Unity Hub 安装 Unity。",
     "setup:unity-hub:using this unity hub": "Unity Hub 路径",
     "setup:unity-hub:download unity hub from unity.com": "从 unity.com 下载 Unity Hub。",
+    "setup:unity-hub:unity hub link": "https://unity.com/cn/download",
     "setup:unity-hub:recheck installation": "重新检测",
     "setup:unity-hub:detection failed collapse": "您是否确定您已经安装了 Unity Hub?",
     "setup:unity-hub:detection failed description": "请点击上面的 \"重新检测\" 按钮重新检测 Unity Hub。如果不起作用，说明 ALCOM 无法检测到您的 Unity Hub。请在下面手动设置 Unity Hub。",
@@ -60,7 +67,7 @@
 
     "setup:steps card:SystemSetting": "系统配置",
     "setup:system-setting:heading": "系统配置",
-    "setup:system-setting:vcc scheme description": "您可以使 ALCOM 代替 VCC 来处理 <code>vcc://</code> 快捷方式，以将存储库安装到你的电脑上。ALCOM 和 VCC 将共享相同的存储库列表，但使用 ALCOM 可以让你在不打开 VCC 的情况下快速安装存储库。",
+    "setup:system-setting:vcc scheme description": "您可以使 ALCOM 代替 VCC 来处理 <code>vcc://</code> 快捷方式，以将存储库安装到您的电脑上。ALCOM 和 VCC 将共享相同的存储库列表，但使用 ALCOM 可以让您在不打开 VCC 的情况下快速安装存储库。",
     "setup:system-setting:macos bug message": "在 macOS 上无需配置此功能。 (这个页面不应该被显示，显示此页面是一个错误)",
     "setup:system-setting:hostname-with-non-ascii": "您在设备名称中使用了非 ASCII 字符。<br/>这可能会导致 Unity 2022 出现问题。<br/>强烈建议您使用 ASCII 字符来命名设备。",
 
@@ -71,7 +78,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "异常的设备名称",
-    "sidebar:dialog:bad hostname": "您的设备名称存在问题。",
+    "sidebar:dialog:bad hostname": "您的设备名称存在问题",
     "sidebar:dialog:bad hostname description": "您在设备名称中使用了非 ASCII 字符。<br/>这可能会导致版本较新的 Unity 出现问题。<br/>强烈建议您使用数字与字母组合来命名设备。",
 
     "sidebar:toast:version copied": "已复制版本号。",
@@ -113,10 +120,16 @@
     "projects:hint:warn multibyte char in project name": "使用多字节字符可能会导致问题。",
     "projects:hint:project already exists": "目录已存在。",
     "projects:hint:create project ready": "已准备好创建项目！",
-    "projects:template:type": "类型",
     "projects:template": "模板:",
-    "projects:type:custom": "自定义",
+    "projects:template-category:builtin": "内置",
+    "projects:template-category:alcom": "自定义模板",
+    "projects:template-category:vcc": "VCC 模板",
+    "projects:template-name:avatars": "VRChat 虚拟形象",
+    "projects:template-name:worlds": "VRChat 世界",
+    "projects:template-name:blank": "空白",
     "projects:template:unity version": "Unity 版本:",
+    "projects:tooltip:template-unavailable": "该模板使用的基础模板不可用",
+    "projects:tooltip:template-no-unity": "该模板使用的 Unity 版本不可用",
     "projects:latest": "最新",
     "projects:hint:path of creating project": "新项目将位于 <path>{{path}}</path>。",
     "projects:button:create": "创建",
@@ -130,11 +143,11 @@
     "projects:dialog:select unity header": "选择 Unity",
     "projects:dialog:multiple unity found": "发现该版本有多个 Unity 安装。",
     "projects:dialog:keep using this version": "继续使用此版本",
-    "projects:dialog:unity not found but china found": "未找到匹配的 Unity 版本，但找到了对应的中国版 Unity。",
+    "projects:dialog:unity not found but china found": "未找到匹配的 Unity 版本，但找到了对应的中国版 Unity",
     "projects:dialog:unity version of the project not found but china found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在您的设备中找到了对应的中国版 Unity {{chinaUnity}} 。<br>要让这个项目使用中国版 Unity 吗？",
     "projects:dialog:use china version": "使用中国版 Unity",
-    "projects:dialog:unity not found but international found": "未找到匹配的 Unity 版本，但找到了对应的国际版 Unity。",
-    "projects:dialog:unity version of the project not found but international found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在你的设备中找到了对应的国际版 Unity {{internationalUnity}} 。<br>要让这个项目使用国际版 Unity 吗？",
+    "projects:dialog:unity not found but international found": "未找到匹配的 Unity 版本，但找到了对应的国际版 Unity",
+    "projects:dialog:unity version of the project not found but international found": "无法找到该项目使用的 Unity {{expectedUnity}} 。<br>但是，我们在您的设备中找到了对应的国际版 Unity {{internationalUnity}} 。<br>要让这个项目使用国际版 Unity 吗？",
     "projects:dialog:use international version": "使用国际版 Unity",
     "projects:toast:invalid project unity version": "我们没有检测到合适的 Unity 版本",
     "projects:toast:loading unity from unity hub": "正在从 Unity Hub 获取已安装的 Unity...",
@@ -145,6 +158,7 @@
     "projects:button:migrate": "迁移",
     "projects:tooltip:sdk2 migration hint": "旧版 SDK2 项目无法自动迁移。<br>请先手动迁移到 SDK3。",
     "projects:tooltip:git-vcc not supported": "不支持 git-VCC 项目",
+    "projects:tooltip:no upm in unity": "Unity 2017 或更早版本不支持 VPM。",
     "projects:dialog:vpm migrate header": "迁移旧版项目",
     "projects:dialog:vpm migrate description": "迁移项目可能会导致您的所做的更改丢失。请在迁移前备份您的项目。",
     "projects:button:backup and migrate": "备份并迁移",
@@ -169,7 +183,7 @@
     "projects:toast:project removed": "项目删除成功。",
 
   // Manage Projects
-    "projects:manage:tooltip:back to projects": "返回项目",
+    "projects:manage:tooltip:back to projects": "返回项目列表",
     "projects:menuitem:change launch options": "更改启动选项",
     "projects:menuitem:backup": "生成备份",
     "projects:menuitem:forget unity path": "清除 Unity 版本设置",
@@ -190,7 +204,9 @@
     "projects:manage:button:upgrade all": "升级所有软件包（最新）",
     "projects:manage:button:upgrade all stable": "升级所有软件包（稳定）",
     "projects:manage:button:reinstall all": "重新安装所有软件包",
-    "projects:manage:button:select repositories": "筛选存储库",
+    "projects:manage:button:package filters": "筛选软件包",
+    "projects:manage:menu:repository filter": "存储库过滤项",
+    "projects:manage:menu:other filters": "其他过滤项",
     "projects:manage:package": "软件包",
     "projects:manage:installed": "已安装版本",
     "projects:manage:latest": "最新版本",
@@ -259,8 +275,13 @@
     "projects:toast:unity migrated": "项目已迁移至 Unity 2022",
 
     "projects:manage:dialog:confirm changes description": "您正在对项目进行以下更改。",
+    "projects:manage:dialog:note breaking changes": "您更改的软件包可能会导致一些破坏性的更改。<br/>项目中的资产、配置和工具可能不兼容。<br/>请查阅兼容性信息，谨慎升级。",
+    "projects:manage:dialog:note incompatibility": "与其他一些软件包不兼容。<br/>这些工具在加载项目或使用时可能会报错。<br/>请查阅兼容性信息，立即升级相关软件包，或谨慎安装。",
+    "projects:manage:dialog:upgrade package": "将 <b>{{name}}</b> 版本 {{previousVersion}} 升级到 <b>{{version}}</b>",
+    "projects:manage:dialog:downgrade package": "将 <b>{{name}}</b> 版本 {{previousVersion}} 降级到 <b>{{version}}</b>",
     "projects:manage:dialog:install package": "安装 <b>{{name}}</b> 版本 {{version}}",
     "projects:manage:dialog:reinstall package": "重新安装 <b>{{name}}</b> 版本 {{version}}",
+    "projects:manage:dialog:breaking changes": "包含破坏性更改",
     "projects:manage:dialog:uninstall package as requested": "根据您的要求，删除 <b>{{name}}</b>",
     "projects:manage:dialog:uninstall package as legacy": "删除 <b>{{name}}</b>，因为它是一个旧版软件包",
     "projects:manage:dialog:uninstall package as unused": "删除 <b>{{name}}</b> 因为它未被使用",
@@ -274,6 +295,9 @@
     "projects:manage:button:see changelog": "查看更新日志",
     "projects:manage:button:apply changes": "应用更改",
     "projects:manage:button:apply": "应用",
+
+    "projects:manage:dialog:missing dependencies": "软件包依赖缺失",
+    "projects:manage:dialog:missing dependencies description": "需要安装以下软件包，但我们无法在已添加的软件包存储库里找到它们。<br/>请添加包含这些软件包的软件包存储库。<br/>您可以前往 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 来找到相应的软件包存储库。",
 
 
 // Packages Page
@@ -340,6 +364,39 @@
     "user packages:toast:package added": "已成功添加软件包。",
     "user packages:toast:package removed": "已成功删除软件包。",
 
+    "packages:templates": "模板",
+    "templates:create template": "创建模板",
+    "templates:category": "类型",
+    "templates:id": "模板 ID",
+    "template:no id": "没有 ID",
+    "templates:category:builtin": "内置",
+    "templates:tooltip:category:builtin": "内置模板是由 ALCOM 创建并与 ALCOM 一起发布的。",
+    "templates:category:alcom": "自定义",
+    "templates:tooltip:category:alcom": "自定义模板是由你使用 ALCOM 创建和编辑的。",
+    "templates:category:vcc": "VCC",
+    "templates:tooltip:category:vcc": "VCC 模板是由你为 VCC 手动创建的。",
+    "templates:tooltip:remove template": "删除模板",
+    "templates:tooltip:remove builtin template": "你不能删除内置模板。",
+    "templates:tooltip:remove vcc template": "你不能在这里删除 VCC 模板。你应该直接删除该模板的目录。",
+    "templates:menuitem:edit template": "编辑模板",
+    "templates:menuitem:export template": "导出模板",
+    "templates:tooltip:export template with unitypackage": "该模板使用了不可移植的 Unity 软件包，所以你不可以导出它。",
+    "templates:menuitem:open vcc template": "打开模板目录",
+    "templates:dialog:edit template": "编辑模板",
+    "templates:dialog:create template": "创建模板",
+    "templates:dialog:general information": "常规信息",
+    "templates:dialog:base template": "基础模板",
+    "templates:dialog:unity version": "Unity 版本",
+    "templates:dialog:version": "版本",
+    "templates:dialog:unitypackages": "Unity 软件包",
+    "templates:dialog:no unitypackages": "没有 Unity 软件包",
+    "templates:dialog:remove template": "删除模板",
+    "templates:dialog:confirm remove template": "你确定要删除模板 {{displayName}} 吗？",
+    "templates:button:save template": "保存模板",
+    "templates:button:import template": "导入模板",
+    "templates:toast:imported n templates": "已导入 {{count}} 个模板",
+    "template:toast:removed": "模板已删除",
+
 
 // Settings Page
     "settings": "设置",
@@ -366,6 +423,8 @@
     "settings:toast:not unity": "所选文件不是有效的 Unity 可执行文件。",
     "settings:toast:unity already added": "所选的 Unity 版本已经添加过了。",
     "settings:toast:unity added": "添加 Unity 成功！",
+    "settings:use legacy unity hub loading": "使用旧版方法获取 Unity Hub",
+    "settings:use legacy unity hub loading description": "旧版方法会比目前默认的新方法更加可靠，但会花费更多时间。<br/>这将会在未来被移除，所以如果您遇到任何问题，请及时向开发者反馈。",
 
     "settings:default unity arguments": "默认的 Untiy 命令行参数",
     "settings:default unity arguments description": "ALCOM 启动 Unity 时将使用这些命令行参数。",
@@ -392,6 +451,9 @@
 
     "settings:show prerelease": "显示预发布软件包",
     "settings:show prerelease description": "启用 \"显示预发布软件包\" 会在软件包列表中显示预发布软件包。此外，在解析依赖关系时也将使用预发布软件包。",
+
+    "settings:gui animation": "启用 GUI 动画",
+    "settings:gui animation description": "当启用 GUI 动画时，切换页面将会带有动画效果。但系统 WebView 版本过低时可能不起作用。",
 
     "settings:appearance": "外观",
     "settings:language": "界面语言(Language)",
@@ -424,7 +486,7 @@
     "check update:dialog:relaunching...": "正在重启 ALCOM...",
 
     "settings:use alcom for vcc scheme": "使 ALCOM 关联 URL 快捷方式 <code>vcc://</code>",
-    "settings:use vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为 URL 快捷方式 <code>vcc://</code> 唤起的默认应用程序，以从浏览器快捷添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式。<code>vcc://</code><br>每当 VCC 安装/重装/更新时，你都需要重启 ALCOM 或通过手动点击设置界面的按钮来覆盖 VCC 的对 URL 快捷方式的注册。",
+    "settings:use vcc scheme description": "通过 URL 快捷方式 <code>vcc://</code>，可以从浏览器启动 VCC 来添加软件包存储库。<br>作为 VCC 的替代方案，您可以使 ALCOM 成为 URL 快捷方式 <code>vcc://</code> 唤起的默认应用程序，以从浏览器快捷添加软件包存储库。<br>如果启用该功能，ALCOM 将会在每次启动时自动注册 URL 快捷方式。<code>vcc://</code><br>每当 VCC 安装/重装/更新时，您都需要重启 ALCOM 或通过手动点击设置界面的按钮来覆盖 VCC 的对 URL 快捷方式的注册。",
     "settings:register vcc scheme now": "立即注册 URL 快捷方式",
     "settings:toast:vcc scheme installed": "ALCOM 已被注册为 URL 快捷方式 <code>vcc://</code> 的默认启动程序。",
 
@@ -445,5 +507,6 @@
     "logs:level": "等级",
     "logs:message": "消息",
     "logs:manage:select logs level": "日志等级过滤器",
+    "logs:manage:auto scroll": "自动滚至底部",
   },
 }

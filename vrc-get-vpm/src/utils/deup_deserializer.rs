@@ -447,7 +447,7 @@ impl<'a, T> MapKeySeed<'a, T> {
     }
 }
 
-impl<'a, 'de, T> DeserializeSeed<'de> for MapKeySeed<'a, T>
+impl<'de, T> DeserializeSeed<'de> for MapKeySeed<'_, T>
 where
     T: DeserializeSeed<'de>,
 {
@@ -486,7 +486,7 @@ impl<'a> MapKeyMeta<'a> {
     }
 }
 
-impl<'de, 'a, T> Deserializer<'de> for MapKeyDeserializer<'a, T>
+impl<'de, T> Deserializer<'de> for MapKeyDeserializer<'_, T>
 where
     T: Deserializer<'de>,
 {

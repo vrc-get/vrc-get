@@ -3,6 +3,7 @@ use std::fmt;
 use std::num::NonZeroU8;
 use std::str::FromStr;
 
+use crate::version::Version;
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -149,6 +150,10 @@ impl UnityVersion {
     pub fn china_increment(self) -> Option<NonZeroU8> {
         self.china_increment
     }
+
+    pub fn as_semver(self) -> Version {
+        Version::new(self.major as u64, self.minor as u64, self.revision as u64)
+    }
 }
 
 impl fmt::Display for UnityVersion {
@@ -206,36 +211,11 @@ impl PartialOrd<Self> for UnityVersion {
 impl Ord for UnityVersion {
     fn cmp(&self, other: &Self) -> Ordering {
         // We ignore china increment for comparing version
-        major_ord(self.major(), other.major())
+        (self.major().cmp(&other.major()))
             .then_with(|| self.minor().cmp(&other.minor()))
             .then_with(|| self.revision().cmp(&other.revision()))
             .then_with(|| self.type_().cmp(&other.type_()))
             .then_with(|| self.increment().cmp(&other.increment()))
-    }
-}
-
-// 1 < 2 < 3 < 4 < 5 < years < 6
-fn major_ord(this: u16, other: u16) -> Ordering {
-    let this_year = this >= 2000;
-    let other_year = other >= 2000;
-
-    match (this_year, other_year) {
-        (true, true) => this.cmp(&other),
-        (false, false) => this.cmp(&other),
-        (true, false) => {
-            if other <= 5 {
-                Ordering::Greater
-            } else {
-                Ordering::Less
-            }
-        }
-        (false, true) => {
-            if this <= 5 {
-                Ordering::Less
-            } else {
-                Ordering::Greater
-            }
-        }
     }
 }
 
@@ -392,29 +372,6 @@ mod tests {
         bad!("2019.0");
         bad!("5.6.6");
         bad!("2023.4.6f");
-    }
-
-    #[test]
-    fn ord_major() {
-        macro_rules! test {
-            ($left: literal <  $right: literal) => {
-                assert_eq!(major_ord($left, $right), Ordering::Less);
-            };
-            ($left: literal > $right: literal) => {
-                assert_eq!(major_ord($left, $right), Ordering::Greater);
-            };
-            ($left: literal = $right: literal) => {
-                assert_eq!(major_ord($left, $right), Ordering::Equal);
-            };
-        }
-
-        test!(4 < 5);
-        test!(5 < 2017);
-        test!(2017 < 2023);
-        test!(2023 < 6);
-        test!(6 < 7);
-
-        test!(5 < 6);
     }
 
     #[test]

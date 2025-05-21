@@ -32,23 +32,38 @@ async environmentFinishedSetupPage(page: SetupPages) : Promise<null> {
 async environmentClearSetupProcess() : Promise<null> {
     return await TAURI_INVOKE("environment_clear_setup_process");
 },
+async environmentLogsLevel() : Promise<LogLevel[]> {
+    return await TAURI_INVOKE("environment_logs_level");
+},
+async environmentSetLogsLevel(logsLevel: LogLevel[]) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_logs_level", { logsLevel });
+},
+async environmentGuiAnimation() : Promise<boolean> {
+    return await TAURI_INVOKE("environment_gui_animation");
+},
+async environmentSetGuiAnimation(guiAnimation: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_gui_animation", { guiAnimation });
+},
+async environmentSetUnityHubAccessMethod(unityHubAccessMethod: UnityHubAccessMethod) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_unity_hub_access_method", { unityHubAccessMethod });
+},
 async environmentProjects() : Promise<TauriProject[]> {
     return await TAURI_INVOKE("environment_projects");
 },
 async environmentAddProjectWithPicker() : Promise<TauriAddProjectWithPickerResult> {
     return await TAURI_INVOKE("environment_add_project_with_picker");
 },
-async environmentRemoveProject(listVersion: number, index: number, directory: boolean) : Promise<null> {
-    return await TAURI_INVOKE("environment_remove_project", { listVersion, index, directory });
+async environmentRemoveProjectByPath(projectPath: string, directory: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_remove_project_by_path", { projectPath, directory });
 },
-async environmentRemoveProjectByPath(path: string, directory: boolean) : Promise<null> {
-    return await TAURI_INVOKE("environment_remove_project_by_path", { path, directory });
-},
-async environmentCopyProjectForMigration(channel: string, sourcePath: string) : Promise<AsyncCallResult<TauriCopyProjectForMigrationProgress, string>> {
+async environmentCopyProjectForMigration(channel: string, sourcePath: string) : Promise<AsyncCallResult<TauriCopyProjectProgress, string>> {
     return await TAURI_INVOKE("environment_copy_project_for_migration", { channel, sourcePath });
 },
-async environmentSetFavoriteProject(listVersion: number, index: number, favorite: boolean) : Promise<null> {
-    return await TAURI_INVOKE("environment_set_favorite_project", { listVersion, index, favorite });
+async environmentCopyProject(channel: string, sourcePath: string, newPath: string) : Promise<AsyncCallResult<TauriCopyProjectProgress, string>> {
+    return await TAURI_INVOKE("environment_copy_project", { channel, sourcePath, newPath });
+},
+async environmentSetFavoriteProject(projectPath: string, favorite: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_favorite_project", { projectPath, favorite });
 },
 async environmentProjectCreationInformation() : Promise<TauriProjectCreationInformation> {
     return await TAURI_INVOKE("environment_project_creation_information");
@@ -56,8 +71,8 @@ async environmentProjectCreationInformation() : Promise<TauriProjectCreationInfo
 async environmentCheckProjectName(basePath: string, projectName: string) : Promise<TauriProjectDirCheckResult> {
     return await TAURI_INVOKE("environment_check_project_name", { basePath, projectName });
 },
-async environmentCreateProject(basePath: string, projectName: string, template: TauriProjectTemplate) : Promise<TauriCreateProjectResult> {
-    return await TAURI_INVOKE("environment_create_project", { basePath, projectName, template });
+async environmentCreateProject(basePath: string, projectName: string, templateId: string, templateVersion: number, unityVersion: string) : Promise<TauriCreateProjectResult> {
+    return await TAURI_INVOKE("environment_create_project", { basePath, projectName, templateId, templateVersion, unityVersion });
 },
 async environmentRefetchPackages() : Promise<null> {
     return await TAURI_INVOKE("environment_refetch_packages");
@@ -134,6 +149,9 @@ async environmentSetShowPrereleasePackages(value: boolean) : Promise<null> {
 async environmentSetBackupFormat(backupFormat: string) : Promise<null> {
     return await TAURI_INVOKE("environment_set_backup_format", { backupFormat });
 },
+async environmentSetExcludeVpmPackagesFromBackup(excludeVpmPackagesFromBackup: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_exclude_vpm_packages_from_backup", { excludeVpmPackagesFromBackup });
+},
 async environmentSetReleaseChannel(releaseChannel: string) : Promise<null> {
     return await TAURI_INVOKE("environment_set_release_channel", { releaseChannel });
 },
@@ -145,6 +163,24 @@ async environmentGetDefaultUnityArguments() : Promise<string[]> {
 },
 async environmentSetDefaultUnityArguments(defaultUnityArguments: string[] | null) : Promise<null> {
     return await TAURI_INVOKE("environment_set_default_unity_arguments", { defaultUnityArguments });
+},
+async environmentExportTemplate(id: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_export_template", { id });
+},
+async environmentGetAlcomTemplate(id: string) : Promise<TauriAlcomTemplate> {
+    return await TAURI_INVOKE("environment_get_alcom_template", { id });
+},
+async environmentPickUnityPackage() : Promise<string[]> {
+    return await TAURI_INVOKE("environment_pick_unity_package");
+},
+async environmentSaveTemplate(id: string | null, base: string, name: string, unityRange: string, vpmPackages: ([string, string])[], unityPackages: string[]) : Promise<null> {
+    return await TAURI_INVOKE("environment_save_template", { id, base, name, unityRange, vpmPackages, unityPackages });
+},
+async environmentRemoveTemplate(id: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_remove_template", { id });
+},
+async environmentImportTemplate() : Promise<number> {
+    return await TAURI_INVOKE("environment_import_template");
 },
 async environmentUpdateUnityPathsFromUnityHub() : Promise<boolean> {
     return await TAURI_INVOKE("environment_update_unity_paths_from_unity_hub");
@@ -158,8 +194,8 @@ async environmentWaitForUnityHubUpdate() : Promise<void> {
 async projectDetails(projectPath: string) : Promise<TauriProjectDetails> {
     return await TAURI_INVOKE("project_details", { projectPath });
 },
-async projectInstallPackages(projectPath: string, envVersion: number, packageIndices: number[]) : Promise<TauriPendingProjectChanges> {
-    return await TAURI_INVOKE("project_install_packages", { projectPath, envVersion, packageIndices });
+async projectInstallPackages(projectPath: string, installs: ([string, string])[]) : Promise<TauriPendingProjectChanges> {
+    return await TAURI_INVOKE("project_install_packages", { projectPath, installs });
 },
 async projectReinstallPackages(projectPath: string, packageIds: string[]) : Promise<TauriPendingProjectChanges> {
     return await TAURI_INVOKE("project_reinstall_packages", { projectPath, packageIds });
@@ -227,6 +263,9 @@ async utilInstallAndUpgrade(channel: string, version: number) : Promise<AsyncCal
 async utilIsBadHostname() : Promise<boolean> {
     return await TAURI_INVOKE("util_is_bad_hostname");
 },
+async utilPickDirectory(current: string) : Promise<TauriPickProjectDefaultPathResult> {
+    return await TAURI_INVOKE("util_pick_directory", { current });
+},
 async deepLinkHasAddRepository() : Promise<boolean> {
     return await TAURI_INVOKE("deep_link_has_add_repository");
 },
@@ -235,6 +274,12 @@ async deepLinkTakeAddRepository() : Promise<AddRepositoryInfo | null> {
 },
 async deepLinkInstallVcc() : Promise<void> {
     await TAURI_INVOKE("deep_link_install_vcc");
+},
+async deepLinkImportedClearNonToastedCount() : Promise<number> {
+    return await TAURI_INVOKE("deep_link_imported_clear_non_toasted_count");
+},
+async deepLinkReduceImportedClearNonToastedCount(reduce: number) : Promise<void> {
+    await TAURI_INVOKE("deep_link_reduce_imported_clear_non_toasted_count", { reduce });
 }
 }
 
@@ -251,27 +296,32 @@ async deepLinkInstallVcc() : Promise<void> {
 export type AddRepositoryInfo = { url: string; headers: { [key in string]: string } }
 export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Started" } | { type: "UnusedProgress"; progress: P }
 export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; update_description: string | null }
+/**
+ * Errors that is expected to be handled on the GUI side
+ */
+export type HandleableRustError = { type: "MissingDependencies"; dependencies: ([string, string])[] }
 export type InstallUpgradeProgress = { type: "DownloadProgress"; received: number; total: number | null } | { type: "DownloadComplete" }
 export type LocalizableRustError = { id: string; args: { [key in string]: string } }
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string; gui_toast: boolean }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export type OpenOptions = "ErrorIfNotExists" | "CreateFolderIfNotExists" | "OpenParentIfNotExists"
-export type RustError = { type: "Unrecoverable"; message: string } | ({ type: "Localizable" } & LocalizableRustError)
+export type RustError = { type: "Unrecoverable"; message: string } | ({ type: "Localizable" } & LocalizableRustError) | { type: "Handleable"; message: string; body: HandleableRustError }
 export type SetupPages = "Appearance" | "UnityHub" | "ProjectPath" | "Backups" | "SystemSetting"
 export type TauriAddProjectWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriAddRepositoryResult = "BadUrl" | "Success"
 export type TauriAddUserPackageWithPickerResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
-export type TauriBasePackageInfo = { name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }
+export type TauriAlcomTemplate = { display_name: string; base: string; unity_version: string | null; vpm_dependencies: { [key in string]: string }; unity_packages: string[] }
+export type TauriBasePackageInfo = { name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; documentation_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }
 export type TauriCallUnityForMigrationResult = { type: "ExistsWithNonZero"; status: string } | { type: "FinishedSuccessfully" }
 export type TauriConflictInfo = { packages: string[]; unity_conflict: boolean; unlocked_names: string[] }
-export type TauriCopyProjectForMigrationProgress = { total: number; proceed: number; last_proceed: string }
+export type TauriCopyProjectProgress = { total: number; proceed: number; last_proceed: string }
 export type TauriCreateBackupProgress = { total: number; proceed: number; last_proceed: string }
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful"
 export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated"; reason: TauriDuplicatedReason; duplicated_name: string } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }
 export type TauriDuplicatedReason = "URLDuplicated" | "IDDuplicated"
-export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null }
+export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null; gui_animation: boolean; unity_hub_access_method: UnityHubAccessMethod; exclude_vpm_packages_from_backup: boolean }
 export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] }
-export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { env_version: number; index: number; source: TauriPackageSource }
+export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; documentation_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { source: TauriPackageSource }
 export type TauriPackageChange = { InstallNew: TauriBasePackageInfo } | { Remove: TauriRemoveReason }
 export type TauriPackageSource = "LocalUser" | { Remote: { id: string; display_name: string } }
 export type TauriPendingProjectChanges = { changes_version: number; package_changes: ([string, TauriPackageChange])[]; remove_legacy_files: string[]; remove_legacy_folders: string[]; conflicts: ([string, TauriConflictInfo])[] }
@@ -279,20 +329,30 @@ export type TauriPickProjectBackupPathResult = { type: "NoFolderSelected" } | { 
 export type TauriPickProjectDefaultPathResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful"; new_path: string }
 export type TauriPickUnityHubResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful" }
 export type TauriPickUnityResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
-export type TauriProject = { list_version: number; index: number; name: string; path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null; last_modified: number; created_at: number; favorite: boolean; is_exists: boolean }
-export type TauriProjectCreationInformation = { templates: TauriProjectTemplate[]; default_path: string }
-export type TauriProjectDetails = { unity: [number, number] | null; unity_str: string | null; unity_revision: string | null; installed_packages: ([string, TauriBasePackageInfo])[]; should_resolve: boolean }
+export type TauriProject = { name: string; path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null; last_modified: number; created_at: number; favorite: boolean; is_exists: boolean }
+export type TauriProjectCreationInformation = { templates: TauriProjectTemplateInfo[]; recent_project_locations: string[]; templates_version: number; default_path: string }
+export type TauriProjectDetails = { unity: [number, number]; unity_str: string; unity_revision: string | null; installed_packages: ([string, TauriBasePackageInfo])[]; should_resolve: boolean }
 export type TauriProjectDirCheckResult = "InvalidNameForFolderName" | "MayCompatibilityProblem" | "WideChar" | "AlreadyExists" | "Ok"
-export type TauriProjectTemplate = { type: "Builtin"; id: string; name: string } | { type: "Custom"; name: string }
+export type TauriProjectTemplateInfo = { display_name: string; id: string; unity_versions: string[]; has_unitypackage: boolean; source_path: string | null; available: boolean }
 export type TauriProjectType = "Unknown" | "LegacySdk2" | "LegacyWorlds" | "LegacyAvatars" | "UpmWorlds" | "UpmAvatars" | "UpmStarter" | "Worlds" | "Avatars" | "VpmStarter"
 export type TauriRemoteRepositoryInfo = { display_name: string; id: string; url: string; packages: TauriBasePackageInfo[] }
 export type TauriRemoveReason = "Requested" | "Legacy" | "Unused"
 export type TauriRepositoriesInfo = { user_repositories: TauriUserRepository[]; hidden_user_repositories: string[]; hide_local_user_packages: boolean; show_prerelease_packages: boolean }
 export type TauriRepositoryDescriptor = { url: string; headers: { [key in string]: string } }
 export type TauriUnityVersions = { unity_paths: ([string, string, boolean])[]; recommended_version: string; install_recommended_version_link: string }
+export type TauriUpdatedRealProjectInfo = { path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null }
 export type TauriUserPackage = { path: string; package: TauriBasePackageInfo }
 export type TauriUserRepository = { id: string; url: string | null; display_name: string }
 export type TauriVersion = { major: number; minor: number; patch: number; pre: string; build: string }
+export type UnityHubAccessMethod = 
+/**
+ * Reads config files of Unity Hub
+ */
+"ReadConfig" | 
+/**
+ * Launches headless Unity Hub in background
+ */
+"CallHub"
 
 /** tauri-specta globals **/
 

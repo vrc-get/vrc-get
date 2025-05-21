@@ -21,9 +21,10 @@ use serde::Serialize;
 use serde_json::error::Category;
 use serde_json::{Map, Value};
 pub(crate) use sha256_async_write::Sha256AsyncWrite;
+use std::error::Error;
 use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
-use std::task::{ready, Context, Poll};
+use std::task::{Context, Poll, ready};
 
 pub(crate) trait PathBufExt {
     fn joined(self, into: impl AsRef<Path>) -> Self;
@@ -46,7 +47,39 @@ impl<T> MapResultExt<T> for Result<T, reqwest::Error> {
     type Output = io::Error;
 
     fn err_mapped(self) -> Result<T, Self::Output> {
-        self.map_err(|err| io::Error::new(io::ErrorKind::NotFound, err))
+        self.map_err(|err| {
+            if let Some(source) = err.source() {
+                let kind = if let Some(io_err) = source.downcast_ref::<io::Error>() {
+                    io_err.kind()
+                } else {
+                    io::ErrorKind::NotFound
+                };
+
+                struct RequestCombinedErr(reqwest::Error);
+
+                impl std::fmt::Display for RequestCombinedErr {
+                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(f, "{} ({})", self.0, self.0.source().unwrap())
+                    }
+                }
+
+                impl std::fmt::Debug for RequestCombinedErr {
+                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        std::fmt::Debug::fmt(&self.0, f)
+                    }
+                }
+
+                impl Error for RequestCombinedErr {
+                    fn source(&self) -> Option<&(dyn Error + 'static)> {
+                        Some(&self.0)
+                    }
+                }
+
+                io::Error::new(kind, RequestCombinedErr(err))
+            } else {
+                io::Error::new(io::ErrorKind::NotFound, err)
+            }
+        })
     }
 }
 

@@ -1,10 +1,14 @@
+use crate::commands::DEFAULT_UNITY_ARGUMENTS;
+use crate::commands::async_command::*;
+use crate::commands::prelude::*;
+use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_path};
+use log::{error, info, warn};
+use serde::Serialize;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-
-use log::{error, info, warn};
-use serde::Serialize;
-use tauri::{State, Window};
+use std::str::FromStr;
+use tauri::{AppHandle, State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
@@ -13,16 +17,12 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
-
-use crate::commands::async_command::*;
-use crate::commands::prelude::*;
-use crate::commands::DEFAULT_UNITY_ARGUMENTS;
-use crate::utils::{collect_notable_project_files_tree, project_backup_path};
+use vrc_get_vpm::version::{StrictEqVersion, Version};
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
-    unity: Option<(u16, u8)>,
-    unity_str: Option<String>,
+    unity: (u16, u8),
+    unity_str: String,
     unity_revision: Option<String>,
     installed_packages: Vec<(String, TauriBasePackageInfo)>,
     should_resolve: bool,
@@ -34,10 +34,11 @@ pub async fn project_details(project_path: String) -> Result<TauriProjectDetails
     let unity_project = load_project(project_path).await?;
 
     Ok(TauriProjectDetails {
-        unity: unity_project
-            .unity_version()
-            .map(|v| (v.major(), v.minor())),
-        unity_str: unity_project.unity_version().map(|v| v.to_string()),
+        unity: (
+            unity_project.unity_version().major(),
+            unity_project.unity_version().minor(),
+        ),
+        unity_str: unity_project.unity_version().to_string(),
         unity_revision: unity_project.unity_revision().map(|x| x.to_string()),
         installed_packages: unity_project
             .installed_packages()
@@ -177,21 +178,37 @@ pub async fn project_install_packages(
     changes: State<'_, ChangesState>,
     io: State<'_, DefaultEnvironmentIo>,
     project_path: String,
-    env_version: u32,
-    package_indices: Vec<usize>,
+    installs: Vec<(String, String)>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
-    let Some(packages) = packages.get_versioned(env_version) else {
+    let Some(packages) = packages.get() else {
         return Err(RustError::unrecoverable(
             "Internal Error: environment version mismatch",
         ));
     };
+    let Some(installs) = installs
+        .into_iter()
+        .map(|(id, v)| Some((id, Version::from_str(&v).ok()?)))
+        .collect::<Option<Vec<_>>>()
+    else {
+        return Err(RustError::unrecoverable("bad version file"));
+    };
 
     changes!(packages, changes, |collection, packages| {
-        let installing_packages = package_indices
+        let Some(installing_packages) = installs
             .iter()
-            .map(|&index| packages[index])
-            .collect::<Vec<_>>();
+            .map(|(id, version)| {
+                packages
+                    .iter()
+                    .find(|&p| {
+                        p.name() == id && StrictEqVersion(p.version()) == StrictEqVersion(version)
+                    })
+                    .copied()
+            })
+            .collect::<Option<Vec<_>>>()
+        else {
+            return Err(RustError::unrecoverable("some packages not found"));
+        };
 
         let unity_project = load_project(project_path).await?;
 
@@ -210,7 +227,9 @@ pub async fn project_install_packages(
 
 #[tauri::command]
 #[specta::specta]
+#[allow(clippy::too_many_arguments)]
 pub async fn project_reinstall_packages(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
@@ -219,8 +238,8 @@ pub async fn project_reinstall_packages(
     project_path: String,
     package_ids: Vec<String>,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
 
     changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
@@ -236,6 +255,7 @@ pub async fn project_reinstall_packages(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_resolve(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     changes: State<'_, ChangesState>,
@@ -243,8 +263,8 @@ pub async fn project_resolve(
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<TauriPendingProjectChanges, RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
     changes!(packages, changes, |collection| {
         let unity_project = load_project(project_path).await?;
 
@@ -307,6 +327,7 @@ pub async fn project_clear_pending_changes(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_2022(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
@@ -315,7 +336,7 @@ pub async fn project_migrate_project_to_2022(
 ) -> Result<(), RustError> {
     {
         let settings = settings.load(io.inner()).await?;
-        let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+        let packages = packages.load(&settings, &io, &http, app_handle).await?;
         let mut unity_project = load_project(project_path).await?;
 
         let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
@@ -413,14 +434,15 @@ pub async fn project_call_unity_for_migration(
 #[tauri::command]
 #[specta::specta]
 pub async fn project_migrate_project_to_vpm(
+    app_handle: AppHandle,
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
     http: State<'_, reqwest::Client>,
     project_path: String,
 ) -> Result<(), RustError> {
-    let settings = settings.load(io.inner()).await?;
-    let packages = packages.load(&settings, io.inner(), http.inner()).await?;
+    let settings = settings.load(&io).await?;
+    let packages = packages.load(&settings, &io, &http, app_handle).await?;
 
     let mut unity_project = load_project(project_path).await?;
     let installer = PackageInstaller::new(io.inner(), Some(http.inner()));
@@ -468,21 +490,21 @@ pub async fn project_open_unity(
         connection.save(io.inner()).await?;
     }
 
-    let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
-    let config_default_args;
+    let unity_args = custom_args.or_else(|| config.get().default_unity_arguments.clone());
+    tokio::spawn(async move {
+        let mut args = vec!["-projectPath".as_ref(), OsStr::new(project_path.as_str())];
 
-    if let Some(custom_args) = &custom_args {
-        args.extend(custom_args.iter().map(OsStr::new));
-    } else {
-        config_default_args = config.get().default_unity_arguments.clone();
-        if let Some(config_default_args) = &config_default_args {
-            args.extend(config_default_args.iter().map(OsStr::new));
+        if let Some(unity_args) = &unity_args {
+            args.extend(unity_args.iter().map(OsStr::new));
         } else {
             args.extend(DEFAULT_UNITY_ARGUMENTS.iter().map(OsStr::new));
         }
-    }
 
-    crate::os::start_command("Unity".as_ref(), unity_path.as_ref(), &args).await?;
+        if let Err(e) = crate::os::start_command("Unity".as_ref(), unity_path.as_ref(), &args).await
+        {
+            log::error!("Launching Unity: {e}");
+        }
+    });
 
     Ok(true)
 }
@@ -498,15 +520,17 @@ async fn create_backup_zip(
     project_path: &Path,
     compression: async_zip::Compression,
     deflate_option: async_zip::DeflateOption,
+    exclude_vpm: bool,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
 ) -> Result<(), RustError> {
-    let mut file = tokio::fs::File::create(&backup_path).await?;
+    let mut file = tokio::fs::File::create_new(&backup_path).await?;
     let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
 
     info!("Collecting files to backup {}...", project_path.display());
 
     let start = std::time::Instant::now();
-    let file_tree = collect_notable_project_files_tree(PathBuf::from(project_path)).await?;
+    let file_tree =
+        collect_notable_project_files_tree(PathBuf::from(project_path), exclude_vpm).await?;
 
     let total_files = file_tree.count_all();
 
@@ -601,6 +625,7 @@ pub async fn project_create_backup(
 ) -> Result<AsyncCallResult<TauriCreateBackupProgress, ()>, RustError> {
     async_command(channel, window, async {
         let backup_format = config.get().backup_format.to_ascii_lowercase();
+        let exclude_vpm = config.get().exclude_vpm_packages_from_backup;
 
         let mut settings = settings.load_mut(io.inner()).await?;
         let backup_dir = project_backup_path(&mut settings).to_string();
@@ -616,10 +641,10 @@ pub async fn project_create_backup(
             let backup_name = format!(
                 "{project_name}-{timestamp}",
                 project_name = project_name,
-                timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%S"),
+                timestamp = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S"),
             );
 
-            tokio::fs::create_dir_all(&backup_dir).await?;
+            super::create_dir_all_with_err(&backup_dir).await?;
 
             log::info!("backup project: {project_name} with {backup_format}");
             let timer = std::time::Instant::now();
@@ -630,13 +655,14 @@ pub async fn project_create_backup(
                 "default" | "zip-store" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
-                        .with_extension("zip");
+                        .with_added_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
                         async_zip::Compression::Stored,
                         async_zip::DeflateOption::Normal,
+                        exclude_vpm,
                         ctx,
                     )
                     .await?;
@@ -644,13 +670,14 @@ pub async fn project_create_backup(
                 "zip-fast" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
-                        .with_extension("zip");
+                        .with_added_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(1),
+                        exclude_vpm,
                         ctx,
                     )
                     .await?;
@@ -658,13 +685,14 @@ pub async fn project_create_backup(
                 "zip-best" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
-                        .with_extension("zip");
+                        .with_added_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(9),
+                        exclude_vpm,
                         ctx,
                     )
                     .await?;
@@ -674,7 +702,7 @@ pub async fn project_create_backup(
 
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
-                        .with_extension("zip");
+                        .with_added_extension("zip");
 
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
                     create_backup_zip(
@@ -682,6 +710,7 @@ pub async fn project_create_backup(
                         project_path.as_ref(),
                         async_zip::Compression::Deflate,
                         async_zip::DeflateOption::Other(1),
+                        exclude_vpm,
                         ctx,
                     )
                     .await?;
@@ -726,7 +755,7 @@ pub async fn project_set_custom_unity_args(
         } else {
             project.clear_custom_unity_args();
         }
-        connection.update_project(&project)?;
+        connection.update_project(&project);
         connection.save(io.inner()).await?;
         Ok(true)
     } else {
@@ -762,7 +791,7 @@ pub async fn project_set_unity_path(
         } else {
             project.clear_unity_path();
         }
-        connection.update_project(&project)?;
+        connection.update_project(&project);
         connection.save(io.inner()).await?;
         Ok(true)
     } else {

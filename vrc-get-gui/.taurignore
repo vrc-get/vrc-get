@@ -25,12 +25,13 @@
 /*.ts
 /*.tsx
 /*.json
+/index.html
 
 # documentation
 /*.md
 
 # template
-/templates/**
+/project-templates/**
 
 # icons
 /app-icon.afdesign

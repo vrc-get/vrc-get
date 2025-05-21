@@ -65,7 +65,7 @@ impl<'a> OsEolJsonPrettyFormatter<'a> {
     }
 }
 
-impl<'a> Formatter for OsEolJsonPrettyFormatter<'a> {
+impl Formatter for OsEolJsonPrettyFormatter<'_> {
     #[inline]
     fn begin_array<W>(&mut self, writer: &mut W) -> io::Result<()>
     where

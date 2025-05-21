@@ -1,7 +1,2 @@
 # This is notes text for the updater json, which will be shown in the updater dialog.
 # Lines starting with '#' will be ignored (as comments).
-This release includes:
-- support for China releases of Unity.
-- Several UX improvements
-- Migration is no longer marked as experimental
-- Improvements on some failure

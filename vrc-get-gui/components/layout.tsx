@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type React from "react";
 
 export function VStack({
@@ -14,12 +15,40 @@ export function VStack({
 
 export function HNavBar({
 	className,
-	children,
-}: { className?: string; children: React.ReactNode }) {
+	leading,
+	trailing,
+	commonClassName,
+	leadingClassName,
+	trailingClassName,
+}: {
+	className?: string;
+	leading: React.ReactNode;
+	trailing?: React.ReactNode;
+	commonClassName?: string;
+	leadingClassName?: string;
+	trailingClassName?: string;
+}) {
 	return (
 		<Card className={`${className} mx-auto px-4 py-2 w-full`}>
 			<div className="mx-auto flex flex-wrap items-center justify-between text-primary gap-2">
-				{children}
+				<div
+					className={cn(
+						"flex items-center gap-2 me-auto grow shrink",
+						commonClassName,
+						leadingClassName,
+					)}
+				>
+					{leading}
+				</div>
+				<div
+					className={cn(
+						"flex items-center gap-2 ms-auto flex-wrap justify-end -mr-1",
+						commonClassName,
+						trailingClassName,
+					)}
+				>
+					{trailing}
+				</div>
 			</div>
 		</Card>
 	);

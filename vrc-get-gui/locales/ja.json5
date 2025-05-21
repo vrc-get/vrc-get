@@ -5,11 +5,14 @@
 
     "general:loading...": "読み込み中...",
     "general:name": "名前",
+    "general:version": "バージョン",
+    "general:packages": "パッケージ",
     "general:source": "ソース",
 
     "general:button:add": "追加",
     "general:button:edit": "編集",
     "general:button:cancel": "キャンセル",
+    "general:button:delete": "削除",
     "general:button:close": "閉じる",
     "general:button:ok": "OK",
     "general:button:reset": "リセット",
@@ -27,6 +30,9 @@
 
     "search:placeholder": "入力して検索...",
 
+    "general:error:failed to create dir": "ディレクトリの作成に失敗しました: {{err}}",
+    "general:error:failed to create dir missing drive": "ディレクトリの作成に失敗しました。保存先のドライブの接続を忘れているかもしれません。",
+
 
 // Setup Page
     "setup:loading": "設定を読み込み中...",
@@ -43,6 +49,7 @@
     "setup:unity-hub:description": "Unityをインストールしたり管理したりするために、Unity Hubをインストールする必要があります。<br>操作を行うために必要なUnityがインストールされていない場合、ALCOMはUnity Hub経由でのUnityインストールを提案します。",
     "setup:unity-hub:using this unity hub": "使用するUnity Hub",
     "setup:unity-hub:download unity hub from unity.com": "unity.comでUnity Hubをダウンロードする",
+    "setup:unity-hub:unity hub link": "https://unity.com/ja/download",
     "setup:unity-hub:recheck installation": "Unity Hubの有無を再確認する",
     "setup:unity-hub:detection failed collapse": "Unity Hubがインストール済みですか？",
     "setup:unity-hub:detection failed description": "Unity Hubの有無をもう一度確認させるには、\"Unity Hubの有無を再確認する\"ボタンを押してください。これが機能しない場合、ALCOMはUnity Hubの検出に失敗していますので、手動でUnity Hubの場所を指定してください。",
@@ -71,7 +78,7 @@
 
 // Side Bar
     "sidebar:bad hostname": "PC名に問題あり",
-    "sidebar:dialog:bad hostname": "PC名の設定に問題があります。",
+    "sidebar:dialog:bad hostname": "PC名の設定に問題があります",
     "sidebar:dialog:bad hostname description": "PC名(ホスト名)に非ASCII文字(半角英数字や半角記号等ではない文字)が使用されています。<br>これはUnityで問題を引き起こす場合があります。<br>半角英数字のPC名(ホスト名)に変更することを強くお勧めします。",
 
     "sidebar:toast:version copied": "バージョン情報をコピーしました。",
@@ -113,10 +120,16 @@
     "projects:hint:warn multibyte char in project name": "マルチバイト文字(半角英数字等ではない文字)を使用すると問題が発生する可能性があります。",
     "projects:hint:project already exists": "そのディレクトリは既に存在しています。",
     "projects:hint:create project ready": "プロジェクトが作成可能です！",
-    "projects:template:type": "種類:",
     "projects:template": "テンプレート:",
-    "projects:type:custom": "カスタムテンプレート",
+    "projects:template-category:builtin": "Built-in",
+    "projects:template-category:alcom": "カスタムテンプレート",
+    "projects:template-category:vcc": "VCCテンプレート",
+    "projects:template-name:avatars": "VRChat Avatars",
+    "projects:template-name:worlds": "VRChat Worlds",
+    "projects:template-name:blank": "Blank",
     "projects:template:unity version": "Unityバージョン:",
+    "projects:tooltip:template-unavailable": "このテンプレートの基になっているテンプレートが利用できません。",
+    "projects:tooltip:template-no-unity": "このテンプレートを利用できるUnityがインストールされていません。",
     "projects:latest": "最新",
     "projects:hint:path of creating project": "新しいプロジェクトは <path>{{path}}</path> に保存されます。",
     "projects:button:create": "作成する",
@@ -130,6 +143,12 @@
     "projects:dialog:select unity header": "Unityを選択",
     "projects:dialog:multiple unity found": "プロジェクトのUnityバージョン指定に一致するUnityが複数見つかりました。<br>どのUnityでプロジェクトを開くか選択してください。",
     "projects:dialog:keep using this version": "選択を保存する",
+    "projects:dialog:unity not found but china found": "Unityが見つかりません",
+    "projects:dialog:unity version of the project not found but china found": "このプロジェクトで使用されているUnity {{expectedUnity}}が見つかりませんでした。<br>しかし、対応する中国版Unity {{chinaUnity}}はインストールされているようです。<br>このプロジェクトで使用するUnityを中国版に切り替えますか？",
+    "projects:dialog:use china version": "中国版に切り替える",
+    "projects:dialog:unity not found but international found": "Unityが見つかりません",
+    "projects:dialog:unity version of the project not found but international found": "このプロジェクトで使用されているUnity {{expectedUnity}}が見つかりませんでした。<br>しかし、対応する通常版Unity {{internationalUnity}}はインストールされているようです。<br>このプロジェクトで使用するUnityを通常版に切り替えますか？",
+    "projects:dialog:use international version": "通常版に切り替える",
     "projects:toast:invalid project unity version": "プロジェクトのUnityバージョン指定が不正です。",
     "projects:toast:loading unity from unity hub": "Unity HubからUnityの情報を取得しています...",
     "projects:toast:match version unity not found": "Unity {{unity}}が見つかりませんでした。該当するUnityをインストールするか、ALCOMに登録してください。",
@@ -139,8 +158,9 @@
     "projects:button:migrate": "移行",
     "projects:tooltip:sdk2 migration hint": "SDK2のプロジェクトを自動で移行することはできません。<br>先に手動でSDK3へ移行してください。",
     "projects:tooltip:git-vcc not supported": "git-VCCのプロジェクトはサポートされていません。",
+    "projects:tooltip:no upm in unity": "Unity2017以前のプロジェクトではVPMがサポートされていません。",
     "projects:dialog:vpm migrate header": "レガシープロジェクトを移行",
-    "projects:dialog:vpm migrate description": "プロジェクト移行では一部のデータが失われる場合があります。<br>「バックアップして移行」か「複製して移行」を行うことをお勧めします。",
+    "projects:dialog:vpm migrate description": "プロジェクト移行では一部のデータが失われる場合があります。<br>「バックアップして移行」か「複製して移行」を行うことを推奨します。",
     "projects:button:backup and migrate": "バックアップして移行",
     "projects:button:migrate copy": "複製して移行",
     "projects:button:migrate in-place": "複製しないで移行",
@@ -176,6 +196,7 @@
 
     "projects:manage:suggest unity migration": "このプロジェクトは、VRChat SDKによるサポートが終了したUnity 2019を使用しています。VRChatはUnity 2022に移行することを推奨しています。",
     "projects:manage:suggest unity patch migration": "このプロジェクトは少し古いバージョンのUnity 2022を使用しています。VRChatはより新しいバージョンのUnity 2022に移行することを推奨しています。",
+    "projects:manage:suggest unity china to international migration": "このプロジェクトは中国版Unityを使用しています。VRChatとの互換性のために、通常版Unityを使用することを推奨します。",
     "projects:manage:button:unity migrate": "プロジェクトを移行",
 
     "projects:manage:manage packages": "パッケージ管理",
@@ -183,7 +204,9 @@
     "projects:manage:button:upgrade all": "すべて更新(最新)",
     "projects:manage:button:upgrade all stable": "すべて更新(安定版)",
     "projects:manage:button:reinstall all": "すべて入れ直す",
-    "projects:manage:button:select repositories": "VPMリポジトリを選択",
+    "projects:manage:button:package filters": "パッケージフィルター",
+    "projects:manage:menu:repository filter": "リポジトリ",
+    "projects:manage:menu:other filters": "その他のオプション",
     "projects:manage:package": "パッケージ",
     "projects:manage:installed": "インストール済み",
     "projects:manage:latest": "最新のバージョン",
@@ -234,6 +257,7 @@
     "projects:manage:dialog:upgrade major": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これにより、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
     "projects:manage:dialog:upgrade major vrchat supported": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これによりVRCSDKが更新されるほか、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
     "projects:manage:dialog:upgrade major vrchat unsupported": "プロジェクトに使用するUnityのメジャーバージョンを上げようとしています。<br>これによりVRCSDKが更新されるほか、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。<br>また、変更先のバージョンはVRChatがサポートしていないバージョンであるため、VRChatにコンテンツをアップロードできないかもしれません。",
+    "projects:manage:dialog:changing china releases": "プロジェクトに使用するUnityを通常版と中国版の間で切り替えようとしています。<br>これにより、キャッシュの再生成やツール等のスクリプトの移行処理が行われる場合があります。<br>予めバックアップを行っておくことを推奨します。",
     "projects:button:change unity version": "変更する",
 
     "projects:dialog:launch options": "起動オプション",
@@ -267,9 +291,11 @@
     "projects:manage:button:apply changes": "変更を適用",
     "projects:manage:button:apply": "適用",
 
+    "projects:manage:dialog:missing dependencies": "パッケージ情報が見つかりませんでした",
+    "projects:manage:dialog:missing dependencies description": "以下のパッケージのインストールを試みましたが、対応するバージョンのパッケージ情報が見つかりませんでした。<br>該当するパッケージを含むVPMリポジトリを探し、ALCOMに登録してください。<br>適切なVPMリポジトリを見つけるには、<ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink>が役立つかもしれません。",
 
-// Packages Page
-    "packages": "パッケージ管理",
+// Resources Page
+    "resources": "パッケージ&テンプレート",
     "vpm repositories:source:official": "Official",
     "vpm repositories:source:curated": "Curated",
     "vpm repositories:source:local": "User Local",
@@ -332,6 +358,39 @@
     "user packages:toast:package added": "パッケージを登録しました。",
     "user packages:toast:package removed": "パッケージの登録を解除しました。",
 
+    "packages:templates": "テンプレート",
+    "templates:create template": "テンプレートを作成",
+    "templates:category": "種類",
+    "templates:id": "テンプレート ID",
+    "template:no id": "なし",
+    "templates:category:builtin": "Built-in",
+    "templates:tooltip:category:builtin": "ALCOM開発チームによって作成され、組み込まれているテンプレートです。",
+    "templates:category:alcom": "カスタム",
+    "templates:tooltip:category:alcom": "ALCOMを用いて編集可能な形式のテンプレートです。",
+    "templates:category:vcc": "VCC",
+    "templates:tooltip:category:vcc": "VCC用に手動で作成されたテンプレートです。",
+    "templates:tooltip:remove template": "テンプレートを削除",
+    "templates:tooltip:remove builtin template": "Built-inテンプレートは削除できません。",
+    "templates:tooltip:remove vcc template": "VCCテンプレートはここでは削除できません。ファイルを直接削除してください。",
+    "templates:menuitem:edit template": "テンプレートを編集",
+    "templates:menuitem:export template": "テンプレートをエクスポート",
+    "templates:tooltip:export template with unitypackage": "UnityPackageを含むテンプレートはエクスポートできません。",
+    "templates:menuitem:open vcc template": "VCCテンプレートの保存場所を開く",
+    "templates:dialog:edit template": "テンプレートを編集",
+    "templates:dialog:create template": "テンプレートを作成",
+    "templates:dialog:general information": "テンプレート情報",
+    "templates:dialog:base template": "基となるテンプレート",
+    "templates:dialog:unity version": "Unityバージョン",
+    "templates:dialog:version": "バージョン",
+    "templates:dialog:unitypackages": "UnityPackage",
+    "templates:dialog:no unitypackages": "なし",
+    "templates:dialog:remove template": "テンプレートを削除",
+    "templates:dialog:confirm remove template": "テンプレート <b>{{displayName}}</b> を削除しますか？(ゴミ箱に移動されます)",
+    "templates:button:save template": "テンプレートを保存",
+    "templates:button:import template": "テンプレートをインポート",
+    "templates:toast:imported n templates": "テンプレートを{{count}}個インポートしました。",
+    "template:toast:removed": "テンプレートを削除しました。",
+
 
 // Settings Page
     "settings": "設定",
@@ -358,6 +417,8 @@
     "settings:toast:not unity": "選択されたファイルはUnityではありません。",
     "settings:toast:unity already added": "選択されたUnityは既に登録されています。",
     "settings:toast:unity added": "選択されたUnityを登録しました。",
+    "settings:use legacy unity hub loading": "Unity Hubを使用して読み込む(廃止予定)",
+    "settings:use legacy unity hub loading description": "Unity Hubを使用したUnityリストの読み込みは、信頼性は高いですが処理に時間が掛かります。<br>この手法は近いうちに廃止される予定のため、新しい手法で何か問題が発生した場合は、ALCOM開発チームにご報告ください。",
 
     "settings:default unity arguments": "デフォルトのUnityコマンドライン引数",
     "settings:default unity arguments description": "これらのコマンドライン引数は、ALCOMからUnityを起動する際に使用されます。",
@@ -384,6 +445,9 @@
 
     "settings:show prerelease": "プレリリース版のパッケージを表示する",
     "settings:show prerelease description": "プレリリース版のパッケージは、正式リリース前の動作確認等に用いられるパッケージです。<br>この設定を有効にすると、パッケージのバージョンリストにプレリリース版のパッケージも表示されるようになります。<br>また、パッケージの依存関係を解決する際に、プレリリース版のパッケージも含まれるようになります。",
+
+    "settings:gui animation": "UIのアニメーションを有効にする",
+    "settings:gui animation description": "ページを移動する際に遷移アニメーションが再生されます。Webviewのバージョンが低い場合は機能しないかもしれません。",
 
     "settings:appearance": "UI設定",
     "settings:language": "言語設定(Language)",
@@ -437,5 +501,6 @@
     "logs:level": "種類",
     "logs:message": "メッセージ内容",
     "logs:manage:select logs level": "フィルタ",
+    "logs:manage:auto scroll": "自動スクロール",
   },
 }

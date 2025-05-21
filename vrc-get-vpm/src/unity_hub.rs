@@ -1,11 +1,60 @@
+mod find_unity_from_unity_hub_logic;
+mod os;
+
 use crate::io;
 use crate::version::UnityVersion;
+use std::borrow::Cow;
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::str::from_utf8;
 use tokio::process::Command;
 
+pub use find_unity_from_unity_hub_logic::load_unity_by_loading_unity_hub_files;
+pub use os::load_unity_version;
+
+/// Returns the path to executable file
+///
+/// On macOS, this function expects Path to .app file and returns binary file.
+/// On other platforms, does nothing
+pub fn get_executable_path(path: &Path) -> Cow<Path> {
+    #[cfg(not(target_os = "macos"))]
+    {
+        Cow::Borrowed(path)
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if path.extension() == Some(OsStr::new("app")) {
+            Cow::Owned(path.join("Contents/MacOS/Unity"))
+        } else {
+            Cow::Borrowed(path)
+        }
+    }
+}
+
+/// Returns the path to application path
+///
+/// On macOS, this function converts an executable file path to .app path.
+/// On other platforms, does nothing.
+pub fn get_app_path(path: &Path) -> Option<&Path> {
+    #[cfg(not(target_os = "macos"))]
+    {
+        Some(path)
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if path.ends_with("Contents/MacOS/Unity") {
+            Some(path.parent().unwrap().parent().unwrap().parent().unwrap())
+        } else if path.extension() == Some(OsStr::new("app")) {
+            Some(path)
+        } else {
+            // It looks the path is not path to executable nor app bundle so return none
+            None
+        }
+    }
+}
+
+#[allow(dead_code)]
 async fn headless_unity_hub(unity_hub_path: &OsStr, args: &[&OsStr]) -> io::Result<Output> {
     let args = {
         let mut vec = Vec::with_capacity(args.len() + 2);
@@ -20,7 +69,7 @@ async fn headless_unity_hub(unity_hub_path: &OsStr, args: &[&OsStr]) -> io::Resu
     Command::new(unity_hub_path).args(args).output().await
 }
 
-pub async fn get_unity_from_unity_hub(
+pub async fn load_unity_by_calling_unity_hub(
     unity_hub_path: &OsStr,
 ) -> io::Result<Vec<(UnityVersion, PathBuf)>> {
     let output = headless_unity_hub(unity_hub_path, &["editors".as_ref(), "-i".as_ref()]).await?;
@@ -37,17 +86,6 @@ pub async fn get_unity_from_unity_hub(
 
     let mut result = Vec::new();
 
-    #[cfg(not(target_os = "macos"))]
-    fn unity_path(original: &str) -> PathBuf {
-        PathBuf::from(original)
-    }
-
-    #[cfg(target_os = "macos")]
-    fn unity_path(original: &str) -> PathBuf {
-        // on macos, unity hub returns path to app bundle folder, not the executable
-        PathBuf::from(original).join("Contents/MacOS/Unity")
-    }
-
     for x in stdout.lines() {
         let Some((version_and_arch, path)) = x.split_once("installed at") else {
             continue;
@@ -60,7 +98,19 @@ pub async fn get_unity_from_unity_hub(
             continue;
         };
 
-        result.push((version, unity_path(path.trim())));
+        result.push((version, PathBuf::from(path.trim())));
+    }
+
+    Ok(result)
+}
+
+pub async fn get_unity_from_unity_hub(
+    _unity_hub_path: &OsStr,
+) -> io::Result<Vec<(UnityVersion, PathBuf)>> {
+    let mut result = Vec::new();
+
+    for x in load_unity_by_loading_unity_hub_files().await? {
+        result.push((x.version, get_executable_path(&x.path).into_owned()));
     }
 
     Ok(result)
