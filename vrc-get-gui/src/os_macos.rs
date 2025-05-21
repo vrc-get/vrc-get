@@ -1,7 +1,7 @@
 // macOS-specific functionality.
 
 use cocoa::foundation::NSProcessInfo;
-use dispatch2::Queue;
+use dispatch2::DispatchQueue;
 use objc2::__framework_prelude::Retained;
 use objc2::AllocAnyThread;
 use objc2_app_kit::{NSRunningApplication, NSWorkspace, NSWorkspaceOpenConfiguration};
@@ -142,7 +142,7 @@ fn launch_new_app_with_ns_workspace(
         args: Vec<String>,
         on_result: impl Fn(io::Result<()>) + Send + Sync + 'static,
     ) {
-        Queue::main().exec_async(move || unsafe {
+        DispatchQueue::main().exec_async(move || unsafe {
             let configuration = NSWorkspaceOpenConfiguration::new();
 
             configuration.setCreatesNewApplicationInstance(true);
