@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog].
   - Simple enough, you can copy a project.
 - Remember recent project locations `#2182`
   - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations
+- Support for flatpak installation of unity hub `#1586`
+  - ALCOM now detects flatpak installation of unity hub automatically
 
 ### Changed
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`
