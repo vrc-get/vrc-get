@@ -241,7 +241,7 @@ fn default_unity_hub_path() -> &'static [&'static str] {
                     // apt package
                     "/opt/unityhub/unityhub",
                     // flatpak
-                    "/var/lib/flatpak/export/bin/com.unity.UnityHub",
+                    "/var/lib/flatpak/exports/bin/com.unity.UnityHub",
                 ];
         }
 
