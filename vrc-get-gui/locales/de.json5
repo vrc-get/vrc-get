@@ -226,6 +226,8 @@
     "projects:manage:tooltip:upgrade package": "Paket upgraden",
     "projects:manage:tooltip:remove packages": "Paket entfernen",
     "projects:manage:tooltip:incompatible with unity": "Nicht unterstützt",
+    "projects:manage:menuitem:see changelog": "Changelog anzeigen",
+    "projects:manage:menuitem:see documentation": "Dokumentation anzeigen",
     // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
     //     It might be better to write both upgrade and latest depending on the language I think.
     "projects:manage:button:install selected latest": "Installieren",
@@ -454,11 +456,13 @@
     "settings:toast:backup path updated": "Backup-Pfad erfolgreich aktualisiert!",
 
     "settings:backup:format": "Backup-Format",
-    "settings:backup:format description": "Backups werden als Archiv komprimiert. <br/>Du kannst das Format hier auswählen. <br/>Wir empfehlen dies bei der Standard Einstellung zu belassen.<br/>Kompression sorgt für eine längere Backupdauer, spart aber mehr Speicherplatz.",
+    "settings:backup:format description": "Backups werden als Archiv komprimiert, das Format kann hier angepasst werden.<br/>Wir empfehlen dies bei der Standard Einstellung zu belassen.<br/>Kompression sorgt für eine längere Backupdauer, reduziert dafür allerdings die Größe des Backups.",
     "settings:backup:format:default": "Standard (Unkomprimierte zip)",
     "settings:backup:format:zip-store": "Unkomprimierte zip (Schnell)",
     "settings:backup:format:zip-fast": "Leicht komprimierte zip (Moderat)",
     "settings:backup:format:zip-best": "Stark komprimierte zip (Langsam)",
+    "settings:backup:exclude vpm packages from backup": "VPM Pakete aus Backups ausschließen",
+    "settings:backup:exclude vpm packages from backup description": "Reduziert die größe des Backups, setzt aber vorraus dass die richtigen Pakete wieder installiert werden können.",
 
     "settings:packages": "Pakete",
     "settings:clear package cache": "Temporäre Paketdaten bereinigen",
@@ -467,7 +471,7 @@
     "settings:show prerelease": "Vorschau-Pakete anzeigen",
     "settings:show prerelease description": "Aktiviere Vorschau-Pakete, um diese in der Paketliste anzuzeigen. Sie werden auch bei der Auflösung von Abhängigkeiten verwendet.",
 
-    "settings:gui animation": "Aktiviere GUI-Animationen",
+    "settings:gui animation": "Aktiviere Animationen",
     "settings:gui animation description": "Der Seitenwechsel wird animiert wenn diese Option aktiviert ist. Dies funktioniert auf Systemen mit älteren Webview Versionen evtl. nicht richtig.",
 
     "settings:appearance": "Darstellung",
