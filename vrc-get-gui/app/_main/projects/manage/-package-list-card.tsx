@@ -118,10 +118,12 @@ export const PackageListCard = memo(function PackageListCard({
 		[repositoriesInfo],
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset when packageRowsData changes
 	useEffect(() => {
-		// if packageRowsData is changed, clear bulkUpdatePackageIds
-		setBulkUpdatePackageIds([]);
+		setBulkUpdatePackageIds((ids) => {
+			if (ids.length === 0) return [];
+			const packageIds = new Set(packageRowsData.map((p) => p.id));
+			return ids.filter((x) => packageIds.has(x));
+		});
 	}, [packageRowsData]);
 
 	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
