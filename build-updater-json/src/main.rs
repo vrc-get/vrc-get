@@ -53,38 +53,33 @@ fn main() {
         platforms.insert(platform.to_string(), Platform { signature, url });
     }
 
-    let stable_notes = get_notes("vrc-get-gui/notes.txt".as_ref());
-    let beta_notes = get_notes("vrc-get-gui/notes-beta.txt".as_ref());
     let is_beta = version.contains('-');
+    let notes = if is_beta {
+        // https://github.com/vrc-get/vrc-get/blob/master/CHANGELOG-gui.md#unreleased
+        "Please read changelog at https://github.com/vrc-get/vrc-get/blob/master/CHANGELOG-gui.md#unreleased".into()
+    } else {
+        // https://github.com/vrc-get/vrc-get/blob/master/CHANGELOG-gui.md#101---2025-02-05
+        let version = version.replace('.', "");
+        let date = Utc::now().format("%Y-%m-%d").to_string();
+        format!(
+            "Please read changelog at https://github.com/vrc-get/vrc-get/blob/master/CHANGELOG-gui.md#{version}---{date}"
+        )
+    };
 
-    let mut updater = UpdaterJson {
+    let updater = UpdaterJson {
         version,
-        notes: String::new(),
+        notes,
         pub_date: Utc::now().with_nanosecond(0).unwrap(),
         platforms,
     };
 
     if !is_beta {
-        updater.notes = stable_notes;
         write_json("updater.json", &updater);
     }
-    updater.notes = beta_notes;
     write_json("updater-beta.json", &updater);
 }
 
 fn write_json(path: impl AsRef<Path>, json: impl Serialize) {
     let json = serde_json::to_string_pretty(&json).unwrap();
     std::fs::write(path, json).expect("write updater.json");
-}
-
-fn get_notes(path: &Path) -> String {
-    let notes = std::fs::read_to_string(path).expect("read notes.txt");
-    // lines starts with # are comments
-    notes
-        .trim_end()
-        .lines()
-        .filter(|x| !x.starts_with('#'))
-        .map(|x| x.trim_end())
-        .collect::<Vec<_>>()
-        .join("\n")
 }

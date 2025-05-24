@@ -1,2 +1,0 @@
-# This is notes text for the updater json, which will be shown in the updater dialog.
-# Lines starting with '#' will be ignored (as comments).

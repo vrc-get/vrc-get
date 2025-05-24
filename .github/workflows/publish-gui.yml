@@ -114,22 +114,6 @@ jobs:
         run: rm release-note.md
       # endregion changelog
 
-      # region notes
-      - name: Reset notes.txt
-        if: ${{ !steps.update-version.outputs.prerelease }}
-        run: |
-          cat <<SHELL > vrc-get-gui/notes.txt
-          # This is notes text for the updater json, which will be shown in the updater dialog.
-          # Lines starting with '#' will be ignored (as comments).
-          SHELL
-      - name: Reset notes-beta.txt
-        run: |
-          cat <<SHELL > vrc-get-gui/notes-beta.txt
-          # This is notes text for the updater json, which will be shown in the updater dialog.
-          # Lines starting with '#' will be ignored (as comments).
-          SHELL
-      # endregion
-
       - name: Commit
         id: update
         run: |-
