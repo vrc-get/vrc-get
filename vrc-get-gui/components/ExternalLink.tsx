@@ -22,13 +22,14 @@ export function ExternalLink({
 	);
 	if (href) {
 		return (
-			<button
-				className={cn(className, "underline")}
+			<a
+				className={cn(className, "underline inline")}
 				type={"button"}
+				// biome-ignore lint/a11y/useValidAnchor: This is navigation with external browser, not a action
 				onClick={() => commands.utilOpenUrl(href)}
 			>
 				{body}
-			</button>
+			</a>
 		);
 	} else {
 		return <span className={className}>{body}</span>;
