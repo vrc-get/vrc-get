@@ -260,22 +260,22 @@ pub async fn collect_notable_project_files_tree(
                 let lower_name = file_name.to_ascii_lowercase();
                 if relative.is_empty() {
                     match lower_name.as_str() {
-                        "library" | "logs" | "obj" | "temp" => {
+                        "logs" | "obj" | "temp" => {
                             continue;
                         }
-                        lower_name => {
-                            // some people use multiple library folder to speed up switching platforms
-                            if lower_name.starts_with("library") {
-                                continue;
-                            }
-                        }
+                        _ => {}
                     }
-                }
-                if relative.eq_ignore_ascii_case("packages/") {
+                } else if relative.eq_ignore_ascii_case("packages/") {
                     // the package is excluded
                     if excluded_packages.contains(&lower_name) {
                         continue;
                     }
+                } else if relative.starts_with_ascii_ignore("library") {
+                    // some people use multiple library folder to speed up switching platforms,
+                    // so we use starts_with way for matching
+
+                    // It's inside a library directory, all directories will be ignored
+                    continue;
                 }
                 if lower_name.as_str() == ".git" {
                     // any .git folder should be ignored
@@ -285,6 +285,26 @@ pub async fn collect_notable_project_files_tree(
                 new_relative = format!("{relative}{file_name}/");
                 is_dir = true;
             } else {
+                if relative.starts_with_ascii_ignore("library") {
+                    // some people use multiple library folder to speed up switching platforms,
+                    // so we use starts_with way for matching
+
+                    // It's inside a library directory, all files except for few files
+
+                    if file_name.eq_ignore_ascii_case("LastSceneManagerSetup.txt") {
+                        // `LastSceneManagerSetup.txt` will preserve the information which
+                        // scene was opened last time.
+                        //
+                        // Many avatar project users doesn't understand they're editing scene,
+                        // and they don't understand they can create another new scene,
+                        // and can be opened from project window.
+                        // Therefore, some user says that "I restored from backup, but avatars are
+                        // go away from my project" even though they're opening another scene.
+                        // Therefore, we decided to keep this file where possible.
+                    } else {
+                        continue;
+                    }
+                }
                 new_relative = format!("{relative}{file_name}");
                 is_dir = false;
             }
@@ -362,6 +382,19 @@ impl PathBufExt for PathBuf {
         }
 
         _add_extension(self, extension.as_ref())
+    }
+}
+
+pub trait StrExt {
+    fn starts_with_ascii_ignore(&self, pat: &str) -> bool;
+}
+
+impl StrExt for str {
+    fn starts_with_ascii_ignore(&self, pat: &str) -> bool {
+        let Some(heading) = self.get(..pat.len()) else {
+            return false;
+        };
+        heading.eq_ignore_ascii_case(pat)
     }
 }
 
