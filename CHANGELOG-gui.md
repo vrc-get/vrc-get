@@ -68,6 +68,8 @@ The format is based on [Keep a Changelog].
   - However, if the package author ignored the recommendation from VRChat and us, and removed package from their repository, you may need to install another version when restoring the backup.
   - Since many of the repository maintainers have removed many packages in their repository and VPM Packages are relatively small, this feature is disabled by default. You can enable this on the settings page.
 - Show the range of requested package in missing dependencies dialog `#2187`
+- `LastSceneManagerSetup.txt` in `Library` directory will be included in backups or copying project `#2205`
+  - With this file preserved, you can expect to open the last opened scene file when you opened projects restored from backups.
 
 ### Deprecated
 
