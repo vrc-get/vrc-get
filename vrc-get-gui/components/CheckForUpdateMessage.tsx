@@ -1,3 +1,4 @@
+import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -12,7 +13,7 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import type { DialogContext } from "@/lib/dialog";
 import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import { useState } from "react";
+import React, { useState } from "react";
 
 type ConfirmStatus =
 	| {
@@ -115,7 +116,11 @@ export function CheckForUpdateMessage({
 						</p>
 						<h3>{tc("check update:dialog:changelog")}</h3>
 						<p className={"whitespace-pre-wrap"}>
-							{response.update_description}
+							<LinkedText
+								text={
+									response.update_description ?? "no description is provided"
+								}
+							/>
 						</p>
 					</DialogDescription>
 					<DialogFooter className={"gap-2"}>
@@ -152,3 +157,19 @@ export function CheckForUpdateMessage({
 			);
 	}
 }
+
+const LinkedText = React.memo(({ text }: { text: string }) => {
+	const urlRegex =
+		/https:\/\/[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)+\/[a-zA-Z0-9$\-_.+!*'()%\/?#]*/g;
+	const components: React.ReactNode[] = [];
+	let lastMatchEnd = 0;
+	for (const match of text.matchAll(urlRegex)) {
+		const leading = text.substring(lastMatchEnd, match.index);
+		components.push(leading);
+		components.push(<ExternalLink href={match[0]}>{match[0]}</ExternalLink>);
+		lastMatchEnd = match.index + match[0].length;
+	}
+	components.push(text.substring(lastMatchEnd));
+
+	return React.createElement(React.Fragment, {}, components);
+});
