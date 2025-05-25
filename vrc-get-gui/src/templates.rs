@@ -461,7 +461,9 @@ pub async fn create_project(
             }
             BLANK_TEMPLATE_ID => Some(ResolvedTemplateInfo::blank(unity_version)),
             // vcc templates
-            id if id.starts_with(VCC_TEMPLATE_PREFIX) => Some(ResolvedTemplateInfo::custom(id)),
+            id if id.starts_with(VCC_TEMPLATE_PREFIX) => Some(ResolvedTemplateInfo::custom(
+                id.trim_start_matches(VCC_TEMPLATE_PREFIX),
+            )),
             // .alcomtemplate files
             id => {
                 let template = templates
