@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog].
     so you cannot manage packages for projects with older unity.
     You can only launch Unity to open the project.
   - Projects with Unity 4 or older are still not supported, but I hope no one want to use such a vintage Unity with ALCOM.
-- New Project Template System `#2105` `#2114` `#2125` `#2129`
+- New Project Template System `#2105` `#2114` `#2125` `#2129` `#2204`
   - You now can create Project Templates in ALCOM.
   - The new form of template can install multiple VPM packages at once, and you also can import unitypackages.
   - You now can create blank project along with this system change.
