@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog].
   - In addition, we added more messages when you're installing packages with some compatibility concerns.
   - The previous version only has those messages at the bottom of the window, so you may not notice the message.
   - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
-- Menu option to copy a project `#2168`
+- Menu option to copy a project `#2168` `#2219`
   - Simple enough, you can copy a project.
 - Remember recent project locations `#2182`
   - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations

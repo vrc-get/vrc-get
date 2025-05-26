@@ -224,12 +224,14 @@ impl<'a> Iterator for FileSystemTreeIter<'a> {
 pub async fn collect_notable_project_files_tree(
     path_buf: PathBuf,
     exclude_vpm: bool,
+    backup: bool,
 ) -> io::Result<FileSystemTree> {
     // relative path must end with '/' or empty
     async fn read_dir_to_tree(
         relative: String,
         absolute: PathBuf,
         excluded_packages: &[String],
+        backup: bool,
     ) -> io::Result<FileSystemTree> {
         let mut read_dir = tokio::fs::read_dir(&absolute).await?;
 
@@ -270,13 +272,22 @@ pub async fn collect_notable_project_files_tree(
                     if excluded_packages.contains(&lower_name) {
                         continue;
                     }
-                } else if relative.starts_with_ascii_ignore("library") {
-                    // some people use multiple library folder to speed up switching platforms,
-                    // so we use starts_with way for matching
-
-                    // It's inside a library directory, all directories will be ignored
-                    continue;
                 }
+
+                if backup {
+                    // for backups, we exclude the library directory
+                    if relative.starts_with_ascii_ignore("library") {
+                        // some people use multiple library folder to speed up switching platforms,
+                        // so we use starts_with way for matching
+
+                        // It's inside a library directory, all directories will be ignored
+
+                        // We won't skip Library directory directly
+                        // since we want to keep LastSceneManagerSetup.txt as a exception
+                        continue;
+                    }
+                }
+
                 if lower_name.as_str() == ".git" {
                     // any .git folder should be ignored
                     continue;
@@ -285,24 +296,27 @@ pub async fn collect_notable_project_files_tree(
                 new_relative = format!("{relative}{file_name}/");
                 is_dir = true;
             } else {
-                if relative.starts_with_ascii_ignore("library") {
-                    // some people use multiple library folder to speed up switching platforms,
-                    // so we use starts_with way for matching
+                if backup {
+                    // for backups, we exclude the library directory
+                    if relative.starts_with_ascii_ignore("library") {
+                        // some people use multiple library folder to speed up switching platforms,
+                        // so we use starts_with way for matching
 
-                    // It's inside a library directory, all files except for few files
+                        // It's inside a library directory, all files except for few files
 
-                    if file_name.eq_ignore_ascii_case("LastSceneManagerSetup.txt") {
-                        // `LastSceneManagerSetup.txt` will preserve the information which
-                        // scene was opened last time.
-                        //
-                        // Many avatar project users doesn't understand they're editing scene,
-                        // and they don't understand they can create another new scene,
-                        // and can be opened from project window.
-                        // Therefore, some user says that "I restored from backup, but avatars are
-                        // go away from my project" even though they're opening another scene.
-                        // Therefore, we decided to keep this file where possible.
-                    } else {
-                        continue;
+                        if file_name.eq_ignore_ascii_case("LastSceneManagerSetup.txt") {
+                            // `LastSceneManagerSetup.txt` will preserve the information which
+                            // scene was opened last time.
+                            //
+                            // Many avatar project users doesn't understand they're editing scene,
+                            // and they don't understand they can create another new scene,
+                            // and can be opened from project window.
+                            // Therefore, some user says that "I restored from backup, but avatars are
+                            // go away from my project" even though they're opening another scene.
+                            // Therefore, we decided to keep this file where possible.
+                        } else {
+                            continue;
+                        }
                     }
                 }
                 new_relative = format!("{relative}{file_name}");
@@ -315,7 +329,7 @@ pub async fn collect_notable_project_files_tree(
         let children = try_join_all(entries.into_iter().map(
             |(relative, entry, is_dir)| async move {
                 if is_dir {
-                    read_dir_to_tree(relative, entry.path(), excluded_packages).await
+                    read_dir_to_tree(relative, entry.path(), excluded_packages, backup).await
                 } else {
                     Ok(FileSystemTree::new_file(relative, entry.path()))
                 }
@@ -343,7 +357,7 @@ pub async fn collect_notable_project_files_tree(
         vec![]
     };
 
-    read_dir_to_tree(String::new(), path_buf, &excluded_packages).await
+    read_dir_to_tree(String::new(), path_buf, &excluded_packages, backup).await
 }
 
 pub trait PathExt {
