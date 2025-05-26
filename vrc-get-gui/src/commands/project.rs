@@ -530,7 +530,7 @@ async fn create_backup_zip(
 
     let start = std::time::Instant::now();
     let file_tree =
-        collect_notable_project_files_tree(PathBuf::from(project_path), exclude_vpm).await?;
+        collect_notable_project_files_tree(PathBuf::from(project_path), exclude_vpm, true).await?;
 
     let total_files = file_tree.count_all();
 
