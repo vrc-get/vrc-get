@@ -220,6 +220,7 @@
     "projects:manage:tooltip:upgrade package": "パッケージを更新",
     "projects:manage:tooltip:remove packages": "パッケージを除去",
     "projects:manage:tooltip:incompatible with unity": "使用中のUnityと互換性がありません。",
+    "projects:manage:menuitem:reinstall": "パッケージを入れ直す",
     "projects:manage:menuitem:see changelog": "更新履歴を見る",
     "projects:manage:menuitem:see documentation": "ドキュメントを見る",
     // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
