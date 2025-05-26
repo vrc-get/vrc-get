@@ -1,11 +1,10 @@
 // macOS-specific functionality.
 
-use cocoa::foundation::NSProcessInfo;
 use dispatch2::DispatchQueue;
 use objc2::__framework_prelude::Retained;
 use objc2::AllocAnyThread;
 use objc2_app_kit::{NSRunningApplication, NSWorkspace, NSWorkspaceOpenConfiguration};
-use objc2_foundation::{NSError, NSString, NSURL};
+use objc2_foundation::{NSError, NSProcessInfo, NSString, NSURL};
 use std::ffi::OsStr;
 use std::io;
 use std::io::Cursor;
@@ -181,15 +180,13 @@ fn launch_new_app_with_ns_workspace(
 }
 
 pub(super) fn compute_os_info() -> String {
-    unsafe {
-        let process_info = NSProcessInfo::processInfo(std::ptr::null_mut());
-        let os_info = NSProcessInfo::operatingSystemVersion(process_info);
+    let process_info = NSProcessInfo::processInfo();
+    let os_info = process_info.operatingSystemVersion();
 
-        format!(
-            "macOS {}.{}.{}",
-            os_info.majorVersion, os_info.minorVersion, os_info.patchVersion,
-        )
-    }
+    format!(
+        "macOS {}.{}.{}",
+        os_info.majorVersion, os_info.minorVersion, os_info.patchVersion,
+    )
 }
 
 pub use open::that as open_that;
