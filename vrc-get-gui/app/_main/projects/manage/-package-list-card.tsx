@@ -809,6 +809,14 @@ const PackageRow = memo(function PackageRow({
 		});
 	};
 
+	const reinstallPackage = () => {
+		if (pkg.installed == null) return;
+		packageChange.mutate({
+			type: "bulkReinstalled",
+			packageIds: [pkg.id],
+		});
+	};
+
 	const remove = () => {
 		packageChange.mutate({
 			type: "remove",
@@ -935,29 +943,27 @@ const PackageRow = memo(function PackageRow({
 					)}
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button
-								variant={"ghost"}
-								size={"icon"}
-								disabled={documentationUrl == null && changelogUrl == null}
-							>
+							<Button variant={"ghost"} size={"icon"}>
 								<Ellipsis className={"size-5"} />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>
-							{changelogUrl && (
-								<DropdownMenuItem>
-									<ExternalLink href={changelogUrl}>
-										{tc("projects:manage:menuitem:see changelog")}
-									</ExternalLink>
-								</DropdownMenuItem>
-							)}
-							{documentationUrl && (
-								<DropdownMenuItem>
-									<ExternalLink href={documentationUrl}>
-										{tc("projects:manage:menuitem:see documentation")}
-									</ExternalLink>
-								</DropdownMenuItem>
-							)}
+							<DropdownMenuItem
+								onClick={reinstallPackage}
+								disabled={pkg.installed == null}
+							>
+								{tc("projects:manage:menuitem:reinstall")}
+							</DropdownMenuItem>
+							<DropdownMenuItem disabled={changelogUrl == null}>
+								<ExternalLink href={changelogUrl ?? ""}>
+									{tc("projects:manage:menuitem:see changelog")}
+								</ExternalLink>
+							</DropdownMenuItem>
+							<DropdownMenuItem disabled={documentationUrl == null}>
+								<ExternalLink href={documentationUrl ?? ""}>
+									{tc("projects:manage:menuitem:see documentation")}
+								</ExternalLink>
+							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
