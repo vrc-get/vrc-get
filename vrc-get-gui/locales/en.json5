@@ -226,6 +226,7 @@
     "projects:manage:tooltip:upgrade package": "Upgrade Package",
     "projects:manage:tooltip:remove packages": "Remove Package",
     "projects:manage:tooltip:incompatible with unity": "Incompatible with Unity",
+    "projects:manage:menuitem:reinstall": "Reinstall",
     "projects:manage:menuitem:see changelog": "See Changelog",
     "projects:manage:menuitem:see documentation": "See Documentation",
     // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
