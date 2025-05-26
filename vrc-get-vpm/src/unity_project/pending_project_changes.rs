@@ -745,11 +745,11 @@ async fn restore_remove(io: &DefaultProjectIo, temp_dir: &Path, names: impl Iter
         let package_dir = format!("Packages/{}", name);
         let package_dir = Path::new(&package_dir);
         let temp_package_dir = temp_dir.join(name);
-        if !temp_package_dir.exists() {
+        if io.metadata(&temp_package_dir).await.is_err() {
             continue;
         }
 
-        if package_dir.exists() {
+        if io.metadata(package_dir).await.is_ok() {
             // Process partially moved case
             let mut iterator = pin!(walk_dir_relative(io, vec![temp_package_dir.clone()]));
             while let Some((original, entry)) = iterator.next().await {
@@ -762,7 +762,7 @@ async fn restore_remove(io: &DefaultProjectIo, temp_dir: &Path, names: impl Iter
                     let relative = original.strip_prefix(&temp_package_dir).unwrap();
                     if let Some(name) = original.file_name().unwrap().to_str() {
                         let name = name.strip_prefix(REMOVED_FILE_PREFIX).unwrap_or(name);
-                        let moved = package_dir.join(relative).joined(name);
+                        let moved = package_dir.join(relative.parent().unwrap()).joined(name);
                         io.create_dir_all(moved.parent().unwrap()).await.ok();
                         io.rename(&original, &moved).await.ok();
                     }
