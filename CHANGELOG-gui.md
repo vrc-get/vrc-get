@@ -78,6 +78,7 @@ The format is based on [Keep a Changelog].
 ### Fixed
 - Layout shift on select package `#2045`
 - Unable to change the unity version from "unknown" if ProjectVersion.txt does not exists `#2183`
+- Uninstall package is not reverted successfully if removing package is prevented by `ERROR_SHARING_VIOLATION` `#2209`
 
 ### Security
 

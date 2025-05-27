@@ -1,7 +1,7 @@
 use crate::io::{DefaultProjectIo, DirEntry, IoTrait};
 use crate::traits::AbortCheck;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
-use crate::utils::walk_dir_relative;
+use crate::utils::{PathBufExt, walk_dir_relative};
 use crate::version::DependencyRange;
 use crate::{PackageInfo, UnityProject, unity_compatible};
 use crate::{PackageInstaller, io};
@@ -680,6 +680,8 @@ async fn move_packages_to_temp<'a>(
             }
             Err(err) => {
                 // restore moved packages as possible
+                // our package can also be partially moved so insert to moved
+                moved.insert(name);
                 restore_remove(io, temp_dir, moved.iter().copied()).await;
 
                 return Err(err);
@@ -742,20 +744,47 @@ async fn restore_remove(io: &DefaultProjectIo, temp_dir: &Path, names: impl Iter
     for name in names {
         let package_dir = format!("Packages/{}", name);
         let package_dir = Path::new(&package_dir);
-        io.rename(&temp_dir.join(name), package_dir).await.ok();
+        let temp_package_dir = temp_dir.join(name);
+        if io.metadata(&temp_package_dir).await.is_err() {
+            continue;
+        }
 
-        let mut iterator = pin!(walk_dir_relative(io, vec![package_dir.into()]));
-        while let Some((original, entry)) = iterator.next().await {
-            if entry
-                .file_type()
-                .await
-                .map(|x| !x.is_dir())
-                .unwrap_or(false)
-            {
-                if let Some(name) = original.file_name().unwrap().to_str() {
-                    if let Some(stripped) = name.strip_prefix(REMOVED_FILE_PREFIX) {
-                        let moved = original.parent().unwrap().join(stripped);
+        if io.metadata(package_dir).await.is_ok() {
+            // Process partially moved case
+            let mut iterator = pin!(walk_dir_relative(io, vec![temp_package_dir.clone()]));
+            while let Some((original, entry)) = iterator.next().await {
+                if entry
+                    .file_type()
+                    .await
+                    .map(|x| !x.is_dir())
+                    .unwrap_or(false)
+                {
+                    let relative = original.strip_prefix(&temp_package_dir).unwrap();
+                    if let Some(name) = original.file_name().unwrap().to_str() {
+                        let name = name.strip_prefix(REMOVED_FILE_PREFIX).unwrap_or(name);
+                        let moved = package_dir.join(relative.parent().unwrap()).joined(name);
+                        io.create_dir_all(moved.parent().unwrap()).await.ok();
                         io.rename(&original, &moved).await.ok();
+                    }
+                }
+            }
+        } else {
+            // Process fully moved case
+            io.rename(&temp_package_dir, package_dir).await.ok();
+
+            let mut iterator = pin!(walk_dir_relative(io, vec![package_dir.into()]));
+            while let Some((original, entry)) = iterator.next().await {
+                if entry
+                    .file_type()
+                    .await
+                    .map(|x| !x.is_dir())
+                    .unwrap_or(false)
+                {
+                    if let Some(name) = original.file_name().unwrap().to_str() {
+                        if let Some(stripped) = name.strip_prefix(REMOVED_FILE_PREFIX) {
+                            let moved = original.parent().unwrap().join(stripped);
+                            io.rename(&original, &moved).await.ok();
+                        }
                     }
                 }
             }
