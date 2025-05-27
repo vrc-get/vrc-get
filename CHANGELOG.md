@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Uninstall package is not reverted successfully if removing package is prevented by `ERROR_SHARING_VIOLATION` `#2209`
 
 ### Security
 
