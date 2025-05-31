@@ -68,7 +68,7 @@ impl VccDatabaseConnection {
                 {
                     let project =
                         UnityProject::load(DefaultProjectIo::new(io.resolve(path).into())).await?;
-                    let detected_type = project.detect_project_type().await?;
+                    let detected_type = project.detect_project_type().await;
                     Ok((
                         detected_type,
                         Some(project.unity_version()),
@@ -362,7 +362,7 @@ impl VccDatabaseConnection {
         let unity_version = project.unity_version();
         let unity_revision = project.unity_revision();
 
-        let project_type = project.detect_project_type().await?;
+        let project_type = project.detect_project_type().await;
 
         let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
         new_project.set_unity_revision(unity_version, unity_revision.map(ToOwned::to_owned));
@@ -396,7 +396,7 @@ impl RealProjectInformation {
         let loaded_project = UnityProject::load(io.new_project_io(path.as_ref())).await?;
         let unity_version = loaded_project.unity_version();
         let unity_revision = loaded_project.unity_revision().map(ToOwned::to_owned);
-        let project_type = loaded_project.detect_project_type().await?;
+        let project_type = loaded_project.detect_project_type().await;
 
         Ok(Some(RealProjectInformation {
             path,

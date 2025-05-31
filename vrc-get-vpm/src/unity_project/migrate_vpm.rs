@@ -74,7 +74,7 @@ async fn migrate_vpm(
     installer: &impl PackageInstaller,
     include_prerelease: bool,
 ) -> Result {
-    let is_worlds = match project.detect_project_type().await? {
+    let is_worlds = match project.detect_project_type().await {
         // we only can migrate legacy VRCSDK3 projects
         ProjectType::LegacyWorlds => true,
         ProjectType::LegacyAvatars => false,

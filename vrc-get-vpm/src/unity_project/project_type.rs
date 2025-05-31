@@ -1,23 +1,22 @@
-use crate::io;
 use crate::io::IoTrait;
 use crate::{ProjectType, UnityProject};
 
 impl UnityProject {
-    pub async fn detect_project_type(&self) -> io::Result<ProjectType> {
+    pub async fn detect_project_type(&self) -> ProjectType {
         if self.get_locked("com.vrchat.avatars").is_some() {
-            return Ok(ProjectType::Avatars);
+            return ProjectType::Avatars;
         } else if self.get_locked("com.vrchat.worlds").is_some() {
-            return Ok(ProjectType::Worlds);
+            return ProjectType::Worlds;
         } else if self.manifest.has_any() {
-            return Ok(ProjectType::VpmStarter);
+            return ProjectType::VpmStarter;
         }
 
         if self.has_upm_package("com.vrchat.avatars") {
-            return Ok(ProjectType::UpmAvatars);
+            return ProjectType::UpmAvatars;
         } else if self.has_upm_package("com.vrchat.worlds") {
-            return Ok(ProjectType::UpmWorlds);
+            return ProjectType::UpmWorlds;
         } else if self.has_upm_package("com.vrchat.base") {
-            return Ok(ProjectType::UpmStarter);
+            return ProjectType::UpmStarter;
         }
 
         // VRCSDK2.dll is for SDK2
@@ -26,7 +25,7 @@ impl UnityProject {
             .is_file("Assets/VRCSDK/Plugins/VRCSDK2.dll".as_ref())
             .await
         {
-            return Ok(ProjectType::LegacySdk2);
+            return ProjectType::LegacySdk2;
         }
 
         // VRCSDK3.dll is for SDK3 Worlds
@@ -35,7 +34,7 @@ impl UnityProject {
             .is_file("Assets/VRCSDK/Plugins/VRCSDK3.dll".as_ref())
             .await
         {
-            return Ok(ProjectType::LegacyWorlds);
+            return ProjectType::LegacyWorlds;
         }
 
         // VRCSDK3A.dll is for SDK3 Worlds
@@ -44,9 +43,9 @@ impl UnityProject {
             .is_file("Assets/VRCSDK/Plugins/VRCSDK3A.dll".as_ref())
             .await
         {
-            return Ok(ProjectType::LegacyAvatars);
+            return ProjectType::LegacyAvatars;
         }
 
-        Ok(ProjectType::Unknown)
+        ProjectType::Unknown
     }
 }
