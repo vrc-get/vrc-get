@@ -130,11 +130,14 @@ export function ProjectRow({
 	});
 
 	const removed = !project.is_exists;
+	const is_valid = project.is_valid;
 
 	return (
-		<ProjectRowContext.Provider value={{ removed, loading: Boolean(loading) }}>
+		<ProjectRowContext.Provider
+			value={{ removed, is_valid, loading: Boolean(loading) }}
+		>
 			<tr
-				className={`even:bg-secondary/30 ${removed || loading ? "opacity-50" : ""}`}
+				className={`even:bg-secondary/30 ${removed || loading || !(project.is_valid ?? true) ? "opacity-50" : ""}`}
 			>
 				<td className={`${cellClass} w-3`}>
 					<div className={"relative flex"}>
@@ -160,33 +163,35 @@ export function ProjectRow({
 				</td>
 				<td className={`${cellClass} max-w-64 overflow-hidden`}>
 					<Tooltip>
-						<TooltipTriggerIfRemoved
+						<TooltipTriggerIfInvalid
 							className={"text-left select-text cursor-auto w-full"}
 						>
 							<div className="flex flex-col">
 								<Tooltip>
-									<TooltipTriggerIfExists
+									<TooltipTriggerIfValid
 										className={"text-left select-text cursor-auto w-full"}
 									>
 										<p className="font-normal whitespace-pre">{project.name}</p>
-									</TooltipTriggerIfExists>
+									</TooltipTriggerIfValid>
 									<TooltipContent>{project.name}</TooltipContent>
 								</Tooltip>
 								<Tooltip>
-									<TooltipTriggerIfExists
+									<TooltipTriggerIfValid
 										className={"text-left select-text cursor-auto w-full"}
 									>
 										<p className="font-normal opacity-50 text-sm whitespace-pre">
 											{project.path}
 										</p>
-									</TooltipTriggerIfExists>
+									</TooltipTriggerIfValid>
 									<TooltipContent>{project.path}</TooltipContent>
 								</Tooltip>
 							</div>
-						</TooltipTriggerIfRemoved>
+						</TooltipTriggerIfInvalid>
 						<TooltipPortal>
 							<TooltipContent>
-								{tc("projects:tooltip:no directory")}
+								{removed
+									? tc("projects:tooltip:no directory")
+									: tc("projects:tooltip:invalid project")}
 							</TooltipContent>
 						</TooltipPortal>
 					</Tooltip>
@@ -231,15 +236,15 @@ export function ProjectRow({
 				</td>
 				<td className={noGrowCellClass}>
 					<div className="flex flex-row gap-2 max-w-min">
-						<ButtonDisabledIfRemoved asChild>
+						<ButtonDisabledIfInvalid asChild>
 							<OpenUnityButton
 								projectPath={project.path}
 								unityVersion={project.unity}
 								unityRevision={project.unity_revision}
 							/>
-						</ButtonDisabledIfRemoved>
+						</ButtonDisabledIfInvalid>
 						<ManageOrMigrateButton project={project} />
-						<ButtonDisabledIfRemoved
+						<ButtonDisabledIfInvalid
 							onClick={async () => {
 								try {
 									await openSingleDialog(BackupProjectDialog, {
@@ -253,7 +258,7 @@ export function ProjectRow({
 							variant={"success"}
 						>
 							{tc("projects:backup")}
-						</ButtonDisabledIfRemoved>
+						</ButtonDisabledIfInvalid>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
@@ -273,7 +278,10 @@ export function ProjectRow({
 								>
 									{tc("projects:menuitem:open directory")}
 								</DropdownMenuItem>
-								<DropdownMenuItem onClick={onCopyProject}>
+								<DropdownMenuItem
+									onClick={onCopyProject}
+									disabled={removed || !(is_valid ?? true)}
+								>
 									{tc("projects:menuitem:copy project")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
@@ -303,11 +311,11 @@ function ManageOrMigrateButton({
 		// No UPM is supported in unity 2017 or older
 		return (
 			<Tooltip>
-				<TooltipTriggerIfExists asChild>
-					<ButtonDisabledIfRemoved variant="success" disabled>
+				<TooltipTriggerIfValid asChild>
+					<ButtonDisabledIfInvalid variant="success" disabled>
 						{tc("projects:button:manage")}
-					</ButtonDisabledIfRemoved>
-				</TooltipTriggerIfExists>
+					</ButtonDisabledIfInvalid>
+				</TooltipTriggerIfValid>
 				<TooltipContent>
 					{tc("projects:tooltip:no upm in unity")}
 				</TooltipContent>
@@ -320,11 +328,11 @@ function ManageOrMigrateButton({
 		case "LegacySdk2":
 			return (
 				<Tooltip>
-					<TooltipTriggerIfExists asChild>
-						<ButtonDisabledIfRemoved variant="success" disabled>
+					<TooltipTriggerIfValid asChild>
+						<ButtonDisabledIfInvalid variant="success" disabled>
 							{tc("projects:button:migrate")}
-						</ButtonDisabledIfRemoved>
-					</TooltipTriggerIfExists>
+						</ButtonDisabledIfInvalid>
+					</TooltipTriggerIfValid>
 					<TooltipContent>
 						{tc("projects:tooltip:sdk2 migration hint")}
 					</TooltipContent>
@@ -333,23 +341,23 @@ function ManageOrMigrateButton({
 		case "LegacyWorlds":
 		case "LegacyAvatars":
 			return (
-				<ButtonDisabledIfRemoved
+				<ButtonDisabledIfInvalid
 					variant={"success"}
 					onClick={() => void migrateVpm(project.path)}
 				>
 					{tc("projects:button:migrate")}
-				</ButtonDisabledIfRemoved>
+				</ButtonDisabledIfInvalid>
 			);
 		case "UpmWorlds":
 		case "UpmAvatars":
 		case "UpmStarter":
 			return (
 				<Tooltip>
-					<TooltipTriggerIfExists asChild>
-						<ButtonDisabledIfRemoved variant="info" disabled>
+					<TooltipTriggerIfValid asChild>
+						<ButtonDisabledIfInvalid variant="info" disabled>
 							{tc("projects:button:manage")}
-						</ButtonDisabledIfRemoved>
-					</TooltipTriggerIfExists>
+						</ButtonDisabledIfInvalid>
+					</TooltipTriggerIfValid>
 					<TooltipContent>
 						{tc("projects:tooltip:git-vcc not supported")}
 					</TooltipContent>
@@ -360,7 +368,7 @@ function ManageOrMigrateButton({
 		case "Avatars":
 		case "VpmStarter":
 			return (
-				<ButtonDisabledIfRemoved
+				<ButtonDisabledIfInvalid
 					onClick={() =>
 						navigate({
 							to: "/projects/manage",
@@ -370,7 +378,7 @@ function ManageOrMigrateButton({
 					variant="info"
 				>
 					{tc("projects:button:manage")}
-				</ButtonDisabledIfRemoved>
+				</ButtonDisabledIfInvalid>
 			);
 	}
 }
@@ -473,17 +481,19 @@ function VpmMigrationUpdating() {
 
 const ProjectRowContext = React.createContext<{
 	removed: boolean;
+	is_valid: boolean | null;
 	loading: boolean;
 }>({
 	removed: false,
+	is_valid: null,
 	loading: false,
 });
 
-const ButtonDisabledIfRemoved = function RemovedButton(
+const ButtonDisabledIfInvalid = function RemovedButton(
 	props: React.ComponentProps<typeof Button>,
 ) {
 	const rowContext = useContext(ProjectRowContext);
-	if (rowContext.removed) {
+	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return (
 			<Tooltip>
 				<TooltipTrigger asChild>
@@ -494,7 +504,11 @@ const ButtonDisabledIfRemoved = function RemovedButton(
 					/>
 				</TooltipTrigger>
 				<TooltipPortal>
-					<TooltipContent>{tt("projects:tooltip:no directory")}</TooltipContent>
+					<TooltipContent>
+						{rowContext.removed
+							? tc("projects:tooltip:no directory")
+							: tc("projects:tooltip:invalid project")}
+					</TooltipContent>
 				</TooltipPortal>
 			</Tooltip>
 		);
@@ -509,24 +523,24 @@ const ButtonDisabledIfRemoved = function RemovedButton(
 	}
 };
 
-const TooltipTriggerIfRemoved = ({
+const TooltipTriggerIfInvalid = ({
 	children,
 	...props
 }: ComponentProps<typeof TooltipTrigger>) => {
 	const rowContext = useContext(ProjectRowContext);
-	if (rowContext.removed) {
+	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return <TooltipTrigger {...props}>{children}</TooltipTrigger>;
 	} else {
 		return children;
 	}
 };
 
-const TooltipTriggerIfExists = ({
+const TooltipTriggerIfValid = ({
 	children,
 	...props
 }: ComponentProps<typeof TooltipTrigger>) => {
 	const rowContext = useContext(ProjectRowContext);
-	if (rowContext.removed) {
+	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return children;
 	} else {
 		return <TooltipTrigger {...props}>{children}</TooltipTrigger>;

@@ -20,7 +20,8 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 use tauri_plugin_dialog::DialogExt;
 use vrc_get_vpm::ProjectType;
 use vrc_get_vpm::environment::{
-    PackageInstaller, RealProjectInformation, Settings, UserProject, VccDatabaseConnection,
+    InvalidRealProjectInformation, PackageInstaller, RealProjectInformation, Settings, UserProject,
+    ValidRealProjectInformation, VccDatabaseConnection,
 };
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::version::UnityVersion;
@@ -37,12 +38,14 @@ pub struct TauriProject {
     created_at: i64,
     favorite: bool,
     is_exists: bool,
+    is_valid: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct TauriUpdatedRealProjectInfo {
     // project information
     path: String,
+    is_valid: bool,
     project_type: TauriProjectType,
     unity: String,
     unity_revision: Option<String>,
@@ -103,17 +106,29 @@ impl TauriProject {
                 .unwrap_or(0),
             favorite: project.favorite(),
             is_exists,
+            is_valid: project.is_valid_project(),
         }
     }
 }
 
 impl TauriUpdatedRealProjectInfo {
-    fn new(project: &RealProjectInformation) -> Self {
+    fn new(project: &ValidRealProjectInformation) -> Self {
         Self {
             path: project.path().into(),
+            is_valid: true,
             project_type: project.project_type().into(),
             unity: project.unity_version().to_string(),
             unity_revision: project.unity_revision().map(Into::into),
+        }
+    }
+
+    fn new_invalid(path: String) -> Self {
+        Self {
+            path,
+            is_valid: false,
+            project_type: TauriProjectType::Unknown,
+            unity: String::new(),
+            unity_revision: None,
         }
     }
 }
@@ -169,19 +184,31 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
         let io = app.state::<DefaultEnvironmentIo>();
 
         let projects = join_all(projects.into_iter().map(async |project| {
-            match RealProjectInformation::load_from_fs(&io, project.to_owned()).await {
+            match ValidRealProjectInformation::load_from_fs(&io, project.to_owned()).await {
                 Ok(Some(project)) => {
                     app.emit(
                         "projects-updated",
                         TauriUpdatedRealProjectInfo::new(&project),
                     )
                     .ok();
-                    Some(project)
+                    RealProjectInformation::Valid(project)
                 }
-                Ok(None) => None,
+                Ok(None) => {
+                    app.emit(
+                        "projects-updated",
+                        TauriUpdatedRealProjectInfo::new_invalid(project.clone()),
+                    )
+                    .ok();
+                    RealProjectInformation::Invalid(InvalidRealProjectInformation::new(project))
+                }
                 Err(err) => {
-                    error!("Error updating project information: {}", err);
-                    None
+                    app.emit(
+                        "projects-updated",
+                        TauriUpdatedRealProjectInfo::new_invalid(project.clone()),
+                    )
+                    .ok();
+                    error!(gui_toast = false; "Error updating project information of {project}: {err}");
+                    RealProjectInformation::Invalid(InvalidRealProjectInformation::new(project))
                 }
             }
         }))
@@ -200,7 +227,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
                 return;
             }
         };
-        connection.sync_with_real_projects_information(projects.into_iter().flatten().collect());
+        connection.sync_with_real_projects_information(projects);
         match connection.save(io.inner()).await {
             Ok(()) => {}
             Err(e) => {

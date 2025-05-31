@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog].
   - In addition, we added more messages when you're installing packages with some compatibility concerns.
   - The previous version only has those messages at the bottom of the window, so you may not notice the message.
   - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
-- Menu option to copy a project `#2168` `#2219`
+- Menu option to copy a project `#2168` `#2219` `#2225`
   - Simple enough, you can copy a project.
 - Remember recent project locations `#2182`
   - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations
@@ -70,6 +70,7 @@ The format is based on [Keep a Changelog].
 - Show the range of requested package in missing dependencies dialog `#2187`
 - `LastSceneManagerSetup.txt` in `Library` directory will be included in backups or copying project `#2205`
   - With this file preserved, you can expect to open the last opened scene file when you opened projects restored from backups.
+- Improved behavior when the project directory is not a valid project but the directory exists `#2225`
 
 ### Deprecated
 
