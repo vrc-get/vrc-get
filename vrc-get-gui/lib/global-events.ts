@@ -19,9 +19,12 @@ void tauriListen<TauriUpdatedRealProjectInfo>("projects-updated", (e) => {
 		const index = old.findIndex((p) => p.path === e.payload.path);
 		if (index === -1) return old;
 		const project = { ...old[index] };
-		project.unity = e.payload.unity;
-		project.project_type = e.payload.project_type;
-		project.unity_revision = e.payload.unity_revision;
+		project.is_valid = e.payload.is_valid;
+		if (e.payload.is_valid) {
+			project.unity = e.payload.unity;
+			project.project_type = e.payload.project_type;
+			project.unity_revision = e.payload.unity_revision;
+		}
 		const newList = [...old];
 		newList[index] = project;
 		return newList;

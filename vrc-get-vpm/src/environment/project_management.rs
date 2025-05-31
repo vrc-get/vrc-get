@@ -28,6 +28,7 @@ pub(crate) static CACHED_UNITY_REVISION: &str = "cached_unity_version";
 pub(crate) static UNITY_REVISION: &str = "unity_revision";
 pub(crate) static CUSTOM_UNITY_ARGS: &str = "custom_unity_args";
 pub(crate) static UNITY_PATH: &str = "unity_path";
+pub(crate) static IS_VALID: &str = "is_valid";
 
 impl VccDatabaseConnection {
     pub async fn migrate(
@@ -156,17 +157,21 @@ impl VccDatabaseConnection {
 
         let projects = join_all(projects.into_iter().map(|project| async {
             let path = project[PATH].as_str()?;
-            match RealProjectInformation::load_from_fs(io, path.to_owned()).await {
-                Ok(Some(project)) => Some(project),
+            match ValidRealProjectInformation::load_from_fs(io, path.to_owned()).await {
+                Ok(Some(project)) => Some(RealProjectInformation::Valid(project)),
                 Ok(None) => {
                     if !skip_not_found {
                         error!("Project {} not found", path);
                     }
-                    None
+                    Some(RealProjectInformation::Invalid(
+                        InvalidRealProjectInformation::new(path.into()),
+                    ))
                 }
                 Err(err) => {
                     error!("Error updating project information: {}", err);
-                    None
+                    Some(RealProjectInformation::Invalid(
+                        InvalidRealProjectInformation::new(path.into()),
+                    ))
                 }
             }
         }))
@@ -183,7 +188,7 @@ impl VccDatabaseConnection {
     ) {
         let by_path = information
             .iter()
-            .map(|x| (x.path.as_str(), x))
+            .map(|x| (x.path(), x))
             .collect::<HashMap<_, _>>();
 
         let mut to_update = vec![];
@@ -199,7 +204,7 @@ impl VccDatabaseConnection {
 
             let mut project = Cow::Borrowed(project);
 
-            {
+            if let RealProjectInformation::Valid(real) = real {
                 let unity_version = real.unity_version.to_string();
                 if let Some(revision) = &real.unity_revision {
                     if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str()
@@ -225,9 +230,22 @@ impl VccDatabaseConnection {
                         project.to_mut().insert(UNITY_VERSION, unity_version);
                     }
                 }
+
+                if project[TYPE].as_i32() != Some(real.project_type as i32) {
+                    project.to_mut().insert(TYPE, real.project_type as i32);
+                }
             }
-            if project[TYPE].as_i32() != Some(real.project_type as i32) {
-                project.to_mut().insert(TYPE, real.project_type as i32);
+
+            if project[VRC_GET]
+                .as_document()
+                .and_then(|x| x[IS_VALID].as_bool())
+                != Some(real.is_valid())
+            {
+                project
+                    .to_mut()
+                    .entry(VRC_GET)
+                    .document_or_replace()
+                    .insert(IS_VALID, real.is_valid());
             }
 
             if let Cow::Owned(project) = project {
@@ -380,7 +398,16 @@ impl VccDatabaseConnection {
 }
 
 /// The Data Structure to store information required for updating information in the Database
-pub struct RealProjectInformation {
+pub enum RealProjectInformation {
+    Valid(ValidRealProjectInformation),
+    Invalid(InvalidRealProjectInformation),
+}
+
+pub struct InvalidRealProjectInformation {
+    path: String,
+}
+
+pub struct ValidRealProjectInformation {
     path: String,
     unity_version: UnityVersion,
     unity_revision: Option<String>,
@@ -388,6 +415,32 @@ pub struct RealProjectInformation {
 }
 
 impl RealProjectInformation {
+    pub fn path(&self) -> &str {
+        match self {
+            RealProjectInformation::Valid(i) => i.path(),
+            RealProjectInformation::Invalid(i) => i.path(),
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        match self {
+            RealProjectInformation::Valid(_) => true,
+            RealProjectInformation::Invalid(_) => false,
+        }
+    }
+}
+
+impl InvalidRealProjectInformation {
+    pub fn new(path: String) -> InvalidRealProjectInformation {
+        InvalidRealProjectInformation { path }
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+}
+
+impl ValidRealProjectInformation {
     pub async fn load_from_fs(io: &DefaultEnvironmentIo, path: String) -> io::Result<Option<Self>> {
         if !io.is_dir(path.as_ref()).await {
             return Ok(None);
@@ -398,7 +451,7 @@ impl RealProjectInformation {
         let unity_revision = loaded_project.unity_revision().map(ToOwned::to_owned);
         let project_type = loaded_project.detect_project_type().await;
 
-        Ok(Some(RealProjectInformation {
+        Ok(Some(ValidRealProjectInformation {
             path,
             unity_version,
             unity_revision,
@@ -565,5 +618,19 @@ impl UserProject {
         if let Some(x) = self.bson.get_mut(VRC_GET).and_then(|x| x.as_document_mut()) {
             x.remove(UNITY_PATH);
         }
+    }
+
+    pub fn is_valid_project(&self) -> Option<bool> {
+        self.bson
+            .get(VRC_GET)
+            .as_document()
+            .and_then(|x| x[IS_VALID].as_bool())
+    }
+
+    pub fn set_is_valid_project(&mut self, is_valid: bool) {
+        self.bson
+            .entry(VRC_GET)
+            .document_or_replace()
+            .insert(IS_VALID, is_valid);
     }
 }

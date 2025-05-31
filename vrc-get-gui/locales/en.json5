@@ -120,6 +120,7 @@
     "projects:menuitem:open directory": "Open Project Directory",
     "projects:remove project": "Remove Project",
     "projects:tooltip:no directory": "Project does not exist at the location.",
+    "projects:tooltip:invalid project": "Project directory exists, but is not a valid project",
 
     "projects:hint:invalid project name": "Project name is invalid.",
     "projects:hint:warn symbol in project name": "Using such a symbol may cause problems.",
