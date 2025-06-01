@@ -114,6 +114,7 @@
     "projects:menuitem:open directory": "打开项目路径",
     "projects:remove project": "删除项目",
     "projects:tooltip:no directory": "项目路径不存在。",
+    "projects:tooltip:invalid project": "项目路径存在，但并不是一个有效的项目。",
 
     "projects:hint:invalid project name": "项目名称无效。",
     "projects:hint:warn symbol in project name": "使用这样的字符可能会导致问题。",
@@ -185,6 +186,7 @@
   // Manage Projects
     "projects:manage:tooltip:back to projects": "返回项目列表",
     "projects:menuitem:change launch options": "更改启动选项",
+    "projects:menuitem:copy project": "复制项目",
     "projects:menuitem:backup": "生成备份",
     "projects:menuitem:forget unity path": "清除 Unity 版本设置",
     "projects:manage:project location": "位于: <path>{{path}}</path>",
@@ -219,6 +221,9 @@
     "projects:manage:tooltip:upgrade package": "升级软件包",
     "projects:manage:tooltip:remove packages": "删除软件包",
     "projects:manage:tooltip:incompatible with unity": "与 Unity 不兼容",
+    "projects:manage:menuitem:reinstall": "重新安装",
+    "projects:manage:menuitem:see changelog": "查看更新日志",
+    "projects:manage:menuitem:see documentation": "查看文档",
     // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
     //     It might be better to write both upgrade and latest depending on the language I think.
     "projects:manage:button:install selected latest": "安装所选软件包（最新）",
@@ -299,9 +304,14 @@
     "projects:manage:dialog:missing dependencies": "软件包依赖缺失",
     "projects:manage:dialog:missing dependencies description": "需要安装以下软件包，但我们无法在已添加的软件包存储库里找到它们。<br/>请添加包含这些软件包的软件包存储库。<br/>您可以前往 <ExternalLink href='https://vpm-catalog.vercel.app/'>VPM Catalog</ExternalLink> 来找到相应的软件包存储库。",
 
+// copy project
+    "projects:dialog:copy project": "复制项目: {{name}}",
+    "projects:dialog:copying...": "正在复制项目中...",
+    "projects:toast:successfully copied project": "成功创建项目 <b>{{name}}</b> 的副本",
 
-// Packages Page
-    "packages": "软件包",
+
+// Resources Page
+    "resources": "资源",
     "vpm repositories:source:official": "官方",
     "vpm repositories:source:curated": "精选",
     "vpm repositories:source:local": "用户本地",
