@@ -56,10 +56,24 @@ export function OpenUnityButton({
 	unityVersion: string | null;
 	unityRevision: string | null;
 } & React.ComponentProps<typeof Button>) {
+    const environmentProjects = queryOptions({
+        queryKey: ["environmentProjects"],
+        queryFn: commands.environmentProjects,
+    });
+
+    const queryClient = useQueryClient();
+
+    const openUnityWithUpdateList = async () => {
+        await openUnity(projectPath, unityVersion, unityRevision);
+        setTimeout(() => {
+            queryClient.invalidateQueries(environmentProjects);
+        }, 3000);
+    };
+
 	return (
 		<PreventDoubleClick
 			delayMs={1000}
-			onClick={() => openUnity(projectPath, unityVersion, unityRevision)}
+			onClick={openUnityWithUpdateList}
 			{...props}
 		>
 			{tc("projects:button:open unity")}
