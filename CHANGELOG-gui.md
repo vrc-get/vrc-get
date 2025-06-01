@@ -71,6 +71,7 @@ The format is based on [Keep a Changelog].
 - `LastSceneManagerSetup.txt` in `Library` directory will be included in backups or copying project `#2205`
   - With this file preserved, you can expect to open the last opened scene file when you opened projects restored from backups.
 - Improved behavior when the project directory is not a valid project but the directory exists `#2225`
+- Open Unity now will update `Last Modified` of a project. `#2228`
 
 ### Deprecated
 
