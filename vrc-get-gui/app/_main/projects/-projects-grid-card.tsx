@@ -1,5 +1,5 @@
 "use client";
-import type { TauriProject, TauriProjectType } from "@/lib/bindings";
+import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
@@ -11,7 +11,6 @@ import { ProjectGridItem } from "./-project-grid-item";
 import { compareProjectType, isSorting, sortings } from "./-projects-list-card";
 import {Button} from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { t } from "i18next";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -98,7 +97,7 @@ export function ProjectsGridCard({
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden">
-            <Card className="flex items-center mb-4 flex-wrap">
+            <Card className="flex items-center mb-3 flex-wrap">
                 <div className="flex items-center gap-2 m-2 ml-4">
                     <p className="grow-0 whitespace-pre mb-0 leading-tight">
                         {tc("projects:sort by")}
@@ -126,7 +125,7 @@ export function ProjectsGridCard({
                 className="h-full w-full vrc-get-scrollable-card rounded-l-xl"
                 scrollBarClassName="bg-background rounded-full border-l-0 p-[1.5px]"
             >
-                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 overflow-x-hidden mr-4">
+                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3 overflow-x-hidden mr-4">
                     {projectsShown.map((project) => (
                         <ProjectGridItem key={project.path} project={project} loading={loading} />
                     ))}

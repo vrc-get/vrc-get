@@ -45,6 +45,7 @@ import {
 	Star,
 } from "lucide-react";
 import React, { type ComponentProps, useContext } from "react";
+import {cn} from "@/lib/utils";
 
 export const ProjectDisplayType: Record<
 	TauriProjectType,
@@ -141,24 +142,16 @@ export function ProjectRow({
 			>
 				<td className={`${cellClass} w-3`}>
 					<div className={"relative flex"}>
-						<Checkbox
-							checked={project.favorite}
-							onCheckedChange={() =>
+						<FavoriteToggleButton
+							project={project}
+							disabled={removed || loading}
+							onToggle={() =>
 								setProjectFavorite.mutate({
 									...project,
 									favorite: !project.favorite,
 								})
 							}
-							disabled={removed || loading}
-							className="before:transition-none border-none text-primary! peer"
 						/>
-						<span
-							className={
-								"text-foreground/30 peer-data-[state=checked]:text-background pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"
-							}
-						>
-							<Star strokeWidth={3} className={"size-3"} />
-						</span>
 					</div>
 				</td>
 				<td className={`${cellClass} max-w-64 overflow-hidden`}>
@@ -586,6 +579,38 @@ export function formatDateOffset(date: number): React.ReactNode {
 	return tc("projects:last modified:years", {
 		count: Math.floor(diff / PER_YEAR),
 	});
+}
+
+export function FavoriteToggleButton({
+										 project,
+										 disabled,
+										 onToggle,
+										 className,
+									 }: {
+	project: { favorite: boolean };
+	disabled?: boolean;
+	onToggle: () => void;
+	className?: string;
+}) {
+	return (
+		<Button
+			onClick={onToggle}
+			variant="ghost"
+			size="icon"
+			disabled={disabled}
+			className={cn("relative group", className)}
+		>
+			<Star
+				strokeWidth={project.favorite ? 1.5 : 3}
+				className={cn(
+					"size-4 transition-colors",
+					project.favorite ? "text-yellow-500" : "text-foreground/30",
+					"group-hover:text-yellow-400"
+				)}
+				fill={project.favorite ? "currentColor" : "none"}
+			/>
+		</Button>
+	);
 }
 
 // endregion
