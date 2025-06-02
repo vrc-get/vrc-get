@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
+import { queryOptions, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
 import { useState } from "react";
 import { useRef } from "react";
@@ -56,10 +58,24 @@ export function OpenUnityButton({
 	unityVersion: string | null;
 	unityRevision: string | null;
 } & React.ComponentProps<typeof Button>) {
+	const environmentProjects = queryOptions({
+		queryKey: ["environmentProjects"],
+		queryFn: commands.environmentProjects,
+	});
+
+	const queryClient = useQueryClient();
+
+	const openUnityWithUpdateList = async () => {
+		await openUnity(projectPath, unityVersion, unityRevision);
+		setTimeout(() => {
+			queryClient.invalidateQueries(environmentProjects);
+		}, 3000);
+	};
+
 	return (
 		<PreventDoubleClick
 			delayMs={1000}
-			onClick={() => openUnity(projectPath, unityVersion, unityRevision)}
+			onClick={openUnityWithUpdateList}
 			{...props}
 		>
 			{tc("projects:button:open unity")}
