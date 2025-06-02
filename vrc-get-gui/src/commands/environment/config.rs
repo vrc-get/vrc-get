@@ -196,6 +196,26 @@ pub async fn environment_set_gui_animation(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn environment_project_view_mode(
+    config: State<'_, GuiConfigState>,
+) -> Result<bool, RustError> {
+    Ok(config.get().project_view_mode)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_project_view_mode(
+    config: State<'_, GuiConfigState>,
+    project_view_mode: bool,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.project_view_mode = project_view_mode;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn environment_set_unity_hub_access_method(
     config: State<'_, GuiConfigState>,
     unity_hub_access_method: UnityHubAccessMethod,

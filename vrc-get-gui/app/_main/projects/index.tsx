@@ -1,38 +1,25 @@
 "use client";
 
 import Loading from "@/app/-loading";
-import { createProject } from "@/app/_main/projects/-create-project";
-import { SearchBox } from "@/components/SearchBox";
-import { HNavBar, VStack } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { assertNever } from "@/lib/assert-never";
-import { commands } from "@/lib/bindings";
-import { isFindKey, useDocumentEvent } from "@/lib/events";
-import { useProjectUpdateInProgress } from "@/lib/global-events";
-import { tc, tt } from "@/lib/i18n";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import {
-	queryOptions,
-	useMutation,
-	useQuery,
-	useQueryClient,
-} from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, RefreshCw } from "lucide-react";
-import { useRef, useState } from "react";
-import { ProjectsTableCard } from "./-projects-list-card";
+import {createProject} from "@/app/_main/projects/-create-project";
+import {SearchBox} from "@/components/SearchBox";
+import {HNavBar, VStack} from "@/components/layout";
+import {Button} from "@/components/ui/button";
+import {Card} from "@/components/ui/card";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu";
+import {Tooltip, TooltipContent, TooltipTrigger,} from "@/components/ui/tooltip";
+import {assertNever} from "@/lib/assert-never";
+import {commands} from "@/lib/bindings";
+import {isFindKey, useDocumentEvent} from "@/lib/events";
+import {useProjectUpdateInProgress} from "@/lib/global-events";
+import {tc, tt} from "@/lib/i18n";
+import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
+import {queryOptions, useMutation, useQuery, useQueryClient,} from "@tanstack/react-query";
+import {createFileRoute} from "@tanstack/react-router";
+import {ChevronDown, LayoutGrid, LayoutList, RefreshCw} from "lucide-react";
+import {useRef, useState} from "react";
+import {ProjectsTableCard} from "./-projects-list-card";
+import {ProjectsGridCard} from "@/app/_main/projects/-projects-grid-card";
 
 export const Route = createFileRoute("/_main/projects/")({
 	component: Page,
@@ -47,6 +34,33 @@ function Page() {
 	const result = useQuery(environmentProjects);
 	const [search, setSearch] = useState("");
 
+	const viewModeQuery = useQuery({
+		initialData: true,
+		queryKey: ["environmentGetProjectViewMode"],
+		queryFn: async () => {
+			return await commands.environmentProjectViewMode();
+		},
+	})
+
+	const queryClient = useQueryClient();
+
+	const setViewModeMutation = useMutation({
+		mutationFn: async (value: boolean) => {
+			await commands.environmentSetProjectViewMode(value);
+		},
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({
+				queryKey: ["environmentGetProjectViewMode"],
+			});
+		},
+	});
+
+	const viewMode = viewModeQuery.data ?? true;
+
+	const setViewMode = (value: boolean) => {
+		setViewModeMutation.mutate(value);
+	};
+
 	const startCreateProject = () => void createProject();
 
 	const loading = result.isFetching;
@@ -58,6 +72,8 @@ function Page() {
 				isLoading={loading}
 				search={search}
 				setSearch={setSearch}
+				viewMode={viewMode}
+				setViewMode={setViewMode}
 			/>
 			<main className="shrink overflow-hidden flex w-full h-full">
 				{result.status === "pending" ? (
@@ -68,14 +84,21 @@ function Page() {
 					<Card className="w-full shadow-none overflow-hidden p-4">
 						{tc("projects:error:load error", { msg: result.error.message })}
 					</Card>
-				) : (
+				) : viewMode ? (
 					<ProjectsTableCard
+						projects={result.data}
+						search={search}
+						loading={loading}
+					/>
+				) : (
+					<ProjectsGridCard
 						projects={result.data}
 						search={search}
 						loading={loading}
 					/>
 				)}
 			</main>
+
 		</VStack>
 	);
 }
@@ -85,11 +108,15 @@ function ProjectViewHeader({
 	isLoading,
 	search,
 	setSearch,
+	viewMode,
+	setViewMode,
 }: {
 	startCreateProject?: () => void;
 	isLoading?: boolean;
 	search: string;
 	setSearch: (search: string) => void;
+	viewMode: boolean;
+	setViewMode: (viewMode: boolean) => void;
 }) {
 	const queryClient = useQueryClient();
 	const addProjectWithPicker = useMutation({
@@ -171,6 +198,29 @@ function ProjectViewHeader({
 						onChange={(e) => setSearch(e.target.value)}
 						ref={searchRef}
 					/>
+
+					<Button
+						variant={"ghost"}
+						onClick={() =>
+							setViewMode(!viewMode)
+						}
+					>
+						{viewMode ? (
+							<>
+								<LayoutList className={"w-5 h-5"} />
+								<p className="ml-2">
+									{tc("projects:list view")}
+								</p>
+							</>
+						) : (
+							<>
+								<LayoutGrid className={"w-5 h-5"} />
+								<p className="ml-2">
+									{tc("projects:grid view")}
+								</p>
+							</>
+						)}
+					</Button>
 				</>
 			}
 			trailing={

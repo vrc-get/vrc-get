@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import React, { type ComponentProps, useContext } from "react";
 
-const ProjectDisplayType: Record<
+export const ProjectDisplayType: Record<
 	TauriProjectType,
 	"avatars" | "worlds" | "sdk2" | "unknown"
 > = {
@@ -62,7 +62,7 @@ const ProjectDisplayType: Record<
 	VpmStarter: "unknown",
 };
 
-const LegacyProjectTypes = [
+export const LegacyProjectTypes = [
 	"LegacySdk2",
 	"LegacyWorlds",
 	"LegacyAvatars",
@@ -133,7 +133,7 @@ export function ProjectRow({
 	const is_valid = project.is_valid;
 
 	return (
-		<ProjectRowContext.Provider
+		<ProjectContext.Provider
 			value={{ removed, is_valid, loading: Boolean(loading) }}
 		>
 			<tr
@@ -298,11 +298,11 @@ export function ProjectRow({
 					</div>
 				</td>
 			</tr>
-		</ProjectRowContext.Provider>
+		</ProjectContext.Provider>
 	);
 }
 
-function ManageOrMigrateButton({
+export function ManageOrMigrateButton({
 	project,
 }: {
 	project: TauriProject;
@@ -479,7 +479,7 @@ function VpmMigrationUpdating() {
 
 // region utilities
 
-const ProjectRowContext = React.createContext<{
+export const ProjectContext = React.createContext<{
 	removed: boolean;
 	is_valid: boolean | null;
 	loading: boolean;
@@ -489,10 +489,10 @@ const ProjectRowContext = React.createContext<{
 	loading: false,
 });
 
-const ButtonDisabledIfInvalid = function RemovedButton(
+export const ButtonDisabledIfInvalid = function RemovedButton(
 	props: React.ComponentProps<typeof Button>,
 ) {
-	const rowContext = useContext(ProjectRowContext);
+	const rowContext = useContext(ProjectContext);
 	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return (
 			<Tooltip>
@@ -523,11 +523,11 @@ const ButtonDisabledIfInvalid = function RemovedButton(
 	}
 };
 
-const TooltipTriggerIfInvalid = ({
+export const TooltipTriggerIfInvalid = ({
 	children,
 	...props
 }: ComponentProps<typeof TooltipTrigger>) => {
-	const rowContext = useContext(ProjectRowContext);
+	const rowContext = useContext(ProjectContext);
 	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return <TooltipTrigger {...props}>{children}</TooltipTrigger>;
 	} else {
@@ -535,11 +535,11 @@ const TooltipTriggerIfInvalid = ({
 	}
 };
 
-const TooltipTriggerIfValid = ({
+export const TooltipTriggerIfValid = ({
 	children,
 	...props
 }: ComponentProps<typeof TooltipTrigger>) => {
-	const rowContext = useContext(ProjectRowContext);
+	const rowContext = useContext(ProjectContext);
 	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return children;
 	} else {
@@ -547,7 +547,7 @@ const TooltipTriggerIfValid = ({
 	}
 };
 
-function formatDateOffset(date: number): React.ReactNode {
+export function formatDateOffset(date: number): React.ReactNode {
 	const now = Date.now();
 	const diff = now - date;
 

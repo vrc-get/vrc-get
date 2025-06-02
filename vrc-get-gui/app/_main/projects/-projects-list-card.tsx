@@ -11,18 +11,18 @@ import { ChevronDown, ChevronUp, ChevronsUpDown, Star } from "lucide-react";
 import { useMemo } from "react";
 import { ProjectRow } from "./-project-row";
 
-const sortings = ["lastModified", "name", "unity", "type"] as const;
+export const sortings = ["lastModified", "name", "unity", "type"] as const;
 
 type SimpleSorting = (typeof sortings)[number];
 type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
 
-function isSorting(s: string | unknown): s is Sorting {
+export function isSorting(s: string | unknown): s is Sorting {
 	return sortings.some(
 		(sorting) => sorting === s || `${sorting}Reversed` === s,
 	);
 }
 
-function compareProjectType(
+export function compareProjectType(
 	a: TauriProjectType,
 	b: TauriProjectType,
 ): 0 | -1 | 1 {
