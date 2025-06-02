@@ -45,7 +45,7 @@ import {
 	Star,
 } from "lucide-react";
 import React, { type ComponentProps, useContext } from "react";
-import {cn} from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export const ProjectDisplayType: Record<
 	TauriProjectType,
@@ -582,11 +582,11 @@ export function formatDateOffset(date: number): React.ReactNode {
 }
 
 export function FavoriteToggleButton({
-										 project,
-										 disabled,
-										 onToggle,
-										 className,
-									 }: {
+	project,
+	disabled,
+	onToggle,
+	className,
+}: {
 	project: { favorite: boolean };
 	disabled?: boolean;
 	onToggle: () => void;
@@ -600,7 +600,7 @@ export function FavoriteToggleButton({
 				project.favorite ? "text-yellow-500" : "text-foreground/30",
 				!project.favorite && "opacity-0 group-hover:opacity-100",
 				"hover:text-yellow-400",
-				className
+				className,
 			)}
 			fill={project.favorite ? "currentColor" : "none"}
 			onClick={() => {

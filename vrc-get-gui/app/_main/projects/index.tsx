@@ -1,25 +1,39 @@
 "use client";
 
 import Loading from "@/app/-loading";
-import {createProject} from "@/app/_main/projects/-create-project";
-import {SearchBox} from "@/components/SearchBox";
-import {HNavBar, VStack} from "@/components/layout";
-import {Button} from "@/components/ui/button";
-import {Card} from "@/components/ui/card";
-import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu";
-import {Tooltip, TooltipContent, TooltipTrigger,} from "@/components/ui/tooltip";
-import {assertNever} from "@/lib/assert-never";
-import {commands} from "@/lib/bindings";
-import {isFindKey, useDocumentEvent} from "@/lib/events";
-import {useProjectUpdateInProgress} from "@/lib/global-events";
-import {tc, tt} from "@/lib/i18n";
-import {toastError, toastSuccess, toastThrownError} from "@/lib/toast";
-import {queryOptions, useMutation, useQuery, useQueryClient,} from "@tanstack/react-query";
-import {createFileRoute} from "@tanstack/react-router";
-import {ChevronDown, LayoutGrid, LayoutList, RefreshCw} from "lucide-react";
-import {useRef, useState} from "react";
-import {ProjectsTableCard} from "./-projects-list-card";
-import {ProjectsGridCard} from "@/app/_main/projects/-projects-grid-card";
+import { createProject } from "@/app/_main/projects/-create-project";
+import { SearchBox } from "@/components/SearchBox";
+import { HNavBar, VStack } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { assertNever } from "@/lib/assert-never";
+import { commands } from "@/lib/bindings";
+import { isFindKey, useDocumentEvent } from "@/lib/events";
+import { useProjectUpdateInProgress } from "@/lib/global-events";
+import { tc, tt } from "@/lib/i18n";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { ChevronDown, LayoutGrid, LayoutList, RefreshCw } from "lucide-react";
+import { useRef, useState } from "react";
+import { ProjectsTableCard } from "./-projects-list-card";
+import { ProjectsGridCard } from "@/app/_main/projects/-projects-grid-card";
 
 export const Route = createFileRoute("/_main/projects/")({
 	component: Page,
@@ -40,7 +54,7 @@ function Page() {
 		queryFn: async () => {
 			return await commands.environmentProjectViewMode();
 		},
-	})
+	});
 
 	const queryClient = useQueryClient();
 
@@ -98,7 +112,6 @@ function Page() {
 					/>
 				)}
 			</main>
-
 		</VStack>
 	);
 }
@@ -199,25 +212,16 @@ function ProjectViewHeader({
 						ref={searchRef}
 					/>
 
-					<Button
-						variant={"ghost"}
-						onClick={() =>
-							setViewMode(!viewMode)
-						}
-					>
+					<Button variant={"ghost"} onClick={() => setViewMode(!viewMode)}>
 						{viewMode ? (
 							<>
 								<LayoutList className={"w-5 h-5"} />
-								<p className="ml-2">
-									{tc("projects:list view")}
-								</p>
+								<p className="ml-2">{tc("projects:list view")}</p>
 							</>
 						) : (
 							<>
 								<LayoutGrid className={"w-5 h-5"} />
-								<p className="ml-2">
-									{tc("projects:grid view")}
-								</p>
+								<p className="ml-2">{tc("projects:grid view")}</p>
 							</>
 						)}
 					</Button>
