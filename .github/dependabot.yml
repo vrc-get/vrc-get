@@ -29,3 +29,5 @@ updates:
         patterns: [ "@tanstack/*router*" ]
       tailwindcss:
         patterns: [ "tailwindcss", "@tailwindcss/*" ]
+      i18next:
+        patterns: [ "i18next", "react-i18next" ]
