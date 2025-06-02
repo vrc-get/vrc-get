@@ -280,7 +280,7 @@
     "projects:toast:unity migrated": "项目已迁移至 Unity 2022",
 
     "projects:manage:dialog:confirm changes description": "您正在对项目进行以下更改。",
-    "projects:manage:dialog:note breaking changes": "“部分软件包存在破坏性变更。<br/>项目中的资产、配置和工具可能不兼容。<br/>请查阅兼容性信息，谨慎升级。",
+    "projects:manage:dialog:note breaking changes": "部分软件包存在破坏性变更。<br/>项目中的资产、配置和工具可能不兼容。<br/>请查阅兼容性信息，谨慎升级。",
     "projects:manage:dialog:note incompatibility": "与其他一些软件包不兼容。<br/>这些工具在加载项目或使用时可能会报错。<br/>请查阅兼容性信息，立即升级相关软件包，或谨慎安装。",
     "projects:manage:dialog:upgrade package": "将 <b>{{name}}</b> 版本 {{previousVersion}} 升级到 <b>{{version}}</b>",
     "projects:manage:dialog:downgrade package": "将 <b>{{name}}</b> 版本 {{previousVersion}} 降级到 <b>{{version}}</b>",
