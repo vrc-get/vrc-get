@@ -23,7 +23,7 @@ use vrc_get_vpm::environment::{
     InvalidRealProjectInformation, PackageInstaller, RealProjectInformation, Settings, UserProject,
     ValidRealProjectInformation, VccDatabaseConnection,
 };
-use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo};
 use vrc_get_vpm::version::UnityVersion;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -301,14 +301,15 @@ pub async fn environment_add_project_with_picker(
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     };
 
-    let unity_projects = try_join_all(project_paths.into_iter().map(load_project)).await?;
-
-    if stream::iter(unity_projects.iter())
-        .any(async |p| !p.is_valid().await)
-        .await
-    {
+    let Ok(unity_projects) = try_join_all(
+        project_paths
+            .into_iter()
+            .map(|path| UnityProject::load(DefaultProjectIo::new(PathBuf::from(path).into()))),
+    )
+    .await
+    else {
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
-    }
+    };
 
     {
         let mut settings = settings.load_mut(io.inner()).await?;
