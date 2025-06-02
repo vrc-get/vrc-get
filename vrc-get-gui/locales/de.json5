@@ -117,9 +117,10 @@
     "projects:button:open unity": "Öffnen",
     "projects:button:manage": "Verwalten",
     "projects:backup": "Backup",
-    "projects:menuitem:open directory": "Projektordner öffnen",
+    "projects:menuitem:open directory": "Projektverzeichnis öffnen",
     "projects:remove project": "Projekt entfernen",
-    "projects:tooltip:no directory": "Projekt Ordner existiert nicht",
+    "projects:tooltip:no directory": "Projektverzeichnis existiert nicht",
+    "projects:tooltip:invalid project": "Projektverzeichnis existiert, ist allerdings ungültig",
 
     "projects:hint:invalid project name": "Ungültiger Projektname!",
     "projects:hint:warn symbol in project name": "Symbole wie diese könnten Probleme verursachen.",
@@ -208,8 +209,8 @@
 
     "projects:manage:manage packages": "Pakete verwalten",
     "projects:manage:tooltip:refresh packages": "Pakete aktualisieren",
-    "projects:manage:button:upgrade all": "Alle Updaten",
-    "projects:manage:button:upgrade all stable": "Alle Updaten (Stabil)",
+    "projects:manage:button:upgrade all": "Alle Aktualisieren",
+    "projects:manage:button:upgrade all stable": "Alle Aktualisieren (Stabil)",
     "projects:manage:button:reinstall all": "Alle Pakete neu installieren",
     "projects:manage:button:package filters": "Paketquellen filtern",
     "projects:manage:menu:repository filter": "Paketquellen",
@@ -226,6 +227,7 @@
     "projects:manage:tooltip:upgrade package": "Paket upgraden",
     "projects:manage:tooltip:remove packages": "Paket entfernen",
     "projects:manage:tooltip:incompatible with unity": "Nicht unterstützt",
+    "projects:manage:menuitem:reinstall": "Neu installieren",
     "projects:manage:menuitem:see changelog": "Changelog anzeigen",
     "projects:manage:menuitem:see documentation": "Dokumentation anzeigen",
     // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
@@ -430,8 +432,8 @@
     "settings:toast:unity hub path updated": "Unity Hub erfolgreich aktualisiert!",
 
     "settings:unity installations": "Unity Installationen",
-    "settings:button:reload unity from unity hub": "Lade Unity von Unity Hub",
-    "settings:tooltip:reload unity from unity hub": "Unity vom Unity Hub zu laden dauert einige Sekunden.",
+    "settings:button:reload unity from unity hub": "Über Unity Hub erkennen",
+    "settings:tooltip:reload unity from unity hub": "Die Erkennung aller Unity Installationen über das Unity Hub kann einen Moment dauern.",
     "settings:button:add unity": "Unity hinzufügen",
     "settings:unity:version": "Version",
     "settings:unity:path": "Pfad",
@@ -443,9 +445,9 @@
     "settings:use legacy unity hub loading": "Verwende alte Unity Hub Installationserkennung",
     "settings:use legacy unity hub loading description": "Die alte Installationserkennung ist möglicherweise zuverlässiger, benötigt aber wesentlich mehr Zeit.<br/>Diese alte Methode wird in Zukunft entfernt, bitte melde Probleme über 'Fehler melden' weiter unten.",
 
-    "settings:default unity arguments": "Standard Unity Befehlzeilen Parameter",
-    "settings:default unity arguments description": "Diese Befehlzeilen Parameter werden benutzt wenn Unity über ALCOM geöffnet wird.",
-    "settings:dialog:default launch arguments": "Standard Unity Befehlzeilen Parameter",
+    "settings:default unity arguments": "Standard-Befehlszeilenparameter von Unity",
+    "settings:default unity arguments description": "Diese Befehlzeilenparameter werden benutzt wenn Unity über ALCOM geöffnet wird.",
+    "settings:dialog:default launch arguments": "Standard-Befehlszeilenparameter von Unity bearbeiten",
 
     "settings:default project path": "Standard Projektpfad",
     "settings:default project path description": "Das Verzeichnis, in dem neue Projekte erstellt werden.",
@@ -472,7 +474,7 @@
     "settings:show prerelease description": "Aktiviere Vorschau-Pakete, um diese in der Paketliste anzuzeigen. Sie werden auch bei der Auflösung von Abhängigkeiten verwendet.",
 
     "settings:gui animation": "Aktiviere Animationen",
-    "settings:gui animation description": "Der Seitenwechsel wird animiert wenn diese Option aktiviert ist. Dies funktioniert auf Systemen mit älteren Webview Versionen evtl. nicht richtig.",
+    "settings:gui animation description": "Ist diese Option aktiviert, werden einige Seitenwechsel animiert. Dies funktioniert auf Systemen mit älteren Webview Versionen evtl. nicht richtig.",
 
     "settings:appearance": "Darstellung",
     "settings:language": "Sprache",
