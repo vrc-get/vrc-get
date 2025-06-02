@@ -87,11 +87,13 @@ export function ProjectRow({
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
 
-	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
-	const displayType = tc(`projects:type:${projectTypeKind}`);
-	const isLegacy = LegacyProjectTypes.includes(project.project_type);
-	const lastModified = new Date(project.last_modified);
-	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, "0")}-${(lastModified.getMonth() + 1).toString().padStart(2, "0")}-${lastModified.getDate().toString().padStart(2, "0")} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
+	const {
+		projectTypeKind,
+		displayType,
+		isLegacy,
+		lastModified,
+		lastModifiedHumanReadable,
+	} = getProjectDisplayInfo(project);
 
 	const openProjectFolder = () =>
 		commands.utilOpen(project.path, "ErrorIfNotExists");
@@ -105,29 +107,7 @@ export function ProjectRow({
 		}
 	};
 
-	const queryClient = useQueryClient();
-	const setProjectFavorite = useMutation({
-		mutationFn: (project: Pick<TauriProject, "path" | "favorite">) =>
-			commands.environmentSetFavoriteProject(project.path, project.favorite),
-		onMutate: async (project) => {
-			await queryClient.cancelQueries(environmentProjects);
-			const data = queryClient.getQueryData(environmentProjects.queryKey);
-			if (data !== undefined) {
-				queryClient.setQueryData(
-					environmentProjects.queryKey,
-					data.map((v) =>
-						v.path === project.path ? { ...v, favorite: project.favorite } : v,
-					),
-				);
-			}
-			return data;
-		},
-		onError: (e, _, ctx) => {
-			console.error("Error migrating project", e);
-			toastThrownError(e);
-			queryClient.setQueryData(environmentProjects.queryKey, ctx);
-		},
-	});
+	const setProjectFavorite = useSetProjectFavoriteMutation();
 
 	const removed = !project.is_exists;
 	const is_valid = project.is_valid;
@@ -598,9 +578,9 @@ export function FavoriteToggleButton({
 			strokeWidth={project.favorite ? 1.5 : 3}
 			className={cn(
 				"size-4 transition-colors cursor-pointer",
-				project.favorite ? "text-yellow-500" : "text-foreground/30",
+				project.favorite ? "text-foreground" : "text-foreground/30",
 				!project.favorite && "opacity-0 group-hover:opacity-100",
-				"hover:text-yellow-400",
+				"hover:text-foreground",
 				className,
 			)}
 			fill={project.favorite ? "currentColor" : "none"}
@@ -611,6 +591,58 @@ export function FavoriteToggleButton({
 			}}
 		/>
 	);
+}
+
+export function getProjectDisplayInfo(project: TauriProject) {
+	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
+	const displayType = tc(`projects:type:${projectTypeKind}`);
+	const isLegacy = LegacyProjectTypes.includes(project.project_type);
+	const lastModified = new Date(project.last_modified);
+	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, "0")}-${(lastModified.getMonth() + 1).toString().padStart(2, "0")}-${lastModified.getDate().toString().padStart(2, "0")} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
+
+	return {
+		projectTypeKind,
+		displayType,
+		isLegacy,
+		lastModified,
+		lastModifiedHumanReadable,
+	};
+}
+
+export function useSetProjectFavoriteMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (project: Pick<TauriProject, "path" | "favorite">) =>
+			commands.environmentSetFavoriteProject(project.path, project.favorite),
+
+		onMutate: async (project) => {
+			await queryClient.cancelQueries(environmentProjects);
+
+			const previousData = queryClient.getQueryData<TauriProject[]>(
+				environmentProjects.queryKey,
+			);
+
+			if (previousData !== undefined) {
+				queryClient.setQueryData<TauriProject[]>(
+					environmentProjects.queryKey,
+					previousData.map((v) =>
+						v.path === project.path ? { ...v, favorite: project.favorite } : v,
+					),
+				);
+			}
+
+			return previousData;
+		},
+
+		onError: (error, _, context) => {
+			console.error("Error migrating project", error);
+			toastThrownError(error);
+			if (context) {
+				queryClient.setQueryData(environmentProjects.queryKey, context);
+			}
+		},
+	});
 }
 
 // endregion

@@ -198,15 +198,15 @@ pub async fn environment_set_gui_animation(
 #[specta::specta]
 pub async fn environment_project_view_mode(
     config: State<'_, GuiConfigState>,
-) -> Result<bool, RustError> {
-    Ok(config.get().project_view_mode)
+) -> Result<String, RustError> {
+    Ok(config.get().project_view_mode.clone())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_set_project_view_mode(
     config: State<'_, GuiConfigState>,
-    project_view_mode: bool,
+    project_view_mode: String,
 ) -> Result<(), RustError> {
     let mut config = config.load_mut().await?;
     config.project_view_mode = project_view_mode;

@@ -49,7 +49,7 @@ function Page() {
 	const [search, setSearch] = useState("");
 
 	const viewModeQuery = useQuery({
-		initialData: true,
+		initialData: "List",
 		queryKey: ["environmentGetProjectViewMode"],
 		queryFn: async () => {
 			return await commands.environmentProjectViewMode();
@@ -59,8 +59,11 @@ function Page() {
 	const queryClient = useQueryClient();
 
 	const setViewModeMutation = useMutation({
-		mutationFn: async (value: boolean) => {
+		mutationFn: async (value: string) => {
 			await commands.environmentSetProjectViewMode(value);
+		},
+		onMutate: async (value: string) => {
+			await queryClient.setQueryData(["environmentGetProjectViewMode"], value);
 		},
 		onSuccess: async () => {
 			await queryClient.invalidateQueries({
@@ -71,7 +74,7 @@ function Page() {
 
 	const viewMode = viewModeQuery.data ?? true;
 
-	const setViewMode = (value: boolean) => {
+	const setViewMode = (value: string) => {
 		setViewModeMutation.mutate(value);
 	};
 
@@ -98,14 +101,20 @@ function Page() {
 					<Card className="w-full shadow-none overflow-hidden p-4">
 						{tc("projects:error:load error", { msg: result.error.message })}
 					</Card>
-				) : viewMode ? (
+				) : viewMode === "List" ? (
 					<ProjectsTableCard
 						projects={result.data}
 						search={search}
 						loading={loading}
 					/>
-				) : (
+				) : viewMode === "Grid" ? (
 					<ProjectsGridCard
+						projects={result.data}
+						search={search}
+						loading={loading}
+					/>
+				) : (
+					<ProjectsTableCard
 						projects={result.data}
 						search={search}
 						loading={loading}
@@ -128,8 +137,8 @@ function ProjectViewHeader({
 	isLoading?: boolean;
 	search: string;
 	setSearch: (search: string) => void;
-	viewMode: boolean;
-	setViewMode: (viewMode: boolean) => void;
+	viewMode: string;
+	setViewMode: (viewMode: string) => void;
 }) {
 	const queryClient = useQueryClient();
 	const addProjectWithPicker = useMutation({
@@ -212,16 +221,30 @@ function ProjectViewHeader({
 						ref={searchRef}
 					/>
 
-					<Button variant={"ghost"} onClick={() => setViewMode(!viewMode)}>
-						{viewMode ? (
+					<Button
+						variant={"ghost"}
+						onClick={() => {
+							if (viewMode === "List") {
+								setViewMode("Grid");
+							} else {
+								setViewMode("List");
+							}
+						}}
+					>
+						{viewMode === "List" ? (
 							<>
 								<LayoutList className={"w-5 h-5"} />
 								<p className="ml-2">{tc("projects:list view")}</p>
 							</>
-						) : (
+						) : viewMode === "Grid" ? (
 							<>
 								<LayoutGrid className={"w-5 h-5"} />
 								<p className="ml-2">{tc("projects:grid view")}</p>
+							</>
+						) : (
+							<>
+								<LayoutList className={"w-5 h-5"} />
+								<p className="ml-2">{tc("projects:list view")}</p>
 							</>
 						)}
 					</Button>

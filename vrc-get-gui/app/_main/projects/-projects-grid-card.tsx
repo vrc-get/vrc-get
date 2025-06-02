@@ -12,16 +12,15 @@ import {
 import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
-import { toastThrownError } from "@/lib/toast";
-import { compareUnityVersionString } from "@/lib/version";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo } from "react";
 import { ProjectGridItem } from "./-project-grid-item";
 import {
-	compareProjectType,
 	isSorting,
+	sortSearchProjects,
 	type sortings,
+	useSetProjectSortingMutation,
 } from "./-projects-list-card";
 
 type SimpleSorting = (typeof sortings)[number];
@@ -43,8 +42,6 @@ export function ProjectsGridCard({
 	search?: string;
 	loading?: boolean;
 }) {
-	const queryClient = useQueryClient();
-
 	const sortingQuery = useQuery({
 		initialData: "lastModified" as Sorting,
 		queryKey: ["environmentGetProjectSorting"],
@@ -54,21 +51,7 @@ export function ProjectsGridCard({
 		},
 	});
 
-	const setSortingStateMutation = useMutation({
-		mutationFn: async ({ sorting }: { sorting: Sorting }) => {
-			await commands.environmentSetProjectSorting(sorting);
-		},
-		onMutate: async ({ sorting }) => {
-			await queryClient.cancelQueries({
-				queryKey: ["environmentGetProjectSorting"],
-			});
-			queryClient.setQueryData(["environmentGetProjectSorting"], () => sorting);
-		},
-		onError: (error) => {
-			console.error("Error setting project sorting", error);
-			toastThrownError(error);
-		},
-	});
+	const setSortingStateMutation = useSetProjectSortingMutation();
 
 	const currentKey = sortingQuery.data.replace(
 		/Reversed$/,
@@ -89,31 +72,8 @@ export function ProjectsGridCard({
 	};
 
 	const projectsShown = useMemo(() => {
-		const filtered = projects.filter((p) =>
-			p.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
-		);
-
-		const sorters: Record<
-			SimpleSorting,
-			(a: TauriProject, b: TauriProject) => number
-		> = {
-			lastModified: (a, b) => b.last_modified - a.last_modified,
-			name: (a, b) => a.name.localeCompare(b.name),
-			type: (a, b) => compareProjectType(a.project_type, b.project_type),
-			unity: (a, b) => compareUnityVersionString(a.unity, b.unity),
-		};
-
-		const sorter = sorters[currentKey];
-		filtered.sort((a, b) => (isReversed ? -1 : 1) * sorter(a, b));
-
-		filtered.sort((a, b) => {
-			if (a.favorite && !b.favorite) return -1;
-			if (!a.favorite && b.favorite) return 1;
-			return 0;
-		});
-
-		return filtered;
-	}, [projects, search, currentKey, isReversed]);
+		return sortSearchProjects(projects, search ?? "", sortingQuery.data);
+	}, [projects, search, sortingQuery.data]);
 
 	return (
 		<div className="flex flex-col h-full w-full overflow-hidden">
@@ -154,7 +114,7 @@ export function ProjectsGridCard({
 				className="h-full w-full vrc-get-scrollable-card rounded-l-xl"
 				scrollBarClassName="bg-background rounded-full border-l-0 p-[1.5px]"
 			>
-				<div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3 overflow-x-hidden mr-4">
+				<div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 overflow-x-hidden mr-4">
 					{projectsShown.map((project) => (
 						<ProjectGridItem
 							key={project.path}

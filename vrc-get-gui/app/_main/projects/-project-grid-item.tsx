@@ -1,13 +1,13 @@
 import {
 	ButtonDisabledIfInvalid,
 	FavoriteToggleButton,
-	LegacyProjectTypes,
 	ManageOrMigrateButton,
 	ProjectContext,
-	ProjectDisplayType,
 	TooltipTriggerIfInvalid,
 	TooltipTriggerIfValid,
 	formatDateOffset,
+	getProjectDisplayInfo,
+	useSetProjectFavoriteMutation,
 } from "@/app/_main/projects/-project-row";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
@@ -32,11 +32,7 @@ import { commands } from "@/lib/bindings";
 import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
-import {
-	queryOptions,
-	useMutation,
-	useQueryClient,
-} from "@tanstack/react-query";
+import { queryOptions } from "@tanstack/react-query";
 import { CircleHelp, CircleUserRound, Ellipsis, Globe } from "lucide-react";
 
 const environmentProjects = queryOptions({
@@ -51,38 +47,17 @@ export function ProjectGridItem({
 	project: TauriProject;
 	loading?: boolean;
 }) {
-	const queryClient = useQueryClient();
-
-	const setProjectFavorite = useMutation({
-		mutationFn: (project: Pick<TauriProject, "path" | "favorite">) =>
-			commands.environmentSetFavoriteProject(project.path, project.favorite),
-		onMutate: async (project) => {
-			await queryClient.cancelQueries(environmentProjects);
-			const data = queryClient.getQueryData(environmentProjects.queryKey);
-			if (data !== undefined) {
-				queryClient.setQueryData(
-					environmentProjects.queryKey,
-					data.map((v) =>
-						v.path === project.path ? { ...v, favorite: project.favorite } : v,
-					),
-				);
-			}
-			return data;
-		},
-		onError: (e, _, ctx) => {
-			console.error("Error migrating project", e);
-			toastThrownError(e);
-			queryClient.setQueryData(environmentProjects.queryKey, ctx);
-		},
-	});
+	const setProjectFavorite = useSetProjectFavoriteMutation();
 
 	const typeIconClass = "w-5 h-5";
 
-	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
-	const displayType = tc(`projects:type:${projectTypeKind}`);
-	const isLegacy = LegacyProjectTypes.includes(project.project_type);
-	const lastModified = new Date(project.last_modified);
-	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, "0")}-${(lastModified.getMonth() + 1).toString().padStart(2, "0")}-${lastModified.getDate().toString().padStart(2, "0")} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
+	const {
+		projectTypeKind,
+		displayType,
+		isLegacy,
+		lastModified,
+		lastModifiedHumanReadable,
+	} = getProjectDisplayInfo(project);
 
 	const removed = !project.is_exists;
 	const is_valid = project.is_valid;
@@ -155,7 +130,9 @@ export function ProjectGridItem({
 								<TooltipTriggerIfValid
 									className={"text-left select-text cursor-auto w-full"}
 								>
-									<p className="font-normal whitespace-pre">{project.name}</p>
+									<p className="font-normal whitespace-pre overflow-ellipsis overflow-hidden">
+										{project.name}
+									</p>
 								</TooltipTriggerIfValid>
 								<TooltipContent>{project.name}</TooltipContent>
 							</Tooltip>
@@ -163,7 +140,7 @@ export function ProjectGridItem({
 								<TooltipTriggerIfValid
 									className={"text-left select-text cursor-auto w-full"}
 								>
-									<p className="font-normal opacity-50 text-sm whitespace-pre">
+									<p className="font-normal opacity-50 text-sm whitespace-pre overflow-ellipsis overflow-hidden">
 										{project.path}
 									</p>
 								</TooltipTriggerIfValid>
@@ -221,7 +198,7 @@ export function ProjectGridItem({
 					</Tooltip>
 				</div>
 
-				<div className="mt-2 flex flex-wrap gap-2">
+				<div className="mt-2 flex flex-wrap gap-2 justify-end">
 					<ButtonDisabledIfInvalid asChild>
 						<OpenUnityButton
 							projectPath={project.path}

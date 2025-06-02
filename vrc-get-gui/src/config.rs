@@ -35,7 +35,7 @@ pub struct GuiConfig {
     #[serde(default = "gui_animation_default")]
     pub gui_animation: bool,
     #[serde(default = "project_view_mode_default")]
-    pub project_view_mode: bool,
+    pub project_view_mode: String,
     #[serde(default)]
     pub unity_hub_access_method: UnityHubAccessMethod,
     // last element is the most recent one
@@ -72,7 +72,7 @@ impl Default for GuiConfig {
             default_unity_arguments: None,
             logs_level: log_level_default(),
             gui_animation: true,
-            project_view_mode: true,
+            project_view_mode: project_view_mode_default(),
             unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
             recent_project_locations: Vec::new(),
             exclude_vpm_packages_from_backup: false,
@@ -145,8 +145,8 @@ fn gui_animation_default() -> bool {
     true
 }
 
-fn project_view_mode_default() -> bool {
-    true
+fn project_view_mode_default() -> String {
+    "List".to_string()
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
