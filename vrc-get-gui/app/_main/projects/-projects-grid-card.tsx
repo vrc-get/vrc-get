@@ -19,10 +19,10 @@ type SimpleSorting = (typeof sortings)[number];
 type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
 
 const sortingOptions: { key: SimpleSorting; label: string }[] = [
-    { key: "name", label: t("general:name") },
-    { key: "type", label: t("projects:type") },
-    { key: "unity", label: t("projects:unity") },
-    { key: "lastModified", label: t("projects:last modified") },
+    { key: "name", label: "general:name"},
+    { key: "type", label: "projects:type"},
+    { key: "unity", label: "projects:unity"},
+    { key: "lastModified", label: "projects:last modified"},
 ];
 
 export function ProjectsGridCard({
@@ -110,7 +110,7 @@ export function ProjectsGridCard({
                         <SelectContent>
                             {sortingOptions.map((option) => (
                                 <SelectItem key={option.key} value={option.key}>
-                                    {option.label}
+                                    {tc(option.label)}
                                 </SelectItem>
                             ))}
                         </SelectContent>
