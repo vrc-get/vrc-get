@@ -93,9 +93,6 @@ pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> Vec<ProjectTemplat
             Err(e) => {
                 warn!("failed to load user template {name}: {e}");
             }
-            Ok(ref p) if !p.is_valid().await => {
-                warn!("failed to load user template {name}: invalid project");
-            }
             Ok(p) => templates.push(ProjectTemplateInfo {
                 display_name: name.clone(),
                 id: format!("{}{}", VCC_TEMPLATE_PREFIX, name),
