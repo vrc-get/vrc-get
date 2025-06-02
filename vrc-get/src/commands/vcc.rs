@@ -124,10 +124,6 @@ impl ProjectAdd {
             .await
             .exit_context("loading specified project");
 
-        if !project.is_valid().await {
-            return eprintln!("Invalid project at {}", self.path);
-        }
-
         migrate_sanitize_projects(&mut connection, &io, &settings).await;
 
         connection

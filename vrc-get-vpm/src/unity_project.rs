@@ -173,10 +173,6 @@ impl UnityProject {
         Some(revision)
     }
 
-    pub async fn is_valid(&self) -> bool {
-        true
-    }
-
     pub fn io(&self) -> &DefaultProjectIo {
         &self.io
     }
