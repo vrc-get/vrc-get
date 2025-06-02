@@ -2,6 +2,7 @@
 
 import Loading from "@/app/-loading";
 import { createProject } from "@/app/_main/projects/-create-project";
+import { ProjectsGridCard } from "@/app/_main/projects/-projects-grid-card";
 import { SearchBox } from "@/components/SearchBox";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, LayoutGrid, LayoutList, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 import { ProjectsTableCard } from "./-projects-list-card";
-import { ProjectsGridCard } from "@/app/_main/projects/-projects-grid-card";
 
 export const Route = createFileRoute("/_main/projects/")({
 	component: Page,

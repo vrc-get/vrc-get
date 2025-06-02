@@ -1,15 +1,7 @@
 "use client";
-import type { TauriProject } from "@/lib/bindings";
-import { commands } from "@/lib/bindings";
-import { tc } from "@/lib/i18n";
-import { toastThrownError } from "@/lib/toast";
-import { compareUnityVersionString } from "@/lib/version";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, ArrowDown } from "lucide-react";
-import React, { useMemo } from "react";
-import { ProjectGridItem } from "./-project-grid-item";
-import { compareProjectType, isSorting, sortings } from "./-projects-list-card";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -17,8 +9,20 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import type { TauriProject } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
+import { tc } from "@/lib/i18n";
+import { toastThrownError } from "@/lib/toast";
+import { compareUnityVersionString } from "@/lib/version";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { useMemo } from "react";
+import { ProjectGridItem } from "./-project-grid-item";
+import {
+	compareProjectType,
+	isSorting,
+	type sortings,
+} from "./-projects-list-card";
 
 type SimpleSorting = (typeof sortings)[number];
 type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;

@@ -1,9 +1,20 @@
+import {
+	ButtonDisabledIfInvalid,
+	FavoriteToggleButton,
+	LegacyProjectTypes,
+	ManageOrMigrateButton,
+	ProjectContext,
+	ProjectDisplayType,
+	TooltipTriggerIfInvalid,
+	TooltipTriggerIfValid,
+	formatDateOffset,
+} from "@/app/_main/projects/-project-row";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card } from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -19,33 +30,14 @@ import {
 import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { openSingleDialog } from "@/lib/dialog";
-import { tc, tt } from "@/lib/i18n";
+import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import {
 	queryOptions,
 	useMutation,
 	useQueryClient,
 } from "@tanstack/react-query";
-import {
-	CircleHelp,
-	CircleUserRound,
-	Ellipsis,
-	Globe,
-	Star,
-} from "lucide-react";
-import React from "react";
-import {
-	ButtonDisabledIfInvalid,
-	FavoriteToggleButton,
-	formatDateOffset,
-	LegacyProjectTypes,
-	ManageOrMigrateButton,
-	ProjectContext,
-	ProjectDisplayType,
-	TooltipTriggerIfInvalid,
-	TooltipTriggerIfValid,
-} from "@/app/_main/projects/-project-row";
-import { Card } from "@/components/ui/card";
+import { CircleHelp, CircleUserRound, Ellipsis, Globe } from "lucide-react";
 
 const environmentProjects = queryOptions({
 	queryKey: ["environmentProjects"],

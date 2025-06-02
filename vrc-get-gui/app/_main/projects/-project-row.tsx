@@ -4,7 +4,6 @@ import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DialogDescription,
 	DialogFooter,
@@ -30,6 +29,7 @@ import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import { compareUnityVersionString } from "@/lib/version";
 import {
 	queryOptions,
@@ -45,7 +45,6 @@ import {
 	Star,
 } from "lucide-react";
 import React, { type ComponentProps, useContext } from "react";
-import { cn } from "@/lib/utils";
 
 export const ProjectDisplayType: Record<
 	TauriProjectType,
