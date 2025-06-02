@@ -191,6 +191,8 @@ export function sortSearchProjects(
 		project.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
 	);
 
+	searched.sort((a, b) => b.last_modified - a.last_modified);
+
 	switch (sorting) {
 		case "lastModified":
 			searched.sort((a, b) => b.last_modified - a.last_modified);
