@@ -114,6 +114,7 @@
     "projects:menuitem:open directory": "プロジェクトの保存場所を開く",
     "projects:remove project": "プロジェクトを削除",
     "projects:tooltip:no directory": "プロジェクトが見つかりません。",
+    "projects:tooltip:invalid project": "フォルダがプロジェクトとして利用可能ではありません。",
 
     "projects:hint:invalid project name": "プロジェクト名が不正です。",
     "projects:hint:warn symbol in project name": "そのような記号を使用すると問題が発生する可能性があります。",
