@@ -127,17 +127,34 @@ impl UnityProject {
         io: &DefaultProjectIo,
     ) -> io::Result<(UnityVersion, Option<String>)> {
         let mut buffer = String::new();
-        io.open("ProjectSettings/ProjectVersion.txt".as_ref())
-            .await?
-            .read_to_string(&mut buffer)
-            .await?;
 
-        let Some(unity_version) =
-            Self::find_attribute(buffer.as_str(), "m_EditorVersion:").and_then(UnityVersion::parse)
-        else {
+        io.open("ProjectSettings/ProjectVersion.txt".as_ref())
+            .await
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("Error opening ProjectVersion.txt: {e}"),
+                )
+            })?
+            .read_to_string(&mut buffer)
+            .await
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("Error reading ProjectVersion.txt: {e}"),
+                )
+            })?;
+
+        let Some(unity_version) = Self::find_attribute(buffer.as_str(), "m_EditorVersion:") else {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "Failed to parse m_EditorVersion",
+                "Failed to parse m_EditorVersion: No m_EditorVersion was found",
+            ));
+        };
+        let Some(unity_version) = UnityVersion::parse(unity_version) else {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Failed to parse m_EditorVersion: {unity_version}"),
             ));
         };
 
