@@ -8,6 +8,8 @@ updates:
     groups:
       tauri:
         patterns: [ 'tauri', 'tauri-build' ]
+      clap:
+        patterns: [ 'clap', 'clap_complete' ]
   - package-ecosystem: github-actions
     directory: "/"
     open-pull-requests-limit: 20
@@ -27,3 +29,5 @@ updates:
         patterns: [ "@tanstack/*router*" ]
       tailwindcss:
         patterns: [ "tailwindcss", "@tailwindcss/*" ]
+      i18next:
+        patterns: [ "i18next", "react-i18next" ]
