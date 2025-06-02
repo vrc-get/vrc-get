@@ -301,14 +301,18 @@ pub async fn environment_add_project_with_picker(
         return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
     };
 
-    let Ok(unity_projects) = try_join_all(
+    let unity_projects = match try_join_all(
         project_paths
             .into_iter()
             .map(|path| UnityProject::load(DefaultProjectIo::new(PathBuf::from(path).into()))),
     )
     .await
-    else {
-        return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
+    {
+        Ok(unity_projects) => unity_projects,
+        Err(e) => {
+            error!(gui_toast = false; "Error loading project: {e}");
+            return Ok(TauriAddProjectWithPickerResult::InvalidSelection);
+        }
     };
 
     {
