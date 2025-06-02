@@ -591,6 +591,8 @@ export function FavoriteToggleButton({
 	onToggle: () => void;
 	className?: string;
 }) {
+	if (disabled) return null;
+
 	return (
 		<Star
 			strokeWidth={project.favorite ? 1.5 : 3}
