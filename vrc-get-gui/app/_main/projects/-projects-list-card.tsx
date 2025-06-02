@@ -177,7 +177,7 @@ export function ProjectsTableCard({
 			<thead>
 				<tr>
 					<th className={`${thClass} bg-secondary text-secondary-foreground`}>
-						<Star className={"size-4 ml-3"} />
+						<Star className={"size-4"} />
 					</th>
 					<th className={`${thClass} ${headerBg("name")}`}>
 						<button

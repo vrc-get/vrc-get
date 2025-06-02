@@ -95,18 +95,20 @@ export function ProjectGridItem({
         <ProjectContext.Provider
             value={{ removed, is_valid, loading: Boolean(loading) }}
         >
-            <Card className="relative p-4 bg-card flex flex-col gap-2">
-                <div className={"absolute top-2 right-2 gap-2"}>
-                    <FavoriteToggleButton
-                        project={project}
-                        disabled={removed || loading}
-                        onToggle={() =>
-                            setProjectFavorite.mutate({
-                                ...project,
-                                favorite: !project.favorite,
-                            })
-                        }
-                    />
+            <Card className="relative p-4 bg-card flex flex-col gap-2 group">
+                <div className={"absolute top-2 right-2 gap-2 flex"}>
+                    <div className="relative content-center">
+                        <FavoriteToggleButton
+                            project={project}
+                            disabled={removed || loading}
+                            onToggle={() =>
+                                setProjectFavorite.mutate({
+                                    ...project,
+                                    favorite: !project.favorite,
+                                })
+                            }
+                        />
+                    </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">

@@ -138,7 +138,7 @@ export function ProjectRow({
 			value={{ removed, is_valid, loading: Boolean(loading) }}
 		>
 			<tr
-				className={`even:bg-secondary/30 ${removed || loading || !(project.is_valid ?? true) ? "opacity-50" : ""}`}
+				className={`group even:bg-secondary/30 ${removed || loading || !(project.is_valid ?? true) ? "opacity-50" : ""}`}
 			>
 				<td className={`${cellClass} w-3`}>
 					<div className={"relative flex"}>
@@ -593,23 +593,22 @@ export function FavoriteToggleButton({
 	className?: string;
 }) {
 	return (
-		<Button
-			onClick={onToggle}
-			variant="ghost"
-			size="icon"
-			disabled={disabled}
-			className={cn("relative group", className)}
-		>
-			<Star
-				strokeWidth={project.favorite ? 1.5 : 3}
-				className={cn(
-					"size-4 transition-colors",
-					project.favorite ? "text-yellow-500" : "text-foreground/30",
-					"group-hover:text-yellow-400"
-				)}
-				fill={project.favorite ? "currentColor" : "none"}
-			/>
-		</Button>
+		<Star
+			strokeWidth={project.favorite ? 1.5 : 3}
+			className={cn(
+				"size-4 transition-colors cursor-pointer",
+				project.favorite ? "text-yellow-500" : "text-foreground/30",
+				!project.favorite && "opacity-0 group-hover:opacity-100",
+				"hover:text-yellow-400",
+				className
+			)}
+			fill={project.favorite ? "currentColor" : "none"}
+			onClick={() => {
+				if (!disabled) {
+					onToggle();
+				}
+			}}
+		/>
 	);
 }
 
