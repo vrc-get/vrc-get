@@ -4,7 +4,6 @@ import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	DialogDescription,
 	DialogFooter,
@@ -30,6 +29,7 @@ import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import { compareUnityVersionString } from "@/lib/version";
 import {
 	queryOptions,
@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import React, { type ComponentProps, useContext } from "react";
 
-const ProjectDisplayType: Record<
+export const ProjectDisplayType: Record<
 	TauriProjectType,
 	"avatars" | "worlds" | "sdk2" | "unknown"
 > = {
@@ -62,7 +62,7 @@ const ProjectDisplayType: Record<
 	VpmStarter: "unknown",
 };
 
-const LegacyProjectTypes = [
+export const LegacyProjectTypes = [
 	"LegacySdk2",
 	"LegacyWorlds",
 	"LegacyAvatars",
@@ -87,11 +87,13 @@ export function ProjectRow({
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
 
-	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
-	const displayType = tc(`projects:type:${projectTypeKind}`);
-	const isLegacy = LegacyProjectTypes.includes(project.project_type);
-	const lastModified = new Date(project.last_modified);
-	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, "0")}-${(lastModified.getMonth() + 1).toString().padStart(2, "0")}-${lastModified.getDate().toString().padStart(2, "0")} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
+	const {
+		projectTypeKind,
+		displayType,
+		isLegacy,
+		lastModified,
+		lastModifiedHumanReadable,
+	} = getProjectDisplayInfo(project);
 
 	const openProjectFolder = () =>
 		commands.utilOpen(project.path, "ErrorIfNotExists");
@@ -105,60 +107,30 @@ export function ProjectRow({
 		}
 	};
 
-	const queryClient = useQueryClient();
-	const setProjectFavorite = useMutation({
-		mutationFn: (project: Pick<TauriProject, "path" | "favorite">) =>
-			commands.environmentSetFavoriteProject(project.path, project.favorite),
-		onMutate: async (project) => {
-			await queryClient.cancelQueries(environmentProjects);
-			const data = queryClient.getQueryData(environmentProjects.queryKey);
-			if (data !== undefined) {
-				queryClient.setQueryData(
-					environmentProjects.queryKey,
-					data.map((v) =>
-						v.path === project.path ? { ...v, favorite: project.favorite } : v,
-					),
-				);
-			}
-			return data;
-		},
-		onError: (e, _, ctx) => {
-			console.error("Error migrating project", e);
-			toastThrownError(e);
-			queryClient.setQueryData(environmentProjects.queryKey, ctx);
-		},
-	});
+	const setProjectFavorite = useSetProjectFavoriteMutation();
 
 	const removed = !project.is_exists;
 	const is_valid = project.is_valid;
 
 	return (
-		<ProjectRowContext.Provider
+		<ProjectContext.Provider
 			value={{ removed, is_valid, loading: Boolean(loading) }}
 		>
 			<tr
-				className={`even:bg-secondary/30 ${removed || loading || !(project.is_valid ?? true) ? "opacity-50" : ""}`}
+				className={`group even:bg-secondary/30 ${removed || loading || !(project.is_valid ?? true) ? "opacity-50" : ""}`}
 			>
 				<td className={`${cellClass} w-3`}>
 					<div className={"relative flex"}>
-						<Checkbox
-							checked={project.favorite}
-							onCheckedChange={() =>
+						<FavoriteToggleButton
+							project={project}
+							disabled={removed || loading}
+							onToggle={() =>
 								setProjectFavorite.mutate({
 									...project,
 									favorite: !project.favorite,
 								})
 							}
-							disabled={removed || loading}
-							className="before:transition-none border-none text-primary! peer"
 						/>
-						<span
-							className={
-								"text-foreground/30 peer-data-[state=checked]:text-background pointer-events-none absolute top-2/4 left-2/4 -translate-y-2/4 -translate-x-2/4"
-							}
-						>
-							<Star strokeWidth={3} className={"size-3"} />
-						</span>
 					</div>
 				</td>
 				<td className={`${cellClass} max-w-64 overflow-hidden`}>
@@ -298,11 +270,11 @@ export function ProjectRow({
 					</div>
 				</td>
 			</tr>
-		</ProjectRowContext.Provider>
+		</ProjectContext.Provider>
 	);
 }
 
-function ManageOrMigrateButton({
+export function ManageOrMigrateButton({
 	project,
 }: {
 	project: TauriProject;
@@ -479,7 +451,7 @@ function VpmMigrationUpdating() {
 
 // region utilities
 
-const ProjectRowContext = React.createContext<{
+export const ProjectContext = React.createContext<{
 	removed: boolean;
 	is_valid: boolean | null;
 	loading: boolean;
@@ -489,10 +461,10 @@ const ProjectRowContext = React.createContext<{
 	loading: false,
 });
 
-const ButtonDisabledIfInvalid = function RemovedButton(
+export const ButtonDisabledIfInvalid = function RemovedButton(
 	props: React.ComponentProps<typeof Button>,
 ) {
-	const rowContext = useContext(ProjectRowContext);
+	const rowContext = useContext(ProjectContext);
 	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return (
 			<Tooltip>
@@ -523,11 +495,11 @@ const ButtonDisabledIfInvalid = function RemovedButton(
 	}
 };
 
-const TooltipTriggerIfInvalid = ({
+export const TooltipTriggerIfInvalid = ({
 	children,
 	...props
 }: ComponentProps<typeof TooltipTrigger>) => {
-	const rowContext = useContext(ProjectRowContext);
+	const rowContext = useContext(ProjectContext);
 	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return <TooltipTrigger {...props}>{children}</TooltipTrigger>;
 	} else {
@@ -535,11 +507,11 @@ const TooltipTriggerIfInvalid = ({
 	}
 };
 
-const TooltipTriggerIfValid = ({
+export const TooltipTriggerIfValid = ({
 	children,
 	...props
 }: ComponentProps<typeof TooltipTrigger>) => {
-	const rowContext = useContext(ProjectRowContext);
+	const rowContext = useContext(ProjectContext);
 	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
 		return children;
 	} else {
@@ -547,7 +519,7 @@ const TooltipTriggerIfValid = ({
 	}
 };
 
-function formatDateOffset(date: number): React.ReactNode {
+export function formatDateOffset(date: number): React.ReactNode {
 	const now = Date.now();
 	const diff = now - date;
 
@@ -585,6 +557,91 @@ function formatDateOffset(date: number): React.ReactNode {
 
 	return tc("projects:last modified:years", {
 		count: Math.floor(diff / PER_YEAR),
+	});
+}
+
+export function FavoriteToggleButton({
+	project,
+	disabled,
+	onToggle,
+	className,
+}: {
+	project: { favorite: boolean };
+	disabled?: boolean;
+	onToggle: () => void;
+	className?: string;
+}) {
+	if (disabled) return null;
+
+	return (
+		<Star
+			strokeWidth={project.favorite ? 1.5 : 3}
+			className={cn(
+				"size-4 transition-colors cursor-pointer",
+				project.favorite ? "text-foreground" : "text-foreground/30",
+				!project.favorite && "opacity-0 group-hover:opacity-100",
+				"hover:text-foreground",
+				className,
+			)}
+			fill={project.favorite ? "currentColor" : "none"}
+			onClick={() => {
+				if (!disabled) {
+					onToggle();
+				}
+			}}
+		/>
+	);
+}
+
+export function getProjectDisplayInfo(project: TauriProject) {
+	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
+	const displayType = tc(`projects:type:${projectTypeKind}`);
+	const isLegacy = LegacyProjectTypes.includes(project.project_type);
+	const lastModified = new Date(project.last_modified);
+	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, "0")}-${(lastModified.getMonth() + 1).toString().padStart(2, "0")}-${lastModified.getDate().toString().padStart(2, "0")} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
+
+	return {
+		projectTypeKind,
+		displayType,
+		isLegacy,
+		lastModified,
+		lastModifiedHumanReadable,
+	};
+}
+
+export function useSetProjectFavoriteMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (project: Pick<TauriProject, "path" | "favorite">) =>
+			commands.environmentSetFavoriteProject(project.path, project.favorite),
+
+		onMutate: async (project) => {
+			await queryClient.cancelQueries(environmentProjects);
+
+			const previousData = queryClient.getQueryData<TauriProject[]>(
+				environmentProjects.queryKey,
+			);
+
+			if (previousData !== undefined) {
+				queryClient.setQueryData<TauriProject[]>(
+					environmentProjects.queryKey,
+					previousData.map((v) =>
+						v.path === project.path ? { ...v, favorite: project.favorite } : v,
+					),
+				);
+			}
+
+			return previousData;
+		},
+
+		onError: (error, _, context) => {
+			console.error("Error migrating project", error);
+			toastThrownError(error);
+			if (context) {
+				queryClient.setQueryData(environmentProjects.queryKey, context);
+			}
+		},
 	});
 }
 

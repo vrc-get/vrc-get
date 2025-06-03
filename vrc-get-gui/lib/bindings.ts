@@ -44,6 +44,12 @@ async environmentGuiAnimation() : Promise<boolean> {
 async environmentSetGuiAnimation(guiAnimation: boolean) : Promise<null> {
     return await TAURI_INVOKE("environment_set_gui_animation", { guiAnimation });
 },
+async environmentProjectViewMode() : Promise<string> {
+    return await TAURI_INVOKE("environment_project_view_mode");
+},
+async environmentSetProjectViewMode(projectViewMode: string) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_project_view_mode", { projectViewMode });
+},
 async environmentSetUnityHubAccessMethod(unityHubAccessMethod: UnityHubAccessMethod) : Promise<null> {
     return await TAURI_INVOKE("environment_set_unity_hub_access_method", { unityHubAccessMethod });
 },

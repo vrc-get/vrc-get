@@ -11,18 +11,18 @@ import { ChevronDown, ChevronUp, ChevronsUpDown, Star } from "lucide-react";
 import { useMemo } from "react";
 import { ProjectRow } from "./-project-row";
 
-const sortings = ["lastModified", "name", "unity", "type"] as const;
+export const sortings = ["lastModified", "name", "unity", "type"] as const;
 
 type SimpleSorting = (typeof sortings)[number];
 type Sorting = SimpleSorting | `${SimpleSorting}Reversed`;
 
-function isSorting(s: string | unknown): s is Sorting {
+export function isSorting(s: string | unknown): s is Sorting {
 	return sortings.some(
 		(sorting) => sorting === s || `${sorting}Reversed` === s,
 	);
 }
 
-function compareProjectType(
+export function compareProjectType(
 	a: TauriProjectType,
 	b: TauriProjectType,
 ): 0 | -1 | 1 {
@@ -81,68 +81,11 @@ export function ProjectsTableCard({
 		},
 	});
 
-	const queryClient = useQueryClient();
-
-	const setSortingStateMutation = useMutation({
-		mutationFn: async ({ sorting }: { sorting: Sorting }) => {
-			await commands.environmentSetProjectSorting(sorting);
-		},
-		onMutate: async ({ sorting }) => {
-			await queryClient.cancelQueries({
-				queryKey: ["environmentGetProjectSorting"],
-			});
-			queryClient.setQueryData(["environmentGetProjectSorting"], () => sorting);
-		},
-		onError: (error) => {
-			console.error("Error setting project sorting", error);
-			toastThrownError(error);
-		},
-	});
+	const setSortingStateMutation = useSetProjectSortingMutation();
 
 	const projectsShown = useMemo(() => {
-		const searched = projects.filter((project) =>
-			project.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
-		);
-		searched.sort((a, b) => b.last_modified - a.last_modified);
-		switch (sortingQuery.data) {
-			case "lastModified":
-				// already sorted
-				break;
-			case "lastModifiedReversed":
-				searched.sort((a, b) => a.last_modified - b.last_modified);
-				break;
-			case "name":
-				searched.sort((a, b) => a.name.localeCompare(b.name));
-				break;
-			case "nameReversed":
-				searched.sort((a, b) => b.name.localeCompare(a.name));
-				break;
-			case "type":
-				searched.sort((a, b) =>
-					compareProjectType(a.project_type, b.project_type),
-				);
-				break;
-			case "typeReversed":
-				searched.sort((a, b) =>
-					compareProjectType(b.project_type, a.project_type),
-				);
-				break;
-			case "unity":
-				searched.sort((a, b) => compareUnityVersionString(a.unity, b.unity));
-				break;
-			case "unityReversed":
-				searched.sort((a, b) => compareUnityVersionString(b.unity, a.unity));
-				break;
-			default:
-				assertNever(sortingQuery.data);
-		}
-		searched.sort((a, b) => {
-			if (a.favorite && !b.favorite) return -1;
-			if (!a.favorite && b.favorite) return 1;
-			return 0;
-		});
-		return searched;
-	}, [projects, sortingQuery.data, search]);
+		return sortSearchProjects(projects, search ?? "", sortingQuery.data);
+	}, [projects, search, sortingQuery.data]);
 
 	const thClass = "sticky top-0 z-10 border-b border-primary p-2.5";
 	const iconClass = "size-3 invisible project-table-header-chevron-up-down";
@@ -237,4 +180,77 @@ export function ProjectsTableCard({
 			</tbody>
 		</ScrollableCardTable>
 	);
+}
+
+export function sortSearchProjects(
+	projects: TauriProject[],
+	search: string,
+	sorting: Sorting,
+): TauriProject[] {
+	const searched = projects.filter((project) =>
+		project.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
+	);
+
+	searched.sort((a, b) => b.last_modified - a.last_modified);
+
+	switch (sorting) {
+		case "lastModified":
+			searched.sort((a, b) => b.last_modified - a.last_modified);
+			break;
+		case "lastModifiedReversed":
+			searched.sort((a, b) => a.last_modified - b.last_modified);
+			break;
+		case "name":
+			searched.sort((a, b) => a.name.localeCompare(b.name));
+			break;
+		case "nameReversed":
+			searched.sort((a, b) => b.name.localeCompare(a.name));
+			break;
+		case "type":
+			searched.sort((a, b) =>
+				compareProjectType(a.project_type, b.project_type),
+			);
+			break;
+		case "typeReversed":
+			searched.sort((a, b) =>
+				compareProjectType(b.project_type, a.project_type),
+			);
+			break;
+		case "unity":
+			searched.sort((a, b) => compareUnityVersionString(a.unity, b.unity));
+			break;
+		case "unityReversed":
+			searched.sort((a, b) => compareUnityVersionString(b.unity, a.unity));
+			break;
+		default:
+			assertNever(sorting);
+	}
+
+	searched.sort((a, b) => {
+		if (a.favorite && !b.favorite) return -1;
+		if (!a.favorite && b.favorite) return 1;
+		return 0;
+	});
+
+	return searched;
+}
+
+export function useSetProjectSortingMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ sorting }: { sorting: Sorting }) => {
+			await commands.environmentSetProjectSorting(sorting);
+		},
+		onMutate: async ({ sorting }) => {
+			await queryClient.cancelQueries({
+				queryKey: ["environmentGetProjectSorting"],
+			});
+			queryClient.setQueryData(["environmentGetProjectSorting"], () => sorting);
+		},
+		onError: (error) => {
+			console.error("Error setting project sorting", error);
+			toastThrownError(error);
+		},
+	});
 }

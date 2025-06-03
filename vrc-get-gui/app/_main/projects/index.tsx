@@ -2,6 +2,7 @@
 
 import Loading from "@/app/-loading";
 import { createProject } from "@/app/_main/projects/-create-project";
+import { ProjectsGridCard } from "@/app/_main/projects/-projects-grid-card";
 import { SearchBox } from "@/components/SearchBox";
 import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, LayoutGrid, LayoutList, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 import { ProjectsTableCard } from "./-projects-list-card";
 
@@ -47,6 +48,36 @@ function Page() {
 	const result = useQuery(environmentProjects);
 	const [search, setSearch] = useState("");
 
+	const viewModeQuery = useQuery({
+		initialData: "List",
+		queryKey: ["environmentGetProjectViewMode"],
+		queryFn: async () => {
+			return await commands.environmentProjectViewMode();
+		},
+	});
+
+	const queryClient = useQueryClient();
+
+	const setViewModeMutation = useMutation({
+		mutationFn: async (value: string) => {
+			await commands.environmentSetProjectViewMode(value);
+		},
+		onMutate: async (value: string) => {
+			await queryClient.setQueryData(["environmentGetProjectViewMode"], value);
+		},
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({
+				queryKey: ["environmentGetProjectViewMode"],
+			});
+		},
+	});
+
+	const viewMode = viewModeQuery.data ?? true;
+
+	const setViewMode = (value: string) => {
+		setViewModeMutation.mutate(value);
+	};
+
 	const startCreateProject = () => void createProject();
 
 	const loading = result.isFetching;
@@ -58,6 +89,8 @@ function Page() {
 				isLoading={loading}
 				search={search}
 				setSearch={setSearch}
+				viewMode={viewMode}
+				setViewMode={setViewMode}
 			/>
 			<main className="shrink overflow-hidden flex w-full h-full">
 				{result.status === "pending" ? (
@@ -68,6 +101,18 @@ function Page() {
 					<Card className="w-full shadow-none overflow-hidden p-4">
 						{tc("projects:error:load error", { msg: result.error.message })}
 					</Card>
+				) : viewMode === "List" ? (
+					<ProjectsTableCard
+						projects={result.data}
+						search={search}
+						loading={loading}
+					/>
+				) : viewMode === "Grid" ? (
+					<ProjectsGridCard
+						projects={result.data}
+						search={search}
+						loading={loading}
+					/>
 				) : (
 					<ProjectsTableCard
 						projects={result.data}
@@ -85,11 +130,15 @@ function ProjectViewHeader({
 	isLoading,
 	search,
 	setSearch,
+	viewMode,
+	setViewMode,
 }: {
 	startCreateProject?: () => void;
 	isLoading?: boolean;
 	search: string;
 	setSearch: (search: string) => void;
+	viewMode: string;
+	setViewMode: (viewMode: string) => void;
 }) {
 	const queryClient = useQueryClient();
 	const addProjectWithPicker = useMutation({
@@ -171,6 +220,34 @@ function ProjectViewHeader({
 						onChange={(e) => setSearch(e.target.value)}
 						ref={searchRef}
 					/>
+
+					<Button
+						variant={"ghost"}
+						onClick={() => {
+							if (viewMode === "List") {
+								setViewMode("Grid");
+							} else {
+								setViewMode("List");
+							}
+						}}
+					>
+						{viewMode === "List" ? (
+							<>
+								<LayoutList className={"w-5 h-5"} />
+								<p className="ml-2">{tc("projects:list view")}</p>
+							</>
+						) : viewMode === "Grid" ? (
+							<>
+								<LayoutGrid className={"w-5 h-5"} />
+								<p className="ml-2">{tc("projects:grid view")}</p>
+							</>
+						) : (
+							<>
+								<LayoutList className={"w-5 h-5"} />
+								<p className="ml-2">{tc("projects:list view")}</p>
+							</>
+						)}
+					</Button>
 				</>
 			}
 			trailing={
