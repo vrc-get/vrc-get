@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog].
   - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations
 - Support for flatpak installation of unity hub `#1586`
   - ALCOM now detects flatpak installation of unity hub automatically
-- Projects page Grid View `#2245`
+- Projects page Grid View `#2245` `#2257`
 
 ### Changed
 - Changed how we read VCC's project information `#1997` `#2036` `#2041`

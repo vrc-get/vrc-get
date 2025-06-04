@@ -199,7 +199,7 @@
     "projects:menuitem:backup": "Backup erstellen",
     "projects:menuitem:forget unity path": "Unity Version zurücksetzen",
     "projects:manage:project location": "Pfad: <path>{{path}}</path>",
-    "projects:manage:unity version": "Unity Version: ",
+    "projects:manage:unity version": "Unity Version:",
     "projects:toast:forgot unity path": "Unity Version zurückgesetzt.",
 
     "projects:manage:suggest resolve": "Das Projekt benötigt Pakete, welche nicht installiert sind. Es wird empfohlen diese zu installieren.",

@@ -178,7 +178,7 @@
     "projects:menuitem:backup": "백업 생성",
     "projects:menuitem:forget unity path": "어떤 Unity로 프로젝트를 열지 선택하기 위해<br>저장된 선택을 초기화합니다.",
     "projects:manage:project location": "위치: <path>{{path}}</path>",
-    "projects:manage:unity version": "Unity 버전: ",
+    "projects:manage:unity version": "Unity 버전:",
     "projects:toast:forgot unity path": "저장된 선택을 초기화했습니다.",
 
     "projects:manage:suggest resolve": "이 프로젝트에 필요한 일부 패키지가 설치되어 있지 않습니다. 누락된 패키지를 설치할 것을 강력히 권장합니다.",

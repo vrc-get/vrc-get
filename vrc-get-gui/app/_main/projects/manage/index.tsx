@@ -565,7 +565,7 @@ function ProjectViewHeader({
 			}
 			trailing={
 				<>
-					<div className="flex items-center">
+					<div className="flex items-center gap-1">
 						<p className="cursor-pointer py-1.5 font-bold">
 							{tc("projects:manage:unity version")}
 						</p>
