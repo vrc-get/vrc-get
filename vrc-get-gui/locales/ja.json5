@@ -193,7 +193,7 @@
     "projects:menuitem:backup": "バックアップを行う",
     "projects:menuitem:forget unity path": "どのUnityでプロジェクトを開くか<br>保存した選択をリセットする",
     "projects:manage:project location": "保存場所: <path>{{path}}</path>",
-    "projects:manage:unity version": "Unityバージョン: ",
+    "projects:manage:unity version": "Unityバージョン:",
     "projects:toast:forgot unity path": "保存した選択をリセットしました。",
 
     "projects:manage:suggest resolve": "このプロジェクトに必要なパッケージの一部がインストールされていません。不足しているパッケージをインストールすることを強くお勧めします。",

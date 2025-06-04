@@ -199,7 +199,7 @@
     "projects:menuitem:backup": "Make Backup",
     "projects:menuitem:forget unity path": "Forget Unity for this Project",
     "projects:manage:project location": "Located at: <path>{{path}}</path>",
-    "projects:manage:unity version": "Unity version: ",
+    "projects:manage:unity version": "Unity version:",
     "projects:toast:forgot unity path": "Forgot Unity for this project.",
 
     "projects:manage:suggest resolve": "Some required packages for this project are not installed.<br>It is strongly recommended to install the packages.",

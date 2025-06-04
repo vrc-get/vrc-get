@@ -94,7 +94,7 @@
     "projects:last modified": "最后修改",
     "projects:list view": "列表视图",
     "projects:grid view": "网格视图",
-    "projects:sort by": "排序条件: ",
+    "projects:sort by": "排序条件:",
     "projects:error:load error": "加载项目时出错: {{msg}}",
     "projects:toast:project added": "添加项目成功。",
     "projects:toast:project already exists": "该项目已经添加过了。",
@@ -193,7 +193,7 @@
     "projects:menuitem:backup": "生成备份",
     "projects:menuitem:forget unity path": "清除 Unity 版本设置",
     "projects:manage:project location": "位于: <path>{{path}}</path>",
-    "projects:manage:unity version": "Unity 版本: ",
+    "projects:manage:unity version": "Unity 版本:",
     "projects:toast:forgot unity path": "已清除 Unity 版本设置。",
 
     "projects:manage:suggest resolve": "项目所需的某些软件包未安装。<br>强烈建议修复软件包缺失问题。",
