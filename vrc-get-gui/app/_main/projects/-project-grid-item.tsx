@@ -184,6 +184,7 @@ export function ProjectGridItem({
 				</div>
 
 				<div className="text-xs text-muted-foreground">
+					{tc("projects:last modified")}:{" "}
 					<Tooltip>
 						<TooltipTrigger>
 							<time dateTime={lastModified.toISOString()}>
