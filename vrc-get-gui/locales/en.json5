@@ -94,7 +94,7 @@
     "projects:last modified": "Last Modified",
     "projects:list view": "List View",
     "projects:grid view": "Grid View",
-    "projects:sort by": "Sort by: ",
+    "projects:sort by": "Sort by:",
     "projects:error:load error": "Error loading projects: {{msg}}",
     "projects:toast:project added": "Project was addded successfully.",
     "projects:toast:project already exists": "The project was already added.",
