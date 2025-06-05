@@ -61,14 +61,17 @@
 		from {
 			height: 0;
 		}
+
 		to {
 			height: var(--radix-accordion-content-height);
 		}
 	}
+
 	@keyframes accordion-up {
 		from {
 			height: var(--radix-accordion-content-height);
 		}
+
 		to {
 			height: 0;
 		}
@@ -215,6 +218,16 @@
 		@apply border-border;
 	}
 
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
+
+	button:disabled,
+	[role="button"]:disabled {
+		cursor: not-allowed;
+	}
+
 	body {
 		@apply bg-background text-foreground;
 		background: linear-gradient(to bottom, transparent, var(--background-end))
@@ -303,6 +316,7 @@ html {
 		opacity: 0;
 		transform: translateY(20px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateY(0);
@@ -314,6 +328,7 @@ html {
 		opacity: 0;
 		transform: translateX(20px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateX(0);
@@ -325,6 +340,7 @@ html {
 		opacity: 0;
 		transform: translateX(-20px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateX(0);
