@@ -92,6 +92,9 @@
     "projects:type": "類型",
     "projects:unity": "Unity 版本",
     "projects:last modified": "最後修改",
+    "projects:list view": "清單視圖",
+    "projects:grid view": "網格視圖",
+    "projects:sort by": "排序方式：",
     "projects:error:load error": "加載專案時發生錯誤： {{msg}}",
     "projects:toast:project added": "專案已添加成功。",
     "projects:toast:project already exists": "已添加過此專案。",
@@ -120,6 +123,7 @@
     "projects:menuitem:open directory": "開啟專案位置",
     "projects:remove project": "移除專案",
     "projects:tooltip:no directory": "專案不存在於此路徑。",
+    "projects:tooltip:invalid project": "專案路徑存在，但不是一個有效的專案",
 
     "projects:hint:invalid project name": "專案名稱無效。",
     "projects:hint:warn symbol in project name": "使用這樣的符號可能會導致問題。（不要使用中文或全形字元）",
@@ -226,6 +230,7 @@
     "projects:manage:tooltip:upgrade package": "升級套件",
     "projects:manage:tooltip:remove packages": "移除套件",
     "projects:manage:tooltip:incompatible with unity": "與 Unity 不相容",
+    "projects:manage:menuitem:reinstall": "重新安裝",
     "projects:manage:menuitem:see changelog": "查看變更日誌",
     "projects:manage:menuitem:see documentation": "查看文檔",
     // note for translators: this key is used for button for installing or upgrading to the latest version of selected packages.
