@@ -44,7 +44,8 @@
             </dict>
             <key>UTTypeConformsTo</key>
             <array>
-                <string>public.json</string>
+                <string>public.data</string>
+                <string>public.content</string>
             </array>
             <key>UTTypeDescription</key>
             <string>ALCOM Project Template</string>
