@@ -21,6 +21,7 @@ tauri-build = { version = "2", features = [ "config-toml" ] }
 [dependencies]
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
+serde_with = { version = "3", features = ["base64"] }
 tauri = { version = "2", features = [ "config-toml" ] }
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management"] }
 reqwest = { version = "0.12", features = ["gzip", "brotli"] }

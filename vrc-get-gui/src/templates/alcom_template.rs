@@ -1,5 +1,6 @@
 #![doc = include_str!("./alcom_template.md")]
 
+use crate::templates::{RESERVED_TEMPLATE_PREFIX, UNNAMED_TEMPLATE_PREFIX, VCC_TEMPLATE_PREFIX};
 use indexmap::IndexMap;
 use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -119,12 +120,19 @@ pub fn parse_alcom_template(alcom_template: &[u8]) -> serde_json::Result<AlcomTe
 
     // few validations
     if let Some(id) = &template.id {
-        if id.0.starts_with("com.anatawa12.vrc-get") {
+        if !is_valid_id(&id.0) {
             return Err(serde_json::Error::invalid_value(
                 Unexpected::Str(&id.0),
-                &"a valid alcom template id (reserved id)",
+                &"a valid alcom template id",
             ));
         }
+    }
+
+    if !is_valid_base_id(&template.base.0) {
+        return Err(serde_json::Error::invalid_value(
+            Unexpected::Str(&template.base.0),
+            &"a valid alcom template id",
+        ));
     }
 
     Ok(AlcomTemplate {
@@ -136,6 +144,25 @@ pub fn parse_alcom_template(alcom_template: &[u8]) -> serde_json::Result<AlcomTe
         vpm_dependencies: template.vpm_dependencies,
         unity_packages: template.unity_packages,
     })
+}
+
+fn is_valid_id(id: &str) -> bool {
+    if id.starts_with(RESERVED_TEMPLATE_PREFIX) {
+        if let Some(uuid) = id.strip_prefix(UNNAMED_TEMPLATE_PREFIX) {
+            // 32 of lowercase hex char
+            uuid.len() == 32
+                && (uuid.as_bytes().iter()).all(|&b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+        } else {
+            // reserved id
+            false
+        }
+    } else {
+        true
+    }
+}
+
+fn is_valid_base_id(id: &str) -> bool {
+    !(id.starts_with(UNNAMED_TEMPLATE_PREFIX) || id.starts_with(VCC_TEMPLATE_PREFIX))
 }
 
 fn parse_format_version(json: &str) -> Option<(u32, u32)> {

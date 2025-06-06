@@ -33,6 +33,7 @@ const VRCHAT_UNITY_VERSIONS: &[UnityVersion] = &[
     UnityVersion::new_f1(2022, 3, 6),
     UnityVersion::new_f1(2022, 3, 22),
 ];
+const RESERVED_TEMPLATE_PREFIX: &str = "com.anatawa12.vrc-get";
 const VCC_TEMPLATE_PREFIX: &str = "com.anatawa12.vrc-get.vcc.";
 const UNNAMED_TEMPLATE_PREFIX: &str = "com.anatawa12.vrc-get.user.";
 
@@ -152,13 +153,7 @@ pub async fn load_resolve_alcom_templates(
 
     // then ALCOM templates
     for (path, value) in templates {
-        let id = value.id.clone().unwrap_or_else(|| {
-            format!(
-                "{}{}",
-                UNNAMED_TEMPLATE_PREFIX,
-                uuid::Uuid::new_v4().as_simple()
-            )
-        });
+        let id = value.id.clone().unwrap_or_else(new_user_template_id);
         template_by_id.insert(
             id.clone(),
             ProjectTemplateInfo {
@@ -220,6 +215,14 @@ pub async fn load_resolve_alcom_templates(
     } {}
 
     template_by_id.into_values().collect()
+}
+
+pub fn new_user_template_id() -> String {
+    format!(
+        "{}{}",
+        UNNAMED_TEMPLATE_PREFIX,
+        uuid::Uuid::new_v4().as_simple()
+    )
 }
 
 pub async fn load_alcom_templates(io: &DefaultEnvironmentIo) -> Vec<(PathBuf, AlcomTemplate)> {

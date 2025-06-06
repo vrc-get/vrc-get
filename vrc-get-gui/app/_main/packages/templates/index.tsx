@@ -39,6 +39,7 @@ import {
 } from "@/lib/bindings";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
+import { processResult } from "@/lib/import-templates";
 import { usePrevPathName } from "@/lib/prev-page";
 import {
 	projectTemplateCategory,
@@ -67,16 +68,9 @@ function RouteComponent() {
 		? "slide-left"
 		: "";
 
-	const queryClient = useQueryClient();
 	const importTemplates = async () => {
 		try {
-			const count = await commands.environmentImportTemplate();
-			await queryClient.invalidateQueries(
-				environmentProjectCreationInformation,
-			);
-			if (count !== 0) {
-				toastSuccess(tc("templates:toast:imported n templates", { count }));
-			}
+			await processResult(await commands.environmentImportTemplate());
 		} catch (e) {
 			console.error(e);
 			toastThrownError(e);
@@ -483,7 +477,9 @@ function TemplateEditor({
 				baseTemplate,
 				name,
 				unityRange,
-				packagesListContext.value.map(({ name, range }) => [name, range]),
+				packagesListContext.value
+					.filter((p) => !(p.name === "" && p.range === ""))
+					.map(({ name, range }) => [name, range]),
 				unityPackagesListContext.value,
 			);
 			await queryClient.invalidateQueries(

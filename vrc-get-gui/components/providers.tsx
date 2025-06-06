@@ -3,11 +3,12 @@
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { LogEntry } from "@/lib/bindings";
+import type { LogEntry, TauriImportTemplateResult } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { DialogRoot, openSingleDialog } from "@/lib/dialog";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc } from "@/lib/i18n";
+import { processResult } from "@/lib/import-templates";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
@@ -51,12 +52,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		};
 	}, [moveToRepositories]);
 
-	useTauriListen<number>("templates-imported", async ({ payload: count }) => {
-		await queryClient.invalidateQueries({
-			queryKey: ["environmentProjectCreationInformation"],
-		});
-		toastSuccess(tc("templates:toast:imported n templates", { count }));
-	});
+	useTauriListen<TauriImportTemplateResult>(
+		"templates-imported",
+		async ({ payload: result }) => {
+			try {
+				await processResult(result);
+			} catch (e) {
+				console.error(e);
+				toastThrownError(e);
+			}
+		},
+	);
 
 	useEffect(() => {
 		(async () => {

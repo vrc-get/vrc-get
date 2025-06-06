@@ -185,8 +185,11 @@ async environmentSaveTemplate(id: string | null, base: string, name: string, uni
 async environmentRemoveTemplate(id: string) : Promise<null> {
     return await TAURI_INVOKE("environment_remove_template", { id });
 },
-async environmentImportTemplate() : Promise<number> {
+async environmentImportTemplate() : Promise<TauriImportTemplateResult> {
     return await TAURI_INVOKE("environment_import_template");
+},
+async environmentImportTemplateOverride(importOverride: TauriImportDuplicated[]) : Promise<number> {
+    return await TAURI_INVOKE("environment_import_template_override", { importOverride });
 },
 async environmentUpdateUnityPathsFromUnityHub() : Promise<boolean> {
     return await TAURI_INVOKE("environment_update_unity_paths_from_unity_hub");
@@ -326,7 +329,9 @@ export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "S
 export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated"; reason: TauriDuplicatedReason; duplicated_name: string } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }
 export type TauriDuplicatedReason = "URLDuplicated" | "IDDuplicated"
 export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null; gui_animation: boolean; unity_hub_access_method: UnityHubAccessMethod; exclude_vpm_packages_from_backup: boolean }
+export type TauriImportDuplicated = { id: string; existing_path: string; existing_name: string; existing_update_date: string | null; importing_name: string; importing_update_date: string | null; data: number[] }
 export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] }
+export type TauriImportTemplateResult = { imported: number; duplicates: TauriImportDuplicated[] }
 export type TauriPackage = ({ name: string; display_name: string | null; description: string | null; aliases: string[]; version: TauriVersion; unity: [number, number] | null; changelog_url: string | null; documentation_url: string | null; vpm_dependencies: string[]; legacy_packages: string[]; is_yanked: boolean }) & { source: TauriPackageSource }
 export type TauriPackageChange = { InstallNew: TauriBasePackageInfo } | { Remove: TauriRemoveReason }
 export type TauriPackageSource = "LocalUser" | { Remote: { id: string; display_name: string } }

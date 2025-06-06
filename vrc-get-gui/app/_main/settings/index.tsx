@@ -748,7 +748,7 @@ function FilesAndFoldersCard() {
 				<Button
 					onClick={openVpmFolderContent("Templates", "CreateFolderIfNotExists")}
 				>
-					{tc("settings:button:open custom templates")}
+					{tc("settings:button:open vcc templates")}
 				</Button>
 			</div>
 		</Card>
