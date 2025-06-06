@@ -33,6 +33,15 @@
         <dict>
             <key>UTTypeIdentifier</key>
             <string>com.anatawa12.vrc-get.alcomtemplate</string>
+            <key>UTTypeIcons</key>
+            <dict>
+                <key>UTTypeIconText</key>
+                <string>Template</string>
+                <key>UTTypeIconBackgroundName</key>
+                <string></string>
+                <key>UTTypeIconBadgeName</key>
+                <string>icon.icns</string>
+            </dict>
             <key>UTTypeConformsTo</key>
             <array>
                 <string>public.json</string>
