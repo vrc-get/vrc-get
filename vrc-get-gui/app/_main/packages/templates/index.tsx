@@ -477,7 +477,9 @@ function TemplateEditor({
 				baseTemplate,
 				name,
 				unityRange,
-				packagesListContext.value.map(({ name, range }) => [name, range]),
+				packagesListContext.value
+					.filter((p) => !(p.name === "" && p.range === ""))
+					.map(({ name, range }) => [name, range]),
 				unityPackagesListContext.value,
 			);
 			await queryClient.invalidateQueries(
