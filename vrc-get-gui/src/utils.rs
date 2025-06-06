@@ -12,8 +12,10 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::{Context, Poll, ready};
 use tar::Header;
+use tokio::sync::Semaphore;
 use vrc_get_vpm::UnityProject;
 use vrc_get_vpm::io::DefaultProjectIo;
 use yoke::{CloneableCart, Yoke, Yokeable};
@@ -232,7 +234,10 @@ pub async fn collect_notable_project_files_tree(
         absolute: PathBuf,
         excluded_packages: &[String],
         backup: bool,
+        semaphore: Arc<Semaphore>,
     ) -> io::Result<FileSystemTree> {
+        // we have semaphore to limit simultaneous file access.
+        let semaphore_scope = semaphore.acquire().await.unwrap();
         let mut read_dir = tokio::fs::read_dir(&absolute).await?;
 
         // relative, entry, is_dir
@@ -326,15 +331,28 @@ pub async fn collect_notable_project_files_tree(
             entries.push((new_relative, entry, is_dir));
         }
 
-        let children = try_join_all(entries.into_iter().map(
-            |(relative, entry, is_dir)| async move {
-                if is_dir {
-                    read_dir_to_tree(relative, entry.path(), excluded_packages, backup).await
-                } else {
-                    Ok(FileSystemTree::new_file(relative, entry.path()))
+        // release semaphore since directory traversal has finished.
+        drop(semaphore_scope);
+
+        let children = try_join_all(entries.into_iter().map({
+            |(relative, entry, is_dir)| {
+                let semaphore = semaphore.clone();
+                async move {
+                    if is_dir {
+                        read_dir_to_tree(
+                            relative,
+                            entry.path(),
+                            excluded_packages,
+                            backup,
+                            semaphore,
+                        )
+                        .await
+                    } else {
+                        Ok(FileSystemTree::new_file(relative, entry.path()))
+                    }
                 }
-            },
-        ))
+            }
+        }))
         .await?;
 
         Ok(FileSystemTree::new_dir(relative, absolute, children))
@@ -357,7 +375,16 @@ pub async fn collect_notable_project_files_tree(
         vec![]
     };
 
-    read_dir_to_tree(String::new(), path_buf, &excluded_packages, backup).await
+    let semaphore = Arc::new(Semaphore::new(100));
+
+    read_dir_to_tree(
+        String::new(),
+        path_buf,
+        &excluded_packages,
+        backup,
+        semaphore,
+    )
+    .await
 }
 
 pub trait PathExt {
