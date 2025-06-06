@@ -80,7 +80,19 @@ pub struct AlcomTemplate {
     pub unity_packages: Vec<PathBuf>,
 }
 
-pub fn parse_alcom_template(json: &[u8]) -> serde_json::Result<AlcomTemplate> {
+pub fn parse_alcom_template(alcom_template: &[u8]) -> serde_json::Result<AlcomTemplate> {
+    // For future extension, we only parse file heading until first '\0' or null byte.
+    // We may extend `.alcomtemplate` file to include binary data, and JSON is very bad at
+    // holding binary data, so I make room for non-JSON data at the tail of the file.
+    // JSON data has ending character ('}'), so se actually don't need to have special '\0' char,
+    // but this is simple and the border of JSON and binary data is clear.
+
+    let json_end = alcom_template
+        .iter()
+        .position(|&x| x == 0)
+        .unwrap_or(alcom_template.len());
+    let json = &alcom_template[..json_end];
+
     // first, parse magic and format version
     let magic: MagicParser = serde_json::from_slice(json)?;
     if magic.ty != MAGIC {
