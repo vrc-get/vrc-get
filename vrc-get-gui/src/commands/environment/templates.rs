@@ -1,4 +1,5 @@
 use crate::commands::prelude::*;
+use crate::templates;
 use crate::templates::{AlcomTemplate, parse_alcom_template, serialize_alcom_template};
 use crate::utils::trash_delete;
 use futures::AsyncWriteExt;
@@ -6,6 +7,8 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
+use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -273,7 +276,7 @@ pub async fn environment_remove_template(
 pub async fn environment_import_template(
     window: Window,
     io: State<'_, DefaultEnvironmentIo>,
-) -> Result<usize, RustError> {
+) -> Result<TauriImportTemplateResult, RustError> {
     let templates = window
         .dialog()
         .file()
@@ -288,8 +291,71 @@ pub async fn environment_import_template(
     Ok(import_templates(&io, &templates).await)
 }
 
-pub async fn import_templates(io: &DefaultEnvironmentIo, templates: &[PathBuf]) -> usize {
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_import_template_override(
+    io: State<'_, DefaultEnvironmentIo>,
+    import_override: Vec<TauriImportDuplicated>,
+) -> Result<usize, RustError> {
     let mut imported = 0;
+
+    for duplicate in import_override {
+        match io
+            .write_sync(&duplicate.existing_path, &duplicate.data)
+            .await
+        {
+            Ok(()) => {
+                imported += 1;
+            }
+            Err(e) => {
+                log::error!(
+                    "Failed to save imported template: {}: {e}",
+                    duplicate
+                        .existing_path
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                );
+                continue;
+            }
+        };
+    }
+
+    Ok(imported)
+}
+
+#[derive(Serialize, Deserialize, Clone, specta::Type)]
+pub struct TauriImportTemplateResult {
+    imported: usize,
+    duplicates: Vec<TauriImportDuplicated>,
+}
+
+#[serde_as]
+#[derive(Serialize, Deserialize, Clone, specta::Type)]
+pub struct TauriImportDuplicated {
+    id: String,
+    existing_path: PathBuf,
+    existing_name: String,
+    existing_update_date: Option<chrono::DateTime<chrono::offset::Utc>>,
+    importing_name: String,
+    importing_update_date: Option<chrono::DateTime<chrono::offset::Utc>>,
+    #[serde_as(as = "serde_with::base64::Base64")]
+    data: Vec<u8>,
+}
+
+pub async fn import_templates(
+    io: &DefaultEnvironmentIo,
+    templates: &[PathBuf],
+) -> TauriImportTemplateResult {
+    let mut imported = 0;
+
+    let installed_ids = templates::load_alcom_templates(io)
+        .await
+        .into_iter()
+        .filter_map(|x| x.1.id.clone().map(|id| (id, x)))
+        .collect::<HashMap<_, _>>();
+
+    let mut duplicates = Vec::new();
 
     for template in templates {
         let json = match tokio::fs::read(&template).await {
@@ -312,6 +378,22 @@ pub async fn import_templates(io: &DefaultEnvironmentIo, templates: &[PathBuf]) 
                 continue;
             }
         };
+
+        if let Some(id) = parsed.id {
+            if let Some((existing_path, existing)) = installed_ids.get(&id) {
+                duplicates.push(TauriImportDuplicated {
+                    id,
+                    existing_path: existing_path.clone(),
+                    existing_name: existing.display_name.clone(),
+                    existing_update_date: existing.update_date,
+                    importing_name: parsed.display_name,
+                    importing_update_date: parsed.update_date,
+                    data: json,
+                });
+                continue;
+            }
+        }
+
         match save_template_file(io, &parsed.display_name, &json).await {
             Ok(()) => {}
             Err(e) => {
@@ -325,5 +407,8 @@ pub async fn import_templates(io: &DefaultEnvironmentIo, templates: &[PathBuf]) 
         imported += 1;
     }
 
-    imported
+    TauriImportTemplateResult {
+        imported,
+        duplicates,
+    }
 }

@@ -21,6 +21,9 @@
     "general:button:open location": "Open Location",
     "general:button:continue": "Continue",
 
+    // Used in place of date part but not known
+    "general:unknown date": "Unknown Date",
+
     "general:dialog:select file or directory header": "Selecting file or directory",
     "general:dialog:select file or directory": "Please select a file or directory.",
     "general:toast:invalid directory": "Invalid directory was selected.",
@@ -418,6 +421,12 @@
     "templates:button:import template": "Import Template",
     "templates:toast:imported n templates_one": "Imported {{count}} template",
     "templates:toast:imported n templates_other": "Imported {{count}} templates",
+    "templates:dialog:duplicated": "Importing Existing Templates",
+    "templates:dialog:confirm update templates": "It looks you're importing another version of the following templates. Please check the templates and decide if update or skip import.",
+    "templates:dialog:template name": "Template <b>{{name}}</b>",
+    "templates:dialog:template name with name change": "Template <b>{{name}}</b> (Renamed to <b>{{new_name}}</b>)",
+    "templates:dialog:confirm update information": "Importing version was updated at <b>{{new_update}}</b> (previous version was updated at <b>{{old_update}})</b>",
+    "templates:dialog:button:override templates": "Update {{count}} templates",
     "template:toast:removed": "Removed the Template",
 
 
