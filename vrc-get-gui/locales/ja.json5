@@ -21,6 +21,9 @@
     "general:button:open location": "開く",
     "general:button:continue": "続ける",
 
+    // Used in place of date part but not known
+    "general:unknown date": "不明",
+
     "general:dialog:select file or directory header": "ファイルまたはディレクトリを選択",
     "general:dialog:select file or directory": "ファイルまたはディレクトリを選択してください。",
     "general:toast:invalid directory": "不正なディレクトリが選択されました。",
@@ -407,6 +410,12 @@
     "templates:button:save template": "テンプレートを保存",
     "templates:button:import template": "テンプレートをインポート",
     "templates:toast:imported n templates": "テンプレートを{{count}}個インポートしました。",
+    "templates:dialog:duplicated": "テンプレートを更新",
+    "templates:dialog:confirm update templates": "以下のテンプレートは既存のテンプレートと重複しています。<br>テンプレートを更新するか、スキップするかを選択してください。",
+    "templates:dialog:template name": "<b>{{name}}</b>",
+    "templates:dialog:template name with name change": "<b>{{name}}</b> ( <b>{{new_name}}</b> に名前が変更されます)",
+    "templates:dialog:confirm update information": "インポートしようとしているテンプレートの最終更新日: <b>{{new_update}}</b><br>既存のテンプレートの最終更新日: <b>{{old_update}}</b>",
+    "templates:dialog:button:override templates": "テンプレートを{{count}}個更新",
     "template:toast:removed": "テンプレートを削除しました。",
 
 
@@ -481,7 +490,7 @@
     "settings:button:open settings.json": "settings.jsonを開く",
     "settings:button:open gui config.json": "gui-config.jsonを開く",
     "settings:button:open logs": "ログフォルダを開く",
-    "settings:button:open custom templates": "カスタムテンプレートのフォルダを開く",
+    "settings:button:open vcc templates": "VCCのテンプレートフォルダを開く",
 
     "settings:check update": "アップデートを確認",
     "settings:button:open issue": "Issueを作成",
