@@ -1,6 +1,8 @@
 use crate::commands::prelude::*;
 use crate::templates;
-use crate::templates::{AlcomTemplate, parse_alcom_template, serialize_alcom_template};
+use crate::templates::{
+    AlcomTemplate, new_user_template_id, parse_alcom_template, serialize_alcom_template,
+};
 use crate::utils::trash_delete;
 use futures::AsyncWriteExt;
 use indexmap::IndexMap;
@@ -129,10 +131,7 @@ pub async fn environment_save_template(
     let template = AlcomTemplate {
         display_name: name.clone(),
         update_date: Some(chrono::Utc::now()),
-        id: id
-            .as_ref()
-            .take_if(|x| !x.starts_with("com.anatawa12.vrc-get.user."))
-            .cloned(),
+        id: Some(id.clone().unwrap_or_else(new_user_template_id)),
         base,
         unity_version: Some(VersionRange::from_str(&unity_range).map_err(|x| {
             RustError::unrecoverable(format!("Bad Unity Version Range ({unity_range}): {x}"))
