@@ -21,6 +21,9 @@
     "general:button:open location": "Pfad öffnen",
     "general:button:continue": "Weiter",
 
+    // Used in place of date part but not known
+    "general:unknown date": "Unbekanntes Datum",
+
     "general:dialog:select file or directory header": "Datei oder Ordner auswählen",
     "general:dialog:select file or directory": "Bitte Datei oder Ordner auswählen",
     "general:toast:invalid directory": "Ungültiger Ordner wurde ausgewählt",
@@ -418,7 +421,14 @@
     "templates:button:import template": "Vorlage Importieren",
     "templates:toast:imported n templates_one": "Vorlage importiert",
     "templates:toast:imported n templates_other": "{{count}} Vorlagen importiert",
+    "templates:dialog:duplicated": "Bestehende Vorlagen importieren",
+    "templates:dialog:confirm update templates": "Du bist dabei eine andere Version dieses Templates zu importieren. Bitte überprüfe die Vorlagen und entscheide ob die Vorlage übernommen oder übersprungen werden soll.",
+    "templates:dialog:template name": "Vorlage <b>{{name}}</b>",
+    "templates:dialog:template name with name change": "Vorlage <b>{{name}}</b> (Umbenannt zu <b>{{new_name}}</b>)",
+    "templates:dialog:confirm update information": "Importierte Version aktualisiert auf <b>{{new_update}}</b> (vorherige Version <b>{{old_update}})</b>",
+    "templates:dialog:button:override templates": "Aktualisiere {{count}} Vorlagen",
     "template:toast:removed": "Template entfernt",
+
 
 // Settings Page
     "settings": "Einstellungen",
@@ -491,7 +501,7 @@
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
     "settings:button:open logs": "Log Ordner",
-    "settings:button:open custom templates": "Eigene Vorlagen",
+    "settings:button:open vcc templates": "VCC Templates Directory",
 
     "settings:check update": "Suche nach Updates",
     "settings:button:open issue": "Fehler melden",
