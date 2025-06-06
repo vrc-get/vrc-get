@@ -501,7 +501,7 @@
     "settings:button:open settings.json": "settings.json",
     "settings:button:open gui config.json": "gui-config.json",
     "settings:button:open logs": "Log Directory",
-    "settings:button:open custom templates": "Custom Templates Directory",
+    "settings:button:open vcc templates": "VCC Templates Directory",
 
     "settings:check update": "Check for Updates",
     "settings:button:open issue": "Open an Issue",
