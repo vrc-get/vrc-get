@@ -492,6 +492,7 @@
     "settings:button:open settings.json": "打开 settings.json",
     "settings:button:open gui config.json": "打开 GUI 配置文件",
     "settings:button:open logs": "打开日志路径",
+    "settings:button:open vcc templates": "VCC 模板目录",
 
     "settings:check update": "检查更新",
     "settings:button:open issue": "在 GitHub 上创建问题",
