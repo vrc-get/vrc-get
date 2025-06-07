@@ -74,11 +74,11 @@ export function useReorderableList<T extends NonFunction>({
 }): ReorderableListContext<T> {
 	const [backedList, setBackedList] = useState<ReordeableListValue<T>[]>(() => {
 		if (defaultArray != null) {
-			if (typeof defaultArray === "function") {
-				return defaultArray().map(makeValue);
-			} else {
-				return defaultArray.map(makeValue);
-			}
+			let defaultSpecified =
+				typeof defaultArray === "function" ? defaultArray() : defaultArray;
+			if (!allowEmpty && defaultSpecified.length === 0)
+				defaultSpecified = [defaultValue];
+			return defaultSpecified.map(makeValue);
 		} else {
 			return allowEmpty ? [] : [makeValue(defaultValue)];
 		}

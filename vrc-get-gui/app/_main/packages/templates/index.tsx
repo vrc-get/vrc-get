@@ -453,7 +453,7 @@ function TemplateEditor({
 		defaultValue: { name: "", range: "" },
 		defaultArray:
 			template == null
-				? [{ name: "", range: "" }]
+				? []
 				: Object.entries(template.vpm_dependencies).map(([name, range]) => ({
 						name,
 						range,
