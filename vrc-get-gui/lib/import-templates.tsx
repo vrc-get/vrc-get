@@ -32,11 +32,11 @@ export async function processResult(result: TauriImportTemplateResult) {
 		return;
 	}
 
-	const overrideIds = await openSingleDialog(AskOverride, {
+	const overrides = await openSingleDialog(AskOverride, {
 		templates: result.duplicates,
 	});
 
-	if (overrideIds.length === 0) {
+	if (overrides.length === 0) {
 		// If nothing is asked for override, skip calling backend
 		toastSuccess(
 			tc("templates:toast:imported n templates", {
@@ -45,8 +45,6 @@ export async function processResult(result: TauriImportTemplateResult) {
 		);
 		return;
 	}
-
-	const overrides = result.duplicates.filter((t) => overrideIds.includes(t.id));
 
 	const overridden =
 		await commands.environmentImportTemplateOverride(overrides);
@@ -68,10 +66,10 @@ export function AskOverride({
 	templates,
 }: {
 	templates: TauriImportDuplicated[];
-	dialog: DialogContext<string[]>;
+	dialog: DialogContext<TauriImportDuplicated[]>;
 }) {
-	const [overrides, setOverrides] = useState<string[]>(() =>
-		templates.map((template) => template.id),
+	const [overrides, setOverrides] = useState<TauriImportDuplicated[]>(
+		() => templates,
 	);
 
 	const format = useMemo(
@@ -92,18 +90,18 @@ export function AskOverride({
 				</p>
 				<ul>
 					{templates.map((template) => {
-						const checked = overrides.includes(template.id);
+						const checked = overrides.includes(template);
 						const onChange = (checked: boolean | string) => {
 							console.log(`on change: ${checked}`);
 							if (checked) {
 								setOverrides((existing) =>
-									existing.includes(template.id)
+									existing.includes(template)
 										? existing
-										: existing.concat([template.id]),
+										: existing.concat([template]),
 								);
 							} else {
 								setOverrides((existing) =>
-									existing.filter((id) => id !== template.id),
+									existing.filter((id) => id !== template),
 								);
 							}
 						};
