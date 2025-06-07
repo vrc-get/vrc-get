@@ -42,6 +42,8 @@ impl VccDatabaseConnection {
             Err(e) => return Err(e),
         };
 
+        litedb.drop_indexes_and_update_collation_if_collation_not_supported();
+
         litedb
             .ensure_index(
                 "projects",

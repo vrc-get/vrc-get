@@ -5599,7 +5599,7 @@ dependencies = [
 [[package]]
 name = "vrc-get-litedb"
 version = "0.3.0-beta.6"
-source = "git+https://github.com/anatawa12/litedb-rs.git?branch=master#e4fdd3279deb009e734af15d5923c1450d94ddff"
+source = "git+https://github.com/anatawa12/litedb-rs.git?branch=master#d83681b05a25ea8fc0651242057a48e1a080e686"
 dependencies = [
  "async-lock",
  "async-stream",
