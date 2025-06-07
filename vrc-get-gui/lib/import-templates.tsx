@@ -10,6 +10,7 @@ import {
 	type TauriImportTemplateResult,
 	commands,
 } from "@/lib/bindings";
+import { dateToString } from "@/lib/dateToString";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
@@ -127,15 +128,11 @@ export function AskOverride({
 											{tc("templates:dialog:confirm update information", {
 												old_update:
 													template.existing_update_date != null
-														? format.format(
-																new Date(template.existing_update_date),
-															)
+														? dateToString(template.existing_update_date)
 														: tt("general:unknown date"),
 												new_update:
 													template.importing_update_date != null
-														? format.format(
-																new Date(template.importing_update_date),
-															)
+														? dateToString(template.importing_update_date)
 														: tt("general:unknown date"),
 											})}
 										</span>

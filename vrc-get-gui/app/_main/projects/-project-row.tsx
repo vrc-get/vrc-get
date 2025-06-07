@@ -24,6 +24,7 @@ import {
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
@@ -87,13 +88,8 @@ export function ProjectRow({
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
 
-	const {
-		projectTypeKind,
-		displayType,
-		isLegacy,
-		lastModified,
-		lastModifiedHumanReadable,
-	} = getProjectDisplayInfo(project);
+	const { projectTypeKind, displayType, isLegacy, lastModified } =
+		getProjectDisplayInfo(project);
 
 	const openProjectFolder = () =>
 		commands.utilOpen(project.path, "ErrorIfNotExists");
@@ -202,7 +198,9 @@ export function ProjectRow({
 							</time>
 						</TooltipTrigger>
 						<TooltipPortal>
-							<TooltipContent>{lastModifiedHumanReadable}</TooltipContent>
+							<TooltipContent>
+								{dateToString(project.last_modified)}
+							</TooltipContent>
 						</TooltipPortal>
 					</Tooltip>
 				</td>
@@ -519,47 +517,6 @@ export const TooltipTriggerIfValid = ({
 	}
 };
 
-export function formatDateOffset(date: number): React.ReactNode {
-	const now = Date.now();
-	const diff = now - date;
-
-	const PER_SECOND = 1000;
-	const PER_MINUTE = 60 * PER_SECOND;
-	const PER_HOUR = 60 * PER_MINUTE;
-	const PER_DAY = 24 * PER_HOUR;
-	const PER_WEEK = 7 * PER_DAY;
-	const PER_MONTH = 30 * PER_DAY;
-	const PER_YEAR = 365 * PER_DAY;
-
-	const diffAbs = Math.abs(diff);
-
-	if (diffAbs < PER_MINUTE) return tc("projects:last modified:moments");
-	if (diffAbs < PER_HOUR)
-		return tc("projects:last modified:minutes", {
-			count: Math.floor(diff / PER_MINUTE),
-		});
-	if (diffAbs < PER_DAY)
-		return tc("projects:last modified:hours", {
-			count: Math.floor(diff / PER_HOUR),
-		});
-	if (diffAbs < PER_WEEK)
-		return tc("projects:last modified:days", {
-			count: Math.floor(diff / PER_DAY),
-		});
-	if (diffAbs < PER_MONTH)
-		return tc("projects:last modified:weeks", {
-			count: Math.floor(diff / PER_WEEK),
-		});
-	if (diffAbs < PER_YEAR)
-		return tc("projects:last modified:months", {
-			count: Math.floor(diff / PER_MONTH),
-		});
-
-	return tc("projects:last modified:years", {
-		count: Math.floor(diff / PER_YEAR),
-	});
-}
-
 export function FavoriteToggleButton({
 	project,
 	disabled,
@@ -598,14 +555,12 @@ export function getProjectDisplayInfo(project: TauriProject) {
 	const displayType = tc(`projects:type:${projectTypeKind}`);
 	const isLegacy = LegacyProjectTypes.includes(project.project_type);
 	const lastModified = new Date(project.last_modified);
-	const lastModifiedHumanReadable = `${lastModified.getFullYear().toString().padStart(4, "0")}-${(lastModified.getMonth() + 1).toString().padStart(2, "0")}-${lastModified.getDate().toString().padStart(2, "0")} ${lastModified.getHours().toString().padStart(2, "0")}:${lastModified.getMinutes().toString().padStart(2, "0")}:${lastModified.getSeconds().toString().padStart(2, "0")}`;
 
 	return {
 		projectTypeKind,
 		displayType,
 		isLegacy,
 		lastModified,
-		lastModifiedHumanReadable,
 	};
 }
 
