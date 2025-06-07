@@ -37,6 +37,7 @@ import {
 	type TauriProjectTemplateInfo,
 	commands,
 } from "@/lib/bindings";
+import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { processResult } from "@/lib/import-templates";
@@ -127,6 +128,7 @@ function TemplatesTableBody() {
 	const TABLE_HEAD = [
 		"general:name",
 		"templates:id",
+		"projects:last modified",
 		"templates:category",
 		"", // actions
 	];
@@ -204,6 +206,7 @@ function TemplateRow({
 
 	const category = projectTemplateCategory(template.id);
 	const displayId = projectTemplateDisplayId(template.id);
+	const lastModified = template.update_date;
 
 	const deleteButton = async () => {
 		if (
@@ -227,6 +230,16 @@ function TemplateRow({
 					<p className="font-normal">{displayId}</p>
 				) : (
 					<p className="font-normal opacity-50">{tc("template:no id")}</p>
+				)}
+			</td>
+			<td className={cellClass}>
+				{lastModified ? (
+					<Tooltip>
+						<TooltipTrigger>{formatDateOffset(lastModified)}</TooltipTrigger>
+						<TooltipContent>{dateToString(lastModified)}</TooltipContent>
+					</Tooltip>
+				) : (
+					<p className="font-normal opacity-50">{tc("general:unknown date")}</p>
 				)}
 			</td>
 			<td className={cellClass}>

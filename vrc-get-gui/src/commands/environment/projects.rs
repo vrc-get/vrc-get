@@ -565,6 +565,7 @@ pub struct TauriProjectTemplateInfo {
     pub display_name: String,
     pub id: String,
     pub unity_versions: Vec<String>,
+    pub update_date: Option<String>,
     pub has_unitypackage: bool,
     pub source_path: Option<String>,
     pub available: bool,
@@ -582,6 +583,7 @@ impl From<&ProjectTemplateInfo> for TauriProjectTemplateInfo {
                 .map(|x| x.to_string())
                 .unique()
                 .collect(),
+            update_date: info.update_date.map(|x| x.to_rfc3339()),
             has_unitypackage: info
                 .alcom_template
                 .as_ref()
