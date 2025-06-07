@@ -5,7 +5,6 @@ import {
 	ProjectContext,
 	TooltipTriggerIfInvalid,
 	TooltipTriggerIfValid,
-	formatDateOffset,
 	getProjectDisplayInfo,
 	useSetProjectFavoriteMutation,
 } from "@/app/_main/projects/-project-row";
@@ -29,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
@@ -51,13 +51,8 @@ export function ProjectGridItem({
 
 	const typeIconClass = "w-5 h-5";
 
-	const {
-		projectTypeKind,
-		displayType,
-		isLegacy,
-		lastModified,
-		lastModifiedHumanReadable,
-	} = getProjectDisplayInfo(project);
+	const { projectTypeKind, displayType, isLegacy, lastModified } =
+		getProjectDisplayInfo(project);
 
 	const removed = !project.is_exists;
 	const is_valid = project.is_valid;
@@ -184,7 +179,7 @@ export function ProjectGridItem({
 				</div>
 
 				<div className="text-xs text-muted-foreground">
-					{tc("projects:last modified")}:{" "}
+					{tc("general:last modified")}:{" "}
 					<Tooltip>
 						<TooltipTrigger>
 							<time dateTime={lastModified.toISOString()}>
@@ -194,7 +189,9 @@ export function ProjectGridItem({
 							</time>
 						</TooltipTrigger>
 						<TooltipPortal>
-							<TooltipContent>{lastModifiedHumanReadable}</TooltipContent>
+							<TooltipContent>
+								{dateToString(project.last_modified)}
+							</TooltipContent>
 						</TooltipPortal>
 					</Tooltip>
 				</div>

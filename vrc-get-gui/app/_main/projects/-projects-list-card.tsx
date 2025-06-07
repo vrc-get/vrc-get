@@ -166,7 +166,7 @@ export function ProjectsTableCard({
 						>
 							{icon("lastModified")}
 							<small className="font-normal leading-none">
-								{tc("projects:last modified")}
+								{tc("general:last modified")}
 							</small>
 						</button>
 					</th>

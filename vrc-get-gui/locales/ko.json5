@@ -30,6 +30,15 @@
     "general:error:failed to create dir": "폴더 생성에 실패했습니다: {{err}}",
     "general:error:failed to create dir missing drive": "폴더 생성에 실패했습니다. 드라이브가 연결되지 않았을 수 있습니다.",
 
+    "general:last modified": "수정한 날짜",
+    "general:last modified:moments": "방금 전",
+    "general:last modified:minutes": "{{count}}분 전",
+    "general:last modified:hours": "{{count}}시간 전",
+    "general:last modified:days": "{{count}}일 전",
+    "general:last modified:weeks": "{{count}}주 전",
+    "general:last modified:months": "{{count}}개월 전",
+    "general:last modified:years": "{{count}}년 전",
+
 
 // Setup Page
     "setup:loading": "설정 불러오는 중...",
@@ -88,7 +97,6 @@
     "projects:add existing project": "기존 프로젝트 추가",
     "projects:type": "종류",
     "projects:unity": "Unity",
-    "projects:last modified": "수정한 날짜",
     "projects:error:load error": "프로젝트 목록을 불러오는 중 오류가 발생했습니다: {{msg}}",
     "projects:toast:project added": "프로젝트를 추가했습니다.",
     "projects:toast:project already exists": "이 프로젝트는 이미 추가되어 있습니다.",
@@ -98,13 +106,6 @@
     "projects:type:worlds": "월드",
     "projects:type:avatars": "아바타",
     "projects:type:legacy": "레거시",
-    "projects:last modified:moments": "방금 전",
-    "projects:last modified:minutes": "{{count}}분 전",
-    "projects:last modified:hours": "{{count}}시간 전",
-    "projects:last modified:days": "{{count}}일 전",
-    "projects:last modified:weeks": "{{count}}주 전",
-    "projects:last modified:months": "{{count}}개월 전",
-    "projects:last modified:years": "{{count}}년 전",
     "projects:button:open unity": "Unity 열기",
     "projects:button:manage": "관리",
     "projects:backup": "백업",

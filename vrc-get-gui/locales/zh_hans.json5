@@ -36,6 +36,15 @@
     "general:error:failed to create dir": "目录创建失败（缺少权限？）： {{err}}",
     "general:error:failed to create dir missing drive": "目录创建失败。硬盘不存在，您是不是忘记连接硬盘了？",
 
+    "general:last modified": "最后修改",
+    "general:last modified:moments": "刚才",
+    "general:last modified:minutes": "{{count}} 分钟前",
+    "general:last modified:hours": "{{count}} 小时前",
+    "general:last modified:days": "{{count}} 天前",
+    "general:last modified:weeks": "{{count}} 周前",
+    "general:last modified:months": "{{count}} 月前",
+    "general:last modified:years": "{{count}} 年前",
+
 
 // Setup Page
     "setup:loading": "正在加载设置...",
@@ -94,7 +103,6 @@
     "projects:add existing project": "添加已有项目",
     "projects:type": "类型",
     "projects:unity": "Unity 版本",
-    "projects:last modified": "最后修改",
     "projects:list view": "列表视图",
     "projects:grid view": "网格视图",
     "projects:sort by": "排序条件:",
@@ -107,13 +115,6 @@
     "projects:type:worlds": "世界",
     "projects:type:avatars": "虚拟形象",
     "projects:type:legacy": "旧版",
-    "projects:last modified:moments": "刚才",
-    "projects:last modified:minutes": "{{count}} 分钟前",
-    "projects:last modified:hours": "{{count}} 小时前",
-    "projects:last modified:days": "{{count}} 天前",
-    "projects:last modified:weeks": "{{count}} 周前",
-    "projects:last modified:months": "{{count}} 月前",
-    "projects:last modified:years": "{{count}} 年前",
     "projects:button:open unity": "打开 Unity",
     "projects:button:manage": "管理",
     "projects:backup": "备份",
