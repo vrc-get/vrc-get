@@ -30,7 +30,7 @@ const sortingOptions: { key: SimpleSorting; label: string }[] = [
 	{ key: "name", label: "general:name" },
 	{ key: "type", label: "projects:type" },
 	{ key: "unity", label: "projects:unity" },
-	{ key: "lastModified", label: "projects:last modified" },
+	{ key: "lastModified", label: "general:last modified" },
 ];
 
 export function ProjectsGridCard({

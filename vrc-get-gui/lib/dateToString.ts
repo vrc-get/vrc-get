@@ -37,29 +37,29 @@ export function formatDateOffset(
 
 	const diffAbs = Math.abs(diff);
 
-	if (diffAbs < PER_MINUTE) return tc("projects:last modified:moments");
+	if (diffAbs < PER_MINUTE) return tc("general:last modified:moments");
 	if (diffAbs < PER_HOUR)
-		return tc("projects:last modified:minutes", {
+		return tc("general:last modified:minutes", {
 			count: Math.floor(diff / PER_MINUTE),
 		});
 	if (diffAbs < PER_DAY)
-		return tc("projects:last modified:hours", {
+		return tc("general:last modified:hours", {
 			count: Math.floor(diff / PER_HOUR),
 		});
 	if (diffAbs < PER_WEEK)
-		return tc("projects:last modified:days", {
+		return tc("general:last modified:days", {
 			count: Math.floor(diff / PER_DAY),
 		});
 	if (diffAbs < PER_MONTH)
-		return tc("projects:last modified:weeks", {
+		return tc("general:last modified:weeks", {
 			count: Math.floor(diff / PER_WEEK),
 		});
 	if (diffAbs < PER_YEAR)
-		return tc("projects:last modified:months", {
+		return tc("general:last modified:months", {
 			count: Math.floor(diff / PER_MONTH),
 		});
 
-	return tc("projects:last modified:years", {
+	return tc("general:last modified:years", {
 		count: Math.floor(diff / PER_YEAR),
 	});
 }

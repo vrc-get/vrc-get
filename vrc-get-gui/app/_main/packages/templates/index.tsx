@@ -128,7 +128,7 @@ function TemplatesTableBody() {
 	const TABLE_HEAD = [
 		"general:name",
 		"templates:id",
-		"projects:last modified",
+		"general:last modified",
 		"templates:category",
 		"", // actions
 	];

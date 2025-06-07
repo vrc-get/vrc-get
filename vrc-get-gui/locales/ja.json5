@@ -36,6 +36,15 @@
     "general:error:failed to create dir": "ディレクトリの作成に失敗しました: {{err}}",
     "general:error:failed to create dir missing drive": "ディレクトリの作成に失敗しました。保存先のドライブの接続を忘れているかもしれません。",
 
+    "general:last modified": "最終更新日",
+    "general:last modified:moments": "たった今",
+    "general:last modified:minutes": "{{count}}分前",
+    "general:last modified:hours": "{{count}}時間前",
+    "general:last modified:days": "{{count}}日前",
+    "general:last modified:weeks": "{{count}}週間前",
+    "general:last modified:months": "{{count}}ヶ月前",
+    "general:last modified:years": "{{count}}年前",
+
 
 // Setup Page
     "setup:loading": "設定を読み込み中...",
@@ -94,7 +103,6 @@
     "projects:add existing project": "既存のプロジェクトを追加",
     "projects:type": "種類",
     "projects:unity": "Unity",
-    "projects:last modified": "最終更新日",
     "projects:list view": "リスト表示",
     "projects:grid view": "グリッド表示",
     "projects:sort by": "表示順:",
@@ -107,13 +115,6 @@
     "projects:type:worlds": "ワールド",
     "projects:type:avatars": "アバター",
     "projects:type:legacy": "レガシー",
-    "projects:last modified:moments": "たった今",
-    "projects:last modified:minutes": "{{count}}分前",
-    "projects:last modified:hours": "{{count}}時間前",
-    "projects:last modified:days": "{{count}}日前",
-    "projects:last modified:weeks": "{{count}}週間前",
-    "projects:last modified:months": "{{count}}ヶ月前",
-    "projects:last modified:years": "{{count}}年前",
     "projects:button:open unity": "Unityを開く",
     "projects:button:manage": "管理",
     "projects:backup": "バックアップ",
