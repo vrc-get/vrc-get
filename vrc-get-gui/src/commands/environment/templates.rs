@@ -178,7 +178,7 @@ async fn save_template_file(
     io: &DefaultEnvironmentIo,
     name: &str,
     template: &[u8],
-) -> io::Result<()> {
+) -> io::Result<PathBuf> {
     // First, determine file name based on display name
     // Remove Windows Banned Characters
     let file_name = name.replace(['<', '>', ':', '"', '/', '\\', '|', '?', '*'], "");
@@ -200,41 +200,34 @@ async fn save_template_file(
     let file_name = file_name.trim_end_matches('.');
     // We now have base file name!
 
-    let mut file = 'create_file: {
+    let (mut file, path) = 'create_file: {
         let template_dir = Path::new("vrc-get/templates");
         io.create_dir_all(template_dir).await?;
         let extension = "alcomtemplate";
         // first, try original name
-        if let Ok(file) = io
-            .create_new(&template_dir.join(file_name).with_extension(extension))
-            .await
-        {
-            break 'create_file file;
+        let path = template_dir.join(file_name).with_extension(extension);
+        if let Ok(file) = io.create_new(&path).await {
+            break 'create_file (file, path);
         }
         // Then, try _numbers up to 10
         for i in 1..=10 {
-            if let Ok(file) = io
-                .create_new(
-                    &template_dir
-                        .join(format!("{file_name}_{i}"))
-                        .with_extension(extension),
-                )
-                .await
-            {
-                break 'create_file file;
+            let path = template_dir
+                .join(format!("{file_name}_{i}"))
+                .with_extension(extension);
+            if let Ok(file) = io.create_new(&path).await {
+                break 'create_file (file, path);
             }
         }
         // Finally, try random instead of file name
-        io.create_new(
-            &template_dir
-                .join(uuid::Uuid::new_v4().simple().to_string())
-                .with_extension(extension),
-        )
-        .await?
+        let path = template_dir
+            .join(uuid::Uuid::new_v4().simple().to_string())
+            .with_extension(extension);
+        let file = io.create_new(&path).await?;
+        (file, path)
     };
     file.write_all(template).await?;
     file.flush().await?;
-    Ok(())
+    Ok(path)
 }
 
 #[tauri::command]
@@ -348,7 +341,7 @@ pub async fn import_templates(
 ) -> TauriImportTemplateResult {
     let mut imported = 0;
 
-    let installed_ids = templates::load_alcom_templates(io)
+    let mut installed_ids = templates::load_alcom_templates(io)
         .await
         .into_iter()
         .filter_map(|x| x.1.id.clone().map(|id| (id, x)))
@@ -378,10 +371,10 @@ pub async fn import_templates(
             }
         };
 
-        if let Some(id) = parsed.id {
-            if let Some((existing_path, existing)) = installed_ids.get(&id) {
+        if let Some(id) = &parsed.id {
+            if let Some((existing_path, existing)) = installed_ids.get(id) {
                 duplicates.push(TauriImportDuplicated {
-                    id,
+                    id: parsed.id.unwrap(),
                     existing_path: existing_path.clone(),
                     existing_name: existing.display_name.clone(),
                     existing_update_date: existing.update_date,
@@ -394,7 +387,7 @@ pub async fn import_templates(
         }
 
         match save_template_file(io, &parsed.display_name, &json).await {
-            Ok(()) => {}
+            Ok(path) => installed_ids.insert(parsed.id.clone().unwrap(), (path, parsed)),
             Err(e) => {
                 log::error!(
                     "Failed to save imported template: {}: {e}",
