@@ -15,8 +15,7 @@ import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
 import { toastSuccess } from "@/lib/toast";
-import i18next from "i18next";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 export async function processResult(result: TauriImportTemplateResult) {
 	await queryClient.invalidateQueries({
@@ -71,15 +70,6 @@ export function AskOverride({
 }) {
 	const [overrides, setOverrides] = useState<TauriImportDuplicated[]>(
 		() => templates,
-	);
-
-	const format = useMemo(
-		() =>
-			new Intl.DateTimeFormat(i18next.languages, {
-				dateStyle: "short",
-				timeStyle: "medium",
-			}),
-		[],
 	);
 
 	return (
