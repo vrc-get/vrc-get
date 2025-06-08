@@ -21,6 +21,9 @@
     "general:button:open location": "開啟位置",
     "general:button:continue": "繼續",
 
+    // Used in place of date part but not known
+    "general:unknown date": "未知日期",
+
     "general:dialog:select file or directory header": "選擇檔案或資料夾",
     "general:dialog:select file or directory": "請選擇一個檔案或資料夾。",
     "general:toast:invalid directory": "選擇了無效路徑。",
@@ -419,6 +422,12 @@
     "templates:button:import template": "匯入範本",
     "templates:toast:imported n templates_one": "已匯入 {{count}} 個範本",
     "templates:toast:imported n templates_other": "已匯入 {{count}} 個範本",
+    "templates:dialog:duplicated": "匯入現有範本中...",
+    "templates:dialog:confirm update templates": "你在匯入以下範本的不同版本。請檢查範本並決定更新或跳過。",
+    "templates:dialog:template name": "範本 <b>{{name}}</b>",
+    "templates:dialog:template name with name change": "範本 <b>{{name}}</b>（將重命名為 <b>{{new_name}}</b>）",
+    "templates:dialog:confirm update information": "匯入的版本更新時間為 <b>{{new_update}}</b>（先前版本更新於 <b>{{old_update}}）</b>",
+    "templates:dialog:button:override templates": "更新 {{count}} 個範本",
     "template:toast:removed": "已刪除此範本",
 
 
@@ -490,10 +499,10 @@
 
     "settings:files and directories": "檔案 & 資料夾",
     "settings:files and directories:description": "快速訪問與 ALCOM 相關的檔案及資料夾。",
-    "settings:button:open settings.json": "開啟 settings.json",
-    "settings:button:open gui config.json": "開啟 gui-config.json",
-    "settings:button:open logs": "開啟日誌資料夾",
-    "settings:button:open custom templates": "開啟自訂範本資料夾",
+    "settings:button:open settings.json": "settings.json",
+    "settings:button:open gui config.json": "gui-config.json",
+    "settings:button:open logs": "日誌資料夾",
+    "settings:button:open vcc templates": "VCC 範本資料夾",
 
     "settings:check update": "檢查更新",
     "settings:button:open issue": "回報問題",
