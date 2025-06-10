@@ -62,7 +62,7 @@ The format is based on [Keep a Changelog].
 - Loading projects / repositories is now asynchronously `#2169`
   - You should be able to open a project / install packages much quickly than before!
   - The reload button will keep rotating while loading asynchronously
-- Open changelog, documentation, and reinstall single package from package list `#2184` `#2208`
+- Open changelog, documentation, and reinstall single package from package list `#2184` `#2208` `#2298`
   - You can open the changelog and documentation from `...` button at the right of package list
 - Option to exclude VPM Packages from backups `#2185`
   - You can exclude VPM Packages from backups to reduce size of backup a little
