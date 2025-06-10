@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { type ComponentProps, createContext, useContext } from "react";
 
 interface PageContext {
@@ -24,6 +25,15 @@ export const ButtonDisabledIfLoading = function ButtonDisabledIfLoading({
 	const { isLoading } = usePageContext();
 	return <Button disabled={isLoading || disabled} {...props} />;
 };
+
+export const DropdownMenuItemDisabledIfLoading =
+	function ButtonDisabledIfLoading({
+		disabled,
+		...props
+	}: ComponentProps<typeof DropdownMenuItem>) {
+		const { isLoading } = usePageContext();
+		return <DropdownMenuItem disabled={isLoading || disabled} {...props} />;
+	};
 
 export const CheckboxDisabledIfLoading = function CheckboxDisabledIfLoading({
 	disabled,

@@ -62,6 +62,7 @@ import type {
 import {
 	ButtonDisabledIfLoading,
 	CheckboxDisabledIfLoading,
+	DropdownMenuItemDisabledIfLoading,
 	usePageContext,
 } from "./-page-context";
 
@@ -948,12 +949,12 @@ const PackageRow = memo(function PackageRow({
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>
-							<DropdownMenuItem
+							<DropdownMenuItemDisabledIfLoading
 								onClick={reinstallPackage}
 								disabled={pkg.installed == null}
 							>
 								{tc("projects:manage:menuitem:reinstall")}
-							</DropdownMenuItem>
+							</DropdownMenuItemDisabledIfLoading>
 							<DropdownMenuItem disabled={changelogUrl == null}>
 								<ExternalLink href={changelogUrl ?? ""}>
 									{tc("projects:manage:menuitem:see changelog")}
