@@ -216,7 +216,7 @@ export const PackageListCard = memo(function PackageListCard({
 					<tbody>
 						{packageRowsData.map((row) => (
 							<tr
-								className="even:bg-secondary/30"
+								className="even:bg-secondary/30 anchor-none"
 								hidden={!filteredPackageIds.has(row.id)}
 								key={row.id}
 							>
