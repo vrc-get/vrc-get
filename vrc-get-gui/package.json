@@ -54,7 +54,7 @@
 		"json5": "^2",
 		"sharp-cli": "^5.1.0",
 		"svgo": "^3.3.2",
-		"tw-animate-css": "^1.3.3",
+		"tw-animate-css": "^1.3.4",
 		"typescript": "^5",
 		"vite": "^6.2.2",
 		"vite-plugin-json5": "^1.1.6"
