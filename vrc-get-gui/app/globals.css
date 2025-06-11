@@ -78,6 +78,12 @@
 	}
 }
 
+@layer utilities {
+	.anchor-none {
+		overflow-anchor: none;
+	}
+}
+
 :root {
 	--background: hsl(0 0% 100%);
 	--background-start: hsl(190 7.89% 85.1%);
