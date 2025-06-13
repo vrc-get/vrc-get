@@ -269,7 +269,8 @@ async function getLicensesFromCargoMetadata(
 		}
 	}
 
-	function parseSPDXLicense(text: string): string[][] {
+	function parseSPDXLicense(text: string | null): string[][] | null {
+		if (text == null) return null;
 		return text
 			.split(/\bAND\b/g)
 			.map((x) => x.trim())
@@ -350,7 +351,16 @@ async function getLicensesFromCargoMetadata(
 			runtimePackages.map(async (id) => {
 				const pkg = packageById.get(id);
 				if (pkg == null) throw new Error(`no package information for ${id}`);
-				const licenseIds = parseSPDXLicense(pkg.license);
+				let licenseIds = parseSPDXLicense(pkg.license);
+				// dlopen2 mistakenly uses license field and license_file field
+				if (
+					(pkg.name === "dlopen2" || pkg.name === "dlopen2_derive") &&
+					licenseIds == null
+				) {
+					licenseIds = [["MIT"]];
+				}
+				if (licenseIds == null)
+					throw new Error(`no license information for ${id}`);
 				const chosenLicense = licenseIds.map((either) => {
 					const foundLicense = either.find((y) => licenseNames.has(y));
 					if (foundLicense == null) {

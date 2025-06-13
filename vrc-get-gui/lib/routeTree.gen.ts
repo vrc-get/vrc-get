@@ -8,327 +8,121 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './../app/__root'
+import { Route as SetupRouteRouteImport } from './../app/_setup/route'
+import { Route as MainRouteRouteImport } from './../app/_main/route'
+import { Route as RouteRouteImport } from './../app/route'
+import { Route as MainSettingsIndexRouteImport } from './../app/_main/settings/index'
+import { Route as MainProjectsIndexRouteImport } from './../app/_main/projects/index'
+import { Route as MainLogIndexRouteImport } from './../app/_main/log/index'
+import { Route as MainDevPaletteIndexRouteImport } from './../app/_main/dev-palette/index'
+import { Route as SetupSetupUnityHubIndexRouteImport } from './../app/_setup/setup/unity-hub/index'
+import { Route as SetupSetupSystemSettingIndexRouteImport } from './../app/_setup/setup/system-setting/index'
+import { Route as SetupSetupProjectPathIndexRouteImport } from './../app/_setup/setup/project-path/index'
+import { Route as SetupSetupFinishIndexRouteImport } from './../app/_setup/setup/finish/index'
+import { Route as SetupSetupBackupsIndexRouteImport } from './../app/_setup/setup/backups/index'
+import { Route as SetupSetupAppearanceIndexRouteImport } from './../app/_setup/setup/appearance/index'
+import { Route as MainSettingsLicensesIndexRouteImport } from './../app/_main/settings/licenses/index'
+import { Route as MainProjectsManageIndexRouteImport } from './../app/_main/projects/manage/index'
+import { Route as MainPackagesUserPackagesIndexRouteImport } from './../app/_main/packages/user-packages/index'
+import { Route as MainPackagesTemplatesIndexRouteImport } from './../app/_main/packages/templates/index'
+import { Route as MainPackagesRepositoriesIndexRouteImport } from './../app/_main/packages/repositories/index'
 
-import { Route as rootRoute } from './../app/__root'
-import { Route as SetupRouteImport } from './../app/_setup/route'
-import { Route as MainRouteImport } from './../app/_main/route'
-import { Route as RouteImport } from './../app/route'
-import { Route as MainSettingsIndexImport } from './../app/_main/settings/index'
-import { Route as MainProjectsIndexImport } from './../app/_main/projects/index'
-import { Route as MainLogIndexImport } from './../app/_main/log/index'
-import { Route as MainDevPaletteIndexImport } from './../app/_main/dev-palette/index'
-import { Route as SetupSetupUnityHubIndexImport } from './../app/_setup/setup/unity-hub/index'
-import { Route as SetupSetupSystemSettingIndexImport } from './../app/_setup/setup/system-setting/index'
-import { Route as SetupSetupProjectPathIndexImport } from './../app/_setup/setup/project-path/index'
-import { Route as SetupSetupFinishIndexImport } from './../app/_setup/setup/finish/index'
-import { Route as SetupSetupBackupsIndexImport } from './../app/_setup/setup/backups/index'
-import { Route as SetupSetupAppearanceIndexImport } from './../app/_setup/setup/appearance/index'
-import { Route as MainSettingsLicensesIndexImport } from './../app/_main/settings/licenses/index'
-import { Route as MainProjectsManageIndexImport } from './../app/_main/projects/manage/index'
-import { Route as MainPackagesUserPackagesIndexImport } from './../app/_main/packages/user-packages/index'
-import { Route as MainPackagesTemplatesIndexImport } from './../app/_main/packages/templates/index'
-import { Route as MainPackagesRepositoriesIndexImport } from './../app/_main/packages/repositories/index'
-
-// Create/Update Routes
-
-const SetupRouteRoute = SetupRouteImport.update({
+const SetupRouteRoute = SetupRouteRouteImport.update({
   id: '/_setup',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const MainRouteRoute = MainRouteImport.update({
+const MainRouteRoute = MainRouteRouteImport.update({
   id: '/_main',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const RouteRoute = RouteImport.update({
+const RouteRoute = RouteRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const MainSettingsIndexRoute = MainSettingsIndexImport.update({
+const MainSettingsIndexRoute = MainSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
   getParentRoute: () => MainRouteRoute,
 } as any)
-
-const MainProjectsIndexRoute = MainProjectsIndexImport.update({
+const MainProjectsIndexRoute = MainProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
   getParentRoute: () => MainRouteRoute,
 } as any)
-
-const MainLogIndexRoute = MainLogIndexImport.update({
+const MainLogIndexRoute = MainLogIndexRouteImport.update({
   id: '/log/',
   path: '/log/',
   getParentRoute: () => MainRouteRoute,
 } as any)
-
-const MainDevPaletteIndexRoute = MainDevPaletteIndexImport.update({
+const MainDevPaletteIndexRoute = MainDevPaletteIndexRouteImport.update({
   id: '/dev-palette/',
   path: '/dev-palette/',
   getParentRoute: () => MainRouteRoute,
 } as any)
-
-const SetupSetupUnityHubIndexRoute = SetupSetupUnityHubIndexImport.update({
+const SetupSetupUnityHubIndexRoute = SetupSetupUnityHubIndexRouteImport.update({
   id: '/setup/unity-hub/',
   path: '/setup/unity-hub/',
   getParentRoute: () => SetupRouteRoute,
 } as any)
-
 const SetupSetupSystemSettingIndexRoute =
-  SetupSetupSystemSettingIndexImport.update({
+  SetupSetupSystemSettingIndexRouteImport.update({
     id: '/setup/system-setting/',
     path: '/setup/system-setting/',
     getParentRoute: () => SetupRouteRoute,
   } as any)
-
-const SetupSetupProjectPathIndexRoute = SetupSetupProjectPathIndexImport.update(
-  {
+const SetupSetupProjectPathIndexRoute =
+  SetupSetupProjectPathIndexRouteImport.update({
     id: '/setup/project-path/',
     path: '/setup/project-path/',
     getParentRoute: () => SetupRouteRoute,
-  } as any,
-)
-
-const SetupSetupFinishIndexRoute = SetupSetupFinishIndexImport.update({
+  } as any)
+const SetupSetupFinishIndexRoute = SetupSetupFinishIndexRouteImport.update({
   id: '/setup/finish/',
   path: '/setup/finish/',
   getParentRoute: () => SetupRouteRoute,
 } as any)
-
-const SetupSetupBackupsIndexRoute = SetupSetupBackupsIndexImport.update({
+const SetupSetupBackupsIndexRoute = SetupSetupBackupsIndexRouteImport.update({
   id: '/setup/backups/',
   path: '/setup/backups/',
   getParentRoute: () => SetupRouteRoute,
 } as any)
-
-const SetupSetupAppearanceIndexRoute = SetupSetupAppearanceIndexImport.update({
-  id: '/setup/appearance/',
-  path: '/setup/appearance/',
-  getParentRoute: () => SetupRouteRoute,
-} as any)
-
-const MainSettingsLicensesIndexRoute = MainSettingsLicensesIndexImport.update({
-  id: '/settings/licenses/',
-  path: '/settings/licenses/',
-  getParentRoute: () => MainRouteRoute,
-} as any)
-
-const MainProjectsManageIndexRoute = MainProjectsManageIndexImport.update({
+const SetupSetupAppearanceIndexRoute =
+  SetupSetupAppearanceIndexRouteImport.update({
+    id: '/setup/appearance/',
+    path: '/setup/appearance/',
+    getParentRoute: () => SetupRouteRoute,
+  } as any)
+const MainSettingsLicensesIndexRoute =
+  MainSettingsLicensesIndexRouteImport.update({
+    id: '/settings/licenses/',
+    path: '/settings/licenses/',
+    getParentRoute: () => MainRouteRoute,
+  } as any)
+const MainProjectsManageIndexRoute = MainProjectsManageIndexRouteImport.update({
   id: '/projects/manage/',
   path: '/projects/manage/',
   getParentRoute: () => MainRouteRoute,
 } as any)
-
 const MainPackagesUserPackagesIndexRoute =
-  MainPackagesUserPackagesIndexImport.update({
+  MainPackagesUserPackagesIndexRouteImport.update({
     id: '/packages/user-packages/',
     path: '/packages/user-packages/',
     getParentRoute: () => MainRouteRoute,
   } as any)
-
-const MainPackagesTemplatesIndexRoute = MainPackagesTemplatesIndexImport.update(
-  {
+const MainPackagesTemplatesIndexRoute =
+  MainPackagesTemplatesIndexRouteImport.update({
     id: '/packages/templates/',
     path: '/packages/templates/',
     getParentRoute: () => MainRouteRoute,
-  } as any,
-)
-
+  } as any)
 const MainPackagesRepositoriesIndexRoute =
-  MainPackagesRepositoriesIndexImport.update({
+  MainPackagesRepositoriesIndexRouteImport.update({
     id: '/packages/repositories/',
     path: '/packages/repositories/',
     getParentRoute: () => MainRouteRoute,
   } as any)
-
-// Populate the FileRoutesByPath interface
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof RouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/_main': {
-      id: '/_main'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof MainRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/_setup': {
-      id: '/_setup'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof SetupRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/_main/dev-palette/': {
-      id: '/_main/dev-palette/'
-      path: '/dev-palette'
-      fullPath: '/dev-palette'
-      preLoaderRoute: typeof MainDevPaletteIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_main/log/': {
-      id: '/_main/log/'
-      path: '/log'
-      fullPath: '/log'
-      preLoaderRoute: typeof MainLogIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_main/projects/': {
-      id: '/_main/projects/'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof MainProjectsIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_main/settings/': {
-      id: '/_main/settings/'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof MainSettingsIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_main/packages/repositories/': {
-      id: '/_main/packages/repositories/'
-      path: '/packages/repositories'
-      fullPath: '/packages/repositories'
-      preLoaderRoute: typeof MainPackagesRepositoriesIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_main/packages/templates/': {
-      id: '/_main/packages/templates/'
-      path: '/packages/templates'
-      fullPath: '/packages/templates'
-      preLoaderRoute: typeof MainPackagesTemplatesIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_main/packages/user-packages/': {
-      id: '/_main/packages/user-packages/'
-      path: '/packages/user-packages'
-      fullPath: '/packages/user-packages'
-      preLoaderRoute: typeof MainPackagesUserPackagesIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_main/projects/manage/': {
-      id: '/_main/projects/manage/'
-      path: '/projects/manage'
-      fullPath: '/projects/manage'
-      preLoaderRoute: typeof MainProjectsManageIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_main/settings/licenses/': {
-      id: '/_main/settings/licenses/'
-      path: '/settings/licenses'
-      fullPath: '/settings/licenses'
-      preLoaderRoute: typeof MainSettingsLicensesIndexImport
-      parentRoute: typeof MainRouteImport
-    }
-    '/_setup/setup/appearance/': {
-      id: '/_setup/setup/appearance/'
-      path: '/setup/appearance'
-      fullPath: '/setup/appearance'
-      preLoaderRoute: typeof SetupSetupAppearanceIndexImport
-      parentRoute: typeof SetupRouteImport
-    }
-    '/_setup/setup/backups/': {
-      id: '/_setup/setup/backups/'
-      path: '/setup/backups'
-      fullPath: '/setup/backups'
-      preLoaderRoute: typeof SetupSetupBackupsIndexImport
-      parentRoute: typeof SetupRouteImport
-    }
-    '/_setup/setup/finish/': {
-      id: '/_setup/setup/finish/'
-      path: '/setup/finish'
-      fullPath: '/setup/finish'
-      preLoaderRoute: typeof SetupSetupFinishIndexImport
-      parentRoute: typeof SetupRouteImport
-    }
-    '/_setup/setup/project-path/': {
-      id: '/_setup/setup/project-path/'
-      path: '/setup/project-path'
-      fullPath: '/setup/project-path'
-      preLoaderRoute: typeof SetupSetupProjectPathIndexImport
-      parentRoute: typeof SetupRouteImport
-    }
-    '/_setup/setup/system-setting/': {
-      id: '/_setup/setup/system-setting/'
-      path: '/setup/system-setting'
-      fullPath: '/setup/system-setting'
-      preLoaderRoute: typeof SetupSetupSystemSettingIndexImport
-      parentRoute: typeof SetupRouteImport
-    }
-    '/_setup/setup/unity-hub/': {
-      id: '/_setup/setup/unity-hub/'
-      path: '/setup/unity-hub'
-      fullPath: '/setup/unity-hub'
-      preLoaderRoute: typeof SetupSetupUnityHubIndexImport
-      parentRoute: typeof SetupRouteImport
-    }
-  }
-}
-
-// Create and export the route tree
-
-interface MainRouteRouteChildren {
-  MainDevPaletteIndexRoute: typeof MainDevPaletteIndexRoute
-  MainLogIndexRoute: typeof MainLogIndexRoute
-  MainProjectsIndexRoute: typeof MainProjectsIndexRoute
-  MainSettingsIndexRoute: typeof MainSettingsIndexRoute
-  MainPackagesRepositoriesIndexRoute: typeof MainPackagesRepositoriesIndexRoute
-  MainPackagesTemplatesIndexRoute: typeof MainPackagesTemplatesIndexRoute
-  MainPackagesUserPackagesIndexRoute: typeof MainPackagesUserPackagesIndexRoute
-  MainProjectsManageIndexRoute: typeof MainProjectsManageIndexRoute
-  MainSettingsLicensesIndexRoute: typeof MainSettingsLicensesIndexRoute
-}
-
-const MainRouteRouteChildren: MainRouteRouteChildren = {
-  MainDevPaletteIndexRoute: MainDevPaletteIndexRoute,
-  MainLogIndexRoute: MainLogIndexRoute,
-  MainProjectsIndexRoute: MainProjectsIndexRoute,
-  MainSettingsIndexRoute: MainSettingsIndexRoute,
-  MainPackagesRepositoriesIndexRoute: MainPackagesRepositoriesIndexRoute,
-  MainPackagesTemplatesIndexRoute: MainPackagesTemplatesIndexRoute,
-  MainPackagesUserPackagesIndexRoute: MainPackagesUserPackagesIndexRoute,
-  MainProjectsManageIndexRoute: MainProjectsManageIndexRoute,
-  MainSettingsLicensesIndexRoute: MainSettingsLicensesIndexRoute,
-}
-
-const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
-  MainRouteRouteChildren,
-)
-
-interface SetupRouteRouteChildren {
-  SetupSetupAppearanceIndexRoute: typeof SetupSetupAppearanceIndexRoute
-  SetupSetupBackupsIndexRoute: typeof SetupSetupBackupsIndexRoute
-  SetupSetupFinishIndexRoute: typeof SetupSetupFinishIndexRoute
-  SetupSetupProjectPathIndexRoute: typeof SetupSetupProjectPathIndexRoute
-  SetupSetupSystemSettingIndexRoute: typeof SetupSetupSystemSettingIndexRoute
-  SetupSetupUnityHubIndexRoute: typeof SetupSetupUnityHubIndexRoute
-}
-
-const SetupRouteRouteChildren: SetupRouteRouteChildren = {
-  SetupSetupAppearanceIndexRoute: SetupSetupAppearanceIndexRoute,
-  SetupSetupBackupsIndexRoute: SetupSetupBackupsIndexRoute,
-  SetupSetupFinishIndexRoute: SetupSetupFinishIndexRoute,
-  SetupSetupProjectPathIndexRoute: SetupSetupProjectPathIndexRoute,
-  SetupSetupSystemSettingIndexRoute: SetupSetupSystemSettingIndexRoute,
-  SetupSetupUnityHubIndexRoute: SetupSetupUnityHubIndexRoute,
-}
-
-const SetupRouteRouteWithChildren = SetupRouteRoute._addFileChildren(
-  SetupRouteRouteChildren,
-)
 
 export interface FileRoutesByFullPath {
   '/': typeof RouteRoute
@@ -349,7 +143,6 @@ export interface FileRoutesByFullPath {
   '/setup/system-setting': typeof SetupSetupSystemSettingIndexRoute
   '/setup/unity-hub': typeof SetupSetupUnityHubIndexRoute
 }
-
 export interface FileRoutesByTo {
   '/': typeof RouteRoute
   '': typeof SetupRouteRouteWithChildren
@@ -369,9 +162,8 @@ export interface FileRoutesByTo {
   '/setup/system-setting': typeof SetupSetupSystemSettingIndexRoute
   '/setup/unity-hub': typeof SetupSetupUnityHubIndexRoute
 }
-
 export interface FileRoutesById {
-  __root__: typeof rootRoute
+  __root__: typeof rootRouteImport
   '/': typeof RouteRoute
   '/_main': typeof MainRouteRouteWithChildren
   '/_setup': typeof SetupRouteRouteWithChildren
@@ -391,7 +183,6 @@ export interface FileRoutesById {
   '/_setup/setup/system-setting/': typeof SetupSetupSystemSettingIndexRoute
   '/_setup/setup/unity-hub/': typeof SetupSetupUnityHubIndexRoute
 }
-
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
@@ -453,122 +244,198 @@ export interface FileRouteTypes {
     | '/_setup/setup/unity-hub/'
   fileRoutesById: FileRoutesById
 }
-
 export interface RootRouteChildren {
   RouteRoute: typeof RouteRoute
   MainRouteRoute: typeof MainRouteRouteWithChildren
   SetupRouteRoute: typeof SetupRouteRouteWithChildren
 }
 
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/_setup': {
+      id: '/_setup'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof SetupRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_main': {
+      id: '/_main'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof MainRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof RouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_main/settings/': {
+      id: '/_main/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof MainSettingsIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/projects/': {
+      id: '/_main/projects/'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof MainProjectsIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/log/': {
+      id: '/_main/log/'
+      path: '/log'
+      fullPath: '/log'
+      preLoaderRoute: typeof MainLogIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/dev-palette/': {
+      id: '/_main/dev-palette/'
+      path: '/dev-palette'
+      fullPath: '/dev-palette'
+      preLoaderRoute: typeof MainDevPaletteIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_setup/setup/unity-hub/': {
+      id: '/_setup/setup/unity-hub/'
+      path: '/setup/unity-hub'
+      fullPath: '/setup/unity-hub'
+      preLoaderRoute: typeof SetupSetupUnityHubIndexRouteImport
+      parentRoute: typeof SetupRouteRoute
+    }
+    '/_setup/setup/system-setting/': {
+      id: '/_setup/setup/system-setting/'
+      path: '/setup/system-setting'
+      fullPath: '/setup/system-setting'
+      preLoaderRoute: typeof SetupSetupSystemSettingIndexRouteImport
+      parentRoute: typeof SetupRouteRoute
+    }
+    '/_setup/setup/project-path/': {
+      id: '/_setup/setup/project-path/'
+      path: '/setup/project-path'
+      fullPath: '/setup/project-path'
+      preLoaderRoute: typeof SetupSetupProjectPathIndexRouteImport
+      parentRoute: typeof SetupRouteRoute
+    }
+    '/_setup/setup/finish/': {
+      id: '/_setup/setup/finish/'
+      path: '/setup/finish'
+      fullPath: '/setup/finish'
+      preLoaderRoute: typeof SetupSetupFinishIndexRouteImport
+      parentRoute: typeof SetupRouteRoute
+    }
+    '/_setup/setup/backups/': {
+      id: '/_setup/setup/backups/'
+      path: '/setup/backups'
+      fullPath: '/setup/backups'
+      preLoaderRoute: typeof SetupSetupBackupsIndexRouteImport
+      parentRoute: typeof SetupRouteRoute
+    }
+    '/_setup/setup/appearance/': {
+      id: '/_setup/setup/appearance/'
+      path: '/setup/appearance'
+      fullPath: '/setup/appearance'
+      preLoaderRoute: typeof SetupSetupAppearanceIndexRouteImport
+      parentRoute: typeof SetupRouteRoute
+    }
+    '/_main/settings/licenses/': {
+      id: '/_main/settings/licenses/'
+      path: '/settings/licenses'
+      fullPath: '/settings/licenses'
+      preLoaderRoute: typeof MainSettingsLicensesIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/projects/manage/': {
+      id: '/_main/projects/manage/'
+      path: '/projects/manage'
+      fullPath: '/projects/manage'
+      preLoaderRoute: typeof MainProjectsManageIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/packages/user-packages/': {
+      id: '/_main/packages/user-packages/'
+      path: '/packages/user-packages'
+      fullPath: '/packages/user-packages'
+      preLoaderRoute: typeof MainPackagesUserPackagesIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/packages/templates/': {
+      id: '/_main/packages/templates/'
+      path: '/packages/templates'
+      fullPath: '/packages/templates'
+      preLoaderRoute: typeof MainPackagesTemplatesIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/packages/repositories/': {
+      id: '/_main/packages/repositories/'
+      path: '/packages/repositories'
+      fullPath: '/packages/repositories'
+      preLoaderRoute: typeof MainPackagesRepositoriesIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+  }
+}
+
+interface MainRouteRouteChildren {
+  MainDevPaletteIndexRoute: typeof MainDevPaletteIndexRoute
+  MainLogIndexRoute: typeof MainLogIndexRoute
+  MainProjectsIndexRoute: typeof MainProjectsIndexRoute
+  MainSettingsIndexRoute: typeof MainSettingsIndexRoute
+  MainPackagesRepositoriesIndexRoute: typeof MainPackagesRepositoriesIndexRoute
+  MainPackagesTemplatesIndexRoute: typeof MainPackagesTemplatesIndexRoute
+  MainPackagesUserPackagesIndexRoute: typeof MainPackagesUserPackagesIndexRoute
+  MainProjectsManageIndexRoute: typeof MainProjectsManageIndexRoute
+  MainSettingsLicensesIndexRoute: typeof MainSettingsLicensesIndexRoute
+}
+
+const MainRouteRouteChildren: MainRouteRouteChildren = {
+  MainDevPaletteIndexRoute: MainDevPaletteIndexRoute,
+  MainLogIndexRoute: MainLogIndexRoute,
+  MainProjectsIndexRoute: MainProjectsIndexRoute,
+  MainSettingsIndexRoute: MainSettingsIndexRoute,
+  MainPackagesRepositoriesIndexRoute: MainPackagesRepositoriesIndexRoute,
+  MainPackagesTemplatesIndexRoute: MainPackagesTemplatesIndexRoute,
+  MainPackagesUserPackagesIndexRoute: MainPackagesUserPackagesIndexRoute,
+  MainProjectsManageIndexRoute: MainProjectsManageIndexRoute,
+  MainSettingsLicensesIndexRoute: MainSettingsLicensesIndexRoute,
+}
+
+const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
+  MainRouteRouteChildren,
+)
+
+interface SetupRouteRouteChildren {
+  SetupSetupAppearanceIndexRoute: typeof SetupSetupAppearanceIndexRoute
+  SetupSetupBackupsIndexRoute: typeof SetupSetupBackupsIndexRoute
+  SetupSetupFinishIndexRoute: typeof SetupSetupFinishIndexRoute
+  SetupSetupProjectPathIndexRoute: typeof SetupSetupProjectPathIndexRoute
+  SetupSetupSystemSettingIndexRoute: typeof SetupSetupSystemSettingIndexRoute
+  SetupSetupUnityHubIndexRoute: typeof SetupSetupUnityHubIndexRoute
+}
+
+const SetupRouteRouteChildren: SetupRouteRouteChildren = {
+  SetupSetupAppearanceIndexRoute: SetupSetupAppearanceIndexRoute,
+  SetupSetupBackupsIndexRoute: SetupSetupBackupsIndexRoute,
+  SetupSetupFinishIndexRoute: SetupSetupFinishIndexRoute,
+  SetupSetupProjectPathIndexRoute: SetupSetupProjectPathIndexRoute,
+  SetupSetupSystemSettingIndexRoute: SetupSetupSystemSettingIndexRoute,
+  SetupSetupUnityHubIndexRoute: SetupSetupUnityHubIndexRoute,
+}
+
+const SetupRouteRouteWithChildren = SetupRouteRoute._addFileChildren(
+  SetupRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   RouteRoute: RouteRoute,
   MainRouteRoute: MainRouteRouteWithChildren,
   SetupRouteRoute: SetupRouteRouteWithChildren,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/_main",
-        "/_setup"
-      ]
-    },
-    "/": {
-      "filePath": "route.tsx"
-    },
-    "/_main": {
-      "filePath": "_main/route.tsx",
-      "children": [
-        "/_main/dev-palette/",
-        "/_main/log/",
-        "/_main/projects/",
-        "/_main/settings/",
-        "/_main/packages/repositories/",
-        "/_main/packages/templates/",
-        "/_main/packages/user-packages/",
-        "/_main/projects/manage/",
-        "/_main/settings/licenses/"
-      ]
-    },
-    "/_setup": {
-      "filePath": "_setup/route.tsx",
-      "children": [
-        "/_setup/setup/appearance/",
-        "/_setup/setup/backups/",
-        "/_setup/setup/finish/",
-        "/_setup/setup/project-path/",
-        "/_setup/setup/system-setting/",
-        "/_setup/setup/unity-hub/"
-      ]
-    },
-    "/_main/dev-palette/": {
-      "filePath": "_main/dev-palette/index.tsx",
-      "parent": "/_main"
-    },
-    "/_main/log/": {
-      "filePath": "_main/log/index.tsx",
-      "parent": "/_main"
-    },
-    "/_main/projects/": {
-      "filePath": "_main/projects/index.tsx",
-      "parent": "/_main"
-    },
-    "/_main/settings/": {
-      "filePath": "_main/settings/index.tsx",
-      "parent": "/_main"
-    },
-    "/_main/packages/repositories/": {
-      "filePath": "_main/packages/repositories/index.tsx",
-      "parent": "/_main"
-    },
-    "/_main/packages/templates/": {
-      "filePath": "_main/packages/templates/index.tsx",
-      "parent": "/_main"
-    },
-    "/_main/packages/user-packages/": {
-      "filePath": "_main/packages/user-packages/index.tsx",
-      "parent": "/_main"
-    },
-    "/_main/projects/manage/": {
-      "filePath": "_main/projects/manage/index.tsx",
-      "parent": "/_main"
-    },
-    "/_main/settings/licenses/": {
-      "filePath": "_main/settings/licenses/index.tsx",
-      "parent": "/_main"
-    },
-    "/_setup/setup/appearance/": {
-      "filePath": "_setup/setup/appearance/index.tsx",
-      "parent": "/_setup"
-    },
-    "/_setup/setup/backups/": {
-      "filePath": "_setup/setup/backups/index.tsx",
-      "parent": "/_setup"
-    },
-    "/_setup/setup/finish/": {
-      "filePath": "_setup/setup/finish/index.tsx",
-      "parent": "/_setup"
-    },
-    "/_setup/setup/project-path/": {
-      "filePath": "_setup/setup/project-path/index.tsx",
-      "parent": "/_setup"
-    },
-    "/_setup/setup/system-setting/": {
-      "filePath": "_setup/setup/system-setting/index.tsx",
-      "parent": "/_setup"
-    },
-    "/_setup/setup/unity-hub/": {
-      "filePath": "_setup/setup/unity-hub/index.tsx",
-      "parent": "/_setup"
-    }
-  }
-}
-ROUTE_MANIFEST_END */
