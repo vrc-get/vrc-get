@@ -50,6 +50,12 @@ pub async fn environment_export_template(
         return Ok(());
     };
 
+    info!(
+        "exporting template {id} to {path}",
+        id = template.id,
+        path = path.display()
+    );
+
     tokio::fs::copy(io.resolve(template.source_path.as_ref().unwrap()), path).await?;
 
     Ok(())
@@ -165,9 +171,15 @@ pub async fn environment_save_template(
                 "Template with such id not found (this is bug)",
             ));
         };
+        info!(
+            "updating template {name} ({id}) at {source_path}",
+            id = id,
+            source_path = source_path.display()
+        );
         io.write_sync(source_path, &template).await?;
     } else {
         // No id; create new one
+        info!("saving new template {name}");
         save_template_file(&io, &name, &template).await?;
     }
 
@@ -225,6 +237,12 @@ async fn save_template_file(
         let file = io.create_new(&path).await?;
         (file, path)
     };
+    info!(
+        "saving template {name} ({id}) to {path}",
+        name = name,
+        id = name,
+        path = path.display()
+    );
     file.write_all(template).await?;
     file.flush().await?;
     Ok(path)
@@ -249,6 +267,7 @@ pub async fn environment_remove_template(
             "Template with such id not found (this is bug)",
         )),
         Some(template) => {
+            info!("deleting template {id}", id = id);
             let template = io.resolve(template.source_path.as_ref().unwrap());
             if let Err(err) = trash_delete(template.clone()).await {
                 error!("failed to remove template: {err}");
@@ -292,6 +311,11 @@ pub async fn environment_import_template_override(
     let mut imported = 0;
 
     for duplicate in import_override {
+        info!(
+            "overriding template {id} at {existing_path}",
+            id = duplicate.id,
+            existing_path = duplicate.existing_path.display(),
+        );
         match io
             .write_sync(&duplicate.existing_path, &duplicate.data)
             .await
@@ -371,8 +395,17 @@ pub async fn import_templates(
             }
         };
 
+        info!(
+            "importing template {template}",
+            template = template.display()
+        );
+
         if let Some(id) = &parsed.id {
             if let Some((existing_path, existing)) = installed_ids.get(id) {
+                info!(
+                    "template {id} is duplicated with {existing_path}",
+                    existing_path = existing_path.display()
+                );
                 duplicates.push(TauriImportDuplicated {
                     id: parsed.id.unwrap(),
                     existing_path: existing_path.clone(),
