@@ -228,7 +228,7 @@ impl RepoHolder {
                     .await
                     {
                         Ok(Some((remote_repo, etag))) => {
-                            log::debug!("downloaded finished '{}'", info.url);
+                            log::debug!("successfully downloaded '{}'", info.url);
 
                             let headers = info.headers.clone();
                             let new_repository = if let Repository::Loaded(existing) = repository {
@@ -262,7 +262,7 @@ impl RepoHolder {
                             }
                         }
                         Ok(None) => {
-                            log::debug!("cache matched downloading '{}'", info.url)
+                            log::debug!("already up to date, using cached '{}'", info.url)
                         }
                         // error handling later
                         Err(e) => return Err((info.url.clone(), e)),
@@ -291,7 +291,7 @@ impl RepoHolder {
                 return log_error(result);
             }
 
-            error!("fetching remote repo: Unable to download to servers");
+            error!("fetching remote repo: Unable to download from servers");
         }
 
         fn log_error(result: Vec<Result<bool, (Url, io::Error)>>) {
