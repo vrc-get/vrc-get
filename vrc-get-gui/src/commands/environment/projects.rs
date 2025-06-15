@@ -168,7 +168,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
             app.clone(),
         ));
     } else {
-        log::info!("sync with real project skipped since last update is less than 1 minutes");
+        log::info!("skipped sync with real project since last update was less than 1 minute ago");
     }
 
     async fn sync_with_real_project(projects: Vec<String>, app: AppHandle) {
@@ -513,7 +513,7 @@ where
             .process(&file_tree)
             .await?;
 
-            info!("copied project for migration. adding to listing");
+            info!("copied project for migration. adding to project list");
 
             let unity_project = load_project(new_path_str.clone()).await?;
 

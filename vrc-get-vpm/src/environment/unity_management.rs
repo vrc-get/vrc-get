@@ -104,7 +104,10 @@ impl VccDatabaseConnection {
         for in_db in self.db.get_all(COLLECTION) {
             let Some(path) = in_db[PATH].as_str() else {
                 // if the unity editor not found, remove it from the db
-                info!("Removed Unity has no path: {:?}", in_db["_id"]);
+                info!(
+                    "Removed Unity with invalid or empty path: {:?}",
+                    in_db["_id"]
+                );
                 delete.push(in_db["_id"].clone());
                 continue;
             };
@@ -112,14 +115,14 @@ impl VccDatabaseConnection {
             let path_path = Path::new(path);
             if !io.is_file(path_path).await {
                 // if the unity editor not found, remove it from the db
-                info!("Removed Unity that is not exists: {}", path);
+                info!("Removed nonexistent Unity: {}", path);
                 delete.push(in_db["_id"].clone());
                 continue;
             }
 
             if registered.contains(path) {
                 // if the unity editor is already installed, remove it from the db
-                info!("Removed duplicated Unity: {}", path);
+                info!("Removed duplicate Unity: {}", path);
                 delete.push(in_db["_id"].clone());
                 continue;
             }
@@ -153,14 +156,14 @@ impl VccDatabaseConnection {
         for &(&version, ref path) in &path_and_version_from_hub {
             let Some(path) = path.as_os_str().to_str() else {
                 info!(
-                    "Ignoring Unity from Unity Hub since non-utf8 path: {}",
+                    "Ignoring Unity from Unity Hub with non-utf8 path: {}",
                     path.display()
                 );
                 continue;
             };
             if !registered.contains(path) {
                 if version < UnityVersion::new_f1(2019, 4, 0) {
-                    info!("Ignoring Unity from Unity Hub since old: {}", path);
+                    info!("Ignoring archaic Unity from Unity Hub: {}", path);
                     continue;
                 }
                 info!("Adding Unity from Unity Hub: {}", path);
