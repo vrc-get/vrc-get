@@ -245,15 +245,6 @@ function showToast(requested: RequestedOperation) {
 	}
 }
 
-function useMountedOnce() {
-	const [mounted, setMounted] = React.useState(false);
-	React.useEffect(() => {
-		const id = requestAnimationFrame(() => setMounted(true));
-		return () => cancelAnimationFrame(id);
-	}, []);
-	return mounted;
-}
-
 function ProjectChangesDialog({
 	changes,
 	existingPackages,
@@ -276,8 +267,6 @@ function ProjectChangesDialog({
 			<p className={"font-normal"}>{children}</p>
 		</div>
 	);
-
-	const mounted = useMountedOnce();
 
 	const existingPackageMap = new Map(existingPackages ?? []);
 
@@ -313,7 +302,7 @@ function ProjectChangesDialog({
 	const needsCare = breakingChanges || incompatibility;
 
 	return (
-		<DialogContent className="flex flex-col w-full max-h-[70vh]">
+		<div className={"contents whitespace-normal"}>
 			<DialogHeader>
 				<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
 				<DialogDescription>
@@ -345,108 +334,102 @@ function ProjectChangesDialog({
 				</DialogDescription>
 			</DialogHeader>
 			<div className="overflow-hidden flex">
-				{mounted ? (
-					<ScrollArea
-						type="always"
-						className={"w-full"}
-						scrollBarClassName={"bg-background pb-2.5"}
-					>
-						<div className="pr-2 overflow-x-hidden">
-							<div className={"flex flex-col gap-1 p-2"}>
-								{groupedChanges.map(([category, changes], index) => {
-									return (
-										<Fragment key={category}>
-											{index !== 0 && <hr />}
-											{changes.map((change) => (
-												<PackageChange key={change.packageId} change={change} />
-											))}
-										</Fragment>
-									);
-								})}
-							</div>
-							{versionConflicts.length > 0 ? (
-								<>
-									<p className={"text-destructive"}>
-										{tc("projects:manage:dialog:package version conflicts", {
-											count: versionConflicts.length,
-										})}
-									</p>
-									<div className={"flex flex-col gap-1 p-2"}>
-										{versionConflicts.map(([pkgId, conflict]) => {
-											return (
-												<TypographyItem key={pkgId}>
-													{tc("projects:manage:dialog:conflicts with", {
-														pkg: getPackageDisplayName(pkgId),
-														other: conflict.packages
-															.map((p) => getPackageDisplayName(p))
-															.join(", "),
-													})}
-												</TypographyItem>
-											);
-										})}
-									</div>
-								</>
-							) : null}
-							{unityConflicts.length > 0 ? (
-								<>
-									<p className={"text-destructive"}>
-										{tc("projects:manage:dialog:unity version conflicts", {
-											count: unityConflicts.length,
-										})}
-									</p>
-									<div className={"flex flex-col gap-1 p-2"}>
-										{unityConflicts.map(([pkgId, _]) => (
-											<TypographyItem key={pkgId}>
-												{tc(
-													"projects:manage:dialog:package not supported your unity",
-													{
-														pkg: getPackageDisplayName(pkgId),
-													},
-												)}
-											</TypographyItem>
+				<ScrollArea
+					type="always"
+					className={"w-full"}
+					scrollBarClassName={"bg-background pb-2.5"}
+				>
+					<div className="pr-2 overflow-x-hidden">
+						<div className={"flex flex-col gap-1 p-2"}>
+							{groupedChanges.map(([category, changes], index) => {
+								return (
+									<Fragment key={category}>
+										{index !== 0 && <hr />}
+										{changes.map((change) => (
+											<PackageChange key={change.packageId} change={change} />
 										))}
-									</div>
-								</>
-							) : null}
-							{changes.remove_legacy_files.length > 0 ||
-							changes.remove_legacy_folders.length > 0 ? (
-								<>
-									<p className={"text-destructive"}>
-										{tc(
-											"projects:manage:dialog:files and directories are removed as legacy",
-										)}
-									</p>
-									<div className={"flex flex-col gap-1 p-2"}>
-										{changes.remove_legacy_files.map((f) => (
-											<TypographyItem key={f}>{f}</TypographyItem>
-										))}
-										{changes.remove_legacy_folders.map((f) => (
-											<TypographyItem key={f}>{f}</TypographyItem>
-										))}
-									</div>
-								</>
-							) : null}
-							{unlockedConflicts.length > 0 ? (
-								<>
-									<p className={"text-destructive"}>
-										{tc(
-											"projects:manage:dialog:packages installed in the following directories will be removed",
-										)}
-									</p>
-									<div className={"flex flex-col gap-1 p-2"}>
-										{unlockedConflicts.map((f) => (
-											<TypographyItem key={f}>{f}</TypographyItem>
-										))}
-									</div>
-								</>
-							) : null}
+									</Fragment>
+								);
+							})}
 						</div>
-						<div className={"pb-2.5"} />
-						<ScrollBar className={"bg-background"} orientation="horizontal" />
-					</ScrollArea>
-				) : (
-					<Loading loadingText={tc("general:loading...")} />
-				)}
+						{versionConflicts.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc("projects:manage:dialog:package version conflicts", {
+										count: versionConflicts.length,
+									})}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{versionConflicts.map(([pkgId, conflict]) => {
+										return (
+											<TypographyItem key={pkgId}>
+												{tc("projects:manage:dialog:conflicts with", {
+													pkg: getPackageDisplayName(pkgId),
+													other: conflict.packages
+														.map((p) => getPackageDisplayName(p))
+														.join(", "),
+												})}
+											</TypographyItem>
+										);
+									})}
+								</div>
+							</>
+						) : null}
+						{unityConflicts.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc("projects:manage:dialog:unity version conflicts", {
+										count: unityConflicts.length,
+									})}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{unityConflicts.map(([pkgId, _]) => (
+										<TypographyItem key={pkgId}>
+											{tc(
+												"projects:manage:dialog:package not supported your unity",
+												{
+													pkg: getPackageDisplayName(pkgId),
+												},
+											)}
+										</TypographyItem>
+									))}
+								</div>
+							</>
+						) : null}
+						{changes.remove_legacy_files.length > 0 ||
+						changes.remove_legacy_folders.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc(
+										"projects:manage:dialog:files and directories are removed as legacy",
+									)}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{changes.remove_legacy_files.map((f) => (
+										<TypographyItem key={f}>{f}</TypographyItem>
+									))}
+									{changes.remove_legacy_folders.map((f) => (
+										<TypographyItem key={f}>{f}</TypographyItem>
+									))}
+								</div>
+							</>
+						) : null}
+						{unlockedConflicts.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc(
+										"projects:manage:dialog:packages installed in the following directories will be removed",
+									)}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{unlockedConflicts.map((f) => (
+										<TypographyItem key={f}>{f}</TypographyItem>
+									))}
+								</div>
+							</>
+						) : null}
+					</div>
+				</ScrollArea>
 			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(false)} className="mr-1">
@@ -460,7 +443,7 @@ function ProjectChangesDialog({
 					{tc("projects:manage:button:apply")}
 				</DelayedButton>
 			</DialogFooter>
-		</DialogContent>
+		</div>
 	);
 }
 
