@@ -247,7 +247,8 @@ The VPM Repository **MUST NOT** chnange the contents of the URL this field point
 ##### 4.2.4.2. `zipSHA256` (string)
 The `zipSHA256` field shows the SHA-256 hash of the package archive file.
 The type of the `zipSHA256` field **MUST** be a string.
-The `zipSHA256` field **MUST** be a valid SHA-256 hash of the package archive file.
+The `zipSHA256` field **MUST** be a valid HEXDIG encoded SHA-256 hash of the package archive file.
+Typically the output of sha256sum.
 
 The VPM Client **MUST** use this hash to verify the integrity of the cached package archive file.
 and **MAY** use this hash to verify the integrity of the downloaded package archive file.
