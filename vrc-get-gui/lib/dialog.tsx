@@ -1,4 +1,5 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { assertNever } from "@/lib/assert-never";
 import React, {
 	useEffect,
 	useRef,
@@ -19,7 +20,7 @@ type DialogProps<R> = {
 type DialogResult<P> = P extends DialogProps<infer R> ? R : unknown;
 
 export interface DialogApi {
-	replace(state: React.ReactNode): void;
+	replace(state: React.ReactElement): void;
 
 	ask<P extends DialogProps<never>>(
 		component: React.JSXElementConstructor<P>,
@@ -33,16 +34,39 @@ export interface DialogApi {
 	[Symbol.dispose](): void;
 }
 
-export function showDialog(initialContent: React.ReactNode): DialogApi {
+type DialogState =
+	| {
+			type: "before";
+	  }
+	| {
+			type: "asking";
+			element: React.ReactElement;
+	  }
+	| {
+			type: "asked";
+			element: React.ReactElement;
+	  }
+	| {
+			type: "content";
+			element: React.ReactElement;
+	  };
+
+export function showDialog(
+	initialContent: React.ReactElement | null = null,
+): DialogApi {
 	if (dialogGlobalState == null) throw new Error("No Root is mounted");
 	const globalState = dialogGlobalState;
 
 	const key = globalState.getKey();
-	const contentStore = new SyncStore(initialContent);
-	const askStore = new SyncStore<React.ReactElement | null>(null);
+	const dialogState = new SyncStore<DialogState>(
+		initialContent == null
+			? { type: "before" }
+			: { type: "content", element: initialContent },
+	);
+	let dialogOpened = false;
 
 	function closeImpl() {
-		globalState.closeDialog(key);
+		if (dialogOpened) globalState.closeDialog(key);
 	}
 
 	function askImpl<P extends DialogProps<never>>(
@@ -50,7 +74,8 @@ export function showDialog(initialContent: React.ReactNode): DialogApi {
 		props: NoInfer<Omit<P, "dialog">>,
 		closing: boolean,
 	): Promise<DialogResult<P>> {
-		if (askStore.value != null) throw new Error("another ask in progress");
+		if (dialogState.value.type === "asking")
+			throw new Error("another ask in progress");
 
 		let resolve: (result: DialogResult<P>) => void;
 		let reject: (error: unknown) => void;
@@ -64,28 +89,34 @@ export function showDialog(initialContent: React.ReactNode): DialogApi {
 			close(r) {
 				// if the dialog is NOT closing, we don't detach the
 				if (closing) closeImpl();
-				else askStore.value = null;
+				else dialogState.value = { type: "asked", element };
 				resolve(r);
 			},
 			error(e) {
 				// if the dialog is NOT closing, we don't detach the
 				if (closing) closeImpl();
-				else askStore.value = null;
+				else dialogState.value = { type: "asked", element };
 				reject(e);
 			},
 		};
 
-		askStore.value = React.createElement<P>(component, {
+		const element = React.createElement<P>(component, {
 			...props,
 			dialog,
 		} as unknown as P);
+
+		dialogState.value = { type: "asking", element };
+		mayOpenDialog();
 
 		return promise;
 	}
 
 	const result: DialogApi = {
-		replace(newContent) {
-			contentStore.value = newContent;
+		replace(element) {
+			if (dialogState.value.type === "asking")
+				throw new Error("another ask in progress");
+			dialogState.value = { type: "content", element };
+			mayOpenDialog();
 		},
 		ask<P extends DialogProps<never>>(
 			component: React.JSXElementConstructor<P>,
@@ -105,19 +136,53 @@ export function showDialog(initialContent: React.ReactNode): DialogApi {
 		[Symbol.dispose]: closeImpl,
 	};
 
-	globalState.openDialog(
-		key,
-		<DialogBodyElement askStore={askStore} contentStore={contentStore} />,
-	);
+	function mayOpenDialog() {
+		if (!dialogOpened)
+			globalState.openDialog(
+				key,
+				<DialogBodyElement dialogState={dialogState} />,
+			);
+		dialogOpened = true;
+	}
+	if (dialogState.value.type !== "before") mayOpenDialog();
 
 	return result;
+}
+
+function DialogBodyElement({
+	dialogState,
+}: {
+	dialogState: SyncStore<DialogState>;
+}) {
+	const state = dialogState.use();
+	const className = "max-h-[calc(100dvh-(var(--spacing)*8))] overflow-y-auto";
+	switch (state.type) {
+		case "before":
+			return null;
+		case "asking":
+			return (
+				<DialogContent className={className}>{state.element}</DialogContent>
+			);
+		case "asked":
+			return (
+				<DialogContent className={`${className} pointer-events-none`}>
+					{state.element}
+				</DialogContent>
+			);
+		case "content":
+			return (
+				<DialogContent className={className}>{state.element}</DialogContent>
+			);
+		default:
+			assertNever(state);
+	}
 }
 
 export function openSingleDialog<P extends DialogProps<never>>(
 	component: React.JSXElementConstructor<P>,
 	props: NoInfer<Omit<P, "dialog">>,
 ): Promise<DialogResult<P>> {
-	return showDialog(null).askClosing(component, props);
+	return showDialog().askClosing(component, props);
 }
 
 interface GlobalState {
@@ -127,19 +192,6 @@ interface GlobalState {
 }
 
 let dialogGlobalState: GlobalState | null = null;
-
-function DialogBodyElement({
-	askStore,
-	contentStore,
-}: {
-	askStore: SyncStore<React.ReactElement | null>;
-	contentStore: SyncStore<React.ReactNode>;
-}) {
-	const ask = askStore.use();
-	const content = contentStore.use();
-	if (ask != null) return ask;
-	else return content;
-}
 
 const closeDelayMs = 2000;
 
@@ -185,11 +237,7 @@ export function DialogRoot() {
 	return state.map(({ closing, key, element }) => {
 		return (
 			<Dialog open={!closing} key={key}>
-				<DialogContent
-					className={"max-h-[calc(100dvh-(var(--spacing)*8))] overflow-y-auto"}
-				>
-					{element}
-				</DialogContent>
+				{element}
 			</Dialog>
 		);
 	});

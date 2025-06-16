@@ -67,7 +67,7 @@ export async function unityVersionChange({
 			return;
 		}
 
-		using dialog = showDialog(null);
+		using dialog = showDialog();
 
 		let backupTypePromise: Promise<ProjectBackupType | null>;
 		if (data.isVRC && data.isTargetVersionSupportedByVRC) {

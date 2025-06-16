@@ -26,7 +26,7 @@ import { useEffect } from "react";
 import { useState } from "react";
 
 export async function copyProject(existingPath: string, navigate?: NavigateFn) {
-	using dialog = showDialog(null);
+	using dialog = showDialog();
 	const newPath = await dialog.ask(CopyProjectNameDialog, {
 		projectPath: existingPath,
 	});
