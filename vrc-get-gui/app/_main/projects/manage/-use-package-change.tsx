@@ -1,15 +1,13 @@
-import Loading from "@/app/-loading";
 import { DelayedButton } from "@/components/DelayedButton";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
 import {
-	DialogContent,
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { assertNever } from "@/lib/assert-never";
 import type {
 	TauriBasePackageInfo,
@@ -29,7 +27,7 @@ import { compareVersion, toVersionString } from "@/lib/version";
 import type { DefaultError } from "@tanstack/query-core";
 import { type UseMutationOptions, queryOptions } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
-import React from "react";
+import type React from "react";
 import { Fragment } from "react";
 
 export type RequestedOperation =
