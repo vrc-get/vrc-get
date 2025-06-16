@@ -361,7 +361,7 @@ async function migrateVpm(projectPath: string) {
 		return;
 	}
 
-	using dialog = showDialog(null);
+	using dialog = showDialog();
 
 	const backupType = await dialog.ask(ConfirmVpmMigrationDialog, {});
 	if (backupType == null) return "";

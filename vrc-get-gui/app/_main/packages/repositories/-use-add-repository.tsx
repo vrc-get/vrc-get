@@ -57,7 +57,7 @@ const environmentRepositoriesInfo = queryOptions({
 });
 
 export async function openAddRepositoryDialog() {
-	using dialog = showDialog(null);
+	using dialog = showDialog();
 	const repoInfo = await dialog.ask(EnteringRepositoryInfo, {});
 	if (repoInfo == null) return;
 	await addRepositoryImpl(dialog, repoInfo.url, repoInfo.headers);
@@ -67,7 +67,7 @@ export async function addRepository(
 	url: string,
 	headers: Record<string, string>,
 ) {
-	using dialog = showDialog(null);
+	using dialog = showDialog();
 	await addRepositoryImpl(dialog, url, headers);
 }
 async function addRepositoryImpl(

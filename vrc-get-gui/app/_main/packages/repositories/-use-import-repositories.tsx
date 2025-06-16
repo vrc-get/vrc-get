@@ -35,7 +35,7 @@ const environmentRepositoriesInfo = queryOptions({
 });
 
 export async function importRepositories() {
-	using dialog = showDialog(null);
+	using dialog = showDialog();
 
 	const pickResult = await commands.environmentImportRepositoryPick();
 	switch (pickResult.type) {

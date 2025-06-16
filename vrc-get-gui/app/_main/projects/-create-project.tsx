@@ -48,10 +48,9 @@ import { useId } from "react";
 import { useState } from "react";
 
 export async function createProject() {
-	using dialog = showDialog(<LoadingInitialInformation />);
-
 	const information = await commands.environmentProjectCreationInformation();
 
+	using dialog = showDialog();
 	const result = await dialog.ask(EnteringInformation, {
 		templates: information.templates,
 		projectLocation: information.default_path,
@@ -104,14 +103,6 @@ function DialogBase({
 				</Button>
 			</DialogFooter>
 		</>
-	);
-}
-
-function LoadingInitialInformation() {
-	return (
-		<DialogBase>
-			<RefreshCw className={"w-5 h-5 animate-spin"} />
-		</DialogBase>
 	);
 }
 
