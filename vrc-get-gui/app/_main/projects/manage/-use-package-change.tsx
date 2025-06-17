@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
 	DialogFooter,
+	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { assertNever } from "@/lib/assert-never";
 import type {
 	TauriBasePackageInfo,
@@ -299,119 +301,134 @@ function ProjectChangesDialog({
 
 	return (
 		<div className={"contents whitespace-normal"}>
-			<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
-			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
-			<DialogDescription className={"overflow-y-auto max-h-[50vh]"}>
-				<p>{tc("projects:manage:dialog:confirm changes description")}</p>
-				{breakingChanges && (
-					<div
-						className={
-							"flex border border-solid border-warning mt-3 py-2 me-1.5"
-						}
-					>
-						<CircleAlert className={"text-warning self-center mx-2 shrink-0"} />
-						<p>{tc("projects:manage:dialog:note breaking changes")}</p>
-					</div>
-				)}
-				{incompatibility && (
-					<div
-						className={
-							"flex border border-solid border-warning mt-3 py-2 me-1.5"
-						}
-					>
-						<CircleAlert className={"text-warning self-center mx-2 shrink-0"} />
-						<p>{tc("projects:manage:dialog:note incompatibility")}</p>
-					</div>
-				)}
-				<div className={"flex flex-col gap-1 p-2"}>
-					{groupedChanges.map(([category, changes], index) => {
-						return (
-							<Fragment key={category}>
-								{index !== 0 && <hr />}
-								{changes.map((change) => (
-									<PackageChange key={change.packageId} change={change} />
-								))}
-							</Fragment>
-						);
-					})}
-				</div>
-				{versionConflicts.length > 0 ? (
-					<>
-						<p className={"text-destructive"}>
-							{tc("projects:manage:dialog:package version conflicts", {
-								count: versionConflicts.length,
-							})}
-						</p>
+			<DialogHeader>
+				<DialogTitle>{tc("projects:manage:button:apply changes")}</DialogTitle>
+				<DialogDescription>
+					<p>{tc("projects:manage:dialog:confirm changes description")}</p>
+					{breakingChanges && (
+						<div
+							className={
+								"flex border border-solid border-warning mt-3 py-2 me-1.5"
+							}
+						>
+							<CircleAlert
+								className={"text-warning self-center mx-2 shrink-0"}
+							/>
+							<p>{tc("projects:manage:dialog:note breaking changes")}</p>
+						</div>
+					)}
+					{incompatibility && (
+						<div
+							className={
+								"flex border border-solid border-warning mt-3 py-2 me-1.5"
+							}
+						>
+							<CircleAlert
+								className={"text-warning self-center mx-2 shrink-0"}
+							/>
+							<p>{tc("projects:manage:dialog:note incompatibility")}</p>
+						</div>
+					)}
+				</DialogDescription>
+			</DialogHeader>
+			<div className="overflow-hidden flex">
+				<ScrollArea
+					type="always"
+					className={"w-full"}
+					scrollBarClassName={"bg-background pb-2.5"}
+				>
+					<div className="pr-2 overflow-x-hidden">
 						<div className={"flex flex-col gap-1 p-2"}>
-							{versionConflicts.map(([pkgId, conflict]) => {
+							{groupedChanges.map(([category, changes], index) => {
 								return (
-									<TypographyItem key={pkgId}>
-										{tc("projects:manage:dialog:conflicts with", {
-											pkg: getPackageDisplayName(pkgId),
-											other: conflict.packages
-												.map((p) => getPackageDisplayName(p))
-												.join(", "),
-										})}
-									</TypographyItem>
+									<Fragment key={category}>
+										{index !== 0 && <hr />}
+										{changes.map((change) => (
+											<PackageChange key={change.packageId} change={change} />
+										))}
+									</Fragment>
 								);
 							})}
 						</div>
-					</>
-				) : null}
-				{unityConflicts.length > 0 ? (
-					<>
-						<p className={"text-destructive"}>
-							{tc("projects:manage:dialog:unity version conflicts", {
-								count: unityConflicts.length,
-							})}
-						</p>
-						<div className={"flex flex-col gap-1 p-2"}>
-							{unityConflicts.map(([pkgId, _]) => (
-								<TypographyItem key={pkgId}>
+						{versionConflicts.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc("projects:manage:dialog:package version conflicts", {
+										count: versionConflicts.length,
+									})}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{versionConflicts.map(([pkgId, conflict]) => {
+										return (
+											<TypographyItem key={pkgId}>
+												{tc("projects:manage:dialog:conflicts with", {
+													pkg: getPackageDisplayName(pkgId),
+													other: conflict.packages
+														.map((p) => getPackageDisplayName(p))
+														.join(", "),
+												})}
+											</TypographyItem>
+										);
+									})}
+								</div>
+							</>
+						) : null}
+						{unityConflicts.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc("projects:manage:dialog:unity version conflicts", {
+										count: unityConflicts.length,
+									})}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{unityConflicts.map(([pkgId, _]) => (
+										<TypographyItem key={pkgId}>
+											{tc(
+												"projects:manage:dialog:package not supported your unity",
+												{
+													pkg: getPackageDisplayName(pkgId),
+												},
+											)}
+										</TypographyItem>
+									))}
+								</div>
+							</>
+						) : null}
+						{changes.remove_legacy_files.length > 0 ||
+						changes.remove_legacy_folders.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
 									{tc(
-										"projects:manage:dialog:package not supported your unity",
-										{
-											pkg: getPackageDisplayName(pkgId),
-										},
+										"projects:manage:dialog:files and directories are removed as legacy",
 									)}
-								</TypographyItem>
-							))}
-						</div>
-					</>
-				) : null}
-				{changes.remove_legacy_files.length > 0 ||
-				changes.remove_legacy_folders.length > 0 ? (
-					<>
-						<p className={"text-destructive"}>
-							{tc(
-								"projects:manage:dialog:files and directories are removed as legacy",
-							)}
-						</p>
-						<div className={"flex flex-col gap-1 p-2"}>
-							{changes.remove_legacy_files.map((f) => (
-								<TypographyItem key={f}>{f}</TypographyItem>
-							))}
-							{changes.remove_legacy_folders.map((f) => (
-								<TypographyItem key={f}>{f}</TypographyItem>
-							))}
-						</div>
-					</>
-				) : null}
-				{unlockedConflicts.length > 0 ? (
-					<>
-						<p className={"text-destructive"}>
-							{tc(
-								"projects:manage:dialog:packages installed in the following directories will be removed",
-							)}
-						</p>
-						<div className={"flex flex-col gap-1 p-2"}>
-							{unlockedConflicts.map((f) => (
-								<TypographyItem key={f}>{f}</TypographyItem>
-							))}
-						</div>
-					</>
-				) : null}
-			</DialogDescription>
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{changes.remove_legacy_files.map((f) => (
+										<TypographyItem key={f}>{f}</TypographyItem>
+									))}
+									{changes.remove_legacy_folders.map((f) => (
+										<TypographyItem key={f}>{f}</TypographyItem>
+									))}
+								</div>
+							</>
+						) : null}
+						{unlockedConflicts.length > 0 ? (
+							<>
+								<p className={"text-destructive"}>
+									{tc(
+										"projects:manage:dialog:packages installed in the following directories will be removed",
+									)}
+								</p>
+								<div className={"flex flex-col gap-1 p-2"}>
+									{unlockedConflicts.map((f) => (
+										<TypographyItem key={f}>{f}</TypographyItem>
+									))}
+								</div>
+							</>
+						) : null}
+					</div>
+				</ScrollArea>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(false)} className="mr-1">
 					{tc("general:button:cancel")}
