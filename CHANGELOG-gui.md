@@ -8,83 +8,90 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Support for Projects with Unity 2018 or older `#2106`
-  - Projects with Unity 2018 cannot be added before, but since this version you can add to your project list.
-  - Unity 2017 or older doesn't have Unity Package Manager, the base system for VPM,
-    so you cannot manage packages for projects with older unity.
-    You can only launch Unity to open the project.
-  - Projects with Unity 4 or older are still not supported, but I hope no one want to use such a vintage Unity with ALCOM.
-- New Project Template System `#2105` `#2114` `#2125` `#2129` `#2204` `#2259` `#2260` `#2261` `#2275` `#2276`
-  - You now can create Project Templates in ALCOM.
-  - The new form of template can install multiple VPM packages at once, and you also can import unitypackages.
-  - You now can create blank project along with this system change.
-- Warning on upgrading major version or installing incompatible versions `#2159` `#2313`
-  - When you're upgrading package versions majorly, you'll see the warning message about breaking changes.
-  - I hope this should reduce problems with unexpectedly upgrading packages majorly.
-  - In addition, we added more messages when you're installing packages with some compatibility concerns.
-  - The previous version only has those messages at the bottom of the window, so you may not notice the message.
-  - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
-- Menu option to copy a project `#2168` `#2219` `#2225`
-  - Simple enough, you can copy a project.
-- Remember recent project locations `#2182`
-  - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations
-- Support for flatpak installation of unity hub `#1586`
-  - ALCOM now detects flatpak installation of unity hub automatically
-- Projects page Grid View `#2245` `#2257`
 
 ### Changed
-- Changed how we read VCC's project information `#1997` `#2036` `#2041`
-  - Along with this, building this project no longer needs dotnet SDK to build.
-- Migrated the project to Rust 2024 `#1956`
-  - This is internal changes should not cause behavior changes
-  - This would require Rust 1.85 for building this project
-- Removed `cargo-about` from build-time dependency `#1961`
-  - This is internal changes should not cause behavior changes
-  - I listed here since this may need update on package metadata of some package managers
-- The method to retrieve the list of Unity from Unity Hub `#1808` `#1971`
-  - Since this version, ALCOM reads UnityHub's configuration files to get list of Unity installed to the machine.
-  - Before this version, ALCOM called headless Unity Hub in the background.
-  - New method might have some compatibility problem, especially with some sandbox system.
-  - Please report us if you find some problem with the new system.
-- Enhance os info for windows `#1968`
-- You now can select multiple folders at once to adding project `#2018`
-  - I didn't know official VCC had such a feature. Sorry for lack of feature!
-- You now can toggle "Show Prerelease Packages" from Manage Project page `#2020`
-  - You can toggle "Show Prerelease Packages" from Select Packages dropdown
-- The requirements for unity project `#2106`
-  - Since this version, `Projectsettings/ProjectVersion.txt` is required.
-- Improves launching unity behavior `#2124`
-  - On linux, ALCOM will now read exit code, therefore, Unity no longer remains as a defunct process.
-  - On macOS, we now launch Unity as a distinct / individual process, therefore several macOS subsystems should treat Unity as Unity instead of Unity as a part of ALCOM.
-- Downgraded glibc requirements for linux images `#2160`
-  - This release will be built on ubuntu 22.04 so glibc 2.35 is new requirements
-  - If you want to use on platforms with older glibc, build yourself or pull request to build on older environments.
-- Loading projects / repositories is now asynchronously `#2169`
-  - You should be able to open a project / install packages much quickly than before!
-  - The reload button will keep rotating while loading asynchronously
-- Open changelog, documentation, and reinstall single package from package list `#2184` `#2208` `#2298`
-  - You can open the changelog and documentation from `...` button at the right of package list
-- Option to exclude VPM Packages from backups `#2185`
-  - You can exclude VPM Packages from backups to reduce size of backup a little
-  - However, if the package author ignored the recommendation from VRChat and us, and removed package from their repository, you may need to install another version when restoring the backup.
-  - Since many of the repository maintainers have removed many packages in their repository and VPM Packages are relatively small, this feature is disabled by default. You can enable this on the settings page.
-- Show the range of requested package in missing dependencies dialog `#2187`
-- `LastSceneManagerSetup.txt` in `Library` directory will be included in backups or copying project `#2205`
-  - With this file preserved, you can expect to open the last opened scene file when you opened projects restored from backups.
-- Improved behavior when the project directory is not a valid project but the directory exists `#2225`
-- Open Unity now will update `Last Modified` of a project. `#2228`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Layout shift on select package `#2045`
-- Unable to change the unity version from "unknown" if ProjectVersion.txt does not exists `#2183`
-- Uninstall package is not reverted successfully if removing package is prevented by `ERROR_SHARING_VIOLATION` `#2209`
-- Too Many Open Files on backing up some projects `#2262`
 
 ### Security
+
+## [1.1.0] - 2025-06-19
+### Added
+- Support for Projects with Unity 2018 or older [`#2106`](https://github.com/vrc-get/vrc-get/pull/2106)
+  - Projects with Unity 2018 cannot be added before, but since this version you can add to your project list.
+  - Unity 2017 or older doesn't have Unity Package Manager, the base system for VPM,
+    so you cannot manage packages for projects with older unity.
+    You can only launch Unity to open the project.
+  - Projects with Unity 4 or older are still not supported, but I hope no one want to use such a vintage Unity with ALCOM.
+- New Project Template System [`#2105`](https://github.com/vrc-get/vrc-get/pull/2105) [`#2114`](https://github.com/vrc-get/vrc-get/pull/2114) [`#2125`](https://github.com/vrc-get/vrc-get/pull/2125) [`#2129`](https://github.com/vrc-get/vrc-get/pull/2129) [`#2204`](https://github.com/vrc-get/vrc-get/pull/2204) [`#2259`](https://github.com/vrc-get/vrc-get/pull/2259) [`#2260`](https://github.com/vrc-get/vrc-get/pull/2260) [`#2261`](https://github.com/vrc-get/vrc-get/pull/2261) [`#2275`](https://github.com/vrc-get/vrc-get/pull/2275) [`#2276`](https://github.com/vrc-get/vrc-get/pull/2276)
+  - You now can create Project Templates in ALCOM.
+  - The new form of template can install multiple VPM packages at once, and you also can import unitypackages.
+  - You now can create blank project along with this system change.
+- Warning on upgrading major version or installing incompatible versions [`#2159`](https://github.com/vrc-get/vrc-get/pull/2159) [`#2313`](https://github.com/vrc-get/vrc-get/pull/2313)
+  - When you're upgrading package versions majorly, you'll see the warning message about breaking changes.
+  - I hope this should reduce problems with unexpectedly upgrading packages majorly.
+  - In addition, we added more messages when you're installing packages with some compatibility concerns.
+  - The previous version only has those messages at the bottom of the window, so you may not notice the message.
+  - Not only that, you now can see the package is upgraded, reinstalled, downgraded, or newly installed. 
+- Menu option to copy a project [`#2168`](https://github.com/vrc-get/vrc-get/pull/2168) [`#2219`](https://github.com/vrc-get/vrc-get/pull/2219) [`#2225`](https://github.com/vrc-get/vrc-get/pull/2225)
+  - Simple enough, you can copy a project.
+- Remember recent project locations [`#2182`](https://github.com/vrc-get/vrc-get/pull/2182)
+  - ALCOM now remembers a few multiple recent locations for project creation, and you can select from recent locations
+- Support for flatpak installation of unity hub [`#1586`](https://github.com/vrc-get/vrc-get/pull/1586)
+  - ALCOM now detects flatpak installation of unity hub automatically
+- Projects page Grid View [`#2245`](https://github.com/vrc-get/vrc-get/pull/2245) [`#2257`](https://github.com/vrc-get/vrc-get/pull/2257)
+
+### Changed
+- Changed how we read VCC's project information [`#1997`](https://github.com/vrc-get/vrc-get/pull/1997) [`#2036`](https://github.com/vrc-get/vrc-get/pull/2036) [`#2041`](https://github.com/vrc-get/vrc-get/pull/2041)
+  - Along with this, building this project no longer needs dotnet SDK to build.
+- Migrated the project to Rust 2024 [`#1956`](https://github.com/vrc-get/vrc-get/pull/1956)
+  - This is internal changes should not cause behavior changes
+  - This would require Rust 1.85 for building this project
+- Removed `cargo-about` from build-time dependency [`#1961`](https://github.com/vrc-get/vrc-get/pull/1961)
+  - This is internal changes should not cause behavior changes
+  - I listed here since this may need update on package metadata of some package managers
+- The method to retrieve the list of Unity from Unity Hub [`#1808`](https://github.com/vrc-get/vrc-get/pull/1808) [`#1971`](https://github.com/vrc-get/vrc-get/pull/1971)
+  - Since this version, ALCOM reads UnityHub's configuration files to get list of Unity installed to the machine.
+  - Before this version, ALCOM called headless Unity Hub in the background.
+  - New method might have some compatibility problem, especially with some sandbox system.
+  - Please report us if you find some problem with the new system.
+- Enhance os info for windows [`#1968`](https://github.com/vrc-get/vrc-get/pull/1968)
+- You now can select multiple folders at once to adding project [`#2018`](https://github.com/vrc-get/vrc-get/pull/2018)
+  - I didn't know official VCC had such a feature. Sorry for lack of feature!
+- You now can toggle "Show Prerelease Packages" from Manage Project page [`#2020`](https://github.com/vrc-get/vrc-get/pull/2020)
+  - You can toggle "Show Prerelease Packages" from Select Packages dropdown
+- The requirements for unity project [`#2106`](https://github.com/vrc-get/vrc-get/pull/2106)
+  - Since this version, `Projectsettings/ProjectVersion.txt` is required.
+- Improves launching unity behavior [`#2124`](https://github.com/vrc-get/vrc-get/pull/2124)
+  - On linux, ALCOM will now read exit code, therefore, Unity no longer remains as a defunct process.
+  - On macOS, we now launch Unity as a distinct / individual process, therefore several macOS subsystems should treat Unity as Unity instead of Unity as a part of ALCOM.
+- Downgraded glibc requirements for linux images [`#2160`](https://github.com/vrc-get/vrc-get/pull/2160)
+  - This release will be built on ubuntu 22.04 so glibc 2.35 is new requirements
+  - If you want to use on platforms with older glibc, build yourself or pull request to build on older environments.
+- Loading projects / repositories is now asynchronously [`#2169`](https://github.com/vrc-get/vrc-get/pull/2169)
+  - You should be able to open a project / install packages much quickly than before!
+  - The reload button will keep rotating while loading asynchronously
+- Open changelog, documentation, and reinstall single package from package list [`#2184`](https://github.com/vrc-get/vrc-get/pull/2184) [`#2208`](https://github.com/vrc-get/vrc-get/pull/2208) [`#2298`](https://github.com/vrc-get/vrc-get/pull/2298)
+  - You can open the changelog and documentation from `...` button at the right of package list
+- Option to exclude VPM Packages from backups [`#2185`](https://github.com/vrc-get/vrc-get/pull/2185)
+  - You can exclude VPM Packages from backups to reduce size of backup a little
+  - However, if the package author ignored the recommendation from VRChat and us, and removed package from their repository, you may need to install another version when restoring the backup.
+  - Since many of the repository maintainers have removed many packages in their repository and VPM Packages are relatively small, this feature is disabled by default. You can enable this on the settings page.
+- Show the range of requested package in missing dependencies dialog [`#2187`](https://github.com/vrc-get/vrc-get/pull/2187)
+- `LastSceneManagerSetup.txt` in `Library` directory will be included in backups or copying project [`#2205`](https://github.com/vrc-get/vrc-get/pull/2205)
+  - With this file preserved, you can expect to open the last opened scene file when you opened projects restored from backups.
+- Improved behavior when the project directory is not a valid project but the directory exists [`#2225`](https://github.com/vrc-get/vrc-get/pull/2225)
+- Open Unity now will update `Last Modified` of a project. [`#2228`](https://github.com/vrc-get/vrc-get/pull/2228)
+
+### Fixed
+- Layout shift on select package [`#2045`](https://github.com/vrc-get/vrc-get/pull/2045)
+- Unable to change the unity version from "unknown" if ProjectVersion.txt does not exists [`#2183`](https://github.com/vrc-get/vrc-get/pull/2183)
+- Uninstall package is not reverted successfully if removing package is prevented by `ERROR_SHARING_VIOLATION` [`#2209`](https://github.com/vrc-get/vrc-get/pull/2209)
+- Too Many Open Files on backing up some projects [`#2262`](https://github.com/vrc-get/vrc-get/pull/2262)
 
 ## [1.0.1] - 2025-02-05
 ### Added
@@ -577,7 +584,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.1...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.0...HEAD
+[1.1.0]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.1...gui-v1.1.0
 [1.0.1]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.0...gui-v1.0.1
 [1.0.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.17...gui-v1.0.0
 [0.1.17]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.16...gui-v0.1.17
