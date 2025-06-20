@@ -120,14 +120,14 @@ impl VccDatabaseConnection {
                 continue;
             }
 
-            if registered.contains(path) {
+            if registered.contains(path_path) {
                 // if the unity editor is already installed, remove it from the db
                 info!("Removed duplicate Unity: {}", path);
                 delete.push(in_db["_id"].clone());
                 continue;
             }
 
-            registered.insert(path.to_string());
+            registered.insert(PathBuf::from(path));
 
             let normalized = normalize_path(path.as_ref())
                 .into_os_string()
@@ -161,7 +161,7 @@ impl VccDatabaseConnection {
                 );
                 continue;
             };
-            if !registered.contains(path) {
+            if !registered.contains(Path::new(path)) {
                 if version < UnityVersion::new_f1(2019, 4, 0) {
                     info!("Ignoring archaic Unity from Unity Hub: {}", path);
                     continue;
