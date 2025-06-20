@@ -162,10 +162,6 @@ impl VccDatabaseConnection {
                 continue;
             };
             if !registered.contains(Path::new(path)) {
-                if version < UnityVersion::new_f1(2019, 4, 0) {
-                    info!("Ignoring archaic Unity from Unity Hub: {}", path);
-                    continue;
-                }
                 info!("Adding Unity from Unity Hub: {}", path);
                 Self::add_unity_installation_internal(&mut self.db, path, version, true);
             }
