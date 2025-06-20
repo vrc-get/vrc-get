@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Unity can be duplicated `#2321`
 
 ### Security
 
