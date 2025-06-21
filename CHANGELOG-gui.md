@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Improved behavior about `settings.json` to `vcc.litedb` migration `#2327`
+  - See [`vrchat-community/creator-companion#492`](https://github.com/vrchat-community/creator-companion/issues/492) and the PR for details
 
 ### Deprecated
 
