@@ -24,6 +24,12 @@
 					// In my opinion, '!.' => '?.' is not reasonable for all cases, so I disabled automatic fix.
 					"fix": "none",
 					"level": "error"
+				},
+				"noRestrictedGlobals": {
+					"level": "error",
+					"options": {
+						"deniedGlobals": ["close"]
+					}
 				}
 			},
 			"suspicious": {
