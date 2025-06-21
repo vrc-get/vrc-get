@@ -9,15 +9,33 @@ use std::path::{Path, PathBuf};
 
 type JsonObject = Map<String, Value>;
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct AsJson {
     #[serde(default)]
     path_to_unity_exe: Box<str>,
     #[serde(default)]
     path_to_unity_hub: Box<str>,
-    #[serde(default)]
-    user_projects: Vec<Box<str>>,
+    // The current VPM toolchain has two places of storing user projects: `settings.json` and `vcc.litedb`.
+    // Currently, `settings.json` is the single source of truth, and VCC will always copy
+    // information of `settings.json` to `vcc.litedb`.
+    //
+    // However, it's announced that future VCC will remove copying `settings.json` to `vcc.litedb`.
+    // There's no detailed documentation on how `settings.json` would be when migration removal becomes true.
+    // However, we can assume the `userProjects` key will be absent from `settings.json` and `vcc.litedb` become
+    // the single source of truth (opposite to current `settings.json`).
+    //
+    // To support reading the settings.json for both versions and writing for both versions
+    // 1) vrc-get will skip copying the data from 'userProjects' to vcc.litedb if 'userProjects' is absent,
+    //      for future VCC compatibility
+    // 2) vrc-get will always emit 'userProjects' key even if 'userProjects' is absent.
+    //    The future VCC will just remove 'userProjects' so this should not cause a problem,
+    //       and older VCC will become compatible since 'userProjects' can become single source of truth
+    //
+    // See https://github.com/vrchat-community/creator-companion/issues/400#issuecomment-1855484391
+    // See https://vcc.docs.vrchat.com/news/release-2.2.0/#important-notes-for-tool-developers
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    user_projects: Option<Vec<Box<str>>>,
     #[serde(default)]
     unity_editors: Vec<Box<str>>,
     #[serde(default)]
@@ -58,6 +76,33 @@ struct AsJson {
 
     #[serde(flatten)]
     rest: JsonObject,
+}
+
+impl Default for AsJson {
+    fn default() -> Self {
+        Self {
+            path_to_unity_exe: Default::default(),
+            path_to_unity_hub: Default::default(),
+            user_projects: Some(vec![]),
+            unity_editors: Default::default(),
+            preferred_unity_editors: Default::default(),
+            default_project_path: Default::default(),
+            last_ui_state: Default::default(),
+            skip_unity_auto_find: Default::default(),
+            user_package_folders: Default::default(),
+            window_size_data: Default::default(),
+            skip_requirements: Default::default(),
+            last_news_update: Default::default(),
+            allow_pii: Default::default(),
+            project_backup_path: Default::default(),
+            show_prerelease_packages: Default::default(),
+            track_community_repos: Default::default(),
+            selected_providers: Default::default(),
+            last_selected_project: Default::default(),
+            user_repos: Default::default(),
+            rest: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -159,25 +204,31 @@ impl VpmSettings {
 
 #[cfg(feature = "experimental-project-management")]
 impl VpmSettings {
-    pub(crate) fn user_projects(&self) -> &[Box<str>] {
-        &self.parsed.user_projects
+    pub(crate) fn user_projects(&self) -> Option<&[Box<str>]> {
+        self.parsed.user_projects.as_deref()
     }
 
     pub(crate) fn retain_user_projects(
         &mut self,
         mut f: impl FnMut(&str) -> bool,
-    ) -> Vec<Box<str>> {
-        self.parsed
-            .user_projects
-            .extract_if(.., |x| !f(x))
-            .collect()
+    ) -> Option<Vec<Box<str>>> {
+        Some(
+            (self.parsed.user_projects.as_mut())?
+                .extract_if(.., |x| !f(x))
+                .collect(),
+        )
     }
 
     pub(crate) fn remove_user_project(&mut self, path: &str) {
-        self.parsed.user_projects.retain(|x| x.as_ref() != path);
+        if let Some(x) = self.parsed.user_projects.as_mut() {
+            x.retain(|x| x.as_ref() != path)
+        }
     }
 
     pub(crate) fn add_user_project(&mut self, path: &str) {
-        self.parsed.user_projects.insert(0, path.into());
+        self.parsed
+            .user_projects
+            .get_or_insert_default()
+            .insert(0, path.into());
     }
 }
