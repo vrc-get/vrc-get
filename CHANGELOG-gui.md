@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Unity can be duplicated `#2321`
+- Crash on creating a new project on Windows `#2326`
 
 ### Security
 

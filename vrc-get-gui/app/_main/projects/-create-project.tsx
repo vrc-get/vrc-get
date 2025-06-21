@@ -70,7 +70,6 @@ export async function createProject() {
 	);
 	dialog.close();
 	toastSuccess(tt("projects:toast:project created"));
-	close?.();
 	await queryClient.invalidateQueries({
 		queryKey: ["environmentProjects"],
 	});
