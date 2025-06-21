@@ -13,6 +13,7 @@ on run (folderName)
             set theBottomRightX to (theXOrigin + theWidth)
             set theBottomRightY to (theYOrigin + theHeight)
             -- set dsStore to "\"" & "/Volumes/" & volumeName & "/" & ".DS_STORE\""
+            set dsStore to "\"" & folderName & "/" & ".DS_STORE\""
 
             
             tell container window
@@ -33,6 +34,38 @@ on run (folderName)
             end tell
             -- BACKGROUND_CLAUSE
 
+            -- Positioning
+            -- POSITION_CLAUSE
+
+            -- Hiding
+            -- HIDING_CLAUSE
+
+            -- Application and QL Link Clauses
+            -- APPLICATION_CLAUSE
+            -- QL_CLAUSE
+            close
+            open
+            -- Force saving of the size
+            delay 1
+
+            tell container window
+                set statusbar visible to false
+                set the bounds to {theXOrigin, theYOrigin, theBottomRightX - 10, theBottomRightY - 10}
+            end tell
         end tell
+
+        --give the finder some time to write the .DS_Store file
+        delay 3
+
+        set waitTime to 0
+        set ejectMe to false
+        repeat while ejectMe is false
+            delay 1
+            set waitTime to waitTime + 1
+            log "waiting " & waitTime & " seconds for .DS_STORE to be created."
+            
+            if (do shell script "[ -f " & dsStore & " ]; echo $?") = "0" then set ejectMe to true
+        end repeat
+        log "waited " & waitTime & " seconds for .DS_STORE to be created."
     end tell
 end run
