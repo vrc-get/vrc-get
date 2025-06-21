@@ -16,10 +16,13 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Unity can be duplicated `#2321`
-- Crash on creating a new project on Windows `#2326`
 
 ### Security
+
+## [1.1.1] - 2025-06-21
+### Fixed
+- Unity can be duplicated [`#2321`](https://github.com/vrc-get/vrc-get/pull/2321)
+- Crash on creating a new project on Windows [`#2326`](https://github.com/vrc-get/vrc-get/pull/2326)
 
 ## [1.1.0] - 2025-06-19
 ### Added
@@ -586,7 +589,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.0...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.1...HEAD
+[1.1.1]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.0...gui-v1.1.1
 [1.1.0]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.1...gui-v1.1.0
 [1.0.1]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.0...gui-v1.0.1
 [1.0.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.17...gui-v1.0.0
