@@ -1,15 +1,16 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"files": {
-		"ignore": [
-			"project-templates",
-			"node_modules",
-			".next",
-			"out",
-			"gen",
-			"lib/bindings.ts",
-			"lib/routeTree.gen.ts",
-			"build"
+		"includes": [
+			"**",
+			"!project-templates",
+			"!node_modules",
+			"!.next",
+			"!out",
+			"!gen",
+			"!lib/bindings.ts",
+			"!lib/routeTree.gen.ts",
+			"!build"
 		]
 	},
 	"formatter": {
@@ -28,7 +29,9 @@
 				"noRestrictedGlobals": {
 					"level": "error",
 					"options": {
-						"deniedGlobals": ["close"]
+						"deniedGlobals": {
+							"close": "window.close is unlikely to be called"
+						}
 					}
 				}
 			},
@@ -69,7 +72,11 @@
 		},
 		"enabled": true
 	},
-	"organizeImports": {
-		"enabled": true
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
 	}
 }
