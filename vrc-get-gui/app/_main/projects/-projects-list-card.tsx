@@ -1,4 +1,7 @@
 "use client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, ChevronsUpDown, ChevronUp, Star } from "lucide-react";
+import { useMemo } from "react";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProject, TauriProjectType } from "@/lib/bindings";
@@ -6,9 +9,6 @@ import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString } from "@/lib/version";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Star } from "lucide-react";
-import { useMemo } from "react";
 import { ProjectRow } from "./-project-row";
 
 export const sortings = ["lastModified", "name", "unity", "type"] as const;

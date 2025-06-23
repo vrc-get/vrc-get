@@ -1,3 +1,7 @@
+import { useMutation } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
+import type React from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,13 +43,6 @@ import {
 } from "@/lib/project-template";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useMutation } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
-import type React from "react";
-import { useEffect } from "react";
-import { useMemo } from "react";
-import { useId } from "react";
-import { useState } from "react";
 
 export async function createProject() {
 	const information = await commands.environmentProjectCreationInformation();

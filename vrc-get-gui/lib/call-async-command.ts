@@ -46,7 +46,7 @@ async function callAsyncCommandImpl<A extends unknown[], P, R>(
 		listen<FinishedMessage<R>>(`${channel}:finished`, (e) =>
 			finishHandler?.(e.payload),
 		),
-		listen<void>(`${channel}:cancelled`, (e) =>
+		listen<void>(`${channel}:cancelled`, () =>
 			finishHandler?.({ type: "Success", value: "cancelled" }),
 		),
 	]);

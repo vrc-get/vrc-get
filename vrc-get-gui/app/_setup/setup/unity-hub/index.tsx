@@ -1,5 +1,7 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { FilePathRow } from "@/components/common-setting-parts";
 import {
 	Accordion,
@@ -13,8 +15,6 @@ import { assertNever } from "@/lib/assert-never";
 import { commands } from "@/lib/bindings";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
 import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 
 export const Route = createFileRoute("/_setup/setup/unity-hub/")({

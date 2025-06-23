@@ -1,8 +1,8 @@
+import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import type { LogEntry, LogLevel } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
-import { BugOff, CircleX, Info, OctagonAlert } from "lucide-react";
-import { memo, useEffect, useMemo, useRef } from "react";
 
 export const LogsListCard = memo(function LogsListCard({
 	logEntry,
@@ -81,11 +81,7 @@ export const LogsListCard = memo(function LogsListCard({
 	);
 });
 
-const LogRow = memo(function LogRow({
-	log,
-}: {
-	log: LogEntry;
-}) {
+const LogRow = memo(function LogRow({ log }: { log: LogEntry }) {
 	const cellClass = "p-2.5";
 
 	const formatDate = (dateString: string) => {

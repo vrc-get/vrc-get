@@ -1,7 +1,7 @@
+import type React from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import type React from "react";
 
 export function ScrollableCard({
 	children,

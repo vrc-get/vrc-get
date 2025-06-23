@@ -1,20 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import { commands } from "@/lib/bindings";
-import { useGlobalInfo } from "@/lib/global-info";
-import { tc } from "@/lib/i18n";
-import { toastNormal } from "@/lib/toast";
 import { useQuery } from "@tanstack/react-query";
 import {
 	type RegisteredRouter,
@@ -30,6 +15,21 @@ import {
 	SwatchBook,
 } from "lucide-react";
 import type React from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import { commands } from "@/lib/bindings";
+import { useGlobalInfo } from "@/lib/global-info";
+import { tc } from "@/lib/i18n";
+import { toastNormal } from "@/lib/toast";
 
 export function SideBar({ className }: { className?: string }) {
 	"use client";

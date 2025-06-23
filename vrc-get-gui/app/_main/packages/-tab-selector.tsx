@@ -1,5 +1,5 @@
-import { tc } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
+import { tc } from "@/lib/i18n";
 
 type PageType =
 	| "/packages/user-packages"
@@ -8,11 +8,7 @@ type PageType =
 
 // Note: For historical reasons, templates page are under packages in route.
 
-export function HeadingPageName({
-	pageType,
-}: {
-	pageType: PageType;
-}) {
+export function HeadingPageName({ pageType }: { pageType: PageType }) {
 	return (
 		<div className={"-ml-1.5"}>
 			<div

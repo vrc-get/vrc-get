@@ -1,5 +1,27 @@
 // noinspection ExceptionCaughtLocallyJS
 
+import {
+	queryOptions,
+	useMutation,
+	useQueryClient,
+} from "@tanstack/react-query";
+import {
+	CircleArrowUp,
+	CircleMinus,
+	CirclePlus,
+	Ellipsis,
+	RefreshCw,
+} from "lucide-react";
+import type React from "react";
+import {
+	memo,
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { applyChangesMutation } from "@/app/_main/projects/manage/-use-package-change";
 import { Route } from "@/app/_main/projects/manage/index";
 import { ExternalLink } from "@/components/ExternalLink";
@@ -39,22 +61,6 @@ import { usePackageUpdateInProgress } from "@/lib/global-events";
 import { tc, tt } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
 import { toVersionString } from "@/lib/version";
-import {
-	queryOptions,
-	useMutation,
-	useQueryClient,
-} from "@tanstack/react-query";
-import {
-	CircleArrowUp,
-	CircleMinus,
-	CirclePlus,
-	Ellipsis,
-	RefreshCw,
-} from "lucide-react";
-import type React from "react";
-import { useLayoutEffect } from "react";
-import { useRef } from "react";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type {
 	PackageLatestInfo,
 	PackageRowInfo,
@@ -530,13 +536,6 @@ function bulkUpdateModeForPackage(pkg: PackageRowInfo): PackageBulkUpdateMode {
 	};
 }
 
-function hasAnyUpdate(pkg: PackageBulkUpdateMode): boolean {
-	for (const kind of possibleUpdateKind) {
-		if (pkg[kind]) return true;
-	}
-	return false;
-}
-
 function canBulkUpdate(
 	bulkUpdateMode: BulkUpdateMode,
 	possibleUpdate: PackageBulkUpdateMode,
@@ -559,8 +558,6 @@ function BulkUpdateCard({
 	packageRowsData: PackageRowInfo[];
 	cancel?: () => void;
 }) {
-	if (!bulkUpdateMode.hasPackages) return null;
-
 	const count = bulkUpdatePackageIds.length;
 	const { projectPath } = Route.useSearch();
 	const packageChange = useMutation(applyChangesMutation(projectPath));
@@ -617,6 +614,7 @@ function BulkUpdateCard({
 		});
 	};
 
+	if (!bulkUpdateMode.hasPackages) return null;
 	return (
 		<Card
 			className={
@@ -1065,11 +1063,7 @@ function PackageVersionList({
 	);
 }
 
-function PackageInstalledInfo({
-	pkg,
-}: {
-	pkg: PackageRowInfo;
-}) {
+function PackageInstalledInfo({ pkg }: { pkg: PackageRowInfo }) {
 	if (pkg.installed) {
 		const version = toVersionString(pkg.installed.version);
 		if (pkg.installed.yanked) {
@@ -1088,11 +1082,7 @@ function PackageInstalledInfo({
 	}
 }
 
-function LatestPackageInfo({
-	info,
-}: {
-	info: PackageLatestInfo;
-}) {
+function LatestPackageInfo({ info }: { info: PackageLatestInfo }) {
 	const { projectPath } = Route.useSearch();
 	const packageChange = useMutation(applyChangesMutation(projectPath));
 

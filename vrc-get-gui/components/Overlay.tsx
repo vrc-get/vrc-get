@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import React from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * Overlays multiple elements to one place with grid layout
@@ -13,10 +13,13 @@ import React from "react";
 export function Overlay({
 	children,
 	className,
-}: { className?: string; children?: React.ReactNode }) {
+}: {
+	className?: string;
+	children?: React.ReactNode;
+}) {
 	return (
 		<div className={cn("grid", className)}>
-			{React.Children.map(children, (child, i) => {
+			{React.Children.map(children, (child) => {
 				if (React.isValidElement(child)) {
 					const childElement = child as React.ReactHTMLElement<HTMLElement>;
 					return React.cloneElement(childElement, {

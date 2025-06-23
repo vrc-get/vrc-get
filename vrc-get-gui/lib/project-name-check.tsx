@@ -1,9 +1,9 @@
-import { assertNever } from "@/lib/assert-never";
-import { type TauriProjectDirCheckResult, commands } from "@/lib/bindings";
-import { tc } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { RefreshCw } from "lucide-react";
+import { assertNever } from "@/lib/assert-never";
+import { commands, type TauriProjectDirCheckResult } from "@/lib/bindings";
+import { tc } from "@/lib/i18n";
 
 export function useProjectNameCheck(
 	projectLocation: string,

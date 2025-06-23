@@ -1,10 +1,10 @@
 import licenses from "build:licenses.json";
-import { ScrollPageContainer } from "@/components/ScrollPageContainer";
-import { ScrollableCard } from "@/components/ScrollableCard";
+import { createFileRoute } from "@tanstack/react-router";
 import { VStack } from "@/components/layout";
+import { ScrollableCard } from "@/components/ScrollableCard";
+import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { Card } from "@/components/ui/card";
 import { commands } from "@/lib/bindings";
-import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_main/settings/licenses/")({
 	component: Page,
@@ -23,7 +23,7 @@ function Page() {
 					<ul />
 				</Card>
 
-				{licenses.map((license, idx) => (
+				{licenses.map((license) => (
 					<Card className={"p-4"} key={license.text}>
 						<h3>{license.name}</h3>
 						<h4>Used by:</h4>

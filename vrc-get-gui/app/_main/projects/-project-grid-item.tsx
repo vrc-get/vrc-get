@@ -1,11 +1,12 @@
+import { CircleHelp, CircleUserRound, Ellipsis, Globe } from "lucide-react";
 import {
 	ButtonDisabledIfInvalid,
 	FavoriteToggleButton,
+	getProjectDisplayInfo,
 	ManageOrMigrateButton,
 	ProjectContext,
 	TooltipTriggerIfInvalid,
 	TooltipTriggerIfValid,
-	getProjectDisplayInfo,
 	useSetProjectFavoriteMutation,
 } from "@/app/_main/projects/-project-row";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
@@ -32,13 +33,6 @@ import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
-import { queryOptions } from "@tanstack/react-query";
-import { CircleHelp, CircleUserRound, Ellipsis, Globe } from "lucide-react";
-
-const environmentProjects = queryOptions({
-	queryKey: ["environmentProjects"],
-	queryFn: commands.environmentProjects,
-});
 
 export function ProjectGridItem({
 	project,
