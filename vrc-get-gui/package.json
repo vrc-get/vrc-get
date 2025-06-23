@@ -43,7 +43,7 @@
 		"tailwind-merge": "^3"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1",
+		"@biomejs/biome": "^2",
 		"@tailwindcss/vite": "^4.1.8",
 		"@tanstack/router-plugin": "^1.120.20",
 		"@tauri-apps/cli": "^2",
