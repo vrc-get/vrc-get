@@ -1,13 +1,13 @@
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Circle, CircleCheck, CircleChevronRight } from "lucide-react";
+import type React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import type { SetupPages, TauriEnvironmentSettings } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { Circle, CircleCheck, CircleChevronRight } from "lucide-react";
-import type React from "react";
 
 export type BodyProps = Readonly<{
 	environment: TauriEnvironmentSettings;
@@ -80,11 +80,7 @@ export function SetupPageBase({
 	);
 }
 
-function StepCard({
-	current,
-}: {
-	current: SetupPages | null;
-}) {
+function StepCard({ current }: { current: SetupPages | null }) {
 	// TODO: get progress from backend
 	const finisheds = useQuery({
 		queryKey: ["environmentGetFinishedSetupPages"],

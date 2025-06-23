@@ -1,7 +1,16 @@
 "use client";
 
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { ChevronDown, CircleX } from "lucide-react";
+import { Suspense, useCallback, useEffect, useId, useMemo } from "react";
 import { HNavBar, VStack } from "@/components/layout";
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -28,15 +37,6 @@ import { usePrevPathName } from "@/lib/prev-page";
 import { toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 import { cn } from "@/lib/utils";
-import {
-	queryOptions,
-	useMutation,
-	useQuery,
-	useQueryClient,
-} from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, CircleX } from "lucide-react";
-import { Suspense, useCallback, useEffect, useId, useMemo } from "react";
 import { HeadingPageName } from "../-tab-selector";
 import { addRepository, openAddRepositoryDialog } from "./-use-add-repository";
 import { importRepositories } from "./-use-import-repositories";
@@ -332,7 +332,11 @@ function RemoveRepositoryDialog({
 	dialog,
 	displayName,
 	id,
-}: { dialog: DialogContext<void>; displayName: string; id: string }) {
+}: {
+	dialog: DialogContext<void>;
+	displayName: string;
+	id: string;
+}) {
 	const queryClient = useQueryClient();
 
 	const removeRepository = useMutation({

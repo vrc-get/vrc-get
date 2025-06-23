@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import type { DialogContext } from "@/lib/dialog";
 import globalInfo from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import React, { useState } from "react";
 
 type ConfirmStatus =
 	| {
@@ -160,7 +160,7 @@ export function CheckForUpdateMessage({
 
 const LinkedText = React.memo(({ text }: { text: string }) => {
 	const urlRegex =
-		/https:\/\/[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)+\/[a-zA-Z0-9$\-_.+!*'()%\/?#]*/g;
+		/https:\/\/[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)+\/[a-zA-Z0-9$\-_.+!*'()%/?#]*/g;
 	const components: React.ReactNode[] = [];
 	let lastMatchEnd = 0;
 	for (const match of text.matchAll(urlRegex)) {

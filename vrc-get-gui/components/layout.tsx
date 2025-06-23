@@ -1,13 +1,16 @@
 "use client";
 
+import type React from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type React from "react";
 
 export function VStack({
 	className,
 	children,
-}: { className?: string; children: React.ReactNode }) {
+}: {
+	className?: string;
+	children: React.ReactNode;
+}) {
 	return (
 		<div className={`flex flex-col w-full gap-3 ${className}`}>{children}</div>
 	);

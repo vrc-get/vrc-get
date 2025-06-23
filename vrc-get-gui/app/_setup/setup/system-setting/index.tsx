@@ -1,10 +1,5 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
-import { commands } from "@/lib/bindings";
-import { useGlobalInfo } from "@/lib/global-info";
-import { tc } from "@/lib/i18n";
-import { toastThrownError } from "@/lib/toast";
 import {
 	queryOptions,
 	useMutation,
@@ -12,6 +7,11 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Checkbox } from "@/components/ui/checkbox";
+import { commands } from "@/lib/bindings";
+import { useGlobalInfo } from "@/lib/global-info";
+import { tc } from "@/lib/i18n";
+import { toastThrownError } from "@/lib/toast";
 import { type BodyProps, SetupPageBase } from "../-setup-page-base";
 
 export const Route = createFileRoute("/_setup/setup/system-setting/")({

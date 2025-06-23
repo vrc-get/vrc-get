@@ -1,7 +1,7 @@
-import { commands } from "@/lib/bindings";
-import { cn } from "@/lib/utils";
 import { ExternalLink as LucideExternalLink } from "lucide-react";
 import type React from "react";
+import { commands } from "@/lib/bindings";
+import { cn } from "@/lib/utils";
 
 export function ExternalLink({
 	children,
@@ -25,7 +25,7 @@ export function ExternalLink({
 			<a
 				className={cn(className, "underline inline")}
 				type={"button"}
-				// biome-ignore lint/a11y/useValidAnchor: This is navigation with external browser, not a action
+				href={href}
 				onClick={() => commands.utilOpenUrl(href)}
 			>
 				{body}

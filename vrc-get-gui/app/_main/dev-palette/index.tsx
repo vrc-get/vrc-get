@@ -1,8 +1,9 @@
 "use client";
 
-import { ScrollPageContainer } from "@/components/ScrollPageContainer";
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { createFileRoute } from "@tanstack/react-router";
 import { HNavBar, VStack } from "@/components/layout";
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import { tc } from "@/lib/i18n";
 import { toastError, toastInfo, toastNormal, toastSuccess } from "@/lib/toast";
-import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_main/dev-palette/")({
 	component: Page,
@@ -177,7 +177,7 @@ function UnityTableBody() {
 				</tr>
 			</thead>
 			<tbody>
-				{unityPaths.map(([path, version, isFromHub]) => (
+				{unityPaths.map(([path, version, _isFromHub]) => (
 					<tr key={path} className="even:bg-secondary/30">
 						<td className={"p-2.5"}>{version}</td>
 						<td className={"p-2.5"}>{path}</td>

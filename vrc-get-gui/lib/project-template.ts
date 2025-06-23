@@ -1,6 +1,6 @@
+import type React from "react";
 import type { TauriProjectTemplateInfo } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
-import type React from "react";
 
 const AVATARS_TEMPLATE_ID = "com.anatawa12.vrc-get.vrchat.avatars";
 const WORLDS_TEMPLATE_ID = "com.anatawa12.vrc-get.vrchat.worlds";

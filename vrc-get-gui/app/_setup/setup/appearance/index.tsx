@@ -1,5 +1,6 @@
 "use client";
 
+import { createFileRoute } from "@tanstack/react-router";
 import {
 	GuiAnimationSwitch,
 	LanguageSelector,
@@ -7,7 +8,6 @@ import {
 } from "@/components/common-setting-parts";
 import { CardDescription } from "@/components/ui/card";
 import { tc } from "@/lib/i18n";
-import { createFileRoute } from "@tanstack/react-router";
 import { SetupPageBase } from "../-setup-page-base";
 
 export const Route = createFileRoute("/_setup/setup/appearance/")({

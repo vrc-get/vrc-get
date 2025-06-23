@@ -1,12 +1,12 @@
-import type {
-	TauriPackage,
-	TauriUpdatedRealProjectInfo,
-	commands,
-} from "@/lib/bindings";
-import { queryClient } from "@/lib/query-client";
 import { queryOptions } from "@tanstack/react-query";
 import { listen as tauriListen } from "@tauri-apps/api/event";
 import { useSyncExternalStore } from "react";
+import type {
+	commands,
+	TauriPackage,
+	TauriUpdatedRealProjectInfo,
+} from "@/lib/bindings";
+import { queryClient } from "@/lib/query-client";
 
 void tauriListen<TauriUpdatedRealProjectInfo>("projects-updated", (e) => {
 	const options = queryOptions<

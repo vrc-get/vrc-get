@@ -1,12 +1,22 @@
-import Loading from "@/app/-loading";
+import {
+	queryOptions,
+	useQuery,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { ChevronDown, CircleX, Ellipsis } from "lucide-react";
+import type React from "react";
+import { Suspense, useId, useState } from "react";
 import { HeadingPageName } from "@/app/_main/packages/-tab-selector";
+import Loading from "@/app/-loading";
+import { HNavBar, VStack } from "@/components/layout";
 import { Overlay } from "@/components/Overlay";
 import {
 	ReorderableList,
 	useReorderableList,
 } from "@/components/ReorderableList";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
-import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -33,9 +43,9 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+	commands,
 	type TauriAlcomTemplate,
 	type TauriProjectTemplateInfo,
-	commands,
 } from "@/lib/bindings";
 import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
@@ -49,16 +59,6 @@ import {
 } from "@/lib/project-template";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import {
-	queryOptions,
-	useQuery,
-	useQueryClient,
-	useSuspenseQuery,
-} from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, CircleX, Ellipsis } from "lucide-react";
-import type React from "react";
-import { Suspense, useId, useState } from "react";
 
 export const Route = createFileRoute("/_main/packages/templates/")({
 	component: RouteComponent,
@@ -286,7 +286,10 @@ function TemplateRow({
 function RemoveTemplateConfirmDialog({
 	dialog,
 	displayName,
-}: { dialog: DialogContext<boolean>; displayName: string }) {
+}: {
+	dialog: DialogContext<boolean>;
+	displayName: string;
+}) {
 	return (
 		<>
 			<DialogTitle>{tc("templates:dialog:remove template")}</DialogTitle>

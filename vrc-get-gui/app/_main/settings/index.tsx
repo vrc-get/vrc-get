@@ -1,8 +1,15 @@
 "use client";
+import {
+	queryOptions,
+	useMutation,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { RefreshCw } from "lucide-react";
+import { Suspense, useEffect, useTransition } from "react";
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
-import { ScrollPageContainer } from "@/components/ScrollPageContainer";
-import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import {
 	BackupFormatSelect,
 	BackupPathWarnings,
@@ -13,6 +20,8 @@ import {
 	ThemeSelector,
 } from "@/components/common-setting-parts";
 import { HNavBar, VStack } from "@/components/layout";
+import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -44,17 +53,6 @@ import {
 	toastThrownError,
 } from "@/lib/toast";
 import { useEffectEvent } from "@/lib/use-effect-event";
-import {
-	queryOptions,
-	useMutation,
-	useQueryClient,
-	useSuspenseQuery,
-} from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { RefreshCw } from "lucide-react";
-import { Suspense } from "react";
-import { useTransition } from "react";
-import { useEffect } from "react";
 
 export const Route = createFileRoute("/_main/settings/")({
 	component: Page,

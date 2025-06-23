@@ -1,5 +1,5 @@
-import { tc } from "@/lib/i18n";
 import type React from "react";
+import { tc } from "@/lib/i18n";
 
 export function dateToString(dateIn: Date | number | string) {
 	const date = typeof dateIn !== "object" ? new Date(dateIn) : dateIn;

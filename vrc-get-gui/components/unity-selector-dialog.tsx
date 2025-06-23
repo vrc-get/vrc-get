@@ -1,3 +1,4 @@
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -9,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { DialogContext } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
-import { useId, useState } from "react";
 
 type UnityInstallation = [path: string, version: string, fromHub: boolean];
 

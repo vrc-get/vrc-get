@@ -1,7 +1,7 @@
+import { type ComponentProps, createContext, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { type ComponentProps, createContext, useContext } from "react";
 
 interface PageContext {
 	isLoading: boolean;

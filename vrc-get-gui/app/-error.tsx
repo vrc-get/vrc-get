@@ -1,7 +1,7 @@
 "use client"; // Error components must be Client Components
+import { useEffect } from "react";
 import { commands } from "@/lib/bindings";
 import globalInfo from "@/lib/global-info";
-import { useEffect } from "react";
 
 export default function ErrorPage({
 	error,

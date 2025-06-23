@@ -1,11 +1,11 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { assertNever } from "@/lib/assert-never";
 import React, {
 	useEffect,
 	useRef,
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { assertNever } from "@/lib/assert-never";
 
 export interface DialogContext<in R> {
 	close: (arg: R) => void;

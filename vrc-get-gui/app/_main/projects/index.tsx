@@ -1,10 +1,19 @@
 "use client";
 
-import Loading from "@/app/-loading";
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { ChevronDown, LayoutGrid, LayoutList, RefreshCw } from "lucide-react";
+import { useRef, useState } from "react";
 import { createProject } from "@/app/_main/projects/-create-project";
 import { ProjectsGridCard } from "@/app/_main/projects/-projects-grid-card";
-import { SearchBox } from "@/components/SearchBox";
+import Loading from "@/app/-loading";
 import { HNavBar, VStack } from "@/components/layout";
+import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -24,15 +33,6 @@ import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { useProjectUpdateInProgress } from "@/lib/global-events";
 import { tc, tt } from "@/lib/i18n";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import {
-	queryOptions,
-	useMutation,
-	useQuery,
-	useQueryClient,
-} from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, LayoutGrid, LayoutList, RefreshCw } from "lucide-react";
-import { useRef, useState } from "react";
 import { ProjectsTableCard } from "./-projects-list-card";
 
 export const Route = createFileRoute("/_main/projects/")({

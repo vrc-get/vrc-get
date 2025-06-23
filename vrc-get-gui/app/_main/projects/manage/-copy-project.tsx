@@ -1,3 +1,6 @@
+import { useMutation } from "@tanstack/react-query";
+import type { NavigateFn } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
-import { type TauriCopyProjectProgress, commands } from "@/lib/bindings";
+import { commands, type TauriCopyProjectProgress } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import { type DialogContext, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
@@ -19,11 +22,6 @@ import {
 } from "@/lib/project-name-check";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { useMutation } from "@tanstack/react-query";
-import type { NavigateFn } from "@tanstack/react-router";
-import type React from "react";
-import { useEffect } from "react";
-import { useState } from "react";
 
 export async function copyProject(existingPath: string, navigate?: NavigateFn) {
 	using dialog = showDialog();
@@ -56,31 +54,6 @@ export async function copyProject(existingPath: string, navigate?: NavigateFn) {
 		to: "/projects/manage",
 		search: { projectPath: newPath },
 	});
-}
-
-function DialogBase({
-	children,
-	close,
-	createProject,
-}: {
-	children: React.ReactNode;
-	close?: () => void;
-	createProject?: () => void;
-}) {
-	return (
-		<>
-			<DialogTitle>{tc("projects:dialog:copy project")}</DialogTitle>
-			<DialogDescription>{children}</DialogDescription>
-			<DialogFooter className={"gap-2"}>
-				<Button onClick={close} disabled={!close}>
-					{tc("general:button:cancel")}
-				</Button>
-				<Button onClick={createProject} disabled={!createProject}>
-					{tc("projects:button:create")}
-				</Button>
-			</DialogFooter>
-		</>
-	);
 }
 
 function CopyProjectNameDialog({

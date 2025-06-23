@@ -5,7 +5,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
-import { type TauriUnityVersions, commands } from "@/lib/bindings";
+import { commands, type TauriUnityVersions } from "@/lib/bindings";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import i18next, { tc } from "@/lib/i18n";
 import { toastError, toastNormal } from "@/lib/toast";

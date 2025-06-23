@@ -1,8 +1,8 @@
 "use client";
 
 import {
-	Outlet,
 	createFileRoute,
+	Outlet,
 	useNavigate,
 	useRouter,
 } from "@tanstack/react-router";

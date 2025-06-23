@@ -1,3 +1,6 @@
+import { queryOptions } from "@tanstack/react-query";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	Accordion,
 	AccordionContent,
@@ -19,10 +22,6 @@ import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
 import { toastSuccess } from "@/lib/toast";
 import { useEffectEvent } from "@/lib/use-effect-event";
-import { queryOptions } from "@tanstack/react-query";
-import type React from "react";
-import { useEffect, useRef } from "react";
-import { useState } from "react";
 
 type ParsedRepositories = {
 	repositories: TauriRepositoryDescriptor[];
@@ -228,7 +227,7 @@ function ConfirmingPackages({
 								error = false;
 								content = (
 									<ul className={"list-disc pl-6"}>
-										{download.value.packages.map((info, idx) => (
+										{download.value.packages.map((info) => (
 											<li key={info.name}>{info.display_name ?? info.name}</li>
 										))}
 									</ul>

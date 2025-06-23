@@ -2,11 +2,11 @@
  * This file is used to generate a JSON file containing the licenses of all the dependencies.
  */
 import { exec as execCallback } from "node:child_process";
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { LoadResult, ResolveIdResult } from "rollup";
-import { type Plugin, normalizePath } from "vite";
+import { normalizePath, type Plugin } from "vite";
 
 const exec = promisify(execCallback);
 
@@ -27,7 +27,9 @@ interface PackageInfo {
 
 export default function viteBuildLicenseJson({
 	rootDir,
-}: { rootDir: string }): Plugin {
+}: {
+	rootDir: string;
+}): Plugin {
 	const licenseJsonId = "build:licenses.json";
 
 	return {
@@ -170,7 +172,7 @@ function allSettledAggregate<T extends readonly unknown[] | []>(
 	return Promise.allSettled(promises).then(
 		(settled): { -readonly [P in keyof T]: Awaited<T[P]> } => {
 			const result: { -readonly [P in keyof T]: Awaited<T[P]> } & unknown[] =
-				// biome-ignore lint/suspicious/noExplicitAny:
+				// biome-ignore lint/suspicious/noExplicitAny: limit of tsc
 				[] as any;
 			const errors = [];
 			for (const element of settled) {
@@ -284,7 +286,7 @@ async function getLicensesFromCargoMetadata(
 	async function findLicenseFileName(
 		licenseId: string,
 		crateDir: string,
-		singleLicense: boolean,
+		_singleLicense: boolean,
 		pkg: CargoPackage,
 	): Promise<string | null> {
 		const suffixes = [];

@@ -1,6 +1,6 @@
+import { createRootRoute, Outlet } from "@tanstack/react-router";
 import ErrorPage from "@/app/-error";
 import { Providers } from "@/components/providers";
-import { Outlet, createRootRoute } from "@tanstack/react-router";
 import "./globals.css";
 import React, { Suspense } from "react";
 
