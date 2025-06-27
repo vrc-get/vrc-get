@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Fixed `a - b` version range is not correctly serialized on the `vpm-manifest.json`
 
 ### Security
 

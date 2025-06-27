@@ -243,7 +243,7 @@ impl Display for Comparator {
             Comparator::GreaterThanOrEqual(v) => write!(f, ">={v}"),
             Comparator::LessThan(v) => write!(f, "<{v}"),
             Comparator::LessThanOrEqual(v) => write!(f, "<={v}"),
-            Comparator::Hyphen(a, b) => write!(f, "{a}-{b}"),
+            Comparator::Hyphen(a, b) => write!(f, "{a} - {b}"),
             Comparator::Star(v) => Display::fmt(v, f),
         }
     }
