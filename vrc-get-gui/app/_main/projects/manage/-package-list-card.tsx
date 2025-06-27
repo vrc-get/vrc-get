@@ -87,9 +87,16 @@ export const PackageListCard = memo(function PackageListCard({
 	onRefresh: () => void;
 }) {
 	const [search, setSearch] = useState("");
-	const [bulkUpdatePackageIds, setBulkUpdatePackageIds] = useState<string[]>(
+	const [bulkUpdatePackageIdsRaw, setBulkUpdatePackageIds] = useState<string[]>(
 		[],
 	);
+
+	const bulkUpdatePackageIds = useMemo(() => {
+		const packageIds = new Set(packageRowsData.map((p) => p.id));
+
+		return bulkUpdatePackageIdsRaw.filter((pkgId) => packageIds.has(pkgId));
+	}, [packageRowsData, bulkUpdatePackageIdsRaw]);
+
 	const bulkUpdateMode = useMemo(() => {
 		const packageRowByPackageId = new Map(
 			packageRowsData.map((row) => [row.id, row]),
@@ -124,14 +131,6 @@ export const PackageListCard = memo(function PackageListCard({
 		() => new Set(repositoriesInfo?.hidden_user_repositories ?? []),
 		[repositoriesInfo],
 	);
-
-	useEffect(() => {
-		setBulkUpdatePackageIds((ids) => {
-			if (ids.length === 0) return [];
-			const packageIds = new Set(packageRowsData.map((p) => p.id));
-			return ids.filter((x) => packageIds.has(x));
-		});
-	}, [packageRowsData]);
 
 	const addBulkUpdatePackage = useCallback((row: PackageRowInfo) => {
 		setBulkUpdatePackageIds((prev) => {
