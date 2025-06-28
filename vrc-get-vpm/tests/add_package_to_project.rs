@@ -888,7 +888,7 @@ fn not_found_err() {
                 assert_eq!(dependencies.len(), 1);
                 assert_eq!(dependencies[0].0.as_ref(), "com.vrchat.base");
             }
-            _ => panic!("unexpected error: {:?}", err),
+            _ => panic!("unexpected error: {err:?}"),
         }
     })
 }
@@ -921,7 +921,7 @@ fn updating_non_locked_package_should_cause_error() {
             AddPackageErr::UpgradingNonLockedPackage { package_name } => {
                 assert_eq!(package_name.as_ref(), "com.vrchat.avatars");
             }
-            _ => panic!("unexpected error: {:?}", err),
+            _ => panic!("unexpected error: {err:?}"),
         }
     })
 }

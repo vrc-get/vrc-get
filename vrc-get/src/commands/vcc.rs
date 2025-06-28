@@ -93,7 +93,7 @@ impl ProjectList {
                 .unwrap_or("unknown".into());
 
             println!("{name}:");
-            println!("  Path: {}", path);
+            println!("  Path: {path}");
             println!("  Unity: {unity_version}");
             println!("  Target: {}", project.project_type());
             println!("  Is Favorite: {}", project.favorite());
@@ -209,9 +209,9 @@ impl UnityList {
         for unity in unity_installations.iter() {
             if let Some(path) = unity.path() {
                 if let Some(unity_version) = unity.version() {
-                    println!("version {} at {}", unity_version, path);
+                    println!("version {unity_version} at {path}");
                 } else {
-                    println!("unknown version at {}", path);
+                    println!("unknown version at {path}");
                 }
             }
         }

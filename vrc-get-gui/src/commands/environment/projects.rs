@@ -223,7 +223,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
         let mut connection = match VccDatabaseConnection::connect(io.inner()).await {
             Ok(connection) => connection,
             Err(e) => {
-                error!("Error opening database: {}", e);
+                error!("Error opening database: {e}");
                 return;
             }
         };
@@ -231,7 +231,7 @@ fn sync_with_real_project_background(projects: &[UserProject], app: &AppHandle) 
         match connection.save(io.inner()).await {
             Ok(()) => {}
             Err(e) => {
-                error!("Error updating database: {}", e);
+                error!("Error updating database: {e}");
                 return;
             }
         }
@@ -487,10 +487,10 @@ where
                     let new_entry = self.new_path.join(entry.relative_path());
 
                     if entry.is_dir() {
-                        if let Err(e) = tokio::fs::create_dir(&new_entry).await {
-                            if e.kind() != io::ErrorKind::AlreadyExists {
-                                return Err(e);
-                            }
+                        if let Err(e) = tokio::fs::create_dir(&new_entry).await
+                            && e.kind() != io::ErrorKind::AlreadyExists
+                        {
+                            return Err(e);
                         }
 
                         try_join_all(entry.iter().map(|x| self.process(x))).await?;

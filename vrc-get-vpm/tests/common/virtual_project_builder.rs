@@ -81,10 +81,8 @@ impl VirtualProjectBuilder {
         name: &str,
         package_json: impl Into<String>,
     ) -> &mut VirtualProjectBuilder {
-        self.files.insert(
-            format!("Packages/{}/package.json", name),
-            package_json.into(),
-        );
+        self.files
+            .insert(format!("Packages/{name}/package.json"), package_json.into());
         self
     }
 

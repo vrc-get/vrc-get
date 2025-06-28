@@ -43,7 +43,7 @@ impl VccDatabaseConnection {
                 if Path::new(x.as_ref()).is_absolute() {
                     true
                 } else {
-                    error!("Skipping relative path: {}", x);
+                    error!("Skipping relative path: {x}");
                     false
                 }
             })
@@ -161,14 +161,14 @@ impl VccDatabaseConnection {
                 Ok(Some(project)) => Some(RealProjectInformation::Valid(project)),
                 Ok(None) => {
                     if !skip_not_found {
-                        error!("Project {} not found", path);
+                        error!("Project {path} not found");
                     }
                     Some(RealProjectInformation::Invalid(
                         InvalidRealProjectInformation::new(path.into()),
                     ))
                 }
                 Err(err) => {
-                    error!("Error updating project information: {}", err);
+                    error!("Error updating project information: {err}");
                     Some(RealProjectInformation::Invalid(
                         InvalidRealProjectInformation::new(path.into()),
                     ))

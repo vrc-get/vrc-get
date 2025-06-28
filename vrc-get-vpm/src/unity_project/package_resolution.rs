@@ -314,13 +314,13 @@ where
             }
         } else {
             // if already installed version is good, no need to reinstall
-            if let Some(version) = &entry.current {
-                if range.match_pre(version, allow_prerelease) {
-                    log::debug!(
-                        "processing package {name}: dependency {name} version {range}: existing matches"
-                    );
-                    install = false;
-                }
+            if let Some(version) = &entry.current
+                && range.match_pre(version, allow_prerelease)
+            {
+                log::debug!(
+                    "processing package {name}: dependency {name} version {range}: existing matches"
+                );
+                install = false;
             }
         }
 
@@ -332,38 +332,39 @@ impl<'env> ResolutionContext<'env, '_> {
     pub(crate) fn build_result(self) -> PackageResolutionResult<'env> {
         let mut conflicts = HashMap::<Box<str>, Vec<Box<str>>>::new();
         for (&name, info) in &self.dependencies {
-            if !info.is_legacy() && info.touched {
-                if let Some(version) = &info.current {
-                    let conflicts_with_this = info
-                        .requirements
-                        .iter()
-                        .filter(|&(&source, _)| {
-                            self.dependencies
-                                .get(source)
-                                .map(|x| !x.is_legacy())
-                                .unwrap_or_default()
-                        })
-                        .filter(|(_, range)| {
-                            !range.match_pre(
-                                version,
-                                PrereleaseAcceptance::allow_or_minimum(
-                                    info.allow_pre || self.allow_prerelease,
-                                ),
-                            )
-                        })
-                        .map(|(source, _)| *source)
-                        .collect::<Vec<_>>();
+            if !info.is_legacy()
+                && info.touched
+                && let Some(version) = &info.current
+            {
+                let conflicts_with_this = info
+                    .requirements
+                    .iter()
+                    .filter(|&(&source, _)| {
+                        self.dependencies
+                            .get(source)
+                            .map(|x| !x.is_legacy())
+                            .unwrap_or_default()
+                    })
+                    .filter(|(_, range)| {
+                        !range.match_pre(
+                            version,
+                            PrereleaseAcceptance::allow_or_minimum(
+                                info.allow_pre || self.allow_prerelease,
+                            ),
+                        )
+                    })
+                    .map(|(source, _)| *source)
+                    .collect::<Vec<_>>();
 
-                    if !conflicts_with_this.is_empty()
-                        && (info.using.is_some()
-                            || conflicts_with_this
-                                .iter()
-                                .any(|x| self.dependencies[*x].using.is_some()))
-                    {
-                        let vec = conflicts.entry(name.into()).or_default();
-                        for source in conflicts_with_this {
-                            vec.push(source.into())
-                        }
+                if !conflicts_with_this.is_empty()
+                    && (info.using.is_some()
+                        || conflicts_with_this
+                            .iter()
+                            .any(|x| self.dependencies[*x].using.is_some()))
+                {
+                    let vec = conflicts.entry(name.into()).or_default();
+                    for source in conflicts_with_this {
+                        vec.push(source.into())
                     }
                 }
             }

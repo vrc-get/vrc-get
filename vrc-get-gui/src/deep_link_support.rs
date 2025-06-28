@@ -21,12 +21,12 @@ enum DeepLink {
 
 fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
     if deep_link.scheme() != "vcc" {
-        log::error!("Invalid deep link: {}", deep_link);
+        log::error!("Invalid deep link: {deep_link}");
         return None;
     }
 
     if deep_link.host() != Some(Host::Domain("vpm")) {
-        log::error!("Invalid deep link: {}", deep_link);
+        log::error!("Invalid deep link: {deep_link}");
         return None;
     }
 
@@ -46,7 +46,7 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
                             .ok()
                             .filter(|x| x.scheme() == "http" || x.scheme() == "https")
                         else {
-                            log::error!("Invalid to remove url: {}", value);
+                            log::error!("Invalid to remove url: {value}");
                             return None;
                         };
                         url = Some(parsed);
@@ -56,7 +56,7 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
                         headers.insert(key.to_string(), value.to_string());
                     }
                     _ => {
-                        log::error!("Unknown query parameter: {}", key);
+                        log::error!("Unknown query parameter: {key}");
                     }
                 }
             }
@@ -67,7 +67,7 @@ fn parse_deep_link(deep_link: Url) -> Option<DeepLink> {
             }))
         }
         _ => {
-            log::error!("Unknown deep link: {}", deep_link);
+            log::error!("Unknown deep link: {deep_link}");
             None
         }
     }
@@ -158,7 +158,7 @@ pub async fn deep_link_install_vcc(_app: AppHandle) {
     }
 
     if let Err(e) = impl_() {
-        log::error!("Failed to install vcc deep link: {}", e);
+        log::error!("Failed to install vcc deep link: {e}");
     }
 }
 
@@ -199,12 +199,12 @@ Categories=Utility;
     );
 
     if let Err(e) = tokio::fs::create_dir_all(&applications_dir).await {
-        log::error!("Failed to create applications directory: {}", e);
+        log::error!("Failed to create applications directory: {e}");
         return;
     }
 
     if let Err(e) = tokio::fs::write(&desktop_file, &contents).await {
-        log::error!("Failed to write desktop file: {}", e);
+        log::error!("Failed to write desktop file: {e}");
         return;
     }
 
@@ -215,7 +215,7 @@ Categories=Utility;
         .status()
         .await
     {
-        log::error!("Failed to call update-desktop-database: {}", e);
+        log::error!("Failed to call update-desktop-database: {e}");
     }
 
     fn escape(s: &str) -> String {
@@ -246,7 +246,7 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
     }
 
     if let Err(e) = impl_() {
-        log::error!("Failed to install vcc deep link: {}", e);
+        log::error!("Failed to install vcc deep link: {e}");
     }
 }
 
@@ -276,7 +276,7 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
             return;
         }
         Err(e) => {
-            log::error!("Failed to remove desktop file: {}", e);
+            log::error!("Failed to remove desktop file: {e}");
             return;
         }
     }
@@ -286,7 +286,7 @@ pub async fn deep_link_uninstall_vcc(_app: AppHandle) {
         .status()
         .await
     {
-        log::error!("Failed to call update-desktop-database: {}", e);
+        log::error!("Failed to call update-desktop-database: {e}");
     }
 }
 

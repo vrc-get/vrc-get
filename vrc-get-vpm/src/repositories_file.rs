@@ -126,7 +126,7 @@ fn parse_add_repo_link(vcc_url: Url) -> Option<RepositoryInfo> {
                 );
             }
             _ => {
-                log::error!("Unknown query parameter: {}", key);
+                log::error!("Unknown query parameter: {key}");
             }
         }
     }

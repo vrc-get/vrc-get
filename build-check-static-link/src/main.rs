@@ -8,7 +8,7 @@ fn main() {
     let mut success = true;
     for arg in args {
         if arg.ends_with(".d") {
-            println!("skipping .d file: {}", arg);
+            println!("skipping .d file: {arg}");
             continue;
         }
         let binary = std::path::Path::new(&arg);
@@ -18,7 +18,7 @@ fn main() {
             FileKind::MachO64 => process_mach_64::<Endianness>(&binary),
             FileKind::Pe64 => process_pe_64(&binary),
             FileKind::Elf64 => process_elf_64::<Endianness>(&binary),
-            unknown => panic!("unknown file type: {:?}", unknown),
+            unknown => panic!("unknown file type: {unknown:?}"),
         };
     }
 

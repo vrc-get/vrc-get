@@ -76,7 +76,7 @@ fn os_release() -> Option<String> {
         .map(|x| x.trim_start_matches(VERSION).trim_matches('"'));
 
     match (name, version) {
-        (Some(name), Some(version)) => Some(format!("{} {}", name, version)),
+        (Some(name), Some(version)) => Some(format!("{name} {version}")),
         (Some(name), None) => Some(name.into()),
         _ => None,
     }
@@ -103,8 +103,7 @@ pub fn open_that(path: impl AsRef<OsStr>) -> io::Result<()> {
 
     if !status.success() {
         return Err(io::Error::other(format!(
-            "Launcher xdg-open failed with {:?}",
-            status
+            "Launcher xdg-open failed with {status:?}",
         )));
     }
 

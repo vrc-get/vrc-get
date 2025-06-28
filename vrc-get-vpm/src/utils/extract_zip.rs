@@ -26,7 +26,7 @@ pub(crate) async fn extract_zip(
         if !is_complete_relative(filename.as_ref()) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("directory traversal detected: {}", filename),
+                format!("directory traversal detected: {filename}"),
             ));
         }
 

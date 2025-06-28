@@ -20,7 +20,7 @@ impl fmt::Display for ReinstalPackagesError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ReinstalPackagesError::NotInstalled { package_name } => {
-                write!(f, "Package {} is not installed", package_name)
+                write!(f, "Package {package_name} is not installed")
             }
             ReinstalPackagesError::DependenciesNotFound { dependencies } => {
                 write!(f, "Following dependencies are not found: ")?;

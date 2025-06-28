@@ -27,10 +27,10 @@ impl std::fmt::Display for MigrateUnity2022Error {
         match self {
             MigrateUnity2022Error::UnityVersionMismatch => write!(f, "Unity version is not 2019.x"),
             MigrateUnity2022Error::VpmPackageNotFound(name) => {
-                write!(f, "VPM package {} not found", name)
+                write!(f, "VPM package {name} not found")
             }
-            MigrateUnity2022Error::AddPackageErr(err) => write!(f, "{}", err),
-            MigrateUnity2022Error::Io(err) => write!(f, "{}", err),
+            MigrateUnity2022Error::AddPackageErr(err) => write!(f, "{err}"),
+            MigrateUnity2022Error::Io(err) => write!(f, "{err}"),
         }
     }
 }

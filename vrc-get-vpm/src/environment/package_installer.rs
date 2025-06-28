@@ -53,10 +53,9 @@ impl<T: HttpClient> crate::PackageInstaller for PackageInstaller<'_, T> {
                 if let Err(e) = crate::utils::extract_zip(zip_file, io, &dest_folder).await {
                     // if an error occurs, try to remove the dest folder
                     log::debug!(
-                        "Error occurred while extracting zip file for {}@{}: {}",
+                        "Error occurred while extracting zip file for {}@{}: {e}",
                         package.name(),
                         package.version(),
-                        e
                     );
                     let _ = io.remove_dir_all(&dest_folder).await;
                     return Err(e);
@@ -85,8 +84,7 @@ async fn get_package<T: HttpClient>(
 ) -> io::Result<TokioFile> {
     let zip_file_name = format!("vrc-get-{}-{}.zip", &package.name(), package.version());
     let zip_path = PathBuf::from(format!(
-        "{}/{}/{}",
-        REPO_CACHE_FOLDER,
+        "{REPO_CACHE_FOLDER}/{}/{}",
         package.name(),
         &zip_file_name
     ));
@@ -132,15 +130,14 @@ async fn get_package<T: HttpClient>(
         if let Some(repo_hash) = package
             .zip_sha_256()
             .and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok())
+            && repo_hash != zip_hash
         {
-            if repo_hash != zip_hash {
-                error!(
-                    "Package hash mismatched! This will be hard error in the future!: {} v{}",
-                    package.name(),
-                    package.version()
-                );
-                //return None;
-            }
+            error!(
+                "Package hash mismatched! This will be hard error in the future!: {} v{}",
+                package.name(),
+                package.version()
+            );
+            //return None;
         }
 
         Ok(zip_file)
@@ -175,10 +172,10 @@ async fn try_load_package_cache(
     let hex: [u8; 256 / 8] = FromHex::from_hex(buf).ok()?;
 
     // if stored sha doesn't match sha in repo: current cache is invalid
-    if let Some(repo_hash) = sha256.and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok()) {
-        if repo_hash != hex {
-            return None;
-        }
+    if let Some(repo_hash) = sha256.and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok())
+        && repo_hash != hex
+    {
+        return None;
     }
 
     let mut hasher = Sha256AsyncWrite::new(io::sink());
@@ -222,12 +219,12 @@ async fn download_package_zip(
     // file not found: err
     let cache_file = io.create(zip_path).await?;
 
-    debug!("Download started for {}", url);
+    debug!("Download started for {url}");
     let mut response = pin!(http.get(url, headers).await?);
 
     let mut writer = Sha256AsyncWrite::new(cache_file);
     io::copy(&mut response, &mut writer).await?;
-    debug!("finished downloading {}", url);
+    debug!("finished downloading {url}");
 
     let (mut cache_file, hash) = writer.finalize();
     let hash: [u8; 256 / 8] = hash.into();
@@ -238,7 +235,7 @@ async fn download_package_zip(
     // write sha file
     io.write(
         sha_path,
-        format!("{} {}\n", hex::encode(&hash[..]), zip_file_name).as_bytes(),
+        format!("{} {zip_file_name}\n", hex::encode(&hash[..])).as_bytes(),
     )
     .await?;
 

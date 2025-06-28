@@ -325,7 +325,7 @@ impl UnityProject {
         }
 
         for (package, conflicts_with) in result.conflicts {
-            debug!("package {} conflicts with {:?}", package, conflicts_with);
+            debug!("package {package} conflicts with {conflicts_with:?}");
             changes.conflict_multiple(package, conflicts_with);
         }
 
@@ -334,7 +334,7 @@ impl UnityProject {
             .into_iter()
             .filter(|name| self.is_locked(name))
         {
-            debug!("removing legacy package {}", name);
+            debug!("removing legacy package {name}");
             changes.remove(name, RemoveReason::Legacy);
         }
 
