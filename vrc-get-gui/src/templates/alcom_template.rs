@@ -119,13 +119,13 @@ pub fn parse_alcom_template(alcom_template: &[u8]) -> serde_json::Result<AlcomTe
     let template = serde_json::from_slice::<AlcomTemplateContent>(json)?;
 
     // few validations
-    if let Some(id) = &template.id {
-        if !is_valid_id(&id.0) {
-            return Err(serde_json::Error::invalid_value(
-                Unexpected::Str(&id.0),
-                &"a valid alcom template id",
-            ));
-        }
+    if let Some(id) = &template.id
+        && !is_valid_id(&id.0)
+    {
+        return Err(serde_json::Error::invalid_value(
+            Unexpected::Str(&id.0),
+            &"a valid alcom template id",
+        ));
     }
 
     if !is_valid_base_id(&template.base.0) {

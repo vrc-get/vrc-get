@@ -411,11 +411,11 @@ where
             {
                 Err(e) => Err(e),
                 Ok(Some(key)) => {
-                    if let Some(as_str) = as_str {
-                        if !self.existing_keys.insert(as_str) {
-                            let _: IgnoredAny = self.next_value()?;
-                            continue;
-                        }
+                    if let Some(as_str) = as_str
+                        && !self.existing_keys.insert(as_str)
+                    {
+                        let _: IgnoredAny = self.next_value()?;
+                        continue;
                     }
                     Ok(Some(key))
                 }

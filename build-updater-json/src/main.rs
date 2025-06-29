@@ -44,12 +44,12 @@ fn main() {
         let file_name = file_name.replace("{version}", &version);
 
         std::fs::metadata(format!("assets/{file_name}"))
-            .unwrap_or_else(|e| panic!("{}: {}", file_name, e));
+            .unwrap_or_else(|e| panic!("{file_name}: {e}"));
 
         let signature = std::fs::read_to_string(format!("assets/{file_name}.sig"))
-            .unwrap_or_else(|e| panic!("{}.sig: {}", file_name, e));
+            .unwrap_or_else(|e| panic!("{file_name}.sig: {e}"));
 
-        let url = format!("{}/{}", base_url, file_name);
+        let url = format!("{base_url}/{file_name}");
         platforms.insert(platform.to_string(), Platform { signature, url });
     }
 

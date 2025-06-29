@@ -31,14 +31,14 @@ impl std::fmt::Display for MigrateVpmError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             MigrateVpmError::ProjectTypeMismatch(either) => {
-                write!(f, "Project type is {:?}", either)
+                write!(f, "Project type is {either:?}")
             }
             MigrateVpmError::UnityVersionMismatch => write!(f, "Unity version is not 2019.x"),
             MigrateVpmError::VpmPackageNotFound(name) => {
-                write!(f, "VPM package {} not found", name)
+                write!(f, "VPM package {name} not found")
             }
-            MigrateVpmError::AddPackageErr(err) => write!(f, "{}", err),
-            MigrateVpmError::Io(err) => write!(f, "{}", err),
+            MigrateVpmError::AddPackageErr(err) => write!(f, "{err}"),
+            MigrateVpmError::Io(err) => write!(f, "{err}"),
         }
     }
 }
@@ -114,8 +114,7 @@ async fn migrate_vpm(
             .collect::<Vec<_>>();
 
         debug!(
-            "Trying to add the following curated packages to find legacy curated packages with legacyAssets: {:?}",
-            curated_packages
+            "Trying to add the following curated packages to find legacy curated packages with legacyAssets: {curated_packages:?}"
         );
 
         let packages = project

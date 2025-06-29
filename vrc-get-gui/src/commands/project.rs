@@ -535,9 +535,8 @@ async fn create_backup_zip(
     let total_files = file_tree.count_all();
 
     info!(
-        "Collecting files took {}, starting creating archive with {} files...",
-        start.elapsed().as_secs_f64(),
-        total_files
+        "Collecting files took {}, starting creating archive with {total_files} files...",
+        start.elapsed().as_secs_f64()
     );
 
     let _ = ctx.emit(TauriCreateBackupProgress {

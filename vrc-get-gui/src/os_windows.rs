@@ -53,8 +53,7 @@ pub(crate) async fn start_command(
 
     if !status.success() {
         Err(std::io::Error::other(format!(
-            "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {}",
-            status
+            "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {status}",
         )))
     } else {
         Ok(())
@@ -222,7 +221,7 @@ pub fn os_info() -> &'static str {
         let ex_version = if ex_version.is_empty() {
             "".to_string()
         } else {
-            format!(" ({})", ex_version)
+            format!(" ({ex_version})")
         };
 
         format!(

@@ -750,16 +750,14 @@ mod tests {
         fn test(range: &str, version: &str) {
             let range = VersionRange::from_str(range).expect(range);
             let version = Version::from_str(version).expect(version);
-            assert!(range.matches(&version), "{} matches {}", range, version);
+            assert!(range.matches(&version), "{range} matches {version}");
         }
         fn test_pre(range: &str, version: &str) {
             let range = VersionRange::from_str(range).expect(range);
             let version = Version::from_str(version).expect(version);
             assert!(
                 range.match_pre(&version, PrereleaseAcceptance::Allow),
-                "{} matches {}",
-                range,
-                version
+                "{range} matches {version}"
             );
         }
         // test set are from node-semver
@@ -911,9 +909,7 @@ mod tests {
             let version = Version::from_str(version).expect(version);
             assert!(
                 !range.matches(&version),
-                "{} should not matches {}",
-                range,
-                version
+                "{range} should not matches {version}"
             );
         }
         fn test_pre(range: &str, version: &str) {
@@ -921,9 +917,7 @@ mod tests {
             let version = Version::from_str(version).expect(version);
             assert!(
                 !range.match_pre(&version, PrereleaseAcceptance::Allow),
-                "{} should not matches {}",
-                range,
-                version
+                "{range} should not matches {version}"
             );
         }
         // test set are from node-semver

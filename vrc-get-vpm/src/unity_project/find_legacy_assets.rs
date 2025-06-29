@@ -224,14 +224,14 @@ async fn find_legacy_assets_by_guid<'a>(
         pin!(walk_dir_relative(io, [PathBuf::from("Assets")]).filter_map(|(x, _)| get_guid(io, x)));
 
     while let Some((guid, is_file_actual, relative)) = stream.next().await {
-        if let Some(&(package_name, is_file)) = find_guids.get(&guid) {
-            if is_file_actual == is_file {
-                find_guids.remove(&guid);
-                if is_file {
-                    found_files.insert(relative.into_boxed_path(), package_name);
-                } else {
-                    found_folders.insert(relative.into_boxed_path(), package_name);
-                }
+        if let Some(&(package_name, is_file)) = find_guids.get(&guid)
+            && is_file_actual == is_file
+        {
+            find_guids.remove(&guid);
+            if is_file {
+                found_files.insert(relative.into_boxed_path(), package_name);
+            } else {
+                found_folders.insert(relative.into_boxed_path(), package_name);
             }
         }
     }

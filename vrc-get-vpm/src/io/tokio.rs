@@ -42,13 +42,13 @@ impl DefaultEnvironmentIo {
     #[cfg(not(windows))]
     fn get_local_config_folder() -> PathBuf {
         if let Some(data_home) = std::env::var_os("XDG_DATA_HOME") {
-            debug!("XDG_DATA_HOME found {:?}", data_home);
+            debug!("XDG_DATA_HOME found {data_home:?}");
             return data_home.into();
         }
 
         // fallback: use HOME
         if let Some(home_folder) = std::env::var_os("HOME") {
-            debug!("HOME found {:?}", home_folder);
+            debug!("HOME found {home_folder:?}");
             let mut path = PathBuf::from(home_folder);
             path.push(".local/share");
             return path;

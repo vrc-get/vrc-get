@@ -98,7 +98,7 @@ impl PackagesState {
         settings: &Settings,
         io: &DefaultEnvironmentIo,
         http: &reqwest::Client,
-    ) -> io::Result<PackagesStateRef> {
+    ) -> io::Result<PackagesStateRef<'_>> {
         self.load_impl(settings, io, http, None, true).await
     }
 
@@ -109,7 +109,7 @@ impl PackagesState {
         http: &reqwest::Client,
         app_handle: Option<AppHandle>,
         force: bool,
-    ) -> io::Result<PackagesStateRef> {
+    ) -> io::Result<PackagesStateRef<'_>> {
         // We won't allow multiple threads to load the data at the same time.
         let guard = self.load_lock.lock().await;
 
@@ -201,7 +201,7 @@ impl PackagesStateRef<'_> {
         self.arc.data.backing_cart()
     }
 
-    pub fn packages(&self) -> impl Iterator<Item = &PackageInfo> {
+    pub fn packages(&self) -> impl Iterator<Item = &PackageInfo<'_>> {
         self.arc.data.get().packages.iter()
     }
 
@@ -236,7 +236,7 @@ impl PackagesVersionRef<'_> {
         self.arc.data.backing_cart().clone()
     }
 
-    pub fn packages(&self) -> &[PackageInfo] {
+    pub fn packages(&self) -> &[PackageInfo<'_>] {
         &self.arc.data.get().packages
     }
 

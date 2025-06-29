@@ -62,10 +62,10 @@ async fn get_custom_install_location(local_settings: &LocalSettings) -> Option<P
         return Some(PathBuf::from(user_setting));
     }
     let global_setting = &local_settings.machine_wide_install_location;
-    if let Some(global_setting) = global_setting {
-        if !global_setting.as_os_str().is_empty() {
-            return Some(global_setting.clone());
-        }
+    if let Some(global_setting) = global_setting
+        && !global_setting.as_os_str().is_empty()
+    {
+        return Some(global_setting.clone());
     }
     None
 }

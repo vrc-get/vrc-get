@@ -95,11 +95,11 @@ impl VpmSettings {
         let mut changed = false;
 
         for repo in &mut json.user_repos {
-            if let Some(cache) = collection.repositories.get_by_path(repo.local_path()) {
-                if cache.repo.id() != repo.id() {
-                    repo.id = cache.repo.id().map(|x| x.into());
-                    changed = true;
-                }
+            if let Some(cache) = collection.repositories.get_by_path(repo.local_path())
+                && cache.repo.id() != repo.id()
+            {
+                repo.id = cache.repo.id().map(|x| x.into());
+                changed = true;
             }
         }
 

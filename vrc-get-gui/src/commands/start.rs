@@ -162,8 +162,8 @@ pub fn startup(app: &mut App) {
             fullscreen: bool,
         ) -> tauri::Result<()> {
             info!(
-                "saving window size: {}x{}, full: {}",
-                size.width, size.height, fullscreen
+                "saving window size: {}x{}, full: {fullscreen}",
+                size.width, size.height
             );
             let config = window.state::<GuiConfigState>();
             let mut config = config.load_mut().await?;

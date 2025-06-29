@@ -42,7 +42,7 @@ fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>, io: &Defaul
     let timestamp = chrono::Utc::now()
         .format("%Y-%m-%d_%H-%M-%S.%6f")
         .to_string();
-    let log_file = new_log_folder.join(format!("vrc-get-{}.log", timestamp));
+    let log_file = new_log_folder.join(format!("vrc-get-{timestamp}.log"));
 
     let log_file = match std::fs::OpenOptions::new()
         .create(true)
@@ -54,7 +54,7 @@ fn start_logging_thread(receiver: mpsc::Receiver<LogChannelMessage>, io: &Defaul
             Some(file)
         }
         Err(e) => {
-            log::error!("error while opening log file: {}", e);
+            log::error!("error while opening log file: {e}");
             None
         }
     };
@@ -115,7 +115,7 @@ fn remove_old_logs(log_folder: std::path::PathBuf) {
     let read_dir = match std::fs::read_dir(&log_folder) {
         Ok(read_dir) => read_dir,
         Err(e) => {
-            log::error!("error while reading log folder: {}", e);
+            log::error!("error while reading log folder: {e}");
             return;
         }
     };
@@ -123,7 +123,7 @@ fn remove_old_logs(log_folder: std::path::PathBuf) {
     let entries = match read_dir.collect::<Result<Vec<_>, _>>() {
         Ok(entries) => entries,
         Err(e) => {
-            log::error!("error while reading log folder: {}", e);
+            log::error!("error while reading log folder: {e}");
             return;
         }
     };
@@ -144,13 +144,13 @@ fn remove_old_logs(log_folder: std::path::PathBuf) {
     static MAX_LOGS: usize = 30;
 
     for (name, _) in log_files.iter().take(MAX_LOGS) {
-        log::debug!("log to keep: {}", name);
+        log::debug!("log to keep: {name}");
     }
 
     for (name, _) in log_files.iter().skip(MAX_LOGS) {
         match std::fs::remove_file(log_folder.join(name)) {
-            Ok(()) => log::debug!("removed old log: {}", name),
-            Err(e) => log::debug!("error while removing old log: {}: {}", name, e),
+            Ok(()) => log::debug!("removed old log: {name}"),
+            Err(e) => log::debug!("error while removing old log: {name}: {e}"),
         }
     }
 }
@@ -162,13 +162,13 @@ fn logging_thread_main(
     for message in receiver {
         match message {
             LogChannelMessage::Log(entry) => {
-                let message = format!("{}", entry);
+                let message = format!("{entry}");
                 // log to console
-                eprintln!("{}", message);
+                eprintln!("{message}");
 
                 // log to file
                 if let Some(log_file) = log_file.as_mut() {
-                    log_err(writeln!(log_file, "{}", message));
+                    log_err(writeln!(log_file, "{message}"));
                 }
 
                 // add to buffer
@@ -322,6 +322,6 @@ impl Log for Logger {
 
 fn log_err<T>(result: Result<T, impl Display>) {
     if let Err(e) = result {
-        eprintln!("Error while logging: {}", e);
+        eprintln!("Error while logging: {e}");
     }
 }
