@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Fixed `a - b` version range is not correctly serialized on the `vpm-manifest.json`
+- Frontend error on package list update `#2341`
 
 ### Security
 
