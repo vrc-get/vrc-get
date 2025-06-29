@@ -77,12 +77,11 @@ impl UnityProject {
                     }
                     let read = Self::try_read_unlocked_package(&io, dir_entry).await;
                     let mut is_installed = false;
-                    if let Some(parsed) = &read.1 {
-                        if parsed.name() == read.0.as_ref()
-                            && manifest.get_locked(parsed.name()).is_some()
-                        {
-                            is_installed = true;
-                        }
+                    if let Some(parsed) = &read.1
+                        && parsed.name() == read.0.as_ref()
+                        && manifest.get_locked(parsed.name()).is_some()
+                    {
+                        is_installed = true;
                     }
                     if is_installed {
                         installed_packages.insert(read.0, read.1.unwrap());
@@ -206,7 +205,7 @@ impl UnityProject {
 
 // accessors
 impl UnityProject {
-    pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
+    pub fn locked_packages(&self) -> impl Iterator<Item = LockedDependencyInfo<'_>> {
         self.manifest.all_locked()
     }
 
@@ -214,7 +213,7 @@ impl UnityProject {
         self.manifest.dependencies().map(|(name, _)| name)
     }
 
-    pub fn get_locked(&self, name: &str) -> Option<LockedDependencyInfo> {
+    pub fn get_locked(&self, name: &str) -> Option<LockedDependencyInfo<'_>> {
         self.manifest.get_locked(name)
     }
 
@@ -222,7 +221,7 @@ impl UnityProject {
         self.manifest.get_locked(name).is_some()
     }
 
-    pub fn all_packages(&self) -> impl Iterator<Item = LockedDependencyInfo> {
+    pub fn all_packages(&self) -> impl Iterator<Item = LockedDependencyInfo<'_>> {
         let dependencies_locked = self.manifest.all_locked();
 
         let dependencies_unlocked = self

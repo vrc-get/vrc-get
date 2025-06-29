@@ -59,8 +59,7 @@ impl RemoteRepository {
         headers: &IndexMap<Box<str>, Box<str>>,
         current_etag: Option<&str>,
     ) -> io::Result<Option<(RemoteRepository, Option<Box<str>>)>> {
-        let Some((mut stream, etag)) = client.get_with_etag(url, headers, current_etag).await?
-        else {
+        let Some((stream, etag)) = client.get_with_etag(url, headers, current_etag).await? else {
             return Ok(None);
         };
 
@@ -315,10 +314,9 @@ impl<'de> DeserializeSeed<'de> for ErrorProofManifest<'_> {
             Ok(manifest) => Ok(Some(manifest)),
             Err(err) => {
                 log::warn!(
-                    "Error deserializing package manifest for {}@{}: {}",
+                    "Error deserializing package manifest for {}@{}: {err}",
                     self.0,
                     self.1,
-                    err
                 );
                 Ok(None)
             }

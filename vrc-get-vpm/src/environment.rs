@@ -72,7 +72,7 @@ pub async fn add_remote_repo(
 
     io.create_dir_all(REPO_CACHE_FOLDER.as_ref()).await?;
     let file_name = write_new_repo(&local_cache, io).await?;
-    let repo_path = io.resolve(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref());
+    let repo_path = io.resolve(format!("{REPO_CACHE_FOLDER}/{file_name}").as_ref());
 
     assert!(
         settings.add_remote_repo(&url, name, headers, local_cache.repo(), &repo_path),
@@ -95,17 +95,15 @@ pub async fn cleanup_repos_folder(
     let repos_base = io.resolve(REPO_CACHE_FOLDER.as_ref());
 
     for x in settings.get_user_repos() {
-        if let Ok(relative) = x.local_path().strip_prefix(&repos_base) {
-            if let Some(file_name) = relative.file_name() {
-                if relative
-                    .parent()
-                    .map(|x| x.as_os_str().is_empty())
-                    .unwrap_or(true)
-                {
-                    // the file must be in direct child of
-                    uesr_repo_file_names.insert(file_name.to_owned());
-                }
-            }
+        if let Ok(relative) = x.local_path().strip_prefix(&repos_base)
+            && let Some(file_name) = relative.file_name()
+            && relative
+                .parent()
+                .map(|x| x.as_os_str().is_empty())
+                .unwrap_or(true)
+        {
+            // the file must be in direct child of
+            uesr_repo_file_names.insert(file_name.to_owned());
         }
     }
 
@@ -145,7 +143,7 @@ async fn write_new_repo(
     let id_names = local_cache
         .id()
         .filter(|id| is_id_name_for_file(id))
-        .map(|id| format!("{}.json", id))
+        .map(|id| format!("{id}.json"))
         .into_iter();
 
     // finally generate with uuid v4.
@@ -154,7 +152,7 @@ async fn write_new_repo(
 
     for file_name in id_names.chain(guid_names) {
         match io
-            .create_new(format!("{}/{}", REPO_CACHE_FOLDER, file_name).as_ref())
+            .create_new(format!("{REPO_CACHE_FOLDER}/{file_name}").as_ref())
             .await
         {
             Ok(mut file) => {

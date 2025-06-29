@@ -56,7 +56,7 @@ pub mod setting {
             &self.headers
         }
 
-        pub(crate) fn to_source(&self) -> RepoSource {
+        pub(crate) fn to_source(&self) -> RepoSource<'_> {
             RepoSource::new(&self.local_path, &self.headers, self.url.as_ref())
         }
     }

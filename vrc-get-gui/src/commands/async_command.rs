@@ -40,7 +40,7 @@ impl<P: Serialize + Clone> AsyncCommandContext<P> {
         }
     }
 
-    pub(crate) fn state<T>(&self) -> State<T>
+    pub(crate) fn state<T>(&self) -> State<'_, T>
     where
         T: Send + Sync + 'static,
     {
@@ -79,7 +79,7 @@ where
 
     let handle = tokio::spawn(async move {
         let context = AsyncCommandContext {
-            channel: format!("{}:progress", channel),
+            channel: format!("{channel}:progress"),
             window: window.clone(),
             _progress: PhantomData,
         };
@@ -88,7 +88,7 @@ where
             Err(value) => FinishedMessage::Failed(value),
         };
 
-        if let Err(e) = window.emit(&format!("{}:finished", channel), message) {
+        if let Err(e) = window.emit(&format!("{channel}:finished"), message) {
             match e {
                 tauri::Error::WebviewNotFound => {}
                 _ => error!("error sending stdout: {e}"),

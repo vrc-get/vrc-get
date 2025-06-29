@@ -38,7 +38,7 @@ impl UserPackageCollection {
                 log::warn!("package.json not found in {}", folder.display());
             }
             Err(e) => {
-                log::warn!("Failed to load package.json in {}: {}", folder.display(), e);
+                log::warn!("Failed to load package.json in {}: {e}", folder.display());
             }
         }
     }

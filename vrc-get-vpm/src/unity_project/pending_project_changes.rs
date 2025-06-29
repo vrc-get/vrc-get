@@ -436,7 +436,7 @@ impl<'env> Builder<'env> {
             })
         };
 
-        debug!("removable packages: {:?}", removable);
+        debug!("removable packages: {removable:?}");
         // nothing can be removed
         if removable.is_empty() {
             return;
@@ -493,7 +493,7 @@ impl<'env> Builder<'env> {
             })
         };
 
-        debug!("using packages: {:?}", using_packages);
+        debug!("using packages: {using_packages:?}");
 
         // weep
         for locked in unity_project.locked_packages() {
@@ -587,7 +587,7 @@ impl UnityProject {
         }
 
         // remove packages
-        let remove_temp_dir = format!("{}/{}", PKG_TEMP_DIR, uuid::Uuid::new_v4());
+        let remove_temp_dir = format!("{PKG_TEMP_DIR}/{}", uuid::Uuid::new_v4());
         let remove_temp_dir = Path::new(&remove_temp_dir);
 
         self.io.create_dir_all(remove_temp_dir).await?;
@@ -605,14 +605,14 @@ impl UnityProject {
         for (name, change) in &request.package_changes {
             match change {
                 PackageChange::Install(change) => {
-                    if let Some(package) = change.package {
-                        if change.add_to_locked {
-                            self.manifest.add_locked(
-                                package.name(),
-                                package.version().clone(),
-                                package.vpm_dependencies().clone(),
-                            );
-                        }
+                    if let Some(package) = change.package
+                        && change.add_to_locked
+                    {
+                        self.manifest.add_locked(
+                            package.name(),
+                            package.version().clone(),
+                            package.vpm_dependencies().clone(),
+                        );
                     }
 
                     if let Some(version) = &change.to_dependencies {
@@ -692,7 +692,7 @@ async fn move_packages_to_temp<'a>(
     return Ok(moved.into_iter().collect());
 
     async fn move_package(io: &DefaultProjectIo, name: &str, temp_dir: &Path) -> io::Result<bool> {
-        let package_dir = format!("Packages/{}", name);
+        let package_dir = format!("Packages/{name}");
         let package_dir = Path::new(&package_dir);
         let copied_dir = temp_dir.join(name);
 
@@ -705,14 +705,14 @@ async fn move_packages_to_temp<'a>(
                 match io.create_dir_all(&moved).await {
                     Ok(()) => {}
                     Err(e) => {
-                        log::error!(gui_toast = false; "error creating directory {}: {}", moved.display(), e);
+                        log::error!(gui_toast = false; "error creating directory {}: {e}", moved.display());
                         return Err(e);
                     }
                 }
             } else {
                 if let Some(name) = original.file_name().unwrap().to_str() {
                     moved.pop();
-                    moved.push(format!("{}{}", REMOVED_FILE_PREFIX, name));
+                    moved.push(format!("{REMOVED_FILE_PREFIX}{name}"));
                 }
                 log::trace!("move {} to {}", original.display(), moved.display());
 
@@ -720,7 +720,7 @@ async fn move_packages_to_temp<'a>(
                     Ok(()) => {}
                     Err(e) => {
                         // ignore error
-                        log::error!(gui_toast = false; "error moving {} to {}: {}", original.display(), moved.display(), e);
+                        log::error!(gui_toast = false; "error moving {} to {}: {e}", original.display(), moved.display());
                     }
                 }
             }
@@ -742,7 +742,7 @@ async fn move_packages_to_temp<'a>(
 
 async fn restore_remove(io: &DefaultProjectIo, temp_dir: &Path, names: impl Iterator<Item = &str>) {
     for name in names {
-        let package_dir = format!("Packages/{}", name);
+        let package_dir = format!("Packages/{name}");
         let package_dir = Path::new(&package_dir);
         let temp_package_dir = temp_dir.join(name);
         if io.metadata(&temp_package_dir).await.is_err() {
@@ -779,13 +779,11 @@ async fn restore_remove(io: &DefaultProjectIo, temp_dir: &Path, names: impl Iter
                     .await
                     .map(|x| !x.is_dir())
                     .unwrap_or(false)
+                    && let Some(name) = original.file_name().unwrap().to_str()
+                    && let Some(stripped) = name.strip_prefix(REMOVED_FILE_PREFIX)
                 {
-                    if let Some(name) = original.file_name().unwrap().to_str() {
-                        if let Some(stripped) = name.strip_prefix(REMOVED_FILE_PREFIX) {
-                            let moved = original.parent().unwrap().join(stripped);
-                            io.rename(&original, &moved).await.ok();
-                        }
-                    }
+                    let moved = original.parent().unwrap().join(stripped);
+                    io.rename(&original, &moved).await.ok();
                 }
             }
         }
@@ -842,23 +840,23 @@ async fn remove_assets(
         building.push(".meta");
         let meta = PathBuf::from(building);
 
-        if let Some(err) = io.remove_file(&meta).await.err() {
-            if !matches!(err.kind(), io::ErrorKind::NotFound) {
-                log::error!("error removing legacy asset at {}: {}", meta.display(), err);
-            }
+        if let Some(err) = io.remove_file(&meta).await.err()
+            && !matches!(err.kind(), io::ErrorKind::NotFound)
+        {
+            log::error!("error removing legacy asset at {}: {err}", meta.display());
         }
     }
 
     async fn remove_file(io: &DefaultProjectIo, path: &Path) {
         if let Some(err) = io.remove_file(path).await.err() {
-            log::error!("error removing legacy asset at {}: {}", path.display(), err);
+            log::error!("error removing legacy asset at {}: {err}", path.display());
         }
         remove_meta_file(io, path.to_owned()).await;
     }
 
     async fn remove_folder(io: &DefaultProjectIo, path: &Path) {
         if let Some(err) = io.remove_dir_all(path).await.err() {
-            log::error!("error removing legacy asset at {}: {}", path.display(), err);
+            log::error!("error removing legacy asset at {}: {err}", path.display());
         }
         remove_meta_file(io, path.to_owned()).await;
     }

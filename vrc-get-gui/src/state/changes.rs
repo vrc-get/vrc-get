@@ -133,7 +133,7 @@ impl ChangesVersionRef<'_> {
     }
 
     /// Panics if the data has already been taken.
-    pub fn take_changes(&mut self) -> PendingProjectChanges {
+    pub fn take_changes(&mut self) -> PendingProjectChanges<'_> {
         let yoke = self.data.take().unwrap();
         // SAFETY: We have clone of backing_cart in self, so yokeable will live while self lives.
         unsafe { yoke.replace_cart(|_| ()) }.into_yokeable().changes

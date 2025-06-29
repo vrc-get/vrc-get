@@ -85,7 +85,7 @@ impl PackageCollection {
         &self,
         version_selector: VersionSelector,
         filter: impl Fn(&PackageManifest) -> bool,
-    ) -> Vec<PackageInfo> {
+    ) -> Vec<PackageInfo<'_>> {
         self.get_all_packages()
             .filter(|x| version_selector.satisfies(x.package_json()))
             .into_group_map_by(|x| x.name())
@@ -101,7 +101,7 @@ impl crate::PackageCollection for PackageCollection {
     fn get_curated_packages(
         &self,
         version_selector: VersionSelector,
-    ) -> impl Iterator<Item = PackageInfo> {
+    ) -> impl Iterator<Item = PackageInfo<'_>> {
         self.repositories
             .find_by_id("com.vrchat.repos.curated")
             .map(move |repo| {
@@ -114,7 +114,7 @@ impl crate::PackageCollection for PackageCollection {
             .flatten()
     }
 
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
+    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo<'_>> {
         let remote = self.repositories.iter().flat_map(|repo| {
             repo.repo
                 .get_packages()
@@ -129,7 +129,7 @@ impl crate::PackageCollection for PackageCollection {
         remote.chain(local)
     }
 
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
+    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo<'_>> {
         let remote = self.repositories.iter().flat_map(|repo| {
             repo.repo
                 .get_package(package)
@@ -149,7 +149,7 @@ impl crate::PackageCollection for PackageCollection {
         &self,
         package: &str,
         package_selector: VersionSelector,
-    ) -> Option<PackageInfo> {
+    ) -> Option<PackageInfo<'_>> {
         let remote = self.repositories.iter().flat_map(|repo| {
             repo.repo
                 .get_package(package)

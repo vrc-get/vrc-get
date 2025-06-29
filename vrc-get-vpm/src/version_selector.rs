@@ -86,10 +86,10 @@ impl VersionSelector<'_> {
                 return false;
             }
 
-            if let Some(unity) = project_unity {
-                if !unity_compatible(package, unity) {
-                    return false;
-                }
+            if let Some(unity) = project_unity
+                && !unity_compatible(package, unity)
+            {
+                return false;
             }
 
             true

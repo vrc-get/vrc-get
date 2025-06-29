@@ -117,7 +117,7 @@ async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner
     async fn backup_old_config(path: &Path) -> io::Result<()> {
         let mut i = 0;
         loop {
-            let backup_path = path.with_extension(format!("json.bak.{}", i));
+            let backup_path = path.with_extension(format!("json.bak.{i}"));
             match tokio::fs::rename(path, &backup_path).await {
                 Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
                     i += 1;
@@ -134,14 +134,11 @@ async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner
     let config = match load_fs(&path).await {
         Ok(loaded) => loaded,
         Err(e) => {
-            log::error!(
-                "Failed to load gui-config.json, using default config: {}",
-                e
-            );
+            log::error!("Failed to load gui-config.json, using default config: {e}");
 
             // backup old config if possible
             if let Err(e) = backup_old_config(&path).await {
-                log::error!("Failed to backup old config: {}", e);
+                log::error!("Failed to backup old config: {e}");
             }
 
             GuiConfig::default()

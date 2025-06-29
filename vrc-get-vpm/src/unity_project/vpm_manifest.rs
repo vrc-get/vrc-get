@@ -57,13 +57,13 @@ impl VpmManifest {
             .map(|x| &x.version)
     }
 
-    pub(super) fn all_locked(&self) -> impl Iterator<Item = LockedDependencyInfo> {
+    pub(super) fn all_locked(&self) -> impl Iterator<Item = LockedDependencyInfo<'_>> {
         self.controller.locked.iter().map(|(name, dep)| {
             LockedDependencyInfo::new(name.as_ref(), &dep.version, dep.dependencies.as_ref())
         })
     }
 
-    pub(super) fn get_locked(&self, package: &str) -> Option<LockedDependencyInfo> {
+    pub(super) fn get_locked(&self, package: &str) -> Option<LockedDependencyInfo<'_>> {
         self.controller
             .locked
             .get_key_value(package)

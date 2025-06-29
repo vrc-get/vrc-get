@@ -99,7 +99,7 @@ mod tests {
         fn test(greater: &str, lesser: &str) {
             let greater = Version::from_str(greater).expect(greater);
             let lesser = Version::from_str(lesser).expect(lesser);
-            assert!(greater > lesser, "{} > {}", greater, lesser);
+            assert!(greater > lesser, "{greater} > {lesser}");
         }
         // test set are from node-semver
         // Copyright (c) Isaac Z. Schlueter and Contributors
