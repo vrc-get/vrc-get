@@ -16,7 +16,6 @@ import type React from "react";
 import {
 	memo,
 	useCallback,
-	useEffect,
 	useLayoutEffect,
 	useMemo,
 	useRef,
