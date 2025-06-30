@@ -238,7 +238,7 @@ The VPM Client will download the package archive file from the URL specified wit
 If the `url` field is not included in the VPM Package Manifest,
 the VPM Client **MUST** reject the installation of the package.
 
-The VPM Repository **MUST NOT** chnange the contents of the URL this field points to. tjis is compared bitwicely.
+The VPM Repository **MUST NOT** change the contents of the URL this field points to. this is compared bitwisely.
 
 > [!NOTE]
 > 
@@ -409,7 +409,7 @@ The VPM Client **MUST** support compression method 0 (stored) and 8 (deflate). P
 > and java only supports the Deflate compression method and uncompressed bytes.
 > 
 > However, the Microsoft Windows built-in Zip file compressor may use the Deflate64 compression method.
-> The Deflare64 compression method is not supported by most of the Zip file implementations.
+> The Deflate64 compression method is not supported by most of the Zip file implementations.
 > As a result, some existing VPM Packages may use the Deflate64 compression method in their Package Archive File.
 > Therefore, it might be better for VPM Clients to support the Deflate64 compression method.
 > 
