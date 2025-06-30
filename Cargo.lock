@@ -5557,7 +5557,7 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-gui"
-version = "1.1.2-rc.0"
+version = "1.1.2"
 dependencies = [
  "arc-swap",
  "async-compression",
