@@ -8,8 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  # workaround of https://github.com/tauri-apps/tauri-action/issues/1091
-  TAURI_BUNDLER_DMG_IGNORE_CI: false
 
 jobs:
   build-gui:
