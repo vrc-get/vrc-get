@@ -28,6 +28,7 @@ macro_rules! initialize_from_package_json_like {
             headers: $source.headers,
             changelog_url: $source.changelog_url,
             documentation_url: $source.documentation_url,
+            keywords: $source.keywords,
             vrc_get: VrcGetMeta {
                 yanked: $source.vrc_get.yanked,
                 aliases: $source.vrc_get.aliases,
@@ -87,6 +88,9 @@ macro_rules! package_json_struct {
             $optional_vis changelog_url: Option<Url>,
             $(#[$optional])?
             $optional_vis documentation_url: Option<Url>,
+
+            $(#[$optional])?
+            $optional_vis keywords: Vec<Box<str>>,
 
             $(#[$optional])?
             #[serde(rename = "vrc-get")]
@@ -167,8 +171,12 @@ impl PackageManifest {
     pub fn is_yanked(&self) -> bool {
         self.vrc_get.yanked.is_yanked()
     }
+    // TODO: deprecate aliases on next minor release
     pub fn aliases(&self) -> &[Box<str>] {
         self.vrc_get.aliases.as_slice()
+    }
+    pub fn keywords(&self) -> &[Box<str>] {
+        self.keywords.as_slice()
     }
 }
 
@@ -191,6 +199,7 @@ impl PackageManifest {
             zip_sha_256: None,
             changelog_url: None,
             documentation_url: None,
+            keywords: Vec::new(),
         }
     }
 

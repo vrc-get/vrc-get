@@ -8,11 +8,15 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Add support for `keywords` UPM manifest field `#2375`
+  - You now can specifiy search keywords for package with `keywords` UPM manifest field
 
 ### Changed
 - Improved the Template Editor with AutoComplete `#2371`
   - You no longer need to remember the package name (id) and version associated with the package.
   - You now can search package by display name, name (id), aliases to enter package name, and ALCOM shows common version range for you.
+- Updated project settings of templates to include Item layer `#2373`
+  - You should no longer need to update layers and collision matrix before uploading world
 - Improved behavior about `settings.json` to `vcc.litedb` migration `#2327`
   - See [`vrchat-community/creator-companion#492`](https://github.com/vrchat-community/creator-companion/issues/492) and the PR for details
 

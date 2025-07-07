@@ -150,6 +150,9 @@ impl<'a> PackageInfo<'a> {
     pub fn aliases(self) -> &'a [Box<str>] {
         self.package_json().aliases()
     }
+    pub fn keywords(self) -> &'a [Box<str>] {
+        self.package_json().keywords()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
