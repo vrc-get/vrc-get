@@ -4,13 +4,7 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import {
-	CircleHelp,
-	CircleUserRound,
-	Ellipsis,
-	Globe,
-	Star,
-} from "lucide-react";
+import { CircleHelp, CircleUserRound, Ellipsis, Globe } from "lucide-react";
 import React, { type ComponentProps, useContext } from "react";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
@@ -45,7 +39,6 @@ import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { cn } from "@/lib/utils";
 import { compareUnityVersionString } from "@/lib/version";
 
 export const ProjectDisplayType: Record<
