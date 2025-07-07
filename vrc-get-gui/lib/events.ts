@@ -5,6 +5,7 @@ import globalInfo from "@/lib/global-info";
 declare global {
 	interface DocumentEventMap {
 		"gui-animation": CustomEvent<boolean>;
+		"post-package-changes": Event;
 	}
 }
 
