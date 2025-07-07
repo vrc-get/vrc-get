@@ -36,8 +36,12 @@ impl VccDatabaseConnection {
         settings: &Settings,
         io: &DefaultEnvironmentIo,
     ) -> io::Result<()> {
-        let projects = settings
-            .user_projects()
+        let Some(setting_projects) = settings.user_projects() else {
+            // The userProjects key is absent in settings.json.
+            // The vcc.litedb is the single source of truth.
+            return Ok(());
+        };
+        let projects = setting_projects
             .iter()
             .filter(|x| {
                 if Path::new(x.as_ref()).is_absolute() {

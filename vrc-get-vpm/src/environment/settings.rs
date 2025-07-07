@@ -76,11 +76,11 @@ impl Settings {
 
 #[cfg(feature = "experimental-project-management")]
 impl Settings {
-    pub fn user_projects(&self) -> &[Box<str>] {
+    pub fn user_projects(&self) -> Option<&[Box<str>]> {
         self.vpm.user_projects()
     }
 
-    pub fn retain_user_projects(&mut self, f: impl FnMut(&str) -> bool) -> Vec<Box<str>> {
+    pub fn retain_user_projects(&mut self, f: impl FnMut(&str) -> bool) -> Option<Vec<Box<str>>> {
         self.vpm.retain_user_projects(f)
     }
 
@@ -104,8 +104,11 @@ impl Settings {
             .retain_user_projects(|x| project_paths.contains(&x));
 
         // add new projects
-        for x in self.vpm.user_projects() {
-            project_paths.remove(x.as_ref());
+        // Add all projects if userProjects key is absent.
+        if let Some(user_projects) = self.vpm.user_projects() {
+            for x in user_projects {
+                project_paths.remove(x.as_ref());
+            }
         }
 
         for x in project_paths {

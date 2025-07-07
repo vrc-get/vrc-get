@@ -53,7 +53,7 @@ windows = { version = "0.61", features = ["Win32_System_Threading", "Win32_Secur
 plist = { version = "1", optional = true }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [features]
 default = ["rustls"]
