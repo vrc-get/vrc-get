@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog].
 ### Added
 - Add support for `keywords` UPM manifest field `#2375`
   - You now can specifiy search keywords for package with `keywords` UPM manifest field
+- Favorites for templates `#2376`
+  - It's much easier to select project templates you likely to use.
 
 ### Changed
 - Improved the Template Editor with AutoComplete `#2371`
@@ -17,6 +19,8 @@ The format is based on [Keep a Changelog].
   - You now can search package by display name, name (id), aliases to enter package name, and ALCOM shows common version range for you.
 - Updated project settings of templates to include Item layer `#2373`
   - You should no longer need to update layers and collision matrix before uploading world
+- Last used template is now preserved `#2376`
+  - When you generally create project with custom template, you no longer need to change template every time.
 
 ### Deprecated
 
