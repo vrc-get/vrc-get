@@ -8,6 +8,7 @@ mod virtual_project_builder;
 
 pub use package_collection::PackageCollection;
 pub use package_collection::PackageCollectionBuilder;
+use std::path::{Path, PathBuf};
 pub use virtual_environment::VirtualInstaller;
 pub use virtual_project_builder::VirtualProjectBuilder;
 
@@ -99,4 +100,13 @@ pub fn block_on<F: Future>(f: F) -> F::Output {
         .build()
         .unwrap()
         .block_on(f)
+}
+
+#[track_caller]
+pub fn get_temp_path(base_name: &str) -> PathBuf {
+    Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!(
+        "{base_name}/{}_L{}",
+        env!("CARGO_CRATE_NAME"),
+        std::panic::Location::caller().line()
+    ))
 }

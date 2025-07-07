@@ -1,3 +1,4 @@
+use super::get_temp_path;
 use indexmap::IndexMap;
 use serde_json::json;
 use std::path::{Path, PathBuf};
@@ -88,13 +89,7 @@ impl VirtualProjectBuilder {
 
     #[track_caller]
     pub fn build(&self) -> impl Future<Output = std::io::Result<UnityProject>> {
-        let project_path = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!(
-            "test_projects/{}_L{}",
-            env!("CARGO_CRATE_NAME"),
-            std::panic::Location::caller().line()
-        ));
-
-        self.build_impl(project_path)
+        self.build_impl(get_temp_path("test_projects"))
     }
 
     async fn build_impl(&self, project_path: PathBuf) -> std::io::Result<UnityProject> {
