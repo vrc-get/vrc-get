@@ -96,6 +96,7 @@ export function applyChangesMutation(projectPath: string) {
 			toastThrownError(e);
 		},
 		onSettled: async () => {
+			document.dispatchEvent(new Event("post-package-changes"));
 			await queryClient.invalidateQueries({
 				queryKey: ["projectDetails", projectPath],
 			});

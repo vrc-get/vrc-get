@@ -96,6 +96,12 @@ export const PackageListCard = memo(function PackageListCard({
 		return bulkUpdatePackageIdsRaw.filter((pkgId) => packageIds.has(pkgId));
 	}, [packageRowsData, bulkUpdatePackageIdsRaw]);
 
+	useDocumentEvent(
+		"post-package-changes",
+		() => setBulkUpdatePackageIds([]),
+		[],
+	);
+
 	const bulkUpdateMode = useMemo(() => {
 		const packageRowByPackageId = new Map(
 			packageRowsData.map((row) => [row.id, row]),
