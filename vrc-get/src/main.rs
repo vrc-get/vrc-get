@@ -56,7 +56,7 @@ pub(crate) fn create_client(offline: bool) -> Option<Client> {
             author = author
         );
 
-        log::debug!("using user agent: {}", user_agent);
+        log::debug!("using user agent: {user_agent}");
 
         Some(
             Client::builder()

@@ -115,14 +115,14 @@ impl VccDatabaseConnection {
             let path_path = Path::new(path);
             if !io.is_file(path_path).await {
                 // if the unity editor not found, remove it from the db
-                info!("Removed nonexistent Unity: {}", path);
+                info!("Removed nonexistent Unity: {path}");
                 delete.push(in_db["_id"].clone());
                 continue;
             }
 
             if registered.contains(path_path) {
                 // if the unity editor is already installed, remove it from the db
-                info!("Removed duplicate Unity: {}", path);
+                info!("Removed duplicate Unity: {path}");
                 delete.push(in_db["_id"].clone());
                 continue;
             }
@@ -162,7 +162,7 @@ impl VccDatabaseConnection {
                 continue;
             };
             if !registered.contains(Path::new(path)) {
-                info!("Adding Unity from Unity Hub: {}", path);
+                info!("Adding Unity from Unity Hub: {path}");
                 Self::add_unity_installation_internal(&mut self.db, path, version, true);
             }
         }
@@ -231,7 +231,7 @@ fn default_unity_hub_path() -> &'static [&'static str] {
         lazy_static::lazy_static! {
             static ref USER_INSTALLATION: String = {
                 let home = std::env::var("HOME").expect("HOME not set");
-                format!("{}/Applications/Unity Hub.AppImage", home)
+                format!("{home}/Applications/Unity Hub.AppImage")
             };
             static ref FLATPAK_USER_INSTALLATION: String = {
                 let data_home = std::env::var("XDG_DATA_HOME")

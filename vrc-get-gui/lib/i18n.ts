@@ -1,3 +1,7 @@
+import i18next, { t as i18nextt, type Resource } from "i18next";
+import React from "react";
+import { initReactI18next, Trans, useTranslation } from "react-i18next";
+import type { TransProps } from "react-i18next/TransWithoutContext";
 import { ExternalLink } from "@/components/ExternalLink";
 import globalInfo from "@/lib/global-info";
 import deJson from "@/locales/de.json5";
@@ -7,10 +11,6 @@ import jaJson from "@/locales/ja.json5";
 import koJson from "@/locales/ko.json5";
 import zh_hansJson from "@/locales/zh_hans.json5";
 import zh_hantJson from "@/locales/zh_hant.json5";
-import i18next, { t as i18nextt, type Resource } from "i18next";
-import React from "react";
-import { Trans, initReactI18next, useTranslation } from "react-i18next";
-import type { TransProps } from "react-i18next/TransWithoutContext";
 
 const languageResources = {
 	en: enJson,

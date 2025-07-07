@@ -267,7 +267,7 @@ pub async fn environment_remove_template(
             "Template with such id not found (this is bug)",
         )),
         Some(template) => {
-            info!("deleting template {id}", id = id);
+            info!("deleting template {id}");
             let template = io.resolve(template.source_path.as_ref().unwrap());
             if let Err(err) = trash_delete(template.clone()).await {
                 error!("failed to remove template: {err}");
@@ -400,23 +400,23 @@ pub async fn import_templates(
             template = template.display()
         );
 
-        if let Some(id) = &parsed.id {
-            if let Some((existing_path, existing)) = installed_ids.get(id) {
-                info!(
-                    "template {id} is duplicated with {existing_path}",
-                    existing_path = existing_path.display()
-                );
-                duplicates.push(TauriImportDuplicated {
-                    id: parsed.id.unwrap(),
-                    existing_path: existing_path.clone(),
-                    existing_name: existing.display_name.clone(),
-                    existing_update_date: existing.update_date,
-                    importing_name: parsed.display_name,
-                    importing_update_date: parsed.update_date,
-                    data: json,
-                });
-                continue;
-            }
+        if let Some(id) = &parsed.id
+            && let Some((existing_path, existing)) = installed_ids.get(id)
+        {
+            info!(
+                "template {id} is duplicated with {existing_path}",
+                existing_path = existing_path.display()
+            );
+            duplicates.push(TauriImportDuplicated {
+                id: parsed.id.unwrap(),
+                existing_path: existing_path.clone(),
+                existing_name: existing.display_name.clone(),
+                existing_update_date: existing.update_date,
+                importing_name: parsed.display_name,
+                importing_update_date: parsed.update_date,
+                data: json,
+            });
+            continue;
         }
 
         match save_template_file(io, &parsed.display_name, &json).await {

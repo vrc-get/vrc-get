@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Improved the Template Editor with AutoComplete `#2371`
+  - You no longer need to remember the package name (id) and version associated with the package.
+  - You now can search package by display name, name (id), aliases to enter package name, and ALCOM shows common version range for you.
 - Improved behavior about `settings.json` to `vcc.litedb` migration `#2327`
   - See [`vrchat-community/creator-companion#492`](https://github.com/vrchat-community/creator-companion/issues/492) and the PR for details
 
@@ -18,10 +21,19 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Unity can be duplicated `#2321`
-- Crash on creating a new project on Windows `#2326`
+- Packages are not deselected after installing packages `#2372`
 
 ### Security
+
+## [1.1.2] - 2025-06-30
+### Fixed
+- Fixed `a - b` version range is not correctly serialized on the `vpm-manifest.json`
+- Frontend error on package list update [`#2341`](https://github.com/vrc-get/vrc-get/pull/2341)
+
+## [1.1.1] - 2025-06-21
+### Fixed
+- Unity can be duplicated [`#2321`](https://github.com/vrc-get/vrc-get/pull/2321)
+- Crash on creating a new project on Windows [`#2326`](https://github.com/vrc-get/vrc-get/pull/2326)
 
 ## [1.1.0] - 2025-06-19
 ### Added
@@ -588,7 +600,9 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.0...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.2...HEAD
+[1.1.2]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.1...gui-v1.1.2
+[1.1.1]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.0...gui-v1.1.1
 [1.1.0]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.1...gui-v1.1.0
 [1.0.1]: https://github.com/vrc-get/vrc-get/compare/gui-v1.0.0...gui-v1.0.1
 [1.0.0]: https://github.com/vrc-get/vrc-get/compare/gui-v0.1.17...gui-v1.0.0

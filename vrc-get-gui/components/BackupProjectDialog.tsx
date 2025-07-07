@@ -1,3 +1,5 @@
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -12,9 +14,6 @@ import type { DialogContext } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { toastNormal, toastSuccess } from "@/lib/toast";
 import { useEffectEvent } from "@/lib/use-effect-event";
-import type React from "react";
-import { useRef } from "react";
-import { useEffect, useState } from "react";
 
 export function BackupProjectDialog({
 	projectPath,

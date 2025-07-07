@@ -1,3 +1,11 @@
+import {
+	queryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { CircleAlert } from "lucide-react";
+import type React from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -13,14 +21,6 @@ import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import i18next, { languages, tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
-import {
-	queryOptions,
-	useMutation,
-	useQuery,
-	useQueryClient,
-} from "@tanstack/react-query";
-import { CircleAlert } from "lucide-react";
-import type React from "react";
 
 const environmentGetSettings = queryOptions({
 	queryKey: ["environmentGetSettings"],
@@ -276,11 +276,7 @@ export function BackupPathWarnings({ backupPath }: { backupPath: string }) {
 	);
 }
 
-export function WarningMessage({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+export function WarningMessage({ children }: { children: React.ReactNode }) {
 	return (
 		<div className={"flex items-center gap-2"}>
 			<div className="grow-0 shrink-0">
@@ -291,11 +287,7 @@ export function WarningMessage({
 	);
 }
 
-export function BackupFormatSelect({
-	backupFormat,
-}: {
-	backupFormat: string;
-}) {
+export function BackupFormatSelect({ backupFormat }: { backupFormat: string }) {
 	const queryClient = useQueryClient();
 	const setBackupFormat = useMutation({
 		mutationFn: async (format: string) =>

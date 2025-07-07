@@ -1,3 +1,5 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -9,8 +11,6 @@ import type { DialogContext } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation, useRouter } from "@tanstack/react-router";
 
 type Project = {
 	path: string;
@@ -32,7 +32,10 @@ export function RemoveProjectDialog({
 		mutationFn: async ({
 			project,
 			removeDir,
-		}: { project: Project; removeDir: boolean }) => {
+		}: {
+			project: Project;
+			removeDir: boolean;
+		}) => {
 			await commands.environmentRemoveProjectByPath(project.path, removeDir);
 		},
 		onSuccess: () => {

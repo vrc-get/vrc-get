@@ -100,5 +100,5 @@ fn get_commit_hash() {
         return;
     };
 
-    println!("cargo:rustc-env=COMMIT_HASH={}", hash_value);
+    println!("cargo:rustc-env=COMMIT_HASH={hash_value}");
 }

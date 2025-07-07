@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Uninstall package is not reverted successfully if removing package is prevented by `ERROR_SHARING_VIOLATION` `#2209`
+- Fixed `a - b` version range is not correctly serialized on the `vpm-manifest.json`
 
 ### Security
 

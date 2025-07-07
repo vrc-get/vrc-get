@@ -1,4 +1,7 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,14 +15,11 @@ import {
 import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp } from "lucide-react";
-import { useMemo } from "react";
 import { ProjectGridItem } from "./-project-grid-item";
 import {
 	isSorting,
-	sortSearchProjects,
 	type sortings,
+	sortSearchProjects,
 	useSetProjectSortingMutation,
 } from "./-projects-list-card";
 

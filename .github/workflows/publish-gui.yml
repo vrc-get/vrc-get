@@ -197,8 +197,6 @@ jobs:
     runs-on: ${{ matrix.on }}
     env:
       RUSTFLAGS: ${{ matrix.rustflags }}
-      # workaround of https://github.com/tauri-apps/tauri-action/issues/1091
-      TAURI_BUNDLER_DMG_IGNORE_CI: false
 
     needs: [ pre-build, build-web ]
     steps:

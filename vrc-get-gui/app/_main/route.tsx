@@ -1,12 +1,12 @@
 "use client";
 
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { SideBar } from "@/components/SideBar";
 import { commands } from "@/lib/bindings";
 import { useDocumentEvent } from "@/lib/events";
 import { updateCurrentPath, usePrevPathName } from "@/lib/prev-page";
 import { useEffectEvent } from "@/lib/use-effect-event";
-import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_main")({
 	component: MainLayout,

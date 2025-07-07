@@ -43,7 +43,7 @@ impl SettingsState {
         }
     }
 
-    pub async fn load(&self, io: &DefaultEnvironmentIo) -> io::Result<SettingsRef> {
+    pub async fn load(&self, io: &DefaultEnvironmentIo) -> io::Result<SettingsRef<'_>> {
         // If the data is new enough, we can use it.
         let inner = self.inner.load_full();
         if let Some(inner) = inner.filter(|x| x.is_new()) {

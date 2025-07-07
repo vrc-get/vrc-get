@@ -1,12 +1,26 @@
-import Loading from "@/app/-loading";
+import {
+	queryOptions,
+	useQuery,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { ChevronDown, CircleX, Ellipsis } from "lucide-react";
+import type React from "react";
+import { Suspense, useId, useMemo, useState } from "react";
 import { HeadingPageName } from "@/app/_main/packages/-tab-selector";
+import Loading from "@/app/-loading";
+import { HNavBar, VStack } from "@/components/layout";
 import { Overlay } from "@/components/Overlay";
 import {
 	ReorderableList,
 	useReorderableList,
 } from "@/components/ReorderableList";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
-import { HNavBar, VStack } from "@/components/layout";
+import {
+	type AutoCompleteOption,
+	Autocomplete,
+} from "@/components/ui/autocomplete";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -33,9 +47,10 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+	commands,
 	type TauriAlcomTemplate,
 	type TauriProjectTemplateInfo,
-	commands,
+	type TauriVersion,
 } from "@/lib/bindings";
 import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
@@ -49,16 +64,7 @@ import {
 } from "@/lib/project-template";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import {
-	queryOptions,
-	useQuery,
-	useQueryClient,
-	useSuspenseQuery,
-} from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, CircleX, Ellipsis } from "lucide-react";
-import type React from "react";
-import { Suspense, useId, useState } from "react";
+import { compareVersion } from "@/lib/version";
 
 export const Route = createFileRoute("/_main/packages/templates/")({
 	component: RouteComponent,
@@ -286,7 +292,10 @@ function TemplateRow({
 function RemoveTemplateConfirmDialog({
 	dialog,
 	displayName,
-}: { dialog: DialogContext<boolean>; displayName: string }) {
+}: {
+	dialog: DialogContext<boolean>;
+	displayName: string;
+}) {
 	return (
 		<>
 			<DialogTitle>{tc("templates:dialog:remove template")}</DialogTitle>
@@ -448,6 +457,180 @@ function TemplateEditor({
 	const [name, setName] = useState(template?.display_name ?? "");
 	const [unityRange, setUnityRange] = useState(template?.unity_version ?? "");
 
+	const allPackages = useQuery({
+		queryKey: ["environmentPackages"],
+		queryFn: () => commands.environmentPackages(),
+	});
+
+	const { packageCandidates, versionCandidatePerPackage } = useMemo(() => {
+		type PackageInfo = {
+			dataSourceVersion: TauriVersion;
+			displayName: string | null;
+			keywords: string[];
+			versions: TauriVersion[];
+		};
+		const packages = new Map<string, PackageInfo>();
+		for (const pkg of allPackages.data ?? []) {
+			if (pkg.is_yanked) continue;
+			let rowInfo = packages.get(pkg.name);
+			if (
+				rowInfo == null ||
+				compareVersion(pkg.version, rowInfo.dataSourceVersion) > 0
+			) {
+				packages.set(
+					pkg.name,
+					(rowInfo = {
+						dataSourceVersion: pkg.version,
+						displayName: pkg.display_name,
+						keywords: pkg.aliases,
+						versions: rowInfo?.versions ?? [],
+					}),
+				);
+			}
+			rowInfo.versions.push(pkg.version);
+		}
+		return {
+			packageCandidates: Array.from(packages.entries()).map(
+				([id, pkg]) =>
+					({
+						value: id,
+						label: (
+							<AutocompletePackageLabel displayName={pkg.displayName} id={id} />
+						),
+						keywords: [pkg.displayName, ...pkg.keywords].filter(
+							(x) => x != null,
+						),
+					}) satisfies AutoCompleteOption,
+			),
+			versionCandidatePerPackage: new Map(
+				Array.from(packages.entries()).map(([id, pkg]) => {
+					// we generate few candidates for version per package
+					// - '*' for any version
+					// - '>=latestStable' and '>=latestPrerelease'
+					// - '^latestStable' and '^latestPrerelease'
+					// - '1.x' '1.2.x' (or something like this) for stable release
+
+					const latestStable = pkg.versions
+						.filter((x) => x.pre === "")
+						.sort(compareVersion)
+						.at(-1);
+					const latestPrerelease = pkg.versions.sort(compareVersion).at(-1);
+
+					const candidates: AutoCompleteOption[] = [];
+
+					function addCandidate(value: string, description: React.ReactNode) {
+						candidates.push({
+							value,
+							label: (
+								<AutocompleteVersionLabel
+									value={value}
+									description={description}
+								/>
+							),
+						});
+					}
+
+					addCandidate("*", tc("templates:dialog:any version"));
+
+					if (latestStable != null) {
+						addCandidate(
+							`${latestStable.major}.x`,
+							`${latestStable.major}.0.0 ≤ v < ${latestStable.major + 1}.0.0`,
+						);
+						addCandidate(
+							`${latestStable.major}.${latestStable.minor}.x`,
+							`${latestStable.major}.${latestStable.minor}.0 ≤ v < ${latestStable.major}.${latestStable.minor + 1}.0`,
+						);
+						addCandidate(
+							`${latestStable.major}.${latestStable.minor}.${latestStable.patch}`,
+							`v = ${latestStable.major}.${latestStable.minor}.${latestStable.patch}`,
+						);
+						addCandidate(
+							`>=${latestStable.major}.${latestStable.minor}.${latestStable.patch}`,
+							`v ≥ ${latestStable.major}.${latestStable.minor}.${latestStable.patch}`,
+						);
+						addCandidate(
+							`^${latestStable.major}.${latestStable.minor}.${latestStable.patch}`,
+							`${latestStable.major}.${latestStable.minor}.${latestStable.patch} ≤ v < ${hatEndVersion(latestStable)}`,
+						);
+					}
+
+					if (latestPrerelease != null && latestPrerelease !== latestStable) {
+						addCandidate(
+							`${latestPrerelease.major}.${latestPrerelease.minor}.${latestPrerelease.patch}-${latestPrerelease.pre}`,
+							`v = ${latestPrerelease.major}.${latestPrerelease.minor}.${latestPrerelease.patch}-${latestPrerelease.pre}`,
+						);
+						addCandidate(
+							`>=${latestPrerelease.major}.${latestPrerelease.minor}.${latestPrerelease.patch}-${latestPrerelease.pre}`,
+							`v ≥ ${latestPrerelease.major}.${latestPrerelease.minor}.${latestPrerelease.patch}-${latestPrerelease.pre}`,
+						);
+						addCandidate(
+							`^${latestPrerelease.major}.${latestPrerelease.minor}.${latestPrerelease.patch}-${latestPrerelease.pre}`,
+							`${latestPrerelease.major}.${latestPrerelease.minor}.${latestPrerelease.patch}-${latestPrerelease.pre} ≤ v < ${hatEndVersion(latestPrerelease)}`,
+						);
+					}
+
+					function hatEndVersion(version: TauriVersion): string {
+						return version.major === 0 && version.minor === 0
+							? `${version.major}.${version.minor}.${version.patch + 1}`
+							: version.major === 0
+								? `${version.major}.${version.minor + 1}.0`
+								: `${version.major + 1}.0.0`;
+					}
+
+					return [id, candidates];
+				}),
+			),
+		};
+	}, [allPackages.data]);
+
+	const unityCandidates = useMemo(() => {
+		const templateInfo = templates.find((x) => x.id === baseTemplate);
+		if (templateInfo == null) return [];
+		// unityVersions is in order
+		const unityVersions = templateInfo.unity_versions;
+		const candidates: AutoCompleteOption[] = [];
+
+		function addCandidate(value: string, description: React.ReactNode) {
+			candidates.push({
+				value,
+				label: (
+					<AutocompleteVersionLabel value={value} description={description} />
+				),
+			});
+		}
+
+		candidates.push(...unityVersions);
+
+		addCandidate("*", tc("templates:dialog:any version"));
+
+		// create something like 2022.x and 2022.3.x
+		const addedRange = new Set<string>();
+		for (const unityVersion of unityVersions) {
+			const majorOnly = unityVersion.match(/^\d+/)?.[0];
+			const minor = unityVersion.match(/^\d+\.\d+/)?.[0];
+			if (majorOnly && !addedRange.has(majorOnly)) {
+				addedRange.add(majorOnly);
+				addCandidate(
+					`${majorOnly}.x`,
+					tc("templates:dialog:any unity specified version", {
+						version: majorOnly,
+					}),
+				);
+			}
+			if (minor && !addedRange.has(minor)) {
+				addedRange.add(minor);
+				addCandidate(
+					`${minor}.x`,
+					tc("templates:dialog:any unity specified version", {
+						version: minor,
+					}),
+				);
+			}
+		}
+		return candidates;
+	}, [templates, baseTemplate]);
+
 	type Package = { name: string; range: string };
 	const packagesListContext = useReorderableList<Package>({
 		defaultValue: { name: "", range: "" },
@@ -578,15 +761,15 @@ function TemplateEditor({
 										{tc("templates:dialog:unity version")}:
 									</th>
 									<td className={"flex"}>
-										<Input
+										<Autocomplete
 											className={cn(
 												"grow",
 												unityRange.match(rangeRegex) ||
 													"border-destructive ring-destructive text-destructive",
 											)}
 											value={unityRange}
-											onChange={(e) => setUnityRange(e.target.value)}
-											placeholder={">=2022 * =2022.3.22"}
+											onChange={(value) => setUnityRange(value)}
+											options={unityCandidates}
 										/>
 									</td>
 								</tr>
@@ -617,14 +800,14 @@ function TemplateEditor({
 											<>
 												<td>
 													<div className={"flex"}>
-														<Input
-															type={"text"}
+														<Autocomplete
 															value={value.name}
 															className={"grow"}
-															onChange={(e) =>
+															options={packageCandidates}
+															onChange={(value) =>
 																packagesListContext.update(id, (old) => ({
 																	...old,
-																	name: e.target.value,
+																	name: value,
 																}))
 															}
 														/>
@@ -632,18 +815,20 @@ function TemplateEditor({
 												</td>
 												<td>
 													<div className={"flex"}>
-														<Input
-															type={"text"}
+														<Autocomplete
 															value={value.range}
 															className={cn(
 																"grow",
 																validVersion(value) ||
 																	"border-destructive ring-destructive text-destructive",
 															)}
-															onChange={(e) =>
+															options={
+																versionCandidatePerPackage.get(value.name) ?? []
+															}
+															onChange={(value) =>
 																packagesListContext.update(id, (old) => ({
 																	...old,
-																	range: e.target.value,
+																	range: value,
 																}))
 															}
 														/>
@@ -708,6 +893,37 @@ function TemplateEditor({
 					{tc("general:button:save")}
 				</Button>
 			</DialogFooter>
+		</div>
+	);
+}
+
+function AutocompletePackageLabel({
+	displayName,
+	id,
+}: {
+	displayName: string | null;
+	id: string;
+}) {
+	if (displayName == null) return id;
+	return (
+		<div className={"flex flex-col"}>
+			<div>{displayName}</div>
+			<div className={"text-xs text-muted-foreground"}>{id}</div>
+		</div>
+	);
+}
+
+function AutocompleteVersionLabel({
+	value,
+	description,
+}: {
+	value: string;
+	description: React.ReactNode;
+}) {
+	return (
+		<div className={"flex flex-row justify-between w-full"}>
+			<div>{value}</div>
+			<div className={"text-xs text-muted-foreground"}>{description}</div>
 		</div>
 	);
 }

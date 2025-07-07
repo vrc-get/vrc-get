@@ -1,11 +1,10 @@
+import { queryOptions, useQueryClient } from "@tanstack/react-query";
+import type React from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
-import { queryOptions, useQueryClient } from "@tanstack/react-query";
-import type React from "react";
-import { useState } from "react";
-import { useRef } from "react";
 
 function PreventDoubleClick({
 	delayMs,

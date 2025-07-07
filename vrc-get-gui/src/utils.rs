@@ -71,7 +71,7 @@ pub(crate) fn find_existing_parent_dir(path: &Path) -> Option<&Path> {
     }
 }
 
-pub(crate) fn find_existing_parent_dir_or_home(path: &Path) -> Cow<Path> {
+pub(crate) fn find_existing_parent_dir_or_home(path: &Path) -> Cow<'_, Path> {
     find_existing_parent_dir(path)
         .map(Cow::Borrowed)
         .unwrap_or_else(|| Cow::Owned(home_dir()))
@@ -171,14 +171,14 @@ impl FileSystemTree {
         &self.absolute_path
     }
 
-    pub fn recursive(&self) -> FileSystemTreeRecursive {
+    pub fn recursive(&self) -> FileSystemTreeRecursive<'_> {
         FileSystemTreeRecursive {
             stack: vec![(self, 0)],
         }
     }
 
     #[allow(dead_code)]
-    pub fn iter(&self) -> FileSystemTreeIter {
+    pub fn iter(&self) -> FileSystemTreeIter<'_> {
         FileSystemTreeIter {
             back: self.children.iter(),
         }
@@ -458,7 +458,7 @@ impl<R: AsyncRead + Unpin> TarArchive<R> {
         Self { reader, to_skip: 0 }
     }
 
-    pub async fn next_entry(&mut self) -> io::Result<Option<TarEntry<R>>> {
+    pub async fn next_entry(&mut self) -> io::Result<Option<TarEntry<'_, R>>> {
         const BLOCK_SIZE: u64 = 512;
         let mut header = Header::new_old();
         // skip bytes

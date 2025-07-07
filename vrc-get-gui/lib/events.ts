@@ -1,10 +1,11 @@
-import globalInfo from "@/lib/global-info";
 import { type DependencyList, useCallback, useEffect } from "react";
+import globalInfo from "@/lib/global-info";
 
 //declare interface DocumentEventMap {}
 declare global {
 	interface DocumentEventMap {
 		"gui-animation": CustomEvent<boolean>;
+		"post-package-changes": Event;
 	}
 }
 
@@ -13,6 +14,7 @@ export function useDocumentEvent<EventName extends keyof DocumentEventMap>(
 	listener: (event: DocumentEventMap[EventName]) => void,
 	deps: DependencyList,
 ) {
+	// biome-ignore lint/correctness/useExhaustiveDependencies: useDocumentEvent receives the DependencyList
 	const listenerUse = useCallback(listener, deps);
 
 	useEffect(() => {

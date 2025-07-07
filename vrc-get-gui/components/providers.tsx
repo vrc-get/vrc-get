@@ -1,5 +1,11 @@
 "use client";
 
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import type React from "react";
+import { Suspense, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { ToastContainer } from "react-toastify";
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,12 +18,6 @@ import { processResult } from "@/lib/import-templates";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import type React from "react";
-import { Suspense, useCallback, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { ToastContainer } from "react-toastify";
 
 export function Providers({ children }: { children: React.ReactNode }) {
 	const navigate = useNavigate();

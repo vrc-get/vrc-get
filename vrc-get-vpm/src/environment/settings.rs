@@ -306,11 +306,11 @@ impl Settings {
                 query_builder.append_pair("url", url.as_str());
 
                 for (header_name, value) in setting.headers() {
-                    query_builder.append_pair("headers[]", &format!("{}:{}", header_name, value));
+                    query_builder.append_pair("headers[]", &format!("{header_name}:{value}"));
                 }
                 drop(query_builder);
 
-                writeln!(builder, "{}", add_url).unwrap();
+                writeln!(builder, "{add_url}").unwrap();
             }
         }
 

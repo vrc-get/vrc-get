@@ -1,9 +1,9 @@
 "use client";
 
 import licenses from "build:licenses.json";
-import { ScrollPageContainer } from "@/components/ScrollPageContainer";
-import { ScrollableCard } from "@/components/ScrollableCard";
 import { VStack } from "@/components/layout";
+import { ScrollableCard } from "@/components/ScrollableCard";
+import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { Card } from "@/components/ui/card";
 import { commands } from "@/lib/bindings";
 
@@ -20,7 +20,7 @@ export default function RenderPage() {
 					<ul />
 				</Card>
 
-				{licenses.map((license, idx) => (
+				{licenses.map((license) => (
 					<Card className={"p-4"} key={license.text}>
 						<h3>{license.name}</h3>
 						<h4>Used by:</h4>

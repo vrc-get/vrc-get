@@ -1,3 +1,8 @@
+import type { DefaultError } from "@tanstack/query-core";
+import { queryOptions, type UseMutationOptions } from "@tanstack/react-query";
+import { CircleAlert } from "lucide-react";
+import type React from "react";
+import { Fragment } from "react";
 import { DelayedButton } from "@/components/DelayedButton";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
@@ -24,11 +29,6 @@ import { queryClient } from "@/lib/query-client";
 import { toastInfo, toastSuccess, toastThrownError } from "@/lib/toast";
 import { groupBy, keyComparator } from "@/lib/utils";
 import { compareVersion, toVersionString } from "@/lib/version";
-import type { DefaultError } from "@tanstack/query-core";
-import { type UseMutationOptions, queryOptions } from "@tanstack/react-query";
-import { CircleAlert } from "lucide-react";
-import type React from "react";
-import { Fragment } from "react";
 
 export type RequestedOperation =
 	| {
@@ -96,6 +96,7 @@ export function applyChangesMutation(projectPath: string) {
 			toastThrownError(e);
 		},
 		onSettled: async () => {
+			document.dispatchEvent(new Event("post-package-changes"));
 			await queryClient.invalidateQueries({
 				queryKey: ["projectDetails", projectPath],
 			});
@@ -243,6 +244,12 @@ function showToast(requested: RequestedOperation) {
 	}
 }
 
+const TypographyItem = ({ children }: { children: React.ReactNode }) => (
+	<div className={"p-3"}>
+		<p className={"font-normal"}>{children}</p>
+	</div>
+);
+
 function ProjectChangesDialog({
 	changes,
 	existingPackages,
@@ -258,12 +265,6 @@ function ProjectChangesDialog({
 	const unityConflicts = changes.conflicts.filter(([_, c]) => c.unity_conflict);
 	const unlockedConflicts = changes.conflicts.flatMap(
 		([_, c]) => c.unlocked_names,
-	);
-
-	const TypographyItem = ({ children }: { children: React.ReactNode }) => (
-		<div className={"p-3"}>
-			<p className={"font-normal"}>{children}</p>
-		</div>
 	);
 
 	const existingPackageMap = new Map(existingPackages ?? []);
@@ -758,13 +759,6 @@ function ChangelogButton({ url }: { url?: string | null }) {
 	} catch {}
 
 	return null;
-}
-
-function comparePackageChangeByName(
-	[aName]: [string, TauriPackageChange],
-	[bName]: [string, TauriPackageChange],
-): number {
-	return aName.localeCompare(bName);
 }
 
 function MissingDependenciesDialog({

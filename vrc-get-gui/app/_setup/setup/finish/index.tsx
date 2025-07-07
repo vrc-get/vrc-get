@@ -1,9 +1,9 @@
 "use client";
 
+import { createFileRoute } from "@tanstack/react-router";
 import { CardDescription } from "@/components/ui/card";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
-import { createFileRoute } from "@tanstack/react-router";
 import { SetupPageBase } from "../-setup-page-base";
 
 export const Route = createFileRoute("/_setup/setup/finish/")({

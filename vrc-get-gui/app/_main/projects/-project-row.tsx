@@ -1,3 +1,17 @@
+import {
+	queryOptions,
+	useMutation,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import {
+	CircleHelp,
+	CircleUserRound,
+	Ellipsis,
+	Globe,
+	Star,
+} from "lucide-react";
+import React, { type ComponentProps, useContext } from "react";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
@@ -32,20 +46,6 @@ import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { compareUnityVersionString } from "@/lib/version";
-import {
-	queryOptions,
-	useMutation,
-	useQueryClient,
-} from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import {
-	CircleHelp,
-	CircleUserRound,
-	Ellipsis,
-	Globe,
-	Star,
-} from "lucide-react";
-import React, { type ComponentProps, useContext } from "react";
 
 export const ProjectDisplayType: Record<
 	TauriProjectType,
@@ -272,11 +272,9 @@ export function ProjectRow({
 	);
 }
 
-export function ManageOrMigrateButton({
-	project,
-}: {
-	project: TauriProject;
-}) {
+export function ManageOrMigrateButton({ project }: { project: TauriProject }) {
+	const navigate = useNavigate();
+
 	if (compareUnityVersionString(project.unity, "2018.0.0f0") < 0) {
 		// No UPM is supported in unity 2017 or older
 		return (
@@ -293,7 +291,6 @@ export function ManageOrMigrateButton({
 		);
 	}
 
-	const navigate = useNavigate();
 	switch (project.project_type) {
 		case "LegacySdk2":
 			return (

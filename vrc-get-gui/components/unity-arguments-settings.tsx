@@ -1,9 +1,10 @@
-import { tc } from "@/lib/i18n";
 import type React from "react";
 import { useState } from "react";
+import { tc } from "@/lib/i18n";
 import { ReorderableList, useReorderableList } from "./ReorderableList";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+
 const internal = Symbol("useLaunchSettingsDescriptionInternal");
 
 interface LaunchSettingsDescriptionContext {
@@ -57,7 +58,9 @@ export function useUnityArgumentsSettings(
 
 export function UnityArgumentsSettings({
 	context,
-}: { context: LaunchSettingsDescriptionContext }) {
+}: {
+	context: LaunchSettingsDescriptionContext;
+}) {
 	const {
 		customizeCommandline,
 		setCustomizeCommandline,

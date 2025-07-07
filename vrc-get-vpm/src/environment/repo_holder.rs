@@ -37,7 +37,7 @@ impl Repository {
         }
     }
 
-    fn remote_download_info(&self) -> Option<RemoteDownloadInfo> {
+    fn remote_download_info(&self) -> Option<RemoteDownloadInfo<'_>> {
         match self {
             Repository::Loaded(repo) => repo.url().map(|url| RemoteDownloadInfo {
                 url,
@@ -175,14 +175,14 @@ impl RepoHolder {
                 Ok(Some(v)) => (src.cache_path().into(), Repository::Loaded(v)),
                 Ok(None) => if_not_exists(src),
                 Err(e) => {
-                    error!("loading repo '{}': {}", src.cache_path().display(), e);
+                    error!("loading repo '{}': {e}", src.cache_path().display());
                     if_not_exists(src)
                 }
             }
         }))
         .await;
         let duration = std::time::Instant::now() - start;
-        log::debug!("loading repo cache took {:?}", duration);
+        log::debug!("loading repo cache took {duration:?}");
 
         for (path, repo) in repos.into_iter() {
             self.cached_repos_new.insert(path, repo);
@@ -258,7 +258,7 @@ impl RepoHolder {
                             }
 
                             if let Err(e) = save_repository(io, path, new_repository).await {
-                                error!("writing local repo cache '{}': {}", path.display(), e);
+                                error!("writing local repo cache '{}': {e}", path.display());
                             }
                         }
                         Ok(None) => {
@@ -297,7 +297,7 @@ impl RepoHolder {
         fn log_error(result: Vec<Result<bool, (Url, io::Error)>>) {
             for result in result {
                 if let Some((url, error)) = result.err() {
-                    error!("fetching remote repo '{}': {}", url, error);
+                    error!("fetching remote repo '{url}': {error}");
                 }
             }
         }

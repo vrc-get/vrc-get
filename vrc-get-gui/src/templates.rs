@@ -97,7 +97,7 @@ pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> Vec<ProjectTemplat
             }
             Ok(p) => templates.push(ProjectTemplateInfo {
                 display_name: name.clone(),
-                id: format!("{}{}", VCC_TEMPLATE_PREFIX, name),
+                id: format!("{VCC_TEMPLATE_PREFIX}{name}"),
                 unity_versions: vec![p.unity_version()],
                 update_date: None,
                 alcom_template: None,
@@ -225,8 +225,7 @@ pub async fn load_resolve_alcom_templates(
 
 pub fn new_user_template_id() -> String {
     format!(
-        "{}{}",
-        UNNAMED_TEMPLATE_PREFIX,
+        "{UNNAMED_TEMPLATE_PREFIX}{}",
         uuid::Uuid::new_v4().as_simple()
     )
 }
@@ -749,11 +748,9 @@ async fn update_project_name_and_guid(path: &Path, project_name: &str) -> io::Re
                 .last()
                 .map(|x| x.is_ascii_whitespace())
                 .unwrap_or(true);
-            if before_ws {
-                if let Some(eol) = buffer[pos..].find('\n') {
-                    let eol = eol + pos;
-                    buffer.replace_range((pos + finder.len())..eol, value);
-                }
+            if before_ws && let Some(eol) = buffer[pos..].find('\n') {
+                let eol = eol + pos;
+                buffer.replace_range((pos + finder.len())..eol, value);
             }
         }
     }
@@ -763,7 +760,7 @@ async fn update_project_name_and_guid(path: &Path, project_name: &str) -> io::Re
             .replace('"', "\\\"")
             .replace('\n', "\\n")
             .replace('\r', "\\r");
-        format!("\"{}\"", s)
+        format!("\"{s}\"")
     }
 
     set_value(

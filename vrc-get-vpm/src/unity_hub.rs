@@ -17,7 +17,7 @@ pub use os::load_unity_version;
 ///
 /// On macOS, this function expects Path to .app file and returns binary file.
 /// On other platforms, does nothing
-pub fn get_executable_path(path: &Path) -> Cow<Path> {
+pub fn get_executable_path(path: &Path) -> Cow<'_, Path> {
     #[cfg(not(target_os = "macos"))]
     {
         Cow::Borrowed(path)

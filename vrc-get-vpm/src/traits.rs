@@ -15,22 +15,22 @@ pub trait PackageCollection {
     fn get_curated_packages(
         &self,
         _version_selector: VersionSelector,
-    ) -> impl Iterator<Item = PackageInfo> {
+    ) -> impl Iterator<Item = PackageInfo<'_>> {
         [].into_iter()
     }
 
     /// get all packages in the collection
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo>;
+    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo<'_>>;
 
     /// get all package versions of the specified package
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo>;
+    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo<'_>>;
 
     /// get specified version of specified package
     fn find_package_by_name(
         &self,
         package: &str,
         package_selector: VersionSelector,
-    ) -> Option<PackageInfo>;
+    ) -> Option<PackageInfo<'_>>;
 }
 
 /// The trait for installing package

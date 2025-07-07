@@ -1,10 +1,27 @@
 "use client";
 
+import {
+	queryOptions,
+	type UseQueryResult,
+	useIsMutating,
+	useMutation,
+	useQueries,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import {
+	createFileRoute,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
+import { ArrowLeft, ChevronDown } from "lucide-react";
+import type React from "react";
+import { Suspense, useMemo } from "react";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
+import { HNavBar, VStack } from "@/components/layout";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
-import { HNavBar, VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -44,23 +61,6 @@ import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
-import {
-	type UseQueryResult,
-	queryOptions,
-	useIsMutating,
-	useMutation,
-	useQueries,
-	useQuery,
-	useQueryClient,
-} from "@tanstack/react-query";
-import {
-	createFileRoute,
-	useNavigate,
-	useRouter,
-} from "@tanstack/react-router";
-import { ArrowLeft, ChevronDown } from "lucide-react";
-import type React from "react";
-import { Suspense, useMemo } from "react";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
 import { PageContextProvider } from "./-page-context";
@@ -323,11 +323,7 @@ function UnityVersionSelector({
 	);
 }
 
-function SuggestResolveProjectCard({
-	disabled,
-}: {
-	disabled?: boolean;
-}) {
+function SuggestResolveProjectCard({ disabled }: { disabled?: boolean }) {
 	const { projectPath } = Route.useSearch();
 	const packageChange = useMutation(applyChangesMutation(projectPath));
 
@@ -589,13 +585,6 @@ function ProjectViewHeader({
 			}
 		/>
 	);
-}
-
-function projectGetCustomUnityArgs(projectPath: string) {
-	return queryOptions({
-		queryKey: ["projectGetCustomUnityArgs", projectPath],
-		queryFn: async () => await commands.projectGetCustomUnityArgs(projectPath),
-	});
 }
 
 function LaunchSettings({

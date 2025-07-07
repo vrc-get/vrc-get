@@ -8,7 +8,6 @@ mod commands;
 mod config;
 mod deep_link_support;
 mod logging;
-mod specta;
 mod templates;
 
 #[cfg_attr(windows, path = "os_windows.rs")]
@@ -42,10 +41,10 @@ fn main() {
             log::info!("single instance remote procedure, {argv:?}, {cwd}");
             if let Some(window) = app.get_webview_window("main") {
                 if let Err(e) = window.unminimize() {
-                    log::error!("error while unminimize: {}", e);
+                    log::error!("error while unminimize: {e}");
                 }
                 if let Err(e) = window.set_focus() {
-                    log::error!("error while setting focus: {}", e);
+                    log::error!("error while setting focus: {e}");
                 }
             }
             process_args(app, &argv);
@@ -137,6 +136,6 @@ fn process_args(app: &AppHandle, args: &[String]) {
             deep_link_support::process_files(app, vec![PathBuf::from(url)]);
             return;
         }
-        log::error!("Invalid deep link: {}", url);
+        log::error!("Invalid deep link: {url}");
     }
 }

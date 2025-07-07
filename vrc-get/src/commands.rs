@@ -170,7 +170,7 @@ fn confirm_prompt(msg: &str) -> bool {
         let mut buf = String::new();
         loop {
             // prompt
-            write!(stdout, "{} [y/n] ", msg)?;
+            write!(stdout, "{msg} [y/n] ")?;
             stdout.flush()?;
 
             buf.clear();
@@ -228,7 +228,7 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
     if !adding_to_dependencies.is_empty() {
         println!("You're adding the following packages to dependencies:");
         for (name, range) in &adding_to_dependencies {
-            println!("- {} version {}", name, range);
+            println!("- {name} version {range}");
         }
     }
 
@@ -252,7 +252,7 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
                 RemoveReason::Legacy => "legacy",
                 RemoveReason::Unused => "unused",
             };
-            println!("- {} (removed since {})", name, reason_name);
+            println!("- {name} (removed since {reason_name})");
         }
     }
 
@@ -284,7 +284,7 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
         if unity_conflicts.peek().is_some() {
             println!("**Those packages are incompatible with your unity version**");
             for package in unity_conflicts {
-                println!("- {}", package);
+                println!("- {package}");
             }
         }
     }
@@ -302,7 +302,7 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
             println!("Those directory name conflicts with installing package,");
             println!("or same packages are installed in those directories.");
             for directory in unlocked_conflicts {
-                println!("- Packages/{}", directory);
+                println!("- Packages/{directory}");
             }
         }
     }
@@ -343,12 +343,11 @@ fn require_prompt_for_install(
     };
 
     // if we're installing package,
-    if let Some(package) = install.install_package() {
-        if let Some(request_version) = version {
-            if request_version != package.version() {
-                return true;
-            }
-        }
+    if let Some(package) = install.install_package()
+        && let Some(request_version) = version
+        && request_version != package.version()
+    {
+        return true;
     }
 
     false
@@ -733,10 +732,10 @@ impl Outdated {
 
         for locked in unity.all_packages() {
             for (name, range) in locked.dependencies() {
-                if let Some((outdated, _)) = outdated_packages.get(name.as_ref()) {
-                    if !range.matches(outdated.version()) {
-                        outdated_packages.remove(name.as_ref());
-                    }
+                if let Some((outdated, _)) = outdated_packages.get(name.as_ref())
+                    && !range.matches(outdated.version())
+                {
+                    outdated_packages.remove(name.as_ref());
                 }
             }
         }
@@ -745,9 +744,7 @@ impl Outdated {
             0 => {
                 for (name, (found, installed)) in &outdated_packages {
                     println!(
-                        "{}: installed: {}, found: {}",
-                        name,
-                        installed,
+                        "{name}: installed: {installed}, found: {}",
                         &found.version()
                     );
                 }
@@ -862,7 +859,7 @@ impl Upgrade {
             .exit_context("upgrading packages");
 
         for (name, version) in updates {
-            println!("upgraded {} to {}", name, version);
+            println!("upgraded {name} to {version}");
         }
 
         update_project_last_modified(&io, unity.project_dir()).await;
@@ -939,7 +936,7 @@ impl Downgrade {
             .exit_context("upgrading packages");
 
         for (name, version) in downgrades {
-            println!("downgraded {} to {}", name, version);
+            println!("downgraded {name} to {version}");
         }
 
         update_project_last_modified(&io, unity.project_dir()).await;
@@ -1002,7 +999,7 @@ impl Search {
                     println!("{} version {}", x.name(), x.version());
                 }
                 if let Some(description) = x.package_json().description() {
-                    println!("{}", description);
+                    println!("{description}");
                 }
                 println!();
             }
@@ -1293,12 +1290,12 @@ impl RepoPackages {
                     versions.get_latest_may_yanked(VersionSelector::latest_for(None, true))
                 {
                     if let Some(display_name) = pkg.display_name() {
-                        println!("{} | {}", display_name, pkg.name());
+                        println!("{display_name} | {}", pkg.name());
                     } else {
                         println!("{}", pkg.name());
                     }
                     if let Some(description) = pkg.description() {
-                        println!("{}", description);
+                        println!("{description}");
                     }
                     let mut versions = versions.all_versions().collect::<Vec<_>>();
                     versions.sort_by_key(|pkg| pkg.version());
@@ -1381,7 +1378,7 @@ impl RepoImport {
         }
         println!("The following lines are invalid and will be ignored:");
         for line in result.unparseable_lines() {
-            println!("- {}", line);
+            println!("- {line}");
         }
 
         if self.yes {

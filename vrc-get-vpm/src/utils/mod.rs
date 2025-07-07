@@ -250,7 +250,7 @@ pub(crate) fn walk_dir_relative<IO: IoTrait>(
                         },
                     }
                     futures.push(Either::Right(next_phase(read_dir_iter, dir_relative).map(FutureResult::<IO>::Right)));
-                    log::trace!("yield: {:?}", new_relative_path);
+                    log::trace!("yield: {new_relative_path:?}");
                     yield (new_relative_path, entry);
                 },
             }
@@ -292,7 +292,7 @@ pub(crate) async fn read_json_file<T: serde::de::DeserializeOwned>(
         Ok(loaded) => Ok(loaded),
         Err(e) => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("syntax error loading {}: {}", path.display(), e),
+            format!("syntax error loading {}: {e}", path.display()),
         )),
     }
 }

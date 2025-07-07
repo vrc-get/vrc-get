@@ -1,3 +1,6 @@
+import { queryOptions } from "@tanstack/react-query";
+import type React from "react";
+import { useState } from "react";
 import {
 	ReorderableList,
 	useReorderableList,
@@ -15,41 +18,6 @@ import { type DialogApi, type DialogContext, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess } from "@/lib/toast";
-import { queryOptions } from "@tanstack/react-query";
-import type React from "react";
-import { useState } from "react";
-
-type State =
-	| {
-			type: "normal";
-	  }
-	| {
-			type: "enteringRepositoryInfo";
-	  }
-	| {
-			type: "loadingRepository";
-	  }
-	| {
-			type: "duplicated";
-			reason: TauriDuplicatedReason;
-			duplicatedName: string;
-	  }
-	| {
-			type: "confirming";
-			repo: TauriRemoteRepositoryInfo;
-			url: string;
-			headers: { [key: string]: string };
-	  };
-
-interface AddRepository {
-	dialog: React.ReactNode;
-	openAddDialog: () => void;
-	inProgress: boolean;
-	addRepository: (
-		url: string,
-		headers: { [p: string]: string },
-	) => Promise<void>;
-}
 
 const environmentRepositoriesInfo = queryOptions({
 	queryKey: ["environmentRepositoriesInfo"],
@@ -291,11 +259,7 @@ function EnteringRepositoryInfo({
 	);
 }
 
-function LoadingRepository({
-	cancel,
-}: {
-	cancel: () => void;
-}) {
+function LoadingRepository({ cancel }: { cancel: () => void }) {
 	return (
 		<>
 			<DialogDescription>
@@ -377,7 +341,7 @@ function Confirming({
 							{tc("vpm repositories:dialog:headers")}
 						</p>
 						<ul className={"list-disc pl-6"}>
-							{Object.entries(headers).map(([key, value], idx) => (
+							{Object.entries(headers).map(([key, value]) => (
 								<li key={key}>
 									{key}: {value}
 								</li>
@@ -389,7 +353,7 @@ function Confirming({
 					{tc("vpm repositories:dialog:packages")}
 				</p>
 				<ul className={"list-disc pl-6"}>
-					{repo.packages.map((info, idx) => (
+					{repo.packages.map((info) => (
 						<li key={info.name}>{info.display_name ?? info.name}</li>
 					))}
 				</ul>
