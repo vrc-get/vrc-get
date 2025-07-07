@@ -413,6 +413,8 @@
     "templates:dialog:general information": "General Information",
     "templates:dialog:base template": "Base Template",
     "templates:dialog:unity version": "Unity Version",
+    "templates:dialog:any version": "Any Version",
+    "templates:dialog:any unity specified version": "Any Unity {{version}}",
     "templates:dialog:version": "Version",
     "templates:dialog:unitypackages": "UnityPackages",
     "templates:dialog:no unitypackages": "No UnityPackages",
