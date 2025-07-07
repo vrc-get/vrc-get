@@ -124,7 +124,7 @@ export const PackageListCard = memo(function PackageListCard({
 					(row) =>
 						row.displayName.toLowerCase().includes(searchLower) ||
 						row.id.toLowerCase().includes(searchLower) ||
-						row.aliases.some((alias) =>
+						row.keywords.some((alias) =>
 							alias.toLowerCase().includes(searchLower),
 						),
 				)

@@ -39,7 +39,7 @@ export interface PackageRowInfo {
 	infoSource: TauriVersion;
 	displayName: string;
 	description: string;
-	aliases: string[];
+	keywords: string[];
 	unityCompatible: Map<string, TauriPackage>;
 	unityIncompatible: Map<string, TauriPackage>;
 	sources: Set<string>;
@@ -132,7 +132,7 @@ export function combinePackagesAndProjectDetails(
 					id: pkg.name,
 					displayName: pkg.display_name ?? pkg.name,
 					description: pkg.description ?? "",
-					aliases: pkg.aliases,
+					keywords: pkg.keywords,
 					infoSource: pkg.version,
 					unityCompatible: new Map(),
 					unityIncompatible: new Map(),
@@ -167,7 +167,7 @@ export function combinePackagesAndProjectDetails(
 			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
 			packageRowInfo.description =
 				pkg.description || packageRowInfo.description;
-			packageRowInfo.aliases = pkg.aliases;
+			packageRowInfo.keywords = pkg.keywords;
 		}
 
 		if (project == null || isUnityCompatible(pkg, project.unity)) {
@@ -292,7 +292,7 @@ export function combinePackagesAndProjectDetails(
 
 			// if installed, use the installed version to get the display name
 			packageRowInfo.displayName = pkg.display_name ?? pkg.name;
-			packageRowInfo.aliases = [...pkg.aliases, ...packageRowInfo.aliases];
+			packageRowInfo.keywords = [...pkg.keywords, ...packageRowInfo.keywords];
 			packageRowInfo.installed = {
 				version: pkg.version,
 				yanked:

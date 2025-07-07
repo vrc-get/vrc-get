@@ -450,7 +450,7 @@ struct TauriBasePackageInfo {
     name: String,
     display_name: Option<String>,
     description: Option<String>,
-    aliases: Vec<String>,
+    keywords: Vec<String>,
     version: TauriVersion,
     unity: Option<(u16, u8)>,
     changelog_url: Option<String>,
@@ -466,7 +466,9 @@ impl TauriBasePackageInfo {
             name: package.name().to_string(),
             display_name: package.display_name().map(|v| v.to_string()),
             description: package.description().map(|v| v.to_string()),
-            aliases: package.aliases().iter().map(|v| v.to_string()).collect(),
+            keywords: (package.aliases().iter().chain(package.keywords()))
+                .map(|v| v.to_string())
+                .collect(),
             version: package.version().into(),
             unity: package.unity().map(|v| (v.major(), v.minor())),
             changelog_url: package.changelog_url().map(|v| v.to_string()),
