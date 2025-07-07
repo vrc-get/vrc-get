@@ -466,6 +466,7 @@ function TemplateEditor({
 		type PackageInfo = {
 			dataSourceVersion: TauriVersion;
 			displayName: string | null;
+			keywords: string[];
 			versions: TauriVersion[];
 		};
 		const packages = new Map<string, PackageInfo>();
@@ -481,7 +482,8 @@ function TemplateEditor({
 					(rowInfo = {
 						dataSourceVersion: pkg.version,
 						displayName: pkg.display_name,
-						versions: [],
+						keywords: pkg.aliases,
+						versions: rowInfo?.versions ?? [],
 					}),
 				);
 			}
@@ -495,7 +497,9 @@ function TemplateEditor({
 						label: (
 							<AutocompletePackageLabel displayName={pkg.displayName} id={id} />
 						),
-						keywords: [pkg.displayName].filter((x) => x != null),
+						keywords: [pkg.displayName, ...pkg.keywords].filter(
+							(x) => x != null,
+						),
 					}) satisfies AutoCompleteOption,
 			),
 			versionCandidatePerPackage: new Map(
