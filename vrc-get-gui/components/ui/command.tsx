@@ -74,6 +74,8 @@ function CommandInput({
 	);
 }
 
+export const CommandInputRaw = CommandPrimitive.Input;
+
 function CommandList({
 	className,
 	...props
