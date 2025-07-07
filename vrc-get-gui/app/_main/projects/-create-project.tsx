@@ -3,6 +3,7 @@ import { RefreshCw } from "lucide-react";
 import type React from "react";
 import { useEffect, useId, useMemo, useState } from "react";
 import { VStack } from "@/components/layout";
+import { TemplateSelect } from "@/components/TemplateSelect";
 import { Button } from "@/components/ui/button";
 import {
 	DialogDescription,
@@ -13,18 +14,10 @@ import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
-	SelectGroup,
 	SelectItem,
-	SelectLabel,
-	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProjectTemplateInfo } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
@@ -36,11 +29,6 @@ import {
 	ProjectNameCheckResult,
 	useProjectNameCheck,
 } from "@/lib/project-name-check";
-import {
-	type ProjectTemplateCategory,
-	projectTemplateCategory,
-	projectTemplateName,
-} from "@/lib/project-template";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 
@@ -50,6 +38,8 @@ export async function createProject() {
 	using dialog = showDialog();
 	const result = await dialog.ask(EnteringInformation, {
 		templates: information.templates,
+		favoriteTemplates: information.favorite_templates,
+		lastUsedTemplate: information.last_used_template,
 		projectLocation: information.default_path,
 		recentProjectLocations: information.recent_project_locations,
 	});
@@ -113,21 +103,37 @@ function EnteringInformation({
 	templates,
 	projectLocation: projectLocationFirst,
 	recentProjectLocations: recentProjectLocationsReversed,
+	favoriteTemplates,
+	lastUsedTemplate,
 	dialog,
 }: {
 	templates: TauriProjectTemplateInfo[];
 	projectLocation: string;
+	favoriteTemplates: string[];
+	lastUsedTemplate: string | null;
 	recentProjectLocations: string[];
 	dialog: DialogContext<null | ProjectCreationInformation>;
 }) {
-	const [unityVersion, setUnityVersion] = useState<string>(
-		templates[0].unity_versions[0],
-	);
-	const [templateId, setTemplateId] = useState<string>(templates[0].id);
-
 	const templateById = useMemo(
 		() => new Map(templates.map((t) => [t.id, t])),
 		[templates],
+	);
+
+	const [templateId, setTemplateId] = useState<string>(() => {
+		const template = lastUsedTemplate
+			? templateById.get(lastUsedTemplate)
+			: undefined;
+		return template?.available &&
+			template.unity_versions.length !== 0 &&
+			lastUsedTemplate != null
+			? lastUsedTemplate
+			: templates[0].id;
+	});
+
+	const [unityVersion, setUnityVersion] = useState<string>(
+		() =>
+			templateById.get(templateId)?.unity_versions?.[0] ??
+			templates[0].unity_versions[0],
 	);
 
 	const [projectNameRaw, setProjectName] = useState("New Project");
@@ -176,28 +182,6 @@ function EnteringInformation({
 	const templateInputId = useId();
 	const unityInputId = useId();
 
-	const templatesByCategory = useMemo(() => {
-		const byCategory: {
-			[k in ProjectTemplateCategory]: TauriProjectTemplateInfo[];
-		} = {
-			builtin: [],
-			alcom: [],
-			vcc: [],
-		};
-
-		for (const template of templates) {
-			byCategory[projectTemplateCategory(template.id)].push(template);
-		}
-
-		return (
-			[
-				["builtin", byCategory.builtin],
-				["alcom", byCategory.alcom],
-				["vcc", byCategory.vcc],
-			] satisfies [ProjectTemplateCategory, TauriProjectTemplateInfo[]][]
-		).filter((x) => x[1].length > 0);
-	}, [templates]);
-
 	const unityVersions = templateById.get(templateId)?.unity_versions ?? [];
 
 	const badProjectName = ["AlreadyExists", "InvalidNameForFolderName"].includes(
@@ -227,59 +211,13 @@ function EnteringInformation({
 					<div className={"flex items-center whitespace-nowrap"}>
 						<label htmlFor={templateInputId}>{tc("projects:template")}</label>
 					</div>
-					<Select
+					<TemplateSelect
 						value={templateId}
-						onValueChange={(value) => setTemplateId(value)}
-					>
-						<SelectTrigger id={templateInputId}>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{templatesByCategory.map(([category, templates], index) => (
-								<SelectGroup key={category}>
-									{index !== 0 && <SelectSeparator />}
-									<SelectLabel>
-										{tc(`projects:template-category:${category}`)}
-									</SelectLabel>
-									{templates.map((template) => {
-										const disabled =
-											!template.available ||
-											template.unity_versions.length === 0;
-										const contents = (
-											<SelectItem
-												value={template.id}
-												disabled={disabled}
-												key={template.id}
-											>
-												{projectTemplateName(template)}
-											</SelectItem>
-										);
-										if (!template.available) {
-											return (
-												<Tooltip key={template.id}>
-													<TooltipTrigger>{contents}</TooltipTrigger>
-													<TooltipContent>
-														{tc("projects:tooltip:template-unavailable")}
-													</TooltipContent>
-												</Tooltip>
-											);
-										} else if (template.unity_versions.length === 0) {
-											return (
-												<Tooltip key={template.id}>
-													<TooltipTrigger>{contents}</TooltipTrigger>
-													<TooltipContent>
-														{tc("projects:tooltip:template-no-unity")}
-													</TooltipContent>
-												</Tooltip>
-											);
-										} else {
-											return contents;
-										}
-									})}
-								</SelectGroup>
-							))}
-						</SelectContent>
-					</Select>
+						onValueChange={setTemplateId}
+						templates={templates}
+						favoriteTemplates={favoriteTemplates}
+						selectTriggerId={templateInputId}
+					/>
 				</div>
 				<div className={"flex items-center gap-1 whitespace-nowrap"}>
 					<label htmlFor={unityInputId}>

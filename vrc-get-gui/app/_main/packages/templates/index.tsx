@@ -1,15 +1,17 @@
 import {
 	queryOptions,
+	useMutation,
 	useQuery,
 	useQueryClient,
 	useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, CircleX, Ellipsis } from "lucide-react";
+import { ChevronDown, CircleX, Ellipsis, Star } from "lucide-react";
 import type React from "react";
 import { Suspense, useId, useMemo, useState } from "react";
 import { HeadingPageName } from "@/app/_main/packages/-tab-selector";
 import Loading from "@/app/-loading";
+import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { HNavBar, VStack } from "@/components/layout";
 import { Overlay } from "@/components/Overlay";
 import {
@@ -17,6 +19,7 @@ import {
 	useReorderableList,
 } from "@/components/ReorderableList";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
+import { TemplateSelect } from "@/components/TemplateSelect";
 import {
 	type AutoCompleteOption,
 	Autocomplete,
@@ -35,13 +38,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
@@ -58,6 +54,7 @@ import { tc } from "@/lib/i18n";
 import { processResult } from "@/lib/import-templates";
 import { usePrevPathName } from "@/lib/prev-page";
 import {
+	type ProjectTemplateCategory,
 	projectTemplateCategory,
 	projectTemplateDisplayId,
 	projectTemplateName,
@@ -145,6 +142,7 @@ function TemplatesTableBody() {
 			await openSingleDialog(TemplateEditor, {
 				templates: information.data.templates,
 				template: { ...alcomTemplate, id },
+				favoriteTemplates: information.data.favorite_templates,
 			});
 		} catch (e) {
 			console.error(e);
@@ -167,10 +165,39 @@ function TemplatesTableBody() {
 		}
 	};
 
+	const templatesOrdered = useMemo(() => {
+		const perCategoryFav: {
+			[K in `${boolean}-${ProjectTemplateCategory}`]: TauriProjectTemplateInfo[];
+		} = {
+			"true-builtin": [],
+			"false-builtin": [],
+			"true-alcom": [],
+			"false-alcom": [],
+			"true-vcc": [],
+			"false-vcc": [],
+		};
+		for (const template of information.data.templates) {
+			const category = projectTemplateCategory(template.id);
+			const favorite = information.data.favorite_templates.includes(
+				template.id,
+			);
+			perCategoryFav[`${favorite}-${category}`].push(template);
+		}
+		return (["builtin", "alcom", "vcc"] as const).flatMap((category) => [
+			...perCategoryFav[`true-${category}`],
+			...perCategoryFav[`false-${category}`],
+		]);
+	}, [information.data.templates, information.data.favorite_templates]);
+
 	return (
 		<>
 			<thead>
 				<tr>
+					<th
+						className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}
+					>
+						<Star className={"size-4"} />
+					</th>
 					{TABLE_HEAD.map((head, index) => (
 						<th
 							// biome-ignore lint/suspicious/noArrayIndexKey: static array
@@ -185,12 +212,13 @@ function TemplatesTableBody() {
 				</tr>
 			</thead>
 			<tbody>
-				{information.data.templates.map((template) => (
+				{templatesOrdered.map((template) => (
 					<TemplateRow
 						key={template.id}
 						template={template}
 						remove={removeTemplate}
 						edit={editTemplate}
+						favorite={information.data.favorite_templates.includes(template.id)}
 					/>
 				))}
 			</tbody>
@@ -202,10 +230,12 @@ function TemplateRow({
 	template,
 	remove,
 	edit,
+	favorite,
 }: {
 	template: TauriProjectTemplateInfo;
 	remove?: (id: string) => void;
 	edit?: (id: string) => void;
+	favorite: boolean;
 }) {
 	const cellClass = "p-2.5";
 	const id = useId();
@@ -224,8 +254,64 @@ function TemplateRow({
 		}
 	};
 
+	const queryClient = useQueryClient();
+
+	const setTemplateFavorite = useMutation({
+		mutationFn: (params: { id: string; favorite: boolean }) =>
+			commands.environmentSetTemplateFavorite(params.id, params.favorite),
+
+		onMutate: async (params) => {
+			await queryClient.cancelQueries(environmentProjectCreationInformation);
+
+			const previousData = queryClient.getQueryData(
+				environmentProjectCreationInformation.queryKey,
+			);
+
+			if (previousData !== undefined) {
+				queryClient.setQueryData(
+					environmentProjectCreationInformation.queryKey,
+					{
+						...previousData,
+						favorite_templates: params.favorite
+							? previousData.favorite_templates.includes(params.id)
+								? previousData.favorite_templates
+								: [...previousData.favorite_templates, params.id]
+							: previousData.favorite_templates.filter((x) => x !== params.id),
+					},
+				);
+			}
+
+			return previousData;
+		},
+
+		onError: (error, _, context) => {
+			console.error("Error favoriting project", error);
+			toastThrownError(error);
+			if (context) {
+				queryClient.setQueryData(
+					environmentProjectCreationInformation.queryKey,
+					context,
+				);
+			}
+		},
+	});
+
 	return (
-		<tr className="even:bg-secondary/30">
+		<tr className="even:bg-secondary/30 group">
+			<td className={`${cellClass} w-3`}>
+				<div className={"relative flex"}>
+					<FavoriteStarToggleButton
+						favorite={favorite}
+						disabled={category === "vcc"}
+						onToggle={() =>
+							setTemplateFavorite.mutate({
+								id: template.id,
+								favorite: !favorite,
+							})
+						}
+					/>
+				</div>
+			</td>
 			<td className={`${cellClass} w-full`}>
 				<label htmlFor={id}>
 					<p className="font-normal">{projectTemplateName(template)}</p>
@@ -422,6 +508,7 @@ function CreateTemplateButton({ className }: { className: string }) {
 					void openSingleDialog(TemplateEditor, {
 						templates: information.data.templates,
 						template: null,
+						favoriteTemplates: information.data.favorite_templates,
 					});
 				}
 			}}
@@ -445,10 +532,12 @@ const rangeRegex = new RegExp(
 function TemplateEditor({
 	templates,
 	template,
+	favoriteTemplates,
 	dialog,
 }: {
 	templates: TauriProjectTemplateInfo[];
 	template: (TauriAlcomTemplate & { id: string }) | null;
+	favoriteTemplates: string[];
 	dialog: DialogContext<boolean>;
 }) {
 	const [baseTemplate, setBaseTemplate] = useState<string>(
@@ -735,25 +824,14 @@ function TemplateEditor({
 										{tc("templates:dialog:base template")}:
 									</th>
 									<td className={"flex"}>
-										<Select
+										<TemplateSelect
 											value={baseTemplate}
 											onValueChange={setBaseTemplate}
-										>
-											<SelectTrigger>
-												<SelectValue className={"grow"} />
-											</SelectTrigger>
-											<SelectContent>
-												{templates.map((template) => {
-													const id = projectTemplateDisplayId(template.id);
-													if (id == null) return null;
-													return (
-														<SelectItem key={id} value={id}>
-															{projectTemplateName(template)}
-														</SelectItem>
-													);
-												})}
-											</SelectContent>
-										</Select>
+											templates={templates}
+											favoriteTemplates={favoriteTemplates}
+											className={"grow"}
+											excludeNoIdTemplates
+										/>
 									</td>
 								</tr>
 								<tr className={"contents"}>

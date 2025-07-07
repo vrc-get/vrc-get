@@ -44,6 +44,14 @@ pub struct GuiConfig {
     pub recent_project_locations: Vec<String>,
     #[serde(default)]
     pub exclude_vpm_packages_from_backup: bool,
+    /// the list of favorite templates by id
+    /// those templates will be shown at the top of template selection on project creation
+    /// or derived templates
+    #[serde(default)]
+    pub favorite_templates: Vec<String>,
+    /// The lastly used template, this will be the initially selected template
+    #[serde(default)]
+    pub last_used_template: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, Default, specta::Type)]
@@ -76,6 +84,8 @@ impl Default for GuiConfig {
             unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
             recent_project_locations: Vec::new(),
             exclude_vpm_packages_from_backup: false,
+            favorite_templates: vec![],
+            last_used_template: None,
         }
     }
 }

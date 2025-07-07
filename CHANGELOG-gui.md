@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog].
 ### Added
 - Add support for `keywords` UPM manifest field `#2375`
   - You now can specifiy search keywords for package with `keywords` UPM manifest field
+- Favorites for templates `#2376`
+  - It's much easier to select project templates you likely to use.
 
 ### Changed
 - Improved the Template Editor with AutoComplete `#2371`
@@ -19,6 +21,8 @@ The format is based on [Keep a Changelog].
   - You should no longer need to update layers and collision matrix before uploading world
 - Improved behavior about `settings.json` to `vcc.litedb` migration `#2327`
   - See [`vrchat-community/creator-companion#492`](https://github.com/vrchat-community/creator-companion/issues/492) and the PR for details
+- Last used template is now preserved `#2376`
+  - When you generally create project with custom template, you no longer need to change template every time.
 
 ### Deprecated
 

@@ -602,6 +602,8 @@ impl From<&ProjectTemplateInfo> for TauriProjectTemplateInfo {
 pub struct TauriProjectCreationInformation {
     templates: Vec<TauriProjectTemplateInfo>,
     recent_project_locations: Vec<String>,
+    favorite_templates: Vec<String>,
+    last_used_template: Option<String>,
     templates_version: u32,
     default_path: String,
 }
@@ -625,6 +627,8 @@ pub async fn environment_project_creation_information(
     };
 
     let recent_project_locations = config.get().recent_project_locations.clone();
+    let last_used_template = config.get().last_used_template.clone();
+    let favorite_templates = config.get().favorite_templates.clone();
 
     let templates = templates.save(templates::load_resolve_all_templates(&io, &unity_paths).await?);
 
@@ -637,6 +641,8 @@ pub async fn environment_project_creation_information(
         recent_project_locations,
         templates_version: templates.version(),
         default_path,
+        last_used_template,
+        favorite_templates,
     })
 }
 
@@ -759,7 +765,7 @@ pub async fn environment_create_project(
     };
     let path = base_path.join(&project_name);
 
-    // update recent locations
+    // update recent locations and last template
     {
         let mut config = config.load_mut().await?;
         let base_path_str = base_path.as_os_str().to_str().unwrap();
@@ -777,6 +783,7 @@ pub async fn environment_create_project(
                 .recent_project_locations
                 .push(base_path_str.to_string());
         }
+        config.last_used_template = Some(template_id.clone());
         config.save().await?;
     }
 

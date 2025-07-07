@@ -135,6 +135,7 @@
     "projects:hint:project already exists": "The directory already exists.",
     "projects:hint:create project ready": "Ready to create a project!",
     "projects:template": "Template:",
+    "projects:template-category:favorites": "Favorites",
     "projects:template-category:builtin": "Built-in",
     "projects:template-category:alcom": "Custom Templates",
     "projects:template-category:vcc": "VCC Templates",

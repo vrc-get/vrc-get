@@ -4,17 +4,12 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import {
-	CircleHelp,
-	CircleUserRound,
-	Ellipsis,
-	Globe,
-	Star,
-} from "lucide-react";
+import { CircleHelp, CircleUserRound, Ellipsis, Globe } from "lucide-react";
 import React, { type ComponentProps, useContext } from "react";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { MigrationCopyingDialog } from "@/app/_main/projects/manage/-unity-migration";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
+import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
@@ -44,7 +39,6 @@ import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
-import { cn } from "@/lib/utils";
 import { compareUnityVersionString } from "@/lib/version";
 
 export const ProjectDisplayType: Record<
@@ -117,8 +111,8 @@ export function ProjectRow({
 			>
 				<td className={`${cellClass} w-3`}>
 					<div className={"relative flex"}>
-						<FavoriteToggleButton
-							project={project}
+						<FavoriteStarToggleButton
+							favorite={project.favorite}
 							disabled={removed || loading}
 							onToggle={() =>
 								setProjectFavorite.mutate({
@@ -513,39 +507,6 @@ export const TooltipTriggerIfValid = ({
 		return <TooltipTrigger {...props}>{children}</TooltipTrigger>;
 	}
 };
-
-export function FavoriteToggleButton({
-	project,
-	disabled,
-	onToggle,
-	className,
-}: {
-	project: { favorite: boolean };
-	disabled?: boolean;
-	onToggle: () => void;
-	className?: string;
-}) {
-	if (disabled) return null;
-
-	return (
-		<Star
-			strokeWidth={project.favorite ? 1.5 : 3}
-			className={cn(
-				"size-4 transition-colors cursor-pointer",
-				project.favorite ? "text-foreground" : "text-foreground/30",
-				!project.favorite && "opacity-0 group-hover:opacity-100",
-				"hover:text-foreground",
-				className,
-			)}
-			fill={project.favorite ? "currentColor" : "none"}
-			onClick={() => {
-				if (!disabled) {
-					onToggle();
-				}
-			}}
-		/>
-	);
-}
 
 export function getProjectDisplayInfo(project: TauriProject) {
 	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
