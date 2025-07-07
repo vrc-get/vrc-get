@@ -4,7 +4,7 @@
 "use client";
 
 import * as React from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
 	Command,
 	CommandEmpty,
@@ -20,12 +20,14 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 
-type AutoCompleteOption = {
-	value: string;
-	key?: string;
-	label?: React.ReactNode;
-	keywords?: string[];
-};
+export type AutoCompleteOption =
+	| string
+	| {
+			value: string;
+			key?: string;
+			label?: React.ReactNode;
+			keywords?: string[];
+	  };
 
 type AutoCompleteOptions =
 	| AutoCompleteOption[]
@@ -35,12 +37,16 @@ export function Autocomplete({
 	options: optionsIn,
 	value: valueIn,
 	onChange: onChangeIn,
+	placeholder,
 	emptyContent,
+	className,
 }: {
 	options: AutoCompleteOptions;
 	value?: string;
 	onChange?: (value: string) => void;
+	placeholder?: string;
 	emptyContent?: React.ReactNode;
+	className?: string;
 }) {
 	const isControlled = valueIn != null;
 
@@ -56,14 +62,17 @@ export function Autocomplete({
 	);
 
 	return (
-		<Command>
-			<Popover open={open} onOpenChange={setOpen}>
+		<Command className={className}>
+			<Popover open={open} onOpenChange={setOpen} modal>
 				<PopoverTrigger asChild>
 					<CommandInputRaw asChild>
 						<Input
-							placeholder="Search framework..."
+							placeholder={placeholder}
 							value={value}
-							onChange={(v) => setValue(v.currentTarget.value)}
+							onChange={(v) => {
+								setValue(v.currentTarget.value);
+								setOpen(true);
+							}}
 						/>
 					</CommandInputRaw>
 				</PopoverTrigger>
@@ -72,25 +81,40 @@ export function Autocomplete({
 					onOpenAutoFocus={(e) => e.preventDefault()}
 				>
 					<CommandList>
-						<CommandEmpty>{emptyContent}</CommandEmpty>
 						<CommandGroup>
-							{options.map((option) => (
-								<CommandItem
-									key={option.key ?? option.value}
-									keywords={option.keywords}
-									value={option.value}
-									onSelect={(currentValue) => {
-										setValue(currentValue);
-										setOpen(false);
-									}}
-								>
-									{option.label ?? option.value}
-								</CommandItem>
-							))}
+							{options.map((option) => {
+								if (typeof option === "string") option = { value: option };
+								return (
+									<CommandItem
+										key={option.key ?? option.value}
+										keywords={option.keywords}
+										value={option.value}
+										onSelect={(currentValue) => {
+											setValue(currentValue);
+											setOpen(false);
+										}}
+									>
+										{option.label ?? option.value}
+									</CommandItem>
+								);
+							})}
 						</CommandGroup>
+						<CommandEmpty>
+							{emptyContent ?? <CallOnMount onMount={() => setOpen(false)} />}
+						</CommandEmpty>
 					</CommandList>
 				</PopoverContent>
 			</Popover>
 		</Command>
 	);
+}
+
+function CallOnMount({ onMount }: { onMount: () => void }) {
+	useEffect(() => {
+		const timeout = setTimeout(() => {
+			onMount();
+		}, 0);
+		return () => clearTimeout(timeout);
+	}, [onMount]);
+	return null;
 }
