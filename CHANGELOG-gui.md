@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Add support for `keywords` UPM manifest field `#2375`
+  - You now can specifiy search keywords for package with `keywords` UPM manifest field
 
 ### Changed
 - Improved the Template Editor with AutoComplete `#2371`

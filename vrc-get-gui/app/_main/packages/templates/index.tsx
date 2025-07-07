@@ -482,7 +482,7 @@ function TemplateEditor({
 					(rowInfo = {
 						dataSourceVersion: pkg.version,
 						displayName: pkg.display_name,
-						keywords: pkg.aliases,
+						keywords: pkg.keywords,
 						versions: rowInfo?.versions ?? [],
 					}),
 				);
