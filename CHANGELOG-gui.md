@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Packages are not deselected after installing packages `#2372`
 
 ### Security
 
