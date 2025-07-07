@@ -1,7 +1,6 @@
 import { CircleHelp, CircleUserRound, Ellipsis, Globe } from "lucide-react";
 import {
 	ButtonDisabledIfInvalid,
-	FavoriteToggleButton,
 	getProjectDisplayInfo,
 	ManageOrMigrateButton,
 	ProjectContext,
@@ -11,6 +10,7 @@ import {
 } from "@/app/_main/projects/-project-row";
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
+import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
@@ -58,8 +58,8 @@ export function ProjectGridItem({
 			<Card className="relative p-4 bg-card flex flex-col gap-2 group">
 				<div className={"absolute top-2 right-2 gap-2 flex"}>
 					<div className="relative content-center">
-						<FavoriteToggleButton
-							project={project}
+						<FavoriteStarToggleButton
+							favorite={project.favorite}
 							disabled={removed || loading}
 							onToggle={() =>
 								setProjectFavorite.mutate({

@@ -225,3 +225,24 @@ pub async fn environment_set_unity_hub_access_method(
     config.save().await?;
     Ok(())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_template_favorite(
+    config: State<'_, GuiConfigState>,
+    template_id: String,
+    favorite: bool,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    if favorite {
+        if !config.favorite_templates.contains(&template_id) {
+            config.favorite_templates.push(template_id);
+        }
+    } else {
+        config
+            .favorite_templates
+            .retain(|name| name != &template_id);
+    }
+    config.save().await?;
+    Ok(())
+}

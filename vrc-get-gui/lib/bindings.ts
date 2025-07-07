@@ -53,6 +53,9 @@ async environmentSetProjectViewMode(projectViewMode: string) : Promise<null> {
 async environmentSetUnityHubAccessMethod(unityHubAccessMethod: UnityHubAccessMethod) : Promise<null> {
     return await TAURI_INVOKE("environment_set_unity_hub_access_method", { unityHubAccessMethod });
 },
+async environmentSetTemplateFavorite(templateId: string, favorite: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_template_favorite", { templateId, favorite });
+},
 async environmentProjects() : Promise<TauriProject[]> {
     return await TAURI_INVOKE("environment_projects");
 },
@@ -341,7 +344,7 @@ export type TauriPickProjectDefaultPathResult = { type: "NoFolderSelected" } | {
 export type TauriPickUnityHubResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful" }
 export type TauriPickUnityResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriProject = { name: string; path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null; last_modified: number; created_at: number; favorite: boolean; is_exists: boolean; is_valid: boolean | null }
-export type TauriProjectCreationInformation = { templates: TauriProjectTemplateInfo[]; recent_project_locations: string[]; templates_version: number; default_path: string }
+export type TauriProjectCreationInformation = { templates: TauriProjectTemplateInfo[]; recent_project_locations: string[]; favorite_templates: string[]; last_used_template: string | null; templates_version: number; default_path: string }
 export type TauriProjectDetails = { unity: [number, number]; unity_str: string; unity_revision: string | null; installed_packages: ([string, TauriBasePackageInfo])[]; should_resolve: boolean }
 export type TauriProjectDirCheckResult = "InvalidNameForFolderName" | "MayCompatibilityProblem" | "WideChar" | "AlreadyExists" | "Ok"
 export type TauriProjectTemplateInfo = { display_name: string; id: string; unity_versions: string[]; update_date: string | null; has_unitypackage: boolean; source_path: string | null; available: boolean }
