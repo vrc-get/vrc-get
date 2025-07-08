@@ -126,7 +126,6 @@ const MainPackagesRepositoriesIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof RouteRoute
-  '': typeof SetupRouteRouteWithChildren
   '/dev-palette': typeof MainDevPaletteIndexRoute
   '/log': typeof MainLogIndexRoute
   '/projects': typeof MainProjectsIndexRoute
@@ -145,7 +144,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof RouteRoute
-  '': typeof SetupRouteRouteWithChildren
   '/dev-palette': typeof MainDevPaletteIndexRoute
   '/log': typeof MainLogIndexRoute
   '/projects': typeof MainProjectsIndexRoute
@@ -187,7 +185,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | ''
     | '/dev-palette'
     | '/log'
     | '/projects'
@@ -206,7 +203,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | ''
     | '/dev-palette'
     | '/log'
     | '/projects'
