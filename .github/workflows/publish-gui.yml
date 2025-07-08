@@ -18,6 +18,9 @@ on:
         default: true
         required: false
 
+concurrency:
+  group: releasing
+
 jobs:
   pre-build:
     name: Update version name
