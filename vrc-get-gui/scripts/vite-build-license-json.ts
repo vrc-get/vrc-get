@@ -510,6 +510,8 @@ function getLicenseNames() {
 		["0BSD", "BSD Zero Clause License"],
 		["BSD-2-Clause", "BSD 2-Clause License"],
 		["BSD-3-Clause", "BSD 3-Clause License"],
+
+		["Unlicense", "The Unlicense"],
 	]);
 }
 
@@ -1188,6 +1190,32 @@ function getLicenseDefaultTexts() {
 		"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\n" +
 		"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.";
 
+	const unlicense =
+		"This is free and unencumbered software released into the public domain.\n" +
+		"\n" +
+		"Anyone is free to copy, modify, publish, use, compile, sell, or\n" +
+		"distribute this software, either in source code form or as a compiled\n" +
+		"binary, for any purpose, commercial or non-commercial, and by any\n" +
+		"means.\n" +
+		"\n" +
+		"In jurisdictions that recognize copyright laws, the author or authors\n" +
+		"of this software dedicate any and all copyright interest in the\n" +
+		"software to the public domain. We make this dedication for the benefit\n" +
+		"of the public at large and to the detriment of our heirs and\n" +
+		"successors. We intend this dedication to be an overt act of\n" +
+		"relinquishment in perpetuity of all present and future rights to this\n" +
+		"software under copyright law.\n" +
+		"\n" +
+		'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,\n' +
+		"EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\n" +
+		"MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.\n" +
+		"IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR\n" +
+		"OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,\n" +
+		"ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR\n" +
+		"OTHER DEALINGS IN THE SOFTWARE.\n" +
+		"\n" +
+		"For more information, please refer to <https://unlicense.org>";
+
 	const defaultLicenseTexts = new Map();
 
 	defaultLicenseTexts.set("MIT", mitLicense);
@@ -1199,6 +1227,7 @@ function getLicenseDefaultTexts() {
 	defaultLicenseTexts.set("MPL-2.0", mpl);
 	defaultLicenseTexts.set("BSD-2-Clause", bsd2clause);
 	defaultLicenseTexts.set("BSD-3-Clause", bsd3clause);
+	defaultLicenseTexts.set("Unlicense", unlicense);
 
 	return defaultLicenseTexts;
 }
