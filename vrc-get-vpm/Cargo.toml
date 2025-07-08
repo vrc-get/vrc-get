@@ -35,9 +35,9 @@ uuid = { version = "1", features = ["v4"] }
 lazy_static = "1"
 enum-map = "2"
 
-vrc-get-litedb = { git = "https://github.com/anatawa12/litedb-rs.git", optional = true, default-features = false, features = [
+vrc-get-litedb = { version = "0.3.0-beta.7", optional = true, default-features = false, features = [
     'shared-mutex',
-], branch = "master" }
+] }
 tokio = { version = "1", features = ["fs", "process"] }
 serde_path_to_error = "0.1"
 serde-value = "0.7"
