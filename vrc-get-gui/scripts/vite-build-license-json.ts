@@ -312,7 +312,8 @@ async function getLicensesFromCargoMetadata(
 
 		const licenseFiles = (await readdir(crateDir)).filter(
 			(name) =>
-				name.toUpperCase().startsWith("LICENSE") && !name.endsWith(".spdx"),
+				(name.toUpperCase().startsWith("LICENSE") && !name.endsWith(".spdx")) ||
+				(licenseId === "Unlicense" && name.toUpperCase() === "UNLICENSE"),
 		);
 		if (licenseFiles.length === 0) return null;
 		if (licenseFiles.length === 1 && !licenseFiles[0].match(/[-_]/)) {
@@ -340,6 +341,12 @@ async function getLicensesFromCargoMetadata(
 					name.toUpperCase().startsWith(`LICENSE_${suffix}`) ||
 					name.toUpperCase().startsWith(`LICENSE.${suffix}`) ||
 					name.toUpperCase().startsWith(`LICENSE${suffix}`),
+			);
+			if (existing != null) return existing;
+		}
+		if (licenseId === "Unlicense") {
+			const existing = licenseFiles.find(
+				(name) => name.toUpperCase() === "UNLICENSE",
 			);
 			if (existing != null) return existing;
 		}
