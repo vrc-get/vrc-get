@@ -32,7 +32,7 @@ open = "5"
 arc-swap = "1"
 log = { version = "0.4", features = [ "std", "kv" ] }
 chrono = { version = "0.4", features = [ "serde" ] }
-ringbuffer = "0.15"
+ringbuffer = "0.16"
 tokio = { version = "1", features = ["process"] }
 tokio-util = "0.7"
 fs_extra = "1"
