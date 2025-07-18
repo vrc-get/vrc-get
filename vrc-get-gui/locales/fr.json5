@@ -373,7 +373,7 @@
     'templates:category:vcc': 'VCC',
     'templates:create template': 'Créer un modèle',
     'templates:dialog:any unity specified version': 'Toutes les versions {{version}} de Unity',
-    'templates:dialog:any version': 'Toues les versions de Unity',
+    'templates:dialog:any version': 'Toutes les versions de Unity',
     'templates:dialog:base template': 'Modèle de base',
     'templates:dialog:button:override templates': 'Mettre a jour {{count}} modèle(s)',
     'templates:dialog:confirm remove template': 'Etes vous sur de vouloir supprimer le modèle {{displayName}} ?',
