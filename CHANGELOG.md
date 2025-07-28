@@ -10,29 +10,34 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- Changed how we read VCC's project information `#1997`
-  - Along with this, building this project no longer needs dotnet SDK to build.
-- Migrated the project to Rust 2024 `#1956`
-  - This is internal changes should not cause behavior changes
-  - This would require Rust 1.85 for building this project
-- Removed `cargo-about` from build-time dependency `#1961`
-  - This is internal changes should not cause behavior changes
-  - I listed here since this may need update on package metadata of some package managers
-- The method to retrieve the list of Unity from Unity Hub `#1808` `#1971`
-- You now can select multiple folders at once to adding project `#2018`
-  - I didn't know official VCC had such a feature. Sorry for lack of feature!
-- The requirements for unity project `#2106`
-  - Since this version, `Projectsettings/ProjectVersion.txt` is required.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Uninstall package is not reverted successfully if removing package is prevented by `ERROR_SHARING_VIOLATION` `#2209`
-- Fixed `a - b` version range is not correctly serialized on the `vpm-manifest.json`
 
 ### Security
+
+## [1.9.1] - 2025-07-28
+### Changed
+- Changed how we read VCC's project information [`#1997`](https://github.com/vrc-get/vrc-get/pull/1997)
+  - Along with this, building this project no longer needs dotnet SDK to build.
+- Migrated the project to Rust 2024 [`#1956`](https://github.com/vrc-get/vrc-get/pull/1956)
+  - This is internal changes should not cause behavior changes
+  - This would require Rust 1.85 for building this project
+- Removed `cargo-about` from build-time dependency [`#1961`](https://github.com/vrc-get/vrc-get/pull/1961)
+  - This is internal changes should not cause behavior changes
+  - I listed here since this may need update on package metadata of some package managers
+- The method to retrieve the list of Unity from Unity Hub [`#1808`](https://github.com/vrc-get/vrc-get/pull/1808) [`#1971`](https://github.com/vrc-get/vrc-get/pull/1971)
+- You now can select multiple folders at once to adding project [`#2018`](https://github.com/vrc-get/vrc-get/pull/2018)
+  - I didn't know official VCC had such a feature. Sorry for lack of feature!
+- The requirements for unity project [`#2106`](https://github.com/vrc-get/vrc-get/pull/2106)
+  - Since this version, `Projectsettings/ProjectVersion.txt` is required.
+
+### Fixed
+- Uninstall package is not reverted successfully if removing package is prevented by `ERROR_SHARING_VIOLATION` [`#2209`](https://github.com/vrc-get/vrc-get/pull/2209)
+- Fixed `a - b` version range is not correctly serialized on the `vpm-manifest.json`
 
 ## [1.9.0] - 2025-01-01
 ### Added
@@ -483,7 +488,8 @@ The format is based on [Keep a Changelog].
 ## [0.1.0] - 2023-01-25
 Initial Release
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/vrc-get/vrc-get/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/vrc-get/vrc-get/compare/v1.8.2...v1.9.0
 [1.8.2]: https://github.com/vrc-get/vrc-get/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/vrc-get/vrc-get/compare/v1.8.0...v1.8.1
