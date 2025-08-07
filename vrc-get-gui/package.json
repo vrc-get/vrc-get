@@ -52,7 +52,7 @@
 		"@types/node": "^20",
 		"@types/react": "19.1.7",
 		"@types/react-dom": "19.1.6",
-		"@vitejs/plugin-react-swc": "^3.10.1",
+		"@vitejs/plugin-react-swc": "^3.11.0",
 		"json5": "^2",
 		"sharp-cli": "^5.2.0",
 		"tw-animate-css": "^1.3.5",
