@@ -15,6 +15,7 @@ import {
 	BackupPathWarnings,
 	FilePathRow,
 	GuiAnimationSwitch,
+	GuiCompactSwitch,
 	LanguageSelector,
 	ProjectPathWarnings,
 	ThemeSelector,
@@ -699,6 +700,7 @@ function AppearanceCard() {
 			<LanguageSelector />
 			<ThemeSelector />
 			<GuiAnimationSwitch />
+			<GuiCompactSwitch />
 		</Card>
 	);
 }

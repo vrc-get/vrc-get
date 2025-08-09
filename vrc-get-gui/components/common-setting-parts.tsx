@@ -185,6 +185,62 @@ export function GuiAnimationSwitch() {
 	);
 }
 
+const environmentGuiCompact = queryOptions({
+	queryKey: ["environmentGuiCompact"],
+	queryFn: commands.environmentGuiCompact,
+	initialData: false, // default value
+});
+
+export function GuiCompactSwitch() {
+	const queryClient = useQueryClient();
+	const guiCompact = useQuery(environmentGuiCompact);
+	const setGuiCompact = useMutation({
+		mutationFn: async (guiCompact: boolean) =>
+			await commands.environmentSetGuiCompact(guiCompact),
+		onMutate: async (guiCompact) => {
+			await queryClient.cancelQueries(environmentGuiCompact);
+			const current = queryClient.getQueryData(
+				environmentGuiCompact.queryKey,
+			);
+			if (current != null) {
+				queryClient.setQueryData(
+					environmentGuiCompact.queryKey,
+					guiCompact,
+				);
+			}
+			return current;
+		},
+		onError: (e, _, prev) => {
+			console.error(e);
+			toastThrownError(e);
+			queryClient.setQueryData(environmentGuiCompact.queryKey, prev);
+		},
+		onSuccess: (_, guiCompact) => {
+			document.dispatchEvent(
+				new CustomEvent("gui-compact", { detail: guiCompact }),
+			);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentGuiCompact);
+		},
+	});
+
+	return (
+		<div>
+			<label className={"flex items-center gap-2"}>
+				<Checkbox
+					checked={guiCompact.data}
+					onCheckedChange={(e) => setGuiCompact.mutate(e === true)}
+				/>
+				{tc("settings:gui compact")}
+			</label>
+			<p className={"text-sm whitespace-normal"}>
+				{tc("settings:gui compact description")}
+			</p>
+		</div>
+	);
+}
+
 export function FilePathRow({
 	path,
 	notFoundMessage,

@@ -60,6 +60,7 @@ pub struct TauriEnvironmentSettings {
     use_alcom_for_vcc_protocol: bool,
     default_unity_arguments: Option<Vec<String>>,
     gui_animation: bool,
+    gui_compact: bool,
     unity_hub_access_method: UnityHubAccessMethod,
     exclude_vpm_packages_from_backup: bool,
 }
@@ -81,6 +82,7 @@ pub async fn environment_get_settings(
     let project_backup_path;
     let show_prerelease_packages;
     let gui_animation;
+    let gui_compact;
     let unity_hub_access_method;
     let exclude_vpm_packages_from_backup;
 
@@ -91,6 +93,7 @@ pub async fn environment_get_settings(
         use_alcom_for_vcc_protocol = config.use_alcom_for_vcc_protocol;
         default_unity_arguments = config.default_unity_arguments.clone();
         gui_animation = config.gui_animation;
+        gui_compact = config.gui_compact;
         unity_hub_access_method = config.unity_hub_access_method;
         exclude_vpm_packages_from_backup = config.exclude_vpm_packages_from_backup;
     }
@@ -134,6 +137,7 @@ pub async fn environment_get_settings(
         use_alcom_for_vcc_protocol,
         default_unity_arguments,
         gui_animation,
+        gui_compact,
         unity_hub_access_method,
         exclude_vpm_packages_from_backup,
     })

@@ -196,6 +196,26 @@ pub async fn environment_set_gui_animation(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn environment_gui_compact(
+    config: State<'_, GuiConfigState>,
+) -> Result<bool, RustError> {
+    Ok(config.get().gui_compact)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_set_gui_compact(
+    config: State<'_, GuiConfigState>,
+    gui_compact: bool,
+) -> Result<(), RustError> {
+    let mut config = config.load_mut().await?;
+    config.gui_compact = gui_compact;
+    config.save().await?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn environment_project_view_mode(
     config: State<'_, GuiConfigState>,
 ) -> Result<String, RustError> {

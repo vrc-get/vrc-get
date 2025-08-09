@@ -37,9 +37,11 @@ import { toastThrownError } from "@/lib/toast";
 export function ProjectGridItem({
 	project,
 	loading,
+	compact,
 }: {
 	project: TauriProject;
 	loading?: boolean;
+	compact?: boolean;
 }) {
 	const setProjectFavorite = useSetProjectFavoriteMutation();
 
@@ -55,7 +57,7 @@ export function ProjectGridItem({
 		<ProjectContext.Provider
 			value={{ removed, is_valid, loading: Boolean(loading) }}
 		>
-			<Card className="relative p-4 bg-card flex flex-col gap-2 group">
+			<Card className={`relative ${compact ? "px-4 py-2" : "p-4"} bg-card flex flex-col ${compact ? "gap-1" : "gap-2"} group`}>
 				<div className={"absolute top-2 right-2 gap-2 flex"}>
 					<div className="relative content-center">
 						<FavoriteStarToggleButton
@@ -115,26 +117,43 @@ export function ProjectGridItem({
 						className={"text-left select-text cursor-auto w-full"}
 					>
 						<div className="flex flex-col">
-							<Tooltip>
-								<TooltipTriggerIfValid
-									className={"text-left select-text cursor-auto w-full"}
-								>
-									<p className="font-normal whitespace-pre overflow-ellipsis overflow-hidden">
-										{project.name}
-									</p>
-								</TooltipTriggerIfValid>
-								<TooltipContent>{project.name}</TooltipContent>
-							</Tooltip>
-							<Tooltip>
-								<TooltipTriggerIfValid
-									className={"text-left select-text cursor-auto w-full"}
-								>
-									<p className="font-normal opacity-50 text-sm whitespace-pre overflow-ellipsis overflow-hidden">
-										{project.path}
-									</p>
-								</TooltipTriggerIfValid>
-								<TooltipContent>{project.path}</TooltipContent>
-							</Tooltip>
+							{compact ? (
+								<>
+									<Tooltip>
+										<TooltipTriggerIfValid
+											className={"text-left select-text cursor-auto w-full"}
+										>
+											<p className="font-normal whitespace-pre overflow-ellipsis overflow-hidden">
+												{project.name}
+											</p>
+										</TooltipTriggerIfValid>
+										<TooltipContent>{project.path}</TooltipContent>
+									</Tooltip>
+								</>
+							) : (
+								<>
+									<Tooltip>
+										<TooltipTriggerIfValid
+											className={"text-left select-text cursor-auto w-full"}
+										>
+											<p className="font-normal whitespace-pre overflow-ellipsis overflow-hidden">
+												{project.name}
+											</p>
+										</TooltipTriggerIfValid>
+										<TooltipContent>{project.name}</TooltipContent>
+									</Tooltip>
+									<Tooltip>
+										<TooltipTriggerIfValid
+											className={"text-left select-text cursor-auto w-full"}
+										>
+											<p className="font-normal opacity-50 text-sm whitespace-pre overflow-ellipsis overflow-hidden">
+												{project.path}
+											</p>
+										</TooltipTriggerIfValid>
+										<TooltipContent>{project.path}</TooltipContent>
+									</Tooltip>
+								</>
+							)}
 						</div>
 					</TooltipTriggerIfInvalid>
 					<TooltipPortal>

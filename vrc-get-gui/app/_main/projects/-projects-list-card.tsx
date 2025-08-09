@@ -67,10 +67,12 @@ export function ProjectsTableCard({
 	projects,
 	search,
 	loading,
+	compact,
 }: {
 	projects: TauriProject[];
 	search?: string;
 	loading?: boolean;
+	compact?: boolean;
 }) {
 	const sortingQuery = useQuery({
 		initialData: "lastModified" as Sorting,
@@ -175,7 +177,7 @@ export function ProjectsTableCard({
 			</thead>
 			<tbody>
 				{projectsShown.map((project) => (
-					<ProjectRow key={project.path} project={project} loading={loading} />
+					<ProjectRow key={project.path} project={project} loading={loading} compact={compact} />
 				))}
 			</tbody>
 		</ScrollableCardTable>

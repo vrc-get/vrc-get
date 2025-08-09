@@ -37,10 +37,12 @@ export function ProjectsGridCard({
 	projects,
 	search,
 	loading,
+	compact,
 }: {
 	projects: TauriProject[];
 	search?: string;
 	loading?: boolean;
+	compact?: boolean;
 }) {
 	const sortingQuery = useQuery({
 		initialData: "lastModified" as Sorting,
@@ -78,7 +80,7 @@ export function ProjectsGridCard({
 	return (
 		<div className="flex flex-col h-full w-full overflow-hidden">
 			<Card className="flex items-center mb-3 flex-wrap">
-				<div className="flex items-center gap-1 m-2 ml-4">
+				<div className={`flex items-center gap-1 ${compact ? "mx-2 my-0" : "m-2"} ml-4`}>
 					<p className="grow-0 whitespace-pre mb-0 leading-tight">
 						{tc("projects:sort by")}
 					</p>
@@ -114,12 +116,16 @@ export function ProjectsGridCard({
 				className="h-full w-full vrc-get-scrollable-card rounded-l-xl"
 				scrollBarClassName="bg-background rounded-full border-l-0 p-[1.5px]"
 			>
-				<div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 overflow-x-hidden mr-4">
+				<div className={compact
+					? "grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-4 gap-3 overflow-x-hidden mr-4"
+					: "grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 overflow-x-hidden mr-4"
+				}>
 					{projectsShown.map((project) => (
 						<ProjectGridItem
 							key={project.path}
 							project={project}
 							loading={loading}
+							compact={compact}
 						/>
 					))}
 				</div>

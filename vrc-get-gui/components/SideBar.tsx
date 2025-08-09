@@ -26,12 +26,17 @@ import {
 	DialogHeader,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { toastNormal } from "@/lib/toast";
 
-export function SideBar({ className }: { className?: string }) {
+export function SideBar({ className, compact }: { className?: string, compact?: boolean }) {
 	"use client";
 
 	const globalInfo = useGlobalInfo();
@@ -56,36 +61,43 @@ export function SideBar({ className }: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}
+			className={`${className} flex w-auto max-w-80 ${compact ? "px-0 py-2" : "p-2"} shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}
 		>
-			<div className="flex flex-col gap-1 p-2 min-w-40 grow">
-				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
+			<div className={`flex flex-col gap-1 p-2 ${compact ? "min-w-0" : "min-w-40"} grow`}>
+				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} compact={compact} />
 				<SideBarItem
 					href={"/packages/repositories"}
 					text={tc("resources")}
 					icon={Package}
+					compact={compact}
 				/>
-				<SideBarItem href={"/settings"} text={tc("settings")} icon={Settings} />
-				<SideBarItem href={"/log"} text={tc("logs")} icon={AlignLeft} />
-				{isDev && <DevRestartSetupButton />}
+				<SideBarItem href={"/settings"} text={tc("settings")} icon={Settings} compact={compact} />
+				<SideBarItem href={"/log"} text={tc("logs")} icon={AlignLeft} compact={compact} />
+				{isDev && <DevRestartSetupButton compact={compact} />}
 				{isDev && (
 					<SideBarItem
 						href={"/dev-palette"}
 						text={"UI Palette (dev only)"}
 						icon={SwatchBook}
+						compact={compact}
 					/>
 				)}
 				<div className={"grow"} />
-				{isBadHostName.data && <BadHostNameDialogButton />}
-				<Button
-					variant={"ghost"}
-					className={
-						"text-sm justify-start hover:bg-card hover:text-card-foreground"
-					}
-					onClick={copyVersionName}
-				>
-					{globalInfo.version ? `v${globalInfo.version}` : "unknown"}
-				</Button>
+				{isBadHostName.data && <BadHostNameDialogButton compact={compact} />}
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant={"ghost"}
+							className={
+								"text-sm justify-start hover:bg-card hover:text-card-foreground"
+							}
+							onClick={copyVersionName}
+						>
+							{compact ? "ver" : globalInfo.version ? `v${globalInfo.version}` : "unknown"}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="right">{globalInfo.version ? `v${globalInfo.version}` : "unknown"}</TooltipContent>
+				</Tooltip>
 			</div>
 		</Card>
 	);
@@ -95,10 +107,12 @@ function SideBarItem({
 	href,
 	text,
 	icon,
+	compact,
 }: {
 	href: keyof RegisteredRouter["routesByPath"];
 	text: React.ReactNode;
 	icon: React.ComponentType<{ className?: string }>;
+	compact?: boolean;
 }) {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -109,35 +123,45 @@ function SideBarItem({
 	const isActive =
 		getFirstPathSegment(location.pathname || "") === getFirstPathSegment(href);
 	return (
-		<Button
-			variant={"ghost"}
-			className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
-			onClick={() => navigate({ to: href })}
-		>
-			<div className={"mr-4"}>
-				<IconElenment className="h-5 w-5" />
-			</div>
-			{text}
-		</Button>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant={"ghost"}
+					className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
+					onClick={() => navigate({ to: href })}
+				>
+					<div className={compact ? "mr-0" : "mr-4"}>
+						<IconElenment className="h-5 w-5" />
+					</div>
+					{compact ? "" : text}
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent side="right">{text}</TooltipContent>
+		</Tooltip>
 	);
 }
 
-function BadHostNameDialogButton() {
+function BadHostNameDialogButton({ compact }: { compact?: boolean }) {
 	return (
 		<Dialog>
-			<DialogTrigger asChild>
-				<Button
-					variant={"ghost"}
-					className={
-						"text-sm justify-start hover:bg-card hover:text-warning text-warning"
-					}
-				>
-					<div className={"mr-4"}>
-						<CircleAlert className="h-5 w-5" />
-					</div>
-					{tc("sidebar:bad hostname")}
-				</Button>
-			</DialogTrigger>
+			<Tooltip>
+				<DialogTrigger asChild>
+					<TooltipTrigger asChild>
+						<Button
+							variant={"ghost"}
+							className={
+								"text-sm justify-start hover:bg-card hover:text-warning text-warning"
+							}
+						>
+							<div className={compact ? "mr-0" : "mr-4"}>
+								<CircleAlert className="h-5 w-5" />
+							</div>
+							{compact ? "" : tc("sidebar:bad hostname")}
+						</Button>
+					</TooltipTrigger>
+				</DialogTrigger>
+				<TooltipContent side="right">{tc("sidebar:bad hostname")}</TooltipContent>
+			</Tooltip>
 			<DialogContent className={"max-w-[50vw]"}>
 				<DialogHeader>
 					<h1 className={"text-warning text-center"}>
@@ -157,22 +181,27 @@ function BadHostNameDialogButton() {
 	);
 }
 
-function DevRestartSetupButton() {
+function DevRestartSetupButton({ compact }: { compact?: boolean }) {
 	const navigate = useNavigate();
 	const onClick = async () => {
 		await commands.environmentClearSetupProcess();
 		navigate({ to: "/setup/appearance" });
 	};
 	return (
-		<Button
-			variant={"ghost"}
-			className={"justify-start shrink-0"}
-			onClick={onClick}
-		>
-			<div className={"mr-4"}>
-				<Settings className="h-5 w-5" />
-			</div>
-			Restart Setup (dev only)
-		</Button>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant={"ghost"}
+					className={"justify-start shrink-0"}
+					onClick={onClick}
+				>
+					<div className={compact ? "mr-0" : "mr-4"}>
+						<Settings className="h-5 w-5" />
+					</div>
+					{compact ? "" : "Restart Setup (dev only)"}
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent side="right">{"Restart Setup (dev only)"}</TooltipContent>
+		</Tooltip>
 	);
 }
