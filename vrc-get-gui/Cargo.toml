@@ -42,7 +42,7 @@ tar = "0.4"
 flate2 = "1"
 uuid = { version = "1", features = ["v4"] }
 trash = "5"
-async_zip = { version = "0.0.17", features = ["deflate", "tokio"] }
+async_zip = { version = "0.0.18", features = ["deflate", "tokio"] }
 async-compression = { version = "0.4", features = ["gzip", "futures-io"] }
 async-stream = "0.3"
 tauri-plugin-single-instance = "2"
