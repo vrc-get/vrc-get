@@ -216,9 +216,14 @@ export function GuiCompactSwitch() {
 			queryClient.setQueryData(environmentGuiCompact.queryKey, prev);
 		},
 		onSuccess: (_, guiCompact) => {
-			document.dispatchEvent(
-				new CustomEvent("gui-compact", { detail: guiCompact }),
-			);
+			if (guiCompact)
+			{
+				document.documentElement.setAttribute("compact", "");
+			}
+			else
+			{
+				document.documentElement.removeAttribute("compact");
+			}
 		},
 		onSettled: async () => {
 			await queryClient.invalidateQueries(environmentGuiCompact);

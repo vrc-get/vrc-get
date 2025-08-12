@@ -80,12 +80,10 @@ export const PackageListCard = memo(function PackageListCard({
 	packageRowsData,
 	repositoriesInfo,
 	onRefresh,
-	compact,
 }: {
 	packageRowsData: PackageRowInfo[];
 	repositoriesInfo: TauriRepositoriesInfo | undefined;
 	onRefresh: () => void;
-	compact?: boolean;
 }) {
 	const [search, setSearch] = useState("");
 	const [bulkUpdatePackageIdsRaw, setBulkUpdatePackageIds] = useState<string[]>(
@@ -180,7 +178,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	return (
 		<Card className="grow shrink flex shadow-none w-full">
-			<CardContent className={`w-full ${compact ? "px-2 py-0" : "p-2"} flex flex-col gap-2`}>
+			<CardContent className="w-full p-2 flex flex-col gap-2 compact:py-0">
 				<ManagePackagesHeading
 					packageRowsData={packageRowsData}
 					hiddenUserRepositories={hiddenUserRepositories}
@@ -243,7 +241,6 @@ export const PackageListCard = memo(function PackageListCard({
 									)}
 									addBulkUpdatePackage={addBulkUpdatePackage}
 									removeBulkUpdatePackage={removeBulkUpdatePackage}
-									compact={compact}
 								/>
 							</tr>
 						))}
@@ -790,16 +787,14 @@ const PackageRow = memo(function PackageRow({
 	bulkUpdateAvailable,
 	addBulkUpdatePackage,
 	removeBulkUpdatePackage,
-	compact,
 }: {
 	pkg: PackageRowInfo;
 	bulkUpdateSelected: boolean;
 	bulkUpdateAvailable: boolean;
 	addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
 	removeBulkUpdatePackage: (pkg: PackageRowInfo) => void;
-	compact?: boolean;
 }) {
-	const cellClass = compact ? "px-2.5 py-0" : "p-2.5";
+	const cellClass = "p-2.5 compact:py-0";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
@@ -857,26 +852,22 @@ const PackageRow = memo(function PackageRow({
 				/>
 			</td>
 			<td className={`${cellClass} overflow-hidden max-w-80 text-ellipsis`}>
-				<Tooltip
-					open={
-						pkg.description || compact ? undefined /* auto */ : false /* disable tooltip */
-					}
-				>
+				<Tooltip>
 					<TooltipTrigger asChild>
 						<div
 							className={`flex flex-col ${pkg.installed ? "" : "opacity-50"}`}
 						>
 							<p className="font-normal">{pkg.displayName}</p>
-							{compact || <p className="font-normal opacity-50 text-sm">{pkg.id}</p>}
+							<p className="font-normal opacity-50 text-sm compact:hidden">{pkg.id}</p>
 						</div>
 					</TooltipTrigger>
 					<TooltipContent className={"max-w-[80dvw]"}>
-						{compact && <p className={`font-normal ${pkg.installed ? "" : "opacity-50"} text-sm`}>{pkg.id}</p>}
 						<p
 							className={`whitespace-normal ${pkg.installed ? "" : "opacity-50"}`}
 						>
 							{pkg.description}
 						</p>
+						<p className="font-normal opacity-50 text-sm">{pkg.id}</p>
 					</TooltipContent>
 				</Tooltip>
 			</td>

@@ -36,7 +36,7 @@ import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
 import { toastNormal } from "@/lib/toast";
 
-export function SideBar({ className, compact }: { className?: string, compact?: boolean }) {
+export function SideBar({ className }: { className?: string }) {
 	"use client";
 
 	const globalInfo = useGlobalInfo();
@@ -61,29 +61,27 @@ export function SideBar({ className, compact }: { className?: string, compact?: 
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-80 ${compact ? "px-0 py-2" : "p-2"} shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}
+			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto compact:px-0`}
 		>
-			<div className={`flex flex-col gap-1 p-2 ${compact ? "min-w-0" : "min-w-40"} grow`}>
-				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} compact={compact} />
+			<div className="flex flex-col gap-1 p-2 min-w-40 grow compact:min-w-0">
+				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
 				<SideBarItem
 					href={"/packages/repositories"}
 					text={tc("resources")}
 					icon={Package}
-					compact={compact}
 				/>
-				<SideBarItem href={"/settings"} text={tc("settings")} icon={Settings} compact={compact} />
-				<SideBarItem href={"/log"} text={tc("logs")} icon={AlignLeft} compact={compact} />
-				{isDev && <DevRestartSetupButton compact={compact} />}
+				<SideBarItem href={"/settings"} text={tc("settings")} icon={Settings} />
+				<SideBarItem href={"/log"} text={tc("logs")} icon={AlignLeft} />
+				{isDev && <DevRestartSetupButton />}
 				{isDev && (
 					<SideBarItem
 						href={"/dev-palette"}
 						text={"UI Palette (dev only)"}
 						icon={SwatchBook}
-						compact={compact}
 					/>
 				)}
 				<div className={"grow"} />
-				{isBadHostName.data && <BadHostNameDialogButton compact={compact} />}
+				{isBadHostName.data && <BadHostNameDialogButton />}
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
@@ -93,7 +91,8 @@ export function SideBar({ className, compact }: { className?: string, compact?: 
 							}
 							onClick={copyVersionName}
 						>
-							{compact ? "ver" : globalInfo.version ? `v${globalInfo.version}` : "unknown"}
+							<span className="inline compact:hidden">{globalInfo.version ? `v${globalInfo.version}` : "unknown"}</span>
+							<span className="hidden compact:inline">{"ver"}</span>
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="right">{globalInfo.version ? `v${globalInfo.version}` : "unknown"}</TooltipContent>
@@ -107,12 +106,10 @@ function SideBarItem({
 	href,
 	text,
 	icon,
-	compact,
 }: {
 	href: keyof RegisteredRouter["routesByPath"];
 	text: React.ReactNode;
 	icon: React.ComponentType<{ className?: string }>;
-	compact?: boolean;
 }) {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -130,10 +127,10 @@ function SideBarItem({
 					className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
 					onClick={() => navigate({ to: href })}
 				>
-					<div className={compact ? "mr-0" : "mr-4"}>
+					<div className={"mr-4 compact:mr-0"}>
 						<IconElenment className="h-5 w-5" />
 					</div>
-					{compact ? "" : text}
+					<span className="compact:hidden">{text}</span>
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="right">{text}</TooltipContent>
@@ -141,7 +138,7 @@ function SideBarItem({
 	);
 }
 
-function BadHostNameDialogButton({ compact }: { compact?: boolean }) {
+function BadHostNameDialogButton() {
 	return (
 		<Dialog>
 			<Tooltip>
@@ -153,10 +150,10 @@ function BadHostNameDialogButton({ compact }: { compact?: boolean }) {
 								"text-sm justify-start hover:bg-card hover:text-warning text-warning"
 							}
 						>
-							<div className={compact ? "mr-0" : "mr-4"}>
+							<div className={"mr-4 compact:mr-0"}>
 								<CircleAlert className="h-5 w-5" />
 							</div>
-							{compact ? "" : tc("sidebar:bad hostname")}
+							<span className="compact:hidden">{tc("sidebar:bad hostname")}</span>
 						</Button>
 					</TooltipTrigger>
 				</DialogTrigger>
@@ -181,7 +178,7 @@ function BadHostNameDialogButton({ compact }: { compact?: boolean }) {
 	);
 }
 
-function DevRestartSetupButton({ compact }: { compact?: boolean }) {
+function DevRestartSetupButton() {
 	const navigate = useNavigate();
 	const onClick = async () => {
 		await commands.environmentClearSetupProcess();
@@ -195,13 +192,13 @@ function DevRestartSetupButton({ compact }: { compact?: boolean }) {
 					className={"justify-start shrink-0"}
 					onClick={onClick}
 				>
-					<div className={compact ? "mr-0" : "mr-4"}>
+					<div className={"mr-4 compact:mr-0"}>
 						<Settings className="h-5 w-5" />
 					</div>
-					{compact ? "" : "Restart Setup (dev only)"}
+					<span className="compact:hidden">Restart Setup (dev only)</span>
 				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="right">{"Restart Setup (dev only)"}</TooltipContent>
+			<TooltipContent side="right">Restart Setup (dev only)</TooltipContent>
 		</Tooltip>
 	);
 }

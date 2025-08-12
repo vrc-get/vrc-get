@@ -16,7 +16,6 @@ function MainLayout() {
 	const [animationState, setAnimationState] = useState("");
 	const [isVisible, setIsVisible] = useState(false);
 	const [guiAnimation, setGuiAnimation] = useState(false);
-	const [guiCompact, setGuiCompact] = useState(false);
 	const previousPathName = usePrevPathName();
 	const pathName = useLocation().pathname;
 
@@ -24,14 +23,6 @@ function MainLayout() {
 		"gui-animation",
 		(event) => {
 			setGuiAnimation(event.detail);
-		},
-		[],
-	);
-
-	useDocumentEvent(
-		"gui-compact",
-		(event) => {
-			setGuiCompact(event.detail);
 		},
 		[],
 	);
@@ -67,14 +58,21 @@ function MainLayout() {
 
 	useEffect(() => {
 		(async () => {
-			setGuiCompact(await commands.environmentGuiCompact());
+			if (await commands.environmentGuiCompact())
+			{
+				document.documentElement.setAttribute("compact", "");
+			}
+			else
+			{
+				document.documentElement.removeAttribute("compact");
+			}
 			setIsVisible(true);
 		})();
 	}, []);
 
 	return (
 		<>
-			<SideBar className={`grow-0 ${isVisible ? "slide-right" : "invisible"}`} compact={guiCompact} />
+			<SideBar className={`grow-0 ${isVisible ? "slide-right" : "invisible"}`} />
 			<div
 				className={`h-screen grow overflow-hidden flex p-4 ${animationState}`}
 				onAnimationEnd={() => setAnimationState("")}

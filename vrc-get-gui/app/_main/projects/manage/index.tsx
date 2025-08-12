@@ -119,12 +119,6 @@ function PageBody() {
 			],
 		});
 
-	const compactQuery = useQuery({
-		queryKey: ["environmentGuiCompact"],
-		queryFn: commands.environmentGuiCompact,
-		initialData: false,
-	});
-
 	const packageRowsData = useMemo(() => {
 		const packages = packagesResult.data ?? [];
 		const details = detailsResult.data ?? null;
@@ -204,18 +198,15 @@ function PageBody() {
 
 	const pageContext = useMemo(() => ({ isLoading }), [isLoading]);
 
-	const compact = compactQuery.data ?? false;
-
 	return (
 		<PageContextProvider value={pageContext}>
 			<VStack>
 				<ProjectViewHeader
-					className={"shrink-0"}
+					className={"shrink-0 compact:py-0"}
 					isLoading={isLoading}
 					detailsResult={detailsResult}
 					unityVersionsResult={unityVersionsResult}
 					requestChangeUnityVersion={requestChangeUnityVersion}
-					compact={compact}
 				/>
 				{detailsResult?.data?.should_resolve && (
 					<SuggestResolveProjectCard disabled={isLoading} />
@@ -231,7 +222,6 @@ function PageBody() {
 						packageRowsData={packageRowsData}
 						repositoriesInfo={repositoriesInfo.data}
 						onRefresh={() => refetchPackages.mutate()}
-						compact={compact}
 					/>
 				</main>
 			</VStack>
@@ -511,7 +501,6 @@ function ProjectViewHeader({
 	detailsResult,
 	unityVersionsResult,
 	requestChangeUnityVersion,
-	compact,
 }: {
 	className?: string;
 	isLoading: boolean | undefined;
@@ -521,7 +510,6 @@ function ProjectViewHeader({
 		version: string,
 		mayUseChinaVariant?: boolean,
 	) => void;
-	compact?: boolean;
 }) {
 	const { projectPath } = Route.useSearch();
 	const projectName = nameFromPath(projectPath);
@@ -595,7 +583,6 @@ function ProjectViewHeader({
 					</div>
 				</>
 			}
-			compact={compact}
 		/>
 	);
 }

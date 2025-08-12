@@ -48,14 +48,6 @@ function Page() {
 	const result = useQuery(environmentProjects);
 	const [search, setSearch] = useState("");
 
-	const compactQuery = useQuery({
-		initialData: false,
-		queryKey: ["environmentGuiCompact"],
-		queryFn: async () => {
-			return await commands.environmentGuiCompact();
-		},
-	});
-
 	const viewModeQuery = useQuery({
 		initialData: "List",
 		queryKey: ["environmentGetProjectViewMode"],
@@ -80,7 +72,6 @@ function Page() {
 		},
 	});
 
-	const compact = compactQuery.data ?? false;
 	const viewMode = viewModeQuery.data ?? true;
 
 	const setViewMode = (value: string) => {
@@ -100,7 +91,6 @@ function Page() {
 				setSearch={setSearch}
 				viewMode={viewMode}
 				setViewMode={setViewMode}
-				compact={compact}
 			/>
 			<main className="shrink overflow-hidden flex w-full h-full">
 				{result.status === "pending" ? (
@@ -116,21 +106,18 @@ function Page() {
 						projects={result.data}
 						search={search}
 						loading={loading}
-						compact={compact}
 					/>
 				) : viewMode === "Grid" ? (
 					<ProjectsGridCard
 						projects={result.data}
 						search={search}
 						loading={loading}
-						compact={compact}
 					/>
 				) : (
 					<ProjectsTableCard
 						projects={result.data}
 						search={search}
 						loading={loading}
-						compact={compact}
 					/>
 				)}
 			</main>
@@ -145,7 +132,6 @@ function ProjectViewHeader({
 	setSearch,
 	viewMode,
 	setViewMode,
-	compact,
 }: {
 	startCreateProject?: () => void;
 	isLoading?: boolean;
@@ -153,7 +139,6 @@ function ProjectViewHeader({
 	setSearch: (search: string) => void;
 	viewMode: string;
 	setViewMode: (viewMode: string) => void;
-	compact?: boolean;
 }) {
 	const queryClient = useQueryClient();
 	const addProjectWithPicker = useMutation({
@@ -203,7 +188,7 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar
-			className={"shrink-0"}
+			className={"shrink-0 compact:py-0"}
 			leading={
 				<>
 					<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">
@@ -287,7 +272,6 @@ function ProjectViewHeader({
 					</DropdownMenuContent>
 				</DropdownMenu>
 			}
-			compact={compact}
 		/>
 	);
 }

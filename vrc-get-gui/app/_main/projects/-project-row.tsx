@@ -74,13 +74,11 @@ const environmentProjects = queryOptions({
 export function ProjectRow({
 	project,
 	loading,
-	compact,
 }: {
 	project: TauriProject;
 	loading?: boolean;
-	compact?: boolean;
 }) {
-	const cellClass = compact ? "px-2.5 py-1" : "p-2.5";
+	const cellClass = "p-2.5 compact:py-1";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
 
@@ -131,39 +129,17 @@ export function ProjectRow({
 							className={"text-left select-text cursor-auto w-full"}
 						>
 							<div className="flex flex-col">
-								{compact ? (
-									<>
-										<Tooltip>
-											<TooltipTriggerIfValid
-												className={"text-left select-text cursor-auto w-full"}
-											>
-												<p className="font-normal whitespace-pre">{project.name}</p>
-											</TooltipTriggerIfValid>
-											<TooltipContent>{project.path}</TooltipContent>
-										</Tooltip>
-									</>
-								) : (
-									<>
-										<Tooltip>
-											<TooltipTriggerIfValid
-												className={"text-left select-text cursor-auto w-full"}
-											>
-												<p className="font-normal whitespace-pre">{project.name}</p>
-											</TooltipTriggerIfValid>
-											<TooltipContent>{project.name}</TooltipContent>
-										</Tooltip>
-										<Tooltip>
-											<TooltipTriggerIfValid
-												className={"text-left select-text cursor-auto w-full"}
-											>
-												<p className="font-normal opacity-50 text-sm whitespace-pre">
-													{project.path}
-												</p>
-											</TooltipTriggerIfValid>
-											<TooltipContent>{project.path}</TooltipContent>
-										</Tooltip>
-									</>
-								)}
+								<Tooltip>
+									<TooltipTriggerIfValid
+										className={"text-left select-text cursor-auto w-full"}
+									>
+										<p className="font-normal whitespace-pre">{project.name}</p>
+										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
+											{project.path}
+										</p>
+									</TooltipTriggerIfValid>
+									<TooltipContent>{project.path}</TooltipContent>
+								</Tooltip>
 							</div>
 						</TooltipTriggerIfInvalid>
 						<TooltipPortal>
