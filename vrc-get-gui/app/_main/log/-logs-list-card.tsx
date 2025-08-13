@@ -82,7 +82,7 @@ export const LogsListCard = memo(function LogsListCard({
 });
 
 const LogRow = memo(function LogRow({ log }: { log: LogEntry }) {
-	const cellClass = "p-2.5";
+	const cellClass = "p-2.5 compact:py-1";
 
 	const formatDate = (dateString: string) => {
 		const date = new Date(dateString);

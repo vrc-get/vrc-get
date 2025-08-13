@@ -182,7 +182,7 @@ function PackageRow({
 	pkg: TauriUserPackage;
 	remove: () => void;
 }) {
-	const cellClass = "p-2.5";
+	const cellClass = "p-2.5 compact:py-1";
 	const id = useId();
 
 	const pkgDisplayNames = pkg.package.display_name ?? pkg.package.name;

@@ -237,7 +237,7 @@ function TemplateRow({
 	edit?: (id: string) => void;
 	favorite: boolean;
 }) {
-	const cellClass = "p-2.5";
+	const cellClass = "p-2.5 compact:py-1";
 	const id = useId();
 
 	const category = projectTemplateCategory(template.id);
