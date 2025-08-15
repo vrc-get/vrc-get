@@ -26,7 +26,11 @@ import {
 	DialogHeader,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { TooltipButton } from "@/components/TooltipButton";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
@@ -78,18 +82,21 @@ export function SideBar({ className }: { className?: string }) {
 				)}
 				<div className={"grow"} />
 				{isBadHostName.data && <BadHostNameDialogButton />}
-				<TooltipButton
-					variant={"ghost"}
-					className={
-						"text-sm justify-start hover:bg-card hover:text-card-foreground"
-					}
-					onClick={copyVersionName}
-					tooltip={globalInfo.version ? `v${globalInfo.version}` : "unknown"}
-					side="right"
-				>
-					<span className="inline compact:hidden">{globalInfo.version ? `v${globalInfo.version}` : "unknown"}</span>
-					<span className="hidden compact:inline">{"ver"}</span>
-				</TooltipButton>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant={"ghost"}
+							className={
+								"text-sm justify-start hover:bg-card hover:text-card-foreground"
+							}
+							onClick={copyVersionName}
+						>
+							<span className="inline compact:hidden">{globalInfo.version ? `v${globalInfo.version}` : "unknown"}</span>
+							<span className="hidden compact:inline">{"ver"}</span>
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="right">{globalInfo.version ? `v${globalInfo.version}` : "unknown"}</TooltipContent>
+				</Tooltip>
 			</div>
 		</Card>
 	);
@@ -113,39 +120,45 @@ function SideBarItem({
 	const isActive =
 		getFirstPathSegment(location.pathname || "") === getFirstPathSegment(href);
 	return (
-		<TooltipButton
-			variant={"ghost"}
-			className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
-			onClick={() => navigate({ to: href })}
-			tooltip={text}
-			side="right"
-		>
-			<div className={"mr-4 compact:mr-0"}>
-				<IconElenment className="h-5 w-5" />
-			</div>
-			<span className="compact:hidden">{text}</span>
-		</TooltipButton>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant={"ghost"}
+					className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
+					onClick={() => navigate({ to: href })}
+				>
+					<div className={"mr-4 compact:mr-0"}>
+						<IconElenment className="h-5 w-5" />
+					</div>
+					<span className="compact:hidden">{text}</span>
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent side="right">{text}</TooltipContent>
+		</Tooltip>
 	);
 }
 
 function BadHostNameDialogButton() {
 	return (
 		<Dialog>
-			<DialogTrigger asChild>
-				<TooltipButton
-					variant={"ghost"}
-					className={
-						"text-sm justify-start hover:bg-card hover:text-warning text-warning"
-					}
-					tooltip={tc("sidebar:bad hostname")}
-					side="right"
-				>
-					<div className={"mr-4 compact:mr-0"}>
-						<CircleAlert className="h-5 w-5" />
-					</div>
-					<span className="compact:hidden">{tc("sidebar:bad hostname")}</span>
-				</TooltipButton>
-			</DialogTrigger>
+			<Tooltip>
+				<DialogTrigger asChild>
+					<TooltipTrigger asChild>
+						<Button
+							variant={"ghost"}
+							className={
+								"text-sm justify-start hover:bg-card hover:text-warning text-warning"
+							}
+						>
+							<div className={"mr-4 compact:mr-0"}>
+								<CircleAlert className="h-5 w-5" />
+							</div>
+							<span className="compact:hidden">{tc("sidebar:bad hostname")}</span>
+						</Button>
+					</TooltipTrigger>
+				</DialogTrigger>
+				<TooltipContent side="right">{tc("sidebar:bad hostname")}</TooltipContent>
+			</Tooltip>
 			<DialogContent className={"max-w-[50vw]"}>
 				<DialogHeader>
 					<h1 className={"text-warning text-center"}>
@@ -172,17 +185,20 @@ function DevRestartSetupButton() {
 		navigate({ to: "/setup/appearance" });
 	};
 	return (
-		<TooltipButton
-			variant={"ghost"}
-			className={"justify-start shrink-0"}
-			onClick={onClick}
-			tooltip="Restart Setup (dev only)"
-			side="right"
-		>
-			<div className={"mr-4 compact:mr-0"}>
-				<Settings className="h-5 w-5" />
-			</div>
-			<span className="compact:hidden">Restart Setup (dev only)</span>
-		</TooltipButton>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant={"ghost"}
+					className={"justify-start shrink-0"}
+					onClick={onClick}
+				>
+					<div className={"mr-4 compact:mr-0"}>
+						<Settings className="h-5 w-5" />
+					</div>
+					<span className="compact:hidden">Restart Setup (dev only)</span>
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent side="right">Restart Setup (dev only)</TooltipContent>
+		</Tooltip>
 	);
 }
