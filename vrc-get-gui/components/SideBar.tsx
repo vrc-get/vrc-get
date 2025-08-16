@@ -85,7 +85,7 @@ export function SideBar({ className }: { className?: string }) {
 				{isBadHostName.data && <BadHostNameDialogButton />}
 				<SideBarButton
 					icon={Info}
-					showIconOnlyWhenCompact="true"
+					showIconOnlyWhenCompact
 					className="hover:bg-card"
 					onClick={copyVersionName}
 				>
@@ -115,7 +115,9 @@ function SideBarItem({
 	return (
 		<SideBarButton
 			icon={icon}
-			className={isActive ? "bg-secondary border border-primary" : "bg-transparent"}
+			className={
+				isActive ? "bg-secondary border border-primary" : "bg-transparent"
+			}
 			onClick={() => navigate({ to: href })}
 		>
 			{text}
@@ -160,10 +162,7 @@ function DevRestartSetupButton() {
 		navigate({ to: "/setup/appearance" });
 	};
 	return (
-		<SideBarButton
-			icon={Settings}
-			onClick={onClick}
-		>
+		<SideBarButton icon={Settings} onClick={onClick}>
 			Restart Setup (dev only)
 		</SideBarButton>
 	);
@@ -190,7 +189,9 @@ function SideBarButton({
 					className={`justify-start ${className}`}
 					{...props}
 				>
-					<div className={`mr-4 compact:mr-0 ${showIconOnlyWhenCompact ? "hidden compact:block" : ""}`}>
+					<div
+						className={`mr-4 compact:mr-0 ${showIconOnlyWhenCompact ? "hidden compact:block" : ""}`}
+					>
 						<IconElement className="h-5 w-5" />
 					</div>
 					<span className="compact:hidden">{children}</span>

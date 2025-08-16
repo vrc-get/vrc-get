@@ -196,9 +196,7 @@ pub async fn environment_set_gui_animation(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn environment_gui_compact(
-    config: State<'_, GuiConfigState>,
-) -> Result<bool, RustError> {
+pub async fn environment_gui_compact(config: State<'_, GuiConfigState>) -> Result<bool, RustError> {
     Ok(config.get().gui_compact)
 }
 

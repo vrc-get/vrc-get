@@ -858,7 +858,9 @@ const PackageRow = memo(function PackageRow({
 							className={`flex flex-col ${pkg.installed ? "" : "opacity-50"}`}
 						>
 							<p className="font-normal">{pkg.displayName}</p>
-							<p className="font-normal opacity-50 text-sm compact:hidden">{pkg.id}</p>
+							<p className="font-normal opacity-50 text-sm compact:hidden">
+								{pkg.id}
+							</p>
 						</div>
 					</TooltipTrigger>
 					<TooltipContent className={"max-w-[80dvw]"}>

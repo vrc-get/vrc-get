@@ -114,8 +114,10 @@ export function ProjectsGridCard({
 				className="h-full w-full vrc-get-scrollable-card rounded-l-xl"
 				scrollBarClassName="bg-background rounded-full border-l-0 p-[1.5px]"
 			>
-				<div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 overflow-x-hidden mr-4
-					compact:grid-cols-2 compact:md:grid-cols-3 compact:2xl:grid-cols-4">
+				<div
+					className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 overflow-x-hidden mr-4
+					compact:grid-cols-2 compact:md:grid-cols-3 compact:2xl:grid-cols-4"
+				>
 					{projectsShown.map((project) => (
 						<ProjectGridItem
 							key={project.path}

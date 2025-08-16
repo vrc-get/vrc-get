@@ -199,14 +199,9 @@ export function GuiCompactSwitch() {
 			await commands.environmentSetGuiCompact(guiCompact),
 		onMutate: async (guiCompact) => {
 			await queryClient.cancelQueries(environmentGuiCompact);
-			const current = queryClient.getQueryData(
-				environmentGuiCompact.queryKey,
-			);
+			const current = queryClient.getQueryData(environmentGuiCompact.queryKey);
 			if (current != null) {
-				queryClient.setQueryData(
-					environmentGuiCompact.queryKey,
-					guiCompact,
-				);
+				queryClient.setQueryData(environmentGuiCompact.queryKey, guiCompact);
 			}
 			return current;
 		},
@@ -216,12 +211,9 @@ export function GuiCompactSwitch() {
 			queryClient.setQueryData(environmentGuiCompact.queryKey, prev);
 		},
 		onSuccess: (_, guiCompact) => {
-			if (guiCompact)
-			{
+			if (guiCompact) {
 				document.documentElement.setAttribute("compact", "");
-			}
-			else
-			{
+			} else {
 				document.documentElement.removeAttribute("compact");
 			}
 		},
