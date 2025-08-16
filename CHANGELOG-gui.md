@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Add compact gui option [`#2436`](https://github.com/vrc-get/vrc-get/pull/2436)
 
 ### Changed
 

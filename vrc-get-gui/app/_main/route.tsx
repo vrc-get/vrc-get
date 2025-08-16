@@ -57,12 +57,21 @@ function MainLayout() {
 	}, [pathName]);
 
 	useEffect(() => {
-		setIsVisible(true);
+		(async () => {
+			if (await commands.environmentGuiCompact()) {
+				document.documentElement.setAttribute("compact", "");
+			} else {
+				document.documentElement.removeAttribute("compact");
+			}
+			setIsVisible(true);
+		})();
 	}, []);
 
 	return (
 		<>
-			<SideBar className={`grow-0 ${isVisible ? "slide-right" : ""}`} />
+			<SideBar
+				className={`grow-0 ${isVisible ? "slide-right" : "invisible"}`}
+			/>
 			<div
 				className={`h-screen grow overflow-hidden flex p-4 ${animationState}`}
 				onAnimationEnd={() => setAnimationState("")}

@@ -52,7 +52,7 @@ export function SetupPageBase({
 			<div className={"flex gap-4"}>
 				{!withoutSteps && <StepCard current={pageId} />}
 				<Card
-					className={`${withoutSteps ? "w-[30rem]" : "w-96"} min-w-[50vw] min-h-[max(50dvh,20rem)] p-4 flex gap-3`}
+					className={`${withoutSteps ? "w-[30rem]" : "w-96"} min-w-[50vw] min-h-[max(50dvh,20rem)] p-4 flex gap-3 compact:min-h-[max(40dvh,20rem)]`}
 				>
 					<div className={"flex flex-col grow"}>
 						<CardHeader>

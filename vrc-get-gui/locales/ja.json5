@@ -482,6 +482,9 @@
     "settings:gui animation": "UIのアニメーションを有効にする",
     "settings:gui animation description": "ページを移動する際に遷移アニメーションが再生されます。Webviewのバージョンが低い場合は機能しないかもしれません。",
 
+    "settings:gui compact": "UIをコンパクトにする",
+    "settings:gui compact description": "一部のUIのテキストと余白を減らしてコンパクトな見た目にします。表示されなくなったテキストはツールチップから確認できます。",
+
     "settings:appearance": "UI設定",
     "settings:language": "言語設定(Language)",
     "settings:theme": "UIのテーマ",

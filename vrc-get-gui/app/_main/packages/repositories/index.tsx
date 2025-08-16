@@ -229,7 +229,7 @@ function RepositoryRow({
 	className?: string;
 	canRemove?: boolean;
 }) {
-	const cellClass = "p-2.5";
+	const cellClass = "p-2.5 compact:py-1";
 	const id = useId();
 
 	const queryClient = useQueryClient();

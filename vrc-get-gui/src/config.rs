@@ -34,6 +34,8 @@ pub struct GuiConfig {
     pub logs_level: Vec<LogLevel>,
     #[serde(default = "gui_animation_default")]
     pub gui_animation: bool,
+    #[serde(default = "gui_compact_default")]
+    pub gui_compact: bool,
     #[serde(default = "project_view_mode_default")]
     pub project_view_mode: String,
     #[serde(default)]
@@ -80,6 +82,7 @@ impl Default for GuiConfig {
             default_unity_arguments: None,
             logs_level: log_level_default(),
             gui_animation: true,
+            gui_compact: gui_compact_default(),
             project_view_mode: project_view_mode_default(),
             unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
             recent_project_locations: Vec::new(),
@@ -153,6 +156,10 @@ fn log_level_default() -> Vec<LogLevel> {
 
 fn gui_animation_default() -> bool {
     true
+}
+
+fn gui_compact_default() -> bool {
+    false
 }
 
 fn project_view_mode_default() -> String {

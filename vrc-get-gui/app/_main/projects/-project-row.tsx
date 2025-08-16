@@ -78,7 +78,7 @@ export function ProjectRow({
 	project: TauriProject;
 	loading?: boolean;
 }) {
-	const cellClass = "p-2.5";
+	const cellClass = "p-2.5 compact:py-1";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
 
@@ -134,14 +134,7 @@ export function ProjectRow({
 										className={"text-left select-text cursor-auto w-full"}
 									>
 										<p className="font-normal whitespace-pre">{project.name}</p>
-									</TooltipTriggerIfValid>
-									<TooltipContent>{project.name}</TooltipContent>
-								</Tooltip>
-								<Tooltip>
-									<TooltipTriggerIfValid
-										className={"text-left select-text cursor-auto w-full"}
-									>
-										<p className="font-normal opacity-50 text-sm whitespace-pre">
+										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
 											{project.path}
 										</p>
 									</TooltipTriggerIfValid>

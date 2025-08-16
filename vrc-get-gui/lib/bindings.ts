@@ -44,6 +44,12 @@ async environmentGuiAnimation() : Promise<boolean> {
 async environmentSetGuiAnimation(guiAnimation: boolean) : Promise<null> {
     return await TAURI_INVOKE("environment_set_gui_animation", { guiAnimation });
 },
+async environmentGuiCompact() : Promise<boolean> {
+    return await TAURI_INVOKE("environment_gui_compact");
+},
+async environmentSetGuiCompact(guiCompact: boolean) : Promise<null> {
+    return await TAURI_INVOKE("environment_set_gui_compact", { guiCompact });
+},
 async environmentProjectViewMode() : Promise<string> {
     return await TAURI_INVOKE("environment_project_view_mode");
 },
@@ -331,7 +337,7 @@ export type TauriCreateBackupProgress = { total: number; proceed: number; last_p
 export type TauriCreateProjectResult = "AlreadyExists" | "TemplateNotFound" | "Successful"
 export type TauriDownloadRepository = { type: "BadUrl" } | { type: "Duplicated"; reason: TauriDuplicatedReason; duplicated_name: string } | { type: "DownloadError"; message: string } | { type: "Success"; value: TauriRemoteRepositoryInfo }
 export type TauriDuplicatedReason = "URLDuplicated" | "IDDuplicated"
-export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null; gui_animation: boolean; unity_hub_access_method: UnityHubAccessMethod; exclude_vpm_packages_from_backup: boolean }
+export type TauriEnvironmentSettings = { default_project_path: string; project_backup_path: string; unity_hub: string; unity_paths: ([string, string, boolean])[]; show_prerelease_packages: boolean; backup_format: string; release_channel: string; use_alcom_for_vcc_protocol: boolean; default_unity_arguments: string[] | null; gui_animation: boolean; gui_compact: boolean; unity_hub_access_method: UnityHubAccessMethod; exclude_vpm_packages_from_backup: boolean }
 export type TauriImportDuplicated = { id: string; existing_path: string; existing_name: string; existing_update_date: string | null; importing_name: string; importing_update_date: string | null; data: number[] }
 export type TauriImportRepositoryPickResult = { type: "NoFilePicked" } | { type: "ParsedRepositories"; repositories: TauriRepositoryDescriptor[]; unparsable_lines: string[] }
 export type TauriImportTemplateResult = { imported: number; duplicates: TauriImportDuplicated[] }

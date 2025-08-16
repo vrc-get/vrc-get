@@ -188,7 +188,7 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar
-			className={"shrink-0"}
+			className={"shrink-0 compact:py-0"}
 			leading={
 				<>
 					<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">

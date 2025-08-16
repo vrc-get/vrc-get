@@ -3,6 +3,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
 	GuiAnimationSwitch,
+	GuiCompactSwitch,
 	LanguageSelector,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
@@ -40,6 +41,7 @@ function Body() {
 			<LanguageSelector />
 			<ThemeSelector />
 			<GuiAnimationSwitch />
+			<GuiCompactSwitch />
 		</>
 	);
 }

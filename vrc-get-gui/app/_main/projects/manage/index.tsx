@@ -202,7 +202,7 @@ function PageBody() {
 		<PageContextProvider value={pageContext}>
 			<VStack>
 				<ProjectViewHeader
-					className={"shrink-0"}
+					className={"shrink-0 compact:py-0"}
 					isLoading={isLoading}
 					detailsResult={detailsResult}
 					unityVersionsResult={unityVersionsResult}
