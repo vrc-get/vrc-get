@@ -62,7 +62,7 @@ export function SideBar({ className }: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto compact:px-0`}
+			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto compact:p-0 compact:px-0`}
 		>
 			<div className="flex flex-col gap-1 p-2 min-w-40 grow compact:min-w-0">
 				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
@@ -186,7 +186,7 @@ function SideBarButton({
 			<TooltipTrigger asChild>
 				<Button
 					variant="ghost"
-					className={`justify-start ${className} compact:px-3`}
+					className={`justify-start ${className} compact:justify-center compact:px-3 compact:h-10 compact:w-10`}
 					{...props}
 				>
 					<div

@@ -31,7 +31,7 @@ export const SearchBox = function SearchBox({
 				onChange={onChange}
 				ref={ref}
 			/>
-			<Search className="absolute! left-4 top-[17px]" width={13} height={14} />
+			<Search className="absolute! left-4 top-[17px] compact:top-[13px]" width={13} height={14} />
 		</div>
 	);
 };

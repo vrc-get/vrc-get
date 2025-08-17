@@ -152,8 +152,8 @@ function ManageLogsHeading({
 
 	return (
 		<HNavBar
-			className={"shrink-0 compact:py-0"}
-			trailingClassName="compact:-mr-3"
+			className={"flex shrink-0 compact:py-0 compact:min-h-13"}
+			trailingClassName="compact:-mr-2"
 			leading={
 				<>
 					<p className="cursor-pointer py-1.5 font-bold grow-0">{tc("logs")}</p>
