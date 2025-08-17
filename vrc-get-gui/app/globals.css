@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant compact (&:is([compact] *));
 
 @theme inline {
 	--background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));

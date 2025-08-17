@@ -493,6 +493,9 @@
     "settings:gui animation": "Enable GUI Animation",
     "settings:gui animation description": "Page transitions are animated when GUI animation is enabled. But it may not work on lower webview versions.",
 
+    "settings:gui compact": "Compact GUI Elements",
+    "settings:gui compact description": "Reduces text and padding in some GUI elements for a more compact appearance. Any hidden text can be viewed via tooltips.",
+
     "settings:appearance": "Appearance",
     "settings:language": "Language",
     "settings:theme": "Theme",

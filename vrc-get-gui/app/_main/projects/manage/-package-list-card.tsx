@@ -178,7 +178,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	return (
 		<Card className="grow shrink flex shadow-none w-full">
-			<CardContent className="w-full p-2 flex flex-col gap-2">
+			<CardContent className="w-full p-2 flex flex-col gap-2 compact:px-1 compact:pt-0 compact:pb-1 compact:gap-0.5">
 				<ManagePackagesHeading
 					packageRowsData={packageRowsData}
 					hiddenUserRepositories={hiddenUserRepositories}
@@ -210,7 +210,7 @@ export const PackageListCard = memo(function PackageListCard({
 									// biome-ignore lint/suspicious/noArrayIndexKey: static array
 									key={index}
 									className={
-										"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+										"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground px-2.5 py-1.5"
 									}
 								>
 									<small className="font-normal leading-none">{tc(head)}</small>
@@ -218,7 +218,7 @@ export const PackageListCard = memo(function PackageListCard({
 							))}
 							<th
 								className={
-									"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+									"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground px-2.5 py-1.5"
 								}
 							/>
 						</tr>
@@ -794,7 +794,7 @@ const PackageRow = memo(function PackageRow({
 	addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
 	removeBulkUpdatePackage: (pkg: PackageRowInfo) => void;
 }) {
-	const cellClass = "p-2.5";
+	const cellClass = "p-2.5 compact:py-0";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
@@ -852,17 +852,15 @@ const PackageRow = memo(function PackageRow({
 				/>
 			</td>
 			<td className={`${cellClass} overflow-hidden max-w-80 text-ellipsis`}>
-				<Tooltip
-					open={
-						pkg.description ? undefined /* auto */ : false /* disable tooltip */
-					}
-				>
+				<Tooltip>
 					<TooltipTrigger asChild>
 						<div
 							className={`flex flex-col ${pkg.installed ? "" : "opacity-50"}`}
 						>
 							<p className="font-normal">{pkg.displayName}</p>
-							<p className="font-normal opacity-50 text-sm">{pkg.id}</p>
+							<p className="font-normal opacity-50 text-sm compact:hidden">
+								{pkg.id}
+							</p>
 						</div>
 					</TooltipTrigger>
 					<TooltipContent className={"max-w-[80dvw]"}>
@@ -871,6 +869,7 @@ const PackageRow = memo(function PackageRow({
 						>
 							{pkg.description}
 						</p>
+						<p className="font-normal opacity-50 text-sm">{pkg.id}</p>
 					</TooltipContent>
 				</Tooltip>
 			</td>

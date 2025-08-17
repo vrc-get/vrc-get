@@ -9,6 +9,7 @@ import {
 import {
 	AlignLeft,
 	CircleAlert,
+	Info,
 	List,
 	Package,
 	Settings,
@@ -26,6 +27,11 @@ import {
 	DialogHeader,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { commands } from "@/lib/bindings";
 import { useGlobalInfo } from "@/lib/global-info";
 import { tc } from "@/lib/i18n";
@@ -56,9 +62,9 @@ export function SideBar({ className }: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto`}
+			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto compact:px-0`}
 		>
-			<div className="flex flex-col gap-1 p-2 min-w-40 grow">
+			<div className="flex flex-col gap-1 p-2 min-w-40 grow compact:min-w-0">
 				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
 				<SideBarItem
 					href={"/packages/repositories"}
@@ -77,15 +83,14 @@ export function SideBar({ className }: { className?: string }) {
 				)}
 				<div className={"grow"} />
 				{isBadHostName.data && <BadHostNameDialogButton />}
-				<Button
-					variant={"ghost"}
-					className={
-						"text-sm justify-start hover:bg-card hover:text-card-foreground"
-					}
+				<SideBarButton
+					icon={Info}
+					showIconOnlyWhenCompact
+					className="hover:bg-card"
 					onClick={copyVersionName}
 				>
 					{globalInfo.version ? `v${globalInfo.version}` : "unknown"}
-				</Button>
+				</SideBarButton>
 			</div>
 		</Card>
 	);
@@ -102,23 +107,21 @@ function SideBarItem({
 }) {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const IconElenment = icon;
 	const getFirstPathSegment = (path: string) => {
 		return path.split("/")[1] || "";
 	};
 	const isActive =
 		getFirstPathSegment(location.pathname || "") === getFirstPathSegment(href);
 	return (
-		<Button
-			variant={"ghost"}
-			className={`justify-start shrink-0 ${isActive ? "bg-secondary border border-primary" : "bg-transparent"}`}
+		<SideBarButton
+			icon={icon}
+			className={
+				isActive ? "bg-secondary border border-primary" : "bg-transparent"
+			}
 			onClick={() => navigate({ to: href })}
 		>
-			<div className={"mr-4"}>
-				<IconElenment className="h-5 w-5" />
-			</div>
 			{text}
-		</Button>
+		</SideBarButton>
 	);
 }
 
@@ -126,17 +129,12 @@ function BadHostNameDialogButton() {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button
-					variant={"ghost"}
-					className={
-						"text-sm justify-start hover:bg-card hover:text-warning text-warning"
-					}
+				<SideBarButton
+					icon={CircleAlert}
+					className="text-warning hover:bg-card hover:text-warning"
 				>
-					<div className={"mr-4"}>
-						<CircleAlert className="h-5 w-5" />
-					</div>
 					{tc("sidebar:bad hostname")}
-				</Button>
+				</SideBarButton>
 			</DialogTrigger>
 			<DialogContent className={"max-w-[50vw]"}>
 				<DialogHeader>
@@ -164,15 +162,42 @@ function DevRestartSetupButton() {
 		navigate({ to: "/setup/appearance" });
 	};
 	return (
-		<Button
-			variant={"ghost"}
-			className={"justify-start shrink-0"}
-			onClick={onClick}
-		>
-			<div className={"mr-4"}>
-				<Settings className="h-5 w-5" />
-			</div>
+		<SideBarButton icon={Settings} onClick={onClick}>
 			Restart Setup (dev only)
-		</Button>
+		</SideBarButton>
+	);
+}
+
+function SideBarButton({
+	icon,
+	showIconOnlyWhenCompact,
+	className,
+	children,
+	...props
+}: {
+	icon: React.ComponentType<{ className?: string }>;
+	showIconOnlyWhenCompact?: boolean;
+	className?: string;
+	children: React.ReactNode;
+} & React.ComponentProps<typeof Button>) {
+	const IconElement = icon;
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant="ghost"
+					className={`justify-start ${className} compact:px-3`}
+					{...props}
+				>
+					<div
+						className={`mr-4 compact:mr-0 ${showIconOnlyWhenCompact ? "hidden compact:block" : ""}`}
+					>
+						<IconElement className="h-5 w-5" />
+					</div>
+					<span className="compact:hidden">{children}</span>
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent side="right">{children}</TooltipContent>
+		</Tooltip>
 	);
 }
