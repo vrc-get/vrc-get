@@ -493,6 +493,9 @@
     "settings:gui animation": "Aktiviere Animationen",
     "settings:gui animation description": "Ist diese Option aktiviert, werden einige Seitenwechsel animiert. Dies funktioniert auf Systemen mit älteren Webview Versionen evtl. nicht richtig.",
 
+    "settings:gui compact": "Kompakte Oberfläche",
+    "settings:gui compact description": "Reduziert Text und Abstände für ein kompakteres Aussehen. Verborgener Text kann über Tooltips angezeigt werden.",
+
     "settings:appearance": "Darstellung",
     "settings:language": "Sprache",
     "settings:theme": "Design",
