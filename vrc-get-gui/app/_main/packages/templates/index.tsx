@@ -85,6 +85,7 @@ function RouteComponent() {
 		<VStack>
 			<HNavBar
 				className={"shrink-0"}
+				trailingClassName="-mr-2"
 				leading={<HeadingPageName pageType={"/packages/templates"} />}
 				trailing={
 					<DropdownMenu>
@@ -194,7 +195,7 @@ function TemplatesTableBody() {
 			<thead>
 				<tr>
 					<th
-						className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5`}
+						className={`sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground px-2.5 py-1.5`}
 					>
 						<Star className={"size-4"} />
 					</th>
@@ -203,7 +204,7 @@ function TemplatesTableBody() {
 							// biome-ignore lint/suspicious/noArrayIndexKey: static array
 							key={index}
 							className={
-								"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+								"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground px-2.5 py-1.5"
 							}
 						>
 							<small className="font-normal leading-none">{tc(head)}</small>

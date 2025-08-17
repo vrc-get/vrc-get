@@ -328,8 +328,8 @@ function SuggestResolveProjectCard({ disabled }: { disabled?: boolean }) {
 	const packageChange = useMutation(applyChangesMutation(projectPath));
 
 	return (
-		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
-			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm">
+		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
+			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest resolve")}
 			</p>
 			<div className={"grow shrink-0 w-2"} />
@@ -431,7 +431,7 @@ function SuggestMigrateTo2022Card({
 	onMigrateRequested: () => void;
 }) {
 	return (
-		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
+		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity migration")}
 			</p>
@@ -455,7 +455,7 @@ function Suggest2022PatchMigrationCard({
 	onMigrateRequested: () => void;
 }) {
 	return (
-		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
+		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity patch migration")}
 			</p>
@@ -479,7 +479,7 @@ function SuggestChinaToInternationalMigrationCard({
 	onMigrateRequested: () => void;
 }) {
 	return (
-		<Card className={"shrink-0 p-2 flex flex-row items-center"}>
+		<Card className={"shrink-0 p-2 flex flex-row items-center compact:p-1"}>
 			<p className="cursor-pointer py-1.5 font-bold grow-0 shrink overflow-hidden whitespace-normal text-sm pl-2">
 				{tc("projects:manage:suggest unity china to international migration")}
 			</p>
@@ -518,6 +518,8 @@ function ProjectViewHeader({
 		<HNavBar
 			className={`${className}`}
 			commonClassName={"min-h-12"}
+			leadingClassName="compact:-ml-2.5"
+			trailingClassName="compact:-mr-3"
 			leading={
 				<>
 					<Tooltip>
@@ -535,7 +537,7 @@ function ProjectViewHeader({
 						</TooltipContent>
 					</Tooltip>
 
-					<div className={"pl-2 space-y-0 my-1 shrink min-w-0"}>
+					<div className={"pl-2 space-y-0 my-1 shrink min-w-0 compact:pl-0"}>
 						<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">
 							{projectName}
 						</p>

@@ -153,6 +153,7 @@ function ManageLogsHeading({
 	return (
 		<HNavBar
 			className={"shrink-0 compact:py-0"}
+			trailingClassName="compact:-mr-3"
 			leading={
 				<>
 					<p className="cursor-pointer py-1.5 font-bold grow-0">{tc("logs")}</p>

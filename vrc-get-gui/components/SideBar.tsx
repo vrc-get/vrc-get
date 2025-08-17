@@ -186,7 +186,7 @@ function SideBarButton({
 			<TooltipTrigger asChild>
 				<Button
 					variant="ghost"
-					className={`justify-start ${className}`}
+					className={`justify-start ${className} compact:px-3`}
 					{...props}
 				>
 					<div

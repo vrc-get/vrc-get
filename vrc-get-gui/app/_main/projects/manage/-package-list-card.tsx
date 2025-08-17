@@ -178,7 +178,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	return (
 		<Card className="grow shrink flex shadow-none w-full">
-			<CardContent className="w-full p-2 flex flex-col gap-2 compact:py-0">
+			<CardContent className="w-full p-2 flex flex-col gap-2 compact:px-1 compact:pt-0 compact:pb-1 compact:gap-0.5">
 				<ManagePackagesHeading
 					packageRowsData={packageRowsData}
 					hiddenUserRepositories={hiddenUserRepositories}
@@ -210,7 +210,7 @@ export const PackageListCard = memo(function PackageListCard({
 									// biome-ignore lint/suspicious/noArrayIndexKey: static array
 									key={index}
 									className={
-										"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+										"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground px-2.5 py-1.5"
 									}
 								>
 									<small className="font-normal leading-none">{tc(head)}</small>
@@ -218,7 +218,7 @@ export const PackageListCard = memo(function PackageListCard({
 							))}
 							<th
 								className={
-									"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground p-2.5"
+									"sticky top-0 z-10 border-b border-primary bg-secondary text-secondary-foreground px-2.5 py-1.5"
 								}
 							/>
 						</tr>
