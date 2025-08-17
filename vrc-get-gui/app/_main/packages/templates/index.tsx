@@ -521,17 +521,16 @@ function CreateTemplateButton({ className }: { className: string }) {
 
 const regexp = String.raw;
 const versionSegment = regexp`(?:\*|x|0|[1-9]\d*)`;
-/* Currently, the unity version channel part and increment part is ignored and not allowed to include
 const prereleaseSegment = regexp`(?:0|[1-9]\d*|[0-9a-z-]*[a-z-][0-9a-z-]*)`;
 const prerelease = regexp`(?:-?${prereleaseSegment}(?:\.${prereleaseSegment})*)`;
 const buildSegment = regexp`(?:[0-9a-z-]+)`;
 const build = regexp`(?:${buildSegment}(?:\.${buildSegment})*)`;
-const rangeRegex = new RegExp(
+const packageRangeRegex = new RegExp(
 	regexp`^\s*(?:(?:>|<|>=|<=|=|\^|~)\s*)?v?${versionSegment}(?:\.${versionSegment}(?:\.${versionSegment}${prerelease}?${build}?)?)?\s*$`,
 	"i",
 );
-*/
-const rangeRegex = new RegExp(
+// Currently, the unity version channel part and increment part is ignored and not allowed to include
+const unityRangeRegex = new RegExp(
 	regexp`^\s*(?:(?:>|<|>=|<=|=|\^|~)\s*)?v?${versionSegment}(?:\.${versionSegment}(?:\.${versionSegment})?)?\s*$`,
 	"i",
 );
@@ -789,10 +788,10 @@ function TemplateEditor({
 
 	const validVersion = (p: Package) =>
 		(p.name === "" && p.range === "") || // the empty (non-set) row
-		(p.name !== "" && p.range.match(rangeRegex)); // ready to create
+		(p.name !== "" && p.range.match(packageRangeRegex)); // ready to create
 	const readyToCreate =
 		packagesListContext.value.every(validVersion) &&
-		unityRange.match(rangeRegex) &&
+		unityRange.match(unityRangeRegex) &&
 		name.length !== 0;
 
 	return (
@@ -852,7 +851,7 @@ function TemplateEditor({
 										<Autocomplete
 											className={cn(
 												"grow",
-												unityRange.match(rangeRegex) ||
+												unityRange.match(unityRangeRegex) ||
 													"border-destructive ring-destructive text-destructive",
 											)}
 											value={unityRange}
