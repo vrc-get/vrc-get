@@ -741,36 +741,34 @@ function ProjectButton({
 	};
 
 	return (
-		<>
-			<DropdownMenu>
-				<div className={"flex divide-x"}>
-					<OpenUnityButton
-						projectPath={projectPath}
-						unityVersion={unityVersion}
-						unityRevision={unityRevision}
-						className={"rounded-r-none pl-4 pr-3"}
-					/>
-					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
-						<Button>
-							<ChevronDown className={"w-4 h-4"} />
-						</Button>
-					</DropdownMenuTrigger>
-				</div>
-				<DropdownMenuContent>
-					<DropdownMenuContentBody
-						projectPath={projectPath}
-						removeProject={() => {
-							void openSingleDialog(RemoveProjectDialog, {
-								project: {
-									path: projectPath,
-									is_exists: true,
-								},
-							});
-						}}
-						onChangeLaunchOptions={onChangeLaunchOptions}
-					/>
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</>
+		<DropdownMenu>
+			<div className={"flex divide-x"}>
+				<OpenUnityButton
+					projectPath={projectPath}
+					unityVersion={unityVersion}
+					unityRevision={unityRevision}
+					className={"rounded-r-none pl-4 pr-3"}
+				/>
+				<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
+					<Button>
+						<ChevronDown className={"w-4 h-4"} />
+					</Button>
+				</DropdownMenuTrigger>
+			</div>
+			<DropdownMenuContent>
+				<DropdownMenuContentBody
+					projectPath={projectPath}
+					removeProject={() => {
+						void openSingleDialog(RemoveProjectDialog, {
+							project: {
+								path: projectPath,
+								is_exists: true,
+							},
+						});
+					}}
+					onChangeLaunchOptions={onChangeLaunchOptions}
+				/>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }

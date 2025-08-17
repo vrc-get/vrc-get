@@ -264,10 +264,8 @@ function ConfirmingPackages({
 
 function AddingRepositories() {
 	return (
-		<>
-			<DialogDescription>
-				<p>{tc("vpm repositories:dialog:adding repositories...")}</p>
-			</DialogDescription>
-		</>
+		<DialogDescription>
+			<p>{tc("vpm repositories:dialog:adding repositories...")}</p>
+		</DialogDescription>
 	);
 }
