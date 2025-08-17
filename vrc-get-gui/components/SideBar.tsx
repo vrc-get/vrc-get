@@ -9,11 +9,11 @@ import {
 import {
 	AlignLeft,
 	CircleAlert,
+	Info,
 	List,
 	Package,
 	Settings,
 	SwatchBook,
-	Info,
 } from "lucide-react";
 import type React from "react";
 import { Button } from "@/components/ui/button";
