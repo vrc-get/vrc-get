@@ -685,7 +685,9 @@ function TemplateEditor({
 		if (templateInfo == null) return [];
 		// unityVersions is in order
 		// currently, ignore the unity version channel part and increment part
-		const unityVersions = templateInfo.unity_versions.map((x) => x.split(/[^\d.]/, 2)[0]);
+		const unityVersions = templateInfo.unity_versions.map(
+			(x) => x.split(/[^\d.]/, 2)[0],
+		);
 		const candidates: AutoCompleteOption[] = [];
 
 		function addCandidate(value: string, description: React.ReactNode) {
