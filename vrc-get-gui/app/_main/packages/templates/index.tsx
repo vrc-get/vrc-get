@@ -521,12 +521,18 @@ function CreateTemplateButton({ className }: { className: string }) {
 
 const regexp = String.raw;
 const versionSegment = regexp`(?:\*|x|0|[1-9]\d*)`;
+/* Currently, the unity version channel part and increment part is ignored and not allowed to include
 const prereleaseSegment = regexp`(?:0|[1-9]\d*|[0-9a-z-]*[a-z-][0-9a-z-]*)`;
 const prerelease = regexp`(?:-?${prereleaseSegment}(?:\.${prereleaseSegment})*)`;
 const buildSegment = regexp`(?:[0-9a-z-]+)`;
 const build = regexp`(?:${buildSegment}(?:\.${buildSegment})*)`;
 const rangeRegex = new RegExp(
 	regexp`^\s*(?:(?:>|<|>=|<=|=|\^|~)\s*)?v?${versionSegment}(?:\.${versionSegment}(?:\.${versionSegment}${prerelease}?${build}?)?)?\s*$`,
+	"i",
+);
+*/
+const rangeRegex = new RegExp(
+	regexp`^\s*(?:(?:>|<|>=|<=|=|\^|~)\s*)?v?${versionSegment}(?:\.${versionSegment}(?:\.${versionSegment})?)?\s*$`,
 	"i",
 );
 
@@ -678,7 +684,8 @@ function TemplateEditor({
 		const templateInfo = templates.find((x) => x.id === baseTemplate);
 		if (templateInfo == null) return [];
 		// unityVersions is in order
-		const unityVersions = templateInfo.unity_versions;
+		// currently, ignore the unity version channel part and increment part
+		const unityVersions = templateInfo.unity_versions.map((x) => x.split(/[^\d.]/, 2)[0]);
 		const candidates: AutoCompleteOption[] = [];
 
 		function addCandidate(value: string, description: React.ReactNode) {
