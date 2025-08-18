@@ -27,7 +27,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - uses: anatawa12/something-releaser@v3
@@ -167,7 +167,7 @@ jobs:
 
     needs: [ pre-build ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: 'releasing'
           submodules: recursive
@@ -217,7 +217,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ pre-build, build-rust ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: 'releasing'
           fetch-depth: 1
@@ -251,7 +251,7 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: 'releasing'
           fetch-depth: 2
@@ -329,7 +329,7 @@ jobs:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: 'releasing'
           fetch-depth: 2
