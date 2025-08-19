@@ -483,6 +483,9 @@
     "settings:gui animation": "启用 GUI 动画",
     "settings:gui animation description": "当启用 GUI 动画时，切换页面将会带有动画效果。但系统 WebView 版本过低时可能不起作用。",
 
+    "settings:gui compact": "GUI 紧凑模式",
+    "settings:gui compact description": "减小 GUI 元素中文字的大小和间距来让 GUI 显得更加紧凑。被隐藏的文字将会以提示的方式显示。",
+
     "settings:appearance": "外观",
     "settings:language": "界面语言(Language)",
     "settings:theme": "主题",
