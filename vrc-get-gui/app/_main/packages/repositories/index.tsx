@@ -106,21 +106,21 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"shrink-0"}
-				trailingClassName="-mr-2"
+				className={"shrink-0 compact:py-1.5"}
+				trailingClassName="-mr-2.5"
 				leading={<HeadingPageName pageType={"/packages/repositories"} />}
 				trailing={
 					<DropdownMenu>
 						<div className={"flex divide-x"}>
 							<Button
-								className={"rounded-r-none"}
+								className={"rounded-r-none compact:h-10"}
 								onClick={() => openAddRepositoryDialog()}
 							>
 								{tc("vpm repositories:button:add repository")}
 							</Button>
 							<DropdownMenuTrigger
 								asChild
-								className={"rounded-l-none pl-2 pr-2"}
+								className={"rounded-l-none pl-2 pr-2 compact:h-10"}
 							>
 								<Button>
 									<ChevronDown className={"w-4 h-4"} />

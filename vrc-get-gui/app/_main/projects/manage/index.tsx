@@ -309,7 +309,7 @@ function UnityVersionSelector({
 			value={detailsResult.data?.unity_str ?? undefined}
 			onValueChange={requestChangeUnityVersion}
 		>
-			<SelectTrigger>
+			<SelectTrigger className={"compact:h-10"}>
 				{detailsResult.status === "success" ? (
 					(detailsResult.data.unity_str ?? "unknown")
 				) : (
@@ -516,15 +516,16 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar
-			className={`${className}`}
+			className={`${className} compact:py-0.5`}
 			commonClassName={"min-h-12"}
 			leadingClassName="compact:-ml-2.5"
-			trailingClassName="compact:-mr-3"
+			trailingClassName="compact:-mr-2.5"
 			leading={
 				<>
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
+								className={"compact:h-10"}
 								variant={"ghost"}
 								size={"sm"}
 								onClick={() => history.back()}
@@ -741,36 +742,37 @@ function ProjectButton({
 	};
 
 	return (
-		<>
-			<DropdownMenu>
-				<div className={"flex divide-x"}>
-					<OpenUnityButton
-						projectPath={projectPath}
-						unityVersion={unityVersion}
-						unityRevision={unityRevision}
-						className={"rounded-r-none pl-4 pr-3"}
-					/>
-					<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2"}>
-						<Button>
-							<ChevronDown className={"w-4 h-4"} />
-						</Button>
-					</DropdownMenuTrigger>
-				</div>
-				<DropdownMenuContent>
-					<DropdownMenuContentBody
-						projectPath={projectPath}
-						removeProject={() => {
-							void openSingleDialog(RemoveProjectDialog, {
-								project: {
-									path: projectPath,
-									is_exists: true,
-								},
-							});
-						}}
-						onChangeLaunchOptions={onChangeLaunchOptions}
-					/>
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</>
+		<DropdownMenu>
+			<div className={"flex divide-x"}>
+				<OpenUnityButton
+					projectPath={projectPath}
+					unityVersion={unityVersion}
+					unityRevision={unityRevision}
+					className={"rounded-r-none pl-4 pr-3 compact:h-10"}
+				/>
+				<DropdownMenuTrigger
+					asChild
+					className={"rounded-l-none pl-2 pr-2 compact:h-10"}
+				>
+					<Button>
+						<ChevronDown className={"w-4 h-4"} />
+					</Button>
+				</DropdownMenuTrigger>
+			</div>
+			<DropdownMenuContent>
+				<DropdownMenuContentBody
+					projectPath={projectPath}
+					removeProject={() => {
+						void openSingleDialog(RemoveProjectDialog, {
+							project: {
+								path: projectPath,
+								is_exists: true,
+							},
+						});
+					}}
+					onChangeLaunchOptions={onChangeLaunchOptions}
+				/>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }

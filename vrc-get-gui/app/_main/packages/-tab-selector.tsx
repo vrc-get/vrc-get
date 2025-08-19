@@ -10,7 +10,7 @@ type PageType =
 
 export function HeadingPageName({ pageType }: { pageType: PageType }) {
 	return (
-		<div className={"-ml-1.5"}>
+		<div className={"flex -ml-1.5 compact:h-10 items-center"}>
 			<div
 				className={"grid grid-cols-3 gap-1.5 bg-secondary p-1 -m-1 rounded-md"}
 			>
@@ -47,7 +47,7 @@ function HeadingButton({
 	children: React.ReactNode;
 }) {
 	const button =
-		"cursor-pointer px-3 py-2 font-bold grow-0 hover:bg-background rounded-sm text-center p-2";
+		"cursor-pointer px-3 py-2 font-bold grow-0 hover:bg-background rounded-sm text-center p-2 compact:h-8 compact:py-1";
 
 	if (currentPage === targetPage) {
 		return <div className={`${button} bg-background`}>{children}</div>;

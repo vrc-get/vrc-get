@@ -192,7 +192,7 @@ export function ProjectRow({
 					</Tooltip>
 				</td>
 				<td className={noGrowCellClass}>
-					<div className="flex flex-row gap-2 max-w-min">
+					<div className="flex flex-row gap-2 max-w-min items-center">
 						<ButtonDisabledIfInvalid asChild>
 							<OpenUnityButton
 								projectPath={project.path}

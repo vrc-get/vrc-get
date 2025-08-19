@@ -87,11 +87,14 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"shrink-0"}
-				trailingClassName="-mr-2"
+				className={"shrink-0 compact:py-1.5"}
+				trailingClassName="-mr-2 compact:-mr-2.5"
 				leading={<HeadingPageName pageType={"/packages/user-packages"} />}
 				trailing={
-					<Button onClick={() => addUserPackageWithPicker.mutate()}>
+					<Button
+						className={"compact:h-10"}
+						onClick={() => addUserPackageWithPicker.mutate()}
+					>
 						{tc("user packages:button:add package")}
 					</Button>
 				}
