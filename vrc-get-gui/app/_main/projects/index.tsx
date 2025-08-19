@@ -264,7 +264,10 @@ function ProjectViewHeader({
 						>
 							{tc("projects:create new project")}
 						</Button>
-						<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2 compact:h-10"}>
+						<DropdownMenuTrigger
+							asChild
+							className={"rounded-l-none pl-2 pr-2 compact:h-10"}
+						>
 							<Button>
 								<ChevronDown className={"w-4 h-4"} />
 							</Button>

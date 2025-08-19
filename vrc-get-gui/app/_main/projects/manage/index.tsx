@@ -750,7 +750,10 @@ function ProjectButton({
 					unityRevision={unityRevision}
 					className={"rounded-r-none pl-4 pr-3 compact:h-10"}
 				/>
-				<DropdownMenuTrigger asChild className={"rounded-l-none pl-2 pr-2 compact:h-10"}>
+				<DropdownMenuTrigger
+					asChild
+					className={"rounded-l-none pl-2 pr-2 compact:h-10"}
+				>
 					<Button>
 						<ChevronDown className={"w-4 h-4"} />
 					</Button>

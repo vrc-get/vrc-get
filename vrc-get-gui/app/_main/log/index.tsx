@@ -227,7 +227,9 @@ function ManageLogsHeading({
 								variant={"ghost"}
 								onClick={() => handleLogAutoScrollChange(!autoScroll)}
 								className={`compact:h-10 ${
-									autoScroll ? "bg-secondary border border-primary" : "bg-transparent"
+									autoScroll
+										? "bg-secondary border border-primary"
+										: "bg-transparent"
 								}`}
 							>
 								<ArrowDownFromLine className={"w-5 h-5"} />
