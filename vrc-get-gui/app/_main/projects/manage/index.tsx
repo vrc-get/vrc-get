@@ -519,7 +519,7 @@ function ProjectViewHeader({
 			className={`${className}`}
 			commonClassName={"min-h-12"}
 			leadingClassName="compact:-ml-2.5"
-			trailingClassName="compact:-mr-3"
+			trailingClassName="compact:-mr-2"
 			leading={
 				<>
 					<Tooltip>

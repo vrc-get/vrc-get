@@ -33,7 +33,7 @@ export function HNavBar({
 }) {
 	return (
 		<Card className={`${className} mx-auto px-4 py-2 w-full`}>
-			<div className="mx-auto flex flex-grow items-center justify-between text-primary gap-2">
+			<div className="mx-auto flex flex-wrap items-center justify-between text-primary gap-2 w-full">
 				<div
 					className={cn(
 						"flex items-center gap-2 me-auto grow shrink",
