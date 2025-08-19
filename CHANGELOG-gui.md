@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
-- Specifying a single unityversion doesn't work properly in alcomtemplate[`#2452`](https://github.com/vrc-get/vrc-get/pull/2452)
+- Specifying a single unityversion doesn't work properly in alcomtemplate [`#2452`](https://github.com/vrc-get/vrc-get/pull/2452)
   - For example, if you'd like to specify `2022.3.22f1`, you need to set `2022.3.22`, not `2022.3.22f1`
   - You can now see correct validation and suggestions for this.
 
