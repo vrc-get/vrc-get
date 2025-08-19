@@ -84,16 +84,16 @@ function RouteComponent() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"shrink-0"}
-				trailingClassName="-mr-2"
+				className={"shrink-0 compact:py-1.5"}
+				trailingClassName="-mr-2 compact:-mr-2.5"
 				leading={<HeadingPageName pageType={"/packages/templates"} />}
 				trailing={
 					<DropdownMenu>
 						<div className={"flex divide-x"}>
-							<CreateTemplateButton className={"rounded-r-none"} />
+							<CreateTemplateButton className={"rounded-r-none compact:h-10"} />
 							<DropdownMenuTrigger
 								asChild
-								className={"rounded-l-none pl-2 pr-2"}
+								className={"rounded-l-none pl-2 pr-2 compact:h-10"}
 							>
 								<Button>
 									<ChevronDown className={"w-4 h-4"} />

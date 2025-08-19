@@ -152,14 +152,16 @@ function ManageLogsHeading({
 
 	return (
 		<HNavBar
-			className={"flex shrink-0 compact:py-0 compact:min-h-13"}
-			trailingClassName="compact:-mr-2"
+			className={"shrink-0 compact:py-0.5"}
+			trailingClassName="compact:-mr-2.5"
 			leading={
 				<>
 					<p className="cursor-pointer py-1.5 font-bold grow-0">{tc("logs")}</p>
 
 					<SearchBox
 						className={"w-max grow"}
+						inputClassName={"compact:h-10"}
+						iconClassName={"compact:top-[17px]"}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						ref={searchRef}
@@ -170,7 +172,7 @@ function ManageLogsHeading({
 				<>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button className={"shrink-0 p-3"}>
+							<Button className={"shrink-0 p-3 compact:h-10"}>
 								{tc("logs:manage:select logs level")}
 							</Button>
 						</DropdownMenuTrigger>
@@ -208,6 +210,7 @@ function ManageLogsHeading({
 					</DropdownMenu>
 
 					<Button
+						className={"compact:h-10"}
 						onClick={() =>
 							commands.utilOpen(
 								`${globalInfo.vpmHomeFolder}/vrc-get/gui-logs`,
@@ -223,11 +226,9 @@ function ManageLogsHeading({
 							<Button
 								variant={"ghost"}
 								onClick={() => handleLogAutoScrollChange(!autoScroll)}
-								className={
-									autoScroll
-										? "bg-secondary border border-primary"
-										: "bg-transparent"
-								}
+								className={`compact:h-10 ${
+									autoScroll ? "bg-secondary border border-primary" : "bg-transparent"
+								}`}
 							>
 								<ArrowDownFromLine className={"w-5 h-5"} />
 							</Button>

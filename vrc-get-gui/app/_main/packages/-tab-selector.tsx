@@ -10,7 +10,7 @@ type PageType =
 
 export function HeadingPageName({ pageType }: { pageType: PageType }) {
 	return (
-		<div className={"flex -ml-1.5 compact:h-9 items-center"}>
+		<div className={"flex -ml-1.5 compact:h-10 items-center"}>
 			<div
 				className={"grid grid-cols-3 gap-1.5 bg-secondary p-1 -m-1 rounded-md"}
 			>
