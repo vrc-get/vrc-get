@@ -525,8 +525,13 @@ const prereleaseSegment = regexp`(?:0|[1-9]\d*|[0-9a-z-]*[a-z-][0-9a-z-]*)`;
 const prerelease = regexp`(?:-?${prereleaseSegment}(?:\.${prereleaseSegment})*)`;
 const buildSegment = regexp`(?:[0-9a-z-]+)`;
 const build = regexp`(?:${buildSegment}(?:\.${buildSegment})*)`;
-const rangeRegex = new RegExp(
+const packageRangeRegex = new RegExp(
 	regexp`^\s*(?:(?:>|<|>=|<=|=|\^|~)\s*)?v?${versionSegment}(?:\.${versionSegment}(?:\.${versionSegment}${prerelease}?${build}?)?)?\s*$`,
+	"i",
+);
+// Currently, the unity version channel part and increment part is ignored and not allowed to include
+const unityRangeRegex = new RegExp(
+	regexp`^\s*(?:(?:>|<|>=|<=|=|\^|~)\s*)?v?${versionSegment}(?:\.${versionSegment}(?:\.${versionSegment})?)?\s*$`,
 	"i",
 );
 
@@ -678,7 +683,10 @@ function TemplateEditor({
 		const templateInfo = templates.find((x) => x.id === baseTemplate);
 		if (templateInfo == null) return [];
 		// unityVersions is in order
-		const unityVersions = templateInfo.unity_versions;
+		// currently, ignore the unity version channel part and increment part
+		const unityVersions = templateInfo.unity_versions.map(
+			(x) => x.split(/[^\d.]/, 2)[0],
+		);
 		const candidates: AutoCompleteOption[] = [];
 
 		function addCandidate(value: string, description: React.ReactNode) {
@@ -780,10 +788,10 @@ function TemplateEditor({
 
 	const validVersion = (p: Package) =>
 		(p.name === "" && p.range === "") || // the empty (non-set) row
-		(p.name !== "" && p.range.match(rangeRegex)); // ready to create
+		(p.name !== "" && p.range.match(packageRangeRegex)); // ready to create
 	const readyToCreate =
 		packagesListContext.value.every(validVersion) &&
-		unityRange.match(rangeRegex) &&
+		unityRange.match(unityRangeRegex) &&
 		name.length !== 0;
 
 	return (
@@ -843,7 +851,7 @@ function TemplateEditor({
 										<Autocomplete
 											className={cn(
 												"grow",
-												unityRange.match(rangeRegex) ||
+												unityRange.match(unityRangeRegex) ||
 													"border-destructive ring-destructive text-destructive",
 											)}
 											value={unityRange}
