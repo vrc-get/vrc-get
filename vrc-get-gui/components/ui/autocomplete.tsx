@@ -74,12 +74,10 @@ export function Autocomplete({
 								setOpen(true);
 							}}
 							onKeyDown={(e) => {
-								// Allow Home/End keys to move cursor when suggestions aren't visible
+								// Always allow Home/End keys to move cursor, never use them for suggestion navigation
 								if (e.key === "Home" || e.key === "End") {
-									if (!open || options.length === 0) {
-										// Stop the event from reaching the Command component
-										e.stopPropagation();
-									}
+									// Stop the event from reaching the Command component
+									e.stopPropagation();
 								}
 							}}
 						/>
