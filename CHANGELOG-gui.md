@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog].
 - Specifying a single unityversion doesn't work properly in alcomtemplate [`#2452`](https://github.com/vrc-get/vrc-get/pull/2452)
   - For example, if you'd like to specify `2022.3.22f1`, you need to set `2022.3.22`, not `2022.3.22f1`
   - You can now see correct validation and suggestions for this.
-- Home/End keys now consistently control cursor position in autocomplete fields [`#2464`](https://github.com/vrc-get/vrc-get/pull/2464)
+- Home/End keys now consistently control cursor position in autocomplete fields [`#2466`](https://github.com/vrc-get/vrc-get/pull/2466)
   - Previously, Home/End keys would sometimes be captured for suggestion navigation when autocomplete was open
   - These keys now always move the text cursor regardless of autocomplete state
 
