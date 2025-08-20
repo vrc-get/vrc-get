@@ -79,6 +79,11 @@ export function Autocomplete({
 									// Stop the event from reaching the Command component
 									e.stopPropagation();
 								}
+								// Allow Up/Down keys to move cursor when suggestions are not open
+								if (!open && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+									// Stop the event from reaching the Command component
+									e.stopPropagation();
+								}
 							}}
 						/>
 					</CommandInputRaw>
