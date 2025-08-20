@@ -73,6 +73,15 @@ export function Autocomplete({
 								setValue(v.currentTarget.value);
 								setOpen(true);
 							}}
+							onKeyDown={(e) => {
+								// Allow Home/End keys to move cursor when suggestions aren't visible
+								if (e.key === "Home" || e.key === "End") {
+									if (!open || options.length === 0) {
+										// Stop the event from reaching the Command component
+										e.stopPropagation();
+									}
+								}
+							}}
 						/>
 					</CommandInputRaw>
 				</PopoverTrigger>
