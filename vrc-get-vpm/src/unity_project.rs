@@ -60,6 +60,30 @@ impl UnityProject {
         let manifest = VpmManifest::load(&io).await?;
         let upm_manifest = UpmManifest::load(&io).await?;
 
+        fix_for_previous_vrc_get_bug(&io, &manifest).await.ok();
+
+        // In previous version of vrc-get, we might emit "3.2-3.8" for "3.2 - 3.8" range notation.
+        // This is parseable with ALCOM's implementation but not with SemVer.NET.
+        // TODO: remove this fix in the future
+        async fn fix_for_previous_vrc_get_bug(
+            io: &DefaultProjectIo,
+            parsed_manifest: &VpmManifest,
+        ) -> io::Result<()> {
+            const MANIFEST_PATH: &str = "Packages/vpm-manifest.json";
+            const BAD_CONFIG: &[u8] = br##""3.2-3.8""##;
+
+            let mut file = io.open(MANIFEST_PATH.as_ref()).await?;
+            let mut buffer = vec![];
+            file.read_to_end(&mut buffer).await?;
+            if buffer.windows(BAD_CONFIG.len()).any(|s| s == BAD_CONFIG) {
+                // We found bad notation. replace with fixed one.
+                io.write_sync(MANIFEST_PATH.as_ref(), &parsed_manifest.to_json()?)
+                    .await?;
+            }
+
+            Ok(())
+        }
+
         let mut installed_packages = HashMap::new();
         let mut unlocked_packages = vec![];
 

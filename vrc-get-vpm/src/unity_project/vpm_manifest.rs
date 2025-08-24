@@ -110,4 +110,8 @@ impl VpmManifest {
             .save(|json| save_json(io, MANIFEST_PATH.as_ref(), json))
             .await
     }
+
+    pub(super) fn to_json(&self) -> io::Result<Vec<u8>> {
+        crate::utils::to_vec_pretty_os_eol(&*self.controller)
+    }
 }
