@@ -554,13 +554,6 @@ pub async fn environment_set_favorite_project(
 }
 
 #[derive(Serialize, Deserialize, specta::Type)]
-#[serde(tag = "type")]
-pub enum TauriProjectTemplate {
-    Builtin { id: String, name: String },
-    Custom { name: String },
-}
-
-#[derive(Serialize, Deserialize, specta::Type)]
 pub struct TauriProjectTemplateInfo {
     pub display_name: String,
     pub id: String,
