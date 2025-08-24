@@ -174,7 +174,7 @@ fn logging_thread_main(
                 // add to buffer
                 {
                     let mut buffer = LOG_BUFFER.lock().unwrap();
-                    buffer.push(entry.clone());
+                    buffer.enqueue(entry.clone());
                 }
 
                 // send to tauri
