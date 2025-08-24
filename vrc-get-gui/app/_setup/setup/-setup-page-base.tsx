@@ -54,7 +54,7 @@ export function SetupPageBase({
 				<Card
 					className={`${withoutSteps ? "w-[30rem]" : "w-96"} min-w-[50vw] min-h-[max(50dvh,20rem)] p-4 flex gap-3 compact:min-h-[max(40dvh,20rem)]`}
 				>
-					<div className={"flex flex-col grow"}>
+					<div className={"flex flex-col grow gap-3 compact:gap-2"}>
 						<CardHeader>
 							<h1 className={"text-center"}>{heading}</h1>
 						</CardHeader>
@@ -65,7 +65,7 @@ export function SetupPageBase({
 							<Body environment={result.data} />
 						)}
 						<div className={"grow"} />
-						<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end">
+						<CardFooter className="p-0 pt-3 items-end flex-row gap-2 justify-end compact:-m-2">
 							{prevPage && (
 								<Button onClick={() => navigate({ to: prevPage })}>
 									{backContent}

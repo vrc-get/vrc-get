@@ -87,8 +87,7 @@ function PageBody() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"shrink-0 compact:py-1.5"}
-				trailingClassName="-mr-2 compact:-mr-2.5"
+				className="shrink-0"
 				leading={<HeadingPageName pageType={"/packages/user-packages"} />}
 				trailing={
 					<Button

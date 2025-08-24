@@ -1,7 +1,7 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { HNavBar, VStack } from "@/components/layout";
+import { HNavBar, HNavBarText, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { Button } from "@/components/ui/button";
@@ -28,12 +28,8 @@ function Page() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"shrink-0"}
-				leading={
-					<p className="cursor-pointer py-1.5 font-bold grow-0">
-						UI Palette (dev only)
-					</p>
-				}
+				className="shrink-0"
+				leading={<HNavBarText>UI Palette (dev only)</HNavBarText>}
 			/>
 			<ScrollPageContainer>
 				<main className="flex flex-col gap-2 shrink grow">

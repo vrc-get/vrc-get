@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
+import type React from "react";
 import { Suspense, useEffect, useTransition } from "react";
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
@@ -20,7 +21,7 @@ import {
 	ProjectPathWarnings,
 	ThemeSelector,
 } from "@/components/common-setting-parts";
-import { HNavBar, VStack } from "@/components/layout";
+import { HNavBar, HNavBarText, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { ScrollPageContainer } from "@/components/ScrollPageContainer";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ import {
 	toastThrownError,
 } from "@/lib/toast";
 import { useEffectEvent } from "@/lib/use-effect-event";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_main/settings/")({
 	component: Page,
@@ -68,12 +70,8 @@ function Page() {
 	return (
 		<VStack>
 			<HNavBar
-				className={"shrink-0"}
-				leading={
-					<p className="cursor-pointer py-1.5 font-bold grow-0">
-						{tc("settings")}
-					</p>
-				}
+				className="shrink-0"
+				leading={<HNavBarText>{tc("settings")}</HNavBarText>}
 			/>
 			<Suspense
 				fallback={
@@ -130,6 +128,18 @@ function Settings() {
 	);
 }
 
+function SettingsCard({
+	className,
+	children,
+	...props
+}: React.ComponentProps<typeof Card>) {
+	return (
+		<Card className={cn("shrink-0 p-4 compact:p-3", className)} {...props}>
+			{children}
+		</Card>
+	);
+}
+
 function UnityHubPathCard({
 	updateUnityPaths,
 }: {
@@ -174,7 +184,7 @@ function UnityHubPathCard({
 	});
 
 	return (
-		<Card className={"shrink-0 p-4"}>
+		<SettingsCard>
 			<h2 className={"pb-2"}>{tc("settings:unity hub path")}</h2>
 			<FilePathRow
 				path={unityHub}
@@ -182,7 +192,7 @@ function UnityHubPathCard({
 				notFoundMessage={"Unity Hub Not Found"}
 				withOpen={false}
 			/>
-		</Card>
+		</SettingsCard>
 	);
 }
 
@@ -263,7 +273,7 @@ function UnityInstallationsCard({
 	];
 
 	return (
-		<Card className={"shrink-0 p-4 flex flex-col gap-2"}>
+		<SettingsCard className={"flex flex-col gap-2"}>
 			<div className={"flex align-middle"}>
 				<div className={"grow flex items-center"}>
 					<h2>{tc("settings:unity installations")}</h2>
@@ -350,7 +360,7 @@ function UnityInstallationsCard({
 					{tc("settings:use legacy unity hub loading description")}
 				</p>
 			</div>
-		</Card>
+		</SettingsCard>
 	);
 }
 
@@ -364,7 +374,7 @@ function UnityLaunchArgumentsCard() {
 	const realUnityArgs = unityArgs ?? defaultUnityArgs;
 
 	return (
-		<Card className={"shrink-0 p-4"}>
+		<SettingsCard>
 			<div className={"mb-2 flex align-middle"}>
 				<div className={"grow flex items-center"}>
 					<h2>{tc("settings:default unity arguments")}</h2>
@@ -394,7 +404,7 @@ function UnityLaunchArgumentsCard() {
 					<Input disabled key={i + v} value={v} className={"w-full"} />
 				))}
 			</ol>
-		</Card>
+		</SettingsCard>
 	);
 }
 
@@ -504,7 +514,7 @@ function DefaultProjectPathCard() {
 	});
 
 	return (
-		<Card className={"shrink-0 p-4"}>
+		<SettingsCard>
 			<h2 className={"mb-2"}>{tc("settings:default project path")}</h2>
 			<p className={"whitespace-normal"}>
 				{tc("settings:default project path description")}
@@ -514,7 +524,7 @@ function DefaultProjectPathCard() {
 				pick={pickProjectDefaultPath.mutate}
 			/>
 			<ProjectPathWarnings projectPath={defaultProjectPath} />
-		</Card>
+		</SettingsCard>
 	);
 }
 
@@ -577,7 +587,7 @@ function BackupCard() {
 	});
 
 	return (
-		<Card className={"shrink-0 p-4"}>
+		<SettingsCard>
 			<h2>{tc("projects:backup")}</h2>
 			<div className="mt-2">
 				<h3>{tc("settings:backup:path")}</h3>
@@ -613,7 +623,7 @@ function BackupCard() {
 					{tc("settings:backup:exclude vpm packages from backup description")}
 				</p>
 			</div>
-		</Card>
+		</SettingsCard>
 	);
 }
 
@@ -670,7 +680,7 @@ function PackagesCard() {
 	});
 
 	return (
-		<Card className={"shrink-0 p-4 flex flex-col gap-4"}>
+		<SettingsCard className={"flex flex-col gap-4"}>
 			<h2>{tc("settings:packages")}</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				<Button onClick={() => clearPackageCache.mutate()}>
@@ -689,19 +699,19 @@ function PackagesCard() {
 					{tc("settings:show prerelease description")}
 				</p>
 			</div>
-		</Card>
+		</SettingsCard>
 	);
 }
 
 function AppearanceCard() {
 	return (
-		<Card className={"shrink-0 p-4"}>
+		<SettingsCard className={"flex flex-col gap-2"}>
 			<h2>{tc("settings:appearance")}</h2>
 			<LanguageSelector />
 			<ThemeSelector />
 			<GuiAnimationSwitch />
 			<GuiCompactSwitch />
-		</Card>
+		</SettingsCard>
 	);
 }
 
@@ -724,7 +734,7 @@ function FilesAndFoldersCard() {
 	};
 
 	return (
-		<Card className={"shrink-0 p-4"}>
+		<SettingsCard>
 			<h2>{tc("settings:files and directories")}</h2>
 			<p className={"mt-2"}>
 				{tc("settings:files and directories:description")}
@@ -751,7 +761,7 @@ function FilesAndFoldersCard() {
 					{tc("settings:button:open vcc templates")}
 				</Button>
 			</div>
-		</Card>
+		</SettingsCard>
 	);
 }
 
@@ -863,7 +873,7 @@ function AlcomCard() {
 	};
 
 	return (
-		<Card className={"shrink-0 p-4 flex flex-col gap-4"}>
+		<SettingsCard className={"flex flex-col gap-4"}>
 			<h2>ALCOM</h2>
 			<div className={"flex flex-row flex-wrap gap-2"}>
 				{globalInfo.checkForUpdates && (
@@ -928,7 +938,7 @@ function AlcomCard() {
 					},
 				)}
 			</p>
-		</Card>
+		</SettingsCard>
 	);
 }
 
@@ -936,7 +946,7 @@ function SystemInformationCard() {
 	const info = useGlobalInfo();
 
 	return (
-		<Card className={"shrink-0 p-4 flex flex-col gap-4"}>
+		<SettingsCard className={"flex flex-col gap-4"}>
 			<h2>{tc("settings:system information")}</h2>
 			<dl>
 				<dt>{tc("settings:os")}</dt>
@@ -950,6 +960,6 @@ function SystemInformationCard() {
 				<dt>{tc("settings:alcom commit hash")}</dt>
 				<dd className={"opacity-50 mb-2"}>{info.commitHash}</dd>
 			</dl>
-		</Card>
+		</SettingsCard>
 	);
 }

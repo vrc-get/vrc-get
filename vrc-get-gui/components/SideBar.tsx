@@ -16,6 +16,11 @@ import {
 	SwatchBook,
 } from "lucide-react";
 import type React from "react";
+import {
+	GuiAnimationSwitch,
+	GuiCompactSwitch,
+	ThemeSelector,
+} from "@/components/common-setting-parts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -27,6 +32,11 @@ import {
 	DialogHeader,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import {
 	Tooltip,
 	TooltipContent,
@@ -62,7 +72,7 @@ export function SideBar({ className }: { className?: string }) {
 
 	return (
 		<Card
-			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto compact:p-0 compact:px-0`}
+			className={`${className} flex w-auto max-w-80 p-2 shadow-xl shadow-primary/5 ml-4 my-4 shrink-0 overflow-auto compact:p-0 compact:ml-2 compact:my-2`}
 		>
 			<div className="flex flex-col gap-1 p-2 min-w-40 grow compact:min-w-0">
 				<SideBarItem href={"/projects"} text={tc("projects")} icon={List} />
@@ -81,6 +91,7 @@ export function SideBar({ className }: { className?: string }) {
 						icon={SwatchBook}
 					/>
 				)}
+				{isDev && <StyleQuickAccess />}
 				<div className={"grow"} />
 				{isBadHostName.data && <BadHostNameDialogButton />}
 				<SideBarButton
@@ -186,7 +197,7 @@ function SideBarButton({
 			<TooltipTrigger asChild>
 				<Button
 					variant="ghost"
-					className={`justify-start ${className} compact:justify-center compact:px-3 compact:h-10 compact:w-10`}
+					className={`justify-start ${className} compact:justify-center compact:px-3 compact:size-10`}
 					{...props}
 				>
 					<div
@@ -199,5 +210,22 @@ function SideBarButton({
 			</TooltipTrigger>
 			<TooltipContent side="right">{children}</TooltipContent>
 		</Tooltip>
+	);
+}
+
+export function StyleQuickAccess() {
+	return (
+		<Popover>
+			<PopoverTrigger asChild>
+				<SideBarButton icon={SwatchBook}>
+					Style Settings (dev only)
+				</SideBarButton>
+			</PopoverTrigger>
+			<PopoverContent>
+				<ThemeSelector />
+				<GuiAnimationSwitch />
+				<GuiCompactSwitch />
+			</PopoverContent>
+		</Popover>
 	);
 }

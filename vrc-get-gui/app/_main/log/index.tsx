@@ -9,7 +9,7 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDownFromLine } from "lucide-react";
 import { useRef, useState } from "react";
-import { HNavBar, VStack } from "@/components/layout";
+import { HNavBar, HNavBarText, VStack } from "@/components/layout";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -152,16 +152,13 @@ function ManageLogsHeading({
 
 	return (
 		<HNavBar
-			className={"shrink-0 compact:py-0.5"}
-			trailingClassName="compact:-mr-2.5"
+			className="shrink-0"
 			leading={
 				<>
-					<p className="cursor-pointer py-1.5 font-bold grow-0">{tc("logs")}</p>
+					<HNavBarText>{tc("logs")}</HNavBarText>
 
 					<SearchBox
 						className={"w-max grow"}
-						inputClassName={"compact:h-10"}
-						iconClassName={"compact:top-[17px]"}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						ref={searchRef}

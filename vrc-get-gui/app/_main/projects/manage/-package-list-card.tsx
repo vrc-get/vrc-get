@@ -178,7 +178,7 @@ export const PackageListCard = memo(function PackageListCard({
 
 	return (
 		<Card className="grow shrink flex shadow-none w-full">
-			<CardContent className="w-full p-2 flex flex-col gap-2 compact:px-1 compact:pt-0 compact:pb-1 compact:gap-0.5">
+			<CardContent className="w-full p-2 flex flex-col gap-2 compact:p-1 compact:gap-1.5">
 				<ManagePackagesHeading
 					packageRowsData={packageRowsData}
 					hiddenUserRepositories={hiddenUserRepositories}
@@ -194,7 +194,7 @@ export const PackageListCard = memo(function PackageListCard({
 					cancel={() => setBulkUpdatePackageIds([])}
 				/>
 				<ScrollableCardTable
-					className={"h-full"}
+					className={"h-full rounded-md"}
 					ref={scrollTableOuterRef}
 					viewportRef={scrollTableScrollAreaRef}
 				>
@@ -346,9 +346,11 @@ function ManagePackagesHeading({
 
 	return (
 		<div
-			className={"flex flex-wrap shrink-0 grow-0 flex-row gap-2 items-center"}
+			className={
+				"flex flex-wrap shrink-0 grow-0 flex-row gap-2 items-center gap-y-1"
+			}
 		>
-			<p className="cursor-pointer font-bold py-1.5 grow-0 shrink-0 pl-2">
+			<p className="cursor-pointer font-bold grow-0 shrink-0 pl-2">
 				{tc("projects:manage:manage packages")}
 			</p>
 
@@ -358,7 +360,7 @@ function ManagePackagesHeading({
 						variant={"ghost"}
 						size={"icon"}
 						onClick={onRefresh}
-						className={"shrink-0"}
+						className="shrink-0"
 						disabled={isLoading || backgroundLoading}
 					>
 						{isLoading || backgroundLoading ? (
@@ -382,7 +384,7 @@ function ManagePackagesHeading({
 
 			{upgradableToLatest && (
 				<Button
-					className={"shrink-0"}
+					className="shrink-0"
 					onClick={() => onUpgradeAllRequest(false)}
 					disabled={isLoading}
 					variant={"success"}
@@ -394,7 +396,7 @@ function ManagePackagesHeading({
 			{/* show this button only if some packages are upgradable to prerelease and there is different stable */}
 			{upgradableToStable && (
 				<Button
-					className={"shrink-0"}
+					className="shrink-0"
 					onClick={() => onUpgradeAllRequest(true)}
 					disabled={isLoading}
 					variant={"success"}
@@ -794,7 +796,7 @@ const PackageRow = memo(function PackageRow({
 	addBulkUpdatePackage: (pkg: PackageRowInfo) => void;
 	removeBulkUpdatePackage: (pkg: PackageRowInfo) => void;
 }) {
-	const cellClass = "p-2.5 compact:py-0";
+	const cellClass = "p-3.5 compact:py-1";
 	const noGrowCellClass = `${cellClass} w-1`;
 	const versionNames = [...pkg.unityCompatible.keys()];
 	const latestVersion: string | undefined = versionNames[0];
@@ -843,13 +845,15 @@ const PackageRow = memo(function PackageRow({
 
 	return (
 		<>
-			<td className={`${cellClass} w-1`}>
-				<CheckboxDisabledIfLoading
-					checked={bulkUpdateSelected}
-					onCheckedChange={onClickBulkUpdate}
-					disabled={!bulkUpdateAvailable}
-					className="hover:before:content-none"
-				/>
+			<td className={`${cellClass} w-1 compact:px-2`}>
+				<div className={"flex content-center aspect-square"}>
+					<CheckboxDisabledIfLoading
+						checked={bulkUpdateSelected}
+						onCheckedChange={onClickBulkUpdate}
+						disabled={!bulkUpdateAvailable}
+						className="hover:before:content-none"
+					/>
+				</div>
 			</td>
 			<td className={`${cellClass} overflow-hidden max-w-80 text-ellipsis`}>
 				<Tooltip>

@@ -12,7 +12,7 @@ import { useRef, useState } from "react";
 import { createProject } from "@/app/_main/projects/-create-project";
 import { ProjectsGridCard } from "@/app/_main/projects/-projects-grid-card";
 import Loading from "@/app/-loading";
-import { HNavBar, VStack } from "@/components/layout";
+import { HNavBar, HNavBarText, VStack } from "@/components/layout";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -188,13 +188,10 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar
-			className={"shrink-0 compact:py-0.5"}
-			trailingClassName="compact:-mr-2.5"
+			className="shrink-0"
 			leading={
 				<>
-					<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">
-						{tc("projects")}
-					</p>
+					<HNavBarText>{tc("projects")}</HNavBarText>
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
@@ -217,9 +214,7 @@ function ProjectViewHeader({
 					</Tooltip>
 
 					<SearchBox
-						className={"w-max grow"}
-						inputClassName={"compact:h-10"}
-						iconClassName={"compact:top-[17px]"}
+						className={"w-max grow compact:h-10"}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						ref={searchRef}
