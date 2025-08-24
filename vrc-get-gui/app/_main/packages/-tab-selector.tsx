@@ -9,10 +9,16 @@ type PageType =
 // Note: For historical reasons, templates page are under packages in route.
 
 export function HeadingPageName({ pageType }: { pageType: PageType }) {
+	// Note for p-1 rounded-md -m-1 compact:m-0
+	// For normal mode, we use 1-unit of the outer padding for selector rectangle, so we use negative margin to eat padding.
+	// For compact mode, the height of the button is 2 units shorter than normal with the height of the navbar is remaining.
+	// Therefore we use the 1 unit space for outer padding for selector rectangle.
 	return (
-		<div className={"flex -ml-1.5 compact:h-10 items-center"}>
+		<div className={"flex compact:h-10 items-center"}>
 			<div
-				className={"grid grid-cols-3 gap-1.5 bg-secondary p-1 -m-1 rounded-md"}
+				className={
+					"grid grid-cols-3 gap-1.5 bg-secondary p-1 rounded-md -m-1 compact:m-0"
+				}
 			>
 				<HeadingButton
 					currentPage={pageType}

@@ -202,7 +202,7 @@ function PageBody() {
 		<PageContextProvider value={pageContext}>
 			<VStack>
 				<ProjectViewHeader
-					className={"shrink-0 compact:py-0"}
+					className="shrink-0"
 					isLoading={isLoading}
 					detailsResult={detailsResult}
 					unityVersionsResult={unityVersionsResult}
@@ -516,10 +516,7 @@ function ProjectViewHeader({
 
 	return (
 		<HNavBar
-			className={`${className} compact:py-0.5`}
-			commonClassName={"min-h-12"}
-			leadingClassName="compact:-ml-2.5"
-			trailingClassName="compact:-mr-2.5"
+			className={className}
 			leading={
 				<>
 					<Tooltip>
@@ -538,7 +535,7 @@ function ProjectViewHeader({
 						</TooltipContent>
 					</Tooltip>
 
-					<div className={"pl-2 space-y-0 my-1 shrink min-w-0 compact:pl-0"}>
+					<div className={"pl-2 space-y-0 shrink min-w-0 compact:pl-0"}>
 						<p className="cursor-pointer font-bold grow-0 whitespace-pre mb-0 leading-tight">
 							{projectName}
 						</p>

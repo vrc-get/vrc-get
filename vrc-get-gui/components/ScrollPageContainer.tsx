@@ -11,7 +11,7 @@ export function ScrollPageContainer({
 }) {
 	return (
 		<ScrollArea
-			className={`-mr-3 pr-3 ${className}`}
+			className={`-mr-3 pr-3 compact:mr-0 ${className}`}
 			scrollBarClassName={"bg-background rounded-full border-l-0 p-[1.5px]"}
 			viewportClassName={`${viewportClassName}`}
 		>
