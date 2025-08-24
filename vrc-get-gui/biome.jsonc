@@ -36,6 +36,9 @@
 				}
 			},
 			"suspicious": {
+				// false positives with tailwind css
+				// see https://github.com/biomejs/biome/issues/7223
+				"noUnknownAtRules": "off",
 				"noAssignInExpressions": "off"
 			},
 			"correctness": {
