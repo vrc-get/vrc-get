@@ -287,6 +287,7 @@ html {
 
 /* Radix ui sets display:block for each scroll viewport element but it seem it make worse */
 [data-radix-scroll-area-viewport] > div {
+	/* biome-ignore lint/complexity/noImportantStyles: necessary to override element */
 	display: block !important;
 }
 
