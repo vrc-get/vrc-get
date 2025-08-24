@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - uses: anatawa12/something-releaser@v3
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ pre-build ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: 'releasing'
           submodules: recursive
@@ -203,7 +203,7 @@ jobs:
 
     needs: [ pre-build, build-web ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: 'releasing'
           submodules: recursive
@@ -287,7 +287,7 @@ jobs:
     needs: [ pre-build, build-rust ]
     steps:
       # use release 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Download All Artifacts
@@ -328,7 +328,7 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: 'releasing'
           fetch-depth: 2
@@ -402,7 +402,7 @@ jobs:
       - build-rust
       - publish-to-github
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: 'releasing'
           fetch-depth: 2
@@ -426,7 +426,7 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: vrc-get
           repositories: vrc-get.anatawa12.com
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: 'vrc-get/vrc-get.anatawa12.com'
           ref: 'master'
