@@ -55,9 +55,21 @@ module.exports = async ({github, context}) => {
 		},
 	];
 
+	/** @type {{missingCount: number, extraCount: number, id: string, discussionNumber: number}[]}  */
+	const localeData = [];
+
 	for (const locale of locales) {
-		await processOneLocale(github, owner, repo, locale.discussionNumber, locale.replyId, locale.id);
+		const proceed = await processOneLocale(github, owner, repo, locale.discussionNumber, locale.replyId, locale.id);
+		localeData.push({
+			id: locale.id,
+			discussionNumber: locale.discussionNumber,
+			missingCount: proceed.missingCount,
+			extraCount: proceed.extraCount,
+		})
 	}
+
+	// 894 is English Localization and Text Representation
+	await updateRootLocale(github, owner, repo, 894, localeData);
 }
 
 /**
@@ -68,7 +80,7 @@ module.exports = async ({github, context}) => {
  * @param number {number}
  * @param replyToId {string}
  * @param localeId {string}
- * @return {Promise<void>}
+ * @return {Promise<{missingCount: number, extraCount: number}>}
  */
 async function processOneLocale(github, owner, repo, number, replyToId, localeId) {
 	const enJson = json5.parse(await fs.readFile(`vrc-get-gui/locales/en.json5`, "utf8"));
@@ -115,6 +127,31 @@ ${listToMarkdown(newlyAddedExtraKeys)}
 			}
 		`, {discussionId, replyToId, body: text});
 	}
+
+	return {
+		missingCount: missingKeys.length,
+		extraCount: extraKeys.length,
+	}
+}
+
+/**
+ * Updates the root locale configuration for a specified repository.
+ *
+ * @param {import('@octokit/rest').Octokit} github - The GitHub API client instance used to interact with the GitHub API.
+ * @param {string} owner - The owner of the repository where the root locale is to be updated.
+ * @param {string} repo - The name of the repository where the root locale is to be updated.
+ * @param {number} number
+ * @param {{missingCount: number, extraCount: number, id: string, discussionNumber: number}[]} localeData - The locale data object containing the updated root locale configuration.
+ * @return {Promise<void>} A promise that resolves to the API response for the update operation.
+ */
+async function updateRootLocale(github, owner, repo, number, localeData) {
+	let table = "| locale | missing count | exceeding count | link |\n" +
+		"| -- | -- | -- | -- |\n"
+	for (let {missingCount, extraCount, id, discussionNumber} of localeData) {
+		table += `| ${id} | ${missingCount} | ${extraCount} | [link](https://github.com/${owner}/${repo}/discussions/${discussionNumber}) |\n`;
+	}
+
+	await updateComment(github, owner, repo, number, table, {});
 }
 
 /**
@@ -179,7 +216,8 @@ async function updateComment(
 	const dataJsonLine = autoPart.split(/\r?\n/).find(l => l.startsWith(dataJsonLinePrefix));
 	const previousJson = dataJsonLine ? JSON.parse(dataJsonLine.slice(dataJsonLinePrefix.length)) : {};
 
-	const newBody = `${manualPart}${autoPartStart}${content}
+	const newBody = `${manualPart}${autoPartStart}
+${content}
 <!-- data part
 ${dataJsonLinePrefix}${JSON.stringify(newData)}
 -->
