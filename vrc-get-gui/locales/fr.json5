@@ -287,6 +287,8 @@
     'settings:files and directories:description': 'Accédez rapidement aux fichiers et dossiers relatifs à ALCOM.',
     'settings:gui animation': 'Activer les animations de la GUI.',
     'settings:gui animation description': "Les transitions de pages sont animées quand les animations de GUI sont activées. Cependant cela risque de mal fonctionner sur d'anciennes versions de la webview.",
+    'settings:gui compact': 'Compacter les éléments graphiques (GUI)',
+    'settings:gui compact description': 'Réduit les espaces et le texte des éléments graphiques pour une expérience plus compacte. Tout les textes cachés peuvent être affiché via les info-bulles.',
     'settings:langName': 'Français',
     'settings:language': 'Language',
     'settings:licenses': 'Licences',
