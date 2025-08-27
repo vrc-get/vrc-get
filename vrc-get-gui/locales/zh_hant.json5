@@ -493,6 +493,9 @@
     "settings:gui animation": "啟用 GUI 動畫",
     "settings:gui animation description": "啟用 GUI 動畫時，頁面切換將帶有動畫效果。但 Webview 版本過舊時可能無效。",
 
+    "settings:gui compact": " 介面精簡模式",
+    "settings:gui compact description": "縮減 GUI 的文字大小和內邊距以呈現更緊湊的佈局。被隱藏的文字可透過提示查看。",
+
     "settings:appearance": "外觀",
     "settings:language": "語言（Language）",
     "settings:theme": "色彩主題",
