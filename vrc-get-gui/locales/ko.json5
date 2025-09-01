@@ -179,6 +179,9 @@
     "projects:toast:close unity before migration": "프로젝트를 변환하기 전에 Unity를 종료해주세요.",
     "projects:toast:project migrated": "프로젝트를 성공적으로 변환했습니다.",
 
+    "settings:gui compact": "UI 간소화",
+    "settings:gui compact description": "일부 UI의 텍스트와 여백을 줄여 간소화합니다. 표시되지 않는 텍스트는 툴팁에서 확인할 수 있습니다.",
+
     "projects:dialog:backup header": "백업 생성",
     "projects:dialog:creating backup...": "백업 생성중...",
     "projects:dialog:proceed k/n": "진행도: {{count}}/{{total}}",
