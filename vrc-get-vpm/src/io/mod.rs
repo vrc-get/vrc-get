@@ -18,6 +18,12 @@ pub trait IoTrait: Sync {
     fn create_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn write(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
     fn write_sync(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
+    /// Atomically writes file.
+    /// This works as:
+    /// 1. Create new file with different name
+    /// 2. Write contents and flush data
+    /// 3. Rename it to the filename
+    fn write_atomic(&self, path: &Path, content: &[u8]) -> impl Future<Output = Result<()>> + Send;
     fn remove_file(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn remove_dir(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;
     fn remove_dir_all(&self, path: &Path) -> impl Future<Output = Result<()>> + Send;

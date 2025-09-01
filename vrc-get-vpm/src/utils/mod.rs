@@ -277,14 +277,16 @@ pub(crate) fn to_io_err(err: serde_path_to_error::Error<serde_json::Error>) -> i
     }
 }
 
-pub(crate) async fn read_json_file<T: serde::de::DeserializeOwned>(
-    mut file: impl AsyncRead + Unpin,
-    path: &Path,
-) -> io::Result<T> {
+pub(crate) async fn read_to_end(mut file: impl AsyncRead + Unpin) -> io::Result<Vec<u8>> {
     let mut vec = Vec::new();
     file.read_to_end(&mut vec).await?;
+    Ok(vec)
+}
 
-    let mut slice = vec.as_slice();
+pub(crate) fn parse_json_file<T: serde::de::DeserializeOwned>(
+    mut slice: &[u8],
+    path: &Path,
+) -> io::Result<T> {
     slice = slice.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(slice);
 
     let mut deserializer = serde_json::Deserializer::from_slice(slice);
@@ -302,7 +304,10 @@ pub(crate) async fn try_load_json<T: serde::de::DeserializeOwned>(
     path: &Path,
 ) -> io::Result<Option<T>> {
     match io.open(path).await {
-        Ok(file) => Ok(Some(read_json_file::<T>(file, path).await?)),
+        Ok(file) => match read_to_end(file).await? {
+            vec if vec.is_empty() => Ok(None),
+            vec => Ok(Some(parse_json_file(&vec, path)?)),
+        },
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e),
     }
@@ -313,7 +318,10 @@ where
     T: serde::de::DeserializeOwned + Default,
 {
     match io.open(path).await {
-        Ok(file) => Ok(read_json_file::<T>(file, path).await?),
+        Ok(file) => match read_to_end(file).await? {
+            vec if vec.is_empty() => Ok(Default::default()),
+            vec => Ok(parse_json_file(&vec, path)?),
+        },
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
         Err(e) => Err(e),
     }
@@ -355,6 +363,6 @@ pub(crate) async fn save_json(
 ) -> io::Result<()> {
     io.create_dir_all(path.parent().unwrap_or("".as_ref()))
         .await?;
-    io.write_sync(path, &to_vec_pretty_os_eol(&data)?).await?;
+    io.write_atomic(path, &to_vec_pretty_os_eol(&data)?).await?;
     Ok(())
 }

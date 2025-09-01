@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog].
 - Add compact gui option [`#2436`](https://github.com/vrc-get/vrc-get/pull/2436) [`#2450`](https://github.com/vrc-get/vrc-get/pull/2450) `#2470`
 
 ### Changed
+- Improved saving interacting with setting files `#2485`
+  - This should reduce "EOF while parsing a value at line 1 column 0" error on launch.
+  - This should reduce losing settings after crashing ALCOM or PC.
 
 ### Deprecated
 
