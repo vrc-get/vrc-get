@@ -77,7 +77,7 @@ impl UnityProject {
             file.read_to_end(&mut buffer).await?;
             if buffer.windows(BAD_CONFIG.len()).any(|s| s == BAD_CONFIG) {
                 // We found bad notation. replace with fixed one.
-                io.write_sync(MANIFEST_PATH.as_ref(), &parsed_manifest.to_json()?)
+                io.write_atomic(MANIFEST_PATH.as_ref(), &parsed_manifest.to_json()?)
                     .await?;
             }
 

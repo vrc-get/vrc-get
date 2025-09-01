@@ -355,6 +355,6 @@ pub(crate) async fn save_json(
 ) -> io::Result<()> {
     io.create_dir_all(path.parent().unwrap_or("".as_ref()))
         .await?;
-    io.write_sync(path, &to_vec_pretty_os_eol(&data)?).await?;
+    io.write_atomic(path, &to_vec_pretty_os_eol(&data)?).await?;
     Ok(())
 }

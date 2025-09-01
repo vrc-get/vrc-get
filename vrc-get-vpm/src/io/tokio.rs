@@ -3,6 +3,7 @@ use crate::io::{FileStream, FileType, IoTrait, Metadata};
 use futures::{Stream, TryFutureExt};
 use log::debug;
 use std::ffi::{OsStr, OsString};
+use std::mem::forget;
 use std::path::Path;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -186,6 +187,54 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
         file.flush().await?;
         file.sync_data().await?;
         Ok(())
+    }
+
+    async fn write_atomic(&self, path: &Path, content: &[u8]) -> io::Result<()> {
+        let path = self.resolve(path)?;
+        let (temp_path, mut temp) = make_temp(&path).await?;
+        let remove_on_drop = RemoveOnDrop { path: &temp_path };
+        temp.write_all(content).await?;
+        temp.flush().await?;
+        temp.sync_data().await?;
+        drop(temp);
+        forget(remove_on_drop);
+        fs::rename(&temp_path, path).await?;
+        return Ok(());
+
+        async fn make_temp(path: &Path) -> io::Result<(PathBuf, fs::File)> {
+            let suffix = ".temp.";
+            let Some(dir) = path.parent() else {
+                return Err(io::Error::new(io::ErrorKind::IsADirectory, "RootDir"));
+            };
+            let file_name = path.file_name().unwrap();
+            for i in 0u32.. {
+                let int_len = (i.checked_ilog10().unwrap_or(0) + 1) as usize;
+                let mut name_buf =
+                    OsString::with_capacity(file_name.len() + suffix.len() + int_len);
+                name_buf.push(file_name);
+                name_buf.push(suffix);
+                name_buf.push(format!("{i}"));
+
+                let temp_path = dir.join(name_buf);
+                match fs::File::create_new(&temp_path).await {
+                    Ok(f) => return Ok((temp_path, f)),
+                    Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+                    Err(e) => return Err(e),
+                }
+            }
+            unreachable!("almost infinite loop")
+        }
+
+        struct RemoveOnDrop<'a> {
+            path: &'a Path,
+        }
+
+        impl<'a> Drop for RemoveOnDrop<'a> {
+            fn drop(&mut self) {
+                // ignore errors
+                std::fs::remove_file(self.path).ok();
+            }
+        }
     }
 
     async fn remove_file(&self, path: &Path) -> io::Result<()> {

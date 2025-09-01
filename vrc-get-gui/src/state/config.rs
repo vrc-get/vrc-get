@@ -4,9 +4,8 @@ use std::io;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tokio::io::AsyncWriteExt;
 use tokio::sync::{Mutex, MutexGuard};
-use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 
 struct GuiConfigStateInner {
     config: GuiConfig,
@@ -15,6 +14,7 @@ struct GuiConfigStateInner {
 
 pub struct GuiConfigState {
     inner: ArcSwap<GuiConfigStateInner>,
+    io: DefaultEnvironmentIo,
     mut_lock: Mutex<()>,
 }
 
@@ -23,6 +23,7 @@ impl GuiConfigState {
         let loaded = load_async(io).await?;
         Ok(Self {
             inner: ArcSwap::new(Arc::new(loaded)),
+            io: io.clone(),
             mut_lock: Mutex::new(()),
         })
     }
@@ -37,6 +38,7 @@ impl GuiConfigState {
         Ok(GuiConfigMutRef {
             config: loaded.state.config.clone(),
             path: loaded.state.path.clone(),
+            io: &self.io,
             _mut_lock_guard: lock,
             cache: &self.inner,
         })
@@ -65,6 +67,7 @@ impl Deref for GuiConfigRef {
 pub struct GuiConfigMutRef<'s> {
     config: GuiConfig,
     path: PathBuf,
+    io: &'s DefaultEnvironmentIo,
     _mut_lock_guard: MutexGuard<'s, ()>,
     cache: &'s ArcSwap<GuiConfigStateInner>,
 }
@@ -73,10 +76,7 @@ impl GuiConfigMutRef<'_> {
     pub async fn save(self) -> io::Result<()> {
         let json = serde_json::to_string_pretty(&self.config)?;
         tokio::fs::create_dir_all(self.path.parent().unwrap()).await?;
-        let mut file = tokio::fs::File::create(&self.path).await?;
-        file.write_all(json.as_bytes()).await?;
-        file.sync_data().await?;
-        drop(file);
+        self.io.write_atomic(&self.path, json.as_bytes()).await?;
         self.cache.swap(Arc::new(GuiConfigStateInner {
             config: self.config,
             path: self.path,
