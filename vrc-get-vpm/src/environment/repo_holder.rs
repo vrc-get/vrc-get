@@ -6,7 +6,7 @@ use crate::io::{DefaultEnvironmentIo, IoTrait};
 use crate::repository::RemoteRepository;
 use crate::repository::local::LocalCachedRepository;
 use crate::traits::HttpClient;
-use crate::utils::{read_json_file, to_vec_pretty_os_eol, try_load_json};
+use crate::utils::{parse_json_file, read_to_end, to_vec_pretty_os_eol, try_load_json};
 use crate::{UserRepoSetting, io};
 use futures::future::join_all;
 use indexmap::IndexMap;
@@ -203,9 +203,10 @@ impl RepoHolder {
                 Ok(None)
             }
         } else {
-            Ok(Some(
-                read_json_file::<LocalCachedRepository>(io.open(path).await?, path).await?,
-            ))
+            Ok(Some(parse_json_file(
+                &read_to_end(io.open(path).await?).await?,
+                path,
+            )?))
         }
     }
 

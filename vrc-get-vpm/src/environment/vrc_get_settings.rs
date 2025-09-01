@@ -1,6 +1,6 @@
 use crate::io;
 use crate::io::{DefaultEnvironmentIo, IoTrait};
-use crate::utils::read_json_file;
+use crate::utils::{parse_json_file, read_to_end};
 use serde::{Deserialize, Serialize};
 
 /// since this file is vrc-get specific, additional keys can be removed
@@ -25,10 +25,13 @@ impl VrcGetSettings {
         //let parsed = load_json_or_default(io, JSON_PATH.as_ref()).await?;
 
         let parsed = match io.open(JSON_PATH.as_ref()).await {
-            Ok(file) => {
-                log::warn!("vrc-get specific settings file is experimental feature!");
-                read_json_file::<AsJson>(file, JSON_PATH.as_ref()).await?
-            }
+            Ok(file) => match read_to_end(file).await? {
+                vec if vec.is_empty() => Default::default(),
+                vec => {
+                    log::warn!("vrc-get specific settings file is experimental feature!");
+                    parse_json_file(&vec, JSON_PATH.as_ref())?
+                }
+            },
             Err(ref e) if e.kind() == io::ErrorKind::NotFound => Default::default(),
             Err(e) => return Err(e),
         };

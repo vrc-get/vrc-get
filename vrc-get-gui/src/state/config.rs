@@ -104,6 +104,8 @@ impl DerefMut for GuiConfigMutRef<'_> {
 async fn load_async(io: &DefaultEnvironmentIo) -> io::Result<GuiConfigStateInner> {
     async fn load_fs(path: &Path) -> io::Result<GuiConfig> {
         match tokio::fs::read(path).await {
+            // For some reasons emtpy file can be appear but it;'s
+            Ok(buffer) if buffer.is_empty() => Ok(Default::default()),
             Ok(buffer) => {
                 let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
                 loaded.fix_defaults();
