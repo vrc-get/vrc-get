@@ -8,16 +8,25 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- Add compact gui option [`#2436`](https://github.com/vrc-get/vrc-get/pull/2436) [`#2450`](https://github.com/vrc-get/vrc-get/pull/2450) `#2470`
 
 ### Changed
-- Improved saving interacting with setting files `#2485`
-  - This should reduce "EOF while parsing a value at line 1 column 0" error on launch.
-  - This should reduce losing settings after crashing ALCOM or PC.
 
 ### Deprecated
 
 ### Removed
+
+### Fixed
+
+### Security
+
+## [1.1.4] - 2025-09-02
+### Added
+- Add compact gui option [`#2436`](https://github.com/vrc-get/vrc-get/pull/2436) [`#2450`](https://github.com/vrc-get/vrc-get/pull/2450) [`#2470`](https://github.com/vrc-get/vrc-get/pull/2470)
+
+### Changed
+- Improved saving interacting with setting files [`#2485`](https://github.com/vrc-get/vrc-get/pull/2485)
+  - This should reduce "EOF while parsing a value at line 1 column 0" error on launch.
+  - This should reduce losing settings after crashing ALCOM or PC.
 
 ### Fixed
 - Specifying a single unityversion doesn't work properly in alcomtemplate [`#2452`](https://github.com/vrc-get/vrc-get/pull/2452)
@@ -27,8 +36,6 @@ The format is based on [Keep a Changelog].
   - Home/End keys now always move the text cursor regardless of autocomplete state
   - Up/Down keys move the text cursor when suggestions are not visible, and navigate suggestions when they are visible
   - Previously, these keys would sometimes be captured for suggestion navigation when autocomplete was open
-
-### Security
 
 ## [1.1.3] - 2025-07-28
 ### Added
@@ -626,7 +633,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.3...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.4...HEAD
+[1.1.4]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.3...gui-v1.1.4
 [1.1.3]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.2...gui-v1.1.3
 [1.1.2]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.1...gui-v1.1.2
 [1.1.1]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.0...gui-v1.1.1
