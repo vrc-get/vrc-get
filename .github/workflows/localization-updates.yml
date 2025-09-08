@@ -18,7 +18,7 @@ jobs:
           node-version: '20.x'
       - run: npm i --omit=dev
         working-directory: .github/scripts
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v8
         with:
           script: |
             const script = require('./.github/scripts/localization-updates.js')
