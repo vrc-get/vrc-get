@@ -13,11 +13,7 @@ import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -399,9 +395,9 @@ function ConfirmVpmMigrationDialog({
 	return (
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:dialog:vpm migrate description")}</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-1"}>
 				<Button onClick={() => dialog.close(null)}>
 					{tc("general:button:cancel")}
@@ -424,9 +420,9 @@ function VpmMigrationUpdating() {
 	return (
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:dialog:vpm migrate header")}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:migrating...")}</p>
-			</DialogDescription>
+			</div>
 		</div>
 	);
 }

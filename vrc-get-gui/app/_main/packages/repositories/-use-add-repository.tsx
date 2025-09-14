@@ -6,7 +6,7 @@ import {
 	useReorderableList,
 } from "@/components/ReorderableList";
 import { Button } from "@/components/ui/button";
-import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { assertNever } from "@/lib/assert-never";
 import type {
@@ -156,7 +156,7 @@ function EnteringRepositoryInfo({
 
 	return (
 		<>
-			<DialogDescription>
+			<div>
 				<p className={"font-normal"}>
 					{tc("vpm repositories:dialog:enter repository info")}
 				</p>
@@ -242,7 +242,7 @@ function EnteringRepositoryInfo({
 						{tc("vpm repositories:hint:duplicate headers")}
 					</p>
 				)}
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(null)}>
 					{tc("general:button:cancel")}
@@ -262,9 +262,9 @@ function EnteringRepositoryInfo({
 function LoadingRepository({ cancel }: { cancel: () => void }) {
 	return (
 		<>
-			<DialogDescription>
+			<div>
 				<p>{tc("vpm repositories:dialog:downloading...")}</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={cancel}>{tc("general:button:cancel")}</Button>
 			</DialogFooter>
@@ -303,10 +303,10 @@ function Duplicated({
 
 	return (
 		<>
-			<DialogDescription>
+			<div>
 				<p>{tc("vpm repositories:dialog:already added")}</p>
 				<p>{message}</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close()}>
 					{tc("general:button:ok")}
@@ -328,7 +328,7 @@ function Confirming({
 	return (
 		<>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
-			<DialogDescription className={"max-h-[50vh] overflow-y-auto font-normal"}>
+			<div className={"max-h-[50vh] overflow-y-auto font-normal"}>
 				<p className={"font-normal"}>
 					{tc("vpm repositories:dialog:name", { name: repo.display_name })}
 				</p>
@@ -357,7 +357,7 @@ function Confirming({
 						<li key={info.name}>{info.display_name ?? info.name}</li>
 					))}
 				</ul>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(false)}>
 					{tc("general:button:cancel")}

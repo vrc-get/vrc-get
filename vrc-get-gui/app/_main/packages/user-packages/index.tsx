@@ -16,7 +16,6 @@ import {
 	Dialog,
 	DialogClose,
 	DialogContent,
-	DialogDescription,
 	DialogFooter,
 	DialogTitle,
 	DialogTrigger,
@@ -220,14 +219,14 @@ function PackageRow({
 							<DialogTitle>
 								{tc("user packages:dialog:remove package")}
 							</DialogTitle>
-							<DialogDescription>
+							<div>
 								<p className={"whitespace-normal font-normal"}>
 									{tc("user packages:dialog:confirm remove description", {
 										name: pkgDisplayNames,
 										path: pkg.path,
 									})}
 								</p>
-							</DialogDescription>
+							</div>
 							<DialogFooter>
 								<DialogClose asChild>
 									<Button>{tc("general:button:cancel")}</Button>

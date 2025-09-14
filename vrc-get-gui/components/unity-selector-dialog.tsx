@@ -1,11 +1,7 @@
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { DialogContext } from "@/lib/dialog";
@@ -37,7 +33,7 @@ export function UnitySelectorDialog({
 	return (
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:dialog:select unity header")}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:dialog:multiple unity found")}</p>
 				{supportKeepUsing && (
 					<span className={"block my-2"}>
@@ -66,7 +62,7 @@ export function UnitySelectorDialog({
 						</div>
 					))}
 				</RadioGroup>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(null)} className="mr-2">
 					{tc("general:button:cancel")}

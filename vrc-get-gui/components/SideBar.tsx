@@ -27,7 +27,6 @@ import {
 	Dialog,
 	DialogClose,
 	DialogContent,
-	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTrigger,
@@ -153,9 +152,9 @@ function BadHostNameDialogButton() {
 						{tc("sidebar:dialog:bad hostname")}
 					</h1>
 				</DialogHeader>
-				<DialogDescription className={"whitespace-normal"}>
+				<div className={"whitespace-normal"}>
 					{tc("sidebar:dialog:bad hostname description")}
-				</DialogDescription>
+				</div>
 				<DialogFooter>
 					<DialogClose asChild>
 						<Button>{tc("general:button:close")}</Button>

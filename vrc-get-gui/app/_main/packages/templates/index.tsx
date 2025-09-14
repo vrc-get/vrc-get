@@ -25,11 +25,7 @@ import {
 	Autocomplete,
 } from "@/components/ui/autocomplete";
 import { Button } from "@/components/ui/button";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -385,9 +381,9 @@ function RemoveTemplateConfirmDialog({
 	return (
 		<>
 			<DialogTitle>{tc("templates:dialog:remove template")}</DialogTitle>
-			<DialogDescription>
+			<div>
 				{tc("templates:dialog:confirm remove template", { displayName })}
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(false)}>
 					{tc("general:button:cancel")}
@@ -800,173 +796,169 @@ function TemplateEditor({
 					? tc("templates:dialog:edit template")
 					: tc("templates:dialog:create template")}
 			</DialogTitle>
-			<DialogDescription asChild>
-				<div className={"flex flex-col gap-4 shrink min-h-0"}>
-					<section>
-						<h3 className={"font-bold w-full text-center content-center"}>
-							{tc("templates:dialog:general information")}
-						</h3>
-						<table
-							className={"grid grid-cols-[min-content_1fr] gap-x-4 gap-y-1"}
-						>
-							<tbody className={"contents"}>
-								<tr className={"contents"}>
-									<th className={"content-center text-start whitespace-nowrap"}>
-										{tc("general:name")}:
-									</th>
-									<td className={"flex"}>
-										<Input
-											className={cn(
-												"grow",
-												name.length === 0 &&
-													"border-destructive ring-destructive text-destructive",
-											)}
-											value={name}
-											onChange={(e) => setName(e.target.value)}
-											placeholder={"Your New Template"}
-										/>
-									</td>
-								</tr>
-								<tr className={"contents"}>
-									<th className={"content-center text-start whitespace-nowrap"}>
-										{tc("templates:dialog:base template")}:
-									</th>
-									<td className={"flex"}>
-										<TemplateSelect
-											value={baseTemplate}
-											onValueChange={setBaseTemplate}
-											templates={templates}
-											favoriteTemplates={favoriteTemplates}
-											className={"grow"}
-											excludeNoIdTemplates
-										/>
-									</td>
-								</tr>
-								<tr className={"contents"}>
-									<th className={"content-center text-start whitespace-nowrap"}>
-										{tc("templates:dialog:unity version")}:
-									</th>
-									<td className={"flex"}>
-										<Autocomplete
-											className={cn(
-												"grow",
-												unityRange.match(unityRangeRegex) ||
-													"border-destructive ring-destructive text-destructive",
-											)}
-											value={unityRange}
-											onChange={(value) => setUnityRange(value)}
-											options={unityCandidates}
-										/>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</section>
-					<section className={"shrink overflow-hidden flex flex-col"}>
-						<h3 className={"font-bold w-full text-center content-center"}>
-							{tc("general:packages")}
-						</h3>
-						<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
-							<table className={"w-full"}>
-								<thead>
-									<tr>
-										<th className={"sticky top-0 z-10 bg-background"}>
-											{tc("general:name")}
-										</th>
-										<th className={"sticky top-0 z-10 bg-background"}>
-											{tc("general:version")}
-										</th>
-										<th className={"sticky top-0 z-10 bg-background"} />
-									</tr>
-								</thead>
-								<tbody>
-									<ReorderableList
-										context={packagesListContext}
-										renderItem={(value, id) => (
-											<>
-												<td>
-													<div className={"flex"}>
-														<Autocomplete
-															value={value.name}
-															className={"grow"}
-															options={packageCandidates}
-															onChange={(value) =>
-																packagesListContext.update(id, (old) => ({
-																	...old,
-																	name: value,
-																}))
-															}
-														/>
-													</div>
-												</td>
-												<td>
-													<div className={"flex"}>
-														<Autocomplete
-															value={value.range}
-															className={cn(
-																"grow",
-																validVersion(value) ||
-																	"border-destructive ring-destructive text-destructive",
-															)}
-															options={
-																versionCandidatePerPackage.get(value.name) ?? []
-															}
-															onChange={(value) =>
-																packagesListContext.update(id, (old) => ({
-																	...old,
-																	range: value,
-																}))
-															}
-														/>
-													</div>
-												</td>
-											</>
+			<div className={"flex flex-col gap-4 shrink min-h-0"}>
+				<section>
+					<h3 className={"font-bold w-full text-center content-center"}>
+						{tc("templates:dialog:general information")}
+					</h3>
+					<table className={"grid grid-cols-[min-content_1fr] gap-x-4 gap-y-1"}>
+						<tbody className={"contents"}>
+							<tr className={"contents"}>
+								<th className={"content-center text-start whitespace-nowrap"}>
+									{tc("general:name")}:
+								</th>
+								<td className={"flex"}>
+									<Input
+										className={cn(
+											"grow",
+											name.length === 0 &&
+												"border-destructive ring-destructive text-destructive",
 										)}
+										value={name}
+										onChange={(e) => setName(e.target.value)}
+										placeholder={"Your New Template"}
 									/>
-								</tbody>
-							</table>
-						</div>
-					</section>
-					<section className={"shrink overflow-hidden flex flex-col"}>
-						<Overlay>
-							<h3 className={"font-bold w-full text-center content-center"}>
-								{tc("templates:dialog:unitypackages")}
-							</h3>
-							<div className={"text-right mb-2"}>
-								<Button onClick={addUnityPackages}>
-									{tc("general:button:add")}
-								</Button>
-							</div>
-						</Overlay>
-						<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
-							<table className={"w-full"}>
-								<tbody>
-									<ReorderableList
-										context={unityPackagesListContext}
-										ifEmpty={() => (
-											<td className={"text-center"}>
-												{tc("templates:dialog:no unitypackages")}
-											</td>
+								</td>
+							</tr>
+							<tr className={"contents"}>
+								<th className={"content-center text-start whitespace-nowrap"}>
+									{tc("templates:dialog:base template")}:
+								</th>
+								<td className={"flex"}>
+									<TemplateSelect
+										value={baseTemplate}
+										onValueChange={setBaseTemplate}
+										templates={templates}
+										favoriteTemplates={favoriteTemplates}
+										className={"grow"}
+										excludeNoIdTemplates
+									/>
+								</td>
+							</tr>
+							<tr className={"contents"}>
+								<th className={"content-center text-start whitespace-nowrap"}>
+									{tc("templates:dialog:unity version")}:
+								</th>
+								<td className={"flex"}>
+									<Autocomplete
+										className={cn(
+											"grow",
+											unityRange.match(unityRangeRegex) ||
+												"border-destructive ring-destructive text-destructive",
 										)}
-										renderItem={(value) => (
+										value={unityRange}
+										onChange={(value) => setUnityRange(value)}
+										options={unityCandidates}
+									/>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</section>
+				<section className={"shrink overflow-hidden flex flex-col"}>
+					<h3 className={"font-bold w-full text-center content-center"}>
+						{tc("general:packages")}
+					</h3>
+					<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
+						<table className={"w-full"}>
+							<thead>
+								<tr>
+									<th className={"sticky top-0 z-10 bg-background"}>
+										{tc("general:name")}
+									</th>
+									<th className={"sticky top-0 z-10 bg-background"}>
+										{tc("general:version")}
+									</th>
+									<th className={"sticky top-0 z-10 bg-background"} />
+								</tr>
+							</thead>
+							<tbody>
+								<ReorderableList
+									context={packagesListContext}
+									renderItem={(value, id) => (
+										<>
 											<td>
 												<div className={"flex"}>
-													<Input
-														type={"text"}
-														value={value}
+													<Autocomplete
+														value={value.name}
 														className={"grow"}
-														disabled
+														options={packageCandidates}
+														onChange={(value) =>
+															packagesListContext.update(id, (old) => ({
+																...old,
+																name: value,
+															}))
+														}
 													/>
 												</div>
 											</td>
-										)}
-									/>
-								</tbody>
-							</table>
+											<td>
+												<div className={"flex"}>
+													<Autocomplete
+														value={value.range}
+														className={cn(
+															"grow",
+															validVersion(value) ||
+																"border-destructive ring-destructive text-destructive",
+														)}
+														options={
+															versionCandidatePerPackage.get(value.name) ?? []
+														}
+														onChange={(value) =>
+															packagesListContext.update(id, (old) => ({
+																...old,
+																range: value,
+															}))
+														}
+													/>
+												</div>
+											</td>
+										</>
+									)}
+								/>
+							</tbody>
+						</table>
+					</div>
+				</section>
+				<section className={"shrink overflow-hidden flex flex-col"}>
+					<Overlay>
+						<h3 className={"font-bold w-full text-center content-center"}>
+							{tc("templates:dialog:unitypackages")}
+						</h3>
+						<div className={"text-right mb-2"}>
+							<Button onClick={addUnityPackages}>
+								{tc("general:button:add")}
+							</Button>
 						</div>
-					</section>
-				</div>
-			</DialogDescription>
+					</Overlay>
+					<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
+						<table className={"w-full"}>
+							<tbody>
+								<ReorderableList
+									context={unityPackagesListContext}
+									ifEmpty={() => (
+										<td className={"text-center"}>
+											{tc("templates:dialog:no unitypackages")}
+										</td>
+									)}
+									renderItem={(value) => (
+										<td>
+											<div className={"flex"}>
+												<Input
+													type={"text"}
+													value={value}
+													className={"grow"}
+													disabled
+												/>
+											</div>
+										</td>
+									)}
+								/>
+							</tbody>
+						</table>
+					</div>
+				</section>
+			</div>
 			<DialogFooter className={"mt-2"}>
 				<Button onClick={() => dialog.close(false)}>
 					{tc("general:button:cancel")}

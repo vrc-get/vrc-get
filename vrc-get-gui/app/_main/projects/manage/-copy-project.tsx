@@ -3,11 +3,7 @@ import type { NavigateFn } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
@@ -113,7 +109,7 @@ function CopyProjectNameDialog({
 			<DialogTitle>
 				{tc("projects:dialog:copy project", { name: oldName })}
 			</DialogTitle>
-			<DialogDescription>
+			<div>
 				<VStack>
 					<Input
 						value={projectNameRaw}
@@ -149,7 +145,7 @@ function CopyProjectNameDialog({
 						projectNameCheckState={projectNameCheckState}
 					/>
 				</VStack>
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={() => dialog.close(null)}>
 					{tc("general:button:cancel")}
@@ -199,7 +195,7 @@ export function CopyingDialog({
 			<DialogTitle>
 				{tc("projects:dialog:copy project", { name: oldName })}
 			</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:dialog:copying...")}</p>
 				<p>
 					{tc("projects:dialog:proceed k/n", {
@@ -209,7 +205,7 @@ export function CopyingDialog({
 				</p>
 				<Progress value={progress.proceed} max={progress.total} />
 				<p>{tc("projects:do not close")}</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-2"}>
 				<Button disabled>{tc("general:button:cancel")}</Button>
 			</DialogFooter>

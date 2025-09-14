@@ -24,11 +24,7 @@ import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -606,12 +602,12 @@ function LaunchSettings({
 		<>
 			<DialogTitle>{tc("projects:dialog:launch options")}</DialogTitle>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
-			<DialogDescription className={"max-h-[50dvh] overflow-y-auto"}>
+			<div className={"max-h-[50dvh] overflow-y-auto"}>
 				<h3 className={"text-lg"}>
 					{tc("projects:dialog:command-line arguments")}
 				</h3>
 				<UnityArgumentsSettings context={context} />
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(false)} variant={"destructive"}>
 					{tc("general:button:cancel")}

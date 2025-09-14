@@ -5,11 +5,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { VStack } from "@/components/layout";
 import { TemplateSelect } from "@/components/TemplateSelect";
 import { Button } from "@/components/ui/button";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -79,7 +75,7 @@ function DialogBase({
 	return (
 		<>
 			<DialogTitle>{tc("projects:create new project")}</DialogTitle>
-			<DialogDescription>{children}</DialogDescription>
+			<div>{children}</div>
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={close} disabled={!close}>
 					{tc("general:button:cancel")}

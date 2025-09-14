@@ -1,11 +1,7 @@
 import React, { useState } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
 import type { CheckForUpdateResponse } from "@/lib/bindings";
@@ -104,7 +100,7 @@ export function CheckForUpdateMessage({
 			return (
 				<>
 					<DialogTitle>{tc("check update:dialog:title")}</DialogTitle>
-					<DialogDescription>
+					<div>
 						<p>{tc("check update:dialog:new version description")}</p>
 						<p>
 							{tc("check update:dialog:current version")}{" "}
@@ -122,7 +118,7 @@ export function CheckForUpdateMessage({
 								}
 							/>
 						</p>
-					</DialogDescription>
+					</div>
 					<DialogFooter className={"gap-2"}>
 						<Button onClick={() => dialog.close(false)}>
 							{tc("check update:dialog:dismiss")}
@@ -137,22 +133,22 @@ export function CheckForUpdateMessage({
 			return (
 				<>
 					<DialogTitle>{tc("check update:dialog:title")}</DialogTitle>
-					<DialogDescription>
+					<div>
 						<p>{tc("check update:dialog:downloading...")}</p>
 						<Progress
 							value={confirmStatus.downloaded}
 							max={confirmStatus.total}
 						/>
-					</DialogDescription>
+					</div>
 				</>
 			);
 		case "waitingForRelaunch":
 			return (
 				<>
 					<DialogTitle>{tc("check update:dialog:title")}</DialogTitle>
-					<DialogDescription>
+					<div>
 						<p>{tc("check update:dialog:relaunching...")}</p>
-					</DialogDescription>
+					</div>
 				</>
 			);
 	}

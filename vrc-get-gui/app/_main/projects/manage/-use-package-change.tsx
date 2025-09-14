@@ -774,7 +774,7 @@ function MissingDependenciesDialog({
 				<CircleAlert className="size-6 inline" />{" "}
 				{tc("projects:manage:dialog:missing dependencies")}
 			</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p className={"whitespace-normal"}>
 					{tc("projects:manage:dialog:missing dependencies description")}
 				</p>
@@ -785,7 +785,7 @@ function MissingDependenciesDialog({
 						</li>
 					))}
 				</ul>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close()}>
 					{tc("general:button:close")}

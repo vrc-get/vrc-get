@@ -1,11 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import {
-	DialogDescription,
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { commands } from "@/lib/bindings";
 import type { DialogContext } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
@@ -63,7 +59,7 @@ export function RemoveProjectDialog({
 	return (
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{tc("projects:remove project")}</DialogTitle>
-			<DialogDescription>
+			<div>
 				{removeProject.isPending ? (
 					<p className={"font-normal"}>{tc("projects:dialog:removing...")}</p>
 				) : (
@@ -73,7 +69,7 @@ export function RemoveProjectDialog({
 						})}
 					</p>
 				)}
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"flex gap-2"}>
 				<Button
 					onClick={() => dialog.close(false)}
