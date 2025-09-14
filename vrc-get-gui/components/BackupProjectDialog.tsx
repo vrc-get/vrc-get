@@ -1,10 +1,7 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import type { TauriCreateBackupProgress } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";

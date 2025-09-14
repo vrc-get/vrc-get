@@ -1,8 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { commands, type TauriUnityVersions } from "@/lib/bindings";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";

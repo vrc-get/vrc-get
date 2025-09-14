@@ -5,10 +5,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { VStack } from "@/components/layout";
 import { TemplateSelect } from "@/components/TemplateSelect";
 import { Button } from "@/components/ui/button";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
 	Select,

@@ -13,10 +13,7 @@ import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
 import { Button } from "@/components/ui/button";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,

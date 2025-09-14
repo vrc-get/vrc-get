@@ -1,10 +1,7 @@
 import React, { useState } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Button } from "@/components/ui/button";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
 import type { CheckForUpdateResponse } from "@/lib/bindings";

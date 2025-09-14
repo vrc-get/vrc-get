@@ -2,10 +2,7 @@ import type { NavigateFn } from "@tanstack/react-router";
 import React, { Fragment, useEffect, useState } from "react";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { Button } from "@/components/ui/button";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { assertNever } from "@/lib/assert-never";

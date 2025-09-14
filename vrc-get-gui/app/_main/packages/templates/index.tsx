@@ -25,10 +25,7 @@ import {
 	Autocomplete,
 } from "@/components/ui/autocomplete";
 import { Button } from "@/components/ui/button";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -804,59 +801,57 @@ function TemplateEditor({
 					<h3 className={"font-bold w-full text-center content-center"}>
 						{tc("templates:dialog:general information")}
 					</h3>
-					<table
-						className={"grid grid-cols-[min-content_1fr] gap-x-4 gap-y-1"}
-					>
+					<table className={"grid grid-cols-[min-content_1fr] gap-x-4 gap-y-1"}>
 						<tbody className={"contents"}>
-						<tr className={"contents"}>
-							<th className={"content-center text-start whitespace-nowrap"}>
-								{tc("general:name")}:
-							</th>
-							<td className={"flex"}>
-								<Input
-									className={cn(
-										"grow",
-										name.length === 0 &&
-										"border-destructive ring-destructive text-destructive",
-									)}
-									value={name}
-									onChange={(e) => setName(e.target.value)}
-									placeholder={"Your New Template"}
-								/>
-							</td>
-						</tr>
-						<tr className={"contents"}>
-							<th className={"content-center text-start whitespace-nowrap"}>
-								{tc("templates:dialog:base template")}:
-							</th>
-							<td className={"flex"}>
-								<TemplateSelect
-									value={baseTemplate}
-									onValueChange={setBaseTemplate}
-									templates={templates}
-									favoriteTemplates={favoriteTemplates}
-									className={"grow"}
-									excludeNoIdTemplates
-								/>
-							</td>
-						</tr>
-						<tr className={"contents"}>
-							<th className={"content-center text-start whitespace-nowrap"}>
-								{tc("templates:dialog:unity version")}:
-							</th>
-							<td className={"flex"}>
-								<Autocomplete
-									className={cn(
-										"grow",
-										unityRange.match(unityRangeRegex) ||
-										"border-destructive ring-destructive text-destructive",
-									)}
-									value={unityRange}
-									onChange={(value) => setUnityRange(value)}
-									options={unityCandidates}
-								/>
-							</td>
-						</tr>
+							<tr className={"contents"}>
+								<th className={"content-center text-start whitespace-nowrap"}>
+									{tc("general:name")}:
+								</th>
+								<td className={"flex"}>
+									<Input
+										className={cn(
+											"grow",
+											name.length === 0 &&
+												"border-destructive ring-destructive text-destructive",
+										)}
+										value={name}
+										onChange={(e) => setName(e.target.value)}
+										placeholder={"Your New Template"}
+									/>
+								</td>
+							</tr>
+							<tr className={"contents"}>
+								<th className={"content-center text-start whitespace-nowrap"}>
+									{tc("templates:dialog:base template")}:
+								</th>
+								<td className={"flex"}>
+									<TemplateSelect
+										value={baseTemplate}
+										onValueChange={setBaseTemplate}
+										templates={templates}
+										favoriteTemplates={favoriteTemplates}
+										className={"grow"}
+										excludeNoIdTemplates
+									/>
+								</td>
+							</tr>
+							<tr className={"contents"}>
+								<th className={"content-center text-start whitespace-nowrap"}>
+									{tc("templates:dialog:unity version")}:
+								</th>
+								<td className={"flex"}>
+									<Autocomplete
+										className={cn(
+											"grow",
+											unityRange.match(unityRangeRegex) ||
+												"border-destructive ring-destructive text-destructive",
+										)}
+										value={unityRange}
+										onChange={(value) => setUnityRange(value)}
+										options={unityCandidates}
+									/>
+								</td>
+							</tr>
 						</tbody>
 					</table>
 				</section>
@@ -867,60 +862,60 @@ function TemplateEditor({
 					<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
 						<table className={"w-full"}>
 							<thead>
-							<tr>
-								<th className={"sticky top-0 z-10 bg-background"}>
-									{tc("general:name")}
-								</th>
-								<th className={"sticky top-0 z-10 bg-background"}>
-									{tc("general:version")}
-								</th>
-								<th className={"sticky top-0 z-10 bg-background"} />
-							</tr>
+								<tr>
+									<th className={"sticky top-0 z-10 bg-background"}>
+										{tc("general:name")}
+									</th>
+									<th className={"sticky top-0 z-10 bg-background"}>
+										{tc("general:version")}
+									</th>
+									<th className={"sticky top-0 z-10 bg-background"} />
+								</tr>
 							</thead>
 							<tbody>
-							<ReorderableList
-								context={packagesListContext}
-								renderItem={(value, id) => (
-									<>
-										<td>
-											<div className={"flex"}>
-												<Autocomplete
-													value={value.name}
-													className={"grow"}
-													options={packageCandidates}
-													onChange={(value) =>
-														packagesListContext.update(id, (old) => ({
-															...old,
-															name: value,
-														}))
-													}
-												/>
-											</div>
-										</td>
-										<td>
-											<div className={"flex"}>
-												<Autocomplete
-													value={value.range}
-													className={cn(
-														"grow",
-														validVersion(value) ||
-														"border-destructive ring-destructive text-destructive",
-													)}
-													options={
-														versionCandidatePerPackage.get(value.name) ?? []
-													}
-													onChange={(value) =>
-														packagesListContext.update(id, (old) => ({
-															...old,
-															range: value,
-														}))
-													}
-												/>
-											</div>
-										</td>
-									</>
-								)}
-							/>
+								<ReorderableList
+									context={packagesListContext}
+									renderItem={(value, id) => (
+										<>
+											<td>
+												<div className={"flex"}>
+													<Autocomplete
+														value={value.name}
+														className={"grow"}
+														options={packageCandidates}
+														onChange={(value) =>
+															packagesListContext.update(id, (old) => ({
+																...old,
+																name: value,
+															}))
+														}
+													/>
+												</div>
+											</td>
+											<td>
+												<div className={"flex"}>
+													<Autocomplete
+														value={value.range}
+														className={cn(
+															"grow",
+															validVersion(value) ||
+																"border-destructive ring-destructive text-destructive",
+														)}
+														options={
+															versionCandidatePerPackage.get(value.name) ?? []
+														}
+														onChange={(value) =>
+															packagesListContext.update(id, (old) => ({
+																...old,
+																range: value,
+															}))
+														}
+													/>
+												</div>
+											</td>
+										</>
+									)}
+								/>
 							</tbody>
 						</table>
 					</div>
@@ -939,26 +934,26 @@ function TemplateEditor({
 					<div className={"w-full max-h-[30vh] overflow-y-auto shrink"}>
 						<table className={"w-full"}>
 							<tbody>
-							<ReorderableList
-								context={unityPackagesListContext}
-								ifEmpty={() => (
-									<td className={"text-center"}>
-										{tc("templates:dialog:no unitypackages")}
-									</td>
-								)}
-								renderItem={(value) => (
-									<td>
-										<div className={"flex"}>
-											<Input
-												type={"text"}
-												value={value}
-												className={"grow"}
-												disabled
-											/>
-										</div>
-									</td>
-								)}
-							/>
+								<ReorderableList
+									context={unityPackagesListContext}
+									ifEmpty={() => (
+										<td className={"text-center"}>
+											{tc("templates:dialog:no unitypackages")}
+										</td>
+									)}
+									renderItem={(value) => (
+										<td>
+											<div className={"flex"}>
+												<Input
+													type={"text"}
+													value={value}
+													className={"grow"}
+													disabled
+												/>
+											</div>
+										</td>
+									)}
+								/>
 							</tbody>
 						</table>
 					</div>

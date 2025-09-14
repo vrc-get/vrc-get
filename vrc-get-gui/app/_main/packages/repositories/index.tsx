@@ -13,10 +13,7 @@ import { HNavBar, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,

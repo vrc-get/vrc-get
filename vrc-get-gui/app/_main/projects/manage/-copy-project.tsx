@@ -3,10 +3,7 @@ import type { NavigateFn } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { VStack } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import {
-	DialogFooter,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
