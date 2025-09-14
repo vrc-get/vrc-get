@@ -99,7 +99,7 @@
 	--secondary: hsl(240 4.8% 95.9%);
 	--secondary-foreground: hsl(240 5.9% 10%);
 	--muted: hsl(240 4.8% 95.9%);
-	--muted-foreground: hsl(240 3.8% 46.1%);
+	--muted-foreground: oklch(0.556 0 0);
 	--accent: hsl(240 4.8% 95.9%);
 	--accent-foreground: hsl(240 5.9% 30%);
 	--info: hsl(207 90% 54%);
@@ -135,7 +135,7 @@
 	--secondary: var(--secondary-bg);
 	--secondary-foreground: var(--fg-color);
 	--muted: var(--secondary-bg);
-	--muted-foreground: 240 5% 74%;
+	--muted-foreground: oklch(0.708 0 0);
 	--accent: var(--secondary-bg);
 	--accent-foreground: var(--fg-color);
 	--info: hsl(207 90% 54%);
@@ -171,7 +171,7 @@
 		--secondary: var(--secondary-bg);
 		--secondary-foreground: var(--fg-color);
 		--muted: var(--secondary-bg);
-		--muted-foreground: 240 5% 74%;
+		--muted-foreground: oklch(0.708 0 0);
 		--accent: var(--secondary-bg);
 		--accent-foreground: var(--fg-color);
 		--info: hsl(207 90% 54%);
