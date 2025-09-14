@@ -14,7 +14,6 @@ import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-	DialogDescription,
 	DialogFooter,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -359,13 +358,13 @@ function RemoveRepositoryDialog({
 	return (
 		<>
 			<DialogTitle>{tc("vpm repositories:remove repository")}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p className={"whitespace-normal font-normal"}>
 					{tc("vpm repositories:dialog:confirm remove description", {
 						name: displayName,
 					})}
 				</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close()}>
 					{tc("general:button:cancel")}

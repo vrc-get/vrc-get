@@ -28,7 +28,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-	DialogDescription,
 	DialogFooter,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -455,9 +454,9 @@ function LaunchArgumentsEditDialogBody({
 				{tc("settings:dialog:default launch arguments")}
 			</DialogTitle>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
-			<DialogDescription className={"max-h-[50dvh] overflow-y-auto"}>
+			<div className={"max-h-[50dvh] overflow-y-auto"}>
 				<UnityArgumentsSettings context={context} />
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(false)} variant={"destructive"}>
 					{tc("general:button:cancel")}

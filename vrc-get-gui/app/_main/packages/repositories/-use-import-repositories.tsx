@@ -8,7 +8,7 @@ import {
 	AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { assertNever } from "@/lib/assert-never";
 import type {
@@ -93,7 +93,7 @@ function ConfirmingRepositoryList({
 	return (
 		<>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
-			<DialogDescription className={"max-h-[50vh] overflow-y-auto font-normal"}>
+			<div className={"max-h-[50vh] overflow-y-auto font-normal"}>
 				<p className={"font-normal whitespace-normal"}>
 					{tc("vpm repositories:dialog:confirm repository list")}
 				</p>
@@ -119,7 +119,7 @@ function ConfirmingRepositoryList({
 						</ul>
 					</>
 				)}
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={() => dialog.close(null)}>
 					{tc("general:button:cancel")}
@@ -159,7 +159,7 @@ function LoadingRepositories({
 
 	return (
 		<>
-			<DialogDescription>
+			<div>
 				<p>{tc("vpm repositories:dialog:downloading repositories...")}</p>
 				<Progress value={downloaded} max={totalCount} />
 				<div className={"text-center"}>
@@ -168,7 +168,7 @@ function LoadingRepositories({
 						totalCount,
 					})}
 				</div>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => cancelRef.current?.()}>
 					{tc("general:button:cancel")}
@@ -196,7 +196,7 @@ function ConfirmingPackages({
 	return (
 		<>
 			{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
-			<DialogDescription className={"font-normal"}>
+			<div className={"font-normal"}>
 				<p className={"whitespace-normal"}>
 					{tc("vpm repositories:dialog:confirm packages list")}
 				</p>
@@ -249,7 +249,7 @@ function ConfirmingPackages({
 						);
 					})}
 				</Accordion>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(null)}>
 					{tc("general:button:cancel")}
@@ -264,8 +264,8 @@ function ConfirmingPackages({
 
 function AddingRepositories() {
 	return (
-		<DialogDescription>
+		<div>
 			<p>{tc("vpm repositories:dialog:adding repositories...")}</p>
-		</DialogDescription>
+		</div>
 	);
 }

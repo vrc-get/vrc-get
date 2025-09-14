@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import {
-	DialogDescription,
 	DialogFooter,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -155,13 +154,13 @@ function UnityInstallWindow({
 	return (
 		<>
 			<DialogTitle>{tc("projects:dialog:unity not found")}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>
 					{tc("projects:dialog:unity version of the project not found", {
 						unity: expectedVersion,
 					})}
 				</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={openUnityHub}>
 					{tc("projects:dialog:open unity hub")}
@@ -188,7 +187,7 @@ function AskForChinaRevision({
 			<DialogTitle>
 				{tc("projects:dialog:unity not found but china found")}
 			</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>
 					{tc(
 						"projects:dialog:unity version of the project not found but china found",
@@ -198,7 +197,7 @@ function AskForChinaRevision({
 						},
 					)}
 				</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={() => dialog.close(true)}>
 					{tc("projects:dialog:use china version")}
@@ -225,7 +224,7 @@ function AskForInternationalRevision({
 			<DialogTitle>
 				{tc("projects:dialog:unity not found but international found")}
 			</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>
 					{tc(
 						"projects:dialog:unity version of the project not found but international found",
@@ -235,7 +234,7 @@ function AskForInternationalRevision({
 						},
 					)}
 				</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-2"}>
 				<Button onClick={() => dialog.close(true)}>
 					{tc("projects:dialog:use international version")}

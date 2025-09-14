@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-	DialogDescription,
 	DialogFooter,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -75,7 +74,7 @@ export function AskOverride({
 	return (
 		<>
 			<DialogTitle>{tc("templates:dialog:duplicated")}</DialogTitle>
-			<DialogDescription className={"flex flex-col gap-2"}>
+			<div className={"flex flex-col gap-2"}>
 				<p className={"whitespace-normal font-normal"}>
 					{tc("templates:dialog:confirm update templates")}
 				</p>
@@ -132,7 +131,7 @@ export function AskOverride({
 						);
 					})}
 				</ul>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button
 					onClick={() => {

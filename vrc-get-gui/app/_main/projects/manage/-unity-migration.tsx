@@ -3,7 +3,6 @@ import React, { Fragment, useEffect, useState } from "react";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { Button } from "@/components/ui/button";
 import {
-	DialogDescription,
 	DialogFooter,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -206,14 +205,14 @@ function NoExactUnity2022Dialog({
 	return (
 		<>
 			<DialogTitle>{header}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>
 					{tc(
 						"projects:manage:dialog:exact version unity not found for patch migration description",
 						{ unity: expectedVersion },
 					)}
 				</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-2"}>
 				{installWithUnityHubLink && (
 					<Button
@@ -242,11 +241,11 @@ function MigrationConfirmMigrationPatchDialog({
 	return (
 		<>
 			<DialogTitle>{header}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p className={"text-destructive"}>
 					{tc("projects:dialog:migrate unity2022 patch description", { unity })}
 				</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(null)} className="mr-1">
 					{tc("general:button:cancel")}
@@ -269,9 +268,9 @@ function MigrationConfirmMigrationDialog({
 	return (
 		<>
 			<DialogTitle>{header}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:dialog:vpm migrate description")}</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter className={"gap-1"}>
 				<Button onClick={() => dialog.close(null)}>
 					{tc("general:button:cancel")}
@@ -330,9 +329,9 @@ function UnityVersionChange({
 	return (
 		<>
 			<DialogTitle>{header}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p className={"text-destructive"}>{mainMessage}</p>
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button onClick={() => dialog.close(null)} className="mr-1">
 					{tc("general:button:cancel")}
@@ -378,7 +377,7 @@ export function MigrationCopyingDialog({
 	return (
 		<>
 			<DialogTitle>{header}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:pre-migrate copying...")}</p>
 				<p>
 					{tc("projects:dialog:proceed k/n", {
@@ -388,7 +387,7 @@ export function MigrationCopyingDialog({
 				</p>
 				<Progress value={progress.proceed} max={progress.total} />
 				<p>{tc("projects:do not close")}</p>
-			</DialogDescription>
+			</div>
 		</>
 	);
 }
@@ -397,10 +396,10 @@ function MigrationMigratingDialog({ header }: { header: React.ReactNode }) {
 	return (
 		<>
 			<DialogTitle>{header}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:migrating...")}</p>
 				<p>{tc("projects:do not close")}</p>
-			</DialogDescription>
+			</div>
 		</>
 	);
 }
@@ -564,7 +563,7 @@ function MigrationCallingUnityForMigrationDialog({
 	return (
 		<>
 			<DialogTitle>{header}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:manage:dialog:unity migrate finalizing...")}</p>
 				<p>{tc("projects:do not close")}</p>
 				{/* TODO: use ScrollArea (I failed to use it inside dialog) */}
@@ -581,7 +580,7 @@ function MigrationCallingUnityForMigrationDialog({
 					))}
 					<div ref={ref} />
 				</pre>
-			</DialogDescription>
+			</div>
 		</>
 	);
 }

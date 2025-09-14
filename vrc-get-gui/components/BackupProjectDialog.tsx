@@ -2,7 +2,6 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-	DialogDescription,
 	DialogFooter,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -69,7 +68,7 @@ export function BackupProjectDialog({
 	return (
 		<div className={"contents whitespace-normal"}>
 			<DialogTitle>{header ?? tc("projects:dialog:backup header")}</DialogTitle>
-			<DialogDescription>
+			<div>
 				<p>{tc("projects:dialog:creating backup...")}</p>
 				<p>
 					{tc("projects:dialog:proceed k/n", {
@@ -81,7 +80,7 @@ export function BackupProjectDialog({
 					{progress.last_proceed || "Collecting files..."}
 				</p>
 				<Progress value={progress.proceed} max={progress.total} />
-			</DialogDescription>
+			</div>
 			<DialogFooter>
 				<Button className="mr-1" onClick={() => cancelRef.current?.()}>
 					{tc("general:button:cancel")}
