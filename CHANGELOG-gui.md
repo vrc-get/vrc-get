@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+- Fix muted-foreground color [`#2516`](https://github.com/vrc-get/vrc-get/pull/2516)
+
 ### Security
 
 ## [1.1.4] - 2025-09-02
