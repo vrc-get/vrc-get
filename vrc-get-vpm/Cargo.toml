@@ -47,7 +47,7 @@ sha1 = "0.10"
 [target."cfg(windows)".dependencies]
 dirs-sys = "0.5"
 winreg = { version = "0.55", optional = true }
-windows = { version = "0.61", features = ["Win32_System_Threading", "Win32_Security"] }
+windows = { version = "0.62", features = ["Win32_System_Threading", "Win32_Security"] }
 
 [target."cfg(target_os = \"macos\")".dependencies]
 plist = { version = "1", optional = true }
