@@ -98,7 +98,7 @@
     'projects:dialog:use international version': 'UsUtiliser la version Internationale de Unity',
     'projects:dialog:vpm migrate description': 'La migration de projet est une fonctionalité expérimentale dans vrc-get.<br>Pensez a faire un backup de votre projet avant la migration.',
     'projects:dialog:vpm migrate header': 'Migrer le projet déprécié',
-    'projects:dialog:warn removing project': 'Vous vous apprêtez a supprimer le projet <strong>{{name}}</strong>. Êtes vous sur ?',
+    'projects:dialog:warn removing project': 'Vous vous apprêtez a supprimer le projet <b>{{name}}</b>. Êtes vous sur ?',
     'projects:do not close': 'Ne fermez pas cette fenêttre.',
     'projects:error:load error': 'Erreur lors du chargement des projets: {{msg}}',
     'projects:grid view': 'Vue en Grille',

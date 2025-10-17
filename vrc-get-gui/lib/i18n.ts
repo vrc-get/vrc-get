@@ -33,7 +33,7 @@ i18next.use(initReactI18next).init({
 		escapeValue: false,
 	},
 	react: {
-		transKeepBasicHtmlNodesFor: ["br", "strong", "b", "i", "code"],
+		transKeepBasicHtmlNodesFor: ["br", "b", "i", "code"],
 	},
 });
 
