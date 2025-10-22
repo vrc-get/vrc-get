@@ -191,7 +191,7 @@
     "projects:toast:backup canceled": "Backup abgebrochen",
     "projects:toast:backup succeeded": "Backup erfolgreich erstellt",
 
-    "projects:dialog:warn removing project": "Du bist dabei, das Projekt <strong>{{name}}</strong> zu entfernen. Bist du sicher?",
+    "projects:dialog:warn removing project": "Du bist dabei, das Projekt <b>{{name}}</b> zu entfernen. Bist du sicher?",
     "projects:button:remove from list": "Von Liste entfernen",
     "projects:button:remove directory": "Dauerhaft löschen",
     "projects:dialog:removing...": "Entferne Projekt...",

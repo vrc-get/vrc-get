@@ -191,7 +191,7 @@
     "projects:toast:backup canceled": "Backup was canceled.",
     "projects:toast:backup succeeded": "Backup was created successfully.",
 
-    "projects:dialog:warn removing project": "You're about to remove the project <strong>{{name}}</strong>. Are you sure?",
+    "projects:dialog:warn removing project": "You're about to remove the project <b>{{name}}</b>. Are you sure?",
     "projects:button:remove from list": "Remove from the List",
     "projects:button:remove directory": "Remove the Directory",
     "projects:dialog:removing...": "Removing the project...",

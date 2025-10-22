@@ -188,7 +188,7 @@
     "projects:toast:backup canceled": "백업을 취소했습니다.",
     "projects:toast:backup succeeded": "프로젝트를 성공적으로 백업했습니다.",
 
-    "projects:dialog:warn removing project": "프로젝트 <strong>{{name}}</strong> 을(를) 삭제하시겠습니까?",
+    "projects:dialog:warn removing project": "프로젝트 <b>{{name}}</b> 을(를) 삭제하시겠습니까?",
     "projects:button:remove from list": "목록에서 삭제",
     "projects:button:remove directory": "프로젝트 디렉토리 삭제",
     "projects:dialog:removing...": "프로젝트 삭제중...",

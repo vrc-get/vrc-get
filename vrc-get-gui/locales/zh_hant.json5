@@ -191,7 +191,7 @@
     "projects:toast:backup canceled": "已取消備份。",
     "projects:toast:backup succeeded": "備份已創建成功。",
 
-    "projects:dialog:warn removing project": "你將移除專案 <strong>{{name}}</strong>。你確定嗎？",
+    "projects:dialog:warn removing project": "你將移除專案 <b>{{name}}</b>。你確定嗎？",
     "projects:button:remove from list": "從列表中移除",
     "projects:button:remove directory": "移除資料夾",
     "projects:dialog:removing...": "移除專案中...",

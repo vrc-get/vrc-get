@@ -185,7 +185,7 @@
     "projects:toast:backup canceled": "バックアップをキャンセルしました。",
     "projects:toast:backup succeeded": "バックアップを作成しました。",
 
-    "projects:dialog:warn removing project": "プロジェクト <strong>{{name}}</strong> をリストから削除してもよろしいですか？<br>なお、ファイルを削除する場合はゴミ箱に移動されます。",
+    "projects:dialog:warn removing project": "プロジェクト <b>{{name}}</b> をリストから削除してもよろしいですか？<br>なお、ファイルを削除する場合はゴミ箱に移動されます。",
     "projects:button:remove from list": "リストから削除する",
     "projects:button:remove directory": "プロジェクトのファイルも削除する",
     "projects:dialog:removing...": "プロジェクトを削除中...",
