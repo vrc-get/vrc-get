@@ -114,6 +114,8 @@ jobs:
       - name: Check binary is statically linked
         shell: bash
         if: ${{ matrix.static-linked }}
+        env:
+          RUSTFLAGS: ''
         run: |
           # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
           unset CARGO_BUILD_TARGET
