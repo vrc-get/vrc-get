@@ -102,14 +102,14 @@ jobs:
             Version ${{ env.GUI_VERSION }}
             ---
       - name: Upload CHANGELOG.md
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: CHANGELOG
           path: CHANGELOG.md
       - name: copy release note
         run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
       - name: Upload release note
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-note-for-release
           path: release-note.md
@@ -138,7 +138,7 @@ jobs:
       - run: npm run build
         working-directory: vrc-get-gui
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: vrc-get-gui-web
           path: vrc-get-gui/out
@@ -277,7 +277,7 @@ jobs:
             mv "target/${{ matrix.triple }}/release/$src" "artifacts/$dst"
           done
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: artifacts-${{ matrix.triple }}
           path: artifacts/*
@@ -303,7 +303,7 @@ jobs:
         run: cargo run -p build-updater-json
 
       - name: Upload updater-json
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: updater.json
           path: |

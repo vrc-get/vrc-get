@@ -98,7 +98,7 @@ jobs:
             --target ${{ matrix.triple }} -c '{"version":"${{ steps.version.outputs.version }}", "bundle":{"windows":{"certificateThumbprint": null}}}' ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
 
       - name: Upload built binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.triple }}
           path: |
