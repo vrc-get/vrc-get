@@ -264,7 +264,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: assets
           pattern: artifacts-*
@@ -272,7 +272,7 @@ jobs:
 
       - name: Download changelog
         if: ${{ !needs.pre-build.outputs.prerelease }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: release-note-for-release
           path: changelog
