@@ -13,16 +13,10 @@
 use std::ffi::{OsStr, OsString};
 use std::fs::OpenOptions;
 use std::io;
-use std::mem::MaybeUninit;
 use std::os::windows::prelude::*;
 use std::path::Path;
 use std::sync::OnceLock;
 use tokio::process::Command;
-use windows::Win32::Foundation::{ERROR_LOCK_VIOLATION, HANDLE};
-use windows::Win32::Storage::FileSystem::{
-    LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LockFileEx, UnlockFileEx,
-};
-use windows::Win32::System::IO::OVERLAPPED;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -98,33 +92,20 @@ fn append_cmd_escaped(args: &mut Vec<u16>, arg: impl Iterator<Item = u16>) {
 }
 
 pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
-    let file = OpenOptions::new().read(true).open(path)?;
-    unsafe {
-        let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
-        overlapped.Anonymous.Anonymous.Offset = 0;
-        overlapped.Anonymous.Anonymous.OffsetHigh = 0;
-        match LockFileEx(
-            HANDLE(file.as_raw_handle()),
-            LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-            None,
-            0,
-            0,
-            &mut overlapped,
-        ) {
-            Err(ref e) if e.code() == ERROR_LOCK_VIOLATION.into() => {
-                // ERROR_LOCK_VIOLATION means it's already locked
-                return Ok(false);
-            }
-            // other error
-            Err(e) => return Err(e.into()),
-            Ok(()) => {}
+    match OpenOptions::new().read(true).open(path) {
+        Ok(_) => {
+            // File opened successfully, so it's not locked by Unity
+            Ok(false)
         }
-        // lock successful; it's not locked so unlock and return true
-        let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
-        overlapped.Anonymous.Anonymous.Offset = 0;
-        overlapped.Anonymous.Anonymous.OffsetHigh = 0;
-        UnlockFileEx(HANDLE(file.as_raw_handle()), None, !0, !0, &mut overlapped)?;
-        Ok(true)
+        Err(e) => {
+            // On Windows, error 32 (ERROR_SHARING_VIOLATION) means the file is in use by another process (Unity)
+            if let Some(32) = e.raw_os_error() {
+                Ok(true)
+            } else {
+                // File doesn't exist or other error
+                Err(e)
+            }
+        }
     }
 }
 
