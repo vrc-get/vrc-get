@@ -1,4 +1,3 @@
-import { useUnityStatus } from "@/lib/use-unity-status";
 import {
 	Tooltip,
 	TooltipContent,
@@ -6,6 +5,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { tc } from "@/lib/i18n";
+import { useUnityStatus } from "@/lib/use-unity-status";
 
 export function UnityRunningIndicator({
 	projectPath,

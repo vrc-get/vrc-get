@@ -78,7 +78,9 @@ export function OpenUnityButton({
 		await commands.projectBringUnityToForeground(projectPath);
 	};
 
-	const handleClick = isUnityRunning ? bringUnityToForeground : openUnityWithUpdateList;
+	const handleClick = isUnityRunning
+		? bringUnityToForeground
+		: openUnityWithUpdateList;
 
 	return (
 		<PreventDoubleClick
