@@ -229,3 +229,80 @@ pub use open::that as open_that;
 pub fn initialize(_: tauri::AppHandle) {
     // nothing to initialize
 }
+
+pub(crate) fn bring_unity_to_foreground(project_path: &Path) -> io::Result<bool> {
+    use windows::core::BOOL;
+    use windows::Win32::Foundation::{HWND, LPARAM};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        EnumWindows, GetWindowTextW, SetForegroundWindow, ShowWindow, SW_RESTORE,
+    };
+
+    let project_name = project_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("");
+
+    if project_name.is_empty() {
+        return Ok(false);
+    }
+
+    let expected_title = format!("{} - ", project_name);
+    let expected_title_wide: Vec<u16> = expected_title.encode_utf16().collect();
+
+    struct EnumContext {
+        expected_title: Vec<u16>,
+        found_hwnd: Option<HWND>,
+    }
+
+    fn get_window_title(hwnd: HWND) -> Vec<u16> {
+        let mut buffer = [0u16; 512];
+        let len = unsafe { GetWindowTextW(hwnd, &mut buffer) };
+        if len > 0 {
+            buffer[..len as usize].to_vec()
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn title_matches_prefix(window_title: &[u16], expected_prefix: &[u16]) -> bool {
+        window_title.len() >= expected_prefix.len()
+            && window_title[..expected_prefix.len()]
+                .iter()
+                .zip(expected_prefix.iter())
+                .all(|(a, b)| a == b)
+    }
+
+    extern "system" fn enum_window_callback(hwnd: HWND, lparam: LPARAM) -> BOOL {
+        let context = unsafe { &mut *(lparam.0 as *mut EnumContext) };
+        
+        let window_title = get_window_title(hwnd);
+        if !window_title.is_empty() && title_matches_prefix(&window_title, &context.expected_title) {
+            context.found_hwnd = Some(hwnd);
+            return BOOL(0);
+        }
+        
+        BOOL(1)
+    }
+
+    let mut context = EnumContext {
+        expected_title: expected_title_wide,
+        found_hwnd: None,
+    };
+
+    unsafe {
+        let _ = EnumWindows(
+            Some(enum_window_callback),
+            LPARAM(&mut context as *mut _ as isize),
+        );
+    }
+
+    if let Some(hwnd) = context.found_hwnd {
+        unsafe {
+            let _ = ShowWindow(hwnd, SW_RESTORE);
+            let _ = SetForegroundWindow(hwnd).ok();
+        }
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
