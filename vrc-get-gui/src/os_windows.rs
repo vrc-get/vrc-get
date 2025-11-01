@@ -69,7 +69,7 @@ fn append_cmd_escaped(args: &mut Vec<u16>, arg: impl Iterator<Item = u16>) {
         } else if x == b'"' as u16 {
             // Replace the backslash (\) in front of the double quote (") with two backslashes (\\).
             //  To implement that, append the backslashes again
-            args.extend(std::iter::repeat(b'\\' as u16).take(backslash));
+            args.extend(std::iter::repeat_n(b'\\' as u16, backslash));
             // Replace the double quote (") with two double quotes ("").
             args.push(b'"' as u16);
             args.push(b'"' as u16);
