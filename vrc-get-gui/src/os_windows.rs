@@ -231,11 +231,11 @@ pub fn initialize(_: tauri::AppHandle) {
 }
 
 pub(crate) fn bring_unity_to_foreground(project_path: &Path) -> io::Result<bool> {
-    use windows::core::BOOL;
     use windows::Win32::Foundation::{HWND, LPARAM};
     use windows::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GetWindowTextW, SetForegroundWindow, ShowWindow, SW_RESTORE,
+        EnumWindows, GetWindowTextW, SW_RESTORE, SetForegroundWindow, ShowWindow,
     };
+    use windows::core::BOOL;
 
     let project_name = project_path
         .file_name()
@@ -274,13 +274,14 @@ pub(crate) fn bring_unity_to_foreground(project_path: &Path) -> io::Result<bool>
 
     extern "system" fn enum_window_callback(hwnd: HWND, lparam: LPARAM) -> BOOL {
         let context = unsafe { &mut *(lparam.0 as *mut EnumContext) };
-        
+
         let window_title = get_window_title(hwnd);
-        if !window_title.is_empty() && title_matches_prefix(&window_title, &context.expected_title) {
+        if !window_title.is_empty() && title_matches_prefix(&window_title, &context.expected_title)
+        {
             context.found_hwnd = Some(hwnd);
             return BOOL(0);
         }
-        
+
         BOOL(1)
     }
 

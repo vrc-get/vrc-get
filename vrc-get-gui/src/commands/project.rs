@@ -515,7 +515,6 @@ pub fn project_is_unity_launching(project_path: String) -> bool {
     is_unity_running(project_path)
 }
 
-
 #[tauri::command]
 #[specta::specta]
 pub fn project_bring_unity_to_foreground(project_path: String) -> Result<bool, RustError> {
@@ -523,7 +522,8 @@ pub fn project_bring_unity_to_foreground(project_path: String) -> Result<bool, R
 }
 
 fn bring_unity_to_foreground(project_path: String) -> Result<bool, RustError> {
-    crate::os::bring_unity_to_foreground(std::path::Path::new(&project_path)).map_err(RustError::unrecoverable)
+    crate::os::bring_unity_to_foreground(std::path::Path::new(&project_path))
+        .map_err(RustError::unrecoverable)
 }
 
 async fn create_backup_zip(
