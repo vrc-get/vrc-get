@@ -36,6 +36,7 @@ import { router } from "@/lib/main";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString } from "@/lib/version";
+import { openProjectDetails } from "./manage/-edit-project-details";
 
 export const ProjectDisplayType: Record<
 	TauriProjectType,
@@ -131,8 +132,22 @@ export function ProjectRow({
 									>
 										<p className="font-normal whitespace-pre">{project.name}</p>
 										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
-											{project.path}
+											Path: {project.path}
 										</p>
+										{!project.memo ? undefined : (
+										<p className="font-normal opacity-50 text-sm whitespace-pre overflow-ellipsis overflow-hidden compact:hidden">
+											Memo: {project.memo}
+										</p>
+										)}
+										{Array.isArray(project.tags) && project.tags.length != 0 && (
+											<div className="flex overflow-x-auto gap-2 mt-1">
+												{project.tags.map(tag => (
+													<div key={tag} className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 inset-ring inset-ring-green-600/20">
+														<span>{tag}</span>
+													</div>
+												))}
+											</div>
+										)}
 									</TooltipTriggerIfValid>
 									<TooltipContent>{project.path}</TooltipContent>
 								</Tooltip>
@@ -230,6 +245,21 @@ export function ProjectRow({
 									disabled={removed || loading}
 								>
 									{tc("projects:menuitem:open directory")}
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={async () => {
+										try {
+											await openProjectDetails({
+												existingMemo: project.memo,
+												existingTags: project.tags
+											})
+										} catch (e) {
+											console.error(e);
+											toastThrownError(e);
+										}
+									}}
+								>
+									{tc("projects:menuitem:project details")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={onCopyProject}
