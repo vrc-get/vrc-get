@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
-- Fix package version selector dropdown exceeding window height
+- Fix package version selector dropdown exceeding window height [`#2589`](https://github.com/vrc-get/vrc-get/pull/2589)
   - The dropdown list now has a maximum height of 50% of the viewport or 24rem, whichever is smaller
   - This prevents the version selector from overflowing the window on small screens
 - Fix muted-foreground color [`#2516`](https://github.com/vrc-get/vrc-get/pull/2516) [`#2517`](https://github.com/vrc-get/vrc-get/pull/2517)
