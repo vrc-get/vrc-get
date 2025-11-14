@@ -1,7 +1,7 @@
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
-use crate::utils::{PathExt, collect_notable_project_files_tree, project_backup_path};
+use crate::utils::{collect_notable_project_files_tree, project_backup_path};
 use log::{error, info, warn};
 use serde::Serialize;
 use std::ffi::OsStr;

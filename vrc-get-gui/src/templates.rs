@@ -12,7 +12,6 @@ use std::{fmt, io};
 use tokio_util::compat::*;
 use vrc_get_vpm::io::{DefaultEnvironmentIo, DefaultProjectIo, DirEntry, IoTrait};
 
-use crate::utils::PathExt;
 use crate::utils::TarArchive;
 pub use alcom_template::*;
 use vrc_get_vpm::UnityProject;
