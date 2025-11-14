@@ -1028,7 +1028,7 @@ const PackageVersionSelector = memo(function PackageVersionSelector({
 					<PackageInstalledInfo pkg={pkg} />
 				</SelectValue>
 			</SelectTrigger>
-			<SelectContent>
+			<SelectContent className="max-h-[min(24rem,45vh)]">
 				{/* PackageVersionList is extremely heavy */}
 				{isOpen && (
 					<PackageVersionList
