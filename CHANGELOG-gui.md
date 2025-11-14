@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog].
   - This prevents the version selector from overflowing the window on small screens
 - Fix muted-foreground color [`#2516`](https://github.com/vrc-get/vrc-get/pull/2516) [`#2517`](https://github.com/vrc-get/vrc-get/pull/2517)
   - Remove `DialogDescription` not in `DialogHeader` to fix text color
+- Fix 'Detected Loop' panic with valid database file `#2607`
 
 ### Security
 
