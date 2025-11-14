@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 
 use log::error;
 use serde::Serialize;
-use specta::specta;
 pub use start::startup;
 use tauri::generate_handler;
 use tauri::ipc::Invoke;
