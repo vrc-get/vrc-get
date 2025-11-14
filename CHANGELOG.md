@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Fix 'Detected Loop' panic with valid database file `#2607`
 
 ### Security
 
