@@ -171,7 +171,7 @@ jobs:
               bundle/rpm/ALCOM-${GUI_VERSION}-1.x86_64.rpm:alcom-${GUI_VERSION}-1.x86_64.rpm
 
           - triple: x86_64-pc-windows-msvc
-            on: windows-latest
+            on: windows-2022
             esigner: true
             dist-path: |
               ALCOM.exe:ALCOM-${GUI_VERSION}-x86_64.exe
