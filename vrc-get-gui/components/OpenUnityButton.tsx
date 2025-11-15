@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { commands } from "@/lib/bindings";
 import { tc } from "@/lib/i18n";
 import { openUnity } from "@/lib/open-unity";
+import { useUnityStatus } from "@/lib/use-unity-status";
 
 function PreventDoubleClick({
 	delayMs,
@@ -64,6 +65,8 @@ export function OpenUnityButton({
 
 	const queryClient = useQueryClient();
 
+	const isUnityRunning = useUnityStatus(projectPath);
+
 	const openUnityWithUpdateList = async () => {
 		await openUnity(projectPath, unityVersion, unityRevision);
 		setTimeout(() => {
@@ -71,13 +74,24 @@ export function OpenUnityButton({
 		}, 3000);
 	};
 
+	const bringUnityToForeground = async () => {
+		await commands.projectBringUnityToForeground(projectPath);
+	};
+
+	const handleClick = isUnityRunning
+		? bringUnityToForeground
+		: openUnityWithUpdateList;
+
 	return (
 		<PreventDoubleClick
 			delayMs={1000}
-			onClick={openUnityWithUpdateList}
+			onClick={handleClick}
+			variant={isUnityRunning ? "outline" : props.variant}
 			{...props}
 		>
-			{tc("projects:button:open unity")}
+			{isUnityRunning
+				? tc("projects:button:show unity")
+				: tc("projects:button:open unity")}
 		</PreventDoubleClick>
 	);
 }

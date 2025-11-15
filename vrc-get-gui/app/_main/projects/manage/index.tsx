@@ -56,6 +56,7 @@ import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { nameFromPath } from "@/lib/os";
 import { toastSuccess, toastThrownError } from "@/lib/toast";
+import { useUnityStatus } from "@/lib/use-unity-status";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
 import { combinePackagesAndProjectDetails } from "./-collect-package-row-info";
 import { PackageListCard } from "./-package-list-card";
@@ -723,6 +724,8 @@ function ProjectButton({
 	unityVersion: string | null;
 	unityRevision: string | null;
 }) {
+	const isUnityRunning = useUnityStatus(projectPath);
+
 	const onChangeLaunchOptions = async () => {
 		const initialArgs = await commands.projectGetCustomUnityArgs(projectPath);
 		const defaultArgs = await commands.environmentGetDefaultUnityArguments();
@@ -747,7 +750,7 @@ function ProjectButton({
 					asChild
 					className={"rounded-l-none pl-2 pr-2 compact:h-10"}
 				>
-					<Button>
+					<Button variant={isUnityRunning ? "outline" : "default"}>
 						<ChevronDown className={"w-4 h-4"} />
 					</Button>
 				</DropdownMenuTrigger>
