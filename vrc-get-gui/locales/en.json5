@@ -549,5 +549,9 @@
     "logs:message": "Message",
     "logs:manage:select logs level": "Logs Level Filter",
     "logs:manage:auto scroll": "Toggle Auto Scroll",
+
+// Project details
+    "projects:menuitem:project details": "Edit project details",
+    "project details:buttons:confirm": "Update details"
   },
 }
