@@ -97,7 +97,7 @@ jobs:
             ---
       - name: Upload CHANGELOG.md
         if: ${{ !steps.update-version.outputs.prerelease }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: CHANGELOG
           path: CHANGELOG.md
@@ -106,7 +106,7 @@ jobs:
         run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
       - name: Upload release note
         if: ${{ !steps.update-version.outputs.prerelease }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-note-for-release
           path: release-note.md
@@ -204,7 +204,7 @@ jobs:
             done
           popd
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: artifacts-${{ matrix.triple }}
           path: artifacts/*
