@@ -230,7 +230,7 @@ jobs:
           totp-secret: ${{ secrets.WIN_ESIGNER_TOTP_SECRET }}
 
       - name: Download Web Artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: vrc-get-gui-web
           path: vrc-get-gui/out
@@ -291,7 +291,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: assets
           pattern: artifacts-*
@@ -341,7 +341,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: assets
           pattern: artifacts-*
@@ -349,7 +349,7 @@ jobs:
 
       - name: Download changelog
         # if: ${{ !needs.pre-build.outputs.prerelease }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: release-note-for-release
           path: changelog
@@ -435,7 +435,7 @@ jobs:
       - uses: snow-actions/git-config-user@v1.0.0
 
       - name: Download updater.json
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: updater.json
           path: .
