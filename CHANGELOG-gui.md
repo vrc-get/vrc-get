@@ -17,14 +17,15 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+### Security
+
+## [1.1.5] - 2025-11-16
 - Fix package version selector dropdown exceeding window height [`#2589`](https://github.com/vrc-get/vrc-get/pull/2589)
   - The dropdown list now has a maximum height of 50% of the viewport or 24rem, whichever is smaller
   - This prevents the version selector from overflowing the window on small screens
 - Fix muted-foreground color [`#2516`](https://github.com/vrc-get/vrc-get/pull/2516) [`#2517`](https://github.com/vrc-get/vrc-get/pull/2517)
   - Remove `DialogDescription` not in `DialogHeader` to fix text color
-- Fix 'Detected Loop' panic with valid database file `#2607`
-
-### Security
+- Fix 'Detected Loop' panic with valid database file [`#2607`](https://github.com/vrc-get/vrc-get/pull/2607)
 
 ## [1.1.4] - 2025-09-02
 ### Added
@@ -640,7 +641,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.4...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.5...HEAD
+[1.1.5]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.4...gui-v1.1.5
 [1.1.4]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.3...gui-v1.1.4
 [1.1.3]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.2...gui-v1.1.3
 [1.1.2]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.1...gui-v1.1.2
