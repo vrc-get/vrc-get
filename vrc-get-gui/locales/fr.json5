@@ -447,7 +447,7 @@
     'vpm repositories:hint:invalid header names': 'Le nom du header est invalide.',
     'vpm repositories:hint:invalid header values': 'La valeur du header est invalide.',
     'vpm repositories:remove repository': 'Supprimer un dépot',
-    'vpm repositories:source:curated': 'Mis en avant',
+    'vpm repositories:source:curated': 'Sélection par VRChat',
     'vpm repositories:source:local': 'Utilisateur Local',
     'vpm repositories:source:official': 'Officiel',
     'vpm repositories:toast:invalid url': "L'URL est invalide",
