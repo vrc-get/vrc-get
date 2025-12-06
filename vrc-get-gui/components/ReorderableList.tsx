@@ -13,7 +13,7 @@ import { assertNever } from "@/lib/assert-never";
 const internalSymbol: unique symbol = Symbol("ReorderableListContextInternal");
 const idSymbol: unique symbol = Symbol("IdSymbol");
 
-type Id = { [idSymbol]: number; toString: () => string };
+export type Id = { [idSymbol]: number; toString: () => string };
 
 type NonFunction =
 	| string

@@ -11,10 +11,12 @@ import type React from "react";
 import { Suspense, useId, useMemo, useState } from "react";
 import { HeadingPageName } from "@/app/_main/packages/-tab-selector";
 import Loading from "@/app/-loading";
+import { FilePathRow } from "@/components/common-setting-parts";
 import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { HNavBar, VStack } from "@/components/layout";
 import { Overlay } from "@/components/Overlay";
 import {
+	type Id,
 	ReorderableList,
 	useReorderableList,
 } from "@/components/ReorderableList";
@@ -38,6 +40,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { assertNever } from "@/lib/assert-never";
 import {
 	commands,
 	type TauriAlcomTemplate,
@@ -46,7 +49,7 @@ import {
 } from "@/lib/bindings";
 import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
-import { tc } from "@/lib/i18n";
+import { tc, tt } from "@/lib/i18n";
 import { processResult } from "@/lib/import-templates";
 import { usePrevPathName } from "@/lib/prev-page";
 import {
@@ -55,7 +58,7 @@ import {
 	projectTemplateDisplayId,
 	projectTemplateName,
 } from "@/lib/project-template";
-import { toastSuccess, toastThrownError } from "@/lib/toast";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { compareVersion } from "@/lib/version";
 
@@ -748,9 +751,31 @@ function TemplateEditor({
 
 	const addUnityPackages = async () => {
 		try {
-			const packages = await commands.environmentPickUnityPackage();
+			const packages = await commands.environmentPickUnityPackages();
 			for (const pkg of packages) {
 				unityPackagesListContext.add(pkg);
+			}
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
+
+	const pickUnityPackage = async (currentValue: string, currentId: Id) => {
+		try {
+			const result = await commands.environmentPickUnityPackage(currentValue);
+			switch (result.type) {
+				case "NoFolderSelected":
+					// no-op
+					break;
+				case "InvalidSelection":
+					toastError(tt("general:toast:invalid directory"));
+					break;
+				case "Successful":
+					unityPackagesListContext.update(currentId, result.new_path);
+					break;
+				default:
+					assertNever(result);
 			}
 		} catch (e) {
 			console.error(e);
@@ -941,16 +966,13 @@ function TemplateEditor({
 											{tc("templates:dialog:no unitypackages")}
 										</td>
 									)}
-									renderItem={(value) => (
+									renderItem={(value, id) => (
 										<td>
-											<div className={"flex"}>
-												<Input
-													type={"text"}
-													value={value}
-													className={"grow"}
-													disabled
-												/>
-											</div>
+											<FilePathRow
+												path={value}
+												pick={() => pickUnityPackage(value, id).finally()}
+												withOpen={false}
+											/>
 										</td>
 									)}
 								/>

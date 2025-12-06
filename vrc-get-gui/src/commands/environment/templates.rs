@@ -3,7 +3,7 @@ use crate::templates;
 use crate::templates::{
     AlcomTemplate, new_user_template_id, parse_alcom_template, serialize_alcom_template,
 };
-use crate::utils::trash_delete;
+use crate::utils::{find_existing_parent_dir_or_home, trash_delete};
 use futures::AsyncWriteExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -107,7 +107,7 @@ pub async fn environment_get_alcom_template(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn environment_pick_unity_package(window: Window) -> Result<Vec<String>, RustError> {
+pub async fn environment_pick_unity_packages(window: Window) -> Result<Vec<String>, RustError> {
     window
         .dialog()
         .file()
@@ -119,6 +119,40 @@ pub async fn environment_pick_unity_package(window: Window) -> Result<Vec<String
         .map(|x| x.into_path_buf())
         .map_ok(|x| x.to_string_lossy().into_owned())
         .collect::<Result<Vec<_>, _>>()
+}
+
+#[derive(Serialize, specta::Type)]
+#[serde(tag = "type")]
+pub enum TauriPickUnityPackageResult {
+    NoFolderSelected,
+    InvalidSelection,
+    Successful { new_path: String },
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn environment_pick_unity_package(
+    window: Window,
+    current: String
+) -> Result<TauriPickUnityPackageResult, RustError> {
+    let Some(path) = window
+        .dialog()
+        .file()
+        .set_parent(&window)
+        .set_directory(find_existing_parent_dir_or_home(current.as_ref()))
+        .add_filter("Unity Package", &["unitypackage"])
+        .blocking_pick_file()
+        .map(|x| x.into_path_buf())
+        .transpose()?
+    else {
+        return Ok(TauriPickUnityPackageResult::NoFolderSelected);
+    };
+
+    let Ok(path) = path.into_os_string().into_string() else {
+        return Ok(TauriPickUnityPackageResult::InvalidSelection);
+    };
+
+    Ok(TauriPickUnityPackageResult::Successful {new_path: path})
 }
 
 #[tauri::command]

@@ -185,8 +185,11 @@ async environmentExportTemplate(id: string) : Promise<null> {
 async environmentGetAlcomTemplate(id: string) : Promise<TauriAlcomTemplate> {
     return await TAURI_INVOKE("environment_get_alcom_template", { id });
 },
-async environmentPickUnityPackage() : Promise<string[]> {
-    return await TAURI_INVOKE("environment_pick_unity_package");
+async environmentPickUnityPackages() : Promise<string[]> {
+    return await TAURI_INVOKE("environment_pick_unity_packages");
+},
+async environmentPickUnityPackage(current: string) : Promise<TauriPickUnityPackageResult> {
+    return await TAURI_INVOKE("environment_pick_unity_package", { current });
 },
 async environmentSaveTemplate(id: string | null, base: string, name: string, unityRange: string, vpmPackages: ([string, string])[], unityPackages: string[]) : Promise<null> {
     return await TAURI_INVOKE("environment_save_template", { id, base, name, unityRange, vpmPackages, unityPackages });
@@ -348,6 +351,7 @@ export type TauriPendingProjectChanges = { changes_version: number; package_chan
 export type TauriPickProjectBackupPathResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful" }
 export type TauriPickProjectDefaultPathResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful"; new_path: string }
 export type TauriPickUnityHubResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful" }
+export type TauriPickUnityPackageResult = { type: "NoFolderSelected" } | { type: "InvalidSelection" } | { type: "Successful"; new_path: string }
 export type TauriPickUnityResult = "NoFolderSelected" | "InvalidSelection" | "AlreadyAdded" | "Successful"
 export type TauriProject = { name: string; path: string; project_type: TauriProjectType; unity: string; unity_revision: string | null; last_modified: number; created_at: number; favorite: boolean; is_exists: boolean; is_valid: boolean | null }
 export type TauriProjectCreationInformation = { templates: TauriProjectTemplateInfo[]; recent_project_locations: string[]; favorite_templates: string[]; last_used_template: string | null; templates_version: number; default_path: string }
