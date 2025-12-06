@@ -772,7 +772,7 @@ function TemplateEditor({
 					// no-op
 					break;
 				case "InvalidSelection":
-					toastError(tt("general:toast:invalid directory"));
+					toastError(tt("general:toast:invalid file"));
 					break;
 				case "Successful":
 					unityPackagesListContext.update(currentId, result.new_path);

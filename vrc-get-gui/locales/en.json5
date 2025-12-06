@@ -27,6 +27,7 @@
     "general:dialog:select file or directory header": "Selecting file or directory",
     "general:dialog:select file or directory": "Please select a file or directory.",
     "general:toast:invalid directory": "Invalid directory was selected.",
+    "general:toast:invalid file": "Invalid file was selected.",
 
     "general:toast:not supported": "{{name}} is not supported yet.",
     "general:not implemented": "Not Implemented",
