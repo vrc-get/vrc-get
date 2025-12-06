@@ -133,7 +133,7 @@ pub enum TauriPickUnityPackageResult {
 #[specta::specta]
 pub async fn environment_pick_unity_package(
     window: Window,
-    current: String
+    current: String,
 ) -> Result<TauriPickUnityPackageResult, RustError> {
     let Some(path) = window
         .dialog()
@@ -152,7 +152,7 @@ pub async fn environment_pick_unity_package(
         return Ok(TauriPickUnityPackageResult::InvalidSelection);
     };
 
-    Ok(TauriPickUnityPackageResult::Successful {new_path: path})
+    Ok(TauriPickUnityPackageResult::Successful { new_path: path })
 }
 
 #[tauri::command]
