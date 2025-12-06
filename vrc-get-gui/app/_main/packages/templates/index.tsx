@@ -16,8 +16,8 @@ import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { HNavBar, VStack } from "@/components/layout";
 import { Overlay } from "@/components/Overlay";
 import {
-	type Id,
 	ReorderableList,
+	type ReorderableListId,
 	useReorderableList,
 } from "@/components/ReorderableList";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
@@ -761,7 +761,10 @@ function TemplateEditor({
 		}
 	};
 
-	const pickUnityPackage = async (currentValue: string, currentId: Id) => {
+	const pickUnityPackage = async (
+		currentValue: string,
+		currentId: ReorderableListId,
+	) => {
 		try {
 			const result = await commands.environmentPickUnityPackage(currentValue);
 			switch (result.type) {
