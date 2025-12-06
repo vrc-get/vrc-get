@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Path for unitypackage on Template Editor now can be reselected `#2635`
 
 ### Deprecated
 
