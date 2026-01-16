@@ -33,6 +33,7 @@ import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 
 export function ProjectGridItem({
 	project,
@@ -96,6 +97,14 @@ export function ProjectGridItem({
 								disabled={!project.is_valid}
 							>
 								{tc("projects:menuitem:copy project")}
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={() =>
+									openSingleDialog(SetProjectDisplayNameDialog, { project })
+								}
+								disabled={removed || !(is_valid ?? true)}
+							>
+								{tc("projects:set project display name")}
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() =>

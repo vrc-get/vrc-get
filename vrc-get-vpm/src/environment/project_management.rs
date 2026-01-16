@@ -588,6 +588,11 @@ impl UserProject {
         vrc_get.insert(DISPLAY_NAME, display_name);
     }
 
+    pub fn clear_display_name(&mut self) {
+        let vrc_get = self.bson.entry(VRC_GET).document_or_replace();
+        vrc_get.remove(DISPLAY_NAME);
+    }
+
     pub fn set_unity_version(&mut self, unity_version: UnityVersion) {
         let version = unity_version.to_string();
         self.bson.insert(UNITY_VERSION, version.clone());

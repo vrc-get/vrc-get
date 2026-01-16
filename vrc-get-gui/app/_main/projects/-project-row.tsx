@@ -36,6 +36,7 @@ import { router } from "@/lib/main";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString } from "@/lib/version";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 
 export const ProjectDisplayType: Record<
 	TauriProjectType,
@@ -236,6 +237,14 @@ export function ProjectRow({
 									disabled={removed || !(is_valid ?? true)}
 								>
 									{tc("projects:menuitem:copy project")}
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() =>
+										openSingleDialog(SetProjectDisplayNameDialog, { project })
+									}
+									disabled={removed || !(is_valid ?? true)}
+								>
+									{tc("projects:set project display name")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() =>

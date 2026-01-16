@@ -12,7 +12,7 @@ use tauri::{AppHandle, State, Window};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
-use vrc_get_vpm::io::DefaultEnvironmentIo;
+use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::unity_project::pending_project_changes::{
     ConflictInfo, PackageChange, RemoveReason,
 };
@@ -792,6 +792,53 @@ pub async fn project_set_unity_path(
         } else {
             project.clear_unity_path();
         }
+        connection.update_project(&project);
+        connection.save(io.inner()).await?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn project_clear_display_name(
+    io: State<'_, DefaultEnvironmentIo>,
+    project_path: String,
+) -> Result<bool, RustError> {
+    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
+    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+        let project_name_file = Path::new(project_path.as_str())
+            .join("UserSettings/ProjectName.txt");
+        io.remove_file(&project_name_file).await?;
+
+        project.clear_display_name();
+        connection.update_project(&project);
+        connection.save(io.inner()).await?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn project_set_display_name(
+    io: State<'_, DefaultEnvironmentIo>,
+    project_path: String,
+    display_name: String,
+) -> Result<bool, RustError> {
+    let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
+    if let Some(mut project) = connection.find_project(project_path.as_ref())? {
+        let project_name_file = Path::new(project_path.as_str())
+            .join("UserSettings/ProjectName.txt");
+
+        if let Some(parent) = project_name_file.parent() {
+            io.create_dir_all(parent).await?;
+        }
+        io.write(&project_name_file, display_name.as_bytes()).await?;
+
+        project.set_display_name(display_name);
         connection.update_project(&project);
         connection.save(io.inner()).await?;
         Ok(true)

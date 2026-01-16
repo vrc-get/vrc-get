@@ -260,6 +260,12 @@ async projectGetUnityPath(projectPath: string) : Promise<string | null> {
 async projectSetUnityPath(projectPath: string, unityPath: string | null) : Promise<boolean> {
     return await TAURI_INVOKE("project_set_unity_path", { projectPath, unityPath });
 },
+async projectSetDisplayName(projectPath: string, displayName: string) : Promise<boolean> {
+    return await TAURI_INVOKE("project_set_display_name", { projectPath, displayName });
+},
+async projectClearDisplayName(projectPath: string) : Promise<boolean> {
+    return await TAURI_INVOKE("project_clear_display_name", { projectPath });
+},
 async utilOpen(path: string, ifNotExists: OpenOptions) : Promise<null> {
     return await TAURI_INVOKE("util_open", { path, ifNotExists });
 },
