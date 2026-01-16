@@ -129,7 +129,7 @@ export function ProjectRow({
 									<TooltipTriggerIfValid
 										className={"text-left select-text cursor-auto w-full"}
 									>
-										<p className="font-normal whitespace-pre">{project.name}</p>
+										<p className="font-normal whitespace-pre">{project.display_name || project.name}</p>
 										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
 											{project.path}
 										</p>

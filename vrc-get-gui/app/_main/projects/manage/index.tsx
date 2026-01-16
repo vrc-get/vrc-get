@@ -508,7 +508,7 @@ function ProjectViewHeader({
 	) => void;
 }) {
 	const { projectPath } = Route.useSearch();
-	const projectName = nameFromPath(projectPath);
+	const projectName = detailsResult?.data?.display_name || nameFromPath(projectPath);
 
 	return (
 		<HNavBar

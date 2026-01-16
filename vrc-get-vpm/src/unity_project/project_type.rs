@@ -1,3 +1,4 @@
+use std::path::Path;
 use crate::io::IoTrait;
 use crate::{ProjectType, UnityProject};
 
@@ -47,5 +48,20 @@ impl UnityProject {
         }
 
         ProjectType::Unknown
+    }
+
+    pub async fn detect_display_name(&self) -> Option<String> {
+        let project_name_file = Path::new("UserSettings/ProjectName.txt");
+
+        if !self.io.is_file(project_name_file.as_ref()).await {
+            return None;
+        }
+
+        let mut file = self.io.open(project_name_file.as_ref()).await.ok()?;
+        let mut content = String::new();
+        use futures::AsyncReadExt;
+        file.read_to_string(&mut content).await.ok()?;
+
+        content.lines().next().map(|x| x.to_owned())
     }
 }

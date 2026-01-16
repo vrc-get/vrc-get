@@ -26,6 +26,7 @@ pub struct TauriProjectDetails {
     unity_revision: Option<String>,
     installed_packages: Vec<(String, TauriBasePackageInfo)>,
     should_resolve: bool,
+    display_name: Option<String>,
 }
 
 #[tauri::command]
@@ -45,6 +46,7 @@ pub async fn project_details(project_path: String) -> Result<TauriProjectDetails
             .map(|(k, p)| (k.to_string(), TauriBasePackageInfo::new(p)))
             .collect(),
         should_resolve: unity_project.should_resolve(),
+        display_name: unity_project.detect_display_name().await,
     })
 }
 

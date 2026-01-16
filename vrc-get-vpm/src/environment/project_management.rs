@@ -28,6 +28,7 @@ pub(crate) static CACHED_UNITY_REVISION: &str = "cached_unity_version";
 pub(crate) static UNITY_REVISION: &str = "unity_revision";
 pub(crate) static CUSTOM_UNITY_ARGS: &str = "custom_unity_args";
 pub(crate) static UNITY_PATH: &str = "unity_path";
+pub(crate) static DISPLAY_NAME: &str = "display_name";
 pub(crate) static IS_VALID: &str = "is_valid";
 
 impl VccDatabaseConnection {
@@ -66,29 +67,34 @@ impl VccDatabaseConnection {
         // add new projects
         for project in &projects {
             if !db_projects_by_path.contains_key(*project) {
-                async fn get_project_type(
+                async fn get_project_data(
                     io: &DefaultEnvironmentIo,
                     path: &Path,
-                ) -> io::Result<(ProjectType, Option<UnityVersion>, Option<String>)>
+                ) -> io::Result<(ProjectType, Option<UnityVersion>, Option<String>, Option<String>)>
                 {
                     let project =
                         UnityProject::load(DefaultProjectIo::new(io.resolve(path).into())).await?;
                     let detected_type = project.detect_project_type().await;
+                    let detected_display_name = project.detect_display_name().await;
                     Ok((
                         detected_type,
                         Some(project.unity_version()),
                         project.unity_revision().map(|x| x.to_owned()),
+                        detected_display_name
                     ))
                 }
-                let (project_type, unity_version, unity_revision) = get_project_type(
+                let (project_type, unity_version, unity_revision, display_name) = get_project_data(
                     io,
                     project.as_ref(),
                 )
                 .await
-                .unwrap_or((ProjectType::Unknown, None, None));
+                .unwrap_or((ProjectType::Unknown, None, None, None));
                 let mut project = UserProject::new((*project).into(), unity_version, project_type);
                 if let Some(unity) = unity_version {
                     project.set_unity_revision(unity, unity_revision);
+                }
+                if let Some(display_name) = display_name {
+                    project.set_display_name(display_name);
                 }
                 to_insert.push(project);
             }
@@ -232,6 +238,19 @@ impl VccDatabaseConnection {
                     #[allow(clippy::collapsible_else_if)]
                     if Some(unity_version.as_str()) != project[UNITY_VERSION].as_str() {
                         project.to_mut().insert(UNITY_VERSION, unity_version);
+                    }
+                }
+
+                if project[VRC_GET]
+                    .as_document()
+                    .and_then(|x| x[DISPLAY_NAME].as_str())
+                    != real.display_name.as_deref()
+                {
+                    let vrc_get = project.to_mut().entry(VRC_GET).document_or_replace();
+                    if let Some(display_name) = &real.display_name {
+                        vrc_get.insert(DISPLAY_NAME, display_name);
+                    } else {
+                        vrc_get.remove(DISPLAY_NAME);
                     }
                 }
 
@@ -388,6 +407,9 @@ impl VccDatabaseConnection {
 
         let mut new_project = UserProject::new(path.into(), Some(unity_version), project_type);
         new_project.set_unity_revision(unity_version, unity_revision.map(ToOwned::to_owned));
+        if let Some(display_name) = project.detect_display_name().await {
+            new_project.set_display_name(display_name);
+        }
 
         self.db
             .insert(
@@ -416,6 +438,7 @@ pub struct ValidRealProjectInformation {
     unity_version: UnityVersion,
     unity_revision: Option<String>,
     project_type: ProjectType,
+    display_name: Option<String>,
 }
 
 impl RealProjectInformation {
@@ -454,12 +477,14 @@ impl ValidRealProjectInformation {
         let unity_version = loaded_project.unity_version();
         let unity_revision = loaded_project.unity_revision().map(ToOwned::to_owned);
         let project_type = loaded_project.detect_project_type().await;
+        let display_name = loaded_project.detect_display_name().await;
 
         Ok(Some(ValidRealProjectInformation {
             path,
             unity_version,
             unity_revision,
             project_type,
+            display_name,
         }))
     }
 
@@ -478,6 +503,8 @@ impl ValidRealProjectInformation {
     pub fn project_type(&self) -> ProjectType {
         self.project_type
     }
+
+    pub fn display_name(&self) -> Option<&str> { self.display_name.as_deref() }
 }
 
 pub struct UserProject {
@@ -541,12 +568,24 @@ impl UserProject {
             .unwrap_or(ProjectType::Unknown)
     }
 
+    pub fn display_name(&self) -> Option<&str> {
+        self.bson
+            .get(VRC_GET)
+            .as_document()
+            .and_then(|x| x[DISPLAY_NAME].as_str())
+    }
+
     pub fn favorite(&self) -> bool {
         self.bson[FAVORITE].as_bool().unwrap_or(false)
     }
 
     pub fn set_favorite(&mut self, favorite: bool) {
         self.bson.insert(FAVORITE, favorite);
+    }
+
+    pub fn set_display_name(&mut self, display_name: String) {
+        let vrc_get = self.bson.entry(VRC_GET).document_or_replace();
+        vrc_get.insert(DISPLAY_NAME, display_name);
     }
 
     pub fn set_unity_version(&mut self, unity_version: UnityVersion) {
