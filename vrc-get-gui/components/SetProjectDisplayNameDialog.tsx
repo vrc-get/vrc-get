@@ -12,7 +12,6 @@ import { toastSuccess, toastThrownError } from "@/lib/toast";
 
 type Project = {
 	path: string;
-	is_exists: boolean;
 	name: string;
 	display_name: string | null;
 };
