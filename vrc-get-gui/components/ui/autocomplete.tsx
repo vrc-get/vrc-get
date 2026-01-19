@@ -9,7 +9,7 @@ import {
 	Command,
 	CommandEmpty,
 	CommandGroup,
-	CommandInputRaw,
+	CommandInput,
 	CommandItem,
 	CommandList,
 } from "@/components/ui/command";
@@ -65,7 +65,7 @@ export function Autocomplete({
 		<Command className={className}>
 			<Popover open={open} onOpenChange={setOpen} modal>
 				<PopoverTrigger asChild>
-					<CommandInputRaw asChild>
+					<CommandInput asChild>
 						<Input
 							placeholder={placeholder}
 							value={value}
@@ -86,7 +86,7 @@ export function Autocomplete({
 								}
 							}}
 						/>
-					</CommandInputRaw>
+					</CommandInput>
 				</PopoverTrigger>
 				<PopoverContent
 					className="p-0"
