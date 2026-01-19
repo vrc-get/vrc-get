@@ -24,7 +24,6 @@ import {
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipPortal,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { TauriProject } from "@/lib/bindings";
@@ -130,13 +129,11 @@ export function ProjectGridItem({
 							</Tooltip>
 						</div>
 					</TooltipTriggerIfInvalid>
-					<TooltipPortal>
-						<TooltipContent>
-							{removed
-								? tc("projects:tooltip:no directory")
-								: tc("projects:tooltip:invalid project")}
-						</TooltipContent>
-					</TooltipPortal>
+					<TooltipContent>
+						{removed
+							? tc("projects:tooltip:no directory")
+							: tc("projects:tooltip:invalid project")}
+					</TooltipContent>
 				</Tooltip>
 
 				<div className="flex flex-row gap-2">
@@ -175,11 +172,9 @@ export function ProjectGridItem({
 								</time>
 							</time>
 						</TooltipTrigger>
-						<TooltipPortal>
-							<TooltipContent>
-								{dateToString(project.last_modified)}
-							</TooltipContent>
-						</TooltipPortal>
+						<TooltipContent>
+							{dateToString(project.last_modified)}
+						</TooltipContent>
 					</Tooltip>
 				</div>
 

@@ -23,7 +23,6 @@ import {
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipPortal,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { assertNever } from "@/lib/assert-never";
@@ -138,13 +137,11 @@ export function ProjectRow({
 								</Tooltip>
 							</div>
 						</TooltipTriggerIfInvalid>
-						<TooltipPortal>
-							<TooltipContent>
-								{removed
-									? tc("projects:tooltip:no directory")
-									: tc("projects:tooltip:invalid project")}
-							</TooltipContent>
-						</TooltipPortal>
+						<TooltipContent>
+							{removed
+								? tc("projects:tooltip:no directory")
+								: tc("projects:tooltip:invalid project")}
+						</TooltipContent>
 					</Tooltip>
 				</td>
 				<td className={`${cellClass} w-[8em] min-w-[8em]`}>
@@ -180,11 +177,9 @@ export function ProjectRow({
 								</time>
 							</time>
 						</TooltipTrigger>
-						<TooltipPortal>
-							<TooltipContent>
-								{dateToString(project.last_modified)}
-							</TooltipContent>
-						</TooltipPortal>
+						<TooltipContent>
+							{dateToString(project.last_modified)}
+						</TooltipContent>
 					</Tooltip>
 				</td>
 				<td className={noGrowCellClass}>
@@ -453,13 +448,11 @@ export const ButtonDisabledIfInvalid = function RemovedButton(
 						disabled
 					/>
 				</TooltipTrigger>
-				<TooltipPortal>
-					<TooltipContent>
-						{rowContext.removed
-							? tc("projects:tooltip:no directory")
-							: tc("projects:tooltip:invalid project")}
-					</TooltipContent>
-				</TooltipPortal>
+				<TooltipContent>
+					{rowContext.removed
+						? tc("projects:tooltip:no directory")
+						: tc("projects:tooltip:invalid project")}
+				</TooltipContent>
 			</Tooltip>
 		);
 	} else {
