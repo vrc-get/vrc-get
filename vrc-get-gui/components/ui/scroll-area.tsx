@@ -3,11 +3,22 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+export type ViewportRef = React.ComponentRef<
+	typeof ScrollAreaPrimitive.Viewport
+>;
+
 function ScrollArea({
 	className,
 	children,
+	scrollBarClassName,
+	viewportClassName,
+	viewportRef,
 	...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
+	scrollBarClassName?: string;
+	viewportClassName?: string;
+	viewportRef?: React.Ref<ViewportRef>;
+}) {
 	return (
 		<ScrollAreaPrimitive.Root
 			data-slot="scroll-area"
@@ -16,11 +27,12 @@ function ScrollArea({
 		>
 			<ScrollAreaPrimitive.Viewport
 				data-slot="scroll-area-viewport"
-				className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+				className={cn("focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1", viewportClassName)}
+				ref={viewportRef}
 			>
 				{children}
 			</ScrollAreaPrimitive.Viewport>
-			<ScrollBar />
+			<ScrollBar className={scrollBarClassName} />
 			<ScrollAreaPrimitive.Corner />
 		</ScrollAreaPrimitive.Root>
 	);
