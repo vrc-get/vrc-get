@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- Migrate shad/cn component style from `default` to `new-york`. [`#2660`](https://github.com/vrc-get/vrc-get/pull/2660)
 
 ### Deprecated
 
