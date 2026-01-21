@@ -52,3 +52,8 @@ pub fn os_info() -> &'static str {
 
 pub use os_more::initialize;
 pub use os_more::open_that;
+
+pub(crate) fn bring_unity_to_foreground(_project_path: &Path) -> io::Result<bool> {
+    // Not implemented for POSIX systems
+    Ok(false)
+}

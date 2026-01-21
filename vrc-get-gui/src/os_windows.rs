@@ -13,16 +13,10 @@
 use std::ffi::{OsStr, OsString};
 use std::fs::OpenOptions;
 use std::io;
-use std::mem::MaybeUninit;
 use std::os::windows::prelude::*;
 use std::path::Path;
 use std::sync::OnceLock;
 use tokio::process::Command;
-use windows::Win32::Foundation::{ERROR_LOCK_VIOLATION, HANDLE};
-use windows::Win32::Storage::FileSystem::{
-    LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LockFileEx, UnlockFileEx,
-};
-use windows::Win32::System::IO::OVERLAPPED;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -75,7 +69,7 @@ fn append_cmd_escaped(args: &mut Vec<u16>, arg: impl Iterator<Item = u16>) {
         } else if x == b'"' as u16 {
             // Replace the backslash (\) in front of the double quote (") with two backslashes (\\).
             //  To implement that, append the backslashes again
-            args.extend(std::iter::repeat(b'\\' as u16).take(backslash));
+            args.extend(std::iter::repeat_n(b'\\' as u16, backslash));
             // Replace the double quote (") with two double quotes ("").
             args.push(b'"' as u16);
             args.push(b'"' as u16);
@@ -98,33 +92,20 @@ fn append_cmd_escaped(args: &mut Vec<u16>, arg: impl Iterator<Item = u16>) {
 }
 
 pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
-    let file = OpenOptions::new().read(true).open(path)?;
-    unsafe {
-        let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
-        overlapped.Anonymous.Anonymous.Offset = 0;
-        overlapped.Anonymous.Anonymous.OffsetHigh = 0;
-        match LockFileEx(
-            HANDLE(file.as_raw_handle()),
-            LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-            None,
-            0,
-            0,
-            &mut overlapped,
-        ) {
-            Err(ref e) if e.code() == ERROR_LOCK_VIOLATION.into() => {
-                // ERROR_LOCK_VIOLATION means it's already locked
-                return Ok(false);
-            }
-            // other error
-            Err(e) => return Err(e.into()),
-            Ok(()) => {}
+    match OpenOptions::new().read(true).open(path) {
+        Ok(_) => {
+            // File opened successfully, so it's not locked by Unity
+            Ok(false)
         }
-        // lock successful; it's not locked so unlock and return true
-        let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
-        overlapped.Anonymous.Anonymous.Offset = 0;
-        overlapped.Anonymous.Anonymous.OffsetHigh = 0;
-        UnlockFileEx(HANDLE(file.as_raw_handle()), None, !0, !0, &mut overlapped)?;
-        Ok(true)
+        Err(e) => {
+            // On Windows, error 32 (ERROR_SHARING_VIOLATION) means the file is in use by another process (Unity)
+            if let Some(32) = e.raw_os_error() {
+                Ok(true)
+            } else {
+                // File doesn't exist or other error
+                Err(e)
+            }
+        }
     }
 }
 
@@ -247,4 +228,82 @@ pub use open::that as open_that;
 
 pub fn initialize(_: tauri::AppHandle) {
     // nothing to initialize
+}
+
+pub(crate) fn bring_unity_to_foreground(project_path: &Path) -> io::Result<bool> {
+    use windows::Win32::Foundation::{HWND, LPARAM};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        EnumWindows, GetWindowTextW, SW_RESTORE, SetForegroundWindow, ShowWindow,
+    };
+    use windows::core::BOOL;
+
+    let project_name = project_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("");
+
+    if project_name.is_empty() {
+        return Ok(false);
+    }
+
+    let expected_title = format!("{} - ", project_name);
+    let expected_title_wide: Vec<u16> = expected_title.encode_utf16().collect();
+
+    struct EnumContext {
+        expected_title: Vec<u16>,
+        found_hwnd: Option<HWND>,
+    }
+
+    fn get_window_title(hwnd: HWND) -> Vec<u16> {
+        let mut buffer = [0u16; 512];
+        let len = unsafe { GetWindowTextW(hwnd, &mut buffer) };
+        if len > 0 {
+            buffer[..len as usize].to_vec()
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn title_matches_prefix(window_title: &[u16], expected_prefix: &[u16]) -> bool {
+        window_title.len() >= expected_prefix.len()
+            && window_title[..expected_prefix.len()]
+                .iter()
+                .zip(expected_prefix.iter())
+                .all(|(a, b)| a == b)
+    }
+
+    extern "system" fn enum_window_callback(hwnd: HWND, lparam: LPARAM) -> BOOL {
+        let context = unsafe { &mut *(lparam.0 as *mut EnumContext) };
+
+        let window_title = get_window_title(hwnd);
+        if !window_title.is_empty() && title_matches_prefix(&window_title, &context.expected_title)
+        {
+            context.found_hwnd = Some(hwnd);
+            return BOOL(0);
+        }
+
+        BOOL(1)
+    }
+
+    let mut context = EnumContext {
+        expected_title: expected_title_wide,
+        found_hwnd: None,
+    };
+
+    unsafe {
+        let _ = EnumWindows(
+            Some(enum_window_callback),
+            LPARAM(&mut context as *mut _ as isize),
+        );
+    }
+
+    if let Some(hwnd) = context.found_hwnd {
+        unsafe {
+            let _ = ShowWindow(hwnd, SW_RESTORE);
+            let _ = SetForegroundWindow(hwnd).ok();
+        }
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }
