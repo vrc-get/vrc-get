@@ -1,11 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import {
-	type RegisteredRouter,
-	useLocation,
-	useNavigate,
-} from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
 	AlignLeft,
 	CircleAlert,
@@ -111,7 +107,8 @@ function SideBarItem({
 	text,
 	icon,
 }: {
-	href: keyof RegisteredRouter["routesByPath"];
+	//TODO find a way to provide intellisense on router paths
+	href: string;
 	text: React.ReactNode;
 	icon: React.ComponentType<{ className?: string }>;
 }) {
