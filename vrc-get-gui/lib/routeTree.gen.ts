@@ -38,7 +38,7 @@ const MainRouteRoute = MainRouteRouteImport.update({
 } as any)
 const RouteRoute = RouteRouteImport.update({
   id: '/',
-  path: '/',
+  path: '',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MainSettingsIndexRoute = MainSettingsIndexRouteImport.update({
@@ -125,7 +125,6 @@ const MainPackagesRepositoriesIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof RouteRoute
   '/dev-palette': typeof MainDevPaletteIndexRoute
   '/log': typeof MainLogIndexRoute
   '/projects': typeof MainProjectsIndexRoute
@@ -143,7 +142,6 @@ export interface FileRoutesByFullPath {
   '/setup/unity-hub': typeof SetupSetupUnityHubIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof RouteRoute
   '/dev-palette': typeof MainDevPaletteIndexRoute
   '/log': typeof MainLogIndexRoute
   '/projects': typeof MainProjectsIndexRoute
@@ -184,7 +182,6 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/dev-palette'
     | '/log'
     | '/projects'
@@ -202,7 +199,6 @@ export interface FileRouteTypes {
     | '/setup/unity-hub'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/dev-palette'
     | '/log'
     | '/projects'
@@ -264,8 +260,8 @@ declare module '@tanstack/react-router' {
     }
     '/': {
       id: '/'
-      path: '/'
-      fullPath: '/'
+      path: ''
+      fullPath: ''
       preLoaderRoute: typeof RouteRouteImport
       parentRoute: typeof rootRouteImport
     }
