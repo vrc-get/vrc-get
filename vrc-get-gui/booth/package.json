@@ -1,0 +1,16 @@
+{
+	"name": "booth",
+	"version": "1.0.0",
+	"description": "This directory contains the assets for the booth.",
+	"main": "convert.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "commonjs",
+	"dependencies": {
+		"sharp": "^0.34.5"
+	}
+}
