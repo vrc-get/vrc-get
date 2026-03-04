@@ -397,6 +397,7 @@ function UnityLaunchArgumentsCard() {
 			</p>
 			<ol className={"flex flex-col"}>
 				{realUnityArgs.map((v, i) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: unity args are ordered list
 					<Input disabled key={i + v} value={v} className={"w-full"} />
 				))}
 			</ol>
