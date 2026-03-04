@@ -48,7 +48,7 @@
 		"@biomejs/biome": "^2",
 		"@tailwindcss/vite": "^4.1.17",
 		"@tanstack/router-plugin": "^1.139.3",
-		"@tauri-apps/cli": "2.8.0",
+		"@tauri-apps/cli": "2.10.1",
 		"@types/node": "^20",
 		"@types/react": "19.1.11",
 		"@types/react-dom": "19.1.7",
