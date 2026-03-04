@@ -5718,7 +5718,7 @@ dependencies = [
  "url",
  "uuid",
  "vrc-get-vpm",
- "windows 0.61.3",
+ "windows 0.62.2",
  "winreg",
  "wmi",
  "yoke",
@@ -5778,7 +5778,7 @@ dependencies = [
  "url",
  "uuid",
  "vrc-get-litedb",
- "windows 0.61.3",
+ "windows 0.62.2",
  "winreg",
 ]
 
