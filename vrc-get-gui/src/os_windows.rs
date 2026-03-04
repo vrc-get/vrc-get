@@ -140,7 +140,6 @@ pub fn os_info() -> &'static str {
     }
 
     fn try_get_wmi_info() -> Result<String, ()> {
-        use serde::Deserialize;
         use std::sync::mpsc;
         use std::thread;
         use std::time::Duration;
