@@ -57,7 +57,7 @@ jobs:
         with:
           key: ci-build-gui-${{ matrix.triple }}
       - name: Cache javascript essentials
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.npm
