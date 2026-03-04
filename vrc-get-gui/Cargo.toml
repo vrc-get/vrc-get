@@ -65,7 +65,7 @@ wmi = "0.17"
 [target.'cfg(target_os = "macos")'.dependencies]
 plist = { version = "1" }
 objc2-app-kit = { version = "0.3.0", features = ['NSWorkspace', "block2"] }
-objc2-foundation = "0.3.0"
+objc2-foundation = "0.3.2"
 block2 = "0.6.0"
 objc2 = "0.6.0"
 dispatch2 = "0.3.0"
