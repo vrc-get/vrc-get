@@ -673,7 +673,7 @@ async fn import_unitypackage_impl(
                     ));
                 }
                 // ignoring paths for non-Assets / Packages
-                if !pathname.starts_with("Assets/") && pathname.starts_with("Packages/") {
+                if !pathname.starts_with("Assets/") && !pathname.starts_with("Packages/") {
                     continue;
                 }
                 package_entry.pathname = pathname;
