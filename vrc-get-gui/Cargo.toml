@@ -60,7 +60,7 @@ itertools = "0.14"
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
 winreg = "0.55"
-wmi = "0.17"
+wmi = "0.18"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 plist = { version = "1" }
