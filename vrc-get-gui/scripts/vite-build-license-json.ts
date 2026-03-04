@@ -501,6 +501,7 @@ function getLicenseNames() {
 		["MPL-2.0", "Mozilla Public License 2.0"],
 		["OFL-1.1", "SIL Open Font License 1.1"],
 		["BlueOak-1.0.0", "Blue Oak Model License 1.0.0"],
+		["Zlib", "zlib License"],
 
 		["OpenSSL", "OpenSSL License"],
 		["CC-BY-4.0", "Creative Commons Attribution 4.0"],
@@ -1223,6 +1224,27 @@ function getLicenseDefaultTexts() {
 		"\n" +
 		"For more information, please refer to <https://unlicense.org>";
 
+	const zLibLicense =
+		"zlib License\n" +
+		"\n" +
+		"(C) [year] [fullname]\n" +
+		"\n" +
+		"This software is provided 'as-is', without any express or implied\n" +
+		"warranty.  In no event will the authors be held liable for any damages\n" +
+		"arising from the use of this software.\n" +
+		"\n" +
+		"Permission is granted to anyone to use this software for any purpose,\n" +
+		"including commercial applications, and to alter it and redistribute it\n" +
+		"freely, subject to the following restrictions:\n" +
+		"\n" +
+		"1. The origin of this software must not be misrepresented; you must not\n" +
+		"   claim that you wrote the original software. If you use this software\n" +
+		"   in a product, an acknowledgment in the product documentation would be\n" +
+		"   appreciated but is not required.\n" +
+		"2. Altered source versions must be plainly marked as such, and must not be\n" +
+		"   misrepresented as being the original software.\n" +
+		"3. This notice may not be removed or altered from any source distribution.";
+
 	const defaultLicenseTexts = new Map();
 
 	defaultLicenseTexts.set("MIT", mitLicense);
@@ -1235,6 +1257,7 @@ function getLicenseDefaultTexts() {
 	defaultLicenseTexts.set("BSD-2-Clause", bsd2clause);
 	defaultLicenseTexts.set("BSD-3-Clause", bsd3clause);
 	defaultLicenseTexts.set("Unlicense", unlicense);
+	defaultLicenseTexts.set("Zlib", zLibLicense);
 
 	return defaultLicenseTexts;
 }
