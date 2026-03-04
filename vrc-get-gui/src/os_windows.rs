@@ -143,7 +143,7 @@ pub fn os_info() -> &'static str {
         use std::sync::mpsc;
         use std::thread;
         use std::time::Duration;
-        use wmi::{COMLibrary, WMIConnection};
+        use wmi::WMIConnection;
 
         let (sender, receiver) = mpsc::channel::<Result<String, ()>>();
 
@@ -160,15 +160,7 @@ pub fn os_info() -> &'static str {
                 version: String,
             }
 
-            let com_con = match COMLibrary::new() {
-                Ok(con) => con,
-                Err(_) => {
-                    let _ = sender.send(Err(()));
-                    return;
-                }
-            };
-
-            let wmi_con = match WMIConnection::new(com_con) {
+            let wmi_con = match WMIConnection::new() {
                 Ok(con) => con,
                 Err(_) => {
                     let _ = sender.send(Err(()));
