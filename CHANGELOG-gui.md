@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
+- File filled with '\0' or whitespace will be treated as empty file `#2710`
+  - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
 
 ### Deprecated
 

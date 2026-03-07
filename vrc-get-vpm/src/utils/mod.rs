@@ -299,13 +299,19 @@ pub(crate) fn parse_json_file<T: serde::de::DeserializeOwned>(
     }
 }
 
+// returns true when no data stored in the file
+// typical case is filled with '0' when system crashes, but user may manually reset the file
+fn is_blank(buf: &[u8]) -> bool {
+    buf.is_empty() || buf.iter().all(|&b| matches!(b, b' ' | 0))
+}
+
 pub(crate) async fn try_load_json<T: serde::de::DeserializeOwned>(
     io: &impl IoTrait,
     path: &Path,
 ) -> io::Result<Option<T>> {
     match io.open(path).await {
         Ok(file) => match read_to_end(file).await? {
-            vec if vec.is_empty() => Ok(None),
+            vec if is_blank(&vec) => Ok(None),
             vec => Ok(Some(parse_json_file(&vec, path)?)),
         },
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
@@ -317,14 +323,7 @@ pub(crate) async fn load_json_or_default<T>(io: &impl IoTrait, path: &Path) -> i
 where
     T: serde::de::DeserializeOwned + Default,
 {
-    match io.open(path).await {
-        Ok(file) => match read_to_end(file).await? {
-            vec if vec.is_empty() => Ok(Default::default()),
-            vec => Ok(parse_json_file(&vec, path)?),
-        },
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Default::default()),
-        Err(e) => Err(e),
-    }
+    try_load_json(io, path).await.map(|x| x.unwrap_or_default())
 }
 
 pub(crate) fn normalize_path(input: &Path) -> PathBuf {
