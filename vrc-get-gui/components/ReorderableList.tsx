@@ -13,7 +13,7 @@ import { assertNever } from "@/lib/assert-never";
 const internalSymbol: unique symbol = Symbol("ReorderableListContextInternal");
 const idSymbol: unique symbol = Symbol("IdSymbol");
 
-type Id = { [idSymbol]: number; toString: () => string };
+export type ReorderableListId = { [idSymbol]: number; toString: () => string };
 
 type NonFunction =
 	| string
@@ -25,9 +25,9 @@ type NonFunction =
 	| bigint
 	| object;
 
-type AddOptions = { after: Id } | { before: Id };
+type AddOptions = { after: ReorderableListId } | { before: ReorderableListId };
 
-type ReordeableListValue<T> = { id: Id; value: T };
+type ReordeableListValue<T> = { id: ReorderableListId; value: T };
 
 type ReorderableListContextInternal<T> = {
 	backedList: ReordeableListValue<T>[];
@@ -40,8 +40,8 @@ type ReorderableListContextInternal<T> = {
 export type ReorderableListContext<T> = {
 	setList: Dispatch<SetStateAction<T[]>>;
 	add: (value: T, options?: AddOptions) => void;
-	remove: (id: Id) => void;
-	update: (id: Id, action: SetStateAction<T>) => void;
+	remove: (id: ReorderableListId) => void;
+	update: (id: ReorderableListId, action: SetStateAction<T>) => void;
 	get value(): T[];
 	[internalSymbol]: ReorderableListContextInternal<T>;
 };
@@ -127,7 +127,7 @@ export function useReorderableList<T extends NonFunction>({
 	}, []);
 
 	const remove = useCallback(
-		(id: Id) => {
+		(id: ReorderableListId) => {
 			setBackedList((old) => {
 				let list = old.filter(({ id: _id }) => _id !== id);
 				if (list.length === 0 && !allowEmpty) list = [makeValue(defaultValue)];
@@ -137,26 +137,29 @@ export function useReorderableList<T extends NonFunction>({
 		[allowEmpty, defaultValue],
 	);
 
-	const update = useCallback((id: Id, action: SetStateAction<T>) => {
-		if (typeof action === "function") {
-			setBackedList((old) => {
-				const idx = old.findIndex(({ id: _id }) => _id === id);
-				if (idx === -1) return old;
-				const newValue = action(old[idx].value);
-				const newArray = [...old];
-				newArray[idx] = { id, value: newValue };
-				return newArray;
-			});
-		} else {
-			setBackedList((old) => {
-				const idx = old.findIndex(({ id: _id }) => _id === id);
-				if (idx === -1) return old;
-				const newArray = [...old];
-				newArray[idx] = { id, value: action };
-				return newArray;
-			});
-		}
-	}, []);
+	const update = useCallback(
+		(id: ReorderableListId, action: SetStateAction<T>) => {
+			if (typeof action === "function") {
+				setBackedList((old) => {
+					const idx = old.findIndex(({ id: _id }) => _id === id);
+					if (idx === -1) return old;
+					const newValue = action(old[idx].value);
+					const newArray = [...old];
+					newArray[idx] = { id, value: newValue };
+					return newArray;
+				});
+			} else {
+				setBackedList((old) => {
+					const idx = old.findIndex(({ id: _id }) => _id === id);
+					if (idx === -1) return old;
+					const newArray = [...old];
+					newArray[idx] = { id, value: action };
+					return newArray;
+				});
+			}
+		},
+		[],
+	);
 
 	const swap = useCallback((index1: number, index2: number) => {
 		setBackedList((old) => {
@@ -206,7 +209,7 @@ export function ReorderableList<T>({
 	disabled,
 }: {
 	context: ReorderableListContext<T>;
-	renderItem: (value: T, id: Id) => React.ReactNode;
+	renderItem: (value: T, id: ReorderableListId) => React.ReactNode;
 	ifEmpty?: () => React.ReactNode;
 	disabled?: boolean;
 }) {
