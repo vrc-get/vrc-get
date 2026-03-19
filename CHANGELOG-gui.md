@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- The package list can show hidden packages. `#2731`
 
 ### Changed
 - File filled with '\0' or whitespace will be treated as empty file `#2710`
