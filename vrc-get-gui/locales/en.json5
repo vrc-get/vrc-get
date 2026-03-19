@@ -216,6 +216,7 @@
     "projects:manage:button:unity migrate": "Migrate Project",
 
     "projects:manage:manage packages": "Manage Packages",
+    "projects:manage:hidden packages": "Hidden Packages",
     "projects:manage:tooltip:refresh packages": "Refresh Packages",
     "projects:manage:button:upgrade all": "Upgrade All (Latest)",
     "projects:manage:button:upgrade all stable": "Upgrade All (Stable)",
