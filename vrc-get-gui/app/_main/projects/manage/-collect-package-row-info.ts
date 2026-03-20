@@ -110,13 +110,8 @@ export function combinePackagesAndProjectDetails(
 		if (pkg.source === "LocalUser") {
 			packages = userPackages;
 		} else if ("Remote" in pkg.source) {
-			if (hiddenRepositoriesSet.has(pkg.source.Remote.id)) {
-				packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
-				packagesPerRepository.set(pkg.source.Remote.id, packages);
-			} else {
-				packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
-				packagesPerRepository.set(pkg.source.Remote.id, packages);
-			}
+			packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
+			packagesPerRepository.set(pkg.source.Remote.id, packages);
 		} else {
 			assertNever(pkg.source);
 		}
