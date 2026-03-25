@@ -3,6 +3,7 @@ import {
 	ButtonDisabledIfInvalid,
 	getProjectDisplayInfo,
 	ManageOrMigrateButton,
+	OpenUnityButtonWithTooltip,
 	ProjectContext,
 	TooltipTriggerIfInvalid,
 	TooltipTriggerIfValid,
@@ -11,8 +12,8 @@ import {
 import { copyProject } from "@/app/_main/projects/manage/-copy-project";
 import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
-import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { UnityRunningIndicator } from "@/components/UnityRunningIndicator";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -119,9 +120,12 @@ export function ProjectGridItem({
 								<TooltipTriggerIfValid
 									className={"text-left select-text cursor-auto w-full"}
 								>
-									<p className="font-normal whitespace-pre overflow-ellipsis overflow-hidden">
-										{project.name}
-									</p>
+									<div className="flex items-center gap-2">
+										<p className="font-normal whitespace-pre overflow-ellipsis overflow-hidden">
+											{project.name}
+										</p>
+										<UnityRunningIndicator projectPath={project.path} />
+									</div>
 									<p className="font-normal opacity-50 text-sm whitespace-pre overflow-ellipsis overflow-hidden compact:hidden">
 										{project.path}
 									</p>
@@ -184,13 +188,7 @@ export function ProjectGridItem({
 				</div>
 
 				<div className="mt-2 flex flex-wrap gap-2 justify-end compact:gap-1">
-					<ButtonDisabledIfInvalid asChild>
-						<OpenUnityButton
-							projectPath={project.path}
-							unityVersion={project.unity}
-							unityRevision={project.unity_revision}
-						/>
-					</ButtonDisabledIfInvalid>
+					<OpenUnityButtonWithTooltip project={project} />
 					<ManageOrMigrateButton project={project} />
 					<ButtonDisabledIfInvalid
 						onClick={() =>

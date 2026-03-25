@@ -12,6 +12,7 @@ import { BackupProjectDialog } from "@/components/BackupProjectDialog";
 import { FavoriteStarToggleButton } from "@/components/FavoriteStarButton";
 import { OpenUnityButton } from "@/components/OpenUnityButton";
 import { RemoveProjectDialog } from "@/components/RemoveProjectDialog";
+import { UnityRunningIndicator } from "@/components/UnityRunningIndicator";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -129,7 +130,12 @@ export function ProjectRow({
 									<TooltipTriggerIfValid
 										className={"text-left select-text cursor-auto w-full"}
 									>
-										<p className="font-normal whitespace-pre">{project.name}</p>
+										<div className="flex items-center gap-2">
+											<p className="font-normal whitespace-pre">
+												{project.name}
+											</p>
+											<UnityRunningIndicator projectPath={project.path} />
+										</div>
 										<p className="font-normal opacity-50 text-sm whitespace-pre compact:hidden">
 											{project.path}
 										</p>
@@ -189,13 +195,7 @@ export function ProjectRow({
 				</td>
 				<td className={noGrowCellClass}>
 					<div className="flex flex-row gap-2 max-w-min items-center">
-						<ButtonDisabledIfInvalid asChild>
-							<OpenUnityButton
-								projectPath={project.path}
-								unityVersion={project.unity}
-								unityRevision={project.unity_revision}
-							/>
-						</ButtonDisabledIfInvalid>
+						<OpenUnityButtonWithTooltip project={project} />
 						<ManageOrMigrateButton project={project} />
 						<ButtonDisabledIfInvalid
 							onClick={async () => {
@@ -439,16 +439,58 @@ export const ProjectContext = React.createContext<{
 	loading: false,
 });
 
-export const ButtonDisabledIfInvalid = function RemovedButton(
-	props: React.ComponentProps<typeof Button>,
-) {
+export function OpenUnityButtonWithTooltip({
+	project,
+}: {
+	project: TauriProject;
+}) {
 	const rowContext = useContext(ProjectContext);
-	if (rowContext.removed || !(rowContext.is_valid ?? true)) {
+	const isInvalid = rowContext.removed || !(rowContext.is_valid ?? true);
+	const isDisabled = isInvalid || rowContext.loading;
+
+	const button = (
+		<OpenUnityButton
+			projectPath={project.path}
+			unityVersion={project.unity}
+			unityRevision={project.unity_revision}
+			disabled={isDisabled}
+			className="disabled:pointer-events-auto"
+		/>
+	);
+
+	if (isInvalid) {
+		return (
+			<Tooltip>
+				<TooltipTrigger asChild>{button}</TooltipTrigger>
+				<TooltipPortal>
+					<TooltipContent>
+						{rowContext.removed
+							? tc("projects:tooltip:no directory")
+							: tc("projects:tooltip:invalid project")}
+					</TooltipContent>
+				</TooltipPortal>
+			</Tooltip>
+		);
+	}
+
+	return button;
+}
+
+export const ButtonDisabledIfInvalid = function RemovedButton({
+	asChild,
+	...props
+}: React.ComponentProps<typeof Button>) {
+	const rowContext = useContext(ProjectContext);
+	const isDisabled = props.disabled || rowContext.loading || rowContext.removed;
+	const isInvalid = rowContext.removed || !(rowContext.is_valid ?? true);
+
+	if (isInvalid) {
 		return (
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
 						{...props}
+						asChild={asChild}
 						className={`disabled:pointer-events-auto ${props.className}`}
 						disabled
 					/>
@@ -466,8 +508,9 @@ export const ButtonDisabledIfInvalid = function RemovedButton(
 		return (
 			<Button
 				{...props}
+				asChild={asChild}
 				className={`disabled:pointer-events-auto ${props.className}`}
-				disabled={props.disabled || rowContext.loading || rowContext.removed}
+				disabled={isDisabled}
 			/>
 		);
 	}

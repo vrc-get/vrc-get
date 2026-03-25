@@ -245,6 +245,9 @@ async projectOpenUnity(projectPath: string, unityPath: string) : Promise<boolean
 async projectIsUnityLaunching(projectPath: string) : Promise<boolean> {
     return await TAURI_INVOKE("project_is_unity_launching", { projectPath });
 },
+async projectBringUnityToForeground(projectPath: string) : Promise<boolean> {
+    return await TAURI_INVOKE("project_bring_unity_to_foreground", { projectPath });
+},
 async projectCreateBackup(channel: string, projectPath: string) : Promise<AsyncCallResult<TauriCreateBackupProgress, null>> {
     return await TAURI_INVOKE("project_create_backup", { channel, projectPath });
 },
