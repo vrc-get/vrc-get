@@ -2,7 +2,7 @@
 resolver = "2"
 
 members = [
-    "build-check-static-link",
+    "xtask",
     "build-updater-json",
     "vrc-get",
     "vrc-get-gui",

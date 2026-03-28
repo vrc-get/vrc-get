@@ -1,0 +1,2 @@
+[alias]
+xtask = "run --target host-tuple -p xtask --"

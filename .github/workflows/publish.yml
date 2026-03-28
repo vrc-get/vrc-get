@@ -190,9 +190,7 @@ jobs:
       - name: Check binary is statically linked
         shell: bash
         run: |
-          # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
-          unset CARGO_BUILD_TARGET
-          cargo run -p build-check-static-link target/${{ matrix.triple }}/release/vrc-get*
+          xtask check-static-link target/${{ matrix.triple }}/release
 
       - name: Move artifacts
         shell: bash
