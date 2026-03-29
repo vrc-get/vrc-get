@@ -2,7 +2,7 @@ use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
 use crate::compressor::TauriCreateBackupProgress;
-use crate::compressor::{CompressEntry, parallel_compress_zip};
+use crate::compressor::parallel_compress_zip;
 use crate::utils::{collect_notable_project_files_tree, project_backup_path};
 use log::{error, info, warn};
 use serde::Serialize;
@@ -541,22 +541,8 @@ async fn create_backup_zip(
         start.elapsed().as_secs_f64()
     );
 
-    let mut entries = Vec::new();
-    for entry in file_tree.recursive() {
-        if entry.is_dir() {
-            entries.push(CompressEntry::Dir {
-                relative_path: entry.relative_path().to_string(),
-            });
-        } else {
-            entries.push(CompressEntry::File {
-                relative_path: entry.relative_path().to_string(),
-                absolute_path: entry.absolute_path().to_path_buf(),
-            });
-        }
-    }
-
     parallel_compress_zip(
-        entries,
+        file_tree,
         backup_path.to_path_buf(),
         compression_method,
         compression_level,

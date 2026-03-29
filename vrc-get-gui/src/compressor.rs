@@ -1,4 +1,5 @@
 use crate::commands::AsyncCommandContext;
+use crate::utils::FileSystemTree;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -35,16 +36,6 @@ impl From<zip::result::ZipError> for CompressError {
     fn from(value: zip::result::ZipError) -> Self {
         CompressError::Zip(value)
     }
-}
-
-pub(crate) enum CompressEntry {
-    Dir {
-        relative_path: String,
-    },
-    File {
-        relative_path: String,
-        absolute_path: PathBuf,
-    },
 }
 
 struct WriteState {
@@ -114,43 +105,39 @@ fn file_options(method: CompressionMethod, compression_level: Option<i64>) -> Si
 }
 
 fn entry_to_partial_zip(
-    entry: &CompressEntry,
+    entry: &FileSystemTree,
     method: CompressionMethod,
     compression_level: Option<i64>,
 ) -> Result<Vec<u8>, CompressError> {
     let mut cur = Cursor::new(Vec::new());
     {
         let mut partial_zip = ZipWriter::new(&mut cur);
-        match entry {
-            CompressEntry::Dir { relative_path } => {
-                let opts = file_options(CompressionMethod::Stored, None);
-                partial_zip.start_file(relative_path, opts)?;
-                partial_zip.write_all(&[])?;
-            }
-            CompressEntry::File {
-                relative_path,
-                absolute_path,
-            } => {
-                let opts = file_options(method, compression_level);
-                let data = std::fs::read(absolute_path).map_err(CompressError::Io)?;
-                partial_zip.start_file(relative_path, opts)?;
-                partial_zip.write_all(&data)?;
-            }
+
+        if entry.is_dir() {
+            let opts = file_options(CompressionMethod::Stored, None);
+            partial_zip.start_file(entry.relative_path(), opts)?;
+            partial_zip.write_all(&[])?;
+        } else {
+            let opts = file_options(method, compression_level);
+            let data = std::fs::read(entry.absolute_path()).map_err(CompressError::Io)?;
+            partial_zip.start_file(entry.relative_path(), opts)?;
+            partial_zip.write_all(&data)?;
         }
+
         partial_zip.finish()?;
     }
     Ok(cur.into_inner())
 }
 
 pub(crate) async fn parallel_compress_zip(
-    entries: Vec<CompressEntry>,
+    tree: FileSystemTree,
     destination: PathBuf,
     compression_method: CompressionMethod,
     compression_level: Option<i64>,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
     token: CancellationToken,
 ) -> Result<(), CompressError> {
-    let total = entries.len();
+    let total = tree.count_all();
 
     let _ = ctx.emit(TauriCreateBackupProgress {
         total,
@@ -158,7 +145,7 @@ pub(crate) async fn parallel_compress_zip(
         last_proceed: "Collecting files".to_string(),
     });
 
-    if entries.is_empty() {
+    if total == 0 {
         tokio::task::spawn_blocking(move || {
             let file = std::fs::OpenOptions::new()
                 .create_new(true)
@@ -186,17 +173,16 @@ pub(crate) async fn parallel_compress_zip(
             ctx,
         )));
 
-        entries.par_iter().enumerate().try_for_each(
-            |(idx, entry)| -> Result<(), CompressError> {
+        tree.recursive()
+            .collect::<Vec<_>>()
+            .par_iter()
+            .enumerate()
+            .try_for_each(|(idx, entry)| -> Result<(), CompressError> {
                 if token.is_cancelled() {
                     return Err(CompressError::Cancelled);
                 }
 
-                let display_name = match entry {
-                    CompressEntry::Dir { relative_path } => relative_path.clone(),
-                    CompressEntry::File { relative_path, .. } => relative_path.clone(),
-                };
-
+                let display_name = entry.relative_path().to_string();
                 let data = entry_to_partial_zip(entry, compression_method, compression_level)?;
 
                 write_state
@@ -205,8 +191,7 @@ pub(crate) async fn parallel_compress_zip(
                     .submit(idx, display_name, data)?;
 
                 Ok(())
-            },
-        )?;
+            })?;
 
         write_state
             .lock()
