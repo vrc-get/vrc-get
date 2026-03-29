@@ -1,5 +1,6 @@
 use anyhow::*;
 
+mod alcom_updater_json;
 mod check_static_link;
 mod utils;
 
@@ -31,6 +32,7 @@ macro_rules! commands_def {
 
 commands_def! {
     CheckStaticLink = check_static_link;
+    AlcomUpdaterJson = alcom_updater_json;
 }
 
 fn main() -> Result<()> {

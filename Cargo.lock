@@ -471,23 +471,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "build-check-static-link"
-version = "0.1.0"
-dependencies = [
- "object 0.38.1",
-]
-
-[[package]]
-name = "build-updater-json"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "indexmap 2.13.0",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6987,9 +6970,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cargo_metadata 0.23.1",
+ "chrono",
  "clap",
+ "indexmap 2.13.0",
  "itertools",
  "object 0.38.1",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
