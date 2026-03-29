@@ -37,45 +37,6 @@ impl From<zip::result::ZipError> for CompressError {
     }
 }
 
-struct SyncSemaphore {
-    pair: Arc<(std::sync::Mutex<usize>, std::sync::Condvar)>,
-    max: usize,
-}
-
-impl SyncSemaphore {
-    fn new(max: usize) -> Self {
-        Self {
-            pair: Arc::new((std::sync::Mutex::new(0), std::sync::Condvar::new())),
-            max,
-        }
-    }
-
-    fn acquire(&self) -> SyncSemaphoreGuard {
-        let (lock, cvar) = &*self.pair;
-        let mut count = lock.lock().unwrap();
-        while *count >= self.max {
-            count = cvar.wait(count).unwrap();
-        }
-        *count += 1;
-        SyncSemaphoreGuard {
-            pair: self.pair.clone(),
-        }
-    }
-}
-
-struct SyncSemaphoreGuard {
-    pair: Arc<(std::sync::Mutex<usize>, std::sync::Condvar)>,
-}
-
-impl Drop for SyncSemaphoreGuard {
-    fn drop(&mut self) {
-        let (lock, cvar) = &*self.pair;
-        let mut count = lock.lock().unwrap();
-        *count -= 1;
-        cvar.notify_one();
-    }
-}
-
 pub(crate) enum CompressEntry {
     Dir {
         relative_path: String,
@@ -225,9 +186,6 @@ pub(crate) async fn parallel_compress_zip(
             ctx,
         )));
 
-        let parallelism = std::thread::available_parallelism().map_or(1, |n| n.get());
-        let semaphore = SyncSemaphore::new(parallelism);
-
         entries.par_iter().enumerate().try_for_each(
             |(idx, entry)| -> Result<(), CompressError> {
                 if token.is_cancelled() {
@@ -238,8 +196,6 @@ pub(crate) async fn parallel_compress_zip(
                     CompressEntry::Dir { relative_path } => relative_path.clone(),
                     CompressEntry::File { relative_path, .. } => relative_path.clone(),
                 };
-
-                let _guard = semaphore.acquire();
 
                 let data = entry_to_partial_zip(entry, compression_method, compression_level)?;
 
