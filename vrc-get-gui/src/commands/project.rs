@@ -1,6 +1,8 @@
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
+use crate::compressor::TauriCreateBackupProgress;
+use crate::compressor::{CompressEntry, parallel_compress_zip};
 use crate::utils::{collect_notable_project_files_tree, project_backup_path};
 use log::{error, info, warn};
 use serde::Serialize;
@@ -9,8 +11,9 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::str::FromStr;
 use tauri::{AppHandle, State, Window};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
+use tokio_util::sync::CancellationToken;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_project::pending_project_changes::{
@@ -18,6 +21,7 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::{StrictEqVersion, Version};
+use zip::CompressionMethod;
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
@@ -518,14 +522,12 @@ pub fn project_is_unity_launching(project_path: String) -> bool {
 async fn create_backup_zip(
     backup_path: &Path,
     project_path: &Path,
-    compression: async_zip::Compression,
-    deflate_option: async_zip::DeflateOption,
+    compression_method: CompressionMethod,
+    compression_level: Option<i64>,
     exclude_vpm: bool,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
+    token: CancellationToken,
 ) -> Result<(), RustError> {
-    let mut file = tokio::fs::File::create_new(&backup_path).await?;
-    let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
-
     info!("Collecting files to backup {}...", project_path.display());
 
     let start = std::time::Instant::now();
@@ -539,45 +541,29 @@ async fn create_backup_zip(
         start.elapsed().as_secs_f64()
     );
 
-    let _ = ctx.emit(TauriCreateBackupProgress {
-        total: total_files,
-        proceed: 0,
-        last_proceed: "Collecting files".to_string(),
-    });
-
-    for (proceed, entry) in file_tree.recursive().enumerate() {
+    let mut entries = Vec::new();
+    for entry in file_tree.recursive() {
         if entry.is_dir() {
-            writer
-                .write_entry_whole(
-                    async_zip::ZipEntryBuilder::new(
-                        entry.relative_path().into(),
-                        async_zip::Compression::Stored,
-                    ),
-                    b"",
-                )
-                .await?;
+            entries.push(CompressEntry::Dir {
+                relative_path: entry.relative_path().to_string(),
+            });
         } else {
-            let file = tokio::fs::read(entry.absolute_path()).await?;
-            writer
-                .write_entry_whole(
-                    async_zip::ZipEntryBuilder::new(entry.relative_path().into(), compression)
-                        .deflate_option(deflate_option),
-                    file.as_ref(),
-                )
-                .await?;
+            entries.push(CompressEntry::File {
+                relative_path: entry.relative_path().to_string(),
+                absolute_path: entry.absolute_path().to_path_buf(),
+            });
         }
-
-        let _ = ctx.emit(TauriCreateBackupProgress {
-            total: total_files,
-            proceed: proceed + 1,
-            last_proceed: entry.relative_path().to_string(),
-        });
     }
 
-    writer.close().await?;
-    file.flush().await?;
-    file.sync_data().await?;
-    drop(file);
+    parallel_compress_zip(
+        entries,
+        backup_path.to_path_buf(),
+        compression_method,
+        compression_level,
+        ctx,
+        token,
+    )
+    .await?;
 
     info!(
         "Creating backup archive for {} finished!",
@@ -603,13 +589,6 @@ impl Drop for RemoveOnDrop<'_> {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(self.0);
     }
-}
-
-#[derive(Serialize, specta::Type, Clone)]
-pub struct TauriCreateBackupProgress {
-    total: usize,
-    proceed: usize,
-    last_proceed: String,
 }
 
 #[tauri::command]
@@ -648,73 +627,31 @@ pub async fn project_create_backup(
             log::info!("backup project: {project_name} with {backup_format}");
             let timer = std::time::Instant::now();
 
-            let backup_path;
-            let remove_on_drop: RemoveOnDrop;
-            match backup_format.as_str() {
-                "default" | "zip-store" => {
-                    backup_path = Path::new(&backup_dir)
-                        .join(&backup_name)
-                        .with_added_extension("zip");
-                    remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    create_backup_zip(
-                        &backup_path,
-                        project_path.as_ref(),
-                        async_zip::Compression::Stored,
-                        async_zip::DeflateOption::Normal,
-                        exclude_vpm,
-                        ctx,
-                    )
-                    .await?;
-                }
-                "zip-fast" => {
-                    backup_path = Path::new(&backup_dir)
-                        .join(&backup_name)
-                        .with_added_extension("zip");
-                    remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    create_backup_zip(
-                        &backup_path,
-                        project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(1),
-                        exclude_vpm,
-                        ctx,
-                    )
-                    .await?;
-                }
-                "zip-best" => {
-                    backup_path = Path::new(&backup_dir)
-                        .join(&backup_name)
-                        .with_added_extension("zip");
-                    remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    create_backup_zip(
-                        &backup_path,
-                        project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(9),
-                        exclude_vpm,
-                        ctx,
-                    )
-                    .await?;
-                }
+            let (compression_method, compression_level) = match backup_format.as_str() {
+                "default" | "zip-store" => (CompressionMethod::Stored, None),
+                "zip-fast" => (CompressionMethod::Deflated, Some(1)),
+                "zip-best" => (CompressionMethod::Deflated, Some(9)),
                 backup_format => {
                     warn!("unknown backup format: {backup_format}, using zip-fast");
-
-                    backup_path = Path::new(&backup_dir)
-                        .join(&backup_name)
-                        .with_added_extension("zip");
-
-                    remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    create_backup_zip(
-                        &backup_path,
-                        project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(1),
-                        exclude_vpm,
-                        ctx,
-                    )
-                    .await?;
+                    (CompressionMethod::Deflated, Some(1))
                 }
-            }
+            };
+
+            let backup_path = Path::new(&backup_dir)
+                .join(&backup_name)
+                .with_added_extension("zip");
+            let remove_on_drop = RemoveOnDrop::new(&backup_path);
+            let token = ctx.cancellation_token();
+            create_backup_zip(
+                &backup_path,
+                project_path.as_ref(),
+                compression_method,
+                compression_level,
+                exclude_vpm,
+                ctx,
+                token,
+            )
+            .await?;
             remove_on_drop.forget();
 
             log::info!("backup finished in {:?}", timer.elapsed());

@@ -37,6 +37,7 @@ macro_rules! localizable_error {
 }
 
 mod async_command;
+pub(crate) use async_command::AsyncCommandContext;
 mod environment;
 mod project;
 mod start;
@@ -362,11 +363,24 @@ macro_rules! impl_from_error {
 impl_from_error!(
     io::Error,
     String,
-    async_zip::error::ZipError,
+    zip::result::ZipError,
     vrc_get_vpm::environment::AddRepositoryErr,
     vrc_get_vpm::unity_project::RemovePackageErr,
     fs_extra::error::Error,
 );
+
+impl From<crate::compressor::CompressError> for RustError {
+    fn from(value: crate::compressor::CompressError) -> Self {
+        match value {
+            crate::compressor::CompressError::Cancelled => {
+                RustError::unrecoverable("backup cancelled")
+            }
+            crate::compressor::CompressError::Io(e) => e.into(),
+            crate::compressor::CompressError::Zip(e) => e.into(),
+            crate::compressor::CompressError::TaskJoin(e) => RustError::unrecoverable(e),
+        }
+    }
+}
 
 impl From<tauri_plugin_updater::Error> for RustError {
     fn from(value: tauri_plugin_updater::Error) -> Self {

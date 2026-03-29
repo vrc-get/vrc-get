@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
 mod commands;
+mod compressor;
 mod config;
 mod deep_link_support;
 mod logging;

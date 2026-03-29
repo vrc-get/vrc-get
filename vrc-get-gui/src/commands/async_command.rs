@@ -5,6 +5,7 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, EventId, Listener, Manager, State, Window};
+use tokio_util::sync::CancellationToken;
 
 #[derive(Serialize, specta::Type)]
 #[serde(tag = "type")]
@@ -28,10 +29,15 @@ pub(crate) enum ImplResult<R, AsyncFn> {
 pub(crate) struct AsyncCommandContext<P> {
     channel: String,
     window: Window,
+    token: CancellationToken,
     _progress: PhantomData<P>,
 }
 
 impl<P: Serialize + Clone> AsyncCommandContext<P> {
+    pub(crate) fn cancellation_token(&self) -> CancellationToken {
+        self.token.clone()
+    }
+
     pub(crate) fn emit(&self, value: P) -> Result<(), tauri::Error> {
         match self.window.emit(&self.channel, value) {
             Err(tauri::Error::WebviewNotFound) => Ok(()),
@@ -77,10 +83,14 @@ where
     let window_2 = window.clone();
     let channel_1 = channel.clone();
 
+    let cancellation_token = CancellationToken::new();
+    let cancel_on_event = cancellation_token.clone();
+
     let handle = tokio::spawn(async move {
         let context = AsyncCommandContext {
             channel: format!("{channel}:progress"),
             window: window.clone(),
+            token: cancellation_token,
             _progress: PhantomData,
         };
         let message = match async_fn(context).await {
@@ -99,6 +109,7 @@ where
     *event_handler_slot.lock().unwrap() =
         Some(window_2.listen(format!("{channel_1}:cancel"), move |_| {
             window_1.emit(&format!("{channel_1}:cancelled"), ()).ok();
+            cancel_on_event.cancel();
             handle.abort();
         }));
 
