@@ -627,31 +627,82 @@ pub async fn project_create_backup(
             log::info!("backup project: {project_name} with {backup_format}");
             let timer = std::time::Instant::now();
 
-            let (compression_method, compression_level) = match backup_format.as_str() {
-                "default" | "zip-store" => (CompressionMethod::Stored, None),
-                "zip-fast" => (CompressionMethod::Deflated, Some(1)),
-                "zip-best" => (CompressionMethod::Deflated, Some(9)),
-                backup_format => {
+            let backup_path: PathBuf;
+            let remove_on_drop: RemoveOnDrop;
+            let token: CancellationToken;
+            match backup_format.as_str() {
+                "default" | "zip-store" => {
+                    backup_path = Path::new(&backup_dir)
+                        .join(&backup_name)
+                        .with_added_extension("zip");
+                    remove_on_drop = RemoveOnDrop::new(&backup_path);
+                    token = ctx.cancellation_token();
+                    create_backup_zip(
+                        &backup_path,
+                        project_path.as_ref(),
+                        CompressionMethod::Stored,
+                        None,
+                        exclude_vpm,
+                        ctx,
+                        token,
+                    )
+                    .await?;
+                }
+                "zip-fast" => {
+                    backup_path = Path::new(&backup_dir)
+                        .join(&backup_name)
+                        .with_added_extension("zip");
+                    remove_on_drop = RemoveOnDrop::new(&backup_path);
+                    token = ctx.cancellation_token();
+                    create_backup_zip(
+                        &backup_path,
+                        project_path.as_ref(),
+                        CompressionMethod::Deflated,
+                        Some(1),
+                        exclude_vpm,
+                        ctx,
+                        token,
+                    )
+                    .await?;
+                }
+                "zip-best" => {
+                    backup_path = Path::new(&backup_dir)
+                        .join(&backup_name)
+                        .with_added_extension("zip");
+                    remove_on_drop = RemoveOnDrop::new(&backup_path);
+                    token = ctx.cancellation_token();
+                    create_backup_zip(
+                        &backup_path,
+                        project_path.as_ref(),
+                        CompressionMethod::Deflated,
+                        Some(9),
+                        exclude_vpm,
+                        ctx,
+                        token,
+                    )
+                    .await?;
+                }
+                _ => {
                     warn!("unknown backup format: {backup_format}, using zip-fast");
-                    (CompressionMethod::Deflated, Some(1))
+
+                    backup_path = Path::new(&backup_dir)
+                        .join(&backup_name)
+                        .with_added_extension("zip");
+                    remove_on_drop = RemoveOnDrop::new(&backup_path);
+                    token = ctx.cancellation_token();
+                    create_backup_zip(
+                        &backup_path,
+                        project_path.as_ref(),
+                        CompressionMethod::Deflated,
+                        Some(1),
+                        exclude_vpm,
+                        ctx,
+                        token,
+                    )
+                    .await?;
                 }
             };
 
-            let backup_path = Path::new(&backup_dir)
-                .join(&backup_name)
-                .with_added_extension("zip");
-            let remove_on_drop = RemoveOnDrop::new(&backup_path);
-            let token = ctx.cancellation_token();
-            create_backup_zip(
-                &backup_path,
-                project_path.as_ref(),
-                compression_method,
-                compression_level,
-                exclude_vpm,
-                ctx,
-                token,
-            )
-            .await?;
             remove_on_drop.forget();
 
             log::info!("backup finished in {:?}", timer.elapsed());
