@@ -119,9 +119,9 @@ fn entry_to_partial_zip(
             partial_zip.write_all(&[])?;
         } else {
             let opts = file_options(method, compression_level);
-            let data = std::fs::read(entry.absolute_path()).map_err(CompressError::Io)?;
+            let mut file = std::fs::File::open(entry.absolute_path()).map_err(CompressError::Io)?;
             partial_zip.start_file(entry.relative_path(), opts)?;
-            partial_zip.write_all(&data)?;
+            std::io::copy(&mut file, &mut partial_zip).map_err(CompressError::Io)?;
         }
 
         partial_zip.finish()?;
