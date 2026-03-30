@@ -294,7 +294,6 @@ async function getLicensesFromCargoMetadata(
 		if (licenseId === "Apache-2.0") suffixes.push("APACHE");
 		if (licenseId.startsWith("BSD-")) suffixes.push("BSD");
 		if (licenseId.startsWith("Unicode-3.0")) suffixes.push("UNICODE");
-		if (licenseId.startsWith("CC0")) suffixes.push("CC0");
 
 		// known fix suffixes
 		{
@@ -506,7 +505,6 @@ function getLicenseNames() {
 
 		["OpenSSL", "OpenSSL License"],
 		["CC-BY-4.0", "Creative Commons Attribution 4.0"],
-		["CC0-1.0", "CC0 1.0 Universal"],
 		[
 			"Unicode-DFS-2016",
 			"Unicode License Agreement - Data Files and Software (2016)",
@@ -520,7 +518,6 @@ function getLicenseNames() {
 		["0BSD", "BSD Zero Clause License"],
 		["BSD-2-Clause", "BSD 2-Clause License"],
 		["BSD-3-Clause", "BSD 3-Clause License"],
-		["bzip2-1.0.6", "bzip2 License"],
 
 		["Unlicense", "The Unlicense"],
 	]);

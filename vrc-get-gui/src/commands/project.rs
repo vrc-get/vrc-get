@@ -4,6 +4,7 @@ use crate::commands::prelude::*;
 use crate::compressor::TauriCreateBackupProgress;
 use crate::compressor::parallel_compress_zip;
 use crate::utils::{collect_notable_project_files_tree, project_backup_path};
+use async_zip::{Compression, DeflateOption};
 use log::{error, info, warn};
 use serde::Serialize;
 use std::ffi::OsStr;
@@ -13,7 +14,6 @@ use std::str::FromStr;
 use tauri::{AppHandle, State, Window};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use tokio_util::sync::CancellationToken;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
 use vrc_get_vpm::unity_project::pending_project_changes::{
@@ -21,7 +21,6 @@ use vrc_get_vpm::unity_project::pending_project_changes::{
 };
 use vrc_get_vpm::unity_project::{AddPackageOperation, PendingProjectChanges};
 use vrc_get_vpm::version::{StrictEqVersion, Version};
-use zip::CompressionMethod;
 
 #[derive(Serialize, specta::Type)]
 pub struct TauriProjectDetails {
@@ -522,11 +521,10 @@ pub fn project_is_unity_launching(project_path: String) -> bool {
 async fn create_backup_zip(
     backup_path: &Path,
     project_path: &Path,
-    compression_method: CompressionMethod,
-    compression_level: Option<i64>,
+    compression: Compression,
+    deflate_option: DeflateOption,
     exclude_vpm: bool,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
-    token: CancellationToken,
 ) -> Result<(), RustError> {
     info!("Collecting files to backup {}...", project_path.display());
 
@@ -544,10 +542,9 @@ async fn create_backup_zip(
     parallel_compress_zip(
         file_tree,
         backup_path.to_path_buf(),
-        compression_method,
-        compression_level,
+        compression,
+        deflate_option,
         ctx,
-        token,
     )
     .await?;
 
@@ -615,22 +612,19 @@ pub async fn project_create_backup(
 
             let backup_path: PathBuf;
             let remove_on_drop: RemoveOnDrop;
-            let token: CancellationToken;
             match backup_format.as_str() {
                 "default" | "zip-store" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    token = ctx.cancellation_token();
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        CompressionMethod::Stored,
-                        None,
+                        Compression::Stored,
+                        DeflateOption::Fast, // unused
                         exclude_vpm,
                         ctx,
-                        token,
                     )
                     .await?;
                 }
@@ -639,15 +633,13 @@ pub async fn project_create_backup(
                         .join(&backup_name)
                         .with_added_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    token = ctx.cancellation_token();
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        CompressionMethod::Deflated,
-                        Some(1),
+                        Compression::Deflate,
+                        DeflateOption::Fast,
                         exclude_vpm,
                         ctx,
-                        token,
                     )
                     .await?;
                 }
@@ -656,15 +648,13 @@ pub async fn project_create_backup(
                         .join(&backup_name)
                         .with_added_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    token = ctx.cancellation_token();
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        CompressionMethod::Deflated,
-                        Some(9),
+                        Compression::Deflate,
+                        DeflateOption::Maximum,
                         exclude_vpm,
                         ctx,
-                        token,
                     )
                     .await?;
                 }
@@ -675,15 +665,13 @@ pub async fn project_create_backup(
                         .join(&backup_name)
                         .with_added_extension("zip");
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
-                    token = ctx.cancellation_token();
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        CompressionMethod::Deflated,
-                        Some(1),
+                        Compression::Deflate,
+                        DeflateOption::Fast,
                         exclude_vpm,
                         ctx,
-                        token,
                     )
                     .await?;
                 }

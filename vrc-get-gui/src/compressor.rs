@@ -1,15 +1,15 @@
 use crate::commands::AsyncCommandContext;
 use crate::utils::FileSystemTree;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use async_zip::base::write::ZipFileWriter;
+use async_zip::{Compression, DeflateOption, ZipEntryBuilder};
 use serde::Serialize;
 use std::collections::BTreeMap;
-use std::io::{Cursor, Write};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use tokio_util::sync::CancellationToken;
-use zip::ZipArchive;
-use zip::write::SimpleFileOptions;
-use zip::{CompressionMethod, ZipWriter};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use tokio::fs::File;
+use tokio::sync::Semaphore;
+use tokio_util::compat::Compat;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct TauriCreateBackupProgress {
@@ -21,9 +21,9 @@ pub struct TauriCreateBackupProgress {
 #[derive(Debug)]
 pub enum CompressError {
     Io(std::io::Error),
-    Zip(zip::result::ZipError),
+    Zip(async_zip::error::ZipError),
     TaskJoin(tokio::task::JoinError),
-    Cancelled,
+    Semaphore(tokio::sync::AcquireError),
 }
 
 impl From<std::io::Error> for CompressError {
@@ -32,110 +32,125 @@ impl From<std::io::Error> for CompressError {
     }
 }
 
-impl From<zip::result::ZipError> for CompressError {
-    fn from(value: zip::result::ZipError) -> Self {
+impl From<async_zip::error::ZipError> for CompressError {
+    fn from(value: async_zip::error::ZipError) -> Self {
         CompressError::Zip(value)
     }
 }
 
+impl From<tokio::task::JoinError> for CompressError {
+    fn from(value: tokio::task::JoinError) -> Self {
+        CompressError::TaskJoin(value)
+    }
+}
+
+impl From<tokio::sync::AcquireError> for CompressError {
+    fn from(value: tokio::sync::AcquireError) -> Self {
+        CompressError::Semaphore(value)
+    }
+}
+
+struct CompressedData {
+    bytes: Vec<u8>,
+    crc32: u32,
+    uncompressed_size: u64,
+}
+
+struct WriteMessage {
+    index: usize,
+    relative_path: String,
+    data: Option<CompressedData>,
+}
+
+impl WriteMessage {
+    fn new(index: usize, relative_path: String, data: Option<CompressedData>) -> Self {
+        Self {
+            index,
+            relative_path,
+            data,
+        }
+    }
+}
+
 struct WriteState {
-    zip: Option<ZipWriter<std::fs::File>>,
+    zip: Option<ZipFileWriter<Compat<File>>>,
+    compression: Compression,
+    deflate_option: DeflateOption,
     next_write_idx: usize,
-    pending: BTreeMap<usize, (String, Vec<u8>)>,
-    total: usize,
-    ctx: AsyncCommandContext<TauriCreateBackupProgress>,
+    pending: BTreeMap<usize, (String, Option<CompressedData>)>,
+
+    rx: std::sync::mpsc::Receiver<WriteMessage>,
 }
 
 impl WriteState {
     fn new(
-        zip: ZipWriter<std::fs::File>,
-        total: usize,
-        ctx: AsyncCommandContext<TauriCreateBackupProgress>,
+        zip: ZipFileWriter<Compat<File>>,
+        compression: Compression,
+        deflate_option: DeflateOption,
+        rx: std::sync::mpsc::Receiver<WriteMessage>,
     ) -> Self {
         Self {
             zip: Some(zip),
+            compression,
+            deflate_option,
             next_write_idx: 0,
             pending: BTreeMap::new(),
-            total,
-            ctx,
+            rx,
         }
     }
 
-    fn submit(
+    async fn run(mut self) -> Result<(), CompressError> {
+        while let Ok(msg) = self.rx.recv() {
+            self.submit(msg.index, msg.relative_path, msg.data).await?;
+        }
+        self.finish().await
+    }
+
+    async fn submit(
         &mut self,
         idx: usize,
-        display_name: String,
-        data: Vec<u8>,
+        relative_path: String,
+        data: Option<CompressedData>,
     ) -> Result<(), CompressError> {
-        self.pending.insert(idx, (display_name, data));
-        while let Some((name, data)) = self.pending.remove(&self.next_write_idx) {
+        self.pending.insert(idx, (relative_path, data));
+
+        while let Some((name, entry_data)) = self.pending.remove(&self.next_write_idx) {
             if let Some(zip) = self.zip.as_mut() {
-                let mut cur = Cursor::new(data);
-                let mut archive = ZipArchive::new(&mut cur)?;
-                let zipfile = archive.by_index_raw(0)?;
-                zip.raw_copy_file(zipfile)?;
+                match entry_data {
+                    None => {
+                        let entry = ZipEntryBuilder::new(name.into(), self.compression.clone())
+                            .deflate_option(self.deflate_option.clone());
+                        zip.write_entry_whole(entry.build(), b"").await?;
+                    }
+                    Some(cd) => {
+                        let entry = ZipEntryBuilder::new(name.into(), self.compression.clone())
+                            .deflate_option(self.deflate_option.clone())
+                            .crc32(cd.crc32)
+                            .uncompressed_size(cd.uncompressed_size);
+                        zip.write_entry_whole_precompressed(entry.build(), &cd.bytes)
+                            .await?;
+                    }
+                }
             }
             self.next_write_idx += 1;
-            let _ = self.ctx.emit(TauriCreateBackupProgress {
-                total: self.total,
-                proceed: self.next_write_idx,
-                last_proceed: name,
-            });
         }
         Ok(())
     }
 
-    fn finish(&mut self) -> Result<(), CompressError> {
+    async fn finish(&mut self) -> Result<(), CompressError> {
         if let Some(zip) = self.zip.take() {
-            let file = zip.finish()?;
-            file.sync_all()?;
+            zip.close().await?;
         }
         Ok(())
     }
-}
-
-fn file_options(method: CompressionMethod, compression_level: Option<i64>) -> SimpleFileOptions {
-    let mut opts = SimpleFileOptions::default().compression_method(method);
-    if method == CompressionMethod::Deflated {
-        opts = opts.compression_level(compression_level);
-    } else {
-        opts = opts.compression_level(None);
-    }
-    opts
-}
-
-fn entry_to_partial_zip(
-    entry: &FileSystemTree,
-    method: CompressionMethod,
-    compression_level: Option<i64>,
-) -> Result<Vec<u8>, CompressError> {
-    let mut cur = Cursor::new(Vec::new());
-    {
-        let mut partial_zip = ZipWriter::new(&mut cur);
-
-        if entry.is_dir() {
-            let opts = file_options(CompressionMethod::Stored, None);
-            partial_zip.start_file(entry.relative_path(), opts)?;
-            partial_zip.write_all(&[])?;
-        } else {
-            let opts = file_options(method, compression_level);
-            let mut file = std::fs::File::open(entry.absolute_path()).map_err(CompressError::Io)?;
-            partial_zip.start_file(entry.relative_path(), opts)?;
-            std::io::copy(&mut file, &mut partial_zip).map_err(CompressError::Io)?;
-        }
-
-        partial_zip.finish()?;
-    }
-    Ok(cur.into_inner())
 }
 
 pub(crate) async fn parallel_compress_zip(
     tree: FileSystemTree,
     destination: PathBuf,
-    compression_method: CompressionMethod,
-    compression_level: Option<i64>,
+    compression: Compression,
+    deflate_option: DeflateOption,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
-    token: CancellationToken,
 ) -> Result<(), CompressError> {
     let total = tree.count_all();
 
@@ -145,61 +160,88 @@ pub(crate) async fn parallel_compress_zip(
         last_proceed: "Collecting files".to_string(),
     });
 
-    if total == 0 {
-        tokio::task::spawn_blocking(move || {
-            let file = std::fs::OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .open(&destination)?;
-            let zip = ZipWriter::new(file);
-            let file = zip.finish()?;
-            file.sync_all()?;
-            Ok::<(), CompressError>(())
-        })
-        .await
-        .map_err(CompressError::TaskJoin)??;
-        return Ok(());
+    let file = File::create_new(&destination).await?;
+    let writer = ZipFileWriter::with_tokio(file);
+
+    let (sender, rx) = std::sync::mpsc::channel();
+    let write_state = WriteState::new(writer, compression.clone(), deflate_option.clone(), rx);
+
+    let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
+    let semaphore = Arc::new(Semaphore::new(threads));
+    let proceed = Arc::new(AtomicUsize::new(0));
+
+    let merge_task = tokio::spawn(write_state.run());
+
+    let mut handles = vec![];
+
+    for (idx, entry) in tree.recursive().enumerate() {
+        if entry.is_dir() {
+            let relative_path = entry.relative_path().to_string();
+            let _ = sender.send(WriteMessage::new(idx, relative_path.clone(), None));
+            let p = proceed.fetch_add(1, Ordering::Relaxed) + 1;
+            let _ = ctx.emit(TauriCreateBackupProgress {
+                total,
+                proceed: p,
+                last_proceed: relative_path,
+            });
+        } else {
+            let permit = semaphore.clone().acquire_owned().await?;
+
+            let relative_path = entry.relative_path().to_string();
+            let absolute_path = entry.absolute_path().to_path_buf();
+
+            let sender = sender.clone();
+            let compression = compression.clone();
+            let deflate_option = deflate_option.clone();
+            let ctx = ctx.clone();
+            let proceed = proceed.clone();
+
+            let handle: tokio::task::JoinHandle<Result<(), CompressError>> =
+                tokio::task::spawn(async move {
+                    let cd = {
+                        let raw_data = tokio::fs::read(&absolute_path).await?;
+                        let crc32 = async_zip::base::write::crc32(&raw_data);
+                        let uncompressed_size = raw_data.len() as u64;
+
+                        let bytes = async_zip::base::write::compress(
+                            &ZipEntryBuilder::new(relative_path.clone().into(), compression)
+                                .deflate_option(deflate_option)
+                                .build(),
+                            &raw_data,
+                        )
+                        .await;
+
+                        CompressedData {
+                            bytes,
+                            crc32,
+                            uncompressed_size,
+                        }
+                    };
+
+                    let _ = sender.send(WriteMessage::new(idx, relative_path.clone(), Some(cd)));
+                    let p = proceed.fetch_add(1, Ordering::Relaxed) + 1;
+                    let _ = ctx.emit(TauriCreateBackupProgress {
+                        total,
+                        proceed: p,
+                        last_proceed: relative_path,
+                    });
+
+                    drop(permit);
+
+                    Ok(())
+                });
+
+            handles.push(handle);
+        }
     }
 
-    tokio::task::spawn_blocking(move || {
-        let file = std::fs::OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .open(&destination)
-            .map_err(CompressError::Io)?;
-        let write_state = Arc::new(Mutex::new(WriteState::new(
-            ZipWriter::new(file),
-            total,
-            ctx,
-        )));
+    drop(sender);
 
-        tree.recursive()
-            .collect::<Vec<_>>()
-            .par_iter()
-            .enumerate()
-            .try_for_each(|(idx, entry)| -> Result<(), CompressError> {
-                if token.is_cancelled() {
-                    return Err(CompressError::Cancelled);
-                }
+    for handle in handles {
+        handle.await??;
+    }
 
-                let display_name = entry.relative_path().to_string();
-                let data = entry_to_partial_zip(entry, compression_method, compression_level)?;
-
-                write_state
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .submit(idx, display_name, data)?;
-
-                Ok(())
-            })?;
-
-        write_state
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .finish()
-    })
-    .await
-    .map_err(CompressError::TaskJoin)??;
+    merge_task.await??;
 
     Ok(())
 }

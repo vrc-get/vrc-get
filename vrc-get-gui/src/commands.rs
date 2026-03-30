@@ -363,7 +363,7 @@ macro_rules! impl_from_error {
 impl_from_error!(
     io::Error,
     String,
-    zip::result::ZipError,
+    async_zip::error::ZipError,
     vrc_get_vpm::environment::AddRepositoryErr,
     vrc_get_vpm::unity_project::RemovePackageErr,
     fs_extra::error::Error,
@@ -372,12 +372,10 @@ impl_from_error!(
 impl From<crate::compressor::CompressError> for RustError {
     fn from(value: crate::compressor::CompressError) -> Self {
         match value {
-            crate::compressor::CompressError::Cancelled => {
-                RustError::unrecoverable("backup cancelled")
-            }
             crate::compressor::CompressError::Io(e) => e.into(),
             crate::compressor::CompressError::Zip(e) => e.into(),
             crate::compressor::CompressError::TaskJoin(e) => RustError::unrecoverable(e),
+            crate::compressor::CompressError::Semaphore(e) => RustError::unrecoverable(e),
         }
     }
 }
