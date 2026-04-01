@@ -3,7 +3,6 @@ resolver = "2"
 
 members = [
     "xtask",
-    "build-updater-json",
     "vrc-get",
     "vrc-get-gui",
     "vrc-get-vpm",
