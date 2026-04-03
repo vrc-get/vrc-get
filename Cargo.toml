@@ -5,6 +5,7 @@ members = [
     "xtask",
     "vrc-get",
     "vrc-get-gui",
+    "vrc-get-gui/windows-installer-wrapper",
     "vrc-get-vpm",
 ]
 
