@@ -117,7 +117,7 @@ jobs:
         env:
           RUSTFLAGS: ''
         run: |
-          xtask check-static-link target/${{ matrix.triple }}/debug
+          cargo xtask check-static-link target/${{ matrix.triple }}/debug
 
   conclude:
     runs-on: ubuntu-latest
