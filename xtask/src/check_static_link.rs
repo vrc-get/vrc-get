@@ -37,6 +37,7 @@ impl crate::Command for Command {
                     .filter_ok(|x| x.is_file())
                     .filter_ok(|x| !x.file_name().unwrap().as_encoded_bytes().starts_with(b"."))
                     .filter_ok(|x| x.extension() != Some("d".as_ref()))
+                    .filter_ok(|x| x.extension() != Some("rlib".as_ref()))
                     .collect::<Result<Vec<_>, _>>()?
             } else {
                 error = true;
