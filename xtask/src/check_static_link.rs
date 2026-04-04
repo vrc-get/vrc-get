@@ -139,8 +139,19 @@ fn process_pe_64(binary: &[u8]) -> Result<bool> {
     while let Some(x) = iter.next()? {
         let dll = table.name(x.name.get(LE))?;
         match dll.to_ascii_lowercase().as_slice() {
-            b"advapi32.dll" | b"kernel32.dll" | b"bcrypt.dll" | b"ntdll.dll" | b"shell32.dll"
-            | b"ole32.dll" | b"ws2_32.dll" | b"crypt32.dll" => {
+            // all sinces are came from AI
+            b"advapi32.dll" // since Windows 95
+            | b"kernel32.dll" // since Windows 95 / NT 4.0
+            | b"bcrypt.dll" // since Windows Vista / Server 2008
+            | b"ntdll.dll" // since Windows NT 3.1
+            | b"shell32.dll" // since Windows 95/NT 4.0
+            | b"ole32.dll" // since Windows 95 era
+            | b"ws2_32.dll" // since Windows 95 OSR2
+            | b"crypt32.dll" // since Windows NT 4.0/XP era
+            | b"bcryptprimitives.dll" // since Windows 7/Server 2008 R2
+            | b"combase.dll" // since Windows 8 / Server 2012
+            | b"api-ms-win-core-synch-l1-2-0" // since Windows 8 / Server 2012
+            => {
                 println!(
                     "system dll: {}",
                     std::str::from_utf8(dll).unwrap_or("unable to parse with utf8")
