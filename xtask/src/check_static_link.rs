@@ -150,7 +150,7 @@ fn process_pe_64(binary: &[u8]) -> Result<bool> {
             | b"crypt32.dll" // since Windows NT 4.0/XP era
             | b"bcryptprimitives.dll" // since Windows 7/Server 2008 R2
             | b"combase.dll" // since Windows 8 / Server 2012
-            | b"api-ms-win-core-synch-l1-2-0" // since Windows 8 / Server 2012
+            | b"api-ms-win-core-synch-l1-2-0.dll" // since Windows 8 / Server 2012
             => {
                 println!(
                     "system dll: {}",
