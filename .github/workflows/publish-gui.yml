@@ -263,7 +263,7 @@ jobs:
         shell: bash
         run: |
           cargo xtask build-alcom-installer --target ${{ matrix.triple }}
-          npm run tauri signer sign target/${{ matrix.triple }}/release/alcom-setup.exe
+          cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/alcom-setup.exe
 
       - name: Move artifacts
         shell: bash
