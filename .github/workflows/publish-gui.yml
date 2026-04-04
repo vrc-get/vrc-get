@@ -259,6 +259,11 @@ jobs:
           args: |
             --target ${{ matrix.triple }} -c '{"build":{"beforeBuildCommand":null}}'
 
+      - name: Build installer
+        shell: bash
+        run: |
+          cargo xtask build-alcom-installer --target ${{ matrix.triple }}
+
       - name: Move artifacts
         shell: bash
         env:
