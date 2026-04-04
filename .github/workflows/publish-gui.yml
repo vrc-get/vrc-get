@@ -175,9 +175,8 @@ jobs:
             esigner: true
             dist-path: |
               ALCOM.exe:ALCOM-${GUI_VERSION}-x86_64.exe
-              bundle/nsis/ALCOM_${GUI_VERSION}_x64-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
-              bundle/nsis/ALCOM_${GUI_VERSION}_x64-setup.nsis.zip:ALCOM-${GUI_VERSION}-x86_64-setup.nsis.zip
-              bundle/nsis/ALCOM_${GUI_VERSION}_x64-setup.nsis.zip.sig:ALCOM-${GUI_VERSION}-x86_64-setup.nsis.zip.sig
+              alcom-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
+              alcom-setup.exe.sig:ALCOM-${GUI_VERSION}-x86_64-setup.exe.sig
 
           - triple: universal-apple-darwin
             on: macos-14
@@ -259,10 +258,12 @@ jobs:
           args: |
             --target ${{ matrix.triple }} -c '{"build":{"beforeBuildCommand":null}}'
 
-      - name: Build installer
+      - name: Build Windows installer
+        if: ${{ contains(matrix.triple, 'windows') }}
         shell: bash
         run: |
           cargo xtask build-alcom-installer --target ${{ matrix.triple }}
+          npm run tauri signer sign target/${{ matrix.triple }}/release/alcom-setup.exe
 
       - name: Move artifacts
         shell: bash
