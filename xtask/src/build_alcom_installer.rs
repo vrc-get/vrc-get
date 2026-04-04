@@ -278,7 +278,7 @@ fn build_wrapper(options: &BuildOptions, libs_dir: &Path, profile: &str) -> Resu
 
     cmd.run_checked("building windows-installer-wrapper")?;
 
-    Ok(options.build_dir.join("windows-installer-wrapper.exe"))
+    Ok(options.build_dir.join("alcom-setup.exe"))
 }
 
 fn choose_default_target(host_triple: &str) -> Option<&'static str> {

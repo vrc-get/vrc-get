@@ -3,6 +3,10 @@ name = "windows-installer-wrapper"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "alcom-setup"
+path = "src/main.rs"
+
 [dependencies]
 windows-sys = {
     version = "0.61.2", 
