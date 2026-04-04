@@ -42,7 +42,7 @@ tokio = { version = "1", features = ["fs", "process"] }
 serde_path_to_error = "0.1"
 serde-value = "0.7"
 serde_repr = "0.1"
-sha1 = "0.10"
+sha1 = "0.11"
 
 [target."cfg(windows)".dependencies]
 dirs-sys = "0.5"
