@@ -13,7 +13,6 @@ targets = [
     "appimage",
     "deb",
     "rpm",
-    "nsis", #-setup.exe
     "app", # needs for dmg
     "dmg",
 ]
@@ -55,8 +54,6 @@ frameworks = []
 providerShortName = "anatawa12"
 
 [bundle.windows]
-nsis.template = "installer.nsi"
-
 # signing
 certificateThumbprint = "0D17F6395EC64A2B1D341BB7AC5B3163EB148BB7"
 timestampUrl = "http://ts.ssl.com"
