@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tokio::fs::File;
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use tokio_util::compat::Compat;
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -54,6 +54,7 @@ struct CompressedData {
     bytes: Vec<u8>,
     crc32: u32,
     uncompressed_size: u64,
+    _permit: Option<OwnedSemaphorePermit>,
 }
 
 struct WriteMessage {
@@ -79,7 +80,7 @@ struct WriteState {
     next_write_idx: usize,
     pending: BTreeMap<usize, (String, Option<CompressedData>)>,
 
-    rx: std::sync::mpsc::Receiver<WriteMessage>,
+    rx: tokio::sync::mpsc::UnboundedReceiver<WriteMessage>,
 }
 
 impl WriteState {
@@ -87,7 +88,7 @@ impl WriteState {
         zip: ZipFileWriter<Compat<File>>,
         compression: Compression,
         deflate_option: DeflateOption,
-        rx: std::sync::mpsc::Receiver<WriteMessage>,
+        rx: tokio::sync::mpsc::UnboundedReceiver<WriteMessage>,
     ) -> Self {
         Self {
             zip: Some(zip),
@@ -100,7 +101,7 @@ impl WriteState {
     }
 
     async fn run(mut self) -> Result<(), CompressError> {
-        while let Ok(msg) = self.rx.recv() {
+        while let Some(msg) = self.rx.recv().await {
             self.submit(msg.index, msg.relative_path, msg.data).await?;
         }
         self.finish().await
@@ -163,12 +164,32 @@ pub(crate) async fn parallel_compress_zip(
     let file = File::create_new(&destination).await?;
     let writer = ZipFileWriter::with_tokio(file);
 
-    let (sender, rx) = std::sync::mpsc::channel();
-    let write_state = WriteState::new(writer, compression.clone(), deflate_option.clone(), rx);
+    let proceed = Arc::new(AtomicUsize::new(0));
 
     let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
-    let semaphore = Arc::new(Semaphore::new(threads));
-    let proceed = Arc::new(AtomicUsize::new(0));
+    let available_ram = {
+        let mut sys = sysinfo::System::new();
+        sys.refresh_memory();
+
+        let available_ram: u32 = ((sys.free_memory() as f64 * 0.8) as u32) // 80% of free memory
+            .try_into()
+            .unwrap_or(u32::MAX)
+            .min(2 * 1024 * 1024 * 1024) // soft limit to 2GB at maximum
+            .max(1);
+
+        log::info!(
+            "Using {:.2} GB soft memory limit for compression",
+            (available_ram as f64) / 1024.0 / 1024.0 / 1024.0
+        );
+
+        available_ram
+    };
+
+    let thread_semaphore = Arc::new(Semaphore::new(threads));
+    let ram_semaphore = Arc::new(Semaphore::new(available_ram as usize));
+
+    let (sender, rx) = tokio::sync::mpsc::unbounded_channel();
+    let write_state = WriteState::new(writer, compression.clone(), deflate_option.clone(), rx);
 
     let merge_task = tokio::spawn(write_state.run());
 
@@ -185,10 +206,23 @@ pub(crate) async fn parallel_compress_zip(
                 last_proceed: relative_path,
             });
         } else {
-            let permit = semaphore.clone().acquire_owned().await?;
-
             let relative_path = entry.relative_path().to_string();
             let absolute_path = entry.absolute_path().to_path_buf();
+
+            // Since memory usage limiting is a soft limit, if the file size exceeds
+            // the maximum capacity of the semaphore, fall back to acquiring that maximum capacity.
+            let ram_permit_size = tokio::fs::metadata(&absolute_path)
+                .await?
+                .len()
+                .try_into()
+                .unwrap_or(u32::MAX)
+                .min(available_ram);
+
+            let thread_permit = thread_semaphore.clone().acquire_owned().await?;
+            let mut ram_permit = ram_semaphore
+                .clone()
+                .acquire_many_owned(ram_permit_size)
+                .await?;
 
             let sender = sender.clone();
             let compression = compression.clone();
@@ -198,7 +232,7 @@ pub(crate) async fn parallel_compress_zip(
 
             let handle: tokio::task::JoinHandle<Result<(), CompressError>> =
                 tokio::task::spawn(async move {
-                    let cd = {
+                    let (compressed_bytes, crc32, uncompressed_size) = {
                         let raw_data = tokio::fs::read(&absolute_path).await?;
                         let crc32 = async_zip::base::write::crc32(&raw_data);
                         let uncompressed_size = raw_data.len() as u64;
@@ -211,22 +245,43 @@ pub(crate) async fn parallel_compress_zip(
                         )
                         .await;
 
-                        CompressedData {
-                            bytes,
-                            crc32,
-                            uncompressed_size,
-                        }
+                        (bytes, crc32, uncompressed_size)
                     };
 
-                    let _ = sender.send(WriteMessage::new(idx, relative_path.clone(), Some(cd)));
+                    drop(thread_permit);
+
+                    // split semaphore and release unused permits
+                    let remain_permit =
+                        if let Some(new_permits) = ram_permit.split(compressed_bytes.len()) {
+                            drop(ram_permit);
+                            new_permits
+                        } else {
+                            // split() returns None if the compressed size exceeds available permits.
+                            // This happens when a file is larger than the semaphore's max capacity,
+                            // which is allowed as a soft limit at enqueue time. Keep all permits as-is
+                            // rather than acquiring new ones, since doing so could deadlock.
+                            ram_permit
+                        };
+
+                    let compressed_data = CompressedData {
+                        bytes: compressed_bytes,
+                        crc32,
+                        uncompressed_size,
+                        _permit: Some(remain_permit),
+                    };
+
+                    let _ = sender.send(WriteMessage::new(
+                        idx,
+                        relative_path.clone(),
+                        Some(compressed_data),
+                    ));
+
                     let p = proceed.fetch_add(1, Ordering::Relaxed) + 1;
                     let _ = ctx.emit(TauriCreateBackupProgress {
                         total,
                         proceed: p,
                         last_proceed: relative_path,
                     });
-
-                    drop(permit);
 
                     Ok(())
                 });
