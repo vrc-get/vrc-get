@@ -190,7 +190,7 @@ jobs:
       - name: Check binary is statically linked
         shell: bash
         run: |
-          cargo xtask check-static-link target/${{ matrix.triple }}/release
+          cargo xtask check-static-link target/${{ matrix.triple }}/release/vrc-get${WINDIR:+.exe}
 
       - name: Move artifacts
         shell: bash

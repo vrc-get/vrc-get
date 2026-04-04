@@ -117,7 +117,7 @@ jobs:
         env:
           RUSTFLAGS: ''
         run: |
-          cargo xtask check-static-link target/${{ matrix.triple }}/debug
+          cargo xtask check-static-link target/${{ matrix.triple }}/debug/vrc-get${WINDIR:+.exe}
 
   conclude:
     runs-on: ubuntu-latest
