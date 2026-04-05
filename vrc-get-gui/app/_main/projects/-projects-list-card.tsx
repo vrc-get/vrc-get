@@ -187,8 +187,9 @@ export function sortSearchProjects(
 	search: string,
 	sorting: Sorting,
 ): TauriProject[] {
+	let searchString = search?.toLowerCase() ?? "";
 	const searched = projects.filter((project) =>
-		project.name.toLowerCase().includes(search?.toLowerCase() ?? ""),
+		project.name.toLowerCase().includes(searchString) || project.display_name?.toLowerCase().includes(searchString),
 	);
 
 	searched.sort((a, b) => b.last_modified - a.last_modified);
@@ -201,10 +202,10 @@ export function sortSearchProjects(
 			searched.sort((a, b) => a.last_modified - b.last_modified);
 			break;
 		case "name":
-			searched.sort((a, b) => a.name.localeCompare(b.name));
+			searched.sort((a, b) => (a.display_name || a.name).localeCompare(b.display_name || b.name));
 			break;
 		case "nameReversed":
-			searched.sort((a, b) => b.name.localeCompare(a.name));
+			searched.sort((a, b) => (b.display_name || b.name).localeCompare(a.display_name || a.name));
 			break;
 		case "type":
 			searched.sort((a, b) =>

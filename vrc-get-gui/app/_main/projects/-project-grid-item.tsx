@@ -33,6 +33,7 @@ import { dateToString, formatDateOffset } from "@/lib/dateToString";
 import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
+import { SetProjectDisplayNameDialog } from "@/components/SetProjectDisplayNameDialog";
 
 export function ProjectGridItem({
 	project,
@@ -99,6 +100,14 @@ export function ProjectGridItem({
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() =>
+									openSingleDialog(SetProjectDisplayNameDialog, { project })
+								}
+								disabled={removed || !(is_valid ?? true)}
+							>
+								{tc("projects:set project display name")}
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={() =>
 									openSingleDialog(RemoveProjectDialog, { project })
 								}
 								disabled={loading}
@@ -120,7 +129,7 @@ export function ProjectGridItem({
 									className={"text-left select-text cursor-auto w-full"}
 								>
 									<p className="font-normal whitespace-pre overflow-ellipsis overflow-hidden">
-										{project.name}
+										{project.display_name || project.name}
 									</p>
 									<p className="font-normal opacity-50 text-sm whitespace-pre overflow-ellipsis overflow-hidden compact:hidden">
 										{project.path}
