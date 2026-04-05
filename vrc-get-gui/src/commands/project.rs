@@ -613,7 +613,7 @@ pub async fn project_create_backup(
             let backup_path: PathBuf;
             let remove_on_drop: RemoveOnDrop;
             match backup_format.as_str() {
-                "default" | "zip-store" => {
+                "zip-store" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");
@@ -628,7 +628,7 @@ pub async fn project_create_backup(
                     )
                     .await?;
                 }
-                "zip-fast" => {
+                "default" | "zip-fast" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");

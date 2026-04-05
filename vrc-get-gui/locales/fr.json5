@@ -261,7 +261,7 @@
     'settings:backup:exclude vpm packages from backup description': 'Cela réduira la taille du backup, mais si le créateur de packet ne suit pas la recommendation et supprime le packet du dépot, vous devez alors utiliser une autre version du packet afin de le restaurer au sein du projet.',
     'settings:backup:format': "Format de l'archive de backup",
     'settings:backup:format description': "Les backups sont stockés sous forme d'achives.<br/>Vous pouvez sélectionner le format d'archive qui vous conviens. <br/>Le réglage par défaut est celui qui est recommandé par ALCOM. Le comportement des autres options est décrite entre crochets.<br/>La compression d'une archive ralentira le processus d'archivage mais réduira l'espace disque pris.",
-    'settings:backup:format:default': 'Défaut (Zip non compressé)',
+    'settings:backup:format:default': 'Défaut (Zip Basse Compression)',
     'settings:backup:format:zip-best': 'Zip Haute compression (Le plus lent)',
     'settings:backup:format:zip-fast': 'Zip Basse Compression (Lent)',
     'settings:backup:format:zip-store': 'Zip non compressé (Rapide)',
