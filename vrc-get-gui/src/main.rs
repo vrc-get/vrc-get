@@ -34,6 +34,12 @@ fn main() {
     // logger is now initialized, we can use log for panics
     log_panics::init();
 
+    // prevent errors caused by hitting the file descriptor limit during project backup creation
+    #[cfg(target_os = "macos")]
+    if let Err(e) = rlimit::increase_nofile_limit(4096) {
+        log::error!("error while increasing nofile limit: {e}");
+    }
+
     #[cfg(dev)]
     commands::export_ts();
 
@@ -91,12 +97,6 @@ fn main() {
         }
         _ => {}
     });
-
-    // prevent errors caused by hitting the file descriptor limit during project backup creation
-    #[cfg(target_os = "macos")]
-    if let Err(e) = rlimit::increase_nofile_limit(4096) {
-        log::error!("error while increasing nofile limit: {e}");
-    }
 }
 
 fn process_args(app: &AppHandle, args: &[String]) {
