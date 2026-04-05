@@ -97,6 +97,12 @@ jobs:
           args: |
             --target ${{ matrix.triple }} -c '{"version":"${{ steps.version.outputs.version }}", "bundle":{"windows":{"certificateThumbprint": null}}}' ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
 
+      - name: Build Windows installer
+        if: ${{ contains(matrix.triple, 'windows') }}
+        shell: bash
+        run: |
+          cargo xtask build-alcom-installer --target ${{ matrix.triple }}
+
       - name: Upload built binary
         uses: actions/upload-artifact@v7
         with:

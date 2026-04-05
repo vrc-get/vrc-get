@@ -2,10 +2,10 @@
 resolver = "2"
 
 members = [
-    "build-check-static-link",
-    "build-updater-json",
+    "xtask",
     "vrc-get",
     "vrc-get-gui",
+    "vrc-get-gui/windows-installer-wrapper",
     "vrc-get-vpm",
 ]
 

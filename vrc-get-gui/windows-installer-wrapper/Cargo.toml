@@ -1,0 +1,23 @@
+[package]
+name = "windows-installer-wrapper"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "alcom-setup"
+path = "src/main.rs"
+
+[dependencies]
+windows-sys = {
+    version = "0.61.2", 
+    features = [
+        "Win32_System_Environment", 
+        "Win32_Storage_FileSystem", 
+        "Win32_System_Memory", 
+        "Win32_UI_WindowsAndMessaging",
+        "Win32_System_Threading",
+        "Win32_Security",
+        "Win32_System_IO",
+        "Win32_System_Console",
+    ],
+}

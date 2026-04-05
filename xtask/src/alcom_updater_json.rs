@@ -1,25 +1,42 @@
-// see https://tauri.app/v1/guides/distribution/updater/ for json format
-
+use anyhow::*;
 use chrono::{Timelike, Utc};
 use indexmap::IndexMap;
 use serde::Serialize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::result::Result::Ok;
+
+/// Generates json for tauri updater.
+#[derive(clap::Parser)]
+pub struct Command {
+    #[clap(long = "assets", default_value = "assets")]
+    assets_dir: PathBuf,
+    #[clap(long = "version")]
+    version: String,
+    out_path: PathBuf,
+}
+
+impl crate::Command for Command {
+    fn run(self) -> Result<i32> {
+        create_alcom_updater_json(&self.assets_dir, &self.version, &self.out_path)?;
+        Ok(0)
+    }
+}
 
 #[derive(Serialize)]
-struct UpdaterJson {
-    version: String,
+struct UpdaterJson<'a> {
+    version: &'a str,
     notes: String,
     pub_date: chrono::DateTime<Utc>,
     platforms: IndexMap<String, Platform>,
 }
 
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 struct Platform {
     signature: String,
     url: String,
 }
 
-fn main() {
+pub fn create_alcom_updater_json(assets_dir: &Path, version: &str, out_path: &Path) -> Result<()> {
     // consts
     const DOWNLOAD_URL_BASE: &str =
         "https://github.com/vrc-get/vrc-get/releases/download/gui-v{version}";
@@ -28,26 +45,24 @@ fn main() {
         ("darwin-aarch64", "ALCOM-{version}-universal.app.tar.gz"),
         ("linux-x86_64", "alcom-{version}-x86_64.AppImage.tar.gz"),
         //("linux-aarch64", "alcom-{version}-aarch64.AppImage.tar.gz"),
-        ("windows-x86_64", "ALCOM-{version}-x86_64-setup.nsis.zip"),
-        //("windows-aarch64", "ALCOM-{version}-aarch64-setup.nsis.zip"),
+        ("windows-x86_64", "ALCOM-{version}-x86_64-setup.exe"),
+        //("windows-aarch64", "ALCOM-{version}-aarch64-setup.exe"),
     ]
     .into_iter()
     .collect::<IndexMap<_, _>>();
 
-    let version = std::env::var("GUI_VERSION").expect("GUI_VERSION not set");
-
-    let base_url = DOWNLOAD_URL_BASE.replace("{version}", &version);
+    let base_url = DOWNLOAD_URL_BASE.replace("{version}", version);
 
     // create platforms info
     let mut platforms = IndexMap::new();
     for (platform, file_name) in platform_file_name {
-        let file_name = file_name.replace("{version}", &version);
+        let file_name = file_name.replace("{version}", version);
 
-        std::fs::metadata(format!("assets/{file_name}"))
-            .unwrap_or_else(|e| panic!("{file_name}: {e}"));
+        std::fs::metadata(assets_dir.join(&file_name)).with_context(|| file_name.clone())?;
 
-        let signature = std::fs::read_to_string(format!("assets/{file_name}.sig"))
-            .unwrap_or_else(|e| panic!("{file_name}.sig: {e}"));
+        let sig_name = format!("{file_name}.sig");
+        let signature = std::fs::read_to_string(assets_dir.join(&sig_name))
+            .with_context(|| sig_name.clone())?;
 
         let url = format!("{base_url}/{file_name}");
         platforms.insert(platform.to_string(), Platform { signature, url });
@@ -73,13 +88,8 @@ fn main() {
         platforms,
     };
 
-    if !is_beta {
-        write_json("updater.json", &updater);
-    }
-    write_json("updater-beta.json", &updater);
-}
+    let json = serde_json::to_string_pretty(&updater)?;
+    std::fs::write(out_path, json).context("write updater.json")?;
 
-fn write_json(path: impl AsRef<Path>, json: impl Serialize) {
-    let json = serde_json::to_string_pretty(&json).unwrap();
-    std::fs::write(path, json).expect("write updater.json");
+    Ok(())
 }
