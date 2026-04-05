@@ -210,6 +210,7 @@
     "projects:manage:button:unity migrate": "迁移项目",
 
     "projects:manage:manage packages": "管理软件包",
+    "projects:manage:hidden packages": "隐藏的软件包",
     "projects:manage:tooltip:refresh packages": "刷新软件包",
     "projects:manage:button:upgrade all": "升级所有软件包（最新）",
     "projects:manage:button:upgrade all stable": "升级所有软件包（稳定）",

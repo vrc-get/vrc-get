@@ -44,6 +44,7 @@ export interface PackageRowInfo {
 	unityIncompatible: Map<string, TauriPackage>;
 	sources: Set<string>;
 	isThereSource: boolean; // this will be true even if all sources are hidden
+	visibleSources: Set<string>;
 	installed: null | {
 		version: TauriVersion;
 		yanked: boolean;
@@ -107,11 +108,8 @@ export function combinePackagesAndProjectDetails(
 		let packages: TauriPackage[];
 		// check the repository is visible
 		if (pkg.source === "LocalUser") {
-			if (hideLocalUserPackages) continue;
 			packages = userPackages;
 		} else if ("Remote" in pkg.source) {
-			if (hiddenRepositoriesSet.has(pkg.source.Remote.id)) continue;
-
 			packages = packagesPerRepository.get(pkg.source.Remote.id) ?? [];
 			packagesPerRepository.set(pkg.source.Remote.id, packages);
 		} else {
@@ -138,6 +136,7 @@ export function combinePackagesAndProjectDetails(
 					unityIncompatible: new Map(),
 					sources: new Set(),
 					isThereSource: false,
+					visibleSources: new Set(),
 					installed: null,
 					latest: { status: "none" },
 					stableLatest: { status: "none" },
@@ -178,8 +177,14 @@ export function combinePackagesAndProjectDetails(
 
 		if (pkg.source === "LocalUser") {
 			packageRowInfo.sources.add("User");
+			if (!hideLocalUserPackages) {
+				packageRowInfo.visibleSources.add("User");
+			}
 		} else if ("Remote" in pkg.source) {
 			packageRowInfo.sources.add(pkg.source.Remote.display_name);
+			if (!hiddenRepositoriesSet.has(pkg.source.Remote.id)) {
+				packageRowInfo.visibleSources.add(pkg.source.Remote.display_name);
+			}
 		}
 	}
 
