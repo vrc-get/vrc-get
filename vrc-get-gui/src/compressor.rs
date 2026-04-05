@@ -237,13 +237,21 @@ pub(crate) async fn parallel_compress_zip(
                         let crc32 = async_zip::base::write::crc32(&raw_data);
                         let uncompressed_size = raw_data.len() as u64;
 
-                        let bytes = async_zip::base::write::compress(
-                            &ZipEntryBuilder::new(relative_path.clone().into(), compression)
-                                .deflate_option(deflate_option)
-                                .build(),
-                            &raw_data,
-                        )
-                        .await;
+                        let bytes = match compression {
+                            Compression::Stored => raw_data,
+                            _ => {
+                                async_zip::base::write::compress(
+                                    &ZipEntryBuilder::new(
+                                        relative_path.clone().into(),
+                                        compression,
+                                    )
+                                    .deflate_option(deflate_option)
+                                    .build(),
+                                    &raw_data,
+                                )
+                                .await
+                            }
+                        };
 
                         (bytes, crc32, uncompressed_size)
                     };
