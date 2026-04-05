@@ -90,7 +90,13 @@ fn main() {
             deep_link_support::process_files(app, files);
         }
         _ => {}
-    })
+    });
+
+    // prevent errors caused by hitting the file descriptor limit during project backup creation
+    #[cfg(target_os = "macos")]
+    if let Err(e) = rlimit::increase_nofile_limit(4096) {
+        log::error!("error while increasing nofile limit: {e}");
+    }
 }
 
 fn process_args(app: &AppHandle, args: &[String]) {
