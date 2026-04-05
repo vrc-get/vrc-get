@@ -119,13 +119,13 @@ impl WriteState {
             if let Some(zip) = self.zip.as_mut() {
                 match entry_data {
                     None => {
-                        let entry = ZipEntryBuilder::new(name.into(), self.compression.clone())
-                            .deflate_option(self.deflate_option.clone());
+                        let entry = ZipEntryBuilder::new(name.into(), self.compression)
+                            .deflate_option(self.deflate_option);
                         zip.write_entry_whole(entry.build(), b"").await?;
                     }
                     Some(cd) => {
-                        let entry = ZipEntryBuilder::new(name.into(), self.compression.clone())
-                            .deflate_option(self.deflate_option.clone())
+                        let entry = ZipEntryBuilder::new(name.into(), self.compression)
+                            .deflate_option(self.deflate_option)
                             .crc32(cd.crc32)
                             .uncompressed_size(cd.uncompressed_size);
                         zip.write_entry_whole_precompressed(entry.build(), &cd.bytes)
@@ -174,8 +174,6 @@ pub(crate) async fn parallel_compress_zip(
         // Since the maximum capacity of the semaphore is u32::MAX, it can only handle up to 4GB.
         // To circumvent this, we will use 1 permit for every 10 bytes, allowing for a capacity of up to 40GB.
         let available_ram: u32 = ((sys.free_memory() as f64 / 10.0 * 0.8) as u32) // 80% of free memory
-            .try_into()
-            .unwrap_or(u32::MAX)
             .max(1);
 
         log::info!(
@@ -190,7 +188,7 @@ pub(crate) async fn parallel_compress_zip(
     let ram_semaphore = Arc::new(Semaphore::new(available_ram as usize));
 
     let (sender, rx) = tokio::sync::mpsc::unbounded_channel();
-    let write_state = WriteState::new(writer, compression.clone(), deflate_option.clone(), rx);
+    let write_state = WriteState::new(writer, compression, deflate_option, rx);
 
     let merge_task = tokio::spawn(write_state.run());
 
@@ -215,8 +213,7 @@ pub(crate) async fn parallel_compress_zip(
             // Since memory usage limiting is a soft limit, if the file size exceeds
             // the maximum capacity of the semaphore, fall back to acquiring that maximum capacity.
             let ram_permit_size = ((file_size as f64 / 10.0) as u32)
-                .checked_add(1)
-                .unwrap_or(u32::MAX)
+                .saturating_add(1)
                 .min(available_ram);
 
             let thread_permit = thread_semaphore.clone().acquire_owned().await?;
@@ -226,8 +223,6 @@ pub(crate) async fn parallel_compress_zip(
                 .await?;
 
             let sender = sender.clone();
-            let compression = compression.clone();
-            let deflate_option = deflate_option.clone();
             let ctx = ctx.clone();
             let proceed = proceed.clone();
 
