@@ -296,6 +296,12 @@ pub(crate) async fn parallel_compress_zip(
         handle.await??;
     }
 
+    let _ = ctx.emit(TauriCreateBackupProgress {
+        total,
+        proceed: total,
+        last_proceed: "finalizing...".to_string(),
+    });
+
     merge_task.await??;
 
     Ok(())
