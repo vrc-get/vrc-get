@@ -171,15 +171,16 @@ pub(crate) async fn parallel_compress_zip(
         let mut sys = sysinfo::System::new();
         sys.refresh_memory();
 
-        let available_ram: u32 = ((sys.free_memory() as f64 * 0.8) as u32) // 80% of free memory
+        // Since the maximum capacity of the semaphore is u32::MAX, it can only handle up to 4GB.
+        // To circumvent this, we will use 1 permit for every 10 bytes, allowing for a capacity of up to 40GB.
+        let available_ram: u32 = ((sys.free_memory() as f64 / 10.0 * 0.8) as u32) // 80% of free memory
             .try_into()
             .unwrap_or(u32::MAX)
-            .min(2 * 1024 * 1024 * 1024) // soft limit to 2GB at maximum
             .max(1);
 
         log::info!(
             "Using {:.2} GB soft memory limit for compression",
-            (available_ram as f64) / 1024.0 / 1024.0 / 1024.0
+            (available_ram as f64) * 10.0 / 1024.0 / 1024.0 / 1024.0
         );
 
         available_ram
@@ -208,13 +209,13 @@ pub(crate) async fn parallel_compress_zip(
         } else {
             let relative_path = entry.relative_path().to_string();
             let absolute_path = entry.absolute_path().to_path_buf();
+            let file_size = tokio::fs::metadata(&absolute_path).await?.len();
 
+            // Permit size is calculated as the number of 10-byte chunks, plus 1 for the remainder.
             // Since memory usage limiting is a soft limit, if the file size exceeds
             // the maximum capacity of the semaphore, fall back to acquiring that maximum capacity.
-            let ram_permit_size = tokio::fs::metadata(&absolute_path)
-                .await?
-                .len()
-                .try_into()
+            let ram_permit_size = ((file_size as f64 / 10.0) as u32)
+                .checked_add(1)
                 .unwrap_or(u32::MAX)
                 .min(available_ram);
 
