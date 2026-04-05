@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog].
 ### Changed
 - File filled with '\0' or whitespace will be treated as empty file `#2710`
   - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
+- Improved backup speed by parallelizing the process [`#2746`](https://github.com/vrc-get/vrc-get/pull/2746)
+  - Along with this change, the default compression level has been changed to `zip-fast`
 
 ### Deprecated
 

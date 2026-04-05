@@ -42,7 +42,7 @@ tar = "0.4"
 flate2 = "1"
 uuid = { version = "1", features = ["v4"] }
 trash = "5"
-async_zip = { version = "0.0.18", features = ["deflate", "tokio"] }
+async_zip = { version = "0.0.18", features = ["tokio", "deflate"] }
 async-compression = { version = "0.4", features = ["gzip", "futures-io"] }
 async-stream = "0.3"
 tauri-plugin-single-instance = "2"
@@ -56,6 +56,7 @@ yoke = { version = "0.8", features = ["derive"] }
 atomicbox = "0.4"
 stable_deref_trait = "1"
 itertools = "0.14"
+sysinfo = "0.38.4"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
@@ -69,6 +70,7 @@ objc2-foundation = "0.3.0"
 block2 = "0.6.0"
 objc2 = "0.6.0"
 dispatch2 = "0.3.0"
+rlimit = "0.11.0"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", features = ["fs"] }

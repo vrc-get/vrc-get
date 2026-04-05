@@ -476,7 +476,7 @@
 
     "settings:backup:format": "Backup-Format",
     "settings:backup:format description": "Backups werden als Archiv komprimiert, das Format kann hier angepasst werden.<br/>Wir empfehlen dies bei der Standard Einstellung zu belassen.<br/>Kompression sorgt für eine längere Backupdauer, reduziert dafür allerdings die Größe des Backups.",
-    "settings:backup:format:default": "Standard (Unkomprimierte zip)",
+    "settings:backup:format:default": "Standard (Leicht komprimierte zip)",
     "settings:backup:format:zip-store": "Unkomprimierte zip (Schnell)",
     "settings:backup:format:zip-fast": "Leicht komprimierte zip (Moderat)",
     "settings:backup:format:zip-best": "Stark komprimierte zip (Langsam)",
