@@ -28,7 +28,7 @@ pin-project-lite = "0.2"
 reqwest = { version = "0.12", features = ["stream"], default-features = false }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-sha2 = "0.10"
+sha2 = "0.11"
 tokio-util = "0.7"
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
