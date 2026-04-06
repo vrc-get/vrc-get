@@ -16,6 +16,7 @@
   libsoup_3,
   openssl,
   stdenv,
+  apple-sdk,
   darwin,
   src,
   ...
@@ -61,19 +62,9 @@ rustPlatform.buildRustPackage {
   ++ lib.optionals stdenv.isLinux [
     webkitgtk_4_1
   ]
-  ++ lib.optionals stdenv.isDarwin (
-    with darwin.apple_sdk.frameworks;
-    [
-      AppKit
-      WebKit
-      CoreGraphics
-      SystemConfiguration
-      CoreServices
-      Security
-      Foundation
-      ApplicationServices
-    ]
-  );
+  ++ lib.optionals stdenv.isDarwin [
+    apple-sdk
+  ];
 
   preBuild = ''
     cd vrc-get-gui
