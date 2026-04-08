@@ -95,13 +95,59 @@ export function CheckForUpdateMessage({
 		}
 	};
 
+	const openAlcomWebsite = async () => {
+		await commands.utilOpenUrl("https://an12.net/alcom/");
+	};
+
 	switch (confirmStatus.state) {
-		case "confirming":
+		case "confirming": {
+			let message: React.ReactNode;
+
+			switch (response.updater_status) {
+				case "Updatable":
+					message = <p>{tc("check update:dialog:new version description")}</p>;
+					break;
+				case "NoPlatform":
+					message = (
+						<p>
+							{tc("check update:dialog:new version no platform description")}
+						</p>
+					);
+					break;
+				case "NotUpdatable":
+					message = (
+						<p>
+							{tc("check update:dialog:new version not updatable description")}
+						</p>
+					);
+					break;
+				case "UpdaterDisabled":
+					message = (
+						<p>
+							{tc(
+								"check update:dialog:new version updater disabled base description",
+							)}
+							<br />
+							{tc([
+								"from-env:updater disabled message",
+								"check update:dialog:new version updater how to upgrade fallback",
+							])}
+						</p>
+					);
+					break;
+				default:
+					assertNever(response.updater_status);
+			}
+
+			const withDownloadButton = response.updater_status === "Updatable";
+			const withDownloadLink =
+				!withDownloadButton && response.updater_status !== "UpdaterDisabled";
+
 			return (
 				<>
 					<DialogTitle>{tc("check update:dialog:title")}</DialogTitle>
 					<div>
-						<p>{tc("check update:dialog:new version description")}</p>
+						{message}
 						<p>
 							{tc("check update:dialog:current version")}{" "}
 							{response.current_version}
@@ -123,12 +169,20 @@ export function CheckForUpdateMessage({
 						<Button onClick={() => dialog.close(false)}>
 							{tc("check update:dialog:dismiss")}
 						</Button>
-						<Button onClick={startDownload}>
-							{tc("check update:dialog:update")}
-						</Button>
+						{withDownloadButton && (
+							<Button onClick={startDownload}>
+								{tc("check update:dialog:update")}
+							</Button>
+						)}
+						{withDownloadLink && (
+							<Button onClick={openAlcomWebsite}>
+								{tc("check update:dialog:open download page")}
+							</Button>
+						)}
 					</DialogFooter>
 				</>
 			);
+		}
 		case "downloading":
 			return (
 				<>

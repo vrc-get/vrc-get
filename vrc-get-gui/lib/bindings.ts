@@ -313,7 +313,7 @@ async deepLinkReduceImportedClearNonToastedCount(reduce: number) : Promise<void>
 
 export type AddRepositoryInfo = { url: string; headers: { [key in string]: string } }
 export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Started" } | { type: "UnusedProgress"; progress: P }
-export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; update_description: string | null }
+export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; updater_status: UpdaterStatus; update_description: string | null }
 /**
  * Errors that is expected to be handled on the GUI side
  */
@@ -373,6 +373,36 @@ export type UnityHubAccessMethod =
  * Launches headless Unity Hub in background
  */
 "CallHub"
+export type UpdaterStatus = 
+/**
+ * Update is found and can be updated automatically. UpdaterInformation is available
+ * 
+ * User will proceed update.
+ */
+"Updatable" | 
+/**
+ * Update is found, but installer or package for current architecture does not found.
+ * This can happen if platform support is removed.
+ * x86_64 macOS will become this state in near future, but other platforms may if new arch is expanded enough.
+ * 
+ * Inform only
+ */
+"NoPlatform" | 
+/**
+ * Update is found and installer is found, but current installation is different from
+ * the previous (detected) installation, or we failed to detect current installation path.
+ * 
+ * Inform user to install update manually to prevent problem.
+ */
+"NotUpdatable" | 
+/**
+ * Updater is disabled at build time. generally the installation is managed by package manager.
+ * 
+ * Inform user to upgrade through package manager.
+ * Packager may customize information message by defining
+ * `VRC_GET_GUI_UPDATER_UPDATE_SUGGESTION_MESSAGE` environment variable at build time.
+ */
+"UpdaterDisabled"
 
 /** tauri-specta globals **/
 

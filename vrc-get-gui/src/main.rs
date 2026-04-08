@@ -14,6 +14,7 @@ mod templates;
 #[cfg_attr(not(windows), path = "os_posix.rs")]
 mod os;
 mod state;
+mod updater;
 mod utils;
 
 // for clippy compatibility
@@ -28,6 +29,9 @@ fn tauri_context() -> tauri::Context {
 }
 
 fn main() {
+    #[cfg(target_os = "macos")]
+    updater::macos::try_run_updater_helper(); // This file can be updater helper.
+
     let io = logging::initialize_logger();
 
     // logger is now initialized, we can use log for panics
@@ -49,7 +53,6 @@ fn main() {
             }
             process_args(app, &argv);
         }))
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .manage(io.clone())
         .manage(state::new_http_client())

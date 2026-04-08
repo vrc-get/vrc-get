@@ -22,6 +22,26 @@ const languageResources = {
 	zh_hant: zh_hantJson,
 };
 
+// merge messages from environment
+function mergeMessage(
+	envMessages: Record<string, string> | null,
+	key: string,
+	languageResources: Record<string, Record<string, Record<string, unknown>>>,
+) {
+	if (envMessages == null) return;
+	for (const [locale, message] of Object.entries(envMessages)) {
+		const localeMessages = languageResources[locale]?.translation;
+		if (localeMessages) {
+			localeMessages[key] = message;
+		}
+	}
+}
+mergeMessage(
+	ALCOM_UPDATE_UPDATER_DISABLED_MESSAGE,
+	"from-env:updater disabled message",
+	languageResources as never,
+);
+
 i18next.use(initReactI18next).init({
 	resources: languageResources as Resource,
 	lng: "en",

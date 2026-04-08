@@ -43,4 +43,35 @@ export default defineConfig({
 		},
 	},
 	clearScreen: false,
+	define: {
+		ALCOM_UPDATE_UPDATER_DISABLED_MESSAGE: JSON.stringify(
+			makeEnvMessageTable("ALCOM_UPDATE_UPDATER_DISABLED"),
+		),
+	},
 });
+
+function makeEnvMessageTable(envName: string): Record<string, string> | null {
+	const env = process.env;
+	const english = env[`${envName}_MESSAGE`];
+	// first check for en message
+	if (!english) return null;
+
+	// there is english message. We'll add other languages as well
+	const result: Record<string, string> = {};
+
+	const regex = new RegExp(`^${envName}_(?<locale>[A-Z_]+)_MESSAGE$`);
+
+	for (const [envName, envValue] of Object.entries(process.env)) {
+		if (!envValue) continue;
+		const matchResult = regex.exec(envValue);
+		if (matchResult == null) continue;
+		// biome-ignore lint/style/noNonNullAssertion: we have defined match group.
+		const localeName = matchResult.groups!.locale.toLowerCase();
+		if (localeName.length === 0) continue;
+		result[localeName] = envValue;
+	}
+
+	result.en = english;
+
+	return result;
+}
