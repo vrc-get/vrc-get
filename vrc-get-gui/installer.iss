@@ -53,6 +53,10 @@ PrivilegesRequiredOverridesAllowed=dialog
 OutputBaseFilename=alcom
 SolidCompression=yes
 WizardStyle=modern dynamic
+; allow users to install ALCOM to different location than before.
+; this would cause ALCOM to be installed to multiple location, but user may move ALCOM
+; without uninstalling ALCOM so this is 'safer' option than normal one.
+DisableDirPage=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
