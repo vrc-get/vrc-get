@@ -23,21 +23,25 @@ pub fn bundle(ctx: &BundleContext<'_>) -> Result<()> {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Debian/Ubuntu architecture string for the host (assumed x86_64 unless triple says aarch64).
+/// Debian/Ubuntu architecture string for the host triple.
 fn deb_arch(triple: &str) -> &str {
-    if triple.contains("aarch64") {
+    if triple.starts_with("aarch64") {
         "arm64"
-    } else {
+    } else if triple.starts_with("x86_64") {
         "amd64"
+    } else {
+        panic!("unsupported architecture in target triple for deb: {triple}")
     }
 }
 
 /// RPM architecture string.
 fn rpm_arch(triple: &str) -> &str {
-    if triple.contains("aarch64") {
+    if triple.starts_with("aarch64") {
         "aarch64"
-    } else {
+    } else if triple.starts_with("x86_64") {
         "x86_64"
+    } else {
+        panic!("unsupported architecture in target triple for rpm: {triple}")
     }
 }
 
@@ -106,10 +110,15 @@ fn install_icons(ctx: &BundleContext<'_>, icons_base: &Path) -> Result<()> {
 // ---------------------------------------------------------------------------
 
 fn appimage_name(ctx: &BundleContext<'_>) -> String {
-    let arch = if ctx.target_triple.contains("aarch64") {
+    let arch = if ctx.target_triple.starts_with("aarch64") {
         "aarch64"
-    } else {
+    } else if ctx.target_triple.starts_with("x86_64") {
         "amd64"
+    } else {
+        panic!(
+            "unsupported architecture in target triple for appimage: {}",
+            ctx.target_triple
+        )
     };
     format!("ALCOM_{}_{arch}.AppImage", ctx.config.version)
 }
@@ -128,10 +137,15 @@ fn create_appimage(ctx: &BundleContext<'_>) -> Result<PathBuf> {
     let out_path = out_dir.join(&name);
 
     // appimagetool requires ARCH to be set for non-native builds.
-    let arch_env = if ctx.target_triple.contains("aarch64") {
+    let arch_env = if ctx.target_triple.starts_with("aarch64") {
         "aarch64"
-    } else {
+    } else if ctx.target_triple.starts_with("x86_64") {
         "x86_64"
+    } else {
+        panic!(
+            "unsupported architecture in target triple for appimagetool: {}",
+            ctx.target_triple
+        )
     };
 
     run_cmd(

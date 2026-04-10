@@ -1,6 +1,6 @@
 use crate::utils::command::{CommandExt, WineRunner};
 use crate::utils::rustc::rustc_host_triple;
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;

@@ -235,7 +235,6 @@ jobs:
           path: vrc-get-gui/out
 
       - name: Build ALCOM binary
-        working-directory: vrc-get-gui
         env:
           # apple code signing
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -245,10 +244,7 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          npm run tauri build \
-            --target ${{ matrix.triple }} \
-            --no-bundle \
-            -c '{"build":{"beforeBuildCommand":null}}'
+          cargo xtask build-alcom --target ${{ matrix.triple }}
 
       - name: Bundle ALCOM
         if: ${{ !contains(matrix.triple, 'windows') }}

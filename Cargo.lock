@@ -7138,6 +7138,7 @@ dependencies = [
  "chrono",
  "clap",
  "flate2",
+ "fs_extra",
  "indexmap 2.13.0",
  "itertools",
  "object 0.38.1",

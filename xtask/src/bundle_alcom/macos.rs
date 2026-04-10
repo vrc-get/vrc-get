@@ -4,7 +4,6 @@ use plist::{Dictionary, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
-
 /// Create all macOS bundles: `.app`, `.app.tar.gz`, and `.dmg`.
 pub fn bundle(ctx: &BundleContext<'_>) -> Result<()> {
     let app_bundle = create_app_bundle(ctx)?;
@@ -165,14 +164,17 @@ fn create_dmg(ctx: &BundleContext<'_>, app_bundle: &Path) -> Result<()> {
     }
     fs::create_dir_all(&staging)?;
 
-    // Copy the .app bundle into the staging area.
-    run_cmd(
-        ProcessCommand::new("cp")
-            .arg("-R")
-            .arg(app_bundle)
-            .arg(&staging),
-        "copying .app to DMG staging",
-    )?;
+    // Copy the .app bundle into the staging area using fs_extra.
+    {
+        let copy_options = fs_extra::dir::CopyOptions::new().copy_inside(false);
+        fs_extra::dir::copy(app_bundle, &staging, &copy_options).with_context(|| {
+            format!(
+                "copying .app bundle {} -> {}",
+                app_bundle.display(),
+                staging.display()
+            )
+        })?;
+    }
 
     // Create a symlink to /Applications.
     #[cfg(unix)]
