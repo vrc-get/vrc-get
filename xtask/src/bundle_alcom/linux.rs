@@ -30,7 +30,7 @@ fn deb_arch(triple: &str) -> &str {
     } else if triple.starts_with("x86_64") {
         "amd64"
     } else {
-        panic!("unsupported architecture in target triple for deb: {triple}")
+        panic!("unsupported architecture in target triple for deb: {}", triple)
     }
 }
 
@@ -41,7 +41,7 @@ fn rpm_arch(triple: &str) -> &str {
     } else if triple.starts_with("x86_64") {
         "x86_64"
     } else {
-        panic!("unsupported architecture in target triple for rpm: {triple}")
+        panic!("unsupported architecture in target triple for rpm: {}", triple)
     }
 }
 
