@@ -25,20 +25,23 @@ fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<PathBuf> {
 
     // Clean previous build.
     if app_dir.exists() {
-        fs::remove_dir_all(&app_dir)
-            .with_context(|| format!("removing {}", app_dir.display()))?;
+        fs::remove_dir_all(&app_dir).with_context(|| format!("removing {}", app_dir.display()))?;
     }
 
-    fs::create_dir_all(&macos_dir)
-        .with_context(|| format!("creating {}", macos_dir.display()))?;
+    fs::create_dir_all(&macos_dir).with_context(|| format!("creating {}", macos_dir.display()))?;
     fs::create_dir_all(&resources_dir)
         .with_context(|| format!("creating {}", resources_dir.display()))?;
 
     // Copy binary.
     let src_bin = ctx.binary_path();
     let dst_bin = macos_dir.join(ctx.binary_name());
-    fs::copy(&src_bin, &dst_bin)
-        .with_context(|| format!("copying binary {} → {}", src_bin.display(), dst_bin.display()))?;
+    fs::copy(&src_bin, &dst_bin).with_context(|| {
+        format!(
+            "copying binary {} → {}",
+            src_bin.display(),
+            dst_bin.display()
+        )
+    })?;
 
     // Make binary executable (mode 755).
     #[cfg(unix)]
@@ -197,7 +200,8 @@ fn read_plist_value<'a>(src: &'a str) -> Result<(String, &'a str)> {
     let open_tag = &src[..end_of_open + 1];
 
     // Determine the tag name for the closing tag
-    let tag_name_end = src[1..].find(|c: char| c.is_whitespace() || c == '/' || c == '>')
+    let tag_name_end = src[1..]
+        .find(|c: char| c.is_whitespace() || c == '/' || c == '>')
         .map(|p| p + 1)
         .unwrap_or(end_of_open);
     let tag_name = &src[1..tag_name_end];
@@ -267,8 +271,7 @@ fn create_dmg(ctx: &BundleContext<'_>, app_bundle: &Path) -> Result<()> {
     let arch = dmg_arch(ctx.target_triple);
     let dmg_name = format!("ALCOM_{}_{arch}.dmg", ctx.config.version);
     let dmg_dir = ctx.bundle_dir.join("dmg");
-    fs::create_dir_all(&dmg_dir)
-        .with_context(|| format!("creating {}", dmg_dir.display()))?;
+    fs::create_dir_all(&dmg_dir).with_context(|| format!("creating {}", dmg_dir.display()))?;
     let dmg_path = dmg_dir.join(&dmg_name);
 
     if dmg_path.exists() {

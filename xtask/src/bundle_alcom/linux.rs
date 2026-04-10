@@ -24,12 +24,20 @@ pub fn bundle(ctx: &BundleContext<'_>) -> Result<()> {
 
 /// Debian/Ubuntu architecture string for the host (assumed x86_64 unless triple says aarch64).
 fn deb_arch(triple: &str) -> &str {
-    if triple.contains("aarch64") { "arm64" } else { "amd64" }
+    if triple.contains("aarch64") {
+        "arm64"
+    } else {
+        "amd64"
+    }
 }
 
 /// RPM architecture string.
 fn rpm_arch(triple: &str) -> &str {
-    if triple.contains("aarch64") { "aarch64" } else { "x86_64" }
+    if triple.contains("aarch64") {
+        "aarch64"
+    } else {
+        "x86_64"
+    }
 }
 
 /// Copy `src` to `dst`, creating parent directories as needed.
@@ -38,10 +46,8 @@ fn copy_file(src: &Path, dst: &Path) -> Result<()> {
     let parent = dst
         .parent()
         .ok_or_else(|| anyhow::anyhow!("path has no parent: {}", dst.display()))?;
-    fs::create_dir_all(parent)
-        .with_context(|| format!("creating parent of {}", dst.display()))?;
-    fs::copy(src, dst)
-        .with_context(|| format!("copying {} → {}", src.display(), dst.display()))?;
+    fs::create_dir_all(parent).with_context(|| format!("creating parent of {}", dst.display()))?;
+    fs::copy(src, dst).with_context(|| format!("copying {} → {}", src.display(), dst.display()))?;
     Ok(())
 }
 
@@ -150,17 +156,14 @@ fn prepare_appdir(ctx: &BundleContext<'_>, appdir: &Path) -> Result<()> {
     // Binary
     let bin_name = ctx.binary_name();
     let bin_dst = bin_dir.join(bin_name);
-    fs::copy(ctx.binary_path(), &bin_dst)
-        .context("copying binary to AppDir")?;
+    fs::copy(ctx.binary_path(), &bin_dst).context("copying binary to AppDir")?;
     make_executable(&bin_dst)?;
 
     // AppRun (wrapper that executes the binary)
     let apprun_path = appdir.join("AppRun");
     fs::write(
         &apprun_path,
-        format!(
-            "#!/bin/sh\nexec \"$(dirname \"$0\")/usr/bin/{bin_name}\" \"$@\"\n"
-        ),
+        format!("#!/bin/sh\nexec \"$(dirname \"$0\")/usr/bin/{bin_name}\" \"$@\"\n"),
     )?;
     make_executable(&apprun_path)?;
 
@@ -430,10 +433,7 @@ fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     )?;
 
     // Move the output RPM to bundle/rpm/.
-    let rpm_built = rpmbuild
-        .join("RPMS")
-        .join(arch)
-        .join(&rpm_name);
+    let rpm_built = rpmbuild.join("RPMS").join(arch).join(&rpm_name);
     let rpm_out = rpm_dir.join(&rpm_name);
     if rpm_built.exists() {
         fs::rename(&rpm_built, &rpm_out)

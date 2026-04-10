@@ -123,14 +123,8 @@ impl BundleConfig {
             product_name: tauri_toml.product_name,
             identifier: tauri_toml.identifier,
             version: cargo_toml.package.version,
-            short_description: tauri_toml
-                .bundle
-                .short_description
-                .unwrap_or_default(),
-            long_description: tauri_toml
-                .bundle
-                .long_description
-                .unwrap_or_default(),
+            short_description: tauri_toml.bundle.short_description.unwrap_or_default(),
+            long_description: tauri_toml.bundle.long_description.unwrap_or_default(),
             copyright: tauri_toml.bundle.copyright.unwrap_or_default(),
             category: tauri_toml.bundle.category.unwrap_or_default(),
             publisher: tauri_toml.bundle.publisher.unwrap_or_default(),
@@ -159,8 +153,7 @@ impl BundleContext<'_> {
     /// Path to the compiled binary in the build directory.
     pub fn binary_path(&self) -> PathBuf {
         if self.target_triple.contains("windows") {
-            self.build_dir
-                .join(format!("{}.exe", self.binary_name()))
+            self.build_dir.join(format!("{}.exe", self.binary_name()))
         } else {
             self.build_dir.join(self.binary_name())
         }
@@ -188,13 +181,13 @@ impl BundleContext<'_> {
 /// Create a `.tar.gz` archive at `out_path` containing a single file `src`
 /// whose name inside the archive is `archive_name`.
 pub(crate) fn create_tar_gz(src: &Path, archive_name: &str, out_path: &Path) -> Result<()> {
-    use flate2::write::GzEncoder;
     use flate2::Compression;
+    use flate2::write::GzEncoder;
 
     fs::create_dir_all(out_path.parent().unwrap())?;
 
-    let file = fs::File::create(out_path)
-        .with_context(|| format!("creating {}", out_path.display()))?;
+    let file =
+        fs::File::create(out_path).with_context(|| format!("creating {}", out_path.display()))?;
     let gz = GzEncoder::new(file, Compression::best());
     let mut builder = tar::Builder::new(gz);
     builder.follow_symlinks(false);
