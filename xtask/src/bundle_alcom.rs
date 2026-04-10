@@ -163,15 +163,6 @@ impl BundleContext<'_> {
     pub fn icon_path(&self, relative: &str) -> PathBuf {
         self.gui_dir.join(relative)
     }
-
-    /// Returns the first icon path matching the given extension.
-    pub fn find_icon(&self, ext: &str) -> Option<PathBuf> {
-        self.config
-            .icons
-            .iter()
-            .find(|p| p.ends_with(ext))
-            .map(|p| self.icon_path(p))
-    }
 }
 
 // ---------------------------------------------------------------------------

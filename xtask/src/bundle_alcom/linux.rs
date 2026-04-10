@@ -176,7 +176,12 @@ fn prepare_appdir(ctx: &BundleContext<'_>, appdir: &Path) -> Result<()> {
     fs::write(share_apps.join(desktop_name), &desktop_content)?;
 
     // Icons – copy all .png icons into the hicolor hierarchy.
-    for icon_rel in &ctx.config.icons {
+    for icon_rel in [
+        "icons/32x32.png",
+        "icons/64x64.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+    ] {
         if !icon_rel.ends_with(".png") {
             continue;
         }
