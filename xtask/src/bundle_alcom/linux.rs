@@ -35,7 +35,10 @@ fn rpm_arch(triple: &str) -> &str {
 /// Copy `src` to `dst`, creating parent directories as needed.
 #[allow(dead_code)]
 fn copy_file(src: &Path, dst: &Path) -> Result<()> {
-    fs::create_dir_all(dst.parent().unwrap())
+    let parent = dst
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("path has no parent: {}", dst.display()))?;
+    fs::create_dir_all(parent)
         .with_context(|| format!("creating parent of {}", dst.display()))?;
     fs::copy(src, dst)
         .with_context(|| format!("copying {} → {}", src.display(), dst.display()))?;

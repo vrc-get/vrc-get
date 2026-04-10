@@ -169,7 +169,7 @@ fn parse_plist_dict_entries(src: &str) -> Result<Vec<(String, String)>> {
             // Skip unexpected content
             if let Some(next) = rest.find('<') {
                 rest = &rest[next..];
-                let end = rest.find('>').unwrap_or(rest.len() - 1) + 1;
+                let end = rest.find('>').map(|p| p + 1).unwrap_or(rest.len());
                 rest = &rest[end..];
             } else {
                 break;
