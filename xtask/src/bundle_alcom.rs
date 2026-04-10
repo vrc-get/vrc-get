@@ -1,5 +1,5 @@
 use crate::utils::rustc::rustc_host_triple;
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -97,8 +97,6 @@ pub(crate) struct BundleConfig {
     pub copyright: String,
     pub category: String,
     pub publisher: String,
-    /// Paths of icon files listed in `[bundle] icon`, relative to `gui_dir`.
-    pub icons: Vec<String>,
 }
 
 impl BundleConfig {
@@ -128,7 +126,6 @@ impl BundleConfig {
             copyright: tauri_toml.bundle.copyright.unwrap_or_default(),
             category: tauri_toml.bundle.category.unwrap_or_default(),
             publisher: tauri_toml.bundle.publisher.unwrap_or_default(),
-            icons: tauri_toml.bundle.icon.unwrap_or_default(),
         })
     }
 }
@@ -172,8 +169,8 @@ impl BundleContext<'_> {
 /// Create a `.tar.gz` archive at `out_path` containing a single file `src`
 /// whose name inside the archive is `archive_name`.
 pub(crate) fn create_tar_gz(src: &Path, archive_name: &str, out_path: &Path) -> Result<()> {
-    use flate2::Compression;
     use flate2::write::GzEncoder;
+    use flate2::Compression;
 
     fs::create_dir_all(out_path.parent().unwrap())?;
 
@@ -250,7 +247,6 @@ struct BundleSection {
     copyright: Option<String>,
     category: Option<String>,
     publisher: Option<String>,
-    icon: Option<Vec<String>>,
 }
 
 // ---------------------------------------------------------------------------

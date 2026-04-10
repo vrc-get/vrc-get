@@ -22,3 +22,6 @@ ureq = "3.3.0"
 toml = "0.8.22"
 flate2 = "1.1.1"
 tar = "0.4.43"
+plist = "1.8.0"
+rpm = { version = "0.20.0", default-features = false, features = ["gzip-compression"] }
+ar = "0.9.0"

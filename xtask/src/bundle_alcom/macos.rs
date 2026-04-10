@@ -1,5 +1,6 @@
-use super::{BundleContext, create_tar_gz, run_cmd};
+use super::{create_tar_gz, run_cmd, BundleContext};
 use anyhow::{Context, Result};
+use plist::{Dictionary, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
@@ -37,7 +38,7 @@ fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<PathBuf> {
     let dst_bin = macos_dir.join(ctx.binary_name());
     fs::copy(&src_bin, &dst_bin).with_context(|| {
         format!(
-            "copying binary {} → {}",
+            "copying binary {} -> {}",
             src_bin.display(),
             dst_bin.display()
         )
@@ -55,202 +56,80 @@ fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<PathBuf> {
         let icns = ctx.gui_dir.join("icons/icon.icns");
         let dst = resources_dir.join("icon.icns");
         fs::copy(&icns, &dst)
-            .with_context(|| format!("copying icon {} → {}", icns.display(), dst.display()))?;
+            .with_context(|| format!("copying icon {} -> {}", icns.display(), dst.display()))?;
     }
 
-    // Generate Info.plist.
-    let info_plist = generate_info_plist(ctx)?;
+    // Generate Info.plist using the plist crate.
+    let plist_value = generate_info_plist(ctx)?;
     let plist_path = contents_dir.join("Info.plist");
-    fs::write(&plist_path, info_plist)
+    plist::to_file_xml(&plist_path, &plist_value)
         .with_context(|| format!("writing {}", plist_path.display()))?;
 
     println!("created: {}", app_dir.display());
     Ok(app_dir)
 }
 
-/// Builds the `Info.plist` XML by merging tauri config with the custom `Info.plist`.
-fn generate_info_plist(ctx: &BundleContext<'_>) -> Result<String> {
+/// Builds the `Info.plist` dictionary by merging tauri config with the custom `Info.plist`.
+///
+/// The custom `Info.plist` (if present) is used as the base, and the generated core entries
+/// always override it, ensuring correctness.
+fn generate_info_plist(ctx: &BundleContext<'_>) -> Result<Value> {
     let cfg = ctx.config;
     let version = &cfg.version;
 
-    // Core plist entries generated from bundle config.
-    let core_entries: Vec<(&str, String)> = vec![
-        ("CFBundleName", plist_string(&cfg.product_name)),
-        ("CFBundleExecutable", plist_string(&cfg.product_name)),
-        ("CFBundleIdentifier", plist_string(&cfg.identifier)),
-        ("CFBundleVersion", plist_string(version)),
-        ("CFBundleShortVersionString", plist_string(version)),
-        ("CFBundleIconFile", plist_string("icon.icns")),
-        ("CFBundlePackageType", plist_string("APPL")),
-        ("NSHighResolutionCapable", "<true/>".to_string()),
-        ("NSRequiresAquaSystemAppearance", "<false/>".to_string()),
-        ("LSMinimumSystemVersion", plist_string("10.13.0")),
-    ];
-
-    // Merge entries from the custom Info.plist if present.
-    let custom_plist_path = ctx.gui_dir.join("Info.plist");
-    let custom_entries: Vec<(String, String)> = if custom_plist_path.exists() {
-        parse_plist_dict_entries(&fs::read_to_string(&custom_plist_path)?)?
-    } else {
-        vec![]
+    // Start with the custom Info.plist if present (provides URL types, file associations, etc.)
+    let mut dict: Dictionary = {
+        let custom_plist_path = ctx.gui_dir.join("Info.plist");
+        if custom_plist_path.exists() {
+            let val: Value = plist::from_file(&custom_plist_path)
+                .with_context(|| format!("reading {}", custom_plist_path.display()))?;
+            match val {
+                Value::Dictionary(d) => d,
+                _ => Dictionary::new(),
+            }
+        } else {
+            Dictionary::new()
+        }
     };
 
-    // Serialize: core entries first, then custom entries that don't duplicate core keys.
-    let mut out = String::from(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
-         <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \
-         \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n\
-         <plist version=\"1.0\">\n\
-         <dict>\n",
+    // Override / fill in the generated core entries (these always win).
+    dict.insert(
+        "CFBundleName".into(),
+        Value::String(cfg.product_name.clone()),
+    );
+    dict.insert(
+        "CFBundleExecutable".into(),
+        Value::String(cfg.product_name.clone()),
+    );
+    dict.insert(
+        "CFBundleIdentifier".into(),
+        Value::String(cfg.identifier.clone()),
+    );
+    dict.insert("CFBundleVersion".into(), Value::String(version.clone()));
+    dict.insert(
+        "CFBundleShortVersionString".into(),
+        Value::String(version.clone()),
+    );
+    dict.insert("CFBundleIconFile".into(), Value::String("icon.icns".into()));
+    dict.insert("CFBundlePackageType".into(), Value::String("APPL".into()));
+    dict.insert("NSHighResolutionCapable".into(), Value::Boolean(true));
+    dict.insert(
+        "NSRequiresAquaSystemAppearance".into(),
+        Value::Boolean(false),
+    );
+    dict.insert(
+        "LSMinimumSystemVersion".into(),
+        Value::String("10.13.0".into()),
     );
 
-    for (key, value) in &core_entries {
-        out.push_str(&format!("    <key>{key}</key>\n    {value}\n"));
-    }
-
     if !cfg.copyright.is_empty() {
-        out.push_str(&format!(
-            "    <key>NSHumanReadableCopyright</key>\n    {}\n",
-            plist_string(&cfg.copyright)
-        ));
+        dict.insert(
+            "NSHumanReadableCopyright".into(),
+            Value::String(cfg.copyright.clone()),
+        );
     }
 
-    // Append custom plist entries that are not already set by the core list.
-    let core_keys: Vec<&str> = core_entries.iter().map(|(k, _)| *k).collect();
-    for (key, value) in &custom_entries {
-        if !core_keys.contains(&key.as_str()) {
-            out.push_str(&format!("    <key>{key}</key>\n    {value}\n"));
-        }
-    }
-
-    out.push_str("</dict>\n</plist>\n");
-    Ok(out)
-}
-
-fn plist_string(s: &str) -> String {
-    format!("<string>{}</string>", xml_escape(s))
-}
-
-fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
-/// Parse the top-level `<dict>` of a plist XML file and return key/value pairs.
-/// Values are returned as raw XML strings (e.g. `<string>foo</string>`, `<true/>`).
-fn parse_plist_dict_entries(src: &str) -> Result<Vec<(String, String)>> {
-    let mut result: Vec<(String, String)> = Vec::new();
-    let mut rest = src;
-
-    // Skip until the first <dict>
-    if let Some(pos) = rest.find("<dict>") {
-        rest = &rest[pos + 6..];
-    }
-
-    loop {
-        // Skip whitespace
-        rest = rest.trim_start();
-
-        if rest.starts_with("</dict>") || rest.is_empty() {
-            break;
-        }
-
-        if rest.starts_with("<key>") {
-            rest = &rest[5..]; // skip <key>
-            let end = rest.find("</key>").context("missing </key>")?;
-            let key = rest[..end].to_owned();
-            rest = &rest[end + 6..]; // skip </key>
-            rest = rest.trim_start();
-
-            // Read the value tag(s)
-            let (value, after) = read_plist_value(rest)?;
-            result.push((key, value));
-            rest = after;
-        } else {
-            // Skip unexpected content
-            if let Some(next) = rest.find('<') {
-                rest = &rest[next..];
-                let end = rest.find('>').map(|p| p + 1).unwrap_or(rest.len());
-                rest = &rest[end..];
-            } else {
-                break;
-            }
-        }
-    }
-
-    Ok(result)
-}
-
-/// Read one plist value starting at `src` (which should start with the opening tag).
-/// Returns `(raw_xml_string, remaining_src)`.
-fn read_plist_value(src: &str) -> Result<(String, &str)> {
-    let src = src.trim_start();
-
-    if let Some(rest) = src.strip_prefix("<true/>") {
-        return Ok(("<true/>".to_owned(), rest));
-    }
-    if let Some(rest) = src.strip_prefix("<true/>") {
-        return Ok(("<false/>".to_owned(), rest));
-    }
-
-    // Find the opening tag
-    let end_of_open = src.find('>').context("missing > in plist value tag")?;
-    let open_tag = &src[..end_of_open + 1];
-
-    // Determine the tag name for the closing tag
-    let tag_name_end = src[1..]
-        .find(|c: char| c.is_whitespace() || c == '/' || c == '>')
-        .map(|p| p + 1)
-        .unwrap_or(end_of_open);
-    let tag_name = &src[1..tag_name_end];
-
-    if open_tag.ends_with("/>") {
-        // Self-closing
-        return Ok((open_tag.to_owned(), &src[open_tag.len()..]));
-    }
-
-    let close_tag = format!("</{tag_name}>");
-
-    // Find matching closing tag (handles nesting for array/dict)
-    let after_open = &src[end_of_open + 1..];
-    let (inner, rest) = find_matching_close(after_open, tag_name, &close_tag)?;
-    let raw = format!("{open_tag}{inner}{close_tag}");
-    Ok((raw, rest))
-}
-
-/// Find the matching closing tag, handling nested same-named tags.
-fn find_matching_close<'a>(
-    src: &'a str,
-    tag_name: &str,
-    close_tag: &str,
-) -> Result<(&'a str, &'a str)> {
-    let open_tag_str = format!("<{tag_name}");
-    let mut depth = 1usize;
-    let mut i = 0;
-
-    while i < src.len() {
-        if src[i..].starts_with(close_tag) {
-            depth -= 1;
-            if depth == 0 {
-                return Ok((&src[..i], &src[i + close_tag.len()..]));
-            }
-            i += close_tag.len();
-        } else if src[i..].starts_with(&open_tag_str) {
-            // Check it's a full tag name (not a prefix match)
-            let after = &src[i + open_tag_str.len()..];
-            if after.starts_with(|c: char| c.is_whitespace() || c == '>' || c == '/') {
-                depth += 1;
-            }
-            i += open_tag_str.len();
-        } else {
-            i += 1;
-        }
-    }
-
-    Err(anyhow::anyhow!("missing closing tag {close_tag}"))
+    Ok(Value::Dictionary(dict))
 }
 
 // ---------------------------------------------------------------------------
