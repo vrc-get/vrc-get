@@ -100,8 +100,12 @@ jobs:
             --target ${{ matrix.triple }} \
             ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
 
-      - name: Bundle ALCOM
-        if: ${{ !contains(matrix.triple, 'windows') }}
+      - name: Bundle ALCOM (macOS — app only, no signing in CI)
+        if: ${{ contains(matrix.triple, 'apple') }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles app,dmg,app-updater
+
+      - name: Bundle ALCOM (Linux)
+        if: ${{ contains(matrix.triple, 'linux') }}
         run: cargo xtask bundle-alcom --target ${{ matrix.triple }}
 
       - name: Build Windows installer

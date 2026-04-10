@@ -7134,6 +7134,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ar",
+ "base64 0.22.1",
  "cargo_metadata 0.23.1",
  "chrono",
  "clap",

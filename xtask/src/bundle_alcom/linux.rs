@@ -1,4 +1,4 @@
-use super::{create_tar_gz, download_file_cached, run_cmd, BundleContext};
+use super::{create_tar_gz, download_file_cached, run_cmd, BundleContext, BundleKind};
 use anyhow::{Context, Result};
 use std::fs;
 use std::io::Write;
@@ -10,12 +10,41 @@ const APPIMAGETOOL_VERSION: &str = "13";
 const APPIMAGETOOL_URL: &str =
     "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage";
 
-/// Create all Linux bundles: AppImage, `.AppImage.tar.gz`, `.deb`, `.rpm`.
-pub fn bundle(ctx: &BundleContext<'_>) -> Result<()> {
-    let appimage = create_appimage(ctx)?;
-    create_appimage_tar_gz(ctx, &appimage)?;
-    create_deb(ctx)?;
-    create_rpm(ctx)?;
+/// Create Linux bundles as selected by `bundles`.
+///
+/// When `bundles` is empty, all artifacts are produced (`appimage`, `appimage-updater`,
+/// `deb`, `rpm`).
+/// Pass a non-empty slice to produce only the requested artifacts.
+///
+/// Note: `appimage-updater` requires an AppImage to exist at the standard path in the
+/// bundle dir (either created in this call with `appimage`, or from a previous call).
+pub fn bundle(ctx: &BundleContext<'_>, bundles: &[BundleKind]) -> Result<()> {
+    let all = bundles.is_empty();
+
+    let want_appimage = all || bundles.contains(&BundleKind::AppImage);
+    let want_appimage_updater = all || bundles.contains(&BundleKind::AppImageUpdater);
+
+    if want_appimage || want_appimage_updater {
+        let appimage_path = if want_appimage {
+            create_appimage(ctx)?
+        } else {
+            // Reuse existing AppImage produced by a previous call.
+            ctx.bundle_dir.join("appimage").join(appimage_name(ctx))
+        };
+
+        if want_appimage_updater {
+            create_appimage_tar_gz(ctx, &appimage_path)?;
+        }
+    }
+
+    if all || bundles.contains(&BundleKind::Deb) {
+        create_deb(ctx)?;
+    }
+
+    if all || bundles.contains(&BundleKind::Rpm) {
+        create_rpm(ctx)?;
+    }
+
     Ok(())
 }
 
@@ -30,7 +59,10 @@ fn deb_arch(triple: &str) -> &str {
     } else if triple.starts_with("x86_64") {
         "amd64"
     } else {
-        panic!("unsupported architecture in target triple for deb: {}", triple)
+        panic!(
+            "unsupported architecture in target triple for deb: {}",
+            triple
+        )
     }
 }
 
@@ -41,7 +73,10 @@ fn rpm_arch(triple: &str) -> &str {
     } else if triple.starts_with("x86_64") {
         "x86_64"
     } else {
-        panic!("unsupported architecture in target triple for rpm: {}", triple)
+        panic!(
+            "unsupported architecture in target triple for rpm: {}",
+            triple
+        )
     }
 }
 

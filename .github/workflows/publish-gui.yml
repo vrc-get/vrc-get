@@ -235,19 +235,30 @@ jobs:
           path: vrc-get-gui/out
 
       - name: Build ALCOM binary
+        run: |
+          cargo xtask build-alcom --target ${{ matrix.triple }}
+
+      - name: Bundle ALCOM app (macOS)
+        if: ${{ contains(matrix.triple, 'apple') }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles app
+
+      - name: Sign ALCOM app (macOS)
+        if: ${{ contains(matrix.triple, 'apple') }}
         env:
-          # apple code signing
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          cargo xtask build-alcom --target ${{ matrix.triple }}
+        run: cargo xtask sign-alcom --target ${{ matrix.triple }}
 
-      - name: Bundle ALCOM
-        if: ${{ !contains(matrix.triple, 'windows') }}
+      - name: Bundle ALCOM distributables (macOS)
+        if: ${{ contains(matrix.triple, 'apple') }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles dmg,app-updater
+
+      - name: Bundle ALCOM (Linux)
+        if: ${{ contains(matrix.triple, 'linux') }}
         run: cargo xtask bundle-alcom --target ${{ matrix.triple }}
 
       - name: Sign updater artifacts (macOS/Linux)

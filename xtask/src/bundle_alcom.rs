@@ -8,6 +8,41 @@ use std::process::Command as ProcessCommand;
 mod linux;
 mod macos;
 
+/// Individual bundle artifact that can be produced.
+///
+/// Pass one or more values to `--bundles` to produce only those artifacts.
+/// If `--bundles` is not specified, all artifacts for the target platform are produced.
+///
+/// **macOS** artifacts:
+/// - `app` — `ALCOM.app` application bundle
+/// - `dmg` — `ALCOM_<version>_<arch>.dmg` disk image
+/// - `app-updater` — `ALCOM.app.tar.gz` updater payload
+///
+/// **Linux** artifacts:
+/// - `app-image` — `ALCOM_<version>_<arch>.AppImage`
+/// - `app-image-updater` — `ALCOM_<version>_<arch>.AppImage.tar.gz` updater payload
+/// - `deb` — `ALCOM_<version>_<arch>.deb` Debian package
+/// - `rpm` — `ALCOM-<version>-1.<arch>.rpm` RPM package
+#[derive(clap::ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum BundleKind {
+    // --- macOS ---
+    /// ALCOM.app bundle
+    App,
+    /// Disk image (requires ALCOM.app to already exist in bundle dir)
+    Dmg,
+    /// ALCOM.app.tar.gz updater payload (requires ALCOM.app to already exist)
+    AppUpdater,
+    // --- Linux ---
+    /// AppImage portable image
+    AppImage,
+    /// AppImage.tar.gz updater payload (requires AppImage to already exist)
+    AppImageUpdater,
+    /// Debian package
+    Deb,
+    /// RPM package
+    Rpm,
+}
+
 /// Bundles the ALCOM application for the target platform.
 ///
 /// This reimplements the tauri bundler functionality so we do not need to depend on
@@ -36,6 +71,14 @@ pub(super) struct Command {
     /// Build profile (default: `release`).
     #[arg(long, default_value = "release")]
     profile: String,
+
+    /// Specific bundle artifacts to produce (comma-separated or repeated).
+    ///
+    /// When not specified, all artifacts for the target platform are produced.
+    /// Use this to split the bundling process — e.g. produce only `app` first,
+    /// then sign it, then produce `dmg` and `app-updater`.
+    #[arg(long, value_delimiter = ',')]
+    bundles: Vec<BundleKind>,
 }
 
 impl crate::Command for Command {
@@ -69,9 +112,9 @@ impl crate::Command for Command {
         };
 
         if target_triple.contains("apple") {
-            macos::bundle(&ctx)?;
+            macos::bundle(&ctx, &self.bundles)?;
         } else if target_triple.contains("linux") {
-            linux::bundle(&ctx)?;
+            linux::bundle(&ctx, &self.bundles)?;
         } else if target_triple.contains("windows") {
             // Windows bundling is handled by the build-alcom-installer command.
             println!("Windows bundling is handled by build-alcom-installer.");

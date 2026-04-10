@@ -1,14 +1,35 @@
-use super::{create_tar_gz, run_cmd, BundleContext};
+use super::{create_tar_gz, run_cmd, BundleContext, BundleKind};
 use anyhow::{Context, Result};
 use plist::{Dictionary, Value};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command as ProcessCommand;
-/// Create all macOS bundles: `.app`, `.app.tar.gz`, and `.dmg`.
-pub fn bundle(ctx: &BundleContext<'_>) -> Result<()> {
-    let app_bundle = create_app_bundle(ctx)?;
-    create_app_tar_gz(ctx, &app_bundle)?;
-    create_dmg(ctx, &app_bundle)?;
+
+/// Create macOS bundles as selected by `bundles`.
+///
+/// When `bundles` is empty, all artifacts are produced (`app`, `dmg`, `app-updater`).
+/// Pass a non-empty slice to produce only the requested artifacts.
+///
+/// Note: `dmg` and `app-updater` both require `ALCOM.app` to exist under
+/// `bundle/macos/ALCOM.app` (either created in this call with `app`, or from a
+/// previous call).
+pub fn bundle(ctx: &BundleContext<'_>, bundles: &[BundleKind]) -> Result<()> {
+    let all = bundles.is_empty();
+
+    let app_bundle = ctx.bundle_dir.join("macos").join("ALCOM.app");
+
+    if all || bundles.contains(&BundleKind::App) {
+        create_app_bundle(ctx)?;
+    }
+
+    if all || bundles.contains(&BundleKind::AppUpdater) {
+        create_app_tar_gz(ctx, &app_bundle)?;
+    }
+
+    if all || bundles.contains(&BundleKind::Dmg) {
+        create_dmg(ctx, &app_bundle)?;
+    }
+
     Ok(())
 }
 
@@ -16,8 +37,8 @@ pub fn bundle(ctx: &BundleContext<'_>) -> Result<()> {
 // .app bundle
 // ---------------------------------------------------------------------------
 
-/// Creates `bundle/macos/ALCOM.app` and returns its path.
-fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<PathBuf> {
+/// Creates `bundle/macos/ALCOM.app`.
+fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<()> {
     let app_dir = ctx.bundle_dir.join("macos").join("ALCOM.app");
     let contents_dir = app_dir.join("Contents");
     let macos_dir = contents_dir.join("MacOS");
@@ -65,7 +86,7 @@ fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<PathBuf> {
         .with_context(|| format!("writing {}", plist_path.display()))?;
 
     println!("created: {}", app_dir.display());
-    Ok(app_dir)
+    Ok(())
 }
 
 /// Builds the `Info.plist` dictionary by merging tauri config with the custom `Info.plist`.
