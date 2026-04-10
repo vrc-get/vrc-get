@@ -185,14 +185,14 @@ fn parse_plist_dict_entries(src: &str) -> Result<Vec<(String, String)>> {
 
 /// Read one plist value starting at `src` (which should start with the opening tag).
 /// Returns `(raw_xml_string, remaining_src)`.
-fn read_plist_value<'a>(src: &'a str) -> Result<(String, &'a str)> {
+fn read_plist_value(src: &str) -> Result<(String, &str)> {
     let src = src.trim_start();
 
-    if src.starts_with("<true/>") {
-        return Ok(("<true/>".to_owned(), &src[7..]));
+    if let Some(rest) = src.strip_prefix("<true/>") {
+        return Ok(("<true/>".to_owned(), rest));
     }
-    if src.starts_with("<false/>") {
-        return Ok(("<false/>".to_owned(), &src[8..]));
+    if let Some(rest) = src.strip_prefix("<true/>") {
+        return Ok(("<false/>".to_owned(), rest));
     }
 
     // Find the opening tag
