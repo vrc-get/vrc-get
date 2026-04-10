@@ -159,7 +159,7 @@ jobs:
               sudo apt update && sudo apt install -y lld
               ld.lld --version
 
-              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf rpm
             rustflags: "-C link-arg=-fuse-ld=lld"
             dist-path: |
               bundle/appimage/ALCOM_${GUI_VERSION}_amd64.AppImage:alcom-${GUI_VERSION}-x86_64.AppImage
@@ -234,7 +234,8 @@ jobs:
           name: vrc-get-gui-web
           path: vrc-get-gui/out
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build ALCOM binary
+        working-directory: vrc-get-gui
         env:
           # apple code signing
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -243,20 +244,29 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          npm run tauri build \
+            --target ${{ matrix.triple }} \
+            --no-bundle \
+            -c '{"build":{"beforeBuildCommand":null}}'
 
-          # tauri updater signing
+      - name: Bundle ALCOM
+        if: ${{ !contains(matrix.triple, 'windows') }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }}
+
+      - name: Sign updater artifacts (macOS/Linux)
+        if: ${{ !contains(matrix.triple, 'windows') }}
+        shell: bash
+        env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-
-          # we have to use x86 version of signtool since eSignerCKA does not work with x64 version
-          TAURI_WINDOWS_SIGNTOOL_PATH: C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x86\signtool.exe
-
-        with:
-          projectPath: vrc-get-gui
-          tauriScript: npm run tauri
-          # disable beforeBuildCommand since we already build web
-          args: |
-            --target ${{ matrix.triple }} -c '{"build":{"beforeBuildCommand":null}}'
+        run: |
+          if [[ "${{ matrix.triple }}" == *"apple"* ]]; then
+            cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/bundle/macos/ALCOM.app.tar.gz
+          else
+            APPIMAGE=$(ls target/${{ matrix.triple }}/release/bundle/appimage/*.AppImage.tar.gz | head -1)
+            cd vrc-get-gui && npm run tauri signer sign ../$APPIMAGE
+          fi
 
       - name: Build Windows installer
         if: ${{ contains(matrix.triple, 'windows') }}
