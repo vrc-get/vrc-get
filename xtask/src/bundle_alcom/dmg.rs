@@ -1,5 +1,6 @@
 use super::BundleContext;
 use crate::utils::command::CommandExt;
+use crate::utils::ds_store::dmg_ds_store;
 use crate::utils::target_arch;
 use anyhow::Context;
 use std::fs;
@@ -44,6 +45,20 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
             .context("creating /Applications symlink")?;
     }
 
+    // Write a .DS_Store so Finder displays the DMG with correct icon positions.
+    //
+    // Layout: ALCOM.app on the left, Applications symlink on the right.
+    let ds_store_path = staging.join(".DS_Store");
+    dmg_ds_store(
+        "ALCOM.app",
+        170, // app icon X
+        220, // app icon Y
+        430, // Applications icon X
+        220, // Applications icon Y
+    )
+    .write_to(&ds_store_path)
+    .context("writing .DS_Store for DMG staging")?;
+
     // Create the DMG with hdiutil.
     let volume_name = &ctx.config.product_name;
 
@@ -64,3 +79,4 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
     println!("created: {}", dmg_path.display());
     Ok(())
 }
+

@@ -10,6 +10,7 @@ use std::{fs, io};
 
 pub mod cargo;
 pub mod command;
+pub mod ds_store;
 pub mod rustc;
 pub mod tar;
 
