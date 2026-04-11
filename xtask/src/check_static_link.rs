@@ -128,8 +128,8 @@ fn process_mach_64<E: Endian>(binary: &[u8]) -> Result<bool> {
 }
 
 fn process_pe_64(binary: &[u8]) -> Result<bool> {
-    use object::read::pe::*;
     use object::LittleEndian as LE;
+    use object::read::pe::*;
 
     let mut success = true;
     let parsed = PeFile64::parse(binary).context("failed to parse binary")?;

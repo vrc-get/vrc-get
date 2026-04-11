@@ -1,12 +1,15 @@
-use crate::utils::rustc::rustc_host_triple;
-use anyhow::{bail, Context, Result};
+use crate::utils::{self, build_dir, build_target};
+use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command as ProcessCommand;
 
+mod app;
+mod appimage;
+mod deb;
+mod dmg;
 mod linux;
-mod macos;
+mod rpm;
 
 /// Individual bundle artifact that can be produced.
 ///
@@ -68,9 +71,8 @@ pub(super) struct Command {
     #[arg(long)]
     target: Option<String>,
 
-    /// Build profile (default: `release`).
-    #[arg(long, default_value = "release")]
-    profile: String,
+    #[command(flatten)]
+    profile: utils::BuildProfile,
 
     /// Specific bundle artifacts to produce (comma-separated or repeated).
     ///
@@ -83,18 +85,11 @@ pub(super) struct Command {
 
 impl crate::Command for Command {
     fn run(self) -> Result<i32> {
-        let metadata = crate::utils::cargo::cargo_metadata();
+        let metadata = utils::cargo::cargo_metadata();
         let workspace_root = metadata.workspace_root.as_std_path();
-        let target_dir = metadata.target_directory.as_std_path();
 
-        let host_triple = rustc_host_triple()?;
-        let target_triple = self.target.as_deref().unwrap_or(host_triple);
-
-        let build_dir = if target_triple == host_triple {
-            target_dir.join(&self.profile)
-        } else {
-            target_dir.join(target_triple).join(&self.profile)
-        };
+        let target_truple = build_target(self.target.as_deref());
+        let build_dir = build_dir(self.target.as_deref(), self.profile.name());
 
         let gui_dir = workspace_root.join("vrc-get-gui");
 
@@ -102,27 +97,73 @@ impl crate::Command for Command {
 
         let bundle_dir = build_dir.join("bundle");
 
+        let bundles = default_bundles_if_empty(&self.bundles, target_truple)?;
+
         let ctx = BundleContext {
             workspace_root,
             gui_dir: &gui_dir,
+            host_build_dir: metadata.target_directory.as_std_path(),
             build_dir: &build_dir,
             bundle_dir: &bundle_dir,
-            target_triple,
+            target_truple,
             config: &config,
         };
 
-        if target_triple.contains("apple") {
-            macos::bundle(&ctx, &self.bundles)?;
-        } else if target_triple.contains("linux") {
-            linux::bundle(&ctx, &self.bundles)?;
-        } else if target_triple.contains("windows") {
-            // Windows bundling is handled by the build-alcom-installer command.
-            println!("Windows bundling is handled by build-alcom-installer.");
-        } else {
-            bail!("unsupported target triple: {target_triple}");
+        if bundles.contains(&BundleKind::App) {
+            app::create_app_bundle(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::AppUpdater) {
+            app::create_app_tar_gz(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::Dmg) {
+            dmg::create_dmg(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::AppImage) {
+            appimage::create_appimage(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::AppImageUpdater) {
+            appimage::create_appimage_tar_gz(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::Deb) {
+            deb::create_deb(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::Rpm) {
+            rpm::create_rpm(&ctx)?;
         }
 
         Ok(0)
+    }
+}
+
+fn default_bundles_if_empty<'a>(
+    bundles: &'a [BundleKind],
+    target_tuple: &str,
+) -> Result<&'a [BundleKind]> {
+    if bundles.is_empty() {
+        if target_tuple.contains("apple") {
+            Ok(&[BundleKind::App, BundleKind::AppUpdater, BundleKind::Dmg])
+        } else if target_tuple.contains("linux") {
+            Ok(&[
+                BundleKind::AppImage,
+                BundleKind::AppImageUpdater,
+                BundleKind::Deb,
+                BundleKind::Rpm,
+            ])
+        } else if target_tuple.contains("windows") {
+            // Windows bundling is handled by the build-alcom-installer command.
+            println!("Windows bundling is handled by build-alcom-installer.");
+            Ok(&[])
+        } else {
+            bail!("unsupported target triple: {target_tuple}");
+        }
+    } else {
+        Ok(bundles)
     }
 }
 
@@ -178,9 +219,10 @@ pub(crate) struct BundleContext<'a> {
     #[allow(dead_code)]
     pub workspace_root: &'a Path,
     pub gui_dir: &'a Path,
+    pub host_build_dir: &'a Path,
     pub build_dir: &'a Path,
     pub bundle_dir: &'a Path,
-    pub target_triple: &'a str,
+    pub target_truple: &'a str,
     pub config: &'a BundleConfig,
 }
 
@@ -192,7 +234,7 @@ impl BundleContext<'_> {
 
     /// Path to the compiled binary in the build directory.
     pub fn binary_path(&self) -> PathBuf {
-        if self.target_triple.contains("windows") {
+        if self.target_truple.contains("windows") {
             self.build_dir.join(format!("{}.exe", self.binary_name()))
         } else {
             self.build_dir.join(self.binary_name())
@@ -200,8 +242,8 @@ impl BundleContext<'_> {
     }
 
     /// Resolved path of an icon file listed in `Tauri.toml`.
-    pub fn icon_path(&self, relative: &str) -> PathBuf {
-        self.gui_dir.join(relative)
+    pub fn icon_path(&self, size: &str) -> PathBuf {
+        self.gui_dir.join("icons").join(size).with_extension("png")
     }
 }
 
@@ -212,8 +254,8 @@ impl BundleContext<'_> {
 /// Create a `.tar.gz` archive at `out_path` containing a single file `src`
 /// whose name inside the archive is `archive_name`.
 pub(crate) fn create_tar_gz(src: &Path, archive_name: &str, out_path: &Path) -> Result<()> {
-    use flate2::write::GzEncoder;
     use flate2::Compression;
+    use flate2::write::GzEncoder;
 
     fs::create_dir_all(out_path.parent().unwrap())?;
 
@@ -237,36 +279,6 @@ pub(crate) fn create_tar_gz(src: &Path, archive_name: &str, out_path: &Path) -> 
     gz.finish().context("finishing gzip stream")?;
 
     println!("created: {}", out_path.display());
-    Ok(())
-}
-
-/// Run a command and check that it exits successfully.
-pub(crate) fn run_cmd(cmd: &mut ProcessCommand, what: &str) -> Result<()> {
-    use crate::utils::command::CommandExt;
-    cmd.run_checked(what)
-}
-
-/// Download a file from `url` to `dest`, skipping if the file already exists.
-pub(crate) fn download_file_cached(url: &str, dest: &Path, what: &str) -> Result<()> {
-    if dest.is_file() {
-        println!("cached: {}", dest.display());
-        return Ok(());
-    }
-    fs::create_dir_all(dest.parent().unwrap())?;
-
-    let mut response = crate::utils::ureq()
-        .get(url)
-        .call()
-        .with_context(|| format!("{what}: downloading {url}"))?;
-
-    std::io::copy(
-        &mut response.body_mut().as_reader(),
-        &mut fs::File::create(dest)
-            .with_context(|| format!("{what}: creating {}", dest.display()))?,
-    )
-    .with_context(|| format!("{what}: saving {url}"))?;
-
-    println!("downloaded: {}", dest.display());
     Ok(())
 }
 

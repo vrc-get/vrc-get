@@ -3,18 +3,20 @@ use anyhow::bail;
 use std::process::Command;
 use std::sync::OnceLock;
 
-pub fn rustc_host_triple() -> anyhow::Result<&'static str> {
+pub fn rustc_host_triple() -> &'static str {
     static CACHE: OnceLock<String> = OnceLock::new();
 
     let mut cmd = Command::new("rustc");
     cmd.arg("-vV");
-    let output = cmd.run_capture_checked("querying rustc host")?;
+    let output = cmd
+        .run_capture_checked("querying rustc host")
+        .expect("failed to query");
     for line in output.lines() {
         if let Some(rest) = line.strip_prefix("host: ") {
-            return Ok(CACHE.get_or_init(|| rest.trim().to_owned()));
+            return CACHE.get_or_init(|| rest.trim().to_owned());
         }
     }
-    bail!("failed to parse rustc host triple")
+    panic!("failed to parse rustc host triple")
 }
 
 pub fn rustc_sysroot() -> anyhow::Result<&'static str> {

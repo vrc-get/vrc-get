@@ -1,6 +1,8 @@
+use crate::utils;
 use crate::utils::command::{CommandExt, WineRunner};
 use crate::utils::rustc::rustc_host_triple;
-use anyhow::{bail, Context, Result};
+use crate::utils::{build_dir, build_target, download_file_cached};
+use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
@@ -32,28 +34,21 @@ pub(super) struct Command {
     #[arg(long, default_value = DEFAULT_VERSION)]
     version: String,
 
-    /// Profile for the build
-    ///
     /// ALCOM.exe should be built with this profile and wrapper will be built for this profile
-    #[arg(long, default_value = "release")]
-    profile: String,
+    #[command(flatten)]
+    profile: utils::BuildProfile,
 }
 
 impl crate::Command for Command {
     fn run(self) -> Result<i32> {
-        let metadata = crate::utils::cargo::cargo_metadata();
+        let metadata = utils::cargo::cargo_metadata();
         let workspace_root = metadata.workspace_root.as_std_path();
         let target_dir = metadata.target_directory.as_std_path();
 
-        let profile = "release";
-        let host_triple = rustc_host_triple()?;
-        let target_triple = (self.target.as_deref()).or_else(|| choose_default_target(host_triple));
+        let profile = self.profile.name();
+        let target_triple = (self.target.as_deref()).or_else(|| choose_default_target());
 
-        let build_dir = if let Some(target) = target_triple {
-            target_dir.join(target).join(profile)
-        } else {
-            target_dir.join(profile)
-        };
+        let build_dir = build_dir(target_triple, profile);
 
         let inno_setup_base = target_dir.join("inno-setup");
         let inno_setup = inno_setup_base.join(INNO_SETUP_VERSION);
@@ -66,8 +61,7 @@ impl crate::Command for Command {
 
         let options = BuildOptions {
             target_triple,
-            host_triple,
-            build_target: target_triple.unwrap_or(host_triple),
+            build_target: build_target(target_triple),
 
             app_version: &self.version,
 
@@ -109,8 +103,6 @@ impl crate::Command for Command {
 struct BuildOptions<'a> {
     // environment information
     target_triple: Option<&'a str>,
-    #[allow(dead_code)]
-    host_triple: &'a str,
     build_target: &'a str, // = target_triple.unwrap_or(host_triple)
 
     // configuration
@@ -131,22 +123,6 @@ struct BuildOptions<'a> {
     installer_build: &'a Path, // the base dir for building inno setup installer
 }
 
-fn download_file(url: &str, dest: &Path, what: &str) -> Result<()> {
-    fs::create_dir_all(dest.parent().unwrap())?;
-
-    let mut response = crate::utils::ureq()
-        .get(url)
-        .call()
-        .context(format!("{what}: downloading {url}"))?;
-
-    std::io::copy(
-        &mut response.body_mut().as_reader(),
-        &mut fs::File::create(dest).context(format!("{what}: creating file"))?,
-    )
-    .context(format!("{what}: saving {url}"))?;
-    Ok(())
-}
-
 fn install_inno_setup(options: &BuildOptions, runner: &WineRunner) -> Result<()> {
     let iscc = options.inno_setup_dir.join(INNO_SETUP_COMPILER_FILE);
     if iscc.is_file() {
@@ -161,7 +137,7 @@ fn install_inno_setup(options: &BuildOptions, runner: &WineRunner) -> Result<()>
         .inno_setup_dir
         .join(format!("innosetup-installer-{INNO_SETUP_VERSION}.exe"));
 
-    download_file(
+    download_file_cached(
         INNO_SETUP_INSTALLER_URL,
         &installer_exe,
         "downloading Inno Setup installer",
@@ -190,7 +166,7 @@ fn build_inno_setup_installer(options: &BuildOptions, runner: &WineRunner) -> Re
         .installer_build
         .join("deps/MicrosoftEdgeWebView2Setup.exe");
 
-    download_file(
+    download_file_cached(
         WEBVIEW2_URL,
         &webview2_installer,
         "downloading WebView2 bootstrapper",
@@ -281,9 +257,9 @@ fn build_wrapper(options: &BuildOptions, libs_dir: &Path, profile: &str) -> Resu
     Ok(options.build_dir.join("alcom-setup.exe"))
 }
 
-fn choose_default_target(host_triple: &str) -> Option<&'static str> {
+fn choose_default_target() -> Option<&'static str> {
     // if host is windows, use the target
-    if TARGET_CANDIDATES.contains(&host_triple) {
+    if TARGET_CANDIDATES.contains(&rustc_host_triple()) {
         return None;
     }
 

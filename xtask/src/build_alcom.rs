@@ -1,5 +1,6 @@
+use crate::utils;
 use crate::utils::command::CommandExt;
-use crate::utils::rustc::rustc_host_triple;
+use crate::utils::{build_dir, build_target};
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
@@ -23,9 +24,8 @@ pub(super) struct Command {
     #[arg(long)]
     target: Option<String>,
 
-    /// Build profile (default: `release`).
-    #[arg(long, default_value = "release")]
-    profile: String,
+    #[command(flatten)]
+    profile: utils::BuildProfile,
 
     /// Enable verbose cargo output.
     #[arg(long)]
@@ -36,15 +36,18 @@ impl crate::Command for Command {
     fn run(self) -> Result<i32> {
         let metadata = crate::utils::cargo::cargo_metadata();
         let workspace_root = metadata.workspace_root.as_std_path();
-        let target_dir = metadata.target_directory.as_std_path();
 
-        let host_triple = rustc_host_triple()?;
-        let target_triple = self.target.as_deref().unwrap_or(host_triple);
+        let target_triple = build_target(self.target.as_deref());
 
         if target_triple == "universal-apple-darwin" {
-            build_universal_macos(workspace_root, target_dir, &self.profile, self.verbose)?;
+            build_universal_macos(workspace_root, self.profile.name(), self.verbose)?;
         } else {
-            build_cargo(workspace_root, target_triple, &self.profile, self.verbose)?;
+            build_cargo(
+                workspace_root,
+                target_triple,
+                self.profile.name(),
+                self.verbose,
+            )?;
         }
 
         Ok(0)
@@ -79,26 +82,15 @@ fn build_cargo(
 
 /// Build a universal macOS binary by compiling for both x86_64 and aarch64 and
 /// merging the results with `lipo`.
-fn build_universal_macos(
-    workspace_root: &Path,
-    target_dir: &Path,
-    profile: &str,
-    verbose: bool,
-) -> Result<()> {
+fn build_universal_macos(workspace_root: &Path, profile: &str, verbose: bool) -> Result<()> {
     build_cargo(workspace_root, "x86_64-apple-darwin", profile, verbose)?;
     build_cargo(workspace_root, "aarch64-apple-darwin", profile, verbose)?;
 
     // Combine the two single-arch binaries into one fat binary.
-    let x86_bin = target_dir
-        .join("x86_64-apple-darwin")
-        .join(profile)
-        .join("ALCOM");
-    let arm_bin = target_dir
-        .join("aarch64-apple-darwin")
-        .join(profile)
-        .join("ALCOM");
+    let x86_bin = build_dir("x86_64-apple-darwin", profile).join("ALCOM");
+    let arm_bin = build_dir("aarch64-apple-darwin", profile).join("ALCOM");
 
-    let out_dir = target_dir.join("universal-apple-darwin").join(profile);
+    let out_dir = build_dir("universal-apple-darwin", profile);
     fs::create_dir_all(&out_dir).with_context(|| format!("creating {}", out_dir.display()))?;
 
     let out_bin = out_dir.join("ALCOM");

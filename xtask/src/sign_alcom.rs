@@ -1,5 +1,5 @@
+use crate::utils::build_dir;
 use crate::utils::command::CommandExt;
-use crate::utils::rustc::rustc_host_triple;
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -59,19 +59,9 @@ pub(super) struct Command {
 
 impl crate::Command for Command {
     fn run(self) -> Result<i32> {
-        let metadata = crate::utils::cargo::cargo_metadata();
-        let target_dir = metadata.target_directory.as_std_path();
+        let build_dir = build_dir(self.target.as_deref(), &self.profile);
 
-        let host_triple = rustc_host_triple()?;
-        let target_triple = self.target.as_deref().unwrap_or(host_triple);
-
-        let build_dir = if target_triple == host_triple {
-            target_dir.join(&self.profile)
-        } else {
-            target_dir.join(target_triple).join(&self.profile)
-        };
-
-        let app_path = build_dir.join("bundle").join("macos").join("ALCOM.app");
+        let app_path = build_dir.join("bundle/macos/ALCOM.app");
         if !app_path.exists() {
             anyhow::bail!(
                 "ALCOM.app not found at {}; run `bundle-alcom --bundles app` first",
