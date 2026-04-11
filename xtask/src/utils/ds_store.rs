@@ -107,7 +107,7 @@ impl DsStore {
     ///
     /// # Panics
     ///
-    /// Panics if the serialized B-tree node exceeds 8 192 bytes (i.e. more
+    /// Panics if the serialized B-tree node exceeds 8_192 bytes (i.e. more
     /// than ~50 typical entries).  For DMG use cases this limit is never
     /// reached.
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -188,7 +188,7 @@ fn build_file(entries: &[Entry]) -> Vec<u8> {
 // library (or our writer), regardless of content.
 // ---------------------------------------------------------------------------
 
-/// Total file size produced by this writer (16 388 bytes).
+/// Total file size produced by this writer (16_388 bytes).
 const FILE_SIZE: usize = 16_388;
 
 /// The 16 "unknown" bytes in the file header — identical in every new file
@@ -204,7 +204,7 @@ const ROOT_BUDDY_OFFSET: u32 = 0x800;
 const ROOT_BLOCK_ADDR: u32 = ROOT_BUDDY_OFFSET | 11; // width 11 → size 2048
 /// File offset of the root block = buddy_offset + 4.
 const ROOT_FILE_OFFSET: usize = ROOT_BUDDY_OFFSET as usize + 4;
-/// Size of the root block (2^11 = 2 048 bytes).
+/// Size of the root block (2^11 = 2_048 bytes).
 const ROOT_BLOCK_SIZE: usize = 2048;
 
 // ---- block 1: DSDB ----
@@ -228,7 +228,7 @@ const BTREE_BUDDY_OFFSET: u32 = 0x2000;
 const BTREE_BLOCK_ADDR: u32 = BTREE_BUDDY_OFFSET | 13; // width 13 → size 8192
 /// File offset of the B-tree node = buddy_offset + 4.
 const BTREE_FILE_OFFSET: usize = BTREE_BUDDY_OFFSET as usize + 4;
-/// Size of the B-tree block (2^13 = 8 192 bytes).
+/// Size of the B-tree block (2^13 = 8_192 bytes).
 const BTREE_BLOCK_SIZE: usize = 8192;
 
 // ---------------------------------------------------------------------------
