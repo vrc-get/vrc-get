@@ -44,7 +44,7 @@ impl crate::Command for Command {
         } else {
             build_cargo(
                 workspace_root,
-                target_triple,
+                self.target.as_deref(),
                 self.profile.name(),
                 self.verbose,
             )?;
@@ -57,7 +57,7 @@ impl crate::Command for Command {
 /// Run `cargo build -p vrc-get-gui` for a single target triple.
 fn build_cargo(
     workspace_root: &Path,
-    target_triple: &str,
+    target_triple: Option<&str>,
     profile: &str,
     verbose: bool,
 ) -> Result<()> {
@@ -68,23 +68,37 @@ fn build_cargo(
         .arg("vrc-get-gui")
         .arg("--features")
         .arg("custom-protocol")
-        .arg("--target")
-        .arg(target_triple)
         .arg("--profile")
         .arg(profile);
+    if let Some(target) = target_triple {
+        cmd.arg("--target").arg(target);
+    }
 
     if verbose {
         cmd.arg("--verbose");
     }
 
-    cmd.run_checked(&format!("building vrc-get-gui for {target_triple}"))
+    cmd.run_checked(&format!(
+        "building vrc-get-gui for {}",
+        target_triple.unwrap_or("native target")
+    ))
 }
 
 /// Build a universal macOS binary by compiling for both x86_64 and aarch64 and
 /// merging the results with `lipo`.
 fn build_universal_macos(workspace_root: &Path, profile: &str, verbose: bool) -> Result<()> {
-    build_cargo(workspace_root, "x86_64-apple-darwin", profile, verbose)?;
-    build_cargo(workspace_root, "aarch64-apple-darwin", profile, verbose)?;
+    build_cargo(
+        workspace_root,
+        Some("x86_64-apple-darwin"),
+        profile,
+        verbose,
+    )?;
+    build_cargo(
+        workspace_root,
+        Some("aarch64-apple-darwin"),
+        profile,
+        verbose,
+    )?;
 
     // Combine the two single-arch binaries into one fat binary.
     let x86_bin = build_dir("x86_64-apple-darwin", profile).join("ALCOM");
