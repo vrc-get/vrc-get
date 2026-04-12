@@ -175,8 +175,7 @@ fn build_file(entries: &[Entry]) -> Vec<u8> {
     write_root_block(&mut file[ROOT_FILE_OFFSET..ROOT_FILE_OFFSET + ROOT_BLOCK_SIZE]);
 
     // --- B-tree leaf node (file bytes 8196..16388, buddy offset 0x2000, width 13) ---
-    file[BTREE_FILE_OFFSET..BTREE_FILE_OFFSET + node_bytes.len()]
-        .copy_from_slice(&node_bytes);
+    file[BTREE_FILE_OFFSET..BTREE_FILE_OFFSET + node_bytes.len()].copy_from_slice(&node_bytes);
 
     file
 }
@@ -193,9 +192,9 @@ const FILE_SIZE: usize = 16_388;
 
 /// The 16 "unknown" bytes in the file header — identical in every new file
 /// created by the Python ds-store library.
-const HEADER_UNKNOWN: &[u8; 16] =
-    &[0x00, 0x00, 0x10, 0x0c, 0x00, 0x00, 0x00, 0x87,
-      0x00, 0x00, 0x20, 0x0b, 0x00, 0x00, 0x00, 0x00];
+const HEADER_UNKNOWN: &[u8; 16] = &[
+    0x00, 0x00, 0x10, 0x0c, 0x00, 0x00, 0x00, 0x87, 0x00, 0x00, 0x20, 0x0b, 0x00, 0x00, 0x00, 0x00,
+];
 
 // ---- block 0: root (buddy allocator meta) ----
 /// Buddy offset of the root block (= `0x800`).
@@ -462,27 +461,6 @@ mod tests {
         assert_eq!(count, 2);
     }
 
-    /// Verify the DSDB block records the correct entry count.
-    #[test]
-    fn test_dsdb_record_count() {
-        let store = dmg_ds_store("ALCOM.app", 170, 220, 430, 220);
-        let bytes = store.to_bytes();
-
-        // DSDB block at file offset 36 (buddy offset 0x20 + 4).
-        let dsdb = &bytes[DSDB_FILE_OFFSET..DSDB_FILE_OFFSET + DSDB_BLOCK_SIZE];
-        let root_node = u32::from_be_bytes(dsdb[0..4].try_into().unwrap());
-        let levels = u32::from_be_bytes(dsdb[4..8].try_into().unwrap());
-        let records = u32::from_be_bytes(dsdb[8..12].try_into().unwrap());
-        let nodes = u32::from_be_bytes(dsdb[12..16].try_into().unwrap());
-        let page_size = u32::from_be_bytes(dsdb[16..20].try_into().unwrap());
-
-        assert_eq!(root_node, BTREE_BLOCK_NUM, "root node must be block 2");
-        assert_eq!(levels, 0, "single leaf node has 0 levels");
-        assert_eq!(records, 5, "dmg_ds_store produces 5 entries");
-        assert_eq!(nodes, 1);
-        assert_eq!(page_size, 4096);
-    }
-
     /// Verify the root block has the expected layout.
     #[test]
     fn test_root_block_layout() {
@@ -510,165 +488,4 @@ mod tests {
         let toc_val = u32::from_be_bytes(root[1041..1045].try_into().unwrap());
         assert_eq!(toc_val, DSDB_BLOCK_NUM);
     }
-}
-
-// ---------------------------------------------------------------------------
-// Convenience builder for DMG use
-// ---------------------------------------------------------------------------
-
-/// Build a `.DS_Store` suitable for a macOS disk image.
-///
-/// The returned store contains:
-/// - `bwsp` — Finder window bounds and appearance for the DMG root (`"."`).
-/// - `icvp` — icon view properties for the DMG root.
-/// - `vSrn` — view sort version.
-/// - `Iloc` entries for `app_name` (at `app_x`, `app_y`) and
-///   `"Applications"` (at `apps_x`, `apps_y`).
-///
-/// The `bwsp` window is sized to accommodate two icons: the left icon at
-/// `app_x` and the right icon at `apps_x`, with a margin.
-pub fn dmg_ds_store(
-    app_name: &str,
-    app_x: u32,
-    app_y: u32,
-    apps_x: u32,
-    apps_y: u32,
-) -> DsStore {
-    let mut store = DsStore::new();
-
-    // Window width and height: large enough to show both icons comfortably.
-    let win_w = apps_x + 170;
-    let win_h = apps_y + 170;
-
-    // bwsp — Finder window bounds (stored as a binary plist).
-    let bwsp = make_bwsp_plist(win_w, win_h);
-    store.insert(".", b"bwsp", EntryValue::Blob(bwsp));
-
-    // icvp — icon view properties (stored as a binary plist).
-    let icvp = make_icvp_plist();
-    store.insert(".", b"icvp", EntryValue::Blob(icvp));
-
-    // vSrn — view sort version.
-    store.insert(".", b"vSrn", EntryValue::Long(1));
-
-    // Icon positions.
-    store.set_icon_location(app_name, app_x, app_y);
-    store.set_icon_location("Applications", apps_x, apps_y);
-
-    store
-}
-
-// ---------------------------------------------------------------------------
-// Binary plist generation for bwsp / icvp
-// ---------------------------------------------------------------------------
-//
-// We generate the binary plists ourselves to avoid depending on a macOS
-// system library.  The values are stable across all DMG builds, except for
-// the window bounds which depend on the icon positions.
-
-/// Generate the `bwsp` binary plist for a DMG Finder window.
-fn make_bwsp_plist(width: u32, height: u32) -> Vec<u8> {
-    // We use the `plist` crate (already a dependency) to serialise to binary.
-    let dict = plist::Dictionary::from_iter([
-        (
-            "ContainerShowSidebar".to_string(),
-            plist::Value::Boolean(false),
-        ),
-        (
-            "PreviewPaneVisibility".to_string(),
-            plist::Value::Boolean(false),
-        ),
-        (
-            "ShowStatusBar".to_string(),
-            plist::Value::Boolean(false),
-        ),
-        (
-            "SidebarWidth".to_string(),
-            plist::Value::Integer(0.into()),
-        ),
-        (
-            "WindowBounds".to_string(),
-            plist::Value::String(format!("{{{{200, 200}}, {{{width}, {height}}}}}")),
-        ),
-    ]);
-
-    let mut buf = Vec::new();
-    plist::to_writer_binary(&mut buf, &plist::Value::Dictionary(dict))
-        .expect("bwsp plist serialisation");
-    buf
-}
-
-/// Generate the `icvp` binary plist for a DMG icon view.
-fn make_icvp_plist() -> Vec<u8> {
-    let dict = plist::Dictionary::from_iter([
-        (
-            "arrangeBy".to_string(),
-            plist::Value::String("none".to_string()),
-        ),
-        (
-            "backgroundColorBlue".to_string(),
-            plist::Value::Real(1.0),
-        ),
-        (
-            "backgroundColorGreen".to_string(),
-            plist::Value::Real(1.0),
-        ),
-        (
-            "backgroundColorRed".to_string(),
-            plist::Value::Real(1.0),
-        ),
-        (
-            "backgroundType".to_string(),
-            plist::Value::Integer(0.into()),
-        ),
-        (
-            "gridOffsetX".to_string(),
-            plist::Value::Real(0.0),
-        ),
-        (
-            "gridOffsetY".to_string(),
-            plist::Value::Real(0.0),
-        ),
-        (
-            "gridSpacing".to_string(),
-            plist::Value::Real(100.0),
-        ),
-        (
-            "iconSize".to_string(),
-            plist::Value::Real(96.0),
-        ),
-        (
-            "labelOnBottom".to_string(),
-            plist::Value::Boolean(true),
-        ),
-        (
-            "scrollPositionX".to_string(),
-            plist::Value::Real(0.0),
-        ),
-        (
-            "scrollPositionY".to_string(),
-            plist::Value::Real(0.0),
-        ),
-        (
-            "showIconPreview".to_string(),
-            plist::Value::Boolean(false),
-        ),
-        (
-            "showItemInfo".to_string(),
-            plist::Value::Boolean(false),
-        ),
-        (
-            "textSize".to_string(),
-            plist::Value::Real(12.0),
-        ),
-        (
-            "viewOptionsVersion".to_string(),
-            plist::Value::Integer(1.into()),
-        ),
-    ]);
-
-    let mut buf = Vec::new();
-    plist::to_writer_binary(&mut buf, &plist::Value::Dictionary(dict))
-        .expect("icvp plist serialisation");
-    buf
 }
