@@ -9,6 +9,7 @@ mod deb;
 mod dmg;
 mod linux;
 mod rpm;
+mod setup_exe;
 
 /// Individual bundle artifact that can be produced.
 ///
@@ -43,6 +44,8 @@ pub(crate) enum BundleKind {
     Deb,
     /// RPM package
     Rpm,
+    /// Windows setup.exe
+    SetupExe,
 }
 
 /// Bundles the ALCOM application for the target platform.
@@ -116,6 +119,10 @@ impl crate::Command for Command {
             rpm::create_rpm(&ctx)?;
         }
 
+        if bundles.contains(&BundleKind::SetupExe) {
+            setup_exe::create_setup_exe(&ctx)?;
+        }
+
         Ok(0)
     }
 }
@@ -136,8 +143,7 @@ fn default_bundles_if_empty<'a>(
             ])
         } else if target_tuple.contains("windows") {
             // Windows bundling is handled by the build-alcom-installer command.
-            println!("Windows bundling is handled by build-alcom-installer.");
-            Ok(&[])
+            Ok(&[BundleKind::SetupExe])
         } else {
             bail!("unsupported target triple: {target_tuple}");
         }
@@ -154,8 +160,10 @@ pub(crate) struct BundleContext<'a> {
     pub host_build_dir: &'a Path,
     pub build_dir: PathBuf,
     pub bundle_dir: PathBuf,
+    pub target: Option<&'a str>,
     pub target_tuple: &'a str,
-    pub version: String,
+    pub profile: &'a str,
+    version: String,
 }
 
 impl<'a> BundleContext<'a> {
@@ -182,7 +190,9 @@ impl<'a> BundleContext<'a> {
             host_build_dir: metadata.target_directory.as_std_path(),
             build_dir,
             bundle_dir,
+            target,
             target_tuple,
+            profile,
             version,
         })
     }

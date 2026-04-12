@@ -127,7 +127,7 @@ pub fn install_icons(ctx: &BundleContext<'_>, icons_base: &Path) -> Result<()> {
 fn ensure_appimagetool(ctx: &BundleContext<'_>) -> Result<PathBuf> {
     let cache_dir = ctx
         .host_build_dir
-        .join("appimagetool")
+        .join("bundle/appimagetool")
         .join(APPIMAGETOOL_VERSION);
     let tool = cache_dir.join("appimagetool-x86_64.AppImage");
 

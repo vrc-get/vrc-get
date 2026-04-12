@@ -197,3 +197,7 @@ pub fn target_vendor(target: &str) -> &str {
 pub fn target_os(target: &str) -> &str {
     target.split('-').nth(2).unwrap_or("none")
 }
+
+pub fn target_abi(target: &str) -> &str {
+    target.split('-').nth(3).unwrap_or("none")
+}

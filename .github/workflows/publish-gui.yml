@@ -175,8 +175,8 @@ jobs:
             esigner: true
             dist-path: |
               ALCOM.exe:ALCOM-${GUI_VERSION}-x86_64.exe
-              alcom-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
-              alcom-setup.exe.sig:ALCOM-${GUI_VERSION}-x86_64-setup.exe.sig
+              bundle/setup/alcom-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
+              bundle/setup/alcom-setup.exe.sig:ALCOM-${GUI_VERSION}-x86_64-setup.exe.sig
 
           - triple: universal-apple-darwin
             on: macos-14
@@ -261,8 +261,12 @@ jobs:
         if: ${{ contains(matrix.triple, 'linux') }}
         run: cargo xtask bundle-alcom --target ${{ matrix.triple }}
 
+      - name: Bundle ALCOM (Windows)
+        if: ${{ contains(matrix.triple, 'windows') }}
+        shell: bash
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }}
+
       - name: Sign updater artifacts (macOS/Linux)
-        if: ${{ !contains(matrix.triple, 'windows') }}
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
@@ -270,20 +274,12 @@ jobs:
         run: |
           if [[ "${{ matrix.triple }}" == *"apple"* ]]; then
             cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/bundle/macos/ALCOM.app.tar.gz
-          else
+          elif [[ "${{ matrix.triple }}" == *"linux"* ]]; then
             APPIMAGE=$(ls target/${{ matrix.triple }}/release/bundle/appimage/*.AppImage.tar.gz | head -1)
             cd vrc-get-gui && npm run tauri signer sign ../$APPIMAGE
+          elif [[ "${{ matrix.triple }}" == *"windows"* ]]; then
+            cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/bundle/setup/alcom-setup.exe
           fi
-
-      - name: Build Windows installer
-        if: ${{ contains(matrix.triple, 'windows') }}
-        shell: bash
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        run: |
-          cargo xtask build-alcom-installer --target ${{ matrix.triple }}
-          cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/alcom-setup.exe
 
       - name: Move artifacts
         shell: bash

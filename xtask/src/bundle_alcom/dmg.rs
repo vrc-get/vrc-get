@@ -22,7 +22,7 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
     }
 
     // Stage directory: app + /Applications symlink.
-    let staging = ctx.bundle_dir.join("dmg-staging");
+    let staging = ctx.bundle_dir.join("dmg/staging");
     if staging.exists() {
         fs::remove_dir_all(&staging)?;
     }
