@@ -7,11 +7,12 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 static BACKGROUND_FILE_NAME: &str = ".background.tiff";
+static VOLUME_NAME: &str = "ALCOM";
 
 pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
     let app_bundle = ctx.bundle_dir.join("macos").join("ALCOM.app");
-    let arch = target_arch(ctx.target_truple);
-    let dmg_name = format!("ALCOM_{}_{arch}.dmg", ctx.config.version);
+    let arch = target_arch(ctx.target_tuple);
+    let dmg_name = format!("ALCOM_{}_{arch}.dmg", ctx.version());
     let dmg_dir = ctx.bundle_dir.join("dmg");
     fs::create_dir_all(&dmg_dir).with_context(|| format!("creating {}", dmg_dir.display()))?;
     let dmg_path = dmg_dir.join(&dmg_name);
@@ -40,7 +41,7 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
     }
 
     fs::copy(
-        ctx.gui_dir.join("mac-background.tiff"),
+        ctx.gui_dir.join("bundle/dmg-background.tiff"),
         staging.join(BACKGROUND_FILE_NAME),
     )
     .with_context(|| format!("Creating {BACKGROUND_FILE_NAME}"))?;
@@ -62,13 +63,11 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
         .context("writing .DS_Store for DMG staging")?;
 
     // Create the DMG with hdiutil.
-    let volume_name = &ctx.config.product_name;
-
     ProcessCommand::new("hdiutil")
         .arg("create")
         .arg(&dmg_path)
         .arg("-volname")
-        .arg(volume_name)
+        .arg(VOLUME_NAME)
         .arg("-fs")
         .arg("HFS+")
         .arg("-srcfolder")
@@ -129,7 +128,7 @@ pub fn dmg_ds_store(app_name: &str) -> DsStore {
         (
             "backgroundImageAlias".to_string(),
             plist::Value::Data(alias::create_alias_for_relative_path(
-                "ALCOM",
+                VOLUME_NAME,
                 BACKGROUND_FILE_NAME,
             )),
         ),

@@ -61,7 +61,6 @@ pub fn build_dir<'a>(target: impl MayOption<&'a str>, profile: &str) -> PathBuf 
 #[command(group(
     clap::ArgGroup::new("profile_select")
         .args(["release", "profile"])
-        .required(true)
 ))]
 pub struct BuildProfile {
     #[arg(long)]

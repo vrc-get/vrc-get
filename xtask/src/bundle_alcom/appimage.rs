@@ -1,5 +1,5 @@
 use super::{BundleContext, create_tar_gz};
-use crate::bundle_alcom::linux::LINUX_ICON_RESOLUTIONS;
+use crate::bundle_alcom::linux::*;
 use crate::utils::command::CommandExt;
 use crate::utils::{download_file_cached, make_executable, target_arch};
 use anyhow::{Context, Result};
@@ -15,8 +15,8 @@ const APPIMAGETOOL_URL: &str =
 fn appimage_name(ctx: &BundleContext<'_>) -> Result<String> {
     Ok(format!(
         "ALCOM_{}_{arch}.AppImage",
-        ctx.config.version,
-        arch = target_arch(ctx.target_truple)
+        ctx.version(),
+        arch = target_arch(ctx.target_tuple)
     ))
 }
 
@@ -30,8 +30,8 @@ pub fn create_appimage(ctx: &BundleContext<'_>) -> Result<PathBuf> {
 
     let name = format!(
         "ALCOM_{}_{}.AppImage",
-        ctx.config.version,
-        target_arch(ctx.target_truple)
+        ctx.version(),
+        target_arch(ctx.target_tuple)
     );
     let out_dir = ctx.bundle_dir.join("appimage");
     fs::create_dir_all(&out_dir)?;
@@ -42,7 +42,7 @@ pub fn create_appimage(ctx: &BundleContext<'_>) -> Result<PathBuf> {
     ProcessCommand::new(&tool)
         .arg(&appdir)
         .arg(&out_path)
-        .env("ARCH", target_arch(ctx.target_truple))
+        .env("ARCH", target_arch(ctx.target_tuple))
         // Avoid FUSE requirement when running appimagetool (which is itself an AppImage)
         // in environments where FUSE is not available (e.g. GitHub Actions).
         .env("APPIMAGE_EXTRACT_AND_RUN", "1")
@@ -114,8 +114,11 @@ pub fn install_icons(ctx: &BundleContext<'_>, icons_base: &Path) -> Result<()> {
     for size in LINUX_ICON_RESOLUTIONS {
         let icon_dir = icons_base.join(size).join("apps");
         fs::create_dir_all(&icon_dir)?;
-        fs::copy(ctx.icon_path(size), icon_dir.join("alcom.png"))
-            .with_context(|| format!("copying icon {size}.png"))?;
+        fs::copy(
+            ctx.icon_path(size),
+            icon_dir.join(format!("{LINUX_ICON_NAME}.png")),
+        )
+        .with_context(|| format!("copying icon {size}.png"))?;
     }
     Ok(())
 }

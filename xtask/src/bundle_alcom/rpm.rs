@@ -4,8 +4,8 @@ use anyhow::{Context, Result};
 use std::fs;
 
 pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
-    let arch = rpm_arch(ctx.target_truple);
-    let rpm_name = format!("ALCOM-{}-1.{arch}.rpm", ctx.config.version);
+    let arch = rpm_arch(ctx.target_tuple);
+    let rpm_name = format!("ALCOM-{}-1.{arch}.rpm", ctx.version());
     let rpm_dir = ctx.bundle_dir.join("rpm");
     fs::create_dir_all(&rpm_dir)?;
     let rpm_out = rpm_dir.join(&rpm_name);
@@ -17,15 +17,10 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     let desktop_tmp = rpm_dir.join(format!("{bin_name_lower}.desktop.tmp"));
     fs::write(&desktop_tmp, &desktop_content)?;
 
-    let mut builder = rpm::PackageBuilder::new(
-        "alcom",
-        &ctx.config.version,
-        "MIT",
-        arch,
-        &ctx.config.short_description,
-    )
-    .release("1")
-    .description(&ctx.config.long_description);
+    let mut builder =
+        rpm::PackageBuilder::new("alcom", ctx.version(), "MIT", arch, ctx.short_description())
+            .release("1")
+            .description(ctx.long_description());
 
     // Binary.
     builder = builder
@@ -45,7 +40,7 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
 
     // Icons.
     for size in LINUX_ICON_RESOLUTIONS {
-        let install_path = format!("/usr/share/icons/hicolor/{size}/apps/alcom.png");
+        let install_path = format!("/usr/share/icons/hicolor/{size}/apps/{LINUX_ICON_NAME}.png");
         builder = builder
             .with_file(ctx.icon_path(size), rpm::FileOptions::new(install_path))
             .with_context(|| format!("adding icon {size}.png to rpm"))?;

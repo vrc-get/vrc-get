@@ -1,6 +1,5 @@
-use crate::utils::{self, build_dir, build_target};
+use crate::utils::{self, build_dir, build_target, target_os};
 use anyhow::{Context, Result, bail};
-use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -85,29 +84,9 @@ pub(super) struct Command {
 
 impl crate::Command for Command {
     fn run(self) -> Result<i32> {
-        let metadata = utils::cargo::cargo_metadata();
-        let workspace_root = metadata.workspace_root.as_std_path();
+        let ctx = BundleContext::new(self.target.as_deref(), self.profile.name())?;
 
-        let target_truple = build_target(self.target.as_deref());
-        let build_dir = build_dir(self.target.as_deref(), self.profile.name());
-
-        let gui_dir = workspace_root.join("vrc-get-gui");
-
-        let config = BundleConfig::load(&gui_dir, workspace_root)?;
-
-        let bundle_dir = build_dir.join("bundle");
-
-        let bundles = default_bundles_if_empty(&self.bundles, target_truple)?;
-
-        let ctx = BundleContext {
-            workspace_root,
-            gui_dir: &gui_dir,
-            host_build_dir: metadata.target_directory.as_std_path(),
-            build_dir: &build_dir,
-            bundle_dir: &bundle_dir,
-            target_truple,
-            config: &config,
-        };
+        let bundles = default_bundles_if_empty(&self.bundles, ctx.target_tuple)?;
 
         if bundles.contains(&BundleKind::App) {
             app::create_app_bundle(&ctx)?;
@@ -167,74 +146,84 @@ fn default_bundles_if_empty<'a>(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
-
-/// Parsed subset of `Tauri.toml` and `Cargo.toml` that the bundler needs.
-pub(crate) struct BundleConfig {
-    pub product_name: String,
-    pub identifier: String,
-    pub version: String,
-    pub short_description: String,
-    pub long_description: String,
-    pub copyright: String,
-    pub category: String,
-    pub publisher: String,
-}
-
-impl BundleConfig {
-    fn load(gui_dir: &Path, workspace_root: &Path) -> Result<Self> {
-        // --- parse Tauri.toml ---
-        let tauri_toml_path = gui_dir.join("Tauri.toml");
-        let tauri_toml_src = fs::read_to_string(&tauri_toml_path)
-            .with_context(|| format!("reading {}", tauri_toml_path.display()))?;
-        let tauri_toml: TauriToml = toml::from_str(&tauri_toml_src)
-            .with_context(|| format!("parsing {}", tauri_toml_path.display()))?;
-
-        // --- read version from Cargo.toml (workspace metadata) ---
-        let cargo_toml_path = gui_dir.join("Cargo.toml");
-        let cargo_toml_src = fs::read_to_string(&cargo_toml_path)
-            .with_context(|| format!("reading {}", cargo_toml_path.display()))?;
-        let cargo_toml: CargoToml = toml::from_str(&cargo_toml_src)
-            .with_context(|| format!("parsing {}", cargo_toml_path.display()))?;
-
-        let _ = workspace_root; // may be used in the future
-
-        Ok(BundleConfig {
-            product_name: tauri_toml.product_name,
-            identifier: tauri_toml.identifier,
-            version: cargo_toml.package.version,
-            short_description: tauri_toml.bundle.short_description.unwrap_or_default(),
-            long_description: tauri_toml.bundle.long_description.unwrap_or_default(),
-            copyright: tauri_toml.bundle.copyright.unwrap_or_default(),
-            category: tauri_toml.bundle.category.unwrap_or_default(),
-            publisher: tauri_toml.bundle.publisher.unwrap_or_default(),
-        })
-    }
-}
-
 /// Shared context passed to every platform bundler.
 pub(crate) struct BundleContext<'a> {
     #[allow(dead_code)]
     pub workspace_root: &'a Path,
-    pub gui_dir: &'a Path,
+    pub gui_dir: PathBuf,
     pub host_build_dir: &'a Path,
-    pub build_dir: &'a Path,
-    pub bundle_dir: &'a Path,
-    pub target_truple: &'a str,
-    pub config: &'a BundleConfig,
+    pub build_dir: PathBuf,
+    pub bundle_dir: PathBuf,
+    pub target_tuple: &'a str,
+    pub version: String,
 }
 
-impl BundleContext<'_> {
+impl<'a> BundleContext<'a> {
+    pub fn new(target: Option<&'a str>, profile: &'a str) -> Result<Self> {
+        let metadata = utils::cargo::cargo_metadata();
+        let workspace_root = metadata.workspace_root.as_std_path();
+
+        let target_tuple = build_target(target);
+        let build_dir = build_dir(target, profile);
+
+        let gui_dir = workspace_root.join("vrc-get-gui");
+
+        let version = (metadata.packages.iter())
+            .find(|p| p.name == "vrc-get-gui")
+            .context("finding vrc-get-gui")?
+            .version
+            .to_string();
+
+        let bundle_dir = build_dir.join("bundle");
+
+        Ok(BundleContext {
+            workspace_root,
+            gui_dir,
+            host_build_dir: metadata.target_directory.as_std_path(),
+            build_dir,
+            bundle_dir,
+            target_tuple,
+            version,
+        })
+    }
+
+    pub fn version(&self) -> &str {
+        self.version.as_str()
+    }
+
+    pub fn short_description(&self) -> &str {
+        "ALCOM - Alternative Creator Companion"
+    }
+
+    pub fn long_description(&self) -> &str {
+        "ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
+    }
+
     /// Binary name without extension (e.g. `ALCOM`).
     pub fn binary_name(&self) -> &str {
-        &self.config.product_name
+        "ALCOM"
+    }
+
+    /// The human-readable product name.
+    pub fn product_name(&self) -> &str {
+        "ALCOM"
+    }
+
+    /// The machine-readable identifier of the product.
+    ///
+    /// This is named 'vrc-get-gui' for historical reasons.
+    pub fn identifier(&self) -> &str {
+        "com.anatawa12.vrc-get-gui"
+    }
+
+    /// The simplified copyright notice for this product
+    pub fn copyright(&self) -> &str {
+        "(c) anatawa12 and other contributors"
     }
 
     /// Path to the compiled binary in the build directory.
     pub fn binary_path(&self) -> PathBuf {
-        if self.target_truple.contains("windows") {
+        if target_os(self.target_tuple) == "windows" {
             self.build_dir.join(format!("{}.exe", self.binary_name()))
         } else {
             self.build_dir.join(self.binary_name())
@@ -280,40 +269,4 @@ pub(crate) fn create_tar_gz(src: &Path, archive_name: &str, out_path: &Path) -> 
 
     println!("created: {}", out_path.display());
     Ok(())
-}
-
-// ---------------------------------------------------------------------------
-// Tauri.toml serde types (only the fields we need)
-// ---------------------------------------------------------------------------
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct TauriToml {
-    product_name: String,
-    identifier: String,
-    bundle: BundleSection,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct BundleSection {
-    short_description: Option<String>,
-    long_description: Option<String>,
-    copyright: Option<String>,
-    category: Option<String>,
-    publisher: Option<String>,
-}
-
-// ---------------------------------------------------------------------------
-// Cargo.toml serde types
-// ---------------------------------------------------------------------------
-
-#[derive(Deserialize)]
-struct CargoToml {
-    package: CargoPackage,
-}
-
-#[derive(Deserialize)]
-struct CargoPackage {
-    version: String,
 }

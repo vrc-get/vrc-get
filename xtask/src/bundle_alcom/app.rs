@@ -3,6 +3,8 @@ use crate::utils::make_executable;
 use anyhow::{Context, Result};
 use std::fs;
 
+static ICONS_NAME: &str = "icon.icns";
+
 /// Creates `bundle/macos/ALCOM.app`.
 pub fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<()> {
     let app_dir = ctx.bundle_dir.join("macos").join("ALCOM.app");
@@ -36,7 +38,7 @@ pub fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<()> {
     // Copy icns icon.
     {
         let icns = ctx.gui_dir.join("icons/icon.icns");
-        let dst = resources_dir.join("icon.icns");
+        let dst = resources_dir.join(ICONS_NAME);
         fs::copy(&icns, &dst)
             .with_context(|| format!("copying icon {} -> {}", icns.display(), dst.display()))?;
     }
@@ -58,8 +60,7 @@ pub fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<()> {
 fn generate_info_plist(ctx: &BundleContext<'_>) -> Result<plist::Value> {
     use plist::Value;
 
-    let cfg = ctx.config;
-    let version = &cfg.version;
+    let version = ctx.version();
 
     // Start with the custom Info.plist if present (provides URL types, file associations, etc.)
     let mut dict: plist::Dictionary = {
@@ -77,41 +78,17 @@ fn generate_info_plist(ctx: &BundleContext<'_>) -> Result<plist::Value> {
     };
 
     // Override / fill in the generated core entries (these always win).
-    dict.insert(
-        "CFBundleName".into(),
-        Value::String(cfg.product_name.clone()),
-    );
-    dict.insert(
-        "CFBundleExecutable".into(),
-        Value::String(cfg.product_name.clone()),
-    );
-    dict.insert(
-        "CFBundleIdentifier".into(),
-        Value::String(cfg.identifier.clone()),
-    );
-    dict.insert("CFBundleVersion".into(), Value::String(version.clone()));
-    dict.insert(
-        "CFBundleShortVersionString".into(),
-        Value::String(version.clone()),
-    );
-    dict.insert("CFBundleIconFile".into(), Value::String("icon.icns".into()));
-    dict.insert("CFBundlePackageType".into(), Value::String("APPL".into()));
-    dict.insert("NSHighResolutionCapable".into(), Value::Boolean(true));
-    dict.insert(
-        "NSRequiresAquaSystemAppearance".into(),
-        Value::Boolean(false),
-    );
-    dict.insert(
-        "LSMinimumSystemVersion".into(),
-        Value::String("10.13.0".into()),
-    );
-
-    if !cfg.copyright.is_empty() {
-        dict.insert(
-            "NSHumanReadableCopyright".into(),
-            Value::String(cfg.copyright.clone()),
-        );
-    }
+    dict.insert("CFBundleName".into(), ctx.product_name().into());
+    dict.insert("CFBundleExecutable".into(), ctx.binary_name().into());
+    dict.insert("CFBundleIdentifier".into(), ctx.identifier().into());
+    dict.insert("CFBundleVersion".into(), version.into());
+    dict.insert("CFBundleShortVersionString".into(), version.into());
+    dict.insert("CFBundleIconFile".into(), ICONS_NAME.into());
+    dict.insert("CFBundlePackageType".into(), "APPL".into());
+    dict.insert("NSHighResolutionCapable".into(), true.into());
+    dict.insert("NSRequiresAquaSystemAppearance".into(), false.into());
+    dict.insert("LSMinimumSystemVersion".into(), "10.13.0".into());
+    dict.insert("NSHumanReadableCopyright".into(), ctx.copyright().into());
 
     Ok(Value::Dictionary(dict))
 }

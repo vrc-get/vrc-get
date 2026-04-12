@@ -5,7 +5,6 @@ use crate::utils::{CountingIo, tar, target_arch};
 use anyhow::{Context, Result, bail};
 use flate2::Compression;
 use flate2::write::GzEncoder;
-use std::fmt::Write as _;
 use std::{fs, io};
 
 fn deb_arch(triple: &str) -> Result<&str> {
@@ -22,8 +21,8 @@ fn deb_arch(triple: &str) -> Result<&str> {
 }
 
 pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
-    let arch = deb_arch(ctx.target_truple)?;
-    let pkg_name = format!("ALCOM_{}_{arch}", ctx.config.version);
+    let arch = deb_arch(ctx.target_tuple)?;
+    let pkg_name = format!("ALCOM_{}_{arch}", ctx.version());
     let deb_stage = ctx.bundle_dir.join("deb").join(&pkg_name);
 
     if deb_stage.exists() {
@@ -67,16 +66,18 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
 
         for size in LINUX_ICON_RESOLUTIONS {
             tar.append_directory(format!("usr/share/hicolor/{size}"))
-                .context("adding /usr/share/hicolor/{size}")?;
+                .with_context(|| format!("adding /usr/share/hicolor/{size}"))?;
             tar.append_directory(format!("usr/share/hicolor/{size}/app"))
-                .context("adding /usr/share/hicolor/{size}/app")?;
+                .with_context(|| format!("adding /usr/share/hicolor/{size}/app"))?;
 
             tar.append_data(
                 tar::HeaderBuilder::new_gnu().with_mode(0o644).build(),
-                format!("usr/share/hicolor/{size}/app/alcom.png"),
+                format!("usr/share/hicolor/{size}/app/{LINUX_ICON_NAME}.png"),
                 fs::File::open(ctx.icon_path(size)).context("reading icon")?,
             )
-            .context("adding /usr/share/hicolor/{size}/app/alcom.png")?;
+            .with_context(|| {
+                format!("adding /usr/share/hicolor/{size}/app/{LINUX_ICON_NAME}.png")
+            })?;
         }
 
         let finished_gz_count = tar.into_inner()?;
@@ -94,21 +95,12 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
         let mut tar = tar::Builder::new(gz);
 
         let control = {
-            let mut control = String::new();
-            writeln!(control, "Package: alcom").unwrap();
-            writeln!(control, "Version: {}-1", ctx.config.version).unwrap();
-            writeln!(control, "Architecture: {arch}").unwrap();
-            writeln!(control, "Installed-Size: {estimated_size}").unwrap();
-            writeln!(control, "Maintainer: {}", ctx.config.publisher).unwrap();
-            writeln!(control, "Description: {}", ctx.config.short_description).unwrap();
-            for line in ctx.config.long_description.lines() {
-                if line.is_empty() {
-                    writeln!(control, " .").unwrap();
-                } else {
-                    writeln!(control, "  {line}").unwrap();
-                }
-            }
-            control
+            let template_path = ctx.gui_dir.join("bundle/deb-control");
+            fs::read_to_string(&template_path)
+                .with_context(|| format!("reading {}", template_path.display()))?
+                .replace("{{version}}", ctx.version())
+                .replace("{{arch}}", arch)
+                .replace("{{estimated_size}}", &estimated_size.to_string())
         };
 
         tar.append_data(
