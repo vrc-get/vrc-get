@@ -26,7 +26,7 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     builder = builder
         .with_file(
             ctx.binary_path(),
-            rpm::FileOptions::new(format!("/usr/bin/{bin_name_lower}")).mode(0o755),
+            rpm::FileOptions::new(format!("/usr/bin/{bin_name_lower}")).permissions(0o755),
         )
         .context("adding binary to rpm")?;
 
