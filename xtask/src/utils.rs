@@ -50,10 +50,18 @@ pub fn build_target<'a>(target: impl MayOption<&'a str>) -> &'a str {
 pub fn build_dir<'a>(target: impl MayOption<&'a str>, profile: &str) -> PathBuf {
     let metadata = cargo::cargo_metadata();
     let target_dir = metadata.target_directory.as_std_path();
+    // https://github.com/rust-lang/cargo/blob/b54fe551a982d75d299e0d54daeac70cb854eef0/src/cargo/core/profiles.rs#L119
+    // built-in profiles have different dir name
+    let profile_dir = match profile {
+        "dev" => "debug",
+        "test" => "debug",
+        "bench" => "release",
+        _ => profile,
+    };
 
     match target.into_option() {
-        None => target_dir.join(profile),
-        Some(target) => target_dir.join(target).join(profile),
+        None => target_dir.join(profile_dir),
+        Some(target) => target_dir.join(target).join(profile_dir),
     }
 }
 
