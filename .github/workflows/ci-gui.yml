@@ -94,10 +94,8 @@ jobs:
         run: npm run build
 
       - name: Build ALCOM binary
-        run: |
-          cargo xtask build-alcom \
-            --target ${{ matrix.triple }} \
-            ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
+        run:
+          cargo xtask build-alcom --target ${{ matrix.triple }} ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
 
       - name: Build installer
         shell: bash
