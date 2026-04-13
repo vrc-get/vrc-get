@@ -10,7 +10,7 @@ use std::process::Command as ProcessCommand;
 
 // appimage versions we currently used
 const APPIMAGETOOL_VERSION: &str = "1.9.1";
-const APPIMAGETOOL_URL: &str = "https://github.com/AppImage/appimagetool/releases/download/｛｛version｝｝/appimagetool-{{arch}}.AppImage";
+const APPIMAGETOOL_URL: &str = "https://github.com/AppImage/appimagetool/releases/download/{{version}}/appimagetool-{{arch}}.AppImage";
 
 fn appimage_name(ctx: &BundleContext<'_>) -> Result<String> {
     Ok(format!(
