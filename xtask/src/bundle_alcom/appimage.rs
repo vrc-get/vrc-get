@@ -1,6 +1,7 @@
 use super::{BundleContext, create_tar_gz};
 use crate::bundle_alcom::linux::*;
 use crate::utils::command::CommandExt;
+use crate::utils::rustc::rustc_host_triple;
 use crate::utils::{download_file_cached, make_executable, target_arch};
 use anyhow::{Context, Result};
 use std::fs;
@@ -8,9 +9,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
 
 // appimage versions we currently used
-const APPIMAGETOOL_VERSION: &str = "13";
-const APPIMAGETOOL_URL: &str =
-    "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage";
+const APPIMAGETOOL_VERSION: &str = "1.9.1";
+const APPIMAGETOOL_URL: &str = "https://github.com/AppImage/appimagetool/releases/download/｛｛version｝｝/appimagetool-{{arch}}.AppImage";
 
 fn appimage_name(ctx: &BundleContext<'_>) -> Result<String> {
     Ok(format!(
@@ -125,12 +125,19 @@ pub fn install_icons(ctx: &BundleContext<'_>, icons_base: &Path) -> Result<()> {
 
 /// Ensures `appimagetool` is available in the target cache directory.
 fn ensure_appimagetool(ctx: &BundleContext<'_>) -> Result<PathBuf> {
+    let arch = target_arch(rustc_host_triple());
     let cache_dir = ctx
         .host_build_dir
         .join("bundle/appimagetool")
         .join(APPIMAGETOOL_VERSION);
-    let tool = cache_dir.join("appimagetool-x86_64.AppImage");
+    let tool = cache_dir.join(format!("appimagetool-{arch}.AppImage"));
 
-    download_file_cached(APPIMAGETOOL_URL, &tool, "downloading appimagetool")?;
+    download_file_cached(
+        &APPIMAGETOOL_URL
+            .replace("{{version}}", APPIMAGETOOL_VERSION)
+            .replace("{{arch}}", arch),
+        &tool,
+        "downloading appimagetool",
+    )?;
     Ok(tool)
 }
