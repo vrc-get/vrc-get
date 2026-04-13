@@ -236,11 +236,11 @@ jobs:
 
       - name: Build ALCOM binary
         run: |
-          cargo xtask build-alcom --target ${{ matrix.triple }}
+          cargo xtask build-alcom --target ${{ matrix.triple }} --release
 
       - name: Bundle ALCOM app (macOS)
         if: ${{ contains(matrix.triple, 'apple') }}
-        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles app
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles app --release
 
       - name: Sign ALCOM app (macOS)
         if: ${{ contains(matrix.triple, 'apple') }}
@@ -255,16 +255,16 @@ jobs:
 
       - name: Bundle ALCOM distributables (macOS)
         if: ${{ contains(matrix.triple, 'apple') }}
-        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles dmg,app-updater
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles dmg,app-updater --release
 
       - name: Bundle ALCOM (Linux)
         if: ${{ contains(matrix.triple, 'linux') }}
-        run: cargo xtask bundle-alcom --target ${{ matrix.triple }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release
 
       - name: Bundle ALCOM (Windows)
         if: ${{ contains(matrix.triple, 'windows') }}
         shell: bash
-        run: cargo xtask bundle-alcom --target ${{ matrix.triple }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release
 
       - name: Sign updater artifacts (macOS/Linux)
         shell: bash
