@@ -130,7 +130,14 @@ fn import_certificate() -> Result<Option<KeychainGuard>> {
 
     // Decode the base64-encoded certificate.
     let cert_bytes = base64::engine::general_purpose::STANDARD
-        .decode(cert_b64.trim())
+        .decode(
+            cert_b64
+                .as_bytes()
+                .iter()
+                .copied()
+                .filter(|c| !c.is_ascii_whitespace())
+                .collect::<Vec<u8>>(),
+        )
         .context("decoding APPLE_CERTIFICATE from base64")?;
 
     // Write the .p12 to a temp file.
