@@ -22,12 +22,7 @@ fn deb_arch(triple: &str) -> Result<&str> {
 
 pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
     let arch = deb_arch(ctx.target_tuple)?;
-    let pkg_name = format!("ALCOM_{}_{arch}", ctx.version());
-    let deb_stage = ctx.bundle_dir.join("deb").join(&pkg_name);
-
-    if deb_stage.exists() {
-        fs::remove_dir_all(&deb_stage)?;
-    }
+    let pkg_name = format!("alcom_{}-1_{arch}", ctx.version());
 
     let (estimated_size, data_tar_gz) = {
         let gz = GzEncoder::new(Vec::new(), Compression::default());

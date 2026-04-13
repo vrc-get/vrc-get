@@ -5,7 +5,7 @@ use std::fs;
 
 pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     let arch = rpm_arch(ctx.target_tuple);
-    let rpm_name = format!("ALCOM-{}-1.{arch}.rpm", ctx.version());
+    let rpm_name = format!("alcom-{}-1.{arch}.rpm", ctx.version());
     let rpm_dir = ctx.bundle_dir.join("rpm");
     fs::create_dir_all(&rpm_dir)?;
     let rpm_out = rpm_dir.join(&rpm_name);
