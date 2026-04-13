@@ -17,10 +17,18 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     let desktop_tmp = rpm_dir.join(format!("{bin_name_lower}.desktop.tmp"));
     fs::write(&desktop_tmp, &desktop_content)?;
 
-    let mut builder =
-        rpm::PackageBuilder::new("alcom", ctx.version(), "MIT", arch, ctx.short_description())
-            .release("1")
-            .description(ctx.long_description());
+    let mut builder = rpm::PackageBuilder::new(
+        "alcom",
+        // RPM doesn't support '-' in their version name.
+        // It's recommended to use '~' instead.
+        // https://docs.fedoraproject.org/en-US/packaging-guidelines/Versioning/#_handling_non_sorting_versions_with_tilde_dot_and_caret
+        &ctx.version().replace('-', "~"),
+        "MIT",
+        arch,
+        ctx.short_description(),
+    )
+    .release("1")
+    .description(ctx.long_description());
 
     // Binary.
     builder = builder
