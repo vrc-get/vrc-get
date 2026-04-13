@@ -2,6 +2,7 @@ use crate::utils;
 use crate::utils::command::CommandExt;
 use crate::utils::{build_dir, build_target};
 use anyhow::{Context, Result};
+use itertools::Itertools;
 use std::fs;
 use std::path::Path;
 use std::process::Command as ProcessCommand;
@@ -27,6 +28,9 @@ pub(super) struct Command {
     #[command(flatten)]
     profile: utils::BuildProfile,
 
+    #[arg(long, value_delimiter = ',')]
+    features: Vec<String>,
+
     /// Enable verbose cargo output.
     #[arg(long)]
     verbose: bool,
@@ -40,12 +44,18 @@ impl crate::Command for Command {
         let target_triple = build_target(self.target.as_deref());
 
         if target_triple == "universal-apple-darwin" {
-            build_universal_macos(workspace_root, self.profile.name(), self.verbose)?;
+            build_universal_macos(
+                workspace_root,
+                self.profile.name(),
+                &self.features,
+                self.verbose,
+            )?;
         } else {
             build_cargo(
                 workspace_root,
                 self.target.as_deref(),
                 self.profile.name(),
+                &self.features,
                 self.verbose,
             )?;
         }
@@ -59,6 +69,7 @@ fn build_cargo(
     workspace_root: &Path,
     target_triple: Option<&str>,
     profile: &str,
+    features: &[String],
     verbose: bool,
 ) -> Result<()> {
     let mut cmd = ProcessCommand::new("cargo");
@@ -66,10 +77,17 @@ fn build_cargo(
         .arg("build")
         .arg("-p")
         .arg("vrc-get-gui")
-        .arg("--features")
-        .arg("custom-protocol")
         .arg("--profile")
         .arg(profile);
+
+    cmd.arg("--features").arg(
+        features
+            .iter()
+            .map(AsRef::as_ref)
+            .chain(["custom-protocol"])
+            .join(","),
+    );
+
     if let Some(target) = target_triple {
         cmd.arg("--target").arg(target);
     }
@@ -86,17 +104,24 @@ fn build_cargo(
 
 /// Build a universal macOS binary by compiling for both x86_64 and aarch64 and
 /// merging the results with `lipo`.
-fn build_universal_macos(workspace_root: &Path, profile: &str, verbose: bool) -> Result<()> {
+fn build_universal_macos(
+    workspace_root: &Path,
+    profile: &str,
+    features: &[String],
+    verbose: bool,
+) -> Result<()> {
     build_cargo(
         workspace_root,
         Some("x86_64-apple-darwin"),
         profile,
+        features,
         verbose,
     )?;
     build_cargo(
         workspace_root,
         Some("aarch64-apple-darwin"),
         profile,
+        features,
         verbose,
     )?;
 

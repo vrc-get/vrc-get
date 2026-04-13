@@ -100,3 +100,10 @@ custom-protocol = [ "tauri/custom-protocol" ]
 # These variables should instruct users how to update ALCOM
 # using the package manager provided by the distribution.
 no-self-updater = []
+
+# Devtools
+#
+# Enables browser devtools for debugging javascript part.
+# It's not recommended to enable this for production builds,
+# development use only!
+devtools = ["tauri/devtools"]
