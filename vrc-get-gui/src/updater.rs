@@ -346,7 +346,6 @@ fn updater_information(
 
         #[cfg(windows)]
         fn find_install(is_user: bool) -> Option<OsString> {
-            use winreg::HKEY;
             use winreg::enums::HKEY_CURRENT_USER;
             use winreg::enums::HKEY_LOCAL_MACHINE;
 
