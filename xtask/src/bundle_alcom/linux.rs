@@ -13,7 +13,6 @@ pub fn render_desktop_file(ctx: &BundleContext<'_>, exec: &str) -> Result<String
     Ok(template.replace("{{exec}}", exec))
 }
 
-pub static LINUX_ICON_RESOLUTIONS: &[&str] =
-    &["icons/32x32.png", "icons/64x64.png", "icons/128x128.png"];
+pub static LINUX_ICON_RESOLUTIONS: &[&str] = &["32x32", "64x64", "128x128"];
 
 pub static LINUX_ICON_NAME: &str = "alcom"; // keep in sync with alcom.desktop template

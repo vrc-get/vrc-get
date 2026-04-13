@@ -240,9 +240,13 @@ impl<'a> BundleContext<'a> {
         }
     }
 
-    /// Resolved path of an icon file listed in `Tauri.toml`.
-    pub fn icon_path(&self, size: &str) -> PathBuf {
-        self.gui_dir.join("icons").join(size).with_extension("png")
+    /// Resolved path of an icon file
+    pub fn icon_path(&self, name: &str) -> PathBuf {
+        let mut pathbuf = self.gui_dir.join("icons").join(name);
+        if pathbuf.extension().is_none() {
+            pathbuf.set_extension("png");
+        }
+        pathbuf
     }
 }
 

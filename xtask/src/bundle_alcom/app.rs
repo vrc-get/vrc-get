@@ -37,7 +37,7 @@ pub fn create_app_bundle(ctx: &BundleContext<'_>) -> Result<()> {
 
     // Copy icns icon.
     {
-        let icns = ctx.gui_dir.join("icons/icon.icns");
+        let icns = ctx.icon_path("icon.icns");
         let dst = resources_dir.join(ICONS_NAME);
         fs::copy(&icns, &dst)
             .with_context(|| format!("copying icon {} -> {}", icns.display(), dst.display()))?;
