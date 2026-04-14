@@ -273,7 +273,7 @@ jobs:
         if: ${{ contains(matrix.triple, 'windows') }}
         uses: ./.github/actions/sign-windows
         with:
-          artifact-name: alcom-exe-unsigned
+          artifact-name: alcom-setup-exe-unsigned
           path: target/${{ matrix.triple }}/release/bundle/setup/alcom-setup.exe
 
           signpath-api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
