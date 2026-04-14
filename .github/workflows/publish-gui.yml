@@ -256,7 +256,14 @@ jobs:
 
       - name: Sign ALCOM exe (Windows)
         if: ${{ contains(matrix.triple, 'windows') }}
-        run: ':' # TODO
+        uses: ./.github/actions/sign-windows
+        with:
+          artifact-name: alcom-exe-unsigned
+          path: target/${{ matrix.triple }}/release/ALCOM.exe
+
+          signpath-api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          signing-policy-slug: ${{ case(inputs.dry-run, 'test-signing', 'release-signing') }}
+          version: ${{ needs.pre-build.outputs.gui-version }}
 
       - name: Bundle Setup exe (Windows)
         if: ${{ contains(matrix.triple, 'windows') }}
@@ -264,7 +271,14 @@ jobs:
 
       - name: Sign Setup exe (Windows)
         if: ${{ contains(matrix.triple, 'windows') }}
-        run: ':' # TODO
+        uses: ./.github/actions/sign-windows
+        with:
+          artifact-name: alcom-exe-unsigned
+          path: target/${{ matrix.triple }}/release/bundle/setup/alcom-setup.exe
+
+          signpath-api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          signing-policy-slug: ${{ case(inputs.dry-run, 'test-signing', 'release-signing') }}
+          version: ${{ needs.pre-build.outputs.gui-version }}
 
       - name: Bundle ALCOM distributables (macOS)
         if: ${{ contains(matrix.triple, 'apple') }}
