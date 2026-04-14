@@ -46,6 +46,8 @@ pub(crate) enum BundleKind {
     Rpm,
     /// Windows setup.exe
     SetupExe,
+    /// Windows setup.exe for updater
+    ExeUpdater,
 }
 
 /// Bundles the ALCOM application for the target platform.
@@ -123,6 +125,10 @@ impl crate::Command for Command {
             setup_exe::create_setup_exe(&ctx)?;
         }
 
+        if bundles.contains(&BundleKind::ExeUpdater) {
+            setup_exe::create_updater_exe(&ctx)?;
+        }
+
         Ok(0)
     }
 }
@@ -143,7 +149,7 @@ fn default_bundles_if_empty<'a>(
             ])
         } else if target_tuple.contains("windows") {
             // Windows bundling is handled by the build-alcom-installer command.
-            Ok(&[BundleKind::SetupExe])
+            Ok(&[BundleKind::SetupExe, BundleKind::ExeUpdater])
         } else {
             bail!("unsupported target triple: {target_tuple}");
         }

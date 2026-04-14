@@ -19,6 +19,18 @@ pub fn create_setup_exe(ctx: &BundleContext<'_>) -> Result<()> {
 
     let iss_setup = build_inno_setup_installer(ctx, &iscc, &webview_bootstrapper, &runner)?;
 
+    // copy to bundle dir
+    let wrapper_in_bundle = ctx.bundle_dir.join("setup/alcom-setup.exe");
+    fs::copy(&iss_setup, &wrapper_in_bundle)
+        .with_context(|| format!("copying: {}", wrapper_in_bundle.display()))?;
+
+    println!("created: {}", wrapper_in_bundle.display());
+    Ok(())
+}
+
+pub fn create_updater_exe(ctx: &BundleContext<'_>) -> Result<()> {
+    let iss_setup = ctx.bundle_dir.join("setup/alcom-setup.exe");
+
     let libs_dir = create_empty_libs(ctx)?;
 
     let wrapper_exe = build_wrapper(ctx, &libs_dir, &iss_setup)?;
@@ -33,7 +45,7 @@ pub fn create_setup_exe(ctx: &BundleContext<'_>) -> Result<()> {
     }
 
     // copy to bundle dir
-    let wrapper_in_bundle = ctx.bundle_dir.join("setup/alcom-setup.exe");
+    let wrapper_in_bundle = ctx.bundle_dir.join("setup/alcom-updater.exe");
     fs::copy(&wrapper_exe, &wrapper_in_bundle)
         .with_context(|| format!("copying: {}", wrapper_in_bundle.display()))?;
 

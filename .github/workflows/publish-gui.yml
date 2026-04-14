@@ -176,7 +176,8 @@ jobs:
             dist-path: |
               ALCOM.exe:ALCOM-${GUI_VERSION}-x86_64.exe
               bundle/setup/alcom-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
-              bundle/setup/alcom-setup.exe.sig:ALCOM-${GUI_VERSION}-x86_64-setup.exe.sig
+              bundle/setup/alcom-updater.exe:ALCOM-${GUI_VERSION}-x86_64-updater.exe
+              bundle/setup/alcom-updater.exe.sig:ALCOM-${GUI_VERSION}-x86_64-updater.exe.sig
 
           - triple: universal-apple-darwin
             on: macos-14
@@ -240,7 +241,7 @@ jobs:
 
       - name: Bundle ALCOM app (macOS)
         if: ${{ contains(matrix.triple, 'apple') }}
-        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles app --release
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles app
 
       - name: Sign ALCOM app (macOS)
         if: ${{ contains(matrix.triple, 'apple') }}
@@ -253,20 +254,32 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: cargo xtask sign-alcom --target ${{ matrix.triple }}
 
+      - name: Sign ALCOM exe (Windows)
+        if: ${{ contains(matrix.triple, 'windows') }}
+        run: ':' # TODO
+
+      - name: Bundle Setup exe (Windows)
+        if: ${{ contains(matrix.triple, 'windows') }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles setup-exe
+
+      - name: Sign Setup exe (Windows)
+        if: ${{ contains(matrix.triple, 'windows') }}
+        run: ':' # TODO
+
       - name: Bundle ALCOM distributables (macOS)
         if: ${{ contains(matrix.triple, 'apple') }}
-        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --bundles dmg,app-updater --release
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles dmg,app-updater
 
       - name: Bundle ALCOM (Linux)
         if: ${{ contains(matrix.triple, 'linux') }}
         run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release
 
-      - name: Bundle ALCOM (Windows)
+      - name: Bundle ALCOM Updater (Windows)
         if: ${{ contains(matrix.triple, 'windows') }}
         shell: bash
-        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles exe-updater
 
-      - name: Sign updater artifacts (macOS/Linux)
+      - name: Sign updater artifacts (All Platforms)
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
@@ -278,7 +291,7 @@ jobs:
             APPIMAGE=$(ls target/${{ matrix.triple }}/release/bundle/appimage/*.AppImage.tar.gz | head -1)
             cd vrc-get-gui && npm run tauri signer sign ../$APPIMAGE
           elif [[ "${{ matrix.triple }}" == *"windows"* ]]; then
-            cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/bundle/setup/alcom-setup.exe
+            cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/bundle/setup/alcom-updater.exe
           fi
 
       - name: Move artifacts
