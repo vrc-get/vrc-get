@@ -254,11 +254,11 @@ jobs:
           cargo xtask build-alcom --target ${{ matrix.triple }} --release ${{ matrix.alcom-build-options }}
 
       - name: pre-sign Bundle ALCOM app (macOS)
-        if: ${{ contains(matrix.name, 'apple') }}
+        if: ${{ contains(matrix.name, 'macos') }}
         run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles app
 
       - name: Sign ALCOM app (macOS)
-        if: ${{ contains(matrix.name, 'apple') }}
+        if: ${{ contains(matrix.name, 'macos') }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
