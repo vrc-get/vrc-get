@@ -21,6 +21,11 @@ pub fn ureq() -> &'static ureq::Agent {
         ureq::Agent::new_with_config(
             ureq::Agent::config_builder()
                 .user_agent("cargo-xtask of vrc-get (https://github.com/vrc-get/vrc-get)")
+                .tls_config(
+                    ureq::tls::TlsConfig::builder()
+                        .provider(ureq::tls::TlsProvider::NativeTls)
+                        .build(),
+                )
                 .build(),
         )
     })
