@@ -196,7 +196,8 @@ jobs:
               bundle/setup/alcom-updater.exe:ALCOM-${GUI_VERSION}-x86_64-updater.exe
               bundle/setup/alcom-updater.exe.sig:ALCOM-${GUI_VERSION}-x86_64-updater.exe.sig
 
-          - triple: universal-apple-darwin
+          - name: universal-macos-all
+            triple: universal-apple-darwin
             on: macos-14
             setup: |
               rustup target add aarch64-apple-darwin
