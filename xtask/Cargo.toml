@@ -26,3 +26,4 @@ rpm = { version = "0.20.0", default-features = false, features = ["gzip-compress
 ar = "0.9.0"
 fs_extra = "1.3.0"
 base64 = "0.22.1"
+minisign = "0.9.1"

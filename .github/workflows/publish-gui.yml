@@ -252,7 +252,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: cargo xtask sign-alcom --target ${{ matrix.triple }}
+        run: cargo xtask sign-alcom-app --target ${{ matrix.triple }}
 
       - name: Sign ALCOM exe (Windows)
         if: ${{ contains(matrix.triple, 'windows') }}
@@ -300,12 +300,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         run: |
           if [[ "${{ matrix.triple }}" == *"apple"* ]]; then
-            cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/bundle/macos/ALCOM.app.tar.gz
+            cargo xtask sign-alcom-updater target/${{ matrix.triple }}/release/bundle/macos/ALCOM.app.tar.gz
           elif [[ "${{ matrix.triple }}" == *"linux"* ]]; then
-            APPIMAGE=$(ls target/${{ matrix.triple }}/release/bundle/appimage/*.AppImage.tar.gz | head -1)
-            cd vrc-get-gui && npm run tauri signer sign ../$APPIMAGE
+            cargo xtask sign-alcom-updater $(ls target/${{ matrix.triple }}/release/bundle/appimage/*.AppImage.tar.gz | head -1)
           elif [[ "${{ matrix.triple }}" == *"windows"* ]]; then
-            cd vrc-get-gui && npm run tauri signer sign ../target/${{ matrix.triple }}/release/bundle/setup/alcom-updater.exe
+            cargo xtask sign-alcom-updater target/${{ matrix.triple }}/release/bundle/setup/alcom-updater.exe
           fi
 
       - name: Move artifacts

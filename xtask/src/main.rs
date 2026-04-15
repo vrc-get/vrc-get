@@ -4,7 +4,8 @@ mod alcom_updater_json;
 mod build_alcom;
 mod bundle_alcom;
 mod check_static_link;
-mod sign_alcom;
+mod sign_alcom_app;
+mod sign_alcom_updater;
 mod utils;
 
 trait Command {
@@ -38,7 +39,8 @@ commands_def! {
     AlcomUpdaterJson = alcom_updater_json;
     BuildAlcom = build_alcom;
     BundleAlcom = bundle_alcom;
-    SignAlcom = sign_alcom;
+    SignAlcomApp = sign_alcom_app;
+    SignAlcomUpdater = sign_alcom_updater;
 }
 
 fn main() -> Result<()> {
