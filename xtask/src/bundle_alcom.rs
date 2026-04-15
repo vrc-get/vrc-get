@@ -1,5 +1,5 @@
 use crate::utils::{self, build_dir, build_target, target_os};
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -37,8 +37,10 @@ pub(crate) enum BundleKind {
     AppUpdater,
     // --- Linux ---
     /// AppImage portable image
+    #[value(name = "appimage")]
     AppImage,
     /// AppImage.tar.gz updater payload (requires AppImage to already exist)
+    #[value(name = "appimage-updater")]
     AppImageUpdater,
     /// Debian package
     Deb,
@@ -91,7 +93,11 @@ impl crate::Command for Command {
     fn run(self) -> Result<i32> {
         let ctx = BundleContext::new(self.target.as_deref(), self.profile.name())?;
 
-        let bundles = default_bundles_if_empty(&self.bundles, ctx.target_tuple)?;
+        let bundles = self.bundles.as_slice();
+
+        if bundles.is_empty() {
+            println!("Note: no bundles are specified");
+        }
 
         if bundles.contains(&BundleKind::App) {
             app::create_app_bundle(&ctx)?;
@@ -130,31 +136,6 @@ impl crate::Command for Command {
         }
 
         Ok(0)
-    }
-}
-
-fn default_bundles_if_empty<'a>(
-    bundles: &'a [BundleKind],
-    target_tuple: &str,
-) -> Result<&'a [BundleKind]> {
-    if bundles.is_empty() {
-        if target_tuple.contains("apple") {
-            Ok(&[BundleKind::App, BundleKind::AppUpdater, BundleKind::Dmg])
-        } else if target_tuple.contains("linux") {
-            Ok(&[
-                BundleKind::AppImage,
-                BundleKind::AppImageUpdater,
-                BundleKind::Deb,
-                BundleKind::Rpm,
-            ])
-        } else if target_tuple.contains("windows") {
-            // Windows bundling is handled by the build-alcom-installer command.
-            Ok(&[BundleKind::SetupExe, BundleKind::ExeUpdater])
-        } else {
-            bail!("unsupported target triple: {target_tuple}");
-        }
-    } else {
-        Ok(bundles)
     }
 }
 
