@@ -188,7 +188,6 @@ jobs:
           - name: x86_64-windows-all
             triple: x86_64-pc-windows-msvc
             on: windows-2022
-            esigner: true
             last-bundles: exe-updater
             updater-bundle: bundle/setup/alcom-updater.exe
             dist-path: |
@@ -242,14 +241,6 @@ jobs:
 
       - name: Setup
         run: ${{ matrix.setup }}
-
-      - uses: anatawa12/setup-eSigner-CKA@v1
-        if: ${{ matrix.esigner }}
-        with:
-          mode: ${{ vars.WIN_ESIGNER_MODE }}
-          username: ${{ secrets.WIN_ESIGNER_USERNAME }}
-          password: ${{ secrets.WIN_ESIGNER_PASSWORD }}
-          totp-secret: ${{ secrets.WIN_ESIGNER_TOTP_SECRET }}
 
       - name: Download Web Artifact
         uses: actions/download-artifact@v8
