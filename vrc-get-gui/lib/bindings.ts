@@ -313,7 +313,7 @@ async deepLinkReduceImportedClearNonToastedCount(reduce: number) : Promise<void>
 
 export type AddRepositoryInfo = { url: string; headers: { [key in string]: string } }
 export type AsyncCallResult<P, R> = { type: "Result"; value: R } | { type: "Started" } | { type: "UnusedProgress"; progress: P }
-export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; updater_status: UpdaterStatus; update_description: string | null }
+export type CheckForUpdateResponse = { version: number; current_version: string; latest_version: string; updater_status: UpdaterStatus; update_description: string | null; updater_disabled_messages: { [key in string]: string } | null }
 /**
  * Errors that is expected to be handled on the GUI side
  */

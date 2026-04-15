@@ -84,21 +84,6 @@ nix = { version = "0.31", features = ["fs"] }
 # DO NOT REMOVE!!
 custom-protocol = [ "tauri/custom-protocol" ]
 
-# Feature flags for ALCOM.
-# Some flags are negative flag that is not recommended by cargo,
-# but our app is not library so OK for now.
-
-# Disable updater
-# This feature flag disables the built-in updater feature.
-# Useful when ALCOM is managed by a package manager.
-#
-# It is recommended to set the following build-time environment variables:
-#   ALCOM_UPDATE_UPDATER_DISABLED_MESSAGE
-#   ALCOM_UPDATE_UPDATER_DISABLED_${LOCALE}_MESSAGE
-# where ${LOCALE} is the language name in uppercase.
-#
-# These variables should instruct users how to update ALCOM
-# using the package manager provided by the distribution.
 no-self-updater = []
 
 # Devtools

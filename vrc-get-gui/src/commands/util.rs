@@ -80,6 +80,7 @@ pub struct CheckForUpdateResponse {
     latest_version: String,
     updater_status: updater::UpdaterStatus,
     update_description: Option<String>,
+    updater_disabled_messages: Option<indexmap::IndexMap<String, String>>,
 }
 
 #[tauri::command]
@@ -97,6 +98,11 @@ pub async fn util_check_for_update(
     let latest_version = response.version.clone();
     let updater_status = response.updater_status;
     let update_description = response.body.clone();
+    let updater_disabled_messages = if cfg!(feature = "no-self-updater") {
+        option_env!("ALCOM_UPDATER_DISABLED_MESSAGE").and_then(|x| serde_json::from_str(x).ok())
+    } else {
+        None
+    };
 
     let version = updater_state.set(response);
     Ok(Some(CheckForUpdateResponse {
@@ -105,6 +111,7 @@ pub async fn util_check_for_update(
         latest_version,
         updater_status,
         update_description,
+        updater_disabled_messages,
     }))
 }
 

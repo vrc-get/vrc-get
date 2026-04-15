@@ -9,7 +9,7 @@ import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import type { DialogContext } from "@/lib/dialog";
 import globalInfo from "@/lib/global-info";
-import { tc } from "@/lib/i18n";
+import { localizeExternalComponent, tc } from "@/lib/i18n";
 
 type ConfirmStatus =
 	| {
@@ -128,10 +128,10 @@ export function CheckForUpdateMessage({
 								"check update:dialog:new version updater disabled base description",
 							)}
 							<br />
-							{tc([
-								"from-env:updater disabled message",
-								"check update:dialog:new version updater how to upgrade fallback",
-							])}
+							{localizeExternalComponent(response.updater_disabled_messages, {
+								localized:
+									"check update:dialog:new version updater how to upgrade fallback",
+							})}
 						</p>
 					);
 					break;
