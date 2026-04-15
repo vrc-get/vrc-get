@@ -131,7 +131,7 @@ fn build_cargo(
             }
 
             fn normalize_locale(locale: &str) -> String {
-                locale.to_ascii_uppercase().replace("_", "-")
+                locale.to_ascii_lowercase().replace("_", "-")
             }
             match locales.entry(normalize_locale(locale)) {
                 std::collections::hash_map::Entry::Vacant(e) => {
