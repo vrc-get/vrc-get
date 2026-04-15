@@ -90,7 +90,7 @@ jobs:
 
       - name: Build ALCOM binary
         run:
-          cargo xtask build-alcom --release --target ${{ matrix.triple }} --features devtools ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
+          cargo xtask build-alcom --release --target ${{ matrix.triple }} --devtools ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
 
       - name: Build installer
         shell: bash

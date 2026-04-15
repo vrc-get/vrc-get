@@ -76,9 +76,11 @@ pub fn build_dir<'a>(target: impl MayOption<&'a str>, profile: &str) -> PathBuf 
         .args(["release", "profile"])
 ))]
 pub struct BuildProfile {
+    /// Alias for --profile release
     #[arg(long)]
     release: bool,
 
+    /// Builds for specified profile. dev profile is used by defaykt
     #[arg(long)]
     profile: Option<String>,
 }

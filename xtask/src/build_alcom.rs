@@ -1,22 +1,17 @@
 use crate::utils;
 use crate::utils::command::CommandExt;
 use crate::utils::{build_dir, build_target};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::process::Command as ProcessCommand;
 
 /// Builds the ALCOM binary using `cargo build`.
 ///
-/// This replaces `npm run tauri build --no-bundle`, removing the dependency on the
-/// Node.js / npm toolchain for the binary compilation step.
-///
 /// When targeting `universal-apple-darwin`, both `aarch64-apple-darwin` and
 /// `x86_64-apple-darwin` are compiled and then combined with `lipo`.
-///
-/// The `custom-protocol` feature is always enabled, which is required when calling
-/// `cargo build` directly instead of through the tauri CLI.
 #[derive(clap::Parser)]
 pub(super) struct Command {
     /// Target triple (e.g. `universal-apple-darwin`, `x86_64-unknown-linux-gnu`).
@@ -28,12 +23,52 @@ pub(super) struct Command {
     #[command(flatten)]
     profile: utils::BuildProfile,
 
-    #[arg(long, value_delimiter = ',')]
-    features: Vec<String>,
-
     /// Enable verbose cargo output.
     #[arg(long)]
     verbose: bool,
+
+    #[command(flatten)]
+    config: BuildConfig,
+}
+
+// feature flags for alcom
+
+// see https://jwodder.github.io/kbits/posts/clap-bool-negate/ for negative option implementation
+#[derive(clap::Args)]
+struct BuildConfig {
+    #[arg(long = "no-self-updater", action = clap::ArgAction::SetFalse, hide = true)]
+    updater: bool,
+    /// Enables self updater of ALCOM. Enabled by default. can be disabled with --no-self-updater.
+    ///
+    /// With this feature enabled, ALCOM will try to update itself when newer version is released.
+    /// When disabled with --no-self-updater, ALCOM still checks for updates but just let user know
+    /// newer version is published with optional instruction for your package manager specified with
+    /// --updater-instruction-message build option.
+    #[arg(long = "self-updater", overrides_with = "updater")]
+    _inv_updater: bool,
+
+    /// The message shown when a newer version of ALCOM is published.
+    ///
+    /// This message will be displayed after the short message indicating that a new version of ALCOM is available.
+    /// As of writing, the short message is "A new version of ALCOM is available."
+    /// It is recommended to include instructions on how to update ALCOM and how to ask the
+    /// package maintainer to update the package.
+    ///
+    /// You can specify the locale of the message in the form "ja=brewで更新してください".
+    /// If ALCOM supports the locale, it will show the corresponding message when the user selects that locale.
+    /// If no locale is specified, the message is assumed to be in English.
+    /// If messages for other locales are specified, an English message must also be provided.
+    #[arg(long, requires = "updater")]
+    updater_instruction_message: Vec<String>,
+
+    /// Enables devtools for ALCOM frontend.
+    ///
+    /// This allows debugging frontend with distribution build of ALCOM, but this is only for debugging
+    /// purposes. Please do not enable this feature for builds end-user uses.
+    #[arg(long = "devtools", overrides_with = "_inv_devtools")]
+    devtools: bool,
+    #[arg(long = "no-devtools", hide = true)]
+    _inv_devtools: bool,
 }
 
 impl crate::Command for Command {
@@ -47,7 +82,7 @@ impl crate::Command for Command {
             build_universal_macos(
                 workspace_root,
                 self.profile.name(),
-                &self.features,
+                &self.config,
                 self.verbose,
             )?;
         } else {
@@ -55,7 +90,7 @@ impl crate::Command for Command {
                 workspace_root,
                 self.target.as_deref(),
                 self.profile.name(),
-                &self.features,
+                &self.config,
                 self.verbose,
             )?;
         }
@@ -69,7 +104,7 @@ fn build_cargo(
     workspace_root: &Path,
     target_triple: Option<&str>,
     profile: &str,
-    features: &[String],
+    config: &BuildConfig,
     verbose: bool,
 ) -> Result<()> {
     let mut cmd = ProcessCommand::new("cargo");
@@ -80,13 +115,51 @@ fn build_cargo(
         .arg("--profile")
         .arg(profile);
 
-    cmd.arg("--features").arg(
-        features
-            .iter()
-            .map(AsRef::as_ref)
-            .chain(["custom-protocol"])
-            .join(","),
-    );
+    let mut features = vec!["custom-protocol"];
+
+    if !config.updater {
+        features.push("no-self-updater");
+
+        let mut locales = HashMap::new();
+
+        for message in &config.updater_instruction_message {
+            let (locale, message) = message.split_once('=').unwrap_or(("en", message));
+
+            if message.trim().is_empty() {
+                eprintln!("warning: message for {locale} for is blank. ignoring");
+                continue;
+            }
+
+            fn normalize_locale(locale: &str) -> String {
+                locale.to_ascii_uppercase().replace("_", "-")
+            }
+            match locales.entry(normalize_locale(locale)) {
+                std::collections::hash_map::Entry::Vacant(e) => {
+                    e.insert(message);
+                }
+                std::collections::hash_map::Entry::Occupied(_) => {
+                    bail!("--updater-instruction-message specified for {locale} locale twice")
+                }
+            }
+        }
+
+        if locales.is_empty() {
+            eprintln!(
+                "warning: updater is disabled but no --updater-instruction-message flag was specified"
+            );
+        } else {
+            if !locales.contains_key("en") {
+                bail!("--updater-instruction-message specified some locale but not for en");
+            }
+
+            cmd.env(
+                "ALCOM_UPDATER_DISABLED_MESSAGE",
+                serde_json::to_string(&locales)?,
+            );
+        }
+    }
+
+    cmd.arg("--features").arg(features.iter().join(","));
 
     if let Some(target) = target_triple {
         cmd.arg("--target").arg(target);
@@ -107,21 +180,21 @@ fn build_cargo(
 fn build_universal_macos(
     workspace_root: &Path,
     profile: &str,
-    features: &[String],
+    config: &BuildConfig,
     verbose: bool,
 ) -> Result<()> {
     build_cargo(
         workspace_root,
         Some("x86_64-apple-darwin"),
         profile,
-        features,
+        config,
         verbose,
     )?;
     build_cargo(
         workspace_root,
         Some("aarch64-apple-darwin"),
         profile,
-        features,
+        config,
         verbose,
     )?;
 
