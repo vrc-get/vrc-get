@@ -84,10 +84,6 @@ jobs:
           cp vrc-get-gui/Tauri.toml vrc-get-gui/Tauri.toml.bak
           grep -v "remove if ci" < vrc-get-gui/Tauri.toml.bak > vrc-get-gui/Tauri.toml
 
-      - name: Build web
-        working-directory: vrc-get-gui
-        run: npm run build
-
       - name: Build ALCOM binary
         run:
           cargo xtask build-alcom --release --target ${{ matrix.triple }} --devtools ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}

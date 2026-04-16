@@ -78,6 +78,8 @@ impl crate::Command for Command {
 
         let target_triple = build_target(self.target.as_deref());
 
+        build_web(workspace_root)?;
+
         if target_triple == "universal-apple-darwin" {
             build_universal_macos(
                 workspace_root,
@@ -97,6 +99,15 @@ impl crate::Command for Command {
 
         Ok(0)
     }
+}
+
+/// Run `npm run build` to build web part
+fn build_web(workspace_root: &Path) -> Result<()> {
+    ProcessCommand::new("npm")
+        .arg("run")
+        .arg("build")
+        .current_dir(workspace_root.join("vrc-get-gui"))
+        .run_checked("frontend of vrc-get-gui")
 }
 
 /// Run `cargo build -p vrc-get-gui` for a single target triple.
