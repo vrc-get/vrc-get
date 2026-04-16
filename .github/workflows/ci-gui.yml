@@ -49,6 +49,14 @@ jobs:
           drive-path: "/dev_drive.vhdx"
           mount-path: ${{ github.workspace }}
           trusted-dev-drive: true
+      - name: Preinitialize git repository
+        shell: bash
+        run: |
+          # hopefully for non-cleaning environments, actions/checkout will tries to clean existing repository
+          # if existing dir is not git repository nor for specified repository.
+          # this step creates git directory to workaround the behavior
+          git init
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
 
       - uses: actions/checkout@v6
         with:
