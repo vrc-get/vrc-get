@@ -125,3 +125,70 @@ pub fn command_exists(program: &str) -> Result<bool> {
     }
     Ok(false)
 }
+
+pub fn create_command(cmd_name: impl AsRef<OsStr>) -> Command {
+    pub fn create_command(cmd_name: &OsStr) -> Command {
+        #[cfg(windows)]
+        {
+            // Windowsの場合、PATHEXTを考慮して実行ファイルの実体を探す
+            if let Some(resolved_path) = find_executable_windows(cmd_name) {
+                // 見つかった場合はそのフルパス（または拡張子付き）を使用
+                return Command::new(resolved_path);
+            }
+        }
+
+        Command::new(cmd_name)
+    }
+
+    create_command(cmd_name.as_ref())
+}
+
+#[cfg(windows)]
+fn find_executable_windows(cmd_name: &OsStr) -> Option<std::path::PathBuf> {
+    use std::env;
+    use std::ffi::OsString;
+    use std::path::PathBuf;
+
+    let cmd_path = Path::new(cmd_name);
+
+    // If there already is extension in their file name, we won't insert new extension
+    if cmd_path.extension().is_some() {
+        return Some(cmd_path.to_path_buf()).take_if(|_| cmd_path.exists());
+    }
+
+    let pathext = env::var_os("PATHEXT").unwrap_or_else(|| OsString::from(".EXE;.BAT;.CMD"));
+    let extensions: Vec<_> = env::split_paths(&pathext).collect();
+
+    // When the path contains path separator, we only try appending extension.
+    if cmd_name.as_encoded_bytes().contains(&b'\\') || cmd_name.as_encoded_bytes().contains(&b'/') {
+        return find_with_extensions(cmd_path, &extensions);
+    }
+
+    // If the cmd_name consists only with filename, we find CWD and PATH environment variable.
+
+    if let Some(found) = find_with_extensions(&Path::new(".").join(cmd_path), &extensions) {
+        return Some(found);
+    }
+
+    if let Some(paths) = env::var_os("PATH") {
+        for path in env::split_paths(&paths) {
+            if let Some(found) = find_with_extensions(&path.join(cmd_path), &extensions) {
+                return Some(found);
+            }
+        }
+    }
+    return None;
+
+    #[cfg(windows)]
+    fn find_with_extensions(base_path: &Path, extensions: &[PathBuf]) -> Option<PathBuf> {
+        for ext in extensions {
+            let ext_str = ext.to_string_lossy();
+            let mut candidate = base_path.to_path_buf();
+            candidate.set_extension(ext_str.trim_start_matches('.'));
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+        None
+    }
+}

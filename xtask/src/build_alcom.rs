@@ -1,5 +1,5 @@
 use crate::utils;
-use crate::utils::command::CommandExt;
+use crate::utils::command::{CommandExt, create_command};
 use crate::utils::{build_dir, build_target};
 use anyhow::{Context, Result, bail};
 use itertools::Itertools;
@@ -103,7 +103,7 @@ impl crate::Command for Command {
 
 /// Run `npm run build` to build web part
 fn build_web(workspace_root: &Path) -> Result<()> {
-    ProcessCommand::new("npm")
+    create_command("npm")
         .arg("run")
         .arg("build")
         .current_dir(workspace_root.join("vrc-get-gui"))
