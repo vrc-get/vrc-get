@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: samypr100/setup-dev-drive@v3
         with:
-          drive-size: 2GB
+          drive-size: 12GB # github actions grantees 14 GB of disk space. we have few GB for action environment
           drive-path: "/dev_drive.vhdx"
           mount-path: ${{ github.workspace }}
           trusted-dev-drive: true
