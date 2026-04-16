@@ -75,9 +75,9 @@ To build ALCOM, you need to have the following installed:
 - [cargo] latest — to build the most part of the project
 - And other requirements for tauri, see [tauri requirements](https://v2.tauri.app/start/prerequisites/#system-dependencies)
 
-Please note that ALCOM requires the latest version of cargo at that time. 
+Please note that ALCOM requires the latest version of rust toolchain at that time. 
 We update the required version of cargo without notice.
-Therefore, you may need to update them before building the project.
+Therefore, It's recommended to update rust toolchain before building the project.
 
 [Node.js]: https://nodejs.org/en
 [npm]: https://www.npmjs.com
@@ -88,8 +88,26 @@ Therefore, you may need to update them before building the project.
 To build the project, run the following command:
 
 ```bash
-npm run tauri build
+cargo xtask build-alcom --release
 ```
+
+This command builds the main ALCOM executable for the current platform.
+For cross-compilation, add the `--target` command-line parameter.
+The executable will be created in the `target/release` directory.
+
+There are a few build options available when building ALCOM.
+Most notably, you can disable the self-updater with the `--no-self-updater` option.
+Note that this does not disable update checks.
+ALCOM will show a message when a newer release is available instead of offering a self-update.
+
+Directly distributing the executable may be suitable for some environments, but we also provide bundled distributions.
+To bundle ALCOM, run the following command after building it.
+
+```bash
+cargo xtask bundle-alcom --release --bundles <bundles>
+```
+
+Check `--help` for the list of supported bundle types.
 
 ## Development
 

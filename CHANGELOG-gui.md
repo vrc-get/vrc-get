@@ -8,10 +8,15 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Build-time option to disable auto updater `#2759`
+  - Please read README for new build instruction.
 
 ### Changed
 - File filled with '\0' or whitespace will be treated as empty file `#2710`
   - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
+- Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759`
+  - This fixes few problems relates to auto update
+  - Please read README for new build instruction.
 
 ### Deprecated
 

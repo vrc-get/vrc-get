@@ -53,7 +53,7 @@ jobs:
       - uses: auguwu/clippy-action@1.5.0
         with:
           token: ${{secrets.GITHUB_TOKEN}}
-          check-args: --all --all-targets --all-features
+          check-args: --all --all-targets --all-features --exclude windows-installer-wrapper
           args: -Dclippy::todo -Dwarnings
 
   biome:

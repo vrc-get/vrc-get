@@ -24,7 +24,7 @@ serde = { version = "1", features = ["derive"] }
 serde_with = { version = "3", features = ["base64"] }
 tauri = { version = "=2.10.3", features = [ "config-toml" ] } # = for sync version between npm and cargo
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management"] }
-reqwest = { version = "0.12", features = ["gzip", "brotli"] }
+reqwest = { version = "0.12", features = ["gzip", "brotli", "json"] }
 specta = { version = "2.0.0-rc.20", features = [ "chrono", "url", "indexmap" ] }
 tauri-specta = { version = "2.0.0-rc.20", features = ["typescript"] }
 specta-typescript = "0.0.7"
@@ -46,8 +46,13 @@ async_zip = { version = "0.0.18", features = ["deflate", "tokio"] }
 async-compression = { version = "0.4", features = ["gzip", "futures-io"] }
 async-stream = "0.3"
 tauri-plugin-single-instance = "2"
-tauri-plugin-updater = "2"
 tauri-plugin-dialog = "2"
+minisign-verify = "0.2"
+base64 = "0.22"
+semver = "1"
+tempfile = "3"
+sha2 = "0.11"
+hex = "0.4"
 sys-locale = "0.3"
 log-panics = { version = "2", features = ["with-backtrace"] }
 url = "2"
@@ -58,7 +63,7 @@ stable_deref_trait = "1"
 itertools = "0.14"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
+windows = { version = "0.62", features = ["Win32_Storage_FileSystem", "Win32_System_IO", "Win32_NetworkManagement_IpHelper", "Wdk_System_SystemServices", "Win32_System_SystemInformation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 winreg = "0.55"
 wmi = "0.18"
 
@@ -78,3 +83,12 @@ nix = { version = "0.31", features = ["fs"] }
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
 # DO NOT REMOVE!!
 custom-protocol = [ "tauri/custom-protocol" ]
+
+no-self-updater = []
+
+# Devtools
+#
+# Enables browser devtools for debugging javascript part.
+# It's not recommended to enable this for production builds,
+# development use only!
+devtools = ["tauri/devtools"]
