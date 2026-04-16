@@ -43,6 +43,13 @@ jobs:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
     steps:
+      - uses: samypr100/setup-dev-drive@v3
+        with:
+          drive-size: 2GB
+          drive-path: "/dev_drive.vhdx"
+          mount-path: ${{ github.workspace }}
+          trusted-dev-drive: true
+
       - uses: actions/checkout@v6
         with:
           submodules: recursive
