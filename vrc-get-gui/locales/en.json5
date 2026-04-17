@@ -488,11 +488,11 @@
     "settings:toast:package cache cleared": "Downloaded package cache was cleared.",
 
     "settings:show prerelease": "Show Prerelease Packages",
-    "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list. In addition, prerelease packages will be used when resolving dependencies. Prerelease packages are less stable than stable packages and may cause unknown issues.",
+    "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list. In addition, prerelease packages will be used when resolving dependencies. Prerelease packages may have more bugs than stable packages.",
 
     "settings:dialog:show prerelease packages": "Show Prerelease Packages",
-    "settings:dialog:show prerelease packages description": "Prerelease packages are less stable than stable packages and may cause unknown issues. Are you sure you want to enable this?",
-    "settings:dialog:enable show prerelease packages": "Enable",
+    "settings:dialog:show prerelease packages description": "Prerelease packages may have more bugs than stable packages. Are you sure you want to show prerelease packages?",
+    "settings:dialog:enable show prerelease packages": "Show",
 
     "settings:gui animation": "Enable GUI Animation",
     "settings:gui animation description": "Page transitions are animated when GUI animation is enabled. But it may not work on lower webview versions.",

@@ -269,7 +269,7 @@ function ShowPrereleaseConfirmDialog({
 				<Button onClick={() => dialog.close(false)}>
 					{tc("general:button:cancel")}
 				</Button>
-				<Button onClick={() => dialog.close(true)}>
+				<Button variant={"destructive"} onClick={() => dialog.close(true)}>
 					{tc("settings:dialog:enable show prerelease packages")}
 				</Button>
 			</DialogFooter>
