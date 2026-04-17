@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "master" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -117,9 +116,7 @@ jobs:
         env:
           RUSTFLAGS: ''
         run: |
-          # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
-          unset CARGO_BUILD_TARGET
-          cargo run -p build-check-static-link target/${{ matrix.triple }}/debug/vrc-get*
+          cargo xtask check-static-link target/${{ matrix.triple }}/debug/vrc-get${WINDIR:+.exe}
 
   conclude:
     runs-on: ubuntu-latest
