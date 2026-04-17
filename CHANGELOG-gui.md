@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog].
   - Please read README for new build instruction.
 - Improved backup speed by parallelizing the process [`#2746`](https://github.com/vrc-get/vrc-get/pull/2746)
   - Along with this change, the default compression level has been changed to `zip-fast`
+- We added dialog on enabling "Show Prerelease Packages" `#2795`
+  - I hope this prevents users unexpectedly adding prerelease packages
 
 ### Deprecated
 
