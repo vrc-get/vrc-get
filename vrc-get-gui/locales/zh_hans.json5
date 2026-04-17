@@ -466,7 +466,7 @@
 
     "settings:backup:format": "备份文件的压缩格式",
     "settings:backup:format description": "备份以压缩文件的形式保存。 <br/>您可以选择压缩文件的压缩格式。<br/>默认设置是 ALCOM 目前认为最好的格式，当前的默认行为用括号表示。<br/>高压缩率会增加备份耗时，但会节省磁盘空间。",
-    "settings:backup:format:default": "默认 (未压缩的 zip)",
+    "settings:backup:format:default": "默认 (低压缩率的 zip)",
     "settings:backup:format:zip-store": "未压缩的 zip (快)",
     "settings:backup:format:zip-fast": "低压缩率的 zip (慢)",
     "settings:backup:format:zip-best": "高压缩率的 zip (最慢)",

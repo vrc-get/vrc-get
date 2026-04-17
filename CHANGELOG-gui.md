@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog].
 - Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759`
   - This fixes few problems relates to auto update
   - Please read README for new build instruction.
+- Improved backup speed by parallelizing the process [`#2746`](https://github.com/vrc-get/vrc-get/pull/2746)
+  - Along with this change, the default compression level has been changed to `zip-fast`
 
 ### Deprecated
 
