@@ -494,13 +494,16 @@ function ManagePackagesHeading({
 							e.preventDefault();
 							const newValue = !repositoriesInfo?.show_prerelease_packages;
 							if (newValue) {
-								void openSingleDialog(ShowPrereleaseConfirmDialog, {}).then(
-									(confirmed) => {
+								void openSingleDialog(ShowPrereleaseConfirmDialog, {})
+									.then((confirmed) => {
 										if (confirmed) {
 											setShowPrereleasePackages.mutate(true);
 										}
-									},
-								);
+									})
+									.catch((e) => {
+										console.error(e);
+										toastThrownError(e);
+									});
 							} else {
 								setShowPrereleasePackages.mutate(false);
 							}
