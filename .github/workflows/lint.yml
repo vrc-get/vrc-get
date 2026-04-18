@@ -17,7 +17,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo fmt --all -- --check
 
@@ -28,7 +28,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -40,7 +40,7 @@ jobs:
         run:
           sudo apt update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -50,10 +50,10 @@ jobs:
             target/
           key: lints-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - uses: auguwu/clippy-action@1.4.0
+      - uses: auguwu/clippy-action@1.5.0
         with:
           token: ${{secrets.GITHUB_TOKEN}}
-          check-args: --all --all-targets --all-features
+          check-args: --all --all-targets --all-features --exclude windows-installer-wrapper
           args: -Dclippy::todo -Dwarnings
 
   biome:
@@ -63,7 +63,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: run Biome
         working-directory: vrc-get-gui
         run: npm run biome -- ci
@@ -75,7 +75,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: run Type Check
         working-directory: vrc-get-gui
         run: npm ci && npx tsc

@@ -476,7 +476,7 @@
 
     "settings:backup:format": "Backup-Format",
     "settings:backup:format description": "Backups werden als Archiv komprimiert, das Format kann hier angepasst werden.<br/>Wir empfehlen dies bei der Standard Einstellung zu belassen.<br/>Kompression sorgt für eine längere Backupdauer, reduziert dafür allerdings die Größe des Backups.",
-    "settings:backup:format:default": "Standard (Unkomprimierte zip)",
+    "settings:backup:format:default": "Standard (Leicht komprimierte zip)",
     "settings:backup:format:zip-store": "Unkomprimierte zip (Schnell)",
     "settings:backup:format:zip-fast": "Leicht komprimierte zip (Moderat)",
     "settings:backup:format:zip-best": "Stark komprimierte zip (Langsam)",
@@ -518,10 +518,16 @@
 
     "check update:dialog:title": "ALCOM Updates",
     "check update:dialog:new version description": "Eine neue ALCOM Version ist verfügbar.",
+    // note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "Eine neue Version von ALCOM ist verfügbar, wird von deinem Systemarchitektur aber nicht mehr unterstützt.<br>\nSollte dein System eine andere Architektur unterstützen, lade diese herunter.",
+    "check update:dialog:new version not updatable description": "Eine neue Version von ALCOM ist verfügbar, kann aber nicht automatisch installiert werden.<br>Bitte installiere das Update manuell.",
+    "check update:dialog:new version updater disabled base description": "Eine neue Version von ALCOM ist verfügbar.",
+    "check update:dialog:new version updater how to upgrade fallback": "Automatische Updates sind deaktiviert. Bitte verwende deinen Paketmanager.",
     "check update:dialog:current version": "Aktuelle Version:",
     "check update:dialog:latest version": "Neueste Version:",
     "check update:dialog:changelog": "Changelog",
     "check update:dialog:dismiss": "Abbrechen",
+    "check update:dialog:open download page": "Downloadseite öffnen",
     "check update:dialog:update": "Download & Update!",
     "check update:dialog:downloading...": "Update wird heruntergeladen...",
     "check update:dialog:relaunching...": "Starte ALCOM neu...",

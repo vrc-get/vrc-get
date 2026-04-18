@@ -68,3 +68,72 @@ export function tc(
 }
 
 export const tt = i18nextt;
+
+// Helper component, type, and function for externally provided localization
+
+// Key is name of locale, value is message in its locale.
+type ExternalLocalization = Record<string, string> | null;
+type Fallback = { plain: string } | { localized: string };
+
+function localizeExternalImpl(
+	i18n: typeof i18next,
+	localization: ExternalLocalization,
+): string | undefined {
+	if (localization == null) return undefined;
+	for (const language of i18n.languages) {
+		// biome-ignore lint/suspicious/noPrototypeBuiltins: we're targeting 2021
+		if (Object.prototype.hasOwnProperty.call(i18n, language)) {
+			const localized = localization[language];
+			if (localized) {
+				return localized;
+			}
+		}
+	}
+	return undefined;
+}
+
+export function localizeExternal(
+	localization: ExternalLocalization,
+	fallback: Fallback,
+) {
+	const localized = localizeExternalImpl(i18next, localization);
+	if (localized) {
+		return localized;
+	}
+	if ("plain" in fallback) {
+		return fallback.plain;
+	}
+	return i18next.t(fallback.localized);
+}
+
+function LocalizeExternalComponentImpl({
+	localization,
+	fallback,
+}: {
+	localization: ExternalLocalization;
+	fallback: Fallback;
+}) {
+	const { i18n } = useTranslation();
+
+	const localized = localizeExternalImpl(i18n, localization);
+	if (localized) {
+		return React.createElement(Trans, {
+			defaults: localized,
+			components: { ExternalLink: React.createElement(ExternalLink) },
+		});
+	}
+	if ("plain" in fallback) {
+		return fallback.plain;
+	}
+	return i18n.t(fallback.localized);
+}
+
+export function localizeExternalComponent(
+	localization: ExternalLocalization,
+	fallback: Fallback,
+) {
+	return React.createElement(LocalizeExternalComponentImpl, {
+		localization,
+		fallback,
+	});
+}

@@ -27,7 +27,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - uses: anatawa12/something-releaser@v3
@@ -97,7 +97,7 @@ jobs:
             ---
       - name: Upload CHANGELOG.md
         if: ${{ !steps.update-version.outputs.prerelease }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CHANGELOG
           path: CHANGELOG.md
@@ -106,7 +106,7 @@ jobs:
         run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
       - name: Upload release note
         if: ${{ !steps.update-version.outputs.prerelease }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-note-for-release
           path: release-note.md
@@ -167,7 +167,7 @@ jobs:
 
     needs: [ pre-build ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: 'releasing'
           submodules: recursive
@@ -190,9 +190,7 @@ jobs:
       - name: Check binary is statically linked
         shell: bash
         run: |
-          # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
-          unset CARGO_BUILD_TARGET
-          cargo run -p build-check-static-link target/${{ matrix.triple }}/release/vrc-get*
+          cargo xtask check-static-link target/${{ matrix.triple }}/release/vrc-get${WINDIR:+.exe}
 
       - name: Move artifacts
         shell: bash
@@ -204,7 +202,7 @@ jobs:
             done
           popd
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: artifacts-${{ matrix.triple }}
           path: artifacts/*
@@ -217,7 +215,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ pre-build, build-rust ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: 'releasing'
           fetch-depth: 1
@@ -246,12 +244,12 @@ jobs:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
     steps:
-      - uses: actions/create-github-app-token@v2
+      - uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: 'releasing'
           fetch-depth: 2
@@ -264,7 +262,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: assets
           pattern: artifacts-*
@@ -272,7 +270,7 @@ jobs:
 
       - name: Download changelog
         if: ${{ !needs.pre-build.outputs.prerelease }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: release-note-for-release
           path: changelog
@@ -329,7 +327,7 @@ jobs:
       CLI_VERSION: ${{ needs.pre-build.outputs.cli-version }}
       VPM_VERSION: ${{ needs.pre-build.outputs.vpm-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: 'releasing'
           fetch-depth: 2

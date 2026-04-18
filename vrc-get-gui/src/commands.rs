@@ -37,6 +37,7 @@ macro_rules! localizable_error {
 }
 
 mod async_command;
+pub(crate) use async_command::AsyncCommandContext;
 mod environment;
 mod project;
 mod start;
@@ -370,9 +371,20 @@ impl_from_error!(
     fs_extra::error::Error,
 );
 
-impl From<tauri_plugin_updater::Error> for RustError {
-    fn from(value: tauri_plugin_updater::Error) -> Self {
-        log::error!(gui_toast = false; "failed to load latest release: {value}");
+impl From<crate::compressor::CompressError> for RustError {
+    fn from(value: crate::compressor::CompressError) -> Self {
+        match value {
+            crate::compressor::CompressError::Io(e) => e.into(),
+            crate::compressor::CompressError::Zip(e) => e.into(),
+            crate::compressor::CompressError::TaskJoin(e) => RustError::unrecoverable(e),
+            crate::compressor::CompressError::Semaphore(e) => RustError::unrecoverable(e),
+        }
+    }
+}
+
+impl From<crate::updater::Error> for RustError {
+    fn from(value: crate::updater::Error) -> Self {
+        log::error!(gui_toast = false; "updater error: {value}");
         Self::unrecoverable("failed to load the latest release")
     }
 }

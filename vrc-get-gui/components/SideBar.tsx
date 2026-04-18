@@ -111,7 +111,7 @@ function SideBarItem({
 	text,
 	icon,
 }: {
-	href: keyof RegisteredRouter["routesByPath"];
+	href: keyof RegisteredRouter["routeTree"]["types"]["fileRouteTypes"]["fileRoutesByTo"];
 	text: React.ReactNode;
 	icon: React.ComponentType<{ className?: string }>;
 }) {

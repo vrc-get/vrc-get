@@ -111,10 +111,18 @@ macro_rules! package_json_struct {
     };
 }
 
+fn default_if_none<'de, D, T>(de: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
+{
+    <Option<T>>::deserialize(de).map(|x| x.unwrap_or_default())
+}
+
 package_json_struct! {
     #[derive(Debug, Clone)]
     pub struct PackageManifest {
-        optional: #[serde(default)];
+        optional: #[serde(default, deserialize_with = "default_if_none")];
         required;
     }
     #[derive(Debug, Clone, Default)]
@@ -299,4 +307,30 @@ fn deserialize_partially_bad() {
     assert!(!package_json.is_yanked());
     assert_eq!(package_json.aliases(), &["vpm".into()]);
     assert_eq!(package_json.changelog_url(), None);
+}
+
+#[test]
+fn deserialize_null_on_dependencies() {
+    let json = r##"{
+      "name": "com.kibalab.materialmerger",
+      "displayName": "Material Merger",
+      "description": "Unity Editor tool that merges multiple materials/textures into an atlas-based workflow. specifically designed for VRChat world/avatar optimization.",
+      "version": "0.1.0",
+      "unity": "2022.3",
+      "url": "https://github.com/kibalab/material-merger/releases/download/0.1.0/com.kibalab.materialmerger-0.1.0.zip",
+      "author": {
+        "name": "KIBA",
+        "email": "root@kiba.red",
+        "url": "https://vpm.kiba.red"
+      },
+      "dependencies": null,
+      "vpmDependencies": null,
+      "samples": null,
+      "zipSHA256": "0e201b9a1ed9f0e3a9c16b8f765605e8aa0c9aebf9a315c04bc67f6ebe2485f8"
+    }"##;
+    let package_json: PackageManifest = serde_json::from_str(json).unwrap();
+    assert_eq!(package_json.name(), "com.kibalab.materialmerger");
+    assert_eq!(package_json.version(), &Version::new(0, 1, 0));
+    //assert!(package_json.dependencies().is_empty());
+    assert!(package_json.vpm_dependencies().is_empty());
 }

@@ -56,7 +56,7 @@ pub async fn load_resolve_all_templates(
         load_resolve_alcom_templates(io, unity_versions),
         load_vcc_templates(io)
     );
-    Ok(alcom.into_iter().chain(vcc.into_iter()).collect())
+    Ok(alcom.into_iter().chain(vcc).collect())
 }
 
 pub async fn load_vcc_templates(io: &DefaultEnvironmentIo) -> Vec<ProjectTemplateInfo> {
@@ -673,7 +673,7 @@ async fn import_unitypackage_impl(
                     ));
                 }
                 // ignoring paths for non-Assets / Packages
-                if !pathname.starts_with("Assets/") && pathname.starts_with("Packages/") {
+                if !pathname.starts_with("Assets/") && !pathname.starts_with("Packages/") {
                     continue;
                 }
                 package_entry.pathname = pathname;

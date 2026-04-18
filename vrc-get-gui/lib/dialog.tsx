@@ -154,7 +154,7 @@ function DialogBodyElement({
 }: {
 	dialogState: SyncStore<DialogState>;
 }) {
-	const state = dialogState.use();
+	const state = dialogState.useValue();
 	const className = "max-h-[calc(100dvh-(var(--spacing)*8))] overflow-y-auto";
 	switch (state.type) {
 		case "before":
@@ -264,7 +264,7 @@ class SyncStore<T> {
 		};
 	}
 
-	public use() {
+	public useValue() {
 		return useSyncExternalStore(this.subscribe, this.getSnapshot);
 	}
 

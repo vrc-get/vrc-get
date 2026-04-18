@@ -10,9 +10,11 @@ The format is based on [Keep a Changelog].
 ### Added
 
 ### Changed
-- Improved saving interacting with setting files `#2485`
+- Improved saving interacting with setting files `#2485` `#2710`
     - This should reduce "EOF while parsing a value at line 1 column 0" error on launch.
     - This should reduce losing settings after crashing ALCOM or PC.
+- null as vpmDependencies value is not allowed `#2709`
+    - It's not recommended, but we allow null for `vpmDependencies` as a alias of `{}`
 
 ### Deprecated
 

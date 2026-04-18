@@ -466,10 +466,10 @@
 
     "settings:backup:format": "バックアップの保存形式",
     "settings:backup:format description": "「デフォルト」設定では、ALCOM開発チームが最も適切だと考えている保存形式が使用されます。(括弧内に詳細が表示されます)<br>圧縮率の高い保存形式ほどバックアップの作成に長い時間を要しますが、バックアップファイルの容量は小さくなります。",
-    "settings:backup:format:default": "デフォルト (無圧縮zip)",
+    "settings:backup:format:default": "デフォルト (低圧縮zip)",
     "settings:backup:format:zip-store": "無圧縮zip (高速)",
     "settings:backup:format:zip-fast": "低圧縮zip (低速)",
-    "settings:backup:format:zip-best": "高圧縮zip (超低速)",
+    "settings:backup:format:zip-best": "高圧縮zip (最も低速)",
     "settings:backup:exclude vpm packages from backup": "バックアップにVPMパッケージの本体を含まないようにする",
     "settings:backup:exclude vpm packages from backup description": "導入されているパッケージの一覧のみを保持することにより、バックアップファイルの容量を小さくすることができます。<br>ただし、パッケージの作者が(VRChatの勧告に従わずに)VPMリポジトリからパッケージ情報を削除してしまった場合、復元する際に別のバージョンのパッケージを手動で入れ直す必要が生じます。",
 

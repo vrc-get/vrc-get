@@ -8,8 +8,17 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Build-time option to disable auto updater `#2759`
+  - Please read README for new build instruction.
 
 ### Changed
+- File filled with '\0' or whitespace will be treated as empty file `#2710`
+  - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
+- Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759`
+  - This fixes few problems relates to auto update
+  - Please read README for new build instruction.
+- Improved backup speed by parallelizing the process [`#2746`](https://github.com/vrc-get/vrc-get/pull/2746)
+  - Along with this change, the default compression level has been changed to `zip-fast`
 - Path for unitypackage on Template Editor now can be reselected `#2635`
 
 ### Deprecated
@@ -17,6 +26,10 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Fixed an issue where the progress bar flickered and did not display correct progress in environments using WebKit as the renderer. [`#2641`](https://github.com/vrc-get/vrc-get/pull/2641)
+- Fails to import UnityPackages with files in `Packages` directory `#2679`
+- null as vpmDependencies value is not allowed `#2709`
+  - It's not recommended, but we allow null for `vpmDependencies` as a alias of `{}`
 
 ### Security
 

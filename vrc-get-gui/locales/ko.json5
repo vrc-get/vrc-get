@@ -469,7 +469,7 @@
 
     "settings:backup:format": "백업 형식",
     "settings:backup:format description": "\"기본값\" 설정에서는 ALCOM이 가장 적합하다고 판단한 형식이 사용되며, 괄호 안에 현재 기본 동작이 표시됩니다.<br>압축률이 높은 형식을 사용할수록 백업 시간이 길어지지만 디스크 공간을 절약할 수 있습니다.",
-    "settings:backup:format:default": "기본값 (압축하지 않은 zip)",
+    "settings:backup:format:default": "기본값 (낮은 압축 zip)",
     "settings:backup:format:zip-store": "압축하지 않은 zip (빠름)",
     "settings:backup:format:zip-fast": "낮은 압축 zip (느림)",
     "settings:backup:format:zip-best": "높은 압축 zip (가장 느림)",
