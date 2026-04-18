@@ -26,12 +26,11 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
         "MIT",
         arch,
         ctx.short_description(),
-    )
-    .release("1")
-    .description(ctx.long_description());
+    );
+    builder.release("1").description(ctx.long_description());
 
     // Binary.
-    builder = builder
+    builder
         .with_file(
             ctx.binary_path(),
             rpm::FileOptions::new(format!("/usr/bin/{bin_name_lower}")).permissions(0o755),
@@ -39,7 +38,7 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
         .context("adding binary to rpm")?;
 
     // Desktop file.
-    builder = builder
+    builder
         .with_file(
             &desktop_tmp,
             rpm::FileOptions::new(format!("/usr/share/applications/{bin_name_lower}.desktop")),
@@ -49,7 +48,7 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     // Icons.
     for size in LINUX_ICON_RESOLUTIONS {
         let install_path = format!("/usr/share/icons/hicolor/{size}/apps/{LINUX_ICON_NAME}.png");
-        builder = builder
+        builder
             .with_file(ctx.icon_path(size), rpm::FileOptions::new(install_path))
             .with_context(|| format!("adding icon {size}.png to rpm"))?;
     }
