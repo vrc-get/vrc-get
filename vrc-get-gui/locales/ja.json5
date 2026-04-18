@@ -511,10 +511,16 @@
 
     "check update:dialog:title": "ALCOMのアップデート",
     "check update:dialog:new version description": "新しいバージョンのALCOMが使用できます！",
+    // note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "新しいバージョンのALCOMが公開されていますが、ご利用のプラットフォーム向けのビルドが提供されていません。<br>他のプラットフォーム向けのビルドにも対応している場合は、そちらをご利用ください。",
+    "check update:dialog:new version not updatable description": "新しいバージョンのALCOMが公開されていますが、ご利用のインストール方法は自動更新に対応していません。<br>手動での更新をお願いします。",
+    "check update:dialog:new version updater disabled base description": "新しいバージョンのALCOMが公開されています。",
+    "check update:dialog:new version updater how to upgrade fallback": "自動更新が無効化されているため、ご利用のパッケージマネージャーを通して更新してください。",
     "check update:dialog:current version": "使用中のバージョン:",
     "check update:dialog:latest version": "最新のバージョン:",
     "check update:dialog:changelog": "更新履歴",
     "check update:dialog:dismiss": "今はやめておく",
+    "check update:dialog:open download page": "ダウンロードページを開く",
     "check update:dialog:update": "アップデート",
     "check update:dialog:downloading...": "アップデートをダウンロード中...",
     "check update:dialog:relaunching...": "ALCOMを再起動しています...",
