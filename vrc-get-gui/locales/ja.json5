@@ -478,7 +478,11 @@
     "settings:toast:package cache cleared": "パッケージキャッシュを削除しました。",
 
     "settings:show prerelease": "プレリリース版のパッケージを表示する",
-    "settings:show prerelease description": "プレリリース版のパッケージは、正式リリース前の動作確認等に用いられるパッケージです。<br>この設定を有効にすると、パッケージのバージョンリストにプレリリース版のパッケージも表示されるようになります。<br>また、パッケージの依存関係を解決する際に、プレリリース版のパッケージも含まれるようになります。",
+    "settings:show prerelease description": "この設定を有効にすると、パッケージのバージョン一覧にプレリリース版のものが表示されるようになり、パッケージの依存関係を解決する際にもそれらが使用されるようになります。<br>プレリリース版のパッケージは正式リリース前の動作確認等に用いられるものであり、安定版よりバグに遭遇しやすくなります。",
+
+    "settings:dialog:show prerelease packages": "プレリリース版のパッケージを表示する",
+    "settings:dialog:show prerelease packages description": "プレリリース版のパッケージを使用すると、安定版よりバグに遭遇しやすくなります。<br>プレリリース版のパッケージを表示してもよろしいですか？",
+    "settings:dialog:enable show prerelease packages": "表示する",
 
     "settings:gui animation": "UIのアニメーションを有効にする",
     "settings:gui animation description": "ページを移動する際に遷移アニメーションが再生されます。Webviewのバージョンが低い場合は機能しないかもしれません。",
