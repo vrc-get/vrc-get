@@ -483,6 +483,10 @@
     "settings:show prerelease": "프리릴리즈 패키지 표시",
     "settings:show prerelease description": "프리릴리즈 패키지는 정식 릴리즈 이전에 동작 확인 등을 위해 사용되는 패키지입니다.<br>이 옵션을 활성화하면 패키지 목록에 프리릴리즈 패키지가 표시되고, 패키지를 설치할 때 프리릴리즈 패키지가 설치될 수 있습니다.",
 
+    "settings:dialog:show prerelease packages": "프리릴리즈 패키지 표시",
+    "settings:dialog:show prerelease packages description": "프리릴리즈 패키지는 안정 버전보다 버그가 더 많을 수 있습니다.<br>프리릴리즈 패키지를 표시하시겠습니까?",
+    "settings:dialog:enable show prerelease packages": "표시",
+
     "settings:gui animation": "UI 애니메이션 활성화",
     "settings:gui animation description": "페이지 전환 시 애니메이션이 재생됩니다. Webview 버전이 낮은 경우 제대로 동작하지 않을 수 있습니다.",
 
@@ -508,10 +512,15 @@
 
     "check update:dialog:title": "ALCOM 업데이트",
     "check update:dialog:new version description": "ALCOM의 최신 버전을 사용할 수 있습니다.",
+    "check update:dialog:new version no platform description": "ALCOM의 최신 버전을 사용할 수 있지만, 현재 사용중인 플랫폼은 더 이상 지원되지 않습니다.<br>시스템이 다른 플랫폼 빌드를 지원하는 경우 해당 빌드를 다운로드해 주세요.",
+    "check update:dialog:new version not updatable description": "ALCOM의 최신 버전을 사용할 수 있습니다.<br>그러나 현재 설치 방식에서는 자동 업데이트가 지원되지 않습니다.<br>수동으로 새 버전을 설치해 주세요.",
+    "check update:dialog:new version updater disabled base description": "ALCOM의 최신 버전을 사용할 수 있습니다.",
+    "check update:dialog:new version updater how to upgrade fallback": "자동 업데이트가 비활성화되어 있습니다. 패키지 관리자를 통해 업데이트해 주세요.",
     "check update:dialog:current version": "사용중인 버전:",
     "check update:dialog:latest version": "최신 버전:",
     "check update:dialog:changelog": "변경 사항",
     "check update:dialog:dismiss": "무시",
+    "check update:dialog:open download page": "다운로드 페이지 열기",
     "check update:dialog:update": "업데이트",
     "check update:dialog:downloading...": "업데이트 다운로드 중...",
     "check update:dialog:relaunching...": "ALCOM을 다시 시작하고 있습니다...",
