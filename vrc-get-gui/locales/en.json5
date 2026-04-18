@@ -421,7 +421,7 @@
     "templates:dialog:unitypackages": "UnityPackages",
     "templates:dialog:no unitypackages": "No UnityPackages",
     "templates:dialog:remove template": "Remove Template",
-    "templates:dialog:confirm remove template": "Are you sure remove template {{displayName}}?",
+    "templates:dialog:confirm remove template": "Are you sure you want to remove template {{displayName}}?",
     "templates:button:save template": "Save Template",
     "templates:button:import template": "Import Template",
     "templates:toast:imported n templates_one": "Imported {{count}} template",
@@ -524,7 +524,7 @@
     "check update:dialog:title": "ALCOM Updates",
     "check update:dialog:new version description": "A new version of ALCOM is available.",
     // note: we may remove x86_64 macos later. This is preparation for this removal
-    "check update:dialog:new version no platform description": "A new version of ALCOM is available, but your platform is no longer supported.<br>\nIf your system supports another platform build, please download it instead.",
+    "check update:dialog:new version no platform description": "A new version of ALCOM is available, but your platform is no longer supported.<br>If your system supports another platform build, please download it instead.",
     "check update:dialog:new version not updatable description": "A new version of ALCOM is available.<br>However, this installation cannot be updated automatically.<br>Please install the new version manually.",
     "check update:dialog:new version updater disabled base description": "A new version of ALCOM is available.",
     "check update:dialog:new version updater how to upgrade fallback": "Automatic updates are disabled. Please upgrade using your package manager.",
