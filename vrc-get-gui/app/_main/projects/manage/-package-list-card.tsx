@@ -28,6 +28,7 @@ import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { SearchBox } from "@/components/SearchBox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -55,6 +56,7 @@ import {
 import { assertNever } from "@/lib/assert-never";
 import type { TauriPackage, TauriRepositoriesInfo } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
+import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { usePackageUpdateInProgress } from "@/lib/global-events";
 import { tc, tt } from "@/lib/i18n";
@@ -251,6 +253,29 @@ export const PackageListCard = memo(function PackageListCard({
 		</Card>
 	);
 });
+
+function ShowPrereleaseConfirmDialog({
+	dialog,
+}: {
+	dialog: DialogContext<boolean>;
+}) {
+	return (
+		<>
+			<DialogTitle>
+				{tc("settings:dialog:show prerelease packages")}
+			</DialogTitle>
+			<div>{tc("settings:dialog:show prerelease packages description")}</div>
+			<DialogFooter>
+				<Button onClick={() => dialog.close(false)}>
+					{tc("general:button:cancel")}
+				</Button>
+				<Button variant="warning" onClick={() => dialog.close(true)}>
+					{tc("settings:dialog:enable show prerelease packages")}
+				</Button>
+			</DialogFooter>
+		</>
+	);
+}
 
 function ManagePackagesHeading({
 	packageRowsData,
@@ -467,9 +492,21 @@ function ManagePackagesHeading({
 						checked={repositoriesInfo?.show_prerelease_packages}
 						onClick={(e) => {
 							e.preventDefault();
-							setShowPrereleasePackages.mutate(
-								!repositoriesInfo?.show_prerelease_packages,
-							);
+							const newValue = !repositoriesInfo?.show_prerelease_packages;
+							if (newValue) {
+								void openSingleDialog(ShowPrereleaseConfirmDialog, {})
+									.then((confirmed) => {
+										if (confirmed) {
+											setShowPrereleasePackages.mutate(true);
+										}
+									})
+									.catch((e) => {
+										console.error(e);
+										toastThrownError(e);
+									});
+							} else {
+								setShowPrereleasePackages.mutate(false);
+							}
 						}}
 					>
 						{tc("settings:show prerelease")}
