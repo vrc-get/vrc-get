@@ -268,13 +268,9 @@ pub(crate) fn export_ts() {
             crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
             crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
         ])
-        //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
+        .typ::<uri_custom_scheme::GlobalInfo>()
         .typ::<environment::projects::TauriUpdatedRealProjectInfo>()
-        .export(
-            specta_typescript::Typescript::default()
-                .bigint(specta_typescript::BigIntExportBehavior::Number),
-            export_path,
-        )
+        .export(specta_typescript::Typescript::default(), export_path)
         .unwrap();
 }
 
@@ -292,13 +288,14 @@ async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &P
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
-#[specta(export)]
+#[specta(collect)]
 #[serde(tag = "type")]
 enum RustError {
     Unrecoverable {
         message: String,
     },
     #[allow(dead_code)]
+    #[specta(type = LocalizableRustError)]
     Localizable(Box<LocalizableRustError>),
     Handleable {
         message: String,

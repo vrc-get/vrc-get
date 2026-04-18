@@ -5,7 +5,7 @@ import { exec as execCallback } from "node:child_process";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { LoadResult, ResolveIdResult } from "rollup";
+import type { LoadResult, ResolveIdResult } from "rolldown";
 import { normalizePath, type Plugin } from "vite";
 
 const exec = promisify(execCallback);

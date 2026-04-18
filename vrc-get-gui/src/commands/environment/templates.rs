@@ -390,6 +390,7 @@ pub struct TauriImportDuplicated {
     importing_name: String,
     importing_update_date: Option<chrono::DateTime<chrono::offset::Utc>>,
     #[serde_as(as = "serde_with::base64::Base64")]
+    #[specta(type = &str)]
     data: Vec<u8>,
 }
 
