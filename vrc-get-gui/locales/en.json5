@@ -198,6 +198,10 @@
     "projects:dialog:removing...": "Removing the project...",
     "projects:toast:project removed": "Project was removed successfully.",
 
+    "projects:set project display name": "Set Project Display Name",
+    "projects:warn set project display name": "Set a display name for this project. The directory name will remain unchanged.",
+    "projects:toast:project display name changed": "Project display name changed successfully.",
+
   // Manage Projects
     "projects:manage:tooltip:back to projects": "Back to projects",
     "projects:menuitem:change launch options": "Change Launch Options",
