@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog].
   - Along with this change, the default compression level has been changed to `zip-fast`
 - We added dialog on enabling "Show Prerelease Packages" `#2795`
   - I hope this prevents users unexpectedly adding prerelease packages
+- Path for unitypackage on Template Editor now can be reselected `#2635`
 
 ### Deprecated
 

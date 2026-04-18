@@ -27,6 +27,7 @@
     "general:dialog:select file or directory header": "ファイルまたはディレクトリを選択",
     "general:dialog:select file or directory": "ファイルまたはディレクトリを選択してください。",
     "general:toast:invalid directory": "不正なディレクトリが選択されました。",
+    "general:toast:invalid file": "不正なファイルが選択されました。",
 
     "general:toast:not supported": "{{name}}はまだ実装されていません。",
     "general:not implemented": "未実装です",
