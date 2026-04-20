@@ -229,7 +229,7 @@ export function combinePackagesAndProjectDetails(
 		packages.forEach((pkg) => {
 			const packageRowInfo = getRowInfo(pkg);
 			packageRowInfo.isThereSource = true;
-			if ("Remote" in pkg.source) {
+			if (pkg.source !== "LocalUser") {
 				packageRowInfo.sources.add(pkg.source.Remote.display_name);
 			}
 		});
