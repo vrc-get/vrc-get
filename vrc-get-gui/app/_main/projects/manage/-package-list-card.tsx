@@ -139,7 +139,8 @@ export const PackageListCard = memo(function PackageListCard({
 
 	const hiddenPackages = useMemo(() => {
 		return packageRowsData.filter(
-			(pkg) => pkg.visibleSources.size === 0 && pkg.isThereSource,
+			(pkg) =>
+				pkg.visibleSources.size === 0 && pkg.isThereSource && !pkg.installed,
 		);
 	}, [packageRowsData]);
 
@@ -245,7 +246,11 @@ export const PackageListCard = memo(function PackageListCard({
 					</thead>
 					<tbody>
 						{packageRowsData.map((row) => {
-							if (row.visibleSources.size === 0 && row.isThereSource)
+							if (
+								row.visibleSources.size === 0 &&
+								row.isThereSource &&
+								!row.installed
+							)
 								return null;
 							return (
 								<tr
