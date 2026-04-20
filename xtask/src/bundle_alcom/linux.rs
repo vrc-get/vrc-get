@@ -125,7 +125,9 @@ impl<'a> BuildRootFs for RealBuildRootFs<'a> {
             path,
             <fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(mode),
         )
-        .with_context(|| format!("setting permission of {relative}"))
+        .with_context(|| format!("setting permission of {relative}"))?;
+
+        Ok(())
     }
 }
 
