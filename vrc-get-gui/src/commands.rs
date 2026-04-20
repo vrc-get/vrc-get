@@ -37,6 +37,7 @@ macro_rules! localizable_error {
 }
 
 mod async_command;
+pub(crate) use async_command::AsyncCommandContext;
 mod environment;
 mod project;
 mod start;
@@ -119,6 +120,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         environment::settings::environment_set_default_unity_arguments,
         environment::templates::environment_export_template,
         environment::templates::environment_get_alcom_template,
+        environment::templates::environment_pick_unity_packages,
         environment::templates::environment_pick_unity_package,
         environment::templates::environment_save_template,
         environment::templates::environment_remove_template,
@@ -226,6 +228,7 @@ pub(crate) fn export_ts() {
             environment::settings::environment_set_default_unity_arguments,
             environment::templates::environment_export_template,
             environment::templates::environment_get_alcom_template,
+            environment::templates::environment_pick_unity_packages,
             environment::templates::environment_pick_unity_package,
             environment::templates::environment_save_template,
             environment::templates::environment_remove_template,
@@ -265,13 +268,9 @@ pub(crate) fn export_ts() {
             crate::deep_link_support::deep_link_imported_clear_non_toasted_count,
             crate::deep_link_support::deep_link_reduce_imported_clear_non_toasted_count,
         ])
-        //.typ::<uri_custom_scheme::GlobalInfo>() // https://github.com/specta-rs/specta/issues/281
+        .typ::<uri_custom_scheme::GlobalInfo>()
         .typ::<environment::projects::TauriUpdatedRealProjectInfo>()
-        .export(
-            specta_typescript::Typescript::default()
-                .bigint(specta_typescript::BigIntExportBehavior::Number),
-            export_path,
-        )
+        .export(specta_typescript::Typescript::default(), export_path)
         .unwrap();
 }
 
@@ -289,13 +288,14 @@ async fn update_project_last_modified(io: &DefaultEnvironmentIo, project_dir: &P
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
-#[specta(export)]
+#[specta(collect)]
 #[serde(tag = "type")]
 enum RustError {
     Unrecoverable {
         message: String,
     },
     #[allow(dead_code)]
+    #[specta(type = LocalizableRustError)]
     Localizable(Box<LocalizableRustError>),
     Handleable {
         message: String,
@@ -368,9 +368,20 @@ impl_from_error!(
     fs_extra::error::Error,
 );
 
-impl From<tauri_plugin_updater::Error> for RustError {
-    fn from(value: tauri_plugin_updater::Error) -> Self {
-        log::error!(gui_toast = false; "failed to load latest release: {value}");
+impl From<crate::compressor::CompressError> for RustError {
+    fn from(value: crate::compressor::CompressError) -> Self {
+        match value {
+            crate::compressor::CompressError::Io(e) => e.into(),
+            crate::compressor::CompressError::Zip(e) => e.into(),
+            crate::compressor::CompressError::TaskJoin(e) => RustError::unrecoverable(e),
+            crate::compressor::CompressError::Semaphore(e) => RustError::unrecoverable(e),
+        }
+    }
+}
+
+impl From<crate::updater::Error> for RustError {
+    fn from(value: crate::updater::Error) -> Self {
+        log::error!(gui_toast = false; "updater error: {value}");
         Self::unrecoverable("failed to load the latest release")
     }
 }

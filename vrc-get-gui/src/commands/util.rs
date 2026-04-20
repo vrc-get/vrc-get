@@ -5,10 +5,10 @@ use crate::commands::environment::settings::TauriPickProjectDefaultPathResult;
 use crate::commands::prelude::*;
 use crate::logging::LogEntry;
 use crate::os::open_that;
+use crate::updater::{self, Update};
 use crate::utils::find_existing_parent_dir_or_home;
 use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_updater::{Update, UpdaterExt};
 use url::Url;
 
 #[derive(serde::Deserialize, specta::Type)]
@@ -64,19 +64,13 @@ pub fn util_get_version() -> String {
 pub async fn check_for_update(
     app_handle: AppHandle,
     stable: bool,
-) -> tauri_plugin_updater::Result<Option<Update>> {
+) -> updater::Result<Option<Update>> {
     let endpoint = if stable {
         Url::parse("https://vrc-get.anatawa12.com/api/gui/tauri-updater.json").unwrap()
     } else {
         Url::parse("https://vrc-get.anatawa12.com/api/gui/tauri-updater-beta.json").unwrap()
     };
-    app_handle
-        .updater_builder()
-        .endpoints(vec![endpoint])
-        .unwrap()
-        .build()?
-        .check()
-        .await
+    updater::check_for_update(&app_handle, endpoint).await
 }
 
 #[derive(serde::Serialize, specta::Type)]
@@ -84,7 +78,9 @@ pub struct CheckForUpdateResponse {
     version: u32,
     current_version: String,
     latest_version: String,
+    updater_status: updater::UpdaterStatus,
     update_description: Option<String>,
+    updater_disabled_messages: Option<indexmap::IndexMap<String, String>>,
 }
 
 #[tauri::command]
@@ -100,14 +96,22 @@ pub async fn util_check_for_update(
     };
     let current_version = response.current_version.clone();
     let latest_version = response.version.clone();
+    let updater_status = response.updater_status;
     let update_description = response.body.clone();
+    let updater_disabled_messages = if cfg!(feature = "no-self-updater") {
+        option_env!("ALCOM_UPDATER_DISABLED_MESSAGE").and_then(|x| serde_json::from_str(x).ok())
+    } else {
+        None
+    };
 
     let version = updater_state.set(response);
     Ok(Some(CheckForUpdateResponse {
         version,
         current_version,
         latest_version,
+        updater_status,
         update_description,
+        updater_disabled_messages,
     }))
 }
 
@@ -139,6 +143,8 @@ pub async fn util_install_and_upgrade(
         With::<InstallUpgradeProgress>::continue_async(move |ctx| async move {
             response
                 .into_data()
+                .updater
+                .unwrap()
                 .download_and_install(
                     |received, total| {
                         ctx.emit(InstallUpgradeProgress::DownloadProgress { received, total })

@@ -27,6 +27,7 @@
     "general:dialog:select file or directory header": "ファイルまたはディレクトリを選択",
     "general:dialog:select file or directory": "ファイルまたはディレクトリを選択してください。",
     "general:toast:invalid directory": "不正なディレクトリが選択されました。",
+    "general:toast:invalid file": "不正なファイルが選択されました。",
 
     "general:toast:not supported": "{{name}}はまだ実装されていません。",
     "general:not implemented": "未実装です",
@@ -465,10 +466,10 @@
 
     "settings:backup:format": "バックアップの保存形式",
     "settings:backup:format description": "「デフォルト」設定では、ALCOM開発チームが最も適切だと考えている保存形式が使用されます。(括弧内に詳細が表示されます)<br>圧縮率の高い保存形式ほどバックアップの作成に長い時間を要しますが、バックアップファイルの容量は小さくなります。",
-    "settings:backup:format:default": "デフォルト (無圧縮zip)",
+    "settings:backup:format:default": "デフォルト (低圧縮zip)",
     "settings:backup:format:zip-store": "無圧縮zip (高速)",
     "settings:backup:format:zip-fast": "低圧縮zip (低速)",
-    "settings:backup:format:zip-best": "高圧縮zip (超低速)",
+    "settings:backup:format:zip-best": "高圧縮zip (最も低速)",
     "settings:backup:exclude vpm packages from backup": "バックアップにVPMパッケージの本体を含まないようにする",
     "settings:backup:exclude vpm packages from backup description": "導入されているパッケージの一覧のみを保持することにより、バックアップファイルの容量を小さくすることができます。<br>ただし、パッケージの作者が(VRChatの勧告に従わずに)VPMリポジトリからパッケージ情報を削除してしまった場合、復元する際に別のバージョンのパッケージを手動で入れ直す必要が生じます。",
 
@@ -477,7 +478,11 @@
     "settings:toast:package cache cleared": "パッケージキャッシュを削除しました。",
 
     "settings:show prerelease": "プレリリース版のパッケージを表示する",
-    "settings:show prerelease description": "プレリリース版のパッケージは、正式リリース前の動作確認等に用いられるパッケージです。<br>この設定を有効にすると、パッケージのバージョンリストにプレリリース版のパッケージも表示されるようになります。<br>また、パッケージの依存関係を解決する際に、プレリリース版のパッケージも含まれるようになります。",
+    "settings:show prerelease description": "この設定を有効にすると、パッケージのバージョン一覧にプレリリース版のものが表示されるようになり、パッケージの依存関係を解決する際にもそれらが使用されるようになります。<br>プレリリース版のパッケージは正式リリース前の動作確認等に用いられるものであり、安定版よりバグに遭遇しやすくなります。",
+
+    "settings:dialog:show prerelease packages": "プレリリース版のパッケージを表示する",
+    "settings:dialog:show prerelease packages description": "プレリリース版のパッケージを使用すると、安定版よりバグに遭遇しやすくなります。<br>プレリリース版のパッケージを表示してもよろしいですか？",
+    "settings:dialog:enable show prerelease packages": "表示する",
 
     "settings:gui animation": "UIのアニメーションを有効にする",
     "settings:gui animation description": "ページを移動する際に遷移アニメーションが再生されます。Webviewのバージョンが低い場合は機能しないかもしれません。",
@@ -507,10 +512,16 @@
 
     "check update:dialog:title": "ALCOMのアップデート",
     "check update:dialog:new version description": "新しいバージョンのALCOMが使用できます！",
+    // note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "新しいバージョンのALCOMが公開されていますが、ご利用のプラットフォーム向けのビルドが提供されていません。<br>他のプラットフォーム向けのビルドが使用できる場合は、そちらをご利用ください。",
+    "check update:dialog:new version not updatable description": "新しいバージョンのALCOMが公開されていますが、ご利用のインストール方法は自動更新に対応していません。<br>手動での更新をお願いします。",
+    "check update:dialog:new version updater disabled base description": "新しいバージョンのALCOMが公開されています。",
+    "check update:dialog:new version updater how to upgrade fallback": "自動更新が無効化されているため、ご利用のパッケージマネージャーを通して更新してください。",
     "check update:dialog:current version": "使用中のバージョン:",
     "check update:dialog:latest version": "最新のバージョン:",
     "check update:dialog:changelog": "更新履歴",
     "check update:dialog:dismiss": "今はやめておく",
+    "check update:dialog:open download page": "ダウンロードページを開く",
     "check update:dialog:update": "アップデート",
     "check update:dialog:downloading...": "アップデートをダウンロード中...",
     "check update:dialog:relaunching...": "ALCOMを再起動しています...",

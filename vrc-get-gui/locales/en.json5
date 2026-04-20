@@ -27,6 +27,7 @@
     "general:dialog:select file or directory header": "Selecting file or directory",
     "general:dialog:select file or directory": "Please select a file or directory.",
     "general:toast:invalid directory": "Invalid directory was selected.",
+    "general:toast:invalid file": "Invalid file was selected.",
 
     "general:toast:not supported": "{{name}} is not supported yet.",
     "general:not implemented": "Not Implemented",
@@ -421,7 +422,7 @@
     "templates:dialog:unitypackages": "UnityPackages",
     "templates:dialog:no unitypackages": "No UnityPackages",
     "templates:dialog:remove template": "Remove Template",
-    "templates:dialog:confirm remove template": "Are you sure remove template {{displayName}}?",
+    "templates:dialog:confirm remove template": "Are you sure you want to remove template {{displayName}}?",
     "templates:button:save template": "Save Template",
     "templates:button:import template": "Import Template",
     "templates:toast:imported n templates_one": "Imported {{count}} template",
@@ -477,7 +478,7 @@
 
     "settings:backup:format": "Backup Archive Format",
     "settings:backup:format description": "Backups are saved as an archive file. <br/>You can select the format of the backup archive. <br/>Default setting is the best format ALCOM thinks at the moment and current default behavior is represented in braces.<br/>Compressing the archive will make backup took longer but will save disk space.",
-    "settings:backup:format:default": "Default (Uncompressed zip)",
+    "settings:backup:format:default": "Default (Low Compression zip)",
     "settings:backup:format:zip-store": "Uncompressed zip (Fast)",
     "settings:backup:format:zip-fast": "Low Compression zip (Slow)",
     "settings:backup:format:zip-best": "High Compression zip (Slowest)",
@@ -489,7 +490,11 @@
     "settings:toast:package cache cleared": "Downloaded package cache was cleared.",
 
     "settings:show prerelease": "Show Prerelease Packages",
-    "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list. In addition, prerelease packages will be used when resolving dependencies.",
+    "settings:show prerelease description": "Enabling Show Prerelease Packages will show prerelease packages in the package list, and they will be used when resolving dependencies.<br>Prerelease packages may have more bugs than stable packages.",
+
+    "settings:dialog:show prerelease packages": "Show Prerelease Packages",
+    "settings:dialog:show prerelease packages description": "Prerelease packages may have more bugs than stable packages.<br>Are you sure you want to show prerelease packages?",
+    "settings:dialog:enable show prerelease packages": "Show",
 
     "settings:gui animation": "Enable GUI Animation",
     "settings:gui animation description": "Page transitions are animated when GUI animation is enabled. But it may not work on lower webview versions.",
@@ -519,10 +524,16 @@
 
     "check update:dialog:title": "ALCOM Updates",
     "check update:dialog:new version description": "A new version of ALCOM is available.",
+    // note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "A new version of ALCOM is available, but your platform is no longer supported.<br>If your system supports another platform build, please download it instead.",
+    "check update:dialog:new version not updatable description": "A new version of ALCOM is available.<br>However, this installation cannot be updated automatically.<br>Please install the new version manually.",
+    "check update:dialog:new version updater disabled base description": "A new version of ALCOM is available.",
+    "check update:dialog:new version updater how to upgrade fallback": "Automatic updates are disabled. Please upgrade using your package manager.",
     "check update:dialog:current version": "Current Version:",
     "check update:dialog:latest version": "Latest Version:",
     "check update:dialog:changelog": "Changelog",
     "check update:dialog:dismiss": "Dismiss",
+    "check update:dialog:open download page": "Open Download Page",
     "check update:dialog:update": "Download & Update!",
     "check update:dialog:downloading...": "Downloading the update...",
     "check update:dialog:relaunching...": "Relaunching ALCOM...",

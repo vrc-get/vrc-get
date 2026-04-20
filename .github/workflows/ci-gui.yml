@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "master" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -17,6 +16,7 @@ jobs:
         include:
           - triple: x86_64-unknown-linux-gnu
             on: ubuntu-22.04
+            bundles: appimage,appimage-updater,deb,rpm
             setup: |
               sudo apt update && sudo apt install -y lld
               ld.lld --version
@@ -26,12 +26,14 @@ jobs:
 
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
+            bundles: setup-exe,exe-updater
 
           - triple: universal-apple-darwin
             on: macos-14
             setup: |
               rustup target add aarch64-apple-darwin
               rustup target add x86_64-apple-darwin
+            bundles: app,dmg,app-updater
         triple:
           - x86_64-unknown-linux-gnu
           #- aarch64-unknown-linux-gnu
@@ -44,6 +46,21 @@ jobs:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
     steps:
+      - uses: samypr100/setup-dev-drive@v3
+        with:
+          drive-size: 12GB # github actions grantees 14 GB of disk space. we have few GB for action environment
+          drive-path: "/dev_drive.vhdx"
+          mount-path: ${{ github.workspace }}
+          trusted-dev-drive: true
+      - name: Preinitialize git repository
+        shell: bash
+        run: |
+          # hopefully for non-cleaning environments, actions/checkout will tries to clean existing repository
+          # if existing dir is not git repository nor for specified repository.
+          # this step creates git directory to workaround the behavior
+          git init
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+
       - uses: actions/checkout@v6
         with:
           submodules: recursive
@@ -85,17 +102,13 @@ jobs:
           cp vrc-get-gui/Tauri.toml vrc-get-gui/Tauri.toml.bak
           grep -v "remove if ci" < vrc-get-gui/Tauri.toml.bak > vrc-get-gui/Tauri.toml
 
-      - name: Enable Devtools Feature
-        shell: bash
-        run: |
-          cargo add --package vrc-get-gui tauri --features devtools
+      - name: Build ALCOM binary
+        run:
+          cargo xtask build-alcom --release --target ${{ matrix.triple }} --devtools ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
 
-      - uses: tauri-apps/tauri-action@v0
-        with:
-          projectPath: vrc-get-gui
-          tauriScript: npm run tauri
-          args: |
-            --target ${{ matrix.triple }} -c '{"version":"${{ steps.version.outputs.version }}", "bundle":{"windows":{"certificateThumbprint": null}}}' ${{ (secrets.ACTIONS_STEP_DEBUG || vars.ACTIONS_STEP_DEBUG) == 'true' && '--verbose' || '' }}
+      - name: Build installer
+        shell: bash
+        run: cargo xtask bundle-alcom --release --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
 
       - name: Upload built binary
         uses: actions/upload-artifact@v7

@@ -293,8 +293,8 @@ fn print_prompt_install(changes: &PendingProjectChanges) {
     {
         let mut unlocked_conflicts = changes
             .conflicts()
-            .iter()
-            .flat_map(|(_, c)| c.unlocked_names())
+            .values()
+            .flat_map(|c| c.unlocked_names())
             .peekable();
 
         if unlocked_conflicts.peek().is_some() {
@@ -847,8 +847,8 @@ impl Upgrade {
             prompt_install(self.yes)
         }
 
-        let updates = (changes.package_changes().iter())
-            .filter_map(|(_, x)| x.as_install())
+        let updates = (changes.package_changes().values())
+            .filter_map(|x| x.as_install())
             .filter_map(|x| x.install_package())
             .map(|x| (x.name().to_owned(), x.version().clone()))
             .collect::<Vec<_>>();
@@ -924,8 +924,8 @@ impl Downgrade {
             prompt_install(self.yes)
         }
 
-        let downgrades = (changes.package_changes().iter())
-            .filter_map(|(_, x)| x.as_install())
+        let downgrades = (changes.package_changes().values())
+            .filter_map(|x| x.as_install())
             .filter_map(|x| x.install_package())
             .map(|x| (x.name().to_owned(), x.version().clone()))
             .collect::<Vec<_>>();

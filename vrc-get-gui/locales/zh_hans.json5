@@ -467,7 +467,7 @@
 
     "settings:backup:format": "备份文件的压缩格式",
     "settings:backup:format description": "备份以压缩文件的形式保存。 <br/>您可以选择压缩文件的压缩格式。<br/>默认设置是 ALCOM 目前认为最好的格式，当前的默认行为用括号表示。<br/>高压缩率会增加备份耗时，但会节省磁盘空间。",
-    "settings:backup:format:default": "默认 (未压缩的 zip)",
+    "settings:backup:format:default": "默认 (低压缩率的 zip)",
     "settings:backup:format:zip-store": "未压缩的 zip (快)",
     "settings:backup:format:zip-fast": "低压缩率的 zip (慢)",
     "settings:backup:format:zip-best": "高压缩率的 zip (最慢)",
@@ -509,10 +509,16 @@
 
     "check update:dialog:title": "ALCOM 更新",
     "check update:dialog:new version description": "ALCOM 有更新可用。",
+// note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "ALCOM 有更新可用，但是您使用的平台已经不受支持。<br>\n如果您的系统支持其他平台的构建，请下载对应平台的构建作为替代。",
+    "check update:dialog:new version not updatable description": "ALCOM 有更新可用。<br>但是您目前使用的安装方式无法自动更新。<br>请手动安装新版本。",
+    "check update:dialog:new version updater disabled base description": "ALCOM 有更新可用。",
+    "check update:dialog:new version updater how to upgrade fallback": "自动更新已被禁用。请通过您的包管理器更新。",
     "check update:dialog:current version": "当前版本:",
     "check update:dialog:latest version": "最新版本:",
     "check update:dialog:changelog": "更新日志",
     "check update:dialog:dismiss": "忽略",
+    "check update:dialog:open download page": "在浏览器中打开下载页",
     "check update:dialog:update": "下载并更新！",
     "check update:dialog:downloading...": "正在下载更新...",
     "check update:dialog:relaunching...": "正在重启 ALCOM...",

@@ -1,7 +1,10 @@
 use crate::commands::DEFAULT_UNITY_ARGUMENTS;
 use crate::commands::async_command::*;
 use crate::commands::prelude::*;
+use crate::compressor::TauriCreateBackupProgress;
+use crate::compressor::parallel_compress_zip;
 use crate::utils::{collect_notable_project_files_tree, project_backup_path};
+use async_zip::{Compression, DeflateOption};
 use log::{error, info, warn};
 use serde::Serialize;
 use std::ffi::OsStr;
@@ -9,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::str::FromStr;
 use tauri::{AppHandle, State, Window};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use vrc_get_vpm::environment::{PackageInstaller, VccDatabaseConnection};
 use vrc_get_vpm::io::DefaultEnvironmentIo;
@@ -518,14 +521,11 @@ pub fn project_is_unity_launching(project_path: String) -> bool {
 async fn create_backup_zip(
     backup_path: &Path,
     project_path: &Path,
-    compression: async_zip::Compression,
-    deflate_option: async_zip::DeflateOption,
+    compression: Compression,
+    deflate_option: DeflateOption,
     exclude_vpm: bool,
     ctx: AsyncCommandContext<TauriCreateBackupProgress>,
 ) -> Result<(), RustError> {
-    let mut file = tokio::fs::File::create_new(&backup_path).await?;
-    let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(&mut file);
-
     info!("Collecting files to backup {}...", project_path.display());
 
     let start = std::time::Instant::now();
@@ -539,45 +539,14 @@ async fn create_backup_zip(
         start.elapsed().as_secs_f64()
     );
 
-    let _ = ctx.emit(TauriCreateBackupProgress {
-        total: total_files,
-        proceed: 0,
-        last_proceed: "Collecting files".to_string(),
-    });
-
-    for (proceed, entry) in file_tree.recursive().enumerate() {
-        if entry.is_dir() {
-            writer
-                .write_entry_whole(
-                    async_zip::ZipEntryBuilder::new(
-                        entry.relative_path().into(),
-                        async_zip::Compression::Stored,
-                    ),
-                    b"",
-                )
-                .await?;
-        } else {
-            let file = tokio::fs::read(entry.absolute_path()).await?;
-            writer
-                .write_entry_whole(
-                    async_zip::ZipEntryBuilder::new(entry.relative_path().into(), compression)
-                        .deflate_option(deflate_option),
-                    file.as_ref(),
-                )
-                .await?;
-        }
-
-        let _ = ctx.emit(TauriCreateBackupProgress {
-            total: total_files,
-            proceed: proceed + 1,
-            last_proceed: entry.relative_path().to_string(),
-        });
-    }
-
-    writer.close().await?;
-    file.flush().await?;
-    file.sync_data().await?;
-    drop(file);
+    parallel_compress_zip(
+        file_tree,
+        backup_path.to_path_buf(),
+        compression,
+        deflate_option,
+        ctx,
+    )
+    .await?;
 
     info!(
         "Creating backup archive for {} finished!",
@@ -603,13 +572,6 @@ impl Drop for RemoveOnDrop<'_> {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(self.0);
     }
-}
-
-#[derive(Serialize, specta::Type, Clone)]
-pub struct TauriCreateBackupProgress {
-    total: usize,
-    proceed: usize,
-    last_proceed: String,
 }
 
 #[tauri::command]
@@ -648,10 +610,10 @@ pub async fn project_create_backup(
             log::info!("backup project: {project_name} with {backup_format}");
             let timer = std::time::Instant::now();
 
-            let backup_path;
+            let backup_path: PathBuf;
             let remove_on_drop: RemoveOnDrop;
             match backup_format.as_str() {
-                "default" | "zip-store" => {
+                "zip-store" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");
@@ -659,14 +621,14 @@ pub async fn project_create_backup(
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        async_zip::Compression::Stored,
-                        async_zip::DeflateOption::Normal,
+                        Compression::Stored,
+                        DeflateOption::Fast, // unused
                         exclude_vpm,
                         ctx,
                     )
                     .await?;
                 }
-                "zip-fast" => {
+                "default" | "zip-fast" => {
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");
@@ -674,8 +636,8 @@ pub async fn project_create_backup(
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(1),
+                        Compression::Deflate,
+                        DeflateOption::Fast,
                         exclude_vpm,
                         ctx,
                     )
@@ -689,32 +651,32 @@ pub async fn project_create_backup(
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(9),
+                        Compression::Deflate,
+                        DeflateOption::Maximum,
                         exclude_vpm,
                         ctx,
                     )
                     .await?;
                 }
-                backup_format => {
+                _ => {
                     warn!("unknown backup format: {backup_format}, using zip-fast");
 
                     backup_path = Path::new(&backup_dir)
                         .join(&backup_name)
                         .with_added_extension("zip");
-
                     remove_on_drop = RemoveOnDrop::new(&backup_path);
                     create_backup_zip(
                         &backup_path,
                         project_path.as_ref(),
-                        async_zip::Compression::Deflate,
-                        async_zip::DeflateOption::Other(1),
+                        Compression::Deflate,
+                        DeflateOption::Fast,
                         exclude_vpm,
                         ctx,
                     )
                     .await?;
                 }
-            }
+            };
+
             remove_on_drop.forget();
 
             log::info!("backup finished in {:?}", timer.elapsed());

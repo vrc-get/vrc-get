@@ -47,10 +47,7 @@ pub async fn load_unity_by_loading_unity_hub_files() -> Result<Vec<UnityEditorIn
     )
     .await?;
 
-    Ok(a.into_iter()
-        .chain(b.into_iter())
-        .chain(c.into_iter())
-        .collect())
+    Ok(a.into_iter().chain(b).chain(c).collect())
 }
 
 async fn get_custom_install_location(local_settings: &LocalSettings) -> Option<PathBuf> {
