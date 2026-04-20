@@ -691,7 +691,7 @@ function BulkUpdateCard({
 					{tc("projects:manage:button:uninstall selected")}
 				</ButtonDisabledIfLoading>
 			)}
-			<ButtonDisabledIfLoading onClick={cancel} variant={"destructive"}>
+			<ButtonDisabledIfLoading onClick={cancel} variant={"warning"}>
 				{tc("projects:manage:button:clear selection")}
 				{" ("}
 				{tc("projects:manage:n packages selected", { count })}
