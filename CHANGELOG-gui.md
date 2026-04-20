@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
   - Please read README for new build instruction.
 
 ### Changed
+- The "Clear Selection" button in the package management screen is now red (destructive style) to distinguish it from the "Install Selected" button [`#2803`](https://github.com/vrc-get/vrc-get/pull/2803)
 - File filled with '\0' or whitespace will be treated as empty file `#2710`
   - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
 - Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759`
