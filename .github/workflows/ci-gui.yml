@@ -46,7 +46,7 @@ jobs:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
     steps:
-      - uses: samypr100/setup-dev-drive@v3
+      - uses: samypr100/setup-dev-drive@v4
         with:
           drive-size: 12GB # github actions grantees 14 GB of disk space. we have few GB for action environment
           drive-path: "/dev_drive.vhdx"
