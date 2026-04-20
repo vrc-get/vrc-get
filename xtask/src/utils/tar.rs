@@ -1,6 +1,8 @@
 pub use ::tar::*;
+use anyhow::Context;
 use std::fs::Metadata;
 use std::io;
+use std::io::Read;
 use std::path::Path;
 
 pub struct HeaderBuilder {
@@ -114,18 +116,46 @@ impl HeaderBuilder {
 }
 
 pub trait TarBuilderExt {
-    fn append_directory<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()>;
+    fn append_directory<P: AsRef<Path>>(&mut self, path: P) -> anyhow::Result<()>;
+    fn append_file_data<P: AsRef<Path>, R: Read>(
+        &mut self,
+        mode: u32,
+        path: P,
+        data: R,
+    ) -> anyhow::Result<()>;
 }
 
 impl<W: io::Write> TarBuilderExt for Builder<W> {
-    fn append_directory<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
+    fn append_directory<P: AsRef<Path>>(&mut self, path: P) -> anyhow::Result<()> {
+        let path = path.as_ref();
         self.append(
             HeaderBuilder::new_gnu()
                 .with_mode(0o755)
                 .with_entry_type(EntryType::Directory)
-                .with_path(path)?
+                .with_path(path)
+                .expect("long path")
                 .build(),
             io::empty(),
         )
+        .with_context(|| format!("adding directory: {}", path.display()))
+    }
+
+    fn append_file_data<P: AsRef<Path>, R: Read>(
+        &mut self,
+        mode: u32,
+        path: P,
+        data: R,
+    ) -> anyhow::Result<()> {
+        let path = path.as_ref();
+        self.append(
+            HeaderBuilder::new_gnu()
+                .with_mode(mode)
+                .with_entry_type(EntryType::Regular)
+                .with_path(path)
+                .expect("long path")
+                .build(),
+            data,
+        )
+        .with_context(|| format!("adding file: {}", path.display()))
     }
 }

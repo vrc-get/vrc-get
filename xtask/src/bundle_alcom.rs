@@ -42,6 +42,10 @@ pub(crate) enum BundleKind {
     /// AppImage.tar.gz updater payload (requires AppImage to already exist)
     #[value(name = "appimage-updater")]
     AppImageUpdater,
+    /// Package manager independent buildroot for external package managers
+    ///
+    /// Unlike dmg depends on app, deb/rpm doesn't depend on this bundle.
+    Buildroot,
     /// Debian package
     Deb,
     /// RPM package
@@ -87,6 +91,12 @@ pub(super) struct Command {
     /// then sign it, then produce `dmg` and `app-updater`.
     #[arg(long, value_delimiter = ',')]
     bundles: Vec<BundleKind>,
+
+    /// Output directory for buildroot
+    ///
+    /// Only valid for buildroot bundle
+    #[arg(long)]
+    buildroot: Option<PathBuf>,
 }
 
 impl crate::Command for Command {
@@ -117,6 +127,10 @@ impl crate::Command for Command {
 
         if bundles.contains(&BundleKind::AppImageUpdater) {
             appimage::create_appimage_tar_gz(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::Buildroot) {
+            linux::create_install_build_root(&ctx, self.buildroot.as_deref())?;
         }
 
         if bundles.contains(&BundleKind::Deb) {
