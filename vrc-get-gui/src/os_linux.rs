@@ -88,6 +88,13 @@ pub fn initialize(app_handle: tauri::AppHandle) {
     APPDIR.store(app_handle.env().appdir.clone().map(Arc::from));
 }
 
+pub(crate) fn is_noexec(path: &std::path::Path) -> bool {
+    match nix::sys::statvfs::statvfs(path) {
+        Ok(stat) => stat.flags().contains(nix::sys::statvfs::FsFlags::ST_NOEXEC),
+        Err(_) => false,
+    }
+}
+
 pub fn open_that(path: impl AsRef<OsStr>) -> io::Result<()> {
     // We implement open_that here since we have to fix env variables for xdg-open.
     // This implementation supports xdg-open only but it's general enough for most cases, I think

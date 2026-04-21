@@ -195,6 +195,13 @@ pub fn initialize(_: tauri::AppHandle) {
     // nothing to initialize
 }
 
+pub(crate) fn is_noexec(path: &std::path::Path) -> bool {
+    match nix::sys::statfs::statfs(path) {
+        Ok(stat) => stat.flags().contains(nix::sys::statfs::MntFlags::MNT_NOEXEC),
+        Err(_) => false,
+    }
+}
+
 pub(crate) fn fix_env_variables(_: &mut Command) {
     // nothing to do
 }

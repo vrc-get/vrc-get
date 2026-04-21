@@ -480,6 +480,20 @@ pub async fn project_open_unity(
         return Ok(false);
     }
 
+    #[cfg(unix)]
+    {
+        let project_path_ref = Path::new(project_path.as_str());
+        let check_dirs = ["Assets", "Packages", "Library"];
+        let is_noexec = check_dirs
+            .iter()
+            .map(|dir| project_path_ref.join(dir))
+            .filter(|p| p.exists())
+            .any(|p| crate::os::is_noexec(&p));
+        if is_noexec {
+            return Err(localizable_error!("projects:error:noexec mount point"));
+        }
+    }
+
     let mut custom_args: Option<Vec<String>> = None;
 
     {
