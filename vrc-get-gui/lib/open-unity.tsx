@@ -140,7 +140,7 @@ async function openUnityWith(
 				selected.unityPath,
 			);
 			if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
-			else toastError("Unity already running");
+			else toastError(i18next.t("projects:toast:unity already running"));
 		} catch (e) {
 			toastThrownError(e);
 		}
