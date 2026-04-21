@@ -296,7 +296,7 @@
     "projects:toast:unity migrated": "The project was migrated to Unity 2022",
 
     "projects:manage:dialog:confirm changes description": "You're applying the following changes to the project.",
-    "projects:manage:dialog:note breaking changes": "There are changes that may affect compatibility. <br/>Some assets, configurations, or tools might not work as expected. <br/>If issues occur, revert the update.<br/>Check compatibility information and proceed with care.",
+    "projects:manage:dialog:note breaking changes": "There are changes that may affect compatibility. <br/>Some assets, configurations, or tools might not work as expected. Check compatibility information and proceed with care.<br/>If you encounter any issues, try reverting the update.",
     "projects:manage:dialog:note incompatibility": "There are some incompatibility with some other packages. <br/>Those tools may report error when loading project or while using. <br/>Check for compatibility information and upgrade related packages at once, or install with care.",
     "projects:manage:dialog:upgrade package": "Upgrade <b>{{name}}</b> version {{previousVersion}} to <b>{{version}}</b>",
     "projects:manage:dialog:downgrade package": "Downgrade <b>{{name}}</b> version {{previousVersion}} to <b>{{version}}</b>",
