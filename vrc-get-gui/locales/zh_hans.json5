@@ -108,6 +108,7 @@
     "projects:grid view": "网格视图",
     "projects:sort by": "排序条件:",
     "projects:error:load error": "加载项目时出错: {{msg}}",
+    "projects:error:noexec filesystem": "项目位于以 'noexec' 标志挂载的文件系统上（例如 NTFS）。这将导致着色器编译失败，使虚拟形象出现非立体渲染问题。请将项目移动到没有 'noexec' 标志的文件系统上。",
     "projects:toast:project added": "添加项目成功。",
     "projects:toast:project already exists": "该项目已经添加过了。",
 

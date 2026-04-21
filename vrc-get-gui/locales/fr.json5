@@ -101,6 +101,7 @@
     'projects:dialog:warn removing project': 'Vous vous apprêtez a supprimer le projet <b>{{name}}</b>. Êtes vous sur ?',
     'projects:do not close': 'Ne fermez pas cette fenêttre.',
     'projects:error:load error': 'Erreur lors du chargement des projets: {{msg}}',
+    'projects:error:noexec filesystem': "Le projet est situé sur un système de fichiers monté avec le drapeau 'noexec' (ex: NTFS). Cela causera des problèmes de compilation des shaders, entraînant un rendu non-stéréoscopique des avatars. Veuillez déplacer le projet vers un système de fichiers sans le drapeau 'noexec'.",
     'projects:grid view': 'Vue en Grille',
     'projects:hint:create project ready': 'Prêt a créer un projet !',
     'projects:hint:invalid project name': 'Nom de projet invalide.',

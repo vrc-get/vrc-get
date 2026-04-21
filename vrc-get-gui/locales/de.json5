@@ -113,6 +113,7 @@
     "projects:grid view": "Gitteransicht",
     "projects:sort by": "Sortierreihenfolge:",
     "projects:error:load error": "Fehler beim Laden der Projekte: {{msg}}",
+    "projects:error:noexec filesystem": "Das Projekt befindet sich auf einem Dateisystem, das mit dem 'noexec'-Flag eingehängt wurde (z.B. NTFS). Dies verursacht Probleme bei der Shader-Kompilierung und führt dazu, dass Avatare nicht-stereoskopisch erscheinen. Bitte verschiebe das Projekt auf ein Dateisystem ohne das 'noexec'-Flag.",
     "projects:toast:project added": "Projekt erfolgreich hinzugefügt",
     "projects:toast:project already exists": "Das Projekt wurde bereits hinzugefügt.",
 

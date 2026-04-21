@@ -198,3 +198,10 @@ pub fn initialize(_: tauri::AppHandle) {
 pub(crate) fn fix_env_variables(_: &mut Command) {
     // nothing to do
 }
+
+pub fn is_noexec(path: &Path) -> bool {
+    use nix::mount::MntFlags;
+    nix::sys::statfs::statfs(path)
+        .map(|s| s.flags().contains(MntFlags::MNT_NOEXEC))
+        .unwrap_or(false)
+}

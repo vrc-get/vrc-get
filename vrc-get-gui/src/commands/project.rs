@@ -480,6 +480,16 @@ pub async fn project_open_unity(
         return Ok(false);
     }
 
+    // Check if the project is on a noexec filesystem (Linux/macOS only)
+    // This causes shader compilation failures, resulting in non-stereoscopic rendering
+    let project_path_ref = Path::new(&project_path);
+    for subdir in &["Assets", "Packages", "Library"] {
+        let dir = project_path_ref.join(subdir);
+        if crate::os::is_noexec(&dir) {
+            return Err(localizable_error!("projects:error:noexec filesystem"));
+        }
+    }
+
     let mut custom_args: Option<Vec<String>> = None;
 
     {
