@@ -36,6 +36,8 @@ The format is based on [Keep a Changelog].
 - null as vpmDependencies value is not allowed `#2709`
   - It's not recommended, but we allow null for `vpmDependencies` as a alias of `{}`
 - ALCOM cannot detect per-user flatpak installation of unity hub `#2812`
+- Unabled to import some untypackages `#2821`
+  - It's hard to say but some older unitypackages ware unsupported.
 
 ### Security
 

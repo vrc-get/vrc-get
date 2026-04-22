@@ -674,8 +674,22 @@ async fn import_unitypackage_impl(
                 }
                 // ignoring paths for non-Assets / Packages
                 if !pathname.starts_with("Assets/") && !pathname.starts_with("Packages/") {
+                    warn!(
+                        "asset is not under Assets or Packages: {guid}: {pathname:?}",
+                        guid = std::str::from_utf8(&guid).unwrap()
+                    );
                     continue;
                 }
+                // https://github.com/vrc-get/vrc-get/issues/2634
+                // https://issuetracker.unity3d.com/product/unity/issues/guid/UUM-132869
+                // if there is '\n' in their pathname, remove after last '\n'
+                let pathname = if let Some(index) = pathname.rfind('\n') {
+                    let mut pathname = pathname;
+                    pathname.replace_range(index.., "");
+                    pathname
+                } else {
+                    pathname
+                };
                 package_entry.pathname = pathname;
             }
             _ => continue, // non unitypackage entry
