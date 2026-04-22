@@ -108,7 +108,7 @@
     "projects:grid view": "グリッド表示",
     "projects:sort by": "表示順:",
     "projects:error:load error": "プロジェクトリストの読み込み中にエラーが発生しました: {{msg}}",
-    "projects:error:noexec filesystem": "プロジェクトが 'noexec' フラグでマウントされたファイルシステム (例: NTFS) 上にあります。これによりシェーダーのコンパイルに問題が発生し、アバターが非立体視になる可能性があります。'noexec' フラグのないファイルシステムにプロジェクトを移動してください。",
+    "projects:error:noexec filesystem": "プロジェクトが'noexec'フラグ付きでマウントされたファイルシステム上にあります。これにより、Unityのネイティブプラグインの読み込みが妨げられ、破損したアセットが生成されるなどの不具合が発生します。'noexec'フラグが付いていないファイルシステム上にプロジェクトを移動してください。",
     "projects:toast:project added": "プロジェクトを追加しました。",
     "projects:toast:project already exists": "このプロジェクトは既に追加されています。",
 
