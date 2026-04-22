@@ -674,6 +674,10 @@ async fn import_unitypackage_impl(
                 }
                 // ignoring paths for non-Assets / Packages
                 if !pathname.starts_with("Assets/") && !pathname.starts_with("Packages/") {
+                    warn!(
+                        "asset is not under Assets or Packages: {guid}: {pathname:?}",
+                        guid = std::str::from_utf8(&guid).unwrap()
+                    );
                     continue;
                 }
                 package_entry.pathname = pathname;
