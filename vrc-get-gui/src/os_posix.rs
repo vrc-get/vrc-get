@@ -51,5 +51,5 @@ pub fn os_info() -> &'static str {
 }
 
 pub use os_more::initialize;
-pub use os_more::open_that;
 pub use os_more::is_noexec;
+pub use os_more::open_that;
