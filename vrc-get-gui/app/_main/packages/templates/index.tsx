@@ -741,6 +741,11 @@ function TemplateEditor({
 		reorderable: false,
 	});
 
+	const addedPackageNames = useMemo(
+		() => new Set(packagesListContext.value.map((p) => p.name)),
+		[packagesListContext.value],
+	);
+
 	const unityPackagesListContext = useReorderableList<string>({
 		defaultValue: "",
 		defaultArray: template?.unity_packages ?? [],
@@ -913,9 +918,7 @@ function TemplateEditor({
 														options={packageCandidates.filter(
 															(c) =>
 																c.value === value.name ||
-																!packagesListContext.value.some(
-																	(p) => p.name === c.value,
-																),
+																!addedPackageNames.has(c.value),
 														)}
 														onChange={(value) =>
 															packagesListContext.update(id, (old) => ({

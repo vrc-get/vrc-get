@@ -25,13 +25,13 @@ The format is based on [Keep a Changelog].
 - Path for unitypackage on Template Editor now can be reselected `#2635`
 - ALCOM now refuses launching project if project is on noexec mount points `#2814`
   - This would cause problems with several native plugins
+- Already-added packages are now excluded from the package name suggestions in the Template Editor `#2828`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Already-added packages are now excluded from the package name suggestions in the Template Editor `#2828`
 - Fixed an issue where the progress bar flickered and did not display correct progress in environments using WebKit as the renderer. [`#2641`](https://github.com/vrc-get/vrc-get/pull/2641)
 - Fails to import UnityPackages with files in `Packages` directory `#2679`
 - null as vpmDependencies value is not allowed `#2709`
