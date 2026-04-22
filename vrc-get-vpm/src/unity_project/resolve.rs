@@ -189,7 +189,7 @@ impl UnityProject {
         );
 
         for x in result.new_packages {
-            changes.install_to_locked(x);
+            changes.install_to_locked_replacing(x);
             if install_names.contains(x.name()) {
                 changes.add_to_dependencies(
                     x.name().into(),
@@ -315,7 +315,7 @@ impl UnityProject {
         );
 
         for x in result.new_packages {
-            changes.install_to_locked(x);
+            changes.install_to_locked_replacing(x);
         }
 
         for (package, conflicts_with) in result.conflicts {

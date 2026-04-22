@@ -133,17 +133,17 @@ impl<'env> Builder<'env> {
     }
 
     pub fn add_to_dependencies(&mut self, name: Box<str>, version: DependencyRange) -> &mut Self {
-        match self.package_changes.entry(name) {
+        match self.package_changes.entry(name.clone()) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(e) => {
                     if e.to_dependencies.is_none() {
                         e.to_dependencies = Some(version);
                     } else {
-                        panic!("INTERNAL ERROR: already add_to_dependencies");
+                        panic!("INTERNAL ERROR: already add_to_dependencies: {}", name);
                     }
                 }
                 PackageChange::Remove(_) => {
-                    panic!("INTERNAL ERROR: add_to_dependencies for removed");
+                    panic!("INTERNAL ERROR: add_to_dependencies for removed: {}", name);
                 }
             },
             Entry::Vacant(e) => {
@@ -159,50 +159,60 @@ impl<'env> Builder<'env> {
     }
 
     pub fn install_to_locked(&mut self, info: PackageInfo<'env>) -> &mut Self {
-        match self.package_changes.entry(info.name().into()) {
-            Entry::Occupied(mut e) => match e.get_mut() {
-                PackageChange::Install(e) => {
-                    if e.package.is_none() {
-                        e.package = Some(info);
-                        e.add_to_locked = true;
-                    } else {
-                        panic!("INTERNAL ERROR: already install");
-                    }
-                }
-                PackageChange::Remove(_) => {
-                    panic!("INTERNAL ERROR: install for removed");
-                }
-            },
-            Entry::Vacant(e) => {
-                e.insert(PackageChange::Install(Install {
-                    package: Some(info),
-                    add_to_locked: true,
-                    to_dependencies: None,
-                }));
-            }
-        }
-        self
+        self.install_to_locked_impl(info, true, false)
+    }
+
+    // replacing is necessary for resolve since dependencies or unlocked package may require
+    // newer versions of locked packages.
+    pub fn install_to_locked_replacing(&mut self, info: PackageInfo<'env>) -> &mut Self {
+        self.install_to_locked_impl(info, true, true)
     }
 
     pub fn install_already_locked(&mut self, info: PackageInfo<'env>) -> &mut Self {
+        self.install_to_locked_impl(info, false, false)
+    }
+
+    fn install_to_locked_impl(
+        &mut self,
+        info: PackageInfo<'env>,
+        add_to_locked: bool,
+        allow_replace: bool,
+    ) -> &mut Self {
         match self.package_changes.entry(info.name().into()) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(e) => {
-                    if e.package.is_none() {
-                        e.package = Some(info);
-                        e.add_to_locked = false;
+                    if let Some(installed) = e.package
+                        && !allow_replace
+                    {
+                        panic!(
+                            "INTERNAL ERROR: already install: {} ({} ({}) => {} ({}))",
+                            info.name(),
+                            installed.version(),
+                            if e.add_to_locked {
+                                "to locked"
+                            } else {
+                                "existing"
+                            },
+                            info.version(),
+                            if add_to_locked {
+                                "to locked"
+                            } else {
+                                "existing"
+                            },
+                        );
                     } else {
-                        panic!("INTERNAL ERROR: already install");
+                        e.package = Some(info);
+                        e.add_to_locked = add_to_locked;
                     }
                 }
                 PackageChange::Remove(_) => {
-                    panic!("INTERNAL ERROR: install for removed");
+                    panic!("INTERNAL ERROR: install for removed: {}", info.name());
                 }
             },
             Entry::Vacant(e) => {
                 e.insert(PackageChange::Install(Install {
                     package: Some(info),
-                    add_to_locked: false,
+                    add_to_locked,
                     to_dependencies: None,
                 }));
             }
@@ -251,14 +261,14 @@ impl<'env> Builder<'env> {
     }
 
     pub fn remove(&mut self, name: Box<str>, reason: RemoveReason) -> &mut Self {
-        match self.package_changes.entry(name) {
+        match self.package_changes.entry(name.clone()) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(_) => {
-                    panic!("INTERNAL ERROR: remove for installed");
+                    panic!("INTERNAL ERROR: remove for installed: {name}");
                 }
                 PackageChange::Remove(e) => {
                     if e.reason != reason {
-                        panic!("INTERNAL ERROR: already remove");
+                        panic!("INTERNAL ERROR: already remove: {name}");
                     }
                 }
             },
@@ -273,10 +283,10 @@ impl<'env> Builder<'env> {
     }
 
     fn remove_unused(&mut self, name: Box<str>) -> &mut Self {
-        match self.package_changes.entry(name) {
+        match self.package_changes.entry(name.clone()) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(_) => {
-                    panic!("INTERNAL ERROR: remove_unused for installed");
+                    panic!("INTERNAL ERROR: remove_unused for installed: {name}");
                 }
                 PackageChange::Remove(_) => {
                     // already removed, do nothing
