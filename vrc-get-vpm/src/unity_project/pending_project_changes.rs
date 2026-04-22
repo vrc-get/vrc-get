@@ -159,22 +159,31 @@ impl<'env> Builder<'env> {
     }
 
     pub fn install_to_locked(&mut self, info: PackageInfo<'env>) -> &mut Self {
-        self.install_to_locked_impl(info, true)
+        self.install_to_locked_impl(info, true, false)
+    }
+
+    // replacing is necessary for resolve since dependencies or unlocked package may require
+    // newer versions of locked packages.
+    pub fn install_to_locked_replacing(&mut self, info: PackageInfo<'env>) -> &mut Self {
+        self.install_to_locked_impl(info, true, true)
     }
 
     pub fn install_already_locked(&mut self, info: PackageInfo<'env>) -> &mut Self {
-        self.install_to_locked_impl(info, false)
+        self.install_to_locked_impl(info, false, false)
     }
 
     fn install_to_locked_impl(
         &mut self,
         info: PackageInfo<'env>,
         add_to_locked: bool,
+        allow_replace: bool,
     ) -> &mut Self {
         match self.package_changes.entry(info.name().into()) {
             Entry::Occupied(mut e) => match e.get_mut() {
                 PackageChange::Install(e) => {
-                    if let Some(installed) = e.package {
+                    if let Some(installed) = e.package
+                        && !allow_replace
+                    {
                         panic!(
                             "INTERNAL ERROR: already install: {} ({} ({}) => {} ({}))",
                             info.name(),
