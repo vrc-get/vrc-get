@@ -113,7 +113,6 @@
     "projects:grid view": "網格視圖",
     "projects:sort by": "排序方式：",
     "projects:error:load error": "加載專案時發生錯誤： {{msg}}",
-    "projects:error:noexec filesystem": "專案位於以 'noexec' 旗標掛載的檔案系統上（例如 NTFS）。這將導致著色器編譯失敗，使虛擬形象出現非立體視覺渲染問題。請將專案移動至沒有 'noexec' 旗標的檔案系統上。",
     "projects:toast:project added": "專案已添加成功。",
     "projects:toast:project already exists": "已添加過此專案。",
 

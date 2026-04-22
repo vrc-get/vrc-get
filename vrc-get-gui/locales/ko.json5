@@ -107,7 +107,6 @@
     "projects:grid view": "그리드 뷰",
     "projects:sort by": "정렬:",
     "projects:error:load error": "프로젝트 목록을 불러오는 중 오류가 발생했습니다: {{msg}}",
-    "projects:error:noexec filesystem": "프로젝트가 'noexec' 플래그로 마운트된 파일시스템(예: NTFS)에 있습니다. 이로 인해 셰이더 컴파일에 문제가 발생하여 아바타가 비입체적으로 표시될 수 있습니다. 'noexec' 플래그가 없는 파일시스템으로 프로젝트를 이동해 주세요.",
     "projects:toast:project added": "프로젝트를 추가했습니다.",
     "projects:toast:project already exists": "이 프로젝트는 이미 추가되어 있습니다.",
 
