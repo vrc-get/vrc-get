@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog].
 - We added dialog on enabling "Show Prerelease Packages" `#2795`
   - I hope this prevents users unexpectedly adding prerelease packages
 - Path for unitypackage on Template Editor now can be reselected `#2635`
+- ALCOM now refuses launching project if project is on noexec mount points `#2814`
+  - This would cause problems with several native plugins
 
 ### Deprecated
 
