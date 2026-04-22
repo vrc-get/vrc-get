@@ -171,14 +171,15 @@ export function useReorderableList<T extends NonFunction>({
 		});
 	}, []);
 
-	return useMemo(
-		() => ({
+	return useMemo(() => {
+		let valueCache: T[] | undefined;
+		return {
 			setList,
 			add,
 			update,
 			remove,
 			get value() {
-				return backedList.map(({ value }) => value);
+				return (valueCache ??= backedList.map(({ value }) => value));
 			},
 			[internalSymbol]: {
 				backedList,
@@ -187,19 +188,18 @@ export function useReorderableList<T extends NonFunction>({
 				reorderable,
 				addable,
 			},
-		}),
-		[
-			setList,
-			add,
-			update,
-			remove,
-			backedList,
-			defaultValue,
-			swap,
-			reorderable,
-			addable,
-		],
-	);
+		};
+	}, [
+		setList,
+		add,
+		update,
+		remove,
+		backedList,
+		defaultValue,
+		swap,
+		reorderable,
+		addable,
+	]);
 }
 
 export function ReorderableList<T>({
