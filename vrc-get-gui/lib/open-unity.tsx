@@ -4,7 +4,7 @@ import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { commands, type TauriUnityVersions } from "@/lib/bindings";
 import { type DialogContext, openSingleDialog } from "@/lib/dialog";
 import i18next, { tc } from "@/lib/i18n";
-import { toastError, toastNormal } from "@/lib/toast";
+import { toastError, toastNormal, toastThrownError } from "@/lib/toast";
 import { parseUnityVersion } from "@/lib/version";
 
 export async function openUnity(
@@ -92,46 +92,50 @@ async function openUnityWith(
 	selectedPath: string | null,
 	projectPath: string,
 ) {
-	if (foundVersions.length === 1) {
-		if (selectedPath) {
-			if (foundVersions[0][0] !== selectedPath) {
-				// if only unity is not
-				void commands.projectSetUnityPath(projectPath, null);
+	try {
+		if (foundVersions.length === 1) {
+			if (selectedPath) {
+				if (foundVersions[0][0] !== selectedPath) {
+					// if only unity is not
+					void commands.projectSetUnityPath(projectPath, null);
+				}
 			}
-		}
-		const result = await commands.projectOpenUnity(
-			projectPath,
-			foundVersions[0][0],
-		);
-		if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
-		else toastError(i18next.t("projects:toast:unity already running"));
-	} else {
-		if (selectedPath) {
-			const found = foundVersions.find(([p, _v, _i]) => p === selectedPath);
-			if (found) {
-				const result = await commands.projectOpenUnity(
-					projectPath,
-					selectedPath,
-				);
-				if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
-				else toastError(i18next.t("projects:toast:unity already running"));
-				return;
+			const result = await commands.projectOpenUnity(
+				projectPath,
+				foundVersions[0][0],
+			);
+			if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
+			else toastError(i18next.t("projects:toast:unity already running"));
+		} else {
+			if (selectedPath) {
+				const found = foundVersions.find(([p, _v, _i]) => p === selectedPath);
+				if (found) {
+					const result = await commands.projectOpenUnity(
+						projectPath,
+						selectedPath,
+					);
+					if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
+					else toastError(i18next.t("projects:toast:unity already running"));
+					return;
+				}
 			}
+			const selected = await openSingleDialog(UnitySelectorDialog, {
+				unityVersions: foundVersions,
+				supportKeepUsing: true,
+			});
+			if (selected == null) return;
+			if (selected.keepUsingThisVersion) {
+				void commands.projectSetUnityPath(projectPath, selected.unityPath);
+			}
+			const result = await commands.projectOpenUnity(
+				projectPath,
+				selected.unityPath,
+			);
+			if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
+			else toastError(i18next.t("projects:toast:unity already running"));
 		}
-		const selected = await openSingleDialog(UnitySelectorDialog, {
-			unityVersions: foundVersions,
-			supportKeepUsing: true,
-		});
-		if (selected == null) return;
-		if (selected.keepUsingThisVersion) {
-			void commands.projectSetUnityPath(projectPath, selected.unityPath);
-		}
-		const result = await commands.projectOpenUnity(
-			projectPath,
-			selected.unityPath,
-		);
-		if (result) toastNormal(i18next.t("projects:toast:opening unity..."));
-		else toastError("Unity already running");
+	} catch (e) {
+		toastThrownError(e);
 	}
 }
 

@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 use std::io;
 use std::os::unix::prelude::OsStrExt;
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 
@@ -174,4 +175,11 @@ pub(super) fn fix_env_variables(command: &mut Command) {
             }
         }
     }
+}
+
+pub fn is_noexec(path: &Path) -> bool {
+    use nix::sys::statvfs::FsFlags;
+    nix::sys::statvfs::statvfs(path)
+        .map(|s| s.flags().contains(FsFlags::ST_NOEXEC))
+        .unwrap_or(false)
 }
