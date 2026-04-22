@@ -661,7 +661,7 @@ function BulkUpdateCard({
 	return (
 		<Card
 			className={
-				"shrink-0 p-2 flex flex-row gap-2 bg-secondary text-secondary-foreground flex-wrap"
+				"shrink-0 p-2 compact:p-1 flex flex-row gap-2 compact:gap-1 bg-secondary text-secondary-foreground flex-wrap"
 			}
 		>
 			{bulkUpdateMode.canInstallOrUpgrade && (
