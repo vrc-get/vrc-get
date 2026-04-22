@@ -910,7 +910,13 @@ function TemplateEditor({
 													<Autocomplete
 														value={value.name}
 														className={"grow"}
-														options={packageCandidates}
+														options={packageCandidates.filter(
+															(c) =>
+																c.value === value.name ||
+																!packagesListContext.value.some(
+																	(p) => p.name === c.value,
+																),
+														)}
 														onChange={(value) =>
 															packagesListContext.update(id, (old) => ({
 																...old,

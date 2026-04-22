@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Already-added packages are now excluded from the package name suggestions in the Template Editor `#2828`
 - Fixed an issue where the progress bar flickered and did not display correct progress in environments using WebKit as the renderer. [`#2641`](https://github.com/vrc-get/vrc-get/pull/2641)
 - Fails to import UnityPackages with files in `Packages` directory `#2679`
 - null as vpmDependencies value is not allowed `#2709`
