@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Fix 'Detected Loop' panic with valid database file `#2607`
+- Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
 
 ### Security
 

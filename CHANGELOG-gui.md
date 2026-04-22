@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog].
 - ALCOM cannot detect per-user flatpak installation of unity hub `#2812`
 - Unabled to import some untypackages `#2821`
   - It's hard to say but some older unitypackages ware unsupported.
+- Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
 
 ### Security
 
