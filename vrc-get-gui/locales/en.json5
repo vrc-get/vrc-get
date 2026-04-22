@@ -114,7 +114,7 @@
     "projects:grid view": "Grid View",
     "projects:sort by": "Sort by:",
     "projects:error:load error": "Error loading projects: {{msg}}",
-    "projects:error:noexec filesystem": "The project is located on a filesystem mounted with the 'noexec' flag (e.g. NTFS). This will cause shader compilation issues, resulting in avatars appearing non-stereoscopic. Please move the project to a filesystem without the 'noexec' flag.",
+    "projects:error:noexec filesystem": "The project is located on a filesystem mounted with the 'noexec' flag. This will prevent unity from loading native plugins resoluting unity in broken state or results broken assets. Please move the project to a filesystem without the 'noexec' flag.",
     "projects:toast:project added": "Project was addded successfully.",
     "projects:toast:project already exists": "The project was already added.",
 
