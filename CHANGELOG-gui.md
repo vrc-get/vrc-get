@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog].
 - ALCOM now refuses launching project if project is on noexec mount points `#2814`
   - This would cause problems with several native plugins
 - Already-added packages are now excluded from the package name suggestions in the Template Editor `#2828`
+- Extended some timeouts to 1 minute `#2826`
+    - Prevents timeouts in slow DNS environments
 
 ### Deprecated
 
