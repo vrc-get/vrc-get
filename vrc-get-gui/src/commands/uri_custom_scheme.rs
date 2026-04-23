@@ -41,6 +41,7 @@ pub struct GlobalInfo<'a> {
     os_info: &'a str,
     webview_version: &'a str,
     local_app_data: &'a str,
+    app_data: &'a str,
     default_unity_arguments: &'a [&'a str],
     vpm_home_folder: &'a std::path::Path,
     check_for_updates: bool,
@@ -82,6 +83,11 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     #[cfg(not(windows))]
     let local_app_data = "";
 
+    #[cfg(windows)]
+    let app_data = crate::os::app_data();
+    #[cfg(not(windows))]
+    let app_data = "";
+
     let should_install_deep_link = crate::deep_link_support::should_install_deep_link(app);
 
     let global_info = GlobalInfo {
@@ -94,6 +100,7 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         os_info,
         webview_version,
         local_app_data,
+        app_data,
         default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
         vpm_home_folder: &vpm_home_folder,
         check_for_updates,

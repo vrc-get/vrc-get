@@ -288,8 +288,8 @@ export function ProjectPathWarnings({ projectPath }: { projectPath: string }) {
 	const hasWhitespace = projectPath.includes(" ");
 	const inLocalAppData = !!(
 		isWindows &&
-		globalInfo.localAppData &&
-		projectPath.includes(globalInfo.localAppData)
+		globalInfo.appData &&
+		projectPath.startsWith(globalInfo.appData)
 	);
 
 	return (
@@ -314,8 +314,8 @@ export function BackupPathWarnings({ backupPath }: { backupPath: string }) {
 	const isWindows = globalInfo.osType === "WindowsNT";
 	const inLocalAppData = !!(
 		isWindows &&
-		globalInfo.localAppData &&
-		backupPath.includes(globalInfo.localAppData)
+		globalInfo.appData &&
+		backupPath.startsWith(globalInfo.appData)
 	);
 
 	return (

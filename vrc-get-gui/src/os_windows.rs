@@ -234,6 +234,18 @@ pub fn local_app_data() -> &'static str {
     })
 }
 
+pub fn app_data() -> &'static str {
+    static APP_DATA: OnceLock<String> = OnceLock::new();
+
+    APP_DATA.get_or_init(|| {
+        // AppData is the parent directory of LocalAppData (AppData\Local)
+        std::path::Path::new(local_app_data())
+            .parent()
+            .map(|x| x.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    })
+}
+
 pub use open::that as open_that;
 
 pub fn initialize(_: tauri::AppHandle) {
