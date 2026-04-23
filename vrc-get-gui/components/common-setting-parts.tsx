@@ -301,9 +301,7 @@ export function ProjectPathWarnings({ projectPath }: { projectPath: string }) {
 				<WarningMessage>{tc("settings:warning:non-ascii")}</WarningMessage>
 			)}
 			{inAppData && (
-				<WarningMessage>
-					{tc("settings:warning:in-local-app-data")}
-				</WarningMessage>
+				<WarningMessage>{tc("settings:warning:in-app-data")}</WarningMessage>
 			)}
 		</div>
 	);
@@ -321,9 +319,7 @@ export function BackupPathWarnings({ backupPath }: { backupPath: string }) {
 	return (
 		<div className="flex flex-col gap-1">
 			{inAppData && (
-				<WarningMessage>
-					{tc("settings:warning:in-local-app-data")}
-				</WarningMessage>
+				<WarningMessage>{tc("settings:warning:in-app-data")}</WarningMessage>
 			)}
 		</div>
 	);
