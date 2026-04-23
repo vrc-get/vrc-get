@@ -1,22 +1,12 @@
+import type { GlobalInfo as GlobalInfoBinding } from "./bindings.js";
+
 type OsType = "Linux" | "Darwin" | "WindowsNT";
 type Arch = "x86_64" | "aarch64";
 
-interface GlobalInfo {
-	language: string;
-	theme: string;
-	version: string | null;
-	commitHash: string | null;
+type GlobalInfo = GlobalInfoBinding & {
 	osType: OsType;
 	arch: Arch;
-	osInfo: string;
-	webviewVersion: string;
-	localAppData: string; // empty string for non-windows
-	appData: string; // empty string for non-windows
-	defaultUnityArguments: string[];
-	vpmHomeFolder: string;
-	checkForUpdates: boolean;
-	shouldInstallDeepLink: boolean;
-}
+};
 
 const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	language: "en",
@@ -27,7 +17,6 @@ const fallbackGlobalInfo: Readonly<GlobalInfo> = {
 	arch: "x86_64",
 	osInfo: "unknown OS",
 	webviewVersion: "unknown",
-	localAppData: "",
 	appData: "",
 	defaultUnityArguments: [],
 	vpmHomeFolder: "",

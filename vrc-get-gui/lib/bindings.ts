@@ -141,7 +141,6 @@ export type GlobalInfo = {
 	arch: string,
 	osInfo: string,
 	webviewVersion: string,
-	localAppData: string,
 	appData: string,
 	defaultUnityArguments: string[],
 	vpmHomeFolder: string,

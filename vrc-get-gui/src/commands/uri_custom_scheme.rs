@@ -40,7 +40,6 @@ pub struct GlobalInfo<'a> {
     arch: &'a str,
     os_info: &'a str,
     webview_version: &'a str,
-    local_app_data: &'a str,
     app_data: &'a str,
     default_unity_arguments: &'a [&'a str],
     vpm_home_folder: &'a std::path::Path,
@@ -79,11 +78,6 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
     let check_for_updates = app.env().appimage.is_some();
 
     #[cfg(windows)]
-    let local_app_data = crate::os::local_app_data();
-    #[cfg(not(windows))]
-    let local_app_data = "";
-
-    #[cfg(windows)]
     let app_data = crate::os::app_data();
     #[cfg(not(windows))]
     let app_data = "";
@@ -99,7 +93,6 @@ pub fn global_info_json(app: &AppHandle) -> Response<Cow<'static, [u8]>> {
         arch,
         os_info,
         webview_version,
-        local_app_data,
         app_data,
         default_unity_arguments: DEFAULT_UNITY_ARGUMENTS,
         vpm_home_folder: &vpm_home_folder,

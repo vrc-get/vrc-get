@@ -286,7 +286,7 @@ export function ProjectPathWarnings({ projectPath }: { projectPath: string }) {
 	const isWindows = globalInfo.osType === "WindowsNT";
 	const hasNonAscii = isWindows && projectPath.match(/[^\x20-\x7F]/);
 	const hasWhitespace = projectPath.includes(" ");
-	const inLocalAppData = !!(
+	const inAppData = !!(
 		isWindows &&
 		globalInfo.appData &&
 		projectPath.startsWith(globalInfo.appData)
@@ -300,7 +300,7 @@ export function ProjectPathWarnings({ projectPath }: { projectPath: string }) {
 			{hasNonAscii && (
 				<WarningMessage>{tc("settings:warning:non-ascii")}</WarningMessage>
 			)}
-			{inLocalAppData && (
+			{inAppData && (
 				<WarningMessage>
 					{tc("settings:warning:in-local-app-data")}
 				</WarningMessage>
@@ -312,7 +312,7 @@ export function ProjectPathWarnings({ projectPath }: { projectPath: string }) {
 export function BackupPathWarnings({ backupPath }: { backupPath: string }) {
 	const globalInfo = useGlobalInfo();
 	const isWindows = globalInfo.osType === "WindowsNT";
-	const inLocalAppData = !!(
+	const inAppData = !!(
 		isWindows &&
 		globalInfo.appData &&
 		backupPath.startsWith(globalInfo.appData)
@@ -320,7 +320,7 @@ export function BackupPathWarnings({ backupPath }: { backupPath: string }) {
 
 	return (
 		<div className="flex flex-col gap-1">
-			{inLocalAppData && (
+			{inAppData && (
 				<WarningMessage>
 					{tc("settings:warning:in-local-app-data")}
 				</WarningMessage>
