@@ -144,17 +144,20 @@ impl<W: io::Write> TarBuilderExt for Builder<W> {
         &mut self,
         mode: u32,
         path: P,
-        data: R,
+        mut data: R,
     ) -> anyhow::Result<()> {
         let path = path.as_ref();
+        let mut buffer = vec![];
+        std::io::copy(&mut data, &mut buffer)?;
         self.append(
             HeaderBuilder::new_gnu()
                 .with_mode(mode)
                 .with_entry_type(EntryType::Regular)
+                .with_size(buffer.len() as u64)
                 .with_path(path)
                 .expect("long path")
                 .build(),
-            data,
+            &mut buffer.as_slice(),
         )
         .with_context(|| format!("adding file: {}", path.display()))
     }
