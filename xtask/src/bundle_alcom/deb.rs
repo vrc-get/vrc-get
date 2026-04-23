@@ -5,6 +5,7 @@ use crate::utils::{CountingIo, tar, target_arch};
 use anyhow::{Context, Result, bail};
 use flate2::Compression;
 use flate2::write::GzEncoder;
+use std::io::Write;
 use std::{fs, io};
 
 fn deb_arch(triple: &str) -> Result<&str> {
@@ -38,6 +39,8 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
         (estimated_size, data_tar_gz)
     };
 
+    let library = detect_library_versions(&ctx.binary_path())?;
+
     // Build control.tar.gz
     let control_tar_gz = {
         let mut control_tar_gz = Vec::new();
@@ -51,6 +54,8 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
                 .replace("{{version}}", ctx.version())
                 .replace("{{arch}}", arch)
                 .replace("{{estimated_size}}", &(estimated_size / 1024).to_string())
+                .replace("{{libc_version}}", &library.libc)
+                .replace("{{libgcc_version}}", &library.libgcc)
         };
 
         tar.append_file_data(0o644, "control", io::Cursor::new(control.as_bytes()))
@@ -94,6 +99,8 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
         builder
             .append(&header, &mut data_tar_gz.as_slice())
             .context("appending data.tar.gz")?;
+
+        builder.into_inner()?.flush()?;
     }
 
     println!("created: {}", deb_out.display());
