@@ -741,6 +741,11 @@ function TemplateEditor({
 		reorderable: false,
 	});
 
+	const addedPackageNames = useMemo(
+		() => new Set(packagesListContext.value.map((p) => p.name)),
+		[packagesListContext.value],
+	);
+
 	const unityPackagesListContext = useReorderableList<string>({
 		defaultValue: "",
 		defaultArray: template?.unity_packages ?? [],
@@ -910,7 +915,11 @@ function TemplateEditor({
 													<Autocomplete
 														value={value.name}
 														className={"grow"}
-														options={packageCandidates}
+														options={packageCandidates.filter(
+															(c) =>
+																c.value === value.name ||
+																!addedPackageNames.has(c.value),
+														)}
 														onChange={(value) =>
 															packagesListContext.update(id, (old) => ({
 																...old,
