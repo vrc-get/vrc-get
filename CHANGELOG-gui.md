@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog].
 - The "Clear Selection" button in the package management screen is now red (destructive style) to distinguish it from the "Install Selected" button [`#2803`](https://github.com/vrc-get/vrc-get/pull/2803)
 - File filled with '\0' or whitespace will be treated as empty file `#2710`
   - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
-- Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759`
+- Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759` `#2828`
   - This fixes few problems relates to auto update
   - Please read README for new build instruction.
 - Improved backup speed by parallelizing the process [`#2746`](https://github.com/vrc-get/vrc-get/pull/2746)
@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog].
 - Unabled to import some untypackages `#2821`
   - It's hard to say but some older unitypackages ware unsupported.
 - Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
+- Missing glibc and libgcc_s dependency notation in .deb / .rpm distributon `#2828`
 
 ### Security
 
