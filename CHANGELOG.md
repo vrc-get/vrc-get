@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog].
 ### Fixed
 - Fix 'Detected Loop' panic with valid database file `#2607`
 - Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
+- Warning for backup/project path in AppData folder not shown when path is in Roaming or LocalLow [`#2827`](https://github.com/vrc-get/vrc-get/pull/2827)
 
 ### Security
 
