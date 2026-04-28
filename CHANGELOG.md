@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 
 ### Fixed
+- Retry `hdiutil create` with exponential backoff (max delay 32s, total ~1 min) when it fails `#2831`
 - Fix 'Detected Loop' panic with valid database file `#2607`
 - Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
 - Warning for backup/project path in AppData folder not shown when path is in Roaming or LocalLow [`#2827`](https://github.com/vrc-get/vrc-get/pull/2827)

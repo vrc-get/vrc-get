@@ -62,20 +62,46 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
         .write_to(&ds_store_path)
         .context("writing .DS_Store for DMG staging")?;
 
-    // Create the DMG with hdiutil.
-    ProcessCommand::new("hdiutil")
-        .arg("create")
-        .arg(&dmg_path)
-        .arg("-volname")
-        .arg(VOLUME_NAME)
-        .arg("-fs")
-        .arg("HFS+")
-        .arg("-srcfolder")
-        .arg(&staging)
-        .arg("-ov")
-        .arg("-format")
-        .arg("UDZO")
-        .run_checked("creating DMG with hdiutil")?;
+    // Create the DMG with hdiutil, retrying with exponential backoff on failure.
+    // Delays: 1s, 2s, 4s, 8s, 16s, 32s (total wait ~63s ≈ 1 min), max delay 32s.
+    {
+        let mut delay_secs = 1u64;
+        let max_retries = 6;
+        let mut attempt = 0u32;
+        loop {
+            let result = ProcessCommand::new("hdiutil")
+                .arg("create")
+                .arg(&dmg_path)
+                .arg("-volname")
+                .arg(VOLUME_NAME)
+                .arg("-fs")
+                .arg("HFS+")
+                .arg("-srcfolder")
+                .arg(&staging)
+                .arg("-ov")
+                .arg("-format")
+                .arg("UDZO")
+                .run_checked("creating DMG with hdiutil");
+            if result.is_ok() {
+                break;
+            }
+            if attempt >= max_retries {
+                return result;
+            }
+            // Clean up any partial output before retrying.
+            if dmg_path.exists() {
+                fs::remove_file(&dmg_path)?;
+            }
+            eprintln!(
+                "hdiutil failed (attempt {}/{}), retrying in {delay_secs}s...",
+                attempt + 1,
+                max_retries + 1,
+            );
+            std::thread::sleep(std::time::Duration::from_secs(delay_secs));
+            delay_secs = (delay_secs * 2).min(32);
+            attempt += 1;
+        }
+    }
 
     println!("created: {}", dmg_path.display());
     Ok(())
