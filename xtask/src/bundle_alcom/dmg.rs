@@ -65,8 +65,11 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
     // Create the DMG with hdiutil, retrying with exponential backoff on failure.
     // Delays: 1s, 2s, 4s, 8s, 16s, 32s (total wait ~63s ≈ 1 min), max delay 32s.
     {
-        let mut delay_secs = 1u64;
-        let max_retries = 6;
+        const MAX_RETRIES: u32 = 6;
+        const INITIAL_DELAY_SECS: u64 = 1;
+        const MAX_DELAY_SECS: u64 = 32;
+
+        let mut delay_secs = INITIAL_DELAY_SECS;
         let mut attempt = 0u32;
         loop {
             let result = ProcessCommand::new("hdiutil")
@@ -85,7 +88,7 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
             if result.is_ok() {
                 break;
             }
-            if attempt >= max_retries {
+            if attempt >= MAX_RETRIES {
                 return result;
             }
             // Clean up any partial output before retrying.
@@ -95,10 +98,10 @@ pub fn create_dmg(ctx: &BundleContext<'_>) -> anyhow::Result<()> {
             eprintln!(
                 "hdiutil failed (attempt {}/{}), retrying in {delay_secs}s...",
                 attempt + 1,
-                max_retries + 1,
+                MAX_RETRIES + 1,
             );
             std::thread::sleep(std::time::Duration::from_secs(delay_secs));
-            delay_secs = (delay_secs * 2).min(32);
+            delay_secs = (delay_secs * 2).min(MAX_DELAY_SECS);
             attempt += 1;
         }
     }
