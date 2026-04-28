@@ -19,7 +19,7 @@ pub struct Version {
 
 from_str_impl!(Version);
 serialize_to_string!(Version);
-deserialize_from_str!(Version, "version");
+deserialize_from_str!(Version, "valid version");
 
 impl Display for Version {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
