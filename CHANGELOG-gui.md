@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog].
   - It's hard to say but some older unitypackages ware unsupported.
 - Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
 - Missing glibc and libgcc_s dependency notation in .deb / .rpm distributon `#2828`
+- Unclear error message for invalid version name or version range `#2842`
 
 ### Security
 
