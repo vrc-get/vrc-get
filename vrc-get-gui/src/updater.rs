@@ -167,8 +167,24 @@ fn parse_version<'de, D>(deserializer: D) -> std::result::Result<Version, D::Err
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
-    Version::from_str(s.trim_start_matches('v')).map_err(DeError::custom)
+    struct Visitor;
+
+    impl<'de> serde::de::Visitor<'de> for Visitor {
+        type Value = Version;
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a semver version")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Version::from_str(v.trim_start_matches('v'))
+                .map_err(|_| DeError::invalid_value(serde::de::Unexpected::Str(v), &self))
+        }
+    }
+
+    deserializer.deserialize_str(Visitor)
 }
 
 // ---------------------------------------------------------------------------
