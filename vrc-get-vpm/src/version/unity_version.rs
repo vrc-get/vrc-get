@@ -4,7 +4,7 @@ use std::num::NonZeroU8;
 use std::str::FromStr;
 
 use crate::version::Version;
-use serde::de::Error as _;
+use serde::de::Unexpected;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -197,8 +197,24 @@ impl<'de> Deserialize<'de> for UnityVersion {
     where
         D: Deserializer<'de>,
     {
-        UnityVersion::parse(&String::deserialize(deserializer)?)
-            .ok_or_else(|| D::Error::custom("invalid unity version"))
+        struct Visitor;
+
+        impl serde::de::Visitor<'_> for Visitor {
+            type Value = UnityVersion;
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a unity version")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                UnityVersion::parse(v)
+                    .ok_or_else(|| E::invalid_value(Unexpected::Str(v), &"invalid unity version"))
+            }
+        }
+
+        deserializer.deserialize_str(Visitor)
     }
 }
 

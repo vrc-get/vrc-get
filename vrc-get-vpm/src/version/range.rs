@@ -142,7 +142,7 @@ impl VersionRange {
 }
 
 serialize_to_string!(VersionRange);
-deserialize_from_str!(VersionRange, "version range");
+deserialize_from_str!(VersionRange, "valid version range");
 
 impl Display for VersionRange {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
