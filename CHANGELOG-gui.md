@@ -48,6 +48,9 @@ The format is based on [Keep a Changelog].
 - Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
 - Missing glibc and libgcc_s dependency notation in .deb / .rpm distributon `#2828`
 - Unclear error message for invalid version name or version range `#2842`
+- Default file names in save dialogs now include the appropriate file extension `#2846`
+  - Template export now defaults to `{template name}.alcomtemplate`
+  - Repository list export now defaults to `repositories.txt`
 
 ### Security
 

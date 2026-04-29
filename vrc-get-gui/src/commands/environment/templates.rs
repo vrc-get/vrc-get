@@ -41,7 +41,7 @@ pub async fn environment_export_template(
         .dialog()
         .file()
         .set_parent(&window)
-        .set_file_name(&template.display_name)
+        .set_file_name(format!("{}.alcomtemplate", &template.display_name))
         .add_filter("ALCOM Project Template", &["alcomtemplate"])
         .blocking_save_file()
         .map(|x| x.into_path_buf())
