@@ -2,6 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 
 pub(super) enum SegmentParseErr {
+    #[allow(dead_code)]
     IntError(std::num::ParseIntError),
     TooBig,
 }

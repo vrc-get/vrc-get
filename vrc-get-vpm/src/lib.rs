@@ -23,6 +23,8 @@ mod utils;
 pub mod version;
 mod version_selector;
 
+pub mod repositories_file;
+
 #[cfg(feature = "unity")]
 pub mod unity;
 #[cfg(feature = "unity-hub")]
@@ -30,14 +32,13 @@ pub mod unity_hub;
 
 use crate::repository::local::LocalCachedRepository;
 
-pub use environment::Environment;
 pub use package_manifest::PackageManifest;
 pub use package_manifest::PartialUnityVersion;
 pub use structs::setting::UserRepoSetting;
-pub use traits::EnvironmentIoHolder;
+pub use traits::AbortCheck;
 pub use traits::HttpClient;
 pub use traits::PackageCollection;
-pub use traits::RemotePackageDownloader;
+pub use traits::PackageInstaller;
 pub use unity_project::UnityProject;
 pub use version_selector::VersionSelector;
 
@@ -52,6 +53,7 @@ pub struct PackageInfo<'a> {
 impl std::fmt::Debug for PackageInfo<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         #[derive(Debug)]
+        #[allow(dead_code)] // debug only struct
         enum SourceEnum<'a> {
             Local(&'a Path),
             Remote(&'a str),
@@ -148,6 +150,9 @@ impl<'a> PackageInfo<'a> {
     pub fn aliases(self) -> &'a [Box<str>] {
         self.package_json().aliases()
     }
+    pub fn keywords(self) -> &'a [Box<str>] {
+        self.package_json().keywords()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
@@ -163,6 +168,24 @@ pub enum ProjectType {
     Worlds = 7,
     Avatars = 8,
     VpmStarter = 9,
+}
+
+impl ProjectType {
+    pub fn from_i32(i: i32) -> Option<ProjectType> {
+        match i {
+            0 => Some(Self::Unknown),
+            1 => Some(Self::LegacySdk2),
+            2 => Some(Self::LegacyWorlds),
+            3 => Some(Self::LegacyAvatars),
+            4 => Some(Self::UpmWorlds),
+            5 => Some(Self::UpmAvatars),
+            6 => Some(Self::UpmStarter),
+            7 => Some(Self::Worlds),
+            8 => Some(Self::Avatars),
+            9 => Some(Self::VpmStarter),
+            _ => None,
+        }
+    }
 }
 
 impl Display for ProjectType {

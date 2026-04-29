@@ -4,19 +4,18 @@
 
 mod package_collection;
 mod virtual_environment;
-mod virtual_file_system;
 mod virtual_project_builder;
 
 pub use package_collection::PackageCollection;
 pub use package_collection::PackageCollectionBuilder;
-pub use virtual_environment::VirtualEnvironment;
-pub use virtual_file_system::VirtualFileSystem;
+use std::path::{Path, PathBuf};
+pub use virtual_environment::VirtualInstaller;
 pub use virtual_project_builder::VirtualProjectBuilder;
 
-use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
-use vrc_get_vpm::unity_project::PendingProjectChanges;
-use vrc_get_vpm::version::{DependencyRange, Version};
 use vrc_get_vpm::PackageInfo;
+use vrc_get_vpm::unity_project::PendingProjectChanges;
+use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
+use vrc_get_vpm::version::{DependencyRange, Version};
 
 pub fn assert_removed(result: &PendingProjectChanges, package: &str, reason: RemoveReason) {
     let package_change = result
@@ -48,8 +47,16 @@ pub fn assert_installing_to_locked_only(result: &PendingProjectChanges, package:
         .get(package.name())
         .expect("the package is not changed");
     let install = change.as_install().expect("the package is not installing");
-    assert!(install.is_adding_to_locked());
-    assert!(install.to_dependencies().is_none());
+    assert!(
+        install.is_adding_to_locked(),
+        "package {name} is not installing to locked: {result:#?}",
+        name = package.name()
+    );
+    assert!(
+        install.to_dependencies().is_none(),
+        "package {name} should not be installed to dependencies: {result:#?}",
+        name = package.name()
+    );
     let installing = install.install_package().expect("not installing");
     assert_eq!(
         installing.package_json() as *const _,
@@ -94,4 +101,20 @@ pub fn assert_installing_to_dependencies_only(
         .to_dependencies()
         .expect("not installing to dependencies");
     assert_eq!(base_range, &DependencyRange::version(version));
+}
+
+pub fn block_on<F: Future>(f: F) -> F::Output {
+    tokio::runtime::Builder::new_multi_thread()
+        .build()
+        .unwrap()
+        .block_on(f)
+}
+
+#[track_caller]
+pub fn get_temp_path(base_name: &str) -> PathBuf {
+    Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!(
+        "{base_name}/{}_L{}",
+        env!("CARGO_CRATE_NAME"),
+        std::panic::Location::caller().line()
+    ))
 }

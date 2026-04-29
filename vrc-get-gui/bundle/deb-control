@@ -1,0 +1,10 @@
+Package: alcom
+Version: {{version}}-1
+Architecture: {{arch}}
+Installed-Size: {{estimated_size}}
+Maintainer: anatawa12 <i@anatawa12.com>
+Priority: optional
+Homepage: https://vrc-get.anatawa12.com/alcom/
+Depends: libwebkit2gtk-4.1-0, libgtk-3-0, libc6 (>= {{libc_version}}), libc6 (>= {{libgcc_version}})
+Description: ALCOM - Alternative Creator Companion
+ ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri.

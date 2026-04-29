@@ -1,13 +1,17 @@
 use crate::io;
-use crate::io::{EnvironmentIo, FileSystemProjectIo, FileType, IoTrait, Metadata, ProjectIo};
+use crate::io::{FileStream, FileType, IoTrait, Metadata};
 use futures::{Stream, TryFutureExt};
 use log::debug;
+#[cfg(feature = "vrc-get-litedb")]
+use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::mem::forget;
 use std::path::Path;
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::fs;
+use tokio::io::AsyncWriteExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 #[derive(Debug, Clone)]
@@ -35,19 +39,19 @@ impl DefaultEnvironmentIo {
 
     #[cfg(windows)]
     fn get_local_config_folder() -> PathBuf {
-        return dirs_sys::known_folder_local_app_data().expect("LocalAppData not found");
+        dirs_sys::known_folder_local_app_data().expect("LocalAppData not found")
     }
 
     #[cfg(not(windows))]
     fn get_local_config_folder() -> PathBuf {
         if let Some(data_home) = std::env::var_os("XDG_DATA_HOME") {
-            debug!("XDG_DATA_HOME found {:?}", data_home);
+            debug!("XDG_DATA_HOME found {data_home:?}");
             return data_home.into();
         }
 
         // fallback: use HOME
         if let Some(home_folder) = std::env::var_os("HOME") {
-            debug!("HOME found {:?}", home_folder);
+            debug!("HOME found {home_folder:?}");
             let mut path = PathBuf::from(home_folder);
             path.push(".local/share");
             return path;
@@ -55,30 +59,32 @@ impl DefaultEnvironmentIo {
 
         panic!("no XDG_DATA_HOME nor HOME are set!")
     }
-}
 
-impl EnvironmentIo for DefaultEnvironmentIo {
     #[inline]
-    fn resolve(&self, path: &Path) -> PathBuf {
+    pub fn resolve(&self, path: &Path) -> PathBuf {
         self.root.join(path)
     }
 
-    #[cfg(feature = "vrc-get-litedb")]
-    fn connect_lite_db(&self) -> io::Result<vrc_get_litedb::DatabaseConnection> {
-        let path = EnvironmentIo::resolve(self, "vcc.liteDb".as_ref());
-        let path = path.to_str().expect("path is not utf8").to_string();
-
-        vrc_get_litedb::ConnectionString::new(&path)
-            .connect()
-            .map_err(Into::into)
+    #[allow(dead_code)]
+    pub fn new_project_io(&self, path: &Path) -> DefaultProjectIo {
+        DefaultProjectIo::new(path.into())
     }
 
-    #[cfg(feature = "experimental-project-management")]
-    type ProjectIo = DefaultProjectIo;
-
-    #[cfg(feature = "experimental-project-management")]
-    fn new_project_io(&self, path: &Path) -> Self::ProjectIo {
-        DefaultProjectIo::new(path.into())
+    #[cfg(feature = "vrc-get-litedb")]
+    #[allow(unused_variables)]
+    pub async fn new_mutex(&self, lock_name: &OsStr) -> io::Result<impl Send + Sync + 'static> {
+        #[cfg(not(windows))]
+        {
+            static SHARED_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+            Ok(SHARED_LOCK.lock().await)
+        }
+        #[cfg(windows)]
+        {
+            Ok(vrc_get_litedb::shared_mutex::SharedMutex::new(lock_name)
+                .await?
+                .lock_owned()
+                .await?)
+        }
     }
 }
 
@@ -143,13 +149,9 @@ impl DefaultProjectIo {
             }
         }
     }
-}
 
-impl ProjectIo for DefaultProjectIo {}
-
-impl FileSystemProjectIo for DefaultProjectIo {
     #[inline]
-    fn location(&self) -> &Path {
+    pub fn location(&self) -> &Path {
         &self.root
     }
 }
@@ -178,6 +180,63 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
 
     async fn write(&self, path: &Path, content: &[u8]) -> io::Result<()> {
         tokio::fs::write(self.resolve(path)?, content).await
+    }
+
+    async fn write_sync(&self, path: &Path, content: &[u8]) -> io::Result<()> {
+        let path = self.resolve(path)?;
+        let mut file = fs::File::create(&path).await?;
+        file.write_all(content).await?;
+        file.flush().await?;
+        file.sync_data().await?;
+        Ok(())
+    }
+
+    async fn write_atomic(&self, path: &Path, content: &[u8]) -> io::Result<()> {
+        let path = self.resolve(path)?;
+        let (temp_path, mut temp) = make_temp(&path).await?;
+        let remove_on_drop = RemoveOnDrop { path: &temp_path };
+        temp.write_all(content).await?;
+        temp.flush().await?;
+        temp.sync_data().await?;
+        drop(temp);
+        forget(remove_on_drop);
+        fs::rename(&temp_path, path).await?;
+        return Ok(());
+
+        async fn make_temp(path: &Path) -> io::Result<(PathBuf, fs::File)> {
+            let suffix = ".temp.";
+            let Some(dir) = path.parent() else {
+                return Err(io::Error::new(io::ErrorKind::IsADirectory, "RootDir"));
+            };
+            let file_name = path.file_name().unwrap();
+            for i in 0u32.. {
+                let int_len = (i.checked_ilog10().unwrap_or(0) + 1) as usize;
+                let mut name_buf =
+                    OsString::with_capacity(file_name.len() + suffix.len() + int_len);
+                name_buf.push(file_name);
+                name_buf.push(suffix);
+                name_buf.push(format!("{i}"));
+
+                let temp_path = dir.join(name_buf);
+                match fs::File::create_new(&temp_path).await {
+                    Ok(f) => return Ok((temp_path, f)),
+                    Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+                    Err(e) => return Err(e),
+                }
+            }
+            unreachable!("almost infinite loop")
+        }
+
+        struct RemoveOnDrop<'a> {
+            path: &'a Path,
+        }
+
+        impl<'a> Drop for RemoveOnDrop<'a> {
+            fn drop(&mut self) {
+                // ignore errors
+                std::fs::remove_file(self.path).ok();
+            }
+        }
     }
 
     async fn remove_file(&self, path: &Path) -> io::Result<()> {
@@ -222,6 +281,7 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
     async fn create(&self, path: &Path) -> io::Result<Self::FileStream> {
         fs::OpenOptions::new()
             .create(true)
+            .truncate(true)
             .write(true)
             .read(true)
             .open(self.resolve(path)?)
@@ -233,6 +293,10 @@ impl<T: TokioIoTraitImpl + Sync> IoTrait for T {
         Ok(fs::File::open(self.resolve(path)?).await?.compat())
     }
 }
+
+impl FileStream for tokio_util::compat::Compat<fs::File> {}
+
+pub type File = tokio_util::compat::Compat<fs::File>;
 
 pub struct ReadDir {
     inner: fs::ReadDir,

@@ -1,88 +1,75 @@
 #![allow(unsafe_code)]
 
-use crate::io::EnvironmentIo;
-use crate::{io, Environment, HttpClient};
-use std::fmt::Debug;
-use std::sync::atomic::AtomicPtr;
-use vrc_get_litedb::DatabaseConnection;
+use crate::io;
+use crate::io::{DefaultEnvironmentIo, IoTrait};
+use futures::prelude::*;
+use vrc_get_litedb::expression::BsonExpression;
+use vrc_get_litedb::file_io::LiteDBFile;
 
-pub(super) struct LiteDbConnectionHolder {
-    ptr: AtomicPtr<DatabaseConnection>,
+pub struct VccDatabaseConnection {
+    pub(crate) db: LiteDBFile,
+    _guard: has_drop::MutexGuard,
 }
 
-unsafe impl Send for LiteDbConnectionHolder {}
+static FILE_NAME: &str = "vcc.liteDb";
 
-unsafe impl Sync for LiteDbConnectionHolder {}
+impl VccDatabaseConnection {
+    pub async fn connect(io: &DefaultEnvironmentIo) -> io::Result<Self> {
+        let path = io.resolve(FILE_NAME.as_ref());
 
-impl Debug for LiteDbConnectionHolder {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("LiteDbConnectionHolder")
-            .field(&self.get())
-            .finish()
-    }
-}
+        let lock = {
+            use sha1::Digest;
 
-impl LiteDbConnectionHolder {
-    pub(super) fn new() -> Self {
-        Self {
-            ptr: AtomicPtr::new(std::ptr::null_mut()),
-        }
-    }
+            let path = path.to_string_lossy();
+            let path_lower = path.to_lowercase();
+            let mut sha1 = sha1::Sha1::new();
+            sha1.update(path_lower.as_bytes());
+            let hash = &sha1.finalize()[..];
+            let hash_hex = hex::encode(hash);
+            // this lock name is same as shared engine in litedb
+            let name = format!("Global\\{hash_hex}.Mutex");
 
-    fn get(&self) -> Option<&DatabaseConnection> {
-        let ptr = self.ptr.load(std::sync::atomic::Ordering::Acquire);
-        if ptr.is_null() {
-            None
-        } else {
-            Some(unsafe { &*ptr })
-        }
-    }
+            Box::new(io.new_mutex(name.as_ref()).await?)
+        };
 
-    fn connect(&self, io: &impl EnvironmentIo) -> io::Result<&DatabaseConnection> {
-        if let Some(connection) = self.get() {
-            return Ok(connection);
-        }
-
-        let db = io.connect_lite_db()?;
-
-        let ptr = Box::into_raw(Box::new(db));
-
-        match self.ptr.compare_exchange(
-            std::ptr::null_mut(),
-            ptr,
-            std::sync::atomic::Ordering::AcqRel,
-            std::sync::atomic::Ordering::Acquire,
-        ) {
-            Ok(_) => {
-                // success means the value is used so return the value
-                Ok(unsafe { &*ptr })
+        let mut litedb = match io.open(FILE_NAME.as_ref()).await {
+            Ok(mut file) => {
+                let mut buffer = vec![];
+                file.read_to_end(&mut buffer).await?;
+                LiteDBFile::parse(&buffer)?
             }
-            Err(failure) => {
-                // failure means the value is already set so drop the new value and return the old value
-                // since it's not null
-                let _ = unsafe { Box::from_raw(ptr) };
-                Ok(unsafe { &*failure })
-            }
-        }
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => LiteDBFile::new(),
+            Err(e) => return Err(e),
+        };
+
+        litedb.drop_indexes_and_update_collation_if_collation_not_supported();
+
+        litedb
+            .ensure_index(
+                "projects",
+                "Path",
+                BsonExpression::create("$.Path").unwrap(),
+                false, // why? but upstream does so
+            )
+            .expect("index is do");
+
+        Ok(Self::new(litedb, lock))
+    }
+
+    pub(crate) fn new(db: LiteDBFile, _guard: has_drop::MutexGuard) -> Self {
+        Self { db, _guard }
+    }
+
+    pub async fn save(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
+        // nop for now but might have to do something in the future
+        io.write_atomic(FILE_NAME.as_ref(), &self.db.serialize())
+            .await?;
+        Ok(())
     }
 }
 
-impl Drop for LiteDbConnectionHolder {
-    fn drop(&mut self) {
-        let ptr = self.ptr.load(std::sync::atomic::Ordering::SeqCst);
-        if !ptr.is_null() {
-            let _ = unsafe { Box::from_raw(ptr) };
-        }
-    }
-}
-
-impl<T: HttpClient, IO: EnvironmentIo> Environment<T, IO> {
-    // TODO?: use inner mutability to get the database connection?
-    pub(super) fn get_db(&self) -> io::Result<&DatabaseConnection> {
-        self.litedb_connection.connect(&self.io)
-    }
-
-    pub fn disconnect_litedb(&mut self) {
-        self.litedb_connection = LiteDbConnectionHolder::new();
-    }
+mod has_drop {
+    pub type MutexGuard = Box<dyn HasDrop>;
+    pub trait HasDrop: Send + Sync {}
+    impl<T: ?Sized + Send + Sync> HasDrop for T {}
 }

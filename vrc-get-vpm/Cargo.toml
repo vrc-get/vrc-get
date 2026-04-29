@@ -2,7 +2,7 @@
 name = "vrc-get-vpm"
 
 # discreate versioning since this library will not have stable versions
-version = "0.0.13-beta.0"
+version = "0.0.16-beta.0"
 
 edition.workspace = true
 license.workspace = true
@@ -16,43 +16,52 @@ keywords = ["vpm", "package-manager"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-async-stream = "0.3.5"
-async_zip = { version = "0.0.17", features = ["deflate", "tokio", "deflate64"] }
-either = "1.12.0"
-futures = "0.3.30"
-hex = "0.4.3"
-indexmap = { version = "2.2.6", features = ["serde"] }
-itertools = "0.13.0"
-log = "0.4.21"
-pin-project-lite = "0.2.14"
-reqwest = { version = "0.12.4", features = ["stream"], default-features = false }
-serde = { version = "1.0.203", features = ["derive", "rc"] }
-serde_json = { version = "1.0.116", features = ["preserve_order"] }
-sha2 = "0.10.8"
-tokio-util = "0.7.11"
-url = { version = "2.5.1", features = ["serde"] }
-uuid = { version = "1.8.0", features = ["v4"] }
-lazy_static = "1.4.0"
-enum-map = "2.7.3"
+async-stream = "0.3"
+async_zip = { version = "0.0.18", features = ["deflate", "tokio", "deflate64"] }
+either = { version = "1", features = ["serde"] }
+futures = "0.3"
+hex = "0.4"
+indexmap = { version = "2", features = ["serde"] }
+itertools = "0.14"
+log = { version = "0.4", features = ['kv'] }
+pin-project-lite = "0.2"
+reqwest = { version = "0.13", features = ["stream"], default-features = false }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.11"
+tokio-util = "0.7"
+url = { version = "2", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+lazy_static = "1"
+enum-map = "2"
 
-vrc-get-litedb = { version = "0.2.1", optional = true }
-tokio = { version = "1.38.0", features = ["fs", "process"], optional = true }
-serde_path_to_error = "0.1.16"
-serde-value = "0.7.0"
-bson = "2.11.0"
-serde_repr = "0.1.19"
+vrc-get-litedb = { version = "0.3.0-beta.8", optional = true, default-features = false, features = [
+    'shared-mutex',
+] }
+tokio = { version = "1", features = ["fs", "process"] }
+serde_path_to_error = "0.1"
+serde-value = "0.7"
+serde_repr = "0.1"
+sha1 = "0.11"
 
 [target."cfg(windows)".dependencies]
-dirs-sys = "0.4.1"
-winreg = { version = "0.52.0", optional = true }
+dirs-sys = "0.5"
+winreg = { version = "0.56", optional = true }
+windows = { version = "0.62", features = ["Win32_System_Threading", "Win32_Security"] }
+
+[target."cfg(target_os = \"macos\")".dependencies]
+plist = { version = "1", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [features]
 default = ["rustls"]
 native-tls = ["reqwest/native-tls-vendored"]
-rustls = ["reqwest/rustls-tls-native-roots"]
+rustls = ["reqwest/rustls"]
 
-unity-hub = ["tokio"]
-unity = ["tokio"]
+unity-hub = ["dep:plist", "windows/Win32_Storage_FileSystem"]
+unity = []
 
 experimental-project-management = ["vrc-get-litedb", 'unity-hub', 'unity']
 experimental-unity-management = ["vrc-get-litedb", 'dep:winreg']

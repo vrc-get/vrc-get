@@ -1,13 +1,13 @@
 use crate::io;
-use crate::io::EnvironmentIo;
-use crate::repository::local::LocalCachedRepository;
+use crate::io::DefaultProjectIo;
 use crate::utils::MapResultExt;
-use crate::{PackageInfo, PackageManifest, VersionSelector};
+use crate::{PackageInfo, VersionSelector};
 use core::iter::Iterator;
 use core::option::Option;
 use futures::prelude::*;
 use indexmap::IndexMap;
 use std::convert::Infallible;
+use std::sync::atomic::{AtomicBool, Ordering};
 use url::Url;
 
 pub trait PackageCollection {
@@ -15,41 +15,59 @@ pub trait PackageCollection {
     fn get_curated_packages(
         &self,
         _version_selector: VersionSelector,
-    ) -> impl Iterator<Item = PackageInfo> {
+    ) -> impl Iterator<Item = PackageInfo<'_>> {
         [].into_iter()
     }
 
     /// get all packages in the collection
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo>;
+    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo<'_>>;
 
     /// get all package versions of the specified package
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo>;
+    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo<'_>>;
 
     /// get specified version of specified package
     fn find_package_by_name(
         &self,
         package: &str,
         package_selector: VersionSelector,
-    ) -> Option<PackageInfo>;
+    ) -> Option<PackageInfo<'_>>;
 }
 
-pub trait EnvironmentIoHolder {
-    type EnvironmentIo: EnvironmentIo;
-    fn io(&self) -> &Self::EnvironmentIo;
-}
-
-/// The trait for downloading remote packages.
+/// The trait for installing package
 ///
-/// Caching packages is responsibility of this crate.
-pub trait RemotePackageDownloader {
-    type FileStream: AsyncRead + AsyncSeek + Unpin;
-
-    /// Get package from remote server.
-    fn get_package(
+/// Caching packages is responsibility of this trait.
+pub trait PackageInstaller {
+    /// Installs the specified package.
+    fn install_package(
         &self,
-        repository: &LocalCachedRepository,
-        package: &PackageManifest,
-    ) -> impl Future<Output = io::Result<Self::FileStream>> + Send;
+        io: &DefaultProjectIo,
+        package: PackageInfo<'_>,
+        dest_dir: &std::path::Path,
+        abort: &AbortCheck,
+    ) -> impl Future<Output = io::Result<()>>;
+}
+
+pub struct AbortCheck {
+    abort: AtomicBool,
+}
+
+impl AbortCheck {
+    pub(crate) fn new() -> Self {
+        Self {
+            abort: AtomicBool::new(false),
+        }
+    }
+
+    pub fn check(&self) -> io::Result<()> {
+        if self.abort.load(Ordering::Relaxed) {
+            return Err(io::Error::new(io::ErrorKind::Interrupted, "Aborted"));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn abort(&self) {
+        self.abort.store(true, Ordering::Relaxed);
+    }
 }
 
 /// The HTTP Client.

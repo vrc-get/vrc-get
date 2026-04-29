@@ -1,14 +1,14 @@
+use crate::PackageManifest;
 use crate::repository::{RemotePackages, RemoteRepository};
-use crate::{PackageCollection, PackageInfo, PackageManifest, VersionSelector};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LocalCachedRepository {
-    repo: RemoteRepository,
+    pub(crate) repo: RemoteRepository,
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
-    headers: IndexMap<Box<str>, Box<str>>,
+    pub(crate) headers: IndexMap<Box<str>, Box<str>>,
     #[serde(rename = "vrc-get")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) vrc_get: Option<VrcGetMeta>,
@@ -53,6 +53,10 @@ impl LocalCachedRepository {
         self.repo().url()
     }
 
+    pub fn set_url(&mut self, url: Url) {
+        self.repo.set_url(url);
+    }
+
     pub fn id(&self) -> Option<&str> {
         self.repo().id()
     }
@@ -61,7 +65,10 @@ impl LocalCachedRepository {
         self.repo().name()
     }
 
-    pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageManifest> {
+    pub fn get_versions_of(
+        &self,
+        package: &str,
+    ) -> impl Iterator<Item = &'_ PackageManifest> + use<'_> {
         self.repo().get_versions_of(package)
     }
 
@@ -74,34 +81,4 @@ impl LocalCachedRepository {
 pub struct VrcGetMeta {
     #[serde(default, skip_serializing_if = "str::is_empty")]
     pub etag: Box<str>,
-}
-
-impl PackageCollection for LocalCachedRepository {
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        self.repo()
-            .get_packages()
-            .flat_map(|x| x.all_versions())
-            .map(|pkg| PackageInfo::remote(pkg, self))
-    }
-
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        self.get_versions_of(package)
-            .map(|pkg| PackageInfo::remote(pkg, self))
-    }
-
-    fn find_package_by_name(
-        &self,
-        package: &str,
-        package_selector: VersionSelector,
-    ) -> Option<PackageInfo> {
-        if let Some(version) = package_selector.as_specific() {
-            self.repo
-                .get_package_version(package, version)
-                .map(|pkg| PackageInfo::remote(pkg, self))
-        } else {
-            self.find_packages(package)
-                .filter(|x| package_selector.satisfies(x.package_json()))
-                .max_by_key(|x| x.version())
-        }
-    }
 }

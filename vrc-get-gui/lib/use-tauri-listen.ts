@@ -1,16 +1,15 @@
-import {useEffect} from "react";
-import {listen} from "@tauri-apps/api/event";
-import type {EventCallback} from "@tauri-apps/api/helpers/event";
+import type { EventCallback } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect } from "react";
+import { useEffectEvent } from "@/lib/use-effect-event";
 
-export function useTauriListen<T>(
-	event: string,
-	handler: EventCallback<T>,
-) {
+export function useTauriListen<T>(event: string, handler: EventCallback<T>) {
+	const handlerFn = useEffectEvent(handler);
 	useEffect(() => {
-		let unlisten: (() => void) | undefined = undefined;
+		let unlisten: (() => void) | undefined;
 		let unlistened = false;
 
-		listen<T>(event, handler).then((unlistenFn) => {
+		listen<T>(event, handlerFn).then((unlistenFn) => {
 			if (unlistened) {
 				unlistenFn();
 			} else {
@@ -22,5 +21,5 @@ export function useTauriListen<T>(
 			unlisten?.();
 			unlistened = true;
 		};
-	}, [event, handler]);
+	}, [event]);
 }

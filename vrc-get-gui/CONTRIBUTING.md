@@ -21,7 +21,7 @@ If you want to add a new language, you will follow the following steps.
    - For example, if you want to add Japanese, create `ja.json5`.
 3. Edit code to import the new json5 file in `lib/i18n.ts` and add it to the `languageResources` object.
 4. Create a draft pull request. 
-5. Update the `CHANGELOG.md` file with the new language addition with pull request number.
+5. Update the `CHANGELOG-gui.md` file with the new language addition with pull request number.
 6. Mark the pull request as ready for review.
 7. The maintainer of the project will ask you that you can be a maintainer of the language.
 
@@ -44,22 +44,26 @@ Maintainer have to get the node id for github discussions comment.
 It's format like `DC_kwDOIza9ks4AjSve` and the random-like part is base64 encoded message pack of `[0, <repo id>, <comment id>]`. (`[0, 590790034, 9252424]`)
 
 ```bash
-gh api graphql -f query='
-  query {
-    repository(owner: "vrc-get", name: "vrc-get") {
-      discussion(number: <number>) {
-        body
-        id
-        comments(first: 1) {
-          nodes {
-            body
-            id
-          }
+gh api graphql -f query='query($number:Int!){repository(owner:"vrc-get",name:"vrc-get"){discussion(number:$number){body id comments(first:1){nodes{body id}}}}}' -F number=<number>
+```
+
+the query is a minified version of the following query.
+
+```graphql
+query ($number: Int!) {
+  repository(owner: "vrc-get", name: "vrc-get") {
+    discussion(number: $number) {
+      body
+      id
+      comments(first: 1) {
+        nodes {
+          body
+          id
         }
       }
     }
   }
-'
+}
 ```
 
 Discussion template

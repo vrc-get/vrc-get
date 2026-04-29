@@ -1,0 +1,90 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"includes": [
+			"**",
+			"!project-templates",
+			"!node_modules",
+			"!.next",
+			"!out",
+			"!gen",
+			"!lib/bindings.ts",
+			"!lib/routeTree.gen.ts",
+			"!build"
+		]
+	},
+	"formatter": {
+		"enabled": true
+	},
+	"linter": {
+		"rules": {
+			"style": {
+				// For parallel ifs, we should place else. (we may use conditional operator but if-else looks better)
+				"noUselessElse": "off",
+				"noNonNullAssertion": {
+					// In my opinion, '!.' => '?.' is not reasonable for all cases, so I disabled automatic fix.
+					"fix": "none",
+					"level": "error"
+				},
+				"noRestrictedGlobals": {
+					"level": "error",
+					"options": {
+						"deniedGlobals": {
+							"close": "window.close is unlikely to be called"
+						}
+					}
+				}
+			},
+			"suspicious": {
+				// false positives with tailwind css
+				// see https://github.com/biomejs/biome/issues/7223
+				"noUnknownAtRules": "off",
+				"noAssignInExpressions": "off"
+			},
+			"correctness": {
+				"useExhaustiveDependencies": {
+					"level": "error",
+					"options": {
+						"hooks": [
+							{
+								"name": "useDocumentEvent",
+								"closureIndex": 1,
+								"dependenciesIndex": 2
+							},
+							{
+								"name": "useEffectEvent",
+								"stableResult": true
+							}
+						]
+					}
+				},
+				"noUnusedImports": "error"
+			},
+			"a11y": {
+				"noLabelWithoutControl": {
+					"level": "warn",
+					"options": {
+						"inputComponents": [
+							"Checkbox",
+							"SelectTrigger",
+							"BackupFormatSelect"
+						]
+					}
+				}
+			}
+		},
+		"enabled": true
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	}
+}

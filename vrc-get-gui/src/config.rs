@@ -1,10 +1,6 @@
-use futures::AsyncReadExt;
+use crate::logging::LogLevel;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::io;
-use std::ops::{Deref, DerefMut};
-use std::path::PathBuf;
-use vrc_get_vpm::io::{DefaultEnvironmentIo, EnvironmentIo, IoTrait};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +21,48 @@ pub struct GuiConfig {
     pub backup_format: String,
     #[serde(default = "project_sorting_default")]
     pub project_sorting: String,
+    #[serde(default = "release_channel_default")]
+    // "stable" or "beta"
+    pub release_channel: String,
+    #[serde(default)]
+    pub use_alcom_for_vcc_protocol: bool,
+    #[serde(default)]
+    pub setup_process_progress: u32,
+    #[serde(default)]
+    pub default_unity_arguments: Option<Vec<String>>,
+    #[serde(default = "log_level_default")]
+    pub logs_level: Vec<LogLevel>,
+    #[serde(default = "gui_animation_default")]
+    pub gui_animation: bool,
+    #[serde(default = "gui_compact_default")]
+    pub gui_compact: bool,
+    #[serde(default = "project_view_mode_default")]
+    pub project_view_mode: String,
+    #[serde(default)]
+    pub unity_hub_access_method: UnityHubAccessMethod,
+    // last element is the most recent one
+    // 8 paths are saved
+    #[serde(default)]
+    pub recent_project_locations: Vec<String>,
+    #[serde(default)]
+    pub exclude_vpm_packages_from_backup: bool,
+    /// the list of favorite templates by id
+    /// those templates will be shown at the top of template selection on project creation
+    /// or derived templates
+    #[serde(default)]
+    pub favorite_templates: Vec<String>,
+    /// The lastly used template, this will be the initially selected template
+    #[serde(default)]
+    pub last_used_template: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Default, specta::Type)]
+pub enum UnityHubAccessMethod {
+    /// Reads config files of Unity Hub
+    #[default]
+    ReadConfig,
+    /// Launches headless Unity Hub in background
+    CallHub,
 }
 
 impl Default for GuiConfig {
@@ -38,12 +76,25 @@ impl Default for GuiConfig {
             theme: theme_default(),
             backup_format: backup_default(),
             project_sorting: project_sorting_default(),
+            release_channel: release_channel_default(),
+            use_alcom_for_vcc_protocol: false,
+            setup_process_progress: 0,
+            default_unity_arguments: None,
+            logs_level: log_level_default(),
+            gui_animation: true,
+            gui_compact: gui_compact_default(),
+            project_view_mode: project_view_mode_default(),
+            unity_hub_access_method: UnityHubAccessMethod::ReadConfig,
+            recent_project_locations: Vec::new(),
+            exclude_vpm_packages_from_backup: false,
+            favorite_templates: vec![],
+            last_used_template: None,
         }
     }
 }
 
 impl GuiConfig {
-    fn fix_defaults(&mut self) {
+    pub(crate) fn fix_defaults(&mut self) {
         if self.language.is_empty() {
             self.language = language_default();
         }
@@ -90,6 +141,31 @@ fn project_sorting_default() -> String {
     "lastModified".to_string()
 }
 
+fn release_channel_default() -> String {
+    "stable".to_string()
+}
+
+fn log_level_default() -> Vec<LogLevel> {
+    vec![
+        LogLevel::Debug,
+        LogLevel::Error,
+        LogLevel::Warn,
+        LogLevel::Info,
+    ]
+}
+
+fn gui_animation_default() -> bool {
+    true
+}
+
+fn gui_compact_default() -> bool {
+    false
+}
+
+fn project_view_mode_default() -> String {
+    "List".to_string()
+}
+
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct WindowSize {
     pub width: u32,
@@ -102,68 +178,5 @@ impl Default for WindowSize {
             width: 1300,
             height: 800,
         }
-    }
-}
-
-pub struct GuiConfigHandler<'a> {
-    config: &'a mut GuiConfig,
-    path: &'a PathBuf,
-}
-
-impl GuiConfigHandler<'_> {
-    pub async fn save(&self) -> io::Result<()> {
-        let json = serde_json::to_string_pretty(&self.config)?;
-        tokio::fs::create_dir_all(self.path.parent().unwrap()).await?;
-        tokio::fs::write(&self.path, json.as_bytes()).await
-    }
-}
-
-impl Deref for GuiConfigHandler<'_> {
-    type Target = GuiConfig;
-
-    #[inline(always)]
-    fn deref(&self) -> &GuiConfig {
-        self.config
-    }
-}
-
-impl DerefMut for GuiConfigHandler<'_> {
-    #[inline(always)]
-    fn deref_mut(&mut self) -> &mut GuiConfig {
-        self.config
-    }
-}
-
-pub struct GuiConfigHolder {
-    cached_value: Option<(GuiConfig, PathBuf)>,
-}
-
-impl GuiConfigHolder {
-    pub fn new() -> Self {
-        Self { cached_value: None }
-    }
-
-    pub async fn load(&mut self, io: &DefaultEnvironmentIo) -> io::Result<GuiConfigHandler> {
-        let (config, path) = if let Some((ref mut config, ref path)) = self.cached_value {
-            (config, path)
-        } else {
-            let path = io.resolve("vrc-get/gui-config.json".as_ref());
-            let value = match io.open(&path).await {
-                Ok(mut file) => {
-                    let mut buffer = Vec::new();
-                    file.read_to_end(&mut buffer).await?;
-                    let mut loaded = serde_json::from_slice::<GuiConfig>(&buffer)?;
-                    loaded.fix_defaults();
-                    loaded
-                }
-                Err(ref e) if e.kind() == io::ErrorKind::NotFound => GuiConfig::default(),
-                Err(e) => return Err(e),
-            };
-            self.cached_value = Some((value, path));
-            let (config, path) = self.cached_value.as_mut().unwrap();
-            (config, &*path)
-        };
-
-        Ok(GuiConfigHandler { config, path })
     }
 }

@@ -1,7 +1,8 @@
-use crate::common::VirtualFileSystem;
+use super::get_temp_path;
 use indexmap::IndexMap;
 use serde_json::json;
-use vrc_get_vpm::io::IoTrait;
+use std::path::{Path, PathBuf};
+use vrc_get_vpm::io::{DefaultProjectIo, IoTrait};
 use vrc_get_vpm::unity_project::pending_project_changes::Remove;
 use vrc_get_vpm::version::{Version, VersionRange};
 use vrc_get_vpm::{PackageManifest, UnityProject};
@@ -11,6 +12,8 @@ pub struct VirtualProjectBuilder {
     locked: IndexMap<String, (Version, IndexMap<String, VersionRange>)>,
     files: IndexMap<String, String>,
     directories: Vec<String>,
+    unity_version: &'static str,
+    unity_revision: &'static str,
 }
 
 impl VirtualProjectBuilder {
@@ -20,7 +23,15 @@ impl VirtualProjectBuilder {
             locked: IndexMap::new(),
             files: IndexMap::new(),
             directories: vec![],
+            unity_version: "2019.4.31f1",
+            unity_revision: "bd5abf232a62",
         }
+    }
+
+    pub fn with_unity(&mut self, version: &'static str, revision: &'static str) -> &mut Self {
+        self.unity_version = version;
+        self.unity_revision = revision;
+        self
     }
 
     pub fn add_dependency(&mut self, name: &str, version: Version) -> &mut VirtualProjectBuilder {
@@ -71,14 +82,17 @@ impl VirtualProjectBuilder {
         name: &str,
         package_json: impl Into<String>,
     ) -> &mut VirtualProjectBuilder {
-        self.files.insert(
-            format!("Packages/{}/package.json", name),
-            package_json.into(),
-        );
+        self.files
+            .insert(format!("Packages/{name}/package.json"), package_json.into());
         self
     }
 
-    pub async fn build(&self) -> std::io::Result<UnityProject<VirtualFileSystem>> {
+    #[track_caller]
+    pub fn build(&self) -> impl Future<Output = std::io::Result<UnityProject>> {
+        self.build_impl(get_temp_path("test_projects"))
+    }
+
+    async fn build_impl(&self, project_path: PathBuf) -> std::io::Result<UnityProject> {
         let vpm_manifest = {
             let mut dependencies = serde_json::Map::new();
             for (dependency, version) in &self.dependencies {
@@ -106,21 +120,42 @@ impl VirtualProjectBuilder {
             })
         };
 
-        let fs = VirtualFileSystem::new();
-        fs.add_file(
-            "Packages/vpm-manifest.json".as_ref(),
+        match tokio::fs::remove_dir_all(&project_path).await {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Ok(()) => {}
+            Err(e) => return Err(e),
+        }
+
+        tokio::fs::create_dir_all(&project_path.join("Packages")).await?;
+        tokio::fs::write(
+            project_path.join("Packages/vpm-manifest.json"),
             vpm_manifest.to_string().as_bytes(),
         )
         .await?;
 
+        tokio::fs::create_dir_all(&project_path.join("ProjectSettings")).await?;
+        tokio::fs::write(
+            project_path.join("ProjectSettings/ProjectVersion.txt"),
+            format!(
+                "m_EditorVersion: {version}\n\
+                m_EditorVersionWithRevision: {version} ({revision})\n\
+                ",
+                version = self.unity_version,
+                revision = self.unity_revision,
+            )
+            .as_bytes(),
+        )
+        .await?;
+
         for (name, contents) in &self.files {
-            fs.add_file(name.as_ref(), contents.as_bytes()).await?;
+            tokio::fs::create_dir_all(&project_path.join(name).parent().unwrap()).await?;
+            tokio::fs::write(project_path.join(name), contents).await?;
         }
 
         for name in &self.directories {
-            fs.create_dir_all(name.as_ref()).await?;
+            tokio::fs::create_dir_all(project_path.join(name)).await?;
         }
 
-        UnityProject::load(fs).await
+        UnityProject::load(DefaultProjectIo::new(project_path.into())).await
     }
 }

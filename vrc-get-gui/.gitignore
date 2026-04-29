@@ -2,12 +2,7 @@
 /node_modules
 /.pnp
 .pnp.js
+/gen
 
-# next.js
-/.next/
 /out/
 /build/
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts

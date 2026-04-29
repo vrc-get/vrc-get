@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "master" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -74,7 +73,7 @@ jobs:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
@@ -87,9 +86,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ci-build-${{ matrix.triple }}
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.2xx
 
       - name: Setup
         run: ${{ matrix.setup }}
@@ -103,24 +99,24 @@ jobs:
       - name: Build
         run: cargo build --verbose --target ${{ matrix.triple }}
       - name: Upload built binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.triple }}
           path: |
             target/${{ matrix.triple }}/debug/vrc-get*
             target/${{ matrix.triple }}/debug/libvrc-get*
       - name: Build tests
-        run: cargo build --tests --target ${{ matrix.triple }}
+        run: cargo build --tests --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm
       - name: Run tests
         if: ${{ matrix.run-test }}
-        run: cargo test --verbose --target ${{ matrix.triple }}
+        run: cargo test --verbose --target ${{ matrix.triple }} -p vrc-get -p vrc-get-vpm
       - name: Check binary is statically linked
         shell: bash
         if: ${{ matrix.static-linked }}
+        env:
+          RUSTFLAGS: ''
         run: |
-          # https://github.com/taiki-e/setup-cross-toolchain-action/issues/18
-          unset CARGO_BUILD_TARGET
-          cargo run -p build-check-static-link target/${{ matrix.triple }}/debug/vrc-get*
+          cargo xtask check-static-link target/${{ matrix.triple }}/debug/vrc-get${WINDIR:+.exe}
 
   conclude:
     runs-on: ubuntu-latest

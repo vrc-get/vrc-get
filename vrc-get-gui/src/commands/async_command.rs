@@ -1,10 +1,10 @@
-use crate::commands::RustError;
+use crate::commands::prelude::*;
 use log::error;
 use serde::Serialize;
 use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use tauri::{EventHandler, Window};
+use tauri::{Emitter, EventId, Listener, Manager, State, Window};
 
 #[derive(Serialize, specta::Type)]
 #[serde(tag = "type")]
@@ -39,6 +39,13 @@ impl<P: Serialize + Clone> AsyncCommandContext<P> {
             Ok(()) => Ok(()),
         }
     }
+
+    pub(crate) fn state<T>(&self) -> State<'_, T>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.window.state()
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -64,7 +71,7 @@ where
         ImplResult::Async(async_fn) => async_fn,
     };
 
-    let event_handler_slot = Arc::new(Mutex::<Option<EventHandler>>::new(None));
+    let event_handler_slot = Arc::new(Mutex::<Option<EventId>>::new(None));
 
     let window_1 = window.clone();
     let window_2 = window.clone();
@@ -72,7 +79,7 @@ where
 
     let handle = tokio::spawn(async move {
         let context = AsyncCommandContext {
-            channel: format!("{}:progress", channel),
+            channel: format!("{channel}:progress"),
             window: window.clone(),
             _progress: PhantomData,
         };
@@ -81,7 +88,7 @@ where
             Err(value) => FinishedMessage::Failed(value),
         };
 
-        if let Err(e) = window.emit(&format!("{}:finished", channel), message) {
+        if let Err(e) = window.emit(&format!("{channel}:finished"), message) {
             match e {
                 tauri::Error::WebviewNotFound => {}
                 _ => error!("error sending stdout: {e}"),

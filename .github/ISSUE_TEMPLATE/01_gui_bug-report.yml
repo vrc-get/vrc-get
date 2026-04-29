@@ -61,6 +61,23 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: webview-version
+    attributes:
+      label: Webview Version / Webviewバージョン
+      description: |
+        What's the Webview version?
+        This is not strictly related to your browser version or OS version.
+        If you're not sure, please left it blank.
+        You can find this information in the ALCOM's settings page.
+        If you created this issue from ALCOM's settings page, this field will be filled automatically.
+        Webviewのバージョンは何ですか?
+        これはブラウザのバージョンやOSのバージョンとは異なります。
+        よく分からない場合は空欄にして下さい。
+        この情報はALCOMの設定画面にあります。
+        ALCOMの設定画面からissueを作成した場合、このフィールドは自動的に埋められます。
+      placeholder: 19618.1.15.11.14
+
   - type: textarea
     attributes:
       label: Additional context / 補足

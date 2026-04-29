@@ -12,15 +12,15 @@
 
 use std::ffi::{OsStr, OsString};
 use std::fs::OpenOptions;
+use std::io;
 use std::mem::MaybeUninit;
-use std::os::windows::ffi::EncodeWide;
 use std::os::windows::prelude::*;
 use std::path::Path;
-use std::{io, result};
+use std::sync::OnceLock;
 use tokio::process::Command;
 use windows::Win32::Foundation::{ERROR_LOCK_VIOLATION, HANDLE};
 use windows::Win32::Storage::FileSystem::{
-    LockFileEx, UnlockFileEx, LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LOCK_FILE_FLAGS,
+    LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LockFileEx, UnlockFileEx,
 };
 use windows::Win32::System::IO::OVERLAPPED;
 
@@ -39,13 +39,9 @@ pub(crate) async fn start_command(
 
     append_cmd_escaped(&mut cmd_args, path.encode_wide());
 
-    let mut buffer = Vec::new();
     for arg in args {
         cmd_args.push(b' ' as u16);
-        let arg = arg.encode_wide().collect::<Vec<_>>();
-        buffer.clear();
-        append_cpp_escaped(&mut buffer, &arg);
-        append_cmd_escaped(&mut cmd_args, buffer.iter().copied());
+        append_cmd_escaped(&mut cmd_args, arg.encode_wide());
     }
 
     // execute
@@ -56,46 +52,11 @@ pub(crate) async fn start_command(
         .await?;
 
     if !status.success() {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!(
-                "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {}",
-                status
-            ),
-        ));
+        Err(std::io::Error::other(format!(
+            "cmd.exe /E:ON /V:OFF /d /c start /d failed with status: {status}",
+        )))
     } else {
         Ok(())
-    }
-}
-
-/*
-/d /c /E:ON /V:OFF start /b "Unity" "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe" "-projectPath" """D:\VRC\新しいフォルダー (3)\world 2""" "-debugCodeOptimization"
- */
-
-fn append_cpp_escaped(args: &mut Vec<u16>, arg: &[u16]) {
-    let need_quote = arg.iter().any(|&c| c == b' ' as u16 || c == b'\t' as u16);
-    if need_quote {
-        args.push(b'"' as u16);
-    }
-
-    let mut backslashes = 0;
-    for &x in arg {
-        if x == b'\\' as u16 {
-            backslashes += 1;
-        } else {
-            if x == b'"' as u16 {
-                // n + 1 backslashes makes n * 2 + 1 backslashes
-                args.extend(std::iter::repeat(b'\\' as u16).take(backslashes + 1));
-            }
-            backslashes = 0;
-        }
-        args.push(x);
-    }
-
-    if need_quote {
-        // n backslashes makes n * 2 backslashes
-        args.extend(std::iter::repeat(b'\\' as u16).take(backslashes));
-        args.push(b'"' as u16);
     }
 }
 
@@ -143,9 +104,9 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
         match LockFileEx(
-            HANDLE(file.as_raw_handle() as isize),
+            HANDLE(file.as_raw_handle()),
             LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-            0,
+            None,
             0,
             0,
             &mut overlapped,
@@ -162,13 +123,135 @@ pub(crate) fn is_locked(path: &Path) -> io::Result<bool> {
         let mut overlapped: OVERLAPPED = MaybeUninit::zeroed().assume_init();
         overlapped.Anonymous.Anonymous.Offset = 0;
         overlapped.Anonymous.Anonymous.OffsetHigh = 0;
-        UnlockFileEx(
-            HANDLE(file.as_raw_handle() as isize),
-            0,
-            !0,
-            !0,
-            &mut overlapped,
-        )?;
-        return Ok(true);
+        UnlockFileEx(HANDLE(file.as_raw_handle()), None, !0, !0, &mut overlapped)?;
+        Ok(true)
     }
+}
+
+pub fn os_info() -> &'static str {
+    static OS_INFO: OnceLock<String> = OnceLock::new();
+
+    fn compute_os_info() -> String {
+        if let Ok(full_info) = try_get_wmi_info() {
+            return full_info;
+        }
+
+        get_basic_version()
+    }
+
+    fn try_get_wmi_info() -> Result<String, ()> {
+        use std::sync::mpsc;
+        use std::thread;
+        use std::time::Duration;
+        use wmi::WMIConnection;
+
+        let (sender, receiver) = mpsc::channel::<Result<String, ()>>();
+
+        thread::spawn(move || {
+            use serde::Deserialize;
+
+            #[allow(non_camel_case_types)]
+            #[allow(non_snake_case)]
+            #[derive(Deserialize, Debug)]
+            struct Win32_OperatingSystem {
+                #[serde(rename = "Caption")]
+                caption: String,
+                #[serde(rename = "Version")]
+                version: String,
+            }
+
+            let wmi_con = match WMIConnection::new() {
+                Ok(con) => con,
+                Err(_) => {
+                    let _ = sender.send(Err(()));
+                    return;
+                }
+            };
+
+            match wmi_con.query::<Win32_OperatingSystem>() {
+                Ok(mut results) => {
+                    if let Some(os) = results.pop() {
+                        let _ = sender.send(Ok(format!("{} ({})", os.caption, os.version)));
+                    } else {
+                        let _ = sender.send(Err(()));
+                    }
+                }
+                Err(_) => {
+                    let _ = sender.send(Err(()));
+                }
+            }
+        });
+
+        match receiver.recv_timeout(Duration::from_secs(2)) {
+            Ok(Ok(info)) => Ok(info),
+            Ok(Err(_)) | Err(_) => Err(()),
+        }
+    }
+
+    fn get_basic_version() -> String {
+        use windows::Wdk::System::SystemServices::RtlGetVersion;
+        use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
+
+        let mut info = OSVERSIONINFOW {
+            dwOSVersionInfoSize: size_of::<OSVERSIONINFOW>() as u32,
+            ..Default::default()
+        };
+
+        unsafe {
+            if RtlGetVersion(&mut info).is_err() {
+                return "Unknown".to_string();
+            }
+        }
+
+        let ex_version = &info.szCSDVersion[..];
+        let ex_version = &ex_version[..ex_version
+            .iter()
+            .position(|&x| x == 0)
+            .unwrap_or(ex_version.len())];
+        let ex_version = String::from_utf16_lossy(ex_version);
+        let ex_version = if ex_version.is_empty() {
+            "".to_string()
+        } else {
+            format!(" ({ex_version})")
+        };
+
+        format!(
+            "Windows {}.{}.{}{}",
+            info.dwMajorVersion, info.dwMinorVersion, info.dwBuildNumber, ex_version,
+        )
+    }
+
+    OS_INFO.get_or_init(compute_os_info)
+}
+
+pub fn local_app_data() -> &'static str {
+    static LOCAL_APP_DATA: OnceLock<String> = OnceLock::new();
+
+    LOCAL_APP_DATA.get_or_init(|| {
+        dirs_next::cache_dir()
+            .map(|x| x.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    })
+}
+
+pub fn app_data() -> &'static str {
+    static APP_DATA: OnceLock<String> = OnceLock::new();
+
+    APP_DATA.get_or_init(|| {
+        // AppData is the parent directory of LocalAppData (AppData\Local)
+        std::path::Path::new(local_app_data())
+            .parent()
+            .map(|x| x.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    })
+}
+
+pub use open::that as open_that;
+
+pub fn initialize(_: tauri::AppHandle) {
+    // nothing to initialize
+}
+
+pub fn is_noexec(_path: &Path) -> bool {
+    false
 }

@@ -1,21 +1,63 @@
 use crate::environment::repo_source::RepoSource;
-use crate::io;
-use crate::io::EnvironmentIo;
-use crate::repository::local::LocalCachedRepository;
+use crate::environment::{
+    CURATED_URL_STR, LOCAL_CURATED_PATH, LOCAL_OFFICIAL_PATH, OFFICIAL_URL_STR, Settings,
+};
+use crate::io::{DefaultEnvironmentIo, IoTrait};
 use crate::repository::RemoteRepository;
+use crate::repository::local::LocalCachedRepository;
 use crate::traits::HttpClient;
-use crate::utils::{read_json_file, to_vec_pretty_os_eol, try_load_json};
-use crate::{PackageCollection, PackageInfo, VersionSelector};
+use crate::utils::{parse_json_file, read_to_end, to_vec_pretty_os_eol, try_load_json};
+use crate::{UserRepoSetting, io};
 use futures::future::join_all;
 use indexmap::IndexMap;
-use log::error;
+use lazy_static::lazy_static;
+use log::{error, warn};
 use std::collections::HashMap;
 use std::path::Path;
 use url::Url;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct RepoHolder {
-    cached_repos_new: HashMap<Box<Path>, LocalCachedRepository>,
+    cached_repos_new: HashMap<Box<Path>, Repository>,
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug, Clone)]
+enum Repository {
+    Loaded(LocalCachedRepository),
+    NotDownloaded(Url, IndexMap<Box<str>, Box<str>>),
+    UnableToLoad,
+}
+
+impl Repository {
+    fn as_loaded(&self) -> Option<&LocalCachedRepository> {
+        match self {
+            Repository::Loaded(x) => Some(x),
+            _ => None,
+        }
+    }
+
+    fn remote_download_info(&self) -> Option<RemoteDownloadInfo<'_>> {
+        match self {
+            Repository::Loaded(repo) => repo.url().map(|url| RemoteDownloadInfo {
+                url,
+                headers: repo.headers(),
+                etag: repo.vrc_get.as_ref().map(|x| x.etag.as_ref()),
+            }),
+            Repository::NotDownloaded(url, headers) => Some(RemoteDownloadInfo {
+                url,
+                headers,
+                etag: None,
+            }),
+            Repository::UnableToLoad => None,
+        }
+    }
+}
+
+struct RemoteDownloadInfo<'a> {
+    url: &'a Url,
+    headers: &'a IndexMap<Box<str>, Box<str>>,
+    etag: Option<&'a str>,
 }
 
 impl RepoHolder {
@@ -26,157 +68,239 @@ impl RepoHolder {
     }
 }
 
+/// accessors
+impl RepoHolder {
+    pub fn remove(&mut self, path: &Path) {
+        self.cached_repos_new.remove(path);
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &LocalCachedRepository> + Sized {
+        self.cached_repos_new.values().filter_map(|x| x.as_loaded())
+    }
+
+    pub fn find_by_id(&self, id: &str) -> Option<&LocalCachedRepository> {
+        self.iter().find(|x| x.id() == Some(id))
+    }
+
+    pub fn get_by_path(&self, path: &Path) -> Option<&LocalCachedRepository> {
+        self.cached_repos_new.get(path).and_then(|x| x.as_loaded())
+    }
+}
+
 // new system
 impl RepoHolder {
-    pub(crate) async fn load_repos<'a, IO: EnvironmentIo>(
-        &mut self,
+    pub(crate) async fn load(
+        settings: &Settings,
+        io: &DefaultEnvironmentIo,
         http: Option<&impl HttpClient>,
-        io: &IO,
+    ) -> io::Result<Self> {
+        let mut repo_cache = Self::load_cache(settings, io).await?;
+
+        if let Some(http) = http {
+            repo_cache.update_cache(io, http).await;
+        }
+
+        Ok(repo_cache)
+    }
+
+    pub(crate) async fn load_cache(
+        settings: &Settings,
+        io: &DefaultEnvironmentIo,
+    ) -> io::Result<Self> {
+        let predefined_repos = Self::get_predefined_repos(settings).into_iter();
+        let user_repos = settings
+            .get_user_repos()
+            .iter()
+            .map(UserRepoSetting::to_source);
+        io.create_dir_all("Repos".as_ref()).await?;
+        let mut repo_cache = Self::new();
+
+        repo_cache
+            .load_repo_cache(io, predefined_repos.chain(user_repos))
+            .await;
+
+        Ok(repo_cache)
+    }
+
+    fn get_predefined_repos(settings: &Settings) -> Vec<RepoSource<'static>> {
+        lazy_static! {
+            static ref EMPTY_HEADERS: IndexMap<Box<str>, Box<str>> = IndexMap::new();
+            static ref OFFICIAL_URL: Url = Url::parse(OFFICIAL_URL_STR).unwrap();
+            static ref CURATED_URL: Url = Url::parse(CURATED_URL_STR).unwrap();
+        }
+
+        let mut repositories = Vec::with_capacity(2);
+
+        if !settings.ignore_official_repository() {
+            repositories.push(RepoSource::new(
+                LOCAL_OFFICIAL_PATH.as_ref(),
+                &EMPTY_HEADERS,
+                Some(&OFFICIAL_URL),
+            ));
+        } else {
+            warn!("ignoring official repository is experimental feature!");
+        }
+
+        if !settings.ignore_curated_repository() {
+            repositories.push(RepoSource::new(
+                LOCAL_CURATED_PATH.as_ref(),
+                &EMPTY_HEADERS,
+                Some(&CURATED_URL),
+            ));
+        } else {
+            warn!("ignoring curated repository is experimental feature!");
+        }
+
+        repositories
+    }
+
+    /// Note: errors will be logged instead of returning
+    pub(crate) async fn load_repo_cache<'a>(
+        &mut self,
+        io: &DefaultEnvironmentIo,
         sources: impl Iterator<Item = RepoSource<'a>>,
-    ) -> io::Result<()> {
+    ) {
+        let start = std::time::Instant::now();
         let repos = join_all(sources.map(|src| async move {
-            match Self::load_repo_from_source(http, io, &src).await {
-                Ok(Some(v)) => Some((v, src.cache_path().into())),
-                Ok(None) => None,
+            fn if_not_exists(src: RepoSource) -> (Box<Path>, Repository) {
+                (
+                    src.cache_path().into(),
+                    src.url()
+                        .map(|u| Repository::NotDownloaded(u.clone(), src.headers().clone()))
+                        .unwrap_or(Repository::UnableToLoad),
+                )
+            }
+
+            match Self::load_repo_from_cache(io, &src).await {
+                Ok(Some(v)) => (src.cache_path().into(), Repository::Loaded(v)),
+                Ok(None) => if_not_exists(src),
                 Err(e) => {
-                    error!("loading repo '{}': {}", src.cache_path().display(), e);
-                    None
+                    error!("loading repo '{}': {e}", src.cache_path().display());
+                    if_not_exists(src)
                 }
             }
         }))
         .await;
+        let duration = std::time::Instant::now() - start;
+        log::debug!("loading repo cache took {duration:?}");
 
-        for (repo, path) in repos.into_iter().flatten() {
+        for (path, repo) in repos.into_iter() {
             self.cached_repos_new.insert(path, repo);
         }
-
-        Ok(())
     }
 
-    async fn load_repo_from_source<IO: EnvironmentIo>(
-        client: Option<&impl HttpClient>,
-        io: &IO,
+    async fn load_repo_from_cache(
+        io: &DefaultEnvironmentIo,
         source: &RepoSource<'_>,
     ) -> io::Result<Option<LocalCachedRepository>> {
-        if let Some(url) = &source.url() {
-            RepoHolder::load_remote_repo(client, io, source.headers(), source.cache_path(), url)
-                .await
-                .map(Some)
+        let path = source.cache_path();
+        if let Some(url) = source.url() {
+            if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(io, path).await? {
+                loaded.set_url(url.clone());
+                Ok(Some(loaded))
+            } else {
+                warn!("Local cache for {url} does not exist");
+                Ok(None)
+            }
         } else {
-            RepoHolder::load_local_repo(io, source.cache_path())
-                .await
-                .map(Some)
+            Ok(Some(parse_json_file(
+                &read_to_end(io.open(path).await?).await?,
+                path,
+            )?))
         }
     }
 
-    async fn load_remote_repo(
-        client: Option<&impl HttpClient>,
-        io: &impl EnvironmentIo,
-        headers: &IndexMap<Box<str>, Box<str>>,
-        path: &Path,
-        remote_url: &Url,
-    ) -> io::Result<LocalCachedRepository> {
-        if let Some(mut loaded) = try_load_json::<LocalCachedRepository>(io, path).await? {
-            if let Some(client) = client {
-                // if it's possible to download remote repo, try to update with that
-                match RemoteRepository::download_with_etag(
-                    client,
-                    remote_url,
-                    loaded.headers(),
-                    loaded.vrc_get.as_ref().map(|x| x.etag.as_ref()),
-                )
-                .await
-                {
-                    Ok(None) => log::debug!("cache matched downloading {}", remote_url),
-                    Ok(Some((remote_repo, etag))) => {
-                        loaded.set_repo(remote_repo);
-                        loaded.set_etag(etag);
+    pub(crate) async fn update_cache(
+        &mut self,
+        io: &DefaultEnvironmentIo,
+        client: &impl HttpClient,
+    ) {
+        let start = std::time::Instant::now();
+        let result = futures::future::join_all(self.cached_repos_new.iter_mut().map(
+            async |(path, repository)| {
+                if let Some(info) = repository.remote_download_info() {
+                    log::debug!("downloading remote repo '{}'", info.url);
+                    match RemoteRepository::download_with_etag(
+                        client,
+                        info.url,
+                        info.headers,
+                        info.etag,
+                    )
+                    .await
+                    {
+                        Ok(Some((remote_repo, etag))) => {
+                            log::debug!("successfully downloaded '{}'", info.url);
 
-                        io.write(path, &to_vec_pretty_os_eol(&loaded)?)
-                            .await
-                            .unwrap_or_else(|e| {
-                                error!("writing local repo cache '{}': {}", path.display(), e)
-                            });
+                            let headers = info.headers.clone();
+                            let new_repository = if let Repository::Loaded(existing) = repository {
+                                existing.set_repo(remote_repo);
+                                existing
+                            } else {
+                                //let headers = headers.clone(); // lifetime error
+                                *repository = Repository::Loaded(LocalCachedRepository::new(
+                                    remote_repo,
+                                    headers,
+                                ));
+                                match repository {
+                                    Repository::Loaded(x) => x,
+                                    _ => unreachable!(),
+                                }
+                            };
+
+                            new_repository.set_etag(etag);
+
+                            async fn save_repository(
+                                io: &DefaultEnvironmentIo,
+                                path: &Path,
+                                repository: &LocalCachedRepository,
+                            ) -> io::Result<()> {
+                                io.write_sync(path, &to_vec_pretty_os_eol(&repository)?)
+                                    .await
+                            }
+
+                            if let Err(e) = save_repository(io, path, new_repository).await {
+                                error!("writing local repo cache '{}': {e}", path.display());
+                            }
+                        }
+                        Ok(None) => {
+                            log::debug!("already up to date, using cached '{}'", info.url)
+                        }
+                        // error handling later
+                        Err(e) => return Err((info.url.clone(), e)),
                     }
-                    Err(e) => {
-                        error!("fetching remote repo '{}': {}", remote_url, e);
-                    }
+
+                    Ok(true)
+                } else {
+                    // */
+                    Ok(false)
                 }
+            },
+        ))
+        .await;
+
+        log::debug!("updating repo from remote took {:?}", start.elapsed());
+
+        handle_error(result);
+
+        fn handle_error(result: Vec<Result<bool, (Url, io::Error)>>) {
+            // We want to workaround 'Connection Refused' spam on offline environment,
+            // so if all repositories reported error,
+            // we report single "Unable to connect to any servers".
+
+            if result.is_empty() || result.iter().any(|x| x.is_ok()) {
+                // some succeeded, so normal error handling
+                return log_error(result);
             }
 
-            Ok(loaded)
-        } else {
-            // if local repository not found: try downloading remote one
-            let Some(client) = client else {
-                return Err(io::Error::new(
-                    io::ErrorKind::ConnectionAborted,
-                    "offline mode",
-                ));
-            };
-            let (remote_repo, etag) =
-                RemoteRepository::download(client, remote_url, headers).await?;
-
-            let mut local_cache = LocalCachedRepository::new(remote_repo, headers.clone());
-
-            local_cache.set_etag(etag);
-
-            io.write(path, &to_vec_pretty_os_eol(&local_cache)?)
-                .await
-                .unwrap_or_else(|e| {
-                    error!("writing local repo cache '{}': {}", path.display(), e);
-                });
-
-            Ok(local_cache)
+            error!("fetching remote repo: Unable to download from servers");
         }
-    }
 
-    async fn load_local_repo(
-        io: &impl EnvironmentIo,
-        path: &Path,
-    ) -> io::Result<LocalCachedRepository> {
-        read_json_file::<LocalCachedRepository>(io.open(path).await?, path).await
-    }
-
-    pub(crate) fn get_repos(&self) -> Vec<&LocalCachedRepository> {
-        self.cached_repos_new.values().collect()
-    }
-
-    pub(crate) fn get_repo_with_path(
-        &self,
-    ) -> impl Iterator<Item = (&'_ Box<Path>, &'_ LocalCachedRepository)> {
-        self.cached_repos_new.iter()
-    }
-
-    pub(crate) fn get_repo(&self, path: &Path) -> Option<&LocalCachedRepository> {
-        self.cached_repos_new.get(path)
-    }
-
-    pub(crate) fn remove_repo(&mut self, path: &Path) {
-        self.cached_repos_new.remove(path);
-    }
-}
-
-impl PackageCollection for RepoHolder {
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.get_all_packages())
-    }
-
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.find_packages(package))
-    }
-
-    fn find_package_by_name(
-        &self,
-        package: &str,
-        package_selector: VersionSelector,
-    ) -> Option<PackageInfo> {
-        self.get_repos()
-            .into_iter()
-            .flat_map(|repo| repo.find_package_by_name(package, package_selector))
-            .max_by_key(|x| x.version())
+        fn log_error(result: Vec<Result<bool, (Url, io::Error)>>) {
+            for result in result {
+                if let Some((url, error)) = result.err() {
+                    error!("fetching remote repo '{url}': {error}");
+                }
+            }
+        }
     }
 }

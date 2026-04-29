@@ -1,11 +1,8 @@
 use crate::io;
-use crate::io::IoTrait;
-use crate::utils::to_vec_pretty_os_eol;
-use serde::Serialize;
+use std::future::Future;
 use std::ops::Deref;
-use std::path::Path;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct SaveController<T> {
     parsed: T,
     settings_changed: bool,
@@ -20,28 +17,24 @@ impl<T> SaveController<T> {
     }
 
     #[inline]
-    pub(crate) fn may_changing(&mut self, f: impl FnOnce(&mut T) -> bool) {
-        if f(&mut self.parsed) {
-            self.settings_changed = true;
-        }
-    }
-
-    #[inline]
     pub(crate) fn as_mut(&mut self) -> &mut T {
         self.settings_changed = true;
         &mut self.parsed
     }
 }
 
-impl<T: Serialize> SaveController<T> {
-    pub(crate) async fn save(&mut self, io: &impl IoTrait, path: &Path) -> io::Result<()> {
+impl<T> SaveController<T> {
+    pub(crate) async fn save<'a, F, Fut>(&'a mut self, save: F) -> io::Result<()>
+    where
+        F: FnOnce(&'a T) -> Fut,
+        T: 'a,
+        Fut: Future<Output = io::Result<()>> + 'a,
+    {
         if !self.settings_changed {
             return Ok(());
         }
 
-        io.create_dir_all(path.parent().unwrap_or("".as_ref()))
-            .await?;
-        io.write(path, &to_vec_pretty_os_eol(&self.parsed)?).await?;
+        save(&self.parsed).await?;
 
         self.settings_changed = false;
         Ok(())

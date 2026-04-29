@@ -1,13 +1,12 @@
 use common::*;
-use futures::executor::block_on;
 use std::collections::HashSet;
 use std::io;
 use std::path::Path;
+use vrc_get_vpm::PackageManifest;
 use vrc_get_vpm::io::IoTrait;
 use vrc_get_vpm::unity_project::pending_project_changes::RemoveReason;
 use vrc_get_vpm::unity_project::{AddPackageErr, AddPackageOperation};
 use vrc_get_vpm::version::Version;
-use vrc_get_vpm::PackageManifest;
 
 mod common;
 
@@ -885,10 +884,11 @@ fn not_found_err() {
             .expect_err("should fail");
 
         match &err {
-            AddPackageErr::DependencyNotFound { dependency_name } => {
-                assert_eq!(dependency_name.as_ref(), "com.vrchat.base");
+            AddPackageErr::DependenciesNotFound { dependencies } => {
+                assert_eq!(dependencies.len(), 1);
+                assert_eq!(dependencies[0].0.as_ref(), "com.vrchat.base");
             }
-            _ => panic!("unexpected error: {:?}", err),
+            _ => panic!("unexpected error: {err:?}"),
         }
     })
 }
@@ -921,7 +921,7 @@ fn updating_non_locked_package_should_cause_error() {
             AddPackageErr::UpgradingNonLockedPackage { package_name } => {
                 assert_eq!(package_name.as_ref(), "com.vrchat.avatars");
             }
-            _ => panic!("unexpected error: {:?}", err),
+            _ => panic!("unexpected error: {err:?}"),
         }
     })
 }
@@ -1199,8 +1199,7 @@ fn no_temp_folder_after_add() {
             .await
             .unwrap();
 
-        let env_vfs = VirtualFileSystem::new();
-        let env = VirtualEnvironment::new(env_vfs);
+        let env = VirtualInstaller::new();
 
         let resolve = project
             .remove_request(&["com.vrchat.avatars"])
@@ -1231,6 +1230,7 @@ fn no_temp_folder_after_add() {
 }
 
 #[test]
+#[ignore = "No suitable way to lock a file"]
 fn locked_in_package_folder() {
     block_on(async {
         let mut project = VirtualProjectBuilder::new()
@@ -1250,14 +1250,9 @@ fn locked_in_package_folder() {
             .await
             .unwrap();
 
-        project
-            .io()
-            .deny_deletion("Packages/com.vrchat.avatars/content.txt".as_ref())
-            .await
-            .unwrap();
+        //project.io().lock("Packages/com.vrchat.avatars/content.txt".as_ref()).await.unwrap();
 
-        let env_vfs = VirtualFileSystem::new();
-        let env = VirtualEnvironment::new(env_vfs);
+        let env = VirtualInstaller::new();
 
         let resolve = project
             .remove_request(&["com.vrchat.avatars"])
@@ -1285,11 +1280,16 @@ fn locked_in_package_folder() {
 }
 
 #[test]
-fn rollback_error_in_error() {
+fn error_in_install_does_not_break_project() {
     block_on(async {
         let mut project = VirtualProjectBuilder::new()
-            .add_dependency_range("com.vrchat.avatars", "~3.5.x")
-            .add_locked("com.vrchat.avatars", Version::new(3, 4, 2), &[])
+            .add_dependency("com.vrchat.avatars", Version::new(3, 5, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(3, 4, 2),
+                &[("com.vrchat.base", "3.4.2")],
+            )
+            .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
             .add_file(
                 "Packages/com.vrchat.avatars/package.json",
                 r#"{"name":"com.vrchat.avatars","version":"3.4.2"}"#,
@@ -1299,30 +1299,20 @@ fn rollback_error_in_error() {
             .await
             .unwrap();
 
-        project
-            .io()
-            .deny_deletion("Packages/com.vrchat.avatars/content.txt".as_ref())
-            .await
-            .unwrap();
-
-        let collection = PackageCollectionBuilder::new()
+        let packages = PackageCollectionBuilder::new()
             .add(PackageManifest::new(
                 "com.vrchat.avatars",
-                Version::new(3, 5, 0),
+                Version::new(3, 10, 0),
             ))
             .build();
-
-        let package = collection.get_package("com.vrchat.avatars", Version::new(3, 5, 0));
-
-        let env_vfs = VirtualFileSystem::new();
-        let env = VirtualEnvironment::new(env_vfs);
+        let env = VirtualInstaller::new(); // This installer always throw error
 
         let resolve = project
             .add_package_request(
-                &collection,
-                &[package],
-                AddPackageOperation::InstallToDependencies,
-                false,
+                &packages,
+                &[packages.get_package("com.vrchat.avatars", Version::new(3, 10, 0))],
+                AddPackageOperation::AutoDetected,
+                true,
             )
             .await
             .unwrap();
@@ -1332,24 +1322,13 @@ fn rollback_error_in_error() {
             .await
             .unwrap_err();
 
-        project
-            .io()
-            .metadata("Packages/com.vrchat.avatars/content.txt".as_ref())
-            .await
-            .unwrap();
-
-        project
-            .io()
-            .metadata("Packages/com.vrchat.avatars/package.json".as_ref())
-            .await
-            .unwrap();
-
-        project
-            .io()
-            .metadata("Temp/vrc-get".as_ref())
-            .await
-            .unwrap_err();
-        project.io().metadata("Temp".as_ref()).await.unwrap_err();
+        assert!(
+            project
+                .io()
+                .metadata("Packages/com.vrchat.avatars".as_ref())
+                .await
+                .is_ok(),
+        );
     })
 }
 

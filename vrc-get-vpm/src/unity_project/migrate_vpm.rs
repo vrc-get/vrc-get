@@ -2,11 +2,10 @@ use futures::prelude::*;
 use log::{debug, info};
 use std::collections::HashSet;
 
-use crate::io::ProjectIo;
-use crate::traits::EnvironmentIoHolder;
+use crate::io::IoTrait;
 use crate::unity_project::{AddPackageErr, AddPackageOperation};
-use crate::{io, ProjectType};
-use crate::{PackageCollection, RemotePackageDownloader, UnityProject, VersionSelector};
+use crate::{PackageCollection, UnityProject, VersionSelector};
+use crate::{PackageInstaller, ProjectType, io};
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -32,14 +31,14 @@ impl std::fmt::Display for MigrateVpmError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             MigrateVpmError::ProjectTypeMismatch(either) => {
-                write!(f, "Project type is {:?}", either)
+                write!(f, "Project type is {either:?}")
             }
             MigrateVpmError::UnityVersionMismatch => write!(f, "Unity version is not 2019.x"),
             MigrateVpmError::VpmPackageNotFound(name) => {
-                write!(f, "VPM package {} not found", name)
+                write!(f, "VPM package {name} not found")
             }
-            MigrateVpmError::AddPackageErr(err) => write!(f, "{}", err),
-            MigrateVpmError::Io(err) => write!(f, "{}", err),
+            MigrateVpmError::AddPackageErr(err) => write!(f, "{err}"),
+            MigrateVpmError::Io(err) => write!(f, "{err}"),
         }
     }
 }
@@ -58,24 +57,24 @@ impl From<io::Error> for MigrateVpmError {
 
 type Result<T = (), E = MigrateVpmError> = std::result::Result<T, E>;
 
-impl<IO: ProjectIo> UnityProject<IO> {
-    pub async fn migrate_vpm<E>(&mut self, env: &E, include_prerelease: bool) -> Result
-    where
-        E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
-    {
-        migrate_vpm_beta(self, env, include_prerelease).await
+impl UnityProject {
+    pub async fn migrate_vpm(
+        &mut self,
+        collection: &impl PackageCollection,
+        installer: &impl PackageInstaller,
+        include_prerelease: bool,
+    ) -> Result {
+        migrate_vpm(self, collection, installer, include_prerelease).await
     }
 }
 
-async fn migrate_vpm_beta<E>(
-    project: &mut UnityProject<impl ProjectIo>,
-    env: &E,
+async fn migrate_vpm(
+    project: &mut UnityProject,
+    collection: &impl PackageCollection,
+    installer: &impl PackageInstaller,
     include_prerelease: bool,
-) -> Result
-where
-    E: PackageCollection + RemotePackageDownloader + EnvironmentIoHolder,
-{
-    let is_worlds = match project.detect_project_type().await? {
+) -> Result {
+    let is_worlds = match project.detect_project_type().await {
         // we only can migrate legacy VRCSDK3 projects
         ProjectType::LegacyWorlds => true,
         ProjectType::LegacyAvatars => false,
@@ -89,17 +88,20 @@ where
     );
 
     let mut adding_packages = vec![];
-    let version_selector = VersionSelector::latest_for(project.unity_version(), include_prerelease);
+    let version_selector =
+        VersionSelector::latest_for(Some(project.unity_version()), include_prerelease);
 
     // basic part: install SDK
     if is_worlds {
         adding_packages.push(
-            env.find_package_by_name("com.vrchat.worlds", version_selector)
+            collection
+                .find_package_by_name("com.vrchat.worlds", version_selector)
                 .ok_or(MigrateVpmError::VpmPackageNotFound("com.vrchat.worlds"))?,
         );
     } else {
         adding_packages.push(
-            env.find_package_by_name("com.vrchat.avatars", version_selector)
+            collection
+                .find_package_by_name("com.vrchat.avatars", version_selector)
                 .ok_or(MigrateVpmError::VpmPackageNotFound("com.vrchat.avatars"))?,
         );
     }
@@ -107,15 +109,17 @@ where
     // additional part: migrate VRChat-curated packages
     // we find legacy curated package by trying to install it and check if the project has legacy assets
     {
-        let mut curated_packages = env
+        let mut curated_packages = collection
             .get_curated_packages(version_selector)
             .collect::<Vec<_>>();
 
-        debug!("Trying to add the following curated packages to find legacy curated packages with legacyAssets: {:?}", curated_packages);
+        debug!(
+            "Trying to add the following curated packages to find legacy curated packages with legacyAssets: {curated_packages:?}"
+        );
 
         let packages = project
             .add_package_request(
-                env,
+                collection,
                 &curated_packages,
                 AddPackageOperation::InstallToDependencies,
                 include_prerelease,
@@ -137,21 +141,21 @@ where
             }
         }
 
-        adding_packages.extend(curated_packages.into_iter());
+        adding_packages.extend(curated_packages);
     }
 
     // install packages. this also removes legacy VRCSDK and curated packages
 
     let request = project
         .add_package_request(
-            env,
+            collection,
             &adding_packages,
             AddPackageOperation::InstallToDependencies,
             include_prerelease,
         )
         .await?;
 
-    project.apply_pending_changes(env, request).await?;
+    project.apply_pending_changes(installer, request).await?;
 
     // update project settings
     let project_settings_path = "ProjectSettings/ProjectSettings.asset".as_ref();
@@ -194,7 +198,7 @@ where
             if changed {
                 project
                     .io
-                    .write(project_settings_path, buffer.as_bytes())
+                    .write_sync(project_settings_path, buffer.as_bytes())
                     .await?;
             }
         }

@@ -1,89 +1,111 @@
-"use client"
+"use client";
 
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {ToastContainer} from 'react-toastify';
-import {useCallback, useEffect, useState} from "react";
-import {deepLinkHasAddRepository, environmentLanguage, environmentTheme, LogEntry} from "@/lib/bindings";
-import i18next from "@/lib/i18n";
-import {I18nextProvider} from "react-i18next";
-import {toastError, toastNormal} from "@/lib/toast";
-import {useTauriListen} from "@/lib/use-tauri-listen";
-import {usePathname, useRouter} from "next/navigation";
-import {TooltipProvider} from "@/components/ui/tooltip";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import type React from "react";
+import { Suspense, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { ToastContainer } from "react-toastify";
+import Loading from "@/app/-loading";
+import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import type { LogEntry, TauriImportTemplateResult } from "@/lib/bindings";
+import { commands } from "@/lib/bindings";
+import { DialogRoot, openSingleDialog } from "@/lib/dialog";
+import { isFindKey, useDocumentEvent } from "@/lib/events";
+import { tc } from "@/lib/i18n";
+import { processResult } from "@/lib/import-templates";
+import { queryClient } from "@/lib/query-client";
+import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import { useTauriListen } from "@/lib/use-tauri-listen";
 
-const queryClient = new QueryClient();
+export function Providers({ children }: { children: React.ReactNode }) {
+	const navigate = useNavigate();
 
-export function Providers({children}: { children: React.ReactNode }) {
-	const router = useRouter();
-	const pathname = usePathname();
-
-	useTauriListen<LogEntry>("log", useCallback((event) => {
+	useTauriListen<LogEntry>("log", (event) => {
 		const entry = event.payload as LogEntry;
-		if (entry.level === "Error") {
+		if (entry.level === "Error" && entry.gui_toast) {
 			toastError(entry.message);
 		}
-	}, []))
+	});
 
 	const moveToRepositories = useCallback(() => {
-		if (location.pathname != "/repositories") {
-			router.push("/repositories");
+		if (location.pathname !== "/packages/repositories") {
+			navigate({ to: "/packages/repositories" });
 		}
-	}, [router]);
+	}, [navigate]);
 
-	useTauriListen<null>("deep-link-add-repository", useCallback((_) => {
+	useTauriListen<null>("deep-link-add-repository", (_) => {
 		moveToRepositories();
-	}, [moveToRepositories]));
+	});
 
 	useEffect(() => {
 		let cancel = false;
-		deepLinkHasAddRepository().then((has) => {
+		commands.deepLinkHasAddRepository().then((has) => {
 			if (cancel) return;
 			if (has) {
 				moveToRepositories();
 			}
-		})
+		});
 		return () => {
 			cancel = true;
-		}
+		};
 	}, [moveToRepositories]);
 
-	useEffect(() => {
-		environmentLanguage().then((lang) => i18next.changeLanguage(lang))
-	}, []);
-
-	const [language, setLanguage] = useState(i18next.language);
-
-	useEffect(() => {
-		const changeLanguage = (newLang: string) => setLanguage(newLang);
-		i18next.on("languageChanged", changeLanguage);
-		return () => i18next.off("languageChanged", changeLanguage);
-	}, []);
-
-	useEffect(() => {
-		// initially set theme based on query parameter for early feedback
-		if ('location' in globalThis) {
-			const search = new URLSearchParams(location.search);
-			let theme = search.get('theme');
-			if (theme) {
-				if (theme === "system") {
-					const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-					theme = isDark ? "dark" : "light";
-				}
-				document.documentElement.setAttribute("class", theme);
+	useTauriListen<TauriImportTemplateResult>(
+		"templates-imported",
+		async ({ payload: result }) => {
+			try {
+				await processResult(result);
+			} catch (e) {
+				console.error(e);
+				toastThrownError(e);
 			}
-		}
+		},
+	);
 
+	useEffect(() => {
 		(async () => {
-			// then, load theme from environment
-			// the theme can be different from the query parameter if the user has changed it in the settings
-			let theme = await environmentTheme();
-			if (theme === "system") {
-				const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				theme = isDark ? "dark" : "light";
+			const count = await commands.deepLinkImportedClearNonToastedCount();
+			if (count !== 0) {
+				toastSuccess(tc("templates:toast:imported n templates", { count }));
 			}
-			document.documentElement.setAttribute("class", theme);
 		})();
-	}, [])
+	}, []);
+
+	const { i18n } = useTranslation();
+
+	useEffect(() => {
+		let cancel = false;
+		(async () => {
+			try {
+				if (import.meta.env.DEV) return;
+				const checkVersion = await commands.utilCheckForUpdate();
+				if (cancel) return;
+				if (checkVersion) {
+					await openSingleDialog(CheckForUpdateMessage, {
+						response: checkVersion,
+					});
+				}
+			} catch (e) {
+				toastThrownError(e);
+				console.error(e);
+			}
+		})();
+		return () => {
+			cancel = true;
+		};
+	}, []);
+
+	useDocumentEvent(
+		"keydown",
+		(e) => {
+			if (isFindKey(e)) {
+				e.preventDefault();
+			}
+		},
+		[],
+	);
 
 	return (
 		<>
@@ -101,13 +123,12 @@ export function Providers({children}: { children: React.ReactNode }) {
 				className={"whitespace-normal"}
 			/>
 			<QueryClientProvider client={queryClient}>
-				<I18nextProvider i18n={i18next}>
-					<TooltipProvider>
-						<div lang={language} className="contents">
-							{children}
-						</div>
-					</TooltipProvider>
-				</I18nextProvider>
+				<TooltipProvider>
+					<div lang={i18n.language} className="contents">
+						<Suspense fallback={<Loading />}>{children}</Suspense>
+					</div>
+					<DialogRoot />
+				</TooltipProvider>
 			</QueryClientProvider>
 		</>
 	);

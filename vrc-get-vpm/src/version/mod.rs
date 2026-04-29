@@ -6,10 +6,12 @@
 //! [semver.net]: https://github.com/adamreeve/semver.net
 
 pub use range::DependencyRange;
+pub use range::PrereleaseAcceptance;
 pub use range::VersionRange;
 use std::fmt::Debug;
 pub use unity_version::ReleaseType;
 pub use unity_version::UnityVersion;
+pub use version::StrictEqVersion;
 pub use version::Version;
 
 macro_rules! from_str_impl {
@@ -61,7 +63,8 @@ macro_rules! deserialize_from_str {
                     where
                         E: ::serde::de::Error,
                     {
-                        std::str::FromStr::from_str(v).map_err(E::custom)
+                        std::str::FromStr::from_str(v)
+                            .map_err(|_| E::invalid_value(::serde::de::Unexpected::Str(v), &self))
                     }
                 }
                 deserializer.deserialize_str(Visitor)
@@ -97,7 +100,7 @@ mod tests {
         fn test(greater: &str, lesser: &str) {
             let greater = Version::from_str(greater).expect(greater);
             let lesser = Version::from_str(lesser).expect(lesser);
-            assert!(greater > lesser, "{} > {}", greater, lesser);
+            assert!(greater > lesser, "{greater} > {lesser}");
         }
         // test set are from node-semver
         // Copyright (c) Isaac Z. Schlueter and Contributors

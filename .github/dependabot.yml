@@ -5,6 +5,11 @@ updates:
     open-pull-requests-limit: 20
     schedule:
       interval: "weekly"
+    groups:
+      tauri:
+        patterns: [ 'tauri', 'tauri-build' ]
+      clap:
+        patterns: [ 'clap', 'clap_complete' ]
   - package-ecosystem: github-actions
     directory: "/"
     open-pull-requests-limit: 20
@@ -15,3 +20,14 @@ updates:
     open-pull-requests-limit: 20
     schedule:
       interval: "weekly"
+    groups:
+      radix-ui:
+        patterns: [ "@radix-ui/*" ]
+      react:
+        patterns: [ "react", "react-dom", "@types/react", "@types/react-dom" ]
+      tanstack-router:
+        patterns: [ "@tanstack/*router*" ]
+      tailwindcss:
+        patterns: [ "tailwindcss", "@tailwindcss/*" ]
+      i18next:
+        patterns: [ "i18next", "react-i18next" ]

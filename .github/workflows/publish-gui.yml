@@ -12,6 +12,14 @@ on:
           - prerelease
           - start-rc
           - stable
+      dry-run:
+        type: boolean
+        description: Dry Run, If true, do not publish release to GitHub.
+        default: true
+        required: false
+
+concurrency:
+  group: releasing
 
 jobs:
   pre-build:
@@ -23,11 +31,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - uses: anatawa12/something-releaser@v3
       - uses: snow-actions/git-config-user@v1.0.0
+      - run: rustup update stable
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -63,26 +72,28 @@ jobs:
               echo "head is master or master-*"
               ;;
             * )
-              echo "invalid release kind: $RELEASE_KIND_IN is not allowd for $GITHUB_REF_NAME"
-              exit 255
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "head is not master, but DRY_RUN is true"
+              else
+                echo "head is not master, but DRY_RUN is false"
+                exit 255
+              fi
               ;;
           esac
 
           gh-export-variable GUI_VERSION "$(get-version -t gui)"
         env:
-          RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
+          RELEASE_KIND_IN: ${{ inputs.release_kind }}
+          DRY_RUN: ${{ inputs.dry-run }}
 
       # region changelog
       - name: Create Changelog
         id: changelog
-        # if: ${{ !steps.update-version.outputs.prerelease }}
         uses: anatawa12/sh-actions/changelog/prepare-release@master
         with:
           path: CHANGELOG-gui.md
           version: ${{ env.GUI_VERSION }}
-          # use CHANGELOG-gui.md for all releases including beta for now
-          # there are several logics uses generated changelog, so remember to update them if you change this
-          prerelease: false # ${{ env.PRERELEASE }}
+          prerelease: ${{ env.PRERELEASE }}
           tag-prefix: gui-v
           prerelease-note-heading: |
             Version ${{ env.GUI_VERSION }}
@@ -91,22 +102,18 @@ jobs:
             Version ${{ env.GUI_VERSION }}
             ---
       - name: Upload CHANGELOG.md
-        # if: ${{ !steps.update-version.outputs.prerelease }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CHANGELOG
           path: CHANGELOG.md
       - name: copy release note
-        # if: ${{ !steps.update-version.outputs.prerelease }}
         run: cp "${{ steps.changelog.outputs.release-note }}" release-note.md
       - name: Upload release note
-        # if: ${{ !steps.update-version.outputs.prerelease }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-note-for-release
           path: release-note.md
       - name: remove temp release note file
-        # if: ${{ !steps.update-version.outputs.prerelease }}
         run: rm release-note.md
       # endregion changelog
 
@@ -118,27 +125,6 @@ jobs:
           git branch releasing
           git push -f -u origin releasing
 
-  build-web:
-    name: Build gui web
-    runs-on: ubuntu-latest
-    needs: [ pre-build ]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: 'releasing'
-          submodules: recursive
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-about
-
-      - run: npm run build
-        working-directory: vrc-get-gui
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vrc-get-gui-web
-          path: vrc-get-gui/out
-
   build-rust:
     name: Build rust
     environment:
@@ -149,56 +135,83 @@ jobs:
         include:
           # note: when you changed paths for tauri updater (which are files with .sig),
           # remember keep in sync with build-updater-json
-          - triple: x86_64-unknown-linux-gnu
-            on: ubuntu-latest
+          - name: x86_64-linux-appimage
+            triple: x86_64-unknown-linux-gnu
+            on: ubuntu-22.04
             setup: |
               sudo apt update && sudo apt install -y lld
               ld.lld --version
 
-              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
             rustflags: "-C link-arg=-fuse-ld=lld"
+            last-bundles: appimage,appimage-updater
+            updater-bundle: bundle/appimage/ALCOM_${GUI_VERSION}_x86_64.AppImage.tar.gz
             dist-path: |
-              bundle/appimage/alcom_${GUI_VERSION}_amd64.AppImage:alcom-${GUI_VERSION}-x86_64.AppImage
+              bundle/appimage/ALCOM_${GUI_VERSION}_x86_64.AppImage:alcom-${GUI_VERSION}-x86_64.AppImage
 
-              bundle/appimage/alcom_${GUI_VERSION}_amd64.AppImage.tar.gz:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz
-              bundle/appimage/alcom_${GUI_VERSION}_amd64.AppImage.tar.gz.sig:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz.sig
+              bundle/appimage/ALCOM_${GUI_VERSION}_x86_64.AppImage.tar.gz:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz
+              bundle/appimage/ALCOM_${GUI_VERSION}_x86_64.AppImage.tar.gz.sig:alcom-${GUI_VERSION}-x86_64.AppImage.tar.gz.sig
 
-          - triple: x86_64-pc-windows-msvc
-            on: windows-latest
+          - name: x86_64-linux-package
+            triple: x86_64-unknown-linux-gnu
+            on: ubuntu-22.04
+            setup: |
+              sudo apt update && sudo apt install -y lld
+              ld.lld --version
+
+              sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+            rustflags: "-C link-arg=-fuse-ld=lld"
+            alcom-build-options: --no-self-updater --updater-instruction-message "en=You can download newer package from official website."
+            last-bundles: deb,rpm
+            dist-path: |
+              bundle/deb/alcom_${GUI_VERSION}-1_amd64.deb:alcom_${GUI_VERSION}-1_amd64.deb
+              bundle/rpm/alcom-${GUI_VERSION}-1.x86_64.rpm:alcom-${GUI_VERSION}-1.x86_64.rpm
+
+          - name: x86_64-windows-all
+            triple: x86_64-pc-windows-msvc
+            on: windows-2022
+            last-bundles: exe-updater
+            updater-bundle: bundle/setup/alcom-updater.exe
             dist-path: |
               ALCOM.exe:ALCOM-${GUI_VERSION}-x86_64.exe
-              bundle/nsis/ALCOM_${GUI_VERSION}_x64-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
-              bundle/nsis/ALCOM_${GUI_VERSION}_x64-setup.nsis.zip:ALCOM-${GUI_VERSION}-x86_64-setup.nsis.zip
-              bundle/nsis/ALCOM_${GUI_VERSION}_x64-setup.nsis.zip.sig:ALCOM-${GUI_VERSION}-x86_64-setup.nsis.zip.sig
+              bundle/setup/alcom-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
+              bundle/setup/alcom-updater.exe:ALCOM-${GUI_VERSION}-x86_64-updater.exe
+              bundle/setup/alcom-updater.exe.sig:ALCOM-${GUI_VERSION}-x86_64-updater.exe.sig
 
-          - triple: universal-apple-darwin
+          - name: universal-macos-all
+            triple: universal-apple-darwin
             on: macos-14
             setup: |
               rustup target add aarch64-apple-darwin
               rustup target add x86_64-apple-darwin
+            last-bundles: dmg,app-updater
+            updater-bundle: bundle/macos/ALCOM.app.tar.gz
             dist-path: |
               bundle/dmg/ALCOM_${GUI_VERSION}_universal.dmg:ALCOM-${GUI_VERSION}-universal.dmg
 
               bundle/macos/ALCOM.app.tar.gz:ALCOM-${GUI_VERSION}-universal.app.tar.gz
               bundle/macos/ALCOM.app.tar.gz.sig:ALCOM-${GUI_VERSION}-universal.app.tar.gz.sig
 
-        triple:
-          - x86_64-unknown-linux-gnu
+        name:
+          - x86_64-linux-appimage
           #- aarch64-unknown-linux-musl
-          - x86_64-pc-windows-msvc
-          #- aarch64-pc-windows-msvc
-          - universal-apple-darwin
+          - x86_64-linux-package
+          #- aarch64-linux-package
+          - x86_64-windows-all
+          #- aarch64-windows-all
+          - universal-macos-all
 
     runs-on: ${{ matrix.on }}
     env:
       RUSTFLAGS: ${{ matrix.rustflags }}
 
-    needs: [ pre-build, build-web ]
+    needs: [ pre-build ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: 'releasing'
           submodules: recursive
+      - run: rustup update stable
       - name: Install cross-compilation tools
         uses: taiki-e/setup-cross-toolchain-action@v1
         if: ${{ matrix.triple != 'universal-apple-darwin' }}
@@ -208,39 +221,74 @@ jobs:
         with:
           cache-targets: false # for release build, do not cache build artifacts
           key: release-gui # there are no elements about build result, so it's ok to share between all builds
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-about
 
       - name: Setup
         run: ${{ matrix.setup }}
 
-      - name: Download Web Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vrc-get-gui-web
-          path: vrc-get-gui/out
+      - name: Build ALCOM binary
+        run: |
+          cargo xtask build-alcom --target ${{ matrix.triple }} --release ${{ matrix.alcom-build-options }}
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: pre-sign Bundle ALCOM app (macOS)
+        if: ${{ contains(matrix.name, 'macos') }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles app
+
+      - name: Sign ALCOM app (macOS)
+        if: ${{ contains(matrix.name, 'macos') }}
         env:
-          # apple code signing
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: cargo xtask sign-alcom-app --target ${{ matrix.triple }}
 
-          # tauri updater signing
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        
+      - name: Sign ALCOM exe (Windows)
+        if: ${{ contains(matrix.name, 'windows') }}
+        uses: ./.github/actions/sign-windows
         with:
-          projectPath: vrc-get-gui
-          tauriScript: npm run tauri
-          # disable beforeBuildCommand since we already build web
-          args: |
-            --target ${{ matrix.triple }} -c '{"build":{"beforeBuildCommand":null}}'
+          artifact-name: alcom-exe-unsigned
+          path: target/${{ matrix.triple }}/release/ALCOM.exe
+
+          signpath-api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          signing-policy-slug: ${{ case(inputs.dry-run, 'test-signing', 'release-signing') }}
+          version: ${{ needs.pre-build.outputs.gui-version }}
+
+      - name: Bundle Setup exe (Windows)
+        if: ${{ contains(matrix.name, 'windows') }}
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles setup-exe
+
+      - name: Sign Setup exe (Windows)
+        if: ${{ contains(matrix.name, 'windows') }}
+        uses: ./.github/actions/sign-windows
+        with:
+          artifact-name: alcom-setup-exe-unsigned
+          path: target/${{ matrix.triple }}/release/bundle/setup/alcom-setup.exe
+
+          signpath-api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          signing-policy-slug: ${{ case(inputs.dry-run, 'test-signing', 'release-signing') }}
+          version: ${{ needs.pre-build.outputs.gui-version }}
+
+      - name: Bundle ALCOM (${{ matrix.last-bundles }})
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles ${{ matrix.last-bundles }}
+
+      - name: Bundle ALCOM Updater (Windows)
+        if: ${{ contains(matrix.name, 'windows') }}
+        shell: bash
+        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles exe-updater
+
+      - name: Sign updater artifacts (All Platforms)
+        shell: bash
+        if: ${{ matrix.updater-bundle }}
+        env:
+          GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
+          UPDATER_BUNDLE: ${{ matrix.updater-bundle }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        run: |
+          UPDATER_BUNDLE="${UPDATER_BUNDLE//\$\{GUI_VERSION\}/$GUI_VERSION}"
+          cargo xtask sign-alcom-updater "target/${{ matrix.triple }}/release/${UPDATER_BUNDLE}"
 
       - name: Move artifacts
         shell: bash
@@ -260,22 +308,21 @@ jobs:
             mv "target/${{ matrix.triple }}/release/$src" "artifacts/$dst"
           done
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: artifacts-${{ matrix.triple }}
+          name: artifacts-${{ matrix.name }}
           path: artifacts/*
 
   build-updater-json:
     runs-on: ubuntu-latest
     needs: [ pre-build, build-rust ]
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: 'releasing'
+      # use release 
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: assets
           pattern: artifacts-*
@@ -284,16 +331,18 @@ jobs:
       - name: Run updater-json
         env:
           GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
-        run: cargo run -p build-updater-json
+        run: cargo xtask alcom-updater-json --version "$GUI_VERSION" --assets assets updater.json
 
       - name: Upload updater-json
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: updater.json
-          path: updater.json
+          path: |
+            updater.json
 
   publish-to-github:
     name: Publish to GitHub
+    if: ${{ !inputs.dry-run }}
     environment:
       name: actions-github-app
       url: https://github.com/anatawa12/vrc-get/releases/gui-v${{ needs.pre-build.outputs.gui-version }}
@@ -304,12 +353,12 @@ jobs:
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: 'releasing'
           fetch-depth: 2
@@ -322,7 +371,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: assets
           pattern: artifacts-*
@@ -330,7 +379,7 @@ jobs:
 
       - name: Download changelog
         # if: ${{ !needs.pre-build.outputs.prerelease }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-note-for-release
           path: changelog
@@ -352,11 +401,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |-
-          # Always prerelease for now.
+          # latest = false because we need to have vrc-get cli in the latest release
           # always generating notes file for now
           # ${{ !needs.pre-build.outputs.prerelease && '--notes-file changelog/release-note.md' || '' }} \
           gh release create \
-            --prerelease \
+            ${{ needs.pre-build.outputs.prerelease && '--prerelease' || '' }} \
             --latest=false \
             --notes-file changelog/release-note.md \
             --verify-tag "gui-v$GUI_VERSION" \
@@ -383,7 +432,7 @@ jobs:
       - build-rust
       - publish-to-github
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: 'releasing'
           fetch-depth: 2
@@ -392,6 +441,7 @@ jobs:
 
   pull-request-to-website:
     name: Create PullRequest to vrc-get.anatawa12.com for updater.json
+    if: ${{ !inputs.dry-run }}
     environment:
       name: actions-github-app
     runs-on: ubuntu-latest
@@ -399,14 +449,14 @@ jobs:
     env:
       GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: vrc-get
           repositories: vrc-get.anatawa12.com
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: 'vrc-get/vrc-get.anatawa12.com'
           ref: 'master'
@@ -415,21 +465,27 @@ jobs:
       - uses: snow-actions/git-config-user@v1.0.0
 
       - name: Download updater.json
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: updater.json
           path: .
       - name: Move updater.json
+        env:
+          STABLE: ${{ !needs.pre-build.outputs.prerelease }}
         run: |
           mkdir -p public/api/gui
-          rm public/api/gui/tauri-updater.json || true # remove old file if exists
-          mv updater.json public/api/gui/tauri-updater.json
+          if $STABLE; then
+            rm public/api/gui/tauri-updater.json || true # remove old file if exists
+            mv updater.json public/api/gui/tauri-updater.json
+          fi
+          rm public/api/gui/tauri-updater-beta.json || true
+          mv updater.json public/api/gui/tauri-updater-beta.json
 
       - name: Commit
         run: |-
           BRANCH_NAME="update-tauri-updater-json-v$GUI_VERSION"
           git switch -c "$BRANCH_NAME"
-          git add public/api/gui/tauri-updater.json
+          git add public/api/gui/tauri-updater.json public/api/gui/tauri-updater-beta.json
           git commit -m "chore: update tauri-updater.json to v$GUI_VERSION"
           git push -u origin "$BRANCH_NAME"
 

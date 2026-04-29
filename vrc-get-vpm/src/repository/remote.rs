@@ -1,8 +1,8 @@
+use crate::PackageManifest;
 use crate::traits::HttpClient;
 use crate::utils::{deserialize_json, deserialize_json_slice};
 use crate::version::Version;
-use crate::PackageManifest;
-use crate::{io, VersionSelector};
+use crate::{VersionSelector, io};
 use futures::prelude::*;
 use indexmap::IndexMap;
 use serde::de::{DeserializeSeed, Visitor};
@@ -59,8 +59,7 @@ impl RemoteRepository {
         headers: &IndexMap<Box<str>, Box<str>>,
         current_etag: Option<&str>,
     ) -> io::Result<Option<(RemoteRepository, Option<Box<str>>)>> {
-        let Some((mut stream, etag)) = client.get_with_etag(url, headers, current_etag).await?
-        else {
+        let Some((stream, etag)) = client.get_with_etag(url, headers, current_etag).await? else {
             return Ok(None);
         };
 
@@ -92,15 +91,19 @@ impl RemoteRepository {
             self.parsed.url = Some(url.clone());
             self.actual
                 .insert("url".to_owned(), Value::String(url.to_string()));
-            if self.parsed.id.is_none() {
-                let url = self.parsed.url.as_ref().unwrap().as_str().into();
-                self.set_id_if_none(move || url);
-            }
+        }
+        if self.parsed.id.is_none() {
+            let url = self.parsed.url.as_ref().unwrap().as_str().into();
+            self.set_id_if_none(move || url);
         }
     }
 
     pub fn url(&self) -> Option<&Url> {
         self.parsed.url.as_ref()
+    }
+
+    pub(crate) fn set_url(&mut self, url: Url) {
+        self.parsed.url = Some(url);
     }
 
     pub fn id(&self) -> Option<&str> {
@@ -111,13 +114,20 @@ impl RemoteRepository {
         self.parsed.name.as_deref()
     }
 
-    pub fn get_versions_of(&self, package: &str) -> impl Iterator<Item = &'_ PackageManifest> {
+    pub fn get_versions_of(
+        &self,
+        package: &str,
+    ) -> impl Iterator<Item = &'_ PackageManifest> + use<'_> {
         self.parsed
             .packages
             .get(package)
             .map(RemotePackages::all_versions)
             .into_iter()
             .flatten()
+    }
+
+    pub fn get_package(&self, package: &str) -> Option<&RemotePackages> {
+        self.parsed.packages.get(package)
     }
 
     pub fn get_packages(&self) -> impl Iterator<Item = &'_ RemotePackages> {
@@ -149,7 +159,7 @@ impl<'de> Deserialize<'de> for RemoteRepository {
     }
 }
 
-fn deserialize_packages<'de, D: Deserializer<'de>>(
+fn deserialize_packages<'de, D>(
     deserializer: D,
 ) -> Result<IndexMap<Box<str>, RemotePackages>, D::Error>
 where
@@ -200,6 +210,10 @@ impl RemotePackages {
     }
 
     pub fn get_latest(&self, selector: VersionSelector) -> Option<&PackageManifest> {
+        if let Some(version) = selector.as_specific() {
+            return self.versions.get(version);
+        }
+
         self.versions
             .values()
             .filter(|json| selector.satisfies(json))
@@ -207,11 +221,15 @@ impl RemotePackages {
             .filter(|json| !json.is_yanked())
             .max_by_key(|json| json.version())
     }
+
+    pub fn get_version(&self, version: &Version) -> Option<&PackageManifest> {
+        self.versions.get(version)
+    }
 }
 
 struct PackageNameToRemotePackages<'a>(&'a str);
 
-impl<'de, 'a> DeserializeSeed<'de> for PackageNameToRemotePackages<'a> {
+impl<'de> DeserializeSeed<'de> for PackageNameToRemotePackages<'_> {
     type Value = RemotePackages;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -220,7 +238,7 @@ impl<'de, 'a> DeserializeSeed<'de> for PackageNameToRemotePackages<'a> {
     {
         struct VisitorImpl<'a>(&'a str);
 
-        impl<'de, 'a> Visitor<'de> for VisitorImpl<'a> {
+        impl<'de> Visitor<'de> for VisitorImpl<'_> {
             type Value = RemotePackages;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -247,7 +265,7 @@ impl<'de, 'a> DeserializeSeed<'de> for PackageNameToRemotePackages<'a> {
 
 struct PackageNameToVersions<'a>(&'a str);
 
-impl<'de, 'a> DeserializeSeed<'de> for PackageNameToVersions<'a> {
+impl<'de> DeserializeSeed<'de> for PackageNameToVersions<'_> {
     type Value = HashMap<Version, PackageManifest>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -256,7 +274,7 @@ impl<'de, 'a> DeserializeSeed<'de> for PackageNameToVersions<'a> {
     {
         struct VisitorImpl<'a>(&'a str);
 
-        impl<'de, 'a> Visitor<'de> for VisitorImpl<'a> {
+        impl<'de> Visitor<'de> for VisitorImpl<'_> {
             type Value = HashMap<Version, PackageManifest>;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -284,7 +302,7 @@ impl<'de, 'a> DeserializeSeed<'de> for PackageNameToVersions<'a> {
 
 struct ErrorProofManifest<'a>(&'a str, &'a Version);
 
-impl<'de, 'a> DeserializeSeed<'de> for ErrorProofManifest<'a> {
+impl<'de> DeserializeSeed<'de> for ErrorProofManifest<'_> {
     type Value = Option<PackageManifest>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -296,10 +314,9 @@ impl<'de, 'a> DeserializeSeed<'de> for ErrorProofManifest<'a> {
             Ok(manifest) => Ok(Some(manifest)),
             Err(err) => {
                 log::warn!(
-                    "Error deserializing package manifest for {}@{}: {}",
+                    "Error deserializing package manifest for {}@{}: {err}",
                     self.0,
                     self.1,
-                    err
                 );
                 Ok(None)
             }

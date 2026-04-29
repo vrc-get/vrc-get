@@ -29,20 +29,20 @@ pub struct PackageCollection {
 }
 
 impl PackageCollection {
-    pub fn get_package(&self, name: &str, version: Version) -> PackageInfo {
+    pub fn get_package(&self, name: &str, version: Version) -> PackageInfo<'_> {
         self.find_package_by_name(name, VersionSelector::specific_version(&version))
             .unwrap()
     }
 }
 
 impl vrc_get_vpm::PackageCollection for PackageCollection {
-    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo> {
+    fn get_all_packages(&self) -> impl Iterator<Item = PackageInfo<'_>> {
         self.packages
             .iter()
             .map(|(json, path)| PackageInfo::local(json, path))
     }
 
-    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo> {
+    fn find_packages(&self, package: &str) -> impl Iterator<Item = PackageInfo<'_>> {
         self.get_all_packages()
             .filter(move |pkg| pkg.name() == package)
     }
