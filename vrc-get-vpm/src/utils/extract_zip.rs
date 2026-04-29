@@ -4,6 +4,7 @@ use crate::io::{DefaultProjectIo, IoTrait};
 use crate::utils::MapResultExt;
 use async_zip::base::read::seek::ZipFileReader;
 use futures::prelude::*;
+use log::trace;
 use std::path::{Component, Path};
 
 pub(crate) async fn extract_zip(
@@ -23,6 +24,8 @@ pub(crate) async fn extract_zip(
                 "path in zip file is not utf8".to_string(),
             ));
         };
+        let filename = fix_path_separator(filename);
+        let filename = filename.as_ref();
         if !is_complete_relative(filename.as_ref()) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -44,6 +47,20 @@ pub(crate) async fn extract_zip(
     }
 
     Ok(())
+}
+
+fn fix_path_separator(p: &str) -> std::borrow::Cow<'_, str> {
+    if cfg!(windows) {
+        // On windows Path struct accepts both '/' and '\' as separator so we don't need to convert separator
+        std::borrow::Cow::Borrowed(p)
+    } else if !p.contains('\\') {
+        // If the path does not contain '\\' we don't need to replace path separators
+        std::borrow::Cow::Borrowed(p)
+    } else {
+        // The path contains '\\', we should replace with '/'
+        trace!("fixing '\\' with '/' in path {p:?}");
+        std::borrow::Cow::Owned(p.replace('\\', "/"))
+    }
 }
 
 fn is_complete_relative(path: &Path) -> bool {
