@@ -537,7 +537,7 @@ pub async fn environment_export_repositories(
         .file()
         .set_parent(&window)
         .add_filter("Text", &["txt"])
-        .set_file_name("repositories")
+        .set_file_name("repositories.txt")
         .blocking_save_file()
         .map(|x| x.into_path_buf())
         .transpose()?
