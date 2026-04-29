@@ -29,12 +29,16 @@ impl<T: HttpClient> crate::PackageInstaller for PackageInstaller<'_, T> {
         &self,
         io: &DefaultProjectIo,
         package: PackageInfo<'_>,
+        dest_dir: &Path,
         abort: &AbortCheck,
     ) -> io::Result<()> {
         abort.check()?;
         use crate::PackageInfoInner;
-        log::debug!("adding package {}", package.name());
-        let dest_folder = PathBuf::from(format!("Packages/{}", package.name()));
+        log::debug!(
+            "extracting package {} to {}",
+            package.name(),
+            dest_dir.display()
+        );
         match package.inner {
             PackageInfoInner::Remote(package, user_repo) => {
                 let zip_file = get_package(self.io, self.http, user_repo, package).await?;
@@ -50,14 +54,14 @@ impl<T: HttpClient> crate::PackageInstaller for PackageInstaller<'_, T> {
                     package.version()
                 );
                 // remove dest folder before extract if exists
-                if let Err(e) = crate::utils::extract_zip(zip_file, io, &dest_folder).await {
+                if let Err(e) = crate::utils::extract_zip(zip_file, io, dest_dir).await {
                     // if an error occurs, try to remove the dest folder
                     log::debug!(
                         "Error occurred while extracting zip file for {}@{}: {e}",
                         package.name(),
                         package.version(),
                     );
-                    let _ = io.remove_dir_all(&dest_folder).await;
+                    let _ = io.remove_dir_all(dest_dir).await;
                     return Err(e);
                 }
                 debug!(
@@ -69,7 +73,7 @@ impl<T: HttpClient> crate::PackageInstaller for PackageInstaller<'_, T> {
                 Ok(())
             }
             PackageInfoInner::Local(_, path) => {
-                crate::utils::copy_recursive(self.io, path.into(), io, dest_folder).await?;
+                crate::utils::copy_recursive(self.io, path.into(), io, dest_dir.into()).await?;
                 Ok(())
             }
         }

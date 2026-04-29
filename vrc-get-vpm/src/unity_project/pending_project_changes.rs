@@ -1,21 +1,18 @@
-use crate::io::{DefaultProjectIo, DirEntry, IoTrait};
+use crate::io::{DefaultProjectIo, IoTrait};
 use crate::traits::AbortCheck;
 use crate::unity_project::find_legacy_assets::collect_legacy_assets;
-use crate::utils::{PathBufExt, walk_dir_relative};
 use crate::version::DependencyRange;
 use crate::{PackageInfo, UnityProject, unity_compatible};
 use crate::{PackageInstaller, io};
 use either::Either;
 use futures::future::{join, join_all};
 use futures::prelude::*;
-use indexmap::IndexSet;
 use log::debug;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::future::ready;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
-use std::pin::pin;
 use std::sync::OnceLock;
 
 /// Represents Packages to be added and folders / packages to be removed
@@ -546,35 +543,18 @@ impl UnityProject {
     ) -> io::Result<()> {
         /*
         Apply pending changes consists of following steps:
-        - Move packages to temp directory (remove packages)
-        - Apply changes to manifest (add packages)
-        - Install packages
+        - Extract new packages to temp directory
+        - Actually install packages
+          - Move old packages to temp directory (remove packages)
+          - Move new packages to Package directory (add packages)
+          - Apply changes to manifest
         - Remove legacy assets
-
-        This function will do those steps in the order above.
-        There are several things to consider:
-        - We remove package before applying changes to manifest because:
-          - If we update manifest before removing packages,
-            failing to remove packages will leave previously installed packages as unlocked packages.
-          - If we remove packages before updating manifest,
-            failing to install packages will leave packages as uninstalled locked packages,
-            which is easy to fix with Resolve command.
-        - We install packages after applying changes to manifest because:
-          - If we install packages before updating manifest,
-            failing to update manifest will leave packages as unlocked packages.
-          - If we update manifest before installing packages,
-            failing to install packages will leave packages as uninstalled locked packages,
-            which is easy to fix with Resolve command.
-        - We remove legacy assets after installing packages because:
-          - If we remove legacy assets before installing packages,
-            failing to install package will leave legacy assets removed.
-          - If we install packages before removing legacy assets,
-            failing to remove legacy assets will duplicate legacy assets.
-          - Both cases are not desirable, but the latter is less harmful.
+        - Cleanup temp directory as possible (errors ignored)
          */
 
         let mut installs = Vec::new();
         let mut remove_names = Vec::new();
+        let mut uninstall_packages = Vec::new();
         let mut remove_unlocked_names = Vec::new();
 
         for (name, change) in &request.package_changes {
@@ -582,10 +562,12 @@ impl UnityProject {
                 PackageChange::Install(change) => {
                     if let Some(package) = change.package {
                         installs.push(package);
+                        uninstall_packages.push(name.as_ref());
                     }
                 }
                 PackageChange::Remove(_) => {
                     remove_names.push(name.as_ref());
+                    uninstall_packages.push(name.as_ref());
                 }
             }
         }
@@ -593,28 +575,30 @@ impl UnityProject {
         for info in request.conflicts.values() {
             for x in &info.unlocked_names {
                 remove_unlocked_names.push(x.as_ref());
+                uninstall_packages.push(x.as_ref());
             }
         }
 
-        // remove packages
-        let remove_temp_dir = format!("{PKG_TEMP_DIR}/{}", uuid::Uuid::new_v4());
-        let remove_temp_dir = Path::new(&remove_temp_dir);
+        let temp_dir_base = PathBuf::from(format!("{PKG_TEMP_DIR}/{}", uuid::Uuid::new_v4()));
+        let mut context = InstallPackageContext::new(&temp_dir_base);
 
-        self.io.create_dir_all(remove_temp_dir).await?;
+        // Before all, prepare temp dir
+        self.io.create_dir_all(&context.remove_temp_dir).await?;
+        self.io.create_dir_all(&context.install_temp_dir).await?;
 
-        move_packages_to_temp(
-            &self.io,
-            (remove_names.iter().copied())
-                .chain(installs.iter().map(|x| x.name()))
-                .chain(remove_unlocked_names.iter().copied()),
-            remove_temp_dir,
-        )
-        .await?;
+        let mut r: io::Result<()> = async {
+            // Firstly, extract packages
+            extract_packages(&self.io, env, &context.install_temp_dir, &installs).await?;
 
-        // apply changes to manifest
-        for (name, change) in &request.package_changes {
-            match change {
-                PackageChange::Install(change) => {
+            // Then, update packages directory
+            context
+                .move_uninstall_packages(&self.io, &uninstall_packages)
+                .await?;
+            context.move_install_packages(&self.io, &installs).await?;
+
+            // apply changes to manifest
+            for (name, change) in &request.package_changes {
+                if let PackageChange::Install(change) = change {
                     if let Some(package) = change.package
                         && change.add_to_locked
                     {
@@ -629,183 +613,102 @@ impl UnityProject {
                         self.manifest.add_dependency(name, version.clone());
                     }
                 }
-                PackageChange::Remove(_) => {}
             }
+            self.manifest.remove_packages(remove_names.iter().copied());
+            self.save().await?;
+            Ok(())
         }
-
-        self.manifest.remove_packages(remove_names.iter().copied());
-
-        // save manifest
-
-        self.save().await?;
-
-        // add packages
-
-        install_packages(&self.io, env, &installs).await?;
-
-        self.io.remove_dir_all(remove_temp_dir).await.ok();
-        self.io.remove_dir_all(PKG_TEMP_DIR.as_ref()).await.ok();
-        // remove temp dir also if it's empty
-        self.io.remove_dir(TEMP_DIR.as_ref()).await.ok();
-
-        // remove legacy assets
-
-        remove_assets(
-            &self.io,
-            request.remove_legacy_files.iter().map(|(p, _)| p.as_ref()),
-            request
-                .remove_legacy_folders
-                .iter()
-                .map(|(p, _)| p.as_ref()),
-        )
         .await;
 
-        Ok(())
-    }
-}
+        if let Err(mut e) = r {
+            // When error occurs in installation process, we try rolling back package changes.
+            // Since project manifest file change is the last operation of the project change,
+            // we don't need to rollback manifest changes.
+            if let Err(rollback_error) = context.rollback_changes(&self.io).await {
+                // Rolling back packages failed. this is very unlikely but this state is very
+                // fatal and project is in completely broken state so we provide much information
+                // as possible though error mesasge.
+                #[derive(Debug)]
+                struct RollingBackError {
+                    original_error: io::Error,
+                    rollback_error: io::Error,
+                    remaining_installed_packages: Vec<Box<str>>,
+                    remaining_removed_packages: Vec<Box<str>>,
+                }
 
-static REMOVED_FILE_PREFIX: &str = ".__removed_";
+                impl std::error::Error for RollingBackError {}
 
-async fn move_packages_to_temp<'a>(
-    io: &DefaultProjectIo,
-    names: impl Iterator<Item = &'a str>,
-    temp_dir: &Path,
-) -> io::Result<Vec<&'a str>> {
-    // it's expected to cheap to rename (link) packages to temp dir,
-    // so we do it sequentially for simplicity
-
-    let mut moved = IndexSet::new();
-
-    for name in names {
-        if moved.contains(name) {
-            continue;
-        }
-
-        match move_package(io, name, temp_dir).await {
-            Ok(true) => {
-                moved.insert(name);
-            }
-            Ok(false) => {
-                // package not found, do nothing
-            }
-            Err(err) => {
-                // restore moved packages as possible
-                // our package can also be partially moved so insert to moved
-                moved.insert(name);
-                restore_remove(io, temp_dir, moved.iter().copied()).await;
-
-                return Err(err);
-            }
-        }
-    }
-
-    return Ok(moved.into_iter().collect());
-
-    async fn move_package(io: &DefaultProjectIo, name: &str, temp_dir: &Path) -> io::Result<bool> {
-        let package_dir = format!("Packages/{name}");
-        let package_dir = Path::new(&package_dir);
-        let copied_dir = temp_dir.join(name);
-
-        io.create_dir_all(&copied_dir).await?;
-        let mut iterator = pin!(walk_dir_relative(io, vec![package_dir.into()]));
-        while let Some((original, entry)) = iterator.next().await {
-            let relative = original.strip_prefix(package_dir).unwrap();
-            let mut moved = copied_dir.join(relative);
-            if entry.file_type().await?.is_dir() {
-                match io.create_dir_all(&moved).await {
-                    Ok(()) => {}
-                    Err(e) => {
-                        log::error!(gui_toast = false; "error creating directory {}: {e}", moved.display());
-                        return Err(e);
+                impl std::fmt::Display for RollingBackError {
+                    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                        f.write_fmt(format_args!(
+                            "Error rolling back packages: {rollback_error}\n\
+                                original error:{original_error}\n\
+                                falsy installed packages: {installed_packages:?}\n\
+                                falsy removed packages: {removed_packages:?}",
+                            rollback_error = self.rollback_error,
+                            original_error = self.original_error,
+                            installed_packages = self.remaining_installed_packages,
+                            removed_packages = self.remaining_removed_packages,
+                        ))
                     }
                 }
+
+                e = io::Error::new(
+                    e.kind(),
+                    RollingBackError {
+                        original_error: e,
+                        rollback_error,
+                        remaining_installed_packages: (context.installed.into_iter())
+                            .map(Box::from)
+                            .collect(),
+                        remaining_removed_packages: (context.removed.into_iter())
+                            .map(Box::from)
+                            .collect(),
+                    },
+                );
+
+                // If user is familiar with vrc-get internals, user might recover packages
+                // from temp directory so we don't clean temp directory.
             } else {
-                if let Some(name) = original.file_name().unwrap().to_str() {
-                    moved.pop();
-                    moved.push(format!("{REMOVED_FILE_PREFIX}{name}"));
-                }
-                log::trace!("move {} to {}", original.display(), moved.display());
-
-                match io.rename(&original, &moved).await {
-                    Ok(()) => {}
-                    Err(e) => {
-                        // ignore error
-                        log::error!(gui_toast = false; "error moving {} to {}: {e}", original.display(), moved.display());
-                    }
-                }
+                // cleanup temp directory when rollback successfully finished
+                cleanup_temp_dir(&self.io).await;
             }
-        }
 
-        match io.remove_dir_all(package_dir).await {
-            Ok(()) => {}
-            Err(err) if err.kind() == io::ErrorKind::NotFound => {
-                return Ok(false);
-            }
-            Err(err) => {
-                return Err(err);
-            }
-        }
-
-        Ok(true)
-    }
-}
-
-async fn restore_remove(io: &DefaultProjectIo, temp_dir: &Path, names: impl Iterator<Item = &str>) {
-    for name in names {
-        let package_dir = format!("Packages/{name}");
-        let package_dir = Path::new(&package_dir);
-        let temp_package_dir = temp_dir.join(name);
-        if io.metadata(&temp_package_dir).await.is_err() {
-            continue;
-        }
-
-        if io.metadata(package_dir).await.is_ok() {
-            // Process partially moved case
-            let mut iterator = pin!(walk_dir_relative(io, vec![temp_package_dir.clone()]));
-            while let Some((original, entry)) = iterator.next().await {
-                if entry
-                    .file_type()
-                    .await
-                    .map(|x| !x.is_dir())
-                    .unwrap_or(false)
-                {
-                    let relative = original.strip_prefix(&temp_package_dir).unwrap();
-                    if let Some(name) = original.file_name().unwrap().to_str() {
-                        let name = name.strip_prefix(REMOVED_FILE_PREFIX).unwrap_or(name);
-                        let moved = package_dir.join(relative.parent().unwrap()).joined(name);
-                        io.create_dir_all(moved.parent().unwrap()).await.ok();
-                        io.rename(&original, &moved).await.ok();
-                    }
-                }
-            }
+            r = Err(e);
         } else {
-            // Process fully moved case
-            io.rename(&temp_package_dir, package_dir).await.ok();
+            // installation process finished successfully
 
-            let mut iterator = pin!(walk_dir_relative(io, vec![package_dir.into()]));
-            while let Some((original, entry)) = iterator.next().await {
-                if entry
-                    .file_type()
-                    .await
-                    .map(|x| !x.is_dir())
-                    .unwrap_or(false)
-                    && let Some(name) = original.file_name().unwrap().to_str()
-                    && let Some(stripped) = name.strip_prefix(REMOVED_FILE_PREFIX)
-                {
-                    let moved = original.parent().unwrap().join(stripped);
-                    io.rename(&original, &moved).await.ok();
-                }
-            }
+            // cleanup
+            cleanup_temp_dir(&self.io).await;
+
+            // remove legacy assets
+            remove_assets(
+                &self.io,
+                request.remove_legacy_files.iter().map(|(p, _)| p.as_ref()),
+                request
+                    .remove_legacy_folders
+                    .iter()
+                    .map(|(p, _)| p.as_ref()),
+            )
+            .await;
         }
+
+        async fn cleanup_temp_dir(io: &DefaultProjectIo) {
+            // cleanup temp directory
+            // we ignore error since some file might be locked by unity.
+            io.remove_dir_all(PKG_TEMP_DIR.as_ref()).await.ok();
+            // remove temp dir also if it's empty
+            io.remove_dir(TEMP_DIR.as_ref()).await.ok();
+        }
+
+        r
     }
-    io.remove_dir(temp_dir).await.ok();
-    io.remove_dir(PKG_TEMP_DIR.as_ref()).await.ok();
-    io.remove_dir(TEMP_DIR.as_ref()).await.ok();
 }
 
-async fn install_packages<Env: PackageInstaller>(
+async fn extract_packages<Env: PackageInstaller>(
     io: &DefaultProjectIo,
     env: &Env,
+    extract_dir: &Path,
     packages: &[PackageInfo<'_>],
 ) -> io::Result<()> {
     let abort = AbortCheck::new();
@@ -813,7 +716,11 @@ async fn install_packages<Env: PackageInstaller>(
 
     // resolve all packages
     join_all(packages.iter().map(|package| {
-        env.install_package(io, *package, &abort).then(|x| {
+        async {
+            env.install_package(io, *package, &extract_dir.join(package.name()), &abort)
+                .await
+        }
+        .then(|x| {
             if let Err(e) = x {
                 error_store.set(e).ok();
                 abort.abort();
@@ -828,6 +735,99 @@ async fn install_packages<Env: PackageInstaller>(
     }
 
     Ok(())
+}
+
+/// The context that holds information to restore changes to packages directory when recoverable error occurs
+struct InstallPackageContext<'a> {
+    removed: HashSet<&'a str>,
+    installed: HashSet<&'a str>,
+
+    remove_temp_dir: PathBuf,
+    install_temp_dir: PathBuf,
+}
+
+impl<'a> InstallPackageContext<'a> {
+    fn new(temp_dir_base: &Path) -> Self {
+        Self {
+            removed: HashSet::new(),
+            installed: HashSet::new(),
+
+            remove_temp_dir: temp_dir_base.join("remove"),
+            install_temp_dir: temp_dir_base.join("install"),
+        }
+    }
+
+    async fn move_uninstall_packages(
+        &mut self,
+        io: &DefaultProjectIo,
+        packages: &[&'a str],
+    ) -> io::Result<()> {
+        // it's expected to cheap to rename (link) packages to temp dir,
+        // so we do it sequentially for simplicity
+        let packages_dir = Path::new("Packages");
+
+        for package in packages {
+            if self.removed.contains(package) {
+                continue;
+            }
+
+            let package_dir = packages_dir.join(package);
+            let copied_dir = self.remove_temp_dir.join(package);
+
+            match io.rename(&package_dir, &copied_dir).await {
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+                    // the package does not exist, ignore this
+                }
+                Err(e) => return Err(e),
+                Ok(()) => {
+                    self.removed.insert(package);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn move_install_packages(
+        &mut self,
+        io: &DefaultProjectIo,
+        packages: &[PackageInfo<'a>],
+    ) -> io::Result<()> {
+        let packages_dir = Path::new("Packages");
+
+        for package in packages.iter() {
+            io.rename(
+                &self.install_temp_dir.join(package.name()),
+                &packages_dir.join(package.name()),
+            )
+            .await?;
+            self.installed.insert(package.name());
+        }
+
+        Ok(())
+    }
+
+    async fn rollback_changes(&mut self, io: &DefaultProjectIo) -> io::Result<()> {
+        let packages_dir = Path::new("Packages");
+
+        for installed in self.installed.drain() {
+            io.rename(
+                &packages_dir.join(installed),
+                &self.install_temp_dir.join(installed),
+            )
+            .await?;
+        }
+
+        for removed in self.removed.drain() {
+            io.rename(
+                &self.remove_temp_dir.join(removed),
+                &packages_dir.join(removed),
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
 }
 
 async fn remove_assets(

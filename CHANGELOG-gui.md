@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog].
 - Already-added packages are now excluded from the package name suggestions in the Template Editor `#2828`
 - Extended some timeouts to 1 minute `#2826`
     - Prevents timeouts in slow DNS environments
+- Improved robustness for package installation errors `#2844`
+  - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
 
 ### Deprecated
 

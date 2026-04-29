@@ -25,6 +25,7 @@ impl PackageInstaller for VirtualInstaller {
         &self,
         _: &DefaultProjectIo,
         _: PackageInfo<'_>,
+        _: &std::path::Path,
         _: &AbortCheck,
     ) -> impl Future<Output = io::Result<()>> {
         std::future::ready(Err(io::Error::new(
