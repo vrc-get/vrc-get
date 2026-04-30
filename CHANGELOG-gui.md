@@ -53,6 +53,9 @@ The format is based on [Keep a Changelog].
   - Repository list export now defaults to `repositories.txt`
 
 ### Security
+- Package hash checks are now enforced when installing packages `#2849`
+  - It has been about two years since the error message for package hash mismatches was introduced.
+  - It is now enforced for security.
 
 ## [1.1.5] - 2025-11-16
 - Fix package version selector dropdown exceeding window height [`#2589`](https://github.com/vrc-get/vrc-get/pull/2589)
