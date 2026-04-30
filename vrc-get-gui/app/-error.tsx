@@ -14,8 +14,12 @@ export default function ErrorPage({
 	}, [error]);
 
 	// When there is overridden toString, use it. if not, use stringify
-	const errorMessage = error.toString === Object.prototype.toString ? JSON.stringify(error) : error.toString();
-	const errorStack = 'stack' in error ? `${error.stack}` : "No stacktrace provided";
+	const errorMessage =
+		error.toString === Object.prototype.toString
+			? JSON.stringify(error)
+			: error.toString();
+	const errorStack =
+		"stack" in error ? `${error.stack}` : "No stacktrace provided";
 
 	const openIssue = () => {
 		try {
