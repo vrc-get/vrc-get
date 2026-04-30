@@ -7,7 +7,7 @@ use crate::{HttpClient, PackageInfo, PackageManifest, io};
 use futures::prelude::*;
 use hex::FromHex;
 use indexmap::IndexMap;
-use log::{debug, error};
+use log::debug;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 use std::pin::pin;
@@ -136,12 +136,16 @@ async fn get_package<T: HttpClient>(
             .and_then(|x| <[u8; 256 / 8] as FromHex>::from_hex(x).ok())
             && repo_hash != zip_hash
         {
-            error!(
-                "Package hash mismatched! This will be hard error in the future!: {} v{}",
-                package.name(),
-                package.version()
-            );
-            //return None;
+            drop(zip_file);
+            io.remove_file(&zip_path).await.ok();
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "Downloaded file for {}@{} has an unexpected SHA256 hash. his may be the repository owner's fault, or the repository or package may be compromised.",
+                    package.name(),
+                    package.version()
+                ),
+            ));
         }
 
         Ok(zip_file)
