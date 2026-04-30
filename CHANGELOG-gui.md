@@ -51,6 +51,7 @@ The format is based on [Keep a Changelog].
 - Default file names in save dialogs now include the appropriate file extension `#2846`
   - Template export now defaults to `{template name}.alcomtemplate`
   - Repository list export now defaults to `repositories.txt`
+- Uninformative `[object Object]` appearing as an error message `#2848`
 
 ### Security
 
