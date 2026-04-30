@@ -31,6 +31,9 @@ The format is based on [Keep a Changelog].
 - Unclear error message for invalid version name or version range `#2842`
 
 ### Security
+- Package hash checks are now enforced when installing packages `#2849`
+  - It has been about two years since the error message for package hash mismatches was introduced.
+  - It is now enforced for security.
 
 ## [1.9.1] - 2025-07-28
 ### Changed
