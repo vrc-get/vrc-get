@@ -185,7 +185,7 @@ pub async fn project_install_packages(
 ) -> Result<TauriPendingProjectChanges, RustError> {
     let settings = settings.load(io.inner()).await?;
     let Some(packages) = packages.get() else {
-        return Err(RustError::unrecoverable(
+        return Err(RustError::unrecoverable_str(
             "Internal Error: environment version mismatch",
         ));
     };
@@ -194,7 +194,7 @@ pub async fn project_install_packages(
         .map(|(id, v)| Some((id, Version::from_str(&v).ok()?)))
         .collect::<Option<Vec<_>>>()
     else {
-        return Err(RustError::unrecoverable("bad version file"));
+        return Err(RustError::unrecoverable_str("bad version file"));
     };
 
     changes!(packages, changes, |collection, packages| {
@@ -210,7 +210,7 @@ pub async fn project_install_packages(
             })
             .collect::<Option<Vec<_>>>()
         else {
-            return Err(RustError::unrecoverable("some packages not found"));
+            return Err(RustError::unrecoverable_str("some packages not found"));
         };
 
         let unity_project = load_project(project_path).await?;
@@ -301,7 +301,7 @@ pub async fn project_apply_pending_changes(
     changes_version: u32,
 ) -> Result<(), RustError> {
     let Some(mut changes) = changes.get_versioned(changes_version) else {
-        return Err(RustError::unrecoverable("changes version mismatch"));
+        return Err(RustError::unrecoverable_str("changes version mismatch"));
     };
 
     let changes = changes.take_changes();

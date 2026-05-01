@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -319,16 +318,40 @@ enum HandleableRustError {
 }
 
 impl RustError {
-    fn unrecoverable<T: Display>(value: T) -> Self {
-        error!("{value}");
-        Self::Unrecoverable {
-            message: value.to_string(),
-        }
+    fn unrecoverable<T: std::error::Error>(value: T) -> Self {
+        let message = Self::display_error(&value);
+        error!("{message}");
+        Self::Unrecoverable { message }
+    }
+
+    fn unrecoverable_str<T: Into<String>>(value: T) -> Self {
+        let message = value.into();
+        error!("{message}");
+        Self::Unrecoverable { message }
     }
 
     fn handleable(message: String, body: HandleableRustError) -> Self {
         error!(gui_toast = false; "{message}");
         Self::Handleable { message, body }
+    }
+
+    // formats the error but with inner error message included
+    fn display_error<T: std::error::Error>(e: T) -> String {
+        let mut message = format!("{e}");
+
+        let mut cur = e.source();
+        while let Some(src) = cur {
+            let src_msg = format!("{src}");
+
+            if !message.contains(&src_msg) {
+                message.push_str(": ");
+                message.push_str(src_msg.as_str());
+            }
+
+            cur = src.source();
+        }
+
+        message
     }
 
     fn handleable_missing_dependencies(
@@ -361,12 +384,17 @@ macro_rules! impl_from_error {
 
 impl_from_error!(
     io::Error,
-    String,
     async_zip::error::ZipError,
     vrc_get_vpm::environment::AddRepositoryErr,
     vrc_get_vpm::unity_project::RemovePackageErr,
     fs_extra::error::Error,
 );
+
+impl From<String> for RustError {
+    fn from(value: String) -> Self {
+        RustError::unrecoverable_str(value)
+    }
+}
 
 impl From<crate::compressor::CompressError> for RustError {
     fn from(value: crate::compressor::CompressError) -> Self {
@@ -382,7 +410,7 @@ impl From<crate::compressor::CompressError> for RustError {
 impl From<crate::updater::Error> for RustError {
     fn from(value: crate::updater::Error) -> Self {
         log::error!(gui_toast = false; "updater error: {value}");
-        Self::unrecoverable("failed to load the latest release")
+        Self::unrecoverable_str("failed to load the latest release")
     }
 }
 
@@ -411,7 +439,7 @@ impl From<ReinstalPackagesError> for RustError {
             ReinstalPackagesError::DependenciesNotFound { dependencies } => {
                 RustError::handleable_missing_dependencies(message, dependencies)
             }
-            _ => RustError::unrecoverable(message),
+            _ => RustError::unrecoverable(value),
         }
     }
 }
@@ -423,7 +451,7 @@ impl From<AddPackageErr> for RustError {
             AddPackageErr::DependenciesNotFound { dependencies } => {
                 RustError::handleable_missing_dependencies(message, dependencies)
             }
-            _ => RustError::unrecoverable(message),
+            _ => RustError::unrecoverable(value),
         }
     }
 }
@@ -435,7 +463,7 @@ impl From<ResolvePackageErr> for RustError {
             ResolvePackageErr::DependenciesNotFound { dependencies } => {
                 RustError::handleable_missing_dependencies(message, dependencies)
             }
-            _ => RustError::unrecoverable(message),
+            _ => RustError::unrecoverable(value),
         }
     }
 }
@@ -550,7 +578,7 @@ impl IntoPathBuf for tauri_plugin_dialog::FilePath {
         match self {
             Self::Url(url) => url
                 .to_file_path()
-                .map_err(|_| RustError::unrecoverable("internal error: bad file url")),
+                .map_err(|_| RustError::unrecoverable_str("internal error: bad file url")),
             Self::Path(p) => Ok(p),
         }
     }
