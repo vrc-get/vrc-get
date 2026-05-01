@@ -7,7 +7,7 @@ use crate::version::Version;
 use serde::de::Unexpected;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct UnityVersion {
     // major version such as 2019, 2022, and 6
     // note: 5 < 2017 < 2023 < 6 < 7 ...
@@ -260,6 +260,20 @@ impl PartialEq for ReleaseType {
             (Self::China, Self::Normal) => true,
             _ => false,
         }
+    }
+}
+
+impl std::hash::Hash for ReleaseType {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Normal and China compare equal, so they must hash identically
+        let discriminant: u8 = match self {
+            Self::Alpha => 0,
+            Self::Beta => 1,
+            Self::Normal | Self::China => 2,
+            Self::Patch => 3,
+            Self::Experimental => 4,
+        };
+        discriminant.hash(state);
     }
 }
 
