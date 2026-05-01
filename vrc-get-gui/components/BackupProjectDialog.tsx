@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import { beginOperation, endOperation } from "@/lib/operation-in-progress";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -59,7 +60,11 @@ export function BackupProjectDialog({
 	);
 
 	useEffect(() => {
+		beginOperation();
 		start(projectPath, dialog);
+		return () => {
+			endOperation();
+		};
 	}, [projectPath, dialog]);
 
 	return (

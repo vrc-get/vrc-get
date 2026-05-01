@@ -21,6 +21,8 @@
     "general:button:open location": "Open Location",
     "general:button:continue": "Continue",
 
+    "general:confirm:refresh during operation": "A backup or migration operation is in progress. Refreshing now may cause data loss. Do you want to refresh anyway?",
+
     // Used in place of date part but not known
     "general:unknown date": "Unknown Date",
 

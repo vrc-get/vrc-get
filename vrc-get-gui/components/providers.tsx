@@ -14,6 +14,7 @@ import { commands } from "@/lib/bindings";
 import { DialogRoot, openSingleDialog } from "@/lib/dialog";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc } from "@/lib/i18n";
+import { isOperationInProgress } from "@/lib/operation-in-progress";
 import { processResult } from "@/lib/import-templates";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
@@ -103,9 +104,41 @@ export function Providers({ children }: { children: React.ReactNode }) {
 			if (isFindKey(e)) {
 				e.preventDefault();
 			}
+			if (e.key === "F5" && isOperationInProgress()) {
+				e.preventDefault();
+				const confirmed = window.confirm(
+					tc("general:confirm:refresh during operation"),
+				);
+				if (confirmed) {
+					location.reload();
+				}
+			}
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.key === "r" &&
+				isOperationInProgress()
+			) {
+				e.preventDefault();
+				const confirmed = window.confirm(
+					tc("general:confirm:refresh during operation"),
+				);
+				if (confirmed) {
+					location.reload();
+				}
+			}
 		},
 		[],
 	);
+
+	useEffect(() => {
+		const handler = (e: BeforeUnloadEvent) => {
+			if (isOperationInProgress()) {
+				e.preventDefault();
+			}
+		};
+		window.addEventListener("beforeunload", handler);
+		return () => window.removeEventListener("beforeunload", handler);
+	}, []);
 
 	return (
 		<>

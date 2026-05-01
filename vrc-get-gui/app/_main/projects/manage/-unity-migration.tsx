@@ -6,6 +6,7 @@ import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { assertNever } from "@/lib/assert-never";
+import { beginOperation, endOperation } from "@/lib/operation-in-progress";
 import type {
 	TauriCallUnityForMigrationResult,
 	TauriCopyProjectProgress,
@@ -357,6 +358,7 @@ export function MigrationCopyingDialog({
 	});
 
 	useEffect(() => {
+		beginOperation();
 		const [_, promise] = callAsyncCommand(
 			commands.environmentCopyProjectForMigration,
 			[projectPath],
@@ -369,6 +371,9 @@ export function MigrationCopyingDialog({
 		);
 
 		promise.then(dialog.close, dialog.error);
+		return () => {
+			endOperation();
+		};
 	}, [projectPath, dialog.close, dialog.error]);
 
 	return (
@@ -530,6 +535,7 @@ function MigrationCallingUnityForMigrationDialog({
 	const [lines, setLines] = useState<[number, string][]>([]);
 
 	useEffect(() => {
+		beginOperation();
 		let lineNumber = 0;
 		const [, promise] = callAsyncCommand(
 			commands.projectCallUnityForMigration,
@@ -548,6 +554,9 @@ function MigrationCallingUnityForMigrationDialog({
 		);
 
 		promise.then(dialog.close, dialog.error);
+		return () => {
+			endOperation();
+		};
 	}, [migrateProjectPath, unityPath, dialog]);
 
 	const ref = React.useRef<HTMLDivElement>(null);
