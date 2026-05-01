@@ -141,7 +141,7 @@ async fn get_package<T: HttpClient>(
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!(
-                    "Downloaded file for {}@{} has an unexpected SHA256 hash. his may be the repository owner's fault, or the repository or package may be compromised.",
+                    "Downloaded file for {}@{} has an unexpected SHA256 hash. This may be the repository owner's fault, or the repository or package may be compromised.",
                     package.name(),
                     package.version()
                 ),
