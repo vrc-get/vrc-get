@@ -108,12 +108,12 @@ mod linux {
             .take_if(|x| !x.is_empty())
             .map(PathBuf::from)
         {
-            config_home.joined("UnityHub")
+            config_home.joined("unityhub")
         } else {
             std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .expect("HOME environment variable is not set")
-                .joined(".config/UnityHub")
+                .joined(".config/unityhub")
         }
     }
 
