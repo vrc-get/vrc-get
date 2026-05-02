@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { ToastContainer } from "react-toastify";
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LogEntry, TauriImportTemplateResult } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
@@ -98,6 +99,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		};
 	}, []);
 
+	const handleRefresh = useCallback(async () => {
+		if (!isOperationInProgress()) return;
+		const confirmed = await openSingleDialog(ConfirmDialog, {
+			message: tc("general:confirm:refresh during operation"),
+		});
+		if (confirmed) {
+			location.reload();
+		}
+	}, []);
+
 	useDocumentEvent(
 		"keydown",
 		(e) => {
@@ -106,12 +117,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 			}
 			if (e.key === "F5" && isOperationInProgress()) {
 				e.preventDefault();
-				const confirmed = window.confirm(
-					tc("general:confirm:refresh during operation"),
-				);
-				if (confirmed) {
-					location.reload();
-				}
+				handleRefresh();
 			}
 			if (
 				(e.ctrlKey || e.metaKey) &&
@@ -119,15 +125,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 				isOperationInProgress()
 			) {
 				e.preventDefault();
-				const confirmed = window.confirm(
-					tc("general:confirm:refresh during operation"),
-				);
-				if (confirmed) {
-					location.reload();
-				}
+				handleRefresh();
 			}
 		},
-		[],
+		[handleRefresh],
 	);
 
 	useEffect(() => {
