@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog].
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
+### Fixed
+- Prevent F5 and Ctrl+R refresh during backup and migration operations to avoid data corruption `#1574`
+
 ### Added
 - Build-time option to disable auto updater `#2759`
   - Please read README for new build instruction.

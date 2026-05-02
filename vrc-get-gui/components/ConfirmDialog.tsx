@@ -8,7 +8,7 @@ export function ConfirmDialog({
 	message,
 	dialog,
 }: {
-	message: string;
+	message: React.ReactNode;
 	dialog: DialogContext<boolean>;
 }) {
 	return (

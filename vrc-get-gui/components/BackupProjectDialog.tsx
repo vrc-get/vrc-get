@@ -1,6 +1,5 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import { beginOperation, endOperation } from "@/lib/operation-in-progress";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -9,6 +8,7 @@ import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import type { DialogContext } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
+import { beginOperation, endOperation } from "@/lib/operation-in-progress";
 import { toastNormal, toastSuccess } from "@/lib/toast";
 import { useEffectEvent } from "@/lib/use-effect-event";
 

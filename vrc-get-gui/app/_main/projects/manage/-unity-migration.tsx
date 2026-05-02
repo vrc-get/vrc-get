@@ -6,7 +6,6 @@ import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { UnitySelectorDialog } from "@/components/unity-selector-dialog";
 import { assertNever } from "@/lib/assert-never";
-import { beginOperation, endOperation } from "@/lib/operation-in-progress";
 import type {
 	TauriCallUnityForMigrationResult,
 	TauriCopyProjectProgress,
@@ -17,6 +16,7 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import { VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
+import { beginOperation, endOperation } from "@/lib/operation-in-progress";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
