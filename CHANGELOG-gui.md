@@ -52,6 +52,8 @@ The format is based on [Keep a Changelog].
   - Template export now defaults to `{template name}.alcomtemplate`
   - Repository list export now defaults to `repositories.txt`
 - Uninformative `[object Object]` appearing as an error message `#2848`
+- New Unity Hub loading method may not load manually added Unity Editors `#2850`
+- New Unity Hub loading method does load unity hub configuration on Linux `#2850`
 
 ### Security
 - Package hash checks are now enforced when installing packages `#2849`
