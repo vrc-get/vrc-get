@@ -16,7 +16,7 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import { VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
-import { beginOperation, endOperation } from "@/lib/operation-in-progress";
+import { beginOperation } from "@/lib/operation-in-progress";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
@@ -358,7 +358,7 @@ export function MigrationCopyingDialog({
 	});
 
 	useEffect(() => {
-		beginOperation();
+		const op = beginOperation();
 		const [_, promise] = callAsyncCommand(
 			commands.environmentCopyProjectForMigration,
 			[projectPath],
@@ -372,7 +372,7 @@ export function MigrationCopyingDialog({
 
 		promise.then(dialog.close, dialog.error);
 		return () => {
-			endOperation();
+			op.finish();
 		};
 	}, [projectPath, dialog.close, dialog.error]);
 
@@ -535,7 +535,7 @@ function MigrationCallingUnityForMigrationDialog({
 	const [lines, setLines] = useState<[number, string][]>([]);
 
 	useEffect(() => {
-		beginOperation();
+		const op = beginOperation();
 		let lineNumber = 0;
 		const [, promise] = callAsyncCommand(
 			commands.projectCallUnityForMigration,
@@ -555,7 +555,7 @@ function MigrationCallingUnityForMigrationDialog({
 
 		promise.then(dialog.close, dialog.error);
 		return () => {
-			endOperation();
+			op.finish();
 		};
 	}, [migrateProjectPath, unityPath, dialog]);
 

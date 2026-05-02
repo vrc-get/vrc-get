@@ -1,12 +1,25 @@
 let operationInProgressCount = 0;
 
-export function beginOperation(): void {
-	operationInProgressCount++;
+export interface OperationScope {
+	finish(): void;
+	[Symbol.dispose](): void;
 }
 
-export function endOperation(): void {
-	operationInProgressCount--;
-	if (operationInProgressCount < 0) operationInProgressCount = 0;
+export function beginOperation(): OperationScope {
+	let finished = false;
+	operationInProgressCount++;
+	return {
+		finish() {
+			if (!finished) {
+				finished = true;
+				operationInProgressCount--;
+				if (operationInProgressCount < 0) operationInProgressCount = 0;
+			}
+		},
+		[Symbol.dispose]() {
+			this.finish();
+		},
+	};
 }
 
 export function isOperationInProgress(): boolean {
