@@ -349,7 +349,7 @@ pub async fn environment_remove_project_by_path(
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     migrate_sanitize_projects(&mut connection, io.inner(), &settings).await?;
     let Some(project) = connection.find_project(&project_path).unwrap() else {
-        return Err(RustError::unrecoverable("project not found"));
+        return Err(RustError::unrecoverable_str("project not found"));
     };
     connection.remove_project(&project);
     connection.save(io.inner()).await?;
@@ -441,7 +441,7 @@ where
         let source_path = Path::new(&source_path_str);
 
         let Some(new_path) = create_folder(source_path.into()).await else {
-            return Err(RustError::unrecoverable(
+            return Err(RustError::unrecoverable_str(
                 "failed to create a new folder for migration",
             ));
         };
@@ -545,7 +545,7 @@ pub async fn environment_set_favorite_project(
 ) -> Result<(), RustError> {
     let mut connection = VccDatabaseConnection::connect(io.inner()).await?;
     let Some(mut project) = connection.find_project(&project_path).unwrap() else {
-        return Err(RustError::unrecoverable("project not found"));
+        return Err(RustError::unrecoverable_str("project not found"));
     };
     project.set_favorite(favorite);
     connection.update_project(&project);
@@ -719,10 +719,10 @@ pub async fn environment_create_project(
 
     let templates = templates
         .get_versioned(template_version)
-        .ok_or_else(|| RustError::unrecoverable("Templates info version mismatch (bug)"))?;
+        .ok_or_else(|| RustError::unrecoverable_str("Templates info version mismatch (bug)"))?;
 
     let unity_version = UnityVersion::parse(&unity_version)
-        .ok_or_else(|| RustError::unrecoverable("Bad Unity Version (unparsable)"))?;
+        .ok_or_else(|| RustError::unrecoverable_str("Bad Unity Version (unparsable)"))?;
 
     let base_path = Path::new(&base_path);
     let base_path = {

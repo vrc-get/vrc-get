@@ -33,7 +33,7 @@ pub async fn environment_export_template(
         .and_then(|x| x.iter().find(|x| x.id == id))
         .take_if(|x| x.source_path.is_some())
     else {
-        return Err(RustError::unrecoverable(
+        return Err(RustError::unrecoverable_str(
             "Template with such id not found (this is bug)",
         ));
     };
@@ -98,7 +98,7 @@ pub async fn environment_get_alcom_template(
         .and_then(|x| x.iter().find(|x| x.id == id))
         .and_then(|x| x.alcom_template.as_ref())
     {
-        None => Err(RustError::unrecoverable(
+        None => Err(RustError::unrecoverable_str(
             "Template with such id not found (this is bug)",
         )),
         Some(template) => Ok(template.into()),
@@ -174,7 +174,7 @@ pub async fn environment_save_template(
         id: Some(id.clone().unwrap_or_else(new_user_template_id)),
         base,
         unity_version: Some(VersionRange::from_str(&unity_range).map_err(|x| {
-            RustError::unrecoverable(format!("Bad Unity Version Range ({unity_range}): {x}"))
+            RustError::unrecoverable_str(format!("Bad Unity Version Range ({unity_range}): {x}"))
         })?),
         vpm_dependencies: vpm_packages
             .into_iter()
@@ -182,7 +182,7 @@ pub async fn environment_save_template(
                 Ok::<_, RustError>((
                     pkg,
                     VersionRange::from_str(&range).map_err(|x| {
-                        RustError::unrecoverable(format!("Bad Version Range ({range}): {x}"))
+                        RustError::unrecoverable_str(format!("Bad Version Range ({range}): {x}"))
                     })?,
                 ))
             })
@@ -191,7 +191,7 @@ pub async fn environment_save_template(
     };
 
     let template = serialize_alcom_template(template)
-        .map_err(|x| RustError::unrecoverable(format!("Failed to serialize template: {x}")))?;
+        .map_err(|x| RustError::unrecoverable_str(format!("Failed to serialize template: {x}")))?;
 
     if let Some(id) = id {
         // There is id; overwrite existing one
@@ -201,7 +201,7 @@ pub async fn environment_save_template(
             .and_then(|x| x.iter().find(|x| x.id == id))
             .and_then(|x| x.source_path.as_ref())
         else {
-            return Err(RustError::unrecoverable(
+            return Err(RustError::unrecoverable_str(
                 "Template with such id not found (this is bug)",
             ));
         };
@@ -297,7 +297,7 @@ pub async fn environment_remove_template(
         .take_if(|x| x.alcom_template.is_some())
         .take_if(|x| x.source_path.is_some())
     {
-        None => Err(RustError::unrecoverable(
+        None => Err(RustError::unrecoverable_str(
             "Template with such id not found (this is bug)",
         )),
         Some(template) => {
