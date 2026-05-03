@@ -20,7 +20,7 @@ export function ConfirmDialog({
 				<p>{message}</p>
 			</div>
 			<DialogFooter>
-				<Button variant="outline" onClick={() => dialog.close(false)}>
+				<Button onClick={() => dialog.close(false)}>
 					{tc("general:button:cancel")}
 				</Button>
 				<Button variant="destructive" onClick={() => dialog.close(true)}>
