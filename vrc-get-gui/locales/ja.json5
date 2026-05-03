@@ -21,6 +21,8 @@
     "general:button:open location": "開く",
     "general:button:continue": "続ける",
 
+    "general:confirm:refresh during operation": "バックアップまたは移行操作が進行中です。今すぐ更新するとデータが失われる可能性があります。本当に更新しますか？",
+
     // Used in place of date part but not known
     "general:unknown date": "不明",
 

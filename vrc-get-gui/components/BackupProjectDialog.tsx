@@ -8,6 +8,7 @@ import { commands } from "@/lib/bindings";
 import { callAsyncCommand } from "@/lib/call-async-command";
 import type { DialogContext } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
+import { beginOperation } from "@/lib/operation-in-progress";
 import { toastNormal, toastSuccess } from "@/lib/toast";
 import { useEffectEvent } from "@/lib/use-effect-event";
 
@@ -59,7 +60,11 @@ export function BackupProjectDialog({
 	);
 
 	useEffect(() => {
+		const op = beginOperation();
 		start(projectPath, dialog);
+		return () => {
+			op.finish();
+		};
 	}, [projectPath, dialog]);
 
 	return (

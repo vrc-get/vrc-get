@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { ToastContainer } from "react-toastify";
 import Loading from "@/app/-loading";
 import { CheckForUpdateMessage } from "@/components/CheckForUpdateMessage";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LogEntry, TauriImportTemplateResult } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
@@ -15,6 +16,7 @@ import { DialogRoot, openSingleDialog } from "@/lib/dialog";
 import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc } from "@/lib/i18n";
 import { processResult } from "@/lib/import-templates";
+import { isOperationInProgress } from "@/lib/operation-in-progress";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
@@ -97,15 +99,47 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		};
 	}, []);
 
+	const handleRefresh = useCallback(async () => {
+		if (!isOperationInProgress()) return;
+		const confirmed = await openSingleDialog(ConfirmDialog, {
+			message: tc("general:confirm:refresh during operation"),
+		});
+		if (confirmed) {
+			location.reload();
+		}
+	}, []);
+
 	useDocumentEvent(
 		"keydown",
 		(e) => {
 			if (isFindKey(e)) {
 				e.preventDefault();
 			}
+			if (e.key === "F5" && isOperationInProgress()) {
+				e.preventDefault();
+				handleRefresh();
+			}
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.key === "r" &&
+				isOperationInProgress()
+			) {
+				e.preventDefault();
+				handleRefresh();
+			}
 		},
-		[],
+		[handleRefresh],
 	);
+
+	useEffect(() => {
+		const handler = (e: BeforeUnloadEvent) => {
+			if (isOperationInProgress()) {
+				e.preventDefault();
+			}
+		};
+		window.addEventListener("beforeunload", handler);
+		return () => window.removeEventListener("beforeunload", handler);
+	}, []);
 
 	return (
 		<>

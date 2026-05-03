@@ -16,6 +16,7 @@ import { callAsyncCommand } from "@/lib/call-async-command";
 import { VRCSDK_UNITY_VERSIONS } from "@/lib/constants";
 import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
+import { beginOperation } from "@/lib/operation-in-progress";
 import { queryClient } from "@/lib/query-client";
 import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
 import { compareUnityVersionString, parseUnityVersion } from "@/lib/version";
@@ -357,6 +358,7 @@ export function MigrationCopyingDialog({
 	});
 
 	useEffect(() => {
+		const op = beginOperation();
 		const [_, promise] = callAsyncCommand(
 			commands.environmentCopyProjectForMigration,
 			[projectPath],
@@ -369,6 +371,9 @@ export function MigrationCopyingDialog({
 		);
 
 		promise.then(dialog.close, dialog.error);
+		return () => {
+			op.finish();
+		};
 	}, [projectPath, dialog.close, dialog.error]);
 
 	return (
@@ -530,6 +535,7 @@ function MigrationCallingUnityForMigrationDialog({
 	const [lines, setLines] = useState<[number, string][]>([]);
 
 	useEffect(() => {
+		const op = beginOperation();
 		let lineNumber = 0;
 		const [, promise] = callAsyncCommand(
 			commands.projectCallUnityForMigration,
@@ -548,6 +554,9 @@ function MigrationCallingUnityForMigrationDialog({
 		);
 
 		promise.then(dialog.close, dialog.error);
+		return () => {
+			op.finish();
+		};
 	}, [migrateProjectPath, unityPath, dialog]);
 
 	const ref = React.useRef<HTMLDivElement>(null);
