@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import type { DialogContext } from "@/lib/dialog";
@@ -13,7 +13,9 @@ export function ConfirmDialog({
 }) {
 	return (
 		<>
-			<DialogTitle>{tc("general:confirm:refresh during operation")}</DialogTitle>
+			<DialogTitle>
+				{tc("general:confirm:refresh during operation")}
+			</DialogTitle>
 			<div className="py-4">
 				<p>{message}</p>
 			</div>
