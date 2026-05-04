@@ -49,7 +49,7 @@
 		"@rollup/pluginutils": "^5.3.0",
 		"@tailwindcss/vite": "^4.2.4",
 		"@tanstack/router-plugin": "^1.167.28",
-		"@tauri-apps/cli": "2.10.1",
+		"@tauri-apps/cli": "2.11.0",
 		"@types/node": "^20",
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
