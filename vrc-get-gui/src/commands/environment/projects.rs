@@ -18,6 +18,7 @@ use std::sync::atomic::AtomicUsize;
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 use tauri_plugin_dialog::DialogExt;
+use tokio::sync::Semaphore;
 use vrc_get_vpm::ProjectType;
 use vrc_get_vpm::environment::{
     InvalidRealProjectInformation, PackageInstaller, RealProjectInformation, Settings, UserProject,
@@ -464,6 +465,7 @@ where
                 proceed: AtomicUsize,
                 total_files: usize,
                 new_path: &'a Path,
+                semaphore: Semaphore,
                 ctx: &'a AsyncCommandContext<TauriCopyProjectProgress>,
             }
 
@@ -487,15 +489,19 @@ where
                     let new_entry = self.new_path.join(entry.relative_path());
 
                     if entry.is_dir() {
+                        let permission = self.semaphore.acquire().await.unwrap();
                         if let Err(e) = tokio::fs::create_dir(&new_entry).await
                             && e.kind() != io::ErrorKind::AlreadyExists
                         {
                             return Err(e);
                         }
+                        drop(permission);
 
                         try_join_all(entry.iter().map(|x| self.process(x))).await?;
                     } else {
+                        let permission = self.semaphore.acquire().await.unwrap();
                         tokio::fs::copy(entry.absolute_path(), new_entry).await?;
+                        drop(permission);
 
                         self.on_finish(entry);
                     }
@@ -504,10 +510,17 @@ where
                 }
             }
 
+            let parallelism = std::thread::available_parallelism()
+                .map(|x| x.get() * 2)
+                .unwrap_or(4);
+
+            info!("Copying project with parallelism: {parallelism}");
+
             CopyFileContext {
                 proceed: AtomicUsize::new(0),
                 total_files,
                 new_path,
+                semaphore: Semaphore::new(parallelism),
                 ctx: &ctx,
             }
             .process(&file_tree)
