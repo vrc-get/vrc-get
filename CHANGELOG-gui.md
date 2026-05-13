@@ -54,6 +54,7 @@ The format is based on [Keep a Changelog].
 - Uninformative `[object Object]` appearing as an error message `#2848`
 - New Unity Hub loading method may not load manually added Unity Editors `#2850`
 - New Unity Hub loading method does load unity hub configuration on Linux `#2850`
+- Too many open files when copying project `#2867
 
 ### Security
 - Package hash checks are now enforced when installing packages `#2849`
