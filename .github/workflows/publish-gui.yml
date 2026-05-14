@@ -170,11 +170,12 @@ jobs:
           - name: x86_64-windows-all
             triple: x86_64-pc-windows-msvc
             on: windows-2022
-            last-bundles: exe-updater
+            last-bundles: setup-exe-zip,exe-updater
             updater-bundle: bundle/setup/alcom-updater.exe
             dist-path: |
               ALCOM.exe:ALCOM-${GUI_VERSION}-x86_64.exe
               bundle/setup/alcom-setup.exe:ALCOM-${GUI_VERSION}-x86_64-setup.exe
+              bundle/setup/alcom-setup.exe.zip:ALCOM-${GUI_VERSION}-x86_64-setup.exe.zip
               bundle/setup/alcom-updater.exe:ALCOM-${GUI_VERSION}-x86_64-updater.exe
               bundle/setup/alcom-updater.exe.sig:ALCOM-${GUI_VERSION}-x86_64-updater.exe.sig
 
@@ -272,11 +273,6 @@ jobs:
 
       - name: Bundle ALCOM (${{ matrix.last-bundles }})
         run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles ${{ matrix.last-bundles }}
-
-      - name: Bundle ALCOM Updater (Windows)
-        if: ${{ contains(matrix.name, 'windows') }}
-        shell: bash
-        run: cargo xtask bundle-alcom --target ${{ matrix.triple }} --release --bundles exe-updater
 
       - name: Sign updater artifacts (All Platforms)
         shell: bash

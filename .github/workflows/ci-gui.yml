@@ -26,7 +26,7 @@ jobs:
 
           - triple: x86_64-pc-windows-msvc
             on: windows-latest
-            bundles: setup-exe,exe-updater
+            bundles: setup-exe,setup-exe-zip,exe-updater
 
           - triple: universal-apple-darwin
             on: macos-14
