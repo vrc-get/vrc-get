@@ -1,10 +1,11 @@
 use crate::bundle_alcom::BundleContext;
 use crate::utils::command::{CommandExt, WineRunner};
-use crate::utils::{download_file_cached, target_abi};
+use crate::utils::{cargo, download_file_cached, target_abi};
 use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command as ProcessCommand;
+use zip::write::FileOptions;
 
 const WEBVIEW2_URL: &str = "https://go.microsoft.com/fwlink/?linkid=2124703";
 const INNO_SETUP_VERSION: &str = "6.7.1";
@@ -25,6 +26,26 @@ pub fn create_setup_exe(ctx: &BundleContext<'_>) -> Result<()> {
         .with_context(|| format!("copying: {}", wrapper_in_bundle.display()))?;
 
     println!("created: {}", wrapper_in_bundle.display());
+    Ok(())
+}
+
+pub fn create_setup_exe_zip(ctx: &BundleContext<'_>) -> Result<()> {
+    let wrapper_in_bundle = ctx.bundle_dir.join("setup/alcom-setup.exe");
+    let zip = ctx.bundle_dir.join("setup/alcom-setup.exe.zip");
+
+    let mut zip = zip::write::ZipWriter::new(fs::File::create(&zip).context("creating zip file")?);
+    zip.start_file(
+        format!("ALCOM-{}-x86_64-setup.exe", cargo::gui_version()),
+        FileOptions::DEFAULT,
+    )
+    .context("adding file to zip")?;
+    std::io::copy(
+        &mut std::io::BufReader::new(
+            fs::File::open(&wrapper_in_bundle).context("opening alcom-setup.exe")?,
+        ),
+        &mut zip,
+    )
+    .context("copying file to zip")?;
     Ok(())
 }
 
