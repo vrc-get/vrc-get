@@ -115,6 +115,14 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 // ---------------------------------------------------------------------------
 
 fn verify_signature(data: &[u8], release_signature: &str, pub_key: &str) -> Result<bool> {
+    if std::env::var(
+        "___ALCOM_UPDATER_DISABLE_SIGNATURE_VERIFICATION_DEBUG_ONLY_FEATURE_DO_NOT_USE_THIS_OR_YOU_WILL_BE_HACKED___",
+    )
+    .as_deref()
+        == Ok("YES_I_WANT_TO_BE_HACKED")
+    {
+        return Ok(true);
+    }
     let pub_key_decoded = base64_to_string(pub_key)?;
     let public_key =
         PublicKey::decode(&pub_key_decoded).map_err(|e| Error::Signature(e.to_string()))?;
