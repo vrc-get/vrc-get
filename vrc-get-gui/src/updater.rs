@@ -936,7 +936,7 @@ mod windows {
     }
 
     #[cfg(not(windows))]
-    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) {
+    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) -> Result<()> {
         unreachable!("install_windows_impl called on a non-Windows platform")
     }
 }
