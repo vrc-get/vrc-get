@@ -316,8 +316,10 @@ function UnityVersion({
 function CreatingProject() {
 	return (
 		<DialogBase>
-			<RefreshCw className={"w-5 h-5 animate-spin"} />
-			<p>{tc("projects:creating project...")}</p>
+			<div className={"flex items-center gap-2"}>
+				<RefreshCw className={"w-5 h-5 animate-spin"} />
+				<p>{tc("projects:creating project...")}</p>
+			</div>
 		</DialogBase>
 	);
 }
