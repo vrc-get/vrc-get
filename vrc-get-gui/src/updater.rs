@@ -801,7 +801,8 @@ mod windows {
             let params = build_updater_args(&self.platform.args, self.current_install);
 
             tempfile.disable_cleanup(true);
-            start_installer(op, file, params);
+            drop(tempfile);
+            start_installer(op, file, params)?;
 
             // For windows install, we need to quit app immediately.
             std::process::exit(0);
@@ -908,14 +909,14 @@ mod windows {
 
     // os specific call
     #[cfg(windows)]
-    fn start_installer(op: Vec<u16>, file: Vec<u16>, params: Vec<u16>) {
+    fn start_installer(op: Vec<u16>, file: Vec<u16>, params: Vec<u16>) -> Result<()> {
         use ::windows::Win32::UI::Shell::ShellExecuteW;
         use ::windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
         use ::windows::core::PCWSTR;
 
         unsafe {
             // SAFETY: all pointers remain valid for the duration of the call, since owned vec is passed
-            ShellExecuteW(
+            let response = ShellExecuteW(
                 None,
                 PCWSTR(op.as_ptr()),
                 PCWSTR(file.as_ptr()),
@@ -923,11 +924,19 @@ mod windows {
                 PCWSTR(std::ptr::null()),
                 SW_SHOW,
             );
+
+            let response = response.0 as u32;
+            if response > 32 {
+                Ok(())
+            } else {
+                // Map the error code (<= 32) to an IO Error
+                Err(std::io::Error::from_raw_os_error(response as i32).into())
+            }
         }
     }
 
     #[cfg(not(windows))]
-    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) {
+    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) -> Result<()> {
         unreachable!("install_windows_impl called on a non-Windows platform")
     }
 }
