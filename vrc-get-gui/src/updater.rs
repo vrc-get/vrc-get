@@ -801,6 +801,7 @@ mod windows {
             let params = build_updater_args(&self.platform.args, self.current_install);
 
             tempfile.disable_cleanup(true);
+            drop(tempfile);
             start_installer(op, file, params);
 
             // For windows install, we need to quit app immediately.
