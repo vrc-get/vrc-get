@@ -270,6 +270,18 @@ pub async fn check_for_update<R: Runtime>(
 
     let mut headers = HeaderMap::new();
     headers.insert(header::ACCEPT, HeaderValue::from_static("application/json"));
+    headers.insert(
+        "X-Alcom-Version",
+        HeaderValue::from_static(env!("CARGO_PKG_VERSION")),
+    );
+    headers.insert(
+        "X-Alcom-OS",
+        HeaderValue::from_static(updater_os().unwrap_or("unknown")),
+    );
+    headers.insert(
+        "X-Alcom-Arch",
+        HeaderValue::from_static(updater_arch().unwrap_or("unknown")),
+    );
 
     let client = app.state::<reqwest::Client>();
 
