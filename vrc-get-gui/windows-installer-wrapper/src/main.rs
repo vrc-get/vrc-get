@@ -18,6 +18,7 @@ use windows_sys::Win32::System::Console::{GetStdHandle, STD_ERROR_HANDLE, WriteC
 use windows_sys::Win32::System::Environment::*;
 use windows_sys::Win32::System::Memory::*;
 use windows_sys::Win32::System::Threading::*;
+use windows_sys::Win32::UI::Shell::PathRenameExtensionW;
 use windows_sys::Win32::UI::WindowsAndMessaging::SW_HIDE;
 
 static INSTALLER: &[u8] = include_bytes!(env!("INSTALLER_EXE"));
@@ -97,6 +98,9 @@ unsafe fn create_temp_file() -> Option<StackPath> {
         if GetTempFileNameW(temp.as_ptr(), w!("upd"), 0, name.as_mut_ptr()) == 0 {
             return None;
         }
+
+        // replace extension
+        PathRenameExtensionW(temp.as_ptr(), w!(".exe"));
 
         Some(name)
     }
