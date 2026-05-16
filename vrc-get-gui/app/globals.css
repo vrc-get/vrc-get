@@ -188,7 +188,7 @@
 	}
 }
 
-:root {
+body {
 	--toastify-font-family: var(--font-sans);
 	--toastify-color-light: var(--background);
 	/*--toastify-color-info: #3498db;*/
