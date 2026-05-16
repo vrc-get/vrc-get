@@ -22,3 +22,5 @@ windows-sys = {
         "Win32_System_Console",
     ],
 }
+[build-dependencies]
+embed-manifest = "1.5.0"
