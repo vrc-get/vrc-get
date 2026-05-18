@@ -38,8 +38,8 @@
 		"cmdk": "^1",
 		"i18next": "^26",
 		"lucide-react": "^1",
-		"react": "19.2.5",
-		"react-dom": "19.2.5",
+		"react": "19.2.6",
+		"react-dom": "19.2.6",
 		"react-i18next": "^17",
 		"react-toastify": "^11",
 		"tailwind-merge": "^3"
