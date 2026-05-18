@@ -4322,9 +4322,9 @@ dependencies = [
 
 [[package]]
 name = "rpm"
-version = "0.22.0"
+version = "0.23.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b15d9bae82f8f242aa4018be1df5186efdf365c2e9b8de23e460407aeb3cb7f1"
+checksum = "c1c8e1e837dd547798d3a82dd335caa39ea8aae4609743c9c905e177a53c16c7"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.11.1",
