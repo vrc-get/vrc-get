@@ -733,7 +733,7 @@ function BulkUpdateCard({
 	return (
 		<Card
 			className={
-				"shrink-0 p-2 flex flex-row gap-2 bg-secondary text-secondary-foreground flex-wrap"
+				"shrink-0 p-2 compact:p-1 flex flex-row gap-2 compact:gap-1 bg-secondary text-secondary-foreground flex-wrap"
 			}
 		>
 			{bulkUpdateMode.canInstallOrUpgrade && (
@@ -763,7 +763,7 @@ function BulkUpdateCard({
 					{tc("projects:manage:button:uninstall selected")}
 				</ButtonDisabledIfLoading>
 			)}
-			<ButtonDisabledIfLoading onClick={cancel}>
+			<ButtonDisabledIfLoading onClick={cancel} variant={"warning"}>
 				{tc("projects:manage:button:clear selection")}
 				{" ("}
 				{tc("projects:manage:n packages selected", { count })}

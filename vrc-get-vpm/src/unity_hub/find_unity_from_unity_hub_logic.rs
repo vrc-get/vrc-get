@@ -6,12 +6,13 @@ use futures::FutureExt;
 use futures::future::{join_all, try_join3};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::result;
 
 type Result<T> = result::Result<T, std::io::Error>;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ChipArchitecture {
     X86_64,
     ARM64,
@@ -47,7 +48,27 @@ pub async fn load_unity_by_loading_unity_hub_files() -> Result<Vec<UnityEditorIn
     )
     .await?;
 
-    Ok(a.into_iter().chain(b).chain(c).collect())
+    // Disk-scanned entries take priority over editors-v2.json entries for the same
+    // version+architecture, matching Unity Hub's merge behavior.
+    let disk_scanned: Vec<UnityEditorInHub> = a.into_iter().chain(b).collect();
+    let disk_scanned_keys: HashSet<(UnityVersion, ChipArchitecture)> = disk_scanned
+        .iter()
+        .map(|e| (e.version, arch_for_dedup(e.architecture)))
+        .collect();
+    let located_only: Vec<UnityEditorInHub> = c
+        .into_iter()
+        .filter(|located| {
+            !disk_scanned_keys.contains(&(located.version, arch_for_dedup(located.architecture)))
+        })
+        .collect();
+
+    Ok(disk_scanned.into_iter().chain(located_only).collect())
+}
+
+// Unity Hub defaults null/unknown architecture to X86_64 when building unique identifiers.
+// We match that behavior here so deduplication between disk-scanned and located editors is correct.
+fn arch_for_dedup(arch: Option<ChipArchitecture>) -> ChipArchitecture {
+    arch.unwrap_or(ChipArchitecture::X86_64)
 }
 
 async fn get_custom_install_location(local_settings: &LocalSettings) -> Option<PathBuf> {
@@ -171,7 +192,9 @@ async fn load_located_editors(local_settings: &LocalSettings) -> Vec<UnityEditor
         #[serde(with = "either::serde_untagged")]
         location: Either<String, Vec<String>>,
         version: String,
-        architecture: String,
+        // architecture may be null or absent in older editors-v2.json entries
+        #[serde(default)]
+        architecture: Option<String>,
     }
     #[derive(Deserialize)]
     struct EditorsV2 {
@@ -192,9 +215,9 @@ async fn load_located_editors(local_settings: &LocalSettings) -> Vec<UnityEditor
         let Some(version) = UnityVersion::parse(&editor.version) else {
             continue;
         };
-        let architecture = match editor.architecture.as_str() {
-            "x86_64" => Some(ChipArchitecture::X86_64),
-            "arm64" => Some(ChipArchitecture::ARM64),
+        let architecture = match editor.architecture.as_deref() {
+            Some("x86_64") | None => Some(ChipArchitecture::X86_64),
+            Some("arm64") => Some(ChipArchitecture::ARM64),
             _ => None,
         };
         match editor.location {

@@ -1279,6 +1279,59 @@ fn locked_in_package_folder() {
     })
 }
 
+#[test]
+fn error_in_install_does_not_break_project() {
+    block_on(async {
+        let mut project = VirtualProjectBuilder::new()
+            .add_dependency("com.vrchat.avatars", Version::new(3, 5, 0))
+            .add_locked(
+                "com.vrchat.avatars",
+                Version::new(3, 4, 2),
+                &[("com.vrchat.base", "3.4.2")],
+            )
+            .add_locked("com.vrchat.base", Version::new(3, 4, 2), &[])
+            .add_file(
+                "Packages/com.vrchat.avatars/package.json",
+                r#"{"name":"com.vrchat.avatars","version":"3.4.2"}"#,
+            )
+            .add_file("Packages/com.vrchat.avatars/content.txt", "text")
+            .build()
+            .await
+            .unwrap();
+
+        let packages = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.vrchat.avatars",
+                Version::new(3, 10, 0),
+            ))
+            .build();
+        let env = VirtualInstaller::new(); // This installer always throw error
+
+        let resolve = project
+            .add_package_request(
+                &packages,
+                &[packages.get_package("com.vrchat.avatars", Version::new(3, 10, 0))],
+                AddPackageOperation::AutoDetected,
+                true,
+            )
+            .await
+            .unwrap();
+
+        project
+            .apply_pending_changes(&env, resolve)
+            .await
+            .unwrap_err();
+
+        assert!(
+            project
+                .io()
+                .metadata("Packages/com.vrchat.avatars".as_ref())
+                .await
+                .is_ok(),
+        );
+    })
+}
+
 // endregion
 
 // region unlocked

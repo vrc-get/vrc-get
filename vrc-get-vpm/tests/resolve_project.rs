@@ -251,3 +251,94 @@ fn resolve_both_dependencies_of_unlocked_and_dependencies() {
         assert_installing_to_both(&result, &library2);
     })
 }
+
+// https://github.com/vrc-get/vrc-get/issues/2728
+#[test]
+fn dependencies_only_package_require_newer_version_than_locked_version() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_locked("com.anatawa12.locked", Version::new(1, 0, 0), &[])
+            .add_dependency("com.anatawa12.dependency", Version::new(1, 1, 0))
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.locked",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.locked",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.dependency", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.anatawa12.locked", "^1.1.0"),
+            )
+            .build();
+
+        let result = project.resolve_request(&collection).await.unwrap();
+
+        assert_eq!(result.package_changes().len(), 2);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        let library = collection.get_package("com.anatawa12.locked", Version::new(1, 1, 0));
+        let library2 = collection.get_package("com.anatawa12.dependency", Version::new(1, 1, 0));
+        assert_installing_to_locked_only(&result, &library);
+        assert_installing_to_both(&result, &library2);
+    })
+}
+
+// relates to https://github.com/vrc-get/vrc-get/issues/2728 but not exactly the what reported
+#[test]
+fn dependencies_of_unlocked_package_require_newer_version_than_locked_version() {
+    block_on(async {
+        let project = VirtualProjectBuilder::new()
+            .add_file(
+                "Packages/unlocked/package.json",
+                r#"
+            {
+                "name": "com.anatawa12.package",
+                "version": "1.0.0",
+                "vpmDependencies": {
+                    "com.anatawa12.dependency": "^1.1.0"
+                }
+            }
+            "#,
+            )
+            .add_locked("com.anatawa12.locked", Version::new(1, 0, 0), &[])
+            .build()
+            .await
+            .unwrap();
+
+        let collection = PackageCollectionBuilder::new()
+            .add(PackageManifest::new(
+                "com.anatawa12.locked",
+                Version::new(1, 0, 0),
+            ))
+            .add(PackageManifest::new(
+                "com.anatawa12.locked",
+                Version::new(1, 1, 0),
+            ))
+            .add(
+                PackageManifest::new("com.anatawa12.dependency", Version::new(1, 1, 0))
+                    .add_vpm_dependency("com.anatawa12.locked", "^1.1.0"),
+            )
+            .build();
+
+        let result = project.resolve_request(&collection).await.unwrap();
+
+        assert_eq!(result.package_changes().len(), 2);
+        assert_eq!(result.remove_legacy_folders().len(), 0);
+        assert_eq!(result.remove_legacy_files().len(), 0);
+        assert_eq!(result.conflicts().len(), 0);
+
+        let library = collection.get_package("com.anatawa12.locked", Version::new(1, 1, 0));
+        let library2 = collection.get_package("com.anatawa12.dependency", Version::new(1, 1, 0));
+        assert_installing_to_locked_only(&result, &library);
+        assert_installing_to_locked_only(&result, &library2);
+    })
+}

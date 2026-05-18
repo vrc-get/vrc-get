@@ -115,6 +115,14 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 // ---------------------------------------------------------------------------
 
 fn verify_signature(data: &[u8], release_signature: &str, pub_key: &str) -> Result<bool> {
+    if std::env::var(
+        "___ALCOM_UPDATER_DISABLE_SIGNATURE_VERIFICATION_DEBUG_ONLY_FEATURE_DO_NOT_USE_THIS_OR_YOU_WILL_BE_HACKED___",
+    )
+    .as_deref()
+        == Ok("YES_I_WANT_TO_BE_HACKED")
+    {
+        return Ok(true);
+    }
     let pub_key_decoded = base64_to_string(pub_key)?;
     let public_key =
         PublicKey::decode(&pub_key_decoded).map_err(|e| Error::Signature(e.to_string()))?;
@@ -167,8 +175,24 @@ fn parse_version<'de, D>(deserializer: D) -> std::result::Result<Version, D::Err
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
-    Version::from_str(s.trim_start_matches('v')).map_err(DeError::custom)
+    struct Visitor;
+
+    impl<'de> serde::de::Visitor<'de> for Visitor {
+        type Value = Version;
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a semver version")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Version::from_str(v.trim_start_matches('v'))
+                .map_err(|_| DeError::invalid_value(serde::de::Unexpected::Str(v), &self))
+        }
+    }
+
+    deserializer.deserialize_str(Visitor)
 }
 
 // ---------------------------------------------------------------------------
@@ -246,6 +270,18 @@ pub async fn check_for_update<R: Runtime>(
 
     let mut headers = HeaderMap::new();
     headers.insert(header::ACCEPT, HeaderValue::from_static("application/json"));
+    headers.insert(
+        "X-Alcom-Version",
+        HeaderValue::from_static(env!("CARGO_PKG_VERSION")),
+    );
+    headers.insert(
+        "X-Alcom-OS",
+        HeaderValue::from_static(updater_os().unwrap_or("unknown")),
+    );
+    headers.insert(
+        "X-Alcom-Arch",
+        HeaderValue::from_static(updater_arch().unwrap_or("unknown")),
+    );
 
     let client = app.state::<reqwest::Client>();
 
@@ -777,7 +813,8 @@ mod windows {
             let params = build_updater_args(&self.platform.args, self.current_install);
 
             tempfile.disable_cleanup(true);
-            start_installer(op, file, params);
+            drop(tempfile);
+            start_installer(op, file, params)?;
 
             // For windows install, we need to quit app immediately.
             std::process::exit(0);
@@ -884,14 +921,14 @@ mod windows {
 
     // os specific call
     #[cfg(windows)]
-    fn start_installer(op: Vec<u16>, file: Vec<u16>, params: Vec<u16>) {
+    fn start_installer(op: Vec<u16>, file: Vec<u16>, params: Vec<u16>) -> Result<()> {
         use ::windows::Win32::UI::Shell::ShellExecuteW;
         use ::windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
         use ::windows::core::PCWSTR;
 
         unsafe {
             // SAFETY: all pointers remain valid for the duration of the call, since owned vec is passed
-            ShellExecuteW(
+            let response = ShellExecuteW(
                 None,
                 PCWSTR(op.as_ptr()),
                 PCWSTR(file.as_ptr()),
@@ -899,11 +936,19 @@ mod windows {
                 PCWSTR(std::ptr::null()),
                 SW_SHOW,
             );
+
+            let response = response.0 as u32;
+            if response > 32 {
+                Ok(())
+            } else {
+                // Map the error code (<= 32) to an IO Error
+                Err(std::io::Error::from_raw_os_error(response as i32).into())
+            }
         }
     }
 
     #[cfg(not(windows))]
-    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) {
+    fn start_installer(_op: Vec<u16>, _file: Vec<u16>, _params: Vec<u16>) -> Result<()> {
         unreachable!("install_windows_impl called on a non-Windows platform")
     }
 }

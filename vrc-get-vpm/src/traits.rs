@@ -42,6 +42,7 @@ pub trait PackageInstaller {
         &self,
         io: &DefaultProjectIo,
         package: PackageInfo<'_>,
+        dest_dir: &std::path::Path,
         abort: &AbortCheck,
     ) -> impl Future<Output = io::Result<()>>;
 }

@@ -26,7 +26,7 @@ pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), R
     if !path.exists() {
         match if_not_exists {
             OpenOptions::ErrorIfNotExists => {
-                return Err(RustError::unrecoverable("Path does not exist"));
+                return Err(RustError::unrecoverable_str("Path does not exist"));
             }
             OpenOptions::CreateFolderIfNotExists => {
                 super::create_dir_all_with_err(&path).await?;
@@ -65,7 +65,11 @@ pub async fn check_for_update(
     app_handle: AppHandle,
     stable: bool,
 ) -> updater::Result<Option<Update>> {
-    let endpoint = if stable {
+    let endpoint = if let Ok(env) =
+        std::env::var("___ALCOM_UPDATER_URL_OVERRIDE_DEBUG_ONLY_FEATURE_YOU_SHOULD_NOT_USE_THIS___")
+    {
+        Url::parse(&env).unwrap()
+    } else if stable {
         Url::parse("https://vrc-get.anatawa12.com/api/gui/tauri-updater.json").unwrap()
     } else {
         Url::parse("https://vrc-get.anatawa12.com/api/gui/tauri-updater-beta.json").unwrap()
@@ -133,11 +137,11 @@ pub async fn util_install_and_upgrade(
 ) -> Result<AsyncCallResult<InstallUpgradeProgress, ()>, RustError> {
     async_command(channel, window, async move {
         let Some(response) = updater_state.take() else {
-            return Err(RustError::unrecoverable("No update response found"));
+            return Err(RustError::unrecoverable_str("No update response found"));
         };
 
         if response.version() != version {
-            return Err(RustError::unrecoverable("Update data version mismatch"));
+            return Err(RustError::unrecoverable_str("Update data version mismatch"));
         }
 
         With::<InstallUpgradeProgress>::continue_async(move |ctx| async move {

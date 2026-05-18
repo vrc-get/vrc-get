@@ -63,7 +63,8 @@ macro_rules! deserialize_from_str {
                     where
                         E: ::serde::de::Error,
                     {
-                        std::str::FromStr::from_str(v).map_err(E::custom)
+                        std::str::FromStr::from_str(v)
+                            .map_err(|_| E::invalid_value(::serde::de::Unexpected::Str(v), &self))
                     }
                 }
                 deserializer.deserialize_str(Visitor)

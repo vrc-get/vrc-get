@@ -17,15 +17,21 @@ mod setup_exe;
 /// If `--bundles` is not specified, all artifacts for the target platform are produced.
 ///
 /// **macOS** artifacts:
-/// - `app` — `ALCOM.app` application bundle
-/// - `dmg` — `ALCOM_<version>_<arch>.dmg` disk image
-/// - `app-updater` — `ALCOM.app.tar.gz` updater payload
+/// - `app` - `ALCOM.app` application bundle
+/// - `dmg` - `ALCOM_<version>_<arch>.dmg` disk image
+/// - `app-updater` - `ALCOM.app.tar.gz` updater payload
 ///
 /// **Linux** artifacts:
-/// - `app-image` — `ALCOM_<version>_<arch>.AppImage`
-/// - `app-image-updater` — `ALCOM_<version>_<arch>.AppImage.tar.gz` updater payload
-/// - `deb` — `ALCOM_<version>_<arch>.deb` Debian package
-/// - `rpm` — `ALCOM-<version>-1.<arch>.rpm` RPM package
+/// - `app-image` - `ALCOM_<version>_<arch>.AppImage`
+/// - `app-image-updater` - `ALCOM_<version>_<arch>.AppImage.tar.gz` updater payload
+/// - `deb` - `ALCOM_<version>_<arch>.deb` Debian package
+/// - `rpm` - `ALCOM-<version>-1.<arch>.rpm` RPM package
+/// - `buildroot` - The package manager independent buildroot for external package managers.
+///
+/// **Windows** artifacts:
+/// - `setup-exe` - `-setup.exe` for first-time installation
+/// - `setup-exe-zip` - `-setup.exe.zip` to workaround warning from browsers
+/// - `exe-updater` - `-updater.exe` for the updater. This includes
 #[derive(clap::ValueEnum, Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum BundleKind {
     // --- macOS ---
@@ -42,12 +48,18 @@ pub(crate) enum BundleKind {
     /// AppImage.tar.gz updater payload (requires AppImage to already exist)
     #[value(name = "appimage-updater")]
     AppImageUpdater,
+    /// Package manager independent buildroot for external package managers
+    ///
+    /// Unlike dmg depends on app, deb/rpm doesn't depend on this bundle.
+    Buildroot,
     /// Debian package
     Deb,
     /// RPM package
     Rpm,
     /// Windows setup.exe
     SetupExe,
+    /// Windows setup.exe in zip (requires setup.exe to already exist in bundle dir)
+    SetupExeZip,
     /// Windows setup.exe for updater
     ExeUpdater,
 }
@@ -83,10 +95,16 @@ pub(super) struct Command {
     /// Specific bundle artifacts to produce (comma-separated or repeated).
     ///
     /// When not specified, all artifacts for the target platform are produced.
-    /// Use this to split the bundling process — e.g. produce only `app` first,
+    /// Use this to split the bundling process - e.g. produce only `app` first,
     /// then sign it, then produce `dmg` and `app-updater`.
     #[arg(long, value_delimiter = ',')]
     bundles: Vec<BundleKind>,
+
+    /// Output directory for buildroot
+    ///
+    /// Only valid for buildroot bundle
+    #[arg(long)]
+    buildroot: Option<PathBuf>,
 }
 
 impl crate::Command for Command {
@@ -119,6 +137,10 @@ impl crate::Command for Command {
             appimage::create_appimage_tar_gz(&ctx)?;
         }
 
+        if bundles.contains(&BundleKind::Buildroot) {
+            linux::create_install_build_root(&ctx, self.buildroot.as_deref())?;
+        }
+
         if bundles.contains(&BundleKind::Deb) {
             deb::create_deb(&ctx)?;
         }
@@ -129,6 +151,10 @@ impl crate::Command for Command {
 
         if bundles.contains(&BundleKind::SetupExe) {
             setup_exe::create_setup_exe(&ctx)?;
+        }
+
+        if bundles.contains(&BundleKind::SetupExeZip) {
+            setup_exe::create_setup_exe_zip(&ctx)?;
         }
 
         if bundles.contains(&BundleKind::ExeUpdater) {

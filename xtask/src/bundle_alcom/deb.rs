@@ -5,6 +5,7 @@ use crate::utils::{CountingIo, tar, target_arch};
 use anyhow::{Context, Result, bail};
 use flate2::Compression;
 use flate2::write::GzEncoder;
+use std::io::Write;
 use std::{fs, io};
 
 fn deb_arch(triple: &str) -> Result<&str> {
@@ -28,52 +29,7 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
         let gz = GzEncoder::new(Vec::new(), Compression::default());
         let mut tar = tar::Builder::new(CountingIo::new(gz));
 
-        tar.append_directory("usr").context("adding /usr")?;
-        tar.append_directory("usr/bin").context("adding /usr/bin")?;
-
-        let bin_name_lower = ctx.binary_name().to_ascii_lowercase();
-        tar.append_data(
-            tar::HeaderBuilder::new_gnu().with_mode(0o755).build(),
-            format!("usr/bin/{bin_name_lower}"),
-            fs::File::open(ctx.binary_path()).context("reading executable")?,
-        )
-        .context("adding /usr/bin/{bin_name_lower}")?;
-
-        tar.append_directory("usr/share")
-            .context("adding /usr/share")?;
-        tar.append_directory("usr/share/applications")
-            .context("adding /usr/share/applications")?;
-
-        let bin_name_lower = ctx.binary_name().to_ascii_lowercase();
-        tar.append_data(
-            tar::HeaderBuilder::new_gnu().with_mode(0o755).build(),
-            format!("usr/share/applications/{bin_name_lower}.desktop"),
-            io::Cursor::new(
-                render_desktop_file(ctx, &format!("/usr/bin/{bin_name_lower}"))?.as_bytes(),
-            ),
-        )
-        .context("adding /usr/share/applications/{bin_name_lower}.desktop")?;
-
-        tar.append_directory("usr/share/icons")
-            .context("adding /usr/share/icons")?;
-        tar.append_directory("usr/share/hicolor")
-            .context("adding /usr/share/hicolor")?;
-
-        for size in LINUX_ICON_RESOLUTIONS {
-            tar.append_directory(format!("usr/share/hicolor/{size}"))
-                .with_context(|| format!("adding /usr/share/hicolor/{size}"))?;
-            tar.append_directory(format!("usr/share/hicolor/{size}/app"))
-                .with_context(|| format!("adding /usr/share/hicolor/{size}/app"))?;
-
-            tar.append_data(
-                tar::HeaderBuilder::new_gnu().with_mode(0o644).build(),
-                format!("usr/share/hicolor/{size}/app/{LINUX_ICON_NAME}.png"),
-                fs::File::open(ctx.icon_path(size)).context("reading icon")?,
-            )
-            .with_context(|| {
-                format!("adding /usr/share/hicolor/{size}/app/{LINUX_ICON_NAME}.png")
-            })?;
-        }
+        create_install_build_root_impl(ctx, &mut tar).context("creating data.tar.gz")?;
 
         let finished_gz_count = tar.into_inner()?;
         let estimated_size = finished_gz_count.count();
@@ -82,6 +38,8 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
 
         (estimated_size, data_tar_gz)
     };
+
+    let library = detect_library_versions(&ctx.binary_path())?;
 
     // Build control.tar.gz
     let control_tar_gz = {
@@ -95,18 +53,13 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
                 .with_context(|| format!("reading {}", template_path.display()))?
                 .replace("{{version}}", ctx.version())
                 .replace("{{arch}}", arch)
-                .replace("{{estimated_size}}", &estimated_size.to_string())
+                .replace("{{estimated_size}}", &(estimated_size / 1024).to_string())
+                .replace("{{libc_version}}", &library.libc)
+                .replace("{{libgcc_version}}", &library.libgcc)
         };
 
-        tar.append_data(
-            tar::HeaderBuilder::new_gnu()
-                .with_size(control.len() as u64)
-                .with_mode(0o644)
-                .build(),
-            "control",
-            io::Cursor::new(control.as_bytes()),
-        )
-        .context("appending control file")?;
+        tar.append_file_data(0o644, "control", io::Cursor::new(control.as_bytes()))
+            .context("appending control file")?;
 
         let gz = tar.into_inner().context("finishing control tar")?;
         gz.finish().context("finishing control gzip")?;
@@ -146,6 +99,8 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
         builder
             .append(&header, &mut data_tar_gz.as_slice())
             .context("appending data.tar.gz")?;
+
+        builder.into_inner()?.flush()?;
     }
 
     println!("created: {}", deb_out.display());

@@ -13,9 +13,10 @@ The format is based on [Keep a Changelog].
   - Please read README for new build instruction.
 
 ### Changed
+- The "Clear Selection" button in the package management screen is now red (destructive style) to distinguish it from the "Install Selected" button [`#2803`](https://github.com/vrc-get/vrc-get/pull/2803)
 - File filled with '\0' or whitespace will be treated as empty file `#2710`
   - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
-- Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759`
+- Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759` `#2828` `#2881` `#2882`
   - This fixes few problems relates to auto update
   - Please read README for new build instruction.
 - Improved backup speed by parallelizing the process [`#2746`](https://github.com/vrc-get/vrc-get/pull/2746)
@@ -23,6 +24,15 @@ The format is based on [Keep a Changelog].
 - We added dialog on enabling "Show Prerelease Packages" `#2795`
   - I hope this prevents users unexpectedly adding prerelease packages
 - Path for unitypackage on Template Editor now can be reselected `#2635`
+- ALCOM now refuses launching project if project is on noexec mount points `#2814`
+  - This would cause problems with several native plugins
+- Already-added packages are now excluded from the package name suggestions in the Template Editor `#2828`
+- Extended some timeouts to 1 minute `#2826`
+    - Prevents timeouts in slow DNS environments
+- Improved robustness for package installation errors `#2844`
+  - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
+- Backslashes in path in zip file are now treated as path separator on unix `#2845`
+  - This fixes problem with Gesture Manager 3.9.7
 
 ### Deprecated
 
@@ -33,8 +43,24 @@ The format is based on [Keep a Changelog].
 - Fails to import UnityPackages with files in `Packages` directory `#2679`
 - null as vpmDependencies value is not allowed `#2709`
   - It's not recommended, but we allow null for `vpmDependencies` as a alias of `{}`
+- ALCOM cannot detect per-user flatpak installation of unity hub `#2812`
+- Unabled to import some untypackages `#2821`
+  - It's hard to say but some older unitypackages ware unsupported.
+- Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
+- Missing glibc and libgcc_s dependency notation in .deb / .rpm distributon `#2828`
+- Unclear error message for invalid version name or version range `#2842`
+- Default file names in save dialogs now include the appropriate file extension `#2846`
+  - Template export now defaults to `{template name}.alcomtemplate`
+  - Repository list export now defaults to `repositories.txt`
+- Uninformative `[object Object]` appearing as an error message `#2848`
+- New Unity Hub loading method may not load manually added Unity Editors `#2850`
+- New Unity Hub loading method does load unity hub configuration on Linux `#2850`
+- Too many open files when copying project `#2867
 
 ### Security
+- Package hash checks are now enforced when installing packages `#2849`
+  - It has been about two years since the error message for package hash mismatches was introduced.
+  - It is now enforced for security.
 
 ## [1.1.5] - 2025-11-16
 - Fix package version selector dropdown exceeding window height [`#2589`](https://github.com/vrc-get/vrc-get/pull/2589)

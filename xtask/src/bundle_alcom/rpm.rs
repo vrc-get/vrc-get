@@ -1,6 +1,7 @@
 use super::BundleContext;
 use crate::bundle_alcom::linux::*;
 use anyhow::{Context, Result};
+use rpm::Dependency;
 use std::fs;
 
 pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
@@ -10,12 +11,7 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     fs::create_dir_all(&rpm_dir)?;
     let rpm_out = rpm_dir.join(&rpm_name);
 
-    let bin_name_lower = ctx.binary_name().to_ascii_lowercase();
-
-    // Write desktop file to a temp location so rpm::PackageBuilder can read it from disk.
-    let desktop_content = render_desktop_file(ctx, &format!("/usr/bin/{bin_name_lower}"))?;
-    let desktop_tmp = rpm_dir.join(format!("{bin_name_lower}.desktop.tmp"));
-    fs::write(&desktop_tmp, &desktop_content)?;
+    let library = detect_library_versions(&ctx.binary_path())?;
 
     let mut builder = rpm::PackageBuilder::new(
         "alcom",
@@ -29,36 +25,24 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     );
     builder.release("1").description(ctx.long_description());
 
+    builder.requires(Dependency::any(format!(
+        "libgcc_s.so.1(GCC_{})(64bit)",
+        library.libgcc
+    )));
+    builder.requires(Dependency::any(format!(
+        "libc.so.6(GLIBC_{})(64bit)",
+        library.libc
+    )));
+    builder.requires(Dependency::any("libgtk-3.so.0()(64bit)"));
+    builder.requires(Dependency::any("libwebkit2gtk-4.1.so.0()(64bit)"));
+
     // Binary.
-    builder
-        .with_file(
-            ctx.binary_path(),
-            rpm::FileOptions::new(format!("/usr/bin/{bin_name_lower}")).permissions(0o755),
-        )
-        .context("adding binary to rpm")?;
-
-    // Desktop file.
-    builder
-        .with_file(
-            &desktop_tmp,
-            rpm::FileOptions::new(format!("/usr/share/applications/{bin_name_lower}.desktop")),
-        )
-        .context("adding desktop file to rpm")?;
-
-    // Icons.
-    for size in LINUX_ICON_RESOLUTIONS {
-        let install_path = format!("/usr/share/icons/hicolor/{size}/apps/{LINUX_ICON_NAME}.png");
-        builder
-            .with_file(ctx.icon_path(size), rpm::FileOptions::new(install_path))
-            .with_context(|| format!("adding icon {size}.png to rpm"))?;
-    }
+    create_install_build_root_impl(ctx, &mut builder).context("adding files to rpm")?;
 
     let pkg = builder.build().context("building rpm package")?;
+
     pkg.write_file(&rpm_out)
         .with_context(|| format!("writing {}", rpm_out.display()))?;
-
-    // Clean up temp desktop file.
-    let _ = fs::remove_file(&desktop_tmp);
 
     println!("created: {}", rpm_out.display());
     Ok(())

@@ -25,10 +25,11 @@
     "general:unknown date": "Unbekanntes Datum",
 
     "general:dialog:select file or directory header": "Datei oder Ordner auswählen",
-    "general:dialog:select file or directory": "Bitte Datei oder Ordner auswählen",
-    "general:toast:invalid directory": "Ungültiger Ordner wurde ausgewählt",
+    "general:dialog:select file or directory": "Bitte Datei oder Ordner auswählen.",
+    "general:toast:invalid directory": "Ungültiger Ordner wurde ausgewählt.",
+    "general:toast:invalid file": "Ungültige Datei wurde ausgewählt.",
 
-    "general:toast:not supported": "{{name}} wird noch nicht unterstützt",
+    "general:toast:not supported": "{{name}} wird noch nicht unterstützt.",
     "general:not implemented": "Nicht implementiert",
 
     "search:placeholder": "Suchen...",
@@ -113,6 +114,7 @@
     "projects:grid view": "Gitteransicht",
     "projects:sort by": "Sortierreihenfolge:",
     "projects:error:load error": "Fehler beim Laden der Projekte: {{msg}}",
+    "projects:error:noexec filesystem": "Das Projekt befindet sich auf einem Dateisystem dass das 'noexec' flag gesetzt hat. Dies hindert Unity daran native Plugins zu laden, und führt zu einem korrupten Zustand. Bitte verschiebe das Projekt auf ein Dateisystem ohne 'noexec' flag.",
     "projects:toast:project added": "Projekt erfolgreich hinzugefügt",
     "projects:toast:project already exists": "Das Projekt wurde bereits hinzugefügt.",
 
@@ -440,7 +442,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "Gewählter Pfad ist im LocalAppData Verzeichnis, welcher über \"Diesen PC zurücksetzen\" mit \"Eigene Dateien behalten\" gelöscht wird.\nBitte wähle einen anderen Pfad.",
+    "settings:warning:in-app-data": "Gewählter Pfad ist im LocalAppData Verzeichnis, welcher über \"Diesen PC zurücksetzen\" mit \"Eigene Dateien behalten\" gelöscht wird.\nBitte wähle einen anderen Pfad.",
     "settings:warning:whitespace": "Der Pfad enthält Leerzeichen. Dies kann zu Problemen mit Unity und anderen Tools führen. Bitte wähle einen anderen Pfad.",
     "settings:warning:non-ascii": "Der Pfad enthält nicht-ASCII Zeichen. Dies kann zu Problemen mit Unity und anderen Tools führen. Bitte wähle einen anderen Pfad.",
 
@@ -489,6 +491,10 @@
 
     "settings:show prerelease": "Vorschau-Pakete anzeigen",
     "settings:show prerelease description": "Aktiviere Vorschau-Pakete, um diese in der Paketliste anzuzeigen. Sie werden auch bei der Auflösung von Abhängigkeiten verwendet.",
+
+    "settings:dialog:show prerelease packages": "Zeige Vorschau-Pakete",
+    "settings:dialog:show prerelease packages description": "Vorschau-Pakete sind unfertige und ungetestete Versionen.<br>Die Wahrscheinlichkeit auf Fehler zu stoßen ist höher.<br>Möchtest du Vorschau-Pakete anzeigen?",
+    "settings:dialog:enable show prerelease packages": "Anzeigen",
 
     "settings:gui animation": "Aktiviere Animationen",
     "settings:gui animation description": "Ist diese Option aktiviert, werden einige Seitenwechsel animiert. Dies funktioniert auf Systemen mit älteren Webview Versionen evtl. nicht richtig.",

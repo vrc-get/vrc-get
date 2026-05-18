@@ -34,6 +34,7 @@ struct UpdaterJson<'a> {
 struct Platform {
     signature: String,
     url: String,
+    args: Vec<String>,
 }
 
 pub fn create_alcom_updater_json(assets_dir: &Path, version: &str, out_path: &Path) -> Result<()> {
@@ -65,8 +66,26 @@ pub fn create_alcom_updater_json(assets_dir: &Path, version: &str, out_path: &Pa
             .with_context(|| sig_name.clone())?;
 
         let url = format!("{base_url}/{file_name}");
-        platforms.insert(platform.to_string(), Platform { signature, url });
+        platforms.insert(
+            platform.to_string(),
+            Platform {
+                signature,
+                url,
+                args: vec![],
+            },
+        );
     }
+
+    platforms["windows-x86_64"].args = [
+        "/SP-",
+        "/SILENT",
+        "/NOICONS",
+        "!peruser:/CURRENTUSER",
+        "!machine:/ALLUSERS",
+    ]
+    .iter()
+    .map(|x| x.to_string())
+    .collect();
 
     let is_beta = version.contains('-');
     let notes = if is_beta {

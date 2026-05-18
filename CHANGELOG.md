@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog].
     - This should reduce losing settings after crashing ALCOM or PC.
 - null as vpmDependencies value is not allowed `#2709`
     - It's not recommended, but we allow null for `vpmDependencies` as a alias of `{}`
+- Improved robustness for package installation errors `#2844`
+  - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
+- Backslashes in path in zip file are now treated as path separator on unix `#2845`
+  - This fixes problem with Gesture Manager 3.9.7
 
 ### Deprecated
 
@@ -22,8 +26,14 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 - Fix 'Detected Loop' panic with valid database file `#2607`
+- Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
+- Warning for backup/project path in AppData folder not shown when path is in Roaming or LocalLow [`#2827`](https://github.com/vrc-get/vrc-get/pull/2827)
+- Unclear error message for invalid version name or version range `#2842`
 
 ### Security
+- Package hash checks are now enforced when installing packages `#2849`
+  - It has been about two years since the error message for package hash mismatches was introduced.
+  - It is now enforced for security.
 
 ## [1.9.1] - 2025-07-28
 ### Changed

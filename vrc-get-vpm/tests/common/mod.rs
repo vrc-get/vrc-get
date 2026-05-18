@@ -47,8 +47,16 @@ pub fn assert_installing_to_locked_only(result: &PendingProjectChanges, package:
         .get(package.name())
         .expect("the package is not changed");
     let install = change.as_install().expect("the package is not installing");
-    assert!(install.is_adding_to_locked());
-    assert!(install.to_dependencies().is_none());
+    assert!(
+        install.is_adding_to_locked(),
+        "package {name} is not installing to locked: {result:#?}",
+        name = package.name()
+    );
+    assert!(
+        install.to_dependencies().is_none(),
+        "package {name} should not be installed to dependencies: {result:#?}",
+        name = package.name()
+    );
     let installing = install.install_package().expect("not installing");
     assert_eq!(
         installing.package_json() as *const _,
