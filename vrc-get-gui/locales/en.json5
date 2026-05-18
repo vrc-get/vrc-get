@@ -235,6 +235,7 @@
     "projects:manage:source not selected": "Not selected",
     "projects:manage:multiple sources": "Multiple sources",
     "projects:manage:tooltip:add package": "Add Package",
+    "projects:manage:tooltip:select repository to install": "Select repository to install package",
     "projects:manage:tooltip:upgrade package": "Upgrade Package",
     "projects:manage:tooltip:remove packages": "Remove Package",
     "projects:manage:tooltip:incompatible with unity": "Incompatible with Unity",

@@ -993,27 +993,29 @@ const PackageRow = memo(function PackageRow({
 				<LatestPackageInfo info={pkg.latest} />
 			</td>
 			<td className={`${noGrowCellClass} max-w-32 overflow-hidden`}>
-				{pkg.sources.size === 0 ? (
+				{pkg.visibleSources.size === 0 ? (
 					pkg.isThereSource ? (
 						<p>{tc("projects:manage:source not selected")}</p>
 					) : (
 						<p>{tc("projects:manage:none")}</p>
 					)
-				) : pkg.sources.size === 1 ? (
+				) : pkg.visibleSources.size === 1 ? (
 					<Tooltip>
 						<TooltipTrigger>
 							<p className="overflow-hidden text-ellipsis">
-								{[...pkg.sources][0]}
+								{[...pkg.visibleSources][0]}
 							</p>
 						</TooltipTrigger>
-						<TooltipContent>{[...pkg.sources][0]}</TooltipContent>
+						<TooltipContent>{[...pkg.visibleSources][0]}</TooltipContent>
 					</Tooltip>
 				) : (
 					<Tooltip>
 						<TooltipTrigger>
 							<p>{tc("projects:manage:multiple sources")}</p>
 						</TooltipTrigger>
-						<TooltipContent>{[...pkg.sources].join(", ")}</TooltipContent>
+						<TooltipContent>
+							{[...pkg.visibleSources].join(", ")}
+						</TooltipContent>
 					</Tooltip>
 				)}
 			</td>
@@ -1050,9 +1052,11 @@ const PackageRow = memo(function PackageRow({
 								</ButtonDisabledIfLoading>
 							</TooltipTrigger>
 							<TooltipContent>
-								{!latestVersion
-									? tc("projects:manage:tooltip:incompatible with unity")
-									: tc("projects:manage:tooltip:add package")}
+								{pkg.visibleSources.size === 0 && pkg.isThereSource
+									? tc("projects:manage:tooltip:select repository to install")
+									: !latestVersion
+										? tc("projects:manage:tooltip:incompatible with unity")
+										: tc("projects:manage:tooltip:add package")}
 							</TooltipContent>
 						</Tooltip>
 					)}

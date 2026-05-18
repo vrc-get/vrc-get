@@ -229,6 +229,7 @@
     "projects:manage:source not selected": "未选择",
     "projects:manage:multiple sources": "多个源",
     "projects:manage:tooltip:add package": "安装软件包",
+    "projects:manage:tooltip:select repository to install": "选择存储库以安装软件包",
     "projects:manage:tooltip:upgrade package": "升级软件包",
     "projects:manage:tooltip:remove packages": "删除软件包",
     "projects:manage:tooltip:incompatible with unity": "与 Unity 不兼容",
