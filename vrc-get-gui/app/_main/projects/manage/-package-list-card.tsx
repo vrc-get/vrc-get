@@ -1052,11 +1052,24 @@ const PackageRow = memo(function PackageRow({
 								</ButtonDisabledIfLoading>
 							</TooltipTrigger>
 							<TooltipContent>
-								{pkg.visibleSources.size === 0 && pkg.isThereSource
-									? tc("projects:manage:tooltip:select repository to install")
-									: !latestVersion
-										? tc("projects:manage:tooltip:incompatible with unity")
-										: tc("projects:manage:tooltip:add package")}
+								{pkg.visibleSources.size === 0 && pkg.isThereSource ? (
+									<div className="flex flex-col gap-1">
+										<p>
+											{tc(
+												"projects:manage:tooltip:select repository to install",
+											)}
+										</p>
+										<p className="text-xs opacity-75">
+											{[...pkg.sources]
+												.filter((source) => !pkg.visibleSources.has(source))
+												.join(", ")}
+										</p>
+									</div>
+								) : !latestVersion ? (
+									tc("projects:manage:tooltip:incompatible with unity")
+								) : (
+									tc("projects:manage:tooltip:add package")
+								)}
 							</TooltipContent>
 						</Tooltip>
 					)}
