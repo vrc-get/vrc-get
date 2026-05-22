@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- The package list can show hidden packages. `#2731`
 - Build-time option to disable auto updater `#2759`
   - Please read README for new build instruction.
 
