@@ -149,9 +149,7 @@ export function ProjectGridItem({
 									{Array.isArray(project.tags) && project.tags.length != 0 && (
 										<div className="flex overflow-x-auto gap-2 mt-1">
 											{project.tags.map(tag => (
-												<div key={tag} className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 inset-ring inset-ring-green-600/20">
-													<span>{tag}</span>
-												</div>
+												<Button variant={"info"} size={"sm"}>{tag}</Button>
 											))}
 										</div>
 									)}
