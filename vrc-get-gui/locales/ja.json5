@@ -212,6 +212,7 @@
     "projects:manage:button:unity migrate": "プロジェクトを移行",
 
     "projects:manage:manage packages": "パッケージ管理",
+    "projects:manage:hidden packages": "非表示のパッケージ",
     "projects:manage:tooltip:refresh packages": "パッケージリストを再読み込み",
     "projects:manage:button:upgrade all": "すべて更新(最新)",
     "projects:manage:button:upgrade all stable": "すべて更新(安定版)",
@@ -228,6 +229,7 @@
     "projects:manage:source not selected": "未選択",
     "projects:manage:multiple sources": "複数ソース",
     "projects:manage:tooltip:add package": "パッケージを追加",
+    "projects:manage:tooltip:select repository to install": "パッケージを提供しているリポジトリを選択してください。",
     "projects:manage:tooltip:upgrade package": "パッケージを更新",
     "projects:manage:tooltip:remove packages": "パッケージを除去",
     "projects:manage:tooltip:incompatible with unity": "使用中のUnityと互換性がありません。",
