@@ -56,11 +56,16 @@ The format is based on [Keep a Changelog].
 - New Unity Hub loading method may not load manually added Unity Editors `#2850`
 - New Unity Hub loading method does load unity hub configuration on Linux `#2850`
 - Too many open files when copying project `#2867
+- Added workaround for VRCDefaultWorldScene generation issue in SDK 3.10.2 or later `#2916`
+  - See [this][default-scene-canny] canny for bug in VRCSDK and issue [#2913][issue-2913] for our decision.
 
 ### Security
 - Package hash checks are now enforced when installing packages `#2849`
   - It has been about two years since the error message for package hash mismatches was introduced.
   - It is now enforced for security.
+
+[default-scene-canny]: https://feedback.vrchat.com/sdk-bug-reports/p/3102-3103-vrcscenetemplateinitializer-does-not-create-sample-scene-if-udon-prepr
+[issue-2913]: https://github.com/vrc-get/vrc-get/issues/2913
 
 ## [1.1.5] - 2025-11-16
 - Fix package version selector dropdown exceeding window height [`#2589`](https://github.com/vrc-get/vrc-get/pull/2589)
