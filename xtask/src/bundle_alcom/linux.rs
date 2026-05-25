@@ -243,11 +243,10 @@ pub fn detect_library_versions(path: &Path) -> Result<LibraryVersions> {
             .to_string(),
     });
 
-    #[derive(Ord, PartialOrd, Eq, PartialEq)]
-    struct VersionNumber(Vec<u32>);
+    struct VersionNumber(String, Vec<u32>);
 
     impl VersionNumber {
-        pub const MIN: VersionNumber = VersionNumber(Vec::new());
+        pub const MIN: VersionNumber = VersionNumber(String::new(), Vec::new());
     }
 
     impl<'a> TryFrom<&'a [u8]> for VersionNumber {
@@ -261,21 +260,45 @@ pub fn detect_library_versions(path: &Path) -> Result<LibraryVersions> {
             };
             let value = std::str::from_utf8(value)?;
             let components = value
-                .split('.')
+                .split(['.', '_'])
                 .map(std::str::FromStr::from_str)
                 .collect::<Result<Vec<_>, _>>()?;
-            Ok(Self(components))
+            Ok(Self(value.to_string(), components))
         }
     }
 
+    impl Ord for VersionNumber {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            self.1.cmp(&other.1)
+        }
+    }
+
+    impl PartialEq for VersionNumber {
+        fn eq(&self, other: &Self) -> bool {
+            self.cmp(other).is_eq()
+        }
+    }
+
+    impl PartialOrd for VersionNumber {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+
+    impl Eq for VersionNumber {}
+
     impl std::fmt::Display for VersionNumber {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let mut iter = self.0.iter();
-            f.write_fmt(format_args!("{}", iter.next().unwrap()))?;
-            for x in iter {
-                f.write_fmt(format_args!(".{}", x))?;
+            if f.alternate() {
+                let mut iter = self.1.iter();
+                f.write_fmt(format_args!("{}", iter.next().unwrap()))?;
+                for x in iter {
+                    f.write_fmt(format_args!(".{}", x))?;
+                }
+                Ok(())
+            } else {
+                f.write_str(&self.0)
             }
-            Ok(())
         }
     }
 
