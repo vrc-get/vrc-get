@@ -203,7 +203,23 @@ pub fn detect_library_versions(path: &Path) -> Result<LibraryVersions> {
     let mut by_lib = HashMap::new();
     for version in versions.into_iter() {
         let lib = version.name().split(|&x| x == b'_').next().unwrap();
-        let version = VersionNumber::try_from(version.name())?;
+        let version_name = version.name();
+        let version_str = version_name
+            .split(|&x| x == b'_')
+            .nth(1)
+            .unwrap_or(version_name);
+
+        if !matches!(version_str.first(), Some(c) if c.is_ascii_digit()) {
+            continue;
+        }
+
+        let version = VersionNumber::try_from(version_name).with_context(|| {
+            format!(
+                "failed to parse symbol version '{}' in {}",
+                String::from_utf8_lossy(version_name),
+                path.display()
+            )
+        })?;
 
         let existing = by_lib.entry(lib).or_insert(VersionNumber::MIN);
         if *existing < version {
@@ -217,15 +233,20 @@ pub fn detect_library_versions(path: &Path) -> Result<LibraryVersions> {
     //}
 
     return Ok(LibraryVersions {
-        libc: by_lib[&b"GLIBC"[..]].to_string(),
-        libgcc: by_lib[&b"GCC"[..]].to_string(),
+        libc: by_lib
+            .get(&b"GLIBC"[..])
+            .context("no numeric GLIBC version requirement found in dynamic symbols")?
+            .to_string(),
+        libgcc: by_lib
+            .get(&b"GCC"[..])
+            .context("no numeric GCC version requirement found in dynamic symbols")?
+            .to_string(),
     });
 
-    #[derive(Ord, PartialOrd, Eq, PartialEq)]
-    struct VersionNumber(Vec<u32>);
+    struct VersionNumber(String, Vec<u32>);
 
     impl VersionNumber {
-        pub const MIN: VersionNumber = VersionNumber(Vec::new());
+        pub const MIN: VersionNumber = VersionNumber(String::new(), Vec::new());
     }
 
     impl<'a> TryFrom<&'a [u8]> for VersionNumber {
@@ -239,21 +260,45 @@ pub fn detect_library_versions(path: &Path) -> Result<LibraryVersions> {
             };
             let value = std::str::from_utf8(value)?;
             let components = value
-                .split('.')
+                .split(['.', '_'])
                 .map(std::str::FromStr::from_str)
                 .collect::<Result<Vec<_>, _>>()?;
-            Ok(Self(components))
+            Ok(Self(value.to_string(), components))
         }
     }
 
+    impl Ord for VersionNumber {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            self.1.cmp(&other.1)
+        }
+    }
+
+    impl PartialEq for VersionNumber {
+        fn eq(&self, other: &Self) -> bool {
+            self.cmp(other).is_eq()
+        }
+    }
+
+    impl PartialOrd for VersionNumber {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+
+    impl Eq for VersionNumber {}
+
     impl std::fmt::Display for VersionNumber {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let mut iter = self.0.iter();
-            f.write_fmt(format_args!("{}", iter.next().unwrap()))?;
-            for x in iter {
-                f.write_fmt(format_args!(".{}", x))?;
+            if f.alternate() {
+                let mut iter = self.1.iter();
+                f.write_fmt(format_args!("{}", iter.next().unwrap()))?;
+                for x in iter {
+                    f.write_fmt(format_args!(".{}", x))?;
+                }
+                Ok(())
+            } else {
+                f.write_str(&self.0)
             }
-            Ok(())
         }
     }
 
