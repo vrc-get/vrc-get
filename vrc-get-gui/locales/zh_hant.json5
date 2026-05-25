@@ -444,7 +444,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-app-data": "此路徑位於 LocalAppData 資料夾中，即使在「重設此電腦」時選擇「保留我的檔案」，該資料夾仍會被刪除。<br>建議你將資料保存到其他位置。",
+    "settings:warning:in-app-data": "此路徑位於 AppData 資料夾中，即使在「重設此電腦」時選擇「保留我的檔案」，該資料夾仍會被刪除。<br>建議你將資料保存到其他位置。",
     "settings:warning:whitespace": "此位置含有空格。這可能導致 Unity 和其他工具出現問題。請考慮使用其他位置。",
     "settings:warning:non-ascii": "此位置含有非 ASCII 字元。這可能導致 Unity 出現問題。請考慮使用其他位置。（不要使用中文或全形字元）",
 
