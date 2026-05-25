@@ -13,7 +13,7 @@ anyhow = { version = "1.0.102", features = ["backtrace"] }
 cargo_metadata = "0.23.1"
 clap = { version = "4.6.0", features = ["derive", "env"] }
 itertools = "0.14.0"
-object = { version = "0.39.0", features = ["read_core", "elf", "macho", "pe"], default-features = false }
+object = { version = "0.39.1", features = ["read_core", "elf", "macho", "pe"], default-features = false }
 chrono = { version = "0.4.44", features = ["serde", "now"], default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
 indexmap = { version = "2.13.0", features = ["serde"] }
