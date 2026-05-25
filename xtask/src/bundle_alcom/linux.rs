@@ -203,7 +203,23 @@ pub fn detect_library_versions(path: &Path) -> Result<LibraryVersions> {
     let mut by_lib = HashMap::new();
     for version in versions.into_iter() {
         let lib = version.name().split(|&x| x == b'_').next().unwrap();
-        let version = VersionNumber::try_from(version.name())?;
+        let version_name = version.name();
+        let version_str = version_name
+            .split(|&x| x == b'_')
+            .nth(1)
+            .unwrap_or(version_name);
+
+        if !matches!(version_str.first(), Some(c) if c.is_ascii_digit()) {
+            continue;
+        }
+
+        let version = VersionNumber::try_from(version_name).with_context(|| {
+            format!(
+                "failed to parse symbol version '{}' in {}",
+                String::from_utf8_lossy(version_name),
+                path.display()
+            )
+        })?;
 
         let existing = by_lib.entry(lib).or_insert(VersionNumber::MIN);
         if *existing < version {
@@ -217,8 +233,14 @@ pub fn detect_library_versions(path: &Path) -> Result<LibraryVersions> {
     //}
 
     return Ok(LibraryVersions {
-        libc: by_lib[&b"GLIBC"[..]].to_string(),
-        libgcc: by_lib[&b"GCC"[..]].to_string(),
+        libc: by_lib
+            .get(&b"GLIBC"[..])
+            .context("no numeric GLIBC version requirement found in dynamic symbols")?
+            .to_string(),
+        libgcc: by_lib
+            .get(&b"GCC"[..])
+            .context("no numeric GCC version requirement found in dynamic symbols")?
+            .to_string(),
     });
 
     #[derive(Ord, PartialOrd, Eq, PartialEq)]
