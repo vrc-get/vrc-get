@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog].
   - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
 - Backslashes in path in zip file are now treated as path separator on unix `#2845`
   - This fixes problem with Gesture Manager 3.9.7
+- Empty string for `documentationUrl` and `changelogUrl` are now allowed and ignored `#2930`
+  - They are formerly rejected as invalid url
 
 ### Deprecated
 

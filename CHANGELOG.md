@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog].
 - Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
 - Warning for backup/project path in AppData folder not shown when path is in Roaming or LocalLow [`#2827`](https://github.com/vrc-get/vrc-get/pull/2827)
 - Unclear error message for invalid version name or version range `#2842`
+- Empty string for `documentationUrl` and `changelogUrl` are now allowed and ignored `#2930`
+  - They are formerly rejected as invalid url
 
 ### Security
 - Package hash checks are now enforced when installing packages `#2849`
