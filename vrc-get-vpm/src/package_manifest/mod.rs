@@ -125,7 +125,7 @@ where
     D: Deserializer<'de>,
 {
     let str = <Option<String>>::deserialize(de)?;
-    let Some(url) = str.filter(|s| !s.is_empty()) else {
+    let Some(url) = str.filter(|s| !s.trim().is_empty()) else {
         return Ok(None);
     };
     Ok(Some(Url::parse(&url).map_err(serde::de::Error::custom)?))
@@ -360,7 +360,7 @@ fn deserialize_empty_documentation() {
       "vpmDependencies": {
         "nadena.dev.modular-avatar": ">=1.9.10"
       },
-      "changelogUrl": "",
+      "changelogUrl": " ",
       "author": {
         "name": "azumyar",
         "url": "https://github.com/azumyar"
