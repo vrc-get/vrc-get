@@ -203,7 +203,7 @@
     'projects:manage:tooltip:incompatible with unity': 'Incompatible avec Unity',
     'projects:manage:tooltip:refresh packages': 'Rafraichir les packets',
     'projects:manage:tooltip:remove packages': 'Supprimer le packet',
-    'projects:manage:tooltip:select repository to install': 'Sélectionnez le dépot pour installer le packet'
+    'projects:manage:tooltip:select repository to install': 'Sélectionnez le dépot pour installer le packet',
     'projects:manage:tooltip:upgrade package': 'Mettre a jour un package',
     'projects:manage:unity version': 'Version de Unity: ',
     'projects:manage:yanked': 'projects:manage:yanked',
