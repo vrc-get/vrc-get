@@ -27,6 +27,7 @@
     "general:dialog:select file or directory header": "選擇檔案或資料夾",
     "general:dialog:select file or directory": "請選擇一個檔案或資料夾。",
     "general:toast:invalid directory": "選擇了無效路徑。",
+    "general:toast:invalid file": "選擇了無效檔案。",
 
     "general:toast:not supported": "尚未支援 {{name}}。",
     "general:not implemented": "未實現",
@@ -113,6 +114,7 @@
     "projects:grid view": "網格視圖",
     "projects:sort by": "排序方式：",
     "projects:error:load error": "加載專案時發生錯誤： {{msg}}",
+    "projects:error:noexec filesystem": "此專案目前位於一個啟用了 noexec 掛載設定的檔案系統中。這個設定會阻止 Unity 載入原生外掛，可能導致專案無法正常運作，甚至造成素材或資源損毀。請把專案移到沒有啟用 noexec 的磁碟或資料夾中。",
     "projects:toast:project added": "專案已添加成功。",
     "projects:toast:project already exists": "已添加過此專案。",
 
@@ -216,6 +218,7 @@
     "projects:manage:button:unity migrate": "遷移專案",
 
     "projects:manage:manage packages": "管理套件",
+    "projects:manage:hidden packages": "隱藏套件",
     "projects:manage:tooltip:refresh packages": "刷新套件",
     "projects:manage:button:upgrade all": "升級全部（最新版）",
     "projects:manage:button:upgrade all stable": "升級全部（穩定版）",
@@ -232,6 +235,7 @@
     "projects:manage:source not selected": "未選擇",
     "projects:manage:multiple sources": "多個來源",
     "projects:manage:tooltip:add package": "添加套件",
+    "projects:manage:tooltip:select repository to install": "選擇儲存庫以安裝套件",
     "projects:manage:tooltip:upgrade package": "升級套件",
     "projects:manage:tooltip:remove packages": "移除套件",
     "projects:manage:tooltip:incompatible with unity": "與 Unity 不相容",
@@ -386,7 +390,7 @@
     "user packages:dialog:remove package": "移除套件",
     "user packages:dialog:confirm remove description": "你要移除位於 {{path}} 的套件 <b>{{name}}</b> 嗎？",
     "user packages:dialog:button:remove package": "移除套件",
-    "user packages:toast:invalid selection": "選定的套件無效。",
+    "user packages:toast:invalid selection": "所選套件無效。",
     "user packages:toast:package already added": "已添加過此套件。",
     "user packages:toast:package added": "套件添加成功",
     "user packages:toast:package removed": "套件移除成功。",
@@ -440,7 +444,7 @@
 
     // Reset your PC is a feature in Windows, so please check your translation is consistent with Windows terminology.
     // It's at Setting app > System > Recovery > Reset this PC
-    "settings:warning:in-local-app-data": "這個位置在資料夾 LocalAppData 中，如果在電腦的設定中執行「重設此電腦」並選擇「保留我的檔案」，此資料夾將被刪除。<br>建議你將資料保存到其他位置。",
+    "settings:warning:in-app-data": "此路徑位於 AppData 資料夾中，即使在「重設此電腦」時選擇「保留我的檔案」，該資料夾仍會被刪除。<br>建議你將資料保存到其他位置。",
     "settings:warning:whitespace": "此位置含有空格。這可能導致 Unity 和其他工具出現問題。請考慮使用其他位置。",
     "settings:warning:non-ascii": "此位置含有非 ASCII 字元。這可能導致 Unity 出現問題。請考慮使用其他位置。（不要使用中文或全形字元）",
 
@@ -480,7 +484,7 @@
     "settings:backup:format:zip-store": "未壓縮的 zip（快）",
     "settings:backup:format:zip-fast": "低壓縮率的 zip（慢）",
     "settings:backup:format:zip-best": "高壓縮率的 zip（最慢）",
-    "settings:backup:exclude vpm packages from backup": "備份裡不含有 VPM 套件",
+    "settings:backup:exclude vpm packages from backup": "備份裡不含 VPM 套件",
     "settings:backup:exclude vpm packages from backup description": "這樣可以減少備份的大小，但若套件作者違反建議，從他們的儲存庫中移除了某套件，那在還原備份時你就必須改用其他版本的該套件。",
 
     "settings:packages": "套件",
@@ -489,6 +493,10 @@
 
     "settings:show prerelease": "顯示預先發行版套件",
     "settings:show prerelease description": "啟用「顯示預先發行版套件」將在套件清單中顯示預先發行版的套件。此外，在解析依賴關係時也將使用預先發行版的套件。",
+
+    "settings:dialog:show prerelease packages": "顯示預先發行版套件",
+    "settings:dialog:show prerelease packages description": "預先發行版套件可能比穩定版套件更容易出現問題。<br>確定要顯示預先發行版套件嗎？",
+    "settings:dialog:enable show prerelease packages": "顯示",
 
     "settings:gui animation": "啟用 GUI 動畫",
     "settings:gui animation description": "啟用 GUI 動畫時，頁面切換將帶有動畫效果。但 Webview 版本過舊時可能無效。",
@@ -517,11 +525,17 @@
     "check update:toast:no updates": "無可用更新。",
 
     "check update:dialog:title": "ALCOM 更新",
-    "check update:dialog:new version description": "有可用的新版 ALCOM",
+    "check update:dialog:new version description": "ALCOM 有新版本可用",
+    // note: we may remove x86_64 macos later. This is preparation for this removal
+    "check update:dialog:new version no platform description": "ALCOM 有新版本可用，但已不再支援你的平台。<br>如果你的系統支援其他平台版本，請下載對應版本。",
+    "check update:dialog:new version not updatable description": "ALCOM 有新版本可用。<br>但你目前使用的安裝方式無法自動更新。<br>請手動安裝新版本。",
+    "check update:dialog:new version updater disabled base description": "ALCOM 有新版本可用。",
+    "check update:dialog:new version updater how to upgrade fallback": "Automatic updates are disabled. Please upgrade using your package manager.",
     "check update:dialog:current version": "目前版本：",
     "check update:dialog:latest version": "最新版本：",
     "check update:dialog:changelog": "變更日誌",
     "check update:dialog:dismiss": "忽略",
+    "check update:dialog:open download page": "開啟下載頁面",
     "check update:dialog:update": "下載並更新！",
     "check update:dialog:downloading...": "下載更新中...",
     "check update:dialog:relaunching...": "重新啟動 ALCOM 中...",
