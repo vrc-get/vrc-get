@@ -215,6 +215,7 @@
     "projects:manage:button:unity migrate": "프로젝트 마이그레이션",
 
     "projects:manage:manage packages": "패키지 관리",
+    "projects:manage:hidden packages": "숨겨진 패키지",
     "projects:manage:tooltip:refresh packages": "패키지 목록 새로고침",
     "projects:manage:button:upgrade all": "모두 업데이트 (최신 버전)",
     "projects:manage:button:upgrade all stable": "모두 업데이트 (안정 버전)",
@@ -231,6 +232,7 @@
     "projects:manage:source not selected": "미선택",
     "projects:manage:multiple sources": "여러 소스",
     "projects:manage:tooltip:add package": "패키지 추가",
+    "projects:manage:tooltip:select repository to install": "설치하려면 패키지를 제공하는 저장소를 선택해주세요.",
     "projects:manage:tooltip:upgrade package": "패키지 업데이트",
     "projects:manage:tooltip:remove packages": "패키지 제거",
     "projects:manage:tooltip:incompatible with unity": "현재 사용중인 Unity와 호환되지 않습니다.",
