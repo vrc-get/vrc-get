@@ -218,6 +218,7 @@
     "projects:manage:button:unity migrate": "Migriere Projekt",
 
     "projects:manage:manage packages": "Pakete verwalten",
+    "projects:manage:hidden packages": "Versteckte Pakete",
     "projects:manage:tooltip:refresh packages": "Pakete aktualisieren",
     "projects:manage:button:upgrade all": "Alle Aktualisieren",
     "projects:manage:button:upgrade all stable": "Alle Aktualisieren (Stabil)",
@@ -234,6 +235,7 @@
     "projects:manage:source not selected": "Inaktive Quelle",
     "projects:manage:multiple sources": "Mehrere Quellen",
     "projects:manage:tooltip:add package": "Paket hinzufügen",
+    "projects:manage:tooltip:select repository to install": "Paketquelle für Installation auswählen",
     "projects:manage:tooltip:upgrade package": "Paket upgraden",
     "projects:manage:tooltip:remove packages": "Paket entfernen",
     "projects:manage:tooltip:incompatible with unity": "Nicht unterstützt",
