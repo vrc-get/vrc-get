@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 type JsonObject = Map<String, Value>;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 struct AsJson {
     #[serde(default)]
@@ -78,33 +78,6 @@ struct AsJson {
     rest: JsonObject,
 }
 
-impl Default for AsJson {
-    fn default() -> Self {
-        Self {
-            path_to_unity_exe: Default::default(),
-            path_to_unity_hub: Default::default(),
-            user_projects: Some(vec![]),
-            unity_editors: Default::default(),
-            preferred_unity_editors: Default::default(),
-            default_project_path: Default::default(),
-            last_ui_state: Default::default(),
-            skip_unity_auto_find: Default::default(),
-            user_package_folders: Default::default(),
-            window_size_data: Default::default(),
-            skip_requirements: Default::default(),
-            last_news_update: Default::default(),
-            allow_pii: Default::default(),
-            project_backup_path: Default::default(),
-            show_prerelease_packages: Default::default(),
-            track_community_repos: Default::default(),
-            selected_providers: Default::default(),
-            last_selected_project: Default::default(),
-            user_repos: Default::default(),
-            rest: Default::default(),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct VpmSettings {
     parsed: AsJson,
@@ -115,6 +88,8 @@ const JSON_PATH: &str = "settings.json";
 impl VpmSettings {
     pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
         let parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
+
+        log::debug!("Parsed VpmSettings as: {:?}", parsed);
 
         Ok(Self { parsed })
     }
