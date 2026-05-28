@@ -23,7 +23,17 @@ pub struct Settings {
 
 impl Settings {
     pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
-        let settings = VpmSettings::load(io).await?;
+        let settings = if let Some(settings) = VpmSettings::load(io).await? {
+            settings
+        } else if let Some(settings) = VpmSettings::load_alt(io).await? {
+            log::warn!(
+                "Recovered settings from a vrc-get backup because the VCC configuration file was missing or corrupted. Some changes made in VCC may have been lost."
+            );
+            settings
+        } else {
+            VpmSettings::default()
+        };
+
         let vrc_get_settings = VrcGetSettings::load(io).await?;
 
         Ok(Self {

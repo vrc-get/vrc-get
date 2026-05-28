@@ -2,7 +2,7 @@ use crate::UserRepoSetting;
 use crate::environment::PackageCollection;
 use crate::io;
 use crate::io::DefaultEnvironmentIo;
-use crate::utils::{load_json_or_default, save_json};
+use crate::utils::{save_json, try_load_json};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
@@ -78,20 +78,39 @@ struct AsJson {
     rest: JsonObject,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub(crate) struct VpmSettings {
     parsed: AsJson,
 }
 
 const JSON_PATH: &str = "settings.json";
+const ALT_JSON_PATH: &str = "vrc-get/vcc-settings-backup.json";
 
 impl VpmSettings {
-    pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Self> {
-        let parsed: AsJson = load_json_or_default(io, JSON_PATH.as_ref()).await?;
+    pub async fn load(io: &DefaultEnvironmentIo) -> io::Result<Option<Self>> {
+        Self::load_inner(io, JSON_PATH).await
+    }
 
-        log::debug!("Parsed VpmSettings as: {:?}", parsed);
+    pub async fn load_alt(io: &DefaultEnvironmentIo) -> io::Result<Option<Self>> {
+        let mut settings = Self::load_inner(io, ALT_JSON_PATH).await?;
 
-        Ok(Self { parsed })
+        // We use data from vcc.litedb for the source of the projecs list since it's much reliable source.
+        if let Some(ref mut settings) = settings {
+            settings.parsed.user_projects = None;
+        }
+
+        Ok(settings)
+    }
+
+    async fn load_inner(io: &DefaultEnvironmentIo, path: &str) -> io::Result<Option<Self>> {
+        let Some(parsed): Option<AsJson> = try_load_json(io, path.as_ref()).await? else {
+            log::debug!("VpmSettings Configuration file not found at {path}");
+            return Ok(None);
+        };
+
+        log::debug!("Parsed VpmSettings at {path}");
+
+        Ok(Some(Self { parsed }))
     }
 
     pub(crate) fn user_repos(&self) -> &[UserRepoSetting] {
@@ -173,7 +192,8 @@ impl VpmSettings {
     }
 
     pub async fn save(&self, io: &DefaultEnvironmentIo) -> io::Result<()> {
-        save_json(io, JSON_PATH.as_ref(), &self.parsed).await
+        save_json(io, JSON_PATH.as_ref(), &self.parsed).await?;
+        save_json(io, ALT_JSON_PATH.as_ref(), &self.parsed).await
     }
 }
 
