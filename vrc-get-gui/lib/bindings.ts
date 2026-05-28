@@ -165,7 +165,7 @@ export type LogEntry_Deserialize = {
 	level: LogLevel,
 	target: string,
 	message: string,
-	gui_toast: boolean,
+	gui_toast: boolean | null,
 };
 
 export type LogEntry_Serialize = {
@@ -173,7 +173,7 @@ export type LogEntry_Serialize = {
 	level: LogLevel,
 	target: string,
 	message: string,
-	gui_toast: boolean,
+	gui_toast: boolean | null,
 };
 
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace";

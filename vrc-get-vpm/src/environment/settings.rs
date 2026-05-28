@@ -27,6 +27,7 @@ impl Settings {
             settings
         } else if let Some(settings) = VpmSettings::load_alt(io).await? {
             log::warn!(
+                gui_toast = true;
                 "Recovered settings from a vrc-get backup because the VCC configuration file was missing or corrupted. Some changes made in VCC may have been lost."
             );
             settings

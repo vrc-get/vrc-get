@@ -16,7 +16,12 @@ import { isFindKey, useDocumentEvent } from "@/lib/events";
 import { tc } from "@/lib/i18n";
 import { processResult } from "@/lib/import-templates";
 import { queryClient } from "@/lib/query-client";
-import { toastError, toastSuccess, toastThrownError } from "@/lib/toast";
+import {
+	toastError,
+	toastSuccess,
+	toastThrownError,
+	toastWarning,
+} from "@/lib/toast";
 import { useTauriListen } from "@/lib/use-tauri-listen";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -24,8 +29,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 	useTauriListen<LogEntry>("log", (event) => {
 		const entry = event.payload as LogEntry;
-		if (entry.level === "Error" && entry.gui_toast) {
+		if (entry.level === "Error" && (entry.gui_toast ?? true)) {
 			toastError(entry.message);
+		} else if (entry.level === "Warn" && (entry.gui_toast ?? false)) {
+			toastWarning(entry.message);
 		}
 	});
 
