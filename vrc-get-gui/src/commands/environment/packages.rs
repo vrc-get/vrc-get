@@ -392,6 +392,22 @@ pub struct TauriRepositoryDescriptor {
 
 #[tauri::command]
 #[specta::specta]
+pub async fn environment_reorder_repositories(
+    settings: State<'_, SettingsState>,
+    packages: State<'_, PackagesState>,
+    io: State<'_, DefaultEnvironmentIo>,
+    ids: Vec<String>,
+) -> Result<(), RustError> {
+    let mut settings = settings.load_mut(io.inner()).await?;
+    let ids_refs: Vec<&str> = ids.iter().map(|s| s.as_str()).collect();
+    settings.reorder_user_repos(&ids_refs);
+    settings.save().await?;
+    packages.clear_cache();
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn environment_import_repository_pick(
     window: Window,
 ) -> Result<TauriImportRepositoryPickResult, RustError> {

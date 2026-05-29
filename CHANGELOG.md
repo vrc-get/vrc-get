@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Add `reorder_user_repos` to reorder `userRepos` in `settings.json`
 
 ### Changed
 - Improved saving interacting with setting files `#2485` `#2710`

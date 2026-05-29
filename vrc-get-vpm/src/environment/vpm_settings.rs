@@ -161,6 +161,18 @@ impl VpmSettings {
             .collect::<Vec<_>>()
     }
 
+    pub fn reorder_user_repos(&mut self, ids: &[&str]) {
+        let mut repos = std::mem::take(&mut self.parsed.user_repos);
+        let mut result = Vec::with_capacity(repos.len());
+        for id in ids {
+            if let Some(pos) = repos.iter().position(|r| r.id() == Some(id)) {
+                result.push(repos.remove(pos));
+            }
+        }
+        result.append(&mut repos);
+        self.parsed.user_repos = result;
+    }
+
     pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {
         self.parsed.user_repos.push(repo);
     }

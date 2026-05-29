@@ -258,6 +258,10 @@ impl Settings {
         self.vpm.retain_user_repos(|x| !condition(x))
     }
 
+    pub fn reorder_user_repos(&mut self, ids: &[&str]) {
+        self.vpm.reorder_user_repos(ids);
+    }
+
     // auto configurations
 
     /// Removes id-duplicated repositories
