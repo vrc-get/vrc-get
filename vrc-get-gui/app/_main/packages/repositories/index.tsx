@@ -324,6 +324,7 @@ function RepositoryTableBody({
 					displayName={tt("vpm repositories:source:official")}
 					hiddenUserRepos={hiddenUserRepos}
 					canRemove={false}
+					rowIndex={0}
 				/>
 				<RepositoryRow
 					repoId={"com.vrchat.repos.curated"}
@@ -332,12 +333,13 @@ function RepositoryTableBody({
 					hiddenUserRepos={hiddenUserRepos}
 					className={"border-b border-primary/10"}
 					canRemove={false}
+					rowIndex={1}
 				/>
 				<SortableContext
 					items={orderedIds}
 					strategy={verticalListSortingStrategy}
 				>
-					{orderedIds.map((id) => {
+					{orderedIds.map((id, index) => {
 						const repo = userRepoMap.get(id);
 						if (!repo) return null;
 						return (
@@ -347,6 +349,7 @@ function RepositoryTableBody({
 								displayName={repo.display_name}
 								url={repo.url}
 								hiddenUserRepos={hiddenUserRepos}
+								rowIndex={2 + index}
 							/>
 						);
 					})}
@@ -461,6 +464,7 @@ function RepositoryRow({
 	hiddenUserRepos,
 	className,
 	canRemove = true,
+	rowIndex,
 }: {
 	repoId: TauriUserRepository["id"];
 	displayName: TauriUserRepository["display_name"];
@@ -468,6 +472,7 @@ function RepositoryRow({
 	hiddenUserRepos: Set<string>;
 	className?: string;
 	canRemove?: boolean;
+	rowIndex: number;
 }) {
 	const labelId = useId();
 
@@ -486,10 +491,20 @@ function RepositoryRow({
 		isDragging,
 	} = useSortable({ id: repoId, disabled: !canRemove });
 
+	const visualIndex = useMemo(() => {
+		if (isDragging) return rowIndex;
+		const dy = transform?.y ?? 0;
+		if (dy < 0) return rowIndex - 1;
+		if (dy > 0) return rowIndex + 1;
+		return rowIndex;
+	}, [rowIndex, transform?.y, isDragging]);
+
 	const dragStyle = useMemo<React.CSSProperties>(
 		() => ({
 			transform: transform ? `translateY(${transform.y}px)` : undefined,
-			transition: guiAnimation ? transition : undefined,
+			transition: guiAnimation
+				? [transition, "background-color 200ms ease"].filter(Boolean).join(", ")
+				: undefined,
 			opacity: isDragging ? 0 : 1,
 			position: "relative",
 		}),
@@ -547,7 +562,10 @@ function RepositoryRow({
 		<tr
 			ref={setNodeRef}
 			style={dragStyle}
-			className={cn("even:bg-secondary/30", className)}
+			className={cn(
+				visualIndex % 2 === 1 ? "bg-secondary/30" : "",
+				className,
+			)}
 		>
 			<RepositoryRowCells
 				labelId={labelId}
