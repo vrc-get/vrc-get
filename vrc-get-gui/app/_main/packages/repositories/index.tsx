@@ -1,6 +1,19 @@
 "use client";
 
 import {
+	DndContext,
+	type DragEndEvent,
+	PointerSensor,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
+import {
+	arrayMove,
+	SortableContext,
+	useSortable,
+	verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
 	queryOptions,
 	useMutation,
 	useQuery,
@@ -8,7 +21,14 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, CircleX, GripVertical } from "lucide-react";
-import { Suspense, useCallback, useEffect, useId, useMemo } from "react";
+import {
+	Suspense,
+	useCallback,
+	useEffect,
+	useId,
+	useMemo,
+	useState,
+} from "react";
 import { HNavBar, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
 import { Button } from "@/components/ui/button";
@@ -95,65 +115,106 @@ function PageBody() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	const userRepos = result.data?.user_repositories;
+
+	const [orderedIds, setOrderedIds] = useState<string[]>(
+		() => userRepos?.map((r) => r.id) ?? [],
+	);
+
+	useEffect(() => {
+		setOrderedIds(userRepos?.map((r) => r.id) ?? []);
+	}, [userRepos]);
+
+	const userRepoMap = useMemo(
+		() => new Map((userRepos ?? []).map((r) => [r.id, r])),
+		[userRepos],
+	);
+
+	const sensors = useSensors(useSensor(PointerSensor));
+
+	const queryClient = useQueryClient();
+	const reorderMutation = useMutation({
+		mutationFn: (ids: string[]) => commands.environmentReorderRepositories(ids),
+		onSettled: () => queryClient.invalidateQueries(environmentRepositoriesInfo),
+		onError: (e) => {
+			toastThrownError(e);
+		},
+	});
+
+	function handleDragEnd(event: DragEndEvent) {
+		const { active, over } = event;
+		if (!over || active.id === over.id) return;
+		const oldIndex = orderedIds.indexOf(active.id as string);
+		const newIndex = orderedIds.indexOf(over.id as string);
+		const newIds = arrayMove(orderedIds, oldIndex, newIndex);
+		setOrderedIds(newIds);
+		reorderMutation.mutate(newIds);
+	}
+
 	const bodyAnimation = usePrevPathName().startsWith("/packages")
 		? "slide-right"
 		: "";
 
 	return (
-		<VStack>
-			<HNavBar
-				className="shrink-0"
-				leading={<HeadingPageName pageType={"/packages/repositories"} />}
-				trailing={
-					<DropdownMenu>
-						<div className={"flex divide-x"}>
-							<Button
-								className={"rounded-r-none compact:h-10"}
-								onClick={() => openAddRepositoryDialog()}
-							>
-								{tc("vpm repositories:button:add repository")}
-							</Button>
-							<DropdownMenuTrigger
-								asChild
-								className={"rounded-l-none pl-2 pr-2 compact:h-10"}
-							>
-								<Button>
-									<ChevronDown className={"w-4 h-4"} />
+		<DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+			<VStack>
+				<HNavBar
+					className="shrink-0"
+					leading={<HeadingPageName pageType={"/packages/repositories"} />}
+					trailing={
+						<DropdownMenu>
+							<div className={"flex divide-x"}>
+								<Button
+									className={"rounded-r-none compact:h-10"}
+									onClick={() => openAddRepositoryDialog()}
+								>
+									{tc("vpm repositories:button:add repository")}
 								</Button>
-							</DropdownMenuTrigger>
-						</div>
-						<DropdownMenuContent>
-							<DropdownMenuItem
-								onClick={() => importRepositoriesMutation.mutate()}
-							>
-								{tc("vpm repositories:button:import repositories")}
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => exportRepositories.mutate()}>
-								{tc("vpm repositories:button:export repositories")}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				}
-			/>
-			<main
-				className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
-			>
-				<ScrollableCardTable className={"h-full w-full"}>
-					<RepositoryTableBody
-						userRepos={result.data?.user_repositories || []}
-						hiddenUserRepos={hiddenUserRepos}
-					/>
-				</ScrollableCardTable>
-			</main>
-		</VStack>
+								<DropdownMenuTrigger
+									asChild
+									className={"rounded-l-none pl-2 pr-2 compact:h-10"}
+								>
+									<Button>
+										<ChevronDown className={"w-4 h-4"} />
+									</Button>
+								</DropdownMenuTrigger>
+							</div>
+							<DropdownMenuContent>
+								<DropdownMenuItem
+									onClick={() => importRepositoriesMutation.mutate()}
+								>
+									{tc("vpm repositories:button:import repositories")}
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => exportRepositories.mutate()}>
+									{tc("vpm repositories:button:export repositories")}
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					}
+				/>
+				<main
+					className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
+				>
+					<ScrollableCardTable className={"h-full w-full"}>
+						<RepositoryTableBody
+							orderedIds={orderedIds}
+							userRepoMap={userRepoMap}
+							hiddenUserRepos={hiddenUserRepos}
+						/>
+					</ScrollableCardTable>
+				</main>
+			</VStack>
+		</DndContext>
 	);
 }
 
 function RepositoryTableBody({
-	userRepos,
+	orderedIds,
+	userRepoMap,
 	hiddenUserRepos,
 }: {
-	userRepos: TauriUserRepository[];
+	orderedIds: string[];
+	userRepoMap: Map<string, TauriUserRepository>;
 	hiddenUserRepos: Set<string>;
 }) {
 	const TABLE_HEAD = [
@@ -197,15 +258,24 @@ function RepositoryTableBody({
 					className={"border-b border-primary/10"}
 					canRemove={false}
 				/>
-				{userRepos.map((repo) => (
-					<RepositoryRow
-						key={repo.id}
-						repoId={repo.id}
-						displayName={repo.display_name}
-						url={repo.url}
-						hiddenUserRepos={hiddenUserRepos}
-					/>
-				))}
+				<SortableContext
+					items={orderedIds}
+					strategy={verticalListSortingStrategy}
+				>
+					{orderedIds.map((id) => {
+						const repo = userRepoMap.get(id);
+						if (!repo) return null;
+						return (
+							<RepositoryRow
+								key={repo.id}
+								repoId={repo.id}
+								displayName={repo.display_name}
+								url={repo.url}
+								hiddenUserRepos={hiddenUserRepos}
+							/>
+						);
+					})}
+				</SortableContext>
 			</tbody>
 		</>
 	);
@@ -228,6 +298,22 @@ function RepositoryRow({
 }) {
 	const cellClass = "p-2.5 compact:py-1";
 	const id = useId();
+
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable({ id: repoId, disabled: !canRemove });
+
+	const dragStyle: React.CSSProperties = {
+		transform: transform ? `translateY(${transform.y}px)` : undefined,
+		transition,
+		opacity: isDragging ? 0.5 : 1,
+		position: "relative",
+	};
 
 	const queryClient = useQueryClient();
 	const setHideRepository = useMutation({
@@ -277,7 +363,11 @@ function RepositoryRow({
 	const selected = !hiddenUserRepos.has(repoId);
 
 	return (
-		<tr className={cn("even:bg-secondary/30", className)}>
+		<tr
+			ref={setNodeRef}
+			style={dragStyle}
+			className={cn("even:bg-secondary/30", className)}
+		>
 			<td className={cellClass}>
 				<Checkbox
 					id={id}
@@ -321,8 +411,13 @@ function RepositoryRow({
 					</TooltipContent>
 				</Tooltip>
 			</td>
-			<td className={`${cellClass} w-0 ${canRemove ? "cursor-move" : "cursor-not-allowed"}`}>
-				<GripVertical className={`size-5 text-muted-foreground${canRemove ? "" : " opacity-50"}`} />
+			<td
+				className={`${cellClass} w-0 ${canRemove ? "cursor-move" : "cursor-not-allowed"}`}
+				{...(canRemove ? { ...listeners, ...attributes } : {})}
+			>
+				<GripVertical
+					className={`size-5 text-muted-foreground${canRemove ? "" : " opacity-50"}`}
+				/>
 			</td>
 		</tr>
 	);

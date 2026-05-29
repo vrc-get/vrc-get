@@ -400,6 +400,7 @@ pub async fn environment_reorder_repositories(
 ) -> Result<(), RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
     let ids_refs: Vec<&str> = ids.iter().map(|s| s.as_str()).collect();
+    log::info!("reorder user repositories: [{}]", ids.join(", "));
     settings.reorder_user_repos(&ids_refs);
     settings.save().await?;
     packages.clear_cache();
