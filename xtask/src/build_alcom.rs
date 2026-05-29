@@ -170,6 +170,10 @@ fn build_cargo(
         }
     }
 
+    if config.devtools {
+        features.push("devtools");
+    }
+
     cmd.arg("--features").arg(features.iter().join(","));
 
     if let Some(target) = target_triple {
