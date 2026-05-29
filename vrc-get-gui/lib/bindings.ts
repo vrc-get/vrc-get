@@ -41,6 +41,7 @@ export const commands = {
 	environmentDownloadRepository: (url: string, headers: { [key in string]: string }) => __TAURI_INVOKE<TauriDownloadRepository>("environment_download_repository", { url, headers }),
 	environmentAddRepository: (url: string, headers: { [key in string]: string }) => __TAURI_INVOKE<TauriAddRepositoryResult>("environment_add_repository", { url, headers }),
 	environmentRemoveRepository: (id: string) => __TAURI_INVOKE<null>("environment_remove_repository", { id }),
+	environmentReorderRepositories: (ids: string[]) => __TAURI_INVOKE<null>("environment_reorder_repositories", { ids }),
 	environmentImportRepositoryPick: () => __TAURI_INVOKE<TauriImportRepositoryPickResult>("environment_import_repository_pick"),
 	environmentImportDownloadRepositories: (channel: string, repositories: TauriRepositoryDescriptor[]) => __TAURI_INVOKE<AsyncCallResult<number, ([TauriRepositoryDescriptor, TauriDownloadRepository])[]>>("environment_import_download_repositories", { channel, repositories }),
 	environmentImportAddRepositories: (repositories: TauriRepositoryDescriptor[]) => __TAURI_INVOKE<null>("environment_import_add_repositories", { repositories }),
