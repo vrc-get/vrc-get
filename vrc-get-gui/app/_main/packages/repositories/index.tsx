@@ -359,7 +359,7 @@ function RepositoryTableBody({
 	);
 }
 
-const CELL_CLASS = "p-2.5 compact:py-1";
+const CELL_CLASS = "p-2.5 compact:py-1 align-middle";
 
 function RepositoryRowCells({
 	labelId,
@@ -387,13 +387,15 @@ function RepositoryRowCells({
 		<>
 			<td className={CELL_CLASS}>
 				{interactive ? (
-					<Checkbox
-						id={labelId}
-						checked={selected}
-						onCheckedChange={(x) => onCheckedChange(x === true)}
-					/>
+					<div className="flex">
+						<Checkbox
+							id={labelId}
+							checked={selected}
+							onCheckedChange={(x) => onCheckedChange(x === true)}
+						/>
+					</div>
 				) : (
-					<div className="pointer-events-none">
+					<div className="pointer-events-none flex">
 						<Checkbox checked={selected} />
 					</div>
 				)}
