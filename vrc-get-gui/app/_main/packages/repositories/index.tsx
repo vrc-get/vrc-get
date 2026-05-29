@@ -97,6 +97,58 @@ const environmentRepositoriesInfo = queryOptions({
 	queryFn: commands.environmentRepositoriesInfo,
 });
 
+// Scrolls the given viewport element when the pointer is near the top or bottom
+// edge during drag. dnd-kit's built-in autoscroll is disabled because it causes
+// jitter with Radix UI ScrollArea (wrong container detection + double-smoothing).
+function useDragAutoScroll(
+	viewportRef: React.RefObject<HTMLElement | null>,
+	isActive: boolean,
+): void {
+	useEffect(() => {
+		if (!isActive) return;
+
+		const THRESHOLD = 80; // px from edge to begin scrolling
+		const MAX_SPEED = 15; // px/frame at the very edge
+
+		let pointerY = 0;
+		const onPointerMove = (e: PointerEvent) => {
+			pointerY = e.clientY;
+		};
+		window.addEventListener("pointermove", onPointerMove, { passive: true });
+
+		let rafId: number;
+		const tick = () => {
+			const viewport = viewportRef.current;
+			if (viewport) {
+				const { top, bottom } = viewport.getBoundingClientRect();
+				const distFromTop = pointerY - top;
+				const distFromBottom = bottom - pointerY;
+
+				let delta = 0;
+				if (distFromTop >= 0 && distFromTop < THRESHOLD) {
+					delta = -MAX_SPEED * (1 - distFromTop / THRESHOLD);
+				} else if (distFromBottom >= 0 && distFromBottom < THRESHOLD) {
+					delta = MAX_SPEED * (1 - distFromBottom / THRESHOLD);
+				}
+
+				if (delta !== 0) {
+					viewport.scrollTo({
+						top: viewport.scrollTop + delta,
+						behavior: "instant",
+					});
+				}
+			}
+			rafId = requestAnimationFrame(tick);
+		};
+		rafId = requestAnimationFrame(tick);
+
+		return () => {
+			window.removeEventListener("pointermove", onPointerMove);
+			cancelAnimationFrame(rafId);
+		};
+	}, [isActive, viewportRef]);
+}
+
 function PageBody() {
 	const result = useQuery(environmentRepositoriesInfo);
 
@@ -163,18 +215,21 @@ function PageBody() {
 	const [overId, setOverId] = useState<string | null>(null);
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
 	const theadRowRef = useRef<HTMLTableRowElement>(null);
+	const scrollViewportRef = useRef<HTMLDivElement>(null);
 
 	const sensors = useSensors(useSensor(PointerSensor));
+
+	const orderedIdsSet = useMemo(() => new Set(orderedIds), [orderedIds]);
 
 	const collisionDetection = useCallback<CollisionDetection>(
 		(args) =>
 			closestCenter({
 				...args,
 				droppableContainers: args.droppableContainers.filter((c) =>
-					orderedIds.includes(c.id as string),
+					orderedIdsSet.has(c.id as string),
 				),
 			}),
-		[orderedIds],
+		[orderedIdsSet],
 	);
 
 	const queryClient = useQueryClient();
@@ -183,6 +238,50 @@ function PageBody() {
 		onSettled: () => queryClient.invalidateQueries(environmentRepositoriesInfo),
 		onError: (e) => {
 			toastThrownError(e);
+		},
+	});
+
+	const setHideRepository = useMutation({
+		mutationFn: async ({ id, shown }: { id: string; shown: boolean }) => {
+			if (shown) {
+				await commands.environmentShowRepository(id);
+			} else {
+				await commands.environmentHideRepository(id);
+			}
+		},
+		onMutate: async ({ id, shown }: { id: string; shown: boolean }) => {
+			await queryClient.cancelQueries(environmentRepositoriesInfo);
+			const data = queryClient.getQueryData(
+				environmentRepositoriesInfo.queryKey,
+			);
+			if (data !== undefined) {
+				let hidden_user_repositories: string[];
+				if (shown) {
+					if (data.hidden_user_repositories.includes(id)) {
+						hidden_user_repositories = data.hidden_user_repositories;
+					} else {
+						hidden_user_repositories = [...data.hidden_user_repositories, id];
+					}
+				} else {
+					hidden_user_repositories = data.hidden_user_repositories.filter(
+						(x) => x !== id,
+					);
+				}
+
+				queryClient.setQueryData(environmentRepositoriesInfo.queryKey, {
+					...data,
+					hidden_user_repositories,
+				});
+			}
+			return data;
+		},
+		onError: (e, _, ctx) => {
+			reportError(e);
+			console.error(e);
+			queryClient.setQueryData(environmentRepositoriesInfo.queryKey, ctx);
+		},
+		onSettled: async () => {
+			await queryClient.invalidateQueries(environmentRepositoriesInfo);
 		},
 	});
 
@@ -225,6 +324,8 @@ function PageBody() {
 		setOverId(null);
 	}
 
+	useDragAutoScroll(scrollViewportRef, activeId !== null);
+
 	const bodyAnimation = usePrevPathName().startsWith("/packages")
 		? "slide-right"
 		: "";
@@ -233,6 +334,7 @@ function PageBody() {
 		<DndContext
 			sensors={sensors}
 			collisionDetection={collisionDetection}
+			autoScroll={false}
 			onDragStart={handleDragStart}
 			onDragOver={handleDragOver}
 			onDragEnd={handleDragEnd}
@@ -278,12 +380,20 @@ function PageBody() {
 				<main
 					className={`shrink overflow-hidden flex w-full h-full ${bodyAnimation}`}
 				>
-					<ScrollableCardTable className={"h-full w-full"}>
+					<ScrollableCardTable
+						className={"h-full w-full"}
+						viewportRef={scrollViewportRef}
+					>
 						<RepositoryTableBody
 							orderedIds={orderedIds}
 							userRepoMap={userRepoMap}
 							hiddenUserRepos={hiddenUserRepos}
 							theadRowRef={theadRowRef}
+							guiAnimation={guiAnimation}
+							onToggleVisibility={(id, shown) =>
+								setHideRepository.mutate({ id, shown })
+							}
+							isDragActive={activeId !== null}
 						/>
 					</ScrollableCardTable>
 				</main>
@@ -311,11 +421,17 @@ function RepositoryTableBody({
 	userRepoMap,
 	hiddenUserRepos,
 	theadRowRef,
+	guiAnimation,
+	onToggleVisibility,
+	isDragActive,
 }: {
 	orderedIds: string[];
 	userRepoMap: Map<string, TauriUserRepository>;
 	hiddenUserRepos: Set<string>;
 	theadRowRef: React.RefObject<HTMLTableRowElement | null>;
+	guiAnimation: boolean;
+	onToggleVisibility: (id: string, shown: boolean) => void;
+	isDragActive: boolean;
 }) {
 	return (
 		<>
@@ -342,6 +458,9 @@ function RepositoryTableBody({
 					hiddenUserRepos={hiddenUserRepos}
 					canRemove={false}
 					rowIndex={0}
+					guiAnimation={guiAnimation}
+					onToggleVisibility={onToggleVisibility}
+					isDragActive={isDragActive}
 				/>
 				<RepositoryRow
 					repoId={"com.vrchat.repos.curated"}
@@ -351,6 +470,9 @@ function RepositoryTableBody({
 					className={"border-b border-primary/10"}
 					canRemove={false}
 					rowIndex={1}
+					guiAnimation={guiAnimation}
+					onToggleVisibility={onToggleVisibility}
+					isDragActive={isDragActive}
 				/>
 				<SortableContext
 					items={orderedIds}
@@ -367,6 +489,9 @@ function RepositoryTableBody({
 								url={repo.url}
 								hiddenUserRepos={hiddenUserRepos}
 								rowIndex={2 + index}
+								guiAnimation={guiAnimation}
+								onToggleVisibility={onToggleVisibility}
+								isDragActive={isDragActive}
 							/>
 						);
 					})}
@@ -484,6 +609,9 @@ function RepositoryRow({
 	className,
 	canRemove = true,
 	rowIndex,
+	guiAnimation,
+	onToggleVisibility,
+	isDragActive,
 }: {
 	repoId: TauriUserRepository["id"];
 	displayName: TauriUserRepository["display_name"];
@@ -492,14 +620,11 @@ function RepositoryRow({
 	className?: string;
 	canRemove?: boolean;
 	rowIndex: number;
+	guiAnimation: boolean;
+	onToggleVisibility: (id: string, shown: boolean) => void;
+	isDragActive: boolean;
 }) {
 	const labelId = useId();
-
-	const guiAnimation = useQuery({
-		queryKey: ["environmentGuiAnimation"],
-		queryFn: commands.environmentGuiAnimation,
-		initialData: true,
-	}).data;
 
 	const {
 		attributes,
@@ -522,58 +647,15 @@ function RepositoryRow({
 		() => ({
 			transform: transform ? `translateY(${transform.y}px)` : undefined,
 			transition: guiAnimation
-				? [transition, "background-color 200ms ease"].filter(Boolean).join(", ")
+				? [transition, isDragActive ? undefined : "background-color 200ms ease"]
+						.filter(Boolean)
+						.join(", ") || undefined
 				: undefined,
 			opacity: isDragging ? 0 : 1,
 			position: "relative",
 		}),
-		[transform, transition, isDragging, guiAnimation],
+		[transform, transition, isDragging, guiAnimation, isDragActive],
 	);
-
-	const queryClient = useQueryClient();
-	const setHideRepository = useMutation({
-		mutationFn: async ({ id, shown }: { id: string; shown: boolean }) => {
-			if (shown) {
-				await commands.environmentShowRepository(id);
-			} else {
-				await commands.environmentHideRepository(id);
-			}
-		},
-		onMutate: async ({ id, shown }: { id: string; shown: boolean }) => {
-			await queryClient.cancelQueries(environmentRepositoriesInfo);
-			const data = queryClient.getQueryData(
-				environmentRepositoriesInfo.queryKey,
-			);
-			if (data !== undefined) {
-				let hidden_user_repositories: string[];
-				if (shown) {
-					if (data.hidden_user_repositories.includes(id)) {
-						hidden_user_repositories = data.hidden_user_repositories;
-					} else {
-						hidden_user_repositories = [...data.hidden_user_repositories, id];
-					}
-				} else {
-					hidden_user_repositories = data.hidden_user_repositories.filter(
-						(x) => x !== id,
-					);
-				}
-
-				queryClient.setQueryData(environmentRepositoriesInfo.queryKey, {
-					...data,
-					hidden_user_repositories,
-				});
-			}
-			return data;
-		},
-		onError: (e, _, ctx) => {
-			reportError(e);
-			console.error(e);
-			queryClient.setQueryData(environmentRepositoriesInfo.queryKey, ctx);
-		},
-		onSettled: async () => {
-			await queryClient.invalidateQueries(environmentRepositoriesInfo);
-		},
-	});
 
 	const selected = !hiddenUserRepos.has(repoId);
 
@@ -581,10 +663,7 @@ function RepositoryRow({
 		<tr
 			ref={setNodeRef}
 			style={dragStyle}
-			className={cn(
-				visualIndex % 2 === 1 ? "bg-secondary/30" : "",
-				className,
-			)}
+			className={cn(visualIndex % 2 === 1 ? "bg-secondary/30" : "", className)}
 		>
 			<RepositoryRowCells
 				labelId={labelId}
@@ -592,9 +671,7 @@ function RepositoryRow({
 				url={url}
 				canRemove={canRemove}
 				selected={selected}
-				onCheckedChange={(shown) =>
-					setHideRepository.mutate({ id: repoId, shown })
-				}
+				onCheckedChange={(shown) => onToggleVisibility(repoId, shown)}
 				onRemove={() =>
 					void openSingleDialog(RemoveRepositoryDialog, {
 						displayName,
