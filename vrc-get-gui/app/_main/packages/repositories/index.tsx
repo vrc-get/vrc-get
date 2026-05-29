@@ -384,13 +384,15 @@ function RepositoryRowCells({
 		<>
 			<td className={CELL_CLASS}>
 				{interactive ? (
-					<Checkbox
-						id={labelId}
-						checked={selected}
-						onCheckedChange={(x) => onCheckedChange(x === true)}
-					/>
+					<div className="flex">
+						<Checkbox
+							id={labelId}
+							checked={selected}
+							onCheckedChange={(x) => onCheckedChange(x === true)}
+						/>
+					</div>
 				) : (
-					<div className="pointer-events-none">
+					<div className="pointer-events-none flex">
 						<Checkbox checked={selected} />
 					</div>
 				)}
