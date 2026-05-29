@@ -6,6 +6,7 @@ import {
 	defaultDropAnimation,
 	DndContext,
 	type DragEndEvent,
+	type DragOverEvent,
 	DragOverlay,
 	type DragStartEvent,
 	type Modifier,
@@ -159,6 +160,7 @@ function PageBody() {
 	);
 
 	const [activeId, setActiveId] = useState<string | null>(null);
+	const [overId, setOverId] = useState<string | null>(null);
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
 	const theadRowRef = useRef<HTMLTableRowElement>(null);
 
@@ -184,6 +186,12 @@ function PageBody() {
 		},
 	});
 
+	const activeVisualIndex = useMemo(() => {
+		if (!activeId) return 0;
+		const effectiveId = overId ?? activeId;
+		return orderedIds.indexOf(effectiveId) + 2; // +2 for the 2 fixed rows
+	}, [activeId, overId, orderedIds]);
+
 	function handleDragStart(event: DragStartEvent) {
 		setActiveId(event.active.id as string);
 		if (theadRowRef.current) {
@@ -195,8 +203,13 @@ function PageBody() {
 		}
 	}
 
+	function handleDragOver(event: DragOverEvent) {
+		setOverId((event.over?.id as string | null) ?? null);
+	}
+
 	function handleDragEnd(event: DragEndEvent) {
 		setActiveId(null);
+		setOverId(null);
 		const { active, over } = event;
 		if (over && active.id !== over.id) {
 			const oldIndex = orderedIds.indexOf(active.id as string);
@@ -209,6 +222,7 @@ function PageBody() {
 
 	function handleDragCancel() {
 		setActiveId(null);
+		setOverId(null);
 	}
 
 	const bodyAnimation = usePrevPathName().startsWith("/packages")
@@ -220,6 +234,7 @@ function PageBody() {
 			sensors={sensors}
 			collisionDetection={collisionDetection}
 			onDragStart={handleDragStart}
+			onDragOver={handleDragOver}
 			onDragEnd={handleDragEnd}
 			onDragCancel={handleDragCancel}
 		>
@@ -282,6 +297,8 @@ function PageBody() {
 						repo={userRepoMap.get(activeId)}
 						selected={!hiddenUserRepos.has(activeId)}
 						columnWidths={columnWidths}
+						visualIndex={activeVisualIndex}
+						guiAnimation={guiAnimation}
 					/>
 				) : null}
 			</DragOverlay>
@@ -595,14 +612,31 @@ function RepositoryDragOverlay({
 	repo,
 	selected,
 	columnWidths,
+	visualIndex,
+	guiAnimation,
 }: {
 	repo: TauriUserRepository | undefined;
 	selected: boolean;
 	columnWidths: number[];
+	visualIndex: number;
+	guiAnimation: boolean;
 }) {
+	const style = useMemo<React.CSSProperties>(
+		() => ({
+			transition: guiAnimation ? "background-color 200ms ease" : undefined,
+		}),
+		[guiAnimation],
+	);
+
 	if (!repo) return null;
 	return (
-		<table className="w-full table-fixed text-left bg-secondary/50">
+		<table
+			className={cn(
+				"w-full table-fixed text-left",
+				visualIndex % 2 === 1 ? "bg-secondary/30" : "",
+			)}
+			style={style}
+		>
 			{columnWidths.length > 0 && (
 				<colgroup>
 					{columnWidths.map((w, i) => (
