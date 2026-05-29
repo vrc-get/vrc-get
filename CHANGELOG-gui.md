@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- User repositories can now be reordered by drag and drop
 - The package list can show hidden packages. `#2731`
 - Build-time option to disable auto updater `#2759`
   - Please read README for new build instruction.
