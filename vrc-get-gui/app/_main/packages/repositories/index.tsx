@@ -3,12 +3,12 @@
 import {
 	type CollisionDetection,
 	closestCenter,
-	defaultDropAnimation,
 	DndContext,
 	type DragEndEvent,
 	type DragOverEvent,
 	DragOverlay,
 	type DragStartEvent,
+	defaultDropAnimation,
 	type Modifier,
 	PointerSensor,
 	useSensor,
