@@ -246,7 +246,7 @@ pub(crate) struct LogEntry {
     level: LogLevel,
     target: String,
     message: String,
-    gui_toast: bool,
+    gui_toast: Option<bool>,
 }
 
 fn to_rfc3339_micros<S>(
@@ -265,8 +265,7 @@ impl LogEntry {
         let gui_toast = record
             .key_values()
             .get("gui_toast".into())
-            .and_then(|x| x.to_bool())
-            .unwrap_or(true);
+            .and_then(|x| x.to_bool());
         LogEntry {
             time: chrono::Local::now(),
             level: record.level().into(),
