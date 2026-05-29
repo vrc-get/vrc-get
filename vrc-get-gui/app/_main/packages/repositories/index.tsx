@@ -3,8 +3,12 @@
 import {
 	type CollisionDetection,
 	closestCenter,
+	defaultDropAnimation,
 	DndContext,
 	type DragEndEvent,
+	DragOverlay,
+	type DragStartEvent,
+	type Modifier,
 	PointerSensor,
 	useSensor,
 	useSensors,
@@ -29,6 +33,7 @@ import {
 	useEffect,
 	useId,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import { HNavBar, VStack } from "@/components/layout";
@@ -70,6 +75,11 @@ function Page() {
 		</Suspense>
 	);
 }
+
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({
+	...transform,
+	x: 0,
+});
 
 const environmentRepositoriesInfo = queryOptions({
 	queryKey: ["environmentRepositoriesInfo"],
@@ -117,6 +127,13 @@ function PageBody() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	const guiAnimation =
+		useQuery({
+			queryKey: ["environmentGuiAnimation"],
+			queryFn: commands.environmentGuiAnimation,
+			initialData: true,
+		}).data ?? true;
+
 	const userRepos = result.data?.user_repositories;
 
 	const [orderedIds, setOrderedIds] = useState<string[]>(
@@ -133,6 +150,9 @@ function PageBody() {
 	);
 
 	const [isDragging, setIsDragging] = useState(false);
+	const [activeId, setActiveId] = useState<string | null>(null);
+	const [columnWidths, setColumnWidths] = useState<number[]>([]);
+	const theadRowRef = useRef<HTMLTableRowElement>(null);
 
 	const sensors = useSensors(useSensor(PointerSensor));
 
@@ -156,12 +176,21 @@ function PageBody() {
 		},
 	});
 
-	function handleDragStart() {
+	function handleDragStart(event: DragStartEvent) {
 		setIsDragging(true);
+		setActiveId(event.active.id as string);
+		if (theadRowRef.current) {
+			const widths = Array.from(
+				theadRowRef.current.querySelectorAll("th"),
+				(th) => th.getBoundingClientRect().width,
+			);
+			setColumnWidths(widths);
+		}
 	}
 
 	function handleDragEnd(event: DragEndEvent) {
 		setIsDragging(false);
+		setActiveId(null);
 		const { active, over } = event;
 		if (over && active.id !== over.id) {
 			const oldIndex = orderedIds.indexOf(active.id as string);
@@ -174,6 +203,7 @@ function PageBody() {
 
 	function handleDragCancel() {
 		setIsDragging(false);
+		setActiveId(null);
 	}
 
 	const bodyAnimation = usePrevPathName().startsWith("/packages")
@@ -233,10 +263,24 @@ function PageBody() {
 							orderedIds={orderedIds}
 							userRepoMap={userRepoMap}
 							hiddenUserRepos={hiddenUserRepos}
+							guiAnimation={guiAnimation}
+							theadRowRef={theadRowRef}
 						/>
 					</ScrollableCardTable>
 				</main>
 			</VStack>
+			<DragOverlay
+				modifiers={[restrictToVerticalAxis]}
+				dropAnimation={guiAnimation ? defaultDropAnimation : null}
+			>
+				{activeId ? (
+					<RepositoryDragOverlay
+						repo={userRepoMap.get(activeId)}
+						selected={!hiddenUserRepos.has(activeId)}
+						columnWidths={columnWidths}
+					/>
+				) : null}
+			</DragOverlay>
 		</DndContext>
 	);
 }
@@ -245,10 +289,14 @@ function RepositoryTableBody({
 	orderedIds,
 	userRepoMap,
 	hiddenUserRepos,
+	guiAnimation,
+	theadRowRef,
 }: {
 	orderedIds: string[];
 	userRepoMap: Map<string, TauriUserRepository>;
 	hiddenUserRepos: Set<string>;
+	guiAnimation: boolean;
+	theadRowRef: React.RefObject<HTMLTableRowElement | null>;
 }) {
 	const TABLE_HEAD = [
 		"", // checkbox
@@ -261,7 +309,7 @@ function RepositoryTableBody({
 	return (
 		<>
 			<thead>
-				<tr>
+				<tr ref={theadRowRef}>
 					{TABLE_HEAD.map((head, index) => (
 						<th
 							// biome-ignore lint/suspicious/noArrayIndexKey: static array
@@ -282,6 +330,7 @@ function RepositoryTableBody({
 					displayName={tt("vpm repositories:source:official")}
 					hiddenUserRepos={hiddenUserRepos}
 					canRemove={false}
+					guiAnimation={guiAnimation}
 				/>
 				<RepositoryRow
 					repoId={"com.vrchat.repos.curated"}
@@ -290,6 +339,7 @@ function RepositoryTableBody({
 					hiddenUserRepos={hiddenUserRepos}
 					className={"border-b border-primary/10"}
 					canRemove={false}
+					guiAnimation={guiAnimation}
 				/>
 				<SortableContext
 					items={orderedIds}
@@ -305,11 +355,110 @@ function RepositoryTableBody({
 								displayName={repo.display_name}
 								url={repo.url}
 								hiddenUserRepos={hiddenUserRepos}
+								guiAnimation={guiAnimation}
 							/>
 						);
 					})}
 				</SortableContext>
 			</tbody>
+		</>
+	);
+}
+
+const CELL_CLASS = "p-2.5 compact:py-1";
+
+function RepositoryRowCells({
+	labelId,
+	displayName,
+	url,
+	canRemove,
+	selected,
+	onCheckedChange,
+	onRemove,
+	dragListeners,
+	dragAttributes,
+}: {
+	labelId?: string;
+	displayName: string;
+	url: string | null | undefined;
+	canRemove: boolean;
+	selected: boolean;
+	onCheckedChange?: (shown: boolean) => void;
+	onRemove?: () => void;
+	dragListeners?: ReturnType<typeof useSortable>["listeners"];
+	dragAttributes?: ReturnType<typeof useSortable>["attributes"];
+}) {
+	const interactive = onCheckedChange !== undefined;
+	return (
+		<>
+			<td className={CELL_CLASS}>
+				{interactive ? (
+					<Checkbox
+						id={labelId}
+						checked={selected}
+						onCheckedChange={(x) => onCheckedChange(x === true)}
+					/>
+				) : (
+					<div className="pointer-events-none">
+						<Checkbox checked={selected} />
+					</div>
+				)}
+			</td>
+			<td className={CELL_CLASS}>
+				{interactive ? (
+					<label htmlFor={labelId}>
+						<p className="font-normal">{displayName}</p>
+					</label>
+				) : (
+					<p className="font-normal">{displayName}</p>
+				)}
+			</td>
+			<td className={CELL_CLASS}>
+				<p className="font-normal">{url}</p>
+			</td>
+			<td className={`${CELL_CLASS} w-0`}>
+				{interactive ? (
+					<Tooltip>
+						<TooltipTrigger asChild={canRemove}>
+							<Button
+								disabled={!canRemove}
+								onClick={onRemove}
+								variant={"ghost"}
+								size={"icon"}
+							>
+								<CircleX className={"size-5 text-destructive"} />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							{canRemove
+								? tc("vpm repositories:remove repository")
+								: tc(
+										"vpm repositories:tooltip:remove curated or official repository",
+									)}
+						</TooltipContent>
+					</Tooltip>
+				) : (
+					<Button variant={"ghost"} size={"icon"} disabled>
+						<CircleX className={"size-5 text-destructive"} />
+					</Button>
+				)}
+			</td>
+			<td
+				className={cn(
+					CELL_CLASS,
+					"w-0",
+					canRemove ? "cursor-move" : "cursor-not-allowed",
+				)}
+				{...(canRemove ? dragListeners : undefined)}
+				{...(canRemove ? dragAttributes : undefined)}
+			>
+				<GripVertical
+					className={cn(
+						"size-5 text-muted-foreground",
+						!canRemove && "opacity-50",
+					)}
+				/>
+			</td>
 		</>
 	);
 }
@@ -321,6 +470,7 @@ function RepositoryRow({
 	hiddenUserRepos,
 	className,
 	canRemove = true,
+	guiAnimation,
 }: {
 	repoId: TauriUserRepository["id"];
 	displayName: TauriUserRepository["display_name"];
@@ -328,9 +478,9 @@ function RepositoryRow({
 	hiddenUserRepos: Set<string>;
 	className?: string;
 	canRemove?: boolean;
+	guiAnimation: boolean;
 }) {
-	const cellClass = "p-2.5 compact:py-1";
-	const id = useId();
+	const labelId = useId();
 
 	const {
 		attributes,
@@ -344,11 +494,11 @@ function RepositoryRow({
 	const dragStyle = useMemo<React.CSSProperties>(
 		() => ({
 			transform: transform ? `translateY(${transform.y}px)` : undefined,
-			transition,
-			opacity: isDragging ? 0.5 : 1,
+			transition: guiAnimation ? transition : undefined,
+			opacity: isDragging ? 0 : 1,
 			position: "relative",
 		}),
-		[transform, transition, isDragging],
+		[transform, transition, isDragging, guiAnimation],
 	);
 
 	const queryClient = useQueryClient();
@@ -404,58 +554,59 @@ function RepositoryRow({
 			style={dragStyle}
 			className={cn("even:bg-secondary/30", className)}
 		>
-			<td className={cellClass}>
-				<Checkbox
-					id={id}
-					checked={selected}
-					onCheckedChange={(x) =>
-						setHideRepository.mutate({ id: repoId, shown: x === true })
-					}
-				/>
-			</td>
-			<td className={cellClass}>
-				<label htmlFor={id}>
-					<p className="font-normal">{displayName}</p>
-				</label>
-			</td>
-			<td className={cellClass}>
-				<p className="font-normal">{url}</p>
-			</td>
-			<td className={`${cellClass} w-0`}>
-				<Tooltip>
-					<TooltipTrigger asChild={canRemove}>
-						<Button
-							disabled={!canRemove}
-							onClick={() => {
-								void openSingleDialog(RemoveRepositoryDialog, {
-									displayName,
-									id: repoId,
-								});
-							}}
-							variant={"ghost"}
-							size={"icon"}
-						>
-							<CircleX className={"size-5 text-destructive"} />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent>
-						{canRemove
-							? tc("vpm repositories:remove repository")
-							: tc(
-									"vpm repositories:tooltip:remove curated or official repository",
-								)}
-					</TooltipContent>
-				</Tooltip>
-			</td>
-			<td
-				className={`${cellClass} w-0 ${canRemove ? "cursor-move" : "cursor-not-allowed"}`}
-				{...(canRemove ? { ...listeners, ...attributes } : {})}
-			>
-				<GripVertical
-					className={`size-5 text-muted-foreground${canRemove ? "" : " opacity-50"}`}
-				/>
-			</td>
+			<RepositoryRowCells
+				labelId={labelId}
+				displayName={displayName}
+				url={url}
+				canRemove={canRemove}
+				selected={selected}
+				onCheckedChange={(shown) =>
+					setHideRepository.mutate({ id: repoId, shown })
+				}
+				onRemove={() =>
+					void openSingleDialog(RemoveRepositoryDialog, {
+						displayName,
+						id: repoId,
+					})
+				}
+				dragListeners={listeners}
+				dragAttributes={attributes}
+			/>
 		</tr>
+	);
+}
+
+function RepositoryDragOverlay({
+	repo,
+	selected,
+	columnWidths,
+}: {
+	repo: TauriUserRepository | undefined;
+	selected: boolean;
+	columnWidths: number[];
+}) {
+	if (!repo) return null;
+	return (
+		<table className="w-full table-fixed text-left bg-secondary/50">
+			{columnWidths.length > 0 && (
+				<colgroup>
+					{columnWidths.map((w, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: fixed column order
+						<col key={i} style={{ width: w }} />
+					))}
+				</colgroup>
+			)}
+			<tbody>
+				<tr>
+					<RepositoryRowCells
+						displayName={repo.display_name}
+						url={repo.url}
+						canRemove={true}
+						selected={selected}
+					/>
+				</tr>
+			</tbody>
+		</table>
 	);
 }
 
