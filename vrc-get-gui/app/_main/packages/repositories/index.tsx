@@ -356,7 +356,7 @@ function RepositoryTableBody({
 	);
 }
 
-const CELL_CLASS = "p-2.5 compact:py-1";
+const CELL_CLASS = "p-2.5 compact:py-1 align-middle";
 
 function RepositoryRowCells({
 	labelId,
