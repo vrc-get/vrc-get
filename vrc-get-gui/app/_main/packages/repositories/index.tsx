@@ -81,6 +81,16 @@ const restrictToVerticalAxis: Modifier = ({ transform }) => ({
 	x: 0,
 });
 
+const DRAG_OVERLAY_MODIFIERS = [restrictToVerticalAxis];
+
+const TABLE_HEAD = [
+	"", // checkbox
+	"general:name",
+	"vpm repositories:url",
+	"", // actions
+	"", // grip handle
+] as const;
+
 const environmentRepositoriesInfo = queryOptions({
 	queryKey: ["environmentRepositoriesInfo"],
 	queryFn: commands.environmentRepositoriesInfo,
@@ -127,12 +137,11 @@ function PageBody() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	const guiAnimation =
-		useQuery({
-			queryKey: ["environmentGuiAnimation"],
-			queryFn: commands.environmentGuiAnimation,
-			initialData: true,
-		}).data ?? true;
+	const guiAnimation = useQuery({
+		queryKey: ["environmentGuiAnimation"],
+		queryFn: commands.environmentGuiAnimation,
+		initialData: true,
+	}).data;
 
 	const userRepos = result.data?.user_repositories;
 
@@ -149,7 +158,6 @@ function PageBody() {
 		[userRepos],
 	);
 
-	const [isDragging, setIsDragging] = useState(false);
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
 	const theadRowRef = useRef<HTMLTableRowElement>(null);
@@ -177,7 +185,6 @@ function PageBody() {
 	});
 
 	function handleDragStart(event: DragStartEvent) {
-		setIsDragging(true);
 		setActiveId(event.active.id as string);
 		if (theadRowRef.current) {
 			const widths = Array.from(
@@ -189,7 +196,6 @@ function PageBody() {
 	}
 
 	function handleDragEnd(event: DragEndEvent) {
-		setIsDragging(false);
 		setActiveId(null);
 		const { active, over } = event;
 		if (over && active.id !== over.id) {
@@ -202,7 +208,6 @@ function PageBody() {
 	}
 
 	function handleDragCancel() {
-		setIsDragging(false);
 		setActiveId(null);
 	}
 
@@ -219,7 +224,7 @@ function PageBody() {
 			onDragCancel={handleDragCancel}
 		>
 			<VStack>
-				<div style={isDragging ? { pointerEvents: "none" } : undefined}>
+				<div style={activeId !== null ? { pointerEvents: "none" } : undefined}>
 					<HNavBar
 						className="shrink-0"
 						leading={<HeadingPageName pageType={"/packages/repositories"} />}
@@ -263,14 +268,13 @@ function PageBody() {
 							orderedIds={orderedIds}
 							userRepoMap={userRepoMap}
 							hiddenUserRepos={hiddenUserRepos}
-							guiAnimation={guiAnimation}
 							theadRowRef={theadRowRef}
 						/>
 					</ScrollableCardTable>
 				</main>
 			</VStack>
 			<DragOverlay
-				modifiers={[restrictToVerticalAxis]}
+				modifiers={DRAG_OVERLAY_MODIFIERS}
 				dropAnimation={guiAnimation ? defaultDropAnimation : null}
 			>
 				{activeId ? (
@@ -289,23 +293,13 @@ function RepositoryTableBody({
 	orderedIds,
 	userRepoMap,
 	hiddenUserRepos,
-	guiAnimation,
 	theadRowRef,
 }: {
 	orderedIds: string[];
 	userRepoMap: Map<string, TauriUserRepository>;
 	hiddenUserRepos: Set<string>;
-	guiAnimation: boolean;
 	theadRowRef: React.RefObject<HTMLTableRowElement | null>;
 }) {
-	const TABLE_HEAD = [
-		"", // checkbox
-		"general:name",
-		"vpm repositories:url",
-		"", // actions
-		"", // grip handle
-	];
-
 	return (
 		<>
 			<thead>
@@ -330,7 +324,6 @@ function RepositoryTableBody({
 					displayName={tt("vpm repositories:source:official")}
 					hiddenUserRepos={hiddenUserRepos}
 					canRemove={false}
-					guiAnimation={guiAnimation}
 				/>
 				<RepositoryRow
 					repoId={"com.vrchat.repos.curated"}
@@ -339,7 +332,6 @@ function RepositoryTableBody({
 					hiddenUserRepos={hiddenUserRepos}
 					className={"border-b border-primary/10"}
 					canRemove={false}
-					guiAnimation={guiAnimation}
 				/>
 				<SortableContext
 					items={orderedIds}
@@ -355,7 +347,6 @@ function RepositoryTableBody({
 								displayName={repo.display_name}
 								url={repo.url}
 								hiddenUserRepos={hiddenUserRepos}
-								guiAnimation={guiAnimation}
 							/>
 						);
 					})}
@@ -470,7 +461,6 @@ function RepositoryRow({
 	hiddenUserRepos,
 	className,
 	canRemove = true,
-	guiAnimation,
 }: {
 	repoId: TauriUserRepository["id"];
 	displayName: TauriUserRepository["display_name"];
@@ -478,9 +468,14 @@ function RepositoryRow({
 	hiddenUserRepos: Set<string>;
 	className?: string;
 	canRemove?: boolean;
-	guiAnimation: boolean;
 }) {
 	const labelId = useId();
+
+	const guiAnimation = useQuery({
+		queryKey: ["environmentGuiAnimation"],
+		queryFn: commands.environmentGuiAnimation,
+		initialData: true,
+	}).data;
 
 	const {
 		attributes,
