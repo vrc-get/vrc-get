@@ -166,11 +166,9 @@ function PageBody() {
 		if (over && active.id !== over.id) {
 			const oldIndex = orderedIds.indexOf(active.id as string);
 			const newIndex = orderedIds.indexOf(over.id as string);
-			if (oldIndex !== -1 && newIndex !== -1) {
-				const newIds = arrayMove(orderedIds, oldIndex, newIndex);
-				setOrderedIds(newIds);
-				reorderMutation.mutate(newIds);
-			}
+			const newIds = arrayMove(orderedIds, oldIndex, newIndex);
+			setOrderedIds(newIds);
+			reorderMutation.mutate(newIds);
 		}
 	}
 
@@ -343,12 +341,15 @@ function RepositoryRow({
 		isDragging,
 	} = useSortable({ id: repoId, disabled: !canRemove });
 
-	const dragStyle: React.CSSProperties = {
-		transform: transform ? `translateY(${transform.y}px)` : undefined,
-		transition,
-		opacity: isDragging ? 0.5 : 1,
-		position: "relative",
-	};
+	const dragStyle = useMemo<React.CSSProperties>(
+		() => ({
+			transform: transform ? `translateY(${transform.y}px)` : undefined,
+			transition,
+			opacity: isDragging ? 0.5 : 1,
+			position: "relative",
+		}),
+		[transform, transition, isDragging],
+	);
 
 	const queryClient = useQueryClient();
 	const setHideRepository = useMutation({
