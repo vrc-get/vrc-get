@@ -7,7 +7,7 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, CircleX } from "lucide-react";
+import { ChevronDown, CircleX, GripVertical } from "lucide-react";
 import { Suspense, useCallback, useEffect, useId, useMemo } from "react";
 import { HNavBar, VStack } from "@/components/layout";
 import { ScrollableCardTable } from "@/components/ScrollableCardTable";
@@ -161,6 +161,7 @@ function RepositoryTableBody({
 		"general:name",
 		"vpm repositories:url",
 		"", // actions
+		"", // grip handle
 	];
 
 	return (
@@ -319,6 +320,9 @@ function RepositoryRow({
 								)}
 					</TooltipContent>
 				</Tooltip>
+			</td>
+			<td className={`${cellClass} w-0 ${canRemove ? "cursor-move" : "cursor-not-allowed"}`}>
+				<GripVertical className={`size-5 text-muted-foreground${canRemove ? "" : " opacity-50"}`} />
 			</td>
 		</tr>
 	);
