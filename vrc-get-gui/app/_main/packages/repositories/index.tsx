@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	closestCenter,
 	DndContext,
 	type DragEndEvent,
 	PointerSensor,
@@ -156,7 +157,11 @@ function PageBody() {
 		: "";
 
 	return (
-		<DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+		<DndContext
+			sensors={sensors}
+			collisionDetection={closestCenter}
+			onDragEnd={handleDragEnd}
+		>
 			<VStack>
 				<HNavBar
 					className="shrink-0"
