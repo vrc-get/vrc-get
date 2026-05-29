@@ -1,10 +1,10 @@
 "use client";
 
 import {
+	type CollisionDetection,
 	closestCenter,
 	DndContext,
 	type DragEndEvent,
-	type DragOverEvent,
 	PointerSensor,
 	useSensor,
 	useSensors,
@@ -29,7 +29,6 @@ import {
 	useEffect,
 	useId,
 	useMemo,
-	useRef,
 	useState,
 } from "react";
 import { HNavBar, VStack } from "@/components/layout";
@@ -134,9 +133,19 @@ function PageBody() {
 	);
 
 	const [isDragging, setIsDragging] = useState(false);
-	const dragOverOrderRef = useRef<string[] | null>(null);
 
 	const sensors = useSensors(useSensor(PointerSensor));
+
+	const collisionDetection = useCallback<CollisionDetection>(
+		(args) =>
+			closestCenter({
+				...args,
+				droppableContainers: args.droppableContainers.filter((c) =>
+					orderedIds.includes(c.id as string),
+				),
+			}),
+		[orderedIds],
+	);
 
 	const queryClient = useQueryClient();
 	const reorderMutation = useMutation({
@@ -148,53 +157,25 @@ function PageBody() {
 	});
 
 	function handleDragStart() {
-		dragOverOrderRef.current = null;
 		setIsDragging(true);
 	}
 
-	function handleDragOver(event: DragOverEvent) {
-		const { active, over } = event;
-		if (!over || active.id === over.id) return;
-		const oldIndex = orderedIds.indexOf(active.id as string);
-		const newIndex = orderedIds.indexOf(over.id as string);
-		if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-			dragOverOrderRef.current = arrayMove(orderedIds, oldIndex, newIndex);
-		}
-	}
-
 	function handleDragEnd(event: DragEndEvent) {
-		const pendingOrder = dragOverOrderRef.current;
-		dragOverOrderRef.current = null;
 		setIsDragging(false);
 		const { active, over } = event;
-
 		if (over && active.id !== over.id) {
 			const oldIndex = orderedIds.indexOf(active.id as string);
 			const newIndex = orderedIds.indexOf(over.id as string);
-			if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+			if (oldIndex !== -1 && newIndex !== -1) {
 				const newIds = arrayMove(orderedIds, oldIndex, newIndex);
 				setOrderedIds(newIds);
 				reorderMutation.mutate(newIds);
-				return;
 			}
-		}
-
-		// over が無効（Official/Curated など orderedIds 外の ID）な場合は
-		// onDragOver で追跡していた最後の有効な順序を使う
-		if (pendingOrder) {
-			setOrderedIds(pendingOrder);
-			reorderMutation.mutate(pendingOrder);
 		}
 	}
 
 	function handleDragCancel() {
 		setIsDragging(false);
-		const pendingOrder = dragOverOrderRef.current;
-		dragOverOrderRef.current = null;
-		if (pendingOrder) {
-			setOrderedIds(pendingOrder);
-			reorderMutation.mutate(pendingOrder);
-		}
 	}
 
 	const bodyAnimation = usePrevPathName().startsWith("/packages")
@@ -204,9 +185,8 @@ function PageBody() {
 	return (
 		<DndContext
 			sensors={sensors}
-			collisionDetection={closestCenter}
+			collisionDetection={collisionDetection}
 			onDragStart={handleDragStart}
-			onDragOver={handleDragOver}
 			onDragEnd={handleDragEnd}
 			onDragCancel={handleDragCancel}
 		>
