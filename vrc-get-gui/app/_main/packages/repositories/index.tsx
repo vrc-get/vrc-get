@@ -847,6 +847,11 @@ function RemoveRepositoryDialog({
 					),
 				});
 			}
+			return data;
+		},
+		onError: (e, _index, ctx) => {
+			queryClient.setQueryData(environmentRepositoriesInfo.queryKey, ctx);
+			toastThrownError(e);
 		},
 		onSettled: () => queryClient.invalidateQueries(environmentRepositoriesInfo),
 	});

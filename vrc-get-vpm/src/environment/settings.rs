@@ -269,10 +269,6 @@ impl Settings {
         self.vpm.retain_user_repos(|x| !condition(x))
     }
 
-    pub fn reorder_user_repos(&mut self, ids: &[&str]) {
-        self.vpm.reorder_user_repos(ids);
-    }
-
     pub fn remove_repo_at_index(&mut self, index: usize) -> Option<UserRepoSetting> {
         self.vpm.remove_user_repo_at_index(index)
     }

@@ -399,7 +399,7 @@ pub async fn environment_reorder_repositories(
     indices: Vec<usize>,
 ) -> Result<(), RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
-    log::info!("reorder user repositories by indices: {:?}", indices);
+    log::debug!("reorder user repositories by indices: {:?}", indices);
     settings.reorder_user_repos_by_indices(&indices);
     settings.save().await?;
     packages.clear_cache();
