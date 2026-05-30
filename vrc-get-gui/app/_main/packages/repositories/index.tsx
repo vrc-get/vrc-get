@@ -291,10 +291,11 @@ function PageBody() {
 	const queryClient = useQueryClient();
 	const reorderMutation = useMutation({
 		mutationFn: (listIds: string[]) => {
-			const indices = listIds
-				.map((lid) => userRepoByListId.get(lid)?.index)
-				.filter((i): i is number => i !== undefined);
-			return commands.environmentReorderRepositories(indices);
+			const repos = listIds
+				.map((lid) => userRepoByListId.get(lid))
+				.filter((r): r is UserRepoWithListId => r !== undefined)
+				.map((r) => ({ index: r.index, id: r.id }));
+			return commands.environmentReorderRepositories(repos);
 		},
 		// Pin listIds to the new positions so duplicate-keyed rows don't swap their listIds on refetch.
 		onMutate: (newListIds: string[]) => {
@@ -760,6 +761,7 @@ function RepositoryRow({
 					void openSingleDialog(RemoveRepositoryDialog, {
 						displayName,
 						index: repoIndex ?? 0,
+						id: repoId,
 					})
 				}
 				dragListeners={listeners}
@@ -824,17 +826,19 @@ function RemoveRepositoryDialog({
 	dialog,
 	displayName,
 	index,
+	id,
 }: {
 	dialog: DialogContext<void>;
 	displayName: string;
 	index: number;
+	id: string;
 }) {
 	const queryClient = useQueryClient();
 
 	const removeRepository = useMutation({
-		mutationFn: async (index: number) =>
-			await commands.environmentRemoveRepository(index),
-		onMutate: async (index) => {
+		mutationFn: async (args: { index: number; id: string }) =>
+			await commands.environmentRemoveRepository(args.index, args.id),
+		onMutate: async ({ index }) => {
 			await queryClient.cancelQueries(environmentRepositoriesInfo);
 			const data = queryClient.getQueryData(
 				environmentRepositoriesInfo.queryKey,
@@ -849,7 +853,7 @@ function RemoveRepositoryDialog({
 			}
 			return data;
 		},
-		onError: (e, _index, ctx) => {
+		onError: (e, _args, ctx) => {
 			queryClient.setQueryData(environmentRepositoriesInfo.queryKey, ctx);
 			toastThrownError(e);
 		},
@@ -873,7 +877,7 @@ function RemoveRepositoryDialog({
 				<Button
 					onClick={() => {
 						dialog.close();
-						removeRepository.mutate(index);
+						removeRepository.mutate({ index, id });
 					}}
 					className={"ml-2"}
 				>

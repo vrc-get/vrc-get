@@ -40,8 +40,8 @@ export const commands = {
 	environmentSetHideLocalUserPackages: (value: boolean) => __TAURI_INVOKE<null>("environment_set_hide_local_user_packages", { value }),
 	environmentDownloadRepository: (url: string, headers: { [key in string]: string }) => __TAURI_INVOKE<TauriDownloadRepository>("environment_download_repository", { url, headers }),
 	environmentAddRepository: (url: string, headers: { [key in string]: string }) => __TAURI_INVOKE<TauriAddRepositoryResult>("environment_add_repository", { url, headers }),
-	environmentRemoveRepository: (index: number) => __TAURI_INVOKE<null>("environment_remove_repository", { index }),
-	environmentReorderRepositories: (indices: number[]) => __TAURI_INVOKE<null>("environment_reorder_repositories", { indices }),
+	environmentRemoveRepository: (index: number, expectedId: string) => __TAURI_INVOKE<null>("environment_remove_repository", { index, expectedId }),
+	environmentReorderRepositories: (repos: TauriUserRepositoryRef[]) => __TAURI_INVOKE<null>("environment_reorder_repositories", { repos }),
 	environmentImportRepositoryPick: () => __TAURI_INVOKE<TauriImportRepositoryPickResult>("environment_import_repository_pick"),
 	environmentImportDownloadRepositories: (channel: string, repositories: TauriRepositoryDescriptor[]) => __TAURI_INVOKE<AsyncCallResult<number, ([TauriRepositoryDescriptor, TauriDownloadRepository])[]>>("environment_import_download_repositories", { channel, repositories }),
 	environmentImportAddRepositories: (repositories: TauriRepositoryDescriptor[]) => __TAURI_INVOKE<null>("environment_import_add_repositories", { repositories }),
@@ -409,6 +409,11 @@ export type TauriUserRepository = {
 	id: string,
 	url: string | null,
 	display_name: string,
+};
+
+export type TauriUserRepositoryRef = {
+	index: number,
+	id: string,
 };
 
 export type TauriVersion = {

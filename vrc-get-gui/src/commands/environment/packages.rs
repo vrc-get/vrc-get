@@ -18,7 +18,7 @@ use vrc_get_vpm::environment::{
 use vrc_get_vpm::io::{DefaultEnvironmentIo, IoTrait};
 use vrc_get_vpm::repositories_file::RepositoriesFile;
 use vrc_get_vpm::repository::RemoteRepository;
-use vrc_get_vpm::{HttpClient, VersionSelector};
+use vrc_get_vpm::{HttpClient, UserRepoSetting, VersionSelector};
 
 #[tauri::command]
 #[specta::specta]
@@ -348,6 +348,30 @@ pub async fn environment_add_repository(
     Ok(TauriAddRepositoryResult::Success)
 }
 
+// Verifies that the repo at `index` in the freshly-loaded settings still has
+// the `expected_id` the frontend last saw. Guards against silent corruption
+// from external writes to settings.json between fetch and mutation.
+fn verify_repo_at_index(
+    repos: &[UserRepoSetting],
+    index: usize,
+    expected_id: &str,
+) -> Result<(), RustError> {
+    let Some(repo) = repos.get(index) else {
+        return Err(RustError::unrecoverable_str(format!(
+            "Repository index {index} out of range (expected id {expected_id}). \
+             settings.json was likely modified externally; please refresh."
+        )));
+    };
+    let actual = repo.id().or(repo.url().map(Url::as_str));
+    if actual != Some(expected_id) {
+        return Err(RustError::unrecoverable_str(format!(
+            "Repository at index {index} changed (expected id {expected_id}, found {actual:?}). \
+             settings.json was likely modified externally; please refresh."
+        )));
+    }
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_remove_repository(
@@ -355,8 +379,11 @@ pub async fn environment_remove_repository(
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
     index: usize,
+    expected_id: String,
 ) -> Result<(), RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
+
+    verify_repo_at_index(settings.get_user_repos(), index, &expected_id)?;
 
     let removed = settings.remove_repo_at_index(index);
 
@@ -390,16 +417,29 @@ pub struct TauriRepositoryDescriptor {
     pub headers: Headers,
 }
 
+#[derive(Deserialize, specta::Type)]
+pub struct TauriUserRepositoryRef {
+    pub index: usize,
+    pub id: String,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn environment_reorder_repositories(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
-    indices: Vec<usize>,
+    repos: Vec<TauriUserRepositoryRef>,
 ) -> Result<(), RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
-    log::debug!("reorder user repositories by indices: {:?}", indices);
+    log::debug!("reorder user repositories: {} entries", repos.len());
+
+    let user_repos = settings.get_user_repos();
+    for r in &repos {
+        verify_repo_at_index(user_repos, r.index, &r.id)?;
+    }
+
+    let indices: Vec<usize> = repos.into_iter().map(|r| r.index).collect();
     settings.reorder_user_repos_by_indices(&indices);
     settings.save().await?;
     packages.clear_cache();
