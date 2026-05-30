@@ -199,6 +199,8 @@ jobs:
         run: cargo build --target ${{ matrix.triple }} --release --verbose
       - name: Check binary is statically linked
         shell: bash
+        env:
+          RUSTFLAGS: ''
         run: |
           cargo xtask check-static-link target/${{ matrix.triple }}/release/vrc-get${WINDIR:+.exe}
 
