@@ -165,21 +165,19 @@ impl VpmSettings {
     }
 
     pub fn reorder_user_repos_by_indices(&mut self, indices: &[usize]) {
-        let mut pool: Vec<Option<UserRepoSetting>> =
-            std::mem::take(&mut self.parsed.user_repos).into_iter().map(Some).collect();
+        let mut pool: Vec<Option<UserRepoSetting>> = std::mem::take(&mut self.parsed.user_repos)
+            .into_iter()
+            .map(Some)
+            .collect();
         let mut result = Vec::with_capacity(pool.len());
         for &idx in indices {
-            if let Some(slot) = pool.get_mut(idx) {
-                if let Some(repo) = slot.take() {
-                    result.push(repo);
-                }
-            }
-        }
-        for slot in pool {
-            if let Some(repo) = slot {
+            if let Some(slot) = pool.get_mut(idx)
+                && let Some(repo) = slot.take()
+            {
                 result.push(repo);
             }
         }
+        result.extend(pool.into_iter().flatten());
         self.parsed.user_repos = result;
     }
 
