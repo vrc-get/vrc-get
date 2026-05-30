@@ -6359,7 +6359,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vrc-get"
-version = "1.9.2-beta.0"
+version = "1.9.2-rc.0"
 dependencies = [
  "anstyle",
  "clap",
@@ -6465,7 +6465,7 @@ dependencies = [
 
 [[package]]
 name = "vrc-get-vpm"
-version = "0.0.16-beta.0"
+version = "0.0.16-rc.0"
 dependencies = [
  "async-stream",
  "async_zip",
