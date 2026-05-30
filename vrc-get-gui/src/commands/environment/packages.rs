@@ -1,6 +1,6 @@
 use crate::commands::async_command::{AsyncCallResult, With, async_command};
 use crate::commands::prelude::*;
-use futures::future::{join_all, try_join_all};
+use futures::future::try_join_all;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use log::info;
@@ -58,6 +58,7 @@ pub async fn environment_packages(
 
 #[derive(Serialize, specta::Type)]
 struct TauriUserRepository {
+    index: usize,
     id: String,
     url: Option<String>,
     display_name: String,
@@ -87,9 +88,11 @@ pub async fn environment_repositories_info(
     let user_repositories = settings
         .get_user_repos()
         .iter()
-        .map(|x| {
+        .enumerate()
+        .map(|(index, x)| {
             let id = x.id().or(x.url().map(Url::as_str)).unwrap();
             TauriUserRepository {
+                index,
                 id: id.to_string(),
                 url: x.url().map(|x| x.to_string()),
                 display_name: x.name().unwrap_or(id).to_string(),
@@ -351,18 +354,15 @@ pub async fn environment_remove_repository(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
-    id: String,
+    index: usize,
 ) -> Result<(), RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
 
-    let removed = settings.remove_repo(|r| r.id() == Some(id.as_str()));
+    let removed = settings.remove_repo_at_index(index);
 
-    join_all(
-        removed
-            .iter()
-            .map(|x| async { io.remove_file(x.local_path()).await.ok() }),
-    )
-    .await;
+    if let Some(repo) = &removed {
+        io.remove_file(repo.local_path()).await.ok();
+    }
 
     settings.save().await?;
 
@@ -396,12 +396,11 @@ pub async fn environment_reorder_repositories(
     settings: State<'_, SettingsState>,
     packages: State<'_, PackagesState>,
     io: State<'_, DefaultEnvironmentIo>,
-    ids: Vec<String>,
+    indices: Vec<usize>,
 ) -> Result<(), RustError> {
     let mut settings = settings.load_mut(io.inner()).await?;
-    let ids_refs: Vec<&str> = ids.iter().map(|s| s.as_str()).collect();
-    log::info!("reorder user repositories: [{}]", ids.join(", "));
-    settings.reorder_user_repos(&ids_refs);
+    log::debug!("reorder user repositories by indices: {:?}", indices);
+    settings.reorder_user_repos_by_indices(&indices);
     settings.save().await?;
     packages.clear_cache();
     Ok(())

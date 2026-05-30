@@ -9,6 +9,7 @@ import {
 	DragOverlay,
 	type DragStartEvent,
 	defaultDropAnimation,
+	defaultDropAnimationSideEffects,
 	type Modifier,
 	PointerSensor,
 	useSensor,
@@ -69,6 +70,8 @@ export const Route = createFileRoute("/_main/packages/repositories/")({
 	component: Page,
 });
 
+type UserRepoWithListId = TauriUserRepository & { listId: string };
+
 function Page() {
 	return (
 		<Suspense>
@@ -83,6 +86,15 @@ const restrictToVerticalAxis: Modifier = ({ transform }) => ({
 });
 
 const DRAG_OVERLAY_MODIFIERS = [restrictToVerticalAxis];
+
+const customDropAnimation: typeof defaultDropAnimation = {
+	...defaultDropAnimation,
+	sideEffects: defaultDropAnimationSideEffects({
+		styles: {
+			active: { opacity: "0" },
+		},
+	}),
+};
 
 const TABLE_HEAD = [
 	"", // checkbox
@@ -149,6 +161,18 @@ function useDragAutoScroll(
 	}, [isActive, viewportRef]);
 }
 
+function computeSlotKey(repo: TauriUserRepository, used: Set<string>): string {
+	const base = `${repo.id} ${repo.url ?? ""}`;
+	let key = base;
+	let counter = 0;
+	while (used.has(key)) {
+		counter++;
+		key = `${base} ${counter}`;
+	}
+	used.add(key);
+	return key;
+}
+
 function PageBody() {
 	const result = useQuery(environmentRepositoriesInfo);
 
@@ -198,18 +222,47 @@ function PageBody() {
 
 	const userRepos = result.data?.user_repositories;
 
-	const [orderedIds, setOrderedIds] = useState<string[]>(
-		() => userRepos?.map((r) => r.id) ?? [],
+	const listIdMapRef = useRef<Map<string, string>>(new Map());
+
+	const augmentedUserRepos = useMemo<UserRepoWithListId[]>(() => {
+		if (!userRepos) {
+			listIdMapRef.current = new Map();
+			return [];
+		}
+		const prev = listIdMapRef.current;
+		const next = new Map<string, string>();
+		const usedKeys = new Set<string>();
+		const result: UserRepoWithListId[] = [];
+
+		for (const r of userRepos) {
+			const key = computeSlotKey(r, usedKeys);
+			const listId = prev.get(key) ?? crypto.randomUUID();
+			next.set(key, listId);
+			result.push({ ...r, listId });
+		}
+
+		listIdMapRef.current = next;
+		return result;
+	}, [userRepos]);
+
+	const [orderedListIds, setOrderedListIds] = useState<string[]>(() =>
+		augmentedUserRepos.map((r) => r.listId),
 	);
 
 	useEffect(() => {
-		setOrderedIds(userRepos?.map((r) => r.id) ?? []);
-	}, [userRepos]);
+		setOrderedListIds(augmentedUserRepos.map((r) => r.listId));
+	}, [augmentedUserRepos]);
 
-	const userRepoMap = useMemo(
-		() => new Map((userRepos ?? []).map((r) => [r.id, r])),
-		[userRepos],
+	const userRepoByListId = useMemo(
+		() => new Map(augmentedUserRepos.map((r) => [r.listId, r])),
+		[augmentedUserRepos],
 	);
+
+	const userRepoByListIdRef =
+		useRef<Map<string, UserRepoWithListId>>(userRepoByListId);
+	useEffect(() => {
+		userRepoByListIdRef.current = userRepoByListId;
+	}, [userRepoByListId]);
 
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [overId, setOverId] = useState<string | null>(null);
@@ -219,24 +272,47 @@ function PageBody() {
 
 	const sensors = useSensors(useSensor(PointerSensor));
 
-	const orderedIdsSet = useMemo(() => new Set(orderedIds), [orderedIds]);
+	const orderedListIdsSet = useMemo(
+		() => new Set(orderedListIds),
+		[orderedListIds],
+	);
 
 	const collisionDetection = useCallback<CollisionDetection>(
 		(args) =>
 			closestCenter({
 				...args,
 				droppableContainers: args.droppableContainers.filter((c) =>
-					orderedIdsSet.has(c.id as string),
+					orderedListIdsSet.has(c.id as string),
 				),
 			}),
-		[orderedIdsSet],
+		[orderedListIdsSet],
 	);
 
 	const queryClient = useQueryClient();
 	const reorderMutation = useMutation({
-		mutationFn: (ids: string[]) => commands.environmentReorderRepositories(ids),
+		mutationFn: (listIds: string[]) => {
+			const indices = listIds
+				.map((lid) => userRepoByListId.get(lid)?.index)
+				.filter((i): i is number => i !== undefined);
+			return commands.environmentReorderRepositories(indices);
+		},
+		// Pin listIds to the new positions so duplicate-keyed rows don't swap their listIds on refetch.
+		onMutate: (newListIds: string[]) => {
+			const prevMap = new Map(listIdMapRef.current);
+			const rebuilt = new Map<string, string>();
+			const usedKeys = new Set<string>();
+			for (const lid of newListIds) {
+				const repo = userRepoByListIdRef.current.get(lid);
+				if (!repo) continue;
+				const key = computeSlotKey(repo, usedKeys);
+				rebuilt.set(key, lid);
+			}
+			listIdMapRef.current = rebuilt;
+			return { prevMap };
+		},
 		onSettled: () => queryClient.invalidateQueries(environmentRepositoriesInfo),
-		onError: (e) => {
+		onError: (e, _newListIds, ctx) => {
+			if (ctx?.prevMap) listIdMapRef.current = ctx.prevMap;
 			toastThrownError(e);
 		},
 	});
@@ -288,8 +364,8 @@ function PageBody() {
 	const activeVisualIndex = useMemo(() => {
 		if (!activeId) return 0;
 		const effectiveId = overId ?? activeId;
-		return orderedIds.indexOf(effectiveId) + 2; // +2 for the 2 fixed rows
-	}, [activeId, overId, orderedIds]);
+		return orderedListIds.indexOf(effectiveId) + 2; // +2 for the 2 fixed rows
+	}, [activeId, overId, orderedListIds]);
 
 	function handleDragStart(event: DragStartEvent) {
 		setActiveId(event.active.id as string);
@@ -311,11 +387,11 @@ function PageBody() {
 		setOverId(null);
 		const { active, over } = event;
 		if (over && active.id !== over.id) {
-			const oldIndex = orderedIds.indexOf(active.id as string);
-			const newIndex = orderedIds.indexOf(over.id as string);
-			const newIds = arrayMove(orderedIds, oldIndex, newIndex);
-			setOrderedIds(newIds);
-			reorderMutation.mutate(newIds);
+			const oldIndex = orderedListIds.indexOf(active.id as string);
+			const newIndex = orderedListIds.indexOf(over.id as string);
+			const newListIds = arrayMove(orderedListIds, oldIndex, newIndex);
+			setOrderedListIds(newListIds);
+			reorderMutation.mutate(newListIds);
 		}
 	}
 
@@ -385,8 +461,8 @@ function PageBody() {
 						viewportRef={scrollViewportRef}
 					>
 						<RepositoryTableBody
-							orderedIds={orderedIds}
-							userRepoMap={userRepoMap}
+							orderedListIds={orderedListIds}
+							userRepoByListId={userRepoByListId}
 							hiddenUserRepos={hiddenUserRepos}
 							theadRowRef={theadRowRef}
 							guiAnimation={guiAnimation}
@@ -400,12 +476,14 @@ function PageBody() {
 			</VStack>
 			<DragOverlay
 				modifiers={DRAG_OVERLAY_MODIFIERS}
-				dropAnimation={guiAnimation ? defaultDropAnimation : null}
+				dropAnimation={guiAnimation ? customDropAnimation : null}
 			>
 				{activeId ? (
 					<RepositoryDragOverlay
-						repo={userRepoMap.get(activeId)}
-						selected={!hiddenUserRepos.has(activeId)}
+						repo={userRepoByListId.get(activeId)}
+						selected={
+							!hiddenUserRepos.has(userRepoByListId.get(activeId)?.id ?? "")
+						}
 						columnWidths={columnWidths}
 						visualIndex={activeVisualIndex}
 						guiAnimation={guiAnimation}
@@ -417,16 +495,16 @@ function PageBody() {
 }
 
 function RepositoryTableBody({
-	orderedIds,
-	userRepoMap,
+	orderedListIds,
+	userRepoByListId,
 	hiddenUserRepos,
 	theadRowRef,
 	guiAnimation,
 	onToggleVisibility,
 	isDragActive,
 }: {
-	orderedIds: string[];
-	userRepoMap: Map<string, TauriUserRepository>;
+	orderedListIds: string[];
+	userRepoByListId: Map<string, UserRepoWithListId>;
 	hiddenUserRepos: Set<string>;
 	theadRowRef: React.RefObject<HTMLTableRowElement | null>;
 	guiAnimation: boolean;
@@ -475,16 +553,18 @@ function RepositoryTableBody({
 					isDragActive={isDragActive}
 				/>
 				<SortableContext
-					items={orderedIds}
+					items={orderedListIds}
 					strategy={verticalListSortingStrategy}
 				>
-					{orderedIds.map((id, index) => {
-						const repo = userRepoMap.get(id);
+					{orderedListIds.map((listId, index) => {
+						const repo = userRepoByListId.get(listId);
 						if (!repo) return null;
 						return (
 							<RepositoryRow
-								key={repo.id}
+								key={listId}
+								listId={listId}
 								repoId={repo.id}
+								repoIndex={repo.index}
 								displayName={repo.display_name}
 								url={repo.url}
 								hiddenUserRepos={hiddenUserRepos}
@@ -602,7 +682,9 @@ function RepositoryRowCells({
 }
 
 function RepositoryRow({
+	listId,
 	repoId,
+	repoIndex,
 	displayName,
 	url,
 	hiddenUserRepos,
@@ -613,7 +695,9 @@ function RepositoryRow({
 	onToggleVisibility,
 	isDragActive,
 }: {
+	listId?: string;
 	repoId: TauriUserRepository["id"];
+	repoIndex?: number;
 	displayName: TauriUserRepository["display_name"];
 	url: TauriUserRepository["url"];
 	hiddenUserRepos: Set<string>;
@@ -633,7 +717,7 @@ function RepositoryRow({
 		transform,
 		transition,
 		isDragging,
-	} = useSortable({ id: repoId, disabled: !canRemove });
+	} = useSortable({ id: listId ?? repoId, disabled: !canRemove });
 
 	const visualIndex = useMemo(() => {
 		if (isDragging) return rowIndex;
@@ -675,7 +759,7 @@ function RepositoryRow({
 				onRemove={() =>
 					void openSingleDialog(RemoveRepositoryDialog, {
 						displayName,
-						id: repoId,
+						index: repoIndex ?? 0,
 					})
 				}
 				dragListeners={listeners}
@@ -739,18 +823,18 @@ function RepositoryDragOverlay({
 function RemoveRepositoryDialog({
 	dialog,
 	displayName,
-	id,
+	index,
 }: {
 	dialog: DialogContext<void>;
 	displayName: string;
-	id: string;
+	index: number;
 }) {
 	const queryClient = useQueryClient();
 
 	const removeRepository = useMutation({
-		mutationFn: async (id: string) =>
-			await commands.environmentRemoveRepository(id),
-		onMutate: async (id) => {
+		mutationFn: async (index: number) =>
+			await commands.environmentRemoveRepository(index),
+		onMutate: async (index) => {
 			await queryClient.cancelQueries(environmentRepositoriesInfo);
 			const data = queryClient.getQueryData(
 				environmentRepositoriesInfo.queryKey,
@@ -758,10 +842,18 @@ function RemoveRepositoryDialog({
 			if (data !== undefined) {
 				queryClient.setQueryData(environmentRepositoriesInfo.queryKey, {
 					...data,
-					user_repositories: data.user_repositories.filter((x) => x.id !== id),
+					user_repositories: data.user_repositories.filter(
+						(x) => x.index !== index,
+					),
 				});
 			}
+			return data;
 		},
+		onError: (e, _index, ctx) => {
+			queryClient.setQueryData(environmentRepositoriesInfo.queryKey, ctx);
+			toastThrownError(e);
+		},
+		onSettled: () => queryClient.invalidateQueries(environmentRepositoriesInfo),
 	});
 
 	return (
@@ -781,7 +873,7 @@ function RemoveRepositoryDialog({
 				<Button
 					onClick={() => {
 						dialog.close();
-						removeRepository.mutate(id);
+						removeRepository.mutate(index);
 					}}
 					className={"ml-2"}
 				>
