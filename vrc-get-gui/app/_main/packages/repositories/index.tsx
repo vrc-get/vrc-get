@@ -9,7 +9,6 @@ import {
 	DragOverlay,
 	type DragStartEvent,
 	defaultDropAnimation,
-	defaultDropAnimationSideEffects,
 	type Modifier,
 	PointerSensor,
 	useSensor,
@@ -86,15 +85,6 @@ const restrictToVerticalAxis: Modifier = ({ transform }) => ({
 });
 
 const DRAG_OVERLAY_MODIFIERS = [restrictToVerticalAxis];
-
-const customDropAnimation: typeof defaultDropAnimation = {
-	...defaultDropAnimation,
-	sideEffects: defaultDropAnimationSideEffects({
-		styles: {
-			active: { opacity: "0" },
-		},
-	}),
-};
 
 const TABLE_HEAD = [
 	"", // checkbox
@@ -230,9 +220,18 @@ function PageBody() {
 
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [overId, setOverId] = useState<string | null>(null);
+	const [droppingListId, setDroppingListId] = useState<string | null>(null);
+	const droppingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [columnWidths, setColumnWidths] = useState<number[]>([]);
 	const theadRowRef = useRef<HTMLTableRowElement>(null);
 	const scrollViewportRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		return () => {
+			if (droppingTimerRef.current !== null)
+				clearTimeout(droppingTimerRef.current);
+		};
+	}, []);
 
 	const sensors = useSensors(useSensor(PointerSensor));
 
@@ -332,15 +331,25 @@ function PageBody() {
 	}
 
 	function handleDragEnd(event: DragEndEvent) {
+		const { active, over } = event;
 		setActiveId(null);
 		setOverId(null);
-		const { active, over } = event;
 		if (over && active.id !== over.id) {
-			const oldIndex = orderedListIds.indexOf(active.id as string);
+			const droppedListId = active.id as string;
+			const oldIndex = orderedListIds.indexOf(droppedListId);
 			const newIndex = orderedListIds.indexOf(over.id as string);
 			const newListIds = arrayMove(orderedListIds, oldIndex, newIndex);
 			setOrderedListIds(newListIds);
 			reorderMutation.mutate(newListIds);
+			if (guiAnimation) {
+				setDroppingListId(droppedListId);
+				if (droppingTimerRef.current !== null)
+					clearTimeout(droppingTimerRef.current);
+				droppingTimerRef.current = setTimeout(() => {
+					setDroppingListId(null);
+					droppingTimerRef.current = null;
+				}, defaultDropAnimation.duration ?? 250);
+			}
 		}
 	}
 
@@ -419,13 +428,14 @@ function PageBody() {
 								setHideRepository.mutate({ id, shown })
 							}
 							isDragActive={activeId !== null}
+							droppingListId={droppingListId}
 						/>
 					</ScrollableCardTable>
 				</main>
 			</VStack>
 			<DragOverlay
 				modifiers={DRAG_OVERLAY_MODIFIERS}
-				dropAnimation={guiAnimation ? customDropAnimation : null}
+				dropAnimation={guiAnimation ? defaultDropAnimation : null}
 			>
 				{activeId ? (
 					<RepositoryDragOverlay
@@ -451,6 +461,7 @@ function RepositoryTableBody({
 	guiAnimation,
 	onToggleVisibility,
 	isDragActive,
+	droppingListId,
 }: {
 	orderedListIds: string[];
 	userRepoByListId: Map<string, UserRepoWithListId>;
@@ -459,6 +470,7 @@ function RepositoryTableBody({
 	guiAnimation: boolean;
 	onToggleVisibility: (id: string, shown: boolean) => void;
 	isDragActive: boolean;
+	droppingListId: string | null;
 }) {
 	return (
 		<>
@@ -488,6 +500,7 @@ function RepositoryTableBody({
 					guiAnimation={guiAnimation}
 					onToggleVisibility={onToggleVisibility}
 					isDragActive={isDragActive}
+					droppingListId={droppingListId}
 				/>
 				<RepositoryRow
 					repoId={"com.vrchat.repos.curated"}
@@ -500,6 +513,7 @@ function RepositoryTableBody({
 					guiAnimation={guiAnimation}
 					onToggleVisibility={onToggleVisibility}
 					isDragActive={isDragActive}
+					droppingListId={droppingListId}
 				/>
 				<SortableContext
 					items={orderedListIds}
@@ -521,6 +535,7 @@ function RepositoryTableBody({
 								guiAnimation={guiAnimation}
 								onToggleVisibility={onToggleVisibility}
 								isDragActive={isDragActive}
+								droppingListId={droppingListId}
 							/>
 						);
 					})}
@@ -643,6 +658,7 @@ function RepositoryRow({
 	guiAnimation,
 	onToggleVisibility,
 	isDragActive,
+	droppingListId,
 }: {
 	listId?: string;
 	repoId: TauriUserRepository["id"];
@@ -656,6 +672,7 @@ function RepositoryRow({
 	guiAnimation: boolean;
 	onToggleVisibility: (id: string, shown: boolean) => void;
 	isDragActive: boolean;
+	droppingListId: string | null;
 }) {
 	const labelId = useId();
 
@@ -668,14 +685,6 @@ function RepositoryRow({
 		isDragging,
 	} = useSortable({ id: listId ?? repoId, disabled: !canRemove });
 
-	const visualIndex = useMemo(() => {
-		if (isDragging) return rowIndex;
-		const dy = transform?.y ?? 0;
-		if (dy < 0) return rowIndex - 1;
-		if (dy > 0) return rowIndex + 1;
-		return rowIndex;
-	}, [rowIndex, transform?.y, isDragging]);
-
 	const dragStyle = useMemo<React.CSSProperties>(
 		() => ({
 			transform: transform ? `translateY(${transform.y}px)` : undefined,
@@ -684,10 +693,18 @@ function RepositoryRow({
 						.filter(Boolean)
 						.join(", ") || undefined
 				: undefined,
-			opacity: isDragging ? 0 : 1,
+			opacity: isDragging || listId === droppingListId ? 0 : 1,
 			position: "relative",
 		}),
-		[transform, transition, isDragging, guiAnimation, isDragActive],
+		[
+			transform,
+			transition,
+			isDragging,
+			listId,
+			droppingListId,
+			guiAnimation,
+			isDragActive,
+		],
 	);
 
 	const selected = !hiddenUserRepos.has(repoId);
@@ -696,7 +713,7 @@ function RepositoryRow({
 		<tr
 			ref={setNodeRef}
 			style={dragStyle}
-			className={cn(visualIndex % 2 === 1 ? "bg-secondary/30" : "", className)}
+			className={cn(rowIndex % 2 === 1 ? "bg-secondary/30" : "", className)}
 		>
 			<RepositoryRowCells
 				labelId={labelId}
