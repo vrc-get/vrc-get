@@ -9,6 +9,7 @@ import {
 	DragOverlay,
 	type DragStartEvent,
 	defaultDropAnimation,
+	defaultDropAnimationSideEffects,
 	type Modifier,
 	PointerSensor,
 	useSensor,
@@ -85,6 +86,15 @@ const restrictToVerticalAxis: Modifier = ({ transform }) => ({
 });
 
 const DRAG_OVERLAY_MODIFIERS = [restrictToVerticalAxis];
+
+const customDropAnimation: typeof defaultDropAnimation = {
+	...defaultDropAnimation,
+	sideEffects: defaultDropAnimationSideEffects({
+		styles: {
+			active: { opacity: "0" },
+		},
+	}),
+};
 
 const TABLE_HEAD = [
 	"", // checkbox
@@ -201,7 +211,7 @@ function PageBody() {
 	const userRepos = result.data?.user_repositories;
 
 	const augmentedUserRepos = useMemo<UserRepoWithListId[]>(
-		() => (userRepos ?? []).map((r) => ({ ...r, listId: crypto.randomUUID() })),
+		() => (userRepos ?? []).map((r) => ({ ...r, listId: String(r.index) })),
 		[userRepos],
 	);
 
@@ -415,7 +425,7 @@ function PageBody() {
 			</VStack>
 			<DragOverlay
 				modifiers={DRAG_OVERLAY_MODIFIERS}
-				dropAnimation={guiAnimation ? defaultDropAnimation : null}
+				dropAnimation={guiAnimation ? customDropAnimation : null}
 			>
 				{activeId ? (
 					<RepositoryDragOverlay
