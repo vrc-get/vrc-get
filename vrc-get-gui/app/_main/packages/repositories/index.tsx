@@ -201,7 +201,7 @@ function PageBody() {
 	const userRepos = result.data?.user_repositories;
 
 	const augmentedUserRepos = useMemo<UserRepoWithListId[]>(
-		() => (userRepos ?? []).map((r) => ({ ...r, listId: String(r.index) })),
+		() => (userRepos ?? []).map((r) => ({ ...r, listId: crypto.randomUUID() })),
 		[userRepos],
 	);
 
