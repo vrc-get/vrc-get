@@ -193,6 +193,7 @@ jobs:
           cargo xtask check-static-link target/${{ matrix.triple }}/release/vrc-get${WINDIR:+.exe}
 
       - name: Move artifacts
+        if: ${{ !cancelled() }}
         shell: bash
         run: |-
           mkdir artifacts
@@ -203,6 +204,7 @@ jobs:
           popd
 
       - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
         with:
           name: artifacts-${{ matrix.triple }}
           path: artifacts/*
