@@ -161,6 +161,18 @@ function useDragAutoScroll(
 	}, [isActive, viewportRef]);
 }
 
+function computeSlotKey(repo: TauriUserRepository, used: Set<string>): string {
+	const base = `${repo.id} ${repo.url ?? ""}`;
+	let key = base;
+	let counter = 0;
+	while (used.has(key)) {
+		counter++;
+		key = `${base} ${counter}`;
+	}
+	used.add(key);
+	return key;
+}
+
 function PageBody() {
 	const result = useQuery(environmentRepositoriesInfo);
 
@@ -210,10 +222,28 @@ function PageBody() {
 
 	const userRepos = result.data?.user_repositories;
 
-	const augmentedUserRepos = useMemo<UserRepoWithListId[]>(
-		() => (userRepos ?? []).map((r) => ({ ...r, listId: crypto.randomUUID() })),
-		[userRepos],
-	);
+	const listIdMapRef = useRef<Map<string, string>>(new Map());
+
+	const augmentedUserRepos = useMemo<UserRepoWithListId[]>(() => {
+		if (!userRepos) {
+			listIdMapRef.current = new Map();
+			return [];
+		}
+		const prev = listIdMapRef.current;
+		const next = new Map<string, string>();
+		const usedKeys = new Set<string>();
+		const result: UserRepoWithListId[] = [];
+
+		for (const r of userRepos) {
+			const key = computeSlotKey(r, usedKeys);
+			const listId = prev.get(key) ?? crypto.randomUUID();
+			next.set(key, listId);
+			result.push({ ...r, listId });
+		}
+
+		listIdMapRef.current = next;
+		return result;
+	}, [userRepos]);
 
 	const [orderedListIds, setOrderedListIds] = useState<string[]>(() =>
 		augmentedUserRepos.map((r) => r.listId),
@@ -227,6 +257,12 @@ function PageBody() {
 		() => new Map(augmentedUserRepos.map((r) => [r.listId, r])),
 		[augmentedUserRepos],
 	);
+
+	const userRepoByListIdRef =
+		useRef<Map<string, UserRepoWithListId>>(userRepoByListId);
+	useEffect(() => {
+		userRepoByListIdRef.current = userRepoByListId;
+	}, [userRepoByListId]);
 
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [overId, setOverId] = useState<string | null>(null);
@@ -260,8 +296,23 @@ function PageBody() {
 				.filter((i): i is number => i !== undefined);
 			return commands.environmentReorderRepositories(indices);
 		},
+		// Pin listIds to the new positions so duplicate-keyed rows don't swap their listIds on refetch.
+		onMutate: (newListIds: string[]) => {
+			const prevMap = new Map(listIdMapRef.current);
+			const rebuilt = new Map<string, string>();
+			const usedKeys = new Set<string>();
+			for (const lid of newListIds) {
+				const repo = userRepoByListIdRef.current.get(lid);
+				if (!repo) continue;
+				const key = computeSlotKey(repo, usedKeys);
+				rebuilt.set(key, lid);
+			}
+			listIdMapRef.current = rebuilt;
+			return { prevMap };
+		},
 		onSettled: () => queryClient.invalidateQueries(environmentRepositoriesInfo),
-		onError: (e) => {
+		onError: (e, _newListIds, ctx) => {
+			if (ctx?.prevMap) listIdMapRef.current = ctx.prevMap;
 			toastThrownError(e);
 		},
 	});
