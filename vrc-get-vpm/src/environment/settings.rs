@@ -269,6 +269,14 @@ impl Settings {
         self.vpm.retain_user_repos(|x| !condition(x))
     }
 
+    pub fn remove_repo_at_index(&mut self, index: usize) -> Option<UserRepoSetting> {
+        self.vpm.remove_user_repo_at_index(index)
+    }
+
+    pub fn reorder_user_repos_by_indices(&mut self, indices: &[usize]) {
+        self.vpm.reorder_user_repos_by_indices(indices);
+    }
+
     // auto configurations
 
     /// Removes id-duplicated repositories

@@ -155,6 +155,32 @@ impl VpmSettings {
             .collect::<Vec<_>>()
     }
 
+    pub fn remove_user_repo_at_index(&mut self, index: usize) -> Option<UserRepoSetting> {
+        let repos = &mut self.parsed.user_repos;
+        if index < repos.len() {
+            Some(repos.remove(index))
+        } else {
+            None
+        }
+    }
+
+    pub fn reorder_user_repos_by_indices(&mut self, indices: &[usize]) {
+        let mut pool: Vec<Option<UserRepoSetting>> = std::mem::take(&mut self.parsed.user_repos)
+            .into_iter()
+            .map(Some)
+            .collect();
+        let mut result = Vec::with_capacity(pool.len());
+        for &idx in indices {
+            if let Some(slot) = pool.get_mut(idx)
+                && let Some(repo) = slot.take()
+            {
+                result.push(repo);
+            }
+        }
+        result.extend(pool.into_iter().flatten());
+        self.parsed.user_repos = result;
+    }
+
     pub(crate) fn add_user_repo(&mut self, repo: UserRepoSetting) {
         self.parsed.user_repos.push(repo);
     }
