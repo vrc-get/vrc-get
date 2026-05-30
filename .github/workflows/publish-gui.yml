@@ -287,6 +287,7 @@ jobs:
           cargo xtask sign-alcom-updater "target/${{ matrix.triple }}/release/${UPDATER_BUNDLE}"
 
       - name: Move artifacts
+        if: ${{ !cancelled() }}
         shell: bash
         env:
           GUI_VERSION: ${{ needs.pre-build.outputs.gui-version }}
@@ -305,6 +306,7 @@ jobs:
           done
 
       - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
         with:
           name: artifacts-${{ matrix.name }}
           path: artifacts/*

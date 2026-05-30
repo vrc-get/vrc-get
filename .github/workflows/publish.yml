@@ -12,6 +12,11 @@ on:
           - prerelease
           - start-rc
           - stable
+      dry-run:
+        type: boolean
+        description: Dry Run, If true, do not publish release to GitHub.
+        default: true
+        required: false
 
 concurrency:
   group: releasing
@@ -70,8 +75,12 @@ jobs:
               echo "head is master, master-*, or hotfix-*"
               ;;
             * )
-              echo "invalid release kind: $RELEASE_KIND_IN is not allowd for $GITHUB_REF_NAME"
-              exit 255
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "head is not master, but DRY_RUN is true"
+              else
+                echo "head is not master, but DRY_RUN is false"
+                exit 255
+              fi
               ;;
           esac
 
@@ -79,6 +88,7 @@ jobs:
           gh-export-variable VPM_VERSION "$(get-version -t vpm)"
         env:
           RELEASE_KIND_IN: ${{ github.event.inputs.release_kind }}
+          DRY_RUN: ${{ inputs.dry-run }}
 
       # region changelog
       - name: Create Changelog
@@ -189,10 +199,13 @@ jobs:
         run: cargo build --target ${{ matrix.triple }} --release --verbose
       - name: Check binary is statically linked
         shell: bash
+        env:
+          RUSTFLAGS: ''
         run: |
           cargo xtask check-static-link target/${{ matrix.triple }}/release/vrc-get${WINDIR:+.exe}
 
       - name: Move artifacts
+        if: ${{ !cancelled() }}
         shell: bash
         run: |-
           mkdir artifacts
@@ -203,12 +216,14 @@ jobs:
           popd
 
       - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
         with:
           name: artifacts-${{ matrix.triple }}
           path: artifacts/*
 
   publish-crates-io:
     name: Publish to crates.io
+    if: ${{ !inputs.dry-run }}
     environment:
       name: crates.io
       url: https://crates.io/crates/vrc-get
@@ -233,6 +248,7 @@ jobs:
 
   publish-to-github:
     name: Publish to GitHub
+    if: ${{ !inputs.dry-run }}
     environment:
       name: actions-github-app
       url: https://github.com/anatawa12/vrc-get/releases/v${{ needs.pre-build.outputs.cli-version }}
@@ -337,7 +353,7 @@ jobs:
   publish-to-homebrew:
     name: Publish to homebrew
     # vrc-get is on autobump list https://github.com/Homebrew/homebrew-core/blame/master/.github/autobump.txt
-    if: false # ${{ !needs.pre-build.outputs.prerelease }}
+    if: false # ${{ !inputs.dry-run && !needs.pre-build.outputs.prerelease }}
     environment:
       name: homebrew-core
       url: https://github.com/homebrew/homebrew-core
@@ -351,7 +367,7 @@ jobs:
 
   publish-to-winget:
     name: Publish to winget
-    if: ${{ !needs.pre-build.outputs.prerelease }}
+    if: ${{ !inputs.dry-run && !needs.pre-build.outputs.prerelease }}
     needs: [ pre-build, publish-to-github ]
 
     uses: vrc-get/vrc-get/.github/workflows/publish-cli-winget.yml@master
