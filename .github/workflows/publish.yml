@@ -12,6 +12,11 @@ on:
           - prerelease
           - start-rc
           - stable
+      dry-run:
+        type: boolean
+        description: Dry Run, If true, do not publish release to GitHub.
+        default: true
+        required: false
 
 concurrency:
   group: releasing
@@ -211,6 +216,7 @@ jobs:
 
   publish-crates-io:
     name: Publish to crates.io
+    if: ${{ !inputs.dry-run }}
     environment:
       name: crates.io
       url: https://crates.io/crates/vrc-get
@@ -235,6 +241,7 @@ jobs:
 
   publish-to-github:
     name: Publish to GitHub
+    if: ${{ !inputs.dry-run }}
     environment:
       name: actions-github-app
       url: https://github.com/anatawa12/vrc-get/releases/v${{ needs.pre-build.outputs.cli-version }}
@@ -339,7 +346,7 @@ jobs:
   publish-to-homebrew:
     name: Publish to homebrew
     # vrc-get is on autobump list https://github.com/Homebrew/homebrew-core/blame/master/.github/autobump.txt
-    if: false # ${{ !needs.pre-build.outputs.prerelease }}
+    if: false # ${{ !inputs.dry-run && !needs.pre-build.outputs.prerelease }}
     environment:
       name: homebrew-core
       url: https://github.com/homebrew/homebrew-core
@@ -353,7 +360,7 @@ jobs:
 
   publish-to-winget:
     name: Publish to winget
-    if: ${{ !needs.pre-build.outputs.prerelease }}
+    if: ${{ !inputs.dry-run && !needs.pre-build.outputs.prerelease }}
     needs: [ pre-build, publish-to-github ]
 
     uses: vrc-get/vrc-get/.github/workflows/publish-cli-winget.yml@master
