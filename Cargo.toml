@@ -5,6 +5,8 @@ members = [
     "xtask",
     "vrc-get",
     "vrc-get-gui",
+    "vrc-get-gui-gpui",
+    "vrc-get-gui-runtime",
     "vrc-get-gui/windows-installer-wrapper",
     "vrc-get-vpm",
 ]
@@ -31,3 +33,6 @@ incremental = false
 debug = 1
 opt-level = 0
 lto = "off"
+
+[patch.crates-io]
+gpui = { git = "https://github.com/zed-industries/zed.git", rev = "69e2130295c2649963eb639fc70b4f2ee8ea1624", package = "gpui" }

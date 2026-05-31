@@ -24,6 +24,7 @@ serde = { version = "1", features = ["derive"] }
 serde_with = { version = "3", features = ["base64"] }
 tauri = { version = "=2.11.2", features = [ "config-toml" ] } # = for sync version between npm and cargo
 vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management"] }
+vrc-get-gui-runtime = { path = "../vrc-get-gui-runtime" }
 reqwest = { version = "0.13", features = ["gzip", "brotli", "json"] }
 specta = { version = "2.0.0-rc.24", features = [ "chrono", "url", "indexmap" ] }
 tauri-specta = { version = "2.0.0-rc.24", features = ["typescript"] }

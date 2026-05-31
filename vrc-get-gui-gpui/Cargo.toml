@@ -1,0 +1,22 @@
+[package]
+name = "vrc-get-gui-gpui"
+version = "0.1.0"
+description = "Experimental GPUI frontend for vrc-get"
+
+homepage.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "vrc-get-gui-gpui"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+gpui = { git = "https://github.com/zed-industries/zed.git", rev = "69e2130295c2649963eb639fc70b4f2ee8ea1624", package = "gpui" }
+gpui-component = "=0.5.1"
+rfd = "0.15"
+vrc-get-vpm = { path = "../vrc-get-vpm", features = ["experimental-project-management", "experimental-unity-management"] }
+vrc-get-gui-runtime = { path = "../vrc-get-gui-runtime" }

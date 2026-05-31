@@ -9,6 +9,7 @@
 		"dev": "vite",
 		"build": "npm install && npm run build:vite",
 		"build:vite": "vite build",
+		"i18n:to-rust": "node scripts/i18next-to-rust-i18n.mjs",
 		"format": "biome format",
 		"check": "biome check",
 		"lint": "tsc && biome lint"
