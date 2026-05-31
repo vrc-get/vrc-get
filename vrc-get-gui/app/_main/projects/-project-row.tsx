@@ -29,7 +29,11 @@ import {
 import { assertNever } from "@/lib/assert-never";
 import type { TauriProject, TauriProjectType } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
-import { dateToString, formatDateOffset } from "@/lib/dateToString";
+import {
+	dateToString,
+	dayToString,
+	formatDateOffset,
+} from "@/lib/dateToString";
 import { type DialogContext, openSingleDialog, showDialog } from "@/lib/dialog";
 import { tc, tt } from "@/lib/i18n";
 import { router } from "@/lib/main";
@@ -78,7 +82,7 @@ export function ProjectRow({
 	const noGrowCellClass = `${cellClass} w-1`;
 	const typeIconClass = "w-5 h-5";
 
-	const { projectTypeKind, displayType, isLegacy, lastModified } =
+	const { projectTypeKind, displayType, isLegacy, createdAt, lastModified } =
 		getProjectDisplayInfo(project);
 
 	const openProjectFolder = () =>
@@ -170,6 +174,22 @@ export function ProjectRow({
 				</td>
 				<td className={noGrowCellClass}>
 					<p className="font-normal">{project.unity}</p>
+				</td>
+				<td className={noGrowCellClass}>
+					<Tooltip>
+						<TooltipTrigger>
+							<time dateTime={createdAt.toISOString()}>
+								<time className="font-normal">
+									{dayToString(project.created_at)}
+								</time>
+							</time>
+						</TooltipTrigger>
+						<TooltipPortal>
+							<TooltipContent>
+								{dateToString(project.created_at)}
+							</TooltipContent>
+						</TooltipPortal>
+					</Tooltip>
 				</td>
 				<td className={noGrowCellClass}>
 					<Tooltip>
@@ -501,12 +521,14 @@ export function getProjectDisplayInfo(project: TauriProject) {
 	const projectTypeKind = ProjectDisplayType[project.project_type] ?? "unknown";
 	const displayType = tc(`projects:type:${projectTypeKind}`);
 	const isLegacy = LegacyProjectTypes.includes(project.project_type);
+	const createdAt = new Date(project.created_at);
 	const lastModified = new Date(project.last_modified);
 
 	return {
 		projectTypeKind,
 		displayType,
 		isLegacy,
+		createdAt,
 		lastModified,
 	};
 }
