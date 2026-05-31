@@ -4,26 +4,6 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import JSON5 from "json5";
 
-function setNested(root, dottedKey, value) {
-	const parts = dottedKey.split(":");
-	let current = root;
-
-	for (let i = 0; i < parts.length - 1; i++) {
-		const key = parts[i];
-		if (!(key in current)) current[key] = {};
-		if (
-			typeof current[key] !== "object" ||
-			current[key] === null ||
-			Array.isArray(current[key])
-		) {
-			throw new Error(`Key collision at '${parts.slice(0, i + 1).join(":")}'`);
-		}
-		current = current[key];
-	}
-
-	current[parts.at(-1)] = value;
-}
-
 function toYaml(value, indent = 0) {
 	const pad = "  ".repeat(indent);
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -58,12 +38,7 @@ async function main() {
 		throw new Error("Expected object at root or translation");
 	}
 
-	const rustI18n = {};
-	for (const [key, value] of Object.entries(translationRoot)) {
-		setNested(rustI18n, key, value);
-	}
-
-	const yaml = `${toYaml(rustI18n)}\n`;
+	const yaml = `${toYaml(translationRoot)}\n`;
 	await writeFile(outputPath, yaml, "utf8");
 	console.log(`Converted ${inputPath} -> ${outputPath}`);
 }

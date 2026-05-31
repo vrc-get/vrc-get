@@ -11,4 +11,4 @@ repository.workspace = true
 tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["macros", "rt", "time"] }

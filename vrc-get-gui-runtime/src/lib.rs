@@ -89,7 +89,9 @@ impl TokioBridge {
     }
 
     pub fn shutdown(&self) -> Result<(), BridgeClosed> {
-        self.sender.send(Message::Shutdown).map_err(|_| BridgeClosed)
+        self.sender
+            .send(Message::Shutdown)
+            .map_err(|_| BridgeClosed)
     }
 }
 
@@ -120,7 +122,13 @@ mod tests {
             })
             .unwrap();
 
-        assert_eq!(timeout(Duration::from_secs(1), receiver).await.unwrap().unwrap(), "done");
+        assert_eq!(
+            timeout(Duration::from_secs(1), receiver)
+                .await
+                .unwrap()
+                .unwrap(),
+            "done"
+        );
 
         bridge.shutdown().unwrap();
     }

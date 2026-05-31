@@ -1,8 +1,8 @@
+use gpui::prelude::*;
 use gpui::{
     App, Application, Context, IntoElement, ParentElement, Render, Styled, Window, WindowOptions,
     div,
 };
-use gpui::prelude::*;
 use gpui_component::{
     Root, WindowExt,
     button::{Button, ButtonVariants as _},
@@ -103,7 +103,7 @@ impl PackageManagementPoc {
 }
 
 impl Render for PackageManagementPoc {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         v_flex()
             .size_full()
             .p_4()
@@ -112,7 +112,7 @@ impl Render for PackageManagementPoc {
                 h_flex()
                     .items_center()
                     .justify_between()
-                    .child(Input::new(&self.search_input).cleanable())
+                    .child(Input::new(&self.search_input).cleanable(true))
                     .child(
                         h_flex()
                             .gap_2()
@@ -140,9 +140,9 @@ impl Render for PackageManagementPoc {
             )
             .child(Table::new(&self.table_state).stripe(true))
             .child(
-                div().opacity(0.7).child(
-                    "POC target: package table + dialog + text input before full migration",
-                ),
+                div()
+                    .opacity(0.7)
+                    .child("POC target: package table + dialog + text input before full migration"),
             )
     }
 }
