@@ -109,7 +109,7 @@ export function ProjectRow({
 			<tr
 				className={`group even:bg-secondary/30 ${removed || loading || !(project.is_valid ?? true) ? "opacity-50" : ""}`}
 			>
-				<td className={`${cellClass} w-3`}>
+				<td className={noGrowCellClass}>
 					<div className={"relative flex"}>
 						<FavoriteStarToggleButton
 							favorite={project.favorite}
@@ -151,7 +151,7 @@ export function ProjectRow({
 						</TooltipPortal>
 					</Tooltip>
 				</td>
-				<td className={`${cellClass} w-[8em] min-w-[8em]`}>
+				<td className={noGrowCellClass}>
 					<div className="flex flex-row gap-2">
 						<div className="flex items-center">
 							{projectTypeKind === "avatars" ? (
