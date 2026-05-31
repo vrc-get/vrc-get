@@ -11,14 +11,30 @@ This repository now contains a staged migration track to move GUI rendering from
 
 ## Stages
 
-1. Validate with the make-or-break screen first: package management table (`app/_main/projects/manage/-package-list-card.tsx`), including text input and dialog interaction.
-2. Keep backend command layer in Rust/Tokio and migrate frontend incrementally.
-3. Port pages in this order:
-   - Setup wizard
-   - Settings
-   - Log viewer
-   - Projects
-   - Packages (last, hardest)
+### Stage 1 – Validated ✅
+
+Package management table POC (`app/_main/projects/manage/-package-list-card.tsx` equivalent):
+- GPUI table rendering with striped rows and column headers.
+- Text input with clear button and live search filtering.
+- Dialog lifecycle (title, confirm button, child content).
+- Native file dialog integration via `rfd`.
+- `TokioBridge` async plumbing (`spawn` / `call` / `shutdown`).
+
+### Stage 2 – In progress
+
+Wire real `vrc-get-vpm` data into a live Projects list screen:
+- `backend.rs` — async `load_projects()` using `VccDatabaseConnection`.
+- `ProjectsView` — loading state → live data, live search filtering via `cx.observe`.
+- `TokioBridge::call()` dispatches to Tokio; result is awaited in GPUI's async context via `cx.spawn`.
+
+### Stage 3 – Planned
+
+Port pages in this order:
+1. Setup wizard
+2. Settings
+3. Log viewer
+4. Projects (full, with create/add/remove)
+5. Packages (last, hardest)
 
 ## i18n migration
 
@@ -42,3 +58,20 @@ This repository now contains a staged migration track to move GUI rendering from
 - GPUI with Vulkan generally behaves better than WebKit for open-source NVIDIA users.
 - Nouveau may fall back to llvmpipe (software rendering).
 - Mesa + AMD/Intel Vulkan is the expected reliable path.
+
+## Async bridge pattern
+
+```rust
+// Dispatch heavy async work to Tokio; await result in GPUI.
+let rx = self.bridge.call(load_projects()).unwrap();
+cx.spawn(async move |this: WeakEntity<View>, cx: &mut AsyncApp| {
+    if let Ok(Ok(data)) = rx.await {
+        this.update(cx, |view, cx| {
+            view.data = data;
+            cx.notify();
+        }).ok();
+    }
+}).detach();
+```
+
+The pattern works because `tokio::sync::oneshot::Receiver<T>` implements `Future` and can be awaited from within GPUI's executor.
