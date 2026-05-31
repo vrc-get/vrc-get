@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog].
 - Build-time option to disable auto updater `#2759`
   - Please read README for new build instruction.
 - User repositories can now be reordered by drag and drop `#2935`
+- Implement project sorting by creation date `#2941`
 
 ### Changed
 - The "Clear Selection" button in the package management screen is now red (destructive style) to distinguish it from the "Install Selected" button [`#2803`](https://github.com/vrc-get/vrc-get/pull/2803)
