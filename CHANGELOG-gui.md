@@ -8,63 +8,72 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
-- The package list can show hidden packages. `#2731`
-- Build-time option to disable auto updater `#2759`
-  - Please read README for new build instruction.
-- User repositories can now be reordered by drag and drop `#2935`
 
 ### Changed
-- The "Clear Selection" button in the package management screen is now red (destructive style) to distinguish it from the "Install Selected" button [`#2803`](https://github.com/vrc-get/vrc-get/pull/2803)
-- File filled with '\0' or whitespace will be treated as empty file `#2710`
-  - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
-  - We also added a backup file to recover from settings.json corruption `#2933`
-- Completely changed how do we build ALCOM and how do we self-update ALCOM `#2759` `#2828` `#2881` `#2882` `#2885`
-  - This fixes few problems relates to auto update
-  - Please read README for new build instruction.
-- Improved backup speed by parallelizing the process [`#2746`](https://github.com/vrc-get/vrc-get/pull/2746)
-  - Along with this change, the default compression level has been changed to `zip-fast`
-- We added dialog on enabling "Show Prerelease Packages" `#2795`
-  - I hope this prevents users unexpectedly adding prerelease packages
-- Path for unitypackage on Template Editor now can be reselected `#2635`
-- ALCOM now refuses launching project if project is on noexec mount points `#2814`
-  - This would cause problems with several native plugins
-- Already-added packages are now excluded from the package name suggestions in the Template Editor `#2828`
-- Extended some timeouts to 1 minute `#2826`
-    - Prevents timeouts in slow DNS environments
-- Improved robustness for package installation errors `#2844`
-  - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
-- Backslashes in path in zip file are now treated as path separator on unix `#2845`
-  - This fixes problem with Gesture Manager 3.9.7
-- Empty string for `documentationUrl` and `changelogUrl` are now allowed and ignored `#2930`
-  - They are formerly rejected as invalid url
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+### Security
+
+## [1.1.6] - 2026-06-02
+### Added
+- The package list can show hidden packages. [`#2731`](https://github.com/vrc-get/vrc-get/pull/2731)
+- Build-time option to disable auto updater [`#2759`](https://github.com/vrc-get/vrc-get/pull/2759)
+  - Please read README for new build instruction.
+- User repositories can now be reordered by drag and drop [`#2935`](https://github.com/vrc-get/vrc-get/pull/2935)
+
+### Changed
+- The "Clear Selection" button in the package management screen is now red (destructive style) to distinguish it from the "Install Selected" button [`#2803`](https://github.com/vrc-get/vrc-get/pull/2803)
+- File filled with '\0' or whitespace will be treated as empty file [`#2710`](https://github.com/vrc-get/vrc-get/pull/2710)
+  - This should prevent `syntax error loading settings.json: expected value at line 1 column 1` if settings.json is broken
+  - We also added a backup file to recover from settings.json corruption [`#2933`](https://github.com/vrc-get/vrc-get/pull/2933)
+- Completely changed how do we build ALCOM and how do we self-update ALCOM [`#2759`](https://github.com/vrc-get/vrc-get/pull/2759) [`#2828`](https://github.com/vrc-get/vrc-get/pull/2828) [`#2881`](https://github.com/vrc-get/vrc-get/pull/2881) [`#2882`](https://github.com/vrc-get/vrc-get/pull/2882) [`#2885`](https://github.com/vrc-get/vrc-get/pull/2885)
+  - This fixes few problems relates to auto update
+  - Please read README for new build instruction.
+- Improved backup speed by parallelizing the process [`#2746`](https://github.com/vrc-get/vrc-get/pull/2746)
+  - Along with this change, the default compression level has been changed to `zip-fast`
+- We added dialog on enabling "Show Prerelease Packages" [`#2795`](https://github.com/vrc-get/vrc-get/pull/2795)
+  - I hope this prevents users unexpectedly adding prerelease packages
+- Path for unitypackage on Template Editor now can be reselected [`#2635`](https://github.com/vrc-get/vrc-get/pull/2635)
+- ALCOM now refuses launching project if project is on noexec mount points [`#2814`](https://github.com/vrc-get/vrc-get/pull/2814)
+  - This would cause problems with several native plugins
+- Already-added packages are now excluded from the package name suggestions in the Template Editor [`#2828`](https://github.com/vrc-get/vrc-get/pull/2828)
+- Extended some timeouts to 1 minute [`#2826`](https://github.com/vrc-get/vrc-get/pull/2826)
+    - Prevents timeouts in slow DNS environments
+- Improved robustness for package installation errors [`#2844`](https://github.com/vrc-get/vrc-get/pull/2844)
+  - It is now unlikely that vrc-get will leave the project directory corrupted if an I/O error occurs while installing a package
+- Backslashes in path in zip file are now treated as path separator on unix [`#2845`](https://github.com/vrc-get/vrc-get/pull/2845)
+  - This fixes problem with Gesture Manager 3.9.7
+- Empty string for `documentationUrl` and `changelogUrl` are now allowed and ignored [`#2930`](https://github.com/vrc-get/vrc-get/pull/2930)
+  - They are formerly rejected as invalid url
+
+### Fixed
 - Fixed an issue where the progress bar flickered and did not display correct progress in environments using WebKit as the renderer. [`#2641`](https://github.com/vrc-get/vrc-get/pull/2641)
-- Fails to import UnityPackages with files in `Packages` directory `#2679`
-- null as vpmDependencies value is not allowed `#2709`
+- Fails to import UnityPackages with files in `Packages` directory [`#2679`](https://github.com/vrc-get/vrc-get/pull/2679)
+- null as vpmDependencies value is not allowed [`#2709`](https://github.com/vrc-get/vrc-get/pull/2709)
   - It's not recommended, but we allow null for `vpmDependencies` as a alias of `{}`
-- ALCOM cannot detect per-user flatpak installation of unity hub `#2812`
-- Unabled to import some untypackages `#2821`
+- ALCOM cannot detect per-user flatpak installation of unity hub [`#2812`](https://github.com/vrc-get/vrc-get/pull/2812)
+- Unabled to import some untypackages [`#2821`](https://github.com/vrc-get/vrc-get/pull/2821)
   - It's hard to say but some older unitypackages ware unsupported.
-- Panic when resolving projects where dependency packages depend on newer versions of locked packages `#2822`
-- Missing glibc and libgcc_s dependency notation in .deb / .rpm distributon `#2828`
-- Unclear error message for invalid version name or version range `#2842`
-- Default file names in save dialogs now include the appropriate file extension `#2846`
+- Panic when resolving projects where dependency packages depend on newer versions of locked packages [`#2822`](https://github.com/vrc-get/vrc-get/pull/2822)
+- Missing glibc and libgcc_s dependency notation in .deb / .rpm distributon [`#2828`](https://github.com/vrc-get/vrc-get/pull/2828)
+- Unclear error message for invalid version name or version range [`#2842`](https://github.com/vrc-get/vrc-get/pull/2842)
+- Default file names in save dialogs now include the appropriate file extension [`#2846`](https://github.com/vrc-get/vrc-get/pull/2846)
   - Template export now defaults to `{template name}.alcomtemplate`
   - Repository list export now defaults to `repositories.txt`
-- Uninformative `[object Object]` appearing as an error message `#2848`
-- New Unity Hub loading method may not load manually added Unity Editors `#2850`
-- New Unity Hub loading method does load unity hub configuration on Linux `#2850`
+- Uninformative `[object Object]` appearing as an error message [`#2848`](https://github.com/vrc-get/vrc-get/pull/2848)
+- New Unity Hub loading method may not load manually added Unity Editors [`#2850`](https://github.com/vrc-get/vrc-get/pull/2850)
+- New Unity Hub loading method does load unity hub configuration on Linux [`#2850`](https://github.com/vrc-get/vrc-get/pull/2850)
 - Too many open files when copying project `#2867
-- Added workaround for VRCDefaultWorldScene generation issue in SDK 3.10.2 or later `#2916`
+- Added workaround for VRCDefaultWorldScene generation issue in SDK 3.10.2 or later [`#2916`](https://github.com/vrc-get/vrc-get/pull/2916)
   - See [this][default-scene-canny] canny for bug in VRCSDK and issue [#2913][issue-2913] for our decision.
 
 ### Security
-- Package hash checks are now enforced when installing packages `#2849`
+- Package hash checks are now enforced when installing packages [`#2849`](https://github.com/vrc-get/vrc-get/pull/2849)
   - It has been about two years since the error message for package hash mismatches was introduced.
   - It is now enforced for security.
 
@@ -693,7 +702,8 @@ Release pipeline fixes
 - Apple code signing [`#422`](https://github.com/anatawa12/vrc-get/pull/422)
 - Migrate vpm 2019 project to 2022 [`#435`](https://github.com/anatawa12/vrc-get/pull/435)
 
-[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.5...HEAD
+[Unreleased]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.6...HEAD
+[1.1.6]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.5...gui-v1.1.6
 [1.1.5]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.4...gui-v1.1.5
 [1.1.4]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.3...gui-v1.1.4
 [1.1.3]: https://github.com/vrc-get/vrc-get/compare/gui-v1.1.2...gui-v1.1.3
