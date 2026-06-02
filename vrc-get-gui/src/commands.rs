@@ -148,6 +148,7 @@ pub(crate) fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         project::project_set_unity_path,
         util::util_open,
         util::util_open_url,
+        util::util_open_url_nocheck,
         util::util_get_log_entries,
         util::util_get_version,
         util::util_check_for_update,
@@ -257,6 +258,7 @@ pub(crate) fn export_ts() {
             project::project_set_unity_path,
             util::util_open,
             util::util_open_url,
+            util::util_open_url_nocheck,
             util::util_get_log_entries,
             util::util_get_version,
             util::util_check_for_update,
@@ -506,6 +508,10 @@ struct TauriBasePackageInfo {
     is_yanked: bool,
 }
 
+fn safe_url(url: &url::Url) -> bool {
+    matches!(url.scheme(), "http" | "https")
+}
+
 impl TauriBasePackageInfo {
     fn new(package: &PackageManifest) -> Self {
         Self {
@@ -517,8 +523,14 @@ impl TauriBasePackageInfo {
                 .collect(),
             version: package.version().into(),
             unity: package.unity().map(|v| (v.major(), v.minor())),
-            changelog_url: package.changelog_url().map(|v| v.to_string()),
-            documentation_url: package.documentation_url().map(|v| v.to_string()),
+            changelog_url: package
+                .changelog_url()
+                .take_if(|x| safe_url(x))
+                .map(|v| v.to_string()),
+            documentation_url: package
+                .documentation_url()
+                .take_if(|x| safe_url(x))
+                .map(|v| v.to_string()),
             vpm_dependencies: package
                 .vpm_dependencies()
                 .keys()

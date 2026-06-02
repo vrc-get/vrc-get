@@ -93,6 +93,7 @@ export const commands = {
 	projectSetUnityPath: (projectPath: string, unityPath: string | null) => __TAURI_INVOKE<boolean>("project_set_unity_path", { projectPath, unityPath }),
 	utilOpen: (path: string, ifNotExists: OpenOptions) => __TAURI_INVOKE<null>("util_open", { path, ifNotExists }),
 	utilOpenUrl: (url: string) => __TAURI_INVOKE<null>("util_open_url", { url }),
+	utilOpenUrlNocheck: (url: string) => __TAURI_INVOKE<null>("util_open_url_nocheck", { url }),
 	utilGetLogEntries: () => __TAURI_INVOKE<LogEntry_Serialize[]>("util_get_log_entries"),
 	utilGetVersion: () => __TAURI_INVOKE<string>("util_get_version"),
 	utilCheckForUpdate: () => __TAURI_INVOKE<{

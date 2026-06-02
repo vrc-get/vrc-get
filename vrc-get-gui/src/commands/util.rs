@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::commands::async_command::{AsyncCallResult, With, async_command};
 use crate::commands::environment::settings::TauriPickProjectDefaultPathResult;
 use crate::commands::prelude::*;
+use crate::commands::safe_url;
 use crate::logging::LogEntry;
 use crate::os::open_that;
 use crate::updater::{self, Update};
@@ -44,7 +45,17 @@ pub async fn util_open(path: String, if_not_exists: OpenOptions) -> Result<(), R
 
 #[tauri::command]
 #[specta::specta]
+pub async fn util_open_url_nocheck(url: String) -> Result<(), RustError> {
+    open_that(url)?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn util_open_url(url: String) -> Result<(), RustError> {
+    if !Url::parse(&url).is_ok_and(|x| safe_url(&x)) {
+        return Err(RustError::unrecoverable_str("Bad URL or bad scheme"));
+    }
     open_that(url)?;
     Ok(())
 }
