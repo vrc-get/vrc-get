@@ -474,10 +474,11 @@ jobs:
           mkdir -p public/api/gui
           if $STABLE; then
             rm public/api/gui/tauri-updater.json || true # remove old file if exists
-            mv updater.json public/api/gui/tauri-updater.json
+            cp updater.json public/api/gui/tauri-updater.json
           fi
           rm public/api/gui/tauri-updater-beta.json || true
-          mv updater.json public/api/gui/tauri-updater-beta.json
+          cp updater.json public/api/gui/tauri-updater-beta.json
+          rm updater.json
 
       - name: Commit
         run: |-
