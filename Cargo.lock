@@ -4410,9 +4410,9 @@ dependencies = [
 
 [[package]]
 name = "rpm"
-version = "0.24.0"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5f8c4a1267cbbad96d1e7bf080ca20c669df79f638ef4e6c5e05a38b5d32c96"
+checksum = "3a5c5d43b95d73d6f0a1b8fbeab72a7ebebf618cdc99f2b9a28f269ee343766e"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.11.1",
@@ -4438,9 +4438,9 @@ dependencies = [
 
 [[package]]
 name = "rpm-version"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9274efa3f2ce8fe60fd8ea005a49955f92ddd81643eb38084b8e2c6c507018f"
+checksum = "56568fb1bf1d2c0a640aac216b3d84d65e210ca1997df922bf124f2bfaf9efd9"
 
 [[package]]
 name = "rtoolbox"
