@@ -121,11 +121,71 @@ jobs:
             target/${{ matrix.triple }}/release/bundle/*/vrc-get*
             target/${{ matrix.triple }}/release/bundle/*/ALCOM*
             target/${{ matrix.triple }}/release/bundle/*/alcom*
+  build-rpm:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - install_rust: false
+          - no_dist: false
+          - mock-env: fedora-40-x86_64
+            install_rust: true
+            no_dist: true
+        mock-env:
+          - fedora-40-x86_64
+          - fedora-rawhide-x86_64
+    runs-on: ubuntu-latest
+    container:
+      image: 'fedora:latest'
+      options: --privileged
+    env:
+      MOCK_ENV: ${{ matrix.mock-env }}
+      RPMBUILD_OPTS: ${{ case(matrix.no_dist, '-D "dist %{nil}"', '') }} ${{ case(matrix.install_rust, '-D "install_rust 1"', '') }}
+    steps:
+      - name: Install CI dependencies
+        run: dnf install -y git tar curl
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      # https://github.com/actions/checkout/issues/1169
+      - run: git config --system --add safe.directory $GITHUB_WORKSPACE
+      - name: install dependencies
+        run: dnf install -y mock rpmbuild
+      - name: prepare rpm build environment
+        run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+      - name: update version name in spec file
+        run: |
+          COMMIT_HASH="$(git rev-parse HEAD)"
+          SHORT_HASH="$(git rev-parse --short HEAD)"
+          RPM_VERSION="$(<vrc-get-gui/Cargo.toml sed -En -e '/^version/{s/.*"(.*)".*/\1/; s/-/~/p;}')+${SHORT_HASH}"
+
+          echo "RPM_VERSION=$RPM_VERSION" >> $GITHUB_ENV
+
+          sed -i vrc-get-gui/bundle/alcom.spec -e "/%define commit /c\%define commit ${COMMIT_HASH}"
+          sed -i vrc-get-gui/bundle/alcom.spec -e "/^Version:/c\Version: ${RPM_VERSION}"
+          sed -i vrc-get-gui/bundle/alcom.spec -e "/# marker: ci inserts version update here/c\sed -i '/^version/s/\"$/+${SHORT_HASH}\"/' vrc-get-gui/Cargo.toml"
+      - name: build source rpm package
+        run: eval "rpmbuild -bs vrc-get-gui/bundle/alcom.spec $RPMBUILD_OPTS --undefine=_disable_source_fetch"
+      - name: build rpm package
+        run: eval "mock -v -r '$(ls -1 /etc/mock{/eol,}/$MOCK_ENV.cfg 2>/dev/null)' --enable-network $RPMBUILD_OPTS rebuild ~/rpmbuild/SRPMS/alcom-$RPM_VERSION-1*.src.rpm"
+      - name: copy built binaries
+        run: |
+          mkdir -p artifacts
+          cp vrc-get-gui/bundle/alcom.spec artifacts/
+          cp ~/rpmbuild/SRPMS/alcom-$RPM_VERSION-1*.src.rpm artifacts/
+          cp /var/lib/mock/$MOCK_ENV/result/alcom-$RPM_VERSION-1*.${MOCK_ENV##*-}.rpm artifacts/
+
+      - name: Upload built binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: rpm-${{ matrix.mock-env }}
+          path: artifacts/*
 
   conclude-gui:
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [ build-gui ]
+    needs: [ build-gui, build-rpm ]
     steps:
       - name: Conclude Tests
         env: { NEEDS: "${{ toJSON(needs) }}" }
