@@ -1,0 +1,8 @@
+target/
+vrc-get-gui/node_modules/
+vrc-get-gui/out/
+vrc-get-gui/gen/
+debian/cargo_home/
+debian/npm_cache/
+debian/rustup_home/
+debian/nodejs_installed/

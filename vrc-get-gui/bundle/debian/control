@@ -1,0 +1,29 @@
+Source: alcom
+Priority: optional
+Maintainer: anatawa12 <i@anatawa12.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ libssl-dev,
+ pkg-config,
+ cargo,
+ nodejs,
+ npm,
+# curl for rust-install build only
+ curl,
+ libgtk-3-dev,
+ libwebkit2gtk-4.1-dev (>= 2.41),
+Standards-Version: 4.7.0
+Homepage: https://vrc-get.anatawa12.com/alcom/
+Rules-Requires-Root: no
+
+Package: alcom
+Architecture: any
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: ALCOM - Alternative Creator Companion
+ ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri.
+ .
+ This package is one of official distribution of ALCOM, released as a part of the updates from ALCOM.
+ No packaging only updates will be provided.
