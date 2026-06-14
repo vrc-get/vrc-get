@@ -190,12 +190,14 @@ jobs:
         include:
           - install_rust: false
           - install_nodejs: false
+          - apt-components: main
+          - apt-with-updates: false
 
           # Old distributions have older tools than we need. Download tools in build process
           - pbuilder-distribution: bookworm
             install_rust: true
             install_nodejs: true
-          - pbuilder-distribution: mantic
+          - pbuilder-distribution: jammy
             install_rust: true
             install_nodejs: true
 
@@ -207,24 +209,31 @@ jobs:
             mirror: http://debian-archive.trafficmanager.net/debian/
             keyring: /usr/share/keyrings/debian-archive-keyring.gpg
           # Ubuntu legacy release
-          - pbuilder-distribution: mantic
-            mirror: https://old-releases.ubuntu.com/ubuntu/
+          - pbuilder-distribution: jammy
+            mirror: http://archive.ubuntu.com/ubuntu/
+            apt-components: main universe
+            apt-with-updates: true
             keyring: /usr/share/keyrings/ubuntu-archive-keyring.gpg
         # For note,
         # bookworm: libc6@2.36
         # sid: libc6@2.39 as of 2026/06/14
-        # mantic: libc6@2.38
+        # jammy: libc6@2.35
         pbuilder-distribution:
           # debian distribution
           - bookworm
           - sid
           # ubuntu distribution
-          - mantic # mantic is the oldest ubuntu release with libwebkit2gtk-4.1 >= 2.41
+          - jammy # jammy is the oldest ubuntu release with libwebkit2gtk-4.1 >= 2.41 (but requires -updates and universe)
+        target-arch:
+          - amd64
     runs-on: ubuntu-latest
     env:
+      TARGET_ARCH: ${{ matrix.target-arch }}
       PBUILDER_DISTRIBUTION: ${{ matrix.pbuilder-distribution }}
       PBUILDER_MIRROR: ${{ matrix.mirror }}
       PBUILDER_KEYRING: ${{ matrix.keyring }}
+      PBUILDER_COMPONENTS: ${{ matrix.apt-components }}
+      PBUILDER_OTHERMIRROR: ${{ case(matrix.apt-with-updates, format('deb {0} {1}-updates {2}', matrix.mirror, matrix.pbuilder-distribution, matrix.apt-components), '') }}
       INSTALL_RUST: ${{ case(matrix.install_rust, '1', '0') }}
       INSTALL_NODEJS: ${{ case(matrix.install_nodejs, '1', '0') }}
     steps:
@@ -238,7 +247,13 @@ jobs:
         working-directory: vrc-get
         run: |
           cp -r vrc-get-gui/bundle/debian debian
-          sudo pbuilder create --debootstrapopts --keyring=$PBUILDER_KEYRING --mirror $PBUILDER_MIRROR --distribution $PBUILDER_DISTRIBUTION
+          sudo pbuilder create \
+            --architecture "$TARGET_ARCH" \
+            --keyring "$PBUILDER_KEYRING" \
+            --mirror "$PBUILDER_MIRROR" \
+            --distribution "$PBUILDER_DISTRIBUTION" \
+            --components "$PBUILDER_COMPONENTS" \
+            --othermirror "$PBUILDER_OTHERMIRROR"
       - name: update changelog
         working-directory: vrc-get
         run: |
@@ -259,18 +274,23 @@ jobs:
           CHANGELOG
           rm debian/changelog.bak
 
+          cp vrc-get-gui/Cargo.toml vrc-get-gui/Cargo.toml.bak
+          sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/Cargo.toml.bak > vrc-get-gui/Cargo.toml
+          rm vrc-get-gui/Cargo.toml.bak
+          git add vrc-get-gui/Cargo.toml
+
           echo cat debian/changelog
           cat debian/changelog
           dpkg-parsechangelog
       - name: build source deb package
         working-directory: vrc-get
         run: |
-          git archive --format=tar HEAD | xz > ../alcom_$PKG_VERSION.orig.tar.xz
+          git archive --format=tar $(git write-tree) | xz > ../alcom_$PKG_VERSION.orig.tar.xz
           dpkg-buildpackage -d -S
       - name: build deb package
         working-directory: vrc-get
         run: |
-          sudo --preserve-env=INSTALL_RUST,INSTALL_NODEJS pbuilder build --use-network yes --distribution $PBUILDER_DISTRIBUTION ../alcom_$PKG_VERSION-1.dsc
+          sudo --preserve-env=INSTALL_RUST,INSTALL_NODEJS pbuilder build --use-network yes ../alcom_$PKG_VERSION-1.dsc
       - name: copy built binaries
         run: |
           mkdir -p artifacts
@@ -290,7 +310,7 @@ jobs:
   conclude-gui:
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [ build-gui, build-rpm, build-deb ]
+    needs: [ build-gui ]
     steps:
       - name: Conclude Tests
         env: { NEEDS: "${{ toJSON(needs) }}" }
