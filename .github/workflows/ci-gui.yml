@@ -163,17 +163,21 @@ jobs:
 
           echo "PKG_VERSION=$PKG_VERSION" >> $GITHUB_ENV
 
-          sed -i vrc-get-gui/bundle/alcom.spec -e "/%define commit /c\%define commit ${COMMIT_HASH}"
+          cp vrc-get-gui/Cargo.toml vrc-get-gui/Cargo.toml.bak
+          sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/Cargo.toml.bak > vrc-get-gui/Cargo.toml
+          rm vrc-get-gui/Cargo.toml.bak
+          git add vrc-get-gui/Cargo.toml
+
           sed -i vrc-get-gui/bundle/alcom.spec -e "/^Version:/c\Version: ${PKG_VERSION}"
-          sed -i vrc-get-gui/bundle/alcom.spec -e "/# marker: ci inserts version update here/c\sed -i '/^version/s/\"$/+${SHORT_HASH}\"/' vrc-get-gui/Cargo.toml"
       - name: build source rpm package
-        run: eval "rpmbuild -bs vrc-get-gui/bundle/alcom.spec $RPMBUILD_OPTS --undefine=_disable_source_fetch"
+        run: |
+          git archive --format=tar --prefix=vrc-get-gui-v${PKG_VERSION//\~/-}/ $(git write-tree) | gzip > ~/rpmbuild/SOURCES/gui-v${PKG_VERSION//\~/-}.tar.gz
+          eval "rpmbuild -bs vrc-get-gui/bundle/alcom.spec $RPMBUILD_OPTS"
       - name: build rpm package
         run: eval "mock -v -r '$(ls -1 /etc/mock{/eol,}/$MOCK_ENV.cfg 2>/dev/null)' --enable-network $RPMBUILD_OPTS rebuild ~/rpmbuild/SRPMS/alcom-$PKG_VERSION-1*.src.rpm"
       - name: copy built binaries
         run: |
           mkdir -p artifacts
-          cp vrc-get-gui/bundle/alcom.spec artifacts/
           cp ~/rpmbuild/SRPMS/alcom-$PKG_VERSION-1*.src.rpm artifacts/
           cp /var/lib/mock/$MOCK_ENV/result/alcom-$PKG_VERSION-1*.${MOCK_ENV##*-}.rpm artifacts/
 
@@ -298,7 +302,7 @@ jobs:
           cp /var/cache/pbuilder/result/alcom_$PKG_VERSION* artifacts/
           ls artifacts
       - name: Print information about built package
-        run: dpkg-deb -I artifacts/alcom_$PKG_VERSION-1_*.deb
+        run: dpkg-deb -I artifacts/alcom_$PKG_VERSION-1_$TARGET_ARCH.deb
 
       - name: Upload built binary
         if: ${{ !cancelled() }}

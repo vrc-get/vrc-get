@@ -3,11 +3,11 @@ Version:        1.1.6
 Release:        1%{?dist}
 Summary:        A short description of my custom application
 
-%define commit gui-v%{version}
+%global git_version %(echo "%{version}" | tr '~' '-')
 
 License:        MIT
 URL:            https://vrc-get.anatawa12.com/alcom/
-Source0:        https://github.com/vrc-get/vrc-get/archive/%{commit}.tar.gz
+Source0:        https://github.com/vrc-get/vrc-get/archive/gui-v%{git_version}.tar.gz
 
 BuildRequires:  gcc
 BuildRequires:  nodejs
@@ -30,7 +30,7 @@ ALCOM - Alternative Creator Companion
 ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri.
 
 %prep
-%setup -q -n vrc-get-%{commit}
+%setup -q -n vrc-get-gui-v%{git_version}
 
 %if 0%{?install_rust:1}
     echo "=== Mock environment detected. Installing isolated Rust toolchain ==="
