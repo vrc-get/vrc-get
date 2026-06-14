@@ -1,4 +1,5 @@
 use super::BundleContext;
+use crate::bundle_alcom::BundleKind;
 use crate::utils::tar::TarBuilderExt;
 use anyhow::{Context, Result, bail};
 use std::collections::HashMap;
@@ -23,7 +24,7 @@ pub fn create_install_build_root(
     }
     fs::create_dir_all(build_root).context("failed to create build root directory")?;
 
-    create_install_build_root_impl(ctx, &mut RealBuildRootFs(build_root))?;
+    create_install_build_root_impl(ctx, &mut RealBuildRootFs(build_root), BundleKind::Buildroot)?;
 
     println!("created build root: {}", build_root.display());
     Ok(())
@@ -37,6 +38,7 @@ pub trait BuildRootFs {
 pub fn create_install_build_root_impl(
     ctx: &BundleContext<'_>,
     fs: &mut dyn BuildRootFs,
+    bundle_kind: BundleKind
 ) -> Result<()> {
     struct Path(String);
 
@@ -58,10 +60,12 @@ pub fn create_install_build_root_impl(
     }
 
     let usr = Path("usr".to_string());
-    fs.create_dir(&usr)?;
-
     let usr_bin = usr.join("bin");
-    fs.create_dir(&usr_bin)?;
+
+    if bundle_kind != BundleKind::Rpm { // avoid RPM packaging quirk
+        fs.create_dir(&usr)?;
+        fs.create_dir(&usr_bin)?;
+    }
 
     let bin_name_lower = ctx.binary_name().to_ascii_lowercase();
     let bin_path = usr_bin.join(&bin_name_lower);

@@ -1,5 +1,5 @@
 use crate::bundle_alcom::BundleContext;
-use crate::bundle_alcom::linux::*;
+use crate::bundle_alcom::{BundleKind::Deb, linux::*};
 use crate::utils::tar::TarBuilderExt;
 use crate::utils::{CountingIo, tar, target_arch};
 use anyhow::{Context, Result, bail};
@@ -29,7 +29,7 @@ pub fn create_deb(ctx: &BundleContext<'_>) -> Result<()> {
         let gz = GzEncoder::new(Vec::new(), Compression::default());
         let mut tar = tar::Builder::new(CountingIo::new(gz));
 
-        create_install_build_root_impl(ctx, &mut tar).context("creating data.tar.gz")?;
+        create_install_build_root_impl(ctx, &mut tar, Deb).context("creating data.tar.gz")?;
 
         let finished_gz_count = tar.into_inner()?;
         let estimated_size = finished_gz_count.count();

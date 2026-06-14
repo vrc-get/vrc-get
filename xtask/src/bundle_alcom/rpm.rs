@@ -1,5 +1,5 @@
 use super::BundleContext;
-use crate::bundle_alcom::linux::*;
+use crate::bundle_alcom::{BundleKind::Rpm, linux::*};
 use anyhow::{Context, Result};
 use rpm::Dependency;
 use std::fs;
@@ -37,7 +37,7 @@ pub fn create_rpm(ctx: &BundleContext<'_>) -> Result<()> {
     builder.requires(Dependency::any("libwebkit2gtk-4.1.so.0()(64bit)"));
 
     // Binary.
-    create_install_build_root_impl(ctx, &mut builder).context("adding files to rpm")?;
+    create_install_build_root_impl(ctx, &mut builder, Rpm).context("adding files to rpm")?;
 
     let pkg = builder.build().context("building rpm package")?;
 
