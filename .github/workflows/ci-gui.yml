@@ -159,7 +159,7 @@ jobs:
         run: |
           COMMIT_HASH="$(git rev-parse HEAD)"
           SHORT_HASH="$(git rev-parse --short HEAD)"
-          PKG_VERSION="$(<vrc-get-gui/Cargo.toml sed -En -e '/^version/{s/.*"(.*)".*/\1/; s/-/~/p;}')+${SHORT_HASH}"
+          PKG_VERSION="$(<vrc-get-gui/Cargo.toml sed -En -e '/^version/{s/.*"(.*)".*/\1/p;}')+${SHORT_HASH}"
 
           echo "PKG_VERSION=$PKG_VERSION" >> $GITHUB_ENV
 
@@ -168,18 +168,18 @@ jobs:
           rm vrc-get-gui/Cargo.toml.bak
           git add vrc-get-gui/Cargo.toml
 
-          sed -i vrc-get-gui/bundle/alcom.spec -e "/^Version:/c\Version: ${PKG_VERSION}"
+          sed -i vrc-get-gui/bundle/alcom.spec -e "/^Version:/c\Version: ${PKG_VERSION//-/\~}"
       - name: build source rpm package
         run: |
-          git archive --format=tar --prefix=vrc-get-gui-v${PKG_VERSION//\~/-}/ $(git write-tree) | gzip > ~/rpmbuild/SOURCES/gui-v${PKG_VERSION//\~/-}.tar.gz
+          git archive --format=tar --prefix=vrc-get-gui-v$PKG_VERSION/ $(git write-tree) | gzip > ~/rpmbuild/SOURCES/gui-v$PKG_VERSION.tar.gz
           eval "rpmbuild -bs vrc-get-gui/bundle/alcom.spec $RPMBUILD_OPTS"
       - name: build rpm package
-        run: eval "mock -v -r '$(ls -1 /etc/mock{/eol,}/$MOCK_ENV.cfg 2>/dev/null)' --enable-network $RPMBUILD_OPTS rebuild ~/rpmbuild/SRPMS/alcom-$PKG_VERSION-1*.src.rpm"
+        run: eval "mock -v -r '$(ls -1 /etc/mock{/eol,}/$MOCK_ENV.cfg 2>/dev/null)' --enable-network $RPMBUILD_OPTS rebuild ~/rpmbuild/SRPMS/alcom-${PKG_VERSION//-/\~}-1*.src.rpm"
       - name: copy built binaries
         run: |
           mkdir -p artifacts
-          cp ~/rpmbuild/SRPMS/alcom-$PKG_VERSION-1*.src.rpm artifacts/
-          cp /var/lib/mock/$MOCK_ENV/result/alcom-$PKG_VERSION-1*.${MOCK_ENV##*-}.rpm artifacts/
+          cp ~/rpmbuild/SRPMS/alcom-${PKG_VERSION//-/\~}-1*.src.rpm artifacts/
+          cp /var/lib/mock/$MOCK_ENV/result/alcom-${PKG_VERSION//-/\~}-1*.${MOCK_ENV##*-}.rpm artifacts/
 
       - name: Upload built binary
         uses: actions/upload-artifact@v7
@@ -263,13 +263,13 @@ jobs:
         run: |
           COMMIT_HASH="$(git rev-parse HEAD)"
           SHORT_HASH="$(git rev-parse --short HEAD)"
-          PKG_VERSION="$(<vrc-get-gui/Cargo.toml sed -En -e '/^version/{s/.*"(.*)".*/\1/; s/-/~/p;}')+${SHORT_HASH}"
+          PKG_VERSION="$(<vrc-get-gui/Cargo.toml sed -En -e '/^version/{s/.*"(.*)".*/\1/p;}')+${SHORT_HASH}"
 
           echo "PKG_VERSION=$PKG_VERSION" >> $GITHUB_ENV
 
           cp debian/changelog debian/changelog.bak
           cat - debian/changelog.bak <<CHANGELOG > debian/changelog
-          alcom (${PKG_VERSION}-1) experimental;
+          alcom (${PKG_VERSION//-/\~}-1) experimental;
 
             * Upgraded version to ${PKG_VERSION}
           
@@ -289,20 +289,20 @@ jobs:
       - name: build source deb package
         working-directory: vrc-get
         run: |
-          git archive --format=tar $(git write-tree) | xz > ../alcom_$PKG_VERSION.orig.tar.xz
+          git archive --format=tar $(git write-tree) | xz > ../alcom_${PKG_VERSION//-/\~}.orig.tar.xz
           dpkg-buildpackage -d -S
       - name: build deb package
         working-directory: vrc-get
         run: |
-          sudo --preserve-env=INSTALL_RUST,INSTALL_NODEJS pbuilder build --use-network yes ../alcom_$PKG_VERSION-1.dsc
+          sudo --preserve-env=INSTALL_RUST,INSTALL_NODEJS pbuilder build --use-network yes ../alcom_${PKG_VERSION//-/\~}-1.dsc
       - name: copy built binaries
         run: |
           mkdir -p artifacts
           cp vrc-get/debian/changelog artifacts/
-          cp /var/cache/pbuilder/result/alcom_$PKG_VERSION* artifacts/
+          cp /var/cache/pbuilder/result/alcom_${PKG_VERSION//-/\~}* artifacts/
           ls artifacts
       - name: Print information about built package
-        run: dpkg-deb -I artifacts/alcom_$PKG_VERSION-1_$TARGET_ARCH.deb
+        run: dpkg-deb -I artifacts/alcom_${PKG_VERSION//-/\~}-1_$TARGET_ARCH.deb
 
       - name: Upload built binary
         if: ${{ !cancelled() }}
