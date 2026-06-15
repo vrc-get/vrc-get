@@ -16,7 +16,7 @@ jobs:
         include:
           - triple: x86_64-unknown-linux-gnu
             on: ubuntu-22.04
-            bundles: appimage,appimage-updater,deb,rpm
+            bundles: appimage,appimage-updater
             setup: |
               sudo apt update && sudo apt install -y lld
               ld.lld --version
@@ -121,6 +121,195 @@ jobs:
             target/${{ matrix.triple }}/release/bundle/*/vrc-get*
             target/${{ matrix.triple }}/release/bundle/*/ALCOM*
             target/${{ matrix.triple }}/release/bundle/*/alcom*
+
+  build-rpm:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - install_rust: false
+          - no_dist: false
+          - mock-env: fedora-40-x86_64
+            install_rust: true
+            no_dist: true
+        mock-env:
+          - fedora-40-x86_64
+          - fedora-rawhide-x86_64
+    runs-on: ubuntu-latest
+    container:
+      image: 'fedora:latest'
+      options: --privileged
+    env:
+      MOCK_ENV: ${{ matrix.mock-env }}
+      RPMBUILD_OPTS: ${{ case(matrix.no_dist, '-D "dist %{nil}"', '') }} ${{ case(matrix.install_rust, '-D "install_rust 1"', '') }}
+    steps:
+      - name: Install CI dependencies
+        run: dnf install -y git tar curl
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      # https://github.com/actions/checkout/issues/1169
+      - run: git config --system --add safe.directory $GITHUB_WORKSPACE
+      - name: install dependencies
+        run: dnf install -y mock rpmbuild
+      - name: prepare rpm build environment
+        run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+      - name: update version name in spec file
+        run: |
+          COMMIT_HASH="$(git rev-parse HEAD)"
+          SHORT_HASH="$(git rev-parse --short HEAD)"
+          PKG_VERSION="$(<vrc-get-gui/Cargo.toml sed -En -e '/^version/{s/.*"(.*)".*/\1/p;}')+${SHORT_HASH}"
+
+          echo "PKG_VERSION=$PKG_VERSION" >> $GITHUB_ENV
+
+          cp vrc-get-gui/Cargo.toml vrc-get-gui/Cargo.toml.bak
+          sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/Cargo.toml.bak > vrc-get-gui/Cargo.toml
+          rm vrc-get-gui/Cargo.toml.bak
+          git add vrc-get-gui/Cargo.toml
+
+          sed -i vrc-get-gui/bundle/alcom.spec -e "/^Version:/c\Version: ${PKG_VERSION//-/\~}"
+      - name: build source rpm package
+        run: |
+          git archive --format=tar --prefix=vrc-get-gui-v$PKG_VERSION/ $(git write-tree) | gzip > ~/rpmbuild/SOURCES/gui-v$PKG_VERSION.tar.gz
+          eval "rpmbuild -bs vrc-get-gui/bundle/alcom.spec $RPMBUILD_OPTS"
+      - name: build rpm package
+        run: eval "mock -v -r '$(ls -1 /etc/mock{/eol,}/$MOCK_ENV.cfg 2>/dev/null)' --enable-network $RPMBUILD_OPTS rebuild ~/rpmbuild/SRPMS/alcom-${PKG_VERSION//-/\~}-1*.src.rpm"
+      - name: copy built binaries
+        run: |
+          mkdir -p artifacts
+          cp ~/rpmbuild/SRPMS/alcom-${PKG_VERSION//-/\~}-1*.src.rpm artifacts/
+          cp /var/lib/mock/$MOCK_ENV/result/alcom-${PKG_VERSION//-/\~}-1*.${MOCK_ENV##*-}.rpm artifacts/
+
+      - name: Upload built binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: rpm-${{ matrix.mock-env }}
+          path: artifacts/*
+
+  build-deb:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - install_rust: false
+          - install_nodejs: false
+          - apt-components: main
+          - apt-with-updates: false
+
+          # Old distributions have older tools than we need. Download tools in build process
+          - pbuilder-distribution: bookworm
+            install_rust: true
+            install_nodejs: true
+          - pbuilder-distribution: jammy
+            install_rust: true
+            install_nodejs: true
+
+          # Debian uses mirror from debian-archive.trafficmanager.net which is managed by microsoft on azure
+          - pbuilder-distribution: bookworm
+            mirror: http://debian-archive.trafficmanager.net/debian/
+            keyring: /usr/share/keyrings/debian-archive-keyring.gpg
+          - pbuilder-distribution: sid
+            mirror: http://debian-archive.trafficmanager.net/debian/
+            keyring: /usr/share/keyrings/debian-archive-keyring.gpg
+          # Ubuntu legacy release
+          - pbuilder-distribution: jammy
+            mirror: http://archive.ubuntu.com/ubuntu/
+            apt-components: main universe
+            apt-with-updates: true
+            keyring: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+        # For note,
+        # bookworm: libc6@2.36
+        # sid: libc6@2.39 as of 2026/06/14
+        # jammy: libc6@2.35
+        pbuilder-distribution:
+          # debian distribution
+          - bookworm
+          - sid
+          # ubuntu distribution
+          - jammy # jammy is the oldest ubuntu release with libwebkit2gtk-4.1 >= 2.41 (but requires -updates and universe)
+        target-arch:
+          - amd64
+    runs-on: ubuntu-latest
+    env:
+      TARGET_ARCH: ${{ matrix.target-arch }}
+      PBUILDER_DISTRIBUTION: ${{ matrix.pbuilder-distribution }}
+      PBUILDER_MIRROR: ${{ matrix.mirror }}
+      PBUILDER_KEYRING: ${{ matrix.keyring }}
+      PBUILDER_COMPONENTS: ${{ matrix.apt-components }}
+      PBUILDER_OTHERMIRROR: ${{ case(matrix.apt-with-updates, format('deb {0} {1}-updates {2}', matrix.mirror, matrix.pbuilder-distribution, matrix.apt-components), '') }}
+      INSTALL_RUST: ${{ case(matrix.install_rust, '1', '0') }}
+      INSTALL_NODEJS: ${{ case(matrix.install_nodejs, '1', '0') }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: vrc-get
+          submodules: recursive
+      - name: install dependencies
+        run: sudo apt update && sudo apt install -y pbuilder debian-archive-keyring debhelper-compat=13
+      - name: prepare deb build environment
+        working-directory: vrc-get
+        run: |
+          cp -r vrc-get-gui/bundle/debian debian
+          sudo pbuilder create \
+            --architecture "$TARGET_ARCH" \
+            --keyring "$PBUILDER_KEYRING" \
+            --mirror "$PBUILDER_MIRROR" \
+            --distribution "$PBUILDER_DISTRIBUTION" \
+            --components "$PBUILDER_COMPONENTS" \
+            --othermirror "$PBUILDER_OTHERMIRROR"
+      - name: update changelog
+        working-directory: vrc-get
+        run: |
+          COMMIT_HASH="$(git rev-parse HEAD)"
+          SHORT_HASH="$(git rev-parse --short HEAD)"
+          PKG_VERSION="$(<vrc-get-gui/Cargo.toml sed -En -e '/^version/{s/.*"(.*)".*/\1/p;}')+${SHORT_HASH}"
+
+          echo "PKG_VERSION=$PKG_VERSION" >> $GITHUB_ENV
+
+          cp debian/changelog debian/changelog.bak
+          cat - debian/changelog.bak <<CHANGELOG > debian/changelog
+          alcom (${PKG_VERSION//-/\~}-1) experimental;
+
+            * Upgraded version to ${PKG_VERSION}
+          
+           -- anatawa12 <i@anatawa12.com>  $(date -u +"%a, %d %b %Y %H:%M:%S +0000")
+          
+          CHANGELOG
+          rm debian/changelog.bak
+
+          cp vrc-get-gui/Cargo.toml vrc-get-gui/Cargo.toml.bak
+          sed -E "/^version/s/\"$/+$(git rev-parse --short HEAD)\"/" < vrc-get-gui/Cargo.toml.bak > vrc-get-gui/Cargo.toml
+          rm vrc-get-gui/Cargo.toml.bak
+          git add vrc-get-gui/Cargo.toml
+
+          echo cat debian/changelog
+          cat debian/changelog
+          dpkg-parsechangelog
+      - name: build source deb package
+        working-directory: vrc-get
+        run: |
+          git archive --format=tar $(git write-tree) | xz > ../alcom_${PKG_VERSION//-/\~}.orig.tar.xz
+          dpkg-buildpackage -d -S
+      - name: build deb package
+        working-directory: vrc-get
+        run: |
+          sudo --preserve-env=INSTALL_RUST,INSTALL_NODEJS pbuilder build --use-network yes ../alcom_${PKG_VERSION//-/\~}-1.dsc
+      - name: copy built binaries
+        run: |
+          mkdir -p artifacts
+          cp vrc-get/debian/changelog artifacts/
+          cp /var/cache/pbuilder/result/alcom_${PKG_VERSION//-/\~}* artifacts/
+          ls artifacts
+      - name: Print information about built package
+        run: dpkg-deb -I artifacts/alcom_${PKG_VERSION//-/\~}-1_$TARGET_ARCH.deb
+
+      - name: Upload built binary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: deb-${{ matrix.pbuilder-distribution }}-${{ matrix.target-arch }}
+          path: artifacts/*
 
   conclude-gui:
     runs-on: ubuntu-latest
