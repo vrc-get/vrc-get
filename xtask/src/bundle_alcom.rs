@@ -1,14 +1,12 @@
 use crate::utils::{self, build_dir, build_target, target_os};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 mod app;
 mod appimage;
-mod deb;
 mod dmg;
 mod linux;
-mod rpm;
 mod setup_exe;
 
 /// Individual bundle artifact that can be produced.
@@ -52,16 +50,18 @@ pub(crate) enum BundleKind {
     ///
     /// Unlike dmg depends on app, deb/rpm doesn't depend on this bundle.
     Buildroot,
-    /// Debian package
-    Deb,
-    /// RPM package
-    Rpm,
     /// Windows setup.exe
     SetupExe,
     /// Windows setup.exe in zip (requires setup.exe to already exist in bundle dir)
     SetupExeZip,
     /// Windows setup.exe for updater
     ExeUpdater,
+
+    // deleted
+    #[value(hide = true)]
+    Deb,
+    #[value(hide = true)]
+    Rpm,
 }
 
 /// Bundles the ALCOM application for the target platform.
@@ -113,6 +113,12 @@ impl crate::Command for Command {
 
         let bundles = self.bundles.as_slice();
 
+        if bundles.contains(&BundleKind::Deb) || bundles.contains(&BundleKind::Rpm) {
+            bail!(
+                "--bundles deb and --bundles rpm are removed. Please use native packaging configuration at vrc-get-gui/bundles"
+            )
+        }
+
         if bundles.is_empty() {
             println!("Note: no bundles are specified");
         }
@@ -139,14 +145,6 @@ impl crate::Command for Command {
 
         if bundles.contains(&BundleKind::Buildroot) {
             linux::create_install_build_root(&ctx, self.buildroot.as_deref())?;
-        }
-
-        if bundles.contains(&BundleKind::Deb) {
-            deb::create_deb(&ctx)?;
-        }
-
-        if bundles.contains(&BundleKind::Rpm) {
-            rpm::create_rpm(&ctx)?;
         }
 
         if bundles.contains(&BundleKind::SetupExe) {
@@ -212,14 +210,6 @@ impl<'a> BundleContext<'a> {
 
     pub fn version(&self) -> &str {
         self.version.as_str()
-    }
-
-    pub fn short_description(&self) -> &str {
-        "ALCOM - Alternative Creator Companion"
-    }
-
-    pub fn long_description(&self) -> &str {
-        "ALCOM is a fast and open-source alternative VCC (VRChat Creator Companion) written in rust and tauri."
     }
 
     /// Binary name without extension (e.g. `ALCOM`).
