@@ -308,7 +308,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: deb-${{ matrix.pbuilder-distribution }}
+          name: deb-${{ matrix.pbuilder-distribution }}-${{ matrix.target-arch }}
           path: artifacts/*
 
   conclude-gui:
