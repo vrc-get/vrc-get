@@ -37,6 +37,8 @@
     "general:error:failed to create dir": "目录创建失败（缺少权限？）： {{err}}",
     "general:error:failed to create dir missing drive": "目录创建失败。硬盘不存在，您是不是忘记连接硬盘了？",
 
+    "general:created at": "添加于",
+
     "general:last modified": "最后修改",
     "general:last modified:moments": "刚才",
     "general:last modified:minutes": "{{count}} 分钟前",
