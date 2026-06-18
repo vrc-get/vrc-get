@@ -29,7 +29,11 @@ import {
 } from "@/components/ui/tooltip";
 import type { TauriProject } from "@/lib/bindings";
 import { commands } from "@/lib/bindings";
-import { dateToString, formatDateOffset } from "@/lib/dateToString";
+import {
+	dateToString,
+	dayToString,
+	formatDateOffset,
+} from "@/lib/dateToString";
 import { openSingleDialog } from "@/lib/dialog";
 import { tc } from "@/lib/i18n";
 import { toastThrownError } from "@/lib/toast";
@@ -45,7 +49,7 @@ export function ProjectGridItem({
 
 	const typeIconClass = "w-5 h-5";
 
-	const { projectTypeKind, displayType, isLegacy, lastModified } =
+	const { projectTypeKind, displayType, isLegacy, createdAt, lastModified } =
 		getProjectDisplayInfo(project);
 
 	const removed = !project.is_exists;
@@ -165,22 +169,44 @@ export function ProjectGridItem({
 					</div>
 				</div>
 
-				<div className="text-xs text-muted-foreground">
-					{tc("general:last modified")}:{" "}
-					<Tooltip>
-						<TooltipTrigger>
-							<time dateTime={lastModified.toISOString()}>
-								<time className="font-normal">
-									{formatDateOffset(project.last_modified)}
+				<div className="flex flex-row gap-1">
+					<div className="text-xs text-muted-foreground">
+						{tc("general:created at")}:{" "}
+						<Tooltip>
+							<TooltipTrigger>
+								<time dateTime={createdAt.toISOString()}>
+									<time className="font-normal">
+										{dayToString(project.created_at)}
+									</time>
 								</time>
-							</time>
-						</TooltipTrigger>
-						<TooltipPortal>
-							<TooltipContent>
-								{dateToString(project.last_modified)}
-							</TooltipContent>
-						</TooltipPortal>
-					</Tooltip>
+							</TooltipTrigger>
+							<TooltipPortal>
+								<TooltipContent>
+									{dateToString(project.created_at)}
+								</TooltipContent>
+							</TooltipPortal>
+						</Tooltip>
+					</div>
+
+					<p className="text-xs text-muted-foreground">/</p>
+
+					<div className="text-xs text-muted-foreground">
+						{tc("general:last modified")}:{" "}
+						<Tooltip>
+							<TooltipTrigger>
+								<time dateTime={lastModified.toISOString()}>
+									<time className="font-normal">
+										{formatDateOffset(project.last_modified)}
+									</time>
+								</time>
+							</TooltipTrigger>
+							<TooltipPortal>
+								<TooltipContent>
+									{dateToString(project.last_modified)}
+								</TooltipContent>
+							</TooltipPortal>
+						</Tooltip>
+					</div>
 				</div>
 
 				<div className="mt-2 flex flex-wrap gap-2 justify-end compact:gap-1">

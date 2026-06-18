@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog].
 
 ## [Unreleased]
 ### Added
+- Implement project sorting by creation date `#2941`
 
 ### Changed
 
