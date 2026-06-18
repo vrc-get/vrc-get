@@ -37,7 +37,7 @@
     "general:error:failed to create dir": "ディレクトリの作成に失敗しました: {{err}}",
     "general:error:failed to create dir missing drive": "ディレクトリの作成に失敗しました。保存先のドライブの接続を忘れているかもしれません。",
 
-    "general:created at": "作成日",
+    "general:created at": "追加日",
 
     "general:last modified": "最終更新日",
     "general:last modified:moments": "たった今",
