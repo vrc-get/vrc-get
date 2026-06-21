@@ -287,3 +287,63 @@ pub(crate) fn create_tar_gz(src: &Path, archive_name: &str, out_path: &Path) -> 
     println!("created: {}", out_path.display());
     Ok(())
 }
+
+impl BundleContext<'_> {
+    // Linux only. We only support building "full" appimage on debian package world.
+    pub fn is_debian_like(&self) -> bool {
+        utils::dpkg::dpkg_apt_available()
+    }
+
+    // dpkg-query --listfiles -- libwebkit2gtk-4.1-0
+
+    pub fn debian_triple(&self) -> String {
+        let arch = match self.target_tuple.split_once('-').unwrap().0 {
+            "i486" | "i586" | "i686" => "i386", // i386 means x86 32bit
+            "armv7" => "arm",                   // arm means any arm 32bit
+            // most arch use as-is
+            default => default,
+        };
+        #[allow(clippy::match_single_binding)]
+        let abi = match self.target_tuple.rsplit_once('-').unwrap().1 {
+            // no known difference
+            default => default,
+        };
+        format!("{arch}-linux-{abi}")
+    }
+
+    pub fn find_library(&self, lib_name: &str) -> Option<Vec<String>> {
+        let triple = self.debian_triple();
+
+        for o_find_path in [
+            "/usr/local/lib/{triple}/",
+            "/lib/{triple}/",
+            "/usr/lib/{triple}/",
+            "/usr/local/lib/",
+            "/lib/",
+            "/usr/lib/",
+            "/usr/{triple}/lib/",
+        ] {
+            let orig_library_path = o_find_path.replace("{triple}", &triple);
+            let Ok(library_path) = fs::canonicalize(&orig_library_path) else {
+                continue;
+            };
+            let mut library_path = library_path.to_string_lossy().into_owned();
+            if !library_path.ends_with("/") {
+                library_path.push('/');
+            }
+            library_path.push_str(lib_name);
+            if Path::new(&library_path).exists() {
+                let should_add_orig = orig_library_path != library_path;
+                let mut paths = vec![library_path];
+                if should_add_orig {
+                    let mut new_library_path = orig_library_path.clone();
+                    new_library_path.push_str(lib_name);
+                    paths.push(new_library_path)
+                }
+                return Some(paths);
+            }
+        }
+
+        None
+    }
+}
