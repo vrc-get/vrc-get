@@ -3,6 +3,7 @@ use std::ffi::OsStr;
 use std::io;
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
+use std::sync::OnceLock;
 
 pub fn dpkg_apt_available() -> bool {
     fn impl_(cmd: &str) -> bool {
@@ -16,6 +17,31 @@ pub fn dpkg_apt_available() -> bool {
     }
 
     impl_("apt-cache") && impl_("dpkg-query")
+}
+
+pub fn dpkg_architecture() -> io::Result<&'static str> {
+    static STORAGE: OnceLock<String> = OnceLock::new();
+    if let Some(got) = STORAGE.get() {
+        return Ok(got);
+    }
+    let output = Command::new("dpkg")
+        .arg("--print-architecture")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()?;
+    if !output.status.success() {
+        return Err(io::Error::other(format!(
+            "dpkg architecture exited with {}:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout)
+        )));
+    }
+    let mut data = String::from_utf8(output.stdout)
+        .map_err(|x| io::Error::new(io::ErrorKind::InvalidData, x))?;
+    data.truncate(data.trim_end().len());
+    STORAGE.set(data).ok();
+    Ok(STORAGE.get().unwrap())
 }
 
 #[derive(Debug)]

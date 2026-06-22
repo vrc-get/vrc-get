@@ -362,7 +362,7 @@ mod list_deps {
 
     fn is_ignored_dep(dependant: &str, dependency: &str) -> bool {
         let dependant = dependant.split_once(':').unwrap_or((dependant, "")).0;
-        let dependency = dependency.split_once(':').unwrap_or((dependant, "")).0;
+        let dependency = dependency.split_once(':').unwrap_or((dependency, "")).0;
         //println!("checking for {dependant}: {dependency}");
         match (dependant, dependency) {
             // works without them
@@ -458,6 +458,7 @@ mod list_deps {
         entry_point: impl IntoIterator<Item = impl AsRef<str> + Clone + Eq + Hash>,
         system_packages: &HashSet<impl Borrow<str> + Eq + Hash>,
     ) -> anyhow::Result<Vec<String>> {
+        let dpkg_arch = utils::dpkg::dpkg_architecture()?;
         let mut required_packages = entry_point
             .into_iter()
             .filter(|pkg| !system_packages.contains(pkg.as_ref()))
@@ -467,7 +468,15 @@ mod list_deps {
                     .is_none_or(|(pkg, _arch)| !system_packages.contains(pkg))
             })
             .unique()
-            .map(|x| x.as_ref().to_owned())
+            .map(|x| {
+                let pkg_name = x.as_ref();
+                let pkg_name = pkg_name
+                    .split_once(':')
+                    .take_if(|&mut (_pkg, arch)| arch == dpkg_arch)
+                    .map(|(pkg, _arch)| pkg)
+                    .unwrap_or(pkg_name);
+                pkg_name.to_owned()
+            })
             .collect::<HashSet<_>>();
 
         let mut new_required_packages = Vec::from_iter(required_packages.iter().cloned());
