@@ -22,7 +22,7 @@ either = { version = "1", features = ["serde"] }
 futures = "0.3"
 hex = "0.4"
 indexmap = { version = "2", features = ["serde"] }
-itertools = "0.14"
+itertools = "0.15"
 log = { version = "0.4", features = ['kv'] }
 pin-project-lite = "0.2"
 reqwest = { version = "0.13", features = ["stream"], default-features = false }

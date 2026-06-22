@@ -2494,6 +2494,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6192,7 +6201,7 @@ dependencies = [
  "futures",
  "home",
  "indexmap 2.14.0",
- "itertools",
+ "itertools 0.15.0",
  "log",
  "reqwest",
  "serde",
@@ -6220,7 +6229,7 @@ dependencies = [
  "futures",
  "hex",
  "indexmap 2.14.0",
- "itertools",
+ "itertools 0.15.0",
  "log",
  "log-panics",
  "minisign-verify",
@@ -6275,7 +6284,7 @@ dependencies = [
  "futures",
  "hex",
  "indexmap 2.14.0",
- "itertools",
+ "itertools 0.14.0",
  "opool",
  "rand 0.9.4",
  "slab",
@@ -6298,7 +6307,7 @@ dependencies = [
  "futures",
  "hex",
  "indexmap 2.14.0",
- "itertools",
+ "itertools 0.15.0",
  "lazy_static",
  "log",
  "pin-project-lite",
@@ -7493,7 +7502,7 @@ dependencies = [
  "flate2",
  "fs_extra",
  "indexmap 2.14.0",
- "itertools",
+ "itertools 0.15.0",
  "minisign",
  "object 0.39.1",
  "plist",
