@@ -37,6 +37,8 @@
     "general:error:failed to create dir": "디렉토리 생성에 실패했습니다: {{err}}",
     "general:error:failed to create dir missing drive": "디렉토리 생성에 실패했습니다. 드라이브가 연결되지 않았을 수 있습니다.",
 
+    "general:created at": "추가한 날짜",
+
     "general:last modified": "수정한 날짜",
     "general:last modified:moments": "방금 전",
     "general:last modified:minutes": "{{count}}분 전",
