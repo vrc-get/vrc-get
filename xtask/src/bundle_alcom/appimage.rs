@@ -166,6 +166,11 @@ pub fn prepare_system_libraries(ctx: &BundleContext<'_>, appimage_root: &Path) -
         files[1..=i].rotate_right(1);
     }
 
+    println!("Bundling the following files");
+    for file in &files {
+        println!("  {}", file);
+    }
+
     for path in &files {
         let absolute = sysroot.join(path);
 
