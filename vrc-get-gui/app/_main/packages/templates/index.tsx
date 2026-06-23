@@ -140,7 +140,23 @@ function TemplatesTableBody() {
 			const alcomTemplate = await commands.environmentGetAlcomTemplate(id);
 			await openSingleDialog(TemplateEditor, {
 				templates: information.data.templates,
-				template: { ...alcomTemplate, id },
+				template: alcomTemplate,
+				templateId: id,
+				favoriteTemplates: information.data.favorite_templates,
+			});
+		} catch (e) {
+			console.error(e);
+			toastThrownError(e);
+		}
+	};
+
+	const duplicateTemplate = async (id: string) => {
+		try {
+			const alcomTemplate = await commands.environmentGetAlcomTemplate(id);
+			await openSingleDialog(TemplateEditor, {
+				templates: information.data.templates,
+				template: alcomTemplate,
+				templateId: null,
 				favoriteTemplates: information.data.favorite_templates,
 			});
 		} catch (e) {
@@ -217,6 +233,7 @@ function TemplatesTableBody() {
 						template={template}
 						remove={removeTemplate}
 						edit={editTemplate}
+						duplicate={duplicateTemplate}
 						favorite={information.data.favorite_templates.includes(template.id)}
 					/>
 				))}
@@ -229,11 +246,13 @@ function TemplateRow({
 	template,
 	remove,
 	edit,
+	duplicate,
 	favorite,
 }: {
 	template: TauriProjectTemplateInfo;
 	remove?: (id: string) => void;
 	edit?: (id: string) => void;
+	duplicate?: (id: string) => void;
 	favorite: boolean;
 }) {
 	const cellClass = "p-2.5 compact:py-1";
@@ -368,7 +387,11 @@ function TemplateRow({
 					</TooltipContent>
 				</Tooltip>
 
-				<TemplateDropdownMenu template={template} edit={edit} />
+				<TemplateDropdownMenu
+					template={template}
+					edit={edit}
+					duplicate={duplicate}
+				/>
 			</td>
 		</tr>
 	);
@@ -415,9 +438,11 @@ function EllipsisButton(props: React.ComponentProps<typeof Button>) {
 function TemplateDropdownMenu({
 	template,
 	edit,
+	duplicate,
 }: {
 	template: TauriProjectTemplateInfo;
 	edit?: (id: string) => void;
+	duplicate?: (id: string) => void;
 }) {
 	const category = projectTemplateCategory(template.id);
 
@@ -443,6 +468,9 @@ function TemplateDropdownMenu({
 					<DropdownMenuContent>
 						<DropdownMenuItem onClick={() => edit?.(template.id)}>
 							{tc("templates:menuitem:edit template")}
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={() => duplicate?.(template.id)}>
+							{tc("templates:menuitem:duplicate template")}
 						</DropdownMenuItem>
 						{template.has_unitypackage ? (
 							<Tooltip>
@@ -507,6 +535,7 @@ function CreateTemplateButton({ className }: { className: string }) {
 					void openSingleDialog(TemplateEditor, {
 						templates: information.data.templates,
 						template: null,
+						templateId: null,
 						favoriteTemplates: information.data.favorite_templates,
 					});
 				}
@@ -536,11 +565,13 @@ const unityRangeRegex = new RegExp(
 function TemplateEditor({
 	templates,
 	template,
+	templateId,
 	favoriteTemplates,
 	dialog,
 }: {
 	templates: TauriProjectTemplateInfo[];
-	template: (TauriAlcomTemplate & { id: string }) | null;
+	template: TauriAlcomTemplate | null;
+	templateId: string | null;
 	favoriteTemplates: string[];
 	dialog: DialogContext<boolean>;
 }) {
@@ -795,7 +826,7 @@ function TemplateEditor({
 	const saveTemplate = async () => {
 		try {
 			await commands.environmentSaveTemplate(
-				template?.id ?? null,
+				templateId,
 				baseTemplate,
 				name,
 				unityRange,
@@ -825,7 +856,7 @@ function TemplateEditor({
 	return (
 		<div className={"overflow-y-hidden flex flex-col"}>
 			<DialogTitle>
-				{template != null
+				{templateId != null
 					? tc("templates:dialog:edit template")
 					: tc("templates:dialog:create template")}
 			</DialogTitle>
