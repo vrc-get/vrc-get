@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog].
 - Implement project sorting by creation date `#2941`
 
 ### Changed
-- Added "Duplicate Template" action in template row menu, opening the template editor prefilled so users can rename and modify contents before saving as a new template `#0000`
+- Added "Duplicate Template" action in template row menu `#2990`
 
 ### Deprecated
 
