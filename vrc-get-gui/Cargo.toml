@@ -60,7 +60,7 @@ dirs-next = "2"
 yoke = { version = "0.8", features = ["derive"] }
 atomicbox = "0.4"
 stable_deref_trait = "1"
-itertools = "0.14"
+itertools = "0.15"
 sysinfo = "0.39.3"
 
 [target.'cfg(windows)'.dependencies]
