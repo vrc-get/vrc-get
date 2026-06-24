@@ -402,6 +402,7 @@
     "templates:tooltip:remove builtin template": "Built-inテンプレートは削除できません。",
     "templates:tooltip:remove vcc template": "VCCテンプレートはここでは削除できません。ファイルを直接削除してください。",
     "templates:menuitem:edit template": "テンプレートを編集",
+    "templates:menuitem:duplicate template": "テンプレートを複製する",
     "templates:menuitem:export template": "テンプレートをエクスポート",
     "templates:tooltip:export template with unitypackage": "UnityPackageを含むテンプレートはエクスポートできません。",
     "templates:menuitem:open vcc template": "VCCテンプレートの保存場所を開く",
